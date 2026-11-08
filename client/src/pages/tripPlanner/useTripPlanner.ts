@@ -34,7 +34,7 @@ import { usePluginStore } from '../../store/pluginStore'
 import type { Assignment, TripMember, Day, Reservation } from '../../types'
 import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
-import { placesForDays } from './tripPlannerModel'
+import { placesForDays, tourPlannerTabOf } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import { showReservationOnMap } from '../../components/Planner/bookings/showOnMap'
@@ -66,6 +66,7 @@ import { useTourDayChoice } from './useTourDayChoice'
 import { useBookingEdits } from './useBookingEdits'
 import { usePlannerTripView } from './usePlannerTripView'
 import { useIsPhone } from '../../mobile/useIsPhone'
+import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
 
 /**
@@ -150,6 +151,8 @@ export function useTripPlanner() {
   // road-trip mode is decided on it and the assignment and place lists below are
   // decided on that. One subscriber for the whole hook.
   const isMobile = useIsPhone()
+  // The touch shell on a tablet or an unfolded foldable, which has room for the tour editor.
+  const largeTouch = useIsWide()
   // The phone shell has no road-trip surface at all: no rail, no drive lines, and
   // no switch to turn the mode back off. Narrowing a desktop window past the
   // phone breakpoint used to carry the flag across anyway, which took the trip
@@ -220,9 +223,10 @@ export function useTripPlanner() {
   // them; 'plan' is never replaceable) and may pick where its own tab sits.
   const journal = useTripJournal(Number.isFinite(tripId) ? tripId : null)
   const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
+  const tourTab = tourPlannerTabOf(!!enabledAddons.tours, isMobile, largeTouch)
   const TRIP_TABS = [
     { id: 'plan', label: t(TRIP_TAB_LABEL_KEYS.plan), icon: Map },
-    ...(enabledAddons.tours && !isMobile ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, desktopOnly: true }] : []),
+    ...(tourTab ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, ...tourTab }] : []),
     { id: 'transports', label: t(TRIP_TAB_LABEL_KEYS.transports), icon: Train },
     { id: 'buchungen', label: t(TRIP_TAB_LABEL_KEYS.buchungen), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
     // Phone only: the desktop reaches the drive through the mode switch beside the
@@ -267,7 +271,7 @@ export function useTripPlanner() {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded, isMobile, journal.settled, journal.openJournalId])
+  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded, isMobile, largeTouch, journal.settled, journal.openJournalId])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump

@@ -328,9 +328,11 @@ export default function MTripShell({
 
   const trTab = planner.activeTab
 
+  // The tour editor is a tab on a large screen only; a phone, or a window narrowed
+  // to one, keeps its tours in the places browser.
   useEffect(() => {
-    if (trTab === 'tour-planner') planner.handleTabChange('plan')
-  }, [trTab, planner.handleTabChange])
+    if (trTab === 'tour-planner' && !wide) planner.handleTabChange('plan')
+  }, [trTab, wide, planner.handleTabChange])
 
   const setTrTab = (tabId: string) => {
     planner.handleTabChange(tabId)
@@ -862,7 +864,8 @@ export default function MTripShell({
             not in the dock, so nothing was lit up there either, and the screen
             gave no clue which plugin was open. Same treatment as the others, from
             the tab entry the planner already builds (id, label, icon). */}
-        {trTab.startsWith('plugin:') && (() => {
+        {/* The tours tab on a large screen reads the same way: its own controls sit in its pane. */}
+        {(trTab.startsWith('plugin:') || trTab === 'tour-planner') && (() => {
           const tab = planner.TRIP_TABS.find(x => x.id === trTab)
           if (!tab) return null
           const Icon = tab.icon

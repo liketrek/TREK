@@ -135,16 +135,21 @@ test('B4A desktop page delegates Tours state and permissions to its page hook', 
   const mobileFiles = mobileSourceFiles(resolve(process.cwd(), 'src/mobile'))
   for (const file of mobileFiles) {
     const mobileSource = parse(file, readFileSync(file, 'utf8'))
+    // The touch shell holds its own planner: it may build the page's state over that
+    // one (useTripPlannerPageOf), never a second planner through useTripPlannerPage.
     const importsDesktopHook = collect(mobileSource, ts.isImportDeclaration).some(node => {
       if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return false
-      const modulePath = node.moduleSpecifier.text
-      const namedImport = node.importClause?.namedBindings
-      return /(?:^|\/)useTripPlannerPage(?:\.tsx?)?$/.test(modulePath)
-        || (namedImport && ts.isNamedImports(namedImport)
-          && namedImport.elements.some(element => element.name.text === 'useTripPlannerPage'))
+      const fromPageModule = /(?:^|\/)useTripPlannerPage(?:\.tsx?)?$/.test(node.moduleSpecifier.text)
+      const clause = node.importClause
+      const namedImport = clause?.namedBindings
+      if (fromPageModule && (clause?.name || (namedImport && ts.isNamespaceImport(namedImport)))) return true
+      return !!(namedImport && ts.isNamedImports(namedImport)
+        && namedImport.elements.some(element => (element.propertyName ?? element.name).text === 'useTripPlannerPage'))
     })
     assert.equal(importsDesktopHook, false, file)
   }
+  // And the desktop's own hook is that same state over a planner of its own.
+  assert.match(pageControllerText, /return useTripPlannerPageOf\(useTripPlanner\(\)\)/)
 
   const permissions = initializer(pageController, 'canPlaceEdit')
   const permissionCalls = collect(pageController, node => ts.isCallExpression(node)

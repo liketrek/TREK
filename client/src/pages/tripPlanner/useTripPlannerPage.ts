@@ -22,7 +22,15 @@ import { mapFocusKeyOf, offeredWaysOf, paddleLineOf } from './tourMapFocus'
 import { placeFormContext } from './placeFormContext'
 
 export function useTripPlannerPage() {
-  const planner = useTripPlanner()
+  return useTripPlannerPageOf(useTripPlanner())
+}
+
+/**
+ * The planner page's state over a planner someone already holds. The touch shell
+ * owns its own useTripPlanner(), and its tours workspace on a large screen wires the
+ * desktop's tour editor from this, so the two cannot drift apart.
+ */
+export function useTripPlannerPageOf(planner: ReturnType<typeof useTripPlanner>) {
   const {
     activeTab,
     can, places,

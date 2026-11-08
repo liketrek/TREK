@@ -232,4 +232,23 @@ describe('MTripShell on a wide window', () => {
     fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.travel' }));
     expect(mocks.planner.handleSelectDay).toHaveBeenCalledWith(expect.any(Number), true);
   });
+
+  it('FE-MOB-SHELLW-011: a large screen keeps the tours tab and hands it to its panel', () => {
+    setSizeClass('split');
+    renderShell({
+      activeTab: 'tour-planner',
+      TRIP_TABS: [...TRIP_TABS, { id: 'tour-planner', label: 'Tours' }],
+    } as Partial<TripPlanner>);
+    expect(mocks.planner.handleTabChange).not.toHaveBeenCalledWith('plan');
+    expect(screen.getByTestId('tab-panel')).toHaveTextContent('tour-planner');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Trip sections' })).getByRole('button', { name: 'Tours' })
+    ).toBeInTheDocument();
+  });
+
+  it('FE-MOB-SHELLW-012: folded to a phone the tours tab goes back to the plan, where the places browser keeps the tours', () => {
+    setSizeClass('compact');
+    renderShell({ activeTab: 'tour-planner' } as Partial<TripPlanner>);
+    expect(mocks.planner.handleTabChange).toHaveBeenCalledWith('plan');
+  });
 });

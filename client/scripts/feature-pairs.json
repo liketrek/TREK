@@ -835,6 +835,12 @@
       "mobile": ["src/mobile/components/MToastHost.tsx"]
     },
     {
+      "feature": "Tour editor workspace",
+      "hooks": ["src/pages/tripPlanner/useTripPlannerPage.ts"],
+      "desktop": ["src/pages/TripPlannerPage.tsx"],
+      "mobile": ["src/mobile/screens/trip/tours/MTourWorkspace.tsx"]
+    },
+    {
       "feature": "Tours list filter",
       "hooks": ["src/components/Tours/tourPresentation.ts"],
       "desktop": [
