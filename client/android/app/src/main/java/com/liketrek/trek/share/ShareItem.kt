@@ -26,6 +26,11 @@ data class ShareItem(
     val title: String,
     /** A host, for a page. */
     val source: String? = null,
+    /**
+     * The web address it came from, when it is a page or a link: the app offers to
+     * keep it among the trip's links as well as to read a booking out of it.
+     */
+    val url: String? = null,
 ) {
     enum class Kind { PASS, PDF, MAIL, CALENDAR, PAGE, TEXT, IMAGE, FILE }
 
@@ -90,11 +95,16 @@ object ShareLoader {
         return checked(ShareItem(kind, withExtension(name, kind), normalized, data, name.substringBeforeLast('.').ifBlank { name }))
     }
 
-    /** A link becomes the page it points at; anything else, a text file the import reads. */
+    /**
+     * A link becomes the page it points at, or the bare link when the page cannot be
+     * read (a sign-in wall, an app-only page, no network), which the app can still
+     * keep among the trip's links. Anything else, a text file the import reads.
+     */
     internal fun fromText(text: String, subject: String?): ShareItem {
         val link = firstLink(text)
         if (link != null) {
             runCatching { return page(link, subject) }
+            return linkOnly(link, subject)
         }
         val firstLine = text.lineSequence().firstOrNull { it.isNotBlank() }?.trim() ?: text
         return checked(ShareItem(ShareItem.Kind.TEXT, "shared-text.txt", "text/plain", text.toByteArray(), (subject ?: firstLine).take(80)))
@@ -121,10 +131,16 @@ object ShareLoader {
             val html = String(data, Charsets.UTF_8)
             val host = runCatching { Uri.parse(link).host }.getOrNull()
             val title = pageTitle(html) ?: subject ?: host ?: "Page"
-            return checked(ShareItem(ShareItem.Kind.PAGE, "${slug(title)}.html", "text/html", data, title, host))
+            return checked(ShareItem(ShareItem.Kind.PAGE, "${slug(title)}.html", "text/html", data, title, host, link))
         } finally {
             connection.disconnect()
         }
+    }
+
+    /** The link alone, as a text/uri-list the app recognises as nothing to read a booking from. */
+    internal fun linkOnly(link: String, subject: String?): ShareItem {
+        val host = runCatching { Uri.parse(link).host }.getOrNull()
+        return ShareItem(ShareItem.Kind.PAGE, "link.url", "text/uri-list", link.toByteArray(), subject ?: host ?: link, host, link)
     }
 
     /** The kind and the MIME type the import should see, from the name when the type is vague. */

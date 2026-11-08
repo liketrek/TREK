@@ -50,6 +50,16 @@ class NativeLogicTest {
     }
 
     @Test
+    fun aLinkWhosePageCannotBeReadIsHandedOverAsTheLinkItself() {
+        val item = ShareLoader.linkOnly("https://www.instagram.com/p/abc", null)
+        assertEquals("text/uri-list", item.mimeType)
+        assertEquals("https://www.instagram.com/p/abc", item.url)
+        assertEquals("https://www.instagram.com/p/abc", String(item.data))
+        assertEquals("www.instagram.com", item.title)
+        assertEquals("Ramen place", ShareLoader.linkOnly("https://maps.app.goo.gl/x", "Ramen place").title)
+    }
+
+    @Test
     fun theShareSheetOffersComingTripsFirstThenRecentPastOnes() {
         val today = LocalDate.of(2026, 11, 7)
         fun trip(id: Long, start: String, end: String) =

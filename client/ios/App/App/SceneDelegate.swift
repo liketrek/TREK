@@ -110,6 +110,11 @@ enum TrekSharedFiles {
             "data": data.base64EncodedString(),
         ]
         if let tripId = info["tripId"] as? Int { file["tripId"] = tripId }
+        // A page or a link: where it came from, so the UI can keep it among the trip's links.
+        if let url = info["url"] as? String, url.hasPrefix("https://") || url.hasPrefix("http://") {
+            file["url"] = url
+            if let title = info["title"] as? String { file["title"] = title }
+        }
         pending = file
         onReceive?(file)
     }

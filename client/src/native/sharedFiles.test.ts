@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasNativeFeature } from './capabilities';
-import { startSharedFiles, toFile, useSharedImportStore } from './sharedFiles';
+import { linkOf, startSharedFiles, toFile, useSharedImportStore } from './sharedFiles';
 import { TrekShell } from './trekShell';
 
 vi.mock('./capabilities', () => ({ hasNativeFeature: vi.fn(), loadNativeCapabilities: vi.fn(async () => ({})) }));
@@ -12,7 +12,7 @@ vi.mock('./trekShell', () => ({
 const PDF = { name: 'booking.pdf', mimeType: 'application/pdf', data: btoa('%PDF-1.4 hello') };
 
 beforeEach(() => {
-  useSharedImportStore.setState({ file: null, tripId: null });
+  useSharedImportStore.setState({ file: null, tripId: null, link: null });
   vi.mocked(hasNativeFeature).mockReturnValue(true);
   vi.mocked(TrekShell.takeSharedFile).mockReset().mockResolvedValue({ file: null });
 });
@@ -48,6 +48,36 @@ describe('shared booking documents', () => {
     await startSharedFiles();
     expect(useSharedImportStore.getState()).toMatchObject({ tripId: 12 });
     expect(useSharedImportStore.getState().file?.name).toBe('booking.pdf');
+  });
+
+  it('keeps the address of a shared page, and holds the picked trip back until the link is decided on', async () => {
+    const page = { name: 'hotel.html', mimeType: 'text/html', data: btoa('<html></html>') };
+    vi.mocked(TrekShell.takeSharedFile).mockResolvedValue({
+      file: { ...page, tripId: 12, url: 'https://hotel.example/stay', title: 'Hotel Kanra' },
+    });
+    await startSharedFiles();
+    expect(useSharedImportStore.getState()).toMatchObject({
+      tripId: null,
+      link: { url: 'https://hotel.example/stay', title: 'Hotel Kanra', presetTripId: 12 },
+    });
+  });
+
+  it('takes http(s) links only, titled by the host when the page has none', () => {
+    const base = { name: 'link.url', mimeType: 'text/uri-list', data: '' };
+    expect(linkOf({ ...base, url: 'https://maps.app.goo.gl/x' })).toEqual({
+      url: 'https://maps.app.goo.gl/x',
+      title: 'maps.app.goo.gl',
+      presetTripId: null,
+    });
+    expect(linkOf({ ...base, url: 'javascript:alert(1)' })).toBeNull();
+    expect(linkOf({ ...base, url: 'not a url' })).toBeNull();
+    expect(linkOf(base)).toBeNull();
+  });
+
+  it('forgets the link along with the file', () => {
+    useSharedImportStore.getState().setFile(toFile(PDF), { url: 'https://a.example/', title: 'A', presetTripId: null });
+    useSharedImportStore.getState().setFile(null, { url: 'https://a.example/', title: 'A', presetTripId: null });
+    expect(useSharedImportStore.getState().link).toBeNull();
   });
 
   it('does nothing in a binary without the feature', async () => {

@@ -46,6 +46,7 @@ object ShareHandoff {
     fun store(context: Context, item: ShareItem, tripId: Long?): Boolean = runCatching {
         val meta = JSONObject().put("name", item.name).put("mimeType", item.mimeType)
         if (tripId != null) meta.put("tripId", tripId)
+        if (item.url != null) meta.put("url", item.url).put("title", item.title)
         File(dir(context), "pending.data").writeBytes(item.data)
         File(dir(context), "pending.json").writeText(meta.toString())
         true

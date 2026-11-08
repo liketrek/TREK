@@ -54,6 +54,10 @@ enum ShareHandoff {
     static func store(_ item: ShareItem, tripId: Int?) -> Bool {
         var meta: [String: Any] = ["name": item.name, "mimeType": item.mimeType]
         if let tripId { meta["tripId"] = tripId }
+        if let url = item.url {
+            meta["url"] = url
+            meta["title"] = item.title
+        }
         guard let metaData = try? JSONSerialization.data(withJSONObject: meta) else { return false }
         return write(dataAccount, item.data) && write(metaAccount, metaData)
     }

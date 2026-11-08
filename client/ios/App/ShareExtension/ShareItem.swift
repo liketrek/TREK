@@ -32,6 +32,9 @@ struct ShareItem {
     var title: String
     /// A host, for a page.
     var source: String?
+    /// The web address it came from, when it is a page or a link: the app offers to
+    /// keep it among the trip's links as well as to read a booking out of it.
+    var url: String? = nil
 
     var sizeLabel: String {
         ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)
@@ -88,6 +91,10 @@ enum ShareLoader {
             let text = (item as? String) ?? (item as? Data).flatMap { String(data: $0, encoding: .utf8) } ?? ""
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { throw ShareLoadError.unsupported }
+            // A text that is just a link (what many apps share) is that link.
+            if !trimmed.contains(where: \.isWhitespace), let url = URL(string: trimmed), webAddress(url) != nil {
+                return try await page(at: url)
+            }
             let firstLine = trimmed.split(whereSeparator: \.isNewline).first.map(String.init) ?? trimmed
             return try checked(ShareItem(kind: .text, name: "shared-text.txt", mimeType: "text/plain",
                                          data: Data(trimmed.utf8), title: String(firstLine.prefix(80)), source: nil))
@@ -133,21 +140,39 @@ enum ShareLoader {
         let url = (results["url"] as? String).flatMap(URL.init(string:))
         let title = (results["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? url?.host ?? "Page"
         return try checked(ShareItem(kind: .page, name: "\(slug(title)).html", mimeType: "text/html",
-                                     data: Data(html.utf8), title: title, source: url?.host))
+                                     data: Data(html.utf8), title: title, source: url?.host,
+                                     url: url.flatMap(webAddress)))
     }
 
-    /// A link shared from an app other than Safari: the page as the server sends it.
+    /// A link shared from an app other than Safari: the page as the server sends it,
+    /// or the bare link when the page cannot be read (a sign-in wall, an app-only
+    /// page, no network), which the app can still keep among the trip's links.
     private static func page(at url: URL) async throws -> ShareItem {
-        guard url.scheme == "https" || url.scheme == "http" else { throw ShareLoadError.unsupported }
+        guard let address = webAddress(url) else { throw ShareLoadError.unsupported }
         var request = URLRequest(url: url, timeoutInterval: 10)
         request.setValue("text/html", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-              (http.mimeType ?? "").contains("html") else { throw ShareLoadError.unsupported }
-        let html = String(decoding: data, as: UTF8.self)
-        let title = pageTitle(html) ?? url.host ?? "Page"
-        return try checked(ShareItem(kind: .page, name: "\(slug(title)).html", mimeType: "text/html",
-                                     data: data, title: title, source: url.host))
+        if let fetched = try? await URLSession.shared.data(for: request),
+           let http = fetched.1 as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+           (http.mimeType ?? "").contains("html"), !fetched.0.isEmpty, fetched.0.count <= maxBytes {
+            let data = fetched.0
+            let html = String(decoding: data, as: UTF8.self)
+            let title = pageTitle(html) ?? url.host ?? "Page"
+            return ShareItem(kind: .page, name: "\(slug(title)).html", mimeType: "text/html",
+                             data: data, title: title, source: url.host, url: address)
+        }
+        return link(url, address)
+    }
+
+    /// The link alone, as a text/uri-list the app recognises as nothing to read a booking from.
+    private static func link(_ url: URL, _ address: String) -> ShareItem {
+        ShareItem(kind: .page, name: "link.url", mimeType: "text/uri-list", data: Data(address.utf8),
+                  title: url.host ?? address, source: url.host, url: address)
+    }
+
+    /// An http(s) address, the only kind a trip's links take.
+    private static func webAddress(_ url: URL) -> String? {
+        guard url.scheme == "https" || url.scheme == "http", url.host != nil else { return nil }
+        return url.absoluteString
     }
 
     private static func fromFile(_ url: URL) throws -> ShareItem {

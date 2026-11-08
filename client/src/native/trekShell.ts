@@ -163,6 +163,10 @@ export interface SharedFilePayload {
   data: string;
   /** Set when the share sheet already asked which trip it belongs to (feature shareSheet). */
   tripId?: number;
+  /** The http(s) address of a shared page or link, which can go to the trip's links instead. */
+  url?: string;
+  /** The page's title, for that link. */
+  title?: string;
 }
 
 /**

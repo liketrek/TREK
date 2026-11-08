@@ -83,6 +83,12 @@ final class TrekSharedFiles {
         file.put("mimeType", meta.optString("mimeType", "application/octet-stream"));
         file.put("data", Base64.encodeToString(item.getSecond(), Base64.NO_WRAP));
         if (meta.has("tripId")) file.put("tripId", meta.optLong("tripId"));
+        // A page or a link: where it came from, so the UI can keep it among the trip's links.
+        String url = meta.optString("url", "");
+        if (url.startsWith("https://") || url.startsWith("http://")) {
+            file.put("url", url);
+            file.put("title", meta.optString("title", url));
+        }
         pending = file;
         if (listener != null) listener.onFile(file);
     }
