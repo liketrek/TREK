@@ -140,8 +140,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Orada bir kez uygulamanın içinde, tarayıcıdaki gibi giriş yapın. Uygulama bu oturumu saklar.',
   'native.gate.signIn': '{name} ile giriş yap',
   'native.gate.signInGeneric': 'Giriş yap',
-  'native.gate.googleNote': 'Google ile giriş bir uygulamanın içinde çalışmaz. Sizinki bunu kullanıyorsa TREK’i proxy’den geçirin.',
-  'native.gate.basicHint': 'Uygulama bu isteğe yanıt veremez. TREK’i proxy’nizde geçirin: TREK yine kendi girişini ister.',
+  'native.gate.googleNote':
+    'Google ile giriş bir uygulamanın içinde çalışmaz. Sizinki bunu kullanıyorsa TREK’i proxy’den geçirin.',
+  'native.gate.basicHint':
+    'Uygulama bu isteğe yanıt veremez. TREK’i proxy’nizde geçirin: TREK yine kendi girişini ister.',
   'native.gate.help': 'Uygulamayı bir giriş proxy’sinin arkasında kullanma',
 };
 

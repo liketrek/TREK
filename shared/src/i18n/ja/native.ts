@@ -137,11 +137,14 @@ const native: TranslationStrings = {
   'native.gate.title': '{name} がこのサーバーを保護しています',
   'native.gate.titleUnknown': 'サインインページがこのサーバーを保護しています',
   'native.gate.titleBasic': 'パスワード入力がこのサーバーを保護しています',
-  'native.gate.hint': 'ブラウザと同じように、アプリ内で一度サインインしてください。アプリがそのセッションを保持します。',
+  'native.gate.hint':
+    'ブラウザと同じように、アプリ内で一度サインインしてください。アプリがそのセッションを保持します。',
   'native.gate.signIn': '{name} にサインイン',
   'native.gate.signInGeneric': 'サインイン',
-  'native.gate.googleNote': 'Google でのサインインはアプリ内では動作しません。お使いのものが Google を使う場合は、プロキシで TREK を通過させてください。',
-  'native.gate.basicHint': 'アプリはこの入力に応答できません。プロキシで TREK を通過させてください。TREK は引き続き独自のログインを求めます。',
+  'native.gate.googleNote':
+    'Google でのサインインはアプリ内では動作しません。お使いのものが Google を使う場合は、プロキシで TREK を通過させてください。',
+  'native.gate.basicHint':
+    'アプリはこの入力に応答できません。プロキシで TREK を通過させてください。TREK は引き続き独自のログインを求めます。',
   'native.gate.help': 'サインインプロキシの背後でアプリを使う',
 };
 

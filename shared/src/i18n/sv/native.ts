@@ -139,8 +139,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Logga in där en gång i appen, som i en webbläsare. Appen behåller sessionen.',
   'native.gate.signIn': 'Logga in på {name}',
   'native.gate.signInGeneric': 'Logga in',
-  'native.gate.googleNote': 'Inloggning med Google fungerar inte i en app. Om din använder det, släpp i stället förbi TREK i proxyn.',
-  'native.gate.basicHint': 'Appen kan inte svara på den här frågan. Släpp förbi TREK i din proxy: TREK frågar fortfarande efter sin egen inloggning.',
+  'native.gate.googleNote':
+    'Inloggning med Google fungerar inte i en app. Om din använder det, släpp i stället förbi TREK i proxyn.',
+  'native.gate.basicHint':
+    'Appen kan inte svara på den här frågan. Släpp förbi TREK i din proxy: TREK frågar fortfarande efter sin egen inloggning.',
   'native.gate.help': 'Använda appen bakom en inloggningsproxy',
 };
 

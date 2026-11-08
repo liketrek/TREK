@@ -138,8 +138,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Přihlaste se tam jednou v aplikaci, jako v prohlížeči. Aplikace si relaci ponechá.',
   'native.gate.signIn': 'Přihlásit se k {name}',
   'native.gate.signInGeneric': 'Přihlásit se',
-  'native.gate.googleNote': 'Přihlášení přes Google v aplikaci nefunguje. Pokud ho používáte, nechte TREK projít přes proxy.',
-  'native.gate.basicHint': 'Aplikace na tuto výzvu nedokáže odpovědět. Nechte TREK ve své proxy projít: TREK stále žádá své vlastní přihlášení.',
+  'native.gate.googleNote':
+    'Přihlášení přes Google v aplikaci nefunguje. Pokud ho používáte, nechte TREK projít přes proxy.',
+  'native.gate.basicHint':
+    'Aplikace na tuto výzvu nedokáže odpovědět. Nechte TREK ve své proxy projít: TREK stále žádá své vlastní přihlášení.',
   'native.gate.help': 'Používání aplikace za přihlašovací proxy',
 };
 

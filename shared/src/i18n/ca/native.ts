@@ -135,14 +135,16 @@ const native: TranslationStrings = {
   'native.widget.noMessages': 'Encara no hi ha missatges',
   'native.widget.departure': 'Sortida',
   'native.gate.title': '{name} protegeix aquest servidor',
-  'native.gate.titleUnknown': 'Una pàgina d\'inici de sessió protegeix aquest servidor',
+  'native.gate.titleUnknown': "Una pàgina d'inici de sessió protegeix aquest servidor",
   'native.gate.titleBasic': 'Una sol·licitud de contrasenya protegeix aquest servidor',
-  'native.gate.hint': 'Inicia la sessió allà un cop dins l\'app, com en un navegador. L\'app conserva aquesta sessió.',
+  'native.gate.hint': "Inicia la sessió allà un cop dins l'app, com en un navegador. L'app conserva aquesta sessió.",
   'native.gate.signIn': 'Inicia la sessió a {name}',
   'native.gate.signInGeneric': 'Inicia la sessió',
-  'native.gate.googleNote': 'Un inici de sessió amb Google no funciona dins d\'una app. Si el teu el fa servir, deixa passar TREK pel proxy.',
-  'native.gate.basicHint': 'L\'app no pot respondre aquesta sol·licitud. Deixa passar TREK al teu proxy: TREK continua demanant el seu propi inici de sessió.',
-  'native.gate.help': 'Fer servir l\'app darrere d\'un proxy d\'inici de sessió',
+  'native.gate.googleNote':
+    "Un inici de sessió amb Google no funciona dins d'una app. Si el teu el fa servir, deixa passar TREK pel proxy.",
+  'native.gate.basicHint':
+    "L'app no pot respondre aquesta sol·licitud. Deixa passar TREK al teu proxy: TREK continua demanant el seu propi inici de sessió.",
+  'native.gate.help': "Fer servir l'app darrere d'un proxy d'inici de sessió",
 };
 
 export default native;

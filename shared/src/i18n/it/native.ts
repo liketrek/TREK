@@ -138,12 +138,14 @@ const native: TranslationStrings = {
   'native.gate.title': '{name} protegge questo server',
   'native.gate.titleUnknown': 'Una pagina di accesso protegge questo server',
   'native.gate.titleBasic': 'Una richiesta di password protegge questo server',
-  'native.gate.hint': 'Accedi lì una volta dentro l\'app, come in un browser. L\'app mantiene quella sessione.',
+  'native.gate.hint': "Accedi lì una volta dentro l'app, come in un browser. L'app mantiene quella sessione.",
   'native.gate.signIn': 'Accedi a {name}',
   'native.gate.signInGeneric': 'Accedi',
-  'native.gate.googleNote': 'Un accesso con Google non funziona dentro un\'app. Se il tuo lo usa, lascia passare TREK nel proxy.',
-  'native.gate.basicHint': 'L\'app non può rispondere a questa richiesta. Lascia passare TREK nel tuo proxy: TREK chiede comunque il proprio accesso.',
-  'native.gate.help': 'Usare l\'app dietro un proxy di accesso',
+  'native.gate.googleNote':
+    "Un accesso con Google non funziona dentro un'app. Se il tuo lo usa, lascia passare TREK nel proxy.",
+  'native.gate.basicHint':
+    "L'app non può rispondere a questa richiesta. Lascia passare TREK nel tuo proxy: TREK chiede comunque il proprio accesso.",
+  'native.gate.help': "Usare l'app dietro un proxy di accesso",
 };
 
 export default native;

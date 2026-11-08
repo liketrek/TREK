@@ -137,8 +137,10 @@ const native: TranslationStrings = {
   'native.gate.hint': '브라우저처럼 앱 안에서 한 번 로그인하세요. 앱이 그 세션을 유지합니다.',
   'native.gate.signIn': '{name}에 로그인',
   'native.gate.signInGeneric': '로그인',
-  'native.gate.googleNote': 'Google 로그인은 앱 안에서 작동하지 않습니다. 사용 중이라면 대신 프록시에서 TREK을 통과시키세요.',
-  'native.gate.basicHint': '앱은 이 요청에 응답할 수 없습니다. 프록시에서 TREK을 통과시키세요. TREK은 여전히 자체 로그인을 요청합니다.',
+  'native.gate.googleNote':
+    'Google 로그인은 앱 안에서 작동하지 않습니다. 사용 중이라면 대신 프록시에서 TREK을 통과시키세요.',
+  'native.gate.basicHint':
+    '앱은 이 요청에 응답할 수 없습니다. 프록시에서 TREK을 통과시키세요. TREK은 여전히 자체 로그인을 요청합니다.',
   'native.gate.help': '로그인 프록시 뒤에서 앱 사용하기',
 };
 

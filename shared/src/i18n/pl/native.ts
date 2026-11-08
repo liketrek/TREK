@@ -139,8 +139,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Zaloguj się tam raz w aplikacji, jak w przeglądarce. Aplikacja zachowa tę sesję.',
   'native.gate.signIn': 'Zaloguj się do {name}',
   'native.gate.signInGeneric': 'Zaloguj się',
-  'native.gate.googleNote': 'Logowanie przez Google nie działa w aplikacji. Jeśli Twoje go używa, przepuść TREK przez proxy.',
-  'native.gate.basicHint': 'Aplikacja nie może odpowiedzieć na tę prośbę. Przepuść TREK w swoim proxy: TREK nadal pyta o własne logowanie.',
+  'native.gate.googleNote':
+    'Logowanie przez Google nie działa w aplikacji. Jeśli Twoje go używa, przepuść TREK przez proxy.',
+  'native.gate.basicHint':
+    'Aplikacja nie może odpowiedzieć na tę prośbę. Przepuść TREK w swoim proxy: TREK nadal pyta o własne logowanie.',
   'native.gate.help': 'Korzystanie z aplikacji za proxy logowania',
 };
 

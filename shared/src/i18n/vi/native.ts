@@ -141,8 +141,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Đăng nhập ở đó một lần ngay trong ứng dụng, như trên trình duyệt. Ứng dụng giữ phiên đó.',
   'native.gate.signIn': 'Đăng nhập vào {name}',
   'native.gate.signInGeneric': 'Đăng nhập',
-  'native.gate.googleNote': 'Đăng nhập bằng Google không chạy được trong ứng dụng. Nếu của bạn dùng nó, hãy cho TREK đi qua proxy.',
-  'native.gate.basicHint': 'Ứng dụng không thể trả lời yêu cầu này. Hãy cho TREK đi qua proxy của bạn: TREK vẫn hỏi đăng nhập riêng của nó.',
+  'native.gate.googleNote':
+    'Đăng nhập bằng Google không chạy được trong ứng dụng. Nếu của bạn dùng nó, hãy cho TREK đi qua proxy.',
+  'native.gate.basicHint':
+    'Ứng dụng không thể trả lời yêu cầu này. Hãy cho TREK đi qua proxy của bạn: TREK vẫn hỏi đăng nhập riêng của nó.',
   'native.gate.help': 'Dùng ứng dụng sau một proxy đăng nhập',
 };
 

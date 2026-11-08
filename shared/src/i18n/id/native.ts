@@ -140,8 +140,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Masuk di sana sekali di dalam aplikasi, seperti di browser. Aplikasi menyimpan sesi itu.',
   'native.gate.signIn': 'Masuk ke {name}',
   'native.gate.signInGeneric': 'Masuk',
-  'native.gate.googleNote': 'Masuk dengan Google tidak bisa berjalan di dalam aplikasi. Jika milikmu memakainya, loloskan TREK di proxy saja.',
-  'native.gate.basicHint': 'Aplikasi tidak bisa menjawab permintaan ini. Loloskan TREK di proxy kamu: TREK tetap meminta login miliknya sendiri.',
+  'native.gate.googleNote':
+    'Masuk dengan Google tidak bisa berjalan di dalam aplikasi. Jika milikmu memakainya, loloskan TREK di proxy saja.',
+  'native.gate.basicHint':
+    'Aplikasi tidak bisa menjawab permintaan ini. Loloskan TREK di proxy kamu: TREK tetap meminta login miliknya sendiri.',
   'native.gate.help': 'Memakai aplikasi di balik proxy masuk',
 };
 

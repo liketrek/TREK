@@ -139,8 +139,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Sign in there once inside the app, as you would in a browser. The app keeps that session.',
   'native.gate.signIn': 'Sign in to {name}',
   'native.gate.signInGeneric': 'Sign in',
-  'native.gate.googleNote': 'A sign-in with Google cannot run inside an app. If yours uses it, let TREK through the proxy instead.',
-  'native.gate.basicHint': 'The app cannot answer this prompt. Let TREK through it in your proxy: TREK still asks for its own login.',
+  'native.gate.googleNote':
+    'A sign-in with Google cannot run inside an app. If yours uses it, let TREK through the proxy instead.',
+  'native.gate.basicHint':
+    'The app cannot answer this prompt. Let TREK through it in your proxy: TREK still asks for its own login.',
   'native.gate.help': 'Using the app behind a sign-in proxy',
 };
 

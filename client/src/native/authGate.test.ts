@@ -49,7 +49,7 @@ describe('detectAuthGate', () => {
       headers: { 'WWW-Authenticate': 'Basic realm="trek"' },
     });
     expect(gate).toEqual({ kind: 'basic', loginHost: null });
-    expect(canSignInInApp(gate!)).toBe(false);
+    expect(gate !== null && canSignInInApp(gate)).toBe(false);
   });
 
   it('calls any other sign-in page an unknown gate', () => {
@@ -59,7 +59,7 @@ describe('detectAuthGate', () => {
       data: page('<input type="password">'),
     });
     expect(gate).toEqual({ kind: 'unknown', loginHost: 'sso.example.com' });
-    expect(canSignInInApp(gate!)).toBe(true);
+    expect(gate !== null && canSignInInApp(gate)).toBe(true);
   });
 
   it('sees no gate in a server that is simply something else', () => {

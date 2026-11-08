@@ -141,8 +141,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Melde dich dort einmal in der App an, wie im Browser. Die App behält diese Sitzung.',
   'native.gate.signIn': 'Bei {name} anmelden',
   'native.gate.signInGeneric': 'Anmelden',
-  'native.gate.googleNote': 'Eine Anmeldung mit Google funktioniert nicht in einer App. Nutzt deine sie, lass TREK stattdessen am Proxy vorbei.',
-  'native.gate.basicHint': 'Die App kann diese Abfrage nicht beantworten. Lass TREK in deinem Proxy daran vorbei: TREK fragt weiterhin nach seiner eigenen Anmeldung.',
+  'native.gate.googleNote':
+    'Eine Anmeldung mit Google funktioniert nicht in einer App. Nutzt deine sie, lass TREK stattdessen am Proxy vorbei.',
+  'native.gate.basicHint':
+    'Die App kann diese Abfrage nicht beantworten. Lass TREK in deinem Proxy daran vorbei: TREK fragt weiterhin nach seiner eigenen Anmeldung.',
   'native.gate.help': 'Die App hinter einem Anmelde-Proxy nutzen',
 };
 

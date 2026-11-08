@@ -56,6 +56,46 @@ function looksLikeSignIn(html: string): boolean {
   return /type=["']?password/i.test(html) || /\b(sign|log)[\s-]?in\b/i.test(html);
 }
 
+/** What the check got back, read once for the rules below. */
+interface Seen {
+  host: string | null;
+  path: string;
+  html: string;
+  status: number;
+  headers: Record<string, string> | undefined;
+}
+
+/** The named gates, each by what gives it away; the first that matches wins. */
+const NAMED_GATES: Array<[Exclude<AuthGateKind, 'basic' | 'unknown'>, (seen: Seen) => boolean]> = [
+  [
+    'cloudflare',
+    (seen) => !!seen.host?.endsWith('.cloudflareaccess.com') || !!header(seen.headers, 'cf-access-domain'),
+  ],
+  ['authentik', (seen) => seen.path.includes('/outpost.goauthentik.io/') || /authentik/i.test(seen.html)],
+  ['authelia', (seen) => /authelia/i.test(seen.html)],
+  ['oauth2proxy', (seen) => seen.path.startsWith('/oauth2/') || /oauth2[\s-]?proxy/i.test(seen.html)],
+  ['pangolin', (seen) => seen.path.startsWith('/auth/resource/') || /pangolin/i.test(seen.html)],
+];
+
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return '';
+  }
+}
+
+/** A gate that gives no name away: a password prompt, or any other page that asks for a sign-in. */
+function unnamedGate(seen: Seen, loginHost: string | null): AuthGate | null {
+  if (seen.status === 401 && /^basic\b/i.test(header(seen.headers, 'www-authenticate'))) {
+    return { kind: 'basic', loginHost: null };
+  }
+  // Only a page that reads as a sign-in counts: a server that is simply
+  // something other than TREK answers with a page of its own too.
+  if (!seen.html || !looksLikeSignIn(seen.html)) return null;
+  return loginHost || [200, 401, 403].includes(seen.status) ? { kind: 'unknown', loginHost } : null;
+}
+
 /**
  * The gate in front of `requested`, judged from what came back instead of
  * TREK's answer, or null when nothing points to one: then the address simply
@@ -63,34 +103,17 @@ function looksLikeSignIn(html: string): boolean {
  */
 export function detectAuthGate(requested: string, response: GateResponse): AuthGate | null {
   const finalUrl = response.url || requested;
-  const requestedHost = hostOf(requested);
-  const finalHost = hostOf(finalUrl);
-  const movedHost = finalHost !== null && finalHost !== requestedHost;
-  const loginHost = movedHost ? finalHost : null;
-  const html = typeof response.data === 'string' ? response.data : '';
-  let path = '';
-  try {
-    path = new URL(finalUrl).pathname;
-  } catch {
-    /* an unparsable URL leaves only the page itself to go by */
-  }
-
-  if (finalHost?.endsWith('.cloudflareaccess.com') || header(response.headers, 'cf-access-domain')) {
-    return { kind: 'cloudflare', loginHost };
-  }
-  if (path.includes('/outpost.goauthentik.io/') || /authentik/i.test(html)) return { kind: 'authentik', loginHost };
-  if (/authelia/i.test(html)) return { kind: 'authelia', loginHost };
-  if (path.startsWith('/oauth2/') || /oauth2[\s-]?proxy/i.test(html)) return { kind: 'oauth2proxy', loginHost };
-  if (path.startsWith('/auth/resource/') || /pangolin/i.test(html)) return { kind: 'pangolin', loginHost };
-  if (response.status === 401 && /^basic\b/i.test(header(response.headers, 'www-authenticate'))) {
-    return { kind: 'basic', loginHost: null };
-  }
-  // Anything else counts only when it reads as a sign-in: a server that is
-  // simply something other than TREK answers with a page of its own too.
-  if (html && looksLikeSignIn(html) && (movedHost || [200, 401, 403].includes(response.status))) {
-    return { kind: 'unknown', loginHost };
-  }
-  return null;
+  const host = hostOf(finalUrl);
+  const loginHost = host !== null && host !== hostOf(requested) ? host : null;
+  const seen: Seen = {
+    host,
+    path: pathOf(finalUrl),
+    html: typeof response.data === 'string' ? response.data : '',
+    status: response.status,
+    headers: response.headers,
+  };
+  const named = NAMED_GATES.find(([, matches]) => matches(seen));
+  return named ? { kind: named[0], loginHost } : unnamedGate(seen, loginHost);
 }
 
 /** Whether the app can show this gate's sign-in itself: a password prompt it cannot. */

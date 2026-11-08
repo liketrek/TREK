@@ -137,7 +137,8 @@ const native: TranslationStrings = {
   'native.gate.signIn': 'ลงชื่อเข้าใช้ {name}',
   'native.gate.signInGeneric': 'ลงชื่อเข้าใช้',
   'native.gate.googleNote': 'การลงชื่อเข้าใช้ด้วย Google ใช้ในแอปไม่ได้ หากของคุณใช้ ให้ปล่อย TREK ผ่านพร็อกซีแทน',
-  'native.gate.basicHint': 'แอปตอบคำขอนี้ไม่ได้ ให้ปล่อย TREK ผ่านในพร็อกซีของคุณ: TREK ยังคงขอการลงชื่อเข้าใช้ของตัวเอง',
+  'native.gate.basicHint':
+    'แอปตอบคำขอนี้ไม่ได้ ให้ปล่อย TREK ผ่านในพร็อกซีของคุณ: TREK ยังคงขอการลงชื่อเข้าใช้ของตัวเอง',
   'native.gate.help': 'การใช้แอปหลังพร็อกซีลงชื่อเข้าใช้',
 };
 

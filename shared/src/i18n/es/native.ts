@@ -141,8 +141,10 @@ const native: TranslationStrings = {
   'native.gate.hint': 'Inicia sesión allí una vez dentro de la app, como en un navegador. La app conserva esa sesión.',
   'native.gate.signIn': 'Iniciar sesión en {name}',
   'native.gate.signInGeneric': 'Iniciar sesión',
-  'native.gate.googleNote': 'Un inicio de sesión con Google no funciona dentro de una app. Si el tuyo lo usa, deja pasar TREK por el proxy.',
-  'native.gate.basicHint': 'La app no puede responder a esta solicitud. Deja pasar TREK en tu proxy: TREK sigue pidiendo su propio inicio de sesión.',
+  'native.gate.googleNote':
+    'Un inicio de sesión con Google no funciona dentro de una app. Si el tuyo lo usa, deja pasar TREK por el proxy.',
+  'native.gate.basicHint':
+    'La app no puede responder a esta solicitud. Deja pasar TREK en tu proxy: TREK sigue pidiendo su propio inicio de sesión.',
   'native.gate.help': 'Usar la app detrás de un proxy de inicio de sesión',
 };
 
