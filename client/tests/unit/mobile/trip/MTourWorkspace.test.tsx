@@ -2,6 +2,7 @@ import { fireEvent } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MTourWorkspace from '../../../../src/mobile/screens/trip/tours/MTourWorkspace';
+import { setTourHeadSlot } from '../../../../src/mobile/screens/trip/tours/tourHeadSlot';
 import { buildPlanner } from '../../../helpers/mobileTrip';
 import { render, screen } from '../../../helpers/render';
 import { setSizeClass } from '../../../helpers/sizeClass';
@@ -58,6 +59,7 @@ beforeEach(() => {
   page.wandererOpen = false;
   page.calls = [];
   dragBridge.mockClear();
+  setTourHeadSlot(null);
 });
 
 describe('MTourWorkspace', () => {
@@ -134,5 +136,25 @@ describe('MTourWorkspace', () => {
     setSizeClass('split');
     render(<MTourWorkspace planner={buildPlanner()} />);
     expect(screen.getByTestId('gpx-drop')).toContainElement(screen.getByTestId('tour-map'));
+  });
+  it("FE-MOB-TOURWS-008: with the shell's slot the switch and the map button sit in its top row, and the switch brings the pane back", async () => {
+    setSizeClass('wide');
+    const slot = document.createElement('div');
+    document.body.appendChild(slot);
+    setTourHeadSlot(slot);
+    render(<MTourWorkspace planner={buildPlanner()} />);
+    expect(await screen.findByTestId('tour-list')).toBeInTheDocument();
+    expect(slot).toContainElement(screen.getByRole('tab', { name: 'tours.planner.tripTours' }));
+    expect(slot).toContainElement(screen.getByRole('button', { name: 'mobileTrip.mapView' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.mapView' }));
+    expect(screen.getByTestId('tour-map')).toBeInTheDocument();
+    // Only the top row's button leads back: the map keeps its corner free.
+    expect(screen.getAllByRole('button', { name: 'mobileTrip.listView' })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'tours.planner.title' }));
+    expect(await screen.findByTestId('tour-editor')).toBeInTheDocument();
+    expect(screen.queryByTestId('tour-map')).not.toBeInTheDocument();
+    slot.remove();
   });
 });

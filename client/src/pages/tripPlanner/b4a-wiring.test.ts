@@ -106,6 +106,9 @@ test('B4A Tours tab is readable, desktop-only off a large screen, and absent wit
   assert.doesNotMatch(tabs.getText(hook), /\bcan\b|canPlaceEdit|canDayEdit/)
   assert.match(hookText, /!validTabIds\.includes\(activeTab\)[\s\S]*?setActiveTab\('plan'\)/)
   assert.match(pageText, /activeTab === 'tour-planner' && enabledAddons\.tours && !isMobile/)
+  // The app counts as a phone shell on an iPad too: the workspace follows its tab, not the phone test.
+  assert.equal(initializer(workspace, 'workspaceUp').getText(workspace), "activeTab === 'tour-planner' && (!isMobile || largeTouch)")
+  assert.doesNotMatch(workspaceText, /!isMobile(?! \|\| largeTouch)/)
 })
 
 test('B4A selectedTour is derived only from explicit place selection and addon state', () => {

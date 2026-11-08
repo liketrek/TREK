@@ -75,6 +75,8 @@ import { walkTimeFields } from '../walk/walkTimeFields'
 
 /** The tinted head band both rails open with, like every panel head in the planner. */
 export const RAIL_HEAD = 'flex flex-none items-start gap-2 border-b border-edge-faint px-3 py-2.5'
+/** The head as a rounded band of its own, inset like the controls above it (the touch shell's tours tab). */
+const FLOATING_RAIL_HEAD = 'mx-4 mt-1 flex flex-none items-start gap-2 rounded-xl border border-edge-faint px-3 py-2'
 
 /** The title of a rail's head band, with an optional line under it. */
 export function RailTitle({ title, sub, aside }: { title: string; sub?: ReactNode; aside?: ReactNode }) {
@@ -566,6 +568,8 @@ interface TourPlannerToursRailProps extends TourPermissionProps {
   gpxImport?: TourGpxImport
   /** LIB-02: takes a tour of another trip in, an entry of "Add tour". */
   onTakenOver?: (tour: TourListItem) => Promise<void>
+  /** The head as a rounded band rather than a ruled one (the touch shell's tours tab). */
+  floatingHead?: boolean
 }
 
 /** The words of the time estimate: walking, riding (BIK-01), running (RUN-01) or paddling, each saying how it is reckoned, and a ride none. */
@@ -672,7 +676,7 @@ function stagesFold(tour: TourListItem, rail: ReturnType<typeof useTourStageRail
 }
 
 export function TourPlannerToursRail({ planner, tours, days, loading, onAssignToDay, onViewGpxTour, onDeleteTour,
-  gpxImport, onTakenOver, canEdit: editPermission, canAssign: assignPermission }: TourPlannerToursRailProps) {
+  gpxImport, onTakenOver, canEdit: editPermission, canAssign: assignPermission, floatingHead = false }: TourPlannerToursRailProps) {
   const { canEdit, canAssign } = useTourPermissions({ canEdit: editPermission ?? planner.canEdit, canAssign: assignPermission ?? planner.canAssign })
   const { t } = useTranslation()
   const toast = useToast()
@@ -734,7 +738,7 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
 
   return (
     <aside className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.tripTours')}>
-      <div className={RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
+      <div className={floatingHead ? FLOATING_RAIL_HEAD : RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
         <RailTitle title={t('tours.planner.tripTours')} />
         {canEdit && <TourAddMenu planner={planner} gpxImport={gpxImport} onTakenOver={onTakenOver} disabled={isSaving} />}
       </div>

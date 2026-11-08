@@ -19,12 +19,22 @@ interface TooltipProps {
   children: React.ReactElement
 }
 
+/** The emulated mouse events of a tap follow it within a few hundred milliseconds. */
+const TAP_MOUSE_WINDOW_MS = 1000
+
+function touchedRecently(touchedAt: number, now: number): boolean {
+  return touchedAt > 0 && now - touchedAt < TAP_MOUSE_WINDOW_MS
+}
+
 export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, shortcut, content, children }: TooltipProps) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const timerRef = useRef<number | null>(null)
+  // When a finger last touched the trigger. A tap makes the browser send a mouseenter
+  // after it and never the mouseleave, so the tip would open on a tap and stay.
+  const touchedAtRef = useRef(0)
 
   const show = () => {
     if (disabled || !label) return
@@ -60,6 +70,7 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, sh
   type TriggerProps = {
     ref?: React.Ref<HTMLElement>
     onMouseEnter?: (e: React.MouseEvent) => void
+    onTouchStart?: (e: React.TouchEvent) => void
     onMouseLeave?: (e: React.MouseEvent) => void
     onFocus?: (e: React.FocusEvent) => void
     onBlur?: (e: React.FocusEvent) => void
@@ -73,7 +84,9 @@ export function Tooltip({ label, placement = 'bottom', delay = 250, disabled, sh
       if (typeof r === 'function') r(node)
       else if (r && typeof r === 'object') (r as React.RefObject<HTMLElement | null>).current = node
     },
-    onMouseEnter: (e: React.MouseEvent) => { show(); childProps.onMouseEnter?.(e) },
+    onTouchStart: (e: React.TouchEvent) => { touchedAtRef.current = Date.now(); hide(); childProps.onTouchStart?.(e) },
+    // A touch screen has no hover to hint at: only a real pointer opens the tip.
+    onMouseEnter: (e: React.MouseEvent) => { if (!touchedRecently(touchedAtRef.current, Date.now())) show(); childProps.onMouseEnter?.(e) },
     onMouseLeave: (e: React.MouseEvent) => { hide(); childProps.onMouseLeave?.(e) },
     // Keyboard focus only. A dialog hands focus back to the button that opened it
     // when it closes, and a tooltip over whatever comes next is noise, not help.

@@ -1,5 +1,6 @@
 import { List, Map as MapIcon } from 'lucide-react';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import TourGpxDropZone from '../../../../components/Tours/TourGpxDropZone';
 import TourWorkspaceRail from '../../../../components/Tours/TourWorkspaceRail';
 import { TourPlannerToursRail } from '../../../../components/Tours/planner/TourPlannerPanels';
@@ -11,6 +12,7 @@ import { useTripPlannerPageOf } from '../../../../pages/tripPlanner/useTripPlann
 import MIconBtn from '../../../components/MIconBtn';
 import MSegmented from '../../../components/MSegmented';
 import type { MTripTabPanelProps } from '../MTripShell';
+import { useTourHeadSlot } from './tourHeadSlot';
 
 /** The pane's two halves: the trip's tours, or the editor with the tour open in it. */
 type MTourPane = 'tours' | 'editor';
@@ -64,6 +66,35 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
   const showPane = split || !mapShown;
   const showMap = split || mapShown;
   const { t } = planner;
+  const headSlot = useTourHeadSlot();
+  // In the shell's top row the switch also brings the pane back from the map.
+  const pickPane = (next: MTourPane) => {
+    setPane(next);
+    setMapShown(false);
+  };
+  const head = (
+    <>
+      <MSegmented<MTourPane>
+        className="min-w-0 flex-1"
+        value={pane}
+        onChange={pickPane}
+        options={[
+          { value: 'tours', label: t('tours.planner.tripTours') },
+          { value: 'editor', label: t(EDITOR_TITLE[mode]) },
+        ]}
+      />
+      {!split && (
+        <MIconBtn
+          ariaLabel={mapShown ? t('mobileTrip.listView') : t('mobileTrip.mapView')}
+          onClick={() => setMapShown(!mapShown)}
+          size={headSlot ? 38 : 36}
+          className="pointer-events-auto backdrop-blur-[24px] backdrop-saturate-[1.7]"
+        >
+          {mapShown ? <List size={17} strokeWidth={2} /> : <MapIcon size={17} strokeWidth={2} />}
+        </MIconBtn>
+      )}
+    </>
+  );
 
   return (
     <TourGpxDropZone gpxImport={tourGpxImport} canEdit={canPlaceEdit} className="absolute inset-0">
@@ -73,22 +104,7 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
             aria-label={t('tours.planner.tripTours')}
             className="flex h-full min-w-0 flex-1 flex-col split:w-[var(--trip-pane-open)] split:flex-none split:border-e split:border-[color:var(--m-rowbr)]"
           >
-            <div className="flex items-center gap-2 px-4 pb-2 pt-1">
-              <MSegmented<MTourPane>
-                className="min-w-0 flex-1"
-                value={pane}
-                onChange={setPane}
-                options={[
-                  { value: 'tours', label: t('tours.planner.tripTours') },
-                  { value: 'editor', label: t(EDITOR_TITLE[mode]) },
-                ]}
-              />
-              {!split && (
-                <MIconBtn ariaLabel={t('mobileTrip.mapView')} onClick={() => setMapShown(true)} size={36}>
-                  <MapIcon size={17} strokeWidth={2} />
-                </MIconBtn>
-              )}
-            </div>
+            {!headSlot && <div className="flex items-center gap-2 px-4 pb-2 pt-1">{head}</div>}
             <div className="relative min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
               {pane === 'tours' ? (
                 <LazyPanel id="m-tour-tours">
@@ -104,6 +120,7 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
                     gpxImport={tourGpxImport}
                     onViewGpxTour={page.viewImportedTour}
                     onTakenOver={tourDetailActions.onTakenOver}
+                    floatingHead
                   />
                 </LazyPanel>
               ) : (
@@ -132,7 +149,7 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
               onViewportChange={wandererBrowser.onViewportChange}
               paddleChecklist={page.paddleChecklist}
             />
-            {!split && (
+            {!split && !headSlot && (
               <div className="absolute start-3 top-3 z-20">
                 <MIconBtn
                   ariaLabel={t('mobileTrip.listView')}
@@ -146,6 +163,7 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
           </div>
         )}
       </div>
+      {headSlot && createPortal(head, headSlot)}
     </TourGpxDropZone>
   );
 }

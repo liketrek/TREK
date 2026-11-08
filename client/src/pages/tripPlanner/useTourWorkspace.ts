@@ -10,6 +10,7 @@ import { useSkiClassification } from '../../components/Tours/ski/useSkiClassific
 import { useRecordedTrack } from '../../components/Tours/useRecordedTrack';
 import { useTourGpxImport } from '../../components/Tours/useTourGpxImport';
 import { useWandererBrowser } from '../../components/Tours/wanderer/useWandererBrowser';
+import { useIsWide } from '../../hooks/sizeClass';
 import { useAddonStore } from '../../store/addonStore';
 import { useTripStore } from '../../store/tripStore';
 import { useTourDetailActions } from './useTourDetailActions';
@@ -71,12 +72,17 @@ export function useTourWorkspace(planner: TripPlanner, canPlaceEdit: boolean, ca
   } = planner;
   // wanderer only while the admin allows it under Tours (the store reads Tours being on into it too).
   const wandererAllowed = useAddonStore((state) => state.toursWanderer);
+  // The workspace is up where its tab is: on a desktop, and in the touch shell on a
+  // large screen (an iPad, an unfolded foldable). The app counts as a phone shell on
+  // every device, so the phone test alone left the tablet's editor switched off.
+  const largeTouch = useIsWide();
+  const workspaceUp = activeTab === 'tour-planner' && (!isMobile || largeTouch);
 
   const tourPlanner = useTourPlanner({
     tripId,
     canEdit: canPlaceEdit,
     canAssign: canDayEdit,
-    active: activeTab === 'tour-planner' && enabledAddons.tours && !isMobile,
+    active: workspaceUp && enabledAddons.tours,
     onSaved: async (result) => {
       upsertTour(result.tour);
       toast.success(t('tours.planner.saved'));
@@ -86,7 +92,7 @@ export function useTourWorkspace(planner: TripPlanner, canPlaceEdit: boolean, ca
   });
 
   useTourRevisionWatch(tourPlanner, tours); // P2C-03: a save made elsewhere reaches the open editor
-  usePublishOpenTour(tourPlanner, activeTab === 'tour-planner' && !isMobile); // P6: the chat's "+ Tour" takes a found place into the tour open here
+  usePublishOpenTour(tourPlanner, workspaceUp); // P6: the chat's "+ Tour" takes a found place into the tour open here
   const { viewImportedTour, openTourInPlanner } = useTourOpeners(tourPlanner, places, tours);
 
   // The tours workspace's GPX import, shared by its button and its file drop. One new
@@ -107,7 +113,7 @@ export function useTourWorkspace(planner: TripPlanner, canPlaceEdit: boolean, ca
   // Browsing the user's wanderer trails in place of the editor rail; the trail shows on the map.
   const wandererBrowser = useWandererBrowser({
     tripId,
-    enabled: activeTab === 'tour-planner' && wandererAllowed && !isMobile && canPlaceEdit,
+    enabled: workspaceUp && wandererAllowed && canPlaceEdit,
     onImported: async (tour) => {
       upsertTour(tour);
       await useTripStore.getState().refreshPlaces(tripId);
@@ -152,7 +158,7 @@ export function useTourWorkspace(planner: TripPlanner, canPlaceEdit: boolean, ca
     tours,
     tripMembers,
     canEdit: canPlaceEdit,
-    active: activeTab === 'tour-planner' && enabledAddons.tours && !isMobile,
+    active: workspaceUp && enabledAddons.tours,
     trackPaddlePlan,
     onSaved: takeInSavedTour,
   });

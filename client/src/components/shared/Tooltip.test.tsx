@@ -223,4 +223,20 @@ describe('Tooltip — with content', () => {
     expect(tip.querySelectorAll('li')).toHaveLength(2)
     expect(tip).not.toHaveTextContent('brought by')
   })
+
+  it('FE-W4TIP-017: a tap opens nothing, a pointer that comes along later still does', () => {
+    render(<Tooltip label="Add a tour" delay={0}><button>+</button></Tooltip>)
+    const button = screen.getByRole('button')
+
+    // The browser follows a tap with a mouseenter and never sends the mouseleave.
+    fireEvent.touchStart(button)
+    fireEvent.mouseEnter(button)
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+
+    act(() => { vi.advanceTimersByTime(2000) })
+    fireEvent.mouseEnter(button)
+    act(() => { vi.advanceTimersByTime(10) })
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Add a tour')
+  })
 })
