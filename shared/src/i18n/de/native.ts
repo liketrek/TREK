@@ -89,7 +89,8 @@ const native: TranslationStrings = {
   'native.provisioning.title': 'Dein TREK wird eingerichtet',
   'native.provisioning.sub': '{host} wird vorbereitet. Das dauert nur eine Minute.',
   'native.provisioning.failedTitle': 'Gleich fertig',
-  'native.provisioning.failedSub': 'Dein TREK ist fast bereit. Versuch es gleich noch einmal oder öffne die App später.',
+  'native.provisioning.failedSub':
+    'Dein TREK ist fast bereit. Versuch es gleich noch einmal oder öffne die App später.',
   'native.provisioning.retry': 'Jetzt versuchen',
   'native.update.title': 'TREK-App aktualisieren',
   'native.update.body': 'Dieser Server braucht eine neuere App-Version, damit alles funktioniert.',
