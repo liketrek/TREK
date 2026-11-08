@@ -13,12 +13,12 @@ import { useTripSplashBeats } from '../../../components/shared/useTripSplashBeat
  */
 /**
  * How long a trip may take to open before the splash comes up. The page
- * transition holds the page the trip was opened from for up to 800ms
+ * transition holds the page the trip was opened from for up to 350ms
  * (mobile/routeTransition.ts), so a trip that loads in that time slides in
- * whole, the way the dashboard slides back in on the way out, and the splash is
- * only for a slow connection.
+ * whole, the way the dashboard slides back in on the way out. A slower one gets
+ * the splash right after, so a slow connection never sees the app stand still.
  */
-export const TRIP_SPLASH_AFTER_MS = 1000
+export const TRIP_SPLASH_AFTER_MS = 400
 
 /**
  * While a trip opens. At first nothing but the screen's own background, marked

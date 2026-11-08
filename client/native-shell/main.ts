@@ -1,3 +1,4 @@
+import { App } from '@capacitor/app';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { SplashScreen } from '@capacitor/splash-screen';
@@ -1013,8 +1014,25 @@ async function paintStatusBar(): Promise<void> {
   }
 }
 
+/**
+ * Android's back gesture steps back through the first screens as their own
+ * back button does, and only leaves the app from a screen that has none.
+ */
+function followBackGesture(): void {
+  try {
+    void App.addListener('backButton', () => {
+      const back = current?.querySelector<HTMLButtonElement>('.topbar .back');
+      if (back) back.click();
+      else void App.minimizeApp();
+    });
+  } catch {
+    /* web / unavailable: no system back gesture */
+  }
+}
+
 async function start(): Promise<void> {
   void paintStatusBar();
+  followBackGesture();
   let url: string | null;
   try {
     ({ url } = await TrekShell.getServer());

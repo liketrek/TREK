@@ -228,8 +228,8 @@ export default function LoginPage(): React.ReactElement {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
-      {/* Language dropdown */}
-      <div style={{ position: 'absolute', top: 16, insetInlineEnd: 16, zIndex: 10 }}>
+      {/* Language dropdown, below the status bar in the app and under a notch, not behind them */}
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', insetInlineEnd: 16, zIndex: 10 }}>
         <button type="button"
           onClick={(e) => {
             e.stopPropagation();
