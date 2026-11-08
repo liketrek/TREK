@@ -1,4 +1,4 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-050
+// FE-MOB-JDET-001 to FE-MOB-JDET-052
 import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import { setSizeClass } from '../../../helpers/sizeClass';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
@@ -829,5 +829,17 @@ describe('MJourneyDetail', () => {
     setSizeClass('split');
     setup({ view: 'gallery' });
     expect(screen.queryByText('journey.detail.day')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JDET-051: with room for two panes the header opens Studio over the journey', () => {
+    setSizeClass('split');
+    const { hook } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'journey.studio.openAria' }));
+    expect(hook.navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/journey\/\d+\/studio$/));
+  });
+
+  it('FE-MOB-JDET-052: the phone and a single pane offer no Studio', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'journey.studio.openAria' })).not.toBeInTheDocument();
   });
 });

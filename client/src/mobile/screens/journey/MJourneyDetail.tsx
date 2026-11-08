@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { useSearchParams } from 'react-router'
-import { ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2, X, Route, ListChecks } from 'lucide-react'
+import { Outlet, useSearchParams } from 'react-router'
+import { BookOpen, ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2, X, Route, ListChecks } from 'lucide-react'
 import JourneyLayeredMap from '../../../components/Journey/JourneyLayeredMap'
 import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../../../components/Journey/ContributorInviteDialog'
@@ -324,8 +324,9 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   // keeps a single "more" affordance.
   //
   // There is no book export here any more: the book is a Studio document now,
-  // and Studio is a desktop editor. A phone-sized PDF of a book laid out for
-  // print was the old export's answer to a question nobody was asking.
+  // and Studio needs the room of a desktop, an iPad on its side or an unfolded
+  // Duo (split), where the header offers it. A phone-sized PDF of a book laid
+  // out for print was the old export's answer to a question nobody was asking.
   const toggleSkeletons = async (next: boolean) => {
     setHideSkeletons(next)
     try {
@@ -497,6 +498,16 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
             >
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             </span>
+          )}
+          {split && !embedded && (
+            <button
+              type="button"
+              onClick={() => void navigate(`/journey/${current.id}/studio`)}
+              aria-label={t('journey.studio.openAria')}
+              className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
+            >
+              <BookOpen size={17} strokeWidth={2} />
+            </button>
           )}
           <button
             type="button"
@@ -805,6 +816,10 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           onClose={() => setLightbox(null)}
         />
       )}
+      {/* TREK Studio, the book designer, opens over the journey on a screen with room for
+          two panes, as on the desktop (its route is a child of this one). The phone keeps
+          the journey alone, whatever the address says. */}
+      {split && !embedded && <Outlet />}
     </div>
   )
 }
