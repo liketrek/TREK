@@ -8,6 +8,8 @@ import { ALL_SAVED } from '../../../../src/store/collectionStore'
 
 const mocks = vi.hoisted(() => ({ coll: {} as Record<string, unknown> }))
 
+const routeTransition = vi.hoisted(() => ({ skipNextRouteTransition: vi.fn() }))
+vi.mock('../../../../src/mobile/routeTransition', () => routeTransition)
 vi.mock('../../../../src/pages/collections/useCollections', () => ({
   useCollections: () => mocks.coll,
 }))
@@ -268,6 +270,8 @@ describe('MCollections', () => {
 
     fireEvent.click(screen.getByText('Julien Tipps'))
     expect(fn('handleSelectList')).toHaveBeenCalledWith(2)
+    // Another list is the same screen: the URL change must not slide a page in.
+    expect(routeTransition.skipNextRouteTransition).toHaveBeenCalled()
     // Picking closes the dropdown again.
     expect(screen.queryByText('Julien Tipps')).not.toBeInTheDocument()
   })

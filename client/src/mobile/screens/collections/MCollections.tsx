@@ -26,6 +26,7 @@ import { STATUS_SPEC } from './collectionsMobileModel'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import MCollListNav from './MCollListNav'
 import { useIsSplit } from '../../../hooks/sizeClass'
+import { skipNextRouteTransition } from '../../routeTransition'
 
 const HEADER_CIRCLE =
   'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
@@ -133,6 +134,9 @@ export default function MCollections() {
 
   const selectList = (id: number | typeof ALL_SAVED) => {
     setDrop(false)
+    // Another list is the same screen with other content, not a page opened
+    // over it: the URL changes, but the page must not slide in.
+    skipNextRouteTransition()
     c.handleSelectList(id)
   }
 
