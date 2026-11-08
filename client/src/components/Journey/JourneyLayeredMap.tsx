@@ -1,3 +1,4 @@
+import type { JourneyMapPlace } from '@trek/shared';
 import { useCallback, useState, type ComponentProps, type Ref } from 'react';
 import JourneyMap, { type JourneyMapHandle } from './JourneyMap';
 import JourneyMapAuto from './JourneyMapAuto';
@@ -27,6 +28,13 @@ interface Props extends MapProps {
   /** Leads from a picked place or stay to its entry. */
   onOpenEntry?: (entryId: string) => void;
   entryTitleOf?: (entryId: number) => string | null;
+  /** Starts an entry about a picked planned place nothing was written about; absent for a reader who cannot. */
+  onWriteAboutPlace?: (place: JourneyMapPlace) => void;
+}
+
+/** A card action, only where the screen offers one. */
+function offeredIf<T>(offered: unknown, action: T): T | undefined {
+  return offered ? action : undefined;
 }
 
 /**
@@ -44,6 +52,7 @@ export default function JourneyLayeredMap({
   controlsTop = 12,
   onOpenEntry,
   entryTitleOf,
+  onWriteAboutPlace,
   photos,
   tracks,
   height = 220,
@@ -55,6 +64,13 @@ export default function JourneyLayeredMap({
     setPicked({ marks, key: marks.map((m) => m.key).join(',') });
   }, []);
   const close = useCallback(() => setPicked(null), []);
+  const writeAbout = useCallback(
+    (place: JourneyMapPlace) => {
+      setPicked(null);
+      onWriteAboutPlace?.(place);
+    },
+    [onWriteAboutPlace]
+  );
   const openEntry = useCallback(
     (entryId: string) => {
       setPicked(null);
@@ -99,6 +115,7 @@ export default function JourneyLayeredMap({
               marks={card.marks}
               onClose={close}
               onOpenEntry={onOpenEntry ? openEntry : undefined}
+              onWriteAbout={offeredIf(onWriteAboutPlace, writeAbout)}
               entryTitleOf={entryTitleOf}
             />
           )}

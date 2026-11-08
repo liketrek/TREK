@@ -48,6 +48,32 @@ export function createDraftJourneyEntry(journeyId: number, now = new Date(), onD
   };
 }
 
+/**
+ * The entry to write about a planned place picked on the journey map: the
+ * suggestion the trip left for it, when the journal still has one (writing it
+ * up keeps its link to the place), else a new entry on the place's first day,
+ * at its time and spot, named after it.
+ */
+export function entryForPlace(
+  journey: { id: number; entries?: JourneyEntry[] },
+  place: { place_id: number; name: string; lat: number; lng: number; days: string[]; time: string | null },
+  now = new Date()
+): JourneyEntry {
+  const suggestion = (journey.entries ?? []).find(
+    (entry) => entry.type === 'skeleton' && entry.source_place_id === place.place_id
+  );
+  if (suggestion) return suggestion;
+  const draft = createDraftJourneyEntry(journey.id, now, place.days[0]);
+  return {
+    ...draft,
+    entry_time: place.time ?? draft.entry_time,
+    title: place.name,
+    location_name: place.name,
+    location_lat: place.lat,
+    location_lng: place.lng,
+  };
+}
+
 export function formatDate(d: string, locale?: string): { weekday: string; month: string; day: number } {
   const date = new Date(d + 'T00:00:00');
   // Pass the app's selected locale so weekday/month follow the UI language

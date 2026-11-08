@@ -29,7 +29,7 @@ import { useDayPreviewStore } from '../../dayPreviewStore'
 import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
 import MTripRail from './MTripRail'
 import {
-  CollabSegment, CompactToggle, DayRailSteps, DockMoreButton, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
+  CollabSegment, CompactToggle, DockMoreButton, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
 } from './MTripShellParts'
 import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
@@ -645,7 +645,6 @@ export default function MTripShell({
           {/* The glass is the outer box, the scroller sits inside its padding: that way
               the fade at an edge that runs on takes the chips, not the glass's rim. */}
           <div className="relative flex min-w-0 flex-1 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
-          <DayRailSteps rail={dayRail} fade={dayFade} />
           <div ref={setDayRail} className={`relative flex min-w-0 flex-1 items-center gap-[2px] overflow-x-auto rounded-full wide:[--m-fade-reach:52px] ${edgeFadeClass(dayFade)}`}>
             {dayPill && (
               <span

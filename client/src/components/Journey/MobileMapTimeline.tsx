@@ -8,7 +8,7 @@ import JourneyDayScrubber from './JourneyDayScrubber'
 import { dayColorOf } from './journeyCard'
 import { useJourneyCarouselSync } from './useJourneyCarouselSync'
 import type { JourneyEntry } from '../../store/journeyStore'
-import type { JourneyTrack } from '@trek/shared'
+import type { JourneyMapPlace, JourneyTrack } from '@trek/shared'
 
 interface MapEntry {
   id: string
@@ -40,6 +40,8 @@ interface Props {
   /** The map's layers (JRN-04); a picked place or stay leads to its entry's card. */
   layers?: JourneyMapLayersView | null
   entryTitleOf?: (entryId: number) => string | null
+  /** Starts an entry about a picked planned place nothing was written about. */
+  onWriteAboutPlace?: (place: JourneyMapPlace) => void
   /** Geotagged photos on the map, a tap opening them. */
   photos?: MapPhoto[]
   onPhotoClick?: (photoIds: string[]) => void
@@ -64,6 +66,7 @@ export default function MobileMapTimeline({
   initialEntryId,
   layers,
   entryTitleOf,
+  onWriteAboutPlace,
   photos,
   onPhotoClick,
   controlsTop,
@@ -118,6 +121,7 @@ export default function MobileMapTimeline({
           hideLayerControl
           controlsTop={controlsTop}
           onOpenEntry={handleMarkerClick}
+        onWriteAboutPlace={onWriteAboutPlace}
           entryTitleOf={entryTitleOf}
           entries={mapEntries}
           checkins={[]}
@@ -160,6 +164,7 @@ export default function MobileMapTimeline({
         hideLayerControl
         controlsTop={controlsTop}
         onOpenEntry={handleMarkerClick}
+        onWriteAboutPlace={onWriteAboutPlace}
         entryTitleOf={entryTitleOf}
         entries={mapEntries}
         checkins={[]}

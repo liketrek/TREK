@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import {
   createDraftJourneyEntry,
+  entryForPlace,
   distanceBetweenGeoPoints,
   fetchRemainingProviderPages,
   groupPhotosByDate,
@@ -182,6 +183,35 @@ describe('createDraftJourneyEntry', () => {
     const draft = createDraftJourneyEntry(7, new Date('2026-03-15T14:30:00'), '2026-03-09');
     expect(draft.entry_date).toBe('2026-03-09');
     expect(draft.entry_time).toBe('14:30');
+  });
+});
+
+describe('entryForPlace', () => {
+  const place = { place_id: 4, name: 'Piazza San Marco', lat: 45.434, lng: 12.3388, days: ['2026-05-14', '2026-05-15'], time: '10:00' };
+
+  it('a planned place starts a new entry on its first day, at its time and spot, named after it', () => {
+    const entry = entryForPlace({ id: 7, entries: [] }, place, new Date('2026-06-01T08:00:00'));
+    expect(entry).toMatchObject({
+      id: 0,
+      journey_id: 7,
+      entry_date: '2026-05-14',
+      entry_time: '10:00',
+      title: 'Piazza San Marco',
+      location_name: 'Piazza San Marco',
+      location_lat: 45.434,
+      location_lng: 12.3388,
+    });
+  });
+
+  it('writes up the suggestion the trip left for the place, so the entry stays linked to it', () => {
+    const suggestion = { ...createDraftJourneyEntry(7), id: 31, type: 'skeleton' as const, source_place_id: 4 };
+    const other = { ...createDraftJourneyEntry(7), id: 32, type: 'skeleton' as const, source_place_id: 5 };
+    expect(entryForPlace({ id: 7, entries: [other, suggestion] }, place)).toBe(suggestion);
+  });
+
+  it('a place without a planned time takes the time of now', () => {
+    const entry = entryForPlace({ id: 7 }, { ...place, time: null }, new Date('2026-06-01T08:05:00'));
+    expect(entry.entry_time).toBe('08:05');
   });
 });
 

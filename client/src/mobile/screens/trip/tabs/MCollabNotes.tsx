@@ -281,7 +281,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
   const websiteHref = safeExternalHref(note.website)
 
   return (
-    <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] wide:mb-3 wide:mt-0 wide:break-inside-avoid">
+    <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] wide:mb-3 wide:mt-0 wide:inline-block wide:w-full wide:break-inside-avoid wide:align-top">
       <div className="flex items-center gap-[7px] px-3 py-[10px]" style={{ background: `${color}0d` }}>
         {!!note.pinned && <Pin size={11} strokeWidth={2.4} style={{ color }} className="flex-none" />}
         <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-[7px] text-start">

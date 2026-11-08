@@ -345,12 +345,14 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
     // the overview stack) follows on its own. The band used to float a further 38px up to
     // leave the corner under it to the map credit; the phone map carries no visible credit
     // any more (see mobile.css), so that row would now only be a gap over the dock.
+    // A wide window has no dock (the rail stands on the side), so there the floor is
+    // the safe area alone and the controls sit down in the corners.
     //
     // The metrics are classes rather than an inline --bottom-nav-h, and the lift is its
     // OWN variable folded into them: the compass band below is identified by being the
     // one element that sets that name inline, and a second one would make that ambiguous.
     <div
-      className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--m-map-floor:calc(env(safe-area-inset-bottom,0px)+74px+var(--m-stage-lift,0px))] [--bottom-nav-h:var(--m-map-floor)]"
+      className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--m-map-floor:calc(env(safe-area-inset-bottom,0px)+74px+var(--m-stage-lift,0px))] wide:[--m-map-floor:calc(env(safe-area-inset-bottom,0px)+8px+var(--m-stage-lift,0px))] [--bottom-nav-h:var(--m-map-floor)]"
       // A stage bar used to stand over the dock for the whole of the road trip tab, and the
       // floor cleared its 61px plus a gap the year round. It is gone, so the only thing
       // left in that slot is the bar the picker raises while other ways of driving a leg

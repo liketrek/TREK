@@ -86,4 +86,23 @@ describe('JourneyMapPickCard', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('FE-JOURNEY-MAPPICK-004: a place nothing was written about offers a new entry to whoever can write', () => {
+    const onWriteAbout = vi.fn();
+    const { unmount } = render(<JourneyMapPickCard marks={[plan()]} onClose={vi.fn()} onWriteAbout={onWriteAbout} />);
+    fireEvent.click(screen.getByRole('button', { name: 'New entry' }));
+    expect(onWriteAbout).toHaveBeenCalledWith(expect.objectContaining({ place_id: 4, name: 'Piazza San Marco' }));
+    unmount();
+
+    // A reader who cannot write, or a place already written about, gets no such button.
+    render(
+      <JourneyMapPickCard
+        marks={[plan({ entry_id: 7 })]}
+        onClose={vi.fn()}
+        onOpenEntry={vi.fn()}
+        onWriteAbout={onWriteAbout}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'New entry' })).toBeNull();
+  });
 });

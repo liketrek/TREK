@@ -41,14 +41,14 @@ export default function MImageViewer({
       role="dialog"
       aria-modal="true"
       aria-label={alt}
-      className="m-root fixed inset-0 z-[65] bg-black/[.92]"
+      className="m-root fixed inset-0 z-[var(--z-overlay)] bg-[color:var(--m-viewer-bg)]"
       onClick={onClose}
     >
       <button
         type="button"
         onClick={onClose}
         aria-label={t('collab.chat.closeImage')}
-        className="absolute end-4 top-[calc(var(--m-safe-top,12px)+4px)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white"
+        className="absolute end-4 top-[calc(var(--m-safe-top,12px)+4px)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--m-viewer-btn)] text-[color:var(--m-viewer-ink)]"
       >
         <X size={20} strokeWidth={2} />
       </button>

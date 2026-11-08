@@ -21,6 +21,10 @@
   --m-act: #101013;
   --m-actfg: #fff;
   --m-dim: rgba(16,16,19,.4);
+  /* A picture shown full screen (MImageViewer): dark in either scheme, as a photo viewer is. */
+  --m-viewer-bg: rgba(0,0,0,.92);
+  --m-viewer-ink: #fff;
+  --m-viewer-btn: rgba(255,255,255,.15);
   --m-sheet: rgba(250,250,248,.94);
   --m-sheetop: #FAFAF8;
   --m-shbr: rgba(255,255,255,.95);

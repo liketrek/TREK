@@ -44,14 +44,16 @@ const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-s
  * columns, each keeping its own height, so the columns start level and no
  * short card ends above its neighbour in a ragged row or stretches into an
  * empty panel. In date order that reads down the first column, then the next.
- * The cards' own top margin gives way to an even gap under each card, so the
- * columns start on one line in every engine.
+ * The cards' own top margin gives way to an even gap under each card. Each
+ * card is an inline block, so that gap travels with it: as a plain block's
+ * bottom margin it was carried over a column break by WebKit and pushed the
+ * next column's first card down by the gap (seen on iPad).
  */
 export function CardGrid({ children }: { children: ReactNode }) {
   // 380px a column: one column until the page has room for two cards that keep
   // their titles and time ranges whole (an 11" iPad upright stays at one).
   return (
-    <div className="wide:columns-[380px] wide:gap-x-3 wide:pt-2 wide:[&>*]:mb-3 wide:[&>*]:mt-0 wide:[&>*]:break-inside-avoid">
+    <div className="wide:columns-[380px] wide:gap-x-3 wide:pt-2 wide:[&>*]:mb-3 wide:[&>*]:mt-0 wide:[&>*]:inline-block wide:[&>*]:w-full wide:[&>*]:break-inside-avoid wide:[&>*]:align-top">
       {children}
     </div>
   )

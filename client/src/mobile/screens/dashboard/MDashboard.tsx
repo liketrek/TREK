@@ -295,7 +295,7 @@ export default function MDashboard(): React.ReactElement {
             )}
             <div style={{ order: dashOrder.indexOf('trips') }}>{renderBlock('trips')}</div>
           </div>
-          <div className="contents min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+82px)] split:-mt-[14px] split:block">
+          <div className="contents min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+70px)] split:-mt-3 split:block">
             {dashOrder.filter(id => id !== 'trips').map(id => (
               <div key={id} style={{ order: dashOrder.indexOf(id) }}>{renderBlock(id)}</div>
             ))}

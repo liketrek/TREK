@@ -195,6 +195,8 @@ describe('list tabs on a wide window', () => {
     // No card splits across two columns, and none keeps a top margin that
     // would start its column lower than the next.
     expect(grid.className).toContain('wide:[&>*]:break-inside-avoid');
+    // An inline block keeps its gap with it, so no column starts lower than the first (iPad).
+    expect(grid.className).toContain('wide:[&>*]:inline-block');
     expect(grid.className).toContain('wide:[&>*]:mt-0');
     expect(grid.className).not.toContain('wide:grid');
   });

@@ -999,6 +999,7 @@ describe('MPackingListTab', () => {
     await setup()
     const card = screen.getAllByRole('button', { expanded: true })[0].parentElement as HTMLElement
     expect(card.className).toContain('wide:break-inside-avoid')
+    expect(card.className).toContain('wide:inline-block')
     expect((card.parentElement as HTMLElement).className).toContain('wide:columns-[300px]')
   })
 })

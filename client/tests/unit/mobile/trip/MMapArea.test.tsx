@@ -212,6 +212,8 @@ describe('MMapArea', () => {
     // The floor is the dock's top edge: 62px tall at safe-bottom + 12, raised by the stage lift.
     expect(layer.className)
       .toContain('[--m-map-floor:calc(env(safe-area-inset-bottom,0px)+74px+var(--m-stage-lift,0px))]')
+    // No dock on a wide window: the controls sit down at the safe area.
+    expect(layer.className).toContain('wide:[--m-map-floor:calc(env(safe-area-inset-bottom,0px)+8px+var(--m-stage-lift,0px))]')
     // The band sits on that floor and the controls add their own 12 on top. It used to float
     // a further 38px up to leave the corner under it to the credit; the phone map shows none,
     // so that row would only be a gap over the dock.

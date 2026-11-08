@@ -11,6 +11,7 @@ import { ToastContainer } from '../../../../src/components/shared/Toast';
 import { DEFAULT_APPEARANCE, type AppearanceConfig } from '@trek/shared';
 import type { Settings } from '../../../../src/types';
 import MSettingsAppearance from '../../../../src/mobile/screens/settings/MSettingsAppearance';
+import { setSizeClass } from '../../../helpers/sizeClass';
 
 type UpdateSettingMock = ReturnType<typeof vi.fn>;
 
@@ -414,5 +415,14 @@ describe('MSettingsAppearance', () => {
 
     unmount();
     expect(appearanceCalls(updateSetting)).toHaveLength(1);
+  });
+
+  it('FE-MOB-SETAPP-029: a tablet, with its rail on the side, has no bottom navbar to set, only the dashboard order', () => {
+    seedAppearance(undefined);
+    setSizeClass('wide');
+    renderAppearance();
+    expect(screen.queryByText('Bottom navbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Move under “More”')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Dashboard order').length).toBeGreaterThan(0);
   });
 });

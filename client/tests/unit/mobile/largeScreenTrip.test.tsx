@@ -1,9 +1,9 @@
-import { act, fireEvent, renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openingView } from '../../../src/components/Map/openingView';
 import MChipStrip from '../../../src/mobile/components/MChipStrip';
 import { edgeFadeClass, useEdgeFade } from '../../../src/mobile/components/useEdgeFade';
-import { DayRailSteps, GlassSegment, HeaderActions } from '../../../src/mobile/screens/trip/MTripShellParts';
+import { GlassSegment, HeaderActions } from '../../../src/mobile/screens/trip/MTripShellParts';
 import { FilePreviewPane, FileTile } from '../../../src/mobile/screens/trip/tabs/MFilesBoard';
 import type { TripFile } from '../../../src/types';
 import { buildPlanner } from '../../helpers/mobileTrip';
@@ -146,62 +146,6 @@ describe('the top controls of a trip', () => {
     expect(bar).toHaveClass('absolute', 'start-[52px]', 'end-2', 'justify-center', 'flex', 'gap-[7px]');
     expect(screen.getByText('Add').parentElement).toBe(bar);
     expect(screen.getByText('Export').parentElement).toBe(bar);
-  });
-});
-
-describe('the day strip on a wide window', () => {
-  /** A strip 400px wide at x 100, with five 120px days laid out in reading order. */
-  function rail(rtl = false, scrolled = 0) {
-    const el = document.createElement('div');
-    if (rtl) el.style.direction = 'rtl';
-    el.getBoundingClientRect = () => ({ left: 100, right: 500, top: 0, bottom: 40, width: 400, height: 40 }) as DOMRect;
-    const chips = Array.from({ length: 5 }, (_, i) => {
-      const chip = document.createElement('button');
-      chip.textContent = `Day ${i + 1}`;
-      const from = rtl ? 500 - (i + 1) * 120 + scrolled : 100 + i * 120 - scrolled;
-      chip.getBoundingClientRect = () =>
-        ({ left: from, right: from + 120, top: 0, bottom: 40, width: 120, height: 40 }) as DOMRect;
-      chip.scrollIntoView = vi.fn();
-      el.appendChild(chip);
-      return chip;
-    });
-    document.body.appendChild(el);
-    return { el, chips };
-  }
-
-  afterEach(() => {
-    document.body.innerHTML = '';
-  });
-
-  it('FE-MOB-LSTRIP-008: a chevron over the faded end brings the day the edge cuts to the start, for the eye and the finger only', () => {
-    setSizeClass('wide');
-    const { el, chips } = rail();
-    const { container } = render(<DayRailSteps rail={el} fade={{ start: false, end: true }} />);
-    const steps = container.querySelectorAll('button');
-    expect(steps).toHaveLength(1);
-    expect(steps[0]).toHaveAttribute('aria-hidden', 'true');
-    expect(steps[0]).toHaveAttribute('tabindex', '-1');
-    fireEvent.click(steps[0]);
-    // Day 4 runs from 460 to 580, past the end at 500.
-    expect(chips[3].scrollIntoView).toHaveBeenCalledWith(
-      expect.objectContaining({ inline: 'start', block: 'nearest' })
-    );
-    expect(chips[4].scrollIntoView).not.toHaveBeenCalled();
-  });
-
-  it('FE-MOB-LSTRIP-009: back towards the start, in reading order in a right-to-left strip; a phone keeps the fade alone', () => {
-    setSizeClass('wide');
-    // Scrolled by 200 towards the end: in a right-to-left strip days 1 and 2 lie past the right edge.
-    const { el, chips } = rail(true, 200);
-    const { container, unmount } = render(<DayRailSteps rail={el} fade={{ start: true, end: false }} />);
-    fireEvent.click(container.querySelector('button') as HTMLButtonElement);
-    expect(chips[1].scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ inline: 'end', block: 'nearest' }));
-    expect(chips[0].scrollIntoView).not.toHaveBeenCalled();
-    unmount();
-
-    setSizeClass('compact');
-    const phone = render(<DayRailSteps rail={el} fade={{ start: true, end: true }} />);
-    expect(phone.container.querySelector('button')).toBeNull();
   });
 });
 

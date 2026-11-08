@@ -84,7 +84,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
     sidebarMapItems, tracks, mapLayers, entryTitleOf, mapPhotos, openMapPhotos, recordings, canTakeOverRecording, dayImport, dayImportDates, dawarichByDate, recordingPrep,
     dismissSuggestion, restoreSuggestions, openAtEntryId,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos,
-    addPickedProviderPhotos, addEntryProviderPhotos,
+    addPickedProviderPhotos, addEntryProviderPhotos, writeAboutPlace,
   } = useJourneyDetail({ journeyId, embedded })
 
   // The dock's FAB is a sibling of this screen: on the Gallery it becomes the
@@ -353,6 +353,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           hideLayerControl
           controlsTop="calc(var(--m-safe-top, 12px) + 50px)"
           onOpenEntry={handleMarkerClick}
+          onWriteAboutPlace={writeAboutPlace}
           entryTitleOf={entryTitleOf}
           checkins={[]}
           entries={sidebarMapItems}

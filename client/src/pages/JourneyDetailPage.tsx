@@ -72,7 +72,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
     recordings, canTakeOverRecording, recordingNeedsConnection, dayImport, recordingPrep,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
-    addPickedProviderPhotos, addEntryProviderPhotos,
+    addPickedProviderPhotos, addEntryProviderPhotos, writeAboutPlace,
   } = useJourneyDetail({ journeyId, embedded })
   // Inside a trip the trip draws the bar and owns the height; the journal fills
   // the box it is given and starts at its top.
@@ -191,6 +191,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
           tracks={tracks}
           layers={mapLayers}
           entryTitleOf={entryTitleOf}
+          onWriteAboutPlace={writeAboutPlace}
           photos={mapPhotos}
           onPhotoClick={openMapPhotos}
           dark={document.documentElement.classList.contains('dark')}
@@ -721,6 +722,7 @@ export function JourneyDetailPageDesktop({ journeyId, embedded = false }: Journe
                   ref={mapRef}
                   layers={mapLayers}
                   onOpenEntry={handleMarkerClick}
+                  onWriteAboutPlace={writeAboutPlace}
                   entryTitleOf={entryTitleOf}
                   checkins={[]}
                   entries={sidebarMapItems as any}

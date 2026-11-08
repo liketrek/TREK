@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, FolderSync, List, MoreHorizontal, Plus, Rows3 } from 'lucide-react';
+import { FolderSync, List, MoreHorizontal, Plus, Rows3 } from 'lucide-react';
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { canManageDocSync } from '../../../components/Files/docsync/useDocSync';
 import { useDocSyncOffered } from '../../../components/Files/docsync/useDocSyncOffered';
@@ -6,7 +6,7 @@ import { useIsWide } from '../../../hooks/sizeClass';
 import { useAuthStore } from '../../../store/authStore';
 import type { Trip } from '../../../types';
 import MIconBtn from '../../components/MIconBtn';
-import { edgeFadeClass, useEdgeFade, type EdgeFade } from '../../components/useEdgeFade';
+import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade';
 import type { MTripCollabTab } from './MTripShell';
 import { collabBoardFor, collabSideBySide } from './tabs/collabPanes';
 
@@ -116,67 +116,6 @@ export function HeaderActions({
       <div className="pointer-events-auto col-start-2 flex min-w-0">{primary}</div>
       <div className="pointer-events-auto col-start-3 flex items-center gap-[7px] justify-self-end">{children}</div>
     </div>
-  );
-}
-
-/**
- * The day strip's way on past an edge, on a wide window: a round chevron over
- * the faded end that pages the strip along. The fade alone was too quiet on a
- * large screen, where a day cut in half at the end ("Wed") read as a mistake
- * rather than as more to come. The days themselves stay where a screen reader
- * and the keyboard reach them, so the chevron is for the eye and the finger only.
- */
-export function DayRailSteps({ rail, fade }: { rail: HTMLElement | null; fade: EdgeFade }) {
-  const wide = useIsWide();
-  if (!wide || !rail) return null;
-  // A page along: the day the edge cuts comes to the other edge, whole, so the
-  // next tap continues from there. Read in reading order, so a right-to-left
-  // strip pages the same way round.
-  const step = (toward: 'start' | 'end') => {
-    const rtl = getComputedStyle(rail).direction === 'rtl';
-    const box = rail.getBoundingClientRect();
-    const chips = Array.from(rail.querySelectorAll<HTMLElement>('button'));
-    const pastEnd = (r: DOMRect) => (rtl ? r.left < box.left - 1 : r.right > box.right + 1);
-    const pastStart = (r: DOMRect) => (rtl ? r.right > box.right + 1 : r.left < box.left - 1);
-    const target =
-      toward === 'end'
-        ? chips.find((chip) => pastEnd(chip.getBoundingClientRect()))
-        : chips.filter((chip) => pastStart(chip.getBoundingClientRect())).pop();
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    // 'nearest' on the block axis: the shell root is fixed, anything else scrolls the page behind it.
-    target?.scrollIntoView({
-      inline: toward === 'end' ? 'start' : 'end',
-      block: 'nearest',
-      behavior: reduced ? 'auto' : 'smooth',
-    });
-  };
-  const btn =
-    'absolute top-1/2 z-[1] flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheetop)] text-m-ink shadow-[0_4px_12px_-4px_rgba(0,0,0,.35)]';
-  return (
-    <>
-      {fade.start && (
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          onClick={() => step('start')}
-          className={`${btn} start-[4px]`}
-        >
-          <ChevronLeft size={15} strokeWidth={2.4} className="rtl:-scale-x-100" />
-        </button>
-      )}
-      {fade.end && (
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          onClick={() => step('end')}
-          className={`${btn} end-[4px]`}
-        >
-          <ChevronRight size={15} strokeWidth={2.4} className="rtl:-scale-x-100" />
-        </button>
-      )}
-    </>
   );
 }
 
