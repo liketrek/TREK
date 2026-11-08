@@ -7,7 +7,11 @@ interface MToggleProps {
   className?: string
 }
 
-/** iOS-style switch: --m-act track when on, --m-trackoff when off, 18px knob. */
+/**
+ * iOS-style switch: --m-act track when on, --m-trackoff when off, 18px knob. The knob on
+ * takes the track's ink (--m-actfg): in the dark scheme the track is near white, and a
+ * white knob on it left the whole switch one white pill.
+ */
 export default function MToggle({ checked, onChange, ariaLabel, disabled = false, className = '' }: MToggleProps) {
   return (
     <button
@@ -27,8 +31,10 @@ export default function MToggle({ checked, onChange, ariaLabel, disabled = false
       } ${className}`}
     >
       <span
-        className={`block h-[18px] w-[18px] rounded-full bg-[color:var(--m-knob)] transition-transform duration-[180ms] ${
-          checked ? 'translate-x-[18px] rtl:-translate-x-[18px]' : 'translate-x-0'
+        className={`block h-[18px] w-[18px] rounded-full transition-transform duration-[180ms] ${
+          checked
+            ? 'translate-x-[18px] bg-[color:var(--m-actfg)] rtl:-translate-x-[18px]'
+            : 'translate-x-0 bg-[color:var(--m-knob)]'
         }`}
       />
     </button>

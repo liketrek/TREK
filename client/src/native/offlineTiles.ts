@@ -1,6 +1,6 @@
 import type { AddProtocolAction, GetResourceResponse, RequestParameters } from 'maplibre-gl';
 import { VECTOR_CACHE } from '../sync/glPrefetcher';
-import { GL_MAPS_THROUGH_APP_SCHEMES } from './glSchemes';
+import { glMapsThroughAppSchemes } from './glSchemes';
 import { isNativeIos } from './platform';
 
 /**
@@ -20,8 +20,14 @@ import { isNativeIos } from './platform';
 const OFFLINE_SCHEME = 'trek-offline';
 const PREFIX = `${OFFLINE_SCHEME}://`;
 
+/** Whether the iOS app can serve the protocol at all. */
+function offlineProtocolAvailable(): boolean {
+  return isNativeIos() && typeof caches !== 'undefined';
+}
+
+/** Whether a style goes through the protocol right now (see glSchemes.ts). */
 function offlineTilesActive(): boolean {
-  return GL_MAPS_THROUGH_APP_SCHEMES && isNativeIos() && typeof caches !== 'undefined';
+  return offlineProtocolAvailable() && glMapsThroughAppSchemes();
 }
 
 export function toOfflineUrl(url: string): string {
@@ -106,8 +112,8 @@ async function load(url: string, networkFirst: boolean, signal: AbortSignal): Pr
 async function openCache(): Promise<Cache | null> {
   try {
     return await caches.open(VECTOR_CACHE);
-  } catch (err) {
-    console.warn('[offline tiles] the vector cache is not available, reading from the network', err);
+  } catch {
+    // Refused by the web view: read from the network instead, which is all a cache miss does anyway.
     return null;
   }
 }
@@ -127,5 +133,5 @@ export const offlineProtocol: AddProtocolAction = async (
 export function installOfflineProtocol(maplibre: {
   addProtocol: (name: string, action: AddProtocolAction) => void;
 }): void {
-  if (offlineTilesActive()) maplibre.addProtocol(OFFLINE_SCHEME, offlineProtocol);
+  if (offlineProtocolAvailable()) maplibre.addProtocol(OFFLINE_SCHEME, offlineProtocol);
 }
