@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
-import { requestHandoffCode } from '../../native/browserSignIn';
+import { rememberHandoffReturn, requestHandoffCode } from '../../native/browserSignIn';
 import { useAuthStore } from '../../store/authStore';
 import { useNativeHandoff } from './useNativeHandoff';
 
@@ -13,7 +13,11 @@ vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return { ...actual, useNavigate: () => mockNavigate };
 });
-vi.mock('../../native/browserSignIn', () => ({ HANDOFF_PATH: '/native-handoff', requestHandoffCode: vi.fn() }));
+vi.mock('../../native/browserSignIn', () => ({
+  HANDOFF_PATH: '/native-handoff',
+  rememberHandoffReturn: vi.fn(),
+  requestHandoffCode: vi.fn(),
+}));
 
 const challenge = 'ab'.repeat(32);
 const realLocation = window.location;
@@ -85,6 +89,7 @@ describe('useNativeHandoff', () => {
     renderHandoff();
     expect(window.location.replace).toHaveBeenCalledWith('/api/auth/oidc/login?remember=1');
     expect(sessionStorage.getItem('oidc_redirect')).toBe(`/native-handoff?challenge=${challenge}`);
+    expect(rememberHandoffReturn).toHaveBeenCalledWith(`/native-handoff?challenge=${challenge}`);
   });
 
   it('FE-NATIVE-HANDOFF-005: waits while the session is still being checked', () => {

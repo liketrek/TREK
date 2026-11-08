@@ -32,7 +32,7 @@ export default function NativeHandoffPage() {
                 void openApp();
               }}
               disabled={status === 'sending'}
-              className="w-full rounded-lg bg-accent py-3 font-semibold text-accent-on disabled:opacity-60"
+              className="w-full rounded-lg bg-accent py-3 font-semibold text-accent-text disabled:opacity-60"
             >
               {t('native.handoff.open')}
             </button>

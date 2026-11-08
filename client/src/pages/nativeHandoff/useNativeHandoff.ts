@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { HANDOFF_PATH, requestHandoffCode } from '../../native/browserSignIn';
+import { HANDOFF_PATH, rememberHandoffReturn, requestHandoffCode } from '../../native/browserSignIn';
 import { APP_URL_SCHEME } from '../../native/trekShell';
 import { useAuthStore } from '../../store/authStore';
 
@@ -35,6 +35,7 @@ export function useNativeHandoff() {
     if (!valid || isLoading || isAuthenticated) return;
     if (params.get('start') === 'oidc') {
       sessionStorage.setItem('oidc_redirect', returnPath);
+      rememberHandoffReturn(returnPath);
       window.location.replace('/api/auth/oidc/login?remember=1');
       return;
     }

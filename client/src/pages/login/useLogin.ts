@@ -10,7 +10,12 @@ import { getApiErrorMessage } from '../../types'
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
 import { passwordErrorKey } from '../../utils/passwordError'
 import { isNativeApp } from '../../native/platform'
-import { BrowserSignInCancelled, signInThroughBrowser, type BrowserSignInStart } from '../../native/browserSignIn'
+import {
+  BrowserSignInCancelled,
+  signInThroughBrowser,
+  takeHandoffReturn,
+  type BrowserSignInStart,
+} from '../../native/browserSignIn'
 
 interface AppConfig {
   has_users: boolean
@@ -221,7 +226,9 @@ export function useLogin() {
           // body is never read, so it can go without breaking SSO sign-in.
           if (ok && data.success === true) {
             await loadUser()
-            const savedRedirect = sessionStorage.getItem('oidc_redirect') || START_DESTINATION_ROUTE
+            // Taken either way, so a handoff left from an abandoned sign-in cannot catch a later one.
+            const handoffReturn = takeHandoffReturn()
+            const savedRedirect = sessionStorage.getItem('oidc_redirect') || handoffReturn || START_DESTINATION_ROUTE
             sessionStorage.removeItem('oidc_redirect')
             navigate(savedRedirect, { replace: true })
           } else {

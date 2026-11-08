@@ -6,8 +6,10 @@ import {
   BrowserSignInCancelled,
   createHandoffSecret,
   handoffUrl,
+  rememberHandoffReturn,
   requestHandoffCode,
   signInThroughBrowser,
+  takeHandoffReturn,
 } from './browserSignIn';
 import { TrekShell } from './trekShell';
 
@@ -75,5 +77,36 @@ describe('signInThroughBrowser', () => {
     vi.mocked(TrekShell.authenticate).mockResolvedValue({ url: 'com.liketrek.trek://auth' });
     await expect(signInThroughBrowser()).rejects.toThrow('without a sign-in code');
     expect(nativeAuthApi.exchange).not.toHaveBeenCalled();
+  });
+});
+
+describe('the remembered handoff return', () => {
+  const path = `/native-handoff?challenge=${'a'.repeat(64)}`;
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.useRealTimers();
+  });
+
+  it('survives a sign-in that comes back in another tab, once', () => {
+    rememberHandoffReturn(path);
+    expect(takeHandoffReturn()).toBe(path);
+    expect(takeHandoffReturn()).toBeNull();
+  });
+
+  it('is dropped once it is older than a quarter of an hour', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-08T12:00:00Z'));
+    rememberHandoffReturn(path);
+    vi.setSystemTime(new Date('2026-11-08T12:16:00Z'));
+    expect(takeHandoffReturn()).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('only ever leads back to the handoff page', () => {
+    rememberHandoffReturn('/admin');
+    expect(takeHandoffReturn()).toBeNull();
+    localStorage.setItem('trek_native_handoff_return', 'not json');
+    expect(takeHandoffReturn()).toBeNull();
   });
 });

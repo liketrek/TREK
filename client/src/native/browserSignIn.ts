@@ -21,6 +21,40 @@ export const HANDOFF_PATH = '/native-handoff';
 
 export type BrowserSignInStart = 'oidc';
 
+const HANDOFF_RETURN_KEY = 'trek_native_handoff_return';
+const HANDOFF_RETURN_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Remembers the handoff page an SSO round trip has to come back to. The login
+ * keeps its return path in sessionStorage, which is per tab, and an identity
+ * provider such as Google may finish its sign-in in another tab or in its own
+ * app on Android. The return then arrives without it and the user lands in the
+ * web app instead of being handed back, so the handoff page also leaves a short
+ * lived copy here.
+ */
+export function rememberHandoffReturn(path: string): void {
+  try {
+    localStorage.setItem(HANDOFF_RETURN_KEY, JSON.stringify({ path, at: Date.now() }));
+  } catch {
+    /* storage blocked: the sessionStorage copy still covers a single-tab sign-in */
+  }
+}
+
+/** The remembered handoff page, once: only a fresh path to the handoff page itself. */
+export function takeHandoffReturn(): string | null {
+  try {
+    const raw = localStorage.getItem(HANDOFF_RETURN_KEY);
+    localStorage.removeItem(HANDOFF_RETURN_KEY);
+    if (!raw) return null;
+    const { path, at } = JSON.parse(raw) as { path?: unknown; at?: unknown };
+    if (typeof path !== 'string' || typeof at !== 'number') return null;
+    if (Date.now() - at > HANDOFF_RETURN_TTL_MS) return null;
+    return path.startsWith(`${HANDOFF_PATH}?challenge=`) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
 export function createHandoffSecret(): { verifier: string; challenge: string } {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   const verifier = bytesToHex(bytes);
