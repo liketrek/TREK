@@ -238,6 +238,23 @@ describe('AnthropicMessagesClient', () => {
     expect([0, 1, 2, 3].map((i) => dig(body, 'messages', i, 'role'))).toEqual(['user', 'assistant', 'user', undefined]);
   });
 
+  it('ANTH-009: a text-only request keeps the tools for the history and sets tool_choice none (#3016)', async () => {
+    const http = fetchAnswering(streamResponse(STREAM));
+    await run(
+      new AnthropicMessagesClient('claude-sonnet', 'sk-ant-key', http.fetcher).stream(
+        { ...REQUEST, toolChoice: 'none' },
+        signal(),
+      ),
+    );
+    const body = http.body();
+    expect(body.tool_choice).toEqual({ type: 'none' });
+    expect(dig(body, 'tools', 0, 'name')).toBe('create_place');
+
+    const plain = fetchAnswering(streamResponse(STREAM));
+    await run(new AnthropicMessagesClient('claude-sonnet', 'sk-ant-key', plain.fetcher).stream(REQUEST, signal()));
+    expect(plain.body().tool_choice).toBeUndefined();
+  });
+
   it('ANTH-006: marks the end of the history and the end of what came before the question for the cache', async () => {
     const http = fetchAnswering(streamResponse(STREAM));
     await run(new AnthropicMessagesClient('m', 'k', http.fetcher).stream(REQUEST, signal()));
@@ -456,6 +473,17 @@ describe('OpenAiChatClient', () => {
       },
       { role: 'tool', tool_call_id: 'call_1', content: '{"id":7}' },
     ]);
+  });
+
+  it('OACH-009: tool_choice is auto unless the request asks for text only (#3016)', async () => {
+    const client = (fetcher: AiFetch) =>
+      new OpenAiChatClient('openai', 'gpt-5-mini', 'https://api.openai.com/v1', 'sk-key', fetcher);
+    const auto = fetchAnswering(streamResponse(STREAM));
+    await run(client(auto.fetcher).stream(REQUEST, signal()));
+    expect(auto.body().tool_choice).toBe('auto');
+    const none = fetchAnswering(streamResponse(STREAM));
+    await run(client(none.fetcher).stream({ ...REQUEST, toolChoice: 'none' }, signal()));
+    expect(none.body().tool_choice).toBe('none');
   });
 
   it('OACH-002: streams the text and assembles the tool call by its index', async () => {
@@ -687,6 +715,20 @@ describe('OpenAiResponsesClient', () => {
     expect(dig(body, 'tools', 0)).toMatchObject({ type: 'namespace', name: 'trek', description: 'TREK trip tools' });
     expect(dig(body, 'tools', 0, 'tools', 0)).toMatchObject({ type: 'function', name: 'create_place', strict: false });
     expect(dig(body, 'input', 0)).toEqual({ type: 'message', role: 'developer', content: 'Trip: Japan, 3 days' });
+  });
+
+  it('OARS-006: tool_choice is auto unless the request asks for text only (#3016)', async () => {
+    const auto = fetchAnswering(streamResponse(STREAM));
+    await run(new OpenAiResponsesClient('gpt-6.1-sol', tokens('at-1'), auto.fetcher).stream(REQUEST, signal()));
+    expect(auto.body().tool_choice).toBe('auto');
+    const none = fetchAnswering(streamResponse(STREAM));
+    await run(
+      new OpenAiResponsesClient('gpt-6.1-sol', tokens('at-1'), none.fetcher).stream(
+        { ...REQUEST, toolChoice: 'none' },
+        signal(),
+      ),
+    );
+    expect(none.body().tool_choice).toBe('none');
   });
 
   it('OARS-002: streams text, yields the call, then usage, the items to replay and the finish', async () => {

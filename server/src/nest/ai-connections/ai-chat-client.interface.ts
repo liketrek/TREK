@@ -54,6 +54,12 @@ export interface AiChatRequest {
   cacheKey?: string;
   /** Lets the model search the web with its provider's own search; a client without one ignores it. */
   webSearch?: boolean;
+  /**
+   * `none` asks for text only: the tools are still sent, so the tool calls
+   * already in the history stay valid, but the model may not call one.
+   * Absent means the model chooses (#3016).
+   */
+  toolChoice?: 'auto' | 'none';
 }
 
 /** A page the model's answer draws on, from its web search. */

@@ -272,6 +272,12 @@ interface Turn {
    * still gets its answer written (#2789); each is asked at most once.
    */
   askedForAnswer: boolean;
+  /**
+   * The next request may only be answered with text: the step after the ask
+   * for the answer. Claude Sonnet 5.5 offered its follow-ups again instead of
+   * writing, and the turn ended without an answer (#3016).
+   */
+  textOnlyNext: boolean;
   /** The chips of follow-ups offered before any answer, shown under the answer once it is written. */
   followUps: AssistantFollowUps | null;
 }
@@ -360,6 +366,9 @@ function searchParts(
 /** Streams one answer of the model; a failure or a stop ends the turn here, saved as far as it got. */
 async function streamAnswer(turn: Turn, rowId: number): Promise<StepAnswer | AgentOutcome> {
   const { deps, input, w, signal } = turn;
+  // Taken once: only the step right after the ask for the answer is held to text.
+  const textOnly = turn.textOnlyNext;
+  turn.textOnlyNext = false;
   const answer: StepAnswer = {
     text: '',
     received: [],
@@ -377,6 +386,7 @@ async function streamAnswer(turn: Turn, rowId: number): Promise<StepAnswer | Age
         tools: deps.tools.specs(),
         cacheKey: input.cacheKey,
         webSearch: deps.webSearch === true && deps.client.webSearch,
+        ...(textOnly ? { toolChoice: 'none' as const } : {}),
       },
       signal,
     );
@@ -535,6 +545,7 @@ function answeredAsk(call: AiToolCall): AssistantMessagePart {
 async function askForTheAnswer(turn: Turn, rowId: number, step: StepRecord & { asks: AiToolCall[] }): Promise<null> {
   const { asks, providerState } = step;
   turn.askedForAnswer = true;
+  turn.textOnlyNext = true;
   turn.followUps = followUpsOf(asks[asks.length - 1].args);
   const parts = [...step.parts, ...asks.map((call) => ({ ...answeredAsk(call), result: WRITE_THE_ANSWER }))];
   await turn.deps.store.saveStep(rowId, { parts, providerState }, 'complete');
@@ -673,6 +684,7 @@ export async function runAgentLoop(
     knownPlaceIds,
     nudged: false,
     askedForAnswer: false,
+    textOnlyNext: false,
     followUps: null,
   };
   return stepsFrom(turn, 0);

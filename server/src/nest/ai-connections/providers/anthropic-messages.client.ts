@@ -168,6 +168,8 @@ export class AnthropicMessagesClient implements AiChatClient {
               })),
               ...(request.webSearch ? [WEB_SEARCH_TOOL] : []),
             ],
+            // `none` is allowed with extended thinking, unlike forcing a tool.
+            ...(request.toolChoice === 'none' ? { tool_choice: { type: 'none' } } : {}),
           }
         : {}),
     };

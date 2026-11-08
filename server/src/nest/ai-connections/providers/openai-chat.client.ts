@@ -143,7 +143,7 @@ export class OpenAiChatClient implements AiChatClient {
                 parameters: toProviderSchema(tool.parameters, this.schemaKind),
               },
             })),
-            tool_choice: 'auto',
+            tool_choice: request.toolChoice ?? 'auto',
           }
         : {}),
       ...(this.kind === 'openai' && request.cacheKey ? { prompt_cache_key: request.cacheKey } : {}),

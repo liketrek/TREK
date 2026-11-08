@@ -830,6 +830,10 @@ describe('runAgentLoop', () => {
       ]);
       const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
       expect(outcome.end).toBe('stop');
+      // Only the step after the ask may not call a tool: a model offering follow-ups again has to write (#3016).
+      expect(t.requests[0].toolChoice).toBeUndefined();
+      expect(t.requests[1].toolChoice).toBe('none');
+      expect(t.requests[1].tools.length).toBeGreaterThan(0);
       const second = t.requests[1].messages;
       expect(second.at(-2)).toEqual({
         role: 'assistant',
@@ -858,6 +862,20 @@ describe('runAgentLoop', () => {
       const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
       expect(outcome).toMatchObject({ end: 'failed', code: 'empty_answer' });
       expect(t.requests).toHaveLength(2);
+    });
+
+    it('ASTAGT-047: the text-only request is the one step after the ask, never the ones before or after it (#3016)', async () => {
+      const t = setup([
+        [{ type: 'tool-call', call: { id: 'l1', name: 'list_places', args: {} } }],
+        [ask('toolu_9', ['More stops']), { type: 'finish', reason: 'tool-calls' }],
+        [
+          { type: 'text-delta', delta: 'Two stops so far.' },
+          { type: 'finish', reason: 'stop' },
+        ],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome.end).toBe('stop');
+      expect(t.requests.map((request) => request.toolChoice)).toEqual([undefined, undefined, 'none']);
     });
 
     it('ASTAGT-045: follow-ups with no answer after an announcing first answer are still asked for the answer', async () => {
