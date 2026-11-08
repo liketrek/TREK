@@ -1236,10 +1236,12 @@ jobs:
           bin="$RUNNER_TEMP/bin"
           mkdir -p "$bin"
           cd "$RUNNER_TEMP"
-          curl -sSfLo helm.tgz "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz"
+          # GitHub's release downloads answer 504 now and then: retry, the checksum still decides.
+          fetch() { curl -sSfL --retry 5 --retry-delay 15 --retry-all-errors -o "$1" "$2"; }
+          fetch helm.tgz "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz"
           echo "$HELM_SHA256  helm.tgz" | sha256sum -c -
           tar -xzf helm.tgz --strip-components=1 -C "$bin" linux-amd64/helm
-          curl -sSfLo kubeconform.tgz "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          fetch kubeconform.tgz "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
           echo "$KUBECONFORM_SHA256  kubeconform.tgz" | sha256sum -c -
           tar -xzf kubeconform.tgz -C "$bin" kubeconform
           echo "$bin" >> "$GITHUB_PATH"

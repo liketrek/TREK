@@ -1,11 +1,9 @@
-import { TripMembers } from '../../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../../db/repositories/TripMembers.repository';
 import { logError } from '../../audit/audit-log.logger';
 import { withRequestContext } from '../../database/request-context';
 import { RealtimeService } from '../../realtime/realtime.service';
+import { TripMembershipService } from '../../trip-membership/trip-membership.service';
 import { WebPushService } from '../transports/web-push.service';
 import { MikroORM } from '@mikro-orm/core';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 
 /**
@@ -46,7 +44,7 @@ export class WatchSyncPushService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly realtime: RealtimeService,
     private readonly push: WebPushService,
-    @InjectRepository(TripMembers) private readonly members: TripMembersRepository,
+    private readonly membership: TripMembershipService,
     private readonly orm: MikroORM,
   ) {}
 
@@ -79,6 +77,17 @@ export class WatchSyncPushService implements OnModuleInit, OnModuleDestroy {
     else entry.users.add(onlyUserId);
   }
 
+  /** Everyone on the trip: the owner and the members. */
+  private async roster(tripId: string): Promise<Set<number>> {
+    const [owner, members] = await Promise.all([
+      this.membership.getOwnerId(tripId),
+      this.membership.listMemberUserIds(tripId),
+    ]);
+    const users = new Set(members);
+    if (owner != null) users.add(owner);
+    return users;
+  }
+
   /** Sends one trip's gathered sync. */
   async flush(key: string): Promise<void> {
     const entry = this.pending.get(key);
@@ -86,9 +95,7 @@ export class WatchSyncPushService implements OnModuleInit, OnModuleDestroy {
     this.pending.delete(key);
     clearTimeout(entry.timer);
     try {
-      const users = entry.everyone
-        ? await withRequestContext(this.orm, () => this.members.rosterUserIds(key))
-        : entry.users;
+      const users = entry.everyone ? await withRequestContext(this.orm, () => this.roster(key)) : entry.users;
       await Promise.all([...users].map((userId) => this.push.sendWatchSync(userId)));
     } catch (err) {
       logError(`Watch sync failed trip=${key}: ${err instanceof Error ? err.message : err}`);

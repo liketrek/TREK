@@ -121,18 +121,18 @@ jobs:
         working-directory: client
         run: npm run cap:sync -- ios
 
-      # SwiftPM leaves a half-downloaded binary target (Capacitor's xcframeworks)
-      # behind when a download from GitHub fails, and every later attempt then
-      # stops on "already exists in file system". Resolve on a clean artifact
-      # cache, up to three times, before the build needs the packages.
+      # Capacitor's xcframeworks come from GitHub release downloads, which answer
+      # 504 now and then; SwiftPM then reports the half-written file as "already
+      # exists in file system". Resolve on a clean artifact cache, a few times
+      # with growing pauses, before the build needs the packages.
       - name: Resolve the Swift packages
         working-directory: client/ios/App
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             rm -rf ~/Library/Caches/org.swift.swiftpm/artifacts
             if xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App; then exit 0; fi
-            echo "Resolving the Swift packages failed (attempt $attempt of 3)"
-            sleep 20
+            echo "Resolving the Swift packages failed (attempt $attempt of 5)"
+            sleep $((attempt * 30))
           done
           exit 1
 
@@ -235,18 +235,18 @@ jobs:
           xcrun simctl list runtimes | grep -q watchOS || xcodebuild -downloadPlatform watchOS
           xcrun simctl list runtimes
 
-      # SwiftPM leaves a half-downloaded binary target (Capacitor's xcframeworks)
-      # behind when a download from GitHub fails, and every later attempt then
-      # stops on "already exists in file system". Resolve on a clean artifact
-      # cache, up to three times, before the build needs the packages.
+      # Capacitor's xcframeworks come from GitHub release downloads, which answer
+      # 504 now and then; SwiftPM then reports the half-written file as "already
+      # exists in file system". Resolve on a clean artifact cache, a few times
+      # with growing pauses, before the build needs the packages.
       - name: Resolve the Swift packages
         working-directory: client/ios/App
         run: |
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5; do
             rm -rf ~/Library/Caches/org.swift.swiftpm/artifacts
             if xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App; then exit 0; fi
-            echo "Resolving the Swift packages failed (attempt $attempt of 3)"
-            sleep 20
+            echo "Resolving the Swift packages failed (attempt $attempt of 5)"
+            sleep $((attempt * 30))
           done
           exit 1
 

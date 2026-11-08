@@ -4,11 +4,11 @@ import { Notifications } from '../../db/entities/Notifications.entity';
 import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
 import { Settings } from '../../db/entities/Settings.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { AddonsModule } from '../addons/addons.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { MailerModule } from './mailer/mailer.module';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { AdminNotificationPreferencesController, NotificationsController } from './notifications.controller';
@@ -64,13 +64,13 @@ import { Module } from '@nestjs/common';
       Trips,
       TodoItems,
       PushSubscriptions,
-      TripMembers,
     ]),
 
     AddonsModule,
     MailerModule,
     SchedulingModule,
     StorageModule,
+    TripMembershipModule,
   ],
   controllers: [NotificationsController, AdminNotificationPreferencesController, PushController],
   providers: [

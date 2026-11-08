@@ -18,10 +18,12 @@ import {
 } from '../../../../src/nest/notifications/push/vapid-keys.service';
 import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
 import {
+  BACKGROUND_PUSH_HEADER,
   FORBIDDEN_FAILURES_BEFORE_REMOVAL,
   MAX_PUSH_PAYLOAD_BYTES,
   WebPushService,
   buildPushPayload,
+  isAppleRelayEndpoint,
   samePagePath,
 } from '../../../../src/nest/notifications/transports/web-push.service';
 import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
@@ -466,6 +468,57 @@ describe('WebPushService delivery', () => {
       success: false,
       error: 'Failed to send push notification',
     });
+  });
+});
+
+describe('WebPushService.sendWatchSync', () => {
+  const APNS = `https://push.liketrek.com/v1/apns/production/${'ab'.repeat(32)}`;
+  const FCM = `https://push.liketrek.com/v1/fcm/${'x'.repeat(140)}`;
+  const BROWSER = 'https://fcm.googleapis.com/fcm/send/watch-sync-browser';
+
+  it('WSYNC-008: only the iPhone app gets it, as a short-lived background push the relay recognises', async () => {
+    const { user } = createUser(testDb);
+    await subscribe(user.id, APNS);
+    await subscribe(user.id, FCM);
+    await subscribe(user.id, BROWSER);
+    safeFetchFollow.mockResolvedValue(reply(201));
+
+    expect(await push.sendWatchSync(user.id)).toBe(true);
+    expect(safeFetchFollow).toHaveBeenCalledTimes(1);
+    const [url, init] = safeFetchFollow.mock.calls[0];
+    expect(url).toBe(APNS);
+    expect(init.headers).toMatchObject({
+      [BACKGROUND_PUSH_HEADER]: 'background',
+      Topic: 'trek-watch-sync',
+      Urgency: 'low',
+      TTL: '600',
+      'Content-Encoding': 'aes128gcm',
+    });
+  });
+
+  it('WSYNC-009: a user without the iPhone app sends nothing', async () => {
+    const { user } = createUser(testDb);
+    await subscribe(user.id, BROWSER);
+    expect(await push.sendWatchSync(user.id)).toBe(false);
+    expect(safeFetchFollow).not.toHaveBeenCalled();
+  });
+
+  it('WSYNC-010: an ordinary notification to the same app goes out without the background mark', async () => {
+    const { user } = createUser(testDb);
+    await subscribe(user.id, APNS);
+    safeFetchFollow.mockResolvedValue(reply(201));
+    await push.sendToUser(user.id, MSG);
+    const [, init] = safeFetchFollow.mock.calls[0];
+    expect(init.headers[BACKGROUND_PUSH_HEADER]).toBeUndefined();
+    expect(init.headers.TTL).toBe(String(24 * 60 * 60));
+  });
+
+  it("WSYNC-011: only the relay's APNs endpoints count as an iPhone", () => {
+    expect(isAppleRelayEndpoint(APNS)).toBe(true);
+    expect(isAppleRelayEndpoint(FCM)).toBe(false);
+    expect(isAppleRelayEndpoint(BROWSER)).toBe(false);
+    expect(isAppleRelayEndpoint(`http://push.liketrek.com/v1/apns/production/${'ab'.repeat(32)}`)).toBe(false);
+    expect(isAppleRelayEndpoint('not a url')).toBe(false);
   });
 });
 
