@@ -106,6 +106,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'في أي رحلة يُحفظ الرابط؟',
   'native.share.linkSaved': 'تم حفظ الرابط',
   'native.share.linkUnsupported': 'فعّل Collab لحفظ الروابط في رحلة.',
+  'native.pushPrompt.title': 'هل تريد تفعيل الإشعارات؟',
+  'native.pushPrompt.body':
+    'اعرف فورًا عندما يكتب أحدهم في دردشة رحلة أو يدعوك أو يغيّر حجزًا. يمكنك تغيير ذلك في أي وقت من الإعدادات.',
+  'native.pushPrompt.enable': 'تفعيل',
+  'native.pushPrompt.later': 'ليس الآن',
   'native.widget.dayOf': 'اليوم {n} من {m}',
   'native.widget.today': 'اليوم',
   'native.widget.noTrip': 'لا توجد رحلة مخططة بعد',

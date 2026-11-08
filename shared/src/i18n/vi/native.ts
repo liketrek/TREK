@@ -111,6 +111,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Lưu liên kết vào chuyến đi nào?',
   'native.share.linkSaved': 'Đã lưu liên kết',
   'native.share.linkUnsupported': 'Bật Collab để lưu liên kết trong chuyến đi.',
+  'native.pushPrompt.title': 'Bật thông báo?',
+  'native.pushPrompt.body':
+    'Biết ngay khi có người nhắn trong trò chuyện của chuyến đi, mời bạn hoặc thay đổi đặt chỗ. Bạn có thể thay đổi bất cứ lúc nào trong cài đặt.',
+  'native.pushPrompt.enable': 'Bật',
+  'native.pushPrompt.later': 'Để sau',
   'native.widget.dayOf': 'Ngày {n}/{m}',
   'native.widget.today': 'Hôm nay',
   'native.widget.noTrip': 'Chưa có chuyến đi nào được lên kế hoạch',

@@ -107,6 +107,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': '어느 여행에 링크를 저장할까요?',
   'native.share.linkSaved': '링크를 저장했어요',
   'native.share.linkUnsupported': '여행에 링크를 보관하려면 Collab을 켜세요.',
+  'native.pushPrompt.title': '알림을 켤까요?',
+  'native.pushPrompt.body':
+    '여행 채팅에 글이 올라오거나, 초대를 받거나, 예약이 바뀌면 바로 알려 드려요. 설정에서 언제든 바꿀 수 있어요.',
+  'native.pushPrompt.enable': '켜기',
+  'native.pushPrompt.later': '나중에',
   'native.widget.dayOf': '{m}일 중 {n}일째',
   'native.widget.today': '오늘',
   'native.widget.noTrip': '아직 계획된 여행이 없습니다',

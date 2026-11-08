@@ -106,6 +106,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'לאיזה טיול לשמור את הקישור?',
   'native.share.linkSaved': 'הקישור נשמר',
   'native.share.linkUnsupported': 'הפעל את Collab כדי לשמור קישורים בטיול.',
+  'native.pushPrompt.title': 'להפעיל התראות?',
+  'native.pushPrompt.body':
+    "דע מיד כשמישהו כותב בצ'אט של טיול, מזמין אותך או משנה הזמנה. אפשר לשנות זאת בכל עת בהגדרות.",
+  'native.pushPrompt.enable': 'הפעלה',
+  'native.pushPrompt.later': 'לא עכשיו',
   'native.widget.dayOf': 'יום {n} מתוך {m}',
   'native.widget.today': 'היום',
   'native.widget.noTrip': 'עדיין לא תוכנן טיול',

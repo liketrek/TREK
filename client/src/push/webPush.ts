@@ -1,4 +1,5 @@
-import type { PushSubscriptionInput, PushUnsubscribeRequest } from '@trek/shared'
+import { WEB_PUSH_CHANNEL_ID, type PushSubscriptionInput, type PushUnsubscribeRequest } from '@trek/shared'
+import { notificationsApi } from '../api/client'
 import { pushApi } from '../api/push'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { isIosDevice, isIosStandalone } from '../utils/iosDevice'
@@ -178,6 +179,19 @@ export async function loadPushPublicKey(): Promise<string | null> {
 }
 
 /** What the settings card shows for this device. Never rejects. */
+/**
+ * Whether this server offers push to its users: the admin has the channel on
+ * and the server can sign. The same answer the settings' push card goes by.
+ */
+export async function pushChannelOffered(): Promise<boolean> {
+  try {
+    const matrix = (await notificationsApi.getPreferences()) as { channels?: { id: string; active?: boolean }[] }
+    return matrix.channels?.some((ch) => ch.id === WEB_PUSH_CHANNEL_ID && ch.active) ?? false
+  } catch {
+    return false
+  }
+}
+
 export async function readWebPushDeviceState(): Promise<WebPushDeviceState> {
   if (nativePushActive()) return nativePushEndpoint() ? 'on' : 'off'
   const { reason } = getWebPushSupport()

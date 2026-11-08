@@ -110,6 +110,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'どの旅行にリンクを保存しますか？',
   'native.share.linkSaved': 'リンクを保存しました',
   'native.share.linkUnsupported': '旅行にリンクを保存するにはCollabをオンにしてください。',
+  'native.pushPrompt.title': '通知をオンにしますか？',
+  'native.pushPrompt.body':
+    '旅行のチャットへの書き込み、招待、予約の変更をすぐにお知らせします。設定からいつでも変更できます。',
+  'native.pushPrompt.enable': 'オンにする',
+  'native.pushPrompt.later': '後で',
   'native.widget.dayOf': '{m}日中{n}日目',
   'native.widget.today': '今日',
   'native.widget.noTrip': 'まだ予定している旅行はありません',

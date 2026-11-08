@@ -36,6 +36,7 @@ import NewVersionNotice from './components/Layout/NewVersionNotice'
 import NativeUpdateNotice from './components/Layout/NativeUpdateNotice'
 import AppLockGate from './components/Layout/AppLockGate'
 import NativeImportSheet from './mobile/components/NativeImportSheet'
+import MPushPrompt from './mobile/components/MPushPrompt'
 import NativeWidgetsSync from './components/Layout/NativeWidgetsSync'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
 import HelpPanel from './components/Help/HelpPanel'
@@ -453,6 +454,7 @@ export default function App() {
       <ErrorBoundary boundaryId="widget:native-update" fallback={null}><NativeUpdateNotice /></ErrorBoundary>
       <ErrorBoundary boundaryId="widget:app-lock" fallback={null}><AppLockGate /></ErrorBoundary>
       <ErrorBoundary boundaryId="widget:native-import" fallback={null}><NativeImportSheet /></ErrorBoundary>
+      {!hideAuthedWidgets && isPhone && <ErrorBoundary boundaryId="widget:push-prompt" fallback={null}><MPushPrompt /></ErrorBoundary>}
       <ErrorBoundary boundaryId="widget:native-widgets" fallback={null}><NativeWidgetsSync /></ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted
           across navigations. react-router runs location updates inside a transition,

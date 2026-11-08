@@ -111,6 +111,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'In welchem Trip den Link speichern?',
   'native.share.linkSaved': 'Link gespeichert',
   'native.share.linkUnsupported': 'Schalte Collab ein, um Links in einem Trip zu sammeln.',
+  'native.pushPrompt.title': 'Mitteilungen einschalten?',
+  'native.pushPrompt.body':
+    'Erfahre sofort, wenn jemand im Chat eines Trips schreibt, dich einlädt oder eine Buchung ändert. Das kannst du jederzeit in den Einstellungen ändern.',
+  'native.pushPrompt.enable': 'Einschalten',
+  'native.pushPrompt.later': 'Später',
   'native.widget.dayOf': 'Tag {n} von {m}',
   'native.widget.today': 'Heute',
   'native.widget.noTrip': 'Noch keine Reise geplant',

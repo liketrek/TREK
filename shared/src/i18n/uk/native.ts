@@ -109,6 +109,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'У яку подорож зберегти посилання?',
   'native.share.linkSaved': 'Посилання збережено',
   'native.share.linkUnsupported': 'Увімкніть Collab, щоб зберігати посилання в подорожі.',
+  'native.pushPrompt.title': 'Увімкнути сповіщення?',
+  'native.pushPrompt.body':
+    'Дізнавайтеся одразу, коли хтось пише в чат подорожі, запрошує вас або змінює бронювання. Це можна змінити будь-коли в налаштуваннях.',
+  'native.pushPrompt.enable': 'Увімкнути',
+  'native.pushPrompt.later': 'Не зараз',
   'native.widget.dayOf': 'День {n} з {m}',
   'native.widget.today': 'Сьогодні',
   'native.widget.noTrip': 'Подорожей ще не заплановано',

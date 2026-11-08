@@ -108,6 +108,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Do které cesty odkaz uložit?',
   'native.share.linkSaved': 'Odkaz uložen',
   'native.share.linkUnsupported': 'Zapni Collab, abys mohl ukládat odkazy do cesty.',
+  'native.pushPrompt.title': 'Zapnout oznámení?',
+  'native.pushPrompt.body':
+    'Hned se dozvíš, když někdo napíše do chatu cesty, pozve tě nebo změní rezervaci. Kdykoli to můžeš změnit v nastavení.',
+  'native.pushPrompt.enable': 'Zapnout',
+  'native.pushPrompt.later': 'Teď ne',
   'native.widget.dayOf': 'Den {n} z {m}',
   'native.widget.today': 'Dnes',
   'native.widget.noTrip': 'Zatím žádná naplánovaná cesta',

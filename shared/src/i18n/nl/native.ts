@@ -109,6 +109,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'In welke reis de link opslaan?',
   'native.share.linkSaved': 'Link opgeslagen',
   'native.share.linkUnsupported': 'Zet Collab aan om links in een reis te bewaren.',
+  'native.pushPrompt.title': 'Meldingen aanzetten?',
+  'native.pushPrompt.body':
+    'Weet meteen wanneer iemand in de chat van een reis schrijft, je uitnodigt of een boeking wijzigt. Je kunt dit altijd in de instellingen wijzigen.',
+  'native.pushPrompt.enable': 'Aanzetten',
+  'native.pushPrompt.later': 'Niet nu',
   'native.widget.dayOf': 'Dag {n} van {m}',
   'native.widget.today': 'Vandaag',
   'native.widget.noTrip': 'Nog geen reis gepland',

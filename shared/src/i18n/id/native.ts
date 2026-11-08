@@ -110,6 +110,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Simpan tautan ke perjalanan mana?',
   'native.share.linkSaved': 'Tautan disimpan',
   'native.share.linkUnsupported': 'Aktifkan Collab untuk menyimpan tautan dalam perjalanan.',
+  'native.pushPrompt.title': 'Aktifkan notifikasi?',
+  'native.pushPrompt.body':
+    'Ketahui segera saat seseorang menulis di obrolan perjalanan, mengundangmu, atau mengubah pemesanan. Kamu bisa mengubahnya kapan saja di pengaturan.',
+  'native.pushPrompt.enable': 'Aktifkan',
+  'native.pushPrompt.later': 'Nanti saja',
   'native.widget.dayOf': 'Hari {n} dari {m}',
   'native.widget.today': 'Hari ini',
   'native.widget.noTrip': 'Belum ada perjalanan yang direncanakan',

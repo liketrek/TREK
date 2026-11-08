@@ -111,6 +111,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Melyik utazásba mentsem a linket?',
   'native.share.linkSaved': 'Link mentve',
   'native.share.linkUnsupported': 'Kapcsold be a Collabot, hogy linkeket tarts egy utazásban.',
+  'native.pushPrompt.title': 'Bekapcsolod az értesítéseket?',
+  'native.pushPrompt.body':
+    'Azonnal tudni fogod, ha valaki ír egy utazás csevegőjébe, meghív vagy módosít egy foglalást. A beállításokban bármikor módosíthatod.',
+  'native.pushPrompt.enable': 'Bekapcsolás',
+  'native.pushPrompt.later': 'Most nem',
   'native.widget.dayOf': '{m}/{n}. nap',
   'native.widget.today': 'Ma',
   'native.widget.noTrip': 'Még nincs tervezett utazás',

@@ -110,6 +110,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': "A quin viatge desar l'enllaç?",
   'native.share.linkSaved': 'Enllaç desat',
   'native.share.linkUnsupported': 'Activa Collab per guardar enllaços en un viatge.',
+  'native.pushPrompt.title': 'Vols activar les notificacions?',
+  'native.pushPrompt.body':
+    "Assabenta't de seguida quan algú escrigui al xat d'un viatge, et convidi o canviï una reserva. Ho pots canviar quan vulguis a la configuració.",
+  'native.pushPrompt.enable': 'Activa',
+  'native.pushPrompt.later': 'Ara no',
   'native.widget.dayOf': 'Dia {n} de {m}',
   'native.widget.today': 'Avui',
   'native.widget.noTrip': 'Encara no hi ha cap viatge planificat',

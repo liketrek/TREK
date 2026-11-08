@@ -109,6 +109,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Millisesse reisi link salvestada?',
   'native.share.linkSaved': 'Link salvestatud',
   'native.share.linkUnsupported': 'Lülita Collab sisse, et reisis linke hoida.',
+  'native.pushPrompt.title': 'Kas lülitada teavitused sisse?',
+  'native.pushPrompt.body':
+    'Saad kohe teada, kui keegi kirjutab reisi vestlusesse, kutsub sind või muudab broneeringut. Saad seda igal ajal seadetes muuta.',
+  'native.pushPrompt.enable': 'Lülita sisse',
+  'native.pushPrompt.later': 'Mitte praegu',
   'native.widget.dayOf': 'Päev {n}/{m}',
   'native.widget.today': 'Täna',
   'native.widget.noTrip': 'Reisi pole veel planeeritud',

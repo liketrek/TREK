@@ -112,6 +112,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Σε ποιο ταξίδι να αποθηκευτεί ο σύνδεσμος;',
   'native.share.linkSaved': 'Ο σύνδεσμος αποθηκεύτηκε',
   'native.share.linkUnsupported': 'Ενεργοποίησε το Collab για να κρατάς συνδέσμους σε ένα ταξίδι.',
+  'native.pushPrompt.title': 'Ενεργοποίηση ειδοποιήσεων;',
+  'native.pushPrompt.body':
+    'Μάθε αμέσως όταν κάποιος γράφει στη συνομιλία ενός ταξιδιού, σε προσκαλεί ή αλλάζει μια κράτηση. Μπορείς να το αλλάξεις όποτε θέλεις στις ρυθμίσεις.',
+  'native.pushPrompt.enable': 'Ενεργοποίηση',
+  'native.pushPrompt.later': 'Όχι τώρα',
   'native.widget.dayOf': 'Ημέρα {n} από {m}',
   'native.widget.today': 'Σήμερα',
   'native.widget.noTrip': 'Δεν υπάρχει ακόμα προγραμματισμένο ταξίδι',

@@ -109,6 +109,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Spara länken i vilken resa?',
   'native.share.linkSaved': 'Länk sparad',
   'native.share.linkUnsupported': 'Slå på Collab för att spara länkar i en resa.',
+  'native.pushPrompt.title': 'Slå på aviseringar?',
+  'native.pushPrompt.body':
+    'Få veta direkt när någon skriver i en resas chatt, bjuder in dig eller ändrar en bokning. Du kan ändra det när som helst i inställningarna.',
+  'native.pushPrompt.enable': 'Slå på',
+  'native.pushPrompt.later': 'Inte nu',
   'native.widget.dayOf': 'Dag {n} av {m}',
   'native.widget.today': 'I dag',
   'native.widget.noTrip': 'Ingen resa planerad ännu',

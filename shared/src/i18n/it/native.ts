@@ -111,6 +111,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'In quale viaggio salvare il link?',
   'native.share.linkSaved': 'Link salvato',
   'native.share.linkUnsupported': 'Attiva Collab per conservare i link in un viaggio.',
+  'native.pushPrompt.title': 'Attivare le notifiche?',
+  'native.pushPrompt.body':
+    'Scopri subito quando qualcuno scrive nella chat di un viaggio, ti invita o modifica una prenotazione. Puoi cambiarlo quando vuoi nelle impostazioni.',
+  'native.pushPrompt.enable': 'Attiva',
+  'native.pushPrompt.later': 'Non ora',
   'native.widget.dayOf': 'Giorno {n} di {m}',
   'native.widget.today': 'Oggi',
   'native.widget.noTrip': 'Nessun viaggio ancora in programma',

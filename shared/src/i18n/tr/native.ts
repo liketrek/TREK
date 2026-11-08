@@ -110,6 +110,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Bağlantı hangi seyahate kaydedilsin?',
   'native.share.linkSaved': 'Bağlantı kaydedildi',
   'native.share.linkUnsupported': 'Bir seyahatte bağlantı tutmak için Collab özelliğini aç.',
+  'native.pushPrompt.title': 'Bildirimler açılsın mı?',
+  'native.pushPrompt.body':
+    'Biri bir seyahatin sohbetine yazdığında, seni davet ettiğinde veya bir rezervasyonu değiştirdiğinde hemen haberin olsun. Bunu istediğin zaman ayarlardan değiştirebilirsin.',
+  'native.pushPrompt.enable': 'Aç',
+  'native.pushPrompt.later': 'Şimdi değil',
   'native.widget.dayOf': '{m} günün {n}. günü',
   'native.widget.today': 'Bugün',
   'native.widget.noTrip': 'Henüz planlanmış gezi yok',

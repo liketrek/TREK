@@ -106,6 +106,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'บันทึกลิงก์ลงในทริปไหน?',
   'native.share.linkSaved': 'บันทึกลิงก์แล้ว',
   'native.share.linkUnsupported': 'เปิด Collab เพื่อเก็บลิงก์ในทริป',
+  'native.pushPrompt.title': 'เปิดการแจ้งเตือนไหม?',
+  'native.pushPrompt.body':
+    'รู้ทันทีเมื่อมีคนเขียนในแชทของทริป เชิญคุณ หรือเปลี่ยนการจอง คุณเปลี่ยนได้ทุกเมื่อในการตั้งค่า',
+  'native.pushPrompt.enable': 'เปิด',
+  'native.pushPrompt.later': 'ไว้ทีหลัง',
   'native.widget.dayOf': 'วันที่ {n} จาก {m}',
   'native.widget.today': 'วันนี้',
   'native.widget.noTrip': 'ยังไม่มีทริปที่วางแผนไว้',

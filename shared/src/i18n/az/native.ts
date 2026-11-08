@@ -110,6 +110,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Keçid hansı səyahətə yadda saxlanılsın?',
   'native.share.linkSaved': 'Keçid yadda saxlanıldı',
   'native.share.linkUnsupported': 'Səyahətdə keçidləri saxlamaq üçün Collab funksiyasını aç.',
+  'native.pushPrompt.title': 'Bildirişlər açılsın?',
+  'native.pushPrompt.body':
+    'Kimsə səyahətin söhbətinə yazanda, səni dəvət edəndə və ya rezervasiyanı dəyişəndə dərhal xəbər tut. Bunu istənilən vaxt ayarlarda dəyişə bilərsən.',
+  'native.pushPrompt.enable': 'Aç',
+  'native.pushPrompt.later': 'İndi yox',
   'native.widget.dayOf': '{m} gündən {n}-ci gün',
   'native.widget.today': 'Bu gün',
   'native.widget.noTrip': 'Hələ planlanmış səyahət yoxdur',

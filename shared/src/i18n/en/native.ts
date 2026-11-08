@@ -109,6 +109,11 @@ const native: TranslationStrings = {
   'native.share.linkTrip': 'Save the link to which trip?',
   'native.share.linkSaved': 'Link saved',
   'native.share.linkUnsupported': 'Turn on Collab to keep links in a trip.',
+  'native.pushPrompt.title': 'Turn on notifications?',
+  'native.pushPrompt.body':
+    "Hear at once when someone writes in a trip's chat, invites you or changes a booking. You can change this any time in the settings.",
+  'native.pushPrompt.enable': 'Turn on',
+  'native.pushPrompt.later': 'Not now',
   'native.widget.dayOf': 'Day {n} of {m}',
   'native.widget.today': 'Today',
   'native.widget.noTrip': 'No trip planned yet',
