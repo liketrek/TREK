@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
@@ -28,6 +29,8 @@ import org.json.JSONObject;
     }
 )
 public class TrekShellPlugin extends Plugin {
+
+    private static final String TAG = "TrekShell";
 
     /** How long to wait after returning from the browser for the redirect to land. */
     private static final long CANCEL_GRACE_MS = 600;
@@ -315,7 +318,32 @@ public class TrekShellPlugin extends Plugin {
         // A Custom Tab shares the browser's cookies, so a running SSO session at
         // the identity provider carries over. The redirect back to the app's
         // scheme arrives through the intent-filter in AndroidManifest.xml.
-        new CustomTabsIntent.Builder().build().launchUrl(getActivity(), Uri.parse(url));
+        Uri target = Uri.parse(url);
+        getActivity().runOnUiThread(() -> openSignIn(target));
+    }
+
+    /**
+     * Opens the sign-in in a Custom Tab, or in the browser itself where no
+     * Custom Tab can come up. Launched on the UI thread: some devices dropped a
+     * launch from the bridge's thread without a word, and the sign-in then
+     * looked cancelled. A browser that cannot open at all is reported as such.
+     */
+    private void openSignIn(Uri target) {
+        try {
+            new CustomTabsIntent.Builder().build().launchUrl(getActivity(), target);
+            return;
+        } catch (RuntimeException tabFailed) {
+            Log.w(TAG, "No Custom Tab for the sign-in, trying the browser", tabFailed);
+        }
+        try {
+            getActivity().startActivity(new Intent(Intent.ACTION_VIEW, target).addCategory(Intent.CATEGORY_BROWSABLE));
+        } catch (RuntimeException browserFailed) {
+            Log.w(TAG, "No browser for the sign-in", browserFailed);
+            PluginCall call = pendingAuthCall();
+            if (call == null) return;
+            call.reject("No browser could open the sign-in", "NO_BROWSER");
+            finishAuth(call);
+        }
     }
 
     @Override
