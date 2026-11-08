@@ -83,4 +83,16 @@ describe('CollectionsWidget', () => {
     expect(screen.queryByText('No saved places yet')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('No saved places yet')).toBeInTheDocument());
   });
+
+  it('FE-COMP-COLWIDGET-009: #3009 holds the badges it showed last time while the lists load, then remembers the new count', async () => {
+    localStorage.setItem('trek_dash_collections_shown', '3');
+    collections([1, 2].map(id => list({ id, name: `List ${id}` })));
+    const { container } = render(<CollectionsWidget onOpen={() => {}} />);
+
+    expect(container.querySelectorAll('.col-badge-pending')).toHaveLength(3);
+    expect(await screen.findByText('List 1')).toBeInTheDocument();
+    expect(container.querySelectorAll('.col-badge-pending')).toHaveLength(0);
+    await waitFor(() => expect(localStorage.getItem('trek_dash_collections_shown')).toBe('2'));
+    localStorage.clear();
+  });
 });

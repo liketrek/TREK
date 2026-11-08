@@ -23,10 +23,18 @@ export function useCurrencyConverter() {
     updateSetting('dashboard_fx_to', v).catch(() => {});
   };
   const [amount, setAmount] = useState('100');
-  const [rates, setRates] = useState<Record<string, number> | null>(null);
+  // The rates carry the base they were fetched for: the pair can change before
+  // the new base's rates arrive, and the old map priced the new pair wrongly
+  // (EUR's self-rate of 1 showed as "1 JPY = 1.0000 EUR", #3009).
+  const [rates, setRates] = useState<{ base: string; map: Record<string, number> } | null>(null);
+  const [failed, setFailed] = useState(false);
   const inFlight = useRef<AbortController | null>(null);
 
   const fetchRates = useCallback(() => {
+    // Not before the user's pair is known: the defaults' rates were fetched and
+    // shown first, then replaced by the saved pair (#3009).
+    if (!isLoaded) return;
+    setFailed(false);
     inFlight.current?.abort();
     const controller = new AbortController();
     inFlight.current = controller;
@@ -37,18 +45,21 @@ export function useCurrencyConverter() {
         if (signal.aborted) return;
         if (!Array.isArray(d)) {
           setRates(null);
+          setFailed(true);
           return;
         }
         // Frankfurter omits the base's own self-rate; seed it so `from` stays selectable.
         const map: Record<string, number> = { [from]: 1 };
         for (const r of d) map[r.quote] = r.rate;
-        setRates(map);
+        setRates({ base: from, map });
       })
       .catch(() => {
         // An abort is not a failure: it means nobody is waiting for the answer.
-        if (!signal.aborted) setRates(null);
+        if (signal.aborted) return;
+        setRates(null);
+        setFailed(true);
       });
-  }, [from]);
+  }, [from, isLoaded]);
 
   useEffect(() => {
     fetchRates();
@@ -78,13 +89,32 @@ export function useCurrencyConverter() {
       });
   }, [isLoaded, updateSetting]);
 
-  const currencies: string[] = rates ? Object.keys(rates).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : CURRENCIES;
-  const rate = rates?.[to] ?? null;
+  const current = rates?.base === from ? rates.map : null;
+  const currencies: string[] = current ? Object.keys(current).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : CURRENCIES;
+  const rate = current?.[to] ?? null;
+  // The pair is not known yet, or its rates are still on their way: neither is
+  // "rate unavailable", and neither may show a rate.
+  const pairPending = !isLoaded;
+  const ratePending = isLoaded && !current && !failed;
   const converted = rate != null ? (Number.parseFloat(amount.replace(',', '.')) || 0) * rate : null;
   const swap = () => {
     setFrom(to);
     setTo(from);
   };
 
-  return { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates };
+  return {
+    from,
+    to,
+    setFrom,
+    setTo,
+    amount,
+    setAmount,
+    currencies,
+    rate,
+    converted,
+    swap,
+    fetchRates,
+    pairPending,
+    ratePending,
+  };
 }

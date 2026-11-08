@@ -544,7 +544,7 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
         <div className="atlas-card">
           <div className="label">{t('dashboard.atlas.tripsTotal')}</div>
           <div className="value mono">{statsPending ? <Skeleton width={44} height={30} radius={6} /> : stats.totalTrips ?? 0}</div>
-          <div className="delta">{statsPending ? <Skeleton width={90} height={12} /> : t('dashboard.atlas.placesMapped', { count: stats.totalPlaces ?? 0 })}</div>
+          <div className="delta">{statsPending ? <span className="trek-skeleton delta-pending">{t('dashboard.atlas.placesMapped', { count: 0 })}</span> : t('dashboard.atlas.placesMapped', { count: stats.totalPlaces ?? 0 })}</div>
           <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
             <polyline points="0,30 12,26 22,28 32,18 44,22 56,10 68,14 80,4" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -572,7 +572,7 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
             {statsPending ? <Skeleton width={60} height={30} radius={6} /> : distanceText}
             {' '}<span className="unit">{distanceLabel}</span>
           </div>
-          <div className="delta">{statsPending ? <Skeleton width={110} height={12} /> : t('dashboard.atlas.aroundEquator', { count: equatorTimes })}</div>
+          <div className="delta">{statsPending ? <span className="trek-skeleton delta-pending">{t('dashboard.atlas.aroundEquator', { count: '0.00' })}</span> : t('dashboard.atlas.aroundEquator', { count: equatorTimes })}</div>
           <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
             <circle cx="40" cy="18" r="14" fill="none" stroke="oklch(0.88 0.01 70)" strokeWidth="2" />
             <circle cx="40" cy="18" r="14" fill="none" strokeWidth="2" strokeDasharray="58 88" strokeLinecap="round" transform="rotate(-90 40 18)" />
@@ -662,7 +662,7 @@ function TripCard({ trip, locale, badges, matchedPlaces, onOpen, onEdit, onCopy,
 // ── Currency tool (self-contained, mirrors the design's fx widget) ───────────
 function CurrencyTool(): React.ReactElement {
   const { t } = useTranslation()
-  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates: fetchRate } = useCurrencyConverter()
+  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates: fetchRate, pairPending, ratePending } = useCurrencyConverter()
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
 
   return (
@@ -671,7 +671,8 @@ function CurrencyTool(): React.ReactElement {
         <div className="tool-title"><RefreshCw size={14} /> {t('dashboard.currency')}</div>
         <button type="button" className="tool-action" aria-label={t('dashboard.aria.refreshRates')} onClick={fetchRate}><RefreshCw size={14} /></button>
       </div>
-      <div className="fx-input">
+      {/* Held invisible until the saved pair is known, so the defaults never flash first (#3009). */}
+      <div className="fx-input" style={pairPending ? { visibility: 'hidden' } : undefined}>
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.from')}</div>
           <input className="amt mono" value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" />
@@ -685,7 +686,9 @@ function CurrencyTool(): React.ReactElement {
         </div>
       </div>
       <div className="fx-rate">
-        <span>{rate != null ? `1 ${from} = ${rate.toFixed(4)} ${to}` : t('dashboard.fx.unavailable')}</span>
+        {pairPending || ratePending
+          ? <span className="trek-skeleton" aria-hidden>{`1 ${from} = 0.0000 ${to}`}</span>
+          : <span>{rate != null ? `1 ${from} = ${rate.toFixed(4)} ${to}` : t('dashboard.fx.unavailable')}</span>}
       </div>
     </div>
   )

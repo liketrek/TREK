@@ -175,6 +175,9 @@
   transition: transform .35s cubic-bezier(0.23,1,0.32,1), box-shadow .35s cubic-bezier(0.23,1,0.32,1);
 }
 .trek-dash .hero-trip:hover { transform: translateY(-4px); box-shadow: var(--sh-xl, 0 24px 60px oklch(0 0 0 / .28)); }
+/* The hero's place while the trips load: same box, nothing to open or lift (#3009). */
+.trek-dash .hero-trip.hero-trip-pending { cursor: default; box-shadow: none; }
+.trek-dash .hero-trip.hero-trip-pending:hover { transform: none; box-shadow: none; }
 .trek-dash .hero-trip img.bg {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; z-index: 0; transition: transform 12s ease-out;
@@ -400,7 +403,7 @@
 .trek-dash .atlas-card.passport .label { color: oklch(1 0 0 / .65); }
 .trek-dash .atlas-card.passport .value { font-size: 56px; }
 .trek-dash .atlas-card.passport .delta { color: oklch(1 0 0 / .65); }
-.trek-dash .passport-flags { display: flex; margin-top: 18px; }
+.trek-dash .passport-flags { display: flex; margin-top: 18px; min-height: 24px; } /* a flag's height, so the flags arriving move nothing (#3009) */
 .trek-dash .flag {
   width: 24px; height: 24px; border-radius: 50%; overflow: hidden;
   background: oklch(0.4 0.06 60); border: 2px solid oklch(0.28 0.04 50);
@@ -665,6 +668,8 @@
   cursor: pointer; text-align: start; box-shadow: var(--sh-sm); transition: transform .15s cubic-bezier(.2,.7,.2,1), box-shadow .2s;
 }
 .trek-dash .col-badge:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+.trek-dash .col-badge.col-badge-pending { cursor: default; box-shadow: none; }
+.trek-dash .col-badge.col-badge-pending:hover { transform: none; box-shadow: none; }
 .trek-dash .col-badge-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center; }
 .trek-dash .col-badge-tint {
   position: absolute; inset: 0;
@@ -806,3 +811,7 @@
   /* The bottom tab bar's centre "+" replaces the floating FAB on mobile */
   .trek-dash .fab-new-trip { display: none; }
 }
+
+/* A figure's line while the stats load: its real text, invisible under the
+   shimmer, so it wraps as the loaded line will and the cards keep their height (#3009). */
+.trek-dash .atlas-card .delta .delta-pending { color: transparent; border-radius: 4px; }

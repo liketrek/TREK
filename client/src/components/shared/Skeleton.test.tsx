@@ -44,11 +44,11 @@ describe('Skeleton', () => {
 })
 
 describe('composed skeletons', () => {
-  it('FE-W4SKEL-006: SpotlightSkeleton renders the hero backdrop plus two bars', () => {
+  it('FE-W4SKEL-006: SpotlightSkeleton takes the hero's own box and renders the backdrop plus two bars', () => {
     const { container } = render(<SpotlightSkeleton />)
 
     expect(container.querySelectorAll('.trek-skeleton')).toHaveLength(3)
-    expect((container.firstElementChild as HTMLElement).style.minHeight).toBe('340px')
+    expect(container.firstElementChild).toHaveClass('hero-trip', 'hero-trip-pending')
   })
 
   it('FE-W4SKEL-007: TripCardSkeleton renders a cover plus two text bars', () => {
