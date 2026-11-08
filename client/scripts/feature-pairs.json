@@ -1045,6 +1045,7 @@
     "src/mobile/screens/trip/roadtrip/MRtCorridorBar.tsx": "Markup only; its corridor state comes through props from useMRtCorridor.",
     "src/mobile/screens/trip/roadtrip/MRtCorridorSheet.tsx": "Phone corridor search sheet over useMRtCorridor and the planner's shared corridor state.",
     "src/mobile/screens/trip/roadtrip/MRtInfoSheet.tsx": "Read only figures sheet that already shares useHotelBookends, dayWindow and parseAvoid with RoadtripLimitsCard.",
+    "src/mobile/screens/trip/roadtrip/MRtLimitsEditor.tsx": "Large screen form inside MRtInfoSheet over the planner's saveRoadtripLimit, the desktop dialog's own save, and the shared dayWindow, parseAvoid and rangeFromSpec.",
     "src/mobile/screens/trip/roadtrip/MRtKindSheet.tsx": "Thin sheet over planner.setRoadtripStopKind that already shares STOP_KINDS with StopKindPicker.",
     "src/mobile/screens/trip/roadtrip/MRtStopSheet.tsx": "Phone only stop detail sheet over the shared roadtripRowModel, stayReading and planner writers.",
     "src/mobile/screens/trip/roadtrip/stageBadges.ts": "Badge helpers for the phone stage header and alternatives bar, which have no desktop counterpart.",
