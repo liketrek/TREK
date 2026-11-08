@@ -11,7 +11,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-035
+// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-037
 
 const ME = 7
 
@@ -566,5 +566,36 @@ describe('MCollabChat', () => {
 
     unmount()
     expect(removeListener).toHaveBeenCalledWith(handler)
+  })
+
+  it('FE-MOB-CCHAT-036: a picture opens large on a tap, zooms on a second, and closes again', async () => {
+    serveMessages([
+      chatMsg(1, {
+        text: 'The beach',
+        attachments: [{ id: 9, url: '/uploads/collab/beach.jpg', original_name: 'beach.jpg', mime_type: 'image/jpeg' }],
+      }),
+    ])
+    await renderChat()
+    fireEvent.click(screen.getByRole('button', { name: 'beach.jpg' }))
+    const viewer = screen.getByRole('dialog', { name: 'beach.jpg' })
+    const image = viewer.querySelector('img') as HTMLImageElement
+    expect(image).toHaveAttribute('src', '/uploads/collab/beach.jpg')
+    fireEvent.click(image)
+    expect(image).toHaveClass('max-w-none')
+    expect(screen.getByRole('dialog', { name: 'beach.jpg' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close image' }))
+    expect(screen.queryByRole('dialog', { name: 'beach.jpg' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-CCHAT-037: a picture sent alone leaves no empty bubble beside it', async () => {
+    serveMessages([
+      chatMsg(1, { text: '', attachments: [{ id: 9, url: '/uploads/collab/a.jpg', original_name: 'a.jpg' }] }),
+      chatMsg(2, { text: 'Nice' }),
+    ])
+    await renderChat()
+    expect(screen.getByRole('button', { name: 'a.jpg' })).toBeInTheDocument()
+    expect(screen.getAllByText('Nice')).toHaveLength(1)
+    expect(document.querySelectorAll('.whitespace-pre-wrap')).toHaveLength(1)
   })
 })
