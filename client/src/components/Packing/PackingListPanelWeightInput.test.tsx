@@ -11,10 +11,9 @@ function SlowRow({ onSave }: { onSave: (grams: number | null) => void }) {
     <WeightInput
       value={stored}
       width={36}
-      onSave={async (grams) => {
+      onSave={(grams) => {
         onSave(grams);
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setStored(grams);
+        setTimeout(() => setStored(grams), 300);
       }}
     />
   );

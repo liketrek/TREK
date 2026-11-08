@@ -381,21 +381,24 @@ export async function trimTileCacheForIos(now = Date.now()): Promise<number> {
   } catch {
     return 0
   }
-  const cache = await openTileCache()
-  if (!cache) return 0
-  const keys = await cache.keys()
-  const surplus = keys.slice(0, Math.max(0, keys.length - IOS_MAX_TILES))
-  for (const request of surplus) await cache.delete(request)
-  return surplus.length
+  try {
+    const cache = await openTileCache()
+    if (!cache) return 0
+    const keys = await cache.keys()
+    const surplus = keys.slice(0, Math.max(0, keys.length - IOS_MAX_TILES))
+    for (const request of surplus) await cache.delete(request)
+    return surplus.length
+  } catch {
+    // Cache Storage refused: the tiles stay as they are and tomorrow tries again.
+    return 0
+  }
 }
 
 /** Trims the iOS tile cache once the app has started, never in the way of its first screens. */
 export function scheduleTileCacheTrim(delayMs = 15_000): void {
   if (!isIosDevice() || isNativeIos()) return
   window.setTimeout(() => {
-    trimTileCacheForIos().catch(() => {
-      /* Cache Storage unavailable: nothing to trim */
-    })
+    void trimTileCacheForIos()
   }, delayMs)
 }
 
