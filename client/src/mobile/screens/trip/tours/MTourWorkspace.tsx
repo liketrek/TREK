@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import TourGpxDropZone from '../../../../components/Tours/TourGpxDropZone';
 import TourWorkspaceRail from '../../../../components/Tours/TourWorkspaceRail';
 import { TourPlannerToursRail } from '../../../../components/Tours/planner/TourPlannerPanels';
+import { FloatingRailHeads } from '../../../../components/Tours/planner/railHead';
 import { useIsSplit } from '../../../../hooks/sizeClass';
 import { useTouchDragBridge } from '../../../../hooks/useTouchDragBridge';
 import { LazyPanel } from '../../../../pages/tripPlanner/LazyPanel';
@@ -105,30 +106,32 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
             className="flex h-full min-w-0 flex-1 flex-col split:w-[var(--trip-pane-open)] split:flex-none split:border-e split:border-[color:var(--m-rowbr)]"
           >
             {!headSlot && <div className="flex items-center gap-2 px-4 pb-2 pt-1">{head}</div>}
-            <div className="relative min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
-              {pane === 'tours' ? (
-                <LazyPanel id="m-tour-tours">
-                  <TourPlannerToursRail
-                    planner={tourPlanner}
-                    canEdit={canPlaceEdit}
-                    canAssign={canDayEdit}
-                    tours={planner.tours}
-                    days={planner.days}
-                    loading={planner.toursLoading}
-                    onAssignToDay={planner.handleAssignToDay}
-                    onDeleteTour={planner.handleDeleteTour}
-                    gpxImport={tourGpxImport}
-                    onViewGpxTour={page.viewImportedTour}
-                    onTakenOver={tourDetailActions.onTakenOver}
-                    floatingHead
-                  />
-                </LazyPanel>
-              ) : (
-                <LazyPanel id="m-tour-editor">
-                  <TourWorkspaceRail workspace={page} canEdit={canPlaceEdit} canAssign={canDayEdit} />
-                </LazyPanel>
-              )}
-            </div>
+            {/* Every rail head here is a rounded band like the cards under it. */}
+            <FloatingRailHeads value>
+              <div className="relative min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
+                {pane === 'tours' ? (
+                  <LazyPanel id="m-tour-tours">
+                    <TourPlannerToursRail
+                      planner={tourPlanner}
+                      canEdit={canPlaceEdit}
+                      canAssign={canDayEdit}
+                      tours={planner.tours}
+                      days={planner.days}
+                      loading={planner.toursLoading}
+                      onAssignToDay={planner.handleAssignToDay}
+                      onDeleteTour={planner.handleDeleteTour}
+                      gpxImport={tourGpxImport}
+                      onViewGpxTour={page.viewImportedTour}
+                      onTakenOver={tourDetailActions.onTakenOver}
+                    />
+                  </LazyPanel>
+                ) : (
+                  <LazyPanel id="m-tour-editor">
+                    <TourWorkspaceRail workspace={page} canEdit={canPlaceEdit} canAssign={canDayEdit} />
+                  </LazyPanel>
+                )}
+              </div>
+            </FloatingRailHeads>
           </section>
         )}
         {showMap && (
