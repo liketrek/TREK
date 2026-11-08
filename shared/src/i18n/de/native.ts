@@ -68,13 +68,13 @@ const native: TranslationStrings = {
   'native.claim.subscribe': 'Abonnieren für {price}',
   'native.claim.cancelled': 'Kauf abgebrochen.',
   'native.claim.failed': 'Der Kauf hat nicht geklappt. Bitte versuch es erneut.',
-  'native.claim.redeemFailed': 'Wir konnten deine TREK nicht einrichten. Bitte versuch es erneut.',
+  'native.claim.redeemFailed': 'Wir konnten dein TREK nicht einrichten. Bitte versuch es erneut.',
   'native.claim.closedRefund':
     'TREK Cloud startet bald. Google Play erstattet dir diesen Kauf automatisch innerhalb von drei Tagen.',
   'native.plans.restore': 'Käufe wiederherstellen',
   'native.plans.restoring': 'Deine Käufe werden geprüft…',
   'native.plans.restoreNone': 'Für diese Apple-ID wurde kein aktives Abo gefunden.',
-  'native.plans.restoreFailed': 'Wir konnten deine TREK nicht wiederherstellen. Bitte versuch es erneut.',
+  'native.plans.restoreFailed': 'Wir konnten dein TREK nicht wiederherstellen. Bitte versuch es erneut.',
   'native.plans.legal':
     'Die Zahlung wird bei Bestätigung über deine Apple-ID abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht mindestens 24 Stunden vor Ablauf des Zeitraums kündigst. Verwalten und kündigen kannst du es in den Einstellungen deines App-Store-Accounts.',
   'native.plans.terms': 'Nutzungsbedingungen von Apple (EULA)',
@@ -86,10 +86,10 @@ const native: TranslationStrings = {
     'Mit dem Abonnieren gelten für die Bereitstellung deiner Instanz die AGB von TREK Cloud (Anbieter: Maurice Bötger, Rostock). Kauf, Zahlung und Erstattung wickelt der Store ab.',
   'native.claim.pending':
     'Dein Kauf wartet noch auf eine Freigabe. Sobald er durch ist, tippe auf Käufe wiederherstellen.',
-  'native.provisioning.title': 'Deine TREK wird eingerichtet',
+  'native.provisioning.title': 'Dein TREK wird eingerichtet',
   'native.provisioning.sub': '{host} wird vorbereitet. Das dauert nur eine Minute.',
   'native.provisioning.failedTitle': 'Gleich fertig',
-  'native.provisioning.failedSub': 'Deine TREK ist unterwegs. Versuch es gleich noch einmal oder öffne die App später.',
+  'native.provisioning.failedSub': 'Dein TREK ist fast bereit. Versuch es gleich noch einmal oder öffne die App später.',
   'native.provisioning.retry': 'Jetzt versuchen',
   'native.update.title': 'TREK-App aktualisieren',
   'native.update.body': 'Dieser Server braucht eine neuere App-Version, damit alles funktioniert.',
@@ -142,7 +142,7 @@ const native: TranslationStrings = {
   'native.gate.signIn': 'Bei {name} anmelden',
   'native.gate.signInGeneric': 'Anmelden',
   'native.gate.googleNote':
-    'Eine Anmeldung mit Google funktioniert nicht in einer App. Nutzt deine sie, lass TREK stattdessen am Proxy vorbei.',
+    'Eine Anmeldung mit Google funktioniert nicht in einer App. Nutzt dein Proxy sie, lass TREK stattdessen daran vorbei.',
   'native.gate.basicHint':
     'Die App kann diese Abfrage nicht beantworten. Lass TREK in deinem Proxy daran vorbei: TREK fragt weiterhin nach seiner eigenen Anmeldung.',
   'native.gate.help': 'Die App hinter einem Anmelde-Proxy nutzen',
