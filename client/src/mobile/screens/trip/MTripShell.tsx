@@ -35,7 +35,7 @@ import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
 import { tripCreateIntent } from '../../../components/Layout/useCreateAction'
 import MDockScrim from '../../components/MDockScrim'
-import { setTourHeadSlot } from './tours/tourHeadSlot'
+import { setTabHeadSlot } from './tabHeadSlot'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -866,8 +866,8 @@ export default function MTripShell({
             not in the dock, so nothing was lit up there either, and the screen
             gave no clue which plugin was open. Same treatment as the others, from
             the tab entry the planner already builds (id, label, icon). */}
-        {/* The tours tab puts its own controls here instead (tours/tourHeadSlot.ts). */}
-        {trTab === 'tour-planner' && <div ref={setTourHeadSlot} className="pointer-events-auto absolute inset-x-[52px] top-1/2 flex -translate-y-1/2 items-center gap-2" />}
+        {/* The tours tab and the journal put their own controls here instead (tabHeadSlot.ts). */}
+        {(trTab === 'tour-planner' || trTab === 'journal') && <div ref={setTabHeadSlot} className="pointer-events-auto absolute inset-x-[52px] top-1/2 flex -translate-y-1/2 items-center gap-2" />}
         {trTab.startsWith('plugin:') && (() => {
           const tab = planner.TRIP_TABS.find(x => x.id === trTab)
           if (!tab) return null

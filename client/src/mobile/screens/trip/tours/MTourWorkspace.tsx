@@ -13,7 +13,7 @@ import { useTripPlannerPageOf } from '../../../../pages/tripPlanner/useTripPlann
 import MIconBtn from '../../../components/MIconBtn';
 import MSegmented from '../../../components/MSegmented';
 import type { MTripTabPanelProps } from '../MTripShell';
-import { useTourHeadSlot } from './tourHeadSlot';
+import { useTabHeadSlot } from '../tabHeadSlot';
 
 /** The pane's two halves: the trip's tours, or the editor with the tour open in it. */
 type MTourPane = 'tours' | 'editor';
@@ -67,7 +67,7 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
   const showPane = split || !mapShown;
   const showMap = split || mapShown;
   const { t } = planner;
-  const headSlot = useTourHeadSlot();
+  const headSlot = useTabHeadSlot();
   // In the shell's top row the switch also brings the pane back from the map.
   const pickPane = (next: MTourPane) => {
     setPane(next);

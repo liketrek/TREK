@@ -1,8 +1,8 @@
 import { fireEvent } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setTabHeadSlot } from '../../../../src/mobile/screens/trip/tabHeadSlot';
 import MTourWorkspace from '../../../../src/mobile/screens/trip/tours/MTourWorkspace';
-import { setTourHeadSlot } from '../../../../src/mobile/screens/trip/tours/tourHeadSlot';
 import { buildPlanner } from '../../../helpers/mobileTrip';
 import { render, screen } from '../../../helpers/render';
 import { setSizeClass } from '../../../helpers/sizeClass';
@@ -59,7 +59,7 @@ beforeEach(() => {
   page.wandererOpen = false;
   page.calls = [];
   dragBridge.mockClear();
-  setTourHeadSlot(null);
+  setTabHeadSlot(null);
 });
 
 describe('MTourWorkspace', () => {
@@ -141,7 +141,7 @@ describe('MTourWorkspace', () => {
     setSizeClass('wide');
     const slot = document.createElement('div');
     document.body.appendChild(slot);
-    setTourHeadSlot(slot);
+    setTabHeadSlot(slot);
     render(<MTourWorkspace planner={buildPlanner()} />);
     expect(await screen.findByTestId('tour-list')).toBeInTheDocument();
     expect(slot).toContainElement(screen.getByRole('tab', { name: 'tours.planner.tripTours' }));

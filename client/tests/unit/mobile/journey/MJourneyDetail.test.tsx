@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 
 import { setSizeClass } from '../../../helpers/sizeClass';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
+import { setTabHeadSlot } from '../../../../src/mobile/screens/trip/tabHeadSlot';
 import { addonsApi, journeyApi, memoriesApi } from '../../../../src/api/client';
 import { useJourneyStore } from '../../../../src/store/journeyStore';
 import { useAuthStore } from '../../../../src/store/authStore';
@@ -334,6 +335,23 @@ describe('MJourneyDetail', () => {
     expect(hook.setView).toHaveBeenCalledWith('gallery');
     fireEvent.click(screen.getByRole('button', { name: /journey.detail.journeyTab/ }));
     expect(hook.setView).toHaveBeenCalledWith('timeline');
+  });
+
+  it("FE-MOB-JDET-050: as a trip tab the switch and the menu sit in the trip shell's top row", () => {
+    const slot = document.createElement('div');
+    document.body.appendChild(slot);
+    setTabHeadSlot(slot);
+    try {
+      mocks.detail = buildHook();
+      render(<MJourneyDetail journeyId={7} embedded />);
+      expect(slot).toContainElement(screen.getByRole('button', { name: /journey.share.gallery/ }));
+      expect(slot).toContainElement(screen.getByRole('button', { name: 'files.menu' }));
+      // The view switch stands beside the back button rather than centred over the screen.
+      expect(slot.querySelector('[data-view-switch]')?.parentElement?.className).toContain('[&_[data-view-switch]]:static');
+    } finally {
+      setTabHeadSlot(null);
+      slot.remove();
+    }
   });
 
   it('FE-MOB-JDET-010: back navigates to the journey list', () => {

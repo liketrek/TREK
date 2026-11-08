@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 import { BookOpen, ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2, X, Route, ListChecks } from 'lucide-react'
 import JourneyLayeredMap from '../../../components/Journey/JourneyLayeredMap'
@@ -32,6 +32,8 @@ import MJourneyFeed from './MJourneyFeed'
 import MJourneySettingsSheet from './MJourneySettingsSheet'
 import MJourneyDayImportSheet from './MJourneyDayImportSheet'
 import MJourneyRecordingSheet from './MJourneyRecordingSheet'
+import { createPortal } from 'react-dom'
+import { useTabHeadSlot } from '../trip/tabHeadSlot'
 
 /**
  * Journey detail — integrated map with the horizontal 280px card timeline
@@ -86,6 +88,9 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos,
     addPickedProviderPhotos, addEntryProviderPhotos, writeAboutPlace,
   } = useJourneyDetail({ journeyId, embedded })
+  // A trip tab: the header goes into the trip shell's top row (tabHeadSlot.ts).
+  const shellSlot = useTabHeadSlot()
+  const headSlot = embedded ? shellSlot : null
 
   // The dock's FAB is a sibling of this screen: on the Gallery it becomes the
   // upload button, so it has to know which tab is open — and it stops knowing
@@ -339,7 +344,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden">
+    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden" style={headSlot ? IN_SHELL_ROW : undefined}>
       {/* Integrated map — always mounted, the gallery overlays it. Beside the feed
           it begins where the feed ends, so its controls and its framing stay in
           the part that can be seen. */}
@@ -448,10 +453,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
 
       {/* Header: back — segment — upload / overflow menu. Beside the feed it keeps
           to the feed, as the trip's controls keep to its pane. */}
-      <div
-        className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2"
-        style={feed ? { insetInlineEnd: 'calc(100% - var(--m-rail-w, 0px) - var(--m-pane-aside-w) + 16px)' } : undefined}
-      >
+      <HeaderFrame slot={headSlot} feed={!!feed}>
         {embedded ? (
           <span className="w-[38px] flex-none" aria-hidden />
         ) : (
@@ -464,7 +466,10 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
             <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
           </button>
         )}
-        <div className="absolute left-1/2 top-0 flex -translate-x-1/2 rounded-full bg-[color:var(--m-sheet)] p-[3px] shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]">
+        <div
+          data-view-switch
+          className="absolute left-1/2 top-0 flex -translate-x-1/2 rounded-full bg-[color:var(--m-sheet)] p-[3px] shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
+        >
           <button
             type="button"
             onClick={() => setView('timeline')}
@@ -519,7 +524,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
             <MoreHorizontal size={17} strokeWidth={2} />
           </button>
         </span>
-      </div>
+      </HeaderFrame>
 
       {/* The stays Dawarich recorded for these dates, as candidate entries. Over
           the map rather than in the header: it belongs to what is on the map,
@@ -824,3 +829,30 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
     </div>
   )
 }
+
+/**
+ * With the header in the shell's row, what the screen measures from its top
+ * starts right under that row instead of under a row of its own.
+ */
+const IN_SHELL_ROW = { '--m-safe-top': 'calc(env(safe-area-inset-top, 0px) + 6px)' } as CSSProperties
+
+/** The header row: on the screen, or in the trip shell's top row when the journal is a trip tab. */
+function HeaderFrame({ slot, feed, children }: { slot: HTMLElement | null; feed: boolean; children: ReactNode }) {
+  if (slot) {
+    return createPortal(
+      <div className="flex min-w-0 flex-1 items-center gap-2 [&>span:first-child]:hidden [&_[data-view-switch]]:static [&_[data-view-switch]]:translate-x-0">
+        {children}
+      </div>,
+      slot
+    )
+  }
+  return (
+    <div
+      className="m-bar-x absolute top-[var(--m-safe-top,12px)] z-10 flex items-center justify-between gap-2"
+      style={feed ? { insetInlineEnd: 'calc(100% - var(--m-rail-w, 0px) - var(--m-pane-aside-w) + 16px)' } : undefined}
+    >
+      {children}
+    </div>
+  )
+}
+
