@@ -410,6 +410,11 @@ body::after {
     drop-shadow(0 6px 16px color-mix(in srgb, var(--ink) 22%, transparent));
   animation: logoRise 0.7s var(--ease) both;
 }
+/* The Android web view draws the two shadows above as a dark halo round the mark; iOS keeps them. */
+:root[data-platform='android'] .hero-mark,
+:root[data-platform='android'] .hero-logo {
+  filter: none;
+}
 .hero-logo img {
   display: block;
   height: 62px;
