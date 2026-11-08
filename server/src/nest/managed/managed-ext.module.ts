@@ -22,3 +22,13 @@ import { Module } from '@nestjs/common';
  */
 @Module({})
 export class ManagedExtModule {}
+
+/**
+ * Routes of this module that answer without a session, as `Controller.handler`.
+ *
+ * Empty here, like the module. The boot gate (validate-route-guards.ts) adds
+ * them to its allow-list, so an install that replaces this file declares its
+ * anonymous surface in the same place it adds it, and the gate still fails on a
+ * route that is missing here or an entry that is stale.
+ */
+export const MANAGED_PUBLIC_ROUTES: readonly string[] = [];

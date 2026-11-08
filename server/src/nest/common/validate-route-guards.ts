@@ -2,6 +2,7 @@ import { CookieAuthGuard } from '../auth-core/cookie-auth.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
 import { IS_PUBLIC, OPTIONAL_AUTH } from '../auth-core/public.decorator';
+import { MANAGED_PUBLIC_ROUTES } from '../managed/managed-ext.module';
 import { ApiTokenGuard } from '../public-api/api-token.guard';
 import type { INestApplication } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA, GUARDS_METADATA } from '@nestjs/common/constants';
@@ -181,7 +182,7 @@ export const ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST: string[] = [
  */
 export function validateRouteGuards(
   app: INestApplication,
-  allowList: string[] = PUBLIC_ROUTE_ALLOW_LIST,
+  allowList: string[] = [...PUBLIC_ROUTE_ALLOW_LIST, ...MANAGED_PUBLIC_ROUTES],
   anonymousGuardedAllowList: string[] = ANONYMOUS_GUARDED_ROUTE_ALLOW_LIST,
 ): void {
   const entries = collectRouteGuards(app);
