@@ -16,7 +16,7 @@ import MPlacesBrowser from './places/MPlacesBrowser'
 import MTripTabPanel from './tabs/MTripTabPanel'
 import MTripSheets from './sheets/MTripSheets'
 import MReceiptScanButton from './tabs/MReceiptScanButton'
-import MTripLoadingSplash from './MTripLoadingSplash'
+import { MTripOpening } from './MTripLoadingSplash'
 import { usePluginDayTints, dayTintBackground } from '../../../components/Plugins/PluginDaySchedule'
 import { stageOf } from '../../../components/Roadtrip/roadtripRowModel'
 import { badgeLabel, distanceBadge } from './roadtrip/stageBadges'
@@ -450,9 +450,11 @@ export default function MTripShell({
   // With the plan beside the map, the map shows the day the plan shows: its
   // places framed, its route drawn, the other days' pins put away, exactly as
   // a phone does when it switches over to the map.
-  // Not before the splash has gone: the map is not there to frame until then.
-  const mapReady = !planner.isLoading && planner.splashDone
-  const followDayId = mapReady && split && trTab === 'plan' && view === 'plan' && mode !== 'browse' ? planner.selectedDayId : null
+  // Not before the trip has opened: the map is not there to frame until then.
+  // The store can still hold the trip opened before, for the frame before loadTrip resets it.
+  const ownTrip = trip && String(trip.id) === String(tripId) ? trip : null
+  const opened = !planner.isLoading && !!ownTrip
+  const followDayId = opened && split && trTab === 'plan' && view === 'plan' && mode !== 'browse' ? planner.selectedDayId : null
   const { autoShowRoute, setExpandedDayIds } = planner
   const selectDayRef = useRef(planner.handleSelectDay)
   useEffect(() => {
@@ -521,9 +523,9 @@ export default function MTripShell({
     openDocSyncSignal,
   }
 
-  // Splash — same gate as the desktop page, in the mobile design language.
-  if (planner.isLoading || !planner.splashDone) {
-    return <MTripLoadingSplash title={trip?.title || ''} />
+  // No minimum splash as on the desktop: the page transition hides the wait (MTripOpening).
+  if (!opened && (planner.isLoading || trip)) {
+    return <MTripOpening title={ownTrip?.title || ''} />
   }
   if (!trip) return null
 

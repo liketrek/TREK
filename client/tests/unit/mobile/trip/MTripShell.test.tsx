@@ -27,6 +27,7 @@ vi.mock('../../../../src/mobile/screens/trip/tabs/MTripTabPanel', () => ({ defau
 vi.mock('../../../../src/mobile/screens/trip/sheets/MTripSheets', () => ({ default: () => null }))
 
 import MTripShell from '../../../../src/mobile/screens/trip/MTripShell'
+import { TRIP_SPLASH_AFTER_MS } from '../../../../src/mobile/screens/trip/MTripLoadingSplash'
 
 /** Last shell api handed to a slot — the object every slot shares. */
 let shellApi!: MTripShellApi
@@ -135,15 +136,30 @@ describe('MTripShell', () => {
     )
   })
 
-  it('FE-MOB-SHELL-001: shows the loading splash with the trip title while the planner loads', () => {
-    renderShell({ isLoading: true } as Partial<TripPlanner>)
-    expect(screen.getByText('Japan 2026')).toBeInTheDocument()
-    expect(screen.queryByTestId('sheets')).not.toBeInTheDocument()
+  it('FE-MOB-SHELL-001: while the trip loads the page transition holds, and only a slow load brings the splash', () => {
+    vi.useFakeTimers()
+    try {
+      const { container } = renderShell({ isLoading: true } as Partial<TripPlanner>)
+      expect(container.querySelector('[data-route-fallback]')).toBeInTheDocument()
+      expect(screen.queryByText('Japan 2026')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('sheets')).not.toBeInTheDocument()
+
+      act(() => vi.advanceTimersByTime(TRIP_SPLASH_AFTER_MS))
+      expect(screen.getByText('Japan 2026')).toBeInTheDocument()
+      expect(container.querySelector('[data-route-fallback]')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('FE-MOB-SHELL-002: keeps the splash up until the photo warm-up finished', () => {
+  it('FE-MOB-SHELL-002: the trip shows as soon as it has loaded, without the desktop splash minimum', () => {
     renderShell({ splashDone: false } as Partial<TripPlanner>)
-    expect(screen.getByText('Japan 2026')).toBeInTheDocument()
+    expect(screen.getByTestId('map-area')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-SHELL-002b: the trip opened before, still in the store, is never shown for the one opening', () => {
+    const { container } = renderShell({ tripId: 2 } as Partial<TripPlanner>)
+    expect(container.querySelector('[data-route-fallback]')).toBeInTheDocument()
     expect(screen.queryByTestId('map-area')).not.toBeInTheDocument()
   })
 
@@ -153,8 +169,14 @@ describe('MTripShell', () => {
   })
 
   it('FE-MOB-SHELL-003b: the splash falls back to the brand name before the trip arrives', () => {
-    renderShell({ isLoading: true, trip: null } as Partial<TripPlanner>)
-    expect(screen.getByText('TREK')).toBeInTheDocument()
+    vi.useFakeTimers()
+    try {
+      renderShell({ isLoading: true, trip: null } as Partial<TripPlanner>)
+      act(() => vi.advanceTimersByTime(TRIP_SPLASH_AFTER_MS))
+      expect(screen.getByText('TREK')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('FE-MOB-SHELL-004: seeds the running trip on today rather than on day one', () => {
@@ -617,27 +639,27 @@ describe('MTripShell', () => {
 
     // #2880: the day is seeded while the splash still covers the shell, so the
     // rail only exists after the selection has settled.
-    it('FE-MOB-SHELL-094: the active day is brought into view once the splash lifts (#2880)', () => {
+    it('FE-MOB-SHELL-094: the active day is brought into view once the trip has opened (#2880)', () => {
       const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
       scrollIntoView.mockClear()
       stubRects({ left: 480, right: 540 })
-      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, splashDone: false } as Partial<TripPlanner>)
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, isLoading: true } as Partial<TripPlanner>)
       expect(scrollIntoView).not.toHaveBeenCalled()
 
-      ;(planner as { splashDone: boolean }).splashDone = true
+      ;(planner as { isLoading: boolean }).isLoading = false
       rerenderShell()
 
       expect(scrollIntoView).toHaveBeenCalledTimes(1)
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
     })
 
-    it('FE-MOB-SHELL-095: after the splash a chip already in view leaves the rail alone', () => {
+    it('FE-MOB-SHELL-095: once the trip has opened a chip already in view leaves the rail alone', () => {
       const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
       scrollIntoView.mockClear()
       stubRects({ left: 40, right: 100 })
-      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, splashDone: false } as Partial<TripPlanner>)
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, isLoading: true } as Partial<TripPlanner>)
 
-      ;(planner as { splashDone: boolean }).splashDone = true
+      ;(planner as { isLoading: boolean }).isLoading = false
       rerenderShell()
 
       expect(scrollIntoView).not.toHaveBeenCalled()
