@@ -140,7 +140,9 @@ jobs:
           set -eu
 
           # Derive version from git tags, no package.json dependency
-          STABLE_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -v '\-pre\.' | sort -V | tail -1)
+          # Only a plain vX.Y.Z is a release: the glob alone also matches the apps' TestFlight tags
+          # (v5.1.0-tf.15), whose suffix then broke the arithmetic below.
+          STABLE_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
           STABLE="${STABLE_TAG#v}"
           STABLE="${STABLE:-0.0.0}"
 
