@@ -1,4 +1,4 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-049
+// FE-MOB-JDET-001 to FE-MOB-JDET-050
 import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import { setSizeClass } from '../../../helpers/sizeClass';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
@@ -814,6 +814,15 @@ describe('MJourneyDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: /Kyoto/ }));
     expect(mocks.focusMarker).toHaveBeenCalledWith('2');
     expect(screen.getByRole('button', { name: /Kyoto/ })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('FE-MOB-JDET-050: the feed hides what scrolls under the header pills down to their lower edge', () => {
+    setSizeClass('split');
+    setup();
+    const feed = screen.getByRole('button', { name: /Kyoto/ }).closest('.overflow-y-auto') as HTMLElement;
+    // Transparent through the 38px pills below the safe area, whole before the first day's head at +60px.
+    expect(feed.style.maskImage).toMatch(/transparent calc\(var\(--m-safe-top, 12px\) \+ 40px\)/);
+    expect(feed.style.maskImage).toMatch(/#000 calc\(var\(--m-safe-top, 12px\) \+ 60px\)/);
   });
 
   it('FE-MOB-JDET-048: the gallery takes the page, feed or not', () => {

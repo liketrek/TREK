@@ -422,11 +422,12 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
       {feed && (
         <div
           className="absolute inset-y-0 z-[6] overflow-y-auto overflow-x-hidden border-e border-[color:var(--m-rowbr)] bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[calc(var(--m-safe-top,12px)+60px)]"
-          // Entries scrolled up fade out under the header's pills instead of showing through between them.
+          // Entries scrolled up fade out under the header's pills instead of showing through between them:
+          // gone down to the pills' lower edge (38px tall), whole again before the first day's head.
           style={{
             insetInlineStart: 'var(--m-rail-w, 0px)',
             width: 'var(--m-pane-aside-w)',
-            maskImage: 'linear-gradient(180deg, transparent calc(var(--m-safe-top, 12px) + 22px), #000 calc(var(--m-safe-top, 12px) + 58px))',
+            maskImage: 'linear-gradient(180deg, transparent calc(var(--m-safe-top, 12px) + 40px), #000 calc(var(--m-safe-top, 12px) + 60px))',
           }}
         >
           <MJourneyFeed
