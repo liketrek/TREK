@@ -65,6 +65,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Szabad',
   'native.claim.emailLabel': 'E-mail',
   'native.claim.emailHint': 'A fiókodhoz és a szerződéssel kapcsolatos üzenetekhez.',
+  'native.claim.passwordLabel': 'Jelszó',
+  'native.claim.passwordHint':
+    'Legalább 8 karakter. A jelszónak tartalmaznia kell nagybetűt, kisbetűt, számot és speciális karaktert.',
   'native.claim.subscribe': 'Előfizetés ennyiért: {price}',
   'native.claim.cancelled': 'Vásárlás megszakítva.',
   'native.claim.failed': 'A vásárlás nem sikerült. Próbáld újra.',

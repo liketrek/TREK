@@ -25,9 +25,32 @@ final class TrekServerStore {
     private static final String KEY_SIGN_IN_HOSTS = "sign_in_hosts";
     private static final String KEY_SHELL_ONCE = "shell_once";
     private static final String KEY_RESTART = "restart";
+    private static final String KEY_WELCOME = "welcome";
     private static final String CONFIG_DIR = "trek-server-config";
 
     private TrekServerStore() {}
+
+    /**
+     * The one-time code of a TREK Cloud purchase (setServer's `welcome`). The
+     * server's first page opens its welcome page with it once, which signs the
+     * buyer in (TrekWebViewClient). Kept only until the restart has loaded.
+     */
+    static void setWelcome(Context context, String code) {
+        SharedPreferences.Editor editor = prefs(context).edit();
+        if (code == null) editor.remove(KEY_WELCOME);
+        else editor.putString(KEY_WELCOME, code);
+        editor.commit();
+    }
+
+    /** The welcome page for the pending code, handed out once; null when there is none. */
+    static String takeWelcomeUrl(Context context) {
+        String code = prefs(context).getString(KEY_WELCOME, null);
+        String server = getUrl(context);
+        if (code == null) return null;
+        prefs(context).edit().remove(KEY_WELCOME).commit();
+        if (server == null) return null;
+        return (server.endsWith("/") ? server : server + "/") + "api/managed/welcome#" + code;
+    }
 
     static String getUrl(Context context) {
         return prefs(context).getString(KEY_URL, null);

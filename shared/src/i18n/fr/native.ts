@@ -66,6 +66,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Disponible',
   'native.claim.emailLabel': 'E-mail',
   'native.claim.emailHint': 'Pour votre compte et les messages concernant votre contrat.',
+  'native.claim.passwordLabel': 'Mot de passe',
+  'native.claim.passwordHint':
+    'Au moins 8 caractères. Le mot de passe doit contenir des majuscules, des minuscules, un chiffre et un caractère spécial.',
   'native.claim.subscribe': 'S’abonner pour {price}',
   'native.claim.cancelled': 'Achat annulé.',
   'native.claim.failed': 'L’achat n’a pas abouti. Réessayez.',

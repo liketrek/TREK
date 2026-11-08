@@ -64,6 +64,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Tersedia',
   'native.claim.emailLabel': 'Email', // same-as-en
   'native.claim.emailHint': 'Untuk akun Anda dan pemberitahuan tentang kontrak Anda.',
+  'native.claim.passwordLabel': 'Kata sandi',
+  'native.claim.passwordHint':
+    'Minimal 8 karakter. Kata sandi harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus.',
   'native.claim.subscribe': 'Berlangganan seharga {price}',
   'native.claim.cancelled': 'Pembelian dibatalkan.',
   'native.claim.failed': 'Pembelian tidak berhasil. Silakan coba lagi.',

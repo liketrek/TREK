@@ -18,6 +18,7 @@ import {
   STORE_TERMS_URL,
 } from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
+import { passwordProblem } from '../../shared/src/auth/password-policy';
 import { TrekShell } from '../src/native/trekShell';
 import { directionOf, pickLocale, translator } from './i18n';
 import './shell.css';
@@ -709,10 +710,12 @@ interface RedeemResult {
   ok: boolean;
   /** Set when ok: the address the app loads. */
   instanceUrl?: string;
+  /** Set when ok and a password was chosen: the one-time code that signs the buyer in once the instance answers. */
+  welcome?: string;
   /** Set when not ok: a stable refusal code. */
   code?: string;
 }
-async function redeemPurchase(slug: string, email: string, purchase: Purchase): Promise<RedeemResult> {
+async function redeemPurchase(slug: string, email: string, purchase: Purchase, password = ''): Promise<RedeemResult> {
   try {
     const res = await CapacitorHttp.post({
       url: `${CLOUD_URL}/api/iap/redeem`,
@@ -726,13 +729,16 @@ async function redeemPurchase(slug: string, email: string, purchase: Purchase): 
         receipt: purchase.receipt,
         slug,
         email,
+        // Hashed by the control plane on arrival and set on the new instance; empty for a restore.
+        ...(password ? { password } : {}),
         locale,
       },
     });
     const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
-    const body = (data ?? {}) as { instanceUrl?: string; code?: string };
+    const body = (data ?? {}) as { instanceUrl?: string; code?: string; welcome?: string };
     if ((res.status === 200 || res.status === 201) && typeof body.instanceUrl === 'string') {
-      return { ok: true, instanceUrl: body.instanceUrl };
+      const welcome = typeof body.welcome === 'string' && /^[A-Za-z0-9_-]{43}$/.test(body.welcome) ? body.welcome : undefined;
+      return { ok: true, instanceUrl: body.instanceUrl, ...(welcome ? { welcome } : {}) };
     }
     return { ok: false, code: body.code ?? 'redeem-failed' };
   } catch {
@@ -779,11 +785,28 @@ function showClaim(
   });
   emailInput.setAttribute('inputmode', 'email');
   emailInput.setAttribute('autocomplete', 'email');
-  emailInput.setAttribute('enterkeyhint', 'go');
+  emailInput.setAttribute('enterkeyhint', 'next');
   emailInput.setAttribute('aria-label', t('native.claim.emailLabel'));
   emailInput.dir = 'ltr';
   emailInput.classList.add('ltr-value');
   const emailField = el('div', { className: 'field' }, emailInput);
+
+  // The password for the new TREK, chosen here so the buyer lands signed in (no password by mail).
+  const passwordInput = el('input', {
+    type: 'password',
+    value: '',
+    autocapitalize: 'off',
+    spellcheck: false,
+    placeholder: t('native.claim.passwordLabel'),
+  });
+  passwordInput.setAttribute('autocomplete', 'new-password');
+  passwordInput.setAttribute('enterkeyhint', 'go');
+  passwordInput.setAttribute('maxlength', '128');
+  passwordInput.setAttribute('aria-label', t('native.claim.passwordLabel'));
+  passwordInput.dir = 'ltr';
+  passwordInput.classList.add('ltr-value');
+  const passwordField = el('div', { className: 'field' }, passwordInput);
+  const passwordHint = el('p', { className: 'hint' }, t('native.claim.passwordHint'));
 
   const submit = el('button', { type: 'submit', className: 'btn' }, t('native.claim.subscribe', { price }));
   const error = el('p', { className: 'error', role: 'alert' });
@@ -794,6 +817,8 @@ function showClaim(
     slugNote,
     emailField,
     el('p', { className: 'hint' }, t('native.claim.emailHint')),
+    passwordField,
+    passwordHint,
     // Our terms govern the instance (terms § 5a): named before the purchase, not only in the confirmation mail.
     el(
       'p',
@@ -852,11 +877,21 @@ function showClaim(
       emailInput.focus();
       return;
     }
+    // Before anything is bought: a password TREK would refuse must not cost a purchase first.
+    const password = passwordInput.value;
+    if (passwordProblem(password) || password.length > 128) {
+      shake(passwordField);
+      passwordHint.className = 'hint bad';
+      passwordInput.focus();
+      return;
+    }
+    passwordHint.className = 'hint';
 
     void tap(ImpactStyle.Medium);
     const lock = (on: boolean) => {
       slugInput.disabled = on;
       emailInput.disabled = on;
+      passwordInput.disabled = on;
       submit.disabled = on;
     };
     lock(true);
@@ -887,10 +922,10 @@ function showClaim(
       bought = outcome.purchase;
     }
 
-    const redeemed = await redeemPurchase(slug, email, bought);
+    const redeemed = await redeemPurchase(slug, email, bought, password);
     if (redeemed.ok && redeemed.instanceUrl) {
       await iap.finish(bought);
-      showProvisioning(redeemed.instanceUrl);
+      showProvisioning(redeemed.instanceUrl, redeemed.welcome);
       return;
     }
     void notify(NotificationType.Error);
@@ -899,6 +934,10 @@ function showClaim(
       shake(slugField);
       slugNote.textContent = t('native.claim.taken');
       slugNote.className = 'hint bad';
+    } else if (redeemed.code === 'password-weak') {
+      // A common password the list on the server knows: the purchase waits, unredeemed, for a better one.
+      shake(passwordField);
+      passwordHint.className = 'hint bad';
     } else {
       error.textContent = refundedBeforeOpening(redeemed.code, onPlay)
         ? t('native.claim.closedRefund')
@@ -925,7 +964,7 @@ function showClaim(
 }
 
 /** The build runs on the server; the app waits on the new address and loads it the moment it answers. */
-function showProvisioning(instanceUrl: string): void {
+function showProvisioning(instanceUrl: string, welcome?: string): void {
   const host = (() => {
     try {
       return new URL(instanceUrl).host;
@@ -949,11 +988,11 @@ function showProvisioning(instanceUrl: string): void {
   const poll = async (): Promise<void> => {
     const result = await probeServer(instanceUrl, get);
     if (result.ok) {
-      await connected(result.url);
+      await connected(result.url, [], welcome);
       return;
     }
     if (Date.now() > deadline) {
-      showProvisioningSlow(instanceUrl);
+      showProvisioningSlow(instanceUrl, welcome);
       return;
     }
     setTimeout(() => void poll(), 4000);
@@ -961,12 +1000,12 @@ function showProvisioning(instanceUrl: string): void {
   setTimeout(() => void poll(), 3000);
 }
 
-function showProvisioningSlow(instanceUrl: string): void {
+function showProvisioningSlow(instanceUrl: string, welcome?: string): void {
   void notify(NotificationType.Warning);
   const retry = el('button', { type: 'button', className: 'btn' }, t('native.provisioning.retry'));
   retry.addEventListener('click', () => {
     void tap();
-    showProvisioning(instanceUrl);
+    showProvisioning(instanceUrl, welcome);
   });
   show(
     el(
@@ -997,8 +1036,13 @@ async function runDemo(button: HTMLButtonElement, error?: HTMLElement): Promise<
   }
 }
 
-/** The tick, then the server takes over. A beat so the success registers. */
-async function connected(url: string, signInHosts: string[] = []): Promise<void> {
+/**
+ * The tick, then the server takes over. A beat so the success registers. With a
+ * welcome code (a purchase with a chosen password) the app opens the instance's
+ * welcome page once, which signs the buyer in; an app build without that option
+ * opens the sign-in page instead, where the chosen password works.
+ */
+async function connected(url: string, signInHosts: string[] = [], welcome?: string): Promise<void> {
   void notify(NotificationType.Success);
   const host = (() => {
     try {
@@ -1023,7 +1067,11 @@ async function connected(url: string, signInHosts: string[] = []): Promise<void>
     el('div', { className: 'success' }, tick, el('h1', { className: 'title-sm' }, t('native.connecting', { host })))
   );
   await new Promise((r) => setTimeout(r, 700));
-  await TrekShell.setServer(signInHosts.length ? { url, signInHosts } : { url });
+  await TrekShell.setServer({
+    url,
+    ...(signInHosts.length ? { signInHosts } : {}),
+    ...(welcome ? { welcome } : {}),
+  });
 }
 
 function showUnreachable(server: string): void {

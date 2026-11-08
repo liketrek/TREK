@@ -191,6 +191,19 @@ enum TrekServerStore {
         return false
     }
 
+    /// The one-time code of a TREK Cloud purchase (setServer's `welcome`). The
+    /// server's first page opens its welcome page with it once, which signs the
+    /// buyer in (TrekNavigationProxy). Kept in memory only, never on disk.
+    static var pendingWelcome: String?
+
+    /// The welcome page for the pending code, handed out once.
+    static func takeWelcomeURL() -> URL? {
+        guard let code = pendingWelcome, let server = url else { return nil }
+        pendingWelcome = nil
+        let base = server.hasSuffix("/") ? server : server + "/"
+        return URL(string: base + "api/managed/welcome#" + code)
+    }
+
     static var offlineCopyURL: URL {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return support.appendingPathComponent("offline-start-page.html")
@@ -452,6 +465,15 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
             return
         }
         inner.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
+    }
+
+    /// After the server's first page, a pending welcome code opens the welcome
+    /// page once (TrekServerStore.takeWelcomeURL); it is on the server's origin.
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        inner.webView?(webView, didFinish: navigation)
+        if let welcome = TrekServerStore.takeWelcomeURL() {
+            webView.load(URLRequest(url: welcome))
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

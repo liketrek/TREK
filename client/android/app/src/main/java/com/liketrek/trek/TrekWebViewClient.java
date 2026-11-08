@@ -44,6 +44,14 @@ class TrekWebViewClient extends BridgeWebViewClient {
         return super.shouldOverrideUrlLoading(view, request);
     }
 
+    /** After the server's first page, a pending welcome code opens the welcome page once (TrekServerStore.takeWelcomeUrl). */
+    @Override
+    public void onPageFinished(WebView view, String url) {
+        super.onPageFinished(view, url);
+        String welcome = TrekServerStore.takeWelcomeUrl(view.getContext());
+        if (welcome != null) view.loadUrl(welcome);
+    }
+
     private boolean isSignInHost(Uri url) {
         String scheme = url.getScheme();
         String host = url.getHost();

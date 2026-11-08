@@ -64,6 +64,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Beschikbaar',
   'native.claim.emailLabel': 'E-mail',
   'native.claim.emailHint': 'Voor je account en berichten over je contract.',
+  'native.claim.passwordLabel': 'Wachtwoord',
+  'native.claim.passwordHint':
+    'Minstens 8 tekens. Wachtwoord moet hoofdletters, kleine letters, een cijfer en een speciaal teken bevatten.',
   'native.claim.subscribe': 'Abonneren voor {price}',
   'native.claim.cancelled': 'Aankoop geannuleerd.',
   'native.claim.failed': 'De aankoop is niet gelukt. Probeer het opnieuw.',

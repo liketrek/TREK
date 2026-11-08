@@ -65,6 +65,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Ledig',
   'native.claim.emailLabel': 'E-post',
   'native.claim.emailHint': 'För ditt konto och meddelanden om ditt avtal.',
+  'native.claim.passwordLabel': 'Lösenord',
+  'native.claim.passwordHint':
+    'Minst 8 tecken. Lösenordet måste innehålla versaler, gemener, en siffra och ett specialtecken.',
   'native.claim.subscribe': 'Prenumerera för {price}',
   'native.claim.cancelled': 'Köpet avbröts.',
   'native.claim.failed': 'Köpet gick inte igenom. Försök igen.',

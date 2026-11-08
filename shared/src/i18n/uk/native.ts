@@ -64,6 +64,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Доступно',
   'native.claim.emailLabel': 'Ел. пошта',
   'native.claim.emailHint': 'Для вашого облікового запису та повідомлень щодо договору.',
+  'native.claim.passwordLabel': 'Пароль',
+  'native.claim.passwordHint':
+    'Щонайменше 8 символів. Пароль повинен містити великі й малі літери, цифру та спеціальний символ.',
   'native.claim.subscribe': 'Підписатися за {price}',
   'native.claim.cancelled': 'Покупку скасовано.',
   'native.claim.failed': 'Покупка не пройшла. Повторіть спробу.',

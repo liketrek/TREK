@@ -65,6 +65,8 @@ const native: TranslationStrings = {
   'native.claim.free': 'Uygun',
   'native.claim.emailLabel': 'E-posta',
   'native.claim.emailHint': 'Hesabınız ve sözleşmenizle ilgili bildirimler için.',
+  'native.claim.passwordLabel': 'Şifre',
+  'native.claim.passwordHint': 'En az 8 karakter. Şifre büyük harf, küçük harf, sayı ve özel karakter içermelidir.',
   'native.claim.subscribe': '{price} karşılığında abone ol',
   'native.claim.cancelled': 'Satın alma iptal edildi.',
   'native.claim.failed': 'Satın alma tamamlanamadı. Lütfen tekrar deneyin.',

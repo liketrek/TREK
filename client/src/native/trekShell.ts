@@ -18,8 +18,11 @@ export interface TrekShellPlugin {
    * Remembers the server and loads it. The current page is gone afterwards.
    * `signInHosts` are the hosts of a proxy's sign-in page in front of it
    * (authGate.ts): only they may load in the web view besides the server.
+   * `welcome` is the one-time code of a TREK Cloud purchase: the first load
+   * opens the server's welcome page with it, which signs the buyer in. A build
+   * without this option ignores it and opens the server as usual.
    */
-  setServer(options: { url: string; signInHosts?: string[] }): Promise<void>;
+  setServer(options: { url: string; signInHosts?: string[]; welcome?: string }): Promise<void>;
   /** Forgets the server and returns to the address screen. */
   resetServer(): Promise<void>;
   /** Loads the remembered server again, after it could not be reached. */

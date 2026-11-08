@@ -67,6 +67,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Διαθέσιμη',
   'native.claim.emailLabel': 'Ηλ. ταχυδρομείο',
   'native.claim.emailHint': 'Για τον λογαριασμό σας και ενημερώσεις για τη σύμβασή σας.',
+  'native.claim.passwordLabel': 'Κωδικός',
+  'native.claim.passwordHint':
+    'Τουλάχιστον 8 χαρακτήρες. Ο κωδικός πρέπει να περιέχει κεφαλαία, πεζά, έναν αριθμό και έναν ειδικό χαρακτήρα.',
   'native.claim.subscribe': 'Εγγραφή για {price}',
   'native.claim.cancelled': 'Η αγορά ακυρώθηκε.',
   'native.claim.failed': 'Η αγορά δεν ολοκληρώθηκε. Δοκιμάστε ξανά.',

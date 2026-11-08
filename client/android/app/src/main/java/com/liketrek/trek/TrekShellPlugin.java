@@ -279,6 +279,9 @@ public class TrekShellPlugin extends Plugin {
             return;
         }
         TrekServerStore.setServer(getContext(), url, signInHostsOf(call));
+        // A TREK Cloud purchase: the code that signs the buyer in, opened once after the first page.
+        String welcome = call.getString("welcome");
+        TrekServerStore.setWelcome(getContext(), welcome != null && welcome.matches("[A-Za-z0-9_-]{43}") ? welcome : null);
         call.resolve();
         restart();
     }

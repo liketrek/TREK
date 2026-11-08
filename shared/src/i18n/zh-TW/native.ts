@@ -63,6 +63,8 @@ const native: TranslationStrings = {
   'native.claim.free': '可用',
   'native.claim.emailLabel': '電子郵件',
   'native.claim.emailHint': '用於你的帳號與合約相關通知。',
+  'native.claim.passwordLabel': '密碼',
+  'native.claim.passwordHint': '至少 8 個字元。密碼必須包含大寫字母、小寫字母、數字和特殊字元。',
   'native.claim.subscribe': '以 {price} 訂閱',
   'native.claim.cancelled': '已取消購買。',
   'native.claim.failed': '購買未成功。請重試。',

@@ -64,6 +64,8 @@ const native: TranslationStrings = {
   'native.claim.free': '利用可能',
   'native.claim.emailLabel': 'メール',
   'native.claim.emailHint': 'アカウントと契約に関するお知らせ用です。',
+  'native.claim.passwordLabel': 'パスワード',
+  'native.claim.passwordHint': '8文字以上。大文字・小文字・数字・記号を含めてください。',
   'native.claim.subscribe': '{price} で登録',
   'native.claim.cancelled': '購入をキャンセルしました。',
   'native.claim.failed': '購入できませんでした。もう一度お試しください。',

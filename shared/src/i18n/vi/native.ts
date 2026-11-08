@@ -66,6 +66,8 @@ const native: TranslationStrings = {
   'native.claim.free': 'Có sẵn',
   'native.claim.emailLabel': 'Email', // same-as-en
   'native.claim.emailHint': 'Dùng cho tài khoản và thông báo về hợp đồng của bạn.',
+  'native.claim.passwordLabel': 'Mật khẩu',
+  'native.claim.passwordHint': 'Ít nhất 8 ký tự. Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt.',
   'native.claim.subscribe': 'Đăng ký với giá {price}',
   'native.claim.cancelled': 'Đã hủy mua.',
   'native.claim.failed': 'Giao dịch mua không thành công. Vui lòng thử lại.',

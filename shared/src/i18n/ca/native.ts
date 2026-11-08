@@ -65,6 +65,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Disponible',
   'native.claim.emailLabel': 'Correu',
   'native.claim.emailHint': 'Per al teu compte i els avisos sobre el teu contracte.',
+  'native.claim.passwordLabel': 'Contrasenya',
+  'native.claim.passwordHint':
+    'Almenys 8 caràcters. La contrasenya ha de contenir majúscules, minúscules, números i un caràcter especial.',
   'native.claim.subscribe': 'Subscriu-te per {price}',
   'native.claim.cancelled': 'Compra cancel·lada.',
   'native.claim.failed': 'La compra no s’ha completat. Torna-ho a provar.',

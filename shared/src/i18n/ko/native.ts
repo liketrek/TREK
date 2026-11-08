@@ -63,6 +63,8 @@ const native: TranslationStrings = {
   'native.claim.free': '사용 가능',
   'native.claim.emailLabel': '이메일',
   'native.claim.emailHint': '계정과 계약 관련 안내에 사용됩니다.',
+  'native.claim.passwordLabel': '비밀번호',
+  'native.claim.passwordHint': '8자 이상. 비밀번호는 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.',
   'native.claim.subscribe': '{price}에 구독',
   'native.claim.cancelled': '구매가 취소되었습니다.',
   'native.claim.failed': '구매가 완료되지 않았습니다. 다시 시도하세요.',

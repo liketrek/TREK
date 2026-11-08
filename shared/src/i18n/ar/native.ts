@@ -63,6 +63,8 @@ const native: TranslationStrings = {
   'native.claim.free': 'متاح',
   'native.claim.emailLabel': 'البريد الإلكتروني',
   'native.claim.emailHint': 'لحسابك والرسائل المتعلقة بعقدك.',
+  'native.claim.passwordLabel': 'كلمة المرور',
+  'native.claim.passwordHint': '8 أحرف على الأقل. يجب أن تحتوي كلمة المرور على حرف كبير وحرف صغير ورقم ورمز خاص.',
   'native.claim.subscribe': 'اشترك مقابل {price}',
   'native.claim.cancelled': 'تم إلغاء الشراء.',
   'native.claim.failed': 'لم تتم عملية الشراء. حاول مرة أخرى.',

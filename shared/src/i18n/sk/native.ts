@@ -64,6 +64,9 @@ const native: TranslationStrings = {
   'native.claim.free': 'Dostupné',
   'native.claim.emailLabel': 'E-mail',
   'native.claim.emailHint': 'Pre váš účet a správy k zmluve.',
+  'native.claim.passwordLabel': 'Heslo',
+  'native.claim.passwordHint':
+    'Aspoň 8 znakov. Heslo musí obsahovať veľké písmeno, malé písmeno, číslicu a špeciálny znak.',
   'native.claim.subscribe': 'Predplatiť za {price}',
   'native.claim.cancelled': 'Nákup zrušený.',
   'native.claim.failed': 'Nákup sa nepodaril. Skúste to znova.',

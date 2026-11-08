@@ -64,6 +64,8 @@ const native: TranslationStrings = {
   'native.claim.free': 'Saadaval',
   'native.claim.emailLabel': 'E-post',
   'native.claim.emailHint': 'Sinu konto ja lepinguga seotud teadete jaoks.',
+  'native.claim.passwordLabel': 'Parool',
+  'native.claim.passwordHint': 'Vähemalt 8 märki. Parool peab sisaldama suur- ja väiketähte, numbrit ning erimärki.',
   'native.claim.subscribe': 'Telli hinnaga {price}',
   'native.claim.cancelled': 'Ost tühistatud.',
   'native.claim.failed': 'Ost ei õnnestunud. Proovi uuesti.',

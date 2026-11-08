@@ -327,6 +327,9 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         // After the URL: setting it clears the hosts of the server before.
         let hosts = (call.getArray("signInHosts", String.self) ?? []).filter { $0.range(of: "^[A-Za-z0-9.-]+(:[0-9]+)?$", options: .regularExpression) != nil }
         TrekServerStore.signInHosts = Set(hosts.map { $0.lowercased() })
+        // A TREK Cloud purchase: the code that signs the buyer in, opened once after the first page.
+        let welcome = call.getString("welcome") ?? ""
+        TrekServerStore.pendingWelcome = welcome.range(of: "^[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil ? welcome : nil
         call.resolve()
         restartBridge()
     }

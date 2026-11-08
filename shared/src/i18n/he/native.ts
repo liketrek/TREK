@@ -63,6 +63,8 @@ const native: TranslationStrings = {
   'native.claim.free': 'זמין',
   'native.claim.emailLabel': 'אימייל',
   'native.claim.emailHint': 'לחשבון שלכם ולהודעות על החוזה.',
+  'native.claim.passwordLabel': 'סיסמה',
+  'native.claim.passwordHint': 'לפחות 8 תווים. הסיסמה חייבת להכיל אות גדולה, אות קטנה, ספרה ותו מיוחד.',
   'native.claim.subscribe': 'הרשמה תמורת {price}',
   'native.claim.cancelled': 'הרכישה בוטלה.',
   'native.claim.failed': 'הרכישה לא הושלמה. אנא נסו שוב.',
