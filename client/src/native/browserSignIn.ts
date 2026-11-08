@@ -1,5 +1,7 @@
 import { sha256 } from '@noble/hashes/sha2';
 import { bytesToHex } from '@noble/hashes/utils';
+import { startAuthentication } from '@simplewebauthn/browser';
+import { authApi } from '../api/client';
 import { nativeAuthApi } from '../api/nativeAuth';
 import { APP_URL_SCHEME, TrekShell } from './trekShell';
 
@@ -74,6 +76,13 @@ export function handoffUrl(origin: string, challenge: string, start?: BrowserSig
 export async function requestHandoffCode(challenge: string): Promise<string> {
   const { code } = await nativeAuthApi.handoff(challenge);
   return code;
+}
+
+/** The browser side of a passkey sign-in the app started: the prompt, then the session cookie. */
+export async function signInWithPasskey(): Promise<void> {
+  const options = await authApi.passkey.loginOptions();
+  const assertion = await startAuthentication({ optionsJSON: options });
+  await authApi.passkey.loginVerify(assertion);
 }
 
 export class BrowserSignInCancelled extends Error {

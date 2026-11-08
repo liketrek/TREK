@@ -1,9 +1,7 @@
-import { startAuthentication } from '@simplewebauthn/browser';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
-import { authApi } from '../../api/client';
-import { HANDOFF_PATH, rememberHandoffReturn, requestHandoffCode } from '../../native/browserSignIn';
+import { HANDOFF_PATH, rememberHandoffReturn, requestHandoffCode, signInWithPasskey } from '../../native/browserSignIn';
 import { APP_URL_SCHEME } from '../../native/trekShell';
 import { useAuthStore } from '../../store/authStore';
 
@@ -65,9 +63,7 @@ export function useNativeHandoff() {
   const continueWithPasskey = async (): Promise<void> => {
     setStatus('sending');
     try {
-      const options = await authApi.passkey.loginOptions();
-      const assertion = await startAuthentication({ optionsJSON: options });
-      await authApi.passkey.loginVerify(assertion);
+      await signInWithPasskey();
       await loadUser({ silent: true });
     } catch (err: unknown) {
       const name = (err as { name?: string })?.name;

@@ -1,6 +1,8 @@
 import { sha256 } from '@noble/hashes/sha2';
 import { bytesToHex } from '@noble/hashes/utils';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { authApi } from '../api/client';
 import { nativeAuthApi } from '../api/nativeAuth';
 import {
   BrowserSignInCancelled,
@@ -9,11 +11,14 @@ import {
   rememberHandoffReturn,
   requestHandoffCode,
   signInThroughBrowser,
+  signInWithPasskey,
   takeHandoffReturn,
 } from './browserSignIn';
 import { TrekShell } from './trekShell';
 
 vi.mock('./trekShell', () => ({ APP_URL_SCHEME: 'com.liketrek.trek', TrekShell: { authenticate: vi.fn() } }));
+vi.mock('@simplewebauthn/browser', () => ({ startAuthentication: vi.fn() }));
+vi.mock('../api/client', () => ({ authApi: { passkey: { loginOptions: vi.fn(), loginVerify: vi.fn() } } }));
 vi.mock('../api/nativeAuth', () => ({ nativeAuthApi: { exchange: vi.fn(), handoff: vi.fn() } }));
 
 beforeEach(() => {
@@ -108,5 +113,16 @@ describe('the remembered handoff return', () => {
     expect(takeHandoffReturn()).toBeNull();
     localStorage.setItem('trek_native_handoff_return', 'not json');
     expect(takeHandoffReturn()).toBeNull();
+  });
+});
+
+describe('signInWithPasskey', () => {
+  it('asks for the passkey and has the server verify it', async () => {
+    vi.mocked(authApi.passkey.loginOptions).mockResolvedValue({ challenge: 'x' });
+    vi.mocked(startAuthentication).mockResolvedValue({ id: 'cred' } as never);
+    vi.mocked(authApi.passkey.loginVerify).mockResolvedValue({ token: '', user: {} });
+    await signInWithPasskey();
+    expect(startAuthentication).toHaveBeenCalledWith({ optionsJSON: { challenge: 'x' } });
+    expect(authApi.passkey.loginVerify).toHaveBeenCalledWith({ id: 'cred' });
   });
 });
