@@ -22,9 +22,13 @@ vi.mock('../../native/browserSignIn', () => ({
 }));
 
 vi.mock('@simplewebauthn/browser', () => ({ startAuthentication: vi.fn() }));
-vi.mock('../../api/client', () => ({
-  authApi: { passkey: { loginOptions: vi.fn(), loginVerify: vi.fn() } },
-}));
+vi.mock('../../api/client', async () => {
+  const actual = await vi.importActual<typeof import('../../api/client')>('../../api/client');
+  return {
+    ...actual,
+    authApi: { ...actual.authApi, passkey: { ...actual.authApi.passkey, loginOptions: vi.fn(), loginVerify: vi.fn() } },
+  };
+});
 
 const challenge = 'ab'.repeat(32);
 const realLocation = window.location;
