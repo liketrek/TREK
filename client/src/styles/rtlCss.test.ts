@@ -15,7 +15,8 @@ function ruleBody(...parts: string[]): string {
   for (const chunk of css.split('}')) {
     const open = chunk.indexOf('{');
     if (open < 0) continue;
-    const head = chunk.slice(0, open);
+    // Prettier breaks a long selector over lines; compared with its white space folded.
+    const head = chunk.slice(0, open).replace(/\s+/g, ' ');
     if (parts.every((part) => head.includes(part))) return chunk.slice(open + 1);
   }
   return '';
