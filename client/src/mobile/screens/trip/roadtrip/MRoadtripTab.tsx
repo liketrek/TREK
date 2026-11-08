@@ -7,6 +7,7 @@ import { useMRtAlternatives } from './useMRtAlternatives'
 import MRtCorridorBar from './MRtCorridorBar'
 import MRtAlternativesBar from './MRtAlternativesBar'
 import { MRtTrackEntry } from './MRtTrackSheet'
+import MRtRouteImport from './MRtRouteImportSheet'
 import { RtAutoRow, RtBookendRow, RtBookingChips, RtDryRow, RtLegRow, RtRideRow, RtSpillRow, RtStopRow, type RowChrome } from './MRoadtripRows'
 import MBadge from '../../../components/MBadge'
 import MDancingTrek from '../../../components/MDancingTrek'
@@ -291,6 +292,11 @@ function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: O
                 </div>
               )}
               <MRtTrackEntry planner={planner} dayId={stage.dayId} />
+              <MRtRouteImport
+                tripId={planner.tripId}
+                dayId={stage.dayId > 0 ? stage.dayId : undefined}
+                canEdit={canEditPlaces && planner.can('day_edit', planner.trip)}
+              />
             </section>
 
             {rt.upNext && <UpNext planner={planner} shell={shell} rt={rt} stageDayId={stage.dayId} onOpen={openStop} />}

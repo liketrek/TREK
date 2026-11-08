@@ -1,60 +1,17 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId } from 'react'
 import { MoreHorizontal, Link2 } from 'lucide-react'
 import { useTranslation } from '../../i18n/TranslationContext'
-import { useTripStore } from '../../store/tripStore'
-import { googleRouteRepo } from '../../repo/googleRouteRepo'
-import { generateUUID } from '../../sync/mutationQueue'
-import { getApiErrorMessage } from '../../types'
-import type { GoogleRoutePreview } from '@trek/shared'
 import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import CustomSelect from '../shared/CustomSelect'
 import { ContextMenu, useContextMenu } from '../shared/ContextMenu'
 import { Tooltip } from '../shared/Tooltip'
+import { useGoogleRouteImport } from './useGoogleRouteImport'
 
 export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; dayId?: number }) {
   const { t } = useTranslation()
-  const days = useTripStore(s => s.days)
-  const [open, setOpen] = useState(false)
-  const [url, setUrl] = useState('')
-  const [preview, setPreview] = useState<GoogleRoutePreview | null>(null)
-  const [target, setTarget] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [failure, setFailure] = useState('')
-  const [saved, setSaved] = useState(false)
-  const controller = useRef<AbortController | null>(null)
-  const requestId = useRef('')
+  const { days, open, url, setUrl, preview, target, pickDay, busy, failure, saved, show, close, canSubmit, submit } = useGoogleRouteImport(tripId, dayId)
   const menu = useContextMenu()
   const labelId = useId()
-  useEffect(() => () => controller.current?.abort(), [])
-  const inspect = async () => {
-    controller.current?.abort()
-    const abort = new AbortController()
-    controller.current = abort
-    setBusy(true); setFailure(''); setPreview(null)
-    try { const parsed = await googleRouteRepo.preview(url, abort.signal); if (!abort.signal.aborted) setPreview(parsed) }
-    catch (error) { if (!abort.signal.aborted) setFailure(getApiErrorMessage(error, t('common.error'))) }
-    finally { if (!abort.signal.aborted) setBusy(false) }
-  }
-  const save = async () => {
-    if (!preview || !target) return
-    setBusy(true); setFailure('')
-    try {
-      const stops = preview.stops.filter(s => s.lat != null && s.lng != null).map(s => ({ name: s.name, lat: s.lat!, lng: s.lng! }))
-      await googleRouteRepo.append(tripId, { dayId: Number(target), stops }, requestId.current)
-      setSaved(true)
-      await useTripStore.getState().loadTrip(tripId)
-      setOpen(false)
-    } catch (error) { setFailure(getApiErrorMessage(error, t('common.error'))) }
-    finally { setBusy(false) }
-  }
-  const show = () => {
-    setUrl(''); setPreview(null); setFailure(''); setSaved(false)
-    setTarget(String(dayId ?? days[0]?.id ?? ''))
-    requestId.current = generateUUID(); setOpen(true)
-  }
-  // Every way out is held while a preview or an import is in flight, as before.
-  const close = () => { if (!busy) setOpen(false) }
-  const resolved = preview?.stops.filter(s => s.lat != null && s.lng != null) ?? []
   return <>
     <Tooltip label={t('roadtrip.import.title')}>
       <button type="button" aria-label={t('roadtrip.import.title')} className="shrink-0 rounded-lg p-2 text-content-muted hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-accent"
@@ -84,7 +41,7 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
         <DialogFooter>
           <FooterSpacer />
           <DialogButton disabled={busy} onClick={close}>{t('common.cancel')}</DialogButton>
-          <DialogButton variant="primary" disabled={busy || saved || (!preview ? !url.trim() : resolved.length < 2 || !target)} onClick={() => void (preview ? save() : inspect())}>
+          <DialogButton variant="primary" disabled={!canSubmit} onClick={submit}>
             {busy ? t('common.loading') : t(preview ? 'common.import' : 'common.preview')}
           </DialogButton>
         </DialogFooter>
@@ -94,7 +51,7 @@ export default function GoogleRouteImport({ tripId, dayId }: { tripId: number; d
         className="w-full rounded-[10px] border border-edge bg-surface-input px-3 py-2.5 text-content outline-none placeholder:text-content-faint focus:ring-2 focus:ring-[color:var(--text-primary)] disabled:opacity-50"
         style={fs(13, 'body')} /> : <>
         <DialogSection label={t('roadtrip.import.day')}>
-          <CustomSelect value={target} onChange={value => { setTarget(String(value)); requestId.current = generateUUID() }}
+          <CustomSelect value={target} onChange={value => pickDay(String(value))}
             options={days.map(day => ({ value: String(day.id), label: day.title || `${t('roadtrip.import.day')} ${day.day_number}` }))} disabled={busy || saved} />
         </DialogSection>
         <ol className="m-0 flex max-h-64 list-none flex-col gap-2.5 overflow-auto rounded-[14px] border border-edge-faint bg-surface-secondary p-3.5">

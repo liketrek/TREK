@@ -670,6 +670,12 @@
       "mobile": ["src/mobile/screens/trip/roadtrip/MRtDraftSheet.tsx"]
     },
     {
+      "feature": "Road-trip Google Maps route import",
+      "hooks": ["src/components/Roadtrip/useGoogleRouteImport.ts"],
+      "desktop": ["src/components/Roadtrip/GoogleRouteImport.tsx"],
+      "mobile": ["src/mobile/screens/trip/roadtrip/MRtRouteImportSheet.tsx"]
+    },
+    {
       "feature": "Road-trip stay length draft",
       "hooks": ["src/components/Roadtrip/useStayDraft.ts"],
       "desktop": ["src/components/Roadtrip/RoadtripStayModal.tsx"],
