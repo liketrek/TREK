@@ -5,6 +5,8 @@ import TourDetailDialog from '../../../../components/Tours/TourDetailDialog'
 import { useBookingExpenseEditor } from '../../../../pages/tripPlanner/useBookingExpenseEditor'
 import { applyTripCoverUpdate } from '../../../../pages/tripPlanner/tripCover'
 import { latestReservation } from '../../../../pages/tripPlanner/transportEditorOpeners'
+import { useTourDetailActions } from '../../../../pages/tripPlanner/useTourDetailActions'
+import { useIsWide } from '../../../../hooks/sizeClass'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MDayImpactList from '../../../components/MDayImpactList'
 import MDaySheet from './MDaySheet'
@@ -41,11 +43,18 @@ import { useLastOpen } from '../../../../components/shared/usePresence'
  * The one global mobile tour-detail owner, independent of which surface
  * selected it. The tour shows in a sheet like every other detail
  * (MTourDetailShell); it keeps the tour it showed last while it slides away.
+ *
+ * On the phone it reads, and plans the tour onto a day. On an iPad or an
+ * unfolded Duo it edits what the desktop's tour card edits, through the same
+ * useTourDetailActions: the name and colour, a copy saved as a new tour, the
+ * recorded tracks, the packing list it points at and its files.
  */
 export function MSelectedTourDetail({ planner }: Pick<MTripSheetsProps, 'planner'>) {
   const open = !!(planner.selectedTour && planner.selectedPlace)
   const tour = useLastOpen(planner.selectedTour, open)
   const place = useLastOpen(planner.selectedPlace, open)
+  const actions = useTourDetailActions(planner)
+  const canEdit = useIsWide() && planner.can('place_edit', planner.trip)
   if (!tour || !place) return null
 
   return (
@@ -59,9 +68,11 @@ export function MSelectedTourDetail({ planner }: Pick<MTripSheetsProps, 'planner
         selectedAssignmentId={planner.selectedAssignmentId}
         assignments={planner.assignments}
         files={planner.files}
-        readOnly
-        canEdit={false}
+        {...(canEdit ? actions : {})}
+        readOnly={!canEdit}
+        canEdit={canEdit}
         canAssign={planner.can('day_edit', planner.trip)}
+        onFileUpload={canEdit && planner.canUploadFiles ? (fd: FormData) => planner.tripActions.addFile(planner.tripId, fd) : undefined}
         onClose={() => planner.setSelectedPlaceId(null)}
         onAssignToDay={planner.handleAssignToDay}
         onRemoveAssignment={planner.handleRemoveAssignment}
