@@ -16,6 +16,8 @@ interface MTripRailProps {
   onSelect: (id: string) => void;
   /** Opens the More sheet: trip settings, export, the assistant. */
   onMore: () => void;
+  /** Whether the More sheet is open, which the More button shows with a ring. */
+  moreOpen?: boolean;
   labelOf: (id: string) => string;
 }
 
@@ -27,7 +29,7 @@ const DOCK_ICONS = new Map(DOCK_PRIORITY.map((tab) => [tab.id, tab.icon]));
  * collaboration and plugin pages sit in it too, each with its name, and More
  * keeps only the trip's actions.
  */
-export default function MTripRail({ tabs, active, onSelect, onMore, labelOf }: MTripRailProps) {
+export default function MTripRail({ tabs, active, onSelect, onMore, moreOpen = false, labelOf }: MTripRailProps) {
   const { t } = useTranslation();
   return (
     <MRail label={t('mobileTrip.sections')}>
@@ -41,7 +43,7 @@ export default function MTripRail({ tabs, active, onSelect, onMore, labelOf }: M
         );
       })}
       <MRailSpacer />
-      <MRailButton label={t('mobileTrip.more')} active={false} onClick={onMore}>
+      <MRailButton label={t('mobileTrip.more')} active={false} expanded={moreOpen} onClick={onMore}>
         <MoreHorizontal size={20} strokeWidth={2.2} />
       </MRailButton>
     </MRail>

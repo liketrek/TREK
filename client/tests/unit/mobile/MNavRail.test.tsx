@@ -190,6 +190,24 @@ describe('MTripRail', () => {
     fireEvent.click(within(nav).getByRole('button', { name: 'More' }));
     expect(onMore).toHaveBeenCalledOnce();
   });
+
+  it('FE-MOB-RAIL-014: More wears a ring while its sheet is open, and says it is expanded', () => {
+    const props = {
+      tabs,
+      active: 'plan',
+      onSelect: vi.fn(),
+      onMore: vi.fn(),
+      labelOf: (id: string) => tabs.find((x) => x.id === id)?.label ?? id,
+    };
+    const { rerender } = render(<MTripRail {...props} />);
+    const more = () => screen.getByRole('button', { name: 'More' });
+    expect(more()).toHaveAttribute('aria-expanded', 'false');
+    expect(more().firstElementChild?.className).not.toContain('ring-');
+    rerender(<MTripRail {...props} moreOpen />);
+    expect(more()).toHaveAttribute('aria-expanded', 'true');
+    expect(more().firstElementChild?.className).toContain('ring-[color:var(--m-act)]');
+    expect(more()).not.toHaveAttribute('aria-current');
+  });
 });
 
 describe('MobileShell on a wide window', () => {

@@ -97,6 +97,11 @@ export function MRailSpacer() {
 interface MRailButtonProps {
   label: string;
   active: boolean;
+  /**
+   * Opens a sheet rather than a section (More): while that sheet is open the button wears
+   * the ring the phone dock's More wears, so the rail says where the sheet came from.
+   */
+  expanded?: boolean;
   onClick: () => void;
   /** The icon, drawn at 20px. */
   children: ReactNode;
@@ -108,19 +113,24 @@ interface MRailButtonProps {
  * and never shrunk: it wraps into a second, balanced line where its language
  * needs one, and only a word longer than the rail is hyphenated.
  */
-export function MRailButton({ label, active, onClick, children }: MRailButtonProps) {
+export function MRailButton({ label, active, expanded, onClick, children }: MRailButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
       aria-current={active ? 'page' : undefined}
+      aria-expanded={expanded}
       className="group flex w-full flex-none flex-col items-center gap-[3px] rounded-[18px] py-[5px] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)]"
     >
       <span
         aria-hidden="true"
         className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 ${
-          active ? 'bg-m-act text-m-actfg' : 'text-m-muted group-hover:bg-[color:var(--m-ic)] group-hover:text-m-ink'
+          active
+            ? 'bg-m-act text-m-actfg'
+            : expanded
+              ? 'bg-[color:var(--m-ic)] text-m-ink ring-[1.5px] ring-inset ring-[color:var(--m-act)]'
+              : 'text-m-muted group-hover:bg-[color:var(--m-ic)] group-hover:text-m-ink'
         }`}
       >
         {children}

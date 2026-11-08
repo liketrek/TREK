@@ -901,6 +901,7 @@ export default function MTripShell({
           active={trTab}
           onSelect={setTrTab}
           onMore={() => openSheet('mehr')}
+          moreOpen={sheet?.id === 'mehr'}
           labelOf={tabLabel}
         />
       )}
