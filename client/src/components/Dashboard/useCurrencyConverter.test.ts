@@ -147,9 +147,10 @@ describe('useCurrencyConverter', () => {
   });
 
   it('FE-COMP-FXHOOK-010: #3009 never prices a new pair with the previous base and says it is still loading', async () => {
-    fetchMock.mockImplementation((url: string) =>
+    fetchMock = vi.fn((url: string) =>
       respond(url.endsWith('base=JPY') ? [{ quote: 'EUR', rate: 0.0056 }] : [{ quote: 'USD', rate: 1.1 }])
     );
+    vi.stubGlobal('fetch', fetchMock);
     const { result } = renderHook(() => useCurrencyConverter());
     await waitFor(() => expect(result.current.rate).toBe(1.1));
 
