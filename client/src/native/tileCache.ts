@@ -1,4 +1,5 @@
 import { hasNativeFeature } from './capabilities';
+import { GL_MAPS_THROUGH_APP_SCHEMES } from './glSchemes';
 import { isNativeApp, isNativeIos } from './platform';
 
 /**
@@ -25,6 +26,11 @@ const TILE_CACHE_SCHEME = 'trek-tile';
  */
 export function tileCacheActive(): boolean {
   return isNativeApp() && hasNativeFeature('tileCache');
+}
+
+/** Whether a GL map keeps what it showed in the store (see glSchemes.ts for why not, for now). */
+export function glTileStoreActive(): boolean {
+  return GL_MAPS_THROUGH_APP_SCHEMES && tileSchemeActive();
 }
 
 /** Whether URLs go through the trek-tile:// scheme: the iOS store only. */
@@ -61,7 +67,7 @@ const CACHED_RESOURCES = new Set([
  * Mapbox's servers go through the store, events and sessions never do.
  */
 export function mapboxTileCacheRequest(url: string, resourceType?: string): { url: string } {
-  if (!tileSchemeActive() || !MAPBOX_HOST.test(url)) return { url };
+  if (!glTileStoreActive() || !MAPBOX_HOST.test(url)) return { url };
   if (resourceType && !CACHED_RESOURCES.has(resourceType)) return { url };
   return { url: toTileCacheUrl(url) };
 }

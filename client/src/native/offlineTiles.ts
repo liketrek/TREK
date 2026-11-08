@@ -1,5 +1,6 @@
 import type { AddProtocolAction, GetResourceResponse, RequestParameters } from 'maplibre-gl';
 import { VECTOR_CACHE } from '../sync/glPrefetcher';
+import { GL_MAPS_THROUGH_APP_SCHEMES } from './glSchemes';
 import { isNativeIos } from './platform';
 
 /**
@@ -20,7 +21,7 @@ const OFFLINE_SCHEME = 'trek-offline';
 const PREFIX = `${OFFLINE_SCHEME}://`;
 
 function offlineTilesActive(): boolean {
-  return isNativeIos() && typeof caches !== 'undefined';
+  return GL_MAPS_THROUGH_APP_SCHEMES && isNativeIos() && typeof caches !== 'undefined';
 }
 
 export function toOfflineUrl(url: string): string {

@@ -40,7 +40,10 @@ vi.mock('../../hooks/useNetworkMode', () => ({
   useNetworkMode: () => ({ offline: env.offline, forced: false, setForced: () => {} }),
 }));
 vi.mock('../../hooks/useIsDark', () => ({ useIsDark: () => env.dark }));
-vi.mock('../../native/tileCache', () => ({ tileCacheActive: () => env.tileStore }));
+vi.mock('../../native/tileCache', () => ({
+  tileCacheActive: () => env.tileStore,
+  glTileStoreActive: () => env.tileStore,
+}));
 vi.mock('../../native/platform', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../native/platform')>()),
   isNativeIos: () => false,

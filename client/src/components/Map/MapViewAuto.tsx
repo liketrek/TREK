@@ -13,7 +13,7 @@ import { useNetworkMode } from '../../hooks/useNetworkMode'
 import { useIsDark } from '../../hooks/useIsDark'
 import { OFM_POSITRON } from '../../constants/mapDefaults'
 import { glWorksOffline, leafletWorksOffline, offlineStyleFor } from './offlineBasemap'
-import { tileCacheActive } from '../../native/tileCache'
+import { glTileStoreActive, tileCacheActive } from '../../native/tileCache'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -50,7 +50,7 @@ export function MapViewAuto(props: MapViewAutoProps) {
   // nothing stored is swapped for the stored one straight away.
   const nativeStore = tileCacheActive()
   const [preferStored, setPreferStored] = useState(false)
-  const mapboxKept = configuredGl === 'mapbox-gl' && nativeStore
+  const mapboxKept = configuredGl === 'mapbox-gl' && glTileStoreActive()
   const glFallback = !!configuredGl && offline && !glWorksOffline(configuredGl, maplibreStyle) && (!mapboxKept || preferStored)
   const glProvider = glFallback ? 'maplibre-gl' : configuredGl
   const leafletFallback = !configuredGl && offline && !leafletWorksOffline(mapProps.tileUrl ?? OFM_POSITRON, nativeIosWithoutStore(nativeStore))

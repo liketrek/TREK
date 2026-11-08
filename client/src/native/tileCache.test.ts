@@ -5,6 +5,8 @@ import { mapboxTileCacheRequest, nativeRasterTemplate, tileCacheActive, toTileCa
 
 vi.mock('./platform', () => ({ isNativeIos: vi.fn(), isNativeApp: vi.fn() }));
 vi.mock('./capabilities', () => ({ hasNativeFeature: vi.fn() }));
+// The mechanism is what is tested here; whether the GL maps use it is glSchemes.ts's switch.
+vi.mock('./glSchemes', () => ({ GL_MAPS_THROUGH_APP_SCHEMES: true }));
 
 beforeEach(() => {
   vi.mocked(isNativeIos).mockReturnValue(true);

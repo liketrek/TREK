@@ -10,6 +10,8 @@ import {
 import { isNativeIos } from './platform';
 
 vi.mock('./platform', () => ({ isNativeIos: vi.fn() }));
+// The mechanism is what is tested here; whether the GL maps use it is glSchemes.ts's switch.
+vi.mock('./glSchemes', () => ({ GL_MAPS_THROUGH_APP_SCHEMES: true }));
 
 const cached = new Map<string, Response>();
 const cache = { match: vi.fn(async (url: string) => cached.get(url)?.clone()) };
