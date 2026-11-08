@@ -1,9 +1,11 @@
-// FE-NATIVE-HANDOFF-001 to FE-NATIVE-HANDOFF-008
+// FE-NATIVE-HANDOFF-001 to FE-NATIVE-HANDOFF-011
+import { startAuthentication } from '@simplewebauthn/browser';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
+import { authApi } from '../../api/client';
 import { rememberHandoffReturn, requestHandoffCode } from '../../native/browserSignIn';
 import { useAuthStore } from '../../store/authStore';
 import { useNativeHandoff } from './useNativeHandoff';
@@ -17,6 +19,11 @@ vi.mock('../../native/browserSignIn', () => ({
   HANDOFF_PATH: '/native-handoff',
   rememberHandoffReturn: vi.fn(),
   requestHandoffCode: vi.fn(),
+}));
+
+vi.mock('@simplewebauthn/browser', () => ({ startAuthentication: vi.fn() }));
+vi.mock('../../api/client', () => ({
+  authApi: { passkey: { loginOptions: vi.fn(), loginVerify: vi.fn() } },
 }));
 
 const challenge = 'ab'.repeat(32);
@@ -133,5 +140,58 @@ describe('useNativeHandoff', () => {
         { replace: true }
       )
     );
+  });
+
+  describe('when the app asked for a passkey', () => {
+    const loadUser = vi.fn(async () => {
+      useAuthStore.setState({ isAuthenticated: true });
+    });
+
+    beforeEach(() => {
+      setSearch(`?challenge=${challenge}&start=passkey`);
+      useAuthStore.setState({ isAuthenticated: false, loadUser });
+      loadUser.mockClear();
+      vi.mocked(authApi.passkey.loginOptions).mockReset().mockResolvedValue({ challenge: 'x' });
+      vi.mocked(authApi.passkey.loginVerify).mockReset().mockResolvedValue({ token: '', user: {} });
+      vi.mocked(startAuthentication)
+        .mockReset()
+        .mockResolvedValue({ id: 'cred' } as never);
+    });
+
+    it('FE-NATIVE-HANDOFF-009: asks for the passkey itself instead of sending the user to the login', () => {
+      const { result } = renderHandoff();
+      expect(result.current.passkeyStep).toBe(true);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('FE-NATIVE-HANDOFF-010: signs in with the passkey and goes straight back to the app', async () => {
+      vi.mocked(requestHandoffCode).mockResolvedValue('c1');
+      const { result } = renderHandoff();
+      await act(async () => {
+        await result.current.continueWithPasskey();
+      });
+      expect(authApi.passkey.loginVerify).toHaveBeenCalledWith({ id: 'cred' });
+      expect(loadUser).toHaveBeenCalled();
+      expect(requestHandoffCode).toHaveBeenCalledWith(challenge);
+      expect(window.location.href).toBe('com.liketrek.trek://auth?code=c1');
+    });
+
+    it('FE-NATIVE-HANDOFF-011: stays quiet when the prompt is dismissed and offers the full login on request', async () => {
+      vi.mocked(startAuthentication).mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }));
+      const { result } = renderHandoff();
+      await act(async () => {
+        await result.current.continueWithPasskey();
+      });
+      expect(result.current.status).toBe('idle');
+      expect(requestHandoffCode).not.toHaveBeenCalled();
+
+      act(() => result.current.otherSignIn());
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith(
+          `/login?redirect=${encodeURIComponent(`/native-handoff?challenge=${challenge}`)}`,
+          { replace: true }
+        )
+      );
+    });
   });
 });

@@ -326,7 +326,7 @@ export function useLogin() {
   }
 
   const handlePasskeyLogin = async (): Promise<void> => {
-    if (nativeApp) return handleBrowserSignIn()
+    if (nativeApp) return handleBrowserSignIn('passkey')
     setError('')
     setIsLoading(true)
     try {

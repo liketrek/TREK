@@ -19,7 +19,8 @@ import { APP_URL_SCHEME, TrekShell } from './trekShell';
 
 export const HANDOFF_PATH = '/native-handoff';
 
-export type BrowserSignInStart = 'oidc';
+/** Where the browser starts: straight into SSO, or straight at the passkey prompt. */
+export type BrowserSignInStart = 'oidc' | 'passkey';
 
 const HANDOFF_RETURN_KEY = 'trek_native_handoff_return';
 const HANDOFF_RETURN_TTL_MS = 15 * 60 * 1000;

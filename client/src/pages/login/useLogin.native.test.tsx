@@ -106,7 +106,7 @@ describe('useLogin in the native app', () => {
       await result.current.handlePasskeyLogin();
     });
 
-    expect(signInThroughBrowser).toHaveBeenCalledWith(undefined);
+    expect(signInThroughBrowser).toHaveBeenCalledWith('passkey');
     expect(startAuthentication).not.toHaveBeenCalled();
   });
 
