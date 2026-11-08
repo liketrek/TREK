@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { MAP_LAYER_SWITCHER_INSET } from './MapLayerSwitcher';
 
 /** What the switcher row leaves free at the map's trailing edge: the locate button (20px off the edge, 44px wide) and a gap. */
-export const LOCATE_BUTTON_ROOM = 76;
+const LOCATE_BUTTON_ROOM = 76;
 
 /**
  * The column along a map's bottom edge that holds the layer switcher, both

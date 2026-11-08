@@ -6,5 +6,7 @@
  */
 @media (max-width: 1079px) {
   .trek-dash .st-panel.st-inspector,
-  .trek-dash .st-panel.st-side { background: var(--surface); }
+  .trek-dash .st-panel.st-side {
+    background: var(--surface);
+  }
 }
