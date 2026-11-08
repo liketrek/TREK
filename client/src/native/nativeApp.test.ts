@@ -12,7 +12,9 @@ import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), minimizeApp: vi.fn() } }));
-vi.mock('@capacitor/keyboard', () => ({ Keyboard: { setAccessoryBarVisible: vi.fn() } }));
+vi.mock('@capacitor/keyboard', () => ({
+  Keyboard: { setAccessoryBarVisible: vi.fn(), addListener: vi.fn(async () => ({ remove: vi.fn() })) },
+}));
 vi.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: vi.fn() } }));
 vi.mock('@capacitor/status-bar', () => ({ StatusBar: { setStyle: vi.fn() }, Style: { Dark: 'DARK', Light: 'LIGHT' } }));
 vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }));

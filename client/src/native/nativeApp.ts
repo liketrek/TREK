@@ -7,6 +7,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
+import { keepFieldInView } from './keepFieldInView';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 import { openPushTarget, startNativePush } from './push';
@@ -61,6 +62,7 @@ export function startNativeApp(): void {
   if (isNativeIos()) {
     // The "‹ › Done" strip above the keyboard is a web form's, not an app's.
     void Keyboard.setAccessoryBarVisible({ isVisible: false });
+    keepFieldInView(Keyboard);
     window.setTimeout(() => {
       if (isEffectivelyOffline()) return;
       // Not refreshed this time is no harm: the next launch tries again. An app
