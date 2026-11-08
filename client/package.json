@@ -129,7 +129,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.0",
+    "@capacitor/cli": "^8.6.0",
     "@eslint/js": "^10.0.1",
     "@jscpd/core": "^4.2.5",
     "@jscpd/tokenizer": "^4.2.6",
