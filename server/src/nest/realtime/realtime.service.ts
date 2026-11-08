@@ -17,8 +17,26 @@ import type { TrekWsPayload, TrekWsPluginEventName, TrekWsTripEventName, TrekWsU
  * The service is deliberately dependency-free so out-of-container code (the
  * no-Nest test harnesses) can construct it with a bare `new RealtimeService()`.
  */
+/**
+ * Told of every trip broadcast once it went out: the trip, the event and, for a
+ * private item, the one user it went to. The watch sync (WatchSyncPushService)
+ * listens here, so every writer that broadcasts (REST, MCP, plugin RPC) reaches
+ * it without knowing of it.
+ */
+export type TripBroadcastListener = (tripId: number | string, eventType: string, onlyUserId?: number) => void;
+
 @Injectable()
 export class RealtimeService {
+  private readonly listeners = new Set<TripBroadcastListener>();
+
+  /** Registers a listener for trip broadcasts; returns the way to remove it. */
+  onTripBroadcast(listener: TripBroadcastListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
   /**
    * Broadcast an event to all sockets in a trip room. Mirrors the
    * ws-state.ts signature exactly: `excludeSid` is the X-Socket-Id
@@ -59,6 +77,15 @@ export class RealtimeService {
     ]
   ): void {
     broadcast(...args);
+    const [tripId, eventType, , , onlyUserId] = args;
+    for (const listener of this.listeners) {
+      // A listener is a side matter: it never costs the broadcast or the next listener.
+      try {
+        listener(tripId, eventType, onlyUserId);
+      } catch {
+        /* the listener logs its own failures */
+      }
+    }
   }
 
   /**

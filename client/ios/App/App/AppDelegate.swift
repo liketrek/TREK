@@ -25,6 +25,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         TrekPush.shared.didFail(error)
     }
 
+    /// A silent push from the TREK server: a list of a trip changed, so the Apple
+    /// Watch is brought up to date (TrekWatchRefresher). Nothing else arrives this way.
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        guard userInfo["trek"] as? String == "watch-sync" else { return completionHandler(.noData) }
+        TrekWatchRefresher.refresh(completion: completionHandler)
+    }
+
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .list, .sound])

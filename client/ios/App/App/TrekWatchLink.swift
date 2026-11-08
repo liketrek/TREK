@@ -94,6 +94,11 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
         return result
     }
 
+    /// The snapshot the watch has now, as last published.
+    func storedSnapshot() -> Data? {
+        queue.sync { UserDefaults.standard.data(forKey: snapshotKey) }
+    }
+
     // MARK: Ticks from the watch
 
     /// The ticks queued so far, oldest first, and the queue emptied.
@@ -203,7 +208,7 @@ enum TrekWatchWriter {
 
     /// Called on the main queue, as is `completion`.
     static func write(_ action: [String: Any], completion: @escaping (Bool) -> Void) {
-        guard let request = request(for: action) else {
+        guard let request = Self.request(for: action) else {
             completion(false)
             return
         }
@@ -215,22 +220,35 @@ enum TrekWatchWriter {
                 task.end()
             }
         }
+        perform(request) { _, ok in finish(ok) }
+    }
+
+    /// Sends a request with the WebView's session (its cookies for the server).
+    /// Called on the main queue; `completion` runs on a background queue.
+    static func perform(_ request: URLRequest, completion: @escaping (Data?, Bool) -> Void) {
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
-            guard let host = request.url?.host else { return finish(false) }
+            guard let host = request.url?.host else { return completion(nil, false) }
             let session = cookies.filter { cookie in
                 let domain = cookie.domain.hasPrefix(".") ? String(cookie.domain.dropFirst()) : cookie.domain
                 return host == domain || host.hasSuffix("." + domain)
             }
-            guard !session.isEmpty else { return finish(false) }
+            guard !session.isEmpty else { return completion(nil, false) }
             var signed = request
             for (field, value) in HTTPCookie.requestHeaderFields(with: session) {
                 signed.setValue(value, forHTTPHeaderField: field)
             }
-            URLSession.shared.dataTask(with: signed) { _, response, error in
+            URLSession.shared.dataTask(with: signed) { data, response, error in
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-                finish(error == nil && (200..<300).contains(status))
+                completion(data, error == nil && (200..<300).contains(status))
             }.resume()
         }
+    }
+
+    /// The server's address for an API path, or nil without a server.
+    static func url(_ path: [String]) -> URL? {
+        guard let server = TrekServerStore.url, let base = URL(string: server),
+              base.scheme == "https" || base.scheme == "http" else { return nil }
+        return path.reduce(base.appendingPathComponent("api")) { $0.appendingPathComponent($1) }
     }
 
     /// The write for a tick as the watch sends it, or nil for anything else.
@@ -251,5 +269,131 @@ enum TrekWatchWriter {
         request.setValue("watch-\(id)", forHTTPHeaderField: "X-Idempotency-Key")
         request.httpBody = body
         return request
+    }
+}
+
+/// Brings the watch's packing list and to-dos up to date while the app is in the
+/// background, woken by the server's silent push (WatchSyncPushService in TREK):
+/// reads both lists of the trip the watch shows from the server and puts them
+/// into the snapshot the watch has, built the way the UI builds them
+/// (watchPacking and watchTodos in client/src/native/watch.ts). Everything else
+/// in the snapshot stays as the UI last made it. In front, the UI does this
+/// itself as soon as the lists change, so nothing is done here then.
+enum TrekWatchRefresher {
+    private static let maxName = 80
+    private static let maxGroup = 40
+    /// Below what WatchConnectivity carries in one application context.
+    private static let maxBytes = 55_000
+
+    static func refresh(completion: @escaping (UIBackgroundFetchResult) -> Void) {
+        guard TrekWatchLink.isAvailable, UIApplication.shared.applicationState != .active,
+              let stored = TrekWatchLink.shared.storedSnapshot(),
+              var snapshot = (try? JSONSerialization.jsonObject(with: stored)) as? [String: Any],
+              let trip = snapshot["trip"] as? [String: Any], let tripId = trip["id"] as? Int,
+              let packingURL = TrekWatchWriter.url(["trips", String(tripId), "packing"]),
+              let todoURL = TrekWatchWriter.url(["trips", String(tripId), "todo"]) else {
+            return completion(.noData)
+        }
+        let group = DispatchGroup()
+        var packing: [[String: Any]]?
+        var todos: [[String: Any]]?
+        group.enter()
+        items(at: packingURL) { list in
+            packing = list
+            group.leave()
+        }
+        group.enter()
+        items(at: todoURL) { list in
+            todos = list
+            group.leave()
+        }
+        group.notify(queue: .main) {
+            guard let packing, let todos else { return completion(.failed) }
+            snapshot["packing"] = packingList(packing)
+            snapshot["todos"] = todoList(todos)
+            snapshot["generatedAt"] = ISO8601DateFormatter().string(from: Date())
+            guard let data = fitted(snapshot) else { return completion(.failed) }
+            TrekWatchLink.shared.publish(data)
+            completion(.newData)
+        }
+    }
+
+    /// The `items` of a list endpoint, on the main queue; nil when it could not be read.
+    private static func items(at url: URL, then completion: @escaping ([[String: Any]]?) -> Void) {
+        var request = URLRequest(url: url, timeoutInterval: 10)
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        TrekWatchWriter.perform(request) { data, ok in
+            var list: [[String: Any]]?
+            if ok, let data, let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+                list = body["items"] as? [[String: Any]]
+            }
+            DispatchQueue.main.async { completion(list) }
+        }
+    }
+
+    private static func done(_ item: [String: Any]) -> Bool {
+        (item["checked"] as? Bool) ?? ((item["checked"] as? Int).map { $0 != 0 } ?? false)
+    }
+
+    private static func trimmed(_ value: Any?, _ max: Int) -> String? {
+        guard let text = (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+        return String(text.prefix(max))
+    }
+
+    private static func entry(_ item: [String: Any]) -> [String: Any]? {
+        guard let id = item["id"] as? Int, let name = item["name"] as? String else { return nil }
+        var out: [String: Any] = ["id": id, "name": String(name.prefix(maxName)), "done": done(item)]
+        if let group = trimmed(item["category"], maxGroup) { out["group"] = group }
+        return out
+    }
+
+    /// Unpacked first, then packed, each in the list's own order.
+    static func packingList(_ items: [[String: Any]]) -> Any {
+        guard !items.isEmpty else { return NSNull() }
+        let sorted = items.sorted {
+            let (a, b) = (done($0) ? 1 : 0, done($1) ? 1 : 0)
+            return a != b ? a < b : (($0["sort_order"] as? Int) ?? 0) < (($1["sort_order"] as? Int) ?? 0)
+        }
+        let packed = items.filter { done($0) }.count
+        return ["items": sorted.compactMap(entry), "packed": packed, "total": items.count]
+    }
+
+    /// Open ones first by due date (undated last) and priority, then the done ones.
+    static func todoList(_ items: [[String: Any]]) -> Any {
+        guard !items.isEmpty else { return NSNull() }
+        let due = { (item: [String: Any]) -> String? in trimmed(item["due_date"], 10) }
+        let sorted = items.sorted { a, b in
+            if done(a) != done(b) { return !done(a) }
+            if (due(a) == nil) != (due(b) == nil) { return due(a) != nil }
+            if let da = due(a), let db = due(b), da != db { return da < db }
+            let (pa, pb) = ((a["priority"] as? Int) ?? 0, (b["priority"] as? Int) ?? 0)
+            if pa != pb { return pa > pb }
+            return ((a["sort_order"] as? Int) ?? 0) < ((b["sort_order"] as? Int) ?? 0)
+        }
+        let rows = sorted.compactMap { item -> [String: Any]? in
+            guard var row = entry(item) else { return nil }
+            if let date = due(item) { row["due"] = date }
+            if let priority = item["priority"] as? Int, priority > 0 { row["priority"] = min(3, priority) }
+            return row
+        }
+        return ["items": rows, "open": items.filter { !done($0) }.count, "total": items.count]
+    }
+
+    /// The snapshot as JSON within the size the watch takes: done items go first, as on the UI's side.
+    private static func fitted(_ snapshot: [String: Any]) -> Data? {
+        var object = snapshot
+        // A list that is now empty leaves the snapshot, as the UI leaves it out.
+        for key in ["packing", "todos"] where object[key] is NSNull { object.removeValue(forKey: key) }
+        guard var data = try? JSONSerialization.data(withJSONObject: object) else { return nil }
+        if data.count > maxBytes {
+            for key in ["packing", "todos"] {
+                guard var list = object[key] as? [String: Any], let items = list["items"] as? [[String: Any]] else { continue }
+                list["items"] = items.filter { ($0["done"] as? Bool) != true }
+                object[key] = list
+            }
+            data = (try? JSONSerialization.data(withJSONObject: object)) ?? data
+        }
+        return data
     }
 }

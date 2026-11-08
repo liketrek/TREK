@@ -48,7 +48,37 @@ export const FORBIDDEN_FAILURES_BEFORE_REMOVAL = 3;
  */
 const COLLAPSING_EVENT = 'collab_message';
 
-type Urgency = 'normal' | 'high';
+type Urgency = 'low' | 'normal' | 'high';
+
+/**
+ * The watch sync (WatchSyncPushService): a silent push to the TREK iPhone app
+ * that a packing list or the to-dos of one of its trips changed, so the app can
+ * refresh its Apple Watch while it is in the background. The relay sends it as
+ * an APNs background push (content-available, no alert) when it carries this
+ * header; the record itself says nothing beyond that.
+ */
+export const BACKGROUND_PUSH_HEADER = 'X-Trek-Push';
+const WATCH_SYNC_PAYLOAD = Buffer.from(JSON.stringify({ type: 'watch-sync' }), 'utf8');
+/** A refresh that arrives ten minutes late is stale; the next change sends another. */
+const WATCH_SYNC_TTL_SECONDS = 10 * 60;
+/** Later syncs replace a queued one at Apple: only the newest state matters. */
+const WATCH_SYNC_TOPIC = 'trek-watch-sync';
+
+/** The relay's APNs endpoints, the only devices with a watch to refresh. */
+export function isAppleRelayEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    return url.protocol === 'https:' && url.hostname === 'push.liketrek.com' && url.pathname.startsWith('/v1/apns/');
+  } catch {
+    return false;
+  }
+}
+
+interface DeliveryOptions {
+  ttlSeconds?: number;
+  /** Sent as a background push by the relay, never shown. */
+  background?: boolean;
+}
 /** The events that are about a date, where arriving late defeats the point (RFC 8030 section 5.3). */
 const HIGH_URGENCY_EVENTS: ReadonlySet<string> = new Set(['trip_reminder', 'todo_due']);
 
@@ -169,6 +199,29 @@ export class WebPushService {
     return this.deliver(userId, buildPushPayload(msg), urgency, msg.event);
   }
 
+  /**
+   * The watch sync to each of the user's iPhones (the relay's APNs endpoints):
+   * true when at least one took it. Browsers and Android devices have no watch
+   * and get nothing. Nothing is sent while the server has no usable key pair.
+   */
+  async sendWatchSync(userId: number): Promise<boolean> {
+    try {
+      if (!(await this.isAvailable())) return false;
+      const rows = (await this.subscriptions.listForUser(userId)).filter((row) => isAppleRelayEndpoint(row.endpoint));
+      if (rows.length === 0) return false;
+      const keys = await this.keys.getKeys();
+      const sign = createVapidSigner(keys, this.keys.getSubject());
+      const options: DeliveryOptions = { ttlSeconds: WATCH_SYNC_TTL_SECONDS, background: true };
+      const results = await Promise.all(
+        rows.map((row) => this.deliverTo(row, WATCH_SYNC_PAYLOAD, keys.publicKey, sign, 'low', 'watch_sync', options)),
+      );
+      return results.includes(true);
+    } catch (err) {
+      logError(`Web Push failed event=watch_sync user=${userId}: ${err instanceof Error ? err.message : err}`);
+      return false;
+    }
+  }
+
   /** The Send test button: a short fixed message to every browser the user turned push on in. */
   async sendTest(userId: number): Promise<ChannelTestResult> {
     if (!(await this.isAvailable())) return { success: false, error: PUSH_UNAVAILABLE_ERROR };
@@ -200,6 +253,7 @@ export class WebPushService {
     sign: VapidSigner,
     urgency: Urgency,
     event: string,
+    options: DeliveryOptions = {},
   ): Promise<boolean> {
     const host = hostOf(row.endpoint);
     if (row.vapid_public_key !== publicKey) {
@@ -230,11 +284,12 @@ export class WebPushService {
         {
           method: 'POST',
           headers: {
-            TTL: String(PUSH_TTL_SECONDS),
+            TTL: String(options.ttlSeconds ?? PUSH_TTL_SECONDS),
             Urgency: urgency,
             'Content-Encoding': 'aes128gcm',
             'Content-Type': 'application/octet-stream',
             Authorization: sign(row.endpoint),
+            ...(options.background ? { [BACKGROUND_PUSH_HEADER]: 'background', Topic: WATCH_SYNC_TOPIC } : {}),
           },
           body: new Uint8Array(body),
           signal: AbortSignal.timeout(PUSH_TIMEOUT_MS),
