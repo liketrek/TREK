@@ -136,7 +136,7 @@ describe('MTripShell', () => {
     )
   })
 
-  it('FE-MOB-SHELL-001: while the trip loads the page transition holds, and only a slow load brings the splash', () => {
+  it('FE-MOB-SHELL-001: while the trip loads the page transition holds, and only a slow load brings the splash', async () => {
     vi.useFakeTimers()
     try {
       const { container } = renderShell({ isLoading: true } as Partial<TripPlanner>)
@@ -144,7 +144,9 @@ describe('MTripShell', () => {
       expect(screen.queryByText('Japan 2026')).not.toBeInTheDocument()
       expect(screen.queryByTestId('sheets')).not.toBeInTheDocument()
 
-      act(() => vi.advanceTimersByTime(TRIP_SPLASH_AFTER_MS))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(TRIP_SPLASH_AFTER_MS)
+      })
       expect(screen.getByText('Japan 2026')).toBeInTheDocument()
       expect(container.querySelector('[data-route-fallback]')).not.toBeInTheDocument()
     } finally {
@@ -168,11 +170,13 @@ describe('MTripShell', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('FE-MOB-SHELL-003b: the splash falls back to the brand name before the trip arrives', () => {
+  it('FE-MOB-SHELL-003b: the splash falls back to the brand name before the trip arrives', async () => {
     vi.useFakeTimers()
     try {
       renderShell({ isLoading: true, trip: null } as Partial<TripPlanner>)
-      act(() => vi.advanceTimersByTime(TRIP_SPLASH_AFTER_MS))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(TRIP_SPLASH_AFTER_MS)
+      })
       expect(screen.getByText('TREK')).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
