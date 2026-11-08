@@ -103,7 +103,10 @@ describe('localizedParams', () => {
   });
 
   it('FE-NOTIF-MODEL-009: anything that is not a bare date passes through, and no params stay none', () => {
-    expect(localizedParams({ trip: '2026-11-05 at noon', n: '3' }, 'de', NOW)).toEqual({ trip: '2026-11-05 at noon', n: '3' });
+    expect(localizedParams({ trip: '2026-11-05 at noon', n: '3' }, 'de', NOW)).toEqual({
+      trip: '2026-11-05 at noon',
+      n: '3',
+    });
     expect(localizedParams(undefined, 'de', NOW)).toEqual({});
   });
 });

@@ -15,9 +15,9 @@
  * Zero specificity, so an explicit text-center or text-end on the element wins.
  */
 :where(
-    :root[dir='rtl'] [dir='auto']:dir(ltr):is(.truncate, [class*='line-clamp-'], input, textarea),
-    :root[dir='ltr'] [dir='auto']:dir(rtl):is(.truncate, [class*='line-clamp-'], input, textarea)
-  ) {
+  :root[dir='rtl'] [dir='auto']:dir(ltr):is(.truncate, [class*='line-clamp-'], input, textarea),
+  :root[dir='ltr'] [dir='auto']:dir(rtl):is(.truncate, [class*='line-clamp-'], input, textarea)
+) {
   text-align: end;
 }
 
@@ -32,7 +32,8 @@
  * own property, so it composes with a rotation the icon carries (an open
  * disclosure pointing down) instead of replacing it.
  */
-:root[dir='rtl'] .m-root
+:root[dir='rtl']
+  .m-root
   :is(
     .lucide-chevron-left,
     .lucide-chevron-right,

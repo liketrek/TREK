@@ -137,12 +137,19 @@ function FeedCard({ entry, color, active, onTap, showMood, showWeather, t }: Fee
             ) : (
               <MapPin size={11} strokeWidth={2.2} className="flex-none" />
             )}
-            <span dir="auto" className="truncate font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] font-semibold">
+            <span
+              dir="auto"
+              className="truncate font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] font-semibold"
+            >
               {place}
             </span>
           </span>
         )}
-        {story && <span dir="auto" className="line-clamp-3 text-caption leading-[1.45] text-m-ink opacity-80">{story}</span>}
+        {story && (
+          <span dir="auto" className="line-clamp-3 text-caption leading-[1.45] text-m-ink opacity-80">
+            {story}
+          </span>
+        )}
       </span>
     </button>
   );

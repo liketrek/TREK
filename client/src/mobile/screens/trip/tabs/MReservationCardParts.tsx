@@ -44,7 +44,10 @@ export function CardTitleButton({
       onClick={onOpen}
       className="flex min-w-0 flex-1 flex-wrap items-center gap-x-[7px] gap-y-1 text-start"
     >
-      <span dir="auto" className="line-clamp-2 min-w-0 flex-[1_1_auto] break-words text-[0.78125rem] font-bold text-m-ink wide:basis-full">
+      <span
+        dir="auto"
+        className="line-clamp-2 min-w-0 flex-[1_1_auto] break-words text-[0.78125rem] font-bold text-m-ink wide:basis-full"
+      >
         {res.title}
       </span>
       <span className="inline-flex flex-none items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-m-card px-2 py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.06em] text-m-muted">
@@ -116,7 +119,9 @@ export function CardWhenAndCode({
           <Field label={t('reservations.date')} className="flex-[1.4]">
             {dayDate ? (
               <span className="flex min-w-0 items-center justify-center gap-1.5">
-                <span dir="auto" className="min-w-0 truncate">{dayValue}</span>
+                <span dir="auto" className="min-w-0 truncate">
+                  {dayValue}
+                </span>
                 <span className="flex-none font-medium text-m-faint">{dayDate}</span>
               </span>
             ) : (
@@ -178,7 +183,9 @@ export function CardFiles({ files, card, t }: { files: ReturnType<typeof filesFo
             className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
           >
             <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
-            <span dir="auto" className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{f.original_name}</span>
+            <span dir="auto" className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">
+              {f.original_name}
+            </span>
           </span>
         ))}
       </div>
