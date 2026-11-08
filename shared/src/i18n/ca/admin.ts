@@ -362,6 +362,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token eliminat',
   'admin.mcpTokens.deleteError': "No s'ha pogut eliminar el token",
   'admin.mcpTokens.loadError': "No s'han pogut carregar els tokens",
+  'admin.mcpToolUsage.title': 'Ús de les eines',
+  'admin.mcpToolUsage.subtitle': 'Quines eines MCP s’han cridat, per quantes persones i quan per última vegada',
+  'admin.mcpToolUsage.empty': 'Cap eina MCP s’ha cridat en aquest període',
+  'admin.mcpToolUsage.loadError': 'No s’ha pogut carregar l’ús de les eines',
+  'admin.mcpToolUsage.tool': 'Eina',
+  'admin.mcpToolUsage.calls': 'Crides',
+  'admin.mcpToolUsage.users': 'Usuaris',
+  'admin.mcpToolUsage.lastCall': 'Última crida',
+  'admin.mcpToolUsage.period': 'Període (dies)',
   'admin.oauthSessions.sectionTitle': 'Sessions OAuth',
   'admin.oauthSessions.clientName': 'Client', // same-as-en
   'admin.oauthSessions.owner': 'Propietari',
@@ -1163,5 +1172,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Cerca de llocs i rutes',
   'admin.servicesCard.hint':
     'Els serveis propis de TREK, quin proveïdor respon la cerca i el transport públic, i el registre de cerques.',
+  'admin.mcpApps.title': 'Vistes interactives',
+  'admin.mcpApps.subtitle':
+    'Permet que els amfitrions MCP compatibles mostrin viatges, llistes i mapes com a vistes interactives al costat de la resposta',
+  'admin.mcpApps.loadError': 'No s’ha pogut llegir la configuració de les vistes interactives',
 };
 export default admin;

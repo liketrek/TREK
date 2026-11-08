@@ -8,6 +8,7 @@ import {
   adminCollabFeaturesRequestSchema,
   adminTestNotificationRequestSchema,
   adminTransitProviderRequestSchema,
+  adminMcpToolUsageQuerySchema,
 } from '@trek/shared';
 
 import { createZodDto } from 'nestjs-zod';
@@ -32,3 +33,5 @@ export class AdminAddonUpdateDto extends createZodDto(adminAddonUpdateRequestSch
 export class AdminCollabFeaturesDto extends createZodDto(adminCollabFeaturesRequestSchema) {}
 export class AdminTestNotificationDto extends createZodDto(adminTestNotificationRequestSchema) {}
 export class AdminTransitProviderDto extends createZodDto(adminTransitProviderRequestSchema) {}
+/** GET /api/admin/mcp/tool-usage?days=: the span the usage table counts over. */
+export class AdminMcpToolUsageQueryDto extends createZodDto(adminMcpToolUsageQuerySchema) {}

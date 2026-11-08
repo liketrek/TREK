@@ -817,6 +817,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token deleted',
   'admin.mcpTokens.deleteError': 'Failed to delete token',
   'admin.mcpTokens.loadError': 'Failed to load tokens',
+  'admin.mcpToolUsage.title': 'Tool usage',
+  'admin.mcpToolUsage.subtitle': 'Which MCP tools were called, by how many people, and when last',
+  'admin.mcpToolUsage.empty': 'No MCP tool was called in this period',
+  'admin.mcpToolUsage.loadError': 'Failed to load tool usage',
+  'admin.mcpToolUsage.tool': 'Tool',
+  'admin.mcpToolUsage.calls': 'Calls',
+  'admin.mcpToolUsage.users': 'Users',
+  'admin.mcpToolUsage.lastCall': 'Last call',
+  'admin.mcpToolUsage.period': 'Period (days)',
   'admin.oauthSessions.sectionTitle': 'OAuth Sessions',
   'admin.oauthSessions.clientName': 'Client',
   'admin.oauthSessions.owner': 'Owner',
@@ -1119,5 +1128,9 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'Thank you. Place details are now shared.',
   'admin.servicesCard.title': 'Place search and routing',
   'admin.servicesCard.hint': "TREK's own services, which provider answers search and transit, and the search log.",
+  'admin.mcpApps.title': 'Interactive views',
+  'admin.mcpApps.subtitle':
+    'Let MCP hosts that support it show trips, lists and maps as interactive views next to the answer',
+  'admin.mcpApps.loadError': 'Could not read the interactive views setting',
 };
 export default admin;

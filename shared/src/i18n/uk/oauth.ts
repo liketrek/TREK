@@ -75,6 +75,26 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Створення, оновлення і видалення подорожей та їх записів',
   'oauth.scope.journey:share.label': 'Керування посиланнями на подорожі',
   'oauth.scope.journey:share.description': 'Створення, оновлення і відкликання публічних посилань на подорожі',
+  'oauth.scope.group.tours': 'Тури',
+  'oauth.scope.group.roadtrip': 'Автоподорож',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Перегляд турів',
+  'oauth.scope.tours:read.description':
+    'Читати походи, прогулянки, велопоїздки, сплави та лижні тури з зупинками й речами',
+  'oauth.scope.tours:write.label': 'Планування турів',
+  'oauth.scope.tours:write.description':
+    'Пропонувати, створювати, змінювати й видаляти тури, їхні зупинки, активності та зв’язки з речами',
+  'oauth.scope.roadtrip:read.label': 'Перегляд автоподорожей',
+  'oauth.scope.roadtrip:read.description':
+    'Читати маршрути, дні в дорозі, зупинки для заряджання та небезпеки на дорозі',
+  'oauth.scope.roadtrip:write.label': 'Планування автоподорожей',
+  'oauth.scope.roadtrip:write.description':
+    'Розраховувати маршрути, задавати дні в дорозі й уподобання, імпортувати маршрути',
+  'oauth.scope.studio:read.label': 'Перегляд книг подорожей',
+  'oauth.scope.studio:read.description': 'Читати сторінки, оформлення та фото книги подорожі',
+  'oauth.scope.studio:write.label': 'Оформлення книг подорожей',
+  'oauth.scope.studio:write.description':
+    'Створювати, змінювати, переоформлювати й відновлювати сторінки книги подорожі',
   'oauth.authorize.authorizing': 'Авторизація…',
   'oauth.authorize.loading': 'Завантаження…',
   'oauth.authorize.errorTitle': 'Помилка авторизації',

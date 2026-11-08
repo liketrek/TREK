@@ -30,6 +30,7 @@ import { useCountUp } from '../../../hooks/useCountUp'
 import { useAdmin } from '../../../pages/admin/useAdmin'
 import MAdminAddonManager from './MAdminAddonManager'
 import MAdminMcpTokensPanel from './MAdminMcpTokensPanel'
+import MAdminMcpToolUsagePanel from './MAdminMcpToolUsagePanel'
 import MAdminPluginsPanel from './MAdminPluginsPanel'
 import MAdminAuditLogPanel from './MAdminAuditLogPanel'
 import MAdminBackupPanel from './MAdminBackupPanel'
@@ -249,6 +250,7 @@ export default function MAdmin() {
       {activeTab === 'plugins' && <MAdminPluginsPanel />}
       {activeTab === 'storage' && <MAdminStoragePanel />}
       {activeTab === 'mcp-tokens' && <MAdminMcpTokensPanel />}
+      {activeTab === 'mcp-tokens' && <MAdminMcpToolUsagePanel />}
       {activeTab === 'github' && <MAdminGitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} />}
       {activeTab === 'backup' && <MAdminBackupPanel />}
       {activeTab === 'audit' && <MAdminAuditLogPanel serverTimezone={serverTimezone} />}

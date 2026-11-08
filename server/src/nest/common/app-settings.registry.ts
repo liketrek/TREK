@@ -120,6 +120,10 @@ export const APP_SETTINGS = {
   // The piste router for ski tours, on wherever TREK Places is: it only downloads the ski areas a
   // planner plans in, and no clicked point leaves the server. The switch is the operator's way out.
   ski_routing_enabled: { schema: flag, default: 'true' },
+  // The interactive views (MCP Apps) an MCP host may draw next to a tool result. On: a host that
+  // does not draw them reads the same text and structured result; the switch is the admin's way
+  // to keep every connected client to text alone.
+  mcp_apps_enabled: { schema: flag, default: 'true' },
   route_usage_enabled: { schema: flag, default: 'false' },
   // PAD-11C: how TREK gets the water data of a place a paddler plans in (auto, ask, off) and the largest extract it loads by itself.
   paddle_auto_load: { schema: z.enum(['auto', 'ask', 'off']), default: 'auto' },

@@ -1,0 +1,87 @@
+.map__box {
+  position: relative;
+  block-size: 320px;
+  overflow: hidden;
+  border-radius: var(--trek-radius);
+  background: var(--trek-surface);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.map__box:active {
+  cursor: grabbing;
+}
+
+.map__tile {
+  position: absolute;
+  /* Placed in pixels from the box's top-left corner whatever the reading direction. */
+  top: 0;
+  left: 0;
+  inline-size: 256px;
+  block-size: 256px;
+  pointer-events: none;
+}
+
+.map__marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: -9px 0 0 -9px;
+  padding: 0;
+  border: 2px solid var(--trek-bg);
+  border-radius: 50%;
+  background: var(--trek-accent);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+  cursor: pointer;
+}
+
+.map__marker::before {
+  content: '';
+  position: absolute;
+  inset: -13px;
+}
+
+.map__marker[aria-pressed='true'] {
+  background: var(--trek-text);
+  z-index: 1;
+}
+
+.map__marker:focus-visible {
+  outline: 2px solid var(--trek-ring);
+  outline-offset: 2px;
+}
+
+.map__zoom {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+
+.map__zoom .trek-button {
+  min-inline-size: 44px;
+  background: var(--trek-bg);
+  font-size: 1.125rem;
+}
+
+.map__credit {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  margin: 0;
+  padding: 2px 6px;
+  background: rgb(255 255 255 / 80%);
+  color: #333;
+  font-size: 0.6875rem;
+  z-index: 2;
+}
+
+.map__box--full {
+  block-size: calc(100vh - 96px);
+}

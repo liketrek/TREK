@@ -797,6 +797,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Токен удалён',
   'admin.mcpTokens.deleteError': 'Не удалось удалить токен',
   'admin.mcpTokens.loadError': 'Не удалось загрузить токены',
+  'admin.mcpToolUsage.title': 'Использование инструментов',
+  'admin.mcpToolUsage.subtitle': 'Какие инструменты MCP вызывались, сколькими людьми и когда в последний раз',
+  'admin.mcpToolUsage.empty': 'За этот период не вызывался ни один инструмент MCP',
+  'admin.mcpToolUsage.loadError': 'Не удалось загрузить использование инструментов',
+  'admin.mcpToolUsage.tool': 'Инструмент',
+  'admin.mcpToolUsage.calls': 'Вызовы',
+  'admin.mcpToolUsage.users': 'Пользователи',
+  'admin.mcpToolUsage.lastCall': 'Последний вызов',
+  'admin.mcpToolUsage.period': 'Период (дни)',
   'admin.oauthSessions.sectionTitle': 'OAuth-сессии',
   'admin.oauthSessions.clientName': 'Клиент',
   'admin.oauthSessions.owner': 'Владелец',
@@ -1189,5 +1198,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Поиск мест и маршруты',
   'admin.servicesCard.hint':
     'Собственные сервисы TREK, какой провайдер отвечает за поиск и общественный транспорт, и журнал поиска.',
+  'admin.mcpApps.title': 'Интерактивные представления',
+  'admin.mcpApps.subtitle':
+    'Разрешить поддерживающим это хостам MCP показывать поездки, списки и карты в виде интерактивных представлений рядом с ответом',
+  'admin.mcpApps.loadError': 'Не удалось прочитать настройку интерактивных представлений',
 };
 export default admin;

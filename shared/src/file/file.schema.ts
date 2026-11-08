@@ -89,6 +89,24 @@ export type TripFilesResponse = z.infer<typeof tripFilesResponseSchema>;
 export const tripFileResponseSchema = z.object({ file: tripFileSchema });
 export type TripFileResponse = z.infer<typeof tripFileResponseSchema>;
 
+/**
+ * MCP `star_trip_file`: the state to land in rather than the route's toggle, so
+ * a call that is retried stars the file once instead of flipping it back.
+ */
+export const fileStarRequestSchema = z.object({
+  starred: z.boolean().describe('true stars the file, false takes the star off'),
+});
+export type FileStarRequest = z.infer<typeof fileStarRequestSchema>;
+
+/** MCP `delete_trip_file`: into the trash, the route's DELETE :id, or out of it for good, DELETE :id/permanent. */
+export const fileDeleteRequestSchema = z.object({
+  permanent: z
+    .boolean()
+    .optional()
+    .describe('true removes a file that is already in the trash for good; left out, the file moves to the trash'),
+});
+export type FileDeleteRequest = z.infer<typeof fileDeleteRequestSchema>;
+
 /** A file_links row. */
 export const fileLinkSchema = z.object({
   id: z.number(),

@@ -18,10 +18,10 @@ import { idSchema, createCategoryRequestSchema, updateCategoryRequestSchema } fr
 
 /**
  * Categories MCP surface — ported 1:1 from the legacy registrars: the
- * list_categories tool from src/mcp/tools/places.ts (identical name,
+ * list_categories tool from the places registrar (identical name,
  * description, annotations and places-read gating via the declarative access
  * marker + trekMcpAccessPolicy) and the trek://categories resource from
- * src/mcp/resources.ts (first production @Resource; intentionally ungated —
+ * the retired resources registrar (first production @Resource; intentionally ungated —
  * the legacy registration was unconditional, safe for any authenticated
  * session — and the payload reproduces the legacy jsonContent shape verbatim).
  *
@@ -43,6 +43,7 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'list_categories',
+    title: 'List place categories',
     description:
       'List all available place categories with their id, name, icon and color. Use category_id when creating or updating places.',
     inputSchema: {},
@@ -56,6 +57,7 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'create_category',
+    title: 'Create place category',
     description:
       'Add a new place category to the instance-wide palette. Admin only. Prefer an existing category from list_categories: this mints one every trip on the instance will see, so only reach for it when nothing in the palette fits.',
     inputSchema: {
@@ -75,6 +77,7 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'update_category',
+    title: 'Update place category',
     description:
       'Rename an existing place category or change its colour or icon. Admin only. Every place already carrying the category follows the change, so use this to fix a palette entry rather than to reclassify places.',
     inputSchema: {
@@ -98,6 +101,7 @@ export class CategoriesMcp {
 
   @Tool({
     name: 'delete_category',
+    title: 'Delete place category',
     description:
       'Remove a place category from the instance-wide palette. Admin only. Places keep their data but lose the category, across every trip on the instance. Use update_category when the entry only needs fixing.',
     inputSchema: {

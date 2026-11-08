@@ -50,7 +50,7 @@ export class MemoriesService {
     return this.unified.listTripPhotos(tripId, userId);
   }
 
-  addTripPhotos(tripId: string, userId: number, shared: boolean, selections: Selection[], sid: string) {
+  addTripPhotos(tripId: string, userId: number, shared: boolean, selections: Selection[], sid: string | undefined) {
     return this.unified.addTripPhotos(tripId, userId, shared, selections, sid);
   }
 

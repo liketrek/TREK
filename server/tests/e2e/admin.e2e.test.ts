@@ -266,4 +266,33 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
     const res = await request(server).post('/api/admin/dev/test-notification').set('Cookie', sessionCookie(1)).send({});
     expect(res.status).toBe(404);
   });
+
+  it('GET /mcp/tool-usage counts the MCP tool calls per tool over the span, the most called first', async () => {
+    const old = '2000-01-01 00:00:00';
+    await Promise.all([
+      insertRow(orm, AuditLog, { user: 1, action: 'mcp.tool_call', resource: 'list_trips' }),
+      insertRow(orm, AuditLog, { user: 2, action: 'mcp.tool_call', resource: 'list_trips' }),
+      insertRow(orm, AuditLog, { user: 2, action: 'mcp.tool_call', resource: 'list_trips' }),
+      insertRow(orm, AuditLog, { user: 1, action: 'mcp.tool_call', resource: 'get_weather' }),
+      // Outside the span, and not a tool call: neither counts.
+      insertRow(orm, AuditLog, { user: 1, action: 'mcp.tool_call', resource: 'list_todos', created_at: old }),
+      insertRow(orm, AuditLog, { user: 1, action: 'admin.mcp_token_delete', resource: 'list_trips' }),
+    ]);
+    const res = await request(server).get('/api/admin/mcp/tool-usage?days=7').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body.days).toBe(7);
+    expect(res.body.total_calls).toBe(4);
+    expect(
+      res.body.tools.map((t: { tool: string; calls: number; users: number }) => [t.tool, t.calls, t.users]),
+    ).toEqual([
+      ['list_trips', 3, 2],
+      ['get_weather', 1, 1],
+    ]);
+  });
+
+  it("GET /mcp/tool-usage is the admin's only, and refuses a span past a year", async () => {
+    expect((await request(server).get('/api/admin/mcp/tool-usage').set('Cookie', sessionCookie(2))).status).toBe(403);
+    const res = await request(server).get('/api/admin/mcp/tool-usage?days=400').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(400);
+  });
 });

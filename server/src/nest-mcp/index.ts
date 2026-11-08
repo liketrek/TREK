@@ -3,18 +3,24 @@ export {
   demoDenied,
   errorResult,
   ok,
+  okStructured,
+  withResultMeta,
   TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  TOOL_ANNOTATIONS_OPEN_WORLD_WRITE,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   type McpTextResult,
 } from './helpers';
+export { renderToolHelp, TOOL_HELP_PREFIX, toolHelpSlug } from './input-detail';
 export { McpRegistryService } from './mcp-registry.service';
 export { McpModule } from './mcp.module';
 export { createLocalMcpServer, McpRegistry, type McpRegistryOptions } from './registry';
 export { createTestRegistry } from './testing';
+export { appCallable, claudeUiDomain, isClaudeClient, MCP_APP_MIME_TYPE, uiResource, uiTool } from './ui-meta';
 export {
   type McpAccess,
   type McpAccessGroup,

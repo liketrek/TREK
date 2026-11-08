@@ -135,6 +135,12 @@ const atlasCases: ParityCase[] = [
     expect: [{ event: 'atlas:changed', user: 'actor' }],
   },
   {
+    tool: 'set_atlas_visited',
+    args: () => ({ country_code: 'PT', visited: true }),
+    rest: { method: 'post', path: () => `${ATLAS}/country/PT/mark` },
+    expect: [{ event: 'atlas:changed', user: 'actor' }],
+  },
+  {
     tool: 'unmark_country_visited',
     args: () => ({ country_code: 'PT' }),
     rest: { method: 'delete', path: () => `${ATLAS}/country/PT/mark` },
@@ -471,6 +477,16 @@ const journeyCases: ParityCase[] = [
       body: () => ({ hide_skeletons: true }),
     },
     expect: [{ event: 'journey:updated', user: 'actor' }],
+  },
+  {
+    tool: 'add_trip_photos',
+    args: (s) => ({ tripId: s.trip.id, selections: [{ provider: 'immich', asset_ids: [`asset-${s.n}`] }] }),
+    rest: {
+      method: 'post',
+      path: (s) => `/api/integrations/memories/unified/trips/${s.trip.id}/photos`,
+      body: (s) => ({ selections: [{ provider: 'immich', asset_ids: [`asset-${s.n}`] }] }),
+    },
+    expect: ['memories:updated'],
   },
   {
     tool: 'add_journey_provider_photos',
@@ -1188,6 +1204,14 @@ const bookCases: ParityCase[] = [
     needs: ['journey'],
     setup: seedBook,
     args: (s) => ({ journeyId: s.journey.id, title: `Lisbon ${s.n}` }),
+    rest: saveBook(1),
+    expect: [{ event: 'journey:book:saved', user: 'actor' }],
+  },
+  {
+    tool: 'update_book',
+    needs: ['journey'],
+    setup: seedBook,
+    args: (s) => ({ journeyId: s.journey.id, cover: { title: `Lisbon ${s.n}` } }),
     rest: saveBook(1),
     expect: [{ event: 'journey:book:saved', user: 'actor' }],
   },

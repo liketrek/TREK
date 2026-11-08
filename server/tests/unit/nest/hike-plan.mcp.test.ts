@@ -15,6 +15,7 @@ import { TourTypes } from '../../../src/db/entities/TourTypes.entity';
 import { TourWaypoints } from '../../../src/db/entities/TourWaypoints.entity';
 import { Tours } from '../../../src/db/entities/Tours.entity';
 import type { McpContext } from '../../../src/nest-mcp';
+import { renderToolHelp, toolHelpTopic } from '../../../src/nest-mcp/input-detail';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
@@ -52,6 +53,10 @@ import {
 } from '@trek/shared';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** The help page of a tool with a detail (its text is there, not in the listing); its description otherwise. */
+const helpOf = (o: Parameters<typeof toolHelpTopic>[0]): string =>
+  o.detail ? renderToolHelp(toolHelpTopic(o)) : (o.description ?? '');
 
 // HIKE-MCP-001 to HIKE-MCP-023
 
@@ -254,16 +259,16 @@ describe('HikePlanMcp: the tools and their gates', () => {
     expect(
       tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint, tool.annotations?.idempotentHint, tool.access]),
     ).toEqual([
-      ['propose_hike', true, true, { group: 'trips', mode: 'read' }],
-      ['create_hike', false, false, { group: 'trips', mode: 'write' }],
-      ['update_tour', false, true, { group: 'trips', mode: 'write' }],
-      ['import_tour_gpx', false, false, { group: 'trips', mode: 'write' }],
+      ['propose_hike', true, true, { group: 'tours', mode: 'read' }],
+      ['create_hike', false, false, { group: 'tours', mode: 'write' }],
+      ['update_tour', false, true, { group: 'tours', mode: 'write' }],
+      ['import_tour_gpx', false, false, { group: 'tours', mode: 'write' }],
     ]);
-    expect(tools[0].description).toContain('variant_label');
-    expect(tools[0].description).toContain('never list coordinates');
-    expect(tools[1].description).toContain('route_pending');
-    expect(tools[2].description).toContain('expected_revision');
-    expect(tools[3].description).toContain('skipped');
+    expect(helpOf(tools[0])).toContain('variant_label');
+    expect(helpOf(tools[0])).toContain('never list coordinates');
+    expect(helpOf(tools[1])).toContain('route_pending');
+    expect(helpOf(tools[2])).toContain('expected_revision');
+    expect(helpOf(tools[3])).toContain('skipped');
     const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
     const gated = await Promise.all(tools.map((tool) => tool.when?.(ctx(1), { addons: { isAddonEnabled } })));
     expect(gated).toEqual([true, true, true, true]);

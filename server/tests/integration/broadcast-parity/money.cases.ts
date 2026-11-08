@@ -32,6 +32,17 @@ export const money: CaseGroup = {
       expect: ['budget:created'],
     },
     {
+      tool: 'reorder_budget_items',
+      needs: ['budgetItem'],
+      args: (s) => ({ tripId: s.trip.id, orderedIds: [s.budgetItem.id] }),
+      rest: {
+        method: 'put',
+        path: (s) => budget(s, '/reorder/items'),
+        body: (s) => ({ orderedIds: [s.budgetItem.id] }),
+      },
+      expect: ['budget:reordered'],
+    },
+    {
       tool: 'update_budget_item',
       needs: ['budgetItem'],
       args: (s) => ({ tripId: s.trip.id, itemId: s.budgetItem.id, name: `Lunch ${s.n}` }),
@@ -137,6 +148,14 @@ export const money: CaseGroup = {
       args: (s) => ({ tripId: s.trip.id, name: `Socks ${s.n}` }),
       rest: { method: 'post', path: (s) => packing(s), body: (s) => ({ name: `Socks ${s.n}` }) },
       expect: ['packing:created', BAG_TOTALS],
+    },
+    {
+      tool: 'clone_packing_item',
+      needs: ['packingItem'],
+      args: (s) => ({ tripId: s.trip.id, itemId: s.packingItem.id }),
+      rest: { method: 'post', path: (s) => packing(s, `/${s.packingItem.id}/clone`) },
+      // The copy is the caller's own, so only the sockets that may see it hear of it.
+      expect: [{ event: 'packing:created', only: 'viewers' }, BAG_TOTALS],
     },
     {
       // Ticking an item off moves no weight, so no bag-totals ping (#2191).

@@ -136,6 +136,8 @@ export default defineConfig({
         'src/nest/llm-parse/**/*.ts': { statements: 91, branches: 85, functions: 85, lines: 94 },
         'src/nest/managed/**/*.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
         'src/nest/maps/**/*.ts': { statements: 93, branches: 86, functions: 97, lines: 96 },
+        // New domain in this change (the MCP Apps views), fully covered by its unit and MCP suites.
+        'src/nest/mcp-apps/**/*.ts': { statements: 95, branches: 90, functions: 95, lines: 95 },
         'src/nest/mcp-shared/**/*.ts': { statements: 84, branches: 59, functions: 99, lines: 88 },
         'src/nest/mcp-transport/**/*.ts': { statements: 89, branches: 79, functions: 87, lines: 90 },
         'src/nest/memories/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },

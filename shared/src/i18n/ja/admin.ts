@@ -779,6 +779,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'トークンを削除しました',
   'admin.mcpTokens.deleteError': 'トークンの削除に失敗しました',
   'admin.mcpTokens.loadError': 'トークンの読み込みに失敗しました',
+  'admin.mcpToolUsage.title': 'ツールの使用状況',
+  'admin.mcpToolUsage.subtitle': 'どの MCP ツールが、何人に、最後にいつ呼び出されたか',
+  'admin.mcpToolUsage.empty': 'この期間に呼び出された MCP ツールはありません',
+  'admin.mcpToolUsage.loadError': 'ツールの使用状況を読み込めませんでした',
+  'admin.mcpToolUsage.tool': 'ツール',
+  'admin.mcpToolUsage.calls': '呼び出し',
+  'admin.mcpToolUsage.users': 'ユーザー',
+  'admin.mcpToolUsage.lastCall': '最終呼び出し',
+  'admin.mcpToolUsage.period': '期間（日）',
   'admin.oauthSessions.sectionTitle': 'OAuthセッション',
   'admin.oauthSessions.clientName': 'クライアント',
   'admin.oauthSessions.owner': '所有者',
@@ -1090,5 +1099,9 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'ありがとうございます。場所の詳細の共有を開始しました。',
   'admin.servicesCard.title': '場所検索とルート案内',
   'admin.servicesCard.hint': 'TREK独自のサービス、検索と公共交通に応答するプロバイダー、そして検索ログ。',
+  'admin.mcpApps.title': 'インタラクティブビュー',
+  'admin.mcpApps.subtitle':
+    '対応する MCP ホストで、旅行・リスト・地図を回答の横にインタラクティブなビューとして表示します',
+  'admin.mcpApps.loadError': 'インタラクティブなビューの設定を読み込めませんでした',
 };
 export default admin;

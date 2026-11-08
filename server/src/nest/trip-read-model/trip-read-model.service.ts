@@ -13,6 +13,7 @@ import { TripMembersService } from '../trip-members/trip-members.service';
 import { withoutFeedToken } from '../trips/trips.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import { TRIP_OVERVIEW_DAY_LIMIT, type TripOverviewOutput } from '@trek/shared';
 
 /**
  * The two read aggregates over a trip: the MCP summary and the offline bundle.
@@ -23,6 +24,13 @@ import { Injectable } from '@nestjs/common';
  * and the four domains its own updates touch, and everything that only ever
  * appeared inside a summary lives here.
  */
+/** The days an overview lists: from the first one dated today or later, else from the first, a week of them. */
+export function nextDays<T extends { date?: string | null }>(days: T[], today: string): T[] {
+  const upcoming = days.findIndex((day) => !!day.date && day.date >= today);
+  const from = upcoming === -1 ? 0 : upcoming;
+  return days.slice(from, from + TRIP_OVERVIEW_DAY_LIMIT);
+}
+
 @Injectable()
 export class TripReadModelService {
   constructor(
@@ -94,6 +102,50 @@ export class TripReadModelService {
       packing,
       reservations,
       collab_notes,
+    };
+  }
+
+  // ── Trip overview (MCP get_trip_overview and its view) ────────────────────
+
+  /**
+   * A trip in a few lines: the trip, how much it holds, and its next days with
+   * their stop counts. The next days start at today while the trip is under way
+   * or ahead, at its first day otherwise. Null when the trip is gone.
+   */
+  async getTripOverview(tripId: number): Promise<TripOverviewOutput | null> {
+    const trip = await this.tripsRepo.findRaw(tripId);
+    if (!trip) return null;
+    const [roster, { days }, places, reservations] = await Promise.all([
+      this.members.listMembers(tripId, trip.user_id),
+      this.days.list(tripId),
+      this.places.list(String(tripId), {}),
+      this.reservations.list(tripId),
+    ]);
+    return {
+      trip: {
+        id: trip.id,
+        title: trip.title,
+        description: trip.description ?? null,
+        start_date: trip.start_date,
+        end_date: trip.end_date,
+        currency: String(trip.currency || 'EUR'),
+        is_archived: trip.is_archived ? 1 : 0,
+      },
+      counts: {
+        days: days.length,
+        places: places.length,
+        reservations: reservations.length,
+        members: [roster.owner, ...roster.members].length,
+      },
+      // An MCP session carries no time zone, so "today" is the UTC date: a day early or late
+      // for a reader far from UTC around midnight, which only shifts where the week starts.
+      days: nextDays(days, new Date().toISOString().slice(0, 10)).map((day) => ({
+        id: day.id,
+        day_number: day.day_number,
+        date: day.date,
+        title: day.title ?? null,
+        stops: day.assignments.length,
+      })),
     };
   }
 

@@ -842,6 +842,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Το διακριτικό διαγράφηκε',
   'admin.mcpTokens.deleteError': 'Αποτυχία διαγραφής διακριτικού',
   'admin.mcpTokens.loadError': 'Αποτυχία φόρτωσης διακριτικών',
+  'admin.mcpToolUsage.title': 'Χρήση εργαλείων',
+  'admin.mcpToolUsage.subtitle': 'Ποια εργαλεία MCP κλήθηκαν, από πόσα άτομα και πότε τελευταία',
+  'admin.mcpToolUsage.empty': 'Κανένα εργαλείο MCP δεν κλήθηκε σε αυτή την περίοδο',
+  'admin.mcpToolUsage.loadError': 'Αποτυχία φόρτωσης της χρήσης εργαλείων',
+  'admin.mcpToolUsage.tool': 'Εργαλείο',
+  'admin.mcpToolUsage.calls': 'Κλήσεις',
+  'admin.mcpToolUsage.users': 'Χρήστες',
+  'admin.mcpToolUsage.lastCall': 'Τελευταία κλήση',
+  'admin.mcpToolUsage.period': 'Περίοδος (ημέρες)',
   'admin.oauthSessions.sectionTitle': 'Συνεδρίες OAuth',
   'admin.oauthSessions.clientName': 'Πελάτης',
   'admin.oauthSessions.owner': 'Κάτοχος',
@@ -1176,5 +1185,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Αναζήτηση τοποθεσιών και δρομολόγηση',
   'admin.servicesCard.hint':
     'Οι δικές υπηρεσίες του TREK, ποιος πάροχος απαντά στην αναζήτηση και στα μέσα μεταφοράς, και το αρχείο αναζητήσεων.',
+  'admin.mcpApps.title': 'Διαδραστικές προβολές',
+  'admin.mcpApps.subtitle':
+    'Να επιτρέπεται στους συμβατούς κεντρικούς υπολογιστές MCP να εμφανίζουν ταξίδια, λίστες και χάρτες ως διαδραστικές προβολές δίπλα στην απάντηση',
+  'admin.mcpApps.loadError': 'Δεν ήταν δυνατή η ανάγνωση της ρύθμισης των διαδραστικών προβολών',
 };
 export default admin;

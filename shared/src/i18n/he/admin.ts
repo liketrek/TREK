@@ -806,6 +806,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'האסימון נמחק',
   'admin.mcpTokens.deleteError': 'מחיקת האסימון נכשלה',
   'admin.mcpTokens.loadError': 'טעינת האסימונים נכשלה',
+  'admin.mcpToolUsage.title': 'שימוש בכלים',
+  'admin.mcpToolUsage.subtitle': 'אילו כלי MCP נקראו, על ידי כמה אנשים ומתי לאחרונה',
+  'admin.mcpToolUsage.empty': 'אף כלי MCP לא נקרא בתקופה זו',
+  'admin.mcpToolUsage.loadError': 'טעינת השימוש בכלים נכשלה',
+  'admin.mcpToolUsage.tool': 'כלי',
+  'admin.mcpToolUsage.calls': 'קריאות',
+  'admin.mcpToolUsage.users': 'משתמשים',
+  'admin.mcpToolUsage.lastCall': 'קריאה אחרונה',
+  'admin.mcpToolUsage.period': 'תקופה (ימים)',
   'admin.oauthSessions.sectionTitle': 'הפעלות OAuth',
   'admin.oauthSessions.clientName': 'לקוח',
   'admin.oauthSessions.owner': 'בעלים',
@@ -1098,6 +1107,9 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.thanks': 'תודה. פרטי המקומות משותפים עכשיו.',
   'admin.servicesCard.title': 'חיפוש מקומות וניווט',
   'admin.servicesCard.hint': 'השירותים של TREK עצמו, איזה ספק עונה לחיפוש ולתחבורה ציבורית, ויומן החיפוש.',
+  'admin.mcpApps.title': 'תצוגות אינטראקטיביות',
+  'admin.mcpApps.subtitle': 'לאפשר למארחי MCP שתומכים בכך להציג טיולים, רשימות ומפות כתצוגות אינטראקטיביות לצד התשובה',
+  'admin.mcpApps.loadError': 'לא ניתן היה לקרוא את ההגדרה של התצוגות האינטראקטיביות',
 };
 
 export default admin;

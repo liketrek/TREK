@@ -1,85 +1,32 @@
-// ---------------------------------------------------------------------------
-// OAuth 2.1 scope definitions for TREK MCP
-// ---------------------------------------------------------------------------
-
-export const SCOPES = {
-  TRIPS_READ: 'trips:read',
-  TRIPS_WRITE: 'trips:write',
-  TRIPS_DELETE: 'trips:delete',
-  TRIPS_SHARE: 'trips:share',
-  PLACES_READ: 'places:read',
-  PLACES_WRITE: 'places:write',
-  COLLECTIONS_READ: 'collections:read',
-  COLLECTIONS_WRITE: 'collections:write',
-  ATLAS_READ: 'atlas:read',
-  ATLAS_WRITE: 'atlas:write',
-  PACKING_READ: 'packing:read',
-  PACKING_WRITE: 'packing:write',
-  TODOS_READ: 'todos:read',
-  TODOS_WRITE: 'todos:write',
-  BUDGET_READ: 'budget:read',
-  BUDGET_WRITE: 'budget:write',
-  RESERVATIONS_READ: 'reservations:read',
-  RESERVATIONS_WRITE: 'reservations:write',
-  COLLAB_READ: 'collab:read',
-  COLLAB_WRITE: 'collab:write',
-  NOTIFICATIONS_READ: 'notifications:read',
-  NOTIFICATIONS_WRITE: 'notifications:write',
-  VACAY_READ: 'vacay:read',
-  VACAY_WRITE: 'vacay:write',
-  GEO_READ: 'geo:read',
-  WEATHER_READ: 'weather:read',
-  JOURNEY_READ: 'journey:read',
-  JOURNEY_WRITE: 'journey:write',
-  JOURNEY_SHARE: 'journey:share',
-  FILES_READ: 'files:read',
-  FILES_WRITE: 'files:write',
-  // A third mode rather than a second group: listing what a trip carries and
-  // reading the bytes of a booking PDF are different privileges, and the plugin
-  // host already draws that line (db:read:files vs db:read:files:content). Not
-  // implied by files:write, the way journey:share is not implied by
-  // journey:write. The policy's fallback branch covers both.
-  FILES_CONTENT: 'files:content',
-  SETTINGS_READ: 'settings:read',
-  SETTINGS_WRITE: 'settings:write',
-  // One coarse scope, and a fourth mode rather than a per-plugin group. Which
-  // plugins are installed is runtime data, so a per-plugin scope cannot be
-  // statically enumerated: it would break the ${group}:${mode} derivation and
-  // the AssertExact guards in nest-mcp-policy.ts, and its consent copy could
-  // not be written ahead of time for a third-party plugin name. Tokens issued
-  // before a plugin existed could never carry its scope either.
-  //
-  // Per-plugin granularity already exists one layer down, as the admin's
-  // mcp:tools grant, and that is the real boundary: this scope only decides
-  // whether plugin tools are advertised to a client at all.
-  PLUGINS_USE: 'plugins:use',
-} as const;
-
-export type Scope = (typeof SCOPES)[keyof typeof SCOPES];
-
-/** 'trips' | 'places' | ... — derived from SCOPES; adding a scope extends it. */
-export type ScopeGroup = Scope extends `${infer G}:${string}` ? G : never;
-
-export const ALL_SCOPES: Scope[] = Object.values(SCOPES) as Scope[];
+import { ALL_SCOPES as SHARED_ALL_SCOPES, CORE_CLIENT_SCOPES, type Scope, type ScopeGroup } from '@trek/shared';
 
 /**
- * Scopes a client must ask for BY NAME, never handed out by a default.
- *
- * plugins:use runs third-party code as the caller. Nobody registering an MCP
- * client intends to turn that on implicitly, so it is excluded from the DCR
- * fallback below and from the client-side presets (see PRESET_OPT_IN_ONLY in
- * client/src/api/oauthScopes.ts). Asking for it explicitly still works.
+ * The catalogue itself (SCOPES, the groups, the presets and the implied-scope
+ * map of the tours / road trip / Studio split) lives in @trek/shared
+ * (`shared/src/oauth/scopes.ts`), so the consent screen and the client presets
+ * read the same list the server checks. What stays here is the server's side:
+ * the English SCOPE_INFO and the checks.
  */
-export const OPT_IN_ONLY_SCOPES: readonly Scope[] = ['plugins:use'];
+export {
+  CORE_CLIENT_SCOPES,
+  IMPLIED_SCOPE_GROUPS,
+  OPT_IN_ONLY_SCOPES,
+  SCOPES,
+  withImpliedScopes,
+  type Scope,
+  type ScopeGroup,
+} from '@trek/shared';
+
+export const ALL_SCOPES: Scope[] = [...SHARED_ALL_SCOPES];
 
 /**
- * What a Dynamic Client Registration gets when it names no scopes at all.
- *
- * The consent screen is a second gate, not the only one: a scope in this list
- * is pre-selected there, so "the user still approves it" is not a reason to
- * include something they never asked for.
+ * What a Dynamic Client Registration (or a client ID metadata document) gets
+ * when it names no scopes at all: the core set. The heavier families are one
+ * tick away on the consent screen, and a scope in this list is pre-selected
+ * there, so "the user still approves it" is not a reason to include something
+ * they never asked for. `lint:mcp-surface` measures it as its `core` session.
  */
-export const DEFAULT_CLIENT_SCOPES: Scope[] = ALL_SCOPES.filter((s) => !OPT_IN_ONLY_SCOPES.includes(s));
+export const DEFAULT_CLIENT_SCOPES: Scope[] = [...CORE_CLIENT_SCOPES];
 
 export interface ScopeInfo {
   label: string;
@@ -117,6 +64,26 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
     label: 'Manage places',
     description: 'Create, update, and delete places, assignments, and tags',
     group: 'Places',
+  },
+  'tours:read': {
+    label: 'View tours',
+    description: 'Read hikes, walks, rides, paddle and ski tours with their stops and packing',
+    group: 'Tours',
+  },
+  'tours:write': {
+    label: 'Plan tours',
+    description: 'Propose, create, edit and delete tours, their stops, activities and packing links',
+    group: 'Tours',
+  },
+  'roadtrip:read': {
+    label: 'View road trips',
+    description: 'Read routes, driving days, charging stops and road hazards',
+    group: 'Road trip',
+  },
+  'roadtrip:write': {
+    label: 'Plan road trips',
+    description: 'Calculate routes, set driving days and preferences, and import routes',
+    group: 'Road trip',
   },
   'collections:read': {
     label: 'View collections',
@@ -224,6 +191,16 @@ export const SCOPE_INFO: Record<Scope, ScopeInfo> = {
     label: 'Manage journey links',
     description: 'Create, update, and revoke public share links for journeys',
     group: 'Journey',
+  },
+  'studio:read': {
+    label: 'View journey books',
+    description: 'Read the pages, design and photos of a journey book',
+    group: 'Studio',
+  },
+  'studio:write': {
+    label: 'Design journey books',
+    description: 'Create, edit, restyle and restore the pages of a journey book',
+    group: 'Studio',
   },
   'files:read': {
     label: 'View trip files',

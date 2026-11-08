@@ -73,6 +73,7 @@
         "src/roadtrip/planning.ts",
         "src/sanitize/sanitize.ts",
         "src/book/stickers/index.ts",
+        "src/mcp-apps/index.ts",
         "src/i18n/index.ts",
         "src/i18n/*/index.ts",
         // open-request-schemas.d.mts types the .mjs script beside it.
@@ -80,6 +81,11 @@
         "src/**/*.spec.ts"
       ],
       "project": ["src/**/*.ts", "scripts/**/*.{mjs,mts}"]
+    },
+    "mcp-apps": {
+      // One React root per widget document (scripts/build.mjs builds each one through vite.config.ts), and the tests.
+      "entry": ["src/widgets/*/main.tsx", "scripts/*.mjs", "tests/**/*.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{ts,tsx}"]
     }
   }
 }

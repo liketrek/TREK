@@ -14,6 +14,7 @@ import HelpAnchor from '../components/Help/HelpAnchor'
 import { getHelpContext } from '../help/registry'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
+import AdminMcpToolUsagePanel from '../components/Admin/AdminMcpToolUsagePanel'
 import AdminPluginsPanel from '../components/Admin/AdminPluginsPanel'
 import AdminStoragePanel from '../components/Admin/storage/AdminStoragePanel'
 import { Users, Map, Briefcase, Shield, FileText, RotateCcw, Save, SlidersHorizontal, UserCog, Puzzle, Blocks, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug, HardDrive } from 'lucide-react'
@@ -177,6 +178,7 @@ function AdminPageDesktop(): React.ReactElement {
           {activeTab === 'audit' && <AuditLogPanel serverTimezone={serverTimezone} />}
 
           {activeTab === 'mcp-tokens' && <AdminMcpTokensPanel />}
+          {activeTab === 'mcp-tokens' && <AdminMcpToolUsagePanel />}
 
           {activeTab === 'plugins' && <AdminPluginsPanel />}
 

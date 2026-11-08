@@ -7,7 +7,10 @@ import {
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_READONLY,
+  errorResult,
   ok,
+  okStructured,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DayNotesService } from './day-notes.service';
@@ -15,6 +18,7 @@ import {
   dayNoteCreateRequestSchema,
   dayNoteUpdateRequestSchema,
   idSchema,
+  listDayNotesOutputSchema,
   NOTE_COLORS,
   type NoteColor,
 } from '@trek/shared';
@@ -48,8 +52,8 @@ function parseId(value: string | string[]): number | null {
 
 /**
  * Day-note MCP surface — ported 1:1 from the legacy registrars: the three
- * tools from the DAY NOTES block of src/mcp/tools/days.ts and the
- * trek://trips/{tripId}/days/{dayId}/notes resource from src/mcp/resources.ts
+ * tools from the DAY NOTES block of the days registrar and the
+ * trek://trips/{tripId}/days/{dayId}/notes resource from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The legacy registration-time gates map to the declarative
  * trips write/read access markers (registerDayTools' whole-registrar
@@ -70,6 +74,7 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'create_day_note',
+    title: 'Add day note',
     description: 'Add a note to a specific day in a trip: a title in `text` and its body in `time`.',
     inputSchema: {
       tripId: idSchema,
@@ -122,6 +127,7 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'update_day_note',
+    title: 'Update day note',
     description: 'Edit an existing note on a specific day: its title is `text`, its body `time`.',
     inputSchema: {
       tripId: idSchema,
@@ -182,6 +188,7 @@ export class DayNotesMcp {
 
   @Tool({
     name: 'delete_day_note',
+    title: 'Delete day note',
     description: 'Delete a note from a specific day.',
     inputSchema: {
       tripId: idSchema,
@@ -236,5 +243,21 @@ export class DayNotesMcp {
         },
       ],
     };
+  }
+
+  @Tool({
+    name: 'list_day_notes',
+    title: 'List day notes',
+    description:
+      "One day's notes in their order: the title (text), the body (time), icon and colour, with the ids update_day_note and delete_day_note take.",
+    inputSchema: { tripId: idSchema, dayId: idSchema },
+    outputSchema: listDayNotesOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'trips', mode: 'read' },
+  })
+  async listDayNotes({ tripId, dayId }: { tripId: number; dayId: number }, ctx: McpContext) {
+    if (!(await this.notes.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.notes.dayExists(dayId, tripId))) return errorResult('Day not found.');
+    return okStructured({ notes: await this.notes.list(dayId, tripId) });
   }
 }

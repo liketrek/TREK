@@ -147,11 +147,11 @@ describe('TourPackingMcp', () => {
       const access = options(name).access;
       return typeof access === 'function' ? access({ userId: 1, scopes } as McpContext) : access;
     };
-    expect(allowed('getTourPacking', ['trips:read', 'packing:read'])).toBe(true);
-    expect(allowed('getTourPacking', ['trips:read'])).toBe(false);
-    expect(allowed('linkTourPacking', ['trips:write', 'packing:read'])).toBe(true);
-    expect(allowed('linkTourPacking', ['trips:write'])).toBe(false);
-    expect(allowed('linkTourPacking', ['trips:read', 'packing:write'])).toBe(false);
-    expect(allowed('unlinkTourPacking', [])).toEqual({ group: 'trips', mode: 'write' });
+    expect(allowed('getTourPacking', ['tours:read', 'packing:read'])).toBe(true);
+    expect(allowed('getTourPacking', ['tours:read'])).toBe(false);
+    expect(allowed('linkTourPacking', ['tours:write', 'packing:read'])).toBe(true);
+    expect(allowed('linkTourPacking', ['tours:write'])).toBe(false);
+    expect(allowed('linkTourPacking', ['tours:read', 'packing:write'])).toBe(false);
+    expect(allowed('unlinkTourPacking', [])).toEqual({ group: 'tours', mode: 'write' });
   });
 });

@@ -3,7 +3,8 @@ import {
   McpController,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_READONLY,
-  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  TOOL_ANNOTATIONS_OPEN_WORLD_WRITE,
   Tool,
   ok,
   type McpContext,
@@ -42,6 +43,7 @@ export class JourneyRecordingsMcp {
 
   @Tool({
     name: 'list_journey_recorded_days',
+    title: 'List recorded journey days',
     description:
       'The days of route recorded in Dawarich that a journey keeps, one per local day: the zone the day was cut in, what it covers (distance, pieces, gaps without recording, modes, first and last time), whether the source was incomplete or the day still running when it was taken over, and whose recording it is. Kept days stay readable when Dawarich is unreachable.',
     inputSchema: { journeyId: idSchema },
@@ -55,6 +57,7 @@ export class JourneyRecordingsMcp {
 
   @Tool({
     name: 'get_journey_recording_prep',
+    title: 'Get journey recording prep',
     description:
       "Whether a journey prepares its recorded days from Dawarich in the background (its owner's switch, update_journey auto_prepare_recordings) and how the caller's own last runs over its linked trip periods went: when the last one was tried, when one last came through (the stays waiting at the journey's days are as new as that) and why the last one failed, plus whether the caller's connection can prepare anything at all (ready, sync_off, not_connected) and, while the switch is on, the linked trip periods those runs reach (a trip that ended more than 400 days ago is not prepared; review_journey_day_stays still reads its days by hand). Prepared stays are reviewed and taken over with review_journey_day_stays and take_over_journey_day_stays; nothing is ever written into the journey on its own. Needs edit access to the journey.",
     inputSchema: { journeyId: idSchema },
@@ -68,11 +71,12 @@ export class JourneyRecordingsMcp {
 
   @Tool({
     name: 'preview_journey_recorded_day',
+    title: 'Preview recorded journey day',
     description:
       "Read one local day of the route recorded in the caller's own Dawarich and show what a journey would keep, without keeping anything: the window the day runs in, what it covers, whether the journey already keeps that day and if it is the same, how many other people would see it, and the contentHash save_journey_recorded_day needs. utcOffsetMinutes is the zone to cut the day in; useSourceOffset cuts it in Dawarich's own zone where its answer shows one. Needs edit access to the journey.",
     inputSchema: { journeyId: idSchema, ...journeyRecordingPreviewRequestSchema.shape },
     // Reaches the caller's own Dawarich instance rather than TREK's database.
-    annotations: { ...TOOL_ANNOTATIONS_READONLY, openWorldHint: true },
+    annotations: TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
     when: bothAddonsOn,
     access: { group: 'journey', mode: 'read' },
   })
@@ -87,10 +91,11 @@ export class JourneyRecordingsMcp {
 
   @Tool({
     name: 'save_journey_recorded_day',
+    title: 'Save recorded journey day',
     description:
       "Keep one local day of the route recorded in the caller's Dawarich in a journey, after the traveller confirmed the preview. Send the utcOffsetMinutes and contentHash (as expectedHash) of preview_journey_recorded_day: when the recording changed since, nothing is kept and the answer says so. A day kept already exactly so is left as it is; a different version is replaced only with replace: true. Never changes an entry or a text of the journey. Everyone who can open the journey sees the route on its map.",
     inputSchema: { journeyId: idSchema, date: journeyRecordingDateSchema, ...journeyRecordingSaveRequestSchema.shape },
-    annotations: { ...TOOL_ANNOTATIONS_WRITE, openWorldHint: true },
+    annotations: TOOL_ANNOTATIONS_OPEN_WORLD_WRITE,
     when: bothAddonsOn,
     access: { group: 'journey', mode: 'write' },
   })
@@ -104,6 +109,7 @@ export class JourneyRecordingsMcp {
 
   @Tool({
     name: 'delete_journey_recorded_day',
+    title: 'Delete recorded journey day',
     description:
       'Drop the recorded route a journey keeps for one local day. Its entries and texts stay as they are, and Dawarich keeps its own recording. Needs edit access to the journey.',
     inputSchema: { journeyId: idSchema, date: journeyRecordingDateSchema },

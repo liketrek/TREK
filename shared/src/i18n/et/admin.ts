@@ -837,6 +837,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Pääsutõend kustutatud',
   'admin.mcpTokens.deleteError': 'Pääsutõendi kustutamine ebaõnnestus',
   'admin.mcpTokens.loadError': 'Pääsutõendite laadimine ebaõnnestus',
+  'admin.mcpToolUsage.title': 'Tööriistade kasutus',
+  'admin.mcpToolUsage.subtitle': 'Milliseid MCP tööriistu kutsuti, mitu inimest ja millal viimati',
+  'admin.mcpToolUsage.empty': 'Sel perioodil ei kutsutud ühtegi MCP tööriista',
+  'admin.mcpToolUsage.loadError': 'Tööriistade kasutust ei õnnestunud laadida',
+  'admin.mcpToolUsage.tool': 'Tööriist',
+  'admin.mcpToolUsage.calls': 'Kutsed',
+  'admin.mcpToolUsage.users': 'Kasutajad',
+  'admin.mcpToolUsage.lastCall': 'Viimane kutse',
+  'admin.mcpToolUsage.period': 'Periood (päevad)',
   'admin.oauthSessions.sectionTitle': 'OAuth-seansid',
   'admin.oauthSessions.clientName': 'Klient',
   'admin.oauthSessions.owner': 'Omanik',
@@ -1143,5 +1152,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Kohtade otsing ja marsruutimine',
   'admin.servicesCard.hint':
     'TREKi enda teenused, milline teenusepakkuja vastab otsingule ja ühistranspordile, ning otsingulogi.',
+  'admin.mcpApps.title': 'Interaktiivsed vaated',
+  'admin.mcpApps.subtitle':
+    'Luba toetavatel MCP hostidel näidata reise, loendeid ja kaarte vastuse kõrval interaktiivsete vaadetena',
+  'admin.mcpApps.loadError': 'Interaktiivsete vaadete seadet ei õnnestunud lugeda',
 };
 export default admin;

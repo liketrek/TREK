@@ -70,8 +70,6 @@
   "src/api/dawarich.ts",
   "src/api/help.test.ts",
   "src/api/help.ts",
-  "src/api/oauthScopes.test.ts",
-  "src/api/oauthScopes.ts",
   "src/api/placeShadow.test.ts",
   "src/api/placeShadow.ts",
   "src/api/pluginPois.test.ts",

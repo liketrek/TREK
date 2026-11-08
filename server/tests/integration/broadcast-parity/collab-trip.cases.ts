@@ -1,6 +1,7 @@
 import { DocumentConnections } from '../../../src/db/entities/DocumentConnections.entity';
 import { DocumentProviders } from '../../../src/db/entities/DocumentProviders.entity';
 import { TripDocumentLinks } from '../../../src/db/entities/TripDocumentLinks.entity';
+import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
 import type { DocumentProvider, DocumentProviderCapabilities } from '../../../src/nest/doc-sync/document-provider';
 import { DocumentProviderRegistry } from '../../../src/nest/doc-sync/document-provider.registry';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
@@ -232,6 +233,30 @@ export const collabTrip: CaseGroup = {
       expect: ['file:created'],
     },
     {
+      tool: 'star_trip_file',
+      needs: ['file'],
+      args: (s) => ({ tripId: s.trip.id, fileId: s.file.id, starred: true }),
+      rest: { method: 'patch', path: (s) => tripPath(s, `/files/${s.file.id}/star`) },
+      expect: ['file:updated'],
+    },
+    {
+      tool: 'delete_trip_file',
+      needs: ['file'],
+      args: (s) => ({ tripId: s.trip.id, fileId: s.file.id }),
+      rest: { method: 'delete', path: (s) => tripPath(s, `/files/${s.file.id}`) },
+      expect: ['file:deleted'],
+    },
+    {
+      tool: 'restore_trip_file',
+      needs: ['file'],
+      setup: async (s, app) => {
+        await updateRows(app.get(MikroORM), TripFiles, { id: s.file.id }, { deleted_at: '2026-01-01 00:00:00' });
+      },
+      args: (s) => ({ tripId: s.trip.id, fileId: s.file.id }),
+      rest: { method: 'post', path: (s) => tripPath(s, `/files/${s.file.id}/restore`) },
+      expect: ['file:created'],
+    },
+    {
       tool: 'update_trip_file',
       needs: ['file'],
       args: (s) => ({ tripId: s.trip.id, fileId: s.file.id, description: 'Boarding pass' }),
@@ -287,6 +312,13 @@ export const collabTrip: CaseGroup = {
       tool: 'mark_notification_read',
       needs: ['notification'],
       args: (s) => ({ notificationId: s.notification.id }),
+      rest: { method: 'put', path: (s) => `/api/notifications/in-app/${s.notification.id}/read` },
+      expect: [{ event: 'notification:updated', ...userPing }],
+    },
+    {
+      tool: 'set_notification_read',
+      needs: ['notification'],
+      args: (s) => ({ notificationId: s.notification.id, read: true }),
       rest: { method: 'put', path: (s) => `/api/notifications/in-app/${s.notification.id}/read` },
       expect: [{ event: 'notification:updated', ...userPing }],
     },
@@ -413,6 +445,11 @@ export const collabTrip: CaseGroup = {
     },
   ],
   exempt: [
+    {
+      tool: 'set_notification_preferences',
+      reason: "the caller's own channel matrix: only the settings screen shows it, and it reads it afresh when opened",
+      args: () => ({ preferences: { trip_invite: { email: false } } }),
+    },
     { tool: 'create_share_link', reason: TOKEN_ONLY, args: onTrip },
     { tool: 'delete_share_link', reason: TOKEN_ONLY, args: onTrip, first: { tool: 'create_share_link', args: onTrip } },
     { tool: 'create_trip_invite_link', reason: TOKEN_ONLY, args: onTrip },

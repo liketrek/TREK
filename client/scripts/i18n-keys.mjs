@@ -82,6 +82,8 @@ export const REFERENCE_ROOTS = [
   join(HERE, '..', '..', 'server', 'src'),
   join(HERE, '..', '..', 'plugin-sdk', 'src'),
   join(HERE, '..', '..', 'shared', 'src', 'book'),
+  // The MCP views (mcp-apps workspace): their own builds, reading only the mcpApps.* strings.
+  join(HERE, '..', '..', 'mcp-apps', 'src'),
 ];
 
 /** How many en keys a template may reach and still pass without an entry below. */
@@ -115,6 +117,13 @@ export const DYNAMIC_ALLOWED = [
     because:
       'a key builder over the registered help contexts and guides; src/help/registry.test.ts resolves every ' +
       'key of every registered entry against en',
+  })),
+  ...['oauth.scope.${scope}.label', 'oauth.scope.${scope}.description'].map((template) => ({
+    file: 'api/oauthScopes.ts',
+    template,
+    because:
+      'scope iterates ALL_SCOPES from @trek/shared; i18n-scope-keys.spec.ts in shared holds every scope of the ' +
+      'catalogue to a label and a description in en',
   })),
   {
     file: 'mobile/screens/dashboard/MUserMenu.tsx',

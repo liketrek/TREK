@@ -15,6 +15,7 @@ import { AssignmentsDomainModule } from '../assignments/assignments-domain.modul
 import { MAX_PLACE_IMAGE_SIZE } from '../common/place-image-upload';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { MapsModule } from '../maps/maps.module';
+import { McpAppsModule } from '../mcp-apps/mcp-apps.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { PlaceContribModule } from '../place-contrib/place-contrib.module';
@@ -33,6 +34,7 @@ import { PlacesController } from './places.controller';
 import { PlacesMcp } from './places.mcp';
 import { PlacesRpc } from './places.rpc';
 import { PlacesService } from './places.service';
+import { TripMapMcp } from './trip-map.mcp';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
@@ -67,6 +69,8 @@ import { MulterModule } from '@nestjs/platform-express';
     PermissionsModule,
     QueryHelpersModule,
     MapsModule,
+    // McpAppsModule for get_trip_map, whose tiles follow the user's map settings.
+    McpAppsModule,
     AppConfigModule,
     UnsplashModule,
     PlacePhotosModule,
@@ -106,7 +110,7 @@ import { MulterModule } from '@nestjs/platform-express';
     ]),
   ],
   controllers: [PlacesController],
-  providers: [PlacesService, PlacesMcp, PlacesRpc, PlaceOriginsService, PlacesStorageRefsService],
+  providers: [PlacesService, PlacesMcp, TripMapMcp, PlacesRpc, PlaceOriginsService, PlacesStorageRefsService],
   // The origin bookkeeping too: the booking import writes places as well.
   exports: [PlacesService, PlaceOriginsService],
 })

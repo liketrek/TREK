@@ -76,6 +76,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Tạo, cập nhật và xóa hành trình cũng như các mục nhập của chúng',
   'oauth.scope.journey:share.label': 'Quản lý liên kết hành trình',
   'oauth.scope.journey:share.description': 'Tạo, cập nhật và thu hồi liên kết chia sẻ công khai cho hành trình',
+  'oauth.scope.group.tours': 'Chuyến tham quan',
+  'oauth.scope.group.roadtrip': 'Chuyến đi đường bộ',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Xem chuyến tham quan',
+  'oauth.scope.tours:read.description':
+    'Đọc các chuyến leo núi, đi bộ, đạp xe, chèo thuyền và trượt tuyết cùng điểm dừng và hành lý',
+  'oauth.scope.tours:write.label': 'Lên kế hoạch tham quan',
+  'oauth.scope.tours:write.description':
+    'Đề xuất, tạo, sửa và xóa chuyến tham quan cùng điểm dừng, hoạt động và liên kết hành lý',
+  'oauth.scope.roadtrip:read.label': 'Xem chuyến đi đường bộ',
+  'oauth.scope.roadtrip:read.description': 'Đọc lộ trình, ngày lái xe, điểm sạc và nguy hiểm trên đường',
+  'oauth.scope.roadtrip:write.label': 'Lên kế hoạch đi đường bộ',
+  'oauth.scope.roadtrip:write.description': 'Tính lộ trình, đặt ngày lái xe và tùy chọn, nhập lộ trình',
+  'oauth.scope.studio:read.label': 'Xem sách hành trình',
+  'oauth.scope.studio:read.description': 'Đọc các trang, thiết kế và ảnh của một cuốn sách hành trình',
+  'oauth.scope.studio:write.label': 'Thiết kế sách hành trình',
+  'oauth.scope.studio:write.description': 'Tạo, sửa, đổi phong cách và khôi phục các trang của sách hành trình',
   'oauth.authorize.authorizing': 'Đang ủy quyền…',
   'oauth.authorize.loading': 'Đang tải…',
   'oauth.authorize.errorTitle': 'Lỗi ủy quyền',

@@ -32,7 +32,7 @@ import {
   type UsersRepository,
   type AdminEditPatch,
 } from '../../db/repositories/Users.repository';
-import { utcSuffix } from '../../db/types';
+import { dbNow, utcSuffix } from '../../db/types';
 import { invalidateMcpSessions } from '../../mcp';
 // Import from sessionManager directly, NOT the ../../mcp barrel — the direct
 // path keeps this module's graph minimal, and the split predates the barrel's
@@ -71,10 +71,14 @@ import {
 } from './admin.helpers';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Inject, Injectable } from '@nestjs/common';
+import { MCP_TOOL_USAGE_DEFAULT_DAYS, type AdminMcpToolUsageResponse } from '@trek/shared';
 
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import fs from 'fs';
+
+/** One day, in milliseconds. */
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Outbound GitHub calls: hard timeout and response-size cap (server/CLAUDE.md). */
 const GITHUB_TIMEOUT_MS = 10_000;
@@ -427,6 +431,17 @@ export class AdminService {
   }
 
   // ── Audit Log ──────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/admin/mcp/tool-usage: which MCP tools were called over the last
+   * `days`, from the audit rows the transport writes for every call. What the
+   * admin reads before a deprecated tool is removed, and what the clients use.
+   */
+  async getMcpToolUsage(days: number = MCP_TOOL_USAGE_DEFAULT_DAYS): Promise<AdminMcpToolUsageResponse> {
+    const since = dbNow(new Date(Date.now() - days * DAY_MS));
+    const tools = await this.auditLog.mcpToolUsageSince(since);
+    return { days, since, total_calls: tools.reduce((sum, t) => sum + t.calls, 0), tools };
+  }
 
   async getAuditLog(query: { limit?: string; offset?: string }) {
     const limitRaw = Number.parseInt(String(query.limit || '100'), 10);

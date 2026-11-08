@@ -161,7 +161,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 - **Your own model**: an API key for Anthropic, OpenAI, Gemini or OpenRouter, a ChatGPT plan, or any OpenAI-compatible endpoint, set for the instance or per user
 - **You stay in charge**: reads run at once, every change waits as a card to apply or discard and can be undone for 15 minutes. Nothing leaves before you agree to the provider, and a file's text only with your consent
 - **Attachments**: drop a booking confirmation, a GPX file or a photo into the chat, and the assistant offers what to do with it
-- **MCP server** (off by default): OAuth 2.1 with mandatory PKCE and dynamic client registration, 410 tools, 30 resources and 4 prompts, 35 scopes in 17 groups ticked on the consent screen, and every call in the audit log
+- **MCP server** (off by default): OAuth 2.1 with mandatory PKCE and dynamic client registration, 429 tools, 40 resources and 8 prompts, 41 scopes in 20 groups ticked on the consent screen (client presets start from a core set), interactive views (MCP Apps) for trips, packing, weather, places, budget, to-dos, the map, a day and polls in hosts that draw them, and every call in the audit log
 - **Addon-aware**: twelve addon gates decide which tools a session sees, and flipping one re-registers live sessions
 
 </td>

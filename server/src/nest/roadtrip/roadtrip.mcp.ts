@@ -5,6 +5,7 @@ import {
   Tool,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
   ok,
   type McpContext,
 } from '../../nest-mcp';
@@ -55,6 +56,7 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'list_route_vias',
+    title: 'List route via points',
     description:
       "List the points a day's drive is routed through without stopping at them. These bend the route (a scenic road, a pass, avoiding a motorway) and are not stops on the itinerary.",
     inputSchema: {
@@ -62,7 +64,7 @@ export class RoadtripMcp {
       dayId: idSchema.optional().describe('Omit to list the vias of every day of the trip'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
-    access: { group: 'trips', mode: 'read' },
+    access: { group: 'roadtrip', mode: 'read' },
     when: roadtripAddonOn,
   })
   async listVias({ tripId, dayId }: { tripId: number; dayId?: number }, ctx: McpContext) {
@@ -76,7 +78,8 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'add_route_via',
-    description: `Make a day's drive pass through a point without stopping there: use it to send the route over a particular road or away from one. For somewhere the traveller actually stops, add a place and assign it to the day instead. ${BOOKEND_VIA_NOTE}`,
+    title: 'Add a route via point',
+    description: 'Deprecated: use add_route_vias.',
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema,
@@ -85,7 +88,7 @@ export class RoadtripMcp {
       lng: z.number().min(-180).max(180),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async addVia(
@@ -108,6 +111,7 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'add_route_vias',
+    title: 'Add route via points',
     description: `Lay a whole chain of via points on one day at once, so the drive follows a particular road for a stretch rather than being nudged at a single point. Use this when the shape comes from a line (a recorded track, a signed scenic route) and add_route_via when it is one detour. Pass replace_legs to clear the vias on those legs first; leave it out to add to what is already there, which is what leaves hand-placed detours on other legs alone. ${BOOKEND_VIA_NOTE}`,
     inputSchema: {
       tripId: idSchema,
@@ -149,7 +153,7 @@ export class RoadtripMcp {
         ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async addVias(
@@ -182,6 +186,7 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'reanchor_route_vias',
+    title: 'Re-pin route via points',
     description:
       "Re-pin a day's via points after its stops changed. A via records which stop it follows by position, so adding, removing or reordering a stop leaves every later via pointing at the wrong leg and the drive silently reverts to the road it was steered away from. Send the corrected positions for the whole day at once; ids left out keep the position they have.",
     inputSchema: {
@@ -208,7 +213,7 @@ export class RoadtripMcp {
         ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async reanchorVias(
@@ -230,14 +235,15 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'remove_route_via',
+    title: 'Remove a route via point',
     description: 'Remove a via point, letting the drive take the direct route again.',
     inputSchema: {
       tripId: idSchema,
       dayId: idSchema,
       viaId: idSchema,
     },
-    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    annotations: TOOL_ANNOTATIONS_DELETE_NON_IDEMPOTENT,
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async removeVia({ tripId, dayId, viaId }: { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
@@ -251,11 +257,12 @@ export class RoadtripMcp {
 
   @Tool({
     name: 'update_route_via',
+    title: 'Move a route via point',
     description:
       'Move an existing via point and optionally attach it to another outgoing leg of the same day. This is the same change as dragging a route handle. A via bends the route and does not add a stop or stay.',
     inputSchema: { tripId: idSchema, dayId: idSchema, viaId: idSchema, ...roadtripViaUpdateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'roadtrip', mode: 'write' },
     when: roadtripAddonOn,
   })
   async updateVia(input: RoadtripViaUpdateRequest & { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {

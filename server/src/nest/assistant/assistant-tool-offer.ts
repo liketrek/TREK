@@ -93,6 +93,8 @@ export const ASSISTANT_DENIED_TOOLS: Readonly<Record<string, string>> = {
   delete_manual_school_holiday_region: 'changes the holidays of every user',
   delete_manual_school_holiday_country: 'changes the holidays of every user',
   ...STUDIO_ONLY_TOOLS,
+  update_book:
+    'for external MCP clients: the Studio chat previews setup, theme and cover changes on cards built for the single-field tools',
   restore_book_page: 'an undo target only: it puts a book page back as an earlier change left it',
   restore_book_layout: 'an undo target only: it puts back a layout an earlier change took away',
   restore_book_revision: 'an undo target only: it puts the book back as an applied design found it',

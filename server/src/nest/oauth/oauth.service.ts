@@ -16,9 +16,9 @@ import { dbNow, parseDbTimestamp } from '../../db/types';
 // Import from scopes/sessionManager directly, NOT the ../../mcp barrel: the
 // barrel pulls the whole tools fan-out (and via the domain bridges, the Nest
 // services) into every consumer of this module — a nest→mcp→nest module cycle.
-// Both files themselves are back-edge free (scopes has no imports at all,
+// Both files themselves are back-edge free (scopes imports only @trek/shared,
 // sessionManager only the MCP SDK).
-import { validateScopes } from '../../mcp/scopes';
+import { validateScopes, withImpliedScopes } from '../../mcp/scopes';
 import { revokeUserSessionsForClient } from '../../mcp/sessionManager';
 import { User } from '../../types';
 import { decodeJson, decodeJsonResult, encodeJson, logJsonFailure } from '../../utils/json-column';
@@ -800,8 +800,11 @@ export class OauthService {
 
     const allowedScopes = client.allowedScopes;
     // Narrow to the intersection: drop scopes the client isn't permitted for rather
-    // than rejecting the whole request (per OAuth 2.0 §3.3 scope narrowing).
-    const grantedScopes = requestedScopes.filter((s) => allowedScopes.includes(s));
+    // than rejecting the whole request (per OAuth 2.0 §3.3 scope narrowing). A
+    // client that still asks for trips (or places, or journey) alone gets the
+    // tours / road trip / Studio scopes split off them as well, as far as it is
+    // allowed them, so the consent screen shows them ticked (IMPLIED_SCOPE_GROUPS).
+    const grantedScopes = withImpliedScopes(requestedScopes, allowedScopes).filter((s) => allowedScopes.includes(s));
     if (grantedScopes.length === 0) {
       return {
         valid: false,

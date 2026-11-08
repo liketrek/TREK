@@ -6,9 +6,17 @@ import {
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   ok,
+  okStructured,
 } from '../../nest-mcp';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { NotificationsService } from './notifications.service';
-import { idSchema } from '@trek/shared';
+import {
+  idSchema,
+  notificationPreferencesOutputSchema,
+  notificationReadStateRequestSchema,
+  preferencesUpdateRequestSchema,
+  type PreferencesUpdateRequest,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -26,8 +34,8 @@ function jsonContent(uri: string, data: unknown) {
 
 /**
  * Notifications MCP surface — ported 1:1 from the legacy registrars: the five
- * tools from src/mcp/tools/notifications.ts and the trek://notifications/in-app
- * resource from src/mcp/resources.ts (identical names, descriptions, zod input
+ * tools from the notifications registrar and the trek://notifications/in-app
+ * resource from the retired resources registrar (identical names, descriptions, zod input
  * schemas, annotations and error/payload shapes — including the legacy
  * 'Notification not found.' wording, which differs from the REST route's
  * 'Not found'). The legacy `if (R)` / `if (W)` scope checks map to the
@@ -38,10 +46,20 @@ function jsonContent(uri: string, data: unknown) {
  */
 @McpController()
 export class NotificationsMcp {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly guards: McpToolGuardsService,
+  ) {}
+
+  /** The matrix GET /api/notifications/preferences answers, for the caller's own role. */
+  private async preferencesOf(userId: number) {
+    const role = (await this.guards.isAdminUser(userId)) ? 'admin' : 'user';
+    return await this.notifications.getPreferences(userId, role);
+  }
 
   @Tool({
     name: 'list_notifications',
+    title: 'List notifications',
     description: 'List in-app notifications for the current user.',
     inputSchema: {
       limit: idSchema.optional().default(20),
@@ -65,6 +83,7 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'get_unread_notification_count',
+    title: 'Count unread notifications',
     description: 'Get the number of unread in-app notifications.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -77,7 +96,8 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_notification_read',
-    description: 'Mark a single notification as read.',
+    title: 'Mark notification read',
+    description: 'Deprecated: use set_notification_read.',
     inputSchema: {
       notificationId: idSchema,
     },
@@ -93,7 +113,8 @@ export class NotificationsMcp {
 
   @Tool({
     name: 'mark_notification_unread',
-    description: 'Mark a single notification as unread.',
+    title: 'Mark notification unread',
+    description: 'Deprecated: use set_notification_read.',
     inputSchema: {
       notificationId: idSchema,
     },
@@ -107,7 +128,25 @@ export class NotificationsMcp {
   }
 
   @Tool({
+    name: 'set_notification_read',
+    title: 'Set notification read',
+    description: 'Mark a single notification read, or unread again.',
+    inputSchema: {
+      notificationId: idSchema,
+      ...notificationReadStateRequestSchema.shape,
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'notifications', mode: 'write' },
+  })
+  async setNotificationRead({ notificationId, read }: { notificationId: number; read: boolean }, ctx: McpContext) {
+    return read
+      ? this.markNotificationRead({ notificationId }, ctx)
+      : this.markNotificationUnread({ notificationId }, ctx);
+  }
+
+  @Tool({
     name: 'mark_all_notifications_read',
+    title: 'Mark all notifications read',
     description: "Mark all of the current user's notifications as read.",
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -128,5 +167,35 @@ export class NotificationsMcp {
   async inAppNotificationsResource(uri: URL, ctx: McpContext) {
     const result = await this.notifications.listInApp(ctx.userId, { limit: 50 });
     return jsonContent(uri.href, result);
+  }
+
+  @Tool({
+    name: 'get_notification_preferences',
+    title: 'Notification preferences',
+    description:
+      'Which notifications you get over which channel: preferences maps an event type to its channels (true on, false off), channels lists the channels, implemented_combos the channels each event can use at all, locked the cells the admin switched off for everyone.',
+    inputSchema: {},
+    outputSchema: notificationPreferencesOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'notifications', mode: 'read' },
+  })
+  async getNotificationPreferences(_args: Record<string, never>, ctx: McpContext) {
+    return okStructured({ ...(await this.preferencesOf(ctx.userId)) });
+  }
+
+  @Tool({
+    name: 'set_notification_preferences',
+    title: 'Set notification preferences',
+    description:
+      'Switch notifications on or off per event and channel: { eventType: { channel: true|false } }. Cells left out keep their value; take the names from get_notification_preferences. Returns the whole matrix.',
+    inputSchema: {
+      preferences: preferencesUpdateRequestSchema.describe('Event type to channel to on (true) or off (false)'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'notifications', mode: 'write' },
+  })
+  async setNotificationPreferences({ preferences }: { preferences: PreferencesUpdateRequest }, ctx: McpContext) {
+    await this.notifications.setPreferences(ctx.userId, preferences);
+    return ok(await this.preferencesOf(ctx.userId));
   }
 }

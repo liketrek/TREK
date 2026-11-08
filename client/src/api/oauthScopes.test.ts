@@ -1,74 +1,98 @@
-// FE-OAUTH-SCOPES-001 to FE-OAUTH-SCOPES-014
-import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { SCOPE_GROUPS, ALL_SCOPES, SCOPE_GROUP_NAMES, getScopesByGroup, PRESET_OPT_IN_ONLY, PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from './oauthScopes'
+// FE-OAUTH-SCOPES-001 to FE-OAUTH-SCOPES-015
+import { CORE_CLIENT_SCOPES, ALL_SCOPES as SHARED_SCOPES } from '@trek/shared';
+import { describe, expect, it } from 'vitest';
+import {
+  ALL_SCOPES,
+  getScopesByGroup,
+  PRESET_OPT_IN_ONLY,
+  PRESET_SCOPES_DEFAULT,
+  PRESET_SCOPES_READONLY,
+  SCOPE_GROUP_NAMES,
+  SCOPE_GROUPS,
+} from './oauthScopes';
 
-// The consent page mirrors the server's scope list by hand, so read the server
-// file and compare. Parsing keeps this a client-only test (no server import).
+// The consent page reads the catalogue the server checks (@trek/shared), so
+// compare against that list directly.
 function readServerScopes(): string[] {
-  const here = dirname(fileURLToPath(import.meta.url))
-  const src = readFileSync(resolve(here, '../../../server/src/mcp/scopes.ts'), 'utf8')
-  const block = src.slice(src.indexOf('export const SCOPES = {'))
-  const body = block.slice(0, block.indexOf('} as const;'))
-  return [...body.matchAll(/^\s*[A-Z_]+:\s*'([a-z]+:[a-z]+)'/gm)].map(m => m[1])
+  return [...SHARED_SCOPES];
 }
 
 describe('SCOPE_GROUPS', () => {
   it('FE-OAUTH-SCOPES-001: contains all expected scope keys', () => {
     const expected = [
-      'trips:read', 'trips:write', 'trips:delete', 'trips:share',
-      'places:read', 'places:write',
-      'collections:read', 'collections:write',
-      'atlas:read', 'atlas:write',
-      'packing:read', 'packing:write',
-      'todos:read', 'todos:write',
-      'budget:read', 'budget:write',
-      'reservations:read', 'reservations:write',
-      'collab:read', 'collab:write',
-      'notifications:read', 'notifications:write',
-      'vacay:read', 'vacay:write',
-      'geo:read', 'weather:read',
-      'journey:read', 'journey:write', 'journey:share',
+      'trips:read',
+      'trips:write',
+      'trips:delete',
+      'trips:share',
+      'places:read',
+      'places:write',
+      'collections:read',
+      'collections:write',
+      'atlas:read',
+      'atlas:write',
+      'packing:read',
+      'packing:write',
+      'todos:read',
+      'todos:write',
+      'budget:read',
+      'budget:write',
+      'reservations:read',
+      'reservations:write',
+      'collab:read',
+      'collab:write',
+      'notifications:read',
+      'notifications:write',
+      'vacay:read',
+      'vacay:write',
+      'geo:read',
+      'weather:read',
+      'journey:read',
+      'journey:write',
+      'journey:share',
+      'tours:read',
+      'tours:write',
+      'roadtrip:read',
+      'roadtrip:write',
+      'studio:read',
+      'studio:write',
       'plugins:use',
-    ]
+    ];
     for (const scope of expected) {
-      expect(SCOPE_GROUPS).toHaveProperty(scope)
+      expect(SCOPE_GROUPS).toHaveProperty(scope);
     }
-  })
+  });
 
   it('FE-OAUTH-SCOPES-002: each scope entry has labelKey, descriptionKey, groupKey', () => {
     for (const [scope, keys] of Object.entries(SCOPE_GROUPS)) {
-      expect(keys.labelKey, `${scope} missing labelKey`).toBeTruthy()
-      expect(keys.descriptionKey, `${scope} missing descriptionKey`).toBeTruthy()
-      expect(keys.groupKey, `${scope} missing groupKey`).toBeTruthy()
+      expect(keys.labelKey, `${scope} missing labelKey`).toBeTruthy();
+      expect(keys.descriptionKey, `${scope} missing descriptionKey`).toBeTruthy();
+      expect(keys.groupKey, `${scope} missing groupKey`).toBeTruthy();
     }
-  })
-})
+  });
+});
 
 describe('ALL_SCOPES', () => {
   it('FE-OAUTH-SCOPES-003: contains exactly as many scopes as the server defines', () => {
-    expect(ALL_SCOPES).toHaveLength(readServerScopes().length)
-  })
+    expect(ALL_SCOPES).toHaveLength(readServerScopes().length);
+  });
 
-  it('FE-OAUTH-SCOPES-011: matches server/src/mcp/scopes.ts exactly', () => {
-    const serverScopes = readServerScopes()
+  it('FE-OAUTH-SCOPES-011: matches the catalogue in @trek/shared exactly', () => {
+    const serverScopes = readServerScopes();
     // Guards the parse itself: a moved file or a reformatted list must fail
     // here rather than quietly compare two empty sets.
-    expect(serverScopes.length).toBeGreaterThan(0)
-    expect(new Set(ALL_SCOPES)).toEqual(new Set(serverScopes))
-  })
+    expect(serverScopes.length).toBeGreaterThan(0);
+    expect(new Set(ALL_SCOPES)).toEqual(new Set(serverScopes));
+  });
 
   it('FE-OAUTH-SCOPES-004: matches Object.keys(SCOPE_GROUPS)', () => {
-    expect(ALL_SCOPES).toEqual(Object.keys(SCOPE_GROUPS))
-  })
-})
+    expect(ALL_SCOPES).toEqual(Object.keys(SCOPE_GROUPS));
+  });
+});
 
 describe('SCOPE_GROUP_NAMES', () => {
   it('FE-OAUTH-SCOPES-005: contains no duplicate group names', () => {
-    expect(SCOPE_GROUP_NAMES).toHaveLength(new Set(SCOPE_GROUP_NAMES).size)
-  })
+    expect(SCOPE_GROUP_NAMES).toHaveLength(new Set(SCOPE_GROUP_NAMES).size);
+  });
 
   it('FE-OAUTH-SCOPES-006: contains expected groups', () => {
     const expected = [
@@ -76,74 +100,87 @@ describe('SCOPE_GROUP_NAMES', () => {
       'oauth.scope.group.places',
       'oauth.scope.group.packing',
       'oauth.scope.group.budget',
-    ]
+    ];
     for (const g of expected) {
-      expect(SCOPE_GROUP_NAMES).toContain(g)
+      expect(SCOPE_GROUP_NAMES).toContain(g);
     }
-  })
-})
+  });
+});
 
 describe('getScopesByGroup', () => {
-  const identity = (key: string) => key
+  const identity = (key: string) => key;
 
   it('FE-OAUTH-SCOPES-007: groups all scopes under the correct group key', () => {
-    const groups = getScopesByGroup(identity)
+    const groups = getScopesByGroup(identity);
     // Every scope must appear exactly once across all groups
-    const allScopesInGroups = Object.values(groups).flat().map(s => s.scope)
-    expect(allScopesInGroups).toHaveLength(ALL_SCOPES.length)
+    const allScopesInGroups = Object.values(groups)
+      .flat()
+      .map((s) => s.scope);
+    expect(allScopesInGroups).toHaveLength(ALL_SCOPES.length);
     for (const scope of ALL_SCOPES) {
-      expect(allScopesInGroups).toContain(scope)
+      expect(allScopesInGroups).toContain(scope);
     }
-  })
+  });
 
   it('FE-OAUTH-SCOPES-008: each item has scope, label, description, group', () => {
-    const groups = getScopesByGroup(identity)
+    const groups = getScopesByGroup(identity);
     for (const items of Object.values(groups)) {
       for (const item of items) {
-        expect(item.scope).toBeTruthy()
-        expect(item.label).toBeTruthy()
-        expect(item.description).toBeTruthy()
-        expect(item.group).toBeTruthy()
+        expect(item.scope).toBeTruthy();
+        expect(item.label).toBeTruthy();
+        expect(item.description).toBeTruthy();
+        expect(item.group).toBeTruthy();
       }
     }
-  })
+  });
 
   it('FE-OAUTH-SCOPES-009: trips group contains trips:read and trips:write', () => {
-    const groups = getScopesByGroup(identity)
-    const tripsGroup = groups['oauth.scope.group.trips']
-    expect(tripsGroup).toBeDefined()
-    const scopeNames = tripsGroup.map(s => s.scope)
-    expect(scopeNames).toContain('trips:read')
-    expect(scopeNames).toContain('trips:write')
-  })
+    const groups = getScopesByGroup(identity);
+    const tripsGroup = groups['oauth.scope.group.trips'];
+    expect(tripsGroup).toBeDefined();
+    const scopeNames = tripsGroup.map((s) => s.scope);
+    expect(scopeNames).toContain('trips:read');
+    expect(scopeNames).toContain('trips:write');
+  });
 
   it('FE-OAUTH-SCOPES-010: uses translated group name as key', () => {
-    const t = (key: string) => key === 'oauth.scope.group.trips' ? 'Trips' : key
-    const groups = getScopesByGroup(t)
-    expect(groups['Trips']).toBeDefined()
-    expect(groups['oauth.scope.group.trips']).toBeUndefined()
-  })
-})
+    const t = (key: string) => (key === 'oauth.scope.group.trips' ? 'Trips' : key);
+    const groups = getScopesByGroup(t);
+    expect(groups['Trips']).toBeDefined();
+    expect(groups['oauth.scope.group.trips']).toBeUndefined();
+  });
+});
 
 describe('client presets', () => {
-  // The presets are written as "everything except deletes", so a new scope joins
-  // them silently. That is right for a scope over the user's own data and wrong
-  // for one that runs third-party code, so the exclusion gets a test.
+  // The presets tick the core set; a scope that runs third-party code must
+  // never be among them, so the exclusion gets a test.
   it('FE-OAUTH-SCOPES-012: never offers an opt-in-only scope by default', () => {
-    expect(PRESET_OPT_IN_ONLY.size).toBeGreaterThan(0)
+    expect(PRESET_OPT_IN_ONLY.size).toBeGreaterThan(0);
     for (const scope of PRESET_OPT_IN_ONLY) {
-      expect(PRESET_SCOPES_DEFAULT).not.toContain(scope)
-      expect(PRESET_SCOPES_READONLY).not.toContain(scope)
+      expect(PRESET_SCOPES_DEFAULT).not.toContain(scope);
+      expect(PRESET_SCOPES_READONLY).not.toContain(scope);
     }
-  })
+  });
 
-  it('FE-OAUTH-SCOPES-013: still offers every other non-destructive scope', () => {
-    const expected = ALL_SCOPES.filter(s => !s.includes(':delete') && !PRESET_OPT_IN_ONLY.has(s))
-    expect(PRESET_SCOPES_DEFAULT).toEqual(expected)
-    expect(PRESET_SCOPES_DEFAULT).toContain('trips:write')
-  })
+  it('FE-OAUTH-SCOPES-013: ticks the core set, never a delete, and leaves the heavier groups one tick away', () => {
+    expect(PRESET_SCOPES_DEFAULT).toEqual([...CORE_CLIENT_SCOPES]);
+    expect(PRESET_SCOPES_DEFAULT).toContain('trips:write');
+    expect(PRESET_SCOPES_DEFAULT.some((s) => s.includes(':delete'))).toBe(false);
+    for (const optIn of ['tours:write', 'roadtrip:write', 'studio:write', 'journey:read', 'collections:read']) {
+      expect(PRESET_SCOPES_DEFAULT).not.toContain(optIn);
+      expect(ALL_SCOPES).toContain(optIn);
+    }
+  });
+
+  it('FE-OAUTH-SCOPES-015: derives the i18n keys from the scope and its group', () => {
+    expect(SCOPE_GROUPS['roadtrip:write']).toEqual({
+      labelKey: 'oauth.scope.roadtrip:write.label',
+      descriptionKey: 'oauth.scope.roadtrip:write.description',
+      groupKey: 'oauth.scope.group.roadtrip',
+    });
+  });
 
   it('FE-OAUTH-SCOPES-014: the read-only preset stays read-only', () => {
-    expect(PRESET_SCOPES_READONLY.every(s => s.endsWith(':read'))).toBe(true)
-  })
-})
+    expect(PRESET_SCOPES_READONLY.every((s) => s.endsWith(':read'))).toBe(true);
+  });
+});

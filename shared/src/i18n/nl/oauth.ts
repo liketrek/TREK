@@ -77,6 +77,23 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Reisverslagen en hun vermeldingen aanmaken, bijwerken en verwijderen',
   'oauth.scope.journey:share.label': 'Reisverslag-links beheren',
   'oauth.scope.journey:share.description': 'Publieke deellinks voor reisverslagen aanmaken, bijwerken en intrekken',
+  'oauth.scope.group.tours': 'Tochten',
+  'oauth.scope.group.roadtrip': 'Roadtrip',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Tochten bekijken',
+  'oauth.scope.tours:read.description':
+    'Wandelingen, stadswandelingen, fietstochten, peddel- en skitochten lezen met hun stops en bagage',
+  'oauth.scope.tours:write.label': 'Tochten plannen',
+  'oauth.scope.tours:write.description':
+    'Tochten voorstellen, aanmaken, bewerken en verwijderen, met stops, activiteiten en bagagekoppelingen',
+  'oauth.scope.roadtrip:read.label': 'Roadtrips bekijken',
+  'oauth.scope.roadtrip:read.description': 'Routes, rijdagen, laadstops en verkeersgevaren lezen',
+  'oauth.scope.roadtrip:write.label': 'Roadtrips plannen',
+  'oauth.scope.roadtrip:write.description': 'Routes berekenen, rijdagen en voorkeuren instellen en routes importeren',
+  'oauth.scope.studio:read.label': 'Reisboeken bekijken',
+  'oauth.scope.studio:read.description': 'De pagina’s, vormgeving en foto’s van een reisboek lezen',
+  'oauth.scope.studio:write.label': 'Reisboeken ontwerpen',
+  'oauth.scope.studio:write.description': 'Pagina’s van een reisboek aanmaken, bewerken, restylen en herstellen',
   'oauth.authorize.authorizing': 'Autoriseren…',
   'oauth.authorize.loading': 'Laden…',
   'oauth.authorize.errorTitle': 'Autorisatiefout',

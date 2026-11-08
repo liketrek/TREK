@@ -51,6 +51,8 @@ const addonsStub = () =>
     updateToursHikingMap: vi.fn((enabled: boolean) => ({ enabled })),
     getToursCycleMap: vi.fn(() => ({ enabled: true })),
     updateToursCycleMap: vi.fn((enabled: boolean) => ({ enabled })),
+    getMcpApps: vi.fn(() => ({ enabled: true })),
+    updateMcpApps: vi.fn((enabled: boolean) => ({ enabled })),
     getToursSkiRouting: vi.fn(() => ({ enabled: true })),
     updateToursSkiRouting: vi.fn((enabled: boolean) => ({ enabled })),
     getPlacesPhotos: vi.fn(() => ({ enabled: false })),
@@ -502,6 +504,7 @@ describe('AdminController feature toggles', () => {
       [() => c.updateToursHikingMap(user, { enabled: true }, req), 'admin.tours_hiking_map', 'updateToursHikingMap'],
       [() => c.updateToursCycleMap(user, { enabled: true }, req), 'admin.tours_cycle_map', 'updateToursCycleMap'],
       [() => c.updateToursSkiRouting(user, { enabled: true }, req), 'admin.tours_ski_routing', 'updateToursSkiRouting'],
+      [() => c.updateMcpApps(user, { enabled: true }, req), 'admin.mcp_apps', 'updateMcpApps'],
       [() => c.updatePlacesPhotos(user, { enabled: true }, req), 'admin.places_photos', 'updatePlacesPhotos'],
       [
         () => c.updatePlacesAutocomplete(user, { enabled: true }, req),
@@ -526,6 +529,7 @@ describe('AdminController feature toggles', () => {
     expect(await c.getToursHikingMap()).toEqual({ enabled: true });
     expect(await c.getToursCycleMap()).toEqual({ enabled: true });
     expect(await c.getToursSkiRouting()).toEqual({ enabled: true });
+    expect(await c.getMcpApps()).toEqual({ enabled: true });
     expect(await c.getPlacesPhotos()).toEqual({ enabled: false });
     expect(await c.getPlacesAutocomplete()).toEqual({ enabled: false });
     expect(await c.getPlacesDetails()).toEqual({ enabled: false });

@@ -192,7 +192,7 @@
     "server/src/db/repositories/UserSessions.repository.ts": 1,
     "server/src/db/repositories/_shared/rows.ts": 1,
     "server/src/mcp/nest-mcp-policy.ts": 1,
-    "server/src/nest-mcp/index.ts": 12,
+    "server/src/nest-mcp/index.ts": 11,
     "server/src/nest-mcp/types.ts": 4,
     "server/src/nest/booking-import/kitinerary.types.ts": 5,
     "server/src/nest/collab/collab.service.ts": 1,

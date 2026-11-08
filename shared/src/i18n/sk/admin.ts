@@ -844,6 +844,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token odstránený',
   'admin.mcpTokens.deleteError': 'Nepodarilo sa odstrániť token',
   'admin.mcpTokens.loadError': 'Nepodarilo sa načítať tokeny',
+  'admin.mcpToolUsage.title': 'Využitie nástrojov',
+  'admin.mcpToolUsage.subtitle': 'Ktoré nástroje MCP boli volané, koľkými ľuďmi a kedy naposledy',
+  'admin.mcpToolUsage.empty': 'V tomto období nebol volaný žiadny nástroj MCP',
+  'admin.mcpToolUsage.loadError': 'Využitie nástrojov sa nepodarilo načítať',
+  'admin.mcpToolUsage.tool': 'Nástroj',
+  'admin.mcpToolUsage.calls': 'Volania',
+  'admin.mcpToolUsage.users': 'Používatelia',
+  'admin.mcpToolUsage.lastCall': 'Posledné volanie',
+  'admin.mcpToolUsage.period': 'Obdobie (dni)',
   'admin.oauthSessions.sectionTitle': 'OAuth relácie',
   'admin.oauthSessions.clientName': 'Klient',
   'admin.oauthSessions.owner': 'Vlastník',
@@ -1161,5 +1170,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Vyhľadávanie miest a trasovanie',
   'admin.servicesCard.hint':
     'Vlastné služby TREK, ktorý poskytovateľ odpovedá na vyhľadávanie a verejnú dopravu, a protokol vyhľadávania.',
+  'admin.mcpApps.title': 'Interaktívne zobrazenia',
+  'admin.mcpApps.subtitle':
+    'Umožniť hostiteľom MCP, ktorí to podporujú, zobrazovať cesty, zoznamy a mapy ako interaktívne zobrazenia vedľa odpovede',
+  'admin.mcpApps.loadError': 'Nastavenie interaktívnych zobrazení sa nepodarilo načítať',
 };
 export default admin;

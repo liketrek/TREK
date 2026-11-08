@@ -53,7 +53,7 @@ describe('demo refusal at the former survivor sites: exact refusal body per doma
   });
 
   it('DEMO-SURVIVOR-004 (budget.mcp.ts): create_budget_item refuses byte-for-byte in demo mode', async () => {
-    const mcp = new BudgetMcp(stub, stub, stub, stub, stub, stub, stub, stub, stub);
+    const mcp = new BudgetMcp(stub, stub, stub, stub, stub, stub, stub, stub);
     const res = await callGatedTool(
       mcp,
       'createBudgetItem',

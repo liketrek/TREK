@@ -97,11 +97,11 @@ function makeMcp(accessible: boolean) {
 }
 
 describe('PaddleRoutingMcp', () => {
-  it('PADROUTE-MCP-001: plan_paddle_route is read only, gated on Tours and scoped to reading trips', () => {
+  it('PADROUTE-MCP-001: plan_paddle_route is read only, gated on Tours and scoped to reading tours', () => {
     const options = toolOptions();
     expect(options.name).toBe('plan_paddle_route');
     expect(options.annotations?.readOnlyHint).toBe(true);
-    expect(options.access).toEqual({ group: 'trips', mode: 'read' });
+    expect(options.access).toEqual({ group: 'tours', mode: 'read' });
     const isAddonEnabled = vi.fn((id: string) => id === ADDON_IDS.TOURS);
     const self = { addons: { isAddonEnabled } } as unknown as PaddleRoutingMcp;
     expect(options.when?.(ctx, self)).toBe(true);

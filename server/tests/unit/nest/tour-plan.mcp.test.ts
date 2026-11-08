@@ -12,6 +12,7 @@
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import type { McpContext } from '../../../src/nest-mcp';
+import { renderToolHelp, toolHelpTopic } from '../../../src/nest-mcp/input-detail';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
 import { PaddleRoutingService } from '../../../src/nest/paddle-routing/paddle-routing.service';
@@ -38,6 +39,10 @@ import {
 } from '@trek/shared';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** The help page of a tool with a detail (its text is there, not in the listing); its description otherwise. */
+const helpOf = (o: Parameters<typeof toolHelpTopic>[0]): string =>
+  o.detail ? renderToolHelp(toolHelpTopic(o)) : (o.description ?? '');
 
 // TOUR-PLAN-MCP-001 to TOUR-PLAN-MCP-012
 
@@ -234,18 +239,18 @@ describe('TourPlanMcp: the tools and their gates', () => {
     };
     const tools = ['proposeTour', 'createTour', 'createPaddleTour', 'createSkiTour'].map(options);
     expect(tools.map((tool) => [tool.name, tool.annotations?.readOnlyHint, tool.access])).toEqual([
-      ['propose_tour', true, { group: 'trips', mode: 'read' }],
-      ['create_tour', false, { group: 'trips', mode: 'write' }],
-      ['create_paddle_tour', false, { group: 'trips', mode: 'write' }],
-      ['create_ski_tour', false, { group: 'trips', mode: 'write' }],
+      ['propose_tour', true, { group: 'tours', mode: 'read' }],
+      ['create_tour', false, { group: 'tours', mode: 'write' }],
+      ['create_paddle_tour', false, { group: 'tours', mode: 'write' }],
+      ['create_ski_tour', false, { group: 'tours', mode: 'write' }],
     ]);
     // The model is told which tool plans which type, and which profile to pick.
-    expect(tools[0].description).toContain('propose_hike');
-    expect(tools[0].description).toContain('gravel');
-    expect(tools[0].description).toContain('trail');
-    expect(tools[1].description).toContain('run_pace_seconds_per_km');
-    expect(tools[2].description).toContain('water_context');
-    expect(tools[3].description).toContain('discipline');
+    expect(helpOf(tools[0])).toContain('propose_hike');
+    expect(helpOf(tools[0])).toContain('gravel');
+    expect(helpOf(tools[0])).toContain('trail');
+    expect(helpOf(tools[1])).toContain('run_pace_seconds_per_km');
+    expect(helpOf(tools[2])).toContain('water_context');
+    expect(helpOf(tools[3])).toContain('discipline');
     const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
     const gated = await Promise.all(tools.map((tool) => tool.when?.(ctx(1), { addons: { isAddonEnabled } })));
     expect(gated).toEqual([true, true, true, true]);

@@ -10,9 +10,11 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { traceEntry } from '../audit/entry-trace.logger';
 import { AuthService } from '../auth/auth.service';
+import { McpAppsService } from '../mcp-apps/mcp-apps.service';
 import { OauthService } from '../oauth/oauth.service';
 import { TokenService } from '../tokens/token.service';
-import { BASE_MCP_INSTRUCTIONS, STATIC_TOKEN_DEPRECATION_NOTICE } from './mcp-transport.constants';
+import { buildInstructions } from './mcp-instructions';
+import { STATIC_TOKEN_DEPRECATION_NOTICE } from './mcp-transport.constants';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp';
 import { Injectable } from '@nestjs/common';
@@ -126,6 +128,7 @@ export class McpTransportService {
     private readonly oauth: OauthService,
     private readonly addons: AddonsService,
     private readonly audit: AuditService,
+    private readonly mcpApps: McpAppsService,
     private readonly registry: McpRegistryService,
   ) {}
 
@@ -161,7 +164,8 @@ export class McpTransportService {
       return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
     }
 
-    // Long-lived static MCP token (trek_...) — full access + deprecation notice
+    // Long-lived static MCP token (trek_...) — full access; the session's
+    // instructions and the token_auth_notice prompt carry the deprecation notice
     if (token.startsWith('trek_')) {
       const user = await this.tokens.verifyMcpToken(token);
       if (!user) return null;
@@ -268,6 +272,14 @@ export class McpTransportService {
       );
     }
 
+    // The instructions name only the add-ons switched on here and the groups this token reaches.
+    const instructions = buildInstructions({
+      addons: await this.enabledAddons(),
+      // The instructions are fixed when the server is built, before initialize tells which host
+      // connects, so they say nothing about MCP Apps; a view's tool says what its view is.
+      scopes,
+    });
+
     // Create a new per-user MCP server and session
     const server = new McpServer(
       {
@@ -280,18 +292,9 @@ export class McpTransportService {
           tools: { listChanged: true },
           prompts: { listChanged: true },
         },
-        instructions: BASE_MCP_INSTRUCTIONS + (isStaticToken ? STATIC_TOKEN_DEPRECATION_NOTICE : ''),
+        instructions: instructions + (isStaticToken ? `\n\n${STATIC_TOKEN_DEPRECATION_NOTICE}` : ''),
       },
     );
-    // Per-session closure: fires the deprecation notice once, on the first tool call.
-    // Tool results are the only mechanism Claude reliably surfaces to the user;
-    // the instructions field is only background context and won't trigger a proactive warning.
-    let _noticeEmitted = false;
-    const getDeprecationNotice = (): string | null => {
-      if (!isStaticToken || _noticeEmitted) return null;
-      _noticeEmitted = true;
-      return STATIC_TOKEN_DEPRECATION_NOTICE;
-    };
 
     // Tool-call audit trail: who called which tool, when, from where. Fired by
     // the registry immediately before each tool handler runs (the nest-mcp
@@ -313,7 +316,8 @@ export class McpTransportService {
           userId: user.id,
           action: 'mcp.tool_call',
           resource: info.name,
-          details: { clientId: clientId ?? 'native' },
+          // The host's own name (Claude, ChatGPT, an IDE) from its initialize, beside the OAuth client.
+          details: { clientId: clientId ?? 'native', client: server.server.getClientVersion()?.name ?? null },
           ip,
         });
       })().catch((err: unknown) => {
@@ -326,17 +330,10 @@ export class McpTransportService {
     const around = (info: { kind: string; name: string }, call: () => unknown): unknown =>
       traceEntry('mcp', `${info.kind} ${info.name} user=${user.id}`, call);
 
-    await registerTools(
-      this.registry,
-      server,
-      user.id,
-      scopes,
-      isStaticToken,
-      getDeprecationNotice,
-      onInvoke,
-      undefined,
-      around,
-    );
+    // The interactive views (MCP Apps) are offered only while the admin's switch is on and the
+    // widgets are built; otherwise every tool goes out without the keys that point a host at a view.
+    const apps = await this.mcpApps.offeredToSessions();
+    await registerTools(this.registry, server, user.id, scopes, isStaticToken, onInvoke, undefined, around, apps);
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
@@ -406,5 +403,12 @@ export class McpTransportService {
         }
       }
     }
+  }
+
+  /** The add-ons switched on for this instance, as a new session's instructions name them. */
+  private async enabledAddons(): Promise<Set<string>> {
+    const ids = Object.values(ADDON_IDS);
+    const enabled = await Promise.all(ids.map((id) => this.addons.isAddonEnabled(id)));
+    return new Set(ids.filter((_, index) => enabled[index]));
   }
 }

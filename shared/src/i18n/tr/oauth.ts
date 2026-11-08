@@ -79,6 +79,24 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:share.label': 'Journey bağlantılarını yönet',
   'oauth.scope.journey:share.description':
     "Journey'ler için herkese açık paylaşım bağlantıları oluştur, güncelle ve iptal et",
+  'oauth.scope.group.tours': 'Turlar',
+  'oauth.scope.group.roadtrip': 'Yol gezisi',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Turları görüntüle',
+  'oauth.scope.tours:read.description':
+    'Yürüyüşleri, gezintileri, bisiklet, kürek ve kayak turlarını durakları ve bavullarıyla oku',
+  'oauth.scope.tours:write.label': 'Tur planla',
+  'oauth.scope.tours:write.description':
+    'Turları, duraklarını, etkinliklerini ve bavul bağlantılarını öner, oluştur, düzenle ve sil',
+  'oauth.scope.roadtrip:read.label': 'Yol gezilerini görüntüle',
+  'oauth.scope.roadtrip:read.description': 'Rotaları, sürüş günlerini, şarj duraklarını ve yol tehlikelerini oku',
+  'oauth.scope.roadtrip:write.label': 'Yol gezisi planla',
+  'oauth.scope.roadtrip:write.description': 'Rota hesapla, sürüş günlerini ve tercihleri belirle, rota içe aktar',
+  'oauth.scope.studio:read.label': 'Gezi kitaplarını görüntüle',
+  'oauth.scope.studio:read.description': 'Bir gezi kitabının sayfalarını, tasarımını ve fotoğraflarını oku',
+  'oauth.scope.studio:write.label': 'Gezi kitabı tasarla',
+  'oauth.scope.studio:write.description':
+    'Bir gezi kitabının sayfalarını oluştur, düzenle, yeniden biçimlendir ve geri yükle',
   'oauth.authorize.authorizing': 'Yetkilendiriliyor…',
   'oauth.authorize.loading': 'Yükleniyor…',
   'oauth.authorize.errorTitle': 'Yetkilendirme hatası',

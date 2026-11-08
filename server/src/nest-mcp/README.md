@@ -63,7 +63,25 @@ errorResult('Tag not found.') // { content: [...], isError: true } — message v
 demoDenied()                  // canned demo-mode write refusal (the host's tool gate returns it)
 ```
 
-Six `TOOL_ANNOTATIONS_*` presets cover the read/write/delete/idempotency matrix (plus `OPEN_WORLD` variants). TREK-specific canned errors (permission wording, RBAC lookups) belong in the host layer, built on `errorResult` — see `server/src/mcp/tools/_shared.ts`, which re-exports the generic helpers from here.
+Eight `TOOL_ANNOTATIONS_*` presets cover the read/write/delete/idempotency matrix (plus `OPEN_WORLD` variants); a tool names one of them rather than spreading one with an override, so the hint reads where the tool is declared. TREK-specific canned errors (permission wording, RBAC lookups) belong in the host layer, built on `errorResult` — see `server/src/mcp/tools/_shared.ts`, which re-exports the generic helpers from here.
+
+### Titles and the size of `tools/list`
+
+Every registered tool carries a `title` (a short human label, sentence case, no repeat of the description): `McpModule.forRoot({ requireToolTitles: true })` refuses the boot on a tool without one, or with a name past 64 characters, because the Claude and ChatGPT directories require both. `npm run lint:mcp-surface` holds what `tools/list` weighs (`server/CLAUDE.md`).
+
+A tool whose input is too large to advertise (the operations of a book page, a tour change) declares `detail`:
+
+```ts
+@Tool({
+  name: 'edit_thing',
+  title: 'Edit a thing',
+  description: 'Change one thing with operations.',   // short; the pointer is appended
+  inputSchema: { thingId: idSchema, ops: thingOpsSchema },
+  detail: { fields: ['ops'], text: 'The long explanation the description used to carry.' },
+})
+```
+
+`tools/list` then shows a permissive stand-in for each field in `detail.fields` (same arrays, optionals and nullables; objects open; a discriminated union reduced to its discriminator) and the description ends with `Full reference: get_help_page slug "tool/edit_thing".`. The registry parses every call against the full shape after the tool gate and before the handler, so the handler receives exactly what it did before; a call that does not fit is answered with its first issues and the pointer. `get_help_page` renders the topic from the same Zod shape (`renderToolHelp`), so the reference cannot drift from what the tool accepts. `input-detail.ts` holds the mechanics.
 
 ### Tool gate
 

@@ -11,12 +11,15 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult,
   ok,
+  okStructured,
+  appCallable,
+  uiTool,
 } from '../../nest-mcp';
 import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollabService } from './collab.service';
-import { idSchema } from '@trek/shared';
+import { idSchema, listCollabPollsOutputSchema, mcpAppUri } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -60,8 +63,8 @@ function jsonContent(uri: string, data: unknown) {
 
 /**
  * Collab MCP surface — ported 1:1 from the legacy registrars: the twelve tools
- * from src/mcp/tools/collab.ts and the trek://trips/{tripId}/collab-notes,
- * …/collab/polls and …/collab/messages resources from src/mcp/resources.ts
+ * from the collab registrar and the trek://trips/{tripId}/collab-notes,
+ * …/collab/polls and …/collab/messages resources from the retired resources registrar
  * (identical names, descriptions, schemas, annotations, error/payload shapes
  * and broadcasts). The registration-time gates map to the composite `when`
  * thunks (collab addon AND per-sub-feature flag) plus the declarative collab
@@ -85,6 +88,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'create_collab_note',
+    title: 'Create collab note',
     description: 'Create a shared collaborative note on a trip (visible to all trip members in the Collab tab).',
     inputSchema: {
       tripId: idSchema,
@@ -141,6 +145,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'update_collab_note',
+    title: 'Update collab note',
     description: 'Edit an existing collaborative note on a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -197,6 +202,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'delete_collab_note',
+    title: 'Delete collab note',
     description: 'Delete a collaborative note from a trip.',
     inputSchema: {
       tripId: idSchema,
@@ -217,6 +223,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'list_collab_notes',
+    title: 'List collab notes',
     description: 'List the shared notes of a trip, pinned first, with their category, colour, link and files.',
     inputSchema: {
       tripId: idSchema,
@@ -235,10 +242,13 @@ export class CollabMcp {
 
   @Tool({
     name: 'list_collab_polls',
+    title: 'List collab polls',
     description: 'List all polls for a trip.',
     inputSchema: {
       tripId: idSchema,
     },
+    outputSchema: listCollabPollsOutputSchema,
+    _meta: uiTool(mcpAppUri('poll'), { invoking: 'Reading the polls…', invoked: 'Polls loaded' }),
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'read' },
@@ -246,11 +256,12 @@ export class CollabMcp {
   async listCollabPolls({ tripId }: { tripId: number }, ctx: McpContext) {
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     const polls = await this.collab.listPolls(tripId);
-    return ok({ polls });
+    return okStructured({ polls });
   }
 
   @Tool({
     name: 'create_collab_poll',
+    title: 'Create collab poll',
     description: 'Create a new poll in the collab panel.',
     inputSchema: {
       tripId: idSchema,
@@ -291,12 +302,14 @@ export class CollabMcp {
 
   @Tool({
     name: 'vote_collab_poll',
+    title: 'Vote on collab poll',
     description: 'Vote on a poll option (or remove vote if already voted for that option).',
     inputSchema: {
       tripId: idSchema,
       pollId: idSchema,
       optionIndex: z.number().int().min(0).describe('Zero-based index of the option to vote for'),
     },
+    _meta: appCallable(),
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'write' },
@@ -315,6 +328,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'close_collab_poll',
+    title: 'Close collab poll',
     description: 'Close a poll so no more votes can be cast.',
     inputSchema: {
       tripId: idSchema,
@@ -335,6 +349,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'delete_collab_poll',
+    title: 'Delete collab poll',
     description: 'Delete a poll and all its votes.',
     inputSchema: {
       tripId: idSchema,
@@ -355,6 +370,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'list_collab_messages',
+    title: 'List collab chat messages',
     description: 'List chat messages for a trip (most recent 100, oldest-first).',
     inputSchema: {
       tripId: idSchema,
@@ -372,6 +388,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'send_collab_message',
+    title: 'Send collab chat message',
     description: "Send a chat message to a trip's collab channel.",
     inputSchema: {
       tripId: idSchema,
@@ -396,6 +413,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'delete_collab_message',
+    title: 'Delete collab chat message',
     description: 'Delete a chat message (only the message owner can delete their own messages).',
     inputSchema: {
       tripId: idSchema,
@@ -416,6 +434,7 @@ export class CollabMcp {
 
   @Tool({
     name: 'react_collab_message',
+    title: 'React to collab message',
     description: 'Toggle a reaction emoji on a chat message (adds if not present, removes if already reacted).',
     inputSchema: {
       tripId: idSchema,

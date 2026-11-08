@@ -93,7 +93,7 @@ describe('JourneyBookPhotosMcp', () => {
     const entry = getEntry(JourneyBookPhotosMcp as unknown as ClassRef, 'suggestBookPhotos');
     if (entry?.kind !== 'tool') throw new Error('suggestBookPhotos is no tool');
     expect(entry.options.name).toBe('suggest_book_photos');
-    expect(entry.options.access).toEqual({ group: 'journey', mode: 'read' });
+    expect(entry.options.access).toEqual({ group: 'studio', mode: 'read' });
     expect(entry.options.annotations?.readOnlyHint).toBe(true);
     const enabled = vi.spyOn(t.get(AddonsService), 'isAddonEnabled');
     enabled.mockResolvedValue(false);

@@ -817,6 +817,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token dihapus',
   'admin.mcpTokens.deleteError': 'Gagal menghapus token',
   'admin.mcpTokens.loadError': 'Gagal memuat token',
+  'admin.mcpToolUsage.title': 'Penggunaan alat',
+  'admin.mcpToolUsage.subtitle': 'Alat MCP mana yang dipanggil, oleh berapa orang, dan kapan terakhir kali',
+  'admin.mcpToolUsage.empty': 'Tidak ada alat MCP yang dipanggil dalam periode ini',
+  'admin.mcpToolUsage.loadError': 'Gagal memuat penggunaan alat',
+  'admin.mcpToolUsage.tool': 'Alat',
+  'admin.mcpToolUsage.calls': 'Panggilan',
+  'admin.mcpToolUsage.users': 'Pengguna',
+  'admin.mcpToolUsage.lastCall': 'Panggilan terakhir',
+  'admin.mcpToolUsage.period': 'Periode (hari)',
   'admin.oauthSessions.sectionTitle': 'Sesi OAuth',
   'admin.oauthSessions.clientName': 'Klien',
   'admin.oauthSessions.owner': 'Pemilik',
@@ -1133,5 +1142,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Pencarian tempat dan rute',
   'admin.servicesCard.hint':
     'Layanan milik TREK sendiri, penyedia yang menjawab pencarian dan transportasi umum, serta log pencarian.',
+  'admin.mcpApps.title': 'Tampilan interaktif',
+  'admin.mcpApps.subtitle':
+    'Izinkan host MCP yang mendukung menampilkan perjalanan, daftar, dan peta sebagai tampilan interaktif di samping jawaban',
+  'admin.mcpApps.loadError': 'Tidak dapat membaca pengaturan tampilan interaktif',
 };
 export default admin;

@@ -22,6 +22,7 @@ export class McpRegistryService extends McpRegistry implements OnModuleInit {
       validateAccess: options.validateAccess,
       toolGate: toolGate ?? undefined,
       errorMapper: options.errorMapper,
+      requireToolTitles: options.requireToolTitles,
     });
   }
 

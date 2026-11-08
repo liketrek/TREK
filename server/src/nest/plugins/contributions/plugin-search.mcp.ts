@@ -34,6 +34,7 @@ export class PluginSearchMcp {
 
   @Tool({
     name: 'search_places_via_plugins',
+    title: 'Search places via plugins',
     description:
       'Search for a place in the search indexes installed plugins provide, which are the ones TREK does not ship itself. Use it alongside search_place, never instead of it: search_place is TREK\'s own index and OpenStreetMap, this is whatever else the instance owner installed, and only these results can carry a rating — open data has none, so a question like "the best rated hotel near here" can only be answered from this list. Results have the same shape search_place returns, plus a `rating` and the `pluginId` that found them. Returns an empty list when no plugin provides a search index, which is the normal case.',
     inputSchema: {

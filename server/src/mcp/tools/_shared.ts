@@ -1,4 +1,6 @@
-import { errorResult } from '../../nest-mcp';
+import { getAppUrl } from '../../app-config';
+import { errorResult, okStructured, withResultMeta } from '../../nest-mcp';
+import { MCP_APP_URL_META_KEY } from '@trek/shared';
 
 // Generic MCP result helpers and annotation presets live in src/nest-mcp
 // (single source for the decorator-based domains). Re-exported so the
@@ -27,4 +29,13 @@ export function permissionDenied() {
 /** Error response for admin-only tools, reproducing the REST `{ error: 'Admin access required' }` string. */
 export function adminRequired() {
   return errorResult('Admin access required');
+}
+
+/**
+ * A view tool's structured result with this install's address under
+ * `trek/appUrl`, so its view can link back into TREK. Every view tool that
+ * links back writes the key through here.
+ */
+export function okWithAppLink<T extends Record<string, unknown>>(data: T) {
+  return withResultMeta(okStructured(data), { [MCP_APP_URL_META_KEY]: getAppUrl() });
 }

@@ -830,6 +830,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Đã xóa mã thông báo',
   'admin.mcpTokens.deleteError': 'Không xóa được mã thông báo',
   'admin.mcpTokens.loadError': 'Không thể tải mã thông báo',
+  'admin.mcpToolUsage.title': 'Mức sử dụng công cụ',
+  'admin.mcpToolUsage.subtitle': 'Những công cụ MCP nào đã được gọi, bởi bao nhiêu người và lần cuối khi nào',
+  'admin.mcpToolUsage.empty': 'Không có công cụ MCP nào được gọi trong khoảng thời gian này',
+  'admin.mcpToolUsage.loadError': 'Không tải được mức sử dụng công cụ',
+  'admin.mcpToolUsage.tool': 'Công cụ',
+  'admin.mcpToolUsage.calls': 'Lượt gọi',
+  'admin.mcpToolUsage.users': 'Người dùng',
+  'admin.mcpToolUsage.lastCall': 'Lần gọi cuối',
+  'admin.mcpToolUsage.period': 'Khoảng thời gian (ngày)',
   'admin.oauthSessions.sectionTitle': 'OAuth Phiên',
   'admin.oauthSessions.clientName': 'Ứng dụng khách',
   'admin.oauthSessions.owner': 'Người sở hữu',
@@ -1131,5 +1140,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Tìm kiếm địa điểm và chỉ đường',
   'admin.servicesCard.hint':
     'Các dịch vụ riêng của TREK, nhà cung cấp trả lời tìm kiếm và giao thông công cộng, và nhật ký tìm kiếm.',
+  'admin.mcpApps.title': 'Chế độ xem tương tác',
+  'admin.mcpApps.subtitle':
+    'Cho phép các máy chủ MCP hỗ trợ hiển thị chuyến đi, danh sách và bản đồ dưới dạng chế độ xem tương tác bên cạnh câu trả lời',
+  'admin.mcpApps.loadError': 'Không thể đọc cài đặt chế độ xem tương tác',
 };
 export default admin;

@@ -754,6 +754,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token eliminado',
   'admin.mcpTokens.deleteError': 'No se pudo eliminar el token',
   'admin.mcpTokens.loadError': 'No se pudieron cargar los tokens',
+  'admin.mcpToolUsage.title': 'Uso de herramientas',
+  'admin.mcpToolUsage.subtitle': 'Qué herramientas MCP se han llamado, por cuántas personas y cuándo por última vez',
+  'admin.mcpToolUsage.empty': 'Ninguna herramienta MCP se ha llamado en este periodo',
+  'admin.mcpToolUsage.loadError': 'No se pudo cargar el uso de herramientas',
+  'admin.mcpToolUsage.tool': 'Herramienta',
+  'admin.mcpToolUsage.calls': 'Llamadas',
+  'admin.mcpToolUsage.users': 'Usuarios',
+  'admin.mcpToolUsage.lastCall': 'Última llamada',
+  'admin.mcpToolUsage.period': 'Periodo (días)',
   'admin.oauthSessions.sectionTitle': 'Sesiones OAuth',
   'admin.oauthSessions.clientName': 'Cliente',
   'admin.oauthSessions.owner': 'Propietario',
@@ -1167,5 +1176,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Búsqueda de lugares y rutas',
   'admin.servicesCard.hint':
     'Los servicios propios de TREK, qué proveedor responde a la búsqueda y al transporte público, y el registro de búsquedas.',
+  'admin.mcpApps.title': 'Vistas interactivas',
+  'admin.mcpApps.subtitle':
+    'Permite que los hosts MCP compatibles muestren viajes, listas y mapas como vistas interactivas junto a la respuesta',
+  'admin.mcpApps.loadError': 'No se pudo leer el ajuste de las vistas interactivas',
 };
 export default admin;

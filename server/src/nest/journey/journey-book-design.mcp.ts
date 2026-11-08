@@ -61,11 +61,16 @@ export class JourneyBookDesignMcp {
 
   @Tool({
     name: 'design_book',
-    description: `Design the whole photo book of a journey as a draft: chapters, pacing, the pages, the photos picked for each, type and colours, with the engine's own check run on every page and repaired where it can. directives says what the person wants (style, density, page count, scope, chapters, photos, cover, type, palette, words, travel pages, what to keep) and the art direction: the brief (energy, decoration, collages, theme), the cover's archetype and lockup, and pages.overrides giving single pages of the plan another beat or layout. With layouts: 'templates' every page is laid on the Studio's designed templates in the archetype of the book's theme, as the Studio's Auto layout does, and each plan row names its template; style classic alone is the old built-in Auto layout. It answers the draft's design_id, the plan page by page (what each page becomes and its findings), the look, the photos left out and why, and the findings left. ${DRAFT_FLOW} ${LIMITS} Only the book's owner and editors can design it.`,
+    title: 'Design journey book',
+    description: `Design the whole photo book of a journey as a draft: chapters, pacing, the pages, the photos picked for each, type and colours, with the engine's own check run on every page and repaired where it can.`,
+    detail: {
+      fields: ['directives'],
+      text: `Directives says what the person wants (style, density, page count, scope, chapters, photos, cover, type, palette, words, travel pages, what to keep) and the art direction: the brief (energy, decoration, collages, theme), the cover's archetype and lockup, and pages.overrides giving single pages of the plan another beat or layout. With layouts: 'templates' every page is laid on the Studio's designed templates in the archetype of the book's theme, as the Studio's Auto layout does, and each plan row names its template; style classic alone is the old built-in Auto layout. It answers the draft's design_id, the plan page by page (what each page becomes and its findings), the look, the photos left out and why, and the findings left. ${DRAFT_FLOW} ${LIMITS} Only the book's owner and editors can design it.`,
+    },
     inputSchema: { journeyId: idSchema, ...designBookArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async designBook({ journeyId, directives }: OnJourney & DesignBookRequest, ctx: McpContext) {
     return ok(await this.designs.design(journeyId, ctx.userId, directives));
@@ -73,11 +78,12 @@ export class JourneyBookDesignMcp {
 
   @Tool({
     name: 'get_book_design',
+    title: 'Get book design draft',
     description: `A design draft of a journey's book again, as design_book answered it, with the pages chosen for the apply now (the person may take some out on the proposal card). ${DRAFT_FLOW}`,
     inputSchema: { journeyId: idSchema, ...getBookDesignArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async getBookDesign({ journeyId, designId }: OnJourney & GetBookDesignRequest, ctx: McpContext) {
     return ok(await this.designs.describeDraft(journeyId, ctx.userId, designId));
@@ -85,11 +91,16 @@ export class JourneyBookDesignMcp {
 
   @Tool({
     name: 'revise_book_design',
-    description: `Change one page of a design draft with the operations edit_book_page takes, all or nothing, checked like an edit of the book; nothing in the book changes. It answers the page as it is now in the draft and its findings. Look at the page again with describe_book_page or preview_book_page and the designId, and fix what is left before proposing. ${DRAFT_FLOW}`,
+    title: 'Revise book design draft',
+    description: `Change one page of a design draft with the operations edit_book_page takes, all or nothing, checked like an edit of the book; nothing in the book changes.`,
+    detail: {
+      fields: ['ops'],
+      text: `It answers the page as it is now in the draft and its findings. Look at the page again with describe_book_page or preview_book_page and the designId, and fix what is left before proposing. ${DRAFT_FLOW}`,
+    },
     inputSchema: { journeyId: idSchema, ...reviseBookDesignArgs },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'read' },
+    access: { group: 'studio', mode: 'read' },
   })
   async reviseBookDesign({ journeyId, ...args }: OnJourney & ReviseBookDesignRequest, ctx: McpContext) {
     return ok(await this.designs.revise(journeyId, ctx.userId, args));
@@ -97,11 +108,12 @@ export class JourneyBookDesignMcp {
 
   @Tool({
     name: 'apply_book_design',
+    title: 'Apply book design',
     description: `Write a design draft into the journey's book in one change: the pages chosen for it (every page the plan changes unless the person took some out), each only if nobody changed that page since the design, new pages after the nearest page of the plan, and the page format of the draft. The book as it was is kept so the change can be taken back in one step. It answers the new version, the pages applied (the first ${BOOK_DESIGN_LIMITS.pages} summarized, with their findings) and the pages skipped and why. One design is one proposal: apply it rather than many edit_book_page calls. ${DRAFT_FLOW}`,
     inputSchema: { journeyId: idSchema, ...applyBookDesignArgs },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async applyBookDesign({ journeyId, ...args }: OnJourney & ApplyBookDesignRequest, ctx: McpContext) {
     return ok(await this.designs.apply(journeyId, ctx.userId, args));
@@ -109,12 +121,13 @@ export class JourneyBookDesignMcp {
 
   @Tool({
     name: 'restore_book_revision',
+    title: 'Restore book revision',
     description:
       "Put a journey's book back as an applied design found it (the revision_id apply_book_design answered), only while the book is still at expectedVersion, so nothing saved since is overwritten. This takes back an applied design; it is not a way to edit the book.",
     inputSchema: { journeyId: idSchema, ...restoreBookRevisionArgs },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
-    access: { group: 'journey', mode: 'write' },
+    access: { group: 'studio', mode: 'write' },
   })
   async restoreBookRevision({ journeyId, ...args }: OnJourney & RestoreBookRevisionRequest, ctx: McpContext) {
     return ok(await this.designs.restoreRevision(journeyId, ctx.userId, args));

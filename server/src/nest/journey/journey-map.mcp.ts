@@ -22,6 +22,7 @@ export class JourneyMapMcp {
 
   @Tool({
     name: 'get_journey_map_layers',
+    title: 'Get journey map layers',
     description:
       "What a journey's map shows besides its entries and photos: the planned places of its linked trips (with the days the plan puts each on and, when one exists, the journal entry written about it; a planned place alone is no proof of a visit), the GPX routes of those trips while the journey's track switch is on, and the stays journal entries were taken over from (several per day report, each where it was recorded). Each source answers ok, or unavailable when it could not be read. The recorded days are listed by list_journey_recorded_days.",
     inputSchema: { journeyId: idSchema },

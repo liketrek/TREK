@@ -1,4 +1,4 @@
-import { ChevronRight, Settings2, Sparkles } from 'lucide-react';
+import { AppWindow, ChevronRight, Settings2, Sparkles } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../i18n';
 import { StatusPill } from '../../Settings/settingsKit';
@@ -61,15 +61,25 @@ export default function AiAddonTile({
             const Icon = AI_ADDON_ICONS[addon.id as AiAddonId];
             const label = getAddonLabel(t, addon);
             return (
-              <AddonSubRow
-                key={addon.id}
-                icon={<Icon size={14} />}
-                title={label.name}
-                description={label.description}
-                badge={addon.id === 'ai_assistant' ? <BetaBadge label={t('assistant.setup.beta')} /> : undefined}
-                enabled={addon.enabled}
-                onToggle={() => onToggle(addon)}
-              />
+              <React.Fragment key={addon.id}>
+                <AddonSubRow
+                  icon={<Icon size={14} />}
+                  title={label.name}
+                  description={label.description}
+                  badge={addon.id === 'ai_assistant' ? <BetaBadge label={t('assistant.setup.beta')} /> : undefined}
+                  enabled={addon.enabled}
+                  onToggle={() => onToggle(addon)}
+                />
+                {addon.id === 'mcp' && tile.mcpApps && (
+                  <AddonSubRow
+                    icon={<AppWindow size={14} />}
+                    title={t('admin.mcpApps.title')}
+                    description={t('admin.mcpApps.subtitle')}
+                    enabled={tile.mcpApps.enabled}
+                    onToggle={() => void tile.mcpApps?.toggle()}
+                  />
+                )}
+              </React.Fragment>
             );
           })}
         </ul>

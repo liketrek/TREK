@@ -25,13 +25,11 @@ export interface McpContext {
   scopes: string[] | null;
   isStaticToken: boolean;
   /**
-   * Fire-once static-token deprecation notice closure (built per session in
-   * src/nest/mcp-transport/mcp-transport.service.ts and threaded through
-   * registerTools → registry.attach).
-   * Optional so direct createTestRegistry ctxs without it keep working —
-   * consumers (list_trips / get_trip_summary) treat absence as "no notice".
+   * The host's own name from its initialize (`clientInfo.name`: "claude-ai",
+   * "chatgpt", an IDE), or null before the handshake or outside a transport.
+   * A function, since the session is built before the client introduces itself.
    */
-  getDeprecationNotice?: () => string | null;
+  client?: () => string | null;
 }
 
 /**
@@ -135,9 +133,28 @@ export interface McpZodSchema {
  */
 export interface ToolOptions extends McpEntryOptionsBase {
   inputSchema?: ZodRawShape | McpZodSchema;
-  outputSchema?: ZodRawShape;
+  /** Pass a whole schema (an `mcp-apps` output schema) so the root stays open too; a shape is closed by the SDK. */
+  outputSchema?: ZodRawShape | McpZodSchema;
   annotations?: Record<string, unknown>;
   _meta?: Record<string, unknown>;
+  /** What of the tool moves out of tools/list into its help topic; see `ToolDetail`. */
+  detail?: ToolDetail;
+}
+
+/**
+ * The part of a tool that lives in its help topic (`tool/<name>`, read with
+ * `get_help_page`) instead of `tools/list` (src/nest-mcp/input-detail.ts).
+ *
+ * `fields` names top-level `inputSchema` fields (a shape only) whose full
+ * schema is too large to advertise: tools/list shows a permissive stand-in, and
+ * the registry parses every call against the full shape before the handler
+ * runs, so the handler sees exactly what it did before. `text` is the long
+ * explanation the description used to carry. A tool with a `detail` gets the
+ * pointer to its topic appended to its description.
+ */
+export interface ToolDetail {
+  fields?: readonly string[];
+  text?: string;
 }
 
 /** Mirrors `registerResource(name, uri, metadata, cb)` for a fixed URI. */
@@ -218,6 +235,14 @@ export interface McpAttachOptions {
    * it never costs a registered entry.
    */
   dynamicTools?: McpDynamicToolSource;
+  /**
+   * Whether this session may point a host at an interactive widget (an MCP
+   * App). False strips every tool's widget keys from its `_meta` (see
+   * `withoutUiMeta`), so a host draws nothing and reads only the text and the
+   * `structuredContent`; the widget resources gate themselves. Omitted, the
+   * `_meta` goes out as declared.
+   */
+  apps?: boolean;
 }
 
 /** One host-contributed tool, supplied per session by an `McpDynamicToolSource`. */
@@ -308,6 +333,8 @@ export interface McpModuleOptions {
   toolGate?: McpToolGateProvider;
   /** See `McpErrorMapper`. Static: it needs nothing from the container. */
   errorMapper?: McpErrorMapper;
+  /** Fail boot on a registered tool without a `title` (see `McpRegistry.validate()`). */
+  requireToolTitles?: boolean;
 }
 
 /** Injection token for the resolved `McpToolGate` (null when none was configured). */

@@ -2,7 +2,7 @@ import { McpController, Prompt, type McpContext } from '../../nest-mcp';
 
 /**
  * Auth-related MCP surface. One prompt today, moved 1:1 from the legacy
- * registrar src/mcp/tools/prompts.ts.
+ * registrar for prompts, since retired.
  *
  * It lives in the auth domain rather than a domain of its own because it is a
  * statement about how the session authenticated, not about any trip data — and

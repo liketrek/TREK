@@ -55,6 +55,7 @@ export class TourActivitiesMcp {
 
   @Tool({
     name: 'assign_tour_track',
+    title: 'Assign a recorded track',
     description:
       'Assign a recorded track to a saved tour, as the way the tour was actually done, once the user has chosen the track and confirmed it. The track is another tour of the same trip that came in through the GPX import or from wanderer and was not planned over (list_tours: origin gpx or wanderer, has_waypoints false); it keeps its own name and source. assignment_id is the execution, one of the day assignments of the tour (find_tours_for_day and get_tour_plan show its days), or null for none; an execution that already has a track gets this one instead (null replaces every track without a day, of which there can be several once their days are gone), and the track moves there if it was on another execution of the same tour. A track documents one tour only. The planned line, measures and times of the tour stay exactly as they are; what the recording measures (distance, ascent, descent, and the time from its first to its last point, only where the file carried times) is answered under activities and read again with get_tour_plan. Never assign a track the user did not pick.',
     inputSchema: {
@@ -65,7 +66,7 @@ export class TourActivitiesMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async assignTourTrack(
     { tripId, placeId, ...body }: { tripId: number; placeId: number } & TourActivityAssignRequest,
@@ -83,6 +84,7 @@ export class TourActivitiesMcp {
 
   @Tool({
     name: 'unassign_tour_track',
+    title: 'Unassign a recorded track',
     description:
       'Take a recorded track off a saved tour again, by the id get_tour_plan lists it under activities. The track stays in the trip as the import it is, and nothing of the tour changes.',
     inputSchema: {
@@ -92,7 +94,7 @@ export class TourActivitiesMcp {
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: addonGate(ADDON_IDS.TOURS),
-    access: { group: 'trips', mode: 'write' },
+    access: { group: 'tours', mode: 'write' },
   })
   async unassignTourTrack(
     { tripId, placeId, activityId }: { tripId: number; placeId: number; activityId: number },

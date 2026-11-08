@@ -17,7 +17,7 @@ import { z } from 'zod';
 
 /**
  * Tags MCP tools — pilot for the decorator-driven registry. Ported 1:1 from
- * the legacy src/mcp/tools/tags.ts registrar: identical names, descriptions,
+ * the retired tags registrar: identical names, descriptions,
  * schemas, annotations, scope gating (places read/write via the declarative
  * access markers + trekMcpAccessPolicy) and error/payload shapes.
  */
@@ -31,6 +31,7 @@ export class TagsMcp {
 
   @Tool({
     name: 'list_tags',
+    title: 'List my tags',
     description: 'List all tags belonging to the current user.',
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -43,6 +44,7 @@ export class TagsMcp {
 
   @Tool({
     name: 'create_tag',
+    title: 'Create a tag',
     description: 'Create a new tag (user-scoped label for places).',
     inputSchema: {
       name: z.string().min(1).max(100),
@@ -58,6 +60,7 @@ export class TagsMcp {
 
   @Tool({
     name: 'update_tag',
+    title: 'Update a tag',
     description: 'Update the name or color of an existing tag.',
     inputSchema: {
       tagId: idSchema,
@@ -76,6 +79,7 @@ export class TagsMcp {
 
   @Tool({
     name: 'delete_tag',
+    title: 'Delete a tag',
     description: 'Delete a tag (removes it from all places it was attached to).',
     inputSchema: {
       tagId: idSchema,

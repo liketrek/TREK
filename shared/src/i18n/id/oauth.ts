@@ -75,6 +75,25 @@ const oauth: TranslationStrings = {
   'oauth.scope.journey:write.description': 'Buat, perbarui, dan hapus Journey beserta entrinya',
   'oauth.scope.journey:share.label': 'Kelola tautan Journey',
   'oauth.scope.journey:share.description': 'Buat, perbarui, dan cabut tautan berbagi publik untuk Journey',
+  'oauth.scope.group.tours': 'Tur',
+  'oauth.scope.group.roadtrip': 'Perjalanan darat',
+  'oauth.scope.group.studio': 'Studio', // same-as-en
+  'oauth.scope.tours:read.label': 'Lihat tur',
+  'oauth.scope.tours:read.description':
+    'Membaca pendakian, jalan kaki, bersepeda, tur dayung dan ski beserta perhentian dan barang bawaannya',
+  'oauth.scope.tours:write.label': 'Rencanakan tur',
+  'oauth.scope.tours:write.description':
+    'Mengusulkan, membuat, mengedit, dan menghapus tur beserta perhentian, aktivitas, dan tautan barang bawaannya',
+  'oauth.scope.roadtrip:read.label': 'Lihat perjalanan darat',
+  'oauth.scope.roadtrip:read.description':
+    'Membaca rute, hari berkendara, perhentian pengisian daya, dan bahaya di jalan',
+  'oauth.scope.roadtrip:write.label': 'Rencanakan perjalanan darat',
+  'oauth.scope.roadtrip:write.description':
+    'Menghitung rute, mengatur hari berkendara dan preferensi, serta mengimpor rute',
+  'oauth.scope.studio:read.label': 'Lihat buku perjalanan',
+  'oauth.scope.studio:read.description': 'Membaca halaman, desain, dan foto sebuah buku perjalanan',
+  'oauth.scope.studio:write.label': 'Desain buku perjalanan',
+  'oauth.scope.studio:write.description': 'Membuat, mengedit, mengubah gaya, dan memulihkan halaman buku perjalanan',
   'oauth.authorize.authorizing': 'Mengotorisasi…',
   'oauth.authorize.loading': 'Memuat…',
   'oauth.authorize.errorTitle': 'Kesalahan otorisasi',

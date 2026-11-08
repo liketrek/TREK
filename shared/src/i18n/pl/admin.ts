@@ -792,6 +792,15 @@ const admin: TranslationStrings = {
   'admin.mcpTokens.deleteSuccess': 'Token został usunięty',
   'admin.mcpTokens.deleteError': 'Nie udało się usunąć tokenu',
   'admin.mcpTokens.loadError': 'Nie udało się załadować tokenów',
+  'admin.mcpToolUsage.title': 'Użycie narzędzi',
+  'admin.mcpToolUsage.subtitle': 'Które narzędzia MCP zostały wywołane, przez ile osób i kiedy ostatnio',
+  'admin.mcpToolUsage.empty': 'W tym okresie nie wywołano żadnego narzędzia MCP',
+  'admin.mcpToolUsage.loadError': 'Nie udało się wczytać użycia narzędzi',
+  'admin.mcpToolUsage.tool': 'Narzędzie',
+  'admin.mcpToolUsage.calls': 'Wywołania',
+  'admin.mcpToolUsage.users': 'Użytkownicy',
+  'admin.mcpToolUsage.lastCall': 'Ostatnie wywołanie',
+  'admin.mcpToolUsage.period': 'Okres (dni)',
   'admin.oauthSessions.sectionTitle': 'Sesje OAuth',
   'admin.oauthSessions.clientName': 'Klient',
   'admin.oauthSessions.owner': 'Właściciel',
@@ -1199,5 +1208,9 @@ const admin: TranslationStrings = {
   'admin.servicesCard.title': 'Wyszukiwanie miejsc i wyznaczanie tras',
   'admin.servicesCard.hint':
     'Własne usługi TREK, dostawca odpowiadający na wyszukiwanie i transport publiczny oraz dziennik wyszukiwań.',
+  'admin.mcpApps.title': 'Widoki interaktywne',
+  'admin.mcpApps.subtitle':
+    'Pozwól obsługującym to hostom MCP pokazywać podróże, listy i mapy jako widoki interaktywne obok odpowiedzi',
+  'admin.mcpApps.loadError': 'Nie udało się odczytać ustawienia widoków interaktywnych',
 };
 export default admin;

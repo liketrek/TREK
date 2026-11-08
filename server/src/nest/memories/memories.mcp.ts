@@ -4,15 +4,27 @@ import type { PhotoProvidersRepository } from '../../db/repositories/PhotoProvid
 import {
   McpController,
   Tool,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
+  TOOL_ANNOTATIONS_READONLY,
   errorResult,
   ok,
+  okStructured,
   type McpContext,
 } from '../../nest-mcp';
+import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { ImmichService } from './immich.service';
+import { dataOrThrow } from './memories.helpers';
+import { MemoriesService } from './memories.service';
 import { SynologyService } from './synology.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import {
+  addTripPhotosToolRequestSchema,
+  idSchema,
+  listTripPhotosOutputSchema,
+  type AddTripPhotosToolRequest,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -45,6 +57,13 @@ const SYNOLOGY_DEFAULT_LIMIT = 100;
  * provider counts as on, whatever its row says. Which of the two providers is
  * on is a per-call question, answered by providerRefusal().
  */
+/**
+ * The trip-photo tools ride the Journey addon, as the library search does, but
+ * not a connected provider: the trip's own photos are there to list whether or
+ * not a library is connected now, and the add refuses a provider that is off.
+ */
+const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
+
 const anyPhotoProviderEnabled = async (_ctx: McpContext, self: MemoriesMcp): Promise<boolean> =>
   (await self.enabledProviderIds()).length > 0;
 
@@ -73,6 +92,7 @@ export class MemoriesMcp {
     private readonly immich: ImmichService,
     private readonly synology: SynologyService,
     private readonly addons: AddonsService,
+    private readonly memories: MemoriesService,
     @InjectRepository(PhotoProviders) private readonly photoProviders: PhotoProvidersRepository,
   ) {}
 
@@ -101,6 +121,7 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'search_provider_photos',
+    title: 'Search provider photos',
     description:
       'Search a connected photo library (Immich or Synology Photos) by capture date and return the matching asset ids with their capture time, place and coordinates. Start here when the user asks for the photos of a trip, a journey or a single day, then pass the ids on to add_journey_provider_photos. Prefer list_provider_albums when the user names an album instead of a date range. Metadata only: no image data crosses the wire, and the pictures themselves are fetched by the app, not by this tool.',
     inputSchema: {
@@ -184,6 +205,7 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'list_provider_albums',
+    title: 'List provider albums',
     description:
       'List the albums of a connected photo library (Immich or Synology Photos), with each album id, name and photo count. Use this when the user names an album ("the Rome album") rather than a date range, then read its photos with list_provider_album_photos. For "photos from that week" use search_provider_photos instead.',
     inputSchema: {
@@ -213,6 +235,7 @@ export class MemoriesMcp {
 
   @Tool({
     name: 'list_provider_album_photos',
+    title: 'List provider album photos',
     description:
       'List every photo in one album of a connected library, with asset ids, capture times and coordinates. Follow list_provider_albums with this once the right album is known, then hand the asset ids to add_journey_provider_photos. Metadata only, and unpaginated: a large album comes back whole.',
     inputSchema: {
@@ -246,5 +269,37 @@ export class MemoriesMcp {
     const result = await this.synology.getSynologyAlbumPhotos(ctx.userId, album_id, passphrase);
     if ('error' in result) return errorResult(result.error.message);
     return ok({ provider, album_id, assets: result.data.assets, total: result.data.total });
+  }
+
+  @Tool({
+    name: 'list_trip_photos',
+    title: 'List trip photos',
+    description:
+      'The provider photos on a trip that you may see: your own and the ones other members shared, with the provider, the asset id and who added each.',
+    inputSchema: { tripId: idSchema },
+    outputSchema: listTripPhotosOutputSchema,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'read' },
+  })
+  async listTripPhotos({ tripId }: { tripId: number }, ctx: McpContext) {
+    return okStructured({ photos: dataOrThrow(await this.memories.listTripPhotos(String(tripId), ctx.userId)) });
+  }
+
+  @Tool({
+    name: 'add_trip_photos',
+    title: 'Add trip photos',
+    description:
+      'Add photos from a connected library to a trip, by the asset ids search_provider_photos returned. A photo already on the trip is skipped; added says how many were new.',
+    inputSchema: { tripId: idSchema, ...addTripPhotosToolRequestSchema.shape },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: journeyAddonOn,
+    access: { group: 'journey', mode: 'write' },
+  })
+  async addTripPhotos({ tripId, selections, shared }: { tripId: number } & AddTripPhotosToolRequest, ctx: McpContext) {
+    const result = dataOrThrow(
+      await this.memories.addTripPhotos(String(tripId), ctx.userId, shared ?? true, selections, undefined),
+    );
+    return ok({ success: true, added: result.added });
   }
 }

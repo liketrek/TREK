@@ -55,6 +55,7 @@ export class DawarichAtlasMcp {
 
   @Tool({
     name: 'scan_bucket_list_visits',
+    title: 'Scan bucket list visits',
     description: `Ask the caller's Dawarich recordings, wish by wish, whether they ever reached the places on their bucket list. A wish counts as reached by a stay of at least ${DAWARICH_BUCKET_MATCH_MIN_MINUTES} minutes within ${DAWARICH_BUCKET_MATCH_RADIUS_M} m; each entry carries that stay (start, minutes, distance, recorded points) or null, and whether the wish was ticked off already. At most ${DAWARICH_BUCKET_SCAN_LIMIT} wishes per scan (truncated says more are left); wishes without coordinates are only counted. An instance that cannot be reached ends the scan with an error rather than a list of misses. Nothing is ticked off here: confirm_bucket_list_visits does that once the user agrees.`,
     inputSchema: {},
     // Asks the caller's Dawarich instance once per wish and writes nothing.
@@ -68,6 +69,7 @@ export class DawarichAtlasMcp {
 
   @Tool({
     name: 'confirm_bucket_list_visits',
+    title: 'Confirm bucket list visits',
     description:
       "Tick off the caller's bucket-list wishes the user confirmed after scan_bucket_list_visits (1 to 200 ids). Each is dated with visitedAt (ISO 8601) when given, otherwise with the start of the stay it was matched to, otherwise today. A wish ticked off already keeps its date. Answers how many were ticked off now (updated).",
     inputSchema: dawarichBucketConfirmSchema.shape,
@@ -83,6 +85,7 @@ export class DawarichAtlasMcp {
 
   @Tool({
     name: 'clear_bucket_list_visit',
+    title: 'Clear bucket list visit',
     description:
       "Take the visited mark off one of the caller's bucket-list wishes, with its date and where it came from, so the wish reads as not reached yet. The undo of confirm_bucket_list_visits and mark_bucket_list_item_visited_from_dawarich.",
     inputSchema: { itemId: idSchema.describe('The bucket-list entry') },
@@ -100,6 +103,7 @@ export class DawarichAtlasMcp {
 
   @Tool({
     name: 'suggest_atlas_countries',
+    title: 'Suggest atlas countries',
     description: `List the countries the caller's Dawarich recordings put them in between from and to (at most ${DAWARICH_WINDOW_MAX_DAYS} days), each with its cities, the minutes spent there and whether the Atlas counts the country as visited already. Country names TREK could not match to a code are listed under unresolved. Nothing is marked here: accept_atlas_countries does that for the codes the user confirms.`,
     inputSchema: dawarichTimeWindowSchema.shape,
     // Reads the caller's Dawarich instance live and writes nothing.
@@ -115,6 +119,7 @@ export class DawarichAtlasMcp {
 
   @Tool({
     name: 'accept_atlas_countries',
+    title: 'Accept atlas countries',
     description:
       "Mark countries the user confirmed from suggest_atlas_countries as visited in the caller's Atlas, by ISO 3166-1 alpha-2 code (1 to 300 at once). A country taken off the Atlas before comes back; one marked already keeps where it came from. Answers how many were added now (marked).",
     inputSchema: dawarichAtlasAcceptSchema.shape,

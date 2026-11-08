@@ -196,3 +196,33 @@ export const API_KEY_SOURCES = ['operator-env', 'instance', 'user-row'] as const
 export type ApiKeySource = (typeof API_KEY_SOURCES)[number];
 /** The nullable form the admin transit-provider response carries. */
 export type TransitKeySource = ApiKeySource | null;
+
+/** How far back the MCP tool-usage table reaches, in days, unless the admin asks for another span. */
+export const MCP_TOOL_USAGE_DEFAULT_DAYS = 30;
+/** The longest span the tool-usage table reads, in days; the audit log keeps no more than that on a default install. */
+export const MCP_TOOL_USAGE_MAX_DAYS = 365;
+
+/** GET /api/admin/mcp/tool-usage?days=: the span to count over. */
+export const adminMcpToolUsageQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(MCP_TOOL_USAGE_MAX_DAYS).optional(),
+});
+export type AdminMcpToolUsageQuery = z.infer<typeof adminMcpToolUsageQuerySchema>;
+
+/** One MCP tool's calls over the span, from the audit log's `mcp.tool_call` rows. */
+export const adminMcpToolUsageRowSchema = z.object({
+  tool: z.string(),
+  calls: z.number().int(),
+  users: z.number().int(),
+  /** The newest call, as the audit log stores its time (`YYYY-MM-DD HH:MM:SS`, UTC). */
+  last_called_at: z.string(),
+});
+export type AdminMcpToolUsageRow = z.infer<typeof adminMcpToolUsageRowSchema>;
+
+/** The tools called over the span, the most called first; a tool nobody called is not listed. */
+export const adminMcpToolUsageResponseSchema = z.object({
+  days: z.number().int(),
+  since: z.string(),
+  total_calls: z.number().int(),
+  tools: z.array(adminMcpToolUsageRowSchema),
+});
+export type AdminMcpToolUsageResponse = z.infer<typeof adminMcpToolUsageResponseSchema>;
