@@ -226,7 +226,7 @@ export function useTripPlanner() {
   const tourTab = tourPlannerTabOf(!!enabledAddons.tours, isMobile, largeTouch)
   const TRIP_TABS = [
     { id: 'plan', label: t(TRIP_TAB_LABEL_KEYS.plan), icon: Map },
-    ...(tourTab ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, ...tourTab }] : []),
+    ...(tourTab ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, desktopOnly: tourTab.desktopOnly }] : []),
     { id: 'transports', label: t(TRIP_TAB_LABEL_KEYS.transports), icon: Train },
     { id: 'buchungen', label: t(TRIP_TAB_LABEL_KEYS.buchungen), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
     // Phone only: the desktop reaches the drive through the mode switch beside the

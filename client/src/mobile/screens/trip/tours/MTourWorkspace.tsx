@@ -1,5 +1,5 @@
 import { List, Map as MapIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import TourGpxDropZone from '../../../../components/Tours/TourGpxDropZone';
 import TourWorkspaceRail from '../../../../components/Tours/TourWorkspaceRail';
 import { TourPlannerToursRail } from '../../../../components/Tours/planner/TourPlannerPanels';
@@ -43,7 +43,6 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
   const { tourPlanner, wandererBrowser, tourGpxImport, tourMap, locationSearch, tourDetailActions } = page;
   const { canPlaceEdit, canDayEdit } = page.permissions;
   const split = useIsSplit();
-  const [pane, setPane] = useState<MTourPane>('tours');
   const [mapShown, setMapShown] = useState(false);
   // The waypoint list and the stage rail reorder by HTML5 drag, which a finger cannot start.
   useTouchDragBridge(true);
@@ -52,10 +51,15 @@ export default function MTourWorkspace({ planner }: Pick<MTripTabPanelProps, 'pl
   const editing = mode !== 'neutral' || wandererBrowser.open;
   // Something opened in the editor is shown there, on whichever half was up; once
   // it is closed (discarded, or back to the tours) the list comes back. Only on a
-  // change: a tap on the editor half with nothing open stays where it went.
-  useEffect(() => {
+  // change: a tap on the editor half with nothing open stays where it went. Set
+  // while rendering, as React has it for state that follows a prop, not in an effect.
+  const [pane, setPane] = useState<MTourPane>(editing ? 'editor' : 'tours');
+  const opened = `${editing}:${mode}`;
+  const [seen, setSeen] = useState(opened);
+  if (seen !== opened) {
+    setSeen(opened);
     setPane(editing ? 'editor' : 'tours');
-  }, [editing, mode]);
+  }
 
   const showPane = split || !mapShown;
   const showMap = split || mapShown;

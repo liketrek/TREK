@@ -67,11 +67,11 @@ describe('NativeImportSheet', () => {
   it('asks what a shared page is for, and keeps it among the links of the trip picked', async () => {
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    expect(screen.getByText('native.share.linkTitle')).toBeInTheDocument();
+    expect(screen.getByText('What should TREK do with this link?')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Japan/ })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /native\.share\.saveLink/ }));
-    expect(screen.getByText('native.share.linkTrip')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Save to the trip's links/ }));
+    expect(screen.getByText('Save the link to which trip?')).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: /Japan/ }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/trips/2?tab=collab'));
     expect(saveSharedLink).toHaveBeenCalledWith(2, link());
@@ -81,7 +81,7 @@ describe('NativeImportSheet', () => {
   it('reads a booking from the page when that is asked for', async () => {
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    fireEvent.click(screen.getByRole('button', { name: /native\.share\.readBooking/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Read a booking from it/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Japan/ }));
     expect(useSharedImportStore.getState().tripId).toBe(2);
     expect(navigate).toHaveBeenCalledWith('/trips/2');
@@ -99,11 +99,11 @@ describe('NativeImportSheet', () => {
     useAddonStore.setState({ addons: [], loaded: true });
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    expect(screen.queryByText('native.share.linkTitle')).not.toBeInTheDocument();
+    expect(screen.queryByText('What should TREK do with this link?')).not.toBeInTheDocument();
     expect(await screen.findAllByRole('button', { name: /Japan|Past trip/ })).toHaveLength(2);
 
     act(() => useSharedImportStore.getState().setFile(bareLink(), link()));
-    expect(screen.getByText('native.share.linkUnsupported')).toBeInTheDocument();
+    expect(screen.getByText('Turn on Collab to keep links in a trip.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Japan/ })).not.toBeInTheDocument();
   });
 

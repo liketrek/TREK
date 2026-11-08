@@ -91,16 +91,18 @@ test('B4A Core testability debt: verify source without importing the page, hook,
   assert.equal(collect(self, node => ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword).length, 0)
 })
 
-test('B4A Tours tab is readable, desktop-only, and absent with addon OFF', () => {
+test('B4A Tours tab is readable, desktop-only off a large screen, and absent with addon OFF', () => {
   const tabs = initializer(hook, 'TRIP_TABS')
   const branches = collect(tabs, node => ts.isConditionalExpression(node)
     && node.whenTrue.getText(hook).includes("id: 'tour-planner'"))
   assert.equal(branches.length, 1)
   const branch = branches[0]
   assert.ok(ts.isConditionalExpression(branch))
-  assert.equal(branch.condition.getText(hook), 'enabledAddons.tours && !isMobile')
+  // Where the tab exists and whether the touch shell offers it: tourPlannerTabOf (tripPlannerModel.test.ts).
+  assert.equal(branch.condition.getText(hook), 'tourTab')
+  assert.equal(initializer(hook, 'tourTab').getText(hook), 'tourPlannerTabOf(!!enabledAddons.tours, isMobile, largeTouch)')
   assert.equal(branch.whenFalse.getText(hook), '[]')
-  assert.match(branch.whenTrue.getText(hook), /desktopOnly: true/)
+  assert.match(branch.whenTrue.getText(hook), /desktopOnly: tourTab\.desktopOnly/)
   assert.doesNotMatch(tabs.getText(hook), /\bcan\b|canPlaceEdit|canDayEdit/)
   assert.match(hookText, /!validTabIds\.includes\(activeTab\)[\s\S]*?setActiveTab\('plan'\)/)
   assert.match(pageText, /activeTab === 'tour-planner' && enabledAddons\.tours && !isMobile/)

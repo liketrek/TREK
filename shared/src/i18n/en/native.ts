@@ -102,7 +102,7 @@ const native: TranslationStrings = {
   'native.share.title': 'Import into which trip?',
   'native.share.noTrips': 'No trip yet. Create one first, then share the document again.',
   'native.share.linkTitle': 'What should TREK do with this link?',
-  'native.share.saveLink': 'Save to the trip\'s links',
+  'native.share.saveLink': "Save to the trip's links",
   'native.share.saveLinkHint': 'Everyone on the trip finds it under Links',
   'native.share.readBooking': 'Read a booking from it',
   'native.share.readBookingHint': 'For a confirmation page',

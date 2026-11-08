@@ -8,11 +8,11 @@
  * could not read, can only be kept; with Collaboration off, a page can only be read.
  */
 import { ChevronRight, FileText, Link2, ScanText } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useToast } from '../../components/shared/Toast';
 import { useTranslation } from '../../i18n';
-import { saveSharedLink, useSharedImportStore } from '../../native/sharedFiles';
+import { saveSharedLink, useSharedImportStore, type SharedLink } from '../../native/sharedFiles';
 import { tripRepo } from '../../repo/tripRepo';
 import { useAddonStore } from '../../store/addonStore';
 import { offlineOr } from '../../utils/needsConnection';
@@ -36,35 +36,21 @@ function linkChoicesOf(file: File, collabOn: boolean): LinkChoice[] {
   return choices;
 }
 
-export default function NativeImportSheet(): React.ReactElement | null {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const file = useSharedImportStore((s) => s.file);
-  const tripId = useSharedImportStore((s) => s.tripId);
-  const link = useSharedImportStore((s) => s.link);
-  const chooseTrip = useSharedImportStore((s) => s.chooseTrip);
-  const setFile = useSharedImportStore((s) => s.setFile);
-  const collabOn = useAddonStore((s) => s.isEnabled('collab'));
+/** Where the sheet stands for the shared item: what it asks, and what a tap on a trip does. */
+function stageOf(link: SharedLink | null, choices: LinkChoice[], picked: LinkChoice | null) {
+  if (!link) return { choice: 'booking' as LinkChoice | null, asking: false, nowhere: false };
+  const choice = picked ?? (choices.length === 1 ? choices[0] : null);
+  return { choice, asking: choice == null && choices.length > 1, nowhere: choices.length === 0 };
+}
+
+function titleKeyOf(asking: boolean, choice: LinkChoice | null): string {
+  if (asking) return 'native.share.linkTitle';
+  return choice === 'link' ? 'native.share.linkTrip' : 'native.share.title';
+}
+
+/** The trips to choose from, those still ahead first. */
+function useTripRows(open: boolean): TripRow[] {
   const [trips, setTrips] = useState<TripRow[]>([]);
-  const [picked, setPicked] = useState<LinkChoice | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  // Each shared item is asked about afresh.
-  useEffect(() => {
-    setPicked(null);
-    setSaving(false);
-  }, [file]);
-
-  const choices = file && link ? linkChoicesOf(file, collabOn) : [];
-  // With one way to go there is nothing to ask.
-  const choice: LinkChoice | null = !link ? 'booking' : (picked ?? (choices.length === 1 ? choices[0] : null));
-  const asking = !!link && choice == null && choices.length > 1;
-  const nowhere = !!link && choices.length === 0;
-
-  const open = !!file && tripId == null;
-
   useEffect(() => {
     if (!open) return;
     tripRepo.list().then(
@@ -80,6 +66,30 @@ export default function NativeImportSheet(): React.ReactElement | null {
       () => setTrips([])
     );
   }, [open]);
+  return trips;
+}
+
+export default function NativeImportSheet(): React.ReactElement | null {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const file = useSharedImportStore((s) => s.file);
+  const tripId = useSharedImportStore((s) => s.tripId);
+  const link = useSharedImportStore((s) => s.link);
+  const chooseTrip = useSharedImportStore((s) => s.chooseTrip);
+  const setFile = useSharedImportStore((s) => s.setFile);
+  const collabOn = useAddonStore((s) => s.isEnabled('collab'));
+  // Both belong to the item they were made for, so a newly shared one starts afresh.
+  const [pick, setPick] = useState<{ file: File; choice: LinkChoice } | null>(null);
+  const [savingFile, setSavingFile] = useState<File | null>(null);
+  const picked = file && pick?.file === file ? pick.choice : null;
+  const saving = !!file && savingFile === file;
+
+  const choices = file && link ? linkChoicesOf(file, collabOn) : [];
+  const { choice, asking, nowhere } = stageOf(link, choices, picked);
+  const open = !!file && tripId == null;
+  const trips = useTripRows(open);
 
   // Once a trip is picked (here, or in the share sheet before the app opened), go to
   // it; its planner opens the booking import with the file (MTripShell).
@@ -89,8 +99,8 @@ export default function NativeImportSheet(): React.ReactElement | null {
   }, [file, tripId, pathname, navigate]);
 
   const saveLink = async (id: number) => {
-    if (!link || saving) return;
-    setSaving(true);
+    if (!link || !file || saving) return;
+    setSavingFile(file);
     try {
       await saveSharedLink(id, link);
       toast.success(t('native.share.linkSaved'));
@@ -98,23 +108,21 @@ export default function NativeImportSheet(): React.ReactElement | null {
       void navigate(`/trips/${id}?tab=collab`);
     } catch {
       toast.error(offlineOr(t, t('common.error')));
-      setSaving(false);
+      setSavingFile(null);
     }
   };
 
   // The trip the share sheet picked, used as soon as it is clear what the link is for.
-  // saveLink is a fresh function on every render, so the effect reaches it through a
-  // ref and runs on the trip and the choice alone.
   const preset = link?.presetTripId ?? null;
-  const saveLinkRef = useRef(saveLink);
-  saveLinkRef.current = saveLink;
+  const applyPreset = useEffectEvent((id: number, use: LinkChoice) => {
+    if (use === 'booking') chooseTrip(id);
+    else void saveLink(id);
+  });
   useEffect(() => {
-    if (preset == null || choice == null || !file) return;
-    if (choice === 'booking') chooseTrip(preset);
-    else void saveLinkRef.current(preset);
-  }, [preset, choice, file, chooseTrip]);
+    if (preset != null && choice != null && file) applyPreset(preset, choice);
+  }, [preset, choice, file]);
 
-  const pick = (id: number) => (choice === 'link' ? void saveLink(id) : chooseTrip(id));
+  const pickTrip = (id: number) => (choice === 'link' ? void saveLink(id) : chooseTrip(id));
   // While the picked trip takes the link, there is nothing to choose; should it fail, the trips come back.
   const showTrips = !asking && !nowhere && !(preset != null && choice === 'link' && saving);
 
@@ -124,60 +132,74 @@ export default function NativeImportSheet(): React.ReactElement | null {
         <div className="mb-3">
           <TileHeader
             icon={link ? <Link2 size={19} strokeWidth={1.8} /> : <FileText size={19} strokeWidth={1.8} />}
-            title={t(
-              asking ? 'native.share.linkTitle' : choice === 'link' ? 'native.share.linkTrip' : 'native.share.title'
-            )}
+            title={t(titleKeyOf(asking, choice))}
             sub={link ? link.title : file?.name}
             onClose={() => setFile(null)}
             closeLabel={t('common.close')}
           />
         </div>
-        {asking && (
-          <div className="flex flex-col gap-2">
-            <ChoiceRow
-              icon={<Link2 size={17} strokeWidth={2} />}
-              label={t('native.share.saveLink')}
-              hint={t('native.share.saveLinkHint')}
-              onClick={() => setPicked('link')}
-            />
-            <ChoiceRow
-              icon={<ScanText size={17} strokeWidth={2} />}
-              label={t('native.share.readBooking')}
-              hint={t('native.share.readBookingHint')}
-              onClick={() => setPicked('booking')}
-            />
-          </div>
-        )}
+        {asking && file && <LinkQuestion onPick={(use) => setPick({ file, choice: use })} />}
         {nowhere && (
           <p className="px-1 text-[length:calc(12px*var(--fs-scale-body,1))] text-m-muted">
             {t('native.share.linkUnsupported')}
           </p>
         )}
-        {showTrips && (
-          <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
-            {trips.map((trip) => (
-              <button
-                key={trip.id}
-                type="button"
-                disabled={saving}
-                onClick={() => pick(trip.id)}
-                className="flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start transition-transform active:scale-[.98] disabled:opacity-50"
-              >
-                <span className="min-w-0 flex-1 truncate text-[length:calc(14px*var(--fs-scale-body,1))] font-bold text-m-ink">
-                  {trip.title}
-                </span>
-                <ChevronRight size={16} className="flex-none text-m-faint" aria-hidden="true" />
-              </button>
-            ))}
-            {trips.length === 0 && (
-              <p className="px-1 text-[length:calc(12px*var(--fs-scale-body,1))] text-m-muted">
-                {t('native.share.noTrips')}
-              </p>
-            )}
-          </div>
-        )}
+        {showTrips && <TripPicker trips={trips} disabled={saving} onPick={pickTrip} />}
       </div>
     </MSheet>
+  );
+}
+
+function LinkQuestion({ onPick }: { onPick: (choice: LinkChoice) => void }): React.ReactElement {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-2">
+      <ChoiceRow
+        icon={<Link2 size={17} strokeWidth={2} />}
+        label={t('native.share.saveLink')}
+        hint={t('native.share.saveLinkHint')}
+        onClick={() => onPick('link')}
+      />
+      <ChoiceRow
+        icon={<ScanText size={17} strokeWidth={2} />}
+        label={t('native.share.readBooking')}
+        hint={t('native.share.readBookingHint')}
+        onClick={() => onPick('booking')}
+      />
+    </div>
+  );
+}
+
+function TripPicker({
+  trips,
+  disabled,
+  onPick,
+}: {
+  trips: TripRow[];
+  disabled: boolean;
+  onPick: (id: number) => void;
+}): React.ReactElement {
+  const { t } = useTranslation();
+  return (
+    <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
+      {trips.map((trip) => (
+        <button
+          key={trip.id}
+          type="button"
+          disabled={disabled}
+          onClick={() => onPick(trip.id)}
+          className="flex items-center gap-3 rounded-[16px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-4 py-3 text-start transition-transform active:scale-[.98] disabled:opacity-50"
+        >
+          <span className="min-w-0 flex-1 truncate text-[length:calc(14px*var(--fs-scale-body,1))] font-bold text-m-ink">
+            {trip.title}
+          </span>
+          <ChevronRight size={16} className="flex-none text-m-faint" aria-hidden="true" />
+        </button>
+      ))}
+      {trips.length === 0 && (
+        <p className="px-1 text-[length:calc(12px*var(--fs-scale-body,1))] text-m-muted">{t('native.share.noTrips')}</p>
+      )}
+    </div>
   );
 }
 

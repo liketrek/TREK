@@ -107,7 +107,7 @@ const native: TranslationStrings = {
   'native.share.saveLinkHint': 'Tothom al viatge el troba a Enllaços',
   'native.share.readBooking': 'Llegeix-ne una reserva',
   'native.share.readBookingHint': 'Per a una pàgina de confirmació',
-  'native.share.linkTrip': 'A quin viatge desar l\'enllaç?',
+  'native.share.linkTrip': "A quin viatge desar l'enllaç?",
   'native.share.linkSaved': 'Enllaç desat',
   'native.share.linkUnsupported': 'Activa Collab per guardar enllaços en un viatge.',
   'native.widget.dayOf': 'Dia {n} de {m}',

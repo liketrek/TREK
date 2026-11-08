@@ -139,7 +139,8 @@ object ShareLoader {
 
     /** The link alone, as a text/uri-list the app recognises as nothing to read a booking from. */
     internal fun linkOnly(link: String, subject: String?): ShareItem {
-        val host = runCatching { Uri.parse(link).host }.getOrNull()
+        // java.net.URI rather than android.net.Uri: the same host, and readable in a JVM unit test.
+        val host = runCatching { java.net.URI(link).host }.getOrNull()
         return ShareItem(ShareItem.Kind.PAGE, "link.url", "text/uri-list", link.toByteArray(), subject ?: host ?: link, host, link)
     }
 
