@@ -31,6 +31,7 @@ import { isOfflineForbiddenTemplate, isVectorStyle, normalizeTileUrl, resolveTil
 import { OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
 import { clearVectorCache, prefetchStyleAssets, prefetchVectorForPlaces } from './glPrefetcher'
 import { isNativeIos } from '../native/platform'
+import { openCacheStorage } from './openCacheStorage'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -275,12 +276,7 @@ function enumerateTiles(
 
 /** Open the tile cache, or null where Cache Storage isn't available. */
 async function openTileCache(): Promise<Cache | null> {
-  try {
-    if (typeof caches === 'undefined') return null
-    return await caches.open(TILE_CACHE)
-  } catch {
-    return null
-  }
+  return openCacheStorage(TILE_CACHE)
 }
 
 /**

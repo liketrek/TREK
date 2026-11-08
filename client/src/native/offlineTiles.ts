@@ -1,5 +1,6 @@
 import type { AddProtocolAction, GetResourceResponse, RequestParameters } from 'maplibre-gl';
 import { VECTOR_CACHE } from '../sync/glPrefetcher';
+import { openCacheStorage } from '../sync/openCacheStorage';
 import { glMapsThroughAppSchemes } from './glSchemes';
 import { isNativeIos } from './platform';
 
@@ -110,12 +111,9 @@ async function load(url: string, networkFirst: boolean, signal: AbortSignal): Pr
  * network: the store is what keeps it offline, not what lets it draw at all.
  */
 async function openCache(): Promise<Cache | null> {
-  try {
-    return await caches.open(VECTOR_CACHE);
-  } catch {
-    // Refused by the web view: read from the network instead, which is all a cache miss does anyway.
-    return null;
-  }
+  // Refused, or left pending, by the web view: read from the network instead,
+  // which is all a cache miss does anyway.
+  return openCacheStorage(VECTOR_CACHE);
 }
 
 export const offlineProtocol: AddProtocolAction = async (

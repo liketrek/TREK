@@ -17,6 +17,8 @@
  */
 import { computeBbox, tileRange, type TileBbox } from './tilePrefetcher'
 import type { Place } from '../types'
+import { openCacheStorage } from './openCacheStorage'
+import { isNativeIos } from '../native/platform'
 
 /** OpenFreeMap serves vector tiles up to z14 and overzooms from there. */
 const VECTOR_MAX_ZOOM = 14
@@ -156,11 +158,7 @@ async function warm(cache: Cache | null, url: string): Promise<number> {
 }
 
 async function openVectorCache(): Promise<Cache | null> {
-  try {
-    return await caches.open(VECTOR_CACHE)
-  } catch {
-    return null
-  }
+  return openCacheStorage(VECTOR_CACHE)
 }
 
 /**
@@ -277,6 +275,9 @@ export async function prefetchVectorForPlaces(
   isCancelled: () => boolean = () => false,
 ): Promise<VectorPrefetchResult> {
   if (!navigator.onLine) return { tiles: 0, template: null }
+  // The iOS app has no service worker: with Cache Storage given up on, nothing
+  // would keep what is downloaded, so nothing is downloaded.
+  if (isNativeIos() && !(await openVectorCache())) return { tiles: 0, template: null }
 
   const bbox = computeBbox(places)
   if (!bbox) return { tiles: 0, template: null }
