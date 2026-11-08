@@ -26,8 +26,6 @@ const onPlay = Capacitor.getPlatform() === 'android';
 const t = translator(locale);
 document.documentElement.lang = locale;
 document.documentElement.dir = directionOf(locale);
-// For the few looks one web view draws differently from the other (shell.css).
-document.documentElement.dataset.platform = Capacitor.getPlatform();
 
 const root = document.getElementById('shell')!;
 const PROBE_TIMEOUT_MS = 8000;
