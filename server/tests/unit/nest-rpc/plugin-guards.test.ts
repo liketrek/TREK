@@ -4,6 +4,7 @@
  * the legacy router, because rpc-host.test.ts asserts them and shipped plugins read
  * them, so these tests pin the exact strings rather than just the refusal.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
@@ -205,7 +206,7 @@ describe('PluginGuards — canEditAs/canCreateAs against a real UsersRepository 
   beforeEach(async () => {
     testDb = createSnapshotTestDb();
     orm = await createTestOrm(testDb);
-    const permissions = new PermissionsService(orm.repo(AppSettings), new UnitOfWork(orm.em));
+    const permissions = new PermissionsService(orm.repo(AppSettings), new UnitOfWork(orm.em, new SqliteEngine()));
     const db = {
       findAccessible: vi.fn(async (tripId: number) => (tripId === 1 ? { id: 1, user_id: ownerId } : undefined)),
     } as unknown as TripsRepository;

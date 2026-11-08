@@ -8,6 +8,7 @@
  * defensible: dropping the `logError` call, or falling through to `activate`
  * anyway, would ship green with no test failing. This file pins it directly.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
@@ -99,7 +100,7 @@ async function buildRuntime(withOrm: boolean): Promise<PluginRuntimeService> {
     t.repo(NotificationChannelPreferences),
     // Plan 4 Task 4: `uow` is no longer `@Optional()` — ordered ahead of
     // `registry?`/`hostFactory?`, matching the real constructor's own order.
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
     undefined,
     undefined,
     withOrm ? t.orm : undefined,

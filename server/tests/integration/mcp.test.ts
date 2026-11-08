@@ -8,6 +8,7 @@
 import { getMcpSafeUrl } from '../../src/app-config';
 import { buildApp } from '../../src/bootstrap';
 import { db as testDb } from '../../src/db/database';
+import { SqliteEngine } from '../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { McpTokens } from '../../src/db/entities/McpTokens.entity';
 import { OauthClients } from '../../src/db/entities/OauthClients.entity';
@@ -85,7 +86,7 @@ beforeAll(async () => {
     t.repo(OauthConsents),
     await createTestAddonsService(testDb),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
     nestApp.get(CimdClientResolver),
   );
 });

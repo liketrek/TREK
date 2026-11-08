@@ -371,6 +371,34 @@ describe('deriveDb: the pre-migration snapshot', () => {
   });
 });
 
+describe('deriveDb: the engine', () => {
+  it('DB-ENGINE-001: SQLite unless TREK_DB_URL names a database', () => {
+    expect(deriveDb({})).toMatchObject({ engine: 'sqlite' });
+    expect(deriveDb({ TREK_DB_URL: '   ' })).toMatchObject({ engine: 'sqlite' });
+    expect(deriveDb({ TREK_DB_URL: ' postgres://u:p@db:5432/trek ' })).toMatchObject({
+      engine: 'postgres',
+      url: 'postgres://u:p@db:5432/trek',
+    });
+  });
+
+  it('DB-ENGINE-002: a pool of ten connections unless told otherwise, from 1 to 100', () => {
+    const poolMaxOf = (raw: Record<string, string>) => {
+      const db = deriveDb({ TREK_DB_URL: 'postgres://u:p@db:5432/trek', ...raw });
+      return db.engine === 'postgres' ? db.poolMax : null;
+    };
+    expect(deriveDb({ TREK_DB_URL: 'postgres://u:p@db:5432/trek' })).toMatchObject({ engine: 'postgres' });
+    expect(poolMaxOf({})).toBe(10);
+    expect(poolMaxOf({ TREK_DB_POOL_MAX: '25' })).toBe(25);
+    expect(poolMaxOf({ TREK_DB_POOL_MAX: '0' })).toBe(10);
+    expect(poolMaxOf({ TREK_DB_POOL_MAX: '500' })).toBe(100);
+  });
+
+  it('DB-ENGINE-003: no pool size on SQLite, which has no pool', () => {
+    expect(deriveDb({ TREK_DB_POOL_MAX: '25' })).toMatchObject({ engine: 'sqlite' });
+    expect(deriveDb({})).not.toHaveProperty('poolMax');
+  });
+});
+
 describe('deriveNet', () => {
   it('ALLOW_INTERNAL_NETWORK coerces the boolean-like family (ssrfGuard)', () => {
     expect(deriveNet({ ALLOW_INTERNAL_NETWORK: 'True' }).allowInternalNetwork).toBe(true);

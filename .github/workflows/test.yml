@@ -32,6 +32,8 @@ permissions:
 #   Server: S3 Contract (MinIO)
 #                            the storage driver against MinIO
 #   Server: Postgres Probe   the repository SQL against Postgres
+#   Server: Postgres Tests   the suites that boot the app, plus PARITY-PG and
+#                            the write lock, on Postgres (vitest.pg.config.ts)
 #   Client: Types & Checks   typecheck and the strict ratchet; then the page
 #                            pattern and the source ratchets (RTL, size,
 #                            Prettier, layers, offline path, duplication,
@@ -44,7 +46,7 @@ permissions:
 #   Client: Bundle           the production build, one chunk per map engine
 #   Client: End-to-End       the app in Chromium and WebKit
 #   Plugin SDK: Types & Coverage
-#   Repo: Docker Image       builds the image and boots it until ready
+#   Repo: Docker Image       builds the image and boots it until ready, on SQLite and on Postgres
 #   Repo: Helm Chart & Compose
 #   Repo: Sonar Scan         SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
@@ -65,9 +67,9 @@ permissions:
 #     test jobs feeds the scan.
 #   - Job count: GitHub runs at most 20 jobs of the organisation at once and
 #     does not say in which order it starts queued ones. A code change starts
-#     the 14 shards and about a dozen other jobs; seven of those (parity, the
-#     SDK, the bundle, S3, Postgres, shared coverage, the chart) are done in
-#     a minute or two, so what queues at the start waits about that long. The
+#     the 14 shards and about a dozen other jobs; eight of those (parity, the
+#     SDK, the bundle, S3, the Postgres probe and tests, shared coverage, the
+#     chart) are done in a few minutes, so what queues at the start waits about that long. The
 #     jobs that run for minutes (shards, gates, e2e, the image) must not
 #     outnumber the 20 slots, or one of them waits for another to finish and
 #     the run grows by a whole job: a layout with six gate jobs did exactly
@@ -282,6 +284,13 @@ jobs:
         # migration that changes a column regenerates it in the same change.
         run: cd server && npm run check:db-types
 
+      - name: Postgres baseline matches the entities
+        # server/assets/postgres/ is the schema a fresh Postgres database starts
+        # from, generated from the entities by gen:pg-baseline. Until a migration
+        # lands after its cut it must match them exactly; after, it is frozen
+        # and only its list of migrations is checked.
+        run: cd server && npm run check:pg-baseline
+
   server-lint-checks:
     name: 'Server: Lint & Checks'
     needs: changes
@@ -366,6 +375,12 @@ jobs:
         # outside src/db/dialect/ are held to scripts/dialect-baseline.json,
         # so the code stays portable to a second engine.
         run: cd server && npm run lint:dialect
+
+      - name: Engine checks may only shrink
+        # isSqlite(/isPostgres( and platform instanceof outside src/db/dialect/
+        # and src/db/engine/ are held to scripts/engine-dispatch-baseline.json,
+        # so what differs between engines stays in those two places.
+        run: cd server && npm run lint:engine-dispatch
 
       - name: Writes outside a transaction
         # A method that writes twice does it inside one uow.transactional.
@@ -802,6 +817,50 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # The Postgres lane: every suite that boots the app through buildApp() on the
+  # real database module, each file on its own copy of one migrated template,
+  # plus the Postgres-only suites (PARITY-PG, the write lock). The lane fails,
+  # never skips, without TREK_TEST_DB_URL.
+  server-postgres-tests:
+    name: 'Server: Postgres Tests'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: lane
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Run the Postgres lane
+        env:
+          TREK_TEST_DB_URL: postgres://postgres:lane@127.0.0.1:5432/postgres
+        run: npm run test:pg --workspace=server
+
   # The server suite in seven slices. vitest.shard.config.ts is vitest.config.ts
   # without the thresholds and the coverage reports: a slice's blob carries
   # its coverage to server-coverage, which checks the whole. fail-fast is off,
@@ -1205,9 +1264,71 @@ jobs:
           docker logs trek-ci 2>&1 | grep 'SIGTERM received' >/dev/null \
             || { echo "::error::the server never saw SIGTERM"; exit 1; }
 
+      # The same image on a Postgres database (TREK_DB_URL): an empty database
+      # gets the baseline schema, the admin is seeded, and the server answers
+      # ready. The database runs beside it on a private network, never exposed.
+      - name: Start the container on Postgres
+        run: |
+          set -euo pipefail
+          docker network create trek-ci-pg
+          docker run -d --name trek-ci-db --network trek-ci-pg \
+            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:17
+          for _ in $(seq 1 30); do
+            docker exec trek-ci-db pg_isready -U postgres -d trek >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec trek-ci-db pg_isready -U postgres -d trek \
+            || { echo "::error::Postgres did not accept connections within 60 seconds."; exit 1; }
+          mkdir -p "$RUNNER_TEMP/trek-pg/data" "$RUNNER_TEMP/trek-pg/uploads"
+          docker run -d --name trek-ci-on-pg --network trek-ci-pg -p 127.0.0.1:3001:3000 \
+            --read-only --tmpfs /tmp:noexec,nosuid,size=128m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-add KILL \
+            -v "$RUNNER_TEMP/trek-pg/data:/app/data" \
+            -v "$RUNNER_TEMP/trek-pg/uploads:/app/uploads" \
+            -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+            -e TREK_DB_URL=postgres://postgres:ci@trek-ci-db:5432/trek \
+            trek:ci
+
+      # Twice: the first start creates the schema in the empty database, the
+      # restart finds it migrated and must start without touching it.
+      - name: Wait until the server on Postgres is ready, then again after a restart
+        run: |
+          wait_ready() {
+          for _ in $(seq 1 90); do
+            if [ "$(docker inspect -f '{{.State.Running}}' trek-ci-on-pg)" != "true" ]; then
+              echo "::error::The container on Postgres exited before it became ready."
+              exit 1
+            fi
+            if curl -sf http://127.0.0.1:3001/api/health/ready; then
+              echo
+              return 0
+            fi
+            sleep 2
+          done
+          echo "::error::/api/health/ready on Postgres did not answer within 180 seconds."
+          exit 1
+          }
+          wait_ready
+          docker restart -t 30 trek-ci-on-pg >/dev/null
+          wait_ready
+
+      - name: Stop the container on Postgres gracefully
+        run: |
+          set -euo pipefail
+          docker stop -t 30 trek-ci-on-pg >/dev/null
+          code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci-on-pg)"
+          [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
+
       - name: Container log
         if: always()
         run: docker logs trek-ci 2>&1 || true
+
+      - name: Container log on Postgres
+        if: always()
+        run: |
+          docker logs trek-ci-on-pg 2>&1 || true
+          docker logs trek-ci-db 2>&1 | tail -50 || true
 
   # The Helm chart and the compose files are what self-hosters deploy from,
   # and before this job only a release ever touched them. The chart is linted,
@@ -1323,6 +1444,7 @@ jobs:
       - client-e2e
       - s3-contract
       - postgres-probe
+      - server-postgres-tests
       - server-tests
       - server-coverage
       - client-tests

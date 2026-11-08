@@ -27,6 +27,7 @@ import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import { AssistantToolCallsRepository } from '../../src/db/repositories/AssistantToolCalls.repository';
 import { dbNow } from '../../src/db/types';
 import { TURNS_PER_MINUTE } from '../../src/nest/assistant/assistant-tools.constants';
 import { AssistantToolsService } from '../../src/nest/assistant/assistant-tools.service';
@@ -659,6 +660,32 @@ describe('Trip assistant e2e', () => {
       decisions: [{ toolCallId, approved: true }],
     });
     expect(again.status).toBe(409);
+  });
+
+  it('ASTE2E-026: the change is recorded as failed before the stream ends, however slow the write', async () => {
+    const t = await travelerWithTrip();
+    const { toolCallId, threadId } = await proposePlace(t, 'Fushimi Inari');
+    const open = vi
+      .spyOn(nestApp.get(AssistantToolsService), 'open')
+      .mockRejectedValueOnce(new Error('tool session down'));
+    const record = AssistantToolCallsRepository.prototype.recordOutcome;
+    const slow = vi.spyOn(AssistantToolCallsRepository.prototype, 'recordOutcome').mockImplementation(async function (
+      this: AssistantToolCallsRepository,
+      ...args
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      return record.apply(this, args);
+    });
+    try {
+      await post(`${t.base}/threads/${threadId}/decisions`, t.userId, {
+        ...CTX,
+        decisions: [{ toolCallId, approved: true }],
+      });
+      expect(await findRow(orm, AssistantToolCalls, { id: toolCallId })).toMatchObject({ state: 'failed' });
+    } finally {
+      slow.mockRestore();
+      open.mockRestore();
+    }
   });
 
   it('ASTE2E-015: an attached file is refused as JSON before the stream when nothing reads it', async () => {

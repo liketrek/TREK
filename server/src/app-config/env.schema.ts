@@ -9,6 +9,7 @@
  * listed here pass through untouched (Zod strips unknown keys, it does not
  * reject them).
  */
+import { DB_POOL_MAX_CEILING } from './db-settings';
 import {
   isP256PrivateKey,
   isServiceKeyShape,
@@ -51,6 +52,14 @@ const url = optionalWith((v) => {
     return false;
   }
 }, 'must be a valid URL (with protocol)');
+/** A Postgres connection URL: TREK_DB_URL names no other engine. */
+const postgresUrl = optionalWith((v) => {
+  try {
+    return ['postgres:', 'postgresql:'].includes(new URL(v).protocol);
+  } catch {
+    return false;
+  }
+}, 'must be a postgres:// or postgresql:// URL');
 const duration = optionalWith((v) => parseDurationMs(v) != null, 'must be a duration like "1h", "7d" or "30d"');
 const oneOf = (values: string[]) =>
   optionalWith((v) => values.includes(v.toLowerCase()), `must be one of: ${values.join(', ')}`);
@@ -156,6 +165,11 @@ export const envSchema = z.object({
   Path: anyString,
 
   // Data / paths
+  // A Postgres database instead of the SQLite file. Its value is a secret (it
+  // carries the password), so it is masked in the boot report.
+  TREK_DB_URL: postgresUrl,
+  TREK_DB_POOL_MAX: integer(1, DB_POOL_MAX_CEILING),
+  TREK_DB_PG_BIN_DIR: anyString,
   TREK_DB_FILE: anyString,
   // The two SQLite pragmas are deliberately unvalidated: a typo here must fall
   // back and warn rather than abort boot, because reset-admin.js — the way out

@@ -128,6 +128,8 @@ describe('dialect-lint.mjs', () => {
   it('DIALECT-006: PRAGMA is allowed in the src/db lifecycle files, not in a repository or a domain', () => {
     const pragma = "export const p = 'PRAGMA wal_checkpoint(TRUNCATE)';\n";
     expect(run(serverRoot({ 'src/db/durability.ts': pragma })).status).toBe(0);
+    expect(run(serverRoot({ 'src/db/engine/sqlite/sqlite-maintenance.ts': pragma })).status).toBe(0);
+    expect(run(serverRoot({ 'src/db/engine/postgres/maintenance.ts': pragma })).status).toBe(1);
     expect(run(serverRoot({ [REPO]: pragma })).status).toBe(1);
     expect(run(serverRoot({ 'src/nest/backup/probe.ts': pragma })).status).toBe(1);
   });

@@ -640,7 +640,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     const inCat = createPlace(testDb, trip.id, { category_id: cat.id });
     const outCat = createPlace(testDb, trip.id);
     await deleteRows(t.orm, Categories, { id: { $ne: cat.id } });
-    const rows = await places.listForTrip(String(trip.id), { category: String(cat.id) });
+    const rows = await places.listForTrip(String(trip.id), { category: cat.id });
     expect(rows.map((r) => r.id)).toEqual([inCat.id]);
     void outCat;
   });
@@ -652,7 +652,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     const tagged = createPlace(testDb, trip.id, { name: 'Tagged' });
     const untagged = createPlace(testDb, trip.id, { name: 'Untagged' });
     await tagPlace(t.orm, tagged.id, [tag.id]);
-    const rows = await places.listForTrip(String(trip.id), { tag: String(tag.id) });
+    const rows = await places.listForTrip(String(trip.id), { tag: tag.id });
     expect(rows.map((r) => r.id)).toEqual([tagged.id]);
     void untagged;
   });
@@ -684,7 +684,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     await tagPlace(t.orm, other.id, [tag.id]);
     // `other` is left unassigned, so `assignment: 'assigned'` alone should exclude it.
     const rows = await places.listForTrip(String(trip.id), {
-      searchPattern: '%Central Park%', category: String(cat.id), tag: String(tag.id), assignment: 'assigned',
+      searchPattern: '%Central Park%', category: cat.id, tag: tag.id, assignment: 'assigned',
     });
     expect(rows.map((r) => r.id)).toEqual([winner.id]);
   });
@@ -703,7 +703,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
 describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 filter combinations', () => {
   function legacyListForTrip(
     tripId: string,
-    filters: { searchPattern?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
+    filters: { searchPattern?: string; category?: number | string; tag?: number | string; assignment?: 'all' | 'unassigned' | 'assigned' },
   ): unknown[] {
     let query = `
       SELECT DISTINCT p.*, t.place_id AS tour_place_id, c.name as category_name, c.color as category_color, c.icon as category_icon,
@@ -767,8 +767,8 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
     createPlace(testDb, otherTrip.id, { name: 'Central Perk' });
 
     const searchOptions: (string | undefined)[] = [undefined, '%Central%'];
-    const categoryOptions: (string | undefined)[] = [undefined, String(cat.id)];
-    const tagOptions: (string | undefined)[] = [undefined, String(tag.id)];
+    const categoryOptions: (number | undefined)[] = [undefined, cat.id];
+    const tagOptions: (number | undefined)[] = [undefined, tag.id];
     const assignmentOptions: (('all' | 'unassigned' | 'assigned') | undefined)[] = [undefined, 'all', 'assigned', 'unassigned'];
 
     let combinations = 0;

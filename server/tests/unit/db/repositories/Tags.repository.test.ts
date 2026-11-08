@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { Tags } from '../../../../src/db/entities/Tags.entity';
 import type { TagsRepository } from '../../../../src/db/repositories/Tags.repository';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
@@ -19,7 +20,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   tags = t.repo(Tags);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);

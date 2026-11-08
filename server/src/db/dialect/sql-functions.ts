@@ -621,6 +621,17 @@ export function collateNoCase(platform: Platform, ref: string): RawQueryFragment
 }
 
 /**
+ * A search that ignores case over `refs`: `(a LIKE ? ESCAPE '\' OR b LIKE ?
+ * ...)`, one bound pattern per column, the caller escaping `%`, `_` and `\`.
+ * SQLite's `LIKE` already ignores case (ASCII letters only); Postgres's is
+ * exact, so it gets `ILIKE`, which folds every letter.
+ */
+export function ilike(platform: Platform, refs: readonly string[]): string {
+  const operator = isSqlite(platform) ? 'LIKE' : isPostgres(platform) ? 'ILIKE' : unsupported(platform);
+  return `(${refs.map((ref) => `${column(ref)} ${operator} ? ESCAPE '\\'`).join(' OR ')})`;
+}
+
+/**
  * `datetime('now', '-N hours')` — the hour-granularity sibling of
  * `nowMinusDays()` above, for `reminder-jobs.service.ts#todoTick`'s
  * `datetime('now', '-20 hours')` (RJ4) — 20 hours is not expressible as

@@ -29,6 +29,7 @@
  * shared helpers use to let ordinary unit tests call a repository with no
  * request wrapper at all: that default would hide this exact bug.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
@@ -70,7 +71,7 @@ let userId: number;
 
 beforeAll(async () => {
   t = await createTestOrm(testDb, { allowGlobalContext: false });
-  permissions = new PermissionsService(t.repo(AppSettings), new UnitOfWork(t.em));
+  permissions = new PermissionsService(t.repo(AppSettings), new UnitOfWork(t.em, new SqliteEngine()));
   // Plan 3j Task 1: PluginGuards' own role lookup (canCreateAs, PG4) now goes
   // through UsersRepository.getRole — a REAL repository bound to `t.em`
   // (allowGlobalContext: false, same as `permissions`' AppSettingsRepository
