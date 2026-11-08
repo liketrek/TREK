@@ -19,9 +19,13 @@ import {
   UNPERSISTED_MAX_ZOOM,
   clearTileCache,
   MAX_TILES,
+  IOS_MAX_TILES,
   TILE_CONCURRENCY,
+  tileBudget,
+  trimTileCacheForIos,
   type TileBbox,
 } from '../../../src/sync/tilePrefetcher';
+import { isIosDevice } from '../../../src/utils/iosDevice';
 import { offlineDb, clearAll, upsertSyncMeta } from '../../../src/db/offlineDb';
 import { requestPersistentStorage, _resetPersistentStorage } from '../../../src/sync/persistentStorage';
 import { setAuthed } from '../../../src/sync/authGate';
@@ -37,6 +41,10 @@ vi.mock('../../../src/sync/glPrefetcher', async importOriginal => ({
   prefetchVectorForPlaces: vi.fn(async () => ({ tiles: 0, template: null })),
   prefetchStyleAssets: vi.fn(async () => null),
 }));
+vi.mock('../../../src/utils/iosDevice', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../src/utils/iosDevice')>()),
+  isIosDevice: vi.fn(() => false),
+}));
 vi.mock('../../../src/native/platform', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../src/native/platform')>()),
   isNativeIos: vi.fn(() => false),
@@ -47,6 +55,7 @@ beforeEach(async () => {
   setAuthed(true);
   // restoreAllMocks leaves a vi.fn's return value as a test set it; the iOS case below sets true.
   vi.mocked(isNativeIos).mockReturnValue(false);
+  vi.mocked(isIosDevice).mockReturnValue(false);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch + serviceWorker so prefetch path is exercised
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
@@ -729,5 +738,52 @@ describe('prefetchTiles: a refused tile is not a cached tile (#2180)', () => {
 
     expect(fetched).toBeGreaterThan(0);
     expect(fetched).toBeLessThan(calls);
+  });
+});
+
+// ── iOS tile budget (#3008) ───────────────────────────────────────────────────
+
+describe('the iOS tile budget', () => {
+  const tileKeys = (n: number) => Array.from({ length: n }, (_, i) => ({ url: `https://tile.example.com/${i}.png` }));
+
+  beforeEach(() => localStorage.clear());
+
+  it('holds a prefetch on an iPhone or iPad to IOS_MAX_TILES, and nowhere else', () => {
+    expect(tileBudget()).toBe(MAX_TILES);
+    vi.mocked(isIosDevice).mockReturnValue(true);
+    expect(tileBudget()).toBe(IOS_MAX_TILES);
+    // Inside the iOS app tiles never go through Cache Storage at all.
+    vi.mocked(isNativeIos).mockReturnValue(true);
+    expect(tileBudget()).toBe(MAX_TILES);
+  });
+
+  it('stops counting a large area at the iOS budget', () => {
+    vi.mocked(isIosDevice).mockReturnValue(true);
+    const europe: TileBbox = { minLat: 36, maxLat: 60, minLng: -10, maxLng: 30 };
+    const total = countTiles(europe, 0, 16);
+    expect(total).toBeGreaterThan(IOS_MAX_TILES);
+    expect(total).toBeLessThan(MAX_TILES);
+  });
+
+  it('trims a full cache down to the budget, oldest tiles first, once a day', async () => {
+    vi.mocked(isIosDevice).mockReturnValue(true);
+    const keys = tileKeys(IOS_MAX_TILES + 5);
+    const del = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal('caches', { open: vi.fn().mockResolvedValue({ keys: vi.fn().mockResolvedValue(keys), delete: del }) });
+
+    const now = Date.UTC(2026, 10, 8, 12);
+    expect(await trimTileCacheForIos(now)).toBe(5);
+    expect(del.mock.calls.map(([k]) => k)).toEqual(keys.slice(0, 5));
+
+    // Reading a large cache's keys is slow on iOS: not again the same day.
+    expect(await trimTileCacheForIos(now + 60 * 60 * 1000)).toBe(0);
+    expect(del).toHaveBeenCalledTimes(5);
+  });
+
+  it('leaves the cache alone off iOS', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('caches', { open });
+    expect(await trimTileCacheForIos()).toBe(0);
+    expect(open).not.toHaveBeenCalled();
   });
 });

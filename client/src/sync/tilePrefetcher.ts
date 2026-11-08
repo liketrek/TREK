@@ -31,6 +31,7 @@ import { isOfflineForbiddenTemplate, isVectorStyle, normalizeTileUrl, resolveTil
 import { OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
 import { clearVectorCache, prefetchStyleAssets, prefetchVectorForPlaces } from './glPrefetcher'
 import { isNativeIos } from '../native/platform'
+import { isIosDevice } from '../utils/iosDevice'
 import { openCacheStorage } from './openCacheStorage'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -47,6 +48,21 @@ const AVG_TILE_KB = 15
  * blank — which is exactly the bug this value was raised (from ~3413) to fix.
  */
 export const MAX_TILES = Math.floor((180 * 1024) / AVG_TILE_KB) // = 12288
+
+/**
+ * The tile budget on an iPhone or iPad. WebKit reads the origin's Cache Storage
+ * before the service worker can answer the app's first request, and that read
+ * grows with the number of entries: a full cache of 12,288 tiles held a home
+ * screen app on a black screen for about 8 s on every cold start, about 0.7 ms
+ * an entry (#3008). 2,048 keeps that near a second and still covers the zooms a
+ * trip map opens at.
+ */
+export const IOS_MAX_TILES = 2048
+
+/** How many tiles a prefetch may hold here: the iOS budget in Safari and its home screen apps. */
+export function tileBudget(): number {
+  return isIosDevice() && !isNativeIos() ? IOS_MAX_TILES : MAX_TILES
+}
 
 /**
  * Tile requests in flight at once.
@@ -224,7 +240,7 @@ export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): nu
   for (let z = minZoom; z <= maxZoom; z++) {
     const { minX, maxX, minY, maxY } = tileRange(bbox, z)
     total += (maxX - minX + 1) * (maxY - minY + 1)
-    if (total > MAX_TILES) return total
+    if (total > tileBudget()) return total
   }
   return total
 }
@@ -252,7 +268,7 @@ export function buildTileUrl(template: string, z: number, x: number, y: number, 
 
 /**
  * Enumerate the tile coordinates to prefetch, lowest zoom first, stopping at
- * the zoom level whose tiles would push the total past MAX_TILES.
+ * the zoom level whose tiles would push the total past the budget (tileBudget).
  */
 function enumerateTiles(
   bbox: TileBbox,
@@ -260,11 +276,12 @@ function enumerateTiles(
   maxZoom: number,
 ): Array<[z: number, x: number, y: number]> {
   const coords: Array<[number, number, number]> = []
+  const budget = tileBudget()
 
   for (let z = minZoom; z <= maxZoom; z++) {
     const { minX, maxX, minY, maxY } = tileRange(bbox, z)
 
-    if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > MAX_TILES) break
+    if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > budget) break
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) coords.push([z, x, y])
@@ -340,6 +357,46 @@ export async function prefetchTiles(
   )
 
   return fetched
+}
+
+const TRIM_KEY = 'trek_tile_trim_at'
+const TRIM_EVERY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Brings a tile cache on an iPhone or iPad back within IOS_MAX_TILES, oldest
+ * tiles first (Cache Storage lists keys in the order they were stored). The
+ * service worker's own limit is the same on every platform, so a cache filled
+ * before this budget, or by browsing, still grows past it there (#3008).
+ *
+ * Reading the keys of a large cache is itself slow on iOS, so this runs at most
+ * once a day and only when called after the app is up. Returns how many tiles
+ * it removed.
+ */
+export async function trimTileCacheForIos(now = Date.now()): Promise<number> {
+  if (!isIosDevice() || isNativeIos()) return 0
+  try {
+    const last = Number(localStorage.getItem(TRIM_KEY) || 0)
+    if (now - last < TRIM_EVERY_MS) return 0
+    localStorage.setItem(TRIM_KEY, String(now))
+  } catch {
+    return 0
+  }
+  const cache = await openTileCache()
+  if (!cache) return 0
+  const keys = await cache.keys()
+  const surplus = keys.slice(0, Math.max(0, keys.length - IOS_MAX_TILES))
+  for (const request of surplus) await cache.delete(request)
+  return surplus.length
+}
+
+/** Trims the iOS tile cache once the app has started, never in the way of its first screens. */
+export function scheduleTileCacheTrim(delayMs = 15_000): void {
+  if (!isIosDevice() || isNativeIos()) return
+  window.setTimeout(() => {
+    trimTileCacheForIos().catch(() => {
+      /* Cache Storage unavailable: nothing to trim */
+    })
+  }, delayMs)
 }
 
 /**
