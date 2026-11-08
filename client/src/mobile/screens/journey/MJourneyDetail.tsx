@@ -593,7 +593,8 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
                 showMood={current.show_mood !== 0}
                 showWeather={current.show_weather !== 0}
                 tone="mobile"
-                size={wide ? 'large' : short ? 'compact' : 'regular'}
+                // Short before wide: a folded Duo on its side is wide (over 500px high) and short.
+                size={short ? 'compact' : wide ? 'large' : 'regular'}
               />
             </div>
           ))}

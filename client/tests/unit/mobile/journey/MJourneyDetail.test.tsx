@@ -1,7 +1,7 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-048
+// FE-MOB-JDET-001 to FE-MOB-JDET-049
 import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import { setSizeClass } from '../../../helpers/sizeClass';
+import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
 import { addonsApi, journeyApi, memoriesApi } from '../../../../src/api/client';
 import { useJourneyStore } from '../../../../src/store/journeyStore';
@@ -256,9 +256,12 @@ describe('MJourneyDetail', () => {
     };
     window.matchMedia = tall;
     onTestFinished(() => { window.matchMedia = real; });
+    // At 720 by 540 it is the wide size class too, whose large cards must not win.
+    setSizeClass('wide');
     setup();
     expect(document.querySelector('.h-\\[112px\\]')).toBeInTheDocument();
     expect(document.querySelector('.h-\\[152px\\]')).not.toBeInTheDocument();
+    expect(document.querySelector('.h-\\[196px\\]')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-JDET-001: shows a spinner while the journey is loading', () => {
