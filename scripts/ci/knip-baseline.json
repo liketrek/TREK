@@ -143,7 +143,6 @@
     "client/src/components/Roadtrip/nightSpill.ts": 1,
     "client/src/components/Roadtrip/refuelSuggestion.ts": 1,
     "client/src/components/Roadtrip/roadtripModel.ts": 4,
-    "client/src/components/Roadtrip/useFollowTrack.ts": 1,
     "client/src/components/Roadtrip/useRoadtripRoutes.ts": 3,
     "client/src/components/Studio/StudioCanvas.tsx": 1,
     "client/src/components/Studio/mapTiles.ts": 1,

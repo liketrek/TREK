@@ -4,6 +4,7 @@ import type { FollowTrackOutcome } from '../../../../components/Roadtrip/useFoll
 import { useIsWide } from '../../../../hooks/sizeClass';
 import { useTranslation } from '../../../../i18n';
 import { useSettingsStore } from '../../../../store/settingsStore';
+import type { DistanceUnit } from '../../../../types';
 import { formatDistance } from '../../../../utils/units';
 import MSheet from '../../../components/MSheet';
 import type { MTripSheetsProps } from '../MTripShell';
@@ -59,7 +60,7 @@ export function MRtTrackEntry({ planner, dayId }: { planner: MTripSheetsProps['p
 
 export default function MRtTrackSheet({ planner }: MTripSheetsProps) {
   const { t } = useTranslation();
-  const unit = useSettingsStore((s) => s.settings.distance_unit);
+  const unit: DistanceUnit = useSettingsStore((s) => s.settings.distance_unit) === 'imperial' ? 'imperial' : 'metric';
   const large = useIsWide();
   const follow = planner.followTrack;
   const { dayId, busy, round, error, outcome, tracks, viaCount, current } = follow;
