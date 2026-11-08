@@ -100,9 +100,27 @@ final class WatchLink: NSObject, WCSessionDelegate {
         try? await Task.sleep(nanoseconds: 300_000_000)
     }
 
+    /// A tick to the phone. In reach it goes as a message, which arrives at once and
+    /// wakes the phone app for it, so the trip's other devices see it within seconds.
+    /// Out of reach, or when the message fails or a phone app too old to take it
+    /// answers without "queued", it goes as user info, which the system delivers later.
     func send(_ action: PendingAction) {
-        guard WCSession.default.activationState == .activated else { return }
-        WCSession.default.transferUserInfo(["action": action.message])
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        let message: [String: Any] = ["action": action.message]
+        guard session.isReachable else {
+            session.transferUserInfo(message)
+            return
+        }
+        session.sendMessage(message, replyHandler: { reply in
+            if reply["queued"] as? Bool == true {
+                Task { @MainActor in WatchModel.shared.markSent(action.id) }
+            } else {
+                session.transferUserInfo(message)
+            }
+        }, errorHandler: { _ in
+            session.transferUserInfo(message)
+        })
     }
 
     /// Asks the phone for a fresh snapshot while it is in reach (the app answers from what it stored).

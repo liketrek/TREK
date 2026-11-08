@@ -2,6 +2,7 @@ import CryptoKit
 import Foundation
 import UIKit
 import WatchConnectivity
+import WebKit
 
 /// The phone's end of WatchConnectivity (feature "watch"). The UI hands over the
 /// watch's snapshot (client/src/native/watch.ts through TrekShell.setWatchSnapshot);
@@ -110,6 +111,25 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
         return list
     }
 
+    /// While the app is in front, its UI writes the tick, through its offline queue
+    /// as a tap would. In the background the WebView is asleep, so the tick is
+    /// written to the server from here at once (TrekWatchWriter), and the trip's
+    /// other devices hear of it over their WebSocket; only a write that fails is
+    /// queued for the UI, which then tries again once it runs.
+    private func receive(_ action: [String: Any], then done: @escaping () -> Void) {
+        DispatchQueue.main.async {
+            guard UIApplication.shared.applicationState != .active else {
+                self.enqueue(action)
+                done()
+                return
+            }
+            TrekWatchWriter.write(action) { written in
+                if !written { self.enqueue(action) }
+                done()
+            }
+        }
+    }
+
     private func enqueue(_ action: [String: Any]) {
         queue.async {
             // A tick sent twice (the watch resends after a restart) replaces the earlier copy.
@@ -145,11 +165,16 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        if let action = userInfo["action"] as? [String: Any] { enqueue(action) }
+        if let action = userInfo["action"] as? [String: Any] { receive(action) {} }
     }
 
-    /// The watch asks for the latest snapshot when it opens while the phone is in reach.
+    /// The watch asks for the latest snapshot when it opens while the phone is in
+    /// reach, and sends its ticks this way while it is (WatchLink.send).
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+        if let action = message["action"] as? [String: Any] {
+            receive(action) { replyHandler(["queued": true]) }
+            return
+        }
         queue.async {
             if message["request"] as? String == "snapshot", let data = UserDefaults.standard.data(forKey: self.snapshotKey) {
                 replyHandler(["snapshot": data])
@@ -157,5 +182,74 @@ final class TrekWatchLink: NSObject, WCSessionDelegate {
                 replyHandler([:])
             }
         }
+    }
+}
+
+/// Writes a tick from the watch straight to the TREK server, for when the app is
+/// in the background and its UI cannot. The same request the UI makes for a tap
+/// (PUT /api/trips/:trip/packing|todo/:item with the box's new state), with the
+/// session the WebView holds (its cookies) and the tick's id as the idempotency
+/// key, so a tick that also reaches the server another way is taken once.
+enum TrekWatchWriter {
+    private final class BackgroundTask {
+        var id = UIBackgroundTaskIdentifier.invalid
+
+        func end() {
+            guard id != .invalid else { return }
+            UIApplication.shared.endBackgroundTask(id)
+            id = .invalid
+        }
+    }
+
+    /// Called on the main queue, as is `completion`.
+    static func write(_ action: [String: Any], completion: @escaping (Bool) -> Void) {
+        guard let request = request(for: action) else {
+            completion(false)
+            return
+        }
+        let task = BackgroundTask()
+        task.id = UIApplication.shared.beginBackgroundTask(withName: "trek.watch.tick") { task.end() }
+        let finish: (Bool) -> Void = { written in
+            DispatchQueue.main.async {
+                completion(written)
+                task.end()
+            }
+        }
+        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+            guard let host = request.url?.host else { return finish(false) }
+            let session = cookies.filter { cookie in
+                let domain = cookie.domain.hasPrefix(".") ? String(cookie.domain.dropFirst()) : cookie.domain
+                return host == domain || host.hasSuffix("." + domain)
+            }
+            guard !session.isEmpty else { return finish(false) }
+            var signed = request
+            for (field, value) in HTTPCookie.requestHeaderFields(with: session) {
+                signed.setValue(value, forHTTPHeaderField: field)
+            }
+            URLSession.shared.dataTask(with: signed) { _, response, error in
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                finish(error == nil && (200..<300).contains(status))
+            }.resume()
+        }
+    }
+
+    /// The write for a tick as the watch sends it, or nil for anything else.
+    static func request(for action: [String: Any]) -> URLRequest? {
+        guard let server = TrekServerStore.url, let base = URL(string: server),
+              base.scheme == "https" || base.scheme == "http",
+              let id = action["id"] as? String, !id.isEmpty, id.count <= 64,
+              let tripId = action["tripId"] as? Int, let itemId = action["itemId"] as? Int,
+              let list = action["list"] as? String, list == "packing" || list == "todo",
+              let done = action["done"] as? Bool,
+              let body = try? JSONSerialization.data(withJSONObject: ["checked": done]) else { return nil }
+        let url = base.appendingPathComponent("api").appendingPathComponent("trips")
+            .appendingPathComponent(String(tripId)).appendingPathComponent(list).appendingPathComponent(String(itemId))
+        var request = URLRequest(url: url, timeoutInterval: 10)
+        request.httpMethod = "PUT"
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("watch-\(id)", forHTTPHeaderField: "X-Idempotency-Key")
+        request.httpBody = body
+        return request
     }
 }

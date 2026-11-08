@@ -14,6 +14,7 @@ import { useTranslation } from '../../i18n';
 import { useNativeCapabilities } from '../../native/capabilities';
 import { TrekShell } from '../../native/trekShell';
 import { applyWatchActions, buildWatchSnapshot, publishWatch, takeWatchActions, watchActive } from '../../native/watch';
+import { onWatchListsChange } from '../../native/watchListChanges';
 import { bookingsAhead, packingSummary, todosSummary, tripPlace } from '../../native/widgetExtras';
 import { widgetCover, widgetWeather } from '../../native/widgetMedia';
 import { atlasSummary, collabSummary, packingDetail, type WidgetAtlas } from '../../native/widgetOnline';
@@ -229,8 +230,11 @@ export default function NativeWidgetsSync(): null {
       if (isActive) void sync().then(drainWatch);
     });
     const watchListener = watchActive() ? TrekShell.addListener('watchAction', () => void drainWatch()) : null;
+    // A tick here, or one another member made, reaches the watch at once rather than on the next refresh.
+    const stopListWatch = watchActive() ? onWatchListsChange(() => void sync()) : null;
     return () => {
       cancelled = true;
+      stopListWatch?.();
       window.clearInterval(timer);
       void listener.then((handle) => handle.remove());
       void watchListener?.then((handle) => handle.remove());
