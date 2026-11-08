@@ -1,6 +1,7 @@
 import type { FerrataBbox } from '@trek/shared';
 import { ChevronDown, ChevronUp, Gauge, Palette, Pause, Play, RotateCcw, Scan, TrendingUp } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useIsWide } from '../../../hooks/sizeClass';
 import { useTranslation } from '../../../i18n';
 import type { DistanceUnit } from '../../../types';
 import type { DistanceIndexedProfileSample, RouteProfileFocus } from '../../../utils/routeGeometry';
@@ -84,6 +85,7 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
   const { setContainer, ...terrain } = useTourTerrain({ ...props, panels: { leftWidth, rightWidth } });
   const stats = useMemo(() => terrainStats(samples), [samples]);
   const { fit, height: controlsHeight, attachRow, attachStack } = useControlRowFit();
+  const touchShell = useIsWide();
   const legend =
     terrain.canReplay && !props.water ? (
       <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} />
@@ -134,6 +136,9 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
             <span />
             {terrain.canReplay ? (
               <TerrainDock terrain={terrain} water={props.water} />
+            ) : touchShell ? (
+              // A tablet's map is short on room, and its user learns the gestures by touch: no how-to line.
+              <span />
             ) : (
               <div
                 className="pointer-events-auto rounded-full px-4 py-2.5 text-content-muted"

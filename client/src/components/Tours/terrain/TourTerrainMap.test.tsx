@@ -1,6 +1,7 @@
 // FE-COMP-TERRAIN-001 to FE-COMP-TERRAIN-018
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '../../../../tests/helpers/render';
+import { resetSizeClass, setSizeClass } from '../../../../tests/helpers/sizeClass';
 import type { DistanceIndexedProfileSample, RouteProfileFocus } from '../../../utils/routeGeometry';
 import TourTerrainMap, { type TourTerrainMapProps } from './TourTerrainMap';
 
@@ -255,6 +256,17 @@ describe('TourTerrainMap', () => {
     );
     expect(screen.getByText(/Click the terrain to set points/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Play flyover' })).toBeNull();
+  });
+
+  it('FE-COMP-TERRAIN-002b: on an iPad or an unfolded foldable the how-to line stays out of the map', async () => {
+    setSizeClass('split');
+    try {
+      await renderTerrain();
+      expect(screen.queryByText('Open a tour on the right to fly it in 3D and colour it by grade.')).toBeNull();
+      expect(screen.queryByText(/Click the terrain to set points/)).toBeNull();
+    } finally {
+      resetSizeClass();
+    }
   });
 
   it('FE-COMP-TERRAIN-003: a click on the terrain adds a control point only while editing', async () => {
