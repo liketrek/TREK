@@ -856,6 +856,13 @@ describe('MJourneyDetail', () => {
     expect(hook.navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/journey\/\d+\/studio$/));
   });
 
+  it("FE-MOB-JDET-053: the journal a trip links offers Studio too, on a tablet beside the map", () => {
+    setSizeClass('split');
+    mocks.detail = buildHook();
+    render(<MJourneyDetail journeyId={7} embedded />);
+    expect(screen.getByRole('button', { name: 'journey.studio.openAria' })).toBeInTheDocument();
+  });
+
   it('FE-MOB-JDET-052: the phone and a single pane offer no Studio', () => {
     setup();
     expect(screen.queryByRole('button', { name: 'journey.studio.openAria' })).not.toBeInTheDocument();

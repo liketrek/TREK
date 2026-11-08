@@ -468,7 +468,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
         )}
         <div
           data-view-switch
-          className="absolute left-1/2 top-0 flex -translate-x-1/2 rounded-full bg-[color:var(--m-sheet)] p-[3px] shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
+          className="absolute left-1/2 top-0 flex -translate-x-1/2 rounded-full wide:static wide:translate-x-0 bg-[color:var(--m-sheet)] p-[3px] shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
         >
           <button
             type="button"
@@ -505,7 +505,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             </span>
           )}
-          {split && !embedded && (
+          {split && (
             <button
               type="button"
               onClick={() => void navigate(`/journey/${current.id}/studio`)}
