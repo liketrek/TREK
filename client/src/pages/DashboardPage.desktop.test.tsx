@@ -67,6 +67,8 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-07-05T12:00:00Z'));
   installMatchMedia();
   resetAllStores();
+  // The currency tool waits for the saved pair (#3009); the page renders with settings in place.
+  useSettingsStore.setState({ isLoaded: true });
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   usePluginStore.setState({ plugins: [], loaded: true });
   onlyTrips([TRIP]);

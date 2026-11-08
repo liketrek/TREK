@@ -44,7 +44,7 @@ describe('Skeleton', () => {
 })
 
 describe('composed skeletons', () => {
-  it('FE-W4SKEL-006: SpotlightSkeleton takes the hero's own box and renders the backdrop plus two bars', () => {
+  it('FE-W4SKEL-006: SpotlightSkeleton takes the box of the hero and renders the backdrop plus two bars', () => {
     const { container } = render(<SpotlightSkeleton />)
 
     expect(container.querySelectorAll('.trek-skeleton')).toHaveLength(3)

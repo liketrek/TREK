@@ -43,6 +43,8 @@ function enableCollectionsAddon(enabled: boolean) {
 
 beforeEach(() => {
   resetAllStores();
+  // The converter waits for the saved pair (#3009); these widgets render with settings in place.
+  useSettingsStore.setState({ isLoaded: true });
   fxHandler();
   collectionsHandler([]);
 });

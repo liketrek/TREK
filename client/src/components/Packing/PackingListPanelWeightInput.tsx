@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { NumericInput } from '../shared/NumericInput';
 
 interface Props {
@@ -16,21 +16,24 @@ interface Props {
  */
 export function WeightInput({ value, onSave, readOnly, width }: Props) {
   const stored = value == null ? '' : String(value);
-  const [draft, setDraft] = useState(stored);
-  const editing = useRef(false);
-  // A change from elsewhere (another member, the server's answer) shows only
-  // while the field is not being typed in.
-  useEffect(() => {
-    if (!editing.current) setDraft(stored);
-  }, [stored]);
+  // What is being typed, while the field has it; null shows the stored weight,
+  // so a change from elsewhere (another member) shows whenever nobody types.
+  const [draft, setDraft] = useState<string | null>(null);
+  // A saved weight until the store has it, so the field does not fall back to
+  // the old number for the length of the request.
+  const [pending, setPending] = useState<string | null>(null);
+  const shown = draft ?? pending ?? stored;
 
   const commit = () => {
-    editing.current = false;
+    if (draft === null) return;
+    const typed = draft;
+    setDraft(null);
     if (readOnly) return;
-    const grams = draft.trim() === '' ? null : Math.max(0, Number.parseInt(draft, 10) || 0);
+    const grams = typed.trim() === '' ? null : Math.max(0, Number.parseInt(typed, 10) || 0);
     const next = grams == null ? '' : String(grams);
-    setDraft(next);
-    if (next !== stored) void onSave(grams);
+    if (next === stored) return;
+    setPending(next);
+    void Promise.resolve(onSave(grams)).finally(() => setPending(null));
   };
 
   const style: CSSProperties = {
@@ -47,11 +50,9 @@ export function WeightInput({ value, onSave, readOnly, width }: Props) {
 
   return (
     <NumericInput
-      value={draft}
+      value={shown}
       readOnly={readOnly}
-      onFocus={() => {
-        editing.current = true;
-      }}
+      onFocus={() => setDraft(shown)}
       onValueChange={setDraft}
       onBlur={commit}
       onKeyDown={(e) => {

@@ -147,13 +147,8 @@ describe('useCurrencyConverter', () => {
   });
 
   it('FE-COMP-FXHOOK-010: #3009 never prices a new pair with the previous base and says it is still loading', async () => {
-    let resolveJpy: (body: unknown) => void = () => {};
     fetchMock.mockImplementation((url: string) =>
-      url.endsWith('base=JPY')
-        ? new Promise((resolve) => {
-            resolveJpy = (body) => resolve({ json: () => Promise.resolve(body) } as Response);
-          })
-        : respond([{ quote: 'USD', rate: 1.1 }])
+      respond(url.endsWith('base=JPY') ? [{ quote: 'EUR', rate: 0.0056 }] : [{ quote: 'USD', rate: 1.1 }])
     );
     const { result } = renderHook(() => useCurrencyConverter());
     await waitFor(() => expect(result.current.rate).toBe(1.1));
@@ -163,11 +158,6 @@ describe('useCurrencyConverter', () => {
     expect(result.current.rate).toBeNull();
     expect(result.current.ratePending).toBe(true);
 
-    await act(async () => {
-      resolveJpy([{ quote: 'EUR', rate: 0.0056 }]);
-      await Promise.resolve();
-      await Promise.resolve();
-    });
     await waitFor(() => expect(result.current.rate).toBe(0.0056));
     expect(result.current.ratePending).toBe(false);
   });

@@ -77,11 +77,13 @@ describe('CollectionsWidget', () => {
     expect(await screen.findByText('No saved places yet')).toBeInTheDocument();
   });
 
-  it('FE-COMP-COLWIDGET-008: nothing renders while the fetch is still in flight', async () => {
-    render(<CollectionsWidget onOpen={() => {}} />);
+  it('FE-COMP-COLWIDGET-008: only a placeholder shows while the fetch is still in flight', async () => {
+    const { container } = render(<CollectionsWidget onOpen={() => {}} />);
 
-    expect(screen.queryByText('No saved places yet')).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText('No saved places yet')).toBeInTheDocument());
+    // Nothing remembered yet: the empty hint's shape, hidden from assistive tech, holds the place.
+    expect(container.querySelector('.col-empty.trek-skeleton')).toHaveAttribute('aria-hidden', 'true');
+    await waitFor(() => expect(container.querySelector('.trek-skeleton')).toBeNull());
+    expect(screen.getByText('No saved places yet')).toBeInTheDocument();
   });
 
   it('FE-COMP-COLWIDGET-009: #3009 holds the badges it showed last time while the lists load, then remembers the new count', async () => {
