@@ -1048,6 +1048,7 @@
     "src/mobile/screens/trip/roadtrip/MRtLimitsEditor.tsx": "Large screen form inside MRtInfoSheet over the planner's saveRoadtripLimit, the desktop dialog's own save, and the shared dayWindow, parseAvoid and rangeFromSpec.",
     "src/mobile/screens/trip/roadtrip/MRtKindSheet.tsx": "Thin sheet over planner.setRoadtripStopKind that already shares STOP_KINDS with StopKindPicker.",
     "src/mobile/screens/trip/roadtrip/MRtStopSheet.tsx": "Phone only stop detail sheet over the shared roadtripRowModel, stayReading and planner writers.",
+    "src/mobile/screens/trip/roadtrip/MRtTrackSheet.tsx": "Large screen sheet over the planner's followTrack, the same hook RoadtripTrackModal runs on; the phone has no entry to it.",
     "src/mobile/screens/trip/roadtrip/stageBadges.ts": "Badge helpers for the phone stage header and alternatives bar, which have no desktop counterpart.",
     "src/mobile/screens/trip/roadtrip/useMRoadtrip.ts": "Phone stage screen adapter over the shared roadtripRowModel plus a live clock tick.",
     "src/mobile/screens/trip/roadtrip/useMRtAlternatives.ts": "Tap to preview, confirm to write layer over the planner's shared route alternatives.",

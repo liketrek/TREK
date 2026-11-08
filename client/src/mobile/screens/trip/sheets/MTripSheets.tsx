@@ -29,6 +29,7 @@ import MRtStopSheet from '../roadtrip/MRtStopSheet'
 import MRtStaySheet from '../roadtrip/MRtStaySheet'
 import MRtKindSheet from '../roadtrip/MRtKindSheet'
 import MRtInfoSheet from '../roadtrip/MRtInfoSheet'
+import MRtTrackSheet from '../roadtrip/MRtTrackSheet'
 import MRtCorridorSheet from '../roadtrip/MRtCorridorSheet'
 import MRtDraftSheet from '../roadtrip/MRtDraftSheet'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -109,6 +110,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       <MRtStaySheet planner={planner} shell={shell} />
       <MRtKindSheet planner={planner} shell={shell} />
       <MRtInfoSheet planner={planner} shell={shell} />
+      <MRtTrackSheet planner={planner} shell={shell} />
       {/* Before the draft sheet, not after: both sit at the same z, so the one mounted
           later paints on top, and taking a hit onto the trip opens the draft OVER the
           search it came from. */}

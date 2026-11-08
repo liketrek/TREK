@@ -232,6 +232,14 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
       totalDistance: 0, totalDuration: 0, totalStops: 0, loading: false,
     },
 
+    // Following an imported track, closed. The sheets mount the track sheet on every
+    // render, so its closed shape belongs in the base.
+    followTrack: {
+      dayId: null, open: vi.fn(), close: vi.fn(), tracks: [], busy: false, round: 0, error: null,
+      outcome: null, apply: vi.fn(async () => {}), clear: vi.fn(async () => {}), viaCount: 0,
+      current: null, namesByDay: {}, available: false,
+    },
+
     // The corridor search, idle. Both the search bar over the stage and the search
     // sheet read it on every render of the road trip tab, addon on or off, so the
     // empty-but-valid shape belongs here rather than in one suite's overrides.
