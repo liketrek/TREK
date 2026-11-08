@@ -15,9 +15,17 @@ const FLOATING_RAIL_HEAD =
  */
 export const FloatingRailHeads = createContext(false);
 
-/** The class and style of a rail's head band, as the surrounding tab wants it. */
-export function useRailHeadProps(): { className: string; style?: { background: string } } {
-  return use(FloatingRailHeads)
-    ? { className: FLOATING_RAIL_HEAD }
-    : { className: RAIL_HEAD, style: { background: NEUTRAL_TINT } };
+/** A head that holds only buttons: in the touch tab they stand on their own, without a band. */
+const BARE_RAIL_HEAD = 'mx-3 mt-3 flex flex-none items-start gap-2';
+
+/**
+ * The class and style of a rail's head band, as the surrounding tab wants it.
+ * `bare`: the head holds only buttons (the editor with nothing open).
+ */
+export function useRailHeadProps({ bare = false }: { bare?: boolean } = {}): {
+  className: string;
+  style?: { background: string };
+} {
+  if (!use(FloatingRailHeads)) return { className: RAIL_HEAD, style: { background: NEUTRAL_TINT } };
+  return { className: bare ? BARE_RAIL_HEAD : FLOATING_RAIL_HEAD };
 }

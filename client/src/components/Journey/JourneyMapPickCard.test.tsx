@@ -90,7 +90,7 @@ describe('JourneyMapPickCard', () => {
   it('FE-JOURNEY-MAPPICK-004: a place nothing was written about offers a new entry to whoever can write', () => {
     const onWriteAbout = vi.fn();
     const { unmount } = render(<JourneyMapPickCard marks={[plan()]} onClose={vi.fn()} onWriteAbout={onWriteAbout} />);
-    fireEvent.click(screen.getByRole('button', { name: 'New entry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New Entry' }));
     expect(onWriteAbout).toHaveBeenCalledWith(expect.objectContaining({ place_id: 4, name: 'Piazza San Marco' }));
     unmount();
 
@@ -103,6 +103,6 @@ describe('JourneyMapPickCard', () => {
         onWriteAbout={onWriteAbout}
       />
     );
-    expect(screen.queryByRole('button', { name: 'New entry' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New Entry' })).toBeNull();
   });
 });

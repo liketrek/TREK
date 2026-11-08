@@ -56,7 +56,7 @@ export function createDraftJourneyEntry(journeyId: number, now = new Date(), onD
  */
 export function entryForPlace(
   journey: { id: number; entries?: JourneyEntry[] },
-  place: { place_id: number; name: string; lat: number; lng: number; days: string[]; time: string | null },
+  place: { place_id: number; name: string; lat: number; lng: number; days: string[]; time?: string | null },
   now = new Date()
 ): JourneyEntry {
   const suggestion = (journey.entries ?? []).find(

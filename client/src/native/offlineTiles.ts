@@ -80,8 +80,8 @@ export function rewriteDocument(doc: unknown): unknown {
  * their URL, so the cache goes first and saves the round trip.
  */
 async function load(url: string, networkFirst: boolean, signal: AbortSignal): Promise<Response> {
-  const cache = await caches.open(VECTOR_CACHE);
-  if (!networkFirst) {
+  const cache = await openCache();
+  if (!networkFirst && cache) {
     const cached = await cache.match(url);
     if (cached) return cached;
   }
@@ -92,9 +92,23 @@ async function load(url: string, networkFirst: boolean, signal: AbortSignal): Pr
   } catch (err) {
     if (signal.aborted || !networkFirst) throw err;
   }
-  const cached = await cache.match(url);
+  const cached = await cache?.match(url);
   if (cached) return cached;
   throw new Error(`Not available offline: ${url}`);
+}
+
+/**
+ * The stored trips' vector cache, or null where the web view will not open it
+ * (WKWebView can refuse CacheStorage). Without it the map still draws from the
+ * network: the store is what keeps it offline, not what lets it draw at all.
+ */
+async function openCache(): Promise<Cache | null> {
+  try {
+    return await caches.open(VECTOR_CACHE);
+  } catch (err) {
+    console.warn('[offline tiles] the vector cache is not available, reading from the network', err);
+    return null;
+  }
 }
 
 export const offlineProtocol: AddProtocolAction = async (

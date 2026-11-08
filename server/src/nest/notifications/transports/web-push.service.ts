@@ -203,6 +203,9 @@ export class WebPushService {
    * The watch sync to each of the user's iPhones (the relay's APNs endpoints):
    * true when at least one took it. Browsers and Android devices have no watch
    * and get nothing. Nothing is sent while the server has no usable key pair.
+   *
+   * @txIndependent one delivery per device, each with its network call between
+   * its writes (a failure counted, a dead subscription removed): each stands on its own.
    */
   async sendWatchSync(userId: number): Promise<boolean> {
     try {

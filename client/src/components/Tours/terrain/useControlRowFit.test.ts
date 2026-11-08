@@ -1,11 +1,11 @@
-// FE-TERRAIN-FIT-001 to FE-TERRAIN-FIT-002: the 3D map's bottom row steps down to fit between the panels.
+// FE-TERRAIN-FIT-001 to FE-TERRAIN-FIT-003: the 3D map's bottom row steps down to fit between the panels.
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { type ControlRowFit, useControlRowFit } from './useControlRowFit';
 
 /** What the row's content needs at each step, in pixels. */
-const NEEDS: Record<ControlRowFit, number> = { full: 700, compact: 480, stacked: 400 };
+const NEEDS: Record<ControlRowFit, number> = { full: 700, compact: 480, stacked: 400, side: 260 };
 
 function fakeRow(room: { width: number }, fit: () => ControlRowFit): HTMLDivElement {
   const row = document.createElement('div');
@@ -48,5 +48,22 @@ describe('useControlRowFit', () => {
     room.width = 700;
     rerender();
     expect(result.current.fit).toBe('full');
+  });
+
+  it('FE-TERRAIN-FIT-003: where even the stacked row overflows, the layer pill goes to the side, and comes back with the room', () => {
+    const room = { width: 300 };
+    const { result, rerender } = renderHook(() => useControlRowFit());
+    const row = fakeRow(room, () => result.current.fit);
+    act(() => result.current.attachRow(row));
+    rerender();
+    rerender();
+    expect(result.current.fit).toBe('side');
+
+    room.width = 399;
+    rerender();
+    expect(result.current.fit).toBe('side');
+    room.width = 400;
+    rerender();
+    expect(result.current.fit).toBe('stacked');
   });
 });

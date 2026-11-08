@@ -88,7 +88,20 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
     terrain.canReplay && !props.water ? (
       <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} />
     ) : null;
-  const legendAbove = fit === 'stacked';
+  const legendAbove = fit === 'stacked' || fit === 'side';
+  const layerSwitcher = (vertical: boolean) => (
+    <TourMapLayerSwitcher
+      active={baseLayer}
+      onChange={onBaseLayerChange}
+      terrainActive
+      onToggleTerrain={onExit}
+      ferrataLayer={props.ferrataLayer}
+      placeTool={props.placeTool}
+      layers={props.tourLayers}
+      compact={fit !== 'full'}
+      vertical={vertical}
+    />
+  );
 
   useEffect(() => {
     if (controlsHeight !== null) onControlsHeightChange?.(controlsHeight);
@@ -112,21 +125,11 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
           insetInlineEnd: rightWidth + MAP_LAYER_SWITCHER_INSET,
         }}
       >
+        {fit === 'side' && layerSwitcher(true)}
         <BaseMapCredit layer={baseLayer} />
         {legendAbove && legend}
         <div ref={attachRow} className="flex w-full items-end gap-3" data-fit={fit} data-testid="terrain-control-row">
-          <div className="flex-none">
-            <TourMapLayerSwitcher
-              active={baseLayer}
-              onChange={onBaseLayerChange}
-              terrainActive
-              onToggleTerrain={onExit}
-              ferrataLayer={props.ferrataLayer}
-              placeTool={props.placeTool}
-              layers={props.tourLayers}
-              compact={fit !== 'full'}
-            />
-          </div>
+          {fit !== 'side' && <div className="flex-none">{layerSwitcher(false)}</div>}
           <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-end gap-3">
             <span />
             {terrain.canReplay ? (

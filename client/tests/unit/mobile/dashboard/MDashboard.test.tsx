@@ -432,6 +432,16 @@ describe('MDashboard', () => {
     expect(amount.value).toBe('250');
   });
 
+  it('FE-MOB-DASH-042: on a landscape tablet the widget column scrolls on its own, within the window', () => {
+    mocks.dash = buildDash();
+    render(<MDashboard />);
+    const column = screen.getAllByRole('textbox', { name: 'From' })[0].closest('[class*="split:sticky"]') as HTMLElement;
+    expect(column).not.toBeNull();
+    expect(column.className).toContain('split:overflow-y-auto');
+    expect(column.className).toContain('split:max-h-[calc(100dvh-var(--m-safe-top,12px)-70px)]');
+    expect(column.className).toContain('split:overscroll-contain');
+  });
+
   it('FE-MOB-DASH-027: a malformed date renders a dash instead of crashing', () => {
     mocks.dash = buildDash({ gridTrips: [buildTrip({ id: 14, start_date: 'not-a-date', end_date: iso(3) })] });
     render(<MDashboard />);

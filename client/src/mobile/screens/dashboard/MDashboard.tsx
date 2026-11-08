@@ -295,7 +295,7 @@ export default function MDashboard(): React.ReactElement {
             )}
             <div style={{ order: dashOrder.indexOf('trips') }}>{renderBlock('trips')}</div>
           </div>
-          <div className="contents min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+70px)] split:-mt-3 split:block">
+          <div className="contents min-w-0 split:sticky split:top-[calc(var(--m-safe-top,12px)+70px)] split:-mt-3 split:block split:max-h-[calc(100dvh-var(--m-safe-top,12px)-70px)] split:overflow-y-auto split:overscroll-contain split:pb-[calc(env(safe-area-inset-bottom,0px)+12px)] split:[scrollbar-width:none]">
             {dashOrder.filter(id => id !== 'trips').map(id => (
               <div key={id} style={{ order: dashOrder.indexOf(id) }}>{renderBlock(id)}</div>
             ))}

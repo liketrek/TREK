@@ -1,7 +1,7 @@
 import { Anchor, Bike, Footprints, Loader2, Map as MapIcon, MapPinPlus, Mountain, MountainSnow, Rotate3d, Satellite } from 'lucide-react'
 import type { PaddleMapLayer } from '../Tours/paddle/paddleMapLayer'
 import { PisteKeyButton } from '../Tours/winter/PisteKey'
-import type { ComponentType } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import { useTranslation } from '../../i18n'
 import { FerrataLineIcon } from '../Ferratas/FerrataGlyph'
 import type { FerrataMapLayer } from '../Ferratas/useFerrataMapLayer'
@@ -11,6 +11,7 @@ import { Tooltip } from '../shared/Tooltip'
 import { FROSTED_SHELL, segmentStyle } from './mapControlShadow'
 import type { ToggleableRasterOverlay } from './mapRasterOverlay'
 import type { BaseMapHealth, TourRasterBase } from './tourRasterBases'
+import { useLabelFit } from './useLabelFit'
 
 export type BaseLayer = 'default' | 'satellite'
 export type TourBaseLayer = BaseLayer | TourRasterBase
@@ -31,6 +32,9 @@ export interface TourLayerOffer {
 
 /** Distance from the map's left edge (plus any side panel) to the switcher. */
 export const MAP_LAYER_SWITCHER_INSET = 20
+
+/** What the switcher row leaves free at the map's trailing edge: the locate button (20px off the edge, 44px wide) and a gap. */
+export const LOCATE_BUTTON_ROOM = 76
 /**
  * Outer size of the round shell: a 34px button in 4px of padding, the same shell as
  * MapCompassPill. The markup below keeps its literals, and FE-COMP-MAPLAYER-006 holds
@@ -257,11 +261,31 @@ function OverlayToggle({ overlay, compact }: { overlay: ToggleableRasterOverlay;
   )
 }
 
+/** Words, icons only, or a column on the map's side: set by the caller, or fitted to the room. */
+function useSwitcherLayout(compactProp: boolean | undefined, vertical: boolean) {
+  const { attach, iconsOnly } = useLabelFit(compactProp === undefined && !vertical)
+  const compact = vertical || (compactProp ?? iconsOnly)
+  const layout = vertical ? 'vertical' : compact ? 'icons' : 'labels'
+  return { attachFit: attach, compact, layout }
+}
+
+function shellStyle(vertical: boolean): CSSProperties {
+  return vertical ? { ...FROSTED_SHELL, gap: 2, flexDirection: 'column', borderRadius: 22 } : { ...FROSTED_SHELL, gap: 2 }
+}
+
+function Divider({ vertical }: { vertical: boolean }) {
+  return <span aria-hidden className={vertical ? 'my-0.5 h-px w-5 bg-edge' : 'mx-0.5 h-5 w-px bg-edge'} />
+}
+
 /**
  * Per-view Tours control. It never reads or writes the global map setting.
  * `compact` shows the base layers and the via ferrata switch by their icons
  * alone, each named by its tooltip, for a bottom row that has to share its
- * width (the 3D map's, beside the flyover dock).
+ * width (the 3D map's, beside the flyover dock). Left out, the control goes to
+ * its icons by itself once its words no longer fit the room its parent gives
+ * it (a narrow map, such as the iPad's beside the tour pane).
+ * `vertical` stands it on the map's side, icons only (the 3D map, where its
+ * bottom row has no room left for it).
  */
 export function TourMapLayerSwitcher({
   active,
@@ -271,7 +295,8 @@ export function TourMapLayerSwitcher({
   ferrataLayer,
   placeTool,
   layers,
-  compact = false,
+  compact: compactProp,
+  vertical = false,
 }: {
   active: TourBaseLayer
   onChange: (layer: TourBaseLayer) => void
@@ -285,15 +310,23 @@ export function TourMapLayerSwitcher({
   /** Offers the "set points" switch, while a tour is being edited. */
   placeTool?: MapPlaceTool
   compact?: boolean
+  vertical?: boolean
 }) {
   const { t } = useTranslation()
+  const { attachFit, compact, layout } = useSwitcherLayout(compactProp, vertical)
   const bases = layers?.bases
   const overlays = layers?.overlays
   // A map on terms is a best-effort service: while it is shown and stops answering, its segment says so.
   const health = layers?.baseHealth
 
   return (
-    <div style={{ ...FROSTED_SHELL, gap: 2 }} role="group" aria-label={t('settings.mapStyle')}>
+    <div
+      ref={attachFit}
+      style={shellStyle(vertical)}
+      role="group"
+      aria-label={t('settings.mapStyle')}
+      data-layout={layout}
+    >
       {TOUR_LAYERS.filter(({ id }) => !bases || bases.includes(id)).map(({ id, labelKey, Icon }) => {
         const selected = active === id
         const label = t(labelKey)
@@ -321,7 +354,7 @@ export function TourMapLayerSwitcher({
           {health.base === 'cycle' ? t('map.baseLayer.cycleDown') : t('map.baseLayer.hikingDown')}
         </span>
       )}
-      {(ferrataLayer || onToggleTerrain || placeTool || !!overlays?.length) && <span aria-hidden className="mx-0.5 h-5 w-px bg-edge" />}
+      {(ferrataLayer || onToggleTerrain || placeTool || !!overlays?.length) && <Divider vertical={vertical} />}
       {placeTool && <PlaceToolToggle tool={placeTool} />}
       {ferrataLayer && <FerrataToggle layer={ferrataLayer} compact={compact} />}
       {overlays?.map(overlay => <OverlayToggle key={overlay.id} overlay={overlay} compact={compact} />)}

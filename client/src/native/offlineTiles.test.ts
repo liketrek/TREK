@@ -169,6 +169,38 @@ describe('offlineProtocol', () => {
   });
 });
 
+describe('offlineProtocol without Cache Storage', () => {
+  it('draws from the network when the web view will not open the cache, and only then fails offline', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.stubGlobal('caches', {
+      open: vi.fn(async () => {
+        throw new DOMException('denied', 'SecurityError');
+      }),
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ sources: {} })))
+    );
+    const doc = await offlineProtocol(params('trek-offline://s.test/style.json', 'json'), new AbortController());
+    expect(doc.data).toEqual({ sources: {} });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('tile'))
+    );
+    const tile = await offlineProtocol(params('trek-offline://t.test/1/1/1.png', 'image'), new AbortController());
+    expect(new TextDecoder().decode(tile.data as ArrayBuffer)).toBe('tile');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('offline');
+      })
+    );
+    await expect(
+      offlineProtocol(params('trek-offline://s.test/style.json', 'json'), new AbortController())
+    ).rejects.toThrow('Not available offline');
+  });
+});
+
 describe('installOfflineProtocol', () => {
   it('registers only inside the iOS app', () => {
     const addProtocol = vi.fn();

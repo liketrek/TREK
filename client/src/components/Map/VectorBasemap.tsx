@@ -108,6 +108,26 @@ function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolea
 }
 
 /**
+ * Calls `fail` once when the layer's style errors before it ever loaded. Errors
+ * after that (a tile here and there) are the map's ordinary weather and leave it be.
+ */
+function onStyleFailure(layer: GlLeafletLayer, fail: () => void): void {
+  const gl = layer.getMaplibreMap?.()
+  if (!gl) return
+  let loaded = false
+  gl.once('style.load', () => {
+    loaded = true
+  })
+  const onError = (event: { error?: unknown }) => {
+    if (loaded) return
+    gl.off('error', onError)
+    console.warn('[basemap] the vector style did not load, drawing raster tiles', event.error)
+    fail()
+  }
+  gl.on('error', onError)
+}
+
+/**
  * The raster stand-in, attached imperatively for the maps that build Leaflet
  * themselves. The react-leaflet callers get the same tiles through the <TileLayer>
  * below instead, the way they already draw a user's own raster template.
@@ -201,6 +221,14 @@ export function VectorBasemap({ style }: { style: string }) {
         return
       }
       layerRef.current = layer
+      // A style that never loads (its server, or the iOS app's offline protocol
+      // failing) would leave the map white under its markers: raster instead.
+      onStyleFailure(layer, () => {
+        if (cancelled || layerRef.current !== layer) return
+        detachBasemapLayer(layer)
+        layerRef.current = null
+        setGlUsable(false)
+      })
     })()
 
     return () => {

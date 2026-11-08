@@ -136,7 +136,7 @@ function NeutralRail({
   canEdit: boolean
   onOpenWanderer?: () => void
 }) {
-  const railHead = useRailHeadProps()
+  const railHead = useRailHeadProps({ bare: true })
   const { t } = useTranslation()
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.title')}>

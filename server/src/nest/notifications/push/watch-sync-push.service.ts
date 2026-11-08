@@ -88,7 +88,11 @@ export class WatchSyncPushService implements OnModuleInit, OnModuleDestroy {
     return users;
   }
 
-  /** Sends one trip's gathered sync. */
+  /**
+   * Sends one trip's gathered sync.
+   *
+   * @txIndependent one push per member, each a network call whose bookkeeping stands on its own.
+   */
   async flush(key: string): Promise<void> {
     const entry = this.pending.get(key);
     if (!entry) return;

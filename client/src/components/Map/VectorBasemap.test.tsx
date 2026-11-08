@@ -7,7 +7,7 @@
  * change, and what is left behind on teardown.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 import type * as L from 'leaflet'
 import { maplibreGL as bridge } from '@maplibre/maplibre-gl-leaflet'
 import { hasWebGL } from '../../utils/webgl'
@@ -47,6 +47,8 @@ vi.mock('@maplibre/maplibre-gl-leaflet', () => {
     const gl = {
       setStyle: vi.fn(),
       on: vi.fn(),
+      once: vi.fn(),
+      off: vi.fn(),
       isStyleLoaded: vi.fn(() => false),
       getStyle: vi.fn(() => ({
         layers: [
@@ -73,6 +75,8 @@ type Spy = ReturnType<typeof vi.fn>
 interface MockGl {
   setStyle: Spy
   on: Spy
+  once: Spy
+  off: Spy
   isStyleLoaded: Spy
   getStyle: Spy
   setLayoutProperty: Spy
@@ -122,6 +126,31 @@ describe('VectorBasemap', () => {
     // those in the low teens: a dozen theme switches and the map goes blank.
     expect(gl.setStyle).toHaveBeenCalledWith(OFM_DARK)
     expect(maplibreGL).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-VECBM-020: a style that errors before it loads gives way to raster tiles; later errors do not', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { findByTestId, queryByTestId } = render(<VectorBasemap style={OFM_POSITRON} />)
+    await waitFor(() => expect(maplibreGL).toHaveBeenCalledTimes(1))
+    const { layer, gl } = lastLayer()
+    const onError = gl.on.mock.calls.find(([name]) => name === 'error')![1] as (e: { error?: unknown }) => void
+    expect(gl.once).toHaveBeenCalledWith('style.load', expect.any(Function))
+    expect(queryByTestId('raster-basemap')).toBeNull()
+
+    act(() => onError({ error: new Error('trek-offline failed') }))
+    expect(await findByTestId('raster-basemap')).toBeInTheDocument()
+    expect(layer.remove).toHaveBeenCalled()
+    expect(gl.off).toHaveBeenCalledWith('error', onError)
+
+    // A second map whose style did load keeps its vector basemap through a tile error.
+    render(<VectorBasemap style={OFM_POSITRON} />)
+    await waitFor(() => expect(maplibreGL).toHaveBeenCalledTimes(2))
+    const second = lastLayer()
+    const secondError = second.gl.on.mock.calls.find(([name]) => name === 'error')![1] as (e: { error?: unknown }) => void
+    ;(second.gl.once.mock.calls.find(([name]) => name === 'style.load')![1] as () => void)()
+    act(() => secondError({ error: new Error('one tile') }))
+    expect(second.layer.remove).not.toHaveBeenCalled()
+    warn.mockRestore()
   })
 
   it('FE-COMP-VECBM-004: takes the layer off the map on unmount', async () => {

@@ -312,3 +312,50 @@ describe('TourMapLayerSwitcher piste switch (SKI-01)', () => {
     expect(screen.getByRole('status')).toHaveTextContent('')
   })
 })
+
+describe('TourMapLayerSwitcher fitting its map', () => {
+  /** A parent of `room` px, and the pill reporting `withWords` px while its words show. */
+  function renderIn(room: { width: number }, withWords: number) {
+    const host = document.createElement('div')
+    Object.defineProperty(host, 'clientWidth', { get: () => room.width })
+    document.body.appendChild(host)
+    const view = render(<TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}} />, { container: host })
+    const pill = () => screen.getByRole('group')
+    Object.defineProperty(pill(), 'scrollWidth', {
+      get: () => (pill().dataset.layout === 'labels' ? withWords : 200),
+    })
+    return { ...view, pill }
+  }
+
+  it('FE-COMP-MAPLAYER-025: keeps its words while they fit, goes to its icons on a narrow map, and back once there is room', () => {
+    const room = { width: 900 }
+    const { pill, rerender } = renderIn(room, 600)
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}} />)
+    expect(pill().dataset.layout).toBe('labels')
+    expect(screen.getByText('Topo')).toBeInTheDocument()
+
+    room.width = 500
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}} />)
+    expect(pill().dataset.layout).toBe('icons')
+    expect(screen.queryByText('Topo')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Topo' })).toBeInTheDocument()
+
+    room.width = 599
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}} />)
+    expect(pill().dataset.layout).toBe('icons')
+    room.width = 600
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}} />)
+    expect(pill().dataset.layout).toBe('labels')
+  })
+
+  it('FE-COMP-MAPLAYER-026: stood on the side it is a column of icons, and a set compact is never second-guessed', () => {
+    const { rerender } = render(<TourMapLayerSwitcher active="default" onChange={() => {}} onToggleTerrain={() => {}} vertical />)
+    expect(screen.getByRole('group').dataset.layout).toBe('vertical')
+    expect(screen.getByRole('group').style.flexDirection).toBe('column')
+    expect(screen.queryByText('Topo')).toBeNull()
+
+    rerender(<TourMapLayerSwitcher active="default" onChange={() => {}} compact={false} />)
+    expect(screen.getByRole('group').dataset.layout).toBe('labels')
+  })
+})
+

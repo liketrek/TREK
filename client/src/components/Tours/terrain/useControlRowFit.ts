@@ -2,12 +2,14 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * How the 3D map's bottom row fits between the side panels: `full` with every
- * label, `compact` with the layer pill on its icons, and `stacked` with the
- * grade legend on a row of its own above the dock as well.
+ * label, `compact` with the layer pill on its icons, `stacked` with the grade
+ * legend on a row of its own above the dock as well, and `side` with the layer
+ * pill standing on the map's trailing edge, leaving the row to the dock (a map
+ * as narrow as the iPad's beside the tour pane).
  */
-export type ControlRowFit = 'full' | 'compact' | 'stacked';
+export type ControlRowFit = 'full' | 'compact' | 'stacked' | 'side';
 
-const STEPS: readonly ControlRowFit[] = ['full', 'compact', 'stacked'];
+const STEPS: readonly ControlRowFit[] = ['full', 'compact', 'stacked', 'side'];
 
 /**
  * Steps the row down while its content is wider than the room between the

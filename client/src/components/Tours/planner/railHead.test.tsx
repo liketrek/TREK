@@ -23,4 +23,21 @@ describe('rail heads', () => {
     expect(head.className).not.toContain('border-b');
     expect(head.getAttribute('style')).toBeNull();
   });
+
+  it('FE-TOUR-RAILHEAD-002: a head of buttons only stands without a band in the touch tab, and keeps its strip on the desktop', () => {
+    function Bare() {
+      return <div data-testid="bare" {...useRailHeadProps({ bare: true })} />;
+    }
+    const { unmount } = render(<Bare />);
+    expect(screen.getByTestId('bare').className).toBe(RAIL_HEAD);
+    unmount();
+    render(
+      <FloatingRailHeads value>
+        <Bare />
+      </FloatingRailHeads>
+    );
+    const bare = screen.getByTestId('bare');
+    expect(bare.className).not.toMatch(/border|rounded|bg-/);
+    expect(bare.getAttribute('style')).toBeNull();
+  });
 });
