@@ -43,12 +43,29 @@ class TrekBridgeViewController: CAPBridgeViewController {
             navigationProxy = proxy
             webView.navigationDelegate = proxy
         }
+        guardBridgeMessages()
         bridge?.registerPluginInstance(TrekShellPlugin())
         // WebKit's own swipe back slides away a screenshot of the whole page,
         // closes no sheet and takes every drag near the edge from the UI. The UI
         // draws its own (mobile/components/MEdgeBack.tsx, feature "edgeBack"):
         // the page follows the finger and an open sheet closes first.
         webView?.allowsBackForwardNavigationGestures = false
+    }
+
+    /// Kept alive here: the content controller holds it, but only for as long as it is registered.
+    private var messageGuard: TrekBridgeMessageGuard?
+
+    /// Capacitor answers bridge messages from any page in the web view. With a
+    /// proxy's sign-in page loading there, its messages are dropped before they
+    /// reach the plugins.
+    private func guardBridgeMessages() {
+        guard !TrekServerStore.signInHosts.isEmpty,
+              let handler = (bridge as? CapacitorBridge)?.webViewDelegationHandler,
+              let controller = webView?.configuration.userContentController else { return }
+        let guarded = TrekBridgeMessageGuard(inner: handler)
+        controller.removeScriptMessageHandler(forName: TrekBridgeMessageGuard.name)
+        controller.add(guarded, name: TrekBridgeMessageGuard.name)
+        messageGuard = guarded
     }
 
     /// A key command of the UI's (TrekKeyCommands) was pressed. The commands sit
@@ -137,12 +154,41 @@ enum TrekKeyCommands {
 enum TrekServerStore {
     private static let key = "TrekServerURL"
 
+    private static let signInHostsKey = "TrekServerSignInHosts"
+
+    /// Setting the server drops the sign-in hosts of the one before it.
     static var url: String? {
         get { UserDefaults.standard.string(forKey: key) }
         set {
             if let newValue { UserDefaults.standard.set(newValue, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+            UserDefaults.standard.removeObject(forKey: signInHostsKey)
             try? FileManager.default.removeItem(at: offlineCopyURL)
         }
+    }
+
+    /// The hosts of a sign-in page in front of the server (a proxy such as
+    /// Cloudflare Access or Pangolin), as the address screen found them. Only
+    /// these load in the web view besides the server, so the proxy's session
+    /// cookie is the web view's (TrekNavigationProxy), and none of them may
+    /// talk to the app (TrekBridgeMessageGuard).
+    static var signInHosts: Set<String> {
+        get { Set((UserDefaults.standard.stringArray(forKey: signInHostsKey) ?? []).map { $0.lowercased() }) }
+        set {
+            if newValue.isEmpty {
+                UserDefaults.standard.removeObject(forKey: signInHostsKey)
+            } else {
+                UserDefaults.standard.set(Array(newValue).sorted(), forKey: signInHostsKey)
+            }
+        }
+    }
+
+    /// Whether `url` is one of the sign-in hosts, matched on host or host:port.
+    static func isSignInHost(_ url: URL?) -> Bool {
+        guard let url, ["https", "http"].contains(url.scheme?.lowercased() ?? ""), let host = url.host?.lowercased() else { return false }
+        let hosts = signInHosts
+        if hosts.contains(host) { return true }
+        if let port = url.port { return hosts.contains("\(host):\(port)") }
+        return false
     }
 
     static var offlineCopyURL: URL {
@@ -391,6 +437,23 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
         (inner as AnyObject).responds(to: aSelector) ? inner : nil
     }
 
+    /// The sign-in page of a proxy in front of the server loads here instead of
+    /// in Safari, so its session is the web view's and every request carries it.
+    /// Only the hosts the address screen saw (TrekServerStore.signInHosts), and
+    /// only in the main frame; everything else is Capacitor's decision as before.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.targetFrame?.isMainFrame == true, TrekServerStore.isSignInHost(navigationAction.request.url) {
+            decisionHandler(.allow)
+            return
+        }
+        let selector = NSSelectorFromString("webView:decidePolicyForNavigationAction:decisionHandler:")
+        guard (inner as AnyObject).responds(to: selector) else {
+            decisionHandler(.allow)
+            return
+        }
+        inner.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
+    }
+
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
         inner.webView?(webView, didFail: navigation, withError: error)
@@ -399,5 +462,28 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
         inner.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
+    }
+}
+
+/// Stands in front of Capacitor's bridge message handler and drops what a
+/// proxy's sign-in page posts: that page loads in the web view (see
+/// TrekNavigationProxy), and Capacitor itself would hand its messages to the
+/// plugins whatever page they come from.
+final class TrekBridgeMessageGuard: NSObject, WKScriptMessageHandler {
+    static let name = "bridge"
+    private let inner: WKScriptMessageHandler
+
+    init(inner: WKScriptMessageHandler) {
+        self.inner = inner
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        let origin = message.frameInfo.securityOrigin
+        var components = URLComponents()
+        components.scheme = origin.protocol
+        components.host = origin.host
+        if origin.port != 0 { components.port = origin.port }
+        if TrekServerStore.isSignInHost(components.url) { return }
+        inner.userContentController(userContentController, didReceive: message)
     }
 }

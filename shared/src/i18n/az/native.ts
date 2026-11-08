@@ -134,6 +134,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'səs',
   'native.widget.noMessages': 'Hələ mesaj yoxdur',
   'native.widget.departure': 'Yola düşmə',
+  'native.gate.title': '{name} bu serveri qoruyur',
+  'native.gate.titleUnknown': 'Bu serveri giriş səhifəsi qoruyur',
+  'native.gate.titleBasic': 'Bu serveri parol sorğusu qoruyur',
+  'native.gate.hint': 'Orada bir dəfə tətbiqin içində, brauzerdə olduğu kimi daxil olun. Tətbiq bu sessiyanı saxlayır.',
+  'native.gate.signIn': '{name} hesabına daxil olun',
+  'native.gate.signInGeneric': 'Daxil olun',
+  'native.gate.googleNote': 'Google ilə giriş tətbiqin içində işləmir. Sizinki ondan istifadə edirsə, TREK-i proksidən keçirin.',
+  'native.gate.basicHint': 'Tətbiq bu sorğuya cavab verə bilmir. TREK-i proksinizdə keçirin: TREK yenə öz girişini istəyir.',
+  'native.gate.help': 'Tətbiqi giriş proksisinin arxasında istifadə etmək',
 };
 
 export default native;

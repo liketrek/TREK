@@ -6,9 +6,17 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import logoUrl from '../public/icons/icon-white.svg';
 import logoBlack from '../public/logo-dark.svg'; // #000 wordmark, for light backgrounds
 import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for dark backgrounds
+import { AUTH_GATE_NAMES, canSignInInApp, type AuthGate } from '../src/native/authGate';
 import { opensSoon, refundedBeforeOpening } from '../src/native/cloudOrders';
 import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
-import { CLOUD_TERMS_URL, CLOUD_URL, PRIVACY_URL, SERVER_DOCS_URL, STORE_TERMS_URL } from '../src/native/links';
+import {
+  AUTH_PROXY_DOCS_URL,
+  CLOUD_TERMS_URL,
+  CLOUD_URL,
+  PRIVACY_URL,
+  SERVER_DOCS_URL,
+  STORE_TERMS_URL,
+} from '../src/native/links';
 import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
 import { TrekShell } from '../src/native/trekShell';
 import { directionOf, pickLocale, translator } from './i18n';
@@ -52,7 +60,7 @@ function cloudSuffix(): string {
 // choosing, which has no reason to answer this page's origin with CORS.
 const get: ProbeGet = async (url) => {
   const response = await CapacitorHttp.get({ url, connectTimeout: PROBE_TIMEOUT_MS, readTimeout: PROBE_TIMEOUT_MS });
-  return { status: response.status, data: response.data, url: response.url };
+  return { status: response.status, data: response.data, url: response.url, headers: response.headers };
 };
 
 function failureMessage(reason: ProbeFailure): string {
@@ -63,6 +71,8 @@ function failureMessage(reason: ProbeFailure): string {
       return t('native.connect.errorUnreachable');
     case 'notTrek':
       return t('native.connect.errorNotTrek');
+    case 'authGate':
+      return t('native.gate.titleUnknown');
     case 'tooOld':
       return t('native.connect.errorTooOld');
   }
@@ -252,13 +262,19 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
   const label = el('span', {}, t('native.connect.submit'));
   const submit = el('button', { type: 'submit', className: 'btn' }, label);
   const error = el('p', { className: 'error', role: 'alert' });
-  const form = el('form', { className: 'form', noValidate: true }, field, submit, error);
+  const gatePanel = el('div', { className: 'gate', role: 'alert', hidden: true });
+  const form = el('form', { className: 'form', noValidate: true }, field, submit, error, gatePanel);
 
-  const fail = (reason: ProbeFailure): void => {
+  const fail = (reason: ProbeFailure, gate?: AuthGate, server?: string): void => {
     void notify(NotificationType.Error);
     field.classList.add('bad');
     setTimeout(() => field.classList.remove('bad'), 350);
-    error.textContent = failureMessage(reason);
+    if (reason === 'authGate' && gate && server) {
+      error.textContent = '';
+      fillGatePanel(gatePanel, gate, server);
+    } else {
+      error.textContent = failureMessage(reason);
+    }
     input.disabled = false;
     submit.disabled = false;
     label.textContent = t('native.connect.submit');
@@ -270,6 +286,8 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
     event.preventDefault();
     void tap(ImpactStyle.Medium);
     error.textContent = '';
+    gatePanel.hidden = true;
+    gatePanel.replaceChildren();
     input.disabled = true;
     submit.disabled = true;
     submit.replaceChildren(el('span', { className: 'spinner' }), t('native.connect.checking'));
@@ -278,7 +296,7 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
       await connected(result.url);
       return;
     }
-    fail(result.reason);
+    fail(result.reason, result.gate, result.url);
   });
 
   show(
@@ -297,6 +315,43 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
     opts
   );
   requestAnimationFrame(() => input.focus());
+}
+
+/**
+ * A sign-in page of the user's own stands in front of the server (authGate.ts):
+ * say which one, offer to sign in to it inside the app, which keeps its session
+ * as a browser would, and how to let the app through instead.
+ */
+function fillGatePanel(panel: HTMLElement, gate: AuthGate, server: string): void {
+  const name = gate.kind === 'unknown' || gate.kind === 'basic' ? null : AUTH_GATE_NAMES[gate.kind];
+  const title =
+    gate.kind === 'basic'
+      ? t('native.gate.titleBasic')
+      : name
+        ? t('native.gate.title', { name })
+        : t('native.gate.titleUnknown');
+  const children: Node[] = [el('p', { className: 'gate-title' }, title)];
+  if (canSignInInApp(gate)) {
+    const signIn = el(
+      'button',
+      { type: 'button', className: 'btn' },
+      name ? t('native.gate.signIn', { name }) : t('native.gate.signInGeneric')
+    );
+    signIn.addEventListener('click', () => {
+      void tap(ImpactStyle.Medium);
+      void connected(server, gate.loginHost ? [gate.loginHost] : []);
+    });
+    children.push(
+      el('p', { className: 'gate-text' }, t('native.gate.hint')),
+      signIn,
+      el('p', { className: 'gate-note' }, t('native.gate.googleNote'))
+    );
+  } else {
+    children.push(el('p', { className: 'gate-text' }, t('native.gate.basicHint')));
+  }
+  children.push(externalLink(t('native.gate.help'), AUTH_PROXY_DOCS_URL));
+  panel.replaceChildren(...children);
+  panel.hidden = false;
 }
 
 // ── Get TREK Cloud ──────────────────────────────────────────────────────────
@@ -943,7 +998,7 @@ async function runDemo(button: HTMLButtonElement, error?: HTMLElement): Promise<
 }
 
 /** The tick, then the server takes over. A beat so the success registers. */
-async function connected(url: string): Promise<void> {
+async function connected(url: string, signInHosts: string[] = []): Promise<void> {
   void notify(NotificationType.Success);
   const host = (() => {
     try {
@@ -968,7 +1023,7 @@ async function connected(url: string): Promise<void> {
     el('div', { className: 'success' }, tick, el('h1', { className: 'title-sm' }, t('native.connecting', { host })))
   );
   await new Promise((r) => setTimeout(r, 700));
-  await TrekShell.setServer({ url });
+  await TrekShell.setServer(signInHosts.length ? { url, signInHosts } : { url });
 }
 
 function showUnreachable(server: string): void {

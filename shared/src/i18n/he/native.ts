@@ -130,6 +130,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'קולות',
   'native.widget.noMessages': 'אין עדיין הודעות',
   'native.widget.departure': 'יציאה',
+  'native.gate.title': '{name} מגן על השרת הזה',
+  'native.gate.titleUnknown': 'דף התחברות מגן על השרת הזה',
+  'native.gate.titleBasic': 'בקשת סיסמה מגינה על השרת הזה',
+  'native.gate.hint': 'התחבר שם פעם אחת בתוך האפליקציה, כמו בדפדפן. האפליקציה שומרת את ההתחברות.',
+  'native.gate.signIn': 'התחברות ל{name}',
+  'native.gate.signInGeneric': 'התחברות',
+  'native.gate.googleNote': 'התחברות עם Google לא עובדת בתוך אפליקציה. אם שלך משתמש בה, אפשר ל TREK לעבור את הפרוקסי במקום זאת.',
+  'native.gate.basicHint': 'האפליקציה לא יכולה לענות לבקשה הזו. אפשר ל TREK לעבור אותה בפרוקסי שלך: TREK עדיין מבקש התחברות משלו.',
+  'native.gate.help': 'שימוש באפליקציה מאחורי פרוקסי התחברות',
 };
 
 export default native;

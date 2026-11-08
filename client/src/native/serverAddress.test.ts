@@ -103,3 +103,41 @@ describe('probeDemo', () => {
     expect(get).toHaveBeenCalledWith('https://demo.liketrek.com/api/health/features');
   });
 });
+
+describe('probeServer behind a sign-in proxy', () => {
+  it('reports the gate, the server it guards and the host its sign-in lives on', async () => {
+    const get = vi.fn().mockResolvedValue({
+      status: 200,
+      url: 'https://pangolin.example.com/auth/resource/3?redirect=https%3A%2F%2Ftrek.example.com',
+      data: '<html><title>Pangolin</title><form><input type="password"></form></html>',
+    } satisfies ProbeResponse);
+    expect(await probeServer('trek.example.com', get)).toEqual({
+      ok: false,
+      reason: 'authGate',
+      url: 'https://trek.example.com',
+      gate: { kind: 'pangolin', loginHost: 'pangolin.example.com' },
+    });
+  });
+
+  it('asks the start page for the sign-in host when the API path only got a 401', async () => {
+    const get = vi.fn(async (url: string): Promise<ProbeResponse> =>
+      url.endsWith('/api/health/features')
+        ? { status: 401, url, data: '<html>Authelia</html>' }
+        : {
+            status: 200,
+            url: 'https://auth.example.com/?rd=https%3A%2F%2Ftrek.example.com%2F',
+            data: '<html>Authelia</html>',
+          }
+    );
+    const result = await probeServer('https://trek.example.com', get);
+    expect(result).toMatchObject({ reason: 'authGate', gate: { kind: 'authelia', loginHost: 'auth.example.com' } });
+    expect(get).toHaveBeenCalledWith('https://trek.example.com/');
+  });
+
+  it('keeps calling an address that is simply something else not TREK', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValue({ status: 200, url: 'https://x.example.com/api/health/features', data: { hello: 1 } });
+    expect(await probeServer('https://x.example.com', get)).toEqual({ ok: false, reason: 'notTrek' });
+  });
+});

@@ -753,6 +753,43 @@ a.linkbtn {
   transition: opacity 0.2s;
 }
 
+/* A sign-in proxy in front of the server: which one, sign in to it here, or let the app through. */
+.gate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  text-align: start;
+}
+.gate[hidden] {
+  display: none;
+}
+.gate-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.gate-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.gate-note {
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.gate a {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
 /* Spinner inside the connect button while probing. */
 .spinner {
   width: 18px;

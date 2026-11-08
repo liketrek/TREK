@@ -133,6 +133,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'votos',
   'native.widget.noMessages': 'Nenhuma mensagem ainda',
   'native.widget.departure': 'Partida',
+  'native.gate.title': '{name} protege este servidor',
+  'native.gate.titleUnknown': 'Uma página de login protege este servidor',
+  'native.gate.titleBasic': 'Um pedido de senha protege este servidor',
+  'native.gate.hint': 'Entre lá uma vez dentro do app, como no navegador. O app mantém essa sessão.',
+  'native.gate.signIn': 'Entrar no {name}',
+  'native.gate.signInGeneric': 'Entrar',
+  'native.gate.googleNote': 'Um login com o Google não funciona dentro de um app. Se o seu usa, deixe o TREK passar pelo proxy.',
+  'native.gate.basicHint': 'O app não consegue responder a este pedido. Deixe o TREK passar no seu proxy: o TREK continua pedindo o próprio login.',
+  'native.gate.help': 'Usar o app atrás de um proxy de login',
 };
 
 export default native;

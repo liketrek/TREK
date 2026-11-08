@@ -324,6 +324,9 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
             return
         }
         TrekServerStore.url = raw
+        // After the URL: setting it clears the hosts of the server before.
+        let hosts = (call.getArray("signInHosts", String.self) ?? []).filter { $0.range(of: "^[A-Za-z0-9.-]+(:[0-9]+)?$", options: .regularExpression) != nil }
+        TrekServerStore.signInHosts = Set(hosts.map { $0.lowercased() })
         call.resolve()
         restartBridge()
     }

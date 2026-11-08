@@ -10,6 +10,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -18,6 +22,7 @@ final class TrekServerStore {
 
     private static final String PREFS = "trek_shell";
     private static final String KEY_URL = "server_url";
+    private static final String KEY_SIGN_IN_HOSTS = "sign_in_hosts";
     private static final String KEY_SHELL_ONCE = "shell_once";
     private static final String KEY_RESTART = "restart";
     private static final String CONFIG_DIR = "trek-server-config";
@@ -28,14 +33,37 @@ final class TrekServerStore {
         return prefs(context).getString(KEY_URL, null);
     }
 
+    /** Remembers the server; its sign-in hosts go with it and are replaced or dropped too. */
     static void setUrl(Context context, String url) {
+        setServer(context, url, null);
+    }
+
+    static void setServer(Context context, String url, Set<String> signInHosts) {
         SharedPreferences.Editor editor = prefs(context).edit();
         if (url == null) {
             editor.remove(KEY_URL);
         } else {
             editor.putString(KEY_URL, url);
         }
+        if (signInHosts == null || signInHosts.isEmpty()) {
+            editor.remove(KEY_SIGN_IN_HOSTS);
+        } else {
+            Set<String> lower = new HashSet<>();
+            for (String host : signInHosts) lower.add(host.toLowerCase(Locale.ROOT));
+            editor.putStringSet(KEY_SIGN_IN_HOSTS, lower);
+        }
         editor.commit();
+    }
+
+    /**
+     * The hosts of a sign-in page that stands in front of the server (a proxy
+     * such as Cloudflare Access or Pangolin), as the address screen found them.
+     * Only these may load inside the web view besides the server itself, so
+     * the proxy's session lands where the app can use it (TrekWebViewClient).
+     */
+    static Set<String> getSignInHosts(Context context) {
+        Set<String> hosts = prefs(context).getStringSet(KEY_SIGN_IN_HOSTS, null);
+        return hosts == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(hosts));
     }
 
     /** Start the next launch on the bundled address screen, even with a server remembered. */

@@ -130,6 +130,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'أصوات',
   'native.widget.noMessages': 'لا توجد رسائل بعد',
   'native.widget.departure': 'المغادرة',
+  'native.gate.title': '{name} يحمي هذا الخادم',
+  'native.gate.titleUnknown': 'صفحة تسجيل دخول تحمي هذا الخادم',
+  'native.gate.titleBasic': 'طلب كلمة مرور يحمي هذا الخادم',
+  'native.gate.hint': 'سجّل الدخول هناك مرة واحدة داخل التطبيق، كما في المتصفح. يحتفظ التطبيق بتلك الجلسة.',
+  'native.gate.signIn': 'تسجيل الدخول إلى {name}',
+  'native.gate.signInGeneric': 'تسجيل الدخول',
+  'native.gate.googleNote': 'لا يعمل تسجيل الدخول عبر Google داخل التطبيقات. إن كان تسجيلك يستخدمه، فاسمح لـ TREK بتجاوز الوكيل بدلًا من ذلك.',
+  'native.gate.basicHint': 'لا يستطيع التطبيق الرد على هذا الطلب. اسمح لـ TREK بتجاوزه في الوكيل: سيظل TREK يطلب تسجيل الدخول الخاص به.',
+  'native.gate.help': 'استخدام التطبيق خلف وكيل تسجيل دخول',
 };
 
 export default native;

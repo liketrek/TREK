@@ -1,11 +1,14 @@
 package com.liketrek.trek;
 
+import android.net.Uri;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Used while the WebView shows the user's server. When that server cannot be
@@ -18,10 +21,35 @@ import com.getcapacitor.BridgeWebViewClient;
 class TrekWebViewClient extends BridgeWebViewClient {
 
     private final Runnable onUnreachable;
+    private final Set<String> signInHosts;
 
-    TrekWebViewClient(Bridge bridge, Runnable onUnreachable) {
+    TrekWebViewClient(Bridge bridge, Runnable onUnreachable, Set<String> signInHosts) {
         super(bridge);
         this.onUnreachable = onUnreachable;
+        this.signInHosts = signInHosts;
+    }
+
+    /**
+     * The sign-in page of a proxy in front of the server loads here rather than
+     * in the browser, so its session cookie is the web view's and every request
+     * of the app carries it, as in a browser. Only the hosts the address screen
+     * saw that proxy send it to (TrekServerStore.getSignInHosts), and only as a
+     * page: Capacitor injects its bridge into the server's origin alone, so the
+     * proxy's page gets no access to the app. Everything else goes on to
+     * Capacitor, which opens a foreign page in the browser.
+     */
+    @Override
+    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+        if (request.isForMainFrame() && isSignInHost(request.getUrl())) return false;
+        return super.shouldOverrideUrlLoading(view, request);
+    }
+
+    private boolean isSignInHost(Uri url) {
+        String scheme = url.getScheme();
+        String host = url.getHost();
+        if (host == null || !("https".equals(scheme) || "http".equals(scheme))) return false;
+        String key = host.toLowerCase(Locale.ROOT);
+        return signInHosts.contains(key) || (url.getPort() != -1 && signInHosts.contains(key + ":" + url.getPort()));
     }
 
     /** Mapbox's map resources go through the app's own store (tiles/TrekTileStore.kt). */

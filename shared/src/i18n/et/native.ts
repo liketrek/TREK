@@ -133,6 +133,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'häält',
   'native.widget.noMessages': 'Sõnumeid veel pole',
   'native.widget.departure': 'Väljasõit',
+  'native.gate.title': '{name} kaitseb seda serverit',
+  'native.gate.titleUnknown': 'Seda serverit kaitseb sisselogimisleht',
+  'native.gate.titleBasic': 'Seda serverit kaitseb paroolipäring',
+  'native.gate.hint': 'Logi seal üks kord rakenduses sisse, nagu brauseris. Rakendus jätab selle seansi meelde.',
+  'native.gate.signIn': 'Logi sisse: {name}',
+  'native.gate.signInGeneric': 'Logi sisse',
+  'native.gate.googleNote': 'Google kaudu sisselogimine rakenduses ei tööta. Kui sinu oma seda kasutab, lase TREK proksist hoopis läbi.',
+  'native.gate.basicHint': 'Rakendus ei saa sellele päringule vastata. Lase TREK oma proksis läbi: TREK küsib endiselt oma sisselogimist.',
+  'native.gate.help': 'Rakenduse kasutamine sisselogimisproksi taga',
 };
 
 export default native;

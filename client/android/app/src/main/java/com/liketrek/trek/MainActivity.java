@@ -36,7 +36,7 @@ public class MainActivity extends BridgeActivity {
         // scroller natively. It scales the whole view, top bar and bottom dock included.
         bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
         // Set before any WebView callback can run: they are posted to this thread.
-        if (onServer) bridge.setWebViewClient(new TrekWebViewClient(bridge, this::showAddressScreen));
+        if (onServer) bridge.setWebViewClient(new TrekWebViewClient(bridge, this::showAddressScreen, TrekServerStore.getSignInHosts(this)));
         TrekSharedFiles.receive(this, getIntent());
         // Android 15's widget picker draws the widgets live from a sample trip.
         TrekWidgetUpdater.publishPreviews(this);

@@ -135,6 +135,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'voix',
   'native.widget.noMessages': 'Pas encore de messages',
   'native.widget.departure': 'Départ',
+  'native.gate.title': '{name} protège ce serveur',
+  'native.gate.titleUnknown': 'Une page de connexion protège ce serveur',
+  'native.gate.titleBasic': 'Une demande de mot de passe protège ce serveur',
+  'native.gate.hint': 'Connectez-vous-y une fois dans l\'app, comme dans un navigateur. L\'app garde cette session.',
+  'native.gate.signIn': 'Se connecter à {name}',
+  'native.gate.signInGeneric': 'Se connecter',
+  'native.gate.googleNote': 'Une connexion avec Google ne fonctionne pas dans une app. Si la vôtre l\'utilise, laissez plutôt passer TREK dans le proxy.',
+  'native.gate.basicHint': 'L\'app ne peut pas répondre à cette demande. Laissez passer TREK dans votre proxy : TREK demande toujours sa propre connexion.',
+  'native.gate.help': 'Utiliser l\'app derrière un proxy de connexion',
 };
 
 export default native;

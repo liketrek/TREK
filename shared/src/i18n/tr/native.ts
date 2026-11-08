@@ -134,6 +134,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'oy',
   'native.widget.noMessages': 'Henüz mesaj yok',
   'native.widget.departure': 'Hareket',
+  'native.gate.title': '{name} bu sunucuyu koruyor',
+  'native.gate.titleUnknown': 'Bu sunucuyu bir giriş sayfası koruyor',
+  'native.gate.titleBasic': 'Bu sunucuyu bir parola isteği koruyor',
+  'native.gate.hint': 'Orada bir kez uygulamanın içinde, tarayıcıdaki gibi giriş yapın. Uygulama bu oturumu saklar.',
+  'native.gate.signIn': '{name} ile giriş yap',
+  'native.gate.signInGeneric': 'Giriş yap',
+  'native.gate.googleNote': 'Google ile giriş bir uygulamanın içinde çalışmaz. Sizinki bunu kullanıyorsa TREK’i proxy’den geçirin.',
+  'native.gate.basicHint': 'Uygulama bu isteğe yanıt veremez. TREK’i proxy’nizde geçirin: TREK yine kendi girişini ister.',
+  'native.gate.help': 'Uygulamayı bir giriş proxy’sinin arkasında kullanma',
 };
 
 export default native;

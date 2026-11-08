@@ -14,8 +14,12 @@ import type { NativeCapabilities } from './capabilities';
  */
 export interface TrekShellPlugin {
   getServer(): Promise<{ url: string | null }>;
-  /** Remembers the server and loads it. The current page is gone afterwards. */
-  setServer(options: { url: string }): Promise<void>;
+  /**
+   * Remembers the server and loads it. The current page is gone afterwards.
+   * `signInHosts` are the hosts of a proxy's sign-in page in front of it
+   * (authGate.ts): only they may load in the web view besides the server.
+   */
+  setServer(options: { url: string; signInHosts?: string[] }): Promise<void>;
   /** Forgets the server and returns to the address screen. */
   resetServer(): Promise<void>;
   /** Loads the remembered server again, after it could not be reached. */

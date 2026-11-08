@@ -133,6 +133,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'голосів',
   'native.widget.noMessages': 'Повідомлень поки немає',
   'native.widget.departure': 'Відʼїзд',
+  'native.gate.title': '{name} захищає цей сервер',
+  'native.gate.titleUnknown': 'Цей сервер захищає сторінка входу',
+  'native.gate.titleBasic': 'Цей сервер захищає запит пароля',
+  'native.gate.hint': 'Увійдіть там один раз просто в застосунку, як у браузері. Застосунок збереже цей сеанс.',
+  'native.gate.signIn': 'Увійти в {name}',
+  'native.gate.signInGeneric': 'Увійти',
+  'native.gate.googleNote': 'Вхід через Google не працює в застосунку. Якщо ваш вхід його використовує, пропустіть TREK через проксі.',
+  'native.gate.basicHint': 'Застосунок не може відповісти на цей запит. Пропустіть TREK у вашому проксі: TREK і далі просить власний вхід.',
+  'native.gate.help': 'Застосунок за проксі з входом',
 };
 
 export default native;

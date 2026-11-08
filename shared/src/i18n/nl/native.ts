@@ -133,6 +133,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'stemmen',
   'native.widget.noMessages': 'Nog geen berichten',
   'native.widget.departure': 'Vertrek',
+  'native.gate.title': '{name} beschermt deze server',
+  'native.gate.titleUnknown': 'Een aanmeldpagina beschermt deze server',
+  'native.gate.titleBasic': 'Een wachtwoordvraag beschermt deze server',
+  'native.gate.hint': 'Meld je daar één keer aan in de app, zoals in een browser. De app onthoudt die sessie.',
+  'native.gate.signIn': 'Aanmelden bij {name}',
+  'native.gate.signInGeneric': 'Aanmelden',
+  'native.gate.googleNote': 'Aanmelden met Google werkt niet in een app. Gebruikt de jouwe dat, laat TREK dan langs de proxy.',
+  'native.gate.basicHint': 'De app kan deze vraag niet beantwoorden. Laat TREK er in je proxy langs: TREK vraagt nog steeds om zijn eigen aanmelding.',
+  'native.gate.help': 'De app achter een aanmeldproxy gebruiken',
 };
 
 export default native;

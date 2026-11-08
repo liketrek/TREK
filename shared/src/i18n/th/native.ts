@@ -130,6 +130,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'เสียง',
   'native.widget.noMessages': 'ยังไม่มีข้อความ',
   'native.widget.departure': 'ออกเดินทาง',
+  'native.gate.title': '{name} ปกป้องเซิร์ฟเวอร์นี้',
+  'native.gate.titleUnknown': 'หน้าลงชื่อเข้าใช้ปกป้องเซิร์ฟเวอร์นี้',
+  'native.gate.titleBasic': 'คำขอรหัสผ่านปกป้องเซิร์ฟเวอร์นี้',
+  'native.gate.hint': 'ลงชื่อเข้าใช้ที่นั่นหนึ่งครั้งในแอป เหมือนในเบราว์เซอร์ แอปจะเก็บเซสชันนั้นไว้',
+  'native.gate.signIn': 'ลงชื่อเข้าใช้ {name}',
+  'native.gate.signInGeneric': 'ลงชื่อเข้าใช้',
+  'native.gate.googleNote': 'การลงชื่อเข้าใช้ด้วย Google ใช้ในแอปไม่ได้ หากของคุณใช้ ให้ปล่อย TREK ผ่านพร็อกซีแทน',
+  'native.gate.basicHint': 'แอปตอบคำขอนี้ไม่ได้ ให้ปล่อย TREK ผ่านในพร็อกซีของคุณ: TREK ยังคงขอการลงชื่อเข้าใช้ของตัวเอง',
+  'native.gate.help': 'การใช้แอปหลังพร็อกซีลงชื่อเข้าใช้',
 };
 
 export default native;

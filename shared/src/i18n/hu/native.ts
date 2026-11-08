@@ -135,6 +135,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'szavazat',
   'native.widget.noMessages': 'Még nincs üzenet',
   'native.widget.departure': 'Indulás',
+  'native.gate.title': 'A(z) {name} védi ezt a szervert',
+  'native.gate.titleUnknown': 'Egy bejelentkezési oldal védi ezt a szervert',
+  'native.gate.titleBasic': 'Egy jelszókérés védi ezt a szervert',
+  'native.gate.hint': 'Jelentkezz be ott egyszer az alkalmazásban, mint egy böngészőben. Az alkalmazás megőrzi ezt a munkamenetet.',
+  'native.gate.signIn': 'Bejelentkezés: {name}',
+  'native.gate.signInGeneric': 'Bejelentkezés',
+  'native.gate.googleNote': 'A Google-bejelentkezés nem működik alkalmazáson belül. Ha a tiéd ezt használja, inkább engedd át a TREK-et a proxyn.',
+  'native.gate.basicHint': 'Az alkalmazás nem tud válaszolni erre a kérésre. Engedd át a TREK-et a proxyban: a TREK továbbra is a saját bejelentkezését kéri.',
+  'native.gate.help': 'Az alkalmazás használata bejelentkezési proxy mögött',
 };
 
 export default native;

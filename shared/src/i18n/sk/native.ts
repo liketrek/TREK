@@ -132,6 +132,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'hlasov',
   'native.widget.noMessages': 'Zatiaľ žiadne správy',
   'native.widget.departure': 'Odchod',
+  'native.gate.title': '{name} chráni tento server',
+  'native.gate.titleUnknown': 'Tento server chráni prihlasovacia stránka',
+  'native.gate.titleBasic': 'Tento server chráni výzva na zadanie hesla',
+  'native.gate.hint': 'Prihláste sa tam raz v aplikácii, ako v prehliadači. Aplikácia si reláciu ponechá.',
+  'native.gate.signIn': 'Prihlásiť sa do {name}',
+  'native.gate.signInGeneric': 'Prihlásiť sa',
+  'native.gate.googleNote': 'Prihlásenie cez Google v aplikácii nefunguje. Ak ho používate, nechajte TREK prejsť cez proxy.',
+  'native.gate.basicHint': 'Aplikácia nedokáže na túto výzvu odpovedať. Nechajte TREK vo svojej proxy prejsť: TREK stále žiada vlastné prihlásenie.',
+  'native.gate.help': 'Používanie aplikácie za prihlasovacou proxy',
 };
 
 export default native;

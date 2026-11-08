@@ -129,6 +129,15 @@ const native: TranslationStrings = {
   'native.widget.votes': '票',
   'native.widget.noMessages': '還沒有訊息',
   'native.widget.departure': '出發',
+  'native.gate.title': '{name} 保護著此伺服器',
+  'native.gate.titleUnknown': '一個登入頁面保護著此伺服器',
+  'native.gate.titleBasic': '一個密碼提示保護著此伺服器',
+  'native.gate.hint': '在 App 內像在瀏覽器中一樣登入一次。App 會保留該工作階段。',
+  'native.gate.signIn': '登入 {name}',
+  'native.gate.signInGeneric': '登入',
+  'native.gate.googleNote': '使用 Google 登入無法在 App 內進行。如果你的使用了它，請改為讓 TREK 繞過代理。',
+  'native.gate.basicHint': 'App 無法回應此提示。請在你的代理中放行 TREK：TREK 仍會要求它自己的登入。',
+  'native.gate.help': '在登入代理後使用 App',
 };
 
 export default native;

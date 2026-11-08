@@ -136,6 +136,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'ψήφοι',
   'native.widget.noMessages': 'Δεν υπάρχουν ακόμα μηνύματα',
   'native.widget.departure': 'Αναχώρηση',
+  'native.gate.title': 'Το {name} προστατεύει αυτόν τον διακομιστή',
+  'native.gate.titleUnknown': 'Μια σελίδα σύνδεσης προστατεύει αυτόν τον διακομιστή',
+  'native.gate.titleBasic': 'Ένα αίτημα κωδικού προστατεύει αυτόν τον διακομιστή',
+  'native.gate.hint': 'Συνδεθείτε εκεί μία φορά μέσα στην εφαρμογή, όπως σε ένα πρόγραμμα περιήγησης. Η εφαρμογή κρατά αυτή τη συνεδρία.',
+  'native.gate.signIn': 'Σύνδεση στο {name}',
+  'native.gate.signInGeneric': 'Σύνδεση',
+  'native.gate.googleNote': 'Η σύνδεση με Google δεν λειτουργεί μέσα σε εφαρμογή. Αν τη χρησιμοποιεί ο δικός σας, αφήστε το TREK να περνά από τον proxy.',
+  'native.gate.basicHint': 'Η εφαρμογή δεν μπορεί να απαντήσει σε αυτό το αίτημα. Αφήστε το TREK να περνά στον proxy σας: το TREK ζητά ακόμη τη δική του σύνδεση.',
+  'native.gate.help': 'Χρήση της εφαρμογής πίσω από proxy σύνδεσης',
 };
 
 export default native;

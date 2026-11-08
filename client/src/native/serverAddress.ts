@@ -1,3 +1,4 @@
+import { detectAuthGate, type AuthGate } from './authGate';
 import { DEMO_SERVER_URL } from './links';
 
 /**
@@ -5,14 +6,21 @@ import { DEMO_SERVER_URL } from './links';
  * can load, or a reason it cannot.
  */
 
-export type ProbeFailure = 'invalid' | 'unreachable' | 'notTrek' | 'tooOld';
-type ProbeResult = { ok: true; url: string; reason?: undefined } | { ok: false; reason: ProbeFailure; url?: undefined };
+export type ProbeFailure = 'invalid' | 'unreachable' | 'notTrek' | 'authGate' | 'tooOld';
+type ProbeResult =
+  | { ok: true; url: string; reason?: undefined; gate?: undefined }
+  /**
+   * `authGate`: a sign-in page of the user's own stands in front of TREK
+   * (authGate.ts); `url` is the server address it guards.
+   */
+  | { ok: false; reason: ProbeFailure; url?: string; gate?: AuthGate };
 
 export interface ProbeResponse {
   status: number;
   data: unknown;
   /** The URL after redirects. */
   url: string;
+  headers?: Record<string, string>;
 }
 export type ProbeGet = (url: string) => Promise<ProbeResponse>;
 
@@ -66,24 +74,47 @@ function judge(response: ProbeResponse): ProbeResult {
   return 'bookingImport' in response.data ? { ok: false, reason: 'tooOld' } : { ok: false, reason: 'notTrek' };
 }
 
-const FAILURE_RANK: Record<ProbeFailure, number> = { invalid: 0, unreachable: 1, notTrek: 2, tooOld: 3 };
+const FAILURE_RANK: Record<ProbeFailure, number> = { invalid: 0, unreachable: 1, notTrek: 2, authGate: 3, tooOld: 4 };
+
+/**
+ * A gate that did not send the check to its sign-in page (an API path can get a
+ * bare 401 where a browser gets redirected) is asked once more for the start
+ * page, which is what the app's web view will load, to learn the host its
+ * sign-in lives on.
+ */
+async function withLoginHost(candidate: string, gate: AuthGate, get: ProbeGet): Promise<AuthGate> {
+  if (gate.loginHost || gate.kind === 'basic') return gate;
+  try {
+    const page = await get(candidate + '/');
+    const found = detectAuthGate(candidate + '/', page);
+    return found?.loginHost ? { ...gate, loginHost: found.loginHost } : gate;
+  } catch {
+    return gate;
+  }
+}
 
 export async function probeServer(input: string, get: ProbeGet): Promise<ProbeResult> {
   const candidates = candidateUrls(input);
   if (!candidates.length) return { ok: false, reason: 'invalid' };
 
-  let failure: ProbeFailure = 'unreachable';
+  let best: ProbeResult = { ok: false, reason: 'unreachable' };
   for (const candidate of candidates) {
-    let verdict: ProbeResult;
+    let response: ProbeResponse;
     try {
-      verdict = judge(await get(candidate + FEATURES_PATH));
+      response = await get(candidate + FEATURES_PATH);
     } catch {
       continue;
     }
+    let verdict = judge(response);
     if (verdict.ok) return { ok: true, url: verdict.url || candidate };
-    if (FAILURE_RANK[verdict.reason] > FAILURE_RANK[failure]) failure = verdict.reason;
+    if (verdict.reason === 'notTrek') {
+      const gate = detectAuthGate(candidate + FEATURES_PATH, response);
+      if (gate)
+        verdict = { ok: false, reason: 'authGate', url: candidate, gate: await withLoginHost(candidate, gate, get) };
+    }
+    if (!best.ok && FAILURE_RANK[verdict.reason] > FAILURE_RANK[best.reason]) best = verdict;
   }
-  return { ok: false, reason: failure };
+  return best;
 }
 
 /** The address screen's "Try the demo": the same probe, against the public demo server. */

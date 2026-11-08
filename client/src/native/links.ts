@@ -9,6 +9,9 @@ export const PRIVACY_URL = 'https://liketrek.com/privacy?app=1';
 /** What a TREK server is and how to run one, for someone who has none yet. */
 export const SERVER_DOCS_URL = 'https://github.com/liketrek/TREK#readme';
 
+/** Running the app with a sign-in proxy (Cloudflare Access, Pangolin and the like) in front of TREK. */
+export const AUTH_PROXY_DOCS_URL = 'https://github.com/liketrek/TREK/wiki/Native-Apps#behind-a-sign-in-proxy';
+
 /** The public demo the address screen offers to someone without a server. */
 export const DEMO_SERVER_URL = 'https://demo.liketrek.com';
 

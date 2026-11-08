@@ -13,6 +13,7 @@ The app checks that the address answers as a TREK server that knows the apps, an
 - **No server answered**: the address is wrong, the server is down, or the phone cannot reach it (see the network section below).
 - **Not TREK**: something answered, but not a TREK server.
 - **Too old**: a TREK server from before the apps. Update it to a current release.
+- **A sign-in page protects this server**: a proxy of your own stands in front of TREK. See the next section.
 
 No server yet? **Try the demo** connects to the public demo at demo.liketrek.com, which everybody shares and which is reset every hour. **What is a TREK server?** leads to the project page, which explains how to run your own.
 
@@ -29,6 +30,20 @@ Passkeys are managed in the browser for the same reason: the **Passkeys** card i
 ## Offline
 
 The app keeps the trips you choose offline the same way the browser does, including their maps; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA). On iOS, where the web view runs no service worker, the app stores a copy of the server's start page and of every script of its current version, so it also starts with no network. When the server cannot be reached on start, the app opens that copy, or offers **Try again** and **Change server**.
+
+## Behind a sign-in proxy
+
+Many servers sit behind a proxy that asks for its own sign-in before anything reaches TREK: Cloudflare Access, Pangolin, authentik, Authelia, OAuth2 Proxy, or a password prompt (Basic Auth) in nginx, Caddy or Traefik. The app recognises these when you enter the address and names the one it found.
+
+**Sign in inside the app.** For a proxy with a sign-in page, the address screen offers **Sign in to …**. The app then opens your server, and the proxy's sign-in page shows inside the app, as it would in a browser. Sign in there once; the proxy's session stays with the app and every request carries it, so TREK loads behind it. Only the sign-in host the app saw while checking the address may open inside the app; every other site still opens in the system browser, and the proxy's page has no access to the app. When the proxy's session runs out, its sign-in page shows again on the next start.
+
+What cannot work inside an app:
+
+- **Sign in with Google** (or another provider that refuses embedded browsers) on the proxy's page. Google blocks sign-ins inside apps.
+- **A password prompt** (Basic Auth). The app cannot answer it.
+- **Header or service-token rules only**, without a sign-in page. The app cannot add headers to the requests the TREK interface makes.
+
+For those, let TREK through the proxy instead: a bypass rule for TREK's address in Cloudflare Access, Pangolin, authentik or Authelia, or the password prompt removed for TREK. TREK's own sign-in still protects it. With Cloudflare Access, enrolling the phone in Cloudflare WARP also lets the app through.
 
 ## Plain http, the home network and VPNs
 

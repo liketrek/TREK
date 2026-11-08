@@ -9,6 +9,7 @@ import android.os.Looper;
 import android.util.Log;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.NotificationManagerCompat;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -18,6 +19,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import com.google.firebase.messaging.FirebaseMessaging;
+import java.util.HashSet;
+import java.util.Set;
 import org.json.JSONObject;
 
 /** The native half of client/src/native/trekShell.ts. */
@@ -275,9 +278,21 @@ public class TrekShellPlugin extends Plugin {
             call.reject("A http(s) URL is required");
             return;
         }
-        TrekServerStore.setUrl(getContext(), url);
+        TrekServerStore.setServer(getContext(), url, signInHostsOf(call));
         call.resolve();
         restart();
+    }
+
+    /** The sign-in hosts the address screen passes along, plain host names only. */
+    private static Set<String> signInHostsOf(PluginCall call) {
+        Set<String> hosts = new HashSet<>();
+        JSArray list = call.getArray("signInHosts");
+        if (list == null) return hosts;
+        for (int i = 0; i < list.length(); i++) {
+            String host = list.optString(i, "");
+            if (host.matches("[A-Za-z0-9.-]+(:[0-9]+)?")) hosts.add(host);
+        }
+        return hosts;
     }
 
     @PluginMethod

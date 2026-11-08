@@ -132,6 +132,15 @@ const native: TranslationStrings = {
   'native.widget.votes': 'hlasů',
   'native.widget.noMessages': 'Zatím žádné zprávy',
   'native.widget.departure': 'Odjezd',
+  'native.gate.title': '{name} chrání tento server',
+  'native.gate.titleUnknown': 'Tento server chrání přihlašovací stránka',
+  'native.gate.titleBasic': 'Tento server chrání výzva k zadání hesla',
+  'native.gate.hint': 'Přihlaste se tam jednou v aplikaci, jako v prohlížeči. Aplikace si relaci ponechá.',
+  'native.gate.signIn': 'Přihlásit se k {name}',
+  'native.gate.signInGeneric': 'Přihlásit se',
+  'native.gate.googleNote': 'Přihlášení přes Google v aplikaci nefunguje. Pokud ho používáte, nechte TREK projít přes proxy.',
+  'native.gate.basicHint': 'Aplikace na tuto výzvu nedokáže odpovědět. Nechte TREK ve své proxy projít: TREK stále žádá své vlastní přihlášení.',
+  'native.gate.help': 'Používání aplikace za přihlašovací proxy',
 };
 
 export default native;
