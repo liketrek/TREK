@@ -11,6 +11,8 @@ import { hasWebGL, reportWebGLFailure } from '../../utils/webgl'
 import { isGpuInitFailure } from './glSupport'
 import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
 import { offlineStyle } from '../../native/offlineTiles'
+import { isNativeIos } from '../../native/platform'
+import { nativeRasterTemplate } from '../../native/tileCache'
 
 /** The Leaflet layer maplibre-gl-leaflet hands back. */
 export type GlLeafletLayer = InstanceType<typeof MaplibreGL>
@@ -107,6 +109,17 @@ function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolea
   return true
 }
 
+/*
+ * Whether the vector basemap can draw here. In the iOS app the MapLibre layer
+ * inside Leaflet drew nothing at all, with no error to fall back on (iPhone and
+ * iPad on iOS 26 and 27, 11/2026), while raster tiles and the 3D map drew; until
+ * that is traced on a device, the app draws Leaflet's basemap as raster tiles,
+ * through its tile store so they stay offline too.
+ */
+function vectorBasemapDraws(): boolean {
+  return hasWebGL() && !isNativeIos()
+}
+
 /**
  * Calls `fail` once when the layer's style errors before it ever loaded. Errors
  * after that (a tile here and there) are the map's ordinary weather and leave it be.
@@ -132,7 +145,7 @@ function onStyleFailure(layer: GlLeafletLayer, fail: () => void): void {
  * below instead, the way they already draw a user's own raster template.
  */
 function attachRasterFallback(map: L.Map): L.TileLayer {
-  const layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
+  const layer = L.tileLayer(nativeRasterTemplate(RASTER_FALLBACK_TILE_URL), {
     maxZoom: RASTER_FALLBACK_MAX_ZOOM,
     referrerPolicy: 'strict-origin-when-cross-origin',
   } as L.TileLayerOptions)
@@ -193,7 +206,7 @@ export function VectorBasemap({ style }: { style: string }) {
   // State rather than a plain constant: the probe can say yes and the attach can
   // still fail once the page has spent its context budget, and that has to reach
   // the render or the raster tiles never appear.
-  const [glUsable, setGlUsable] = useState(hasWebGL)
+  const [glUsable, setGlUsable] = useState(vectorBasemapDraws)
 
   useEffect(() => {
     if (!glUsable) return
@@ -249,7 +262,7 @@ export function VectorBasemap({ style }: { style: string }) {
     return (
       <TileLayer
         key="webgl-fallback"
-        url={RASTER_FALLBACK_TILE_URL}
+        url={nativeRasterTemplate(RASTER_FALLBACK_TILE_URL)}
         attribution={attributionForTile(RASTER_FALLBACK_TILE_URL)}
         maxZoom={RASTER_FALLBACK_MAX_ZOOM}
         keepBuffer={8}
@@ -283,7 +296,7 @@ export async function attachVectorBasemap(
 ): Promise<void> {
   // Same gate as the component: a browser without WebGL never pays for the
   // maplibre chunk and gets raster tiles rather than an empty map (#2288).
-  if (!hasWebGL()) {
+  if (!vectorBasemapDraws()) {
     if (!cancelled()) ref.current = attachRasterFallback(map)
     return
   }

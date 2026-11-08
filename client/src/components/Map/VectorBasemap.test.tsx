@@ -39,6 +39,8 @@ vi.mock('react-leaflet', () => ({
 // jsdom has no WebGL, so without this every case below would take the raster
 // branch. The suite is about the GL wiring; the raster branch has its own cases.
 vi.mock('../../utils/webgl', () => ({ hasWebGL: vi.fn(() => true), resetWebGLProbe: vi.fn() }))
+const platform = vi.hoisted(() => ({ ios: false }))
+vi.mock('../../native/platform', () => ({ isNativeIos: () => platform.ios, isNativeApp: () => platform.ios }))
 vi.mock('./engines/maplibre', () => ({ default: { __engine: 'maplibre' } }))
 vi.mock('@maplibre/maplibre-gl-leaflet', () => {
   const maplibreGL = vi.fn(() => {
@@ -151,6 +153,17 @@ describe('VectorBasemap', () => {
     act(() => secondError({ error: new Error('one tile') }))
     expect(second.layer.remove).not.toHaveBeenCalled()
     warn.mockRestore()
+  })
+
+  it('FE-COMP-VECBM-021: in the iOS app the basemap is raster tiles, and no GL layer is built', async () => {
+    platform.ios = true
+    try {
+      const { findByTestId } = render(<VectorBasemap style={OFM_POSITRON} />)
+      expect(await findByTestId('raster-basemap')).toBeInTheDocument()
+      expect(maplibreGL).not.toHaveBeenCalled()
+    } finally {
+      platform.ios = false
+    }
   })
 
   it('FE-COMP-VECBM-004: takes the layer off the map on unmount', async () => {

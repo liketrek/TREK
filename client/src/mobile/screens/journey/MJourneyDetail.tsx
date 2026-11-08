@@ -840,7 +840,7 @@ const IN_SHELL_ROW = { '--m-safe-top': 'calc(env(safe-area-inset-top, 0px) + 6px
 function HeaderFrame({ slot, feed, children }: { slot: HTMLElement | null; feed: boolean; children: ReactNode }) {
   if (slot) {
     return createPortal(
-      <div className="flex min-w-0 flex-1 items-center gap-2 [&>span:first-child]:hidden [&_[data-view-switch]]:static [&_[data-view-switch]]:translate-x-0">
+      <div className="flex min-w-0 flex-1 items-center gap-2 [&>span:first-child]:hidden [&>span:last-child]:ms-0 [&_[data-view-switch]]:static [&_[data-view-switch]]:translate-x-0">
         {children}
       </div>,
       slot
