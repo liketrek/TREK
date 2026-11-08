@@ -9,8 +9,8 @@
  * script the names are in, and the arrow points left, from the first name to
  * the second. A left-to-right UI gets the plain string.
  */
-const FSI = '⁨';
-const PDI = '⁩';
+const FSI = '\u2068';
+const PDI = '\u2069';
 
 export function isRtlDocument(): boolean {
   return typeof document !== 'undefined' && document.documentElement.dir === 'rtl';

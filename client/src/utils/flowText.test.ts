@@ -7,8 +7,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { flowText, isRtlDocument } from './flowText';
 
-const FSI = '⁨';
-const PDI = '⁩';
+const FSI = '\u2068';
+const PDI = '\u2069';
 
 describe('flowText', () => {
   afterEach(() => {
