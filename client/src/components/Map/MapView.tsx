@@ -73,7 +73,8 @@ import VectorBasemap from './VectorBasemap'
 import { nativeRasterTemplate } from '../../native/tileCache'
 import { useSettingsStore } from '../../store/settingsStore'
 import { TourMapLayersLeaflet } from './RasterOverlayLeaflet'
-import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, LOCATE_BUTTON_ROOM, type TourBaseLayer } from './MapLayerSwitcher'
+import { MapLayerSwitcher, TourMapLayerSwitcher, type TourBaseLayer } from './MapLayerSwitcher'
+import { switcherRowStyle } from './switcherRow'
 import { MapLockPill } from './MapLockPill'
 import type { ViewportPadding } from '../../utils/mapViewport'
 import { parseRenderableRouteGeometry } from '../../utils/routeGeometry'
@@ -1126,7 +1127,7 @@ export const MapView = memo(function MapView({
     {/* 20px off the sidebar, not 12: the pill is round and frosted, so at the
         smaller gap its shadow ran into the sidebar edge and the two read as one
         surface. */}
-    <div style={{ position: 'absolute', left: leftWidth + MAP_LAYER_SWITCHER_INSET, width: `calc(100% - ${leftWidth + MAP_LAYER_SWITCHER_INSET + rightWidth + LOCATE_BUTTON_ROOM}px)`, bottom: switcherBottom, zIndex: 1000, pointerEvents: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+    <div style={{ ...switcherRowStyle(leftWidth, rightWidth), bottom: switcherBottom }}>
       {onToggleFollow && <MapLockPill locked={!followSelection} onToggle={onToggleFollow} />}
       {hasViewBaseLayer
         ? <TourMapLayerSwitcher active={baseLayer} onChange={onViewBaseLayerChange}

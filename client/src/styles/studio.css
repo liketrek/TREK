@@ -229,10 +229,7 @@
     bottom: 0;
     width: 300px;
     box-shadow: var(--sh-lg);
-    /* Floating over the page, the glass let the page show through and the panel's
-       text washed out (an iPad in landscape): a floating panel is opaque. */
   }
-  .trek-dash .st-panel.st-inspector { background: var(--surface); }
 }
 @media (max-width: 1079px) {
   .trek-dash .st-body { grid-template-columns: minmax(64px, min-content) minmax(0, 1fr); }
@@ -243,7 +240,6 @@
     width: 236px;
     box-shadow: var(--sh-lg);
   }
-  .trek-dash .st-panel.st-side { background: var(--surface); }
 }
 
 .trek-dash .st-panel {

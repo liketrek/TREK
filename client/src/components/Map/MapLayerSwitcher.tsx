@@ -33,8 +33,6 @@ export interface TourLayerOffer {
 /** Distance from the map's left edge (plus any side panel) to the switcher. */
 export const MAP_LAYER_SWITCHER_INSET = 20
 
-/** What the switcher row leaves free at the map's trailing edge: the locate button (20px off the edge, 44px wide) and a gap. */
-export const LOCATE_BUTTON_ROOM = 76
 /**
  * Outer size of the round shell: a 34px button in 4px of padding, the same shell as
  * MapCompassPill. The markup below keeps its literals, and FE-COMP-MAPLAYER-006 holds

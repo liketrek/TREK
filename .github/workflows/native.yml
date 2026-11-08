@@ -151,7 +151,10 @@ jobs:
   # The widgets drawn to PNGs (client/ios/WidgetPreviews): every size, light and
   # dark, for a trip ahead, a trip under way and none, plus a home screen and
   # a lock screen of them. Nobody has to install a build to see a widget change.
+  # Started by hand only (Run workflow): the apps are on TestFlight and Play now,
+  # where a change is looked at on a device; on every PR it only held the queue.
   widget-previews:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -208,7 +211,9 @@ jobs:
   # The watch app on watchOS simulators in its screenshot mode (DemoMode.swift):
   # every screen on the largest and the smallest watch, the main ones in every
   # language, and the complications, as PNGs to look at without a watch.
+  # Started by hand only, like the widget previews: up to 90 minutes of macOS.
   watch-screens:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-15
     timeout-minutes: 90
     steps:
