@@ -66,12 +66,12 @@ wait_ready() {
 
 TOKEN=0
 # shot <udid> <file> <screen> <scenario> <time or -> <language>: one launch, retried
-# after 2, 5 and 10 seconds when the simulator refuses it.
+# after 2, 5, 10 and 20 seconds when the simulator refuses it, saying which step failed.
 shot() {
   local udid=$1 file=$2 screen=$3 scenario=$4 clock=$5 lang=$6
-  local locale=${lang//-/_} attempt
-  for attempt in 0 2 5 10; do
-    [ "$attempt" -gt 0 ] && { echo "retrying $(basename "$file") in ${attempt}s"; sleep "$attempt"; }
+  local locale=${lang//-/_} attempt failed=
+  for attempt in 0 2 5 10 20; do
+    [ "$attempt" -gt 0 ] && { echo "retrying $(basename "$file") in ${attempt}s ($failed)"; sleep "$attempt"; }
     TOKEN=$((TOKEN + 1))
     xcrun simctl terminate "$udid" "$BUNDLE" >/dev/null 2>&1 || true
     sleep 0.5
@@ -79,11 +79,12 @@ shot() {
     [ "$clock" = - ] || extra=(-TrekNow "$clock")
     xcrun simctl launch "$udid" "$BUNDLE" \
       -AppleLanguages "($lang)" -AppleLocale "$locale" -TrekDemo "$screen" -TrekScenario "$scenario" \
-      -TrekReady "$TOKEN" ${extra[@]+"${extra[@]}"} >/dev/null 2>&1 || continue
-    wait_ready "$udid" "$TOKEN" || continue
+      -TrekReady "$TOKEN" ${extra[@]+"${extra[@]}"} >/dev/null 2>&1 || { failed=launch; continue; }
+    wait_ready "$udid" "$TOKEN" || { failed='not ready'; continue; }
     # The map's tiles come over the network after the screen is up.
     [ "$screen" = place ] && sleep 6
     xcrun simctl io "$udid" screenshot --type=png "$file" >/dev/null 2>&1 && return 0
+    failed=screenshot
   done
   echo "gave up on $(basename "$file")"
 }

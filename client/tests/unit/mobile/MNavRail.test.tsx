@@ -9,7 +9,7 @@ import { useAddonStore } from '../../../src/store/addonStore';
 import { useAuthStore } from '../../../src/store/authStore';
 import { usePluginStore } from '../../../src/store/pluginStore';
 import { buildUser } from '../../helpers/factories';
-import { fireEvent, render, screen, within } from '../../helpers/render';
+import { act, fireEvent, render, screen, within } from '../../helpers/render';
 import { setSizeClass } from '../../helpers/sizeClass';
 
 // FE-MOB-RAIL-001 onwards
@@ -82,6 +82,24 @@ describe('MNavRail', () => {
     expect(within(rail()).getByRole('button', { name: 'Admin' })).toHaveAttribute('aria-current', 'page');
     expect(within(rail()).getByRole('button', { name: 'Settings' })).not.toHaveAttribute('aria-current');
     expect(within(rail()).getByRole('button', { name: 'My Trips' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('FE-MOB-RAIL-013: on a window too short for every entry the list fades at the edge that has more behind it', () => {
+    useAuthStore.setState({ user: buildUser({ role: 'admin' }) });
+    render(<MNavRail />, { initialEntries: ['/dashboard'] });
+    const list = rail().querySelector('.overflow-y-auto') as HTMLElement;
+    expect(list.className).not.toMatch(/m-fade-/);
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 800 });
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 400 });
+    act(() => {
+      list.dispatchEvent(new Event('scroll'));
+    });
+    expect(list).toHaveClass('m-fade-b');
+    list.scrollTop = 400;
+    act(() => {
+      list.dispatchEvent(new Event('scroll'));
+    });
+    expect(list).toHaveClass('m-fade-t');
   });
 
   it("FE-MOB-RAIL-004: the create button keeps the dock's meaning and its exceptions", () => {

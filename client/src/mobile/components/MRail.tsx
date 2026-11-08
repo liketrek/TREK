@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { edgeFadeClass, useEdgeFade } from './useEdgeFade';
 
 /**
  * The rail on the leading edge that takes the dock's place on a wide window
@@ -27,6 +28,9 @@ export function MRail({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   useEvenLines(listRef);
+  // On a short window the entries scroll; the cut edge fades, so the foot's entries read as more below.
+  const [list, setList] = useState<HTMLDivElement | null>(null);
+  const fade = useEdgeFade(list, 'y');
   return (
     <nav
       aria-label={label}
@@ -34,8 +38,11 @@ export function MRail({
     >
       {head && <div className="mb-2 flex flex-none justify-center">{head}</div>}
       <div
-        ref={listRef}
-        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1 [scrollbar-width:none]"
+        ref={(node) => {
+          listRef.current = node;
+          setList(node);
+        }}
+        className={`flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1 [scrollbar-width:none] ${edgeFadeClass(fade, 'y')}`}
       >
         {children}
       </div>
