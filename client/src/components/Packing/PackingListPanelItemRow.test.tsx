@@ -569,7 +569,9 @@ describe('ArtikelZeile — weight and bag', () => {
     )
     const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
 
-    fireEvent.change(container.querySelector('input[placeholder="—"]')!, { target: { value: '450' } })
+    const weightField = container.querySelector('input[placeholder="—"]')!
+    fireEvent.change(weightField, { target: { value: '450' } })
+    fireEvent.blur(weightField)
 
     await waitFor(() => expect(body).toMatchObject({ weight_grams: 450 }))
   })
@@ -587,7 +589,9 @@ describe('ArtikelZeile — weight and bag', () => {
       bagTrackingEnabled: true,
     })
 
-    fireEvent.change(container.querySelector('input[placeholder="—"]')!, { target: { value: '' } })
+    const weightField = container.querySelector('input[placeholder="—"]')!
+    fireEvent.change(weightField, { target: { value: '' } })
+    fireEvent.blur(weightField)
 
     await waitFor(() => expect(body).toMatchObject({ weight_grams: null }))
   })
@@ -596,7 +600,9 @@ describe('ArtikelZeile — weight and bag', () => {
     server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
     const { container } = setup({ bagTrackingEnabled: true })
 
-    fireEvent.change(container.querySelector('input[placeholder="—"]')!, { target: { value: '450' } })
+    const weightField = container.querySelector('input[placeholder="—"]')!
+    fireEvent.change(weightField, { target: { value: '450' } })
+    fireEvent.blur(weightField)
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
   })
@@ -609,6 +615,7 @@ describe('ArtikelZeile — weight and bag', () => {
     const weight = container.querySelector<HTMLInputElement>('input[placeholder="—"]')!
     expect(weight.readOnly).toBe(true)
     fireEvent.change(weight, { target: { value: '450' } })
+    fireEvent.blur(weight)
     fireEvent.click(bagButton(container))
 
     await waitFor(() => expect(screen.queryByRole('button', { name: /Carry-on/ })).toBeNull())
@@ -929,6 +936,7 @@ describe('ArtikelZeile — overflow menu', () => {
 
     const weight = fieldOf(container, 'Total weight')
     fireEvent.change(weight, { target: { value: '900' } })
+    fireEvent.blur(weight)
     await waitFor(() => expect(bodies[0]).toMatchObject({ weight_grams: 900 }))
 
     // The first entry mirrors the current bag and clears it when tapped.
@@ -945,6 +953,7 @@ describe('ArtikelZeile — overflow menu', () => {
     fireEvent.click(overflowTrigger(container))
 
     fireEvent.change(fieldOf(container, 'Total weight'), { target: { value: '900' } })
+    fireEvent.blur(fieldOf(container, 'Total weight'))
 
     await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
 
@@ -995,6 +1004,7 @@ describe('ArtikelZeile — overflow menu', () => {
     fireEvent.click(overflowTrigger(container))
 
     fireEvent.change(fieldOf(container, 'Total weight'), { target: { value: '' } })
+    fireEvent.blur(fieldOf(container, 'Total weight'))
 
     await waitFor(() => expect(body).toMatchObject({ weight_grams: null }))
   })

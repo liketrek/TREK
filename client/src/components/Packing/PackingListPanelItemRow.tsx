@@ -17,7 +17,7 @@ import PackingShareControl from './PackingShareControl'
 import { PopoverItem } from './PackingPopover'
 import { POPOVER, POPOVER_CAPTION, POPOVER_DIVIDER } from './packingPopoverStyles'
 import type { TripMember } from './usePackingListPanel'
-import { NumericInput } from '../shared/NumericInput'
+import { WeightInput } from './PackingListPanelWeightInput'
 import { bringersOf, packingBringerNames } from './packingBringers'
 import { Tooltip } from '../shared/Tooltip'
 import { BringerAvatar, BringersCard, MoreBringers } from './PackingBringersCard'
@@ -107,6 +107,10 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
     if (cat === item.category) return
     try { await updatePackingItem(tripId, item.id, { category: cat }) }
     catch { toast.error(t('common.error')) }
+  }
+
+  const saveWeight = async (grams: number | null) => {
+    try { await updatePackingItem(tripId, item.id, { weight_grams: grams }) } catch { toast.error(t('packing.toast.saveError')) }
   }
 
   const canDrag = canEdit && !isPlaceholder && !!drag
@@ -251,17 +255,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
         {bagTrackingEnabled && (
           <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent', ...badge(active || item.weight_grams != null) }}>
-            <NumericInput
-              value={item.weight_grams ?? ''}
-              readOnly={!canEdit}
-              onValueChange={async raw => {
-                if (!canEdit) return
-                const v = raw === '' ? null : Number.parseInt(raw)
-                try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch { toast.error(t('packing.toast.saveError')) }
-              }}
-              placeholder="—"
-              style={{ width: 36, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'end', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
-            />
+            <WeightInput value={item.weight_grams} readOnly={!canEdit} width={36} onSave={saveWeight} />
             <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', userSelect: 'none' }}>g</span>
           </div>
           <div style={{ position: 'relative' }}>
@@ -381,16 +375,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '6px 8px' }}>
                         <span style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0 }}>{t('packing.totalWeight')}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent' }}>
-                          <NumericInput
-                            value={item.weight_grams ?? ''}
-                            readOnly={!canEdit}
-                            onValueChange={async raw => {
-                              const v = raw === '' ? null : Number.parseInt(raw)
-                              try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch { toast.error(t('packing.toast.saveError')) }
-                            }}
-                            placeholder="—"
-                            style={{ width: 42, border: 'none', fontSize: 'calc(12px * var(--fs-scale-body, 1))', textAlign: 'end', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
-                          />
+                          <WeightInput value={item.weight_grams} readOnly={!canEdit} width={42} onSave={saveWeight} />
                           <span style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', color: 'var(--text-faint)', userSelect: 'none' }}>g</span>
                         </div>
                       </div>
