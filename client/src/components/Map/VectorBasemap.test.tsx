@@ -133,7 +133,7 @@ describe('VectorBasemap', () => {
     const { findByTestId, queryByTestId } = render(<VectorBasemap style={OFM_POSITRON} />)
     await waitFor(() => expect(maplibreGL).toHaveBeenCalledTimes(1))
     const { layer, gl } = lastLayer()
-    const onError = gl.on.mock.calls.find(([name]) => name === 'error')![1] as (e: { error?: unknown }) => void
+    const onError = gl.on.mock.calls.find(([name]) => name === 'error')?.[1] as (e: { error?: unknown }) => void
     expect(gl.once).toHaveBeenCalledWith('style.load', expect.any(Function))
     expect(queryByTestId('raster-basemap')).toBeNull()
 
@@ -146,8 +146,8 @@ describe('VectorBasemap', () => {
     render(<VectorBasemap style={OFM_POSITRON} />)
     await waitFor(() => expect(maplibreGL).toHaveBeenCalledTimes(2))
     const second = lastLayer()
-    const secondError = second.gl.on.mock.calls.find(([name]) => name === 'error')![1] as (e: { error?: unknown }) => void
-    ;(second.gl.once.mock.calls.find(([name]) => name === 'style.load')![1] as () => void)()
+    const secondError = second.gl.on.mock.calls.find(([name]) => name === 'error')?.[1] as (e: { error?: unknown }) => void
+    ;(second.gl.once.mock.calls.find(([name]) => name === 'style.load')?.[1] as () => void)()
     act(() => secondError({ error: new Error('one tile') }))
     expect(second.layer.remove).not.toHaveBeenCalled()
     warn.mockRestore()

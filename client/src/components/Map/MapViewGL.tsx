@@ -2060,7 +2060,7 @@ export function MapViewGL({
           card too, and used to send the pill to the top of the map for a corner it never
           covers. */}
       <div style={{
-        position: 'absolute', left: leftWidth + MAP_LAYER_SWITCHER_INSET, right: rightWidth + LOCATE_BUTTON_ROOM, zIndex: 1000, pointerEvents: 'none',
+        position: 'absolute', left: leftWidth + MAP_LAYER_SWITCHER_INSET, width: `calc(100% - ${leftWidth + MAP_LAYER_SWITCHER_INSET + rightWidth + LOCATE_BUTTON_ROOM}px)`, zIndex: 1000, pointerEvents: 'none',
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8,
         bottom: isMobile && hasDayDetail
           ? 'calc(var(--bottom-nav-h, 0px) + 20px + var(--day-panel-h, 0px) + 12px)'

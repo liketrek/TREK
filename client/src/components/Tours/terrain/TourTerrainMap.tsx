@@ -90,8 +90,9 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
     terrain.canReplay && !props.water ? (
       <GradeLegend stats={stats} unit={unit} onLayout={props.onLegendLayout} compact={fit === 'side'} />
     ) : null;
-  const legendAbove = fit === 'stacked' || fit === 'side';
-  const layerSwitcher = (vertical: boolean) => (
+  const side = fit === 'side';
+  const legendAbove = fit === 'stacked';
+  const layerSwitcher = (
     <TourMapLayerSwitcher
       active={baseLayer}
       onChange={onBaseLayerChange}
@@ -101,7 +102,6 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
       placeTool={props.placeTool}
       layers={props.tourLayers}
       compact={fit !== 'full'}
-      vertical={vertical}
     />
   );
 
@@ -127,28 +127,38 @@ export default function TourTerrainMap(props: TourTerrainMapProps) {
           insetInlineEnd: rightWidth + MAP_LAYER_SWITCHER_INSET,
         }}
       >
-        {fit === 'side' && layerSwitcher(true)}
+        {/* Too narrow for one row (an iPad beside the tour pane): the flyover controls
+            and the grade legend stand on the trailing edge as one column of icons, and
+            the bottom row keeps the layer pill alone. */}
+        {side && (
+          <div className="flex flex-col items-center gap-2" data-testid="terrain-side-column">
+            {legend}
+            {terrain.canReplay && <TerrainDock terrain={terrain} water={props.water} vertical />}
+          </div>
+        )}
         <BaseMapCredit layer={baseLayer} />
         {legendAbove && legend}
         <div ref={attachRow} className="flex w-full items-end gap-3" data-fit={fit} data-testid="terrain-control-row">
-          {fit !== 'side' && <div className="flex-none">{layerSwitcher(false)}</div>}
-          <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-end gap-3">
-            <span />
-            {terrain.canReplay ? (
-              <TerrainDock terrain={terrain} water={props.water} />
-            ) : touchShell ? (
-              // A tablet's map is short on room, and its user learns the gestures by touch: no how-to line.
+          <div className="flex-none">{layerSwitcher}</div>
+          {!side && (
+            <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-end gap-3">
               <span />
-            ) : (
-              <div
-                className="pointer-events-auto rounded-full px-4 py-2.5 text-content-muted"
-                style={{ ...GLASS, ...fs(12, 'body') }}
-              >
-                <PickHint editing={!!props.waypoints.onAdd} placeOff={props.placeTool?.active === false} />
-              </div>
-            )}
-            <div className="flex justify-end">{!legendAbove && legend}</div>
-          </div>
+              {terrain.canReplay ? (
+                <TerrainDock terrain={terrain} water={props.water} />
+              ) : touchShell ? (
+                // A tablet's map is short on room, and its user learns the gestures by touch: no how-to line.
+                <span />
+              ) : (
+                <div
+                  className="pointer-events-auto rounded-full px-4 py-2.5 text-content-muted"
+                  style={{ ...GLASS, ...fs(12, 'body') }}
+                >
+                  <PickHint editing={!!props.waypoints.onAdd} placeOff={props.placeTool?.active === false} />
+                </div>
+              )}
+              <div className="flex justify-end">{!legendAbove && legend}</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -214,21 +224,89 @@ function IconButton({
   );
 }
 
-function Divider() {
-  return <span aria-hidden className="mx-0.5 h-5 w-px flex-none bg-edge" />;
+function Divider({ vertical = false }: { vertical?: boolean }) {
+  return <span aria-hidden className={`flex-none bg-edge ${vertical ? 'my-0.5 h-px w-5' : 'mx-0.5 h-5 w-px'}`} />;
+}
+
+type TerrainControls = Omit<ReturnType<typeof useTourTerrain>, 'setContainer'>;
+
+/** The relief steps the column's relief button goes through, a tap each. */
+const RELIEF_STEPS = [1, 1.5, 2, 3] as const;
+
+/** The next step after `value` in `steps`, round again after the last. */
+function nextStep<T extends number>(steps: readonly T[], value: number): T {
+  const at = steps.findIndex((step) => step >= value - 0.001);
+  return steps[at < 0 || at === steps.length - 1 ? 0 : at + 1];
+}
+
+/** The column's half after play, restart and overview: speed and relief a tap each, the grade switch as its icon. */
+function DockColumnTail({ terrain, water }: { terrain: TerrainControls; water?: boolean }) {
+  const { t } = useTranslation();
+  const grade = terrain.colorMode === 'grade';
+  return (
+    <>
+      <Divider vertical />
+      <Tooltip label={t('tours.terrain.speed')} placement="left">
+        <button
+          type="button"
+          aria-label={`${t('tours.terrain.speed')}: ${terrain.speed}×`}
+          onClick={() => terrain.setSpeed(nextStep(SPEEDS, terrain.speed))}
+          className="h-[34px] w-[34px] rounded-full font-semibold tabular-nums text-content-muted hover:bg-surface-hover"
+          style={fs(11)}
+        >
+          {terrain.speed}×
+        </button>
+      </Tooltip>
+      <Tooltip label={t('tours.terrain.exaggeration')} placement="left">
+        <button
+          type="button"
+          aria-label={`${t('tours.terrain.exaggeration')}: ${terrain.exaggeration.toFixed(1)}×`}
+          onClick={() => terrain.setExaggeration(nextStep(RELIEF_STEPS, terrain.exaggeration))}
+          className="flex h-[34px] w-[34px] flex-col items-center justify-center rounded-full font-semibold tabular-nums text-content-muted hover:bg-surface-hover"
+          style={fs(9)}
+        >
+          <TrendingUp size={13} strokeWidth={2} aria-hidden />
+          {terrain.exaggeration.toFixed(1)}
+        </button>
+      </Tooltip>
+      {!water && (
+        <>
+          <Divider vertical />
+          <Tooltip label={t('tours.terrain.colorByGrade')} placement="left">
+            <button
+              type="button"
+              aria-label={t('tours.terrain.colorByGrade')}
+              aria-pressed={grade}
+              onClick={() => terrain.setColorMode(grade ? 'tour' : 'grade')}
+              className={`flex h-[34px] w-[34px] items-center justify-center rounded-full ${grade ? 'bg-accent-soft text-accent' : 'text-content-muted hover:bg-surface-hover'}`}
+            >
+              <Palette size={15} strokeWidth={2} />
+            </button>
+          </Tooltip>
+        </>
+      )}
+    </>
+  );
 }
 
 /** One pill like the layer switcher: play, restart, overview · speed · relief · colour (not on water). */
 function TerrainDock({
   terrain,
   water,
+  vertical = false,
 }: {
-  terrain: Omit<ReturnType<typeof useTourTerrain>, 'setContainer'>;
+  terrain: TerrainControls;
   water?: boolean;
+  /** A column of icons on the map's trailing edge (the `side` fit). */
+  vertical?: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <div className="pointer-events-auto flex items-center gap-0.5 rounded-full p-1" style={GLASS}>
+    <div
+      className={`pointer-events-auto flex items-center gap-0.5 rounded-full p-1 ${vertical ? 'flex-col' : ''}`}
+      style={GLASS}
+      data-testid="terrain-dock"
+    >
       {terrain.preloaded < 1 ? (
         <PreloadRing
           share={terrain.preloaded}
@@ -249,6 +327,16 @@ function TerrainDock({
       <IconButton label={t('tours.terrain.overview')} onClick={terrain.overview}>
         <Scan size={15} strokeWidth={2} />
       </IconButton>
+      {vertical ? <DockColumnTail terrain={terrain} water={water} /> : <DockRowTail terrain={terrain} water={water} />}
+    </div>
+  );
+}
+
+/** The row's half after play, restart and overview: the speeds, the relief slider and the grade switch. */
+function DockRowTail({ terrain, water }: { terrain: TerrainControls; water?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <>
       <Divider />
       <div className="flex items-center" role="group" aria-label={t('tours.terrain.speed')}>
         {SPEEDS.map((speed) => (
@@ -283,7 +371,7 @@ function TerrainDock({
         </label>
       </Tooltip>
       {!water && <GradeSwitch terrain={terrain} />}
-    </div>
+    </>
   );
 }
 
@@ -409,7 +497,7 @@ function GradeLegend({
         <div
           ref={panelRef}
           id="tour-terrain-grades"
-          className={`absolute bottom-full mb-2 rounded-2xl p-3 ${compact ? 'end-0 w-[240px]' : 'inset-x-0'}`}
+          className={`absolute rounded-2xl p-3 ${compact ? 'bottom-0 end-full me-2 w-[240px]' : 'inset-x-0 bottom-full mb-2'}`}
           style={GLASS}
         >
           {compact && (
@@ -439,12 +527,26 @@ function GradeLegend({
         aria-expanded={open}
         aria-controls="tour-terrain-grades"
         aria-label={t('tours.terrain.gradeMix')}
-        className="flex h-[42px] items-center gap-2 rounded-full pe-2 ps-3"
+        className={
+          compact
+            ? 'flex w-[42px] flex-col items-center gap-2 rounded-full pb-1 pt-3'
+            : 'flex h-[42px] items-center gap-2 rounded-full pe-2 ps-3'
+        }
         style={GLASS}
       >
-        <span className="flex h-1.5 w-14 overflow-hidden rounded-full bg-surface-hover" aria-hidden>
+        <span
+          className={`flex overflow-hidden rounded-full bg-surface-hover ${compact ? 'h-14 w-1.5 flex-col' : 'h-1.5 w-14'}`}
+          aria-hidden
+        >
           {GRADE_BANDS.map((band) => (
-            <span key={band.key} style={{ width: width(band.key), background: band.paint }} />
+            <span
+              key={band.key}
+              style={
+                compact
+                  ? { height: width(band.key), background: band.paint }
+                  : { width: width(band.key), background: band.paint }
+              }
+            />
           ))}
         </span>
         {!compact && <LegendFacts stats={stats} unit={unit} />}

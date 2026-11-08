@@ -118,10 +118,9 @@ function onStyleFailure(layer: GlLeafletLayer, fail: () => void): void {
   gl.once('style.load', () => {
     loaded = true
   })
-  const onError = (event: { error?: unknown }) => {
+  const onError = () => {
     if (loaded) return
     gl.off('error', onError)
-    console.warn('[basemap] the vector style did not load, drawing raster tiles', event.error)
     fail()
   }
   gl.on('error', onError)
