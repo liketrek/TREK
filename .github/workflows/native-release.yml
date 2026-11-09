@@ -111,19 +111,21 @@ jobs:
 
   ios:
     if: github.repository == 'liketrek/TREK'
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 60
     environment: store
     steps:
       - uses: actions/checkout@v6
 
-      # App Store uploads must be built with Xcode 26; the image's default is older.
-      - name: Select Xcode 26
+      # The iOS 27.1 SDK, on the xcode-27 image: an app built against an older SDK
+      # runs letterboxed on the inner display of an iPhone Duo.
+      - name: Select Xcode 27.1
         run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
-          test -n "$XCODE"
+          XCODE=/Applications/Xcode_27.1.app
+          test -d "$XCODE"
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          xcodebuild -showsdks | grep iphoneos27.1
 
       - uses: actions/setup-node@v6
         with:

@@ -90,18 +90,20 @@ jobs:
           retention-days: 14
 
   ios:
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
 
-      # App Store uploads must be built with Xcode 26; the image's default is older.
-      - name: Select Xcode 26
+      # The iOS 27.1 SDK, on the xcode-27 image: an app built against an older SDK
+      # runs letterboxed on the inner display of an iPhone Duo.
+      - name: Select Xcode 27.1
         run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
-          test -n "$XCODE"
+          XCODE=/Applications/Xcode_27.1.app
+          test -d "$XCODE"
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          xcodebuild -showsdks | grep iphoneos27.1
 
       - name: Check the property lists
         run: plutil -lint client/ios/App/App/Info.plist client/ios/ExportOptions.plist client/ios/App/NotificationService/Info.plist client/ios/App/NotificationService/NotificationService.entitlements client/ios/App/App/App.entitlements client/ios/App/TREKWidgets/Info.plist client/ios/App/TREKWidgets/TREKWidgets.entitlements client/ios/App/TREKWidgets/*.lproj/Localizable.strings client/ios/App/ShareExtension/Info.plist client/ios/App/ShareExtension/ShareExtension.entitlements client/ios/App/ShareExtension/*.lproj/Localizable.strings client/ios/App/TREKWatch/Info.plist client/ios/App/TREKWatch/TREKWatch.entitlements client/ios/App/TREKWatch/*.lproj/Localizable.strings client/ios/App/TREKWatchWidgets/Info.plist client/ios/App/TREKWatchWidgets/TREKWatchWidgets.entitlements
