@@ -120,8 +120,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   const meta = parseMetadata(res)
   // A transport is part of the day plan, a stay, a table or a ticket a booking:
-  // each is edited under its own permission, as in the tab it belongs to.
-  const canEdit = isTransportReservationType(res.type) ? canEditDays : canEditBookings
+  // each is edited under its own permission, as in the tab it belongs to. Read off
+  // the live booking, so a sheet on its way out offers nothing to edit.
+  const canEdit = liveRes != null && (isTransportReservationType(liveRes.type) ? canEditDays : canEditBookings)
   const ResIcon = RES_ICONS[res.type as keyof typeof RES_ICONS] || RES_ICONS.other
 
   const from = (res.endpoints || []).find(e => e.role === 'from')
