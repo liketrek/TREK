@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useMPlanDragReorder } from './useMPlanDragReorder'
+import { useMPlanDragReorder, type DragRowProps } from './useMPlanDragReorder'
 import { pressHaptic, selectionHaptic, tickHaptic } from '../../../../native/haptics'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { PlanRow } from './planTimelineModel'
@@ -122,14 +122,15 @@ describe('useMPlanDragReorder', () => {
     vi.mocked(selectionHaptic).mockClear()
     vi.mocked(tickHaptic).mockClear()
     const { result, onMove } = setup()
-    act(() => { result.current.dragPropsFor(rowFor(0))!.onDragStart(dragEvent()) })
+    const rowProps = (i: number) => result.current.dragPropsFor(rowFor(i)) as DragRowProps
+    act(() => { rowProps(0).onDragStart(dragEvent()) })
     expect(pressHaptic).toHaveBeenCalledTimes(1)
-    act(() => { result.current.dragPropsFor(rowFor(0))!.onDragOver(dragEvent()) })
+    act(() => { rowProps(0).onDragOver(dragEvent()) })
     expect(selectionHaptic).not.toHaveBeenCalled()
-    act(() => { result.current.dragPropsFor(rowFor(2))!.onDragOver(dragEvent()) })
-    act(() => { result.current.dragPropsFor(rowFor(2))!.onDragOver(dragEvent()) })
+    act(() => { rowProps(2).onDragOver(dragEvent()) })
+    act(() => { rowProps(2).onDragOver(dragEvent()) })
     expect(selectionHaptic).toHaveBeenCalledTimes(1)
-    act(() => { result.current.dragPropsFor(rowFor(2))!.onDrop(dragEvent()) })
+    act(() => { rowProps(2).onDrop(dragEvent()) })
     expect(tickHaptic).toHaveBeenCalledTimes(1)
     expect(onMove).toHaveBeenCalledTimes(1)
   })

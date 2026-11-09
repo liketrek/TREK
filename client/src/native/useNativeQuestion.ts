@@ -15,15 +15,22 @@ export function useNativeQuestion(
 ): boolean {
   const native = question !== null && canAskNatively();
   const [failed, setFailed] = useState(false);
+  // A closed question forgets that the system failed it, so the next one is asked natively again.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setFailed(false);
+  }
   // Asked once per opening, also when StrictMode runs the effect twice.
   const asked = useRef(false);
   const latest = useRef({ question, answer });
-  latest.current = { question, answer };
+  useEffect(() => {
+    latest.current = { question, answer };
+  });
 
   useEffect(() => {
     if (!open) {
       asked.current = false;
-      setFailed(false);
       return;
     }
     if (!native || asked.current || !latest.current.question) return;

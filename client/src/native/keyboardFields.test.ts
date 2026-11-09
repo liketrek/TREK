@@ -3,7 +3,7 @@ import { prepareField, prepareKeyboardFields } from './keyboardFields';
 
 function field(html: string): HTMLInputElement {
   document.body.innerHTML = html;
-  return document.body.querySelector('input')!;
+  return document.body.querySelector('input') as HTMLInputElement;
 }
 
 afterEach(() => {

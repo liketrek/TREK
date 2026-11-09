@@ -34,7 +34,7 @@ describe('canAskNatively', () => {
 
 describe('askNatively', () => {
   it('asks a destroying question on a sheet with the action in red, yes only for that action', async () => {
-    vi.mocked(ActionSheet.showActions).mockResolvedValue({ index: 0 });
+    vi.mocked(ActionSheet.showActions).mockResolvedValue({ index: 0, canceled: false });
     expect(await askNatively({ ...question, danger: true })).toBe(true);
     expect(ActionSheet.showActions).toHaveBeenCalledWith({
       title: 'Delete place?',
@@ -44,9 +44,9 @@ describe('askNatively', () => {
         { title: 'Cancel', style: 'CANCEL' },
       ],
     });
-    vi.mocked(ActionSheet.showActions).mockResolvedValue({ index: 1 });
+    vi.mocked(ActionSheet.showActions).mockResolvedValue({ index: 1, canceled: false });
     expect(await askNatively({ ...question, danger: true })).toBe(false);
-    vi.mocked(ActionSheet.showActions).mockResolvedValue({ index: -1 });
+    vi.mocked(ActionSheet.showActions).mockResolvedValue({ index: -1, canceled: true });
     expect(await askNatively({ ...question, danger: true })).toBe(false);
   });
 
