@@ -374,7 +374,9 @@ export const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   nature: ['leisure=park', 'leisure=garden', 'natural=beach', 'natural=peak'],
   activity: ['tourism=theme_park', 'tourism=zoo', 'tourism=aquarium', 'leisure=water_park'],
   shopping: ['shop=mall', 'shop=department_store', 'amenity=marketplace'],
+  // A village shop or an épicerie stands in for a supermarket when shopping on the way.
   supermarket: ['shop=supermarket', 'shop=convenience'],
+  bakery: ['shop=bakery'],
   // What a drive needs rather than what a city visit does (#1797). Separate from
   // `activity`/`nature` on purpose: nobody browsing museums wants petrol stations in
   // the same result set, and the road trip panel asks for these by name.

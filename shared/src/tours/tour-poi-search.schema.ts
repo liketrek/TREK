@@ -22,7 +22,20 @@ export {
 
 /** The categories each planned tour type offers, the most asked first. */
 export const TOUR_POI_CATEGORIES_BY_TYPE: Record<PlannableTourType, readonly TourPoiCategory[]> = {
-  hike: ['viewpoint', 'shelter', 'drinking_water', 'food', 'peak', 'toilets', 'picnic', 'campsite', 'sights'],
+  // Resupply on a multi-day hike last, so a new hike still starts on the first three.
+  hike: [
+    'viewpoint',
+    'shelter',
+    'drinking_water',
+    'food',
+    'peak',
+    'toilets',
+    'picnic',
+    'campsite',
+    'sights',
+    'bakery',
+    'supermarket',
+  ],
   // BIK-07: e-bike charging after the first three, so a new bike tour still starts on those.
   bike: [
     'drinking_water',

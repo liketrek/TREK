@@ -725,6 +725,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Kavárny',
   'tours.poi.cat.restaurant': 'Kde se najíst',
   'tours.poi.cat.market': 'Trhy',
+  'tours.poi.cat.bakery': 'Pekárny',
+  'tours.poi.cat.supermarket': 'Potraviny',
   'tours.walk.station.eyebrow': 'Zastávka',
   'tours.walk.station.unnamed': 'Zastávka bez názvu',
   'tours.walk.station.name': 'Název',

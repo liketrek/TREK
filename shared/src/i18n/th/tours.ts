@@ -702,6 +702,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'ร้านกาแฟ',
   'tours.poi.cat.restaurant': 'ร้านอาหาร',
   'tours.poi.cat.market': 'ตลาด',
+  'tours.poi.cat.bakery': 'ร้านเบเกอรี่',
+  'tours.poi.cat.supermarket': 'ร้านขายของชำ',
   'tours.walk.station.eyebrow': 'จุดแวะ',
   'tours.walk.station.unnamed': 'จุดแวะที่ไม่มีชื่อ',
   'tours.walk.station.name': 'ชื่อ',

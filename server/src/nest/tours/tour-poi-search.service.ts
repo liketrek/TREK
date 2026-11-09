@@ -41,6 +41,9 @@ const MAPS_CATEGORIES: Record<TourPoiCategory, readonly string[]> = {
   market: ['market'],
   // BIK-07: only points tagged for bicycles; the explore pill's `charging` is for cars.
   ebike_charging: ['ebike_charging'],
+  // Resupply on a multi-day hike: the bread for the day, and food for lunch and supper.
+  bakery: ['bakery'],
+  supermarket: ['supermarket'],
 };
 
 /** The most places of one kind the map search answers from each source. */

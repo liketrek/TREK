@@ -731,6 +731,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'مقاهٍ',
   'tours.poi.cat.restaurant': 'مطاعم',
   'tours.poi.cat.market': 'أسواق',
+  'tours.poi.cat.bakery': 'مخابز',
+  'tours.poi.cat.supermarket': 'بقالة',
   'tours.walk.station.eyebrow': 'محطة',
   'tours.walk.station.unnamed': 'محطة بلا اسم',
   'tours.walk.station.name': 'الاسم',

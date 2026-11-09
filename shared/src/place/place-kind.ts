@@ -202,10 +202,59 @@ export function categoryIdForKind(kind: PlaceKind | null, categories: readonly P
   return byIcon ? byIcon.id : null;
 }
 
+/**
+ * Narrower categories a trip may keep beside the broad kinds: a resupply stop on a
+ * hike is filed under its own category when the admin made one, and under the
+ * broad kind's (Bar/Cafe, Shopping) otherwise. Matched like KIND_CATEGORY.
+ */
+const SPECIFIC_CATEGORIES: ReadonlyArray<{
+  terms: readonly string[];
+  names: readonly string[];
+  icons: readonly string[];
+}> = [
+  {
+    terms: ['bakery'],
+    names: ['bakery', 'bäckerei', 'boulangerie', 'panadería', 'panaderia', 'panetteria', 'bakkerij'],
+    icons: ['🥖', '🥐', '🍞', 'Croissant'],
+  },
+  {
+    terms: ['supermarket', 'convenience', 'grocery', 'greengrocer'],
+    names: [
+      'grocer',
+      'supermarket',
+      'lebensmittel',
+      'supermarkt',
+      'épicerie',
+      'epicerie',
+      'supermarché',
+      'supermercado',
+      'alimentación',
+      'alimentari',
+      'supermercato',
+    ],
+    icons: ['🛒', '🧺', 'ShoppingBasket', 'ShoppingCart'],
+  },
+];
+
+function specificCategoryId(result: Record<string, unknown>, categories: readonly PlaceKindCategory[]): number | null {
+  const terms = resultTerms(result);
+  for (const { terms: words, names, icons } of SPECIFIC_CATEGORIES) {
+    if (!terms.some((term) => words.some((word) => term.includes(word)))) continue;
+    const byName = categories.find((category) => {
+      const name = (category.name || '').toLowerCase();
+      return names.some((word) => name.includes(word));
+    });
+    if (byName) return byName.id;
+    const byIcon = categories.find((category) => category.icon != null && icons.includes(category.icon));
+    if (byIcon) return byIcon.id;
+  }
+  return null;
+}
+
 /** The trip category a picked search result most likely belongs in (#2282), or null. */
 export function guessCategoryId(
   result: Record<string, unknown>,
   categories: readonly PlaceKindCategory[],
 ): number | null {
-  return categoryIdForKind(kindOfResult(result), categories);
+  return specificCategoryId(result, categories) ?? categoryIdForKind(kindOfResult(result), categories);
 }

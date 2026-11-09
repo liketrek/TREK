@@ -730,6 +730,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Kafelər',
   'tours.poi.cat.restaurant': 'Yemək yerləri',
   'tours.poi.cat.market': 'Bazarlar',
+  'tours.poi.cat.bakery': 'Çörəkxanalar',
+  'tours.poi.cat.supermarket': 'Ərzaq mağazaları',
   'tours.walk.station.eyebrow': 'Dayanacaq',
   'tours.walk.station.unnamed': 'Adsız dayanacaq',
   'tours.walk.station.name': 'Ad',

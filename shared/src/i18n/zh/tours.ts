@@ -677,6 +677,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': '咖啡馆',
   'tours.poi.cat.restaurant': '餐馆',
   'tours.poi.cat.market': '集市',
+  'tours.poi.cat.bakery': '面包店',
+  'tours.poi.cat.supermarket': '超市和便利店',
   'tours.walk.station.eyebrow': '站点',
   'tours.walk.station.unnamed': '未命名站点',
   'tours.walk.station.name': '名称',

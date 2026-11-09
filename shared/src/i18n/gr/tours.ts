@@ -757,6 +757,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Καφετέριες',
   'tours.poi.cat.restaurant': 'Μέρη για φαγητό',
   'tours.poi.cat.market': 'Αγορές',
+  'tours.poi.cat.bakery': 'Αρτοποιεία',
+  'tours.poi.cat.supermarket': 'Παντοπωλεία',
   'tours.walk.station.eyebrow': 'Στάση',
   'tours.walk.station.unnamed': 'Στάση χωρίς όνομα',
   'tours.walk.station.name': 'Όνομα',

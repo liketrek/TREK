@@ -723,6 +723,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'בתי קפה',
   'tours.poi.cat.restaurant': 'מקומות לאכול',
   'tours.poi.cat.market': 'שווקים',
+  'tours.poi.cat.bakery': 'מאפיות',
+  'tours.poi.cat.supermarket': 'מכולות וסופרמרקטים',
   'tours.walk.station.eyebrow': 'תחנה',
   'tours.walk.station.unnamed': 'תחנה ללא שם',
   'tours.walk.station.name': 'שם',

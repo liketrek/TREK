@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Μουσεία & πολιτισμός',
   'poi.cat.nature': 'Φύση & πάρκα',
   'poi.cat.activities': 'Δραστηριότητες',
+  'poi.cat.bakeries': 'Αρτοποιεία',
+  'poi.cat.groceries': 'Παντοπωλεία',
   'poi.pluginCategories': 'Κατηγορίες από πρόσθετα',
   'map.showAllConnections': 'Εμφάνιση όλων των διαδρομών κρατήσεων',
   'map.hideAllConnections': 'Απόκρυψη όλων των διαδρομών κρατήσεων',

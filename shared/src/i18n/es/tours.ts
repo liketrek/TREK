@@ -741,6 +741,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Cafeterías',
   'tours.poi.cat.restaurant': 'Sitios para comer',
   'tours.poi.cat.market': 'Mercados',
+  'tours.poi.cat.bakery': 'Panaderías',
+  'tours.poi.cat.supermarket': 'Tiendas de alimentación',
   'tours.walk.station.eyebrow': 'Parada',
   'tours.walk.station.unnamed': 'Parada sin nombre',
   'tours.walk.station.name': 'Nombre',

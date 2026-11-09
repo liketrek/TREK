@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Musea & cultuur',
   'poi.cat.nature': 'Natuur & parken',
   'poi.cat.activities': 'Activiteiten',
+  'poi.cat.bakeries': 'Bakkerijen',
+  'poi.cat.groceries': 'Supermarkten',
   'poi.pluginCategories': 'Categorieën uit plugins',
   'map.showAllConnections': 'Alle boekingsroutes tonen',
   'map.hideAllConnections': 'Alle boekingsroutes verbergen',

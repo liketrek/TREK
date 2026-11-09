@@ -728,6 +728,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Kohvikud',
   'tours.poi.cat.restaurant': 'Söögikohad',
   'tours.poi.cat.market': 'Turud',
+  'tours.poi.cat.bakery': 'Pagarid',
+  'tours.poi.cat.supermarket': 'Toidupoed',
   'tours.walk.station.eyebrow': 'Peatus',
   'tours.walk.station.unnamed': 'Nimetu peatus',
   'tours.walk.station.name': 'Nimi',

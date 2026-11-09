@@ -728,6 +728,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Quán cà phê',
   'tours.poi.cat.restaurant': 'Chỗ ăn uống',
   'tours.poi.cat.market': 'Chợ',
+  'tours.poi.cat.bakery': 'Tiệm bánh',
+  'tours.poi.cat.supermarket': 'Cửa hàng tạp hóa',
   'tours.walk.station.eyebrow': 'Điểm dừng',
   'tours.walk.station.unnamed': 'Điểm dừng chưa đặt tên',
   'tours.walk.station.name': 'Tên',

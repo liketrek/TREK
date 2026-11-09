@@ -739,6 +739,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Kávézók',
   'tours.poi.cat.restaurant': 'Étkezőhelyek',
   'tours.poi.cat.market': 'Piacok',
+  'tours.poi.cat.bakery': 'Pékségek',
+  'tours.poi.cat.supermarket': 'Élelmiszerboltok',
   'tours.walk.station.eyebrow': 'Megálló',
   'tours.walk.station.unnamed': 'Névtelen megálló',
   'tours.walk.station.name': 'Megnevezés',

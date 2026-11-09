@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': '博物馆与文化',
   'poi.cat.nature': '自然与公园',
   'poi.cat.activities': '活动',
+  'poi.cat.bakeries': '面包店',
+  'poi.cat.groceries': '超市和便利店',
   'poi.pluginCategories': '来自插件的分类',
   'map.showAllConnections': '显示所有预订路线',
   'map.hideAllConnections': '隐藏所有预订路线',

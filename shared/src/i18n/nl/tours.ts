@@ -742,6 +742,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Koffiezaken',
   'tours.poi.cat.restaurant': 'Eetgelegenheden',
   'tours.poi.cat.market': 'Markten',
+  'tours.poi.cat.bakery': 'Bakkerijen',
+  'tours.poi.cat.supermarket': 'Supermarkten',
   'tours.walk.station.eyebrow': 'Halte',
   'tours.walk.station.unnamed': 'Halte zonder naam',
   'tours.walk.station.name': 'Benaming',

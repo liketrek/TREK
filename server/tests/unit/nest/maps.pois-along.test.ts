@@ -322,6 +322,16 @@ describe('MapsService.poisAlong', () => {
     expect(ownedByAsked({ category: 'pier', categoryPath: 'travel>pier' }, ['park'])).toBe(true);
   });
 
+  it('MAPS-ALONG-032: a bakery is no place to eat once bakeries are asked for, and a grocer no tobacconist', () => {
+    const bakery = { category: 'bakery', categoryPath: 'food_and_drink>casual_eatery>bakery' };
+    expect(ownedByAsked(bakery, ['bakery'])).toBe(true);
+    expect(ownedByAsked(bakery, ['restaurant'])).toBe(false);
+    const grocer = { category: 'grocery_store', categoryPath: 'shopping>food_and_beverage_store>grocery_store' };
+    expect(ownedByAsked(grocer, ['supermarket'])).toBe(true);
+    const shop = { category: 'convenience_store', categoryPath: 'shopping>convenience_store' };
+    expect(ownedByAsked(shop, ['supermarket'])).toBe(true);
+  });
+
   it('MAPS-ALONG-017: an index and an Overpass that both fail name every kind as failed', async () => {
     mockNearby.mockRejectedValue(new Error('places api down'));
     const { svc, overpass } = make();

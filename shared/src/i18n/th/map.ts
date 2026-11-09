@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'พิพิธภัณฑ์และวัฒนธรรม',
   'poi.cat.nature': 'ธรรมชาติและอุทยาน',
   'poi.cat.activities': 'กิจกรรม',
+  'poi.cat.bakeries': 'ร้านเบเกอรี่',
+  'poi.cat.groceries': 'ร้านขายของชำ',
   'poi.pluginCategories': 'หมวดหมู่จากปลั๊กอิน',
   'map.showAllConnections': 'แสดงเส้นทางการจองทั้งหมด',
   'map.hideAllConnections': 'ซ่อนเส้นทางการจองทั้งหมด',

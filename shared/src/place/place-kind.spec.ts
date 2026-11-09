@@ -59,4 +59,24 @@ describe('place kind and category guess', () => {
     expect(categoryIdForKind('lodging', seeded)).toBe(1);
     expect(categoryIdForKind('nature', seeded)).toBe(9);
   });
+
+  it('SHARED-PLACEKIND-008: a bakery or a grocer finds a category of its own before the broad one', () => {
+    const resupply = [
+      ...seeded,
+      { id: 11, name: 'Bäckerei', icon: 'Croissant' },
+      { id: 12, name: 'Lebensmittel', icon: 'ShoppingBasket' },
+    ];
+    expect(guessCategoryId({ category: 'bakery' }, resupply)).toBe(11);
+    expect(guessCategoryId({ category: 'food_and_drink>casual_eatery>bakery' }, resupply)).toBe(11);
+    expect(guessCategoryId({ category: 'supermarket' }, resupply)).toBe(12);
+    expect(guessCategoryId({ category: 'shopping>convenience_store' }, resupply)).toBe(12);
+    expect(guessCategoryId({ types: ['grocery_or_supermarket', 'store'] }, resupply)).toBe(12);
+    expect(guessCategoryId({ category: 'bakery' }, [{ id: 13, name: 'Brot', icon: '🥖' }])).toBe(13);
+    expect(guessCategoryId({ category: 'shop_clothes' }, resupply)).toBe(4);
+  });
+
+  it('SHARED-PLACEKIND-009: without such a category a bakery and a grocer keep the broad one', () => {
+    expect(guessCategoryId({ category: 'bakery' }, seeded)).toBe(7);
+    expect(guessCategoryId({ category: 'supermarket' }, seeded)).toBe(4);
+  });
 });

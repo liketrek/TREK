@@ -737,6 +737,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Kedai kopi',
   'tours.poi.cat.restaurant': 'Tempat makan',
   'tours.poi.cat.market': 'Pasar',
+  'tours.poi.cat.bakery': 'Toko roti',
+  'tours.poi.cat.supermarket': 'Toko kelontong',
   'tours.walk.station.eyebrow': 'Titik singgah',
   'tours.walk.station.unnamed': 'Titik tanpa nama',
   'tours.walk.station.name': 'Nama',

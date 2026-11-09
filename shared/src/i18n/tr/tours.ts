@@ -729,6 +729,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Kafeler',
   'tours.poi.cat.restaurant': 'Yemek yerleri',
   'tours.poi.cat.market': 'Pazarlar',
+  'tours.poi.cat.bakery': 'Fırınlar',
+  'tours.poi.cat.supermarket': 'Marketler',
   'tours.walk.station.eyebrow': 'Durak',
   'tours.walk.station.unnamed': 'Adsız durak',
   'tours.walk.station.name': 'Ad',
