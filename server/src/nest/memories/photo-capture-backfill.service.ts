@@ -216,6 +216,30 @@ export class PhotoCaptureBackfillService {
   }
 
   /**
+   * Asks the provider again about a photo whose stored capture time and place
+   * may belong to another one, and puts in what it confirms (#3019). Inside the
+   * owner's lookup slots like an import, so a repair over a whole library never
+   * has more than BACKFILL_CONCURRENCY calls open against one NAS. `failed` is
+   * any photo the provider did not confirm: unreachable, gone, or no item whose
+   * thumbnail matches. Its row is left as it was.
+   */
+  async reconfirm(id: number, ownerId: number): Promise<'changed' | 'same' | 'failed'> {
+    try {
+      const info = await this.withLookupSlot(ownerId, () => this.resolver.getPhotoInfo(ownerId, id));
+      if (!info.success) return 'failed';
+      const changed = await this.photos.replaceCaptureMetadata(id, {
+        takenAt: info.data.takenAt ?? null,
+        lat: info.data.lat ?? null,
+        lng: info.data.lng ?? null,
+      });
+      return changed ? 'changed' : 'same';
+    } catch (err) {
+      console.error(`[Photos] capture reconfirm failed for ${id}:`, err instanceof Error ? err.message : err);
+      return 'failed';
+    }
+  }
+
+  /**
    * EXIF of an uploaded file.
    *
    * Note for anyone chasing "my phone photo has no location": the client converts

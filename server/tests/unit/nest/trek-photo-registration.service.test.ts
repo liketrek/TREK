@@ -113,6 +113,58 @@ describe('TrekPhotoRegistrationService.recordCaptureMetadata', () => {
   });
 });
 
+describe('TrekPhotoRegistrationService.replaceCaptureMetadata (#3019)', () => {
+  // A unique asset per row: resetTestDb leaves trek_photos alone.
+  async function synologyPhoto(): Promise<number> {
+    const { user } = createUser(testDb);
+    return await repo.getOrCreate('synologyphotos', `${++seq}_1793757217`, user.id);
+  }
+
+  it("TREKPHOTO-100: puts the confirmed time and place over a neighbour's", async () => {
+    const id = await synologyPhoto();
+    await repo.recordCaptureMetadata(id, { takenAt: '2025-09-27T10:00:00Z', lat: 1, lng: 2 });
+
+    expect(await repo.replaceCaptureMetadata(id, { takenAt: '2024-06-13T08:00:00Z', lat: 48.85, lng: 2.29 })).toBe(
+      true,
+    );
+    expect(await read(id)).toEqual({ taken_at: '2024-06-13T08:00:00Z', lat: 48.85, lng: 2.29 });
+  });
+
+  it('TREKPHOTO-101: a confirmed photo without GPS loses the pair a wrong lookup gave it, and keeps its time', async () => {
+    const id = await synologyPhoto();
+    await repo.recordCaptureMetadata(id, { takenAt: '2025-09-27T10:00:00Z', lat: 1, lng: 2 });
+
+    expect(await repo.replaceCaptureMetadata(id, { takenAt: null, lat: 48.85, lng: null })).toBe(true);
+    expect(await read(id)).toEqual({ taken_at: '2025-09-27T10:00:00Z', lat: null, lng: null });
+  });
+
+  it('TREKPHOTO-102: answers false when the row already holds what was confirmed, or is gone', async () => {
+    const id = await synologyPhoto();
+    await repo.recordCaptureMetadata(id, { takenAt: '2024-06-13T08:00:00Z', lat: 48.85, lng: 2.29 });
+
+    expect(await repo.replaceCaptureMetadata(id, { takenAt: '2024-06-13T08:00:00Z', lat: 48.85, lng: 2.29 })).toBe(
+      false,
+    );
+    expect(await repo.replaceCaptureMetadata(987654321, { takenAt: '2024-06-13T08:00:00Z' })).toBe(false);
+  });
+});
+
+describe('TrekPhotosRepository.listByProviderAfter (#3019)', () => {
+  it("TREKPHOTO-103: walks one provider's photos in id order, a page at a time, each with its library's owner", async () => {
+    const { user } = createUser(testDb);
+    const a = await repo.getOrCreate('synologyphotos', `${++seq}_a`, user.id);
+    await repo.getOrCreate('immich', `${++seq}_b`, user.id);
+    const c = await repo.getOrCreate('synologyphotos', `${++seq}_c`, user.id);
+    const photos = t.repo(TrekPhotos);
+
+    const first = await photos.listByProviderAfter('synologyphotos', a - 1, 1);
+    expect(first).toEqual([{ id: a, owner_id: user.id }]);
+    const rest = await photos.listByProviderAfter('synologyphotos', a, 10);
+    expect(rest.map((r) => r.id)).toContain(c);
+    expect(rest.every((r) => r.id > a)).toBe(true);
+  });
+});
+
 describe('TrekPhotoRegistrationService.getOrCreate (PH1-3)', () => {
   it('TREKPHOTO-010: registers a new remote asset', async () => {
     const { user } = createUser(testDb);

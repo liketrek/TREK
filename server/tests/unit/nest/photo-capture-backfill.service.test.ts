@@ -522,3 +522,49 @@ describe('PhotoCaptureBackfillService — local files', () => {
     await expect(stuck).resolves.toBe(true);
   });
 });
+
+/** #3019: a Synology photo stored with the next photo's capture data, asked again. */
+describe('PhotoCaptureBackfillService.reconfirm', () => {
+  function buildReconfirm(answer: () => Promise<unknown>, changed = true) {
+    const replaceCaptureMetadata = vi.fn(async () => changed);
+    const getPhotoInfo = vi.fn(answer);
+    const photos = { replaceCaptureMetadata } as unknown as TrekPhotoRegistrationService;
+    const svc = new PhotoCaptureBackfillService(
+      { getPhotoInfo } as unknown as PhotoResolverService,
+      photos,
+      storageStub,
+    );
+    return { svc, replaceCaptureMetadata, getPhotoInfo };
+  }
+
+  it('CAPTURE-100: asks through the owner and puts in what the library confirms', async () => {
+    const { svc, replaceCaptureMetadata, getPhotoInfo } = buildReconfirm(async () => ({
+      success: true,
+      data: { takenAt: '2024-06-13T08:00:00Z', lat: 48.85, lng: 2.29 },
+    }));
+
+    expect(await svc.reconfirm(7, 3)).toBe('changed');
+    expect(getPhotoInfo).toHaveBeenCalledWith(3, 7);
+    expect(replaceCaptureMetadata).toHaveBeenCalledWith(7, { takenAt: '2024-06-13T08:00:00Z', lat: 48.85, lng: 2.29 });
+  });
+
+  it('CAPTURE-101: a row that already held it is the same, with no GPS sent as none', async () => {
+    const { svc, replaceCaptureMetadata } = buildReconfirm(async () => ({ success: true, data: {} }), false);
+
+    expect(await svc.reconfirm(7, 3)).toBe('same');
+    expect(replaceCaptureMetadata).toHaveBeenCalledWith(7, { takenAt: null, lat: null, lng: null });
+  });
+
+  it('CAPTURE-102: leaves the row alone where the library does not confirm the photo, or the lookup throws', async () => {
+    const unconfirmed = buildReconfirm(async () => ({ success: false, error: 'Photo not found', status: 404 }));
+    expect(await unconfirmed.svc.reconfirm(7, 3)).toBe('failed');
+    expect(unconfirmed.replaceCaptureMetadata).not.toHaveBeenCalled();
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const throwing = buildReconfirm(async () => {
+      throw new Error('NAS gone');
+    });
+    expect(await throwing.svc.reconfirm(7, 3)).toBe('failed');
+    errSpy.mockRestore();
+  });
+});

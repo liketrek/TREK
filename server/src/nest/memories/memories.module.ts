@@ -1,3 +1,4 @@
+import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
 import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
 import { Journeys } from '../../db/entities/Journeys.entity';
@@ -28,6 +29,7 @@ import { PhotoProviderRegistry } from './photo-provider.registry';
 import { PhotoResolverService } from './photo-resolver.service';
 import { ImmichPhotoProvider } from './providers/immich.provider';
 import { SynologyPhotoProvider } from './providers/synology.provider';
+import { SynologyCaptureRepairJob } from './synology-capture-repair.job';
 import { SynologyMemoriesController } from './synology.controller';
 import { SynologyService } from './synology.service';
 import { ThumbnailService } from './thumbnail.service';
@@ -84,6 +86,7 @@ import { Module } from '@nestjs/common';
     StorageModule,
     UserConnectionRepositoriesModule,
     MikroOrmModule.forFeature([
+      AppSettings,
       TripPhotos,
       TrekPhotos,
       TripAlbumLinks,
@@ -109,6 +112,7 @@ import { Module } from '@nestjs/common';
     TrekPhotoCacheService,
     TrekPhotoCacheJob,
     JourneyThumbsJob,
+    SynologyCaptureRepairJob,
     ImmichPhotoProvider,
     SynologyPhotoProvider,
     PhotoProviderRegistry,

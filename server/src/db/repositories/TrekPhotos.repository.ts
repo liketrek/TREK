@@ -142,6 +142,46 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
     return changed > 0;
   }
 
+  /**
+   * Puts in the capture time and place a provider has just confirmed for this
+   * very photo, over whatever the row held (#3019: Synology rows that carry the
+   * next photo's). Unlike patchCaptureMetadata it replaces: the coordinates
+   * become the confirmed pair or none at all, while a missing time leaves the
+   * stored one, since every library photo has one and none is no correction.
+   * Answers whether the row changed.
+   */
+  async replaceCaptureMetadata(
+    id: number,
+    taken_at: string | null,
+    lat: number | null,
+    lng: number | null,
+  ): Promise<boolean> {
+    const row = await this.findOne({ id });
+    if (!row) return false;
+    const next = { taken_at: taken_at ?? row.taken_at ?? null, lat, lng };
+    if (next.taken_at === (row.taken_at ?? null) && next.lat === (row.lat ?? null) && next.lng === (row.lng ?? null)) {
+      return false;
+    }
+    await this.nativeUpdate({ id }, next);
+    return true;
+  }
+
+  /**
+   * One provider's photos after `afterId`, oldest first, `limit` at a time, with
+   * the user whose library each lives in: the pages a provider-wide repair walks.
+   */
+  async listByProviderAfter(
+    provider: string,
+    afterId: number,
+    limit: number,
+  ): Promise<Array<{ id: number; owner_id: number }>> {
+    const rows = await this.find(
+      { provider, id: { $gt: afterId }, owner: { $ne: null }, asset_id: { $ne: null } },
+      { orderBy: { id: 'asc' }, limit },
+    );
+    return rows.flatMap((row) => (row.owner ? [{ id: row.id, owner_id: row.owner.id }] : []));
+  }
+
   /** PH11 — `DELETE FROM trek_photos WHERE id = ? AND provider != 'local'`; local photos are never auto-reclaimed here. */
   async deleteNonLocal(id: number): Promise<number> {
     return await this.nativeDelete({ id, provider: { $ne: 'local' } });
