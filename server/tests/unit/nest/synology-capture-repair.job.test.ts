@@ -1,5 +1,3 @@
-import { db } from '../../../src/db/database';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import type { TrekPhotosRepository } from '../../../src/db/repositories/TrekPhotos.repository';
 import type { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import {
@@ -8,9 +6,7 @@ import {
   SynologyCaptureRepairJob,
 } from '../../../src/nest/memories/synology-capture-repair.job';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import { findRow } from '../../helpers/factories/rows';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestAppSettingsRepo, sharedTestOrm } from '../../helpers/test-uow';
+import type { SettingsService } from '../../../src/nest/settings/settings.service';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,12 +31,23 @@ describe('SynologyCaptureRepairJob', () => {
   } as unknown as TrekPhotosRepository;
   const reconfirm = vi.fn();
   const backfill = { reconfirm } as unknown as PhotoCaptureBackfillService;
-  const setting = async (key: string) => (await findRow(await sharedTestOrm(db), AppSettings, { key }))?.value;
+  // The instance settings the job keeps its progress in, as the settings domain answers them.
+  const stored = new Map<string, string>();
+  const settings = {
+    getAppSetting: async (key: string) => stored.get(key) ?? null,
+    setAppSettings: async (values: Record<string, string>) => {
+      for (const [key, value] of Object.entries(values)) stored.set(key, value);
+    },
+    deleteAppSettings: async (keys: string[]) => {
+      for (const key of keys) stored.delete(key);
+    },
+  } as unknown as SettingsService;
+  const setting = async (key: string) => stored.get(key);
   const job = async (enabled = true) =>
-    new SynologyCaptureRepairJob(backfill, registrar(enabled), await createTestAppSettingsRepo(db), trekPhotos);
+    new SynologyCaptureRepairJob(backfill, registrar(enabled), settings, trekPhotos);
 
   beforeEach(() => {
-    resetTestDb(db);
+    stored.clear();
     reconfirm.mockReset();
     vi.mocked(trekPhotos.listByProviderAfter).mockClear();
   });

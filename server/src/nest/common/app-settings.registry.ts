@@ -152,6 +152,10 @@ export const APP_SETTINGS = {
   service_key: { schema: text, default: null, encrypted: 'always', managedLocked: true },
   /** The key's bookkeeping as JSON: when to renew, when to ask again after a refusal, a revocation. */
   service_key_state: { schema: text, default: null },
+  /** When every Synology photo was asked again for its own capture data (#3019); set once. */
+  synology_capture_repair_3019: { schema: text, default: null },
+  /** How many starts have tried that so far, while some photo could not be confirmed. */
+  synology_capture_repair_3019_tries: { schema: intText, default: null },
 } as const satisfies Record<string, AppSettingDef>;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;

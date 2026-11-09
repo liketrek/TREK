@@ -1,4 +1,3 @@
-import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
 import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
 import { Journeys } from '../../db/entities/Journeys.entity';
@@ -16,6 +15,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
+import { SettingsModule } from '../settings/settings.module';
 import { StorageModule } from '../storage/storage.module';
 import { ImmichMemoriesController } from './immich.controller';
 import { ImmichService } from './immich.service';
@@ -83,10 +83,10 @@ import { Module } from '@nestjs/common';
     TrekPhotosModule,
     RealtimeModule,
     SchedulingModule,
+    SettingsModule,
     StorageModule,
     UserConnectionRepositoriesModule,
     MikroOrmModule.forFeature([
-      AppSettings,
       TripPhotos,
       TrekPhotos,
       TripAlbumLinks,

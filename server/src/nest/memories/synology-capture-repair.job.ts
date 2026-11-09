@@ -1,17 +1,16 @@
-import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { TrekPhotosRepository } from '../../db/repositories/TrekPhotos.repository';
 import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { SettingsService } from '../settings/settings.service';
 import { PhotoCaptureBackfillService } from './photo-capture-backfill.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /** The app_settings row that says every Synology photo has been asked again. */
-export const SYNOLOGY_CAPTURE_REPAIR_DONE_KEY = 'synology_capture_repair_3019';
+export const SYNOLOGY_CAPTURE_REPAIR_DONE_KEY = 'synology_capture_repair_3019' as const;
 /** How many starts have tried so far, while some photo could not be confirmed. */
-export const SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY = 'synology_capture_repair_3019_tries';
+export const SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY = 'synology_capture_repair_3019_tries' as const;
 
 const PROVIDER = 'synologyphotos';
 const PAGE = 200;
@@ -43,7 +42,7 @@ export class SynologyCaptureRepairJob implements OnApplicationBootstrap {
   constructor(
     private readonly backfill: PhotoCaptureBackfillService,
     private readonly registrar: CronRegistrarService,
-    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+    private readonly settings: SettingsService,
     @InjectRepository(TrekPhotos) private readonly trekPhotos: TrekPhotosRepository,
   ) {}
 
@@ -69,16 +68,16 @@ export class SynologyCaptureRepairJob implements OnApplicationBootstrap {
 
   async runOnce(): Promise<void> {
     try {
-      if ((await this.appSettings.countKeysPresent([SYNOLOGY_CAPTURE_REPAIR_DONE_KEY])) > 0) return;
-      const tries = Number(await this.appSettings.getValue(SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY)) || 0;
+      if ((await this.settings.getAppSetting(SYNOLOGY_CAPTURE_REPAIR_DONE_KEY)) !== null) return;
+      const tries = Number(await this.settings.getAppSetting(SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY)) || 0;
 
       const { changed, failed } = await this.walk(0);
 
       if (failed > 0 && tries + 1 < MAX_TRIES) {
-        await this.appSettings.upsertOrReplace(SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY, String(tries + 1));
+        await this.settings.setAppSettings({ [SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY]: String(tries + 1) });
       } else {
-        await this.appSettings.upsertOrReplace(SYNOLOGY_CAPTURE_REPAIR_DONE_KEY, new Date().toISOString());
-        await this.appSettings.deleteValue(SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY);
+        await this.settings.setAppSettings({ [SYNOLOGY_CAPTURE_REPAIR_DONE_KEY]: new Date().toISOString() });
+        await this.settings.deleteAppSettings([SYNOLOGY_CAPTURE_REPAIR_TRIES_KEY]);
       }
       if (changed + failed > 0) {
         logInfo(
