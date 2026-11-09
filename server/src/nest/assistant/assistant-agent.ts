@@ -13,6 +13,8 @@ import { activityOf, foundPlacesOf, googleIdsOf, weatherDayOf, weatherOf } from 
 import type { TripCard } from './assistant-context';
 import { FOLLOW_UPS_ANSWER, followUpsOf } from './assistant-follow-ups';
 import { outputText } from './assistant-history';
+import { OPEN_TRIP_CHAT_TOOL } from './assistant-home';
+import { OPEN_JOURNEY_CHAT_TOOL } from './assistant-home-journeys';
 import { toolOutputForProvider } from './assistant-output';
 import { MAX_CARDS_PER_STEP, MAX_READS_PER_STEP, MAX_STEPS, MAX_WRITES_PER_STEP } from './assistant-tools.constants';
 import type { AssistantToolKind, ToolRun } from './assistant-tools.service';
@@ -557,6 +559,12 @@ async function askForTheAnswer(turn: Turn, rowId: number, step: StepRecord & { a
   return null;
 }
 
+/**
+ * The calls that only hand the conversation on, to a trip's or a journey's own
+ * chat: a card for the user, nothing the model reads further.
+ */
+const HANDOFF_TOOLS: ReadonlySet<string> = new Set([OPEN_TRIP_CHAT_TOOL, OPEN_JOURNEY_CHAT_TOOL]);
+
 /** One step of the turn: the outcome when the turn ends with it, null when the model is asked again. */
 async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
   const { deps, input, w, signal, history } = turn;
@@ -638,6 +646,19 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
     return outcomeOf(turn, 'aborted');
   }
   if (held.length > 0) return holdChanges(turn, rowId, { parts, providerState }, held);
+  // A step that wrote its answer and only handed the conversation on is the end of
+  // the turn. Asked once more after the card, the model wrote the same answer again.
+  if (text.trim() && received.every((call) => HANDOFF_TOOLS.has(call.name))) {
+    const followUps = asks.length > 0 ? followUpsOf(asks[asks.length - 1].args) : turn.followUps;
+    if (followUps) {
+      parts.push({ type: 'data-trek-follow-ups', data: followUps });
+      w.followUps(followUps);
+    }
+    await deps.store.saveStep(rowId, { parts, providerState }, 'complete');
+    w.finishStep();
+    finishTurn(turn, 'stop');
+    return outcomeOf(turn, 'stop');
+  }
   const { images, modelTexts } = collected;
   await carryOn(turn, rowId, { parts, providerState }, { text, calls, images, modelTexts });
   return null;
