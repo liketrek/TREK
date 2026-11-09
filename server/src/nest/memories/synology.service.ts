@@ -740,29 +740,38 @@ export class SynologyService {
     // both are asked in turn, and only an item whose own thumbnail is this unit
     // counts: never a neighbour's capture time or GPS.
     const unit = Number(parsedId.id);
-    let lastFailure: ServiceResult<AssetInfo> = fail('Photo not found', 404);
-    for (const itemId of [unit, unit + 1]) {
-      const infoParams: ApiCallParams = {
-        api: 'SYNO.Foto.Browse.Item',
-        method: 'get',
-        version: 5,
-        id: `[${itemId}]`,
-        additional: ['thumbnail', 'resolution', 'exif', 'gps', 'address', 'orientation', 'description'],
-      };
-      if (passphrase) infoParams.passphrase = passphrase;
-      const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(targetUserId, infoParams);
-      if (!result.success) {
-        lastFailure = result as ServiceResult<AssetInfo>;
-        continue;
-      }
-      const metadata = result.data.list?.find((item) => this._isItemOfUnit(item, parsedId.id));
-      if (!metadata) continue;
+    const own = await this._readItemOfUnit(targetUserId, unit, parsedId.id, passphrase);
+    const found =
+      own.success && own.data ? own : await this._readItemOfUnit(targetUserId, unit + 1, parsedId.id, passphrase);
+    if (!found.success) return found as ServiceResult<AssetInfo>;
+    if (!found.data) return fail('Photo not found', 404);
 
-      const normalized = this._normalizeSynologyPhotoInfo(metadata);
-      normalized.id = photoId;
-      return success(normalized);
-    }
-    return lastFailure;
+    const normalized = this._normalizeSynologyPhotoInfo(found.data);
+    normalized.id = photoId;
+    return success(normalized);
+  }
+
+  /**
+   * One Browse.Item `get` by item id, answering the item only when its own
+   * thumbnail is the requested unit, and null when it belongs to another photo.
+   */
+  private async _readItemOfUnit(
+    userId: number,
+    itemId: number,
+    unitId: string,
+    passphrase?: string,
+  ): Promise<ServiceResult<SynologyPhotoItem | null>> {
+    const infoParams: ApiCallParams = {
+      api: 'SYNO.Foto.Browse.Item',
+      method: 'get',
+      version: 5,
+      id: `[${itemId}]`,
+      additional: ['thumbnail', 'resolution', 'exif', 'gps', 'address', 'orientation', 'description'],
+    };
+    if (passphrase) infoParams.passphrase = passphrase;
+    const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(userId, infoParams);
+    if (!result.success) return result as ServiceResult<SynologyPhotoItem | null>;
+    return success(result.data.list?.find((item) => this._isItemOfUnit(item, unitId)) ?? null);
   }
 
   /**
