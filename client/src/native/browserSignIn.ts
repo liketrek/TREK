@@ -26,7 +26,7 @@ export const HANDOFF_PATH = '/native-handoff';
  * TREK's service worker off the browser and then opens HANDOFF_PATH with the
  * same query. Under /api, which every TREK service worker passes to the server.
  */
-export const HANDOFF_START_PATH = '/api/auth/native/start';
+const HANDOFF_START_PATH = '/api/auth/native/start';
 
 /** Where the browser starts: straight into SSO, or straight at the passkey prompt. */
 export type BrowserSignInStart = 'oidc' | 'passkey';
