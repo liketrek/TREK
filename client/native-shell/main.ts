@@ -767,6 +767,7 @@ function showClaim(
   slugInput.setAttribute('autocomplete', 'off');
   slugInput.setAttribute('maxlength', '40');
   slugInput.setAttribute('aria-label', t('native.claim.addressLabel'));
+  slugInput.setAttribute('enterkeyhint', 'next');
   // "name.liketrek.com" is one address, left to right in every language.
   const slugField = el(
     'div',
@@ -831,6 +832,17 @@ function showClaim(
     error
   );
 
+  // "Next" moves on to the next field instead of sending the form half filled;
+  // "Go" on the password sends it.
+  const nextOnEnter = (from: HTMLInputElement, to: HTMLInputElement) =>
+    from.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      to.focus();
+    });
+  nextOnEnter(slugInput, emailInput);
+  nextOnEnter(emailInput, passwordInput);
+
   let status: SlugStatus | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const noteFor: Partial<Record<SlugStatus, string>> = {
@@ -888,6 +900,8 @@ function showClaim(
     passwordHint.className = 'hint';
 
     void tap(ImpactStyle.Medium);
+    // The purchase sheet and the progress want the whole screen, not the keyboard.
+    passwordInput.blur();
     const lock = (on: boolean) => {
       slugInput.disabled = on;
       emailInput.disabled = on;
@@ -1133,9 +1147,38 @@ function followBackGesture(): void {
   }
 }
 
+/**
+ * The keyboard closes the ways it does in an iOS app: a tap beside the fields,
+ * or a drag of the screen. A web view keeps it open for both, and on the claim
+ * screen the keyboard covered the hints and the terms with no way to put it away.
+ */
+function letKeyboardClose(): void {
+  const isField = (target: EventTarget | null) =>
+    target instanceof Element && !!target.closest('input, textarea, select, [contenteditable="true"], .field');
+  const close = () => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && isField(active)) active.blur();
+  };
+  document.addEventListener('pointerdown', (e) => {
+    if (!isField(e.target)) close();
+  }, true);
+  let startY: number | null = null;
+  document.addEventListener('touchstart', (e) => {
+    startY = isField(e.target) ? null : (e.touches[0]?.clientY ?? null);
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    const y = e.touches[0]?.clientY;
+    if (startY !== null && y !== undefined && Math.abs(y - startY) > 10) {
+      startY = null;
+      close();
+    }
+  }, { passive: true });
+}
+
 async function start(): Promise<void> {
   void paintStatusBar();
   followBackGesture();
+  letKeyboardClose();
   let url: string | null;
   try {
     ({ url } = await TrekShell.getServer());
