@@ -189,6 +189,9 @@ body {
   text-rendering: optimizeLegibility;
   user-select: none;
   -webkit-user-select: none;
+  /* A double tap on a button zoomed the screen on iOS. An app does not zoom:
+     taps stay taps, panning still scrolls. */
+  touch-action: manipulation;
 }
 
 /*
