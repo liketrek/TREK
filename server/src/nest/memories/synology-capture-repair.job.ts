@@ -54,6 +54,8 @@ export class SynologyCaptureRepairJob implements OnApplicationBootstrap {
   /**
    * The pages after `after`, one after the other: each page's lookups run at
    * once, held to a few per library by the backfill's slots.
+   *
+   * @txIndependent each photo's write follows its own lookup in the owner's library and stands on its own.
    */
   private async walk(after: number): Promise<{ changed: number; failed: number }> {
     const page = await this.trekPhotos.listByProviderAfter(PROVIDER, after, PAGE);
@@ -66,6 +68,11 @@ export class SynologyCaptureRepairJob implements OnApplicationBootstrap {
     };
   }
 
+  /**
+   * One pass, then the marker of how far it got.
+   *
+   * @txIndependent the marker follows a pass of network lookups and records only that the pass ran.
+   */
   async runOnce(): Promise<void> {
     try {
       if ((await this.settings.getAppSetting(SYNOLOGY_CAPTURE_REPAIR_DONE_KEY)) !== null) return;

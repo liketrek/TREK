@@ -724,6 +724,12 @@ export class SynologyService {
     });
   }
 
+  /**
+   * The photo's own details: the item of its unit, and the next item only when
+   * the library answered with another photo there (#3019).
+   *
+   * @txIndependent each lookup may renew the Synology session first; that write stands on its own.
+   */
   async getSynologyAssetInfo(
     userId: number,
     photoId: string,
