@@ -161,7 +161,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "rollup-plugin-visualizer": "^7.1.1",
     "sharp": "^0.35.5",
-    "tailwindcss": "^3.4.19",
+    "tailwindcss": "^4.3.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
     "vite": "8.3.5",
