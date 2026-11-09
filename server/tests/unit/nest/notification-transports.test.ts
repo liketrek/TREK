@@ -318,7 +318,8 @@ describe('built-in email manage link scope', () => {
       webhook: {} as never,
       ntfy: {} as never,
       push: {} as never,
-    }).find((channel) => channel.id === 'email')!;
+    }).find((channel) => channel.id === 'email');
+    if (!emailChannel) throw new Error('Expected the built-in email channel to be registered');
 
     await emailChannel.sendToUser(1, { event: 'version_available', title: 'Update', body: 'New version' });
     await emailChannel.sendToUser(1, { event: 'trip_invite', title: 'Invite', body: 'Join trip' });
