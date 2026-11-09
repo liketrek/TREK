@@ -176,7 +176,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} lässt nur Geräte mit einem Client-Zertifikat durch, dem es vertraut.',
   'native.cert.settingTitle': 'Client-Zertifikat',
   'native.cert.settingIssuer': 'Ausgestellt von {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Gültig bis',
   'native.cert.settingHint': 'Die App zeigt dieses Zertifikat nur {host}, wenn dessen Proxy danach fragt.',
   'native.cert.settingReplace': 'Ersetzen',

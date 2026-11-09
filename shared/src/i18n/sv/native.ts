@@ -171,7 +171,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} släpper bara in enheter med ett betrott klientcertifikat.',
   'native.cert.settingTitle': 'Klientcertifikat',
   'native.cert.settingIssuer': 'Utfärdat av {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Giltigt till',
   'native.cert.settingHint': 'Appen visar certifikatet bara för {host}, när dess proxy ber om det.',
   'native.cert.settingReplace': 'Ersätt',

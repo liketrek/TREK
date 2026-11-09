@@ -170,7 +170,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} laseb läbi ainult usaldusväärse kliendisertifikaadiga seadmed.',
   'native.cert.settingTitle': 'Kliendisertifikaat',
   'native.cert.settingIssuer': 'Väljastaja: {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Kehtib kuni',
   'native.cert.settingHint': 'Rakendus näitab seda sertifikaati ainult serverile {host}, kui selle proksi seda küsib.',
   'native.cert.settingReplace': 'Asenda',

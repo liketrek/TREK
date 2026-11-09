@@ -160,7 +160,7 @@ const native: TranslationStrings = {
   'native.cert.help': "Usare l'app con un certificato client",
   'native.cert.passwordTitle': 'Password del certificato',
   'native.cert.passwordMessage': "Inserisci la password del file del certificato. L'app non la conserva.",
-  'native.cert.passwordPlaceholder': 'Password',
+  'native.cert.passwordPlaceholder': 'Password', // same-as-en
   'native.cert.passwordOk': 'Aggiungi',
   'native.cert.passwordCancel': 'Annulla',
   'native.cert.passwordWrong': 'Questa password non apre il file. Riprova.',
@@ -175,7 +175,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} lascia passare solo dispositivi con un certificato client affidabile.',
   'native.cert.settingTitle': 'Certificato client',
   'native.cert.settingIssuer': 'Emesso da {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Valido fino al',
   'native.cert.settingHint': "L'app mostra questo certificato solo a {host}, quando il suo proxy lo chiede.",
   'native.cert.settingReplace': 'Sostituisci',

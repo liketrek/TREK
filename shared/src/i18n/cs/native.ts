@@ -169,7 +169,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} pouští jen zařízení s důvěryhodným klientským certifikátem.',
   'native.cert.settingTitle': 'Klientský certifikát',
   'native.cert.settingIssuer': 'Vydal: {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Platný do',
   'native.cert.settingHint': 'Aplikace ukazuje tento certifikát jen serveru {host}, když o něj jeho proxy požádá.',
   'native.cert.settingReplace': 'Nahradit',

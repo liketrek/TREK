@@ -171,7 +171,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} yalnız etibarlı müştəri sertifikatı olan cihazları buraxır.',
   'native.cert.settingTitle': 'Müştəri sertifikatı',
   'native.cert.settingIssuer': 'Verən: {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Etibarlıdır',
   'native.cert.settingHint': 'Tətbiq bu sertifikatı yalnız {host} serverinə, proksisi soruşanda göstərir.',
   'native.cert.settingReplace': 'Əvəz et',

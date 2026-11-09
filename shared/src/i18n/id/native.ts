@@ -172,7 +172,7 @@ const native: TranslationStrings = {
   'native.cert.unreachableHint': '{server} hanya meloloskan perangkat dengan sertifikat klien tepercaya.',
   'native.cert.settingTitle': 'Sertifikat klien',
   'native.cert.settingIssuer': 'Diterbitkan oleh {issuer}',
-  'native.cert.settingServer': 'Server',
+  'native.cert.settingServer': 'Server', // same-as-en
   'native.cert.settingValidUntil': 'Berlaku hingga',
   'native.cert.settingHint': 'Aplikasi hanya menunjukkan sertifikat ini ke {host}, saat proxy-nya memintanya.',
   'native.cert.settingReplace': 'Ganti',
