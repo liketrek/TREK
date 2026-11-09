@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
-    "knip": "^6.38.0",
+    "knip": "^6.44.1",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
@@ -42,8 +42,8 @@
   },
   "comment:overrides": "React and react-dom: one React 19 across the workspace, so the test renderer (@testing-library/react) and the app share one react-dom. Everything else is a security floor. npm reads overrides from the root package.json only, so a floor in a workspace package.json does nothing. A floor never crosses a major its dependents ask for (brace-expansion is pinned per line for that reason), and npm ls <name> shows whether it holds.",
   "overrides": {
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "@hono/node-server": "^1.19.13",
     "body-parser@^1.20.0": "^1.20.9",
     "body-parser@^2.0.0": "^2.4.0",
