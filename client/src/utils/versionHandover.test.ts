@@ -447,6 +447,30 @@ describe('reconcileAppVersion: a page loaded past an older worker', () => {
   })
 })
 
+describe('reconcileAppVersion: during the app's sign-in in the browser', () => {
+  it('FE-UTIL-VERSION-058: leaves version and page alone while the sign-in runs, and acts again after it', async () => {
+    const { container } = installWorker(null)
+    container.getRegistration.mockResolvedValue(undefined)
+    const { reconcileAppVersion } = await loadModule()
+    localStorage.setItem('trek_app_version', '4.3.0')
+    // public/native-handoff.js marks the sign-in; a reload now could land on an
+    // older worker that a tab still open on the old version keeps alive.
+    localStorage.setItem('trek_native_signin', String(Date.now()))
+
+    await reconcileAppVersion('4.3.1')
+
+    expect(marker()).toBe('4.3.0')
+    expect(reload).not.toHaveBeenCalled()
+    expect(container.getRegistration).not.toHaveBeenCalled()
+
+    // A mark older than any sign-in takes counts for nothing.
+    localStorage.setItem('trek_native_signin', String(Date.now() - 16 * 60 * 1000))
+    await reconcileAppVersion('4.3.1')
+    expect(marker()).toBe('4.3.1')
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('reconcileAppVersion: the reload guard', () => {
   it('FE-UTIL-VERSION-030: a marker that cannot be written does not turn into a reload loop', async () => {
     const { reconcileAppVersion } = await loadModule()

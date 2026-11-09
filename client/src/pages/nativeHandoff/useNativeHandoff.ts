@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 import { HANDOFF_PATH, rememberHandoffReturn, requestHandoffCode, signInWithPasskey } from '../../native/browserSignIn';
+import { endBrowserSignIn } from '../../native/browserSignInFlag';
 import { APP_URL_SCHEME } from '../../native/trekShell';
 import { useAuthStore } from '../../store/authStore';
 
@@ -50,6 +51,7 @@ export function useNativeHandoff() {
     setStatus('sending');
     try {
       const code = await requestHandoffCode(challenge);
+      endBrowserSignIn();
       window.location.href = `${APP_URL_SCHEME}://auth?code=${encodeURIComponent(code)}`;
     } catch {
       setStatus('failed');

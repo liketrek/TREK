@@ -44,10 +44,12 @@ describe('requestHandoffCode', () => {
 });
 
 describe('handoffUrl', () => {
-  it('points at the hand-off page with the challenge and an optional start', () => {
-    expect(handoffUrl('https://trek.example.com', 'c')).toBe('https://trek.example.com/native-handoff?challenge=c');
+  it('starts at the server page in front of the hand-off page, with the challenge and an optional start', () => {
+    // Under /api, which every TREK service worker passes to the server: an older
+    // version's worker must not answer the hand-off page from its cache.
+    expect(handoffUrl('https://trek.example.com', 'c')).toBe('https://trek.example.com/api/auth/native/start?challenge=c');
     expect(handoffUrl('https://trek.example.com', 'c', 'oidc')).toBe(
-      'https://trek.example.com/native-handoff?challenge=c&start=oidc'
+      'https://trek.example.com/api/auth/native/start?challenge=c&start=oidc'
     );
   });
 });
@@ -59,7 +61,7 @@ describe('signInThroughBrowser', () => {
     await signInThroughBrowser('oidc');
 
     const opened = new URL(vi.mocked(TrekShell.authenticate).mock.calls[0][0].url);
-    expect(opened.pathname).toBe('/native-handoff');
+    expect(opened.pathname).toBe('/api/auth/native/start');
     expect(opened.searchParams.get('start')).toBe('oidc');
     expect(vi.mocked(TrekShell.authenticate).mock.calls[0][0].callbackScheme).toBe('com.liketrek.trek');
     const { code, verifier } = vi.mocked(nativeAuthApi.exchange).mock.calls[0][0];

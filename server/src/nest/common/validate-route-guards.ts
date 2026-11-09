@@ -145,6 +145,9 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   // The native app redeems a one-time code from the system browser here. The
   // code is only good together with the verifier the app kept to itself.
   'NativeAuthController.exchange',
+  // Where the app's sign-in in the system browser starts: a page that forwards
+  // to the handoff page and carries no credential.
+  'NativeAuthController.start',
   'OauthPublicController.revoke',
   'OauthPublicController.token',
   'OauthPublicController.userinfo',

@@ -102,6 +102,7 @@ describe('useNativeHandoff', () => {
 
   it('FE-NATIVE-HANDOFF-006: only mints the code on the tap, then hands it to the app scheme', async () => {
     vi.mocked(requestHandoffCode).mockResolvedValue('c/1');
+    localStorage.setItem('trek_native_signin', String(Date.now()));
     const { result } = renderHandoff();
     expect(requestHandoffCode).not.toHaveBeenCalled();
 
@@ -111,6 +112,8 @@ describe('useNativeHandoff', () => {
 
     expect(requestHandoffCode).toHaveBeenCalledWith(challenge);
     expect(window.location.href).toBe('com.liketrek.trek://auth?code=c%2F1');
+    // Handed back: the browser registers its service worker again from here.
+    expect(localStorage.getItem('trek_native_signin')).toBeNull();
   });
 
   it('FE-NATIVE-HANDOFF-007: reports a failed hand-off', async () => {

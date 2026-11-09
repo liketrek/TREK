@@ -21,6 +21,13 @@ import { APP_URL_SCHEME, TrekShell } from './trekShell';
 
 export const HANDOFF_PATH = '/native-handoff';
 
+/**
+ * Where the browser is sent first: a page of the server's that takes an older
+ * TREK's service worker off the browser and then opens HANDOFF_PATH with the
+ * same query. Under /api, which every TREK service worker passes to the server.
+ */
+export const HANDOFF_START_PATH = '/api/auth/native/start';
+
 /** Where the browser starts: straight into SSO, or straight at the passkey prompt. */
 export type BrowserSignInStart = 'oidc' | 'passkey';
 
@@ -65,7 +72,7 @@ export function createHandoffSecret(): { verifier: string; challenge: string } {
 }
 
 export function handoffUrl(origin: string, challenge: string, start?: BrowserSignInStart, invite?: string): string {
-  const url = new URL(HANDOFF_PATH, origin);
+  const url = new URL(HANDOFF_START_PATH, origin);
   url.searchParams.set('challenge', challenge);
   if (start) url.searchParams.set('start', start);
   if (invite) url.searchParams.set('invite', invite);

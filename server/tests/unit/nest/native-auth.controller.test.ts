@@ -8,7 +8,7 @@ import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { RESPONSE_CONTRACT_KEY } from '../../../src/nest/common/response-contract';
-import { NativeAuthController } from '../../../src/nest/native-auth/native-auth.controller';
+import { NativeAuthController, nativeStartPage } from '../../../src/nest/native-auth/native-auth.controller';
 import type { NativeAuthService } from '../../../src/nest/native-auth/native-auth.service';
 import type { User } from '../../../src/types';
 import { nativeHandoffResponseSchema, successResponseSchema } from '@trek/shared';
@@ -98,5 +98,50 @@ describe('NativeAuthController.exchange', () => {
     const proto = NativeAuthController.prototype;
     expect(Reflect.getMetadata(RESPONSE_CONTRACT_KEY, proto.handoff)).toBe(nativeHandoffResponseSchema);
     expect(Reflect.getMetadata(RESPONSE_CONTRACT_KEY, proto.exchange)).toBe(successResponseSchema);
+  });
+});
+
+describe('NativeAuthController.start', () => {
+  function htmlRes() {
+    const res = {
+      status: vi.fn(),
+      set: vi.fn(),
+      type: vi.fn(),
+      send: vi.fn(),
+    };
+    for (const fn of [res.status, res.set, res.type]) fn.mockReturnValue(res);
+    return res;
+  }
+
+  it('NATIVE-CTL-007: answers the page that opens the handoff page with the same challenge, start and invite', () => {
+    const { controller } = build();
+    const res = htmlRes();
+
+    controller.start(challenge, 'oidc', 'inv_A-1', res as unknown as Response);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    expect(res.type).toHaveBeenCalledWith('text/html');
+    expect(res.send).toHaveBeenCalledWith(
+      nativeStartPage(`/native-handoff?challenge=${challenge}&start=oidc&invite=inv_A-1`),
+    );
+  });
+
+  it('NATIVE-CTL-008: refuses a malformed challenge and drops a start or invite it does not know', () => {
+    const { controller } = build();
+    const bad = htmlRes();
+    controller.start('not-a-hash', 'oidc', undefined, bad as unknown as Response);
+    expect(bad.status).toHaveBeenCalledWith(400);
+
+    const res = htmlRes();
+    controller.start(challenge, 'evil', '"><script>', res as unknown as Response);
+    expect(res.send).toHaveBeenCalledWith(nativeStartPage(`/native-handoff?challenge=${challenge}`));
+  });
+
+  it('NATIVE-CTL-009: the page loads the forwarding script from the server and escapes the target', () => {
+    const page = nativeStartPage('/native-handoff?challenge=a&start=oidc');
+    expect(page).toContain('<script src="/native-handoff.js" data-target="/native-handoff?challenge=a&amp;start=oidc"></script>');
+    expect(page).toContain('<meta http-equiv="refresh" content="0;url=/native-handoff?challenge=a&amp;start=oidc">');
+    expect(nativeStartPage('/native-handoff?x="<>')).not.toMatch(/"<>/);
   });
 });
