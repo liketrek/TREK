@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Új kategória',
   'mobileTrip.newReservation': 'Új foglalás',
   'mobileTrip.notes': 'Jegyzetek',
-  'mobileTrip.onMap': 'Térképen',
+  'mobileTrip.onMap': 'Térkép',
   'mobileTrip.profileDriving': 'Autózás',
   'mobileTrip.profileWalking': 'Gyaloglás',
   'mobileTrip.profileCycling': 'Kerékpározás',

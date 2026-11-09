@@ -180,14 +180,8 @@ function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: O
   // A chip that may not be opened is not a button in the first place (`bookingOpens`),
   // so nothing is turned away silently here.
   const canEditBookings = planner.can('reservation_edit', planner.trip)
-  const openBooking = (res: Reservation) => {
-    if (planner.TRANSPORT_TYPES.has(res.type)) {
-      shell.openSheet('transport', { reservationId: res.id })
-      return
-    }
-    planner.setEditingReservation(res)
-    planner.setShowReservationModal(true)
-  }
+  // Every booking opens its detail sheet, as on the desktop; its pencil edits it there.
+  const openBooking = (res: Reservation) => shell.openSheet('transport', { reservationId: res.id })
   // A booked night at the edge of the stage is no stop, and has no stop sheet: it opens the
   // booking behind the night, else the stay for somebody who may edit days, else the
   // hotel's place, the way a stay chip in the day timeline does (#2210).

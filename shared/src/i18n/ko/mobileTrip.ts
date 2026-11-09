@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': '새 카테고리',
   'mobileTrip.newReservation': '새 예약',
   'mobileTrip.notes': '메모',
-  'mobileTrip.onMap': '지도에서',
+  'mobileTrip.onMap': '지도',
   'mobileTrip.profileDriving': '자동차',
   'mobileTrip.profileWalking': '도보',
   'mobileTrip.profileCycling': '자전거',

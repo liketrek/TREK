@@ -181,7 +181,7 @@ describe('MTransportSheet', () => {
     const planner = makePlanner()
     const shell = makeShell({ trTab: 'transports', view: 'plan' })
     render(<MTransportSheet planner={planner} shell={shell} />)
-    const btn = screen.getByRole('button', { name: 'On map' })
+    const btn = screen.getByRole('button', { name: 'Map' })
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(btn)
     expect(planner.toggleConnection).toHaveBeenCalledWith(7)
@@ -194,7 +194,7 @@ describe('MTransportSheet', () => {
     const planner = makePlanner({ visibleConnections: [7] })
     const shell = makeShell({ trTab: 'plan', view: 'map' })
     render(<MTransportSheet planner={planner} shell={shell} />)
-    const btn = screen.getByRole('button', { name: 'On map' })
+    const btn = screen.getByRole('button', { name: 'Map' })
     expect(btn).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(btn)
     expect(planner.toggleConnection).toHaveBeenCalledWith(7)
@@ -253,7 +253,7 @@ describe('MTransportSheet', () => {
     render(<MTransportSheet planner={planner} shell={makeShell()} />)
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'On map' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Map' })).toBeInTheDocument()
   })
 
   it('FE-MOB-TRSH-021: keeps the last booking on screen while the sheet animates out', () => {
@@ -323,7 +323,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'transports', view: 'plan' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
 
       expect(planner.toggleConnection).toHaveBeenCalledWith(7)
       expect(planner.handleSelectDay).toHaveBeenCalledWith(3, false)
@@ -338,7 +338,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'transports', view: 'map' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
 
       expect(shell.toggleView).not.toHaveBeenCalled()
       expect(planner.handleSelectDay).toHaveBeenCalledWith(3, false)
@@ -351,7 +351,7 @@ describe('MTransportSheet', () => {
       const planner = makePlanner({ days: DAYS, selectedDayId: 4, reservations: [overnight] })
       render(<MTransportSheet planner={planner} shell={makeShell({ trTab: 'plan', view: 'plan' })} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
 
       expect(planner.toggleConnection).toHaveBeenCalledWith(7)
       expect(planner.handleSelectDay).not.toHaveBeenCalled()
@@ -362,13 +362,13 @@ describe('MTransportSheet', () => {
       const unbound = { ...FLIGHT, day_id: null, end_day_id: null } as unknown as Reservation
       const allDays = makePlanner({ days: DAYS, selectedDayId: null })
       const { unmount } = render(<MTransportSheet planner={allDays} shell={makeShell({ trTab: 'transports', view: 'map' })} />)
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
       expect(allDays.handleSelectDay).not.toHaveBeenCalled()
       unmount()
 
       const noDay = makePlanner({ days: DAYS, selectedDayId: 5, reservations: [unbound] })
       render(<MTransportSheet planner={noDay} shell={makeShell({ trTab: 'transports', view: 'plan' })} />)
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
       expect(noDay.toggleConnection).toHaveBeenCalledWith(7)
       expect(noDay.handleSelectDay).not.toHaveBeenCalled()
     })
@@ -381,7 +381,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'transports', view: 'plan' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      const btn = screen.getByRole('button', { name: 'On map' })
+      const btn = screen.getByRole('button', { name: 'Map' })
       expect(btn).toHaveAttribute('aria-pressed', 'false')
       fireEvent.click(btn)
 
@@ -398,7 +398,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'plan', view: 'map' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      const btn = screen.getByRole('button', { name: 'On map' })
+      const btn = screen.getByRole('button', { name: 'Map' })
       expect(btn).toHaveAttribute('aria-pressed', 'true')
       fireEvent.click(btn)
 

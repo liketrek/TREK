@@ -201,13 +201,12 @@ describe('MBookingsTab', () => {
     expect(within(card).getAllByText('—')).toHaveLength(2)
   })
 
-  it('FE-MOB-BKTAB-012: opens the reservation editor from the row', () => {
+  it('FE-MOB-BKTAB-012: a tap on the card shows the booking first, as a transport and the desktop do', () => {
     const p = planner()
-    renderTab(p)
+    const { shell } = renderTab(p)
     fireEvent.click(screen.getByText('Sushi Saito'))
-    expect(p.can).toHaveBeenCalledWith('reservation_edit', p.trip)
-    expect(p.setEditingReservation).toHaveBeenCalledWith(expect.objectContaining({ id: 202 }))
-    expect(p.setShowReservationModal).toHaveBeenCalledWith(true)
+    expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 202 })
+    expect(p.setShowReservationModal).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-BKTAB-013: opens the same editor from the pencil', () => {
@@ -217,10 +216,11 @@ describe('MBookingsTab', () => {
     expect(p.setEditingReservation).toHaveBeenCalledWith(expect.objectContaining({ id: 201 }))
   })
 
-  it('FE-MOB-BKTAB-014: a read-only member gets no editor and no actions', () => {
+  it('FE-MOB-BKTAB-014: a read-only member may look at a booking but gets no editor and no actions', () => {
     const p = planner({ can: vi.fn(() => false) as unknown as TripPlanner['can'] })
-    renderTab(p)
+    const { shell } = renderTab(p)
     fireEvent.click(screen.getByText('Sushi Saito'))
+    expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 202 })
     expect(p.setShowReservationModal).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'common.edit' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'common.delete' })).not.toBeInTheDocument()

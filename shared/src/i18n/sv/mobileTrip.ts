@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Ny kategori',
   'mobileTrip.newReservation': 'Ny bokning',
   'mobileTrip.notes': 'Anteckningar',
-  'mobileTrip.onMap': 'På kartan',
+  'mobileTrip.onMap': 'Karta',
   'mobileTrip.profileDriving': 'Bil',
   'mobileTrip.profileWalking': 'Gång',
   'mobileTrip.profileCycling': 'Cykel',

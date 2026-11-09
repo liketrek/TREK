@@ -277,6 +277,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Ekspordi näidatud read, {shown} / {total} (CSV)',
   'reservations.wallet.add': 'Lisa Apple Walletisse',
   'reservations.wallet.addGoogle': 'Lisa Google Walletisse',
+  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Walleti passi ei õnnestunud luua. Proovi uuesti.',
   'reservations.wallet.undated': 'Anna broneeringule kõigepealt kuupäev: Wallet näitab passi selle aja paiku.',
 };

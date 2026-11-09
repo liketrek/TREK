@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'فئة جديدة',
   'mobileTrip.newReservation': 'حجز جديد',
   'mobileTrip.notes': 'الملاحظات',
-  'mobileTrip.onMap': 'على الخريطة',
+  'mobileTrip.onMap': 'الخريطة',
   'mobileTrip.profileDriving': 'بالسيارة',
   'mobileTrip.profileWalking': 'سيرًا على الأقدام',
   'mobileTrip.profileCycling': 'بالدراجة',

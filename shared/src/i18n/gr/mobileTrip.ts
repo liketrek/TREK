@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Νέα κατηγορία',
   'mobileTrip.newReservation': 'Νέα Κράτηση',
   'mobileTrip.notes': 'Σημειώσεις',
-  'mobileTrip.onMap': 'Στον χάρτη',
+  'mobileTrip.onMap': 'Χάρτης',
   'mobileTrip.profileDriving': 'Με αυτοκίνητο',
   'mobileTrip.profileWalking': 'Με τα πόδια',
   'mobileTrip.profileCycling': 'Με ποδήλατο',

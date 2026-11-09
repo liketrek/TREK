@@ -268,6 +268,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': '表示中の {shown}/{total} 行をエクスポート (CSV)',
   'reservations.wallet.add': 'Apple Walletに追加',
   'reservations.wallet.addGoogle': 'Google Walletに追加',
+  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Walletパスを作成できませんでした。もう一度お試しください。',
   'reservations.wallet.undated': '先に予約に日付を入れてください。Walletはその時刻の前後にパスを表示します。',
 };

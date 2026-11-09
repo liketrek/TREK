@@ -103,6 +103,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   })
 
   const canEditDays = planner.can('day_edit', planner.trip)
+  const canEditBookings = planner.can('reservation_edit', planner.trip)
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
   const [codeRevealed, setCodeRevealed] = useState(false)
@@ -118,6 +119,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   const meta = parseMetadata(res)
+  // A transport is part of the day plan, a stay, a table or a ticket a booking:
+  // each is edited under its own permission, as in the tab it belongs to.
+  const canEdit = isTransportReservationType(res.type) ? canEditDays : canEditBookings
   const ResIcon = RES_ICONS[res.type as keyof typeof RES_ICONS] || RES_ICONS.other
 
   const from = (res.endpoints || []).find(e => e.role === 'from')
@@ -362,7 +366,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
               <span dir="auto" className="truncate">{f.original_name}</span>
             </button>
           ))}
-          {canEditDays && (
+          {canEdit && (
             <button
               type="button"
               onClick={editTransport}
@@ -372,7 +376,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
               {t('common.edit')}
             </button>
           )}
-          {canEditDays && (
+          {canEdit && (
             <button
               type="button"
               onClick={deleteTransport}

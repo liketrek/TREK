@@ -69,6 +69,7 @@ export default function MBookingsTab({ planner, shell }: MTabScreenProps) {
                 planner={planner}
                 canEdit={canEdit}
                 compact={shell.bookingsCompact}
+                onView={() => shell.openSheet('transport', { reservationId: res.id })}
               />
               ))}
             </CardGrid>
@@ -79,10 +80,12 @@ export default function MBookingsTab({ planner, shell }: MTabScreenProps) {
   )
 }
 
-function BookingCard({ res, planner, canEdit, compact }: {
+function BookingCard({ res, planner, canEdit, compact, onView }: {
   res: Reservation
   planner: MTabScreenProps['planner']
   canEdit: boolean
+  /** A tap on the card: the booking's detail sheet, as a transport opens, and as on the desktop. */
+  onView: () => void
   compact: boolean
 }) {
   const { t, days } = planner
@@ -139,7 +142,7 @@ function BookingCard({ res, planner, canEdit, compact }: {
       {/* Header */}
       <div className="flex items-center gap-[7px] border-b border-[color:var(--m-rowbr)] px-3 py-[10px]" style={{ background: tint }}>
         <StatusDot color={dotColor} />
-        <CardTitleButton res={res} TypeIcon={TypeIcon} typeColor={typeColor} onOpen={openEdit} t={t} />
+        <CardTitleButton res={res} TypeIcon={TypeIcon} typeColor={typeColor} onOpen={onView} t={t} />
         {canEdit && <CardActions onEdit={openEdit} onDelete={card.askDelete} t={t} />}
       </div>
 
@@ -154,11 +157,11 @@ function BookingCard({ res, planner, canEdit, compact }: {
             timeValue={timeValue}
             code={res.confirmation_number}
             card={card}
-            onOpen={openEdit}
+            onOpen={onView}
             t={t}
           />
 
-          <button type="button" onClick={openEdit} className="block w-full text-start">
+          <button type="button" onClick={onView} className="block w-full text-start">
             {metaCells.length > 0 && (
               <div className="mt-2 flex gap-2">
                 {metaCells.slice(0, 3).map((c, i) => (

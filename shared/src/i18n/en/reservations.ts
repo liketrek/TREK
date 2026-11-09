@@ -277,6 +277,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Export the {shown} of {total} shown rows (CSV)',
   'reservations.wallet.add': 'Add to Apple Wallet',
   'reservations.wallet.addGoogle': 'Add to Google Wallet',
+  'reservations.wallet.short': 'Wallet',
   'reservations.wallet.failed': 'The Wallet pass could not be made. Please try again.',
   'reservations.wallet.undated': 'Give the booking a date first: Wallet brings the pass up around its time.',
 };

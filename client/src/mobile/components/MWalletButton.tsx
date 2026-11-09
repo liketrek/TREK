@@ -57,10 +57,11 @@ export default function MWalletButton({ tripId, reservationId, onError, classNam
       onClick={() => void add()}
       disabled={busy}
       aria-busy={busy}
+      aria-label={t(wallet === 'google' ? 'reservations.wallet.addGoogle' : 'reservations.wallet.add')}
       className="flex items-center gap-[6px] rounded-full bg-black px-3 py-[7px] text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold text-white transition-transform active:scale-[.97] disabled:opacity-70" // theme-lint-disable: the wallets' badges are black in either theme
     >
       {busy ? <Loader2 size={13} className="animate-spin" /> : <Wallet size={13} strokeWidth={2} />}
-      {t(wallet === 'google' ? 'reservations.wallet.addGoogle' : 'reservations.wallet.add')}
+      {t('reservations.wallet.short')}
     </button>
   );
   return className ? <div className={className}>{button}</div> : button;

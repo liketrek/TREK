@@ -277,6 +277,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Gösterilen {total} satırdan {shown} tanesini dışa aktar (CSV)',
   'reservations.wallet.add': 'Apple Cüzdan’a Ekle',
   'reservations.wallet.addGoogle': 'Google Cüzdan’a Ekle',
+  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Cüzdan kartı oluşturulamadı. Lütfen tekrar deneyin.',
   'reservations.wallet.undated': 'Önce rezervasyona bir tarih verin: Cüzdan kartı o zamana yakın gösterir.',
 };

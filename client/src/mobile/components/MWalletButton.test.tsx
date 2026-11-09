@@ -61,12 +61,14 @@ describe('MWalletButton', () => {
     await waitFor(() => expect(onError).toHaveBeenLastCalledWith(expect.stringMatching(/could not be made/i)));
   });
 
-  it('on Android adds the booking to Google Wallet, under its own name', async () => {
+  it('on Android adds the booking to Google Wallet, under its own name for screen readers', async () => {
     wallet.kind = 'google';
     wallet.addGoogle.mockResolvedValue('added');
     const onError = vi.fn();
     render(<MWalletButton tripId={42} reservationId={7} onError={onError} />);
-    expect(screen.getByRole('button')).toHaveTextContent(/Google Wallet/);
+    // The label is short, the accessible name says which wallet.
+    expect(screen.getByRole('button')).toHaveTextContent(/^Wallet$/);
+    expect(screen.getByRole('button', { name: /Google Wallet/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(wallet.addGoogle).toHaveBeenCalledWith(42, 7, expect.any(String)));
     expect(wallet.add).not.toHaveBeenCalled();

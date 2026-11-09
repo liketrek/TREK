@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'หมวดหมู่ใหม่',
   'mobileTrip.newReservation': 'การจองใหม่',
   'mobileTrip.notes': 'หมายเหตุ',
-  'mobileTrip.onMap': 'บนแผนที่',
+  'mobileTrip.onMap': 'แผนที่',
   'mobileTrip.profileDriving': 'ขับรถ',
   'mobileTrip.profileWalking': 'เดิน',
   'mobileTrip.profileCycling': 'ปั่นจักรยาน',

@@ -112,18 +112,11 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   )
   const openRes = (res: Reservation) => {
     if (!canOpenRes(res)) return
-    if (planner.TRANSPORT_TYPES.has(res.type)) {
-      planner.setEditingTransport(res)
-      planner.setTransportModalDayId(res.day_id ?? null)
-      planner.setTransportModalAutomated(false)
-      planner.setShowTransportModal(true)
-    } else {
-      planner.setEditingReservation(res)
-      planner.setShowReservationModal(true)
-    }
     // This sheet hangs off the place selection, not the sheet stack, so its own
-    // close() is what dismisses it — otherwise the editor opens on top of it.
+    // close() is what dismisses it; the booking's detail sheet then opens alone,
+    // with its pencil for editing, as on the desktop.
     close()
+    shell.openSheet('transport', { reservationId: res.id })
   }
 
   const participants = assignmentInDay?.participants || []
@@ -413,7 +406,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       type="button"
                       onClick={() => openRes(res)}
                       disabled={!canOpenRes(res)}
-                      aria-label={canOpenRes(res) ? t('inspector.editRes') : undefined}
                       className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-[10px] text-start ${INNER_CLS}`}
                     >
                       <span
