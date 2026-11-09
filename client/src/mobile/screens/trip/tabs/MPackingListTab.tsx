@@ -714,6 +714,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
         leading={swipeLeading}
         trailing={swipeTrailing}
         surface="bg-m-sheetop"
+        inset={4}
         className="border-t border-[color:var(--m-rowbr)] first:border-t-0"
       >
       <div className="flex items-center gap-[9px] py-2">

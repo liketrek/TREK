@@ -34,10 +34,18 @@ interface MSwipeRowProps {
   className?: string;
   /** The row's own background: it covers the buttons until the row moves, so it must match what is around it. */
   surface?: string;
+  /**
+   * How far the buttons sit in from the row's top and bottom edge. A row that is a
+   * card of its own leaves it at 0, so the buttons are as tall as the card; a row
+   * inside a grouped card insets them, so they do not touch its dividers.
+   */
+  inset?: number;
   children: ReactNode;
 }
 
-const BUTTON_W = 76;
+/** One button, and the gap before it: the buttons are cards of their own beside the row. */
+const BUTTON_W = 70;
+const GAP = 6;
 const EDGE_PX = 24;
 const CLAIM_PX = 10;
 const AXIS_BIAS = 1.5;
@@ -59,6 +67,7 @@ export default function MSwipeRow({
   disabled = false,
   className = '',
   surface = 'bg-[color:var(--m-card)]',
+  inset = 0,
   children,
 }: MSwipeRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -91,7 +100,11 @@ export default function MSwipeRow({
     // Positive offset reveals the leading side in LTR; RTL mirrors it.
     const leadSign = () => (rtl() ? -1 : 1);
     const openWidth = (which: 'leading' | 'trailing') =>
-      which === 'leading' ? (latest.current.leading ? BUTTON_W : 0) : latest.current.trailing.length * BUTTON_W;
+      which === 'leading'
+        ? latest.current.leading
+          ? BUTTON_W + GAP
+          : 0
+        : latest.current.trailing.length * (BUTTON_W + GAP);
 
     const close = () => {
       place(0, true);
@@ -194,17 +207,18 @@ export default function MSwipeRow({
     action.onAction();
   };
   const shown = open ?? side;
+  // The icon alone, as in Mail; the label names the button for a screen reader.
   const button = (action: SwipeAction) => (
     <button
       key={action.label}
       type="button"
       data-swipe-action=""
       tabIndex={open ? 0 : -1}
+      aria-label={action.label}
       onClick={() => run(action)}
-      className={`flex h-full w-[76px] flex-none flex-col items-center justify-center gap-1 text-caption font-semibold ${TONE[action.tone]}`}
+      className={`flex h-full w-[70px] flex-none items-center justify-center ${inset ? 'rounded-xl' : 'rounded-2xl'} ${TONE[action.tone]}`}
     >
-      <action.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-      {action.label}
+      <action.icon size={16} strokeWidth={2.2} aria-hidden="true" />
     </button>
   );
 
@@ -213,7 +227,8 @@ export default function MSwipeRow({
       {shown && (
         <div
           aria-hidden={!open}
-          className={`absolute inset-0 flex ${shown === 'leading' ? 'justify-start' : 'justify-end'}`}
+          className={`absolute inset-x-0 flex gap-[6px] ${shown === 'leading' ? 'justify-start pe-[6px]' : 'justify-end ps-[6px]'}`}
+          style={{ top: inset, bottom: inset }}
         >
           {shown === 'leading' ? leading && button(leading) : trailing.map(button)}
         </div>

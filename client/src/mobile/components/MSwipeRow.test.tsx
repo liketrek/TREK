@@ -35,8 +35,8 @@ function setup() {
 describe('MSwipeRow', () => {
   it('FE-MOB-SWIPE-001: shows no action buttons until the row is swiped', () => {
     setup();
-    expect(screen.queryByText('Delete')).toBeNull();
-    expect(screen.queryByText('Done')).toBeNull();
+    expect(screen.queryByLabelText('Delete')).toBeNull();
+    expect(screen.queryByLabelText('Done')).toBeNull();
   });
 
   it('FE-MOB-SWIPE-002: a swipe towards the start opens the trailing action, a tap on it runs it', () => {
@@ -45,7 +45,7 @@ describe('MSwipeRow', () => {
     touch(row, 'touchmove', 160);
     touch(row, 'touchmove', 120);
     touch(row, 'touchend');
-    fireEvent.click(screen.getByText('Delete'));
+    fireEvent.click(screen.getByLabelText('Delete'));
     expect(onDelete).toHaveBeenCalledOnce();
   });
 
@@ -54,7 +54,7 @@ describe('MSwipeRow', () => {
     touch(row, 'touchstart', 200, 100);
     touch(row, 'touchmove', 190, 160);
     touch(row, 'touchend');
-    expect(screen.queryByText('Delete')).toBeNull();
+    expect(screen.queryByLabelText('Delete')).toBeNull();
   });
 
   it('FE-MOB-SWIPE-004: a tap on an open row closes it instead of opening the row', () => {
@@ -72,7 +72,7 @@ describe('MSwipeRow', () => {
     touch(row, 'touchstart', 10);
     touch(row, 'touchmove', 120);
     touch(row, 'touchend');
-    expect(screen.queryByText('Done')).toBeNull();
+    expect(screen.queryByLabelText('Done')).toBeNull();
   });
 
   it('FE-MOB-SWIPE-006: swiped through past most of the row, the first action runs at once', () => {

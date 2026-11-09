@@ -15,7 +15,6 @@ import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
 import { CountPill, TabPanes } from './tabChrome'
 import { AddPaymentSheet, MemberAvatar } from './MCostsPayment'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
@@ -595,17 +594,10 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
   const members = item.members || []
   const note = readUserNote(item)
 
-  // A swipe offers what the buttons beside the card do; delete still asks first.
-  const swipe: SwipeAction[] = canEdit
-    ? [
-        { label: t('common.delete'), icon: Trash2, tone: 'danger', onAction: onDelete },
-        { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: onEdit },
-      ]
-    : []
-
+  // No swipe here: edit and delete stand beside the card already, and a swipe
+  // put a second, larger pair of the same buttons next to them.
   return (
-    <MSwipeRow trailing={swipe} disabled={!canEdit} surface="bg-[color:var(--m-bg)]" className="mt-2 rounded-2xl">
-    <div className="flex items-center gap-[6px]">
+    <div className="mt-2 flex items-center gap-[6px]">
       <div className="relative min-w-0 flex-1 rounded-2xl bg-m-card px-3 pb-[10px] pt-[22px]" style={{ border: `1.5px solid ${borderColor}` }}>
         <span
           className="absolute -start-[1.5px] -top-[1.5px] flex items-center gap-1 rounded-es-none rounded-ee-[12px] rounded-ss-[15px] rounded-se-none px-[11px] pb-[4px] pt-[3px] font-geist text-[0.5625rem] font-extrabold uppercase tracking-[.05em] text-white"
@@ -688,7 +680,6 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
         </div>
       )}
     </div>
-    </MSwipeRow>
   )
 }
 
