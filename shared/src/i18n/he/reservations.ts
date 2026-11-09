@@ -279,7 +279,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'ייצוא {shown} מתוך {total} השורות המוצגות (CSV)',
   'reservations.wallet.add': 'הוספה ל-Apple Wallet',
   'reservations.wallet.addGoogle': 'הוספה ל-Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
+  'reservations.wallet.short': 'ארנק',
   'reservations.wallet.failed': 'לא ניתן היה ליצור את כרטיס ה-Wallet. אנא נסו שוב.',
   'reservations.wallet.undated': 'קודם תנו להזמנה תאריך: Wallet מציג את הכרטיס סביב המועד שלה.',
 };

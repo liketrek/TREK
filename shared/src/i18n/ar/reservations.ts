@@ -301,7 +301,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'تصدير الصفوف المعروضة ({shown} من {total}) (CSV)',
   'reservations.wallet.add': 'إضافة إلى Apple Wallet',
   'reservations.wallet.addGoogle': 'إضافة إلى Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
+  'reservations.wallet.short': 'المحفظة',
   'reservations.wallet.failed': 'تعذّر إنشاء بطاقة Wallet. حاول مرة أخرى.',
   'reservations.wallet.undated': 'حدّد تاريخًا للحجز أولًا: يعرض Wallet البطاقة قرب موعده.',
 };

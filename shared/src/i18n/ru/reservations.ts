@@ -289,7 +289,7 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Экспортировать показанные строки: {shown} из {total} (CSV)',
   'reservations.wallet.add': 'Добавить в Apple Wallet',
   'reservations.wallet.addGoogle': 'Добавить в Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
+  'reservations.wallet.short': 'Кошелёк',
   'reservations.wallet.failed': 'Не удалось создать карту Wallet. Повторите попытку.',
   'reservations.wallet.undated': 'Сначала укажите дату брони: Wallet показывает карту ближе к этому времени.',
 };
