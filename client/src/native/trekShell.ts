@@ -103,6 +103,16 @@ export interface TrekShellPlugin {
   storeFinish(options: { transactionId: string }): Promise<void>;
   /** iOS, feature wallet: adds a .pkpass (base64) to Apple Wallet, or opens it there when it is already in. */
   addToWallet(options: { data: string }): Promise<{ result: 'added' | 'opened' | 'cancelled' }>;
+  /**
+   * Shows a file written to the app's cache (a file:// path) in the system's
+   * viewer: Quick Look on iOS, the app that views the type on Android. Feature
+   * "filePreview"; "unsupported" where nothing on the device shows the type.
+   */
+  previewFile(options: {
+    path: string;
+    mimeType: string;
+    title?: string;
+  }): Promise<{ result: 'shown' | 'unsupported' }>;
   /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
   storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
   /** Feature watch: what the Apple Watch app shows (native/watch.ts), as JSON, sent on through WatchConnectivity. */

@@ -1,6 +1,7 @@
 package com.liketrek.trek;
 
 import android.Manifest;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -70,6 +71,7 @@ public class TrekShellPlugin extends Plugin {
         "keyCommands",
         "windowLayout",
         "clientCertificate",
+        "filePreview",
     };
 
     /** liketrek's push relay: the endpoint for this device's FCM token (trek-hosted push-relay.ts). */
@@ -265,6 +267,44 @@ public class TrekShellPlugin extends Plugin {
             }
         });
         call.resolve();
+    }
+
+    /**
+     * Opens a file the UI wrote to the cache in the app that views it, a PDF in
+     * the system's PDF viewer, instead of the share sheet. "unsupported" where no
+     * app on the device views the type; the UI then hands it to the share sheet.
+     */
+    @PluginMethod
+    public void previewFile(PluginCall call) {
+        String path = call.getString("path");
+        Uri parsed = path == null ? null : Uri.parse(path);
+        java.io.File file = parsed != null && "file".equals(parsed.getScheme()) && parsed.getPath() != null ? new java.io.File(parsed.getPath()) : null;
+        java.io.File cache = getContext().getCacheDir();
+        boolean inCache;
+        try {
+            inCache = file != null && file.getCanonicalPath().startsWith(cache.getCanonicalPath() + java.io.File.separator);
+        } catch (java.io.IOException e) {
+            inCache = false;
+        }
+        if (!inCache || !file.isFile()) {
+            call.reject("a file in the app's cache is required", "INVALID");
+            return;
+        }
+        String type = call.getString("mimeType", "application/octet-stream");
+        Uri content = androidx.core.content.FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
+        Intent view = new Intent(Intent.ACTION_VIEW)
+            .setDataAndType(content, type)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        getActivity().runOnUiThread(() -> {
+            JSObject result = new JSObject();
+            try {
+                getActivity().startActivity(view);
+                result.put("result", "shown");
+            } catch (ActivityNotFoundException e) {
+                result.put("result", "unsupported");
+            }
+            call.resolve(result);
+        });
     }
 
     @PluginMethod

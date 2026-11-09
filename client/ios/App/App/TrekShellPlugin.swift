@@ -11,6 +11,7 @@ import ActivityKit
 #endif
 import LocalAuthentication
 import PassKit
+import QuickLook
 import UIKit
 import WebKit
 
@@ -55,6 +56,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "clientCertificate", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "importClientCertificate", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "removeClientCertificate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "previewFile", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -66,7 +68,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// builds a snapshot for nothing; "wallet" only where Wallet can take a pass (an
     /// iPhone: an iPad has no Wallet app), so the UI offers no button that does nothing.
     static var features: [String] {
-        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "clientCertificate"]
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "clientCertificate", "filePreview"]
         if canAddWalletPasses { names.append("wallet") }
         if TrekWatchLink.isAvailable { names.append("watch") }
         return names
@@ -562,6 +564,36 @@ extension TrekShellPlugin {
     /// already there opens in Wallet instead of being offered twice. Resolves with
     /// `result` added, opened or cancelled; rejects INVALID for bytes that are no
     /// pass and UNAVAILABLE where Wallet cannot take one.
+    /// Kept while Quick Look shows a file: the controller holds its data source weakly.
+    private var previewSource: TrekFilePreviewSource?
+
+    /// Shows a file the UI wrote to the cache in Quick Look: a PDF to page through,
+    /// an image, a document, with the system's own share button. "unsupported" for
+    /// a file Quick Look cannot show, which the UI then hands to the share sheet.
+    @objc func previewFile(_ call: CAPPluginCall) {
+        guard let path = call.getString("path"), let url = URL(string: path), url.isFileURL,
+              FileManager.default.fileExists(atPath: url.path) else {
+            call.reject("a file in the app's cache is required", "INVALID")
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let presenter = self.bridge?.viewController else {
+                call.reject("nothing to show the preview from", "UNAVAILABLE")
+                return
+            }
+            guard QLPreviewController.canPreview(url as QLPreviewItem) else {
+                call.resolve(["result": "unsupported"])
+                return
+            }
+            let source = TrekFilePreviewSource(url: url, title: call.getString("title"))
+            self.previewSource = source
+            let preview = QLPreviewController()
+            preview.dataSource = source
+            presenter.present(preview, animated: true)
+            call.resolve(["result": "shown"])
+        }
+    }
+
     @objc func addToWallet(_ call: CAPPluginCall) {
         guard let base64 = call.getString("data"), let data = Data(base64Encoded: base64),
               let pass = try? PKPass(data: data) else {
@@ -955,5 +987,28 @@ enum TrekSharedKeychain {
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+    }
+}
+
+/// The one file Quick Look shows, under the name the user knows it by.
+final class TrekFilePreviewSource: NSObject, QLPreviewControllerDataSource {
+    private let item: Item
+
+    init(url: URL, title: String?) {
+        item = Item(url: url, title: title)
+    }
+
+    func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+
+    func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem { item }
+
+    final class Item: NSObject, QLPreviewItem {
+        let previewItemURL: URL?
+        let previewItemTitle: String?
+
+        init(url: URL, title: String?) {
+            previewItemURL = url
+            previewItemTitle = title
+        }
     }
 }

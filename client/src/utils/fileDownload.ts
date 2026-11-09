@@ -2,7 +2,7 @@ import { getCachedBlob } from '../db/offlineDb'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { isIosStandalone } from './iosDevice'
 import { isNativeApp } from '../native/platform'
-import { fileNameFromUrl, shareFile } from '../native/nativeFiles'
+import { fileNameFromUrl, openNativeFile, shareFile } from '../native/nativeFiles'
 import { reportNativeFailure } from '../native/reportFailure'
 
 // MIME types safe to open inline (will not execute script in any browser).
@@ -118,9 +118,9 @@ export async function downloadFile(url: string, filename?: string): Promise<void
  */
 export async function openFile(url: string, filename?: string): Promise<void> {
   const blob = await getFileBlob(url)
-  // The share sheet previews PDFs and images too, and a blob tab has nowhere
-  // to open inside the app.
-  if (isNativeApp()) return shareFile(blob, filename ?? fileNameFromUrl(url))
+  // A blob tab has nowhere to open inside the app: the system's viewer shows it,
+  // or the share sheet where the app has none.
+  if (isNativeApp()) return openNativeFile(blob, filename ?? fileNameFromUrl(url))
   const blobUrl = URL.createObjectURL(blob)
 
   // Force download for MIME types that can execute script when rendered inline
