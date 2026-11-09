@@ -479,6 +479,49 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
         }
     }
 
+    /// A proxy in front of the server asks for a client certificate (mutual TLS):
+    /// the stored one goes to the host and port it was imported for and nowhere
+    /// else (TrekClientIdentity). Every other challenge is Capacitor's as before.
+    func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge,
+                 completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if TrekClientIdentity.answer(challenge, completionHandler) {
+            let space = challenge.protectionSpace
+            TrekClientCertWatch.serverAsked(host: space.host, port: space.port) { [weak self, weak webView] in
+                guard let self, let webView else { return }
+                // Capacitor's own answer to a failed load: the address screen (errorPath).
+                self.inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRejected))
+            }
+            return
+        }
+        let selector = NSSelectorFromString("webView:didReceiveAuthenticationChallenge:completionHandler:")
+        guard (inner as AnyObject).responds(to: selector) else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        inner.webView?(webView, didReceive: challenge, completionHandler: completionHandler)
+    }
+
+    /// A proxy that asked the page for a client certificate, got none and
+    /// answered with its own refusal (Cloudflare's 403, nginx's 400) sends the
+    /// app to the address screen, which says so and offers to add one, rather
+    /// than leaving the proxy's error page up.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse,
+           http.statusCode >= 400, http.statusCode < 500, let asked = TrekClientIdentity.lastRequest, !asked.served,
+           let url = http.url, url.host?.lowercased() == asked.host, (url.port ?? 443) == asked.port {
+            decisionHandler(.cancel)
+            inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRequired))
+            return
+        }
+        let selector = NSSelectorFromString("webView:decidePolicyForNavigationResponse:decisionHandler:")
+        guard (inner as AnyObject).responds(to: selector) else {
+            decisionHandler(.allow)
+            return
+        }
+        inner.webView?(webView, decidePolicyFor: navigationResponse, decisionHandler: decisionHandler)
+    }
+
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
         inner.webView?(webView, didFail: navigation, withError: error)

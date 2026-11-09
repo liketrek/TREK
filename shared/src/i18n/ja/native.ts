@@ -148,6 +148,37 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'アプリはこの入力に応答できません。プロキシで TREK を通過させてください。TREK は引き続き独自のログインを求めます。',
   'native.gate.help': 'サインインプロキシの背後でアプリを使う',
+  'native.cert.title': 'このサーバーはクライアント証明書を要求しています',
+  'native.cert.titleRefused': 'サーバーが証明書を受け入れませんでした',
+  'native.cert.hint':
+    '前段のプロキシは証明書を提示した端末だけを通します。この端末用に作成した .p12 または .pfx ファイルを追加してください。アプリは {host} にだけ提示します。',
+  'native.cert.hintRefused':
+    'プロキシはアプリ内の証明書を信頼していないか、信頼しなくなりました。プロキシが求めるファイルを選んでください。',
+  'native.cert.choose': '証明書ファイルを追加',
+  'native.cert.chooseOther': '別の証明書を選ぶ',
+  'native.cert.help': 'クライアント証明書でアプリを使う',
+  'native.cert.passwordTitle': '証明書のパスワード',
+  'native.cert.passwordMessage': '証明書ファイルのパスワードを入力してください。アプリはパスワードを保存しません。',
+  'native.cert.passwordPlaceholder': 'パスワード',
+  'native.cert.passwordOk': '追加',
+  'native.cert.passwordCancel': 'キャンセル',
+  'native.cert.passwordWrong': 'このパスワードではファイルを開けません。もう一度お試しください。',
+  'native.cert.errorFormat': 'このファイルを読み込めません。証明書と秘密鍵を含む .p12 または .pfx ファイルが必要です。',
+  'native.cert.errorNoKey': 'このファイルには秘密鍵がありません。証明書を鍵と一緒に書き出してください。',
+  'native.cert.errorExpired': 'この証明書は有効期限が切れています。',
+  'native.cert.errorNotYetValid': 'この証明書はまだ有効ではありません。この端末の日付と時刻を確認してください。',
+  'native.cert.errorStore': '証明書を保存できませんでした。もう一度お試しください。',
+  'native.cert.unreachableTitle': '証明書が必要です',
+  'native.cert.unreachableHint': '{server} は信頼されたクライアント証明書を持つ端末だけを通します。',
+  'native.cert.settingTitle': 'クライアント証明書',
+  'native.cert.settingIssuer': '発行者: {issuer}',
+  'native.cert.settingServer': 'サーバー',
+  'native.cert.settingValidUntil': '有効期限',
+  'native.cert.settingHint': 'アプリはこの証明書を、{host} のプロキシが求めたときにだけ提示します。',
+  'native.cert.settingReplace': '置き換え',
+  'native.cert.settingRemove': '削除',
+  'native.cert.removeTitle': '証明書を削除しますか？',
+  'native.cert.removeMessage': '削除すると、新しい証明書を追加するまで {host} の前段のプロキシはアプリを通しません。',
 };
 
 export default native;

@@ -146,6 +146,37 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Rakendus ei saa sellele päringule vastata. Lase TREK oma proksis läbi: TREK küsib endiselt oma sisselogimist.',
   'native.gate.help': 'Rakenduse kasutamine sisselogimisproksi taga',
+  'native.cert.title': 'See server nõuab kliendisertifikaati',
+  'native.cert.titleRefused': 'Server ei võtnud sertifikaati vastu',
+  'native.cert.hint':
+    'Selle ees olev proksi laseb läbi ainult sertifikaadiga seadmed. Lisa sellele seadmele loodud .p12- või .pfx-fail. Rakendus näitab seda ainult serverile {host}.',
+  'native.cert.hintRefused': 'Proksi ei usalda (enam) rakenduses olevat sertifikaati. Vali fail, mida see ootab.',
+  'native.cert.choose': 'Lisa sertifikaadifail',
+  'native.cert.chooseOther': 'Vali teine sertifikaat',
+  'native.cert.help': 'Rakenduse kasutamine kliendisertifikaadiga',
+  'native.cert.passwordTitle': 'Sertifikaadi parool',
+  'native.cert.passwordMessage': 'Sisesta sertifikaadifaili parool. Rakendus seda ei salvesta.',
+  'native.cert.passwordPlaceholder': 'Parool',
+  'native.cert.passwordOk': 'Lisa',
+  'native.cert.passwordCancel': 'Tühista',
+  'native.cert.passwordWrong': 'See parool ei ava faili. Proovi uuesti.',
+  'native.cert.errorFormat':
+    'Rakendus ei saa seda faili lugeda. Vaja on .p12- või .pfx-faili, milles on sertifikaat ja selle privaatvõti.',
+  'native.cert.errorNoKey': 'Selles failis pole privaatvõtit. Ekspordi sertifikaat koos võtmega.',
+  'native.cert.errorExpired': 'See sertifikaat on aegunud.',
+  'native.cert.errorNotYetValid': 'See sertifikaat ei kehti veel. Kontrolli selle seadme kuupäeva ja kellaaega.',
+  'native.cert.errorStore': 'Rakendus ei saanud sertifikaati salvestada. Proovi uuesti.',
+  'native.cert.unreachableTitle': 'Sertifikaat on vajalik',
+  'native.cert.unreachableHint': '{server} laseb läbi ainult usaldusväärse kliendisertifikaadiga seadmed.',
+  'native.cert.settingTitle': 'Kliendisertifikaat',
+  'native.cert.settingIssuer': 'Väljastaja: {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Kehtib kuni',
+  'native.cert.settingHint': 'Rakendus näitab seda sertifikaati ainult serverile {host}, kui selle proksi seda küsib.',
+  'native.cert.settingReplace': 'Asenda',
+  'native.cert.settingRemove': 'Eemalda',
+  'native.cert.removeTitle': 'Eemaldada sertifikaat?',
+  'native.cert.removeMessage': 'Ilma selleta ei lase {host} ees olev proksi rakendust enam läbi, kuni lisad uue.',
 };
 
 export default native;

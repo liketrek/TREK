@@ -148,6 +148,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Aplikasi tidak bisa menjawab permintaan ini. Loloskan TREK di proxy kamu: TREK tetap meminta login miliknya sendiri.',
   'native.gate.help': 'Memakai aplikasi di balik proxy masuk',
+  'native.cert.title': 'Server ini meminta sertifikat klien',
+  'native.cert.titleRefused': 'Server tidak menerima sertifikat',
+  'native.cert.hint':
+    'Proxy di depannya hanya meloloskan perangkat yang menunjukkan sertifikat. Tambahkan file .p12 atau .pfx yang dibuat untuk perangkat ini. Aplikasi hanya menunjukkannya ke {host}.',
+  'native.cert.hintRefused': 'Proxy tidak (lagi) memercayai sertifikat di aplikasi. Pilih file yang diharapkannya.',
+  'native.cert.choose': 'Tambahkan file sertifikat',
+  'native.cert.chooseOther': 'Pilih sertifikat lain',
+  'native.cert.help': 'Menggunakan aplikasi dengan sertifikat klien',
+  'native.cert.passwordTitle': 'Kata sandi sertifikat',
+  'native.cert.passwordMessage': 'Masukkan kata sandi file sertifikat. Aplikasi tidak menyimpannya.',
+  'native.cert.passwordPlaceholder': 'Kata sandi',
+  'native.cert.passwordOk': 'Tambahkan',
+  'native.cert.passwordCancel': 'Batal',
+  'native.cert.passwordWrong': 'Kata sandi ini tidak membuka file. Coba lagi.',
+  'native.cert.errorFormat':
+    'Aplikasi tidak dapat membaca file ini. Diperlukan file .p12 atau .pfx berisi sertifikat dan kunci privatnya.',
+  'native.cert.errorNoKey': 'File ini tidak berisi kunci privat. Ekspor sertifikat bersama kuncinya.',
+  'native.cert.errorExpired': 'Sertifikat ini sudah kedaluwarsa.',
+  'native.cert.errorNotYetValid': 'Sertifikat ini belum berlaku. Periksa tanggal dan waktu di perangkat ini.',
+  'native.cert.errorStore': 'Aplikasi tidak dapat menyimpan sertifikat. Coba lagi.',
+  'native.cert.unreachableTitle': 'Sertifikat diperlukan',
+  'native.cert.unreachableHint': '{server} hanya meloloskan perangkat dengan sertifikat klien tepercaya.',
+  'native.cert.settingTitle': 'Sertifikat klien',
+  'native.cert.settingIssuer': 'Diterbitkan oleh {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Berlaku hingga',
+  'native.cert.settingHint': 'Aplikasi hanya menunjukkan sertifikat ini ke {host}, saat proxy-nya memintanya.',
+  'native.cert.settingReplace': 'Ganti',
+  'native.cert.settingRemove': 'Hapus',
+  'native.cert.removeTitle': 'Hapus sertifikat?',
+  'native.cert.removeMessage':
+    'Tanpa sertifikat, proxy di depan {host} tidak lagi meloloskan aplikasi sampai kamu menambahkan yang baru.',
 };
 
 export default native;

@@ -147,6 +147,37 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Tətbiq bu sorğuya cavab verə bilmir. TREK-i proksinizdə keçirin: TREK yenə öz girişini istəyir.',
   'native.gate.help': 'Tətbiqi giriş proksisinin arxasında istifadə etmək',
+  'native.cert.title': 'Bu server müştəri sertifikatı tələb edir',
+  'native.cert.titleRefused': 'Server sertifikatı qəbul etmədi',
+  'native.cert.hint':
+    'Onun qarşısındakı proksi yalnız sertifikat göstərən cihazları buraxır. Bu cihaz üçün yaradılmış .p12 və ya .pfx faylını əlavə edin. Tətbiq onu yalnız {host} serverinə göstərir.',
+  'native.cert.hintRefused': 'Proksi tətbiqdəki sertifikata etibar etmir və ya artıq etmir. Gözlədiyi faylı seçin.',
+  'native.cert.choose': 'Sertifikat faylı əlavə et',
+  'native.cert.chooseOther': 'Başqa sertifikat seç',
+  'native.cert.help': 'Tətbiqi müştəri sertifikatı ilə istifadə etmək',
+  'native.cert.passwordTitle': 'Sertifikat şifrəsi',
+  'native.cert.passwordMessage': 'Sertifikat faylının şifrəsini daxil edin. Tətbiq onu saxlamır.',
+  'native.cert.passwordPlaceholder': 'Şifrə',
+  'native.cert.passwordOk': 'Əlavə et',
+  'native.cert.passwordCancel': 'Ləğv et',
+  'native.cert.passwordWrong': 'Bu şifrə faylı açmır. Yenidən cəhd edin.',
+  'native.cert.errorFormat':
+    'Tətbiq bu faylı oxuya bilmir. Sertifikat və onun şəxsi açarı olan .p12 və ya .pfx faylı lazımdır.',
+  'native.cert.errorNoKey': 'Bu faylda şəxsi açar yoxdur. Sertifikatı açarı ilə birlikdə ixrac edin.',
+  'native.cert.errorExpired': 'Bu sertifikatın müddəti bitib.',
+  'native.cert.errorNotYetValid': 'Bu sertifikat hələ etibarlı deyil. Bu cihazın tarix və saatını yoxlayın.',
+  'native.cert.errorStore': 'Tətbiq sertifikatı saxlaya bilmədi. Yenidən cəhd edin.',
+  'native.cert.unreachableTitle': 'Sertifikat lazımdır',
+  'native.cert.unreachableHint': '{server} yalnız etibarlı müştəri sertifikatı olan cihazları buraxır.',
+  'native.cert.settingTitle': 'Müştəri sertifikatı',
+  'native.cert.settingIssuer': 'Verən: {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Etibarlıdır',
+  'native.cert.settingHint': 'Tətbiq bu sertifikatı yalnız {host} serverinə, proksisi soruşanda göstərir.',
+  'native.cert.settingReplace': 'Əvəz et',
+  'native.cert.settingRemove': 'Sil',
+  'native.cert.removeTitle': 'Sertifikat silinsin?',
+  'native.cert.removeMessage': 'Onsuz {host} qarşısındakı proksi yenisini əlavə edənə qədər tətbiqi buraxmayacaq.',
 };
 
 export default native;

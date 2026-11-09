@@ -11,15 +11,22 @@ import { opensSoon, refundedBeforeOpening } from '../src/native/cloudOrders';
 import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
 import {
   AUTH_PROXY_DOCS_URL,
+  CLIENT_CERT_DOCS_URL,
   CLOUD_TERMS_URL,
   CLOUD_URL,
   PRIVACY_URL,
   SERVER_DOCS_URL,
   STORE_TERMS_URL,
 } from '../src/native/links';
-import { probeDemo, probeServer, type ProbeFailure, type ProbeGet } from '../src/native/serverAddress';
+import {
+  probeDemo,
+  probeServer,
+  type ClientCertDemand,
+  type ProbeFailure,
+  type ProbeGet,
+} from '../src/native/serverAddress';
 import { passwordProblem } from '../../shared/src/auth/password-policy';
-import { TrekShell } from '../src/native/trekShell';
+import { TrekShell, type ClientCertificateFailure } from '../src/native/trekShell';
 import { directionOf, pickLocale, translator } from './i18n';
 import './shell.css';
 
@@ -57,11 +64,34 @@ function cloudSuffix(): string {
   }
 }
 
+/** JSON bodies arrive as text from the app's own request; everything else stays text. */
+function parseBody(data: unknown): unknown {
+  if (typeof data !== 'string') return data;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
+}
+
 // Native HTTP rather than fetch: the probe goes to a server of the user's
-// choosing, which has no reason to answer this page's origin with CORS.
+// choosing, which has no reason to answer this page's origin with CORS. The
+// app's own request comes first: it shows a stored client certificate and
+// reports whether the server asked for one. A web preview has only Capacitor's.
 const get: ProbeGet = async (url) => {
-  const response = await CapacitorHttp.get({ url, connectTimeout: PROBE_TIMEOUT_MS, readTimeout: PROBE_TIMEOUT_MS });
-  return { status: response.status, data: response.data, url: response.url, headers: response.headers };
+  try {
+    const response = await TrekShell.requestServer({ url, timeoutMs: PROBE_TIMEOUT_MS });
+    return {
+      status: response.status,
+      data: parseBody(response.data),
+      url: response.url,
+      headers: response.headers,
+      clientCert: { requested: response.certRequested, sent: response.certSent },
+    };
+  } catch {
+    const response = await CapacitorHttp.get({ url, connectTimeout: PROBE_TIMEOUT_MS, readTimeout: PROBE_TIMEOUT_MS });
+    return { status: response.status, data: response.data, url: response.url, headers: response.headers };
+  }
 };
 
 function failureMessage(reason: ProbeFailure): string {
@@ -74,6 +104,8 @@ function failureMessage(reason: ProbeFailure): string {
       return t('native.connect.errorNotTrek');
     case 'authGate':
       return t('native.gate.titleUnknown');
+    case 'clientCert':
+      return t('native.cert.title');
     case 'tooOld':
       return t('native.connect.errorTooOld');
   }
@@ -266,13 +298,16 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
   const gatePanel = el('div', { className: 'gate', role: 'alert', hidden: true });
   const form = el('form', { className: 'form', noValidate: true }, field, submit, error, gatePanel);
 
-  const fail = (reason: ProbeFailure, gate?: AuthGate, server?: string): void => {
+  const fail = (reason: ProbeFailure, gate?: AuthGate, server?: string, cert?: ClientCertDemand): void => {
     void notify(NotificationType.Error);
     field.classList.add('bad');
     setTimeout(() => field.classList.remove('bad'), 350);
     if (reason === 'authGate' && gate && server) {
       error.textContent = '';
       fillGatePanel(gatePanel, gate, server);
+    } else if (reason === 'clientCert' && cert) {
+      error.textContent = '';
+      fillCertPanel(gatePanel, cert, () => form.requestSubmit());
     } else {
       error.textContent = failureMessage(reason);
     }
@@ -280,7 +315,8 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
     submit.disabled = false;
     label.textContent = t('native.connect.submit');
     submit.replaceChildren(label);
-    input.focus();
+    // A panel with its own next step stays in view; the keyboard would cover it.
+    if (gatePanel.hidden) input.focus();
   };
 
   form.addEventListener('submit', async (event) => {
@@ -297,7 +333,7 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
       await connected(result.url);
       return;
     }
-    fail(result.reason, result.gate, result.url);
+    fail(result.reason, result.gate, result.url, result.cert);
   });
 
   show(
@@ -353,6 +389,87 @@ function fillGatePanel(panel: HTMLElement, gate: AuthGate, server: string): void
   children.push(externalLink(t('native.gate.help'), AUTH_PROXY_DOCS_URL));
   panel.replaceChildren(...children);
   panel.hidden = false;
+}
+
+/**
+ * A proxy in front of the server lets only devices with a client certificate
+ * through (mutual TLS: Cloudflare, nginx, Caddy, Traefik). The panel offers to
+ * add the certificate file for it, or another one when the proxy refused the
+ * one shown; `retry` checks the server again once it is added.
+ */
+function fillCertPanel(panel: HTMLElement, cert: ClientCertDemand, retry: () => void): void {
+  const status = el('p', { className: 'gate-note', role: 'status' });
+  const choose = el(
+    'button',
+    { type: 'button', className: 'btn' },
+    cert.sent ? t('native.cert.chooseOther') : t('native.cert.choose')
+  );
+  choose.addEventListener('click', async () => {
+    void tap(ImpactStyle.Medium);
+    choose.disabled = true;
+    status.textContent = '';
+    const outcome = await importCertificate(cert.host, cert.port);
+    choose.disabled = false;
+    if (outcome === 'imported') {
+      void notify(NotificationType.Success);
+      retry();
+    } else if (outcome !== 'cancelled') {
+      void notify(NotificationType.Error);
+      status.textContent = certFailureMessage(outcome);
+    }
+  });
+  panel.replaceChildren(
+    el('p', { className: 'gate-title' }, cert.sent ? t('native.cert.titleRefused') : t('native.cert.title')),
+    el(
+      'p',
+      { className: 'gate-text' },
+      cert.sent ? t('native.cert.hintRefused') : t('native.cert.hint', { host: cert.host })
+    ),
+    choose,
+    status,
+    externalLink(t('native.cert.help'), CLIENT_CERT_DOCS_URL)
+  );
+  panel.hidden = false;
+}
+
+/** Imports a certificate file for host and port: 'imported', 'cancelled', or why it failed. */
+async function importCertificate(
+  host: string,
+  port: number
+): Promise<'imported' | 'cancelled' | ClientCertificateFailure> {
+  try {
+    const result = await TrekShell.importClientCertificate({
+      host,
+      port,
+      labels: {
+        title: t('native.cert.passwordTitle'),
+        message: t('native.cert.passwordMessage'),
+        placeholder: t('native.cert.passwordPlaceholder'),
+        ok: t('native.cert.passwordOk'),
+        cancel: t('native.cert.passwordCancel'),
+        wrongPassword: t('native.cert.passwordWrong'),
+      },
+    });
+    if (result.result === 'failed') return result.failure ?? 'format';
+    return result.result;
+  } catch {
+    return 'store';
+  }
+}
+
+function certFailureMessage(failure: ClientCertificateFailure): string {
+  switch (failure) {
+    case 'no_key':
+      return t('native.cert.errorNoKey');
+    case 'expired':
+      return t('native.cert.errorExpired');
+    case 'not_yet_valid':
+      return t('native.cert.errorNotYetValid');
+    case 'store':
+      return t('native.cert.errorStore');
+    case 'format':
+      return t('native.cert.errorFormat');
+  }
 }
 
 // ── Get TREK Cloud ──────────────────────────────────────────────────────────
@@ -1088,8 +1205,10 @@ async function connected(url: string, signInHosts: string[] = [], welcome?: stri
   });
 }
 
-function showUnreachable(server: string): void {
-  const retry = el('button', { type: 'button', className: 'btn' }, t('native.offline.retry'));
+function showUnreachable(server: string, cert?: ClientCertDemand): void {
+  const certPanel = el('div', { className: 'gate', role: 'alert', hidden: true });
+  if (cert) fillCertPanel(certPanel, cert, () => void TrekShell.reload());
+  const retry = el('button', { type: 'button', className: cert ? 'linkbtn' : 'btn' }, t('native.offline.retry'));
   retry.addEventListener('click', () => {
     void tap();
     retry.disabled = true;
@@ -1107,10 +1226,16 @@ function showUnreachable(server: string): void {
       ...columns(
         [
           el('img', { src: logoUrl, alt: '', className: 'shell-logo' }),
-          el('h1', { className: 'title-sm' }, t('native.offline.title')),
-          el('p', { className: 'sub' }, t('native.offline.hint', { server: new URL(server).host })),
+          el('h1', { className: 'title-sm' }, cert ? t('native.cert.unreachableTitle') : t('native.offline.title')),
+          el(
+            'p',
+            { className: 'sub' },
+            cert
+              ? t('native.cert.unreachableHint', { server: new URL(server).host })
+              : t('native.offline.hint', { server: new URL(server).host })
+          ),
         ],
-        [retry, change, footLinks()]
+        [certPanel, retry, change, footLinks()]
       )
     )
   );
@@ -1175,6 +1300,23 @@ function letKeyboardClose(): void {
   }, { passive: true });
 }
 
+/**
+ * Whether the remembered server failed for want of a client certificate. Asked
+ * only when the app saw that server ask for one in this run, and then checked
+ * once more, so a server that is merely offline is not taken for one that
+ * refused the certificate.
+ */
+async function certificateDemand(server: string): Promise<ClientCertDemand | null> {
+  try {
+    const { request } = await TrekShell.clientCertificate();
+    if (!request || request.host !== new URL(server).hostname.toLowerCase()) return null;
+    const result = await probeServer(server, get);
+    return result.ok ? null : (result.cert ?? null);
+  } catch {
+    return null;
+  }
+}
+
 async function start(): Promise<void> {
   void paintStatusBar();
   followBackGesture();
@@ -1193,11 +1335,18 @@ async function start(): Promise<void> {
   if (!url) {
     showWelcome();
   } else {
-    // Only reached when loading the server failed. On iOS the stored copy of
-    // its start page brings the offline-capable UI up anyway.
-    const { opened } = await TrekShell.openOfflineCopy();
-    if (opened) return;
-    showUnreachable(url);
+    // Only reached when loading the server failed. A proxy that wanted a client
+    // certificate says so here, before the offline copy would start a UI that
+    // cannot reach its server.
+    const cert = await certificateDemand(url);
+    if (cert) {
+      showUnreachable(url, cert);
+    } else {
+      // On iOS the stored copy of its start page brings the offline-capable UI up anyway.
+      const { opened } = await TrekShell.openOfflineCopy();
+      if (opened) return;
+      showUnreachable(url);
+    }
   }
   await SplashScreen.hide();
 }

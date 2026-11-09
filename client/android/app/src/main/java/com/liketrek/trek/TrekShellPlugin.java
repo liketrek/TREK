@@ -7,6 +7,9 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import androidx.activity.result.ActivityResult;
+import com.liketrek.trek.clientcert.ClientCertActions;
+import com.liketrek.trek.clientcert.TrekClientIdentity;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSArray;
@@ -15,6 +18,7 @@ import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
@@ -65,6 +69,7 @@ public class TrekShellPlugin extends Plugin {
         "googleWallet",
         "keyCommands",
         "windowLayout",
+        "clientCertificate",
     };
 
     /** liketrek's push relay: the endpoint for this device's FCM token (trek-hosted push-relay.ts). */
@@ -675,5 +680,130 @@ public class TrekShellPlugin extends Plugin {
     public void getWindowLayout(PluginCall call) {
         // The last layout WindowManager reported, posture and hinge included; the bare window before the first.
         getActivity().runOnUiThread(() -> call.resolve(com.liketrek.trek.screen.TrekWindowLayout.INSTANCE.current(getActivity())));
+    }
+
+    // ---- Client certificates (mutual TLS) ----
+
+    /**
+     * The address screen's check of a server, made natively so it notices
+     * whether the server asks for a client certificate and can show the stored
+     * one (clientcert/ClientCertActions.request).
+     */
+    @PluginMethod
+    public void requestServer(PluginCall call) {
+        String url = call.getString("url");
+        Uri parsed = url == null ? null : Uri.parse(url);
+        if (parsed == null || parsed.getHost() == null || !("https".equals(parsed.getScheme()) || "http".equals(parsed.getScheme()))) {
+            call.reject("A http(s) URL is required");
+            return;
+        }
+        int timeout = Math.max(1000, Math.min(call.getInt("timeoutMs", 10000), 30000));
+        new Thread(() -> {
+            try {
+                call.resolve(ClientCertActions.request(getContext(), url, timeout));
+            } catch (Exception e) {
+                call.reject(e.getMessage() == null ? "request failed" : e.getMessage());
+            }
+        }, "trek-request-server").start();
+    }
+
+    /** The stored certificate's details, or none. */
+    @PluginMethod
+    public void clientCertificate(PluginCall call) {
+        TrekClientIdentity.Info info = TrekClientIdentity.info(getContext());
+        JSObject result = new JSObject();
+        result.put("certificate", info == null ? JSONObject.NULL : ClientCertActions.infoObject(info));
+        TrekClientIdentity.Request asked = TrekClientIdentity.INSTANCE.getLastRequest();
+        if (asked != null) {
+            JSObject request = new JSObject();
+            request.put("host", asked.getHost());
+            request.put("port", asked.getPort());
+            request.put("served", asked.getServed());
+            result.put("request", request);
+        }
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void removeClientCertificate(PluginCall call) {
+        TrekClientIdentity.remove(getContext());
+        forgetCertificateAnswers();
+        call.resolve();
+    }
+
+    /** The WebView keeps its answer to a certificate request per host; a changed certificate needs a fresh one. */
+    private void forgetCertificateAnswers() {
+        com.liketrek.trek.clientcert.ClientCertWatch.reset();
+        getActivity().runOnUiThread(() -> android.webkit.WebView.clearClientCertPreferences(null));
+    }
+
+    /**
+     * Picks a .p12/.pfx file, asks for its password until it opens or the user
+     * gives up, and keeps it for the server at host and port. Resolves with
+     * result "imported" (and the certificate), "cancelled", or "failed" and why.
+     */
+    @PluginMethod
+    public void importClientCertificate(PluginCall call) {
+        String host = call.getString("host");
+        if (host == null || !host.matches("[A-Za-z0-9.-]+")) {
+            call.reject("A host is required");
+            return;
+        }
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+        pick.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "application/x-pkcs12", "application/pkcs12", "application/octet-stream" });
+        startActivityForResult(call, pick, "clientCertificatePicked");
+    }
+
+    @ActivityCallback
+    private void clientCertificatePicked(PluginCall call, ActivityResult picked) {
+        if (call == null) return;
+        Uri uri = picked.getData() == null ? null : picked.getData().getData();
+        if (picked.getResultCode() != android.app.Activity.RESULT_OK || uri == null) {
+            resolveImport(call, "cancelled", null);
+            return;
+        }
+        new Thread(() -> {
+            byte[] bytes = ClientCertActions.readFile(getContext(), uri);
+            if (bytes == null) resolveImport(call, "failed", TrekClientIdentity.Failure.FORMAT.name());
+            else askPasswordFor(call, bytes, false);
+        }, "trek-client-cert").start();
+    }
+
+    private void askPasswordFor(PluginCall call, byte[] bytes, boolean wrong) {
+        JSObject labels = call.getObject("labels", new JSObject());
+        ClientCertActions.askPassword(getActivity(), labels, wrong, password -> {
+            if (password == null) {
+                resolveImport(call, "cancelled", null);
+                return kotlin.Unit.INSTANCE;
+            }
+            new Thread(() -> openWith(call, bytes, password), "trek-client-cert").start();
+            return kotlin.Unit.INSTANCE;
+        });
+    }
+
+    private void openWith(PluginCall call, byte[] bytes, char[] password) {
+        try {
+            TrekClientIdentity.Identity identity = TrekClientIdentity.read(bytes, password);
+            TrekClientIdentity.save(getContext(), identity, call.getString("host"), call.getInt("port", 443));
+            forgetCertificateAnswers();
+            resolveImport(call, "imported", null);
+        } catch (TrekClientIdentity.ImportException e) {
+            if (e.getReason() == TrekClientIdentity.Failure.PASSWORD) askPasswordFor(call, bytes, true);
+            else resolveImport(call, "failed", e.getReason().name());
+        } catch (Exception e) {
+            Log.w(TAG, "client certificate not kept", e);
+            resolveImport(call, "failed", "STORE");
+        } finally {
+            java.util.Arrays.fill(password, '\0');
+        }
+    }
+
+    private void resolveImport(PluginCall call, String result, String failure) {
+        JSObject out = new JSObject();
+        out.put("result", result);
+        if (failure != null) out.put("failure", failure.toLowerCase(java.util.Locale.ROOT));
+        TrekClientIdentity.Info info = TrekClientIdentity.info(getContext());
+        if ("imported".equals(result) && info != null) out.put("certificate", ClientCertActions.infoObject(info));
+        call.resolve(out);
     }
 }

@@ -151,6 +151,42 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Η εφαρμογή δεν μπορεί να απαντήσει σε αυτό το αίτημα. Αφήστε το TREK να περνά στον proxy σας: το TREK ζητά ακόμη τη δική του σύνδεση.',
   'native.gate.help': 'Χρήση της εφαρμογής πίσω από proxy σύνδεσης',
+  'native.cert.title': 'Αυτός ο διακομιστής ζητά πιστοποιητικό πελάτη',
+  'native.cert.titleRefused': 'Ο διακομιστής δεν δέχτηκε το πιστοποιητικό',
+  'native.cert.hint':
+    'Ένας διακομιστής μεσολάβησης μπροστά του αφήνει να περάσουν μόνο συσκευές με πιστοποιητικό. Πρόσθεσε το αρχείο .p12 ή .pfx που δημιουργήθηκε για αυτή τη συσκευή. Η εφαρμογή το δείχνει μόνο στο {host}.',
+  'native.cert.hintRefused':
+    'Ο διακομιστής μεσολάβησης δεν εμπιστεύεται (πια) το πιστοποιητικό της εφαρμογής. Διάλεξε το αρχείο που περιμένει.',
+  'native.cert.choose': 'Προσθήκη αρχείου πιστοποιητικού',
+  'native.cert.chooseOther': 'Επιλογή άλλου πιστοποιητικού',
+  'native.cert.help': 'Χρήση της εφαρμογής με πιστοποιητικό πελάτη',
+  'native.cert.passwordTitle': 'Κωδικός πιστοποιητικού',
+  'native.cert.passwordMessage': 'Πληκτρολόγησε τον κωδικό του αρχείου πιστοποιητικού. Η εφαρμογή δεν τον αποθηκεύει.',
+  'native.cert.passwordPlaceholder': 'Κωδικός',
+  'native.cert.passwordOk': 'Προσθήκη',
+  'native.cert.passwordCancel': 'Ακύρωση',
+  'native.cert.passwordWrong': 'Αυτός ο κωδικός δεν ανοίγει το αρχείο. Δοκίμασε ξανά.',
+  'native.cert.errorFormat':
+    'Η εφαρμογή δεν μπορεί να διαβάσει αυτό το αρχείο. Χρειάζεται αρχείο .p12 ή .pfx με το πιστοποιητικό και το ιδιωτικό του κλειδί.',
+  'native.cert.errorNoKey':
+    'Αυτό το αρχείο δεν περιέχει ιδιωτικό κλειδί. Εξήγαγε το πιστοποιητικό μαζί με το κλειδί του.',
+  'native.cert.errorExpired': 'Αυτό το πιστοποιητικό έχει λήξει.',
+  'native.cert.errorNotYetValid':
+    'Αυτό το πιστοποιητικό δεν ισχύει ακόμη. Έλεγξε την ημερομηνία και την ώρα της συσκευής.',
+  'native.cert.errorStore': 'Η εφαρμογή δεν μπόρεσε να αποθηκεύσει το πιστοποιητικό. Δοκίμασε ξανά.',
+  'native.cert.unreachableTitle': 'Απαιτείται πιστοποιητικό',
+  'native.cert.unreachableHint': 'Το {server} αφήνει να περάσουν μόνο συσκευές με έμπιστο πιστοποιητικό πελάτη.',
+  'native.cert.settingTitle': 'Πιστοποιητικό πελάτη',
+  'native.cert.settingIssuer': 'Εκδότης: {issuer}',
+  'native.cert.settingServer': 'Διακομιστής',
+  'native.cert.settingValidUntil': 'Ισχύει έως',
+  'native.cert.settingHint':
+    'Η εφαρμογή δείχνει αυτό το πιστοποιητικό μόνο στο {host}, όταν το ζητά ο διακομιστής μεσολάβησής του.',
+  'native.cert.settingReplace': 'Αντικατάσταση',
+  'native.cert.settingRemove': 'Αφαίρεση',
+  'native.cert.removeTitle': 'Αφαίρεση του πιστοποιητικού;',
+  'native.cert.removeMessage':
+    'Χωρίς αυτό, ο διακομιστής μεσολάβησης μπροστά στο {host} δεν αφήνει πια την εφαρμογή να μπει, μέχρι να προσθέσεις νέο.',
 };
 
 export default native;

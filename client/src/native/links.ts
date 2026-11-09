@@ -12,6 +12,9 @@ export const SERVER_DOCS_URL = 'https://github.com/liketrek/TREK#readme';
 /** Running the app with a sign-in proxy (Cloudflare Access, Pangolin and the like) in front of TREK. */
 export const AUTH_PROXY_DOCS_URL = 'https://github.com/liketrek/TREK/wiki/Native-Apps#behind-a-sign-in-proxy';
 
+/** Adding a client certificate for a server behind mutual TLS (Cloudflare, nginx, Caddy, Traefik). */
+export const CLIENT_CERT_DOCS_URL = 'https://github.com/liketrek/TREK/wiki/Native-Apps#client-certificates-mtls';
+
 /** The public demo the address screen offers to someone without a server. */
 export const DEMO_SERVER_URL = 'https://demo.liketrek.com';
 

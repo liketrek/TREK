@@ -146,6 +146,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Aplikácia nedokáže na túto výzvu odpovedať. Nechajte TREK vo svojej proxy prejsť: TREK stále žiada vlastné prihlásenie.',
   'native.gate.help': 'Používanie aplikácie za prihlasovacou proxy',
+  'native.cert.title': 'Tento server vyžaduje klientsky certifikát',
+  'native.cert.titleRefused': 'Server certifikát neprijal',
+  'native.cert.hint':
+    'Proxy pred ním púšťa len zariadenia s certifikátom. Pridaj súbor .p12 alebo .pfx vytvorený pre toto zariadenie. Aplikácia ho ukáže len serveru {host}.',
+  'native.cert.hintRefused':
+    'Proxy certifikátu v aplikácii nedôveruje alebo už nedôveruje. Vyber súbor, ktorý očakáva.',
+  'native.cert.choose': 'Pridať súbor certifikátu',
+  'native.cert.chooseOther': 'Vybrať iný certifikát',
+  'native.cert.help': 'Používanie aplikácie s klientskym certifikátom',
+  'native.cert.passwordTitle': 'Heslo certifikátu',
+  'native.cert.passwordMessage': 'Zadaj heslo súboru certifikátu. Aplikácia si ho neukladá.',
+  'native.cert.passwordPlaceholder': 'Heslo',
+  'native.cert.passwordOk': 'Pridať',
+  'native.cert.passwordCancel': 'Zrušiť',
+  'native.cert.passwordWrong': 'Toto heslo súbor neotvorí. Skús to znova.',
+  'native.cert.errorFormat':
+    'Aplikácia tento súbor nedokáže prečítať. Potrebuje súbor .p12 alebo .pfx s certifikátom a jeho súkromným kľúčom.',
+  'native.cert.errorNoKey': 'Tento súbor neobsahuje súkromný kľúč. Exportuj certifikát aj s kľúčom.',
+  'native.cert.errorExpired': 'Platnosť tohto certifikátu vypršala.',
+  'native.cert.errorNotYetValid': 'Tento certifikát ešte neplatí. Skontroluj dátum a čas na tomto zariadení.',
+  'native.cert.errorStore': 'Aplikácia nemohla certifikát uložiť. Skús to znova.',
+  'native.cert.unreachableTitle': 'Je potrebný certifikát',
+  'native.cert.unreachableHint': '{server} púšťa len zariadenia s dôveryhodným klientskym certifikátom.',
+  'native.cert.settingTitle': 'Klientsky certifikát',
+  'native.cert.settingIssuer': 'Vydal: {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Platný do',
+  'native.cert.settingHint': 'Aplikácia ukazuje tento certifikát len serveru {host}, keď oň jeho proxy požiada.',
+  'native.cert.settingReplace': 'Nahradiť',
+  'native.cert.settingRemove': 'Odstrániť',
+  'native.cert.removeTitle': 'Odstrániť certifikát?',
+  'native.cert.removeMessage': 'Bez neho proxy pred {host} aplikáciu nepustí, kým nepridáš nový.',
 };
 
 export default native;

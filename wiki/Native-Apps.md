@@ -14,6 +14,7 @@ The app checks that the address answers as a TREK server that knows the apps, an
 - **Not TREK**: something answered, but not a TREK server.
 - **Too old**: a TREK server from before the apps. Update it to a current release.
 - **A sign-in page protects this server**: a proxy of your own stands in front of TREK. See the next section.
+- **This server asks for a client certificate**: the proxy in front of TREK uses mutual TLS. See [Client certificates (mTLS)](#client-certificates-mtls).
 
 No server yet? **Try the demo** connects to the public demo at demo.liketrek.com, which everybody shares and which is reset every hour. **What is a TREK server?** leads to the project page, which explains how to run your own.
 
@@ -43,7 +44,61 @@ What cannot work inside an app:
 - **A password prompt** (Basic Auth). The app cannot answer it.
 - **Header or service-token rules only**, without a sign-in page. The app cannot add headers to the requests the TREK interface makes.
 
-For those, let TREK through the proxy instead: a bypass rule for TREK's address in Cloudflare Access, Pangolin, authentik or Authelia, or the password prompt removed for TREK. TREK's own sign-in still protects it. With Cloudflare Access, enrolling the phone in Cloudflare WARP also lets the app through.
+For those, let TREK through the proxy instead: a bypass rule for TREK's address in Cloudflare Access, Pangolin, authentik or Authelia, or the password prompt removed for TREK. TREK's own sign-in still protects it. With Cloudflare Access, enrolling the phone in Cloudflare WARP also lets the app through. To keep TREK closed to everyone but your own devices without a sign-in page, use a client certificate instead.
+
+## Client certificates (mTLS)
+
+A proxy can let in only devices that show a certificate signed by your own certificate authority: mutual TLS, offered by Cloudflare, nginx, Caddy, Traefik and HAProxy. The app supports it, on iOS and Android.
+
+**Adding the certificate.** Enter your server's address as usual. When the proxy asks for a certificate, the app says **This server asks for a client certificate** and offers **Add certificate file**. Pick the `.p12` or `.pfx` file you made for this phone (from Files, iCloud Drive, Google Drive or your downloads), enter its password, and the app connects. The same happens when a stored certificate expires or the proxy stops accepting it: the app returns to that screen instead of showing the proxy's error page.
+
+**Where it is kept.** On iOS in the keychain, for this device only and not in backups. On Android the private key is sealed with a key of the Android Keystore, which never leaves it. The password of the file is not stored. The app shows the certificate only to the server it was added for, the exact host and port, and never to a sign-in page, a map provider or any other site. It holds one certificate at a time; certificates installed in the system settings are not used.
+
+**Changing or removing it.** **Settings → Account → Client certificate** shows whom the certificate names, who issued it, the server it is for and how long it is valid, with **Replace** and **Remove**.
+
+### Making a certificate for the app
+
+With your own certificate authority (`ca.pem` and `ca.key`):
+
+```bash
+openssl req -newkey rsa:2048 -nodes -keyout phone.key -out phone.csr -subj "/CN=my-phone"
+printf 'extendedKeyUsage=clientAuth\n' > client.ext
+openssl x509 -req -in phone.csr -CA ca.pem -CAkey ca.key -CAcreateserial -days 730 -extfile client.ext -out phone.pem
+openssl pkcs12 -export -inkey phone.key -in phone.pem -out phone.p12
+```
+
+Copy `phone.p12` to the phone and add it in the app. Give every device its own certificate, so you can revoke one without the others. If the app says it cannot read the file, export it again with the older encryption that some systems still expect: `openssl pkcs12 -export -legacy -inkey phone.key -in phone.pem -out phone.p12`.
+
+### Cloudflare
+
+1. **SSL/TLS → Client Certificates → Create Certificate**, and under **Hosts** add TREK's hostname.
+2. A WAF custom rule that blocks requests to that hostname when `cf.tls_client_auth.cert_verified` is false.
+3. Cloudflare shows the certificate and its private key as PEM. Save them as `phone.pem` and `phone.key` and make the file for the app with `openssl pkcs12 -export -inkey phone.key -in phone.pem -out phone.p12`.
+
+Without a certificate Cloudflare answers with its block page; the app recognises that and asks for the certificate.
+
+### nginx, Caddy, Traefik
+
+```nginx
+ssl_client_certificate /etc/nginx/trek-ca.pem;
+ssl_verify_client on;
+```
+
+```caddy
+trek.example.com {
+	tls {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /etc/caddy/trek-ca.pem
+		}
+	}
+	reverse_proxy localhost:3000
+}
+```
+
+In Traefik, a TLS option with `clientAuth.caFiles` and `clientAuthType: RequireAndVerifyClientCert`, attached to TREK's router.
+
+A browser on your computer needs the same certificate, imported into the browser or the system keychain; it asks which one to use on the first visit.
 
 ## Plain http, the home network and VPNs
 

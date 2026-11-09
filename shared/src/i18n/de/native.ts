@@ -150,6 +150,40 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Die App kann diese Abfrage nicht beantworten. Lass TREK in deinem Proxy daran vorbei: TREK fragt weiterhin nach seiner eigenen Anmeldung.',
   'native.gate.help': 'Die App hinter einem Anmelde-Proxy nutzen',
+  'native.cert.title': 'Dieser Server verlangt ein Client-Zertifikat',
+  'native.cert.titleRefused': 'Der Server hat das Zertifikat nicht angenommen',
+  'native.cert.hint':
+    'Ein Proxy davor lässt nur Geräte mit Zertifikat durch. Füge die .p12- oder .pfx-Datei hinzu, die für dieses Gerät erstellt wurde. Die App zeigt sie nur {host} und sonst niemandem.',
+  'native.cert.hintRefused':
+    'Der Proxy vertraut dem Zertifikat in der App nicht oder nicht mehr. Wähle die Datei, die er erwartet.',
+  'native.cert.choose': 'Zertifikatsdatei hinzufügen',
+  'native.cert.chooseOther': 'Anderes Zertifikat wählen',
+  'native.cert.help': 'Die App mit Client-Zertifikat nutzen',
+  'native.cert.passwordTitle': 'Zertifikatspasswort',
+  'native.cert.passwordMessage': 'Gib das Passwort der Zertifikatsdatei ein. Die App speichert es nicht.',
+  'native.cert.passwordPlaceholder': 'Passwort',
+  'native.cert.passwordOk': 'Hinzufügen',
+  'native.cert.passwordCancel': 'Abbrechen',
+  'native.cert.passwordWrong': 'Dieses Passwort öffnet die Datei nicht. Versuch es noch einmal.',
+  'native.cert.errorFormat':
+    'Die App kann diese Datei nicht lesen. Sie braucht eine .p12- oder .pfx-Datei mit Zertifikat und privatem Schlüssel.',
+  'native.cert.errorNoKey':
+    'Diese Datei enthält keinen privaten Schlüssel. Exportiere das Zertifikat zusammen mit seinem Schlüssel.',
+  'native.cert.errorExpired': 'Dieses Zertifikat ist abgelaufen.',
+  'native.cert.errorNotYetValid': 'Dieses Zertifikat gilt noch nicht. Prüfe Datum und Uhrzeit auf diesem Gerät.',
+  'native.cert.errorStore': 'Die App konnte das Zertifikat nicht speichern. Versuch es noch einmal.',
+  'native.cert.unreachableTitle': 'Zertifikat nötig',
+  'native.cert.unreachableHint': '{server} lässt nur Geräte mit einem Client-Zertifikat durch, dem es vertraut.',
+  'native.cert.settingTitle': 'Client-Zertifikat',
+  'native.cert.settingIssuer': 'Ausgestellt von {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Gültig bis',
+  'native.cert.settingHint': 'Die App zeigt dieses Zertifikat nur {host}, wenn dessen Proxy danach fragt.',
+  'native.cert.settingReplace': 'Ersetzen',
+  'native.cert.settingRemove': 'Entfernen',
+  'native.cert.removeTitle': 'Zertifikat entfernen?',
+  'native.cert.removeMessage':
+    'Ohne Zertifikat lässt der Proxy vor {host} die App nicht mehr durch, bis du wieder eins hinzufügst.',
 };
 
 export default native;

@@ -20,6 +20,7 @@ import { useTranslation } from '../../../i18n'
 import { MSetCard, MSetEyebrow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MConfirmSheet from './MConfirmSheet'
 import MAppLockCard from './MAppLockCard'
+import MClientCertCard from './MClientCertCard'
 import PasswordChecklist from '../../../components/shared/PasswordChecklist'
 import { fmtDate, usePasskeys } from '../../../components/Settings/usePasskeys'
 import { stripTrailingSlashes, useAccountSettings } from '../../../components/Settings/useAccountSettings'
@@ -182,6 +183,8 @@ export default function MSettingsAccount() {
       {/* ── Two-factor authentication ───────────────────────────── */}
       {/* The app lock, inside the app only (Face ID, Touch ID or the passcode). */}
       <MAppLockCard />
+      {/* The client certificate for a server behind mutual TLS, once one is stored. */}
+      <MClientCertCard />
 
       <MSetCard title={t('settings.mfa.title')} icon={KeyRound} className="mt-3">
         {mfaRequiredByPolicy && (

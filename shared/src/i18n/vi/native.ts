@@ -148,6 +148,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Ứng dụng không thể trả lời yêu cầu này. Hãy cho TREK đi qua proxy của bạn: TREK vẫn hỏi đăng nhập riêng của nó.',
   'native.gate.help': 'Dùng ứng dụng sau một proxy đăng nhập',
+  'native.cert.title': 'Máy chủ này yêu cầu chứng chỉ máy khách',
+  'native.cert.titleRefused': 'Máy chủ không chấp nhận chứng chỉ',
+  'native.cert.hint':
+    'Proxy phía trước chỉ cho các thiết bị xuất trình chứng chỉ đi qua. Hãy thêm tệp .p12 hoặc .pfx được tạo cho thiết bị này. Ứng dụng chỉ xuất trình nó cho {host}.',
+  'native.cert.hintRefused': 'Proxy không tin hoặc không còn tin chứng chỉ trong ứng dụng. Hãy chọn tệp mà nó yêu cầu.',
+  'native.cert.choose': 'Thêm tệp chứng chỉ',
+  'native.cert.chooseOther': 'Chọn chứng chỉ khác',
+  'native.cert.help': 'Dùng ứng dụng với chứng chỉ máy khách',
+  'native.cert.passwordTitle': 'Mật khẩu chứng chỉ',
+  'native.cert.passwordMessage': 'Nhập mật khẩu của tệp chứng chỉ. Ứng dụng không lưu mật khẩu.',
+  'native.cert.passwordPlaceholder': 'Mật khẩu',
+  'native.cert.passwordOk': 'Thêm',
+  'native.cert.passwordCancel': 'Hủy',
+  'native.cert.passwordWrong': 'Mật khẩu này không mở được tệp. Hãy thử lại.',
+  'native.cert.errorFormat':
+    'Ứng dụng không đọc được tệp này. Cần một tệp .p12 hoặc .pfx chứa chứng chỉ và khóa riêng của nó.',
+  'native.cert.errorNoKey': 'Tệp này không chứa khóa riêng. Hãy xuất chứng chỉ cùng với khóa.',
+  'native.cert.errorExpired': 'Chứng chỉ này đã hết hạn.',
+  'native.cert.errorNotYetValid': 'Chứng chỉ này chưa có hiệu lực. Hãy kiểm tra ngày giờ trên thiết bị.',
+  'native.cert.errorStore': 'Ứng dụng không lưu được chứng chỉ. Hãy thử lại.',
+  'native.cert.unreachableTitle': 'Cần chứng chỉ',
+  'native.cert.unreachableHint': '{server} chỉ cho các thiết bị có chứng chỉ máy khách đáng tin cậy đi qua.',
+  'native.cert.settingTitle': 'Chứng chỉ máy khách',
+  'native.cert.settingIssuer': 'Cấp bởi {issuer}',
+  'native.cert.settingServer': 'Máy chủ',
+  'native.cert.settingValidUntil': 'Có hiệu lực đến',
+  'native.cert.settingHint': 'Ứng dụng chỉ xuất trình chứng chỉ này cho {host}, khi proxy của nó yêu cầu.',
+  'native.cert.settingReplace': 'Thay thế',
+  'native.cert.settingRemove': 'Gỡ bỏ',
+  'native.cert.removeTitle': 'Gỡ bỏ chứng chỉ?',
+  'native.cert.removeMessage':
+    'Không có chứng chỉ, proxy trước {host} sẽ không cho ứng dụng vào cho đến khi bạn thêm chứng chỉ mới.',
 };
 
 export default native;

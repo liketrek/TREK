@@ -147,6 +147,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Uygulama bu isteğe yanıt veremez. TREK’i proxy’nizde geçirin: TREK yine kendi girişini ister.',
   'native.gate.help': 'Uygulamayı bir giriş proxy’sinin arkasında kullanma',
+  'native.cert.title': 'Bu sunucu bir istemci sertifikası istiyor',
+  'native.cert.titleRefused': 'Sunucu sertifikayı kabul etmedi',
+  'native.cert.hint':
+    'Önündeki proxy yalnızca sertifika gösteren cihazları içeri alıyor. Bu cihaz için oluşturulan .p12 veya .pfx dosyasını ekle. Uygulama onu yalnızca {host} sunucusuna gösterir.',
+  'native.cert.hintRefused': 'Proxy uygulamadaki sertifikaya güvenmiyor ya da artık güvenmiyor. Beklediği dosyayı seç.',
+  'native.cert.choose': 'Sertifika dosyası ekle',
+  'native.cert.chooseOther': 'Başka bir sertifika seç',
+  'native.cert.help': 'Uygulamayı istemci sertifikasıyla kullanma',
+  'native.cert.passwordTitle': 'Sertifika parolası',
+  'native.cert.passwordMessage': 'Sertifika dosyasının parolasını gir. Uygulama onu saklamaz.',
+  'native.cert.passwordPlaceholder': 'Parola',
+  'native.cert.passwordOk': 'Ekle',
+  'native.cert.passwordCancel': 'İptal',
+  'native.cert.passwordWrong': 'Bu parola dosyayı açmıyor. Tekrar dene.',
+  'native.cert.errorFormat':
+    'Uygulama bu dosyayı okuyamıyor. Sertifikayı ve özel anahtarını içeren bir .p12 veya .pfx dosyası gerekir.',
+  'native.cert.errorNoKey': 'Bu dosyada özel anahtar yok. Sertifikayı anahtarıyla birlikte dışa aktar.',
+  'native.cert.errorExpired': 'Bu sertifikanın süresi doldu.',
+  'native.cert.errorNotYetValid': 'Bu sertifika henüz geçerli değil. Bu cihazın tarih ve saatini kontrol et.',
+  'native.cert.errorStore': 'Uygulama sertifikayı kaydedemedi. Tekrar dene.',
+  'native.cert.unreachableTitle': 'Sertifika gerekli',
+  'native.cert.unreachableHint': '{server} yalnızca güvenilir bir istemci sertifikası olan cihazları içeri alıyor.',
+  'native.cert.settingTitle': 'İstemci sertifikası',
+  'native.cert.settingIssuer': 'Veren: {issuer}',
+  'native.cert.settingServer': 'Sunucu',
+  'native.cert.settingValidUntil': 'Geçerlilik sonu',
+  'native.cert.settingHint': 'Uygulama bu sertifikayı yalnızca {host} sunucusuna, proxy istediğinde gösterir.',
+  'native.cert.settingReplace': 'Değiştir',
+  'native.cert.settingRemove': 'Kaldır',
+  'native.cert.removeTitle': 'Sertifika kaldırılsın mı?',
+  'native.cert.removeMessage':
+    'Sertifika olmadan {host} önündeki proxy, yenisini ekleyene kadar uygulamayı içeri almaz.',
 };
 
 export default native;

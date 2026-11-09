@@ -6,14 +6,27 @@ import { DEMO_SERVER_URL } from './links';
  * can load, or a reason it cannot.
  */
 
-export type ProbeFailure = 'invalid' | 'unreachable' | 'notTrek' | 'authGate' | 'tooOld';
+export type ProbeFailure = 'invalid' | 'unreachable' | 'notTrek' | 'authGate' | 'clientCert' | 'tooOld';
+
+/**
+ * A proxy in front of the server asked for a client certificate (mutual TLS)
+ * and let the check through without one. `sent`: the app showed its stored
+ * certificate and the proxy refused it all the same.
+ */
+export interface ClientCertDemand {
+  host: string;
+  port: number;
+  sent: boolean;
+}
+
 type ProbeResult =
-  | { ok: true; url: string; reason?: undefined; gate?: undefined }
+  | { ok: true; url: string; reason?: undefined; gate?: undefined; cert?: undefined }
   /**
    * `authGate`: a sign-in page of the user's own stands in front of TREK
-   * (authGate.ts); `url` is the server address it guards.
+   * (authGate.ts); `url` is the server address it guards. `clientCert`: a proxy
+   * wants a client certificate, `cert` says for which host and whether one was shown.
    */
-  | { ok: false; reason: ProbeFailure; url?: string; gate?: AuthGate };
+  | { ok: false; reason: ProbeFailure; url?: string; gate?: AuthGate; cert?: ClientCertDemand };
 
 export interface ProbeResponse {
   status: number;
@@ -21,6 +34,8 @@ export interface ProbeResponse {
   /** The URL after redirects. */
   url: string;
   headers?: Record<string, string>;
+  /** Whether the server asked for a client certificate, and whether the app showed one (native requests only). */
+  clientCert?: { requested: boolean; sent: boolean };
 }
 export type ProbeGet = (url: string) => Promise<ProbeResponse>;
 
@@ -74,7 +89,25 @@ function judge(response: ProbeResponse): ProbeResult {
   return 'bookingImport' in response.data ? { ok: false, reason: 'tooOld' } : { ok: false, reason: 'notTrek' };
 }
 
-const FAILURE_RANK: Record<ProbeFailure, number> = { invalid: 0, unreachable: 1, notTrek: 2, authGate: 3, tooOld: 4 };
+const FAILURE_RANK: Record<ProbeFailure, number> = {
+  invalid: 0,
+  unreachable: 1,
+  notTrek: 2,
+  authGate: 3,
+  clientCert: 4,
+  tooOld: 5,
+};
+
+/**
+ * A server that asked for a client certificate and did not answer with TREK:
+ * the TLS handshake failed (status 0, as nginx, Caddy and Traefik do), or the
+ * proxy answered with its own refusal (Cloudflare's 403, nginx's 400).
+ */
+function clientCertDemand(candidate: string, response: ProbeResponse): ClientCertDemand | null {
+  if (!response.clientCert?.requested) return null;
+  const url = new URL(candidate);
+  return { host: url.hostname.toLowerCase(), port: url.port ? Number(url.port) : 443, sent: response.clientCert.sent };
+}
 
 /**
  * A gate that did not send the check to its sign-in page (an API path can get a
@@ -105,9 +138,12 @@ export async function probeServer(input: string, get: ProbeGet): Promise<ProbeRe
     } catch {
       continue;
     }
-    let verdict = judge(response);
+    const cert = clientCertDemand(candidate, response);
+    let verdict = response.status === 0 && !cert ? ({ ok: false, reason: 'unreachable' } as const) : judge(response);
     if (verdict.ok) return { ok: true, url: verdict.url || candidate };
-    if (verdict.reason === 'notTrek') {
+    if (cert) {
+      verdict = { ok: false, reason: 'clientCert', url: candidate, cert };
+    } else if (verdict.reason === 'notTrek') {
       const gate = detectAuthGate(candidate + FEATURES_PATH, response);
       if (gate)
         verdict = { ok: false, reason: 'authGate', url: candidate, gate: await withLoginHost(candidate, gate, get) };

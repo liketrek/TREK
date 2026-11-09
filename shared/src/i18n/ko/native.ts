@@ -144,6 +144,39 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     '앱은 이 요청에 응답할 수 없습니다. 프록시에서 TREK을 통과시키세요. TREK은 여전히 자체 로그인을 요청합니다.',
   'native.gate.help': '로그인 프록시 뒤에서 앱 사용하기',
+  'native.cert.title': '이 서버는 클라이언트 인증서를 요구합니다',
+  'native.cert.titleRefused': '서버가 인증서를 받아들이지 않았습니다',
+  'native.cert.hint':
+    '앞단의 프록시는 인증서를 제시하는 기기만 통과시킵니다. 이 기기용으로 만든 .p12 또는 .pfx 파일을 추가하세요. 앱은 {host}에만 이 인증서를 제시합니다.',
+  'native.cert.hintRefused':
+    '프록시가 앱의 인증서를 신뢰하지 않거나 더 이상 신뢰하지 않습니다. 프록시가 요구하는 파일을 선택하세요.',
+  'native.cert.choose': '인증서 파일 추가',
+  'native.cert.chooseOther': '다른 인증서 선택',
+  'native.cert.help': '클라이언트 인증서로 앱 사용하기',
+  'native.cert.passwordTitle': '인증서 비밀번호',
+  'native.cert.passwordMessage': '인증서 파일의 비밀번호를 입력하세요. 앱은 비밀번호를 저장하지 않습니다.',
+  'native.cert.passwordPlaceholder': '비밀번호',
+  'native.cert.passwordOk': '추가',
+  'native.cert.passwordCancel': '취소',
+  'native.cert.passwordWrong': '이 비밀번호로는 파일을 열 수 없습니다. 다시 시도하세요.',
+  'native.cert.errorFormat':
+    '앱이 이 파일을 읽을 수 없습니다. 인증서와 개인 키가 들어 있는 .p12 또는 .pfx 파일이 필요합니다.',
+  'native.cert.errorNoKey': '이 파일에는 개인 키가 없습니다. 인증서를 키와 함께 내보내세요.',
+  'native.cert.errorExpired': '이 인증서는 만료되었습니다.',
+  'native.cert.errorNotYetValid': '이 인증서는 아직 유효하지 않습니다. 이 기기의 날짜와 시간을 확인하세요.',
+  'native.cert.errorStore': '앱이 인증서를 저장하지 못했습니다. 다시 시도하세요.',
+  'native.cert.unreachableTitle': '인증서 필요',
+  'native.cert.unreachableHint': '{server}는 신뢰할 수 있는 클라이언트 인증서가 있는 기기만 통과시킵니다.',
+  'native.cert.settingTitle': '클라이언트 인증서',
+  'native.cert.settingIssuer': '발급자: {issuer}',
+  'native.cert.settingServer': '서버',
+  'native.cert.settingValidUntil': '유효 기간',
+  'native.cert.settingHint': '앱은 {host}의 프록시가 요청할 때만 이 인증서를 제시합니다.',
+  'native.cert.settingReplace': '교체',
+  'native.cert.settingRemove': '삭제',
+  'native.cert.removeTitle': '인증서를 삭제할까요?',
+  'native.cert.removeMessage':
+    '인증서가 없으면 새 인증서를 추가할 때까지 {host} 앞의 프록시가 앱을 통과시키지 않습니다.',
 };
 
 export default native;

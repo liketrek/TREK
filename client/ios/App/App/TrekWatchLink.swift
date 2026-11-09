@@ -237,7 +237,7 @@ enum TrekWatchWriter {
             for (field, value) in HTTPCookie.requestHeaderFields(with: session) {
                 signed.setValue(value, forHTTPHeaderField: field)
             }
-            URLSession.shared.dataTask(with: signed) { data, response, error in
+            TrekClientCertSessionDelegate.session.dataTask(with: signed) { data, response, error in
                 let status = (response as? HTTPURLResponse)?.statusCode ?? 0
                 completion(data, error == nil && (200..<300).contains(status))
             }.resume()

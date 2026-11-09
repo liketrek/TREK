@@ -150,6 +150,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Az alkalmazás nem tud válaszolni erre a kérésre. Engedd át a TREK-et a proxyban: a TREK továbbra is a saját bejelentkezését kéri.',
   'native.gate.help': 'Az alkalmazás használata bejelentkezési proxy mögött',
+  'native.cert.title': 'Ez a szerver kliens tanúsítványt kér',
+  'native.cert.titleRefused': 'A szerver nem fogadta el a tanúsítványt',
+  'native.cert.hint':
+    'Az előtte álló proxy csak tanúsítványt felmutató eszközöket enged be. Add hozzá az ehhez az eszközhöz készült .p12 vagy .pfx fájlt. Az app csak a(z) {host} számára mutatja meg.',
+  'native.cert.hintRefused':
+    'A proxy nem (vagy már nem) bízik az appban lévő tanúsítványban. Válaszd ki a fájlt, amit vár.',
+  'native.cert.choose': 'Tanúsítványfájl hozzáadása',
+  'native.cert.chooseOther': 'Másik tanúsítvány választása',
+  'native.cert.help': 'Az app használata kliens tanúsítvánnyal',
+  'native.cert.passwordTitle': 'Tanúsítvány jelszava',
+  'native.cert.passwordMessage': 'Add meg a tanúsítványfájl jelszavát. Az app nem tárolja.',
+  'native.cert.passwordPlaceholder': 'Jelszó',
+  'native.cert.passwordOk': 'Hozzáadás',
+  'native.cert.passwordCancel': 'Mégse',
+  'native.cert.passwordWrong': 'Ez a jelszó nem nyitja meg a fájlt. Próbáld újra.',
+  'native.cert.errorFormat':
+    'Az app nem tudja beolvasni ezt a fájlt. Olyan .p12 vagy .pfx fájl kell, amely a tanúsítványt és a privát kulcsát is tartalmazza.',
+  'native.cert.errorNoKey': 'Ebben a fájlban nincs privát kulcs. Exportáld a tanúsítványt a kulcsával együtt.',
+  'native.cert.errorExpired': 'Ez a tanúsítvány lejárt.',
+  'native.cert.errorNotYetValid': 'Ez a tanúsítvány még nem érvényes. Ellenőrizd az eszköz dátumát és idejét.',
+  'native.cert.errorStore': 'Az app nem tudta elmenteni a tanúsítványt. Próbáld újra.',
+  'native.cert.unreachableTitle': 'Tanúsítvány szükséges',
+  'native.cert.unreachableHint': '{server} csak megbízható kliens tanúsítvánnyal rendelkező eszközöket enged be.',
+  'native.cert.settingTitle': 'Kliens tanúsítvány',
+  'native.cert.settingIssuer': 'Kiállító: {issuer}',
+  'native.cert.settingServer': 'Szerver',
+  'native.cert.settingValidUntil': 'Érvényes eddig',
+  'native.cert.settingHint': 'Az app csak a(z) {host} számára mutatja meg ezt a tanúsítványt, amikor a proxyja kéri.',
+  'native.cert.settingReplace': 'Csere',
+  'native.cert.settingRemove': 'Eltávolítás',
+  'native.cert.removeTitle': 'Eltávolítod a tanúsítványt?',
+  'native.cert.removeMessage': 'Nélküle a(z) {host} előtti proxy nem engedi be az appot, amíg újat nem adsz hozzá.',
 };
 
 export default native;

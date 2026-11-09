@@ -119,6 +119,33 @@ export interface TrekShellPlugin {
   addToGoogleWallet(options: { url: string }): Promise<{ result: 'opened' }>;
   /** Android, feature windowLayout: the window's size classes and a foldable's posture and hinge. */
   getWindowLayout(): Promise<NativeWindowLayout>;
+  /**
+   * Feature clientCertificate: a GET against the user's server for the address
+   * screen, made natively. It shows the stored client certificate to that server
+   * when asked and reports whether the server asked (`certRequested`) and got
+   * one (`certSent`). A failed connection resolves with status 0.
+   */
+  requestServer(options: { url: string; timeoutMs?: number }): Promise<NativeServerResponse>;
+  /**
+   * Feature clientCertificate: the stored client certificate, or null, and the
+   * last server that asked for one while the app ran (`served`: it got one).
+   */
+  clientCertificate(): Promise<{
+    certificate: ClientCertificateInfo | null;
+    request?: { host: string; port: number; served: boolean };
+  }>;
+  /**
+   * Feature clientCertificate: picks a .p12/.pfx file, asks for its password
+   * (with `labels`, the UI's words) until it opens, and keeps it for the server
+   * at host and port, replacing any other.
+   */
+  importClientCertificate(options: {
+    host: string;
+    port: number;
+    labels: ClientCertificateLabels;
+  }): Promise<ClientCertificateImport>;
+  /** Feature clientCertificate: forgets the stored client certificate. */
+  removeClientCertificate(): Promise<void>;
   addListener(
     event: 'windowLayout',
     listener: (payload: NativeWindowLayout) => void
@@ -228,6 +255,47 @@ export type NativeLocationPayload =
       error?: undefined;
     }
   | { error: { code: number; message: string } };
+
+interface NativeServerResponse {
+  status: number;
+  data: unknown;
+  url: string;
+  headers?: Record<string, string>;
+  certRequested: boolean;
+  certSent: boolean;
+  /** host:port of the server that asked. */
+  certHost?: string;
+  /** Why the connection failed, when status is 0. */
+  error?: string;
+}
+
+export interface ClientCertificateInfo {
+  host: string;
+  port: number;
+  /** The certificate's common name. */
+  subject: string;
+  /** The issuer's common name. */
+  issuer: string;
+  /** Expiry, in milliseconds since 1970. */
+  notAfter: number;
+}
+
+export interface ClientCertificateLabels {
+  title: string;
+  message: string;
+  placeholder: string;
+  ok: string;
+  cancel: string;
+  wrongPassword: string;
+}
+
+export type ClientCertificateFailure = 'format' | 'no_key' | 'expired' | 'not_yet_valid' | 'store';
+
+export interface ClientCertificateImport {
+  result: 'imported' | 'cancelled' | 'failed';
+  failure?: ClientCertificateFailure;
+  certificate?: ClientCertificateInfo;
+}
 
 export const TrekShell = registerPlugin<TrekShellPlugin>('TrekShell');
 

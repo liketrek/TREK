@@ -148,6 +148,39 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Приложение не может ответить на этот запрос. Пропустите TREK в вашем прокси: TREK по-прежнему просит собственный вход.',
   'native.gate.help': 'Приложение за прокси со входом',
+  'native.cert.title': 'Этот сервер запрашивает клиентский сертификат',
+  'native.cert.titleRefused': 'Сервер не принял сертификат',
+  'native.cert.hint':
+    'Прокси перед ним пропускает только устройства с сертификатом. Добавьте файл .p12 или .pfx, созданный для этого устройства. Приложение показывает его только серверу {host}.',
+  'native.cert.hintRefused':
+    'Прокси не доверяет (или больше не доверяет) сертификату в приложении. Выберите файл, который он ожидает.',
+  'native.cert.choose': 'Добавить файл сертификата',
+  'native.cert.chooseOther': 'Выбрать другой сертификат',
+  'native.cert.help': 'Использование приложения с клиентским сертификатом',
+  'native.cert.passwordTitle': 'Пароль сертификата',
+  'native.cert.passwordMessage': 'Введите пароль файла сертификата. Приложение его не сохраняет.',
+  'native.cert.passwordPlaceholder': 'Пароль',
+  'native.cert.passwordOk': 'Добавить',
+  'native.cert.passwordCancel': 'Отмена',
+  'native.cert.passwordWrong': 'Этот пароль не открывает файл. Попробуйте ещё раз.',
+  'native.cert.errorFormat':
+    'Приложение не может прочитать этот файл. Нужен файл .p12 или .pfx с сертификатом и его закрытым ключом.',
+  'native.cert.errorNoKey': 'В этом файле нет закрытого ключа. Экспортируйте сертификат вместе с ключом.',
+  'native.cert.errorExpired': 'Срок действия этого сертификата истёк.',
+  'native.cert.errorNotYetValid': 'Этот сертификат ещё не действует. Проверьте дату и время на этом устройстве.',
+  'native.cert.errorStore': 'Приложению не удалось сохранить сертификат. Попробуйте ещё раз.',
+  'native.cert.unreachableTitle': 'Нужен сертификат',
+  'native.cert.unreachableHint': '{server} пропускает только устройства с доверенным клиентским сертификатом.',
+  'native.cert.settingTitle': 'Клиентский сертификат',
+  'native.cert.settingIssuer': 'Выдан: {issuer}',
+  'native.cert.settingServer': 'Сервер',
+  'native.cert.settingValidUntil': 'Действует до',
+  'native.cert.settingHint':
+    'Приложение показывает этот сертификат только серверу {host}, когда его прокси его запрашивает.',
+  'native.cert.settingReplace': 'Заменить',
+  'native.cert.settingRemove': 'Удалить',
+  'native.cert.removeTitle': 'Удалить сертификат?',
+  'native.cert.removeMessage': 'Без него прокси перед {host} не пропустит приложение, пока вы не добавите новый.',
 };
 
 export default native;

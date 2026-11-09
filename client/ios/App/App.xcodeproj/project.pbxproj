@@ -51,6 +51,7 @@
 		81E4582AD7514CA1AF373E48 /* WatchSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D54F96D80A1D1C4C21457 /* WatchSnapshot.swift */; };
 		84EB79E4B677229481809933 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A03A384FE54FAD1ED68E12DC /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8925D4B7322D6930F3C02959 /* TrekWatchLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */; };
+		A1C3E5F70913B5D7F9E1A301 /* TrekClientIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C3E5F70913B5D7F9E1A302 /* TrekClientIdentity.swift */; };
 		896952F864B35C647FF6910A /* WatchSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FB55D221F4BA18795F33B5 /* WatchSample.swift */; };
 		8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */; };
 		8FFB2B488E43AD339D0BB450 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3A6054202DCC03D83C2C9602 /* Localizable.strings */; };
@@ -172,6 +173,7 @@
 		10FB55D221F4BA18795F33B5 /* WatchSample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSample.swift; sourceTree = "<group>"; };
 		114C13FB91B554AE8DC4372B /* et */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = et; path = et.lproj/Localizable.strings; sourceTree = "<group>"; };
 		125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekWatchLink.swift; sourceTree = "<group>"; };
+		A1C3E5F70913B5D7F9E1A302 /* TrekClientIdentity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekClientIdentity.swift; sourceTree = "<group>"; };
 		12DE24E0B7E2E5F3564D952B /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1335F1EEB49D744B27A00F31 /* th */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		15884CA899CAD3FFD98BA927 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -420,6 +422,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */,
+				A1C3E5F70913B5D7F9E1A302 /* TrekClientIdentity.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -823,6 +826,7 @@
 				7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */,
 				0C2D60A4950D7293E1F282CB /* TripDayAttributes.swift in Sources */,
 				8925D4B7322D6930F3C02959 /* TrekWatchLink.swift in Sources */,
+				A1C3E5F70913B5D7F9E1A301 /* TrekClientIdentity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

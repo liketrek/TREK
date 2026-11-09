@@ -147,6 +147,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Застосунок не може відповісти на цей запит. Пропустіть TREK у вашому проксі: TREK і далі просить власний вхід.',
   'native.gate.help': 'Застосунок за проксі з входом',
+  'native.cert.title': 'Цей сервер запитує клієнтський сертифікат',
+  'native.cert.titleRefused': 'Сервер не прийняв сертифікат',
+  'native.cert.hint':
+    'Проксі перед ним пропускає лише пристрої з сертифікатом. Додайте файл .p12 або .pfx, створений для цього пристрою. Застосунок показує його лише серверу {host}.',
+  'native.cert.hintRefused':
+    'Проксі не довіряє (або вже не довіряє) сертифікату в застосунку. Виберіть файл, який він очікує.',
+  'native.cert.choose': 'Додати файл сертифіката',
+  'native.cert.chooseOther': 'Вибрати інший сертифікат',
+  'native.cert.help': 'Використання застосунку з клієнтським сертифікатом',
+  'native.cert.passwordTitle': 'Пароль сертифіката',
+  'native.cert.passwordMessage': 'Введіть пароль файлу сертифіката. Застосунок його не зберігає.',
+  'native.cert.passwordPlaceholder': 'Пароль',
+  'native.cert.passwordOk': 'Додати',
+  'native.cert.passwordCancel': 'Скасувати',
+  'native.cert.passwordWrong': 'Цей пароль не відкриває файл. Спробуйте ще раз.',
+  'native.cert.errorFormat':
+    'Застосунок не може прочитати цей файл. Потрібен файл .p12 або .pfx із сертифікатом і його закритим ключем.',
+  'native.cert.errorNoKey': 'У цьому файлі немає закритого ключа. Експортуйте сертифікат разом із ключем.',
+  'native.cert.errorExpired': 'Термін дії цього сертифіката минув.',
+  'native.cert.errorNotYetValid': 'Цей сертифікат ще не дійсний. Перевірте дату й час на цьому пристрої.',
+  'native.cert.errorStore': 'Застосунку не вдалося зберегти сертифікат. Спробуйте ще раз.',
+  'native.cert.unreachableTitle': 'Потрібен сертифікат',
+  'native.cert.unreachableHint': '{server} пропускає лише пристрої з довіреним клієнтським сертифікатом.',
+  'native.cert.settingTitle': 'Клієнтський сертифікат',
+  'native.cert.settingIssuer': 'Видано: {issuer}',
+  'native.cert.settingServer': 'Сервер',
+  'native.cert.settingValidUntil': 'Дійсний до',
+  'native.cert.settingHint': 'Застосунок показує цей сертифікат лише серверу {host}, коли його проксі про це просить.',
+  'native.cert.settingReplace': 'Замінити',
+  'native.cert.settingRemove': 'Видалити',
+  'native.cert.removeTitle': 'Видалити сертифікат?',
+  'native.cert.removeMessage': 'Без нього проксі перед {host} не пропустить застосунок, доки ви не додасте новий.',
 };
 
 export default native;

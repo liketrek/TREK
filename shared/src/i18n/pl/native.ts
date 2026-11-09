@@ -147,6 +147,37 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Aplikacja nie może odpowiedzieć na tę prośbę. Przepuść TREK w swoim proxy: TREK nadal pyta o własne logowanie.',
   'native.gate.help': 'Korzystanie z aplikacji za proxy logowania',
+  'native.cert.title': 'Ten serwer wymaga certyfikatu klienta',
+  'native.cert.titleRefused': 'Serwer nie przyjął certyfikatu',
+  'native.cert.hint':
+    'Proxy przed nim wpuszcza tylko urządzenia z certyfikatem. Dodaj plik .p12 lub .pfx utworzony dla tego urządzenia. Aplikacja pokazuje go tylko serwerowi {host}.',
+  'native.cert.hintRefused': 'Proxy nie ufa (już) certyfikatowi w aplikacji. Wybierz plik, którego oczekuje.',
+  'native.cert.choose': 'Dodaj plik certyfikatu',
+  'native.cert.chooseOther': 'Wybierz inny certyfikat',
+  'native.cert.help': 'Korzystanie z aplikacji z certyfikatem klienta',
+  'native.cert.passwordTitle': 'Hasło certyfikatu',
+  'native.cert.passwordMessage': 'Wpisz hasło pliku certyfikatu. Aplikacja go nie zapisuje.',
+  'native.cert.passwordPlaceholder': 'Hasło',
+  'native.cert.passwordOk': 'Dodaj',
+  'native.cert.passwordCancel': 'Anuluj',
+  'native.cert.passwordWrong': 'To hasło nie otwiera pliku. Spróbuj ponownie.',
+  'native.cert.errorFormat':
+    'Aplikacja nie może odczytać tego pliku. Potrzebny jest plik .p12 lub .pfx z certyfikatem i kluczem prywatnym.',
+  'native.cert.errorNoKey': 'Ten plik nie zawiera klucza prywatnego. Wyeksportuj certyfikat razem z kluczem.',
+  'native.cert.errorExpired': 'Ten certyfikat wygasł.',
+  'native.cert.errorNotYetValid': 'Ten certyfikat nie jest jeszcze ważny. Sprawdź datę i godzinę na tym urządzeniu.',
+  'native.cert.errorStore': 'Aplikacja nie mogła zapisać certyfikatu. Spróbuj ponownie.',
+  'native.cert.unreachableTitle': 'Wymagany certyfikat',
+  'native.cert.unreachableHint': '{server} wpuszcza tylko urządzenia z zaufanym certyfikatem klienta.',
+  'native.cert.settingTitle': 'Certyfikat klienta',
+  'native.cert.settingIssuer': 'Wystawca: {issuer}',
+  'native.cert.settingServer': 'Serwer',
+  'native.cert.settingValidUntil': 'Ważny do',
+  'native.cert.settingHint': 'Aplikacja pokazuje ten certyfikat tylko serwerowi {host}, gdy prosi o niego jego proxy.',
+  'native.cert.settingReplace': 'Zastąp',
+  'native.cert.settingRemove': 'Usuń',
+  'native.cert.removeTitle': 'Usunąć certyfikat?',
+  'native.cert.removeMessage': 'Bez niego proxy przed {host} nie wpuści aplikacji, dopóki nie dodasz nowego.',
 };
 
 export default native;

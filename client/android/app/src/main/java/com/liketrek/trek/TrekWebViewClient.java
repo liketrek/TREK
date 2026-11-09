@@ -1,12 +1,14 @@
 package com.liketrek.trek;
 
 import android.net.Uri;
+import android.webkit.ClientCertRequest;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
+import com.liketrek.trek.clientcert.TrekClientIdentity;
 import java.util.Locale;
 import java.util.Set;
 
@@ -70,6 +72,28 @@ class TrekWebViewClient extends BridgeWebViewClient {
         return super.shouldInterceptRequest(view, request);
     }
 
+    /**
+     * A proxy in front of the server asks for a client certificate (mutual TLS).
+     * The stored one goes only to the host and port it was imported for; every
+     * other site that asks is told there is none, as a browser without a
+     * matching certificate would. The WebView remembers either answer for the
+     * host until the app restarts, which a new certificate always brings along.
+     */
+    @Override
+    public void onReceivedClientCertRequest(WebView view, ClientCertRequest request) {
+        TrekClientIdentity.Identity identity = TrekClientIdentity.identityFor(view.getContext(), request.getHost(), request.getPort());
+        TrekClientIdentity.noteRequest(request.getHost(), request.getPort(), identity != null);
+        if (identity != null) request.proceed(identity.getKey(), identity.getChain());
+        else request.ignore();
+        // The page may still come from the service worker's cache while every
+        // request fails: check natively whether the server lets the app in.
+        String server = TrekServerStore.getUrl(view.getContext());
+        Uri serverUri = server == null ? null : Uri.parse(server);
+        if (serverUri != null && TrekClientIdentity.matches(String.valueOf(serverUri.getHost()), serverUri.getPort() > 0 ? serverUri.getPort() : 443, request.getHost(), request.getPort())) {
+            com.liketrek.trek.clientcert.ClientCertWatch.serverAsked(view.getContext(), server, onUnreachable);
+        }
+    }
+
     @Override
     public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
         if (request.isForMainFrame()) {
@@ -82,14 +106,22 @@ class TrekWebViewClient extends BridgeWebViewClient {
     /**
      * Only a 5xx on the page itself means the server is down (a proxy's 502 or
      * 503 while TREK restarts). A 4xx page is left alone: the server answered,
-     * and TREK serves its UI for every other path.
+     * and TREK serves its UI for every other path. The exception is a proxy
+     * that asked this page for a client certificate and got none, as Cloudflare
+     * does with a 403: the address screen then says so and offers to add one.
      */
     @Override
     public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+        int status = errorResponse.getStatusCode();
         if (!request.isForMainFrame()) {
             super.onReceivedHttpError(view, request, errorResponse);
-        } else if (errorResponse.getStatusCode() >= 500) {
+        } else if (status >= 500 || (status >= 400 && wantedCertificate(request.getUrl()))) {
             onUnreachable.run();
         }
+    }
+
+    private static boolean wantedCertificate(Uri url) {
+        TrekClientIdentity.Request asked = TrekClientIdentity.INSTANCE.getLastRequest();
+        return asked != null && !asked.getServed() && TrekClientIdentity.matches(asked.getHost(), asked.getPort(), url.getHost(), url.getPort());
     }
 }

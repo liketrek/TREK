@@ -148,6 +148,40 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     "L'app no pot respondre aquesta sol·licitud. Deixa passar TREK al teu proxy: TREK continua demanant el seu propi inici de sessió.",
   'native.gate.help': "Fer servir l'app darrere d'un proxy d'inici de sessió",
+  'native.cert.title': 'Aquest servidor demana un certificat de client',
+  'native.cert.titleRefused': 'El servidor no ha acceptat el certificat',
+  'native.cert.hint':
+    "Un proxy al davant només deixa passar els dispositius que mostren un certificat. Afegeix el fitxer .p12 o .pfx creat per a aquest dispositiu. L'app només el mostra a {host}.",
+  'native.cert.hintRefused':
+    "El proxy no confia, o ja no confia, en el certificat de l'app. Tria el fitxer que espera.",
+  'native.cert.choose': 'Afegeix un fitxer de certificat',
+  'native.cert.chooseOther': 'Tria un altre certificat',
+  'native.cert.help': "Fer servir l'app amb un certificat de client",
+  'native.cert.passwordTitle': 'Contrasenya del certificat',
+  'native.cert.passwordMessage': "Introdueix la contrasenya del fitxer de certificat. L'app no la desa.",
+  'native.cert.passwordPlaceholder': 'Contrasenya',
+  'native.cert.passwordOk': 'Afegeix',
+  'native.cert.passwordCancel': 'Cancel·la',
+  'native.cert.passwordWrong': 'Aquesta contrasenya no obre el fitxer. Torna-ho a provar.',
+  'native.cert.errorFormat':
+    "L'app no pot llegir aquest fitxer. Cal un fitxer .p12 o .pfx amb el certificat i la seva clau privada.",
+  'native.cert.errorNoKey': 'Aquest fitxer no conté cap clau privada. Exporta el certificat juntament amb la clau.',
+  'native.cert.errorExpired': 'Aquest certificat ha caducat.',
+  'native.cert.errorNotYetValid':
+    "Aquest certificat encara no és vàlid. Comprova la data i l'hora d'aquest dispositiu.",
+  'native.cert.errorStore': "L'app no ha pogut desar el certificat. Torna-ho a provar.",
+  'native.cert.unreachableTitle': 'Cal un certificat',
+  'native.cert.unreachableHint': '{server} només deixa passar dispositius amb un certificat de client de confiança.',
+  'native.cert.settingTitle': 'Certificat de client',
+  'native.cert.settingIssuer': 'Emès per {issuer}',
+  'native.cert.settingServer': 'Servidor',
+  'native.cert.settingValidUntil': 'Vàlid fins al',
+  'native.cert.settingHint': "L'app només mostra aquest certificat a {host}, quan el seu proxy el demana.",
+  'native.cert.settingReplace': 'Substitueix',
+  'native.cert.settingRemove': 'Elimina',
+  'native.cert.removeTitle': 'Vols eliminar el certificat?',
+  'native.cert.removeMessage':
+    "Sense ell, el proxy davant de {host} ja no deixa entrar l'app fins que n'afegeixis un altre.",
 };
 
 export default native;

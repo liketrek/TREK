@@ -141,3 +141,53 @@ describe('probeServer behind a sign-in proxy', () => {
     expect(await probeServer('https://x.example.com', get)).toEqual({ ok: false, reason: 'notTrek' });
   });
 });
+
+describe('probeServer behind mutual TLS', () => {
+  const asked = (status: number, sent: boolean, data: unknown = ''): ProbeResponse => ({
+    status,
+    data,
+    url: 'https://trek.example.com/api/health/features',
+    clientCert: { requested: true, sent },
+  });
+
+  it('names a handshake the proxy broke off for want of a certificate, with the host to add one for', async () => {
+    const get = vi.fn().mockResolvedValue(asked(0, false));
+    expect(await probeServer('trek.example.com', get)).toEqual({
+      ok: false,
+      reason: 'clientCert',
+      url: 'https://trek.example.com',
+      cert: { host: 'trek.example.com', port: 443, sent: false },
+    });
+  });
+
+  it("names Cloudflare's 403 without a certificate the same way, port included", async () => {
+    const get = vi.fn().mockResolvedValue(asked(403, false, 'Access denied'));
+    const result = await probeServer('https://Trek.Example.com:8443', get);
+    expect(result.reason).toBe('clientCert');
+    expect(result.cert).toEqual({ host: 'trek.example.com', port: 8443, sent: false });
+  });
+
+  it('says the proxy refused the certificate the app showed', async () => {
+    const get = vi.fn().mockResolvedValue(asked(400, true, '400 The SSL certificate error'));
+    expect((await probeServer('https://trek.example.com', get)).cert?.sent).toBe(true);
+  });
+
+  it('connects where the proxy asked and TREK answered, with or without a certificate', async () => {
+    const trek = { bookingImport: false, nativeApp: true, nativeApi: 1 };
+    for (const sent of [true, false]) {
+      const get = vi.fn().mockResolvedValue(asked(200, sent, trek));
+      expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: true, url: 'https://trek.example.com' });
+    }
+  });
+
+  it('keeps a failed connection without an ask unreachable, and ranks the ask above it', async () => {
+    const down = vi.fn().mockResolvedValue({ status: 0, data: '', url: 'https://trek.example.com' });
+    expect(await probeServer('https://trek.example.com', down)).toEqual({ ok: false, reason: 'unreachable' });
+
+    const mixed = vi
+      .fn()
+      .mockResolvedValueOnce(asked(0, false))
+      .mockResolvedValueOnce({ status: 0, data: '', url: 'http://trek.example.com' });
+    expect((await probeServer('trek.example.com', mixed)).reason).toBe('clientCert');
+  });
+});

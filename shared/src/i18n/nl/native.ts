@@ -147,6 +147,39 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'De app kan deze vraag niet beantwoorden. Laat TREK er in je proxy langs: TREK vraagt nog steeds om zijn eigen aanmelding.',
   'native.gate.help': 'De app achter een aanmeldproxy gebruiken',
+  'native.cert.title': 'Deze server vraagt om een clientcertificaat',
+  'native.cert.titleRefused': 'De server heeft het certificaat niet geaccepteerd',
+  'native.cert.hint':
+    'Een proxy ervoor laat alleen apparaten met een certificaat door. Voeg het .p12- of .pfx-bestand toe dat voor dit apparaat is gemaakt. De app toont het alleen aan {host}.',
+  'native.cert.hintRefused':
+    'De proxy vertrouwt het certificaat in de app niet (meer). Kies het bestand dat hij verwacht.',
+  'native.cert.choose': 'Certificaatbestand toevoegen',
+  'native.cert.chooseOther': 'Ander certificaat kiezen',
+  'native.cert.help': 'De app gebruiken met een clientcertificaat',
+  'native.cert.passwordTitle': 'Certificaatwachtwoord',
+  'native.cert.passwordMessage': 'Voer het wachtwoord van het certificaatbestand in. De app bewaart het niet.',
+  'native.cert.passwordPlaceholder': 'Wachtwoord',
+  'native.cert.passwordOk': 'Toevoegen',
+  'native.cert.passwordCancel': 'Annuleren',
+  'native.cert.passwordWrong': 'Dit wachtwoord opent het bestand niet. Probeer het opnieuw.',
+  'native.cert.errorFormat':
+    'De app kan dit bestand niet lezen. Er is een .p12- of .pfx-bestand met het certificaat en de privésleutel nodig.',
+  'native.cert.errorNoKey': 'Dit bestand bevat geen privésleutel. Exporteer het certificaat samen met de sleutel.',
+  'native.cert.errorExpired': 'Dit certificaat is verlopen.',
+  'native.cert.errorNotYetValid': 'Dit certificaat is nog niet geldig. Controleer de datum en tijd op dit apparaat.',
+  'native.cert.errorStore': 'De app kon het certificaat niet opslaan. Probeer het opnieuw.',
+  'native.cert.unreachableTitle': 'Certificaat nodig',
+  'native.cert.unreachableHint': '{server} laat alleen apparaten door met een vertrouwd clientcertificaat.',
+  'native.cert.settingTitle': 'Clientcertificaat',
+  'native.cert.settingIssuer': 'Uitgegeven door {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Geldig tot',
+  'native.cert.settingHint': 'De app toont dit certificaat alleen aan {host}, als de proxy erom vraagt.',
+  'native.cert.settingReplace': 'Vervangen',
+  'native.cert.settingRemove': 'Verwijderen',
+  'native.cert.removeTitle': 'Certificaat verwijderen?',
+  'native.cert.removeMessage':
+    'Zonder certificaat laat de proxy voor {host} de app niet meer door, tot je er weer een toevoegt.',
 };
 
 export default native;

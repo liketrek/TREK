@@ -143,6 +143,37 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'لا يستطيع التطبيق الرد على هذا الطلب. اسمح لـ TREK بتجاوزه في الوكيل: سيظل TREK يطلب تسجيل الدخول الخاص به.',
   'native.gate.help': 'استخدام التطبيق خلف وكيل تسجيل دخول',
+  'native.cert.title': 'يطلب هذا الخادم شهادة عميل',
+  'native.cert.titleRefused': 'لم يقبل الخادم الشهادة',
+  'native.cert.hint':
+    'يسمح الوكيل الموجود أمامه بمرور الأجهزة التي تقدم شهادة فقط. أضف ملف ‎.p12 أو ‎.pfx المُنشأ لهذا الجهاز. لا يعرضه التطبيق إلا على {host}.',
+  'native.cert.hintRefused': 'لا يثق الوكيل بالشهادة الموجودة في التطبيق، أو لم يعد يثق بها. اختر الملف الذي يتوقعه.',
+  'native.cert.choose': 'إضافة ملف شهادة',
+  'native.cert.chooseOther': 'اختيار شهادة أخرى',
+  'native.cert.help': 'استخدام التطبيق مع شهادة عميل',
+  'native.cert.passwordTitle': 'كلمة مرور الشهادة',
+  'native.cert.passwordMessage': 'أدخل كلمة مرور ملف الشهادة. لا يحتفظ التطبيق بها.',
+  'native.cert.passwordPlaceholder': 'كلمة المرور',
+  'native.cert.passwordOk': 'إضافة',
+  'native.cert.passwordCancel': 'إلغاء',
+  'native.cert.passwordWrong': 'كلمة المرور هذه لا تفتح الملف. حاول مرة أخرى.',
+  'native.cert.errorFormat':
+    'لا يستطيع التطبيق قراءة هذا الملف. يلزم ملف ‎.p12 أو ‎.pfx يحتوي على الشهادة ومفتاحها الخاص.',
+  'native.cert.errorNoKey': 'لا يحتوي هذا الملف على مفتاح خاص. صدّر الشهادة مع مفتاحها.',
+  'native.cert.errorExpired': 'انتهت صلاحية هذه الشهادة.',
+  'native.cert.errorNotYetValid': 'هذه الشهادة غير صالحة بعد. تحقق من التاريخ والوقت على هذا الجهاز.',
+  'native.cert.errorStore': 'تعذّر على التطبيق حفظ الشهادة. حاول مرة أخرى.',
+  'native.cert.unreachableTitle': 'الشهادة مطلوبة',
+  'native.cert.unreachableHint': 'لا يسمح {server} إلا بمرور الأجهزة التي لديها شهادة عميل موثوقة.',
+  'native.cert.settingTitle': 'شهادة العميل',
+  'native.cert.settingIssuer': 'صادرة عن {issuer}',
+  'native.cert.settingServer': 'الخادم',
+  'native.cert.settingValidUntil': 'صالحة حتى',
+  'native.cert.settingHint': 'لا يعرض التطبيق هذه الشهادة إلا على {host} عندما يطلبها الوكيل الخاص به.',
+  'native.cert.settingReplace': 'استبدال',
+  'native.cert.settingRemove': 'إزالة',
+  'native.cert.removeTitle': 'إزالة الشهادة؟',
+  'native.cert.removeMessage': 'من دونها لن يسمح الوكيل أمام {host} بدخول التطبيق حتى تضيف شهادة جديدة.',
 };
 
 export default native;

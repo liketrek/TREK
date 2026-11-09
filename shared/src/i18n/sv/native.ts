@@ -147,6 +147,38 @@ const native: TranslationStrings = {
   'native.gate.basicHint':
     'Appen kan inte svara på den här frågan. Släpp förbi TREK i din proxy: TREK frågar fortfarande efter sin egen inloggning.',
   'native.gate.help': 'Använda appen bakom en inloggningsproxy',
+  'native.cert.title': 'Den här servern begär ett klientcertifikat',
+  'native.cert.titleRefused': 'Servern godtog inte certifikatet',
+  'native.cert.hint':
+    'En proxy framför den släpper bara in enheter som visar ett certifikat. Lägg till .p12- eller .pfx-filen som skapats för den här enheten. Appen visar den bara för {host}.',
+  'native.cert.hintRefused': 'Proxyn litar inte (längre) på certifikatet i appen. Välj filen den förväntar sig.',
+  'native.cert.choose': 'Lägg till certifikatfil',
+  'native.cert.chooseOther': 'Välj ett annat certifikat',
+  'native.cert.help': 'Använda appen med ett klientcertifikat',
+  'native.cert.passwordTitle': 'Certifikatlösenord',
+  'native.cert.passwordMessage': 'Ange lösenordet för certifikatfilen. Appen sparar det inte.',
+  'native.cert.passwordPlaceholder': 'Lösenord',
+  'native.cert.passwordOk': 'Lägg till',
+  'native.cert.passwordCancel': 'Avbryt',
+  'native.cert.passwordWrong': 'Lösenordet öppnar inte filen. Försök igen.',
+  'native.cert.errorFormat':
+    'Appen kan inte läsa filen. Den behöver en .p12- eller .pfx-fil med certifikatet och dess privata nyckel.',
+  'native.cert.errorNoKey': 'Filen innehåller ingen privat nyckel. Exportera certifikatet tillsammans med nyckeln.',
+  'native.cert.errorExpired': 'Certifikatet har gått ut.',
+  'native.cert.errorNotYetValid': 'Certifikatet är inte giltigt än. Kontrollera datum och tid på enheten.',
+  'native.cert.errorStore': 'Appen kunde inte spara certifikatet. Försök igen.',
+  'native.cert.unreachableTitle': 'Certifikat krävs',
+  'native.cert.unreachableHint': '{server} släpper bara in enheter med ett betrott klientcertifikat.',
+  'native.cert.settingTitle': 'Klientcertifikat',
+  'native.cert.settingIssuer': 'Utfärdat av {issuer}',
+  'native.cert.settingServer': 'Server',
+  'native.cert.settingValidUntil': 'Giltigt till',
+  'native.cert.settingHint': 'Appen visar certifikatet bara för {host}, när dess proxy ber om det.',
+  'native.cert.settingReplace': 'Ersätt',
+  'native.cert.settingRemove': 'Ta bort',
+  'native.cert.removeTitle': 'Ta bort certifikatet?',
+  'native.cert.removeMessage':
+    'Utan det släpper proxyn framför {host} inte längre in appen förrän du lägger till ett nytt.',
 };
 
 export default native;

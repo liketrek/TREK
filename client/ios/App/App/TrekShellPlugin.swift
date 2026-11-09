@@ -51,6 +51,10 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "setKeyCommands", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setQuickActions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeQuickAction", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestServer", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clientCertificate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "importClientCertificate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "removeClientCertificate", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -62,7 +66,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// builds a snapshot for nothing; "wallet" only where Wallet can take a pass (an
     /// iPhone: an iPad has no Wallet app), so the UI offers no button that does nothing.
     static var features: [String] {
-        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions"]
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "clientCertificate"]
         if canAddWalletPasses { names.append("wallet") }
         if TrekWatchLink.isAvailable { names.append("watch") }
         return names
@@ -429,7 +433,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         request.setValue("text/html", forHTTPHeaderField: "Accept")
-        URLSession.shared.dataTask(with: request) { data, response, _ in
+        // The app's session, so a server behind mutual TLS gets the client certificate.
+        TrekClientCertSessionDelegate.session.dataTask(with: request) { data, response, _ in
             guard let data, let http = response as? HTTPURLResponse, http.statusCode == 200,
                   http.value(forHTTPHeaderField: "Content-Type")?.hasPrefix("text/html") == true,
                   TrekServerStore.url == raw else {
@@ -464,6 +469,86 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
             let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "text/html; charset=utf-8"])!
             call.resolve(["opened": true])
             webView.loadSimulatedRequest(URLRequest(url: url), response: response, responseData: html)
+        }
+    }
+}
+
+// MARK: - Client certificates (mutual TLS)
+
+extension TrekShellPlugin {
+    /// The address screen's check of a server, made natively so it notices
+    /// whether the server asks for a client certificate and can show the stored
+    /// one. A failed connection resolves with status 0 instead of rejecting.
+    @objc func requestServer(_ call: CAPPluginCall) {
+        guard let raw = call.getString("url"), let url = URL(string: raw),
+              ["https", "http"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else {
+            call.reject("A http(s) URL is required")
+            return
+        }
+        let timeout = min(max(Double(call.getInt("timeoutMs") ?? 10000), 1000), 30000) / 1000
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
+        request.setValue("application/json, text/html;q=0.9, */*;q=0.8", forHTTPHeaderField: "Accept")
+        let delegate = TrekClientCertSessionDelegate.shared
+        var task: URLSessionDataTask?
+        task = TrekClientCertSessionDelegate.session.dataTask(with: request) { data, response, error in
+            let asked = task.flatMap { delegate.ask(for: $0) }
+            var result: [String: Any] = [
+                "certRequested": asked != nil,
+                "certSent": asked == true,
+                "url": response?.url?.absoluteString ?? raw,
+            ]
+            if asked != nil, let host = url.host?.lowercased() { result["certHost"] = "\(host):\(url.port ?? 443)" }
+            if let http = response as? HTTPURLResponse {
+                result["status"] = http.statusCode
+                let body = (data ?? Data()).prefix(512 * 1024)
+                result["data"] = String(data: body, encoding: .utf8) ?? ""
+                var headers: [String: String] = [:]
+                for (name, value) in http.allHeaderFields {
+                    if let name = name as? String, let value = value as? String { headers[name] = value }
+                }
+                result["headers"] = headers
+            } else {
+                result["status"] = 0
+                result["data"] = ""
+                if let error { result["error"] = (error as NSError).domain + ":" + String((error as NSError).code) }
+            }
+            call.resolve(result)
+        }
+        task?.resume()
+    }
+
+    /// The stored client certificate's details, and the last server that asked for one.
+    @objc func clientCertificate(_ call: CAPPluginCall) {
+        var result: [String: Any] = [:]
+        if let info = TrekClientIdentity.info() { result["certificate"] = info } else { result["certificate"] = NSNull() }
+        if let asked = TrekClientIdentity.lastRequest {
+            result["request"] = ["host": asked.host, "port": asked.port, "served": asked.served]
+        }
+        call.resolve(result)
+    }
+
+    @objc func removeClientCertificate(_ call: CAPPluginCall) {
+        TrekClientIdentity.remove()
+        call.resolve()
+    }
+
+    /// Picks a .p12/.pfx file, asks for its password until it opens or the user
+    /// gives up, and keeps it for the server at host and port.
+    @objc func importClientCertificate(_ call: CAPPluginCall) {
+        guard let host = call.getString("host"), host.range(of: "^[A-Za-z0-9.-]+$", options: .regularExpression) != nil else {
+            call.reject("A host is required")
+            return
+        }
+        let port = call.getInt("port") ?? 443
+        let labels = (call.getObject("labels") ?? [:]).compactMapValues { $0 as? String }
+        DispatchQueue.main.async { [weak self] in
+            guard let presenter = self?.bridge?.viewController else {
+                call.resolve(["result": "failed", "failure": TrekClientIdentity.Failure.store.rawValue])
+                return
+            }
+            TrekClientCertImporter(presenter: presenter, labels: labels, host: host, port: port) { result in
+                call.resolve(result)
+            }.start()
         }
     }
 }
