@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe('MAdminPermissionsPanel', () => {
-  it('FE-MOB-APERM-001: renders only the spinner while loading', () => {
+  it('FE-MOB-APERM-001: renders only the placeholders while loading', () => {
     server.use(
       http.get('/api/admin/permissions', async () => {
         await new Promise(() => {});
@@ -56,7 +56,7 @@ describe('MAdminPermissionsPanel', () => {
     );
     renderPanel();
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByText('Permission Settings')).not.toBeInTheDocument();
   });
 

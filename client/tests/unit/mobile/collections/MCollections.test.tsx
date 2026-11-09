@@ -209,12 +209,12 @@ describe('MCollections', () => {
     mocks.coll = makeHook()
   })
 
-  it('FE-MOB-COLSCR-001: shows only the spinner while the first load is in flight', () => {
+  it('FE-MOB-COLSCR-001: shows only the placeholders while the first load is in flight', () => {
     mocks.coll = makeHook({ loading: true, collections: [], places: [], visiblePlaces: [] })
     render(<MCollections />)
 
     expect(screen.queryByPlaceholderText('collections.search')).not.toBeInTheDocument()
-    expect(document.querySelector('.animate-spin')).not.toBeNull()
+    expect(document.querySelector('[data-skeleton]')).not.toBeNull()
   })
 
   it('FE-MOB-COLSCR-002: with no lists at all the dock + button starts the first one; the screen has no button of its own', async () => {
@@ -465,7 +465,7 @@ describe('MCollections', () => {
 
     mocks.coll = makeHook({ places: [], visiblePlaces: [], placesLoading: true })
     const loadingView = render(<MCollections />)
-    expect(loadingView.container.querySelector('.animate-spin')).not.toBeNull()
+    expect(loadingView.container.querySelector('[data-skeleton]')).not.toBeNull()
 
     mocks.coll = makeHook({ places: [], visiblePlaces: [] })
     render(<MCollections />)

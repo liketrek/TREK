@@ -7,7 +7,7 @@ import MSheet from './MSheet';
  * card's own buttons offer, so this is a second way, never the only one.
  */
 
-export interface ContextAction {
+interface ContextAction {
   key: string;
   label: string;
   icon: ReactElement;
@@ -38,7 +38,7 @@ export default function MContextMenu({ open, title, actions, onClose }: MContext
                 onClose();
                 action.onClick();
               }}
-              className={`flex w-full items-center gap-[11px] rounded-xl px-[10px] py-[11px] text-start text-[0.84375rem] font-semibold active:bg-[color:var(--m-ic)] ${
+              className={`flex w-full items-center gap-[11px] rounded-xl px-[10px] py-[11px] text-start text-body font-semibold active:bg-[color:var(--m-ic)] ${
                 danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'
               }`}
             >

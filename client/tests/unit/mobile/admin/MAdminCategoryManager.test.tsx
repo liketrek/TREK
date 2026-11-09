@@ -29,12 +29,12 @@ describe('MAdminCategoryManager', () => {
     server.use(http.get('/api/categories', () => HttpResponse.json({ categories: [] })));
   });
 
-  it('FE-MOB-MCAT-001: shows a spinner while the list is loading, then the empty state', async () => {
+  it('FE-MOB-MCAT-001: shows placeholders while the list is loading, then the empty state', async () => {
     render(<MAdminCategoryManager />);
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
 
     expect(await screen.findByText('No categories yet')).toBeInTheDocument();
-    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-MCAT-002: renders the card head and the New Category action', async () => {

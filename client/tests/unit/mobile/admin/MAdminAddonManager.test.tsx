@@ -63,7 +63,7 @@ afterEach(() => {
 });
 
 describe('MAdminAddonManager', () => {
-  it('FE-MOB-AADD-001: shows the spinner while addons load', async () => {
+  it('FE-MOB-AADD-001: shows the placeholders while addons load', async () => {
     server.use(
       http.get('/api/admin/addons', async () => {
         await delay(60);
@@ -72,9 +72,9 @@ describe('MAdminAddonManager', () => {
     );
     render(<MAdminAddonManager />);
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     await screen.findByText('No addons available');
-    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-AADD-002: the header uses the light wordmark in light mode', async () => {

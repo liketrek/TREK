@@ -37,9 +37,13 @@ describe('useLongPress', () => {
   it('FE-MOB-LONGPRESS-001: a held finger lifts the card, bumps and opens the menu, and the tap that ends it opens nothing', () => {
     const { card, onLongPress, onClick } = setup();
     touch(card, 'touchstart');
-    act(() => vi.advanceTimersByTime(200));
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
     expect(card.hasAttribute('data-pressing')).toBe(true);
-    act(() => vi.advanceTimersByTime(300));
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
     expect(onLongPress).toHaveBeenCalledOnce();
     expect(pressHaptic).toHaveBeenCalled();
     expect(card.hasAttribute('data-pressing')).toBe(false);
@@ -52,14 +56,18 @@ describe('useLongPress', () => {
     const { card, onLongPress } = setup();
     touch(card, 'touchstart');
     touch(card, 'touchmove', 50, 80);
-    act(() => vi.advanceTimersByTime(600));
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
     expect(onLongPress).not.toHaveBeenCalled();
   });
 
   it('FE-MOB-LONGPRESS-003: a short tap is a tap', () => {
     const { card, onLongPress, onClick } = setup();
     touch(card, 'touchstart');
-    act(() => vi.advanceTimersByTime(100));
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
     touch(card, 'touchend');
     fireEvent.click(card);
     expect(onLongPress).not.toHaveBeenCalled();

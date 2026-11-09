@@ -27,7 +27,7 @@ free **if they follow the contract below**.
 | Text | `--text-primary/secondary/muted/faint` · `text-content*` |
 | Borders | `--border-primary/secondary/faint` · `border-edge*` |
 | Accent | `--accent` (fill) · `--accent-text` (on fill) · `--accent-on` (on surface) · `--accent-hover` · `--accent-subtle` · `bg-accent` / `text-accent-on` / `bg-accent-subtle` |
-| Status | `--success/-soft`, `--danger/-soft`, `--warning/-soft`, `--info/-soft` · `bg-danger-soft text-danger` etc. |
+| Status | `--success/-soft`, `--danger/-soft`, `--warning/-soft`, `--info/-soft` · `bg-danger-soft text-danger` etc.; `--danger-text` for text on a solid `bg-danger` |
 | Elevation | `--shadow-sm/md/lg/card/elevated/modal/dropdown/popover` · `shadow-modal` etc. |
 | Overlay / inverse | `--overlay` · `--bg-inverse` / `--text-inverse` · `bg-inverse text-inverse-text` |
 | Type tiers | `text-title` / `text-subtitle` / `text-body` / `text-caption` (scale with the user's per-tier multipliers) |

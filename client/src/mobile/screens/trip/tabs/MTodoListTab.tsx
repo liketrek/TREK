@@ -214,6 +214,24 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   )
 }
 
+/** A swipe does what the card offers: tick it off, open it, or delete it. */
+function taskSwipeActions(
+  item: TodoItem,
+  t: (key: string) => string,
+  onToggle: (id: number, checked: boolean) => void,
+  onOpen: (id: number) => void,
+  onDelete?: (id: number) => void,
+): { leading: SwipeAction; trailing: SwipeAction[] } {
+  const leading: SwipeAction = item.checked
+    ? { label: t('todo.filter.open'), icon: RotateCcw, tone: 'neutral', onAction: () => onToggle(item.id, false) }
+    : { label: t('todo.filter.done'), icon: Check, tone: 'accent', onAction: () => onToggle(item.id, true) }
+  const trailing: SwipeAction[] = [
+    ...(onDelete ? [{ label: t('common.delete'), icon: Trash2, tone: 'danger' as const, onAction: () => onDelete(item.id) }] : []),
+    { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: () => onOpen(item.id) },
+  ]
+  return { leading, trailing }
+}
+
 function TaskCard({ item, members, today, onToggle, onOpen, onDelete }: {
   item: TodoItem
   members: TripMember[]
@@ -235,14 +253,7 @@ function TaskCard({ item, members, today, onToggle, onOpen, onDelete }: {
     ? (Number.isNaN(Date.parse(`${item.due_date}T00:00:00Z`)) ? item.due_date : formatDate(item.due_date, locale))
     : null
 
-  // A swipe does what the card offers: tick it off, open it, or delete it.
-  const leading: SwipeAction = done
-    ? { label: t('todo.filter.open'), icon: RotateCcw, tone: 'neutral', onAction: () => onToggle(item.id, false) }
-    : { label: t('todo.filter.done'), icon: Check, tone: 'accent', onAction: () => onToggle(item.id, true) }
-  const trailing: SwipeAction[] = [
-    ...(onDelete ? [{ label: t('common.delete'), icon: Trash2, tone: 'danger' as const, onAction: () => onDelete(item.id) }] : []),
-    { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: () => onOpen(item.id) },
-  ]
+  const { leading, trailing } = taskSwipeActions(item, t, onToggle, onOpen, onDelete)
 
   return (
     <MSwipeRow leading={leading} trailing={trailing} surface="rounded-2xl bg-[color:var(--m-bg)]" className="mt-2 rounded-2xl">

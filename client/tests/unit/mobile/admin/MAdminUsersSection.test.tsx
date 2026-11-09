@@ -89,10 +89,10 @@ describe('MAdminUsersSection', () => {
     expect(screen.getByRole('presentation')).toHaveAttribute('src', '/uploads/bob.png');
   });
 
-  it('FE-MOB-AUSERS-003: the spinner replaces the list while users are loading', () => {
+  it('FE-MOB-AUSERS-003: the placeholders replaces the list while users are loading', () => {
     renderSection({ users: [ALICE], isLoading: true });
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByText('alice')).not.toBeInTheDocument();
   });
 

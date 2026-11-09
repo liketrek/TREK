@@ -45,9 +45,9 @@ const AXIS_BIAS = 1.5;
 const FULL_SHARE = 0.62;
 
 const TONE: Record<SwipeAction['tone'], string> = {
-  danger: 'bg-danger text-white', // theme-lint-disable: white on the danger fill, as the delete buttons draw it
+  danger: 'bg-danger text-[color:var(--danger-text)]',
   accent: 'bg-m-act text-m-actfg',
-  neutral: 'bg-[color:var(--m-faint)] text-white', // theme-lint-disable: white on the neutral action fill
+  neutral: 'bg-[color:var(--bg-inverse)] text-[color:var(--text-inverse)]',
 };
 
 // The row open now, so opening another closes it.
@@ -201,7 +201,7 @@ export default function MSwipeRow({
       data-swipe-action=""
       tabIndex={open ? 0 : -1}
       onClick={() => run(action)}
-      className={`flex h-full w-[76px] flex-none flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold ${TONE[action.tone]}`}
+      className={`flex h-full w-[76px] flex-none flex-col items-center justify-center gap-1 text-caption font-semibold ${TONE[action.tone]}`}
     >
       <action.icon size={18} strokeWidth={2.2} aria-hidden="true" />
       {action.label}

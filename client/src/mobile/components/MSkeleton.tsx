@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n';
  * once as "Loading" for a screen reader; the shapes themselves are hidden from it.
  */
 
-export type MSkeletonVariant = 'rows' | 'cards' | 'detail' | 'map';
+type MSkeletonVariant = 'rows' | 'cards' | 'detail' | 'map';
 
 interface MSkeletonProps {
   variant: MSkeletonVariant;
@@ -69,6 +69,7 @@ export default function MSkeleton({ variant, count = 4, framed = true, className
   return (
     <div
       role="status"
+      data-skeleton=""
       aria-label={t('common.loading')}
       className={`animate-pulse motion-reduce:animate-none ${className}`}
     >
