@@ -581,6 +581,15 @@ describe('getSynologyAssetInfo', () => {
     expect(requestedIds()).toEqual(['[10314]']);
   });
 
+  it('SYNO-U095: passes a failed call on instead of asking the next id of an unreachable library', async () => {
+    safeFetch.mockResolvedValueOnce(httpError(503));
+
+    const result = await svc.getSynologyAssetInfo(USER, '10314_1793757217', USER);
+
+    expect(result.success).toBe(false);
+    expect(requestedIds()).toEqual(['[10314]']);
+  });
+
   it('SYNO-U094: asks for the thumbnail with the metadata, the only way to tell which photo answered', async () => {
     safeFetch.mockResolvedValueOnce(item('10314_1793757217', 1718236800));
 

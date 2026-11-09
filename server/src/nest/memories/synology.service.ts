@@ -741,8 +741,10 @@ export class SynologyService {
     // counts: never a neighbour's capture time or GPS.
     const unit = Number(parsedId.id);
     const own = await this._readItemOfUnit(targetUserId, unit, parsedId.id, passphrase);
+    // The neighbour only when the library answered with another photo: a failed
+    // call (an unreachable NAS) is passed on, not repeated against the next id.
     const found =
-      own.success && own.data ? own : await this._readItemOfUnit(targetUserId, unit + 1, parsedId.id, passphrase);
+      own.success && !own.data ? await this._readItemOfUnit(targetUserId, unit + 1, parsedId.id, passphrase) : own;
     if (!found.success) return found as ServiceResult<AssetInfo>;
     if (!found.data) return fail('Photo not found', 404);
 
