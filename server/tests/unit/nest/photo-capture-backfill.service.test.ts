@@ -31,17 +31,24 @@ type Row = {
   lng?: number | null;
 };
 
-function build(rows: Row[], info: Record<number, unknown>) {
+function build(
+  rows: Row[],
+  info: Record<number, unknown>,
+  extra: { getPhotoInfo?: (...args: unknown[]) => Promise<unknown>; photos?: Record<string, unknown> } = {},
+) {
   const recordCaptureMetadata = vi.fn();
   // Keyed on the SECOND argument on purpose: the resolver's signature is
   // (userId, photoId), and a mock that keys on the first one passes just as
   // happily when the two are swapped at the call site.
-  const getPhotoInfo = vi.fn(async (_userId: number, id: number) =>
-    info[id] ? { success: true, data: info[id] } : { success: false, error: 'nope', status: 404 },
+  const getPhotoInfo = vi.fn(
+    extra.getPhotoInfo ??
+      (async (_userId: number, id: number) =>
+        info[id] ? { success: true, data: info[id] } : { success: false, error: 'nope', status: 404 }),
   );
   const photos = {
     resolve: (id: number) => rows.find((r) => r.id === id) ?? null,
     recordCaptureMetadata,
+    ...extra.photos,
   } as unknown as TrekPhotoRegistrationService;
   const resolver = { getPhotoInfo } as unknown as PhotoResolverService;
   return { svc: new PhotoCaptureBackfillService(resolver, photos, storageStub), recordCaptureMetadata, getPhotoInfo };
@@ -527,13 +534,7 @@ describe('PhotoCaptureBackfillService — local files', () => {
 describe('PhotoCaptureBackfillService.reconfirm', () => {
   function buildReconfirm(answer: () => Promise<unknown>, changed = true) {
     const replaceCaptureMetadata = vi.fn(async () => changed);
-    const getPhotoInfo = vi.fn(answer);
-    const photos = { replaceCaptureMetadata } as unknown as TrekPhotoRegistrationService;
-    const svc = new PhotoCaptureBackfillService(
-      { getPhotoInfo } as unknown as PhotoResolverService,
-      photos,
-      storageStub,
-    );
+    const { svc, getPhotoInfo } = build([], {}, { getPhotoInfo: answer, photos: { replaceCaptureMetadata } });
     return { svc, replaceCaptureMetadata, getPhotoInfo };
   }
 
@@ -560,11 +561,10 @@ describe('PhotoCaptureBackfillService.reconfirm', () => {
     expect(await unconfirmed.svc.reconfirm(7, 3)).toBe('failed');
     expect(unconfirmed.replaceCaptureMetadata).not.toHaveBeenCalled();
 
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const throwing = buildReconfirm(async () => {
       throw new Error('NAS gone');
     });
     expect(await throwing.svc.reconfirm(7, 3)).toBe('failed');
-    errSpy.mockRestore();
+    expect(throwing.replaceCaptureMetadata).not.toHaveBeenCalled();
   });
 });

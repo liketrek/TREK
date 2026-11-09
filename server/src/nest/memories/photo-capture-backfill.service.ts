@@ -2,7 +2,7 @@ import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.
 import { StorageService } from '../storage/storage.service';
 import { exifCaptureInstant } from './memories.helpers';
 import { PhotoResolverService } from './photo-resolver.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import exifr from 'exifr';
 
@@ -95,6 +95,8 @@ interface LookupSlots {
  */
 @Injectable()
 export class PhotoCaptureBackfillService {
+  private readonly logger = new Logger(PhotoCaptureBackfillService.name);
+
   /**
    * Open lookups per user, never above BACKFILL_CONCURRENCY for any of them. An
    * entry lives only while its user has a lookup open or waiting, so the map
@@ -234,7 +236,7 @@ export class PhotoCaptureBackfillService {
       });
       return changed ? 'changed' : 'same';
     } catch (err) {
-      console.error(`[Photos] capture reconfirm failed for ${id}:`, err instanceof Error ? err.message : err);
+      this.logger.warn(`capture reconfirm failed for ${id}: ${err instanceof Error ? err.message : String(err)}`);
       return 'failed';
     }
   }
