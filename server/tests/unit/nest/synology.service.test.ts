@@ -531,6 +531,66 @@ describe('the search window', () => {
   });
 });
 
+describe('getSynologyAssetInfo', () => {
+  /** A Browse.Item `get` answer holding one item, its thumbnail keyed to a unit. */
+  const item = (cacheKey: string, time: number) =>
+    api({
+      list: [{ id: 1, time, additional: { thumbnail: { cache_key: cacheKey }, gps: { latitude: 1, longitude: 2 } } }],
+    });
+  const requestedIds = () =>
+    safeFetch.mock.calls.map((c) => new URLSearchParams(String((c[1] as { body: URLSearchParams }).body)).get('id'));
+  const takenAt = (r: unknown) => (r as { data: { takenAt: string } }).data.takenAt;
+
+  it('SYNO-U090: reads the asset itself where the item id is its unit id, not the next photo (#3019)', async () => {
+    safeFetch.mockResolvedValueOnce(item('10314_1793757217', 1718236800));
+
+    const result = await svc.getSynologyAssetInfo(USER, '10314_1793757217', USER);
+
+    expect(requestedIds()).toEqual(['[10314]']);
+    expect(takenAt(result)).toBe(new Date(1718236800 * 1000).toISOString());
+    expect((result as { data: { id: string } }).data.id).toBe('10314_1793757217');
+  });
+
+  it('SYNO-U091: where the item is one further on, takes that one and not the neighbour the unit id names', async () => {
+    safeFetch
+      .mockResolvedValueOnce(item('10313_1700000000', 1500000000))
+      .mockResolvedValueOnce(item('10314_1793757217', 1718236800));
+
+    const result = await svc.getSynologyAssetInfo(USER, '10314_1793757217', USER);
+
+    expect(requestedIds()).toEqual(['[10314]', '[10315]']);
+    expect(takenAt(result)).toBe(new Date(1718236800 * 1000).toISOString());
+  });
+
+  it("SYNO-U092: answers not found rather than another photo's date and place", async () => {
+    safeFetch
+      .mockResolvedValueOnce(item('10313_1700000000', 1500000000))
+      .mockResolvedValueOnce(item('10316_1700000000', 1500000000));
+
+    const result = await svc.getSynologyAssetInfo(USER, '10314_1793757217', USER);
+
+    expect(result).toEqual({ success: false, error: { message: 'Photo not found', status: 404 } });
+  });
+
+  it('SYNO-U093: matches an edited photo by its unit, whatever timestamp its key carries now', async () => {
+    safeFetch.mockResolvedValueOnce(item('10314_1800000000', 1718236800));
+
+    const result = await svc.getSynologyAssetInfo(USER, '10314_1793757217', USER);
+
+    expect(result.success).toBe(true);
+    expect(requestedIds()).toEqual(['[10314]']);
+  });
+
+  it('SYNO-U094: asks for the thumbnail with the metadata, the only way to tell which photo answered', async () => {
+    safeFetch.mockResolvedValueOnce(item('10314_1793757217', 1718236800));
+
+    await svc.getSynologyAssetInfo(USER, '10314_1793757217', USER);
+
+    const body = new URLSearchParams(String((safeFetch.mock.calls[0][1] as { body: URLSearchParams }).body));
+    expect(body.get('additional')).toContain('thumbnail');
+  });
+});
+
 describe('fetchSynologyThumbnailBytes', () => {
   it('SYNO-U080: fails without credentials rather than fetching', async () => {
     await seedUser(6, { synology_url: null });

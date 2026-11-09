@@ -732,24 +732,47 @@ export class SynologyService {
   ): Promise<ServiceResult<AssetInfo>> {
     const parsedId = this._splitPackedSynologyId(photoId);
     if (!parsedId) return fail('Invalid photo ID format', 400);
-    const infoParams: ApiCallParams = {
-      api: 'SYNO.Foto.Browse.Item',
-      method: 'get',
-      version: 5,
-      id: `[${Number(parsedId.id) + 1}]`, //for some reason synology wants id moved by one to get image info
-      additional: ['resolution', 'exif', 'gps', 'address', 'orientation', 'description'],
-    };
-    if (passphrase) infoParams.passphrase = passphrase;
-    const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(targetUserId, infoParams);
 
-    if (!result.success) return result as ServiceResult<AssetInfo>;
+    // The packed id carries the thumbnail's unit id, while Browse.Item `get`
+    // wants the item's own id. On most libraries the two are equal; on some the
+    // item is one further on, which is why this once always asked for unit + 1
+    // and, on the others, stored the next photo's date and place (#3019). So
+    // both are asked in turn, and only an item whose own thumbnail is this unit
+    // counts: never a neighbour's capture time or GPS.
+    const unit = Number(parsedId.id);
+    let lastFailure: ServiceResult<AssetInfo> = fail('Photo not found', 404);
+    for (const itemId of [unit, unit + 1]) {
+      const infoParams: ApiCallParams = {
+        api: 'SYNO.Foto.Browse.Item',
+        method: 'get',
+        version: 5,
+        id: `[${itemId}]`,
+        additional: ['thumbnail', 'resolution', 'exif', 'gps', 'address', 'orientation', 'description'],
+      };
+      if (passphrase) infoParams.passphrase = passphrase;
+      const result = await this._requestSynologyApi<{ list: SynologyPhotoItem[] }>(targetUserId, infoParams);
+      if (!result.success) {
+        lastFailure = result as ServiceResult<AssetInfo>;
+        continue;
+      }
+      const metadata = result.data.list?.find((item) => this._isItemOfUnit(item, parsedId.id));
+      if (!metadata) continue;
 
-    const metadata = result.data.list?.[0];
-    if (!metadata) return fail('Photo not found', 404);
+      const normalized = this._normalizeSynologyPhotoInfo(metadata);
+      normalized.id = photoId;
+      return success(normalized);
+    }
+    return lastFailure;
+  }
 
-    const normalized = this._normalizeSynologyPhotoInfo(metadata);
-    normalized.id = photoId;
-    return success(normalized);
+  /**
+   * Whether an item from Browse.Item is the one behind a unit id: its thumbnail's
+   * cache key starts with that unit. The key's second half is a timestamp that
+   * moves when the photo is edited, so the unit alone decides.
+   */
+  private _isItemOfUnit(item: SynologyPhotoItem, unitId: string): boolean {
+    const key = String(item.additional?.thumbnail?.cache_key ?? '');
+    return key.split('_')[0] === unitId;
   }
 
   async fetchSynologyThumbnailBytes(
