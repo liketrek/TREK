@@ -413,7 +413,7 @@ function CoverField({ cover, title }: { cover: ReturnType<typeof useTripCoverPic
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void cover.search() } }}
-          placeholder={t('dashboard.unsplashSearchPlaceholder')}
+          enterKeyHint="search" placeholder={t('dashboard.unsplashSearchPlaceholder')}
           aria-label={t('dashboard.unsplashSearchPlaceholder')}
           className={SHEET_FIELD}
         />

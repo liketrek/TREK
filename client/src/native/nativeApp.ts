@@ -8,11 +8,13 @@ import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
 import { keepFieldInView } from './keepFieldInView';
+import { prepareKeyboardFields } from './keyboardFields';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 import { openPushTarget, startNativePush } from './push';
 import { reportNativeFailure } from './reportFailure';
 import { startSharedFiles } from './sharedFiles';
+import { trackTouchInput } from './touchInput';
 import { APP_URL_SCHEME, isUnimplemented } from './trekShell';
 
 /** Long enough that the warm-up never competes with the first screen's requests. */
@@ -28,6 +30,10 @@ export function startNativeApp(): void {
   // Marks the app for index.css: no text selection or long-press callout on the
   // UI itself, as in any native app. Fields stay selectable there.
   document.documentElement.setAttribute('data-native-app', '');
+  // No hover left behind by a tap, a press that shows, no focus ring after a tap.
+  trackTouchInput();
+  // The keyboard's return key, capitalisation and autocorrect fit the field.
+  prepareKeyboardFields();
 
   followThemeInStatusBar();
 

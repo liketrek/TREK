@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { DialogTile, NEUTRAL_TINT, fs } from './DialogShell'
 import { useLastOpen, usePresence } from './usePresence'
+import { useNativeQuestion } from '../../native/useNativeQuestion'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -30,10 +31,25 @@ function runConfirm(onConfirm: () => void): void {
 }
 
 export default function ConfirmDialog(props: ConfirmDialogProps) {
-  const { mounted, closing } = usePresence(props.isOpen)
+  const { t } = useTranslation()
+  // In the app the system asks (native/nativeDialogs.ts); a list under the question needs the HTML card.
+  const question = props.children
+    ? null
+    : {
+        title: props.title || t('common.confirm'),
+        message: props.message,
+        confirmLabel: props.confirmLabel || t('common.delete'),
+        cancelLabel: props.cancelLabel || t('common.cancel'),
+        danger: props.danger ?? true,
+      }
+  const html = useNativeQuestion(props.isOpen, question, (yes) => {
+    if (yes) runConfirm(props.onConfirm)
+    props.onClose()
+  })
+  const { mounted, closing } = usePresence(props.isOpen && html)
   // The question stays readable while it fades, even when its owner clears the subject on close.
   const shown = useLastOpen(props, props.isOpen)
-  return mounted ? <ConfirmDialogFrame {...shown} isOpen={props.isOpen} closing={closing} /> : null
+  return mounted ? <ConfirmDialogFrame {...shown} isOpen={props.isOpen && html} closing={closing} /> : null
 }
 
 function ConfirmDialogFrame({

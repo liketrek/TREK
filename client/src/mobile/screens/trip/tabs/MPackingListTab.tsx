@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { selectionHaptic } from '../../../../native/haptics'
 import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping, Minus,
@@ -671,7 +672,10 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
   const ownerMember = planner.tripMembers.find(m => m.id === item.owner_id)
   const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? me?.avatar_url ?? null : null)
 
-  const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked)
+  const toggle = () => {
+    selectionHaptic()
+    return tripActions.togglePackingItem(tripId, item.id, !item.checked)
+  }
   // Multi-piece items count their pieces into the bag (#2296).
   const quantity = item.quantity || 1
   const packed = packedOf(item)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { selectionHaptic } from '../../../../native/haptics'
 import { Calendar, Check, ChevronRight, Flag, Plus } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MChipStrip from '../../../components/MChipStrip'
@@ -45,7 +46,10 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const openCreate = () => { setEditingItemId(null); setCreatingTask(true) }
   const openEdit = (id: number) => { setCreatingTask(false); setEditingItemId(id) }
   const closeSheet = () => { setCreatingTask(false); setEditingItemId(null) }
-  const toggleItem = (id: number, checked: boolean) => tripActions.toggleTodoItem(tripId, id, checked)
+  const toggleItem = (id: number, checked: boolean) => {
+    selectionHaptic()
+    return tripActions.toggleTodoItem(tripId, id, checked)
+  }
 
   const filterPill = (active: boolean) =>
     `flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold ${

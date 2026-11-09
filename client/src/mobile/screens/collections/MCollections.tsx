@@ -271,7 +271,7 @@ export default function MCollections() {
                 <input
                   value={c.search}
                   onChange={e => c.setSearch(e.target.value)}
-                  placeholder={t('collections.search')}
+                  enterKeyHint="search" placeholder={t('collections.search')}
                   className="min-w-0 flex-1 bg-transparent font-geist text-[0.78125rem] text-m-ink outline-none placeholder:text-m-faint"
                 />
               </div>

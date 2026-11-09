@@ -197,6 +197,7 @@ function CatalogSearch({ admin }: { admin: Admin }) {
           onChange={(e) => search.setQuery(e.target.value)}
           autoComplete="off"
           aria-label={t('admin.paddleRegions.search')}
+          enterKeyHint="search"
           placeholder={t('admin.paddleRegions.searchPlaceholder')}
           className="h-[42px] w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] pe-3 ps-[34px] text-[length:calc(13px*var(--fs-scale-body,1))] text-m-ink outline-none placeholder:text-m-faint"
         />

@@ -7,6 +7,7 @@ import { keepTabInside, useModalFocus } from './modalFocus'
 import { useSheetDrag } from './useSheetDrag'
 import { useOverlay } from '../overlayStack'
 import { tickHaptic } from '../../native/haptics'
+import { useNativeQuestion } from '../../native/useNativeQuestion'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -185,6 +186,18 @@ export default function MSheet({
 }: MSheetProps) {
   const { t } = useTranslation()
   const { asking, markStart, requestClose, wouldAsk, keepEditing, discard, reset } = useDiscardGuard(discardGuard, onClose)
+  // In the app the system asks whether to throw the changes away; the card below is the browser's.
+  const askInSheet = useNativeQuestion(
+    asking,
+    {
+      title: t('common.unsavedTitle'),
+      message: t('common.unsavedMessage'),
+      confirmLabel: t('common.discard'),
+      cancelLabel: t('common.keepEditing'),
+      danger: true,
+    },
+    (yes) => (yes ? discard() : keepEditing()),
+  )
   const [rendered, setRendered] = useState(open)
   // Once the enter animation has played it is removed again: its forwards
   // fill would otherwise override the inline drag transform for good.
@@ -305,7 +318,7 @@ export default function MSheet({
               />
             )}
             {children}
-            {asking && (
+            {asking && askInSheet && (
               <div className="absolute inset-0 z-10 grid place-items-center bg-[color:var(--m-dim)] p-5 backdrop-blur-[2px]">
                 <div role="alertdialog" aria-label={t('common.unsavedTitle')} className="w-full max-w-[320px] rounded-[22px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-5">
                   <div className="text-subtitle font-semibold text-m-ink">{t('common.unsavedTitle')}</div>

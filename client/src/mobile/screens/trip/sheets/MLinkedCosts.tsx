@@ -106,7 +106,7 @@ export default function MLinkedCosts({ reservationId = null, placeId = null, hin
           {unlinked.length >= SEARCH_FROM && (
             <div className="mx-1 mb-1 mt-1 flex items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px]">
               <Search size={13} strokeWidth={2} className="flex-none text-m-faint" />
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder={t('common.search')}
+              <input value={query} onChange={e => setQuery(e.target.value)} enterKeyHint="search" placeholder={t('common.search')}
                 className="min-w-0 flex-1 bg-transparent text-[0.78125rem] text-m-ink outline-none placeholder:text-m-faint" />
             </div>
           )}

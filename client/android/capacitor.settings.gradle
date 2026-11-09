@@ -2,8 +2,14 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../../node_modules/@capacitor/android/capacitor')
 
+include ':capacitor-action-sheet'
+project(':capacitor-action-sheet').projectDir = new File('../../node_modules/@capacitor/action-sheet/android')
+
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File('../../node_modules/@capacitor/app/android')
+
+include ':capacitor-dialog'
+project(':capacitor-dialog').projectDir = new File('../../node_modules/@capacitor/dialog/android')
 
 include ':capacitor-filesystem'
 project(':capacitor-filesystem').projectDir = new File('../../node_modules/@capacitor/filesystem/android')

@@ -32,7 +32,7 @@ export default function MCollTripPickerSheet({ open, count, onCopy, onClose, t }
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={t('collections.copyToTripSearch')}
+            enterKeyHint="search" placeholder={t('collections.copyToTripSearch')}
             className="min-w-0 flex-1 bg-transparent font-geist text-[0.78125rem] text-m-ink outline-none placeholder:text-m-faint"
           />
         </div>

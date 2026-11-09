@@ -72,7 +72,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
-            placeholder={t('collections.addPlaceSearch')}
+            enterKeyHint="search" placeholder={t('collections.addPlaceSearch')}
             className="min-w-0 flex-1 bg-transparent font-[inherit] text-[0.8125rem] text-m-ink outline-none placeholder:text-m-faint"
           />
           <button

@@ -50,6 +50,9 @@ class TrekBridgeViewController: CAPBridgeViewController {
         // draws its own (mobile/components/MEdgeBack.tsx, feature "edgeBack"):
         // the page follows the finger and an open sheet closes first.
         webView?.allowsBackForwardNavigationGestures = false
+        // A long press on a link would lift a preview of the page it points to,
+        // which no native list does; the press means "drag" or nothing here.
+        webView?.allowsLinkPreview = false
     }
 
     /// Kept alive here: the content controller holds it, but only for as long as it is registered.

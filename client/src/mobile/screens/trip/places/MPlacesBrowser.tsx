@@ -188,7 +188,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
           <input
             value={search}
             onChange={e => updateSearch(e.target.value)}
-            placeholder={t('places.search')}
+            enterKeyHint="search" placeholder={t('places.search')}
             className="box-border min-w-0 flex-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
           />
           <button

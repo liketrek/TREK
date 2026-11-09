@@ -7,9 +7,11 @@ import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
+import { prepareKeyboardFields } from './keyboardFields';
 import { scrollToTop, startNativeApp } from './nativeApp';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
+import { trackTouchInput } from './touchInput';
 
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), minimizeApp: vi.fn() } }));
 vi.mock('@capacitor/keyboard', () => ({
@@ -28,6 +30,8 @@ vi.mock('./geolocation', () => ({ installNativeGeolocation: vi.fn() }));
 vi.mock('./sharedFiles', () => ({ startSharedFiles: vi.fn(async () => {}) }));
 vi.mock('./push', () => ({ startNativePush: vi.fn(async () => {}), openPushTarget: vi.fn() }));
 vi.mock('../mobile/overlayStack', () => ({ closeTopOverlay: vi.fn(() => false) }));
+vi.mock('./touchInput', () => ({ trackTouchInput: vi.fn() }));
+vi.mock('./keyboardFields', () => ({ prepareKeyboardFields: vi.fn() }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {
   const call = vi.mocked(App.addListener).mock.calls.find(([name]) => name === 'backButton');
@@ -57,11 +61,19 @@ describe('startNativeApp', () => {
     expect(App.addListener).not.toHaveBeenCalled();
     expect(StatusBar.setStyle).not.toHaveBeenCalled();
     expect(document.documentElement.hasAttribute('data-native-app')).toBe(false);
+    expect(trackTouchInput).not.toHaveBeenCalled();
+    expect(prepareKeyboardFields).not.toHaveBeenCalled();
   });
 
   it('marks <html> so a long press selects no text in the app', () => {
     startNativeApp();
     expect(document.documentElement.hasAttribute('data-native-app')).toBe(true);
+  });
+
+  it('follows finger or pointer for hover, press and focus, and fits the keyboard to each field', () => {
+    startNativeApp();
+    expect(trackTouchInput).toHaveBeenCalledTimes(1);
+    expect(prepareKeyboardFields).toHaveBeenCalledTimes(1);
   });
 
   it("Android's back gesture closes an open sheet before it leaves the page", () => {

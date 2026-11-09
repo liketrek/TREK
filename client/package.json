@@ -53,9 +53,11 @@
   },
   "dependencies": {
     "@assistant-ui/react": "0.15.25",
+    "@capacitor/action-sheet": "^8.1.1",
     "@capacitor/android": "^8.5.0",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.0",
+    "@capacitor/dialog": "^8.0.1",
     "@capacitor/filesystem": "^8.1.3",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.0",

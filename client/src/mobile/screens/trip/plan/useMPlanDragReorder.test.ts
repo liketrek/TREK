@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useMPlanDragReorder } from './useMPlanDragReorder'
+import { pressHaptic, selectionHaptic, tickHaptic } from '../../../../native/haptics'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { PlanRow } from './planTimelineModel'
+
+vi.mock('../../../../native/haptics', () => ({ pressHaptic: vi.fn(), selectionHaptic: vi.fn(), tickHaptic: vi.fn() }))
 
 const items = [
   { type: 'place', data: { id: 1 } },
@@ -112,5 +115,22 @@ describe('useMPlanDragReorder', () => {
     } as never
     expect(() => act(() => { result.current.dragPropsFor(rowFor(0))!.onDragStart(broken) })).not.toThrow()
     expect(result.current.draggingKey).toBe('row-0')
+  })
+
+  it('FE-MOB-DRAG-011: lifts with a bump, clicks once per new slot and ticks on the drop', () => {
+    vi.mocked(pressHaptic).mockClear()
+    vi.mocked(selectionHaptic).mockClear()
+    vi.mocked(tickHaptic).mockClear()
+    const { result, onMove } = setup()
+    act(() => { result.current.dragPropsFor(rowFor(0))!.onDragStart(dragEvent()) })
+    expect(pressHaptic).toHaveBeenCalledTimes(1)
+    act(() => { result.current.dragPropsFor(rowFor(0))!.onDragOver(dragEvent()) })
+    expect(selectionHaptic).not.toHaveBeenCalled()
+    act(() => { result.current.dragPropsFor(rowFor(2))!.onDragOver(dragEvent()) })
+    act(() => { result.current.dragPropsFor(rowFor(2))!.onDragOver(dragEvent()) })
+    expect(selectionHaptic).toHaveBeenCalledTimes(1)
+    act(() => { result.current.dragPropsFor(rowFor(2))!.onDrop(dragEvent()) })
+    expect(tickHaptic).toHaveBeenCalledTimes(1)
+    expect(onMove).toHaveBeenCalledTimes(1)
   })
 })

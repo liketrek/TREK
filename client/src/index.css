@@ -411,6 +411,34 @@ html[data-native-app] img {
   -webkit-user-drag: none;
 }
 
+/* The press a native button shows the moment a finger lands on it. Most of the
+   UI says nothing until the finger lifts, which reads as lag. Only what has no
+   press of its own (no active: class), only the innermost pressed control, not
+   the card around a pressed button, and after a 60 ms wait, so a finger that
+   lands on a row to scroll the list does not flash it. Draggable rows show
+   their own pick-up; data-no-press opts a control out. */
+html[data-native-app]
+  :is(button, a[href], [role='button'], [role='tab'], [role='menuitem'], [role='option'], summary):not(:disabled):not(
+    [aria-disabled='true']
+  ):not([class*='active:']):not([draggable='true']):not([data-no-press]):not(
+    :has(:is(button, a[href], [role='button']):active)
+  ):active {
+  opacity: 0.55;
+  transition: opacity 0s linear 60ms;
+}
+
+/* A tap focuses a button on Android, and a focus: ring (rather than
+   focus-visible:) then stays round it, which no native control shows. Focus
+   from a hardware keyboard is focus-visible and keeps its ring. */
+html[data-touch-input]
+  :is(button, a, [role='button'], [role='tab'], [role='menuitem'], [role='option'], [tabindex]):focus:not(
+    :focus-visible
+  ) {
+  outline: none;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+}
+
 /* Tabular-nums global für Time/Date/Currency/Counter */
 time, .tabular-nums, [data-tabular],
 input[type="number"], input[type="time"], input[type="date"], input[type="datetime-local"] {

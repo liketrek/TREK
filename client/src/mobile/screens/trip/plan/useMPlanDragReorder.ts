@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type DragEvent } from 'react'
+import { pressHaptic, selectionHaptic, tickHaptic } from '../../../../native/haptics'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { PlanRow } from './planTimelineModel'
 
@@ -57,9 +58,12 @@ export function useMPlanDragReorder({ merged, dayId, onMove, enabled }: DragReor
   // The bridge's DataTransfer is a shim on browsers that refuse `new DataTransfer()`,
   // so the source also rides along in a ref — same as the desktop sidebar does.
   const sourceRef = useRef<MergedItem | null>(null)
+  // The row last passed over, so the finger feels each new slot once, as in a native list.
+  const overRef = useRef<string | null>(null)
 
   const clear = useCallback(() => {
     sourceRef.current = null
+    overRef.current = null
     setDraggingKey(null)
     setDropBeforeKey(null)
   }, [])
@@ -73,6 +77,8 @@ export function useMPlanDragReorder({ merged, dayId, onMove, enabled }: DragReor
       draggable: true,
       onDragStart: (e: DragEvent) => {
         sourceRef.current = item
+        overRef.current = row.key
+        pressHaptic()
         setDraggingKey(row.key)
         try {
           e.dataTransfer.setData('planRowKey', row.key)
@@ -84,6 +90,10 @@ export function useMPlanDragReorder({ merged, dayId, onMove, enabled }: DragReor
         // preventDefault is how a drop target says yes — the bridge reads it too.
         e.preventDefault()
         e.stopPropagation()
+        if (overRef.current !== row.key) {
+          overRef.current = row.key
+          selectionHaptic()
+        }
         setDropBeforeKey(prev => (prev === row.key ? prev : row.key))
       },
       onDrop: (e: DragEvent) => {
@@ -94,6 +104,7 @@ export function useMPlanDragReorder({ merged, dayId, onMove, enabled }: DragReor
         if (!source || source === item) return
         const to = merged.indexOf(item)
         if (to < 0) return
+        tickHaptic()
         onMove(source, to)
       },
       onDragEnd: clear,

@@ -555,7 +555,7 @@ export default function MJourneyEntrySheet({
               readOnly={readOnly}
               onChange={e => searchLocation(e.target.value)}
               onFocus={() => { if (locationResults.length > 0) setShowLocationResults(true) }}
-              placeholder={t('journey.editor.searchLocation')}
+              enterKeyHint="search" placeholder={t('journey.editor.searchLocation')}
               className="min-w-0 flex-1 bg-transparent font-geist text-[0.75rem] text-m-ink outline-none placeholder:text-m-faint"
             />
             {locationLat != null && <MapPin size={13} className="flex-none text-m-muted" />}

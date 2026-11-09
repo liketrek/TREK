@@ -217,7 +217,7 @@ export default function MAdminPluginsPanel() {
             <Search size={15} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-m-faint" />
             <input
               value={q} onChange={e => setQ(e.target.value)} type="search"
-              placeholder={t('admin.plugins.searchPlaceholder')}
+              enterKeyHint="search" placeholder={t('admin.plugins.searchPlaceholder')}
               className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] ps-9 pe-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)]"
             />
           </div>
