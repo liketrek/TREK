@@ -89,6 +89,13 @@ final class TrekServerStore {
         return hosts == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(hosts));
     }
 
+    /** Keeps one more sign-in host for the remembered server, as the web view met it (SignInRedirect). */
+    static void addSignInHost(Context context, String host) {
+        Set<String> hosts = new HashSet<>(getSignInHosts(context));
+        if (!hosts.add(host.toLowerCase(Locale.ROOT))) return;
+        prefs(context).edit().putStringSet(KEY_SIGN_IN_HOSTS, hosts).commit();
+    }
+
     /** Start the next launch on the bundled address screen, even with a server remembered. */
     static void showShellOnce(Context context) {
         prefs(context).edit().putBoolean(KEY_SHELL_ONCE, true).commit();

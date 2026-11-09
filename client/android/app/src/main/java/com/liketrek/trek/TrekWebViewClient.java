@@ -9,6 +9,7 @@ import android.webkit.WebView;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
 import com.liketrek.trek.clientcert.TrekClientIdentity;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
@@ -24,11 +25,13 @@ class TrekWebViewClient extends BridgeWebViewClient {
 
     private final Runnable onUnreachable;
     private final Set<String> signInHosts;
+    /** A page of the server has shown since launch; from then on no sign-in host is learned (SignInRedirect). */
+    private boolean serverShown;
 
     TrekWebViewClient(Bridge bridge, Runnable onUnreachable, Set<String> signInHosts) {
         super(bridge);
         this.onUnreachable = onUnreachable;
-        this.signInHosts = signInHosts;
+        this.signInHosts = new HashSet<>(signInHosts);
     }
 
     /**
@@ -43,6 +46,18 @@ class TrekWebViewClient extends BridgeWebViewClient {
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
         if (request.isForMainFrame() && isSignInHost(request.getUrl())) return false;
+        String learned = SignInRedirect.learnedHost(
+            TrekServerStore.getUrl(view.getContext()),
+            request.getUrl().toString(),
+            request.isForMainFrame(),
+            request.isRedirect(),
+            serverShown
+        );
+        if (learned != null) {
+            signInHosts.add(learned);
+            TrekServerStore.addSignInHost(view.getContext(), learned);
+            return false;
+        }
         return super.shouldOverrideUrlLoading(view, request);
     }
 
@@ -50,6 +65,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
     @Override
     public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
+        if (SignInRedirect.onServer(TrekServerStore.getUrl(view.getContext()), url)) serverShown = true;
         String welcome = TrekServerStore.takeWelcomeUrl(view.getContext());
         if (welcome != null) view.loadUrl(welcome);
     }

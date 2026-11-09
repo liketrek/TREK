@@ -60,10 +60,10 @@ class TrekBridgeViewController: CAPBridgeViewController {
 
     /// Capacitor answers bridge messages from any page in the web view. With a
     /// proxy's sign-in page loading there, its messages are dropped before they
-    /// reach the plugins.
+    /// reach the plugins. Always in place: a sign-in host can also be learned
+    /// while the app runs (TrekSignInRedirect).
     private func guardBridgeMessages() {
-        guard !TrekServerStore.signInHosts.isEmpty,
-              let handler = (bridge as? CapacitorBridge)?.webViewDelegationHandler,
+        guard let handler = (bridge as? CapacitorBridge)?.webViewDelegationHandler,
               let controller = webView?.configuration.userContentController else { return }
         let guarded = TrekBridgeMessageGuard(inner: handler)
         controller.removeScriptMessageHandler(forName: TrekBridgeMessageGuard.name)
@@ -183,6 +183,13 @@ enum TrekServerStore {
                 UserDefaults.standard.set(Array(newValue).sorted(), forKey: signInHostsKey)
             }
         }
+    }
+
+    /// Keeps one more sign-in host for the remembered server, as the web view met it (TrekSignInRedirect).
+    static func addSignInHost(_ host: String) {
+        var hosts = signInHosts
+        guard hosts.insert(host.lowercased()).inserted else { return }
+        signInHosts = hosts
     }
 
     /// Whether `url` is one of the sign-in hosts, matched on host or host:port.
@@ -428,12 +435,44 @@ final class TrekTileSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
+/// A sign-in page in front of the server that the address screen never saw.
+/// A proxy can let the app's check through (an Authelia or Authentik rule that
+/// bypasses /api) and still send the page itself to its sign-in. Handed to
+/// Safari, that sign-in leaves its session there and the app stays blank on
+/// every launch. So a redirect away from the server, while the server's first
+/// page is still loading, is taken as the proxy's sign-in: it loads in the web
+/// view and its host is kept, the way the address screen keeps the ones it saw.
+/// A link the user taps is no redirect, and once a page of the server has
+/// shown, nothing is learned any more.
+enum TrekSignInRedirect {
+    /// The host (host:port with an explicit port) to keep as a sign-in host, or nil.
+    static func learnedHost(server: String?, target: URL?, mainFrame: Bool, redirect: Bool, serverShown: Bool) -> String? {
+        guard mainFrame, redirect, !serverShown,
+              let server, let from = URL(string: server), let fromHost = from.host?.lowercased(),
+              let target, let toHost = target.host?.lowercased(),
+              let toScheme = target.scheme?.lowercased(), ["https", "http"].contains(toScheme) else { return nil }
+        // Never from https down to plain http: the sign-in would send a password in the clear.
+        if from.scheme?.lowercased() == "https", toScheme != "https" { return nil }
+        guard toHost != fromHost else { return nil }
+        if let port = target.port { return "\(toHost):\(port)" }
+        return toHost
+    }
+
+    /// Whether `url` is on the server's host, where the app's own pages come from.
+    static func onServer(server: String?, url: URL?) -> Bool {
+        guard let server, let host = URL(string: server)?.host?.lowercased() else { return false }
+        return url?.host?.lowercased() == host
+    }
+}
+
 /// Stands in front of Capacitor's navigation delegate and hands it everything
 /// but the failures of a navigation that another one replaced: a cancelled
 /// load (NSURLErrorCancelled) or an interrupted frame load (WebKit 102). Those
 /// are no fault, and Capacitor would answer them with its error page.
 final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     private let inner: WKNavigationDelegate
+    /// A page of the server has shown since launch; from then on no sign-in host is learned (TrekSignInRedirect).
+    private var serverShown = false
 
     init(inner: WKNavigationDelegate) {
         self.inner = inner
@@ -462,6 +501,18 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
             decisionHandler(.allow)
             return
         }
+        // WebKit asks again for every server redirect, as a navigation of type .other.
+        if let host = TrekSignInRedirect.learnedHost(
+            server: TrekServerStore.url,
+            target: navigationAction.request.url,
+            mainFrame: navigationAction.targetFrame?.isMainFrame == true,
+            redirect: navigationAction.navigationType == .other,
+            serverShown: serverShown
+        ) {
+            TrekServerStore.addSignInHost(host)
+            decisionHandler(.allow)
+            return
+        }
         let selector = NSSelectorFromString("webView:decidePolicyForNavigationAction:decisionHandler:")
         guard (inner as AnyObject).responds(to: selector) else {
             decisionHandler(.allow)
@@ -474,6 +525,7 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     /// page once (TrekServerStore.takeWelcomeURL); it is on the server's origin.
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         inner.webView?(webView, didFinish: navigation)
+        if TrekSignInRedirect.onServer(server: TrekServerStore.url, url: webView.url) { serverShown = true }
         if let welcome = TrekServerStore.takeWelcomeURL() {
             webView.load(URLRequest(url: welcome))
         }
