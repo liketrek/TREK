@@ -47,7 +47,9 @@ describe('handoffUrl', () => {
   it('starts at the server page in front of the hand-off page, with the challenge and an optional start', () => {
     // Under /api, which every TREK service worker passes to the server: an older
     // version's worker must not answer the hand-off page from its cache.
-    expect(handoffUrl('https://trek.example.com', 'c')).toBe('https://trek.example.com/api/auth/native/start?challenge=c');
+    expect(handoffUrl('https://trek.example.com', 'c')).toBe(
+      'https://trek.example.com/api/auth/native/start?challenge=c'
+    );
     expect(handoffUrl('https://trek.example.com', 'c', 'oidc')).toBe(
       'https://trek.example.com/api/auth/native/start?challenge=c&start=oidc'
     );

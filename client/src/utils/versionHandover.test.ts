@@ -447,7 +447,7 @@ describe('reconcileAppVersion: a page loaded past an older worker', () => {
   })
 })
 
-describe('reconcileAppVersion: during the app's sign-in in the browser', () => {
+describe("reconcileAppVersion: during the app's sign-in in the browser", () => {
   it('FE-UTIL-VERSION-058: leaves version and page alone while the sign-in runs, and acts again after it', async () => {
     const { container } = installWorker(null)
     container.getRegistration.mockResolvedValue(undefined)

@@ -140,7 +140,9 @@ describe('NativeAuthController.start', () => {
 
   it('NATIVE-CTL-009: the page loads the forwarding script from the server and escapes the target', () => {
     const page = nativeStartPage('/native-handoff?challenge=a&start=oidc');
-    expect(page).toContain('<script src="/native-handoff.js" data-target="/native-handoff?challenge=a&amp;start=oidc"></script>');
+    expect(page).toContain(
+      '<script src="/native-handoff.js" data-target="/native-handoff?challenge=a&amp;start=oidc"></script>',
+    );
     expect(page).toContain('<meta http-equiv="refresh" content="0;url=/native-handoff?challenge=a&amp;start=oidc">');
     expect(nativeStartPage('/native-handoff?x="<>')).not.toMatch(/"<>/);
   });

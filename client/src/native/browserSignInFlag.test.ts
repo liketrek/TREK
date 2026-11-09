@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { BROWSER_SIGN_IN_KEY, BROWSER_SIGN_IN_TTL_MS, browserSignInRunning, endBrowserSignIn } from './browserSignInFlag';
+import {
+  BROWSER_SIGN_IN_KEY,
+  BROWSER_SIGN_IN_TTL_MS,
+  browserSignInRunning,
+  endBrowserSignIn,
+} from './browserSignInFlag';
 
 afterEach(() => localStorage.clear());
 
