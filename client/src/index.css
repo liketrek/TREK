@@ -391,6 +391,26 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Inside the iOS and Android app (native/nativeApp.ts sets the attribute): a long
+   press on a label, card or image does nothing, as in a native app, instead of
+   starting a text selection, a magnifier or a "save image" callout. What the user
+   types into stays selectable, or editing, pasting and moving the caret would break;
+   text worth copying opts in with .trek-selectable. A browser keeps its default. */
+html[data-native-app] body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html[data-native-app] :is(input, textarea, select, [contenteditable]:not([contenteditable='false']), .trek-selectable),
+html[data-native-app] :is([contenteditable]:not([contenteditable='false']), .trek-selectable) * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+html[data-native-app] img {
+  -webkit-user-drag: none;
+}
+
 /* Tabular-nums global für Time/Date/Currency/Counter */
 time, .tabular-nums, [data-tabular],
 input[type="number"], input[type="time"], input[type="date"], input[type="datetime-local"] {

@@ -43,6 +43,7 @@ beforeEach(() => {
   vi.mocked(isEffectivelyOffline).mockReturnValue(false);
   vi.mocked(keepOfflineShellFresh).mockResolvedValue();
   document.documentElement.classList.remove('dark');
+  document.documentElement.removeAttribute('data-native-app');
 });
 
 afterEach(() => {
@@ -55,6 +56,12 @@ describe('startNativeApp', () => {
     startNativeApp();
     expect(App.addListener).not.toHaveBeenCalled();
     expect(StatusBar.setStyle).not.toHaveBeenCalled();
+    expect(document.documentElement.hasAttribute('data-native-app')).toBe(false);
+  });
+
+  it('marks <html> so a long press selects no text in the app', () => {
+    startNativeApp();
+    expect(document.documentElement.hasAttribute('data-native-app')).toBe(true);
   });
 
   it("Android's back gesture closes an open sheet before it leaves the page", () => {

@@ -25,6 +25,10 @@ const OFFLINE_SHELL_DELAY_MS = 15_000;
 export function startNativeApp(): void {
   if (!isNativeApp()) return;
 
+  // Marks the app for index.css: no text selection or long-press callout on the
+  // UI itself, as in any native app. Fields stay selectable there.
+  document.documentElement.setAttribute('data-native-app', '');
+
   followThemeInStatusBar();
 
   // What this binary can do, and whether this server's UI needs a newer one.
