@@ -1028,6 +1028,7 @@
     "src/mobile/screens/journey/MDawarichDaySheet.tsx": "Markup only; the phone frame the Dawarich day sheets (route and stays) render their shared review in.",
     "src/mobile/screens/journey/MJourneyFeed.tsx": "Markup only; the journey's entries as a feed beside the map on a wide window, with the entries, the active one and the tap handed in through props from useJourneyDetail and useJourneyCarouselSync.",
     "src/mobile/screens/settings/MAppLockCard.tsx": "Phone only: the app lock exists only in the native app, so there is no desktop setting to share with.",
+    "src/mobile/screens/settings/MClientCertCard.tsx": "Phone only: the client certificate is kept by the native app, so there is no desktop setting to share with.",
     "src/mobile/screens/settings/MConfirmSheet.tsx": "Phone only bottom sheet confirm dialog used across the mobile screens.",
     "src/mobile/screens/settings/MDawarichConnectionSection.tsx": "Already shares hooks/useDawarichConnection with components/Settings/DawarichConnectionSection.tsx.",
     "src/mobile/screens/settings/MMobileDashOrder.tsx": "Phone only setting that orders the mobile dashboard blocks; the desktop has no such setting.",
