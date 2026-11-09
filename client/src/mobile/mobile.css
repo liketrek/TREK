@@ -637,6 +637,16 @@ html:has(.m-shell) {
   overflow: visible;
   overscroll-behavior: none;
 }
+/* In the iOS app the page bounces at its top and bottom, as every iOS list
+   does; the fixed bars stay where they are. The rule above is for the browser,
+   where a pull at the top reloads an installed PWA, which the app cannot do.
+   Not on Android, whose stretch scales the bars too (MainActivity turns it
+   off), not sideways, and not on a screen with pull-to-refresh, whose pull
+   WebKit's bounce would race (mobile/usePullToRefresh.ts). */
+html[data-native-ios]:not([data-pull-refresh]),
+html[data-native-ios]:not([data-pull-refresh]):has(.m-shell) {
+  overscroll-behavior-y: auto;
+}
 html:has(.m-shell) body {
   height: auto;
   overflow: visible;

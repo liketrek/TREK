@@ -4,6 +4,7 @@ import { PermissionLevel } from '../../../store/permissionsStore'
 import { CATEGORIES, LEVEL_LABELS, usePermissionsAdmin } from '../../../components/Admin/usePermissionsAdmin'
 import { Save, RotateCcw } from 'lucide-react'
 import { MAdminButton, MAdminCard } from './MAdminUi'
+import MSkeleton from '../../components/MSkeleton'
 
 export default function MAdminPermissionsPanel(): React.ReactElement {
   const { t } = useTranslation()
@@ -12,9 +13,7 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
   if (loading) {
     return (
       <MAdminCard>
-        <div className="flex justify-center py-6">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
-        </div>
+        <MSkeleton variant="rows" count={5} framed={false} />
       </MAdminCard>
     )
   }

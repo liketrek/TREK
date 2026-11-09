@@ -142,6 +142,27 @@ export interface TrekShellPlugin {
     event: 'keyCommand',
     listener: (payload: { id: string }) => void
   ): Promise<{ remove: () => Promise<void> }>;
+  /** Feature quickActions (iOS): the actions a long press on the app icon shows, in the UI's language. */
+  setQuickActions(options: { items: NativeQuickAction[] }): Promise<void>;
+  /** Feature quickActions: the action the app was launched with, before the UI ran. */
+  takeQuickAction(): Promise<{ path: string | null }>;
+  /** Feature quickActions: an action chosen while the app was running. */
+  addListener(
+    event: 'quickAction',
+    listener: (payload: { path: string }) => void
+  ): Promise<{ remove: () => Promise<void> }>;
+}
+
+/** One quick action on the app icon: what it says, and the path in the UI it opens. */
+export interface NativeQuickAction {
+  /** Stable name, e.g. "newTrip". */
+  type: string;
+  title: string;
+  subtitle?: string;
+  /** 'add' or 'trip'. */
+  icon: 'add' | 'trip';
+  /** A path of this server's UI, starting with "/". */
+  path: string;
 }
 
 /** What Google Play Billing answers a restore with (Android, feature playBilling), beside iOS's `jws`. */

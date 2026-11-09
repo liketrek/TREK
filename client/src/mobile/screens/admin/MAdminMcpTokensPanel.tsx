@@ -1,9 +1,10 @@
-import { Key, Trash2, User, Loader2, Shield } from 'lucide-react'
+import { Key, Trash2, User, Shield } from 'lucide-react'
 import { SCOPES_PREVIEW, useMcpTokensAdmin } from '../../../components/Admin/useMcpTokensAdmin'
 import { useTranslation } from '../../../i18n'
 import { useFormatDate } from '../../../hooks/useDateFormat'
 import { MAdminCard } from './MAdminUi'
 import MConfirmSheet from '../settings/MConfirmSheet'
+import MSkeleton from '../../components/MSkeleton'
 
 // Mobile MCP tokens admin section: OAuth sessions + long-lived MCP tokens, each
 // as a card list with loading/empty states, expandable scope chips and a
@@ -34,9 +35,7 @@ export default function MAdminMcpTokensPanel() {
         </div>
         <MAdminCard>
           {sessionsLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-5 w-5 animate-spin text-m-faint" />
-            </div>
+            <MSkeleton variant="rows" count={3} framed={false} />
           ) : sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-10">
               <Shield className="h-8 w-8 text-m-faint" />
@@ -114,9 +113,7 @@ export default function MAdminMcpTokensPanel() {
         </div>
         <MAdminCard>
           {tokensLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-5 w-5 animate-spin text-m-faint" />
-            </div>
+            <MSkeleton variant="rows" count={3} framed={false} />
           ) : tokens.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-10">
               <Key className="h-8 w-8 text-m-faint" />

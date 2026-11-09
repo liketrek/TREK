@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { selectionHaptic } from '../../../../native/haptics'
-import { Calendar, Check, ChevronRight, Flag, Plus } from 'lucide-react'
+import { Calendar, Check, ChevronRight, Flag, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MChipStrip from '../../../components/MChipStrip'
+import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import { avatarSrc } from '../../../../utils/avatarSrc'
@@ -26,7 +27,7 @@ import MarkdownText from '../../../../components/shared/MarkdownText'
  * Add/Edit lives in `MTaskSheet`.
  */
 export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
-  const { t, tripId, todoItems: items, tripActions } = planner
+  const { t, toast, tripId, todoItems: items, tripActions } = planner
   const canEdit = planner.can('packing_edit', planner.trip)
   const currentUserId = useAuthStore(s => s.user?.id) ?? null
   const tripMembers = planner.tripMembers
@@ -49,6 +50,10 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const toggleItem = (id: number, checked: boolean) => {
     selectionHaptic()
     return tripActions.toggleTodoItem(tripId, id, checked)
+  }
+  // The task sheet deletes the same way, without asking first.
+  const deleteItem = (id: number) => {
+    tripActions.deleteTodoItem(tripId, id).catch(() => toast.error(t('common.error')))
   }
 
   const filterPill = (active: boolean) =>
@@ -189,6 +194,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
               today={today}
               onToggle={toggleItem}
               onOpen={openEdit}
+              onDelete={canEdit ? deleteItem : undefined}
             />
           ))}
         </CardGrid>
@@ -208,14 +214,16 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   )
 }
 
-function TaskCard({ item, members, today, onToggle, onOpen }: {
+function TaskCard({ item, members, today, onToggle, onOpen, onDelete }: {
   item: TodoItem
   members: TripMember[]
   today: string
   onToggle: (id: number, checked: boolean) => void
   onOpen: (id: number) => void
+  /** Only for those who may edit the list. */
+  onDelete?: (id: number) => void
 }) {
-  const { locale } = useTranslation()
+  const { t, locale } = useTranslation()
   const done = !!item.checked
   const overdue = isTodoOverdue(item, today)
   const assignee = members.find(m => m.id === item.assigned_user_id)
@@ -227,8 +235,18 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
     ? (Number.isNaN(Date.parse(`${item.due_date}T00:00:00Z`)) ? item.due_date : formatDate(item.due_date, locale))
     : null
 
+  // A swipe does what the card offers: tick it off, open it, or delete it.
+  const leading: SwipeAction = done
+    ? { label: t('todo.filter.open'), icon: RotateCcw, tone: 'neutral', onAction: () => onToggle(item.id, false) }
+    : { label: t('todo.filter.done'), icon: Check, tone: 'accent', onAction: () => onToggle(item.id, true) }
+  const trailing: SwipeAction[] = [
+    ...(onDelete ? [{ label: t('common.delete'), icon: Trash2, tone: 'danger' as const, onAction: () => onDelete(item.id) }] : []),
+    { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: () => onOpen(item.id) },
+  ]
+
   return (
-    <div className={`mt-2 flex items-start gap-[10px] rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px] ${done ? 'opacity-60' : ''}`}>
+    <MSwipeRow leading={leading} trailing={trailing} surface="rounded-2xl bg-[color:var(--m-bg)]" className="mt-2 rounded-2xl">
+    <div className={`flex items-start gap-[10px] rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px] ${done ? 'opacity-60' : ''}`}>
       <button
         type="button"
         onClick={() => onToggle(item.id, !done)}
@@ -281,5 +299,6 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
         <ChevronRight size={14} strokeWidth={2} className="mt-[2px] flex-none text-m-faint" />
       </button>
     </div>
+    </MSwipeRow>
   )
 }

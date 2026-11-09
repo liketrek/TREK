@@ -38,6 +38,7 @@ import AppLockGate from './components/Layout/AppLockGate'
 import NativeImportSheet from './mobile/components/NativeImportSheet'
 import MPushPrompt from './mobile/components/MPushPrompt'
 import NativeWidgetsSync from './components/Layout/NativeWidgetsSync'
+import NativeQuickActionsSync from './components/Layout/NativeQuickActionsSync'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
 import HelpPanel from './components/Help/HelpPanel'
 // Notice action registrations (side-effect imports):
@@ -456,6 +457,7 @@ export default function App() {
       <ErrorBoundary boundaryId="widget:native-import" fallback={null}><NativeImportSheet /></ErrorBoundary>
       {!hideAuthedWidgets && isPhone && <ErrorBoundary boundaryId="widget:push-prompt" fallback={null}><MPushPrompt /></ErrorBoundary>}
       <ErrorBoundary boundaryId="widget:native-widgets" fallback={null}><NativeWidgetsSync /></ErrorBoundary>
+      <ErrorBoundary boundaryId="widget:native-quick-actions" fallback={null}><NativeQuickActionsSync /></ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted
           across navigations. react-router runs location updates inside a transition,
           so a mounted boundary keeps the current page on screen instead of flashing

@@ -7,6 +7,7 @@ import MSheet from '../../components/MSheet'
 import MChip from '../../components/MChip'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi'
+import MSkeleton from '../../components/MSkeleton'
 
 interface MAdminUsersSectionProps {
   admin: ReturnType<typeof useAdmin>
@@ -52,9 +53,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-6">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
-          </div>
+          <MSkeleton variant="rows" count={5} framed={false} />
         ) : (
           users.map((u) => (
             <button

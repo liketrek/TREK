@@ -7,6 +7,7 @@ import {
   Trash2, UserPlus, UserRound,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
 import { useAuthStore } from '../../../../store/authStore'
 import { useAddonStore } from '../../../../store/addonStore'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
@@ -694,9 +695,28 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
     setCreatingBag(false)
   }
 
+  // A swipe does what the row's own controls do: tick it off, or edit and delete it.
+  const swipeTrailing: SwipeAction[] = canEdit && !isPlaceholder
+    ? [
+        { label: t('common.delete'), icon: Trash2, tone: 'danger', onAction: onDelete },
+        { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: onEdit },
+      ]
+    : []
+  const swipeLeading: SwipeAction | undefined = isPlaceholder
+    ? undefined
+    : item.checked
+      ? { label: t('packing.filterOpen'), icon: RotateCcw, tone: 'neutral', onAction: () => void toggle() }
+      : { label: t('packing.filterDone'), icon: Check, tone: 'accent', onAction: () => void toggle() }
+
   return (
     <>
-      <div className="flex items-center gap-[9px] border-t border-[color:var(--m-rowbr)] py-2 first:border-t-0">
+      <MSwipeRow
+        leading={swipeLeading}
+        trailing={swipeTrailing}
+        surface="bg-m-sheetop"
+        className="border-t border-[color:var(--m-rowbr)] first:border-t-0"
+      >
+      <div className="flex items-center gap-[9px] py-2">
         <button
           type="button"
           onClick={toggle}
@@ -803,6 +823,7 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           </button>
         )}
       </div>
+      </MSwipeRow>
 
       {menuOpen && editMode && canEdit && (
         <div className="mb-[6px] ms-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">

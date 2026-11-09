@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import {
   Bookmark, Check, CheckCheck, CheckSquare, ChevronDown, Copy, CopyPlus,
-  FolderInput, Layers, List, Loader2, Map as MapIcon, Pencil, Plus, Search, Share2,
+  FolderInput, Layers, List, Map as MapIcon, Pencil, Plus, Search, Share2,
   Tag, Tags, Trash2, X,
 } from 'lucide-react'
 import type { CollectionStatus } from '@trek/shared'
@@ -27,6 +27,7 @@ import MConfirmSheet from '../settings/MConfirmSheet'
 import MCollListNav from './MCollListNav'
 import { useIsSplit } from '../../../hooks/sizeClass'
 import { skipNextRouteTransition } from '../../routeTransition'
+import MSkeleton from '../../components/MSkeleton'
 
 const HEADER_CIRCLE =
   'flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]'
@@ -233,9 +234,7 @@ export default function MCollections() {
       <MCollInvites invites={c.orderedInvites} onAccept={c.handleAcceptInvite} onDecline={c.handleDeclineInvite} t={t} />
 
       {c.loading && c.collections.length === 0 ? (
-        <div className="flex items-center justify-center py-20 text-m-faint">
-          <Loader2 size={22} className="animate-spin" />
-        </div>
+        <MSkeleton variant="rows" count={5} className="pt-2" />
       ) : noLists ? (
         <div className="mt-6">
           {/* The dock's "+" starts the first list (see the ?create= handoff above). */}
@@ -432,9 +431,7 @@ export default function MCollections() {
           {c.view === 'list' && <MCollTours search={c.search} />}
           {c.view === 'list' && (
             c.placesLoading && !hasPlaces ? (
-              <div className="flex items-center justify-center py-16 text-m-faint">
-                <Loader2 size={20} className="animate-spin" />
-              </div>
+              <MSkeleton variant="rows" count={5} className="pt-2" />
             ) : !hasPlaces ? (
               <EmptyNote scene="collections" title={t('collections.empty.title')} />
             ) : c.visiblePlaces.length === 0 ? (

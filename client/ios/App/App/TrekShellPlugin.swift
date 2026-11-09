@@ -49,6 +49,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "setWatchSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeWatchActions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setKeyCommands", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setQuickActions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeQuickAction", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -60,7 +62,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// builds a snapshot for nothing; "wallet" only where Wallet can take a pass (an
     /// iPhone: an iPad has no Wallet app), so the UI offers no button that does nothing.
     static var features: [String] {
-        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands"]
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions"]
         if canAddWalletPasses { names.append("wallet") }
         if TrekWatchLink.isAvailable { names.append("watch") }
         return names
@@ -84,6 +86,31 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         TrekWatchLink.shared.onAction = { [weak self] in self?.notifyListeners("watchAction", data: [:]) }
         TrekKeyCommands.onPress = { [weak self] id in
             self?.notifyListeners("keyCommand", data: ["id": id])
+        }
+        TrekQuickActions.onOpen = { [weak self] path in
+            DispatchQueue.main.async { self?.notifyListeners("quickAction", data: ["path": path]) }
+        }
+    }
+
+    // MARK: - Quick actions on the app icon
+
+    /// The app icon's quick actions, in the UI's language (TrekQuickActions).
+    @objc func setQuickActions(_ call: CAPPluginCall) {
+        let items = (call.getArray("items", JSObject.self) ?? []).compactMap { TrekQuickActions.Item(raw: $0) }
+        DispatchQueue.main.async {
+            TrekQuickActions.set(items)
+            call.resolve()
+        }
+    }
+
+    /// The quick action the app was launched with, before the UI was there to hear of it.
+    @objc func takeQuickAction(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            if let path = TrekQuickActions.take() {
+                call.resolve(["path": path])
+            } else {
+                call.resolve(["path": NSNull()])
+            }
         }
     }
 

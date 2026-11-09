@@ -23,6 +23,20 @@ function refreshFailed(): void {}
  * Writes the content's transform directly during the drag, so a pull costs no
  * React render per frame; `state` only changes at the edges (armed, refreshing).
  */
+/*
+ * The iOS app lets the page bounce at its ends (mobile.css). A pull is only told
+ * from a scroll after 8 px, and by then WebKit's own bounce has started and can no
+ * longer be stopped, so the two would pull at once. While a screen offers
+ * pull-to-refresh, <html> carries data-pull-refresh and the page does not bounce.
+ */
+let bounceHolds = 0;
+function holdBounce(): void {
+  if (bounceHolds++ === 0) document.documentElement.setAttribute('data-pull-refresh', '');
+}
+function releaseBounce(): void {
+  if (--bounceHolds === 0) document.documentElement.removeAttribute('data-pull-refresh');
+}
+
 export function usePullToRefresh(
   contentRef: RefObject<HTMLElement | null>,
   onRefresh: () => Promise<unknown>,
@@ -113,6 +127,7 @@ export function usePullToRefresh(
         });
     };
 
+    holdBounce();
     window.addEventListener('touchstart', onStart, { passive: true });
     // Not passive: once a pull has started, the page must not also scroll or bounce.
     window.addEventListener('touchmove', onMove, { passive: false });
@@ -124,6 +139,7 @@ export function usePullToRefresh(
       window.removeEventListener('touchend', onEnd);
       window.removeEventListener('touchcancel', onEnd);
       place(0, false);
+      releaseBounce();
     };
   }, [contentRef, enabled, scrollerRef]);
 

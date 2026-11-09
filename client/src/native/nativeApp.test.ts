@@ -31,6 +31,8 @@ vi.mock('./sharedFiles', () => ({ startSharedFiles: vi.fn(async () => {}) }));
 vi.mock('./push', () => ({ startNativePush: vi.fn(async () => {}), openPushTarget: vi.fn() }));
 vi.mock('../mobile/overlayStack', () => ({ closeTopOverlay: vi.fn(() => false) }));
 vi.mock('./touchInput', () => ({ trackTouchInput: vi.fn() }));
+vi.mock('./quickActions', () => ({ startQuickActions: vi.fn() }));
+vi.mock('./imageFade', () => ({ fadeInImages: vi.fn() }));
 vi.mock('./keyboardFields', () => ({ prepareKeyboardFields: vi.fn() }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {
@@ -48,6 +50,7 @@ beforeEach(() => {
   vi.mocked(keepOfflineShellFresh).mockResolvedValue();
   document.documentElement.classList.remove('dark');
   document.documentElement.removeAttribute('data-native-app');
+  document.documentElement.removeAttribute('data-native-ios');
 });
 
 afterEach(() => {

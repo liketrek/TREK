@@ -7,11 +7,13 @@ import { useSettingsStore } from '../store/settingsStore';
 import { isEffectivelyOffline } from '../sync/networkMode';
 import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
+import { fadeInImages } from './imageFade';
 import { keepFieldInView } from './keepFieldInView';
 import { prepareKeyboardFields } from './keyboardFields';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
 import { openPushTarget, startNativePush } from './push';
+import { startQuickActions } from './quickActions';
 import { reportNativeFailure } from './reportFailure';
 import { startSharedFiles } from './sharedFiles';
 import { trackTouchInput } from './touchInput';
@@ -30,10 +32,14 @@ export function startNativeApp(): void {
   // Marks the app for index.css: no text selection or long-press callout on the
   // UI itself, as in any native app. Fields stay selectable there.
   document.documentElement.setAttribute('data-native-app', '');
+  // iOS only: the page may bounce at its ends there (mobile.css).
+  if (isNativeIos()) document.documentElement.setAttribute('data-native-ios', '');
   // No hover left behind by a tap, a press that shows, no focus ring after a tap.
   trackTouchInput();
   // The keyboard's return key, capitalisation and autocorrect fit the field.
   prepareKeyboardFields();
+  // Pictures fade in once loaded instead of building up.
+  fadeInImages();
 
   followThemeInStatusBar();
 
@@ -45,6 +51,8 @@ export function startNativeApp(): void {
   void startSharedFiles();
   // Taps on TREK notifications open the place they point at.
   void loadNativeCapabilities().then(() => startNativePush());
+  // A quick action on the app icon opens its page, also the one the app was launched with.
+  void loadNativeCapabilities().then(() => startQuickActions());
 
   // A widget or Live Activity tap opens com.liketrek.trek://navigate/<path>.
   void App.addListener('appUrlOpen', ({ url }) => {

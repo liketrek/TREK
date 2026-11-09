@@ -19,6 +19,7 @@ import { tourDayRowIcon } from '../../../components/Tours/tourDayRowIcon';
 import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
 import MSheet from '../../components/MSheet';
+import MSkeleton from '../../components/MSkeleton';
 import { CancelPill, Eyebrow, PrimaryPill, SheetFooter, SheetHeader } from './MCollSheetKit';
 
 /** A kept tour's measures as the small pills of the phone's rows. */
@@ -146,12 +147,7 @@ function PointsChips({ takeOver }: { takeOver: CollectionTourTakeOver }) {
 /** The sheet's body while it asks: the trips, the points and the name in the trip. */
 function TakeOverForm({ takeOver }: { takeOver: CollectionTourTakeOver }) {
   const { t } = useTranslation();
-  if (takeOver.detailStatus === 'loading')
-    return (
-      <div className="flex justify-center py-10 text-m-faint">
-        <Loader2 size={20} className="animate-spin" />
-      </div>
-    );
+  if (takeOver.detailStatus === 'loading') return <MSkeleton variant="rows" count={3} className="py-2" />;
   if (takeOver.detailStatus === 'offline' || takeOver.detailStatus === 'error')
     return (
       <div className="py-6 text-center font-geist text-m-muted" style={fs(12.5)}>

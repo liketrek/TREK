@@ -14,6 +14,7 @@ import DawarichAtlasDialog from '../../../components/Dawarich/DawarichAtlasDialo
 import { useAddonStore } from '../../../store/addonStore'
 import { countryStatus } from '../../../pages/atlas/atlasModel'
 import AtlasCountryPlaces from '../../../components/Atlas/AtlasCountryPlaces'
+import MSkeleton from '../../components/MSkeleton'
 
 /** The atlas header's buttons: one shape, equal widths, the phone shell's glass. */
 const HEADER_BUTTON = 'flex h-[38px] min-w-0 flex-1 items-center justify-center gap-2 rounded-full border px-3 text-[0.78125rem] font-bold transition-transform active:scale-[.97]'
@@ -113,9 +114,7 @@ export default function MAtlas() {
   if (loading) {
     return (
       <div className="relative h-dvh">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
-        </div>
+        <MSkeleton variant="map" className="absolute inset-0" />
       </div>
     )
   }

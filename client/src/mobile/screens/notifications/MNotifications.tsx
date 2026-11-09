@@ -11,6 +11,7 @@ import MSegmented from '../../components/MSegmented'
 import MNotificationRow from './MNotificationRow'
 import { usePullToRefresh } from '../../usePullToRefresh'
 import MPullIndicator from '../../components/MPullIndicator'
+import MSkeleton from '../../components/MSkeleton'
 
 function Spinner({ size = 20 }: { size?: number }) {
   return (
@@ -81,9 +82,7 @@ export default function MNotifications() {
 
         <div className="mt-3 overflow-hidden rounded-[20px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-[14px]">
           {isLoading && displayed.length === 0 ? (
-            <div className="flex justify-center py-14">
-              <Spinner size={24} />
-            </div>
+            <MSkeleton variant="rows" count={6} framed={false} />
           ) : displayed.length === 0 ? (
             <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-10 text-center">
               <MDancingTrek scene="notifications" className="mb-2" />

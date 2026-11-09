@@ -34,6 +34,7 @@ import MJourneyDayImportSheet from './MJourneyDayImportSheet'
 import MJourneyRecordingSheet from './MJourneyRecordingSheet'
 import { createPortal } from 'react-dom'
 import { useTabHeadSlot } from '../trip/tabHeadSlot'
+import MSkeleton from '../../components/MSkeleton'
 
 /**
  * Journey detail — integrated map with the horizontal 280px card timeline
@@ -315,9 +316,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
 
   if (loading || !current) {
     return (
-      <div className="flex h-dvh items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
-      </div>
+      <MSkeleton variant="detail" className="h-dvh overflow-hidden" />
     )
   }
 
