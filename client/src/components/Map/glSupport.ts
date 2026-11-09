@@ -75,10 +75,52 @@ export function initialMapStyle(provider: GlMapProvider, style: string): string 
 
 export function buildGlMap<T>(construct: () => T): T | null {
   try {
-    return construct();
+    const map = construct();
+    if (isResizableGlMap(map)) followContainerSize(map);
+    return map;
   } catch (err) {
     if (!isGpuInitFailure(err)) throw err;
     reportWebGLFailure();
     return null;
   }
+}
+
+interface ResizableGlMap {
+  getContainer(): HTMLElement;
+  resize(): unknown;
+  once(type: 'remove', listener: () => void): unknown;
+}
+
+function isResizableGlMap(map: unknown): map is ResizableGlMap {
+  const candidate = map as Partial<ResizableGlMap> | null;
+  return (
+    typeof candidate?.getContainer === 'function' &&
+    typeof candidate.resize === 'function' &&
+    typeof candidate.once === 'function'
+  );
+}
+
+/**
+ * Keeps a GL map's canvas the size of its box. Mapbox GL measures its container
+ * on window resizes only, so a box that grew without one (the trip's plan pane
+ * closing beside the map in the app on a tablet, a foldable unfolding) kept the
+ * old canvas, with the rest of the box left empty and black (#3023). MapLibre
+ * watches its container itself; one more measure per frame costs it nothing.
+ * Several changes in one frame (the pane's slide) make a single resize.
+ */
+function followContainerSize(map: ResizableGlMap): void {
+  if (typeof ResizeObserver === 'undefined') return;
+  let frame = 0;
+  const observer = new ResizeObserver(() => {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      map.resize();
+    });
+  });
+  observer.observe(map.getContainer());
+  map.once('remove', () => {
+    observer.disconnect();
+    if (frame) cancelAnimationFrame(frame);
+  });
 }
