@@ -7,7 +7,7 @@ import { pagesFor } from './dayPagerPages';
 
 vi.mock('../../native/haptics', () => ({ tickHaptic: vi.fn() }));
 
-const DAYS = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] as unknown as Day[];
+const DAYS = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }] as unknown as Day[];
 
 function setup(selectedDayId: number | null, over: Partial<Parameters<typeof MDayPager>[0]> = {}) {
   const onSelectDay = vi.fn();
@@ -39,17 +39,19 @@ beforeEach(() => {
 });
 
 describe('pagesFor', () => {
-  it('windows the selection with its neighbours', () => {
-    expect(pagesFor(DAYS, 2).map((p) => [p.dayId, p.active])).toEqual([
+  it('windows the selection with two days on either side, room for a second swipe', () => {
+    expect(pagesFor(DAYS, 3).map((p) => [p.dayId, p.active])).toEqual([
       [1, false],
-      [2, true],
-      [3, false],
+      [2, false],
+      [3, true],
+      [4, false],
+      [5, false],
     ]);
   });
 
   it('has no page beyond the first and last day', () => {
-    expect(pagesFor(DAYS, 1).map((p) => p.dayId)).toEqual([1, 2]);
-    expect(pagesFor(DAYS, 4).map((p) => p.dayId)).toEqual([3, 4]);
+    expect(pagesFor(DAYS, 1).map((p) => p.dayId)).toEqual([1, 2, 3]);
+    expect(pagesFor(DAYS, 6).map((p) => p.dayId)).toEqual([4, 5, 6]);
   });
 
   it('keeps a page for a selection that points at no day, with the first day as the way back', () => {
@@ -67,20 +69,41 @@ describe('MDayPager', () => {
 
     expect(screen.getByText('page 2 live')).toBeInTheDocument();
     const pages = Array.from(strip.children) as HTMLElement[];
-    expect(pages.map((p) => p.hasAttribute('inert'))).toEqual([true, false, true]);
+    expect(pages.map((p) => p.hasAttribute('inert'))).toEqual([true, false, true, true]);
     expect(pages[0]).toHaveAttribute('aria-hidden', 'true');
     expect(pages[1]).not.toHaveAttribute('aria-hidden');
   });
 
-  it('selects the neighbour the strip comes to rest on, with a detent and an announcement', () => {
+  it('selects the day the strip comes to rest on, with an announcement', () => {
     const { strip, onSelectDay } = setup(2);
 
     place(strip, 3);
     fireEvent(strip, new Event('scrollend'));
 
     expect(onSelectDay).toHaveBeenCalledWith(3);
+    expect(screen.getByRole('status')).toHaveTextContent('day 3 of 6');
+  });
+
+  it('ticks once as the swipe crosses to another day, while the strip still moves, not again as it lands', () => {
+    const { strip } = setup(2);
+
+    place(strip, 3, true);
+    fireEvent.scroll(strip);
+    fireEvent.scroll(strip);
     expect(tickHaptic).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('status')).toHaveTextContent('day 3 of 4');
+
+    place(strip, 3);
+    fireEvent(strip, new Event('scrollend'));
+    expect(tickHaptic).toHaveBeenCalledTimes(1);
+  });
+
+  it('a second swipe made during the snap carries on to the day after', () => {
+    const { strip, onSelectDay } = setup(2);
+
+    place(strip, 4);
+    fireEvent(strip, new Event('scrollend'));
+
+    expect(onSelectDay).toHaveBeenCalledWith(4);
   });
 
   it('previews the day a swipe heads for while the strip still moves, and takes it back', () => {

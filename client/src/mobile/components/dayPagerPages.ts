@@ -9,6 +9,14 @@ interface Page {
   active: boolean;
 }
 
+/**
+ * Pages kept either side of the selection. Two, not one: a second swipe that
+ * starts while the first is still snapping has to find a page beyond the
+ * neighbour, or it runs into the end of the strip and springs back instead of
+ * reaching the day after.
+ */
+const REACH = 2;
+
 /** The window of pages around the selection. A selection that points at no
  *  day (the whole-trip view, or a day deleted remotely) still gets its page,
  *  with the first day next to it as a way back. */
@@ -21,11 +29,7 @@ export function pagesFor(days: PagerItem[], selectedDayId: number | null): Page[
       ...(first ? [{ key: `d${first.id}`, dayId: first.id, active: false }] : []),
     ];
   }
-  const pages: Page[] = [];
-  const prev = days[i - 1];
-  const next = days[i + 1];
-  if (prev) pages.push({ key: `d${prev.id}`, dayId: prev.id, active: false });
-  pages.push({ key: `d${days[i].id}`, dayId: days[i].id, active: true });
-  if (next) pages.push({ key: `d${next.id}`, dayId: next.id, active: false });
-  return pages;
+  return days
+    .slice(Math.max(0, i - REACH), i + REACH + 1)
+    .map((d) => ({ key: `d${d.id}`, dayId: d.id, active: d.id === days[i].id }));
 }
