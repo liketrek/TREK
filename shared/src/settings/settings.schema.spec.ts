@@ -5,6 +5,8 @@ import {
   PLANNER_TRIP_VIEWS_MAX,
   compactPlannerTripViews,
   plannerTripViewsSchema,
+  DASHBOARD_TIMEZONES_MAX,
+  dashboardTimezonesSchema,
 } from './settings.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -61,5 +63,29 @@ describe('compactPlannerTripViews', () => {
     ).toEqual({
       '1': { roadtrip: true },
     });
+  });
+});
+
+describe('dashboardTimezonesSchema', () => {
+  it('takes IANA zone ids in order, and [] for no clocks', () => {
+    expect(dashboardTimezonesSchema.parse(['Europe/Madrid', 'Africa/Cairo'])).toEqual([
+      'Europe/Madrid',
+      'Africa/Cairo',
+    ]);
+    expect(dashboardTimezonesSchema.safeParse([]).success).toBe(true);
+    expect(dashboardTimezonesSchema.safeParse(['UTC']).success).toBe(true);
+  });
+
+  it('refuses an unknown zone, an empty id, a duplicate and a bare string', () => {
+    expect(dashboardTimezonesSchema.safeParse(['Mars/Olympus_Mons']).success).toBe(false);
+    expect(dashboardTimezonesSchema.safeParse(['']).success).toBe(false);
+    expect(dashboardTimezonesSchema.safeParse(['Europe/Madrid', 'Europe/Madrid']).success).toBe(false);
+    expect(dashboardTimezonesSchema.safeParse('Europe/Madrid').success).toBe(false);
+  });
+
+  it(`refuses more than ${DASHBOARD_TIMEZONES_MAX} zones`, () => {
+    const zones = Intl.supportedValuesOf('timeZone').slice(0, DASHBOARD_TIMEZONES_MAX + 1);
+    expect(dashboardTimezonesSchema.safeParse(zones.slice(0, DASHBOARD_TIMEZONES_MAX)).success).toBe(true);
+    expect(dashboardTimezonesSchema.safeParse(zones).success).toBe(false);
   });
 });

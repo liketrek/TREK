@@ -231,7 +231,7 @@ Requires `settings:read` or `settings:write`.
 
 | Tool | Description |
 |---|---|
-| `get_display_settings` | Read the user's units, time format, first day of the week, language, the language of place names in search, default currency, start page, the trip tab a trip opens on, the colour mode (light, dark or auto) and a few map and planner switches such as blurred booking codes. Read this before rendering a temperature, a distance or a clock time. |
+| `get_display_settings` | Read the user's units, time format, first day of the week, language, the language of place names in search, default currency, start page, the trip tab a trip opens on, the colour mode (light, dark or auto), the dashboard's world clocks and a few map and planner switches such as blurred booking codes. Read this before rendering a temperature, a distance or a clock time. |
 | `update_display_settings` | Change one or more of those preferences. Only display preferences: API keys, map tokens and LLM settings are refused, whatever is passed. |
 
 ### Calendar feeds

@@ -15,6 +15,7 @@ import {
   settingsBulkRequestSchema,
   weekStartSchema,
   dateFormatSchema,
+  dashboardTimezonesSchema,
 } from '@trek/shared';
 
 import { z } from 'zod';
@@ -32,7 +33,8 @@ import { z } from 'zod';
  * allow-list leaves anything new invisible until somebody names it here.
  *
  * The membership is what DisplaySettingsTab.tsx offers, plus dark_mode (its
- * own control, in AppearanceSettingsTab and the navbar theme toggle). Keys from
+ * own control, in AppearanceSettingsTab and the navbar theme toggle) and
+ * dashboard_timezones (the dashboard's world-clocks widget). Keys from
  * DEFAULTABLE_USER_SETTING_KEYS that are credentials or renderer plumbing
  * (map_tile_url, map_provider, mapbox_*, maplibre_style, llm_*, carto_api_key)
  * are left off on purpose: they configure the install, not how a person reads
@@ -79,6 +81,8 @@ const DISPLAY_PREFERENCES = {
   map_poi_pill_enabled: z.boolean(),
   blur_booking_codes: z.boolean(),
   optimize_from_accommodation: z.boolean(),
+  // The dashboard's world clocks; the bounds and their reasons are on the shared schema.
+  dashboard_timezones: dashboardTimezonesSchema,
 } satisfies Record<string, z.ZodType>;
 
 type DisplayPreferenceKey = keyof typeof DISPLAY_PREFERENCES;
@@ -134,7 +138,7 @@ export class SettingsMcp {
 
   @Tool({
     name: 'get_display_settings',
-    description: `Read the current user's display preferences: ${KEY_LIST}. Call this before rendering a temperature, a distance, a time of day or an amount, so the answer matches what the person sees inside TREK instead of being guessed, and call it before update_display_settings whenever the request is relative ("switch me back", "use the other unit"). Only keys that are actually set are returned; TREK's own fallbacks for the rest are celsius, metric, 24h, week_start monday, date_format auto (the interface language's own format), language en, start_page dashboard, start_trip_tab plan, and no personal default currency, which means amounts fall back to the currency of the trip they belong to. Stored credentials (map tokens, LLM API keys, webhook URLs, SMTP) are deliberately not part of this surface and never appear in the result.`,
+    description: `Read the current user's display preferences: ${KEY_LIST}. Call this before rendering a temperature, a distance, a time of day or an amount, so the answer matches what the person sees inside TREK instead of being guessed, and call it before update_display_settings whenever the request is relative ("switch me back", "use the other unit"). Only keys that are actually set are returned; TREK's own fallbacks for the rest are celsius, metric, 24h, week_start monday, date_format auto (the interface language's own format), language en, start_page dashboard, start_trip_tab plan, no personal default currency, which means amounts fall back to the currency of the trip they belong to, and, for dashboard_timezones, clocks for the browser's own zone plus Europe/London and Asia/Tokyo. Stored credentials (map tokens, LLM API keys, webhook URLs, SMTP) are deliberately not part of this surface and never appear in the result.`,
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'settings', mode: 'read' },
@@ -145,7 +149,7 @@ export class SettingsMcp {
 
   @Tool({
     name: 'update_display_settings',
-    description: `Change one or more of the current user's display preferences. Pass a settings object holding only the keys to change; anything left out keeps its current value. Writable keys: ${KEY_LIST}. start_page is dashboard or active_trip, start_trip_tab is one of plan, transports, buchungen, listen, finanzplan, dateien, collab (the ids are the planner's internal German ones) or plugin:<id> for a plugin tab, default_currency is a three-letter ISO code or "" to fall back to each trip's own currency, dark_mode is light, dark or auto, week_start is monday, sunday or saturday and sets the first column of every date picker in TREK, date_format is auto (the interface language's format), YYYY-MM-DD, YYYY/MM/DD, DD.MM.YYYY, DD/MM/YYYY or MM/DD/YYYY and sets how every date field and numeric date in TREK is written. Every other key is refused, including API keys, map tokens, LLM endpoint settings and SMTP: those belong to the account owner or to whoever operates the instance and are set in TREK itself, not here. Prefer get_display_settings when you only need to read a value.`,
+    description: `Change one or more of the current user's display preferences. Pass a settings object holding only the keys to change; anything left out keeps its current value. Writable keys: ${KEY_LIST}. start_page is dashboard or active_trip, start_trip_tab is one of plan, transports, buchungen, listen, finanzplan, dateien, collab (the ids are the planner's internal German ones) or plugin:<id> for a plugin tab, default_currency is a three-letter ISO code or "" to fall back to each trip's own currency, dark_mode is light, dark or auto, week_start is monday, sunday or saturday and sets the first column of every date picker in TREK, date_format is auto (the interface language's format), YYYY-MM-DD, YYYY/MM/DD, DD.MM.YYYY, DD/MM/YYYY or MM/DD/YYYY and sets how every date field and numeric date in TREK is written, dashboard_timezones is the full list of IANA zone ids the dashboard shows clocks for, in order (it replaces the list, so read it first to add or remove one zone; [] shows no clocks). Every other key is refused, including API keys, map tokens, LLM endpoint settings and SMTP: those belong to the account owner or to whoever operates the instance and are set in TREK itself, not here. Prefer get_display_settings when you only need to read a value.`,
     inputSchema: {
       settings: settingsBulkRequestSchema.shape.settings.describe(
         `Object of preference key to new value, e.g. {"temperature_unit": "fahrenheit", "distance_unit": "imperial"}. At least one key, and every key must be one of: ${KEY_LIST}.`,

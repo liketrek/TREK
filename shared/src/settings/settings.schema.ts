@@ -56,6 +56,35 @@ export const dateFormatSchema = z.enum(DATE_FORMAT_VALUES);
 /** What a user who never picked one gets. */
 export const DEFAULT_DATE_FORMAT: DateFormat = 'auto';
 
+/**
+ * The dashboard's world clocks (useDashboardTimezones.ts), IANA zone ids in
+ * display order. Each id must be one the runtime can format, the check the
+ * widget runs before rendering a clock (isValidTimeZone in client/src/utils/
+ * localDate.ts): an unknown zone would be stored and then silently dropped.
+ * [] is a deliberate "no clocks"; a user who never set the key gets the
+ * widget's fallback instead. The widget refuses a duplicate on add, and so
+ * does this. The widget has no cap; this one keeps a write bounded.
+ */
+export const DASHBOARD_TIMEZONES_MAX = 24;
+function isKnownTimeZone(zone: string): boolean {
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+export const dashboardTimezonesSchema = z
+  .array(
+    z
+      .string()
+      .min(1)
+      .max(64)
+      .refine(isKnownTimeZone, { message: 'Expected IANA time zone ids, e.g. Europe/Madrid or America/New_York' }),
+  )
+  .max(DASHBOARD_TIMEZONES_MAX, { message: `At most ${DASHBOARD_TIMEZONES_MAX} zones` })
+  .refine((zones) => new Set(zones).size === zones.length, { message: 'Each zone may appear only once' });
+
 // ── Responses ───────────────────────────────────────────────────────────────
 
 /** GET /api/settings: the user's preferences by key, each value as getUserSettings parsed it (secrets masked). */

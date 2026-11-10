@@ -288,6 +288,41 @@ describe('Tool: update_display_settings', () => {
     });
   });
 
+  it('writes the dashboard clocks in order, reads them back, and accepts [] for no clocks', async () => {
+    const { user } = createUser(testDb);
+    const zones = ['Europe/Madrid', 'Africa/Cairo', 'America/New_York'];
+    type Prefs = { settings: Record<string, unknown> };
+    await withHarness(user.id, async (h) => {
+      const written = parseToolResult(await update(h, { dashboard_timezones: zones })) as Prefs;
+      expect(written.settings.dashboard_timezones).toEqual(zones);
+      expect(await readSetting(user.id, 'dashboard_timezones')).toBe(JSON.stringify(zones));
+
+      const read = parseToolResult(await h.client.callTool({ name: 'get_display_settings', arguments: {} })) as Prefs;
+      expect(read.settings.dashboard_timezones).toEqual(zones);
+
+      const cleared = parseToolResult(await update(h, { dashboard_timezones: [] })) as Prefs;
+      expect(cleared.settings.dashboard_timezones).toEqual([]);
+    });
+  });
+
+  it('refuses an unknown zone, a duplicate zone, a non-array and an oversized list, and keeps the clocks', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      await update(h, { dashboard_timezones: ['Europe/Madrid'] });
+      const tooMany = Intl.supportedValuesOf('timeZone').slice(0, 25);
+      const refusals = await Promise.all(
+        [['Mars/Olympus_Mons'], ['Europe/Madrid', 'Europe/Madrid'], 'Europe/Madrid', [''], tooMany].map((value) =>
+          update(h, { dashboard_timezones: value }),
+        ),
+      );
+      for (const refused of refusals) {
+        expect(refused.isError).toBe(true);
+        expect(errorText(refused)).toContain('dashboard_timezones');
+      }
+      expect(await readSetting(user.id, 'dashboard_timezones')).toBe('["Europe/Madrid"]');
+    });
+  });
+
   it('accepts every boolean display preference', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
