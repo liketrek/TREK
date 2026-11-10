@@ -114,6 +114,14 @@ describe('global CSP: the imagery host (#2307)', () => {
   });
 });
 
+describe('global CSP: the iOS app tile store', () => {
+  it('allows trek-tile: images, or the app draws routes on a blank map', async () => {
+    // The app rewrites raster tiles to trek-tile:// (client/src/native/tileCache.ts)
+    // and answers them from its store; WebKit checks that scheme against img-src.
+    expect(await directiveSources('img-src')).toContain('trek-tile:');
+  });
+});
+
 describe('global CSP: the elevation tiles of the 3D tour view', () => {
   it('allows the Terrarium tiles, which MapLibre and the flyover preload fetch', async () => {
     // The 3D view drapes the route over Mapzen's open elevation model on AWS Open

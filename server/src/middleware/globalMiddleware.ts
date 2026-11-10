@@ -280,7 +280,11 @@ export function applyGlobalMiddleware(
           scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
           // No Google Fonts: every font ships with TREK (client/public/fonts), so no reader's IP goes to Google.
           styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          // trek-tile: is the iOS app's map tile store (client/src/native/tileCache.ts).
+          // The app's web view runs this page, and WebKit holds a scheme the app
+          // answers itself to img-src as well: without it every raster tile was
+          // refused and the app showed routes on a blank map.
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'trek-tile:'],
           connectSrc: [
             "'self'",
             'ws:',
