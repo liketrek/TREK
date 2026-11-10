@@ -243,7 +243,8 @@ export function withBookings(
             name: leg.from && leg.to ? `${leg.from} → ${leg.to}` : r.title,
             time: formatTime(leg.dep_time),
             minutes: minutesOf(leg.dep_time),
-            endMinutes: leg.arr_day_id === day.dayId ? minutesOf(leg.arr_time) : 24 * 60,
+            // A leg without an arrival day lands on the day it leaves, as the planner reads it.
+            endMinutes: (leg.arr_day_id ?? leg.dep_day_id) === day.dayId ? minutesOf(leg.arr_time) : 24 * 60,
             color: null,
             symbol,
           },

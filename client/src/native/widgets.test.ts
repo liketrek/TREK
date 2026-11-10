@@ -248,6 +248,30 @@ describe('the richer snapshot', () => {
     expect(tripDayState(today, 23 * 60 + 30, 'done')).toMatchObject({ nextName: 'ATL → ORF', done: 2 });
   });
 
+  it('lands a leg without an arrival day on the day it leaves', () => {
+    const plain = todayOf(
+      trip(1, '2026-11-09', '2026-11-09'),
+      [day(5, 1, '2026-11-09', [])],
+      '2026-11-09',
+      () => 'D',
+      (t) => t
+    );
+    if (!plain) throw new Error('the trip runs today');
+    const legs = [
+      { from: 'SNA', to: 'ATL', dep_day_id: 5, dep_time: '08:00', arr_time: '10:00' },
+      { from: 'ATL', to: 'ORF', dep_day_id: 5, dep_time: '12:00', arr_time: '14:00' },
+    ];
+    const today = withBookings(
+      plain,
+      [
+        { id: 2, trip_id: 1, title: 'Hop', type: 'flight', status: 'confirmed', metadata: JSON.stringify({ legs }) },
+      ] as never,
+      '2026-11-09',
+      (t) => t
+    );
+    expect(tripDayState(today, 15 * 60, 'done')).toMatchObject({ nextName: 'done', done: 2 });
+  });
+
   it('counts a booking with an end time as under way until it ends', () => {
     const plain = todayOf(
       trip(1, '2026-11-09', '2026-11-09'),
