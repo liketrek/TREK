@@ -11,6 +11,7 @@ import {
   resolveChildEntry,
   serverCodeRoot,
   pluginPermissionArgs,
+  pluginNetPermissionArgs,
   pluginRealCodeDir,
   ensurePluginModuleType,
 } from '../../../src/nest/plugins/paths';
@@ -88,6 +89,19 @@ describe('paths', () => {
     expect(args.some((a) => a.startsWith('--allow-fs-write'))).toBe(false);
     expect(args.some((a) => a.startsWith('--allow-child-process'))).toBe(false);
     expect(serverCodeRoot()).not.toContain(`${require('node:path').sep}data`);
+  });
+
+  // From Node 25 the permission model covers the network, and a child without the
+  // grant cannot reach any host (#3045). Node 24 refuses the flag as a bad option.
+  it('grants the network only on a Node that knows --allow-net', () => {
+    expect(pluginNetPermissionArgs(new Set(['--permission', '--allow-net']))).toEqual(['--allow-net']);
+    expect(pluginNetPermissionArgs(new Set(['--permission']))).toEqual([]);
+  });
+
+  it('passes the network grant to a plugin child exactly when this Node needs it', () => {
+    delete process.env.TREK_PLUGIN_PERMISSIONS;
+    const args = pluginPermissionArgs('flight-tracker');
+    expect(args.includes('--allow-net')).toBe(process.allowedNodeEnvironmentFlags.has('--allow-net'));
   });
 
   it('lets an operator opt out of the permission model', () => {
