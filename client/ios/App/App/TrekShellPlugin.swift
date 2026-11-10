@@ -560,15 +560,12 @@ extension TrekShellPlugin {
 
 /// Positions and errors for the UI, shaped like the Geolocation API's, with the
 /// When-In-Use permission asked the first time.
-// MARK: - Apple Wallet
+// MARK: - Quick Look
 
 extension TrekShellPlugin {
-    /// Feature wallet: a booking's Wallet pass, straight into Apple Wallet. A pass
-    /// already there opens in Wallet instead of being offered twice. Resolves with
-    /// `result` added, opened or cancelled; rejects INVALID for bytes that are no
-    /// pass and UNAVAILABLE where Wallet cannot take one.
     /// Kept while Quick Look shows a file: the controller holds its data source weakly.
-    private var previewSource: TrekFilePreviewSource?
+    /// One preview at a time, so a static: an extension cannot store per instance.
+    private static var previewSource: TrekFilePreviewSource?
 
     /// Shows a file the UI wrote to the cache in Quick Look: a PDF to page through,
     /// an image, a document, with the system's own share button. "unsupported" for
@@ -589,14 +586,22 @@ extension TrekShellPlugin {
                 return
             }
             let source = TrekFilePreviewSource(url: url, title: call.getString("title"))
-            self.previewSource = source
+            TrekShellPlugin.previewSource = source
             let preview = QLPreviewController()
             preview.dataSource = source
             presenter.present(preview, animated: true)
             call.resolve(["result": "shown"])
         }
     }
+}
 
+// MARK: - Apple Wallet
+
+extension TrekShellPlugin {
+    /// Feature wallet: a booking's Wallet pass, straight into Apple Wallet. A pass
+    /// already there opens in Wallet instead of being offered twice. Resolves with
+    /// `result` added, opened or cancelled; rejects INVALID for bytes that are no
+    /// pass and UNAVAILABLE where Wallet cannot take one.
     @objc func addToWallet(_ call: CAPPluginCall) {
         guard let base64 = call.getString("data"), let data = Data(base64Encoded: base64),
               let pass = try? PKPass(data: data) else {
