@@ -188,13 +188,64 @@ function pointInPackedRing(
   return inside;
 }
 
+// Slack on the longitude sides of a part's box. The ray-cast compares the point's longitude
+// with an intersection it computes in floating point, which can land a rounding step beyond
+// the ring's own extremes; this is many orders of magnitude wider than that step and many
+// narrower than a coordinate step of either bundle, so the box never rejects a point the
+// ray-cast would have accepted.
+const PART_BOX_SLACK = 1e-9;
+
+// [minLng, minLat, maxLng, maxLat] of every polygon's outer ring, four numbers per polygon,
+// in the same divided-back doubles the ray-cast reads. Derived from the geometry on its first
+// lookup and kept beside it (32 bytes per polygon), so neither bundle's packed layout changes.
+const partBoxCache = new WeakMap<PackedGeom, Float64Array>();
+
+function partBoxesOf(geom: PackedGeom, scale: number): Float64Array {
+  const cached = partBoxCache.get(geom);
+  if (cached) return cached;
+  const { coords, ringStarts, polyRingCounts } = geom;
+  const boxes = new Float64Array(polyRingCounts.length * 4);
+  let ri = 0;
+  for (const [k, rc] of polyRingCounts.entries()) {
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
+    for (let i = ringStarts[ri]; i < ringStarts[ri + 1]; i++) {
+      const x = coords[2 * i] / scale;
+      const y = coords[2 * i + 1] / scale;
+      if (x < minLng) minLng = x;
+      if (x > maxLng) maxLng = x;
+      if (y < minLat) minLat = y;
+      if (y > maxLat) maxLat = y;
+    }
+    boxes.set([minLng, minLat, maxLng, maxLat], k * 4);
+    ri += rc;
+  }
+  partBoxCache.set(geom, boxes);
+  return boxes;
+}
+
 // True when (lng,lat) falls inside a packed Polygon/MultiPolygon, honouring holes: the
 // first ring of each polygon is its outer boundary, the rest are holes.
+//
+// A polygon whose outer ring's box does not hold the point is skipped without walking its
+// ring. A country is thousands of such polygons where it is mostly islands (Canada, Indonesia,
+// Japan, Norway), and a point sits in the box of a handful at most, so the lookup walks a few
+// rings rather than every one. The answer is the one the ray-cast alone gives: a ring has no
+// edge crossing a latitude outside its own range, and none to the right of a point east of it.
 export function pointInPackedGeometry(lng: number, lat: number, geom: PackedGeom, scale: number): boolean {
   const { coords, ringStarts, polyRingCounts } = geom;
+  const boxes = partBoxesOf(geom, scale);
   let ri = 0;
-  for (const rc of polyRingCounts) {
-    if (pointInPackedRing(lng, lat, coords, scale, ringStarts[ri], ringStarts[ri + 1])) {
+  for (const [k, rc] of polyRingCounts.entries()) {
+    const b = k * 4;
+    const inBox =
+      lat >= boxes[b + 1] &&
+      lat <= boxes[b + 3] &&
+      lng >= boxes[b] - PART_BOX_SLACK &&
+      lng <= boxes[b + 2] + PART_BOX_SLACK;
+    if (inBox && pointInPackedRing(lng, lat, coords, scale, ringStarts[ri], ringStarts[ri + 1])) {
       let inHole = false;
       for (let h = 1; h < rc; h++) {
         if (pointInPackedRing(lng, lat, coords, scale, ringStarts[ri + h], ringStarts[ri + h + 1])) {
@@ -335,7 +386,27 @@ export function isPointInCountryBox(countryCode: string, lat: number, lng: numbe
   );
 }
 
+// Answers already worked out, by coordinate pair. A place keeps its coordinates between
+// requests, and the places list and the trip bundle ask for every place of a trip on each
+// read, so the same pairs come back all the time. The borders are fixed for the life of the
+// process and the lookup reads nothing else, so an answer never goes stale. Oldest out first
+// past the cap, which holds the map to a few megabytes.
+const COUNTRY_ANSWERS_MAX = 20_000;
+const countryAnswers = new Map<string, string | null>();
+
 export function getCountryFromCoords(lat: number, lng: number): string | null {
+  const key = `${lat},${lng}`;
+  const known = countryAnswers.get(key);
+  if (known !== undefined) return known;
+  const answer = lookupCountryFromCoords(lat, lng);
+  if (countryAnswers.size >= COUNTRY_ANSWERS_MAX) {
+    countryAnswers.delete(countryAnswers.keys().next().value as string);
+  }
+  countryAnswers.set(key, answer);
+  return answer;
+}
+
+function lookupCountryFromCoords(lat: number, lng: number): string | null {
   // Cheap prefilter: every country with a part-box containing the point. Keep the
   // area of the matching part so overlapping candidates can be ranked below.
   const candidates: { code: string; area: number }[] = [];
