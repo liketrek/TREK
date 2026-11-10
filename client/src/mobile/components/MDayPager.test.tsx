@@ -52,7 +52,11 @@ describe('pagesFor', () => {
 
   it('keeps the same pages whichever day is selected, so a run of swipes never meets an end', () => {
     expect(pagesFor(DAYS, 1).map((p) => p.key)).toEqual(pagesFor(DAYS, 6).map((p) => p.key));
-    expect(pagesFor(DAYS, 6).filter((p) => p.near).map((p) => p.dayId)).toEqual([4, 5, 6]);
+    expect(
+      pagesFor(DAYS, 6)
+        .filter((p) => p.near)
+        .map((p) => p.dayId)
+    ).toEqual([4, 5, 6]);
   });
 
   it('keeps a page for a selection that points at no day, with the first day as the way back', () => {

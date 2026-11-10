@@ -212,7 +212,13 @@ describe('the richer snapshot', () => {
   });
 
   it('makes a stop of every leg of a flight with a stopover, and keeps a flight in the air ahead until it lands', () => {
-    const plain = todayOf(trip(1, '2026-11-09', '2026-11-10'), [day(5, 1, '2026-11-09', []), day(6, 2, '2026-11-10', [])], '2026-11-09', () => 'D', (t) => t);
+    const plain = todayOf(
+      trip(1, '2026-11-09', '2026-11-10'),
+      [day(5, 1, '2026-11-09', []), day(6, 2, '2026-11-10', [])],
+      '2026-11-09',
+      () => 'D',
+      (t) => t
+    );
     if (!plain) throw new Error('the trip runs today');
     const legs = [
       { from: 'SNA', to: 'ATL', dep_day_id: 5, dep_time: '14:00', arr_day_id: 5, arr_time: '21:11' },
@@ -243,7 +249,13 @@ describe('the richer snapshot', () => {
   });
 
   it('counts a booking with an end time as under way until it ends', () => {
-    const plain = todayOf(trip(1, '2026-11-09', '2026-11-09'), [day(5, 1, '2026-11-09', [])], '2026-11-09', () => 'D', (t) => t);
+    const plain = todayOf(
+      trip(1, '2026-11-09', '2026-11-09'),
+      [day(5, 1, '2026-11-09', [])],
+      '2026-11-09',
+      () => 'D',
+      (t) => t
+    );
     if (!plain) throw new Error('the trip runs today');
     const today = withBookings(
       plain,

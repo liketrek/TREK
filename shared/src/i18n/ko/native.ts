@@ -11,13 +11,15 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': '웹 주소가 아닌 것 같습니다.',
   'native.connect.errorUnreachable': '이 주소에서 응답하는 서버가 없습니다. 주소와 연결 상태를 확인하세요.',
   'native.connect.errorNotTrek': '이 주소의 서버는 TREK이 아닙니다.',
-  'native.connect.errorTooOld': '이 서버는 이전 버전의 TREK을 실행 중입니다. 앱에는 TREK 5.1.3 이상이 필요하므로 먼저 서버를 업데이트해야 합니다.',
+  'native.connect.errorTooOld':
+    '이 서버는 이전 버전의 TREK을 실행 중입니다. 앱에는 TREK 5.1.3 이상이 필요하므로 먼저 서버를 업데이트해야 합니다.',
   'native.connect.recheckHint': '이 버전의 앱은 서버에 TREK 5.1.3 이상이 필요하므로 서버를 한 번 더 확인합니다.',
   'native.offline.title': '서버에 연결할 수 없음',
   'native.offline.hint': 'TREK이 {server}에 연결하지 못했습니다. 연결 상태를 확인한 후 다시 시도하세요.',
   'native.offline.retry': '다시 시도',
   'native.changeServer': '서버 변경',
-  'native.signInBar.hint': '이 페이지에서는 앱 안에서 패스키와 보안 키를 사용할 수 없습니다. 비밀번호로 로그인하거나 프록시에서 앱을 통과시키세요.',
+  'native.signInBar.hint':
+    '이 페이지에서는 앱 안에서 패스키와 보안 키를 사용할 수 없습니다. 비밀번호로 로그인하거나 프록시에서 앱을 통과시키세요.',
   'native.login.failed': '로그인하지 못했습니다. 다시 시도하세요.',
   'native.handoff.title': '앱에서 계속',
   'native.handoff.hint': '{name}(으)로 로그인되어 있습니다. TREK 앱을 열어 로그인을 완료하세요.',

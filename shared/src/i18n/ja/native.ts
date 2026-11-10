@@ -11,13 +11,16 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': 'Web アドレスではないようです。',
   'native.connect.errorUnreachable': 'このアドレスで応答するサーバーがありません。アドレスと接続を確認してください。',
   'native.connect.errorNotTrek': 'このアドレスのサーバーは TREK ではありません。',
-  'native.connect.errorTooOld': 'このサーバーでは古い TREK が動作しています。アプリには TREK 5.1.3 以降が必要なため、先にサーバーを更新してください。',
-  'native.connect.recheckHint': 'このバージョンのアプリはサーバーに TREK 5.1.3 以降が必要なため、サーバーをもう一度確認します。',
+  'native.connect.errorTooOld':
+    'このサーバーでは古い TREK が動作しています。アプリには TREK 5.1.3 以降が必要なため、先にサーバーを更新してください。',
+  'native.connect.recheckHint':
+    'このバージョンのアプリはサーバーに TREK 5.1.3 以降が必要なため、サーバーをもう一度確認します。',
   'native.offline.title': 'サーバーに接続できません',
   'native.offline.hint': 'TREK は {server} に接続できませんでした。接続を確認して、もう一度お試しください。',
   'native.offline.retry': '再試行',
   'native.changeServer': 'サーバーを変更',
-  'native.signInBar.hint': 'このページではアプリ内でパスキーとセキュリティキーを使えません。パスワードでサインインするか、プロキシでアプリを通過させてください。',
+  'native.signInBar.hint':
+    'このページではアプリ内でパスキーとセキュリティキーを使えません。パスワードでサインインするか、プロキシでアプリを通過させてください。',
   'native.login.failed': 'ログインできませんでした。もう一度お試しください。',
   'native.handoff.title': 'アプリで続行',
   'native.handoff.hint': '{name} としてログインしています。TREK アプリを開いて、そちらでログインを完了してください。',
