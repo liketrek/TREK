@@ -8,7 +8,7 @@ import { CardActions, CardDeleteSheet, CardFiles, CardNotes, CardTitleButton, Ca
 import { CardGrid, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import { cardWhen, parseTransportMeta, timeRange } from './transportsModel'
-import { BOOKING_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
+import { BOOKING_TYPE_COLOR, hotelStayTimes } from '../../../../components/Planner/bookings/bookingsModel'
 import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
 import { orderedEndpoints } from '../../../../utils/flightLegs'
@@ -119,13 +119,18 @@ function BookingCard({ res, planner, canEdit, compact, onView }: {
   if (meta.price != null && meta.price !== '') {
     metaCells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, planner.trip?.currency, locale) })
   }
-  if (meta.check_in_time) {
-    metaCells.push({
+  const stay = hotelStayTimes(res, meta)
+  // A hotel's times are its check-in and check-out; they come first, so a price
+  // or a seat cannot push them off the card.
+  const stayCells: { label: string; value: string }[] = []
+  if (stay.checkIn) {
+    stayCells.push({
       label: t('reservations.meta.checkIn'),
-      value: timeRange(meta.check_in_time, meta.check_in_end_time ?? null, locale, timeFormat),
+      value: timeRange(stay.checkIn, stay.checkInEnd, locale, timeFormat),
     })
   }
-  if (meta.check_out_time) metaCells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
+  if (stay.checkOut) stayCells.push({ label: t('reservations.meta.checkOut'), value: formatTime(stay.checkOut, locale, timeFormat) })
+  metaCells.unshift(...stayCells)
 
   const files = filesFor(res, planner.files || [])
 

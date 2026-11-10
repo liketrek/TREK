@@ -525,7 +525,8 @@ describe('ReservationsRepository — AC37/AC40 (listIdMetadataByStay/listIdsBySt
 describe('ReservationsRepository — Task 2 reads (listForTrip / findWithJoins / findInTrip / listResyncCandidates / listForRestamp)', () => {
   const legacyJoinedSql = `
     SELECT r.*, d.day_number as day_number, p.name as place_name, ap.place_id as accommodation_place_id,
-      acc_p.name as accommodation_name, ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id
+      acc_p.name as accommodation_name, ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id,
+      ap.check_in as accommodation_check_in, ap.check_in_end as accommodation_check_in_end, ap.check_out as accommodation_check_out
     FROM reservations r
     LEFT JOIN days d ON d.id = r.day_id
     LEFT JOIN places p ON p.id = r.place_id

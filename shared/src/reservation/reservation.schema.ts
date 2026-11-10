@@ -190,6 +190,10 @@ export const reservationSchema = z.object({
   accommodation_name: z.string().nullable().optional(),
   accommodation_start_day_id: z.number().nullable().optional(),
   accommodation_end_day_id: z.number().nullable().optional(),
+  // The stay's check-in window and check-out, for a hotel booking whose own metadata has none.
+  accommodation_check_in: z.string().nullable().optional(),
+  accommodation_check_in_end: z.string().nullable().optional(),
+  accommodation_check_out: z.string().nullable().optional(),
   day_positions: z.record(z.string(), z.number()).nullable().optional(),
   endpoints: z.array(reservationEndpointSchema).optional(),
   // Trip members / named guests this booking is for (#1517). Joined in listReservations.

@@ -2,7 +2,7 @@ import type { Day, Reservation, ReservationEndpoint } from '../../../types'
 import { formatPriceText, formatTime, splitReservationDateTime } from '../../../utils/formatters'
 import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../../utils/flightLegs'
 import { safeExternalHref } from '../../../utils/safeUrl'
-import { daySpan, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
+import { daySpan, hotelStayTimes, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
 
 export interface FactsContext {
   t: (key: string, params?: Record<string, string | number>) => string
@@ -105,10 +105,11 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
   if (!c.hasLinkedCost && meta.price != null && meta.price !== '') {
     cells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, c.tripCurrency, locale) })
   }
-  if (meta.check_in_time) {
-    cells.push({ label: t('reservations.meta.checkIn'), value: formatTime(meta.check_in_time, locale, timeFormat) + (meta.check_in_end_time ? ` → ${formatTime(meta.check_in_end_time, locale, timeFormat)}` : '') })
+  const stay = hotelStayTimes(r, meta)
+  if (stay.checkIn) {
+    cells.push({ label: t('reservations.meta.checkIn'), value: formatTime(stay.checkIn, locale, timeFormat) + (stay.checkInEnd ? ` → ${formatTime(stay.checkInEnd, locale, timeFormat)}` : '') })
   }
-  if (meta.check_out_time) cells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
+  if (stay.checkOut) cells.push({ label: t('reservations.meta.checkOut'), value: formatTime(stay.checkOut, locale, timeFormat) })
 
   // Per-segment codes (#1943), only on a real stopover booking.
   const legs = r.type === 'flight' ? getFlightLegs(r) : usesStationRoute(r.type) ? getTrainLegs(r) : []

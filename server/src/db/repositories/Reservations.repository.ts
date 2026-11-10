@@ -31,7 +31,8 @@ export type {
  * RS18/RR1's shared joined projection — `SELECT r.*, d.day_number, p.name as
  * place_name, r.assignment_id, ap.place_id as accommodation_place_id,
  * acc_p.name as accommodation_name, ap.start_day_id as
- * accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id FROM
+ * accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id,
+ * ap.check_in/check_in_end/check_out as accommodation_check_in/_check_in_end/_check_out FROM
  * reservations r LEFT JOIN days d ON r.day_id = d.id LEFT JOIN places p ON
  * r.place_id = p.id LEFT JOIN day_accommodations ap ON r.accommodation_id =
  * ap.id LEFT JOIN places acc_p ON ap.place_id = acc_p.id`. The service
@@ -45,6 +46,10 @@ export interface ReservationJoinRow extends ReservationAllColumnsRow {
   accommodation_name: string | null;
   accommodation_start_day_id: number | null;
   accommodation_end_day_id: number | null;
+  /** The stay's own times, which a hotel booking's card falls back to. */
+  accommodation_check_in: string | null;
+  accommodation_check_in_end: string | null;
+  accommodation_check_out: string | null;
 }
 
 /**
@@ -394,6 +399,9 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         'acc_p.name as accommodation_name',
         'ap.start_day_id as accommodation_start_day_id',
         'ap.end_day_id as accommodation_end_day_id',
+        'ap.check_in as accommodation_check_in',
+        'ap.check_in_end as accommodation_check_in_end',
+        'ap.check_out as accommodation_check_out',
       ]);
   }
 
