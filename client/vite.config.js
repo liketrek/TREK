@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { rtlTextAlias, plyrSpriteAlias } from './rtlTextAlias.js';
 import { withoutRuntimeFonts } from './bookFontPrecache.js';
+import { ICON_CHUNK } from './iconChunk.js';
 import { readFileSync } from 'node:fs';
 
 // The version this bundle is built as, baked in at build time. The Docker build
@@ -70,7 +71,8 @@ export default defineConfig(({ mode }) => ({
         // offline-first travel planner a route the user never opened before losing
         // signal still has to work. The trade is that splitting buys first paint and
         // not install size: 107 entries / 17,795 KiB before any of it, 463 /
-        // 23,292 KiB now (measured, not estimated).
+        // 23,292 KiB after it, and 460 / 59,426 KiB as of 5.1.2 with the icons in
+        // one chunk (iconChunk.js; 652 entries without it). All measured, not estimated.
         //
         // Keep this figure honest. #2228 traced PWA boot failures to the browser
         // evicting this origin's whole bucket, precached shell included, and this
@@ -350,6 +352,7 @@ export default defineConfig(({ mode }) => ({
               tags: ['$initial'],
               test: /[\\/]node_modules[\\/](zustand|dexie|axios|zod|dompurify|isomorphic-dompurify)[\\/]/,
             },
+            ICON_CHUNK,
           ],
         },
       },
