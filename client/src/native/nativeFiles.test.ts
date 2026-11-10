@@ -13,6 +13,7 @@ vi.mock('./trekShell', () => ({ TrekShell: { previewFile: vi.fn() } }));
 beforeEach(() => {
   vi.mocked(Filesystem.writeFile).mockReset().mockResolvedValue({ uri: 'file:///cache/trip.pdf' });
   vi.mocked(Share.share).mockReset().mockResolvedValue({});
+  vi.mocked(TrekShell.previewFile).mockReset();
 });
 
 describe('cacheFileName', () => {
