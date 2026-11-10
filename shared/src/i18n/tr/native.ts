@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK, {server} adresine ulaşamadı. Bağlantını kontrol edip tekrar dene.',
   'native.offline.retry': 'Tekrar dene',
   'native.changeServer': 'Sunucuyu değiştir',
+  'native.signInBar.hint':
+    'Geçiş anahtarları ve güvenlik anahtarları uygulamada bu sayfada çalışmaz. Parolayla giriş yapın veya uygulamayı proxy’nizden geçirin.',
   'native.login.failed': 'Giriş yapılamadı. Lütfen tekrar dene.',
   'native.handoff.title': 'Uygulamada devam et',
   'native.handoff.hint': '{name} olarak giriş yaptın. Girişi tamamlamak için TREK uygulamasını aç.',

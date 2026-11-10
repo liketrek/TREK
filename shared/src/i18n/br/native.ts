@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'O TREK não conseguiu acessar {server}. Verifique sua conexão e tente novamente.',
   'native.offline.retry': 'Tentar novamente',
   'native.changeServer': 'Trocar de servidor',
+  'native.signInBar.hint':
+    'Passkeys e chaves de segurança não funcionam nesta página no app. Entre com uma senha ou libere o app no seu proxy.',
   'native.login.failed': 'Não foi possível entrar. Tente novamente.',
   'native.handoff.title': 'Continuar no app',
   'native.handoff.hint': 'Você entrou como {name}. Abra o app TREK para concluir o login por lá.',

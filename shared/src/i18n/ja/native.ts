@@ -17,6 +17,7 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK は {server} に接続できませんでした。接続を確認して、もう一度お試しください。',
   'native.offline.retry': '再試行',
   'native.changeServer': 'サーバーを変更',
+  'native.signInBar.hint': 'このページではアプリ内でパスキーとセキュリティキーを使えません。パスワードでサインインするか、プロキシでアプリを通過させてください。',
   'native.login.failed': 'ログインできませんでした。もう一度お試しください。',
   'native.handoff.title': 'アプリで続行',
   'native.handoff.hint': '{name} としてログインしています。TREK アプリを開いて、そちらでログインを完了してください。',

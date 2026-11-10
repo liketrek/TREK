@@ -24,6 +24,8 @@ final class TrekServerStore {
     private static final String KEY_URL = "server_url";
     private static final String KEY_PREVIOUS_URL = "previous_server_url";
     private static final String KEY_SERVER_CHECK = "server_check";
+    private static final String KEY_LABEL_SIGN_IN_HINT = "label_sign_in_hint";
+    private static final String KEY_LABEL_CHANGE_SERVER = "label_change_server";
 
     /**
      * The server API this build needs (MIN_NATIVE_API in serverAddress.ts). A
@@ -74,6 +76,29 @@ final class TrekServerStore {
         SharedPreferences.Editor editor = prefs.edit().putInt(KEY_SERVER_CHECK, SERVER_CHECK);
         if (server != null) editor.remove(KEY_URL).remove(KEY_SIGN_IN_HOSTS).putString(KEY_PREVIOUS_URL, server);
         editor.commit();
+    }
+
+    /**
+     * The words of the bar over a proxy's sign-in page, in the user's language,
+     * as the address screen passed them (setServer's `labels`): the server's UI
+     * is not there to say them. Null keeps the English fallback.
+     */
+    static void setLabels(Context context, String signInHint, String changeServer) {
+        SharedPreferences.Editor editor = prefs(context).edit();
+        if (signInHint != null) editor.putString(KEY_LABEL_SIGN_IN_HINT, signInHint);
+        if (changeServer != null) editor.putString(KEY_LABEL_CHANGE_SERVER, changeServer);
+        editor.commit();
+    }
+
+    static String signInHintLabel(Context context) {
+        return prefs(context).getString(
+            KEY_LABEL_SIGN_IN_HINT,
+            "Passkeys and security keys do not work on this page in the app. Sign in with a password, or let the app through your proxy."
+        );
+    }
+
+    static String changeServerLabel(Context context) {
+        return prefs(context).getString(KEY_LABEL_CHANGE_SERVER, "Change server");
     }
 
     /** The server an update asked to check again, until a server is set. */

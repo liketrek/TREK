@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK ei jõudnud serverini {server}. Kontrolli oma ühendust ja proovi uuesti.',
   'native.offline.retry': 'Proovi uuesti',
   'native.changeServer': 'Vaheta serverit',
+  'native.signInBar.hint':
+    'Pääsuvõtmed ja turvavõtmed ei tööta sellel lehel rakenduses. Logi sisse parooliga või lase rakendus oma puhverserverist läbi.',
   'native.login.failed': 'Sisselogimine ei õnnestunud. Palun proovi uuesti.',
   'native.handoff.title': 'Jätka rakenduses',
   'native.handoff.hint': 'Oled sisse logitud kui {name}. Ava TREKi rakendus, et sisselogimine seal lõpetada.',

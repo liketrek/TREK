@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK เข้าถึง {server} ไม่ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
   'native.offline.retry': 'ลองอีกครั้ง',
   'native.changeServer': 'เปลี่ยนเซิร์ฟเวอร์',
+  'native.signInBar.hint':
+    'พาสคีย์และคีย์ความปลอดภัยใช้ไม่ได้บนหน้านี้ในแอป ลงชื่อเข้าใช้ด้วยรหัสผ่าน หรืออนุญาตให้แอปผ่านพร็อกซีของคุณ',
   'native.login.failed': 'เข้าสู่ระบบไม่สำเร็จ โปรดลองอีกครั้ง',
   'native.handoff.title': 'ดำเนินการต่อในแอป',
   'native.handoff.hint': 'คุณเข้าสู่ระบบในชื่อ {name} เปิดแอป TREK เพื่อเข้าสู่ระบบให้เสร็จสิ้นที่นั่น',

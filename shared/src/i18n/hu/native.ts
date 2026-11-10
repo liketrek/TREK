@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'A TREK nem érte el ezt: {server}. Ellenőrizd a kapcsolatot, és próbáld újra.',
   'native.offline.retry': 'Újra',
   'native.changeServer': 'Szerver módosítása',
+  'native.signInBar.hint':
+    'A jelkulcsok és a biztonsági kulcsok ezen az oldalon nem működnek az alkalmazásban. Jelentkezz be jelszóval, vagy engedd át az alkalmazást a proxyn.',
   'native.login.failed': 'A bejelentkezés nem sikerült. Próbáld újra.',
   'native.handoff.title': 'Folytatás az alkalmazásban',
   'native.handoff.hint':

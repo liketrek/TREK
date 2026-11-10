@@ -45,6 +45,7 @@ class TrekBridgeViewController: CAPBridgeViewController {
             webView.navigationDelegate = proxy
         }
         guardBridgeMessages()
+        watchSignInPages()
         bridge?.registerPluginInstance(TrekShellPlugin())
         // WebKit's own swipe back slides away a screenshot of the whole page,
         // closes no sheet and takes every drag near the edge from the UI. The UI
@@ -54,6 +55,117 @@ class TrekBridgeViewController: CAPBridgeViewController {
         // A long press on a link would lift a preview of the page it points to,
         // which no native list does; the press means "drag" or nothing here.
         webView?.allowsLinkPreview = false
+    }
+
+    // MARK: - A proxy's sign-in page
+
+    /// Over a proxy's sign-in page (Pangolin, authentik, ...) the server's UI is
+    /// not there, so nothing else leads back to the address screen, and a passkey
+    /// cannot work in a web view for a domain the app is not tied to. A bar says
+    /// so and offers to change the server; the keyboard gets room on that page,
+    /// which TREK's own script makes everywhere else (native/keepFieldInView.ts).
+    private var signInBar: UIView?
+    private var urlObservation: NSKeyValueObservation?
+    private var onSignInPage = false
+    private var keyboardUp = false
+
+    private func watchSignInPages() {
+        urlObservation = webView?.observe(\.url, options: [.initial, .new]) { [weak self] webView, _ in
+            let signIn = TrekServerStore.isSignInHost(webView.url)
+            DispatchQueue.main.async { self?.signInPageChanged(signIn) }
+        }
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        center.addObserver(self, selector: #selector(keyboardDidShow(_:)), name: UIResponder.keyboardDidShowNotification, object: nil)
+        center.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    private func signInPageChanged(_ signIn: Bool) {
+        onSignInPage = signIn
+        if signIn && signInBar == nil { signInBar = makeSignInBar() }
+        updateSignInBar()
+    }
+
+    /// Out of the way while the keyboard is up: the form needs the room.
+    private func updateSignInBar() {
+        signInBar?.isHidden = !(onSignInPage && !keyboardUp)
+    }
+
+    @objc private func keyboardWillShow() {
+        keyboardUp = true
+        updateSignInBar()
+    }
+
+    /// The keyboard plugin sizes the body to the visible area and resets the
+    /// scroll inset on every frame change, which left a foreign page with no way
+    /// to scroll a button under the keyboard into view. After its last change,
+    /// the page gets its height back and as much room below as the keyboard takes.
+    @objc private func keyboardDidShow(_ note: Notification) {
+        guard onSignInPage, let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let room = max(0, frame.height - view.safeAreaInsets.bottom)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self, self.onSignInPage, self.keyboardUp, let webView = self.webView else { return }
+            webView.evaluateJavaScript("document.body.style.height = ''", completionHandler: nil)
+            webView.scrollView.contentInset.bottom = room
+            webView.scrollView.verticalScrollIndicatorInsets.bottom = room
+        }
+    }
+
+    @objc private func keyboardWillHide() {
+        keyboardUp = false
+        updateSignInBar()
+        guard onSignInPage, let webView else { return }
+        webView.scrollView.contentInset.bottom = 0
+        webView.scrollView.verticalScrollIndicatorInsets.bottom = 0
+    }
+
+    private func makeSignInBar() -> UIView {
+        let labels = TrekServerStore.labels
+        let bar = UIView()
+        bar.backgroundColor = UIColor(red: 17 / 255, green: 24 / 255, blue: 39 / 255, alpha: 0.95)
+        bar.layer.cornerRadius = 16
+        bar.layer.cornerCurve = .continuous
+        bar.translatesAutoresizingMaskIntoConstraints = false
+
+        let hint = UILabel()
+        hint.text = labels["signInHint"]
+            ?? "Passkeys and security keys do not work on this page in the app. Sign in with a password, or let the app through your proxy."
+        hint.textColor = UIColor(white: 0.9, alpha: 1)
+        hint.font = .preferredFont(forTextStyle: .footnote)
+        hint.adjustsFontForContentSizeCategory = true
+        hint.numberOfLines = 0
+        hint.translatesAutoresizingMaskIntoConstraints = false
+
+        let change = UIButton(type: .system)
+        change.setTitle(labels["changeServer"] ?? "Change server", for: .normal)
+        change.setTitleColor(.white, for: .normal)
+        change.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        change.addTarget(self, action: #selector(changeServerFromSignIn), for: .touchUpInside)
+        change.translatesAutoresizingMaskIntoConstraints = false
+        change.setContentHuggingPriority(.required, for: .horizontal)
+        change.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        bar.addSubview(hint)
+        bar.addSubview(change)
+        view.addSubview(bar)
+        NSLayoutConstraint.activate([
+            bar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+            bar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            bar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            hint.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 14),
+            hint.topAnchor.constraint(equalTo: bar.topAnchor, constant: 10),
+            hint.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -10),
+            change.leadingAnchor.constraint(equalTo: hint.trailingAnchor, constant: 8),
+            change.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -12),
+            change.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+        ])
+        return bar
+    }
+
+    /// What resetServer does from the UI: forget the server, back to the address screen.
+    @objc private func changeServerFromSignIn() {
+        TrekServerStore.url = nil
+        view.window?.rootViewController = TrekBridgeViewController()
     }
 
     /// Kept alive here: the content controller holds it, but only for as long as it is registered.
@@ -161,6 +273,16 @@ enum TrekServerStore {
     private static let previousKey = "TrekPreviousServerURL"
 
     private static let checkedKey = "TrekServerCheck"
+
+    private static let labelsKey = "TrekShellLabels"
+
+    /// The words of the bar over a proxy's sign-in page, in the user's language,
+    /// as the address screen passed them (setServer's `labels`): the server's UI
+    /// is not there to say them. Empty keeps the English fallback.
+    static var labels: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: labelsKey) as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: labelsKey) }
+    }
 
     /// The server API this build needs (MIN_NATIVE_API in serverAddress.ts).
     /// A server remembered under a lower value is checked once more: the first

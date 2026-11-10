@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK tidak dapat menjangkau {server}. Periksa koneksimu dan coba lagi.',
   'native.offline.retry': 'Coba lagi',
   'native.changeServer': 'Ganti server',
+  'native.signInBar.hint':
+    'Passkey dan kunci keamanan tidak berfungsi di halaman ini dalam aplikasi. Masuk dengan kata sandi, atau izinkan aplikasi melewati proxy Anda.',
   'native.login.failed': 'Gagal masuk. Silakan coba lagi.',
   'native.handoff.title': 'Lanjutkan di aplikasi',
   'native.handoff.hint': 'Kamu masuk sebagai {name}. Buka aplikasi TREK untuk menyelesaikan proses masuk di sana.',

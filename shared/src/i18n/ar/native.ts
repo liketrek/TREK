@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'تعذّر على TREK الوصول إلى {server}. تحقق من اتصالك ثم حاول مرة أخرى.',
   'native.offline.retry': 'إعادة المحاولة',
   'native.changeServer': 'تغيير الخادم',
+  'native.signInBar.hint':
+    'لا تعمل مفاتيح المرور ومفاتيح الأمان على هذه الصفحة داخل التطبيق. سجّل الدخول بكلمة مرور، أو اسمح للتطبيق بتجاوز الوكيل.',
   'native.login.failed': 'تعذّر تسجيل الدخول. يرجى المحاولة مرة أخرى.',
   'native.handoff.title': 'المتابعة في التطبيق',
   'native.handoff.hint': 'لقد سجّلت الدخول باسم {name}. افتح تطبيق TREK لإكمال تسجيل الدخول هناك.',

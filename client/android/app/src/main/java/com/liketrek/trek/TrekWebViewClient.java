@@ -12,6 +12,7 @@ import com.liketrek.trek.clientcert.TrekClientIdentity;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Used while the WebView shows the user's server. When that server cannot be
@@ -24,13 +25,16 @@ import java.util.Set;
 class TrekWebViewClient extends BridgeWebViewClient {
 
     private final Runnable onUnreachable;
+    /** Told whether the page now shown is a proxy's sign-in page, for the bar with the way out. */
+    private final Consumer<Boolean> onSignInPage;
     private final Set<String> signInHosts;
     /** A page of the server has shown since launch; from then on no sign-in host is learned (SignInRedirect). */
     private boolean serverShown;
 
-    TrekWebViewClient(Bridge bridge, Runnable onUnreachable, Set<String> signInHosts) {
+    TrekWebViewClient(Bridge bridge, Runnable onUnreachable, Consumer<Boolean> onSignInPage, Set<String> signInHosts) {
         super(bridge);
         this.onUnreachable = onUnreachable;
+        this.onSignInPage = onSignInPage;
         this.signInHosts = new HashSet<>(signInHosts);
     }
 
@@ -59,6 +63,13 @@ class TrekWebViewClient extends BridgeWebViewClient {
             return false;
         }
         return super.shouldOverrideUrlLoading(view, request);
+    }
+
+    /** Every page the main frame shows, pushState included: is it a proxy's sign-in page? */
+    @Override
+    public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+        super.doUpdateVisitedHistory(view, url, isReload);
+        onSignInPage.accept(url != null && isSignInHost(Uri.parse(url)));
     }
 
     /** After the server's first page, a pending welcome code opens the welcome page once (TrekServerStore.takeWelcomeUrl). */

@@ -26,8 +26,15 @@ export interface TrekShellPlugin {
    * `welcome` is the one-time code of a TREK Cloud purchase: the first load
    * opens the server's welcome page with it, which signs the buyer in. A build
    * without this option ignores it and opens the server as usual.
+   * `labels` are the words of the bar the app shows over a proxy's sign-in page,
+   * in the user's language: the server's UI is not there to say them.
    */
-  setServer(options: { url: string; signInHosts?: string[]; welcome?: string }): Promise<void>;
+  setServer(options: {
+    url: string;
+    signInHosts?: string[];
+    welcome?: string;
+    labels?: { signInHint: string; changeServer: string };
+  }): Promise<void>;
   /** Forgets the server and returns to the address screen. */
   resetServer(): Promise<void>;
   /** Loads the remembered server again, after it could not be reached. */
