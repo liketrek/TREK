@@ -260,6 +260,38 @@ export function pointInPackedGeometry(lng: number, lat: number, geom: PackedGeom
   return false;
 }
 
+// Squared distance from (lng,lat) to the nearest edge of a packed geometry, holes
+// included, in degrees with longitude scaled by cos(lat) so east-west and north-south
+// count alike. Only the ranking matters, so the square root is never taken.
+function squaredDistanceToPackedGeometry(lng: number, lat: number, geom: PackedGeom, scale: number): number {
+  const { coords, ringStarts } = geom;
+  const kx = Math.cos((lat * Math.PI) / 180);
+  let best = Infinity;
+  for (let r = 0; r + 1 < ringStarts.length; r++) {
+    const from = ringStarts[r];
+    const to = ringStarts[r + 1];
+    let ax = (coords[2 * from] / scale - lng) * kx;
+    let ay = coords[2 * from + 1] / scale - lat;
+    for (let i = from + 1; i < to; i++) {
+      const bx = (coords[2 * i] / scale - lng) * kx;
+      const by = coords[2 * i + 1] / scale - lat;
+      const dx = bx - ax;
+      const dy = by - ay;
+      const len = dx * dx + dy * dy;
+      let t = len > 0 ? -(ax * dx + ay * dy) / len : 0;
+      if (t < 0) t = 0;
+      else if (t > 1) t = 1;
+      const ex = ax + t * dx;
+      const ey = ay + t * dy;
+      const d = ex * ex + ey * ey;
+      if (d < best) best = d;
+      ax = bx;
+      ay = by;
+    }
+  }
+  return best;
+}
+
 // Packed polygon geometry: every ring's [lng,lat] pairs back to back in one typed array, each
 // value times a scale. Ring r is pairs ringStarts[r] up to ringStarts[r + 1]; polyRingCounts[k]
 // is how many rings polygon k owns. Three typed arrays per geometry instead of one per ring,
@@ -444,6 +476,22 @@ function lookupCountryFromCoords(lat: number, lng: number): string | null {
     if (pointInPackedGeometry(lng, lat, poly, ADMIN0_SCALE)) return code;
   }
   // No tight micro-box and no polygon contained the point — prefer a deferred loose box
-  // (a real PS/XK point), else fall back to the smallest box (coastal slop / data gap).
-  return looseBoxFallback ?? candidates[0].code;
+  // (a real PS/XK point).
+  if (looseBoxFallback !== null) return looseBoxFallback;
+  // Otherwise the point sits just off a simplified coastline or in a data gap. Give it to
+  // the candidate whose border is nearest, not to the smallest box: on the Riviera,
+  // central Nice lies about 80 m outside France's simplified coast and 20+ km from Italy,
+  // yet Italy's box is the smaller of the two, so smallest-box put Nice in Italy.
+  let nearest = candidates[0].code;
+  let nearestDistance = Infinity;
+  for (const { code } of candidates) {
+    const poly = polys.get(code);
+    if (!poly) continue;
+    const d = squaredDistanceToPackedGeometry(lng, lat, poly, ADMIN0_SCALE);
+    if (d < nearestDistance) {
+      nearestDistance = d;
+      nearest = code;
+    }
+  }
+  return nearest;
 }
