@@ -11,7 +11,10 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': 'Toto nevyzerá ako webová adresa.',
   'native.connect.errorUnreachable': 'Na tejto adrese neodpovedal žiadny server. Skontrolujte adresu a pripojenie.',
   'native.connect.errorNotTrek': 'Server na tejto adrese nie je TREK.',
-  'native.connect.errorTooOld': 'Tento server TREK je pre aplikáciu príliš starý. Najprv ho treba aktualizovať.',
+  'native.connect.errorTooOld':
+    'Na tomto serveri beží starší TREK. Aplikácia potrebuje TREK 5.1.3 alebo novší, preto treba server najprv aktualizovať.',
+  'native.connect.recheckHint':
+    'Táto verzia aplikácie potrebuje na vašom serveri TREK 5.1.3 alebo novší, preto server ešte raz skontroluje.',
   'native.offline.title': 'Server nie je dostupný',
   'native.offline.hint': 'TREK sa nepodarilo spojiť so serverom {server}. Skontrolujte pripojenie a skúste to znova.',
   'native.offline.retry': 'Skúsiť znova',

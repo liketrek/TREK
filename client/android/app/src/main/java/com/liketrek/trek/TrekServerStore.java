@@ -22,6 +22,16 @@ final class TrekServerStore {
 
     private static final String PREFS = "trek_shell";
     private static final String KEY_URL = "server_url";
+    private static final String KEY_PREVIOUS_URL = "previous_server_url";
+    private static final String KEY_SERVER_CHECK = "server_check";
+
+    /**
+     * The server API this build needs (MIN_NATIVE_API in serverAddress.ts). A
+     * server remembered under a lower value is checked once more: the first
+     * launch after an update that raised it puts the address screen back up,
+     * filled in with that server (getPreviousUrl). Raise both together.
+     */
+    private static final int SERVER_CHECK = 2;
     private static final String KEY_SIGN_IN_HOSTS = "sign_in_hosts";
     private static final String KEY_SHELL_ONCE = "shell_once";
     private static final String KEY_RESTART = "restart";
@@ -56,6 +66,21 @@ final class TrekServerStore {
         return prefs(context).getString(KEY_URL, null);
     }
 
+    /** Runs before the bridge is built, so a server picked under an older minimum is not loaded unchecked. */
+    static void recheckAfterUpdate(Context context) {
+        SharedPreferences prefs = prefs(context);
+        if (prefs.getInt(KEY_SERVER_CHECK, 0) >= SERVER_CHECK) return;
+        String server = getUrl(context);
+        SharedPreferences.Editor editor = prefs.edit().putInt(KEY_SERVER_CHECK, SERVER_CHECK);
+        if (server != null) editor.remove(KEY_URL).remove(KEY_SIGN_IN_HOSTS).putString(KEY_PREVIOUS_URL, server);
+        editor.commit();
+    }
+
+    /** The server an update asked to check again, until a server is set. */
+    static String getPreviousUrl(Context context) {
+        return prefs(context).getString(KEY_PREVIOUS_URL, null);
+    }
+
     /** Remembers the server; its sign-in hosts go with it and are replaced or dropped too. */
     static void setUrl(Context context, String url) {
         setServer(context, url, null);
@@ -66,7 +91,7 @@ final class TrekServerStore {
         if (url == null) {
             editor.remove(KEY_URL);
         } else {
-            editor.putString(KEY_URL, url);
+            editor.putString(KEY_URL, url).remove(KEY_PREVIOUS_URL);
         }
         if (signInHosts == null || signInHosts.isEmpty()) {
             editor.remove(KEY_SIGN_IN_HOSTS);

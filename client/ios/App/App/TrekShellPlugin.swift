@@ -348,7 +348,10 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     private var authSession: ASWebAuthenticationSession?
 
     @objc func getServer(_ call: CAPPluginCall) {
-        call.resolve(["url": TrekServerStore.url ?? NSNull()])
+        call.resolve([
+            "url": TrekServerStore.url ?? NSNull(),
+            "previousUrl": TrekServerStore.previousURL ?? NSNull(),
+        ])
     }
 
     @objc func setServer(_ call: CAPPluginCall) {

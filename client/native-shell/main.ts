@@ -275,7 +275,12 @@ function showWelcome(opts: { back?: boolean } = {}): void {
 }
 
 // ── Connect (address) ───────────────────────────────────────────────────────
-function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
+/**
+ * `recheck`: an app update needs a newer server than the one it remembered, so
+ * the address screen comes back once with it filled in, says why and checks it
+ * right away. A server that is new enough loads again without another tap.
+ */
+function showConnect(prefill = '', opts: { back?: boolean; recheck?: boolean } = {}): void {
   const input = el('input', {
     type: 'url',
     placeholder: t('native.connect.placeholder'),
@@ -344,14 +349,15 @@ function showConnect(prefill = '', opts: { back?: boolean } = {}): void {
         [
           topbar(() => showWelcome({ back: true })),
           el('h1', { className: 'title-sm' }, t('native.connect.title')),
-          el('p', { className: 'sub' }, t('native.connect.hint')),
+          el('p', { className: 'sub' }, t(opts.recheck ? 'native.connect.recheckHint' : 'native.connect.hint')),
         ],
         [form, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
       )
     ),
     opts
   );
-  requestAnimationFrame(() => input.focus());
+  if (opts.recheck && prefill) form.requestSubmit();
+  else requestAnimationFrame(() => input.focus());
 }
 
 /**
@@ -1322,8 +1328,9 @@ async function start(): Promise<void> {
   followBackGesture();
   letKeyboardClose();
   let url: string | null;
+  let previousUrl: string | null | undefined;
   try {
-    ({ url } = await TrekShell.getServer());
+    ({ url, previousUrl } = await TrekShell.getServer());
   } catch {
     // No native shell under us (a web preview, or a simulator without the
     // plugin): there is no remembered server, so start at the welcome screen
@@ -1332,7 +1339,9 @@ async function start(): Promise<void> {
     await SplashScreen.hide().catch(() => {});
     return;
   }
-  if (!url) {
+  if (!url && previousUrl) {
+    showConnect(previousUrl, { recheck: true });
+  } else if (!url) {
     showWelcome();
   } else {
     // Only reached when loading the server failed. A proxy that wanted a client

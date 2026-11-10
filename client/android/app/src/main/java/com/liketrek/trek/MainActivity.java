@@ -26,6 +26,7 @@ public class MainActivity extends BridgeActivity {
         // runs and on its own origin. BridgeActivity reads `config` while it
         // builds the bridge inside super.onCreate().
         boolean restarting = TrekServerStore.consumeRestart(this);
+        TrekServerStore.recheckAfterUpdate(this);
         String server = TrekServerStore.getUrl(this);
         boolean onServer = server != null && !TrekServerStore.consumeShellOnce(this);
         config = TrekServerStore.configFor(this, onServer ? server : null, restarting);

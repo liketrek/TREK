@@ -10,6 +10,7 @@ import WebKit
 class TrekBridgeViewController: CAPBridgeViewController {
     override func instanceDescriptor() -> InstanceDescriptor {
         let descriptor = super.instanceDescriptor()
+        TrekServerStore.recheckAfterUpdate()
         if let server = TrekServerStore.url {
             // The trailing slash matters: Capacitor treats every URL that starts
             // with this string as the app's own, and without it that would take
@@ -157,13 +158,44 @@ enum TrekKeyCommands {
 enum TrekServerStore {
     private static let key = "TrekServerURL"
 
+    private static let previousKey = "TrekPreviousServerURL"
+
+    private static let checkedKey = "TrekServerCheck"
+
+    /// The server API this build needs (MIN_NATIVE_API in serverAddress.ts).
+    /// A server remembered under a lower value is checked once more: the first
+    /// launch after an update that raised it puts the address screen back up,
+    /// filled in with that server (previousURL). Raise both together.
+    private static let serverCheck = 2
+
+    /// Runs before the first bridge is built, so a server picked under an older
+    /// minimum is not loaded unchecked.
+    static func recheckAfterUpdate() {
+        let defaults = UserDefaults.standard
+        guard defaults.integer(forKey: checkedKey) < serverCheck else { return }
+        defaults.set(serverCheck, forKey: checkedKey)
+        guard let server = url else { return }
+        url = nil
+        defaults.set(server, forKey: previousKey)
+    }
+
+    /// The server an update asked to check again, until a server is set.
+    static var previousURL: String? {
+        UserDefaults.standard.string(forKey: previousKey)
+    }
+
     private static let signInHostsKey = "TrekServerSignInHosts"
 
     /// Setting the server drops the sign-in hosts of the one before it.
     static var url: String? {
         get { UserDefaults.standard.string(forKey: key) }
         set {
-            if let newValue { UserDefaults.standard.set(newValue, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+            if let newValue {
+                UserDefaults.standard.set(newValue, forKey: key)
+                UserDefaults.standard.removeObject(forKey: previousKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
             UserDefaults.standard.removeObject(forKey: signInHostsKey)
             try? FileManager.default.removeItem(at: offlineCopyURL)
         }

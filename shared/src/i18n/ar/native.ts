@@ -11,7 +11,10 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': 'لا يبدو هذا عنوان ويب.',
   'native.connect.errorUnreachable': 'لا يستجيب أي خادم على هذا العنوان. تحقق من العنوان ومن اتصالك.',
   'native.connect.errorNotTrek': 'الخادم على هذا العنوان ليس TREK.',
-  'native.connect.errorTooOld': 'خادم TREK هذا قديم جدًا بالنسبة للتطبيق. يحتاج إلى تحديث أولًا.',
+  'native.connect.errorTooOld':
+    'يعمل على هذا الخادم إصدار أقدم من TREK. يحتاج التطبيق إلى TREK 5.1.3 أو أحدث، لذا يجب تحديث الخادم أولًا.',
+  'native.connect.recheckHint':
+    'يحتاج هذا الإصدار من التطبيق إلى TREK 5.1.3 أو أحدث على خادمك، لذا يتحقق من خادمك مرة أخرى.',
   'native.offline.title': 'تعذّر الوصول إلى الخادم',
   'native.offline.hint': 'تعذّر على TREK الوصول إلى {server}. تحقق من اتصالك ثم حاول مرة أخرى.',
   'native.offline.retry': 'إعادة المحاولة',

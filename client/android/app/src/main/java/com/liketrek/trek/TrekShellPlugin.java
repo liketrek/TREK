@@ -310,8 +310,10 @@ public class TrekShellPlugin extends Plugin {
     @PluginMethod
     public void getServer(PluginCall call) {
         String url = TrekServerStore.getUrl(getContext());
+        String previous = TrekServerStore.getPreviousUrl(getContext());
         JSObject result = new JSObject();
         result.put("url", url == null ? JSONObject.NULL : url);
+        result.put("previousUrl", previous == null ? JSONObject.NULL : previous);
         call.resolve(result);
     }
 

@@ -69,7 +69,10 @@ export class FeaturesController {
       // The version of what the apps rely on from the server (the hand-off
       // routes, the shell bridge in the served UI). Raised only for a change an
       // older app cannot follow; the app refuses a server below its minimum.
-      nativeApi: 1,
+      // 2 (5.1.3): the browser sign-in starts under /api, past an older TREK's
+      // service worker, and the hand-off page signs in by itself. Apps from then
+      // on refuse a server below it, so its users stop landing in the browser.
+      nativeApi: 2,
       // The other way round: the oldest app binary this server's UI works with,
       // as the shell API the app reports (TrekShell.getCapabilities). An app
       // below it is asked to update instead of running native calls it lacks.

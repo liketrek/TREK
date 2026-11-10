@@ -11,7 +11,10 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': 'ดูเหมือนว่านี่ไม่ใช่ที่อยู่เว็บ',
   'native.connect.errorUnreachable': 'ไม่มีเซิร์ฟเวอร์ตอบกลับที่ที่อยู่นี้ โปรดตรวจสอบที่อยู่และการเชื่อมต่อของคุณ',
   'native.connect.errorNotTrek': 'เซิร์ฟเวอร์ที่ที่อยู่นี้ไม่ใช่ TREK',
-  'native.connect.errorTooOld': 'เซิร์ฟเวอร์ TREK นี้เก่าเกินไปสำหรับแอป ต้องอัปเดตก่อน',
+  'native.connect.errorTooOld':
+    'เซิร์ฟเวอร์นี้ใช้ TREK เวอร์ชันเก่า แอปต้องใช้ TREK 5.1.3 ขึ้นไป จึงต้องอัปเดตเซิร์ฟเวอร์ก่อน',
+  'native.connect.recheckHint':
+    'แอปเวอร์ชันนี้ต้องใช้ TREK 5.1.3 ขึ้นไปบนเซิร์ฟเวอร์ของคุณ จึงตรวจสอบเซิร์ฟเวอร์อีกครั้ง',
   'native.offline.title': 'เข้าถึงเซิร์ฟเวอร์ไม่ได้',
   'native.offline.hint': 'TREK เข้าถึง {server} ไม่ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
   'native.offline.retry': 'ลองอีกครั้ง',

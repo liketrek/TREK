@@ -43,10 +43,12 @@ const FEATURES_PATH = '/api/health/features';
 
 /**
  * The oldest server API this app can work with (`nativeApi` in the features
- * response). A server from before the field existed answers without it and is
- * accepted while the minimum is 1.
+ * response). 2 is TREK 5.1.3, the first server whose sign-in from the app does
+ * not end in the browser. A server without the field is older still. Raising it
+ * goes with SERVER_CHECK in TrekServerStore (iOS and Android), so a server the
+ * app remembers from before is checked against the new minimum once.
  */
-const MIN_NATIVE_API = 1;
+export const MIN_NATIVE_API = 2;
 
 function normalize(raw: string): string | null {
   let parsed: URL;
@@ -80,7 +82,7 @@ function judge(response: ProbeResponse): ProbeResult {
   if (response.status !== 200 || !isRecord(response.data)) return { ok: false, reason: 'notTrek' };
   if (response.data.nativeApp === true) {
     const api = response.data.nativeApi;
-    if (typeof api === 'number' && api < MIN_NATIVE_API) return { ok: false, reason: 'tooOld' };
+    if (typeof api !== 'number' || api < MIN_NATIVE_API) return { ok: false, reason: 'tooOld' };
     // Follow a redirect (http to https, a canonical host) so the app loads the
     // address the server actually answers on.
     const base = response.url.endsWith(FEATURES_PATH) ? response.url.slice(0, -FEATURES_PATH.length) : null;

@@ -11,7 +11,10 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': 'Itu tidak terlihat seperti alamat web.',
   'native.connect.errorUnreachable': 'Tidak ada server yang merespons di alamat ini. Periksa alamat dan koneksimu.',
   'native.connect.errorNotTrek': 'Server di alamat ini bukan TREK.',
-  'native.connect.errorTooOld': 'Server TREK ini terlalu lama untuk aplikasi. Server perlu diperbarui terlebih dahulu.',
+  'native.connect.errorTooOld':
+    'Server ini menjalankan TREK versi lama. Aplikasi memerlukan TREK 5.1.3 atau lebih baru, jadi server perlu diperbarui terlebih dahulu.',
+  'native.connect.recheckHint':
+    'Versi aplikasi ini memerlukan TREK 5.1.3 atau lebih baru di server Anda, jadi aplikasi memeriksa server Anda sekali lagi.',
   'native.offline.title': 'Server tidak dapat dijangkau',
   'native.offline.hint': 'TREK tidak dapat menjangkau {server}. Periksa koneksimu dan coba lagi.',
   'native.offline.retry': 'Coba lagi',

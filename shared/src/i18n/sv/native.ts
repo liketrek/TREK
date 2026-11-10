@@ -12,7 +12,10 @@ const native: TranslationStrings = {
   'native.connect.errorUnreachable':
     'Ingen server svarar på den här adressen. Kontrollera adressen och din anslutning.',
   'native.connect.errorNotTrek': 'Servern på den här adressen är inte TREK.',
-  'native.connect.errorTooOld': 'Den här TREK-servern är för gammal för appen. Den behöver uppdateras först.',
+  'native.connect.errorTooOld':
+    'Den här servern kör en äldre TREK. Appen behöver TREK 5.1.3 eller senare, så servern behöver uppdateras först.',
+  'native.connect.recheckHint':
+    'Den här versionen av appen behöver TREK 5.1.3 eller senare på din server och kontrollerar den därför en gång till.',
   'native.offline.title': 'Servern går inte att nå',
   'native.offline.hint': 'TREK kunde inte nå {server}. Kontrollera din anslutning och försök igen.',
   'native.offline.retry': 'Försök igen',

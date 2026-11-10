@@ -13,7 +13,12 @@ import type { NativeCapabilities } from './capabilities';
  * worker.
  */
 export interface TrekShellPlugin {
-  getServer(): Promise<{ url: string | null }>;
+  /**
+   * `previousUrl`: the server this app remembered before an update asked for a
+   * newer one (SERVER_CHECK in TrekServerStore). Set only while no server is,
+   * so the address screen can check it again, pre-filled.
+   */
+  getServer(): Promise<{ url: string | null; previousUrl?: string | null }>;
   /**
    * Remembers the server and loads it. The current page is gone afterwards.
    * `signInHosts` are the hosts of a proxy's sign-in page in front of it
