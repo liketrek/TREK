@@ -66,17 +66,28 @@ class TrekBridgeViewController: CAPBridgeViewController {
     /// which TREK's own script makes everywhere else (native/keepFieldInView.ts).
     private var signInBar: UIView?
     private var urlObservation: NSKeyValueObservation?
+    private var insetObservation: NSKeyValueObservation?
     private var onSignInPage = false
     private var keyboardUp = false
+    /// How far the keyboard reaches into the view while it is up.
+    private var keyboardRoom: CGFloat = 0
+    /// Whether the bottom inset is this controller's, so leaving the page puts it back.
+    private var ownsInset = false
+    private var bodyReset: DispatchWorkItem?
 
     private func watchSignInPages() {
         urlObservation = webView?.observe(\.url, options: [.initial, .new]) { [weak self] webView, _ in
             let signIn = TrekServerStore.isSignInHost(webView.url)
             DispatchQueue.main.async { self?.signInPageChanged(signIn) }
         }
+        // The keyboard plugin zeroes the scroll inset on every frame change it
+        // makes, the last one a while after the keyboard is up. On a sign-in
+        // page the inset wanted here is put back each time.
+        insetObservation = webView?.scrollView.observe(\.contentInset, options: [.new]) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.applyInset() }
+        }
         let center = NotificationCenter.default
-        center.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        center.addObserver(self, selector: #selector(keyboardDidShow(_:)), name: UIResponder.keyboardDidShowNotification, object: nil)
+        center.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         center.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
 
@@ -89,34 +100,61 @@ class TrekBridgeViewController: CAPBridgeViewController {
     /// Out of the way while the keyboard is up: the form needs the room.
     private func updateSignInBar() {
         signInBar?.isHidden = !(onSignInPage && !keyboardUp)
+        applyInset()
     }
 
-    @objc private func keyboardWillShow() {
-        keyboardUp = true
-        updateSignInBar()
-    }
-
-    /// The keyboard plugin sizes the body to the visible area and resets the
-    /// scroll inset on every frame change, which left a foreign page with no way
-    /// to scroll a button under the keyboard into view. After its last change,
-    /// the page gets its height back and as much room below as the keyboard takes.
-    @objc private func keyboardDidShow(_ note: Notification) {
-        guard onSignInPage, let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let room = max(0, frame.height - view.safeAreaInsets.bottom)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self, self.onSignInPage, self.keyboardUp, let webView = self.webView else { return }
-            webView.evaluateJavaScript("document.body.style.height = ''", completionHandler: nil)
-            webView.scrollView.contentInset.bottom = room
-            webView.scrollView.verticalScrollIndicatorInsets.bottom = room
+    /// On a sign-in page the page can scroll past what covers its end: the
+    /// keyboard while it is up, the bar otherwise. TREK's own pages are left alone.
+    private func applyInset() {
+        guard let scrollView = webView?.scrollView else { return }
+        let wanted: CGFloat
+        if onSignInPage {
+            if keyboardUp {
+                wanted = keyboardRoom
+            } else if let bar = signInBar {
+                view.layoutIfNeeded()
+                wanted = max(0, view.bounds.height - bar.frame.minY)
+            } else {
+                wanted = 0
+            }
+            ownsInset = true
+        } else if ownsInset {
+            wanted = 0
+            ownsInset = false
+        } else {
+            return
         }
+        if scrollView.contentInset.bottom != wanted { scrollView.contentInset.bottom = wanted }
+        if scrollView.verticalScrollIndicatorInsets.bottom != wanted { scrollView.verticalScrollIndicatorInsets.bottom = wanted }
+    }
+
+    /// The keyboard plugin also sizes the body to the area above the keyboard,
+    /// after the keyboard's animation and a further 0.2 s. On a sign-in page the
+    /// body gets its height back once that has run, so the button under the
+    /// keyboard can be scrolled into view through the inset above.
+    @objc private func keyboardWillShow(_ note: Notification) {
+        keyboardUp = true
+        if let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+            keyboardRoom = max(0, view.bounds.height - view.convert(frame, from: nil).minY)
+        }
+        bodyReset?.cancel()
+        if onSignInPage {
+            let duration = note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            let reset = DispatchWorkItem { [weak self] in
+                guard let self, self.onSignInPage, self.keyboardUp, let webView = self.webView else { return }
+                webView.evaluateJavaScript("document.body.style.height = ''", completionHandler: nil)
+                self.applyInset()
+            }
+            bodyReset = reset
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.35, execute: reset)
+        }
+        updateSignInBar()
     }
 
     @objc private func keyboardWillHide() {
         keyboardUp = false
+        bodyReset?.cancel()
         updateSignInBar()
-        guard onSignInPage, let webView else { return }
-        webView.scrollView.contentInset.bottom = 0
-        webView.scrollView.verticalScrollIndicatorInsets.bottom = 0
     }
 
     private func makeSignInBar() -> UIView {

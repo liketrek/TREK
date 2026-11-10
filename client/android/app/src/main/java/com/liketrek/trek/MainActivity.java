@@ -10,7 +10,6 @@ import android.view.KeyboardShortcutGroup;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -146,9 +145,14 @@ public class MainActivity extends BridgeActivity {
         root.addView(bar, params);
         // Above the gesture bar, and above the keyboard while it is up.
         bar.setOnApplyWindowInsetsListener((v, insets) -> {
-            boolean modern = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R;
-            int bottom = modern ? insets.getInsets(WindowInsets.Type.systemBars()).bottom : insets.getStableInsetBottom();
-            boolean imeVisible = modern ? insets.isVisible(WindowInsets.Type.ime()) : insets.getSystemWindowInsetBottom() > bottom * 3;
+            // Read off the window's own insets: Capacitor hands the views below the
+            // decor a copy with the system bars zeroed, and before Android 11 that
+            // takes the keyboard with it.
+            androidx.core.view.WindowInsetsCompat window = androidx.core.view.ViewCompat.getRootWindowInsets(getWindow().getDecorView());
+            int bottom = window != null
+                ? window.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+                : insets.getStableInsetBottom();
+            boolean imeVisible = window != null && window.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime());
             if (imeVisible != keyboardUp) {
                 keyboardUp = imeVisible;
                 updateSignInBar();
