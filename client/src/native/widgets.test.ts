@@ -211,6 +211,60 @@ describe('the richer snapshot', () => {
     expect(withBookings(plain, [], '2026-11-06', (t) => t)).toBe(plain);
   });
 
+  it('makes a stop of every leg of a flight with a stopover, and keeps a flight in the air ahead until it lands', () => {
+    const plain = todayOf(trip(1, '2026-11-09', '2026-11-10'), [day(5, 1, '2026-11-09', []), day(6, 2, '2026-11-10', [])], '2026-11-09', () => 'D', (t) => t);
+    if (!plain) throw new Error('the trip runs today');
+    const legs = [
+      { from: 'SNA', to: 'ATL', dep_day_id: 5, dep_time: '14:00', arr_day_id: 5, arr_time: '21:11' },
+      { from: 'ATL', to: 'ORF', dep_day_id: 5, dep_time: '22:40', arr_day_id: 6, arr_time: '00:31' },
+    ];
+    const today = withBookings(
+      plain,
+      [
+        { id: 1, trip_id: 1, title: 'Car', type: 'car', status: 'confirmed', reservation_time: '2026-11-09T13:00' },
+        {
+          id: 2,
+          trip_id: 1,
+          title: 'SNA → ATL → ORF',
+          type: 'flight',
+          status: 'confirmed',
+          reservation_time: '2026-11-09T14:00',
+          metadata: JSON.stringify({ legs }),
+        },
+      ] as never,
+      '2026-11-09',
+      (t) => t
+    );
+    expect(today.stops.map((s) => s.name)).toEqual(['Car', 'SNA → ATL', 'ATL → ORF']);
+    // In the air on the first leg, between the legs, and on the second leg past midnight.
+    expect(tripDayState(today, 16 * 60 + 22, 'done')).toMatchObject({ nextName: 'SNA → ATL', done: 1, total: 3 });
+    expect(tripDayState(today, 21 * 60 + 30, 'done')).toMatchObject({ nextName: 'ATL → ORF', done: 2 });
+    expect(tripDayState(today, 23 * 60 + 30, 'done')).toMatchObject({ nextName: 'ATL → ORF', done: 2 });
+  });
+
+  it('counts a booking with an end time as under way until it ends', () => {
+    const plain = todayOf(trip(1, '2026-11-09', '2026-11-09'), [day(5, 1, '2026-11-09', [])], '2026-11-09', () => 'D', (t) => t);
+    if (!plain) throw new Error('the trip runs today');
+    const today = withBookings(
+      plain,
+      [
+        {
+          id: 1,
+          trip_id: 1,
+          title: 'Tour',
+          type: 'tour',
+          status: 'confirmed',
+          reservation_time: '2026-11-09T10:00',
+          reservation_end_time: '2026-11-09T13:00',
+        },
+      ] as never,
+      '2026-11-09',
+      (t) => t
+    );
+    expect(tripDayState(today, 11 * 60, 'done')).toMatchObject({ nextName: 'Tour', done: 0 });
+    expect(tripDayState(today, 13 * 60 + 1, 'done')).toMatchObject({ nextName: 'done', done: 1 });
+  });
+
   it('carries the extras and leaves out what is empty', () => {
     const snapshot = buildSnapshot(
       { ...trip(1, '2026-11-06', '2026-11-07'), day_count: 2 } as Trip,

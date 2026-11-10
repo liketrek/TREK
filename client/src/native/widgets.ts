@@ -1,4 +1,5 @@
 import type { Day, Reservation, Trip } from '../types';
+import { getFlightLegs, getTrainLegs, usesStationRoute } from '../utils/flightLegs';
 import { splitReservationDateTime } from '../utils/formatters';
 import { heroTrip, sortTripsByRelevance } from '../utils/heroTrip';
 import { hasNativeFeature } from './capabilities';
@@ -56,6 +57,8 @@ interface WidgetStop {
   minutes: number | null;
   color?: string | null;
   symbol?: string | null;
+  /** Minutes after midnight it ends, past midnight as 1440: a flight in the air is not done yet. */
+  endMinutes?: number | null;
 }
 
 interface SnapshotStop {
@@ -120,6 +123,8 @@ export interface TripDay {
   path: string;
   dayLabel: string;
   stops: WidgetStop[];
+  /** The day's id, which the legs of a multi-leg booking name. */
+  dayId?: number;
   /** 1-based position of the day in the trip, and the trip's day count. */
   index?: number;
   total?: number;
@@ -211,6 +216,7 @@ export function todayOf(
     path: `/trips/${trip.id}`,
     dayLabel: dayLabel(index + 1, ordered.length),
     stops,
+    dayId: day.id,
     index: index + 1,
     total: ordered.length,
   };
@@ -224,15 +230,37 @@ export function withBookings(
   formatTime: (time: string) => string
 ): TripDay {
   const booked = reservations.flatMap((r): WidgetStop[] => {
+    if (r.status === 'cancelled') return [];
+    const symbol = RESERVATION_SYMBOLS[r.type] ?? 'bookmark.fill';
+    // A booking with stopovers is a stop per leg, as the planner shows it: one
+    // stop at the first departure counted the day done while legs were ahead.
+    const legs = r.type === 'flight' ? getFlightLegs(r) : usesStationRoute(r.type) ? getTrainLegs(r) : [];
+    if (legs.length > 1 && day.dayId != null && legs.every((l) => l.dep_day_id != null)) {
+      return legs.flatMap((leg): WidgetStop[] => {
+        if (leg.dep_day_id !== day.dayId || !leg.dep_time) return [];
+        return [
+          {
+            name: leg.from && leg.to ? `${leg.from} → ${leg.to}` : r.title,
+            time: formatTime(leg.dep_time),
+            minutes: minutesOf(leg.dep_time),
+            endMinutes: leg.arr_day_id === day.dayId ? minutesOf(leg.arr_time) : 24 * 60,
+            color: null,
+            symbol,
+          },
+        ];
+      });
+    }
     const { date, time } = splitReservationDateTime(r.reservation_time);
-    if (r.status === 'cancelled' || !time || date !== today) return [];
+    if (!time || date !== today) return [];
+    const end = splitReservationDateTime(r.reservation_end_time);
     return [
       {
         name: r.title,
         time: formatTime(time),
         minutes: minutesOf(time),
+        endMinutes: !end.time ? null : end.date && end.date !== today ? 24 * 60 : minutesOf(end.time),
         color: null,
-        symbol: RESERVATION_SYMBOLS[r.type] ?? 'bookmark.fill',
+        symbol,
       },
     ];
   });
@@ -303,10 +331,15 @@ interface TripDayState {
   total: number;
 }
 
-/** The Live Activity's state: the first stop whose time is still ahead, else the last. */
+/**
+ * The Live Activity's state: the first stop still ahead or still under way (a
+ * flight in the air until it lands), else the last.
+ */
 export function tripDayState(day: TripDay, nowMinutes: number, allDone: string): TripDayState {
   const timed = day.stops.filter((s) => s.minutes != null);
-  const nextIndex = day.stops.findIndex((s) => s.minutes != null && s.minutes >= nowMinutes);
+  const nextIndex = day.stops.findIndex(
+    (s) => s.minutes != null && (s.minutes >= nowMinutes || (s.endMinutes != null && s.endMinutes > nowMinutes))
+  );
   const done = nextIndex < 0 ? timed.length : day.stops.slice(0, nextIndex).filter((s) => s.minutes != null).length;
   const next = nextIndex >= 0 ? day.stops[nextIndex] : null;
   return {
