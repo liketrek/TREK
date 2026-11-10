@@ -22,7 +22,10 @@ import {
   createCategory,
   addTripMember,
 } from '../../helpers/factories';
+import { makeReservation } from '../../helpers/factories/reservations';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeTrip, readTripDays } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 import { resetTestDb } from '../../helpers/test-db';
@@ -236,6 +239,29 @@ describe('Tool: create_reservation', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: update_reservation', () => {
+  // The tool goes through the same update as REST, so an edit that names no day
+  // leaves a time-only booking on the one it has, as a notes-only PUT does.
+  it('keeps the day of a time-only booking on an edit that names no day', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    const days = await readTripDays(orm, trip.id);
+    const booking = await makeReservation(orm, trip.id, {
+      type: 'restaurant',
+      reservation_time: '19:00',
+      day: days[1].id,
+    });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_reservation',
+        arguments: { tripId: trip.id, reservationId: booking.id, notes: 'Counter seats' },
+      });
+      expect((parseToolResult(result) as { reservation: { day_id: number | null } }).reservation.day_id).toBe(
+        days[1].id,
+      );
+    });
+    expect((await reservationRow(booking.id)).day_id).toBe(days[1].id);
+  });
+
   it('updates reservation fields', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

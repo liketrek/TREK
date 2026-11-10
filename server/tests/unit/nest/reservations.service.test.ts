@@ -33,7 +33,7 @@ import { HttpException } from '@nestjs/common';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createBudgetItem, createPlace, createDay, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { ReservationsService, type UpdateReservationData } from '../../../src/nest/reservations/reservations.service';
 import { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
 // Was reservations.bridge, deleted along with the other three that had no
@@ -63,6 +63,9 @@ import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { sharedTestOrm } from '../../helpers/test-uow';
 import type { TestOrm } from '../../helpers/test-orm';
 import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeReservation } from '../../helpers/factories/reservations';
+import { makeTrip, readTripDays } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -1707,5 +1710,56 @@ describe('the day stop a hotel booking implies', () => {
     await svc.remove(String(res.id), String(mine.id));
 
     expect(await findRow(orm, DayAssignments, { id: theirStop })).toBeTruthy();
+  });
+});
+
+// A partial update (a notes-only PUT, an MCP edit) leaves a booking on its day unless it
+// names one or carries a dated time. A bare "12:00" names no day, and reading that as
+// "clear it" used to drop time-only trains off the planner on an edit of their notes.
+describe('ReservationsService — the day a partial update leaves a booking on', () => {
+  async function train(fields: { reservation_time: string; reservation_end_time?: string }, start: number | null, end: number | null = null) {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    const days = (await readTripDays(orm, trip.id)).map(d => d.id);
+    const pick = (i: number | null) => (i === null ? null : days[i]);
+    const booking = await makeReservation(orm, trip.id, { title: 'Shinkansen', type: 'train', ...fields, day: pick(start), endDay: pick(end) });
+    const update = async (data: UpdateReservationData) => {
+      const current = await svc.getReservation(String(booking.id), String(trip.id));
+      if (!current) throw new Error('the booking under test is gone');
+      return (await svc.update(String(booking.id), String(trip.id), data, current)).reservation;
+    };
+    return { days, update };
+  }
+
+  it('RESV-SVC-044: a notes-only update keeps the day of a time-only booking', async () => {
+    const { days, update } = await train({ reservation_time: '12:00' }, 1);
+    expect(await update({ notes: 'Car 7, seats 12A-B' }))
+      .toMatchObject({ notes: 'Car 7, seats 12A-B', reservation_time: '12:00', day_id: days[1] });
+  });
+
+  it('RESV-SVC-045: a new time-only reservation_time keeps the day as well', async () => {
+    const { days, update } = await train({ reservation_time: '12:00' }, 1);
+    expect(await update({ reservation_time: '14:30' })).toMatchObject({ reservation_time: '14:30', day_id: days[1] });
+  });
+
+  it('RESV-SVC-046: a dated time still pins the day, sent with the update or stored', async () => {
+    const sent = await train({ reservation_time: '12:00' }, 0);
+    expect(await sent.update({ reservation_time: '2030-05-03T09:00' })).toMatchObject({ day_id: sent.days[2] });
+    // Saved without a day: any edit puts it on the day its date names.
+    const stored = await train({ reservation_time: '2030-05-02T10:00' }, null);
+    expect(await stored.update({ notes: 'Window seat' })).toMatchObject({ day_id: stored.days[1] });
+  });
+
+  it('RESV-SVC-047: an explicit day_id null still clears the day', async () => {
+    const { update } = await train({ reservation_time: '12:00' }, 1);
+    expect(await update({ day_id: null, notes: 'Not planned yet' })).toMatchObject({ day_id: null });
+  });
+
+  it('RESV-SVC-048: a time-only end time keeps the end day; a dated one moves it and a cleared one clears it', async () => {
+    const { days, update } = await train({ reservation_time: '12:00', reservation_end_time: '18:00' }, 0, 1);
+    expect(await update({ reservation_end_time: '19:30' }))
+      .toMatchObject({ reservation_end_time: '19:30', day_id: days[0], end_day_id: days[1] });
+    expect(await update({ reservation_end_time: '2030-05-03T08:00' })).toMatchObject({ end_day_id: days[2] });
+    expect(await update({ reservation_end_time: '' })).toMatchObject({ reservation_end_time: null, end_day_id: null });
   });
 });

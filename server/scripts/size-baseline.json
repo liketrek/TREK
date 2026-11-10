@@ -15,6 +15,6 @@
   "src/nest/places/places.service.ts": 1549,
   "src/nest/plugins/plugin-runtime.service.ts": 1460,
   "src/nest/plugins/runtime/plugin-sdk.ts": 1093,
-  "src/nest/reservations/reservations.service.ts": 1237,
+  "src/nest/reservations/reservations.service.ts": 1228,
   "src/nest/vacay/vacay.service.ts": 1409
 }
