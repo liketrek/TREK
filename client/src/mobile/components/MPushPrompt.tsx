@@ -2,6 +2,7 @@ import { BellRing } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useWebPush } from '../../hooks/useWebPush';
 import { useTranslation } from '../../i18n';
+import { useNativeCapabilities } from '../../native/capabilities';
 import { nativePushActive, nativePushEndpoint } from '../../native/push';
 import { pushChannelOffered } from '../../push/webPush';
 import { useAuthStore } from '../../store/authStore';
@@ -36,9 +37,14 @@ function rememberAsked(): void {
  * server offers push, and only while this device is not signed up yet. Turning
  * it on goes the way the settings' push card goes (useWebPush), which brings up
  * the system's question.
+ *
+ * It counts as asked once the user answers it, not when it opens: a sheet that
+ * went under another one, or an app closed while it was up, asks again. And it
+ * waits for the app's capabilities, which can arrive after the sign-in.
  */
 export default function MPushPrompt(): React.ReactElement | null {
   const signedIn = useAuthStore((s) => s.isAuthenticated);
+  const { caps } = useNativeCapabilities();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -46,8 +52,7 @@ export default function MPushPrompt(): React.ReactElement | null {
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void pushChannelOffered().then((offered) => {
-        if (cancelled || !offered || nativePushEndpoint()) return;
-        rememberAsked();
+        if (cancelled || !offered || nativePushEndpoint() || alreadyAsked()) return;
         setOpen(true);
       });
     }, PUSH_PROMPT_DELAY_MS);
@@ -55,9 +60,13 @@ export default function MPushPrompt(): React.ReactElement | null {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [signedIn]);
+  }, [signedIn, caps]);
 
-  return open ? <PushPromptSheet onClose={() => setOpen(false)} /> : null;
+  const answered = () => {
+    rememberAsked();
+    setOpen(false);
+  };
+  return open ? <PushPromptSheet onClose={answered} /> : null;
 }
 
 function PushPromptSheet({ onClose }: { onClose: () => void }): React.ReactElement {
