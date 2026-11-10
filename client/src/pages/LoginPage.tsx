@@ -751,6 +751,19 @@ export default function LoginPage(): React.ReactElement {
                       >
                         {t('login.mfaCodeLabel')}
                       </label>
+                      {/* The account the code belongs to, for password managers: they match a
+                          one-time code to a saved login through the username in the same form,
+                          and the email field is gone in this step. */}
+                      <input
+                        type="text"
+                        name="username"
+                        autoComplete="username"
+                        value={email}
+                        readOnly
+                        tabIndex={-1}
+                        aria-hidden="true"
+                        className="sr-only"
+                      />
                       <div style={{ position: 'relative' }}>
                         <KeyRound
                           size={15}
@@ -765,13 +778,22 @@ export default function LoginPage(): React.ReactElement {
                         />
                         <input
                           type="text"
+                          id="totp"
+                          name="totp"
+                          // Text, not numeric: backup codes carry letters. The hints are set here
+                          // rather than left to native/keyboardFields.ts, because autoFocus gives
+                          // the field focus before any touch could prepare it.
                           inputMode="text"
                           autoComplete="one-time-code"
+                          autoCapitalize="characters"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          enterKeyHint="go"
                           value={mfaCode}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                             setMfaCode(e.target.value.toUpperCase().slice(0, 24))
                           }
-                          placeholder="000000 or XXXX-XXXX"
+                          placeholder={t('login.mfaPlaceholder')}
                           required
                           autoFocus
                           style={inputBase}

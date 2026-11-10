@@ -25,6 +25,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': '雙因素認證',
   'login.mfaSubtitle': '請輸入身份驗證器應用中的 6 位驗證碼。',
   'login.mfaCodeLabel': '驗證碼',
+  'login.mfaPlaceholder': '000000 或 XXXX-XXXX',
   'login.mfaCodeRequired': '請輸入身份驗證器應用中的驗證碼。',
   'login.mfaHint': '開啟 Google Authenticator、Authy 或其他 TOTP 應用。',
   'login.mfaBack': '← 返回登入',

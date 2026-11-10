@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'การรับรองความถูกต้องด้วยสองปัจจัย',
   'login.mfaSubtitle': 'ป้อนรหัส 6 หลักจากแอปยืนยันตัวตนของคุณ',
   'login.mfaCodeLabel': 'รหัสยืนยัน',
+  'login.mfaPlaceholder': '000000 หรือ XXXX-XXXX',
   'login.mfaCodeRequired': 'ป้อนรหัสจากแอปยืนยันตัวตนของคุณ',
   'login.mfaHint': 'เปิด Google Authenticator, Authy หรือแอป TOTP อื่น',
   'login.mfaBack': '← กลับไปลงชื่อเข้าใช้',

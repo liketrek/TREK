@@ -37,6 +37,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'אימות דו-שלבי',
   'login.mfaSubtitle': 'הזינו את הקוד בן 6 הספרות מאפליקציית האימות.',
   'login.mfaCodeLabel': 'קוד אימות',
+  'login.mfaPlaceholder': '000000 או XXXX-XXXX',
   'login.mfaCodeRequired': 'הזינו את הקוד מאפליקציית האימות.',
   'login.mfaHint': 'פתחו את Google Authenticator, Authy או אפליקציית TOTP אחרת.',
   'login.mfaBack': '→ חזרה להתחברות',

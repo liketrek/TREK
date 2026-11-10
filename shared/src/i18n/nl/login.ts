@@ -25,6 +25,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Tweefactorauthenticatie',
   'login.mfaSubtitle': 'Voer de 6-cijferige code van je authenticator-app in.',
   'login.mfaCodeLabel': 'Verificatiecode',
+  'login.mfaPlaceholder': '000000 of XXXX-XXXX',
   'login.mfaCodeRequired': 'Voer de code van je authenticator-app in.',
   'login.mfaHint': 'Open Google Authenticator, Authy of een andere TOTP-app.',
   'login.mfaBack': '← Terug naar inloggen',

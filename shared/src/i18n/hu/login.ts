@@ -39,6 +39,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Kétfaktoros hitelesítés',
   'login.mfaSubtitle': 'Add meg a 6 jegyű kódot a hitelesítő alkalmazásból.',
   'login.mfaCodeLabel': 'Ellenőrző kód',
+  'login.mfaPlaceholder': '000000 vagy XXXX-XXXX',
   'login.mfaCodeRequired': 'Add meg a kódot a hitelesítő alkalmazásból.',
   'login.mfaHint': 'Nyisd meg a Google Authenticator, Authy vagy más TOTP alkalmazást.',
   'login.mfaBack': '← Vissza a bejelentkezéshez',

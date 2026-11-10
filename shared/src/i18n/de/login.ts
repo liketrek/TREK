@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Zwei-Faktor-Authentifizierung',
   'login.mfaSubtitle': 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
   'login.mfaCodeLabel': 'Bestätigungscode',
+  'login.mfaPlaceholder': '000000 oder XXXX-XXXX',
   'login.mfaCodeRequired': 'Bitte den Code aus der Authenticator-App eingeben.',
   'login.mfaHint': 'Google Authenticator, Authy oder eine andere TOTP-App öffnen.',
   'login.mfaBack': '← Zurück zur Anmeldung',

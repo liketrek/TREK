@@ -36,6 +36,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'المصادقة الثنائية',
   'login.mfaSubtitle': 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة.',
   'login.mfaCodeLabel': 'رمز التحقق',
+  'login.mfaPlaceholder': '000000 أو XXXX-XXXX',
   'login.mfaCodeRequired': 'أدخل الرمز من تطبيق المصادقة.',
   'login.mfaHint': 'افتح Google Authenticator أو Authy أو أي تطبيق TOTP آخر.',
   'login.mfaBack': '← العودة لتسجيل الدخول',

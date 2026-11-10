@@ -39,6 +39,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Tvåfaktorsautentisering',
   'login.mfaSubtitle': 'Ange den 6-siffriga koden från din autentiseringsapp.',
   'login.mfaCodeLabel': 'Verifieringskod',
+  'login.mfaPlaceholder': '000000 eller XXXX-XXXX',
   'login.mfaCodeRequired': 'Ange koden från din autentiseringsapp.',
   'login.mfaHint': 'Öppna Google Authenticator, Authy eller någon annan TOTP-app.',
   'login.mfaBack': '← Tillbaka till inloggningen',
