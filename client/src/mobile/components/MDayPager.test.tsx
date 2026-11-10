@@ -39,19 +39,20 @@ beforeEach(() => {
 });
 
 describe('pagesFor', () => {
-  it('windows the selection with two days on either side, room for a second swipe', () => {
-    expect(pagesFor(DAYS, 3).map((p) => [p.dayId, p.active])).toEqual([
-      [1, false],
-      [2, false],
-      [3, true],
-      [4, false],
-      [5, false],
+  it('has a page for every day and draws the selection with two days on either side', () => {
+    expect(pagesFor(DAYS, 3).map((p) => [p.dayId, p.active, p.near])).toEqual([
+      [1, false, true],
+      [2, false, true],
+      [3, true, true],
+      [4, false, true],
+      [5, false, true],
+      [6, false, false],
     ]);
   });
 
-  it('has no page beyond the first and last day', () => {
-    expect(pagesFor(DAYS, 1).map((p) => p.dayId)).toEqual([1, 2, 3]);
-    expect(pagesFor(DAYS, 6).map((p) => p.dayId)).toEqual([4, 5, 6]);
+  it('keeps the same pages whichever day is selected, so a run of swipes never meets an end', () => {
+    expect(pagesFor(DAYS, 1).map((p) => p.key)).toEqual(pagesFor(DAYS, 6).map((p) => p.key));
+    expect(pagesFor(DAYS, 6).filter((p) => p.near).map((p) => p.dayId)).toEqual([4, 5, 6]);
   });
 
   it('keeps a page for a selection that points at no day, with the first day as the way back', () => {
@@ -69,7 +70,9 @@ describe('MDayPager', () => {
 
     expect(screen.getByText('page 2 live')).toBeInTheDocument();
     const pages = Array.from(strip.children) as HTMLElement[];
-    expect(pages.map((p) => p.hasAttribute('inert'))).toEqual([true, false, true, true]);
+    expect(pages.map((p) => p.hasAttribute('inert'))).toEqual([true, false, true, true, true, true]);
+    // Day 6 is three away: its page is there to swipe onto, its content is not drawn yet.
+    expect(screen.queryByText('page 6')).not.toBeInTheDocument();
     expect(pages[0]).toHaveAttribute('aria-hidden', 'true');
     expect(pages[1]).not.toHaveAttribute('aria-hidden');
   });
@@ -166,7 +169,7 @@ describe('MDayPager', () => {
     }
   });
 
-  it('puts the strip back on the current page when the window moves', () => {
+  it('puts the strip on the current page when the selection moves', () => {
     const { strip, rerender, onSelectDay } = setup(2);
     // jsdom keeps no scroll offset, so give the strip one to move.
     let scrollLeft = 0;

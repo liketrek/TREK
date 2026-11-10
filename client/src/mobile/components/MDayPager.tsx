@@ -4,11 +4,11 @@ import { tickHaptic } from '../../native/haptics';
 import { pagesFor, type PagerItem } from './dayPagerPages';
 
 /**
- * Pages through the trip's days the way a native pager does: the current day
- * and two on either side sit side by side in a horizontal scroll-snap strip
- * (dayPagerPages.ts), so the finger drags real paper, the neighbour slides in
- * with it, and a second swipe made while the first still snaps carries on to
- * the day after. The browser's compositor owns the gesture. Momentum, rubber-banding at the first
+ * Pages through the trip's days the way a native pager does: every day is a
+ * page of a horizontal scroll-snap strip (dayPagerPages.ts), the current one
+ * and two on either side drawn, so the finger drags real paper, the neighbour
+ * slides in with it, and swipes made while the last one still snaps carry on
+ * as far as the trip goes. The browser's compositor owns the gesture. Momentum, rubber-banding at the first
  * and last day, axis locking against the vertical scroll and the swallowed tap
  * after a swipe are all the platform's own, in the PWA and the app alike.
  *
@@ -16,8 +16,7 @@ import { pagesFor, type PagerItem } from './dayPagerPages';
  * the swipe is decided, not once the snap has settled, which on iOS comes
  * a good while later. The day only changes once the strip has come to rest on
  * another page. Then
- * the selection moves, the window of three shifts by one and the strip is put
- * back on the centre page before the next paint, so nothing visibly jumps.
+ * the selection moves and the days around it draw their content.
  * Keys follow the day ids, so the page that slid in keeps its state (scroll
  * position, fetched route and weather) as it becomes the current one.
  *
@@ -215,7 +214,7 @@ export default function MDayPager({
             aria-hidden={page.active ? undefined : true}
             className={`relative w-full flex-none snap-center snap-always ${inFlow ? '' : 'h-full'}`}
           >
-            {renderDay(page.dayId, page.active)}
+            {page.near ? renderDay(page.dayId, page.active) : null}
           </div>
         ))}
       </div>
