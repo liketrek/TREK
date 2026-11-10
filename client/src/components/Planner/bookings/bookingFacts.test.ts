@@ -84,7 +84,7 @@ describe('bookingFacts: day', () => {
 });
 
 describe('bookingFacts: hotel times', () => {
-  it('FE-PLANNER-BKFACTS-023: a hotel without times of its own shows the stay's check-in and check-out', () => {
+  it('FE-PLANNER-BKFACTS-023: a hotel without times of its own shows the stay check-in and check-out', () => {
     const f = bookingFacts(buildReservation({
       type: 'hotel', accommodation_start_day_id: 701, accommodation_end_day_id: 702,
       accommodation_check_in: '15:00', accommodation_check_in_end: '18:00', accommodation_check_out: '11:00',
@@ -93,7 +93,7 @@ describe('bookingFacts: hotel times', () => {
     expect(cell(f, 'reservations.meta.checkOut')).toBe('11:00');
   });
 
-  it('FE-PLANNER-BKFACTS-024: the booking's own times win over the stay's', () => {
+  it('FE-PLANNER-BKFACTS-024: the booking own times win over the stay times', () => {
     const f = bookingFacts(buildReservation({
       type: 'hotel', metadata: JSON.stringify({ check_in_time: '14:00', check_out_time: '10:00' }),
       accommodation_check_in: '15:00', accommodation_check_in_end: '18:00', accommodation_check_out: '11:00',
