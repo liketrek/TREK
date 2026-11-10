@@ -552,6 +552,9 @@ describe('applyPlatformStatic', () => {
     expect(header('/app/public/sw.js')).toBeUndefined();
     expect(header('/app/public/icons/icon-192.png')).toBeUndefined();
     expect(header('/app/public/assets/plain.js')).toBeUndefined();
+    // The Brotli copy of a hashed file (precompressed-static.ts) never changes either.
+    expect(header('/app/public/assets/index-DbM4_q2x.js.br')).toBe('public, max-age=31536000, immutable');
+    expect(header('/app/public/sw.js.br')).toBeUndefined();
   });
 });
 

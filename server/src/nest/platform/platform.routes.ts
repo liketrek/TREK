@@ -11,6 +11,7 @@ import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { withRequestContext } from '../database/request-context';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
+import { precompressedStatic } from './precompressed-static';
 import type { EntityManager } from '@mikro-orm/core';
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -290,7 +291,9 @@ export function applyPlatformSpa(app: express.Application): void {
   app.get(/.*/, (req: Request, res: Response) => answerUnmatchedGet(req, res));
 }
 
-const HASHED_ASSET = /[\\/]assets[\\/][^\\/]+-[\w-]{8,}\.\w+$/;
+// The optional .br is the Brotli copy the client build writes beside a hashed file
+// (precompressed-static.ts); it is as immutable as the file it was made from.
+const HASHED_ASSET = /[\\/]assets[\\/][^\\/]+-[\w-]{8,}\.\w+(?:\.br)?$/;
 
 /**
  * Production static serving of the built client (JS/CSS/assets). Split out from
@@ -302,6 +305,7 @@ const HASHED_ASSET = /[\\/]assets[\\/][^\\/]+-[\w-]{8,}\.\w+$/;
 export function applyPlatformStatic(app: express.Application): void {
   // Case-sensitive on purpose (legacy parity).
   if (readEnv().app.nodeEnv !== 'production') return;
+  app.use(precompressedStatic(path.join(PUBLIC_DIR, 'assets')));
   app.use(
     express.static(PUBLIC_DIR, {
       setHeaders: (res, filePath) => {

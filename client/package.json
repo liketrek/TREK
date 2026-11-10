@@ -18,6 +18,7 @@
     "store:graphic": "node scripts/generate-feature-graphic.mjs",
     "store:check": "node scripts/check-store-metadata.mjs",
     "build": "vite build",
+    "postbuild": "node scripts/precompress.mjs",
     "build:analyze": "vite build --mode analyze",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
