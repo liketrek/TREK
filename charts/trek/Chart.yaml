@@ -1,5 +1,5 @@
 apiVersion: v2
 name: trek
-version: 5.1.2
+version: 5.1.3
 description: Minimal Helm chart for TREK app
-appVersion: "5.1.2"
+appVersion: "5.1.3"
