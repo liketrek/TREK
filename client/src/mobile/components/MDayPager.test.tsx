@@ -199,6 +199,39 @@ describe('MDayPager', () => {
     expect(strip.scrollLeft).toBe(390);
   });
 
+  it('moves the strip to a day tapped inside the same window, as on a two-day trip', () => {
+    const twoDays = DAYS.slice(0, 2);
+    const { strip, rerender, onSelectDay } = setup(1, { days: twoDays });
+    let scrollLeft = 0;
+    Object.defineProperty(strip, 'scrollLeft', {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (v) => {
+        scrollLeft = v;
+      },
+    });
+    // Both days are in the window either way; only the current page changes.
+    const realQuery = strip.querySelector.bind(strip);
+    vi.spyOn(strip, 'querySelector').mockImplementation((sel: string) => {
+      const el = realQuery(sel) as HTMLElement | null;
+      if (el && sel === '[data-page-active]') el.getBoundingClientRect = () => ({ left: 390 }) as DOMRect;
+      return el;
+    });
+    strip.getBoundingClientRect = () => ({ left: 0 }) as DOMRect;
+
+    rerender(
+      <MDayPager
+        days={twoDays}
+        selectedDayId={2}
+        onSelectDay={onSelectDay}
+        describeDay={() => ''}
+        renderDay={(dayId) => <p>{`page ${dayId}`}</p>}
+      />
+    );
+
+    expect(strip.scrollLeft).toBe(390);
+  });
+
   it('holds still while locked', () => {
     const { strip } = setup(2, { locked: true });
     expect(strip).toHaveClass('overflow-x-hidden');

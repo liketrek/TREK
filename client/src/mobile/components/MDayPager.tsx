@@ -71,7 +71,10 @@ export default function MDayPager({
   const stripRef = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState('');
   const pages = pagesFor(days, selectedDayId);
-  const windowKey = pages.map((p) => p.key).join(',');
+  // Which page is current belongs in the key: on a trip of up to five days a
+  // chip tap can keep the same pages, and the strip then stayed on the old day
+  // while the rail already showed the new one.
+  const windowKey = pages.map((p) => (p.active ? `*${p.key}` : p.key)).join(',');
 
   // The handlers below are attached once, so they read the props through here.
   const latest = useRef({ days, onSelectDay, describeDay, selectedDayId, onPreview });
@@ -91,7 +94,7 @@ export default function MDayPager({
     if (Math.abs(offset) > 0.5) strip.scrollLeft += offset;
   }, []);
 
-  // Before paint whenever the window moves: a landed swipe or a chip tap.
+  // Before paint whenever the window or its current page moves: a landed swipe or a chip tap.
   useLayoutEffect(() => {
     requested.current = null;
     recentre();
