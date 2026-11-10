@@ -145,9 +145,6 @@ apiClient.interceptors.request.use(
 )
 
 export function isAuthPublicPath(pathname: string): boolean {
-  // /native-handoff signs the user in itself (straight to SSO when the app asked
-  // for it). Sent to /login by the first 401 instead, the browser showed TREK's
-  // own sign-in page and an SSO sign-in from the app took an extra round.
   const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/native-handoff']
   const publicPrefixes = ['/shared/', '/public/']
   return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))

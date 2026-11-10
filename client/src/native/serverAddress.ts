@@ -48,7 +48,7 @@ const FEATURES_PATH = '/api/health/features';
  * goes with SERVER_CHECK in TrekServerStore (iOS and Android), so a server the
  * app remembers from before is checked against the new minimum once.
  */
-export const MIN_NATIVE_API = 2;
+const MIN_NATIVE_API = 2;
 
 function normalize(raw: string): string | null {
   let parsed: URL;
