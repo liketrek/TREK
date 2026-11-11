@@ -55,6 +55,36 @@ class TrekBridgeViewController: CAPBridgeViewController {
         // A long press on a link would lift a preview of the page it points to,
         // which no native list does; the press means "drag" or nothing here.
         webView?.allowsLinkPreview = false
+        paintBehindWebView()
+    }
+
+    // MARK: - What shows where the web view does not reach
+
+    /// The UI reports its theme through StatusBar.setStyle (native/nativeApp.ts),
+    /// which lands here; the colour behind the web view follows it.
+    override func setNeedsStatusBarAppearanceUpdate() {
+        super.setNeedsStatusBarAppearanceUpdate()
+        paintBehindWebView()
+    }
+
+    /// Some iOS releases (27.0.x) lay the web view out below the status bar
+    /// instead of under it, and the strip above the page then showed this
+    /// view's black. It now carries the top colour of the screen background
+    /// (mobile.css --m-scr), so the strip reads as part of the page on every
+    /// release, and the rubber band at the ends shows the same colour.
+    private func paintBehindWebView() {
+        let dark: Bool
+        switch preferredStatusBarStyle {
+        case .lightContent: dark = true
+        case .darkContent: dark = false
+        default: dark = traitCollection.userInterfaceStyle == .dark
+        }
+        let color = dark
+            ? UIColor(red: 0x17 / 255, green: 0x17 / 255, blue: 0x1C / 255, alpha: 1)
+            : UIColor(red: 0xFB / 255, green: 0xFA / 255, blue: 0xF7 / 255, alpha: 1)
+        view.backgroundColor = color
+        webView?.scrollView.backgroundColor = color
+        webView?.underPageBackgroundColor = color
     }
 
     // MARK: - A proxy's sign-in page
