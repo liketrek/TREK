@@ -24,18 +24,13 @@ function refreshFailed(): void {}
  * React render per frame; `state` only changes at the edges (armed, refreshing).
  */
 /*
- * The iOS app lets the page bounce at its ends (mobile.css). A pull is only told
- * from a scroll after 8 px, and by then WebKit's own bounce has started and can no
- * longer be stopped, so the two would pull at once. While a screen offers
- * pull-to-refresh, <html> carries data-pull-refresh and the page does not bounce.
+ * The iOS app lets the page bounce at its ends (mobile.css), as every iOS list
+ * does. Only the pull down from the very top is this hook's: WebKit starts its
+ * own bounce on the first move, long before a pull is told from a scroll at 8 px,
+ * so a move that clearly heads down from the top is held from the first pixel.
+ * Everywhere else, the bottom of the page included, the bounce stays (TestFlight
+ * feedback: the screens with pull-to-refresh used not to bounce at all).
  */
-let bounceHolds = 0;
-function holdBounce(): void {
-  if (bounceHolds++ === 0) document.documentElement.setAttribute('data-pull-refresh', '');
-}
-function releaseBounce(): void {
-  if (--bounceHolds === 0) document.documentElement.removeAttribute('data-pull-refresh');
-}
 
 export function usePullToRefresh(
   contentRef: RefObject<HTMLElement | null>,
@@ -77,6 +72,8 @@ export function usePullToRefresh(
       const dx = e.touches[0].clientX - start.x;
       const dy = e.touches[0].clientY - start.y;
       if (!pulling) {
+        // Clearly downward at the top: WebKit's bounce must not start under the pull.
+        if (dy > 0 && dy >= 2 * Math.abs(dx) && scrolled() <= 0 && e.cancelable) e.preventDefault();
         // Decide once: a sideways or upward start belongs to whatever is under the finger.
         if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
         if (dy <= 0 || Math.abs(dx) > Math.abs(dy) || scrolled() > 0) {
@@ -127,7 +124,6 @@ export function usePullToRefresh(
         });
     };
 
-    holdBounce();
     window.addEventListener('touchstart', onStart, { passive: true });
     // Not passive: once a pull has started, the page must not also scroll or bounce.
     window.addEventListener('touchmove', onMove, { passive: false });
@@ -139,7 +135,6 @@ export function usePullToRefresh(
       window.removeEventListener('touchend', onEnd);
       window.removeEventListener('touchcancel', onEnd);
       place(0, false);
-      releaseBounce();
     };
   }, [contentRef, enabled, scrollerRef]);
 

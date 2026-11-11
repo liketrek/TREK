@@ -92,4 +92,23 @@ describe('usePullToRefresh', () => {
     touch('touchend');
     expect(onRefresh).not.toHaveBeenCalled();
   });
+
+  it('holds a clearly downward move at the top from its first pixel, so the bounce does not start under the pull', () => {
+    setup();
+    touch('touchstart', 100, 100);
+    expect(touch('touchmove', 100, 103).defaultPrevented).toBe(true);
+    touch('touchend');
+  });
+
+  it('leaves the bounce everywhere else: a sideways start, and the page once it is scrolled', () => {
+    setup();
+    touch('touchstart', 100, 100);
+    expect(touch('touchmove', 104, 102).defaultPrevented).toBe(false);
+    touch('touchend');
+    Object.defineProperty(window, 'scrollY', { value: 300, configurable: true });
+    touch('touchstart', 100, 100);
+    expect(touch('touchmove', 100, 103).defaultPrevented).toBe(false);
+    touch('touchend');
+    expect(document.documentElement.hasAttribute('data-pull-refresh')).toBe(false);
+  });
 });

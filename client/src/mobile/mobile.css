@@ -641,10 +641,10 @@ html:has(.m-shell) {
    does; the fixed bars stay where they are. The rule above is for the browser,
    where a pull at the top reloads an installed PWA, which the app cannot do.
    Not on Android, whose stretch scales the bars too (MainActivity turns it
-   off), not sideways, and not on a screen with pull-to-refresh, whose pull
-   WebKit's bounce would race (mobile/usePullToRefresh.ts). */
-html[data-native-ios]:not([data-pull-refresh]),
-html[data-native-ios]:not([data-pull-refresh]):has(.m-shell) {
+   off), and not sideways. A screen with pull-to-refresh bounces too; its pull
+   holds only the move down from the top (mobile/usePullToRefresh.ts). */
+html[data-native-ios],
+html[data-native-ios]:has(.m-shell) {
   overscroll-behavior-y: auto;
 }
 html:has(.m-shell) body {
