@@ -276,6 +276,8 @@ Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine.
 
 `COOKIE_SECURE=false` is only for trying TREK over plain HTTP: without it the browser drops the session cookie and the login does not stick. Once TREK sits behind HTTPS (see [Reverse Proxy](#reverse-proxy)), remove it.
 
+**TrueNAS SCALE:** Install TREK directly from the Community catalog. See the [TrueNAS SCALE installation guide](https://github.com/liketrek/TREK/wiki/Install-TrueNAS-SCALE).
+
 > [!TIP]
 > **No server yet?** TREK's own public services run on [**dataforest cloud**](https://cloud.dataforest.net/en?mtm_campaign=trek), our infrastructure sponsor. A small seed is plenty for a TREK instance and is ready within a minute.
 
@@ -348,7 +350,7 @@ TREK then launches fullscreen with its own icon, just like a native app.
 ## Updating
 
 See [Updating](https://github.com/liketrek/TREK/wiki/Updating) — Docker Compose,
-Docker run, Helm, Portainer, Unraid and Proxmox, plus the encryption-key note.
+Docker run, Helm, Portainer, Unraid, TrueNAS SCALE and Proxmox, plus the encryption-key note.
 
 <br />
 

@@ -178,6 +178,10 @@ See [Install-Portainer](Install-Portainer) for the full installation walkthrough
 
 In the Unraid Docker tab, click the TREK container and select **Update**. Unraid will pull the latest image and restart with the same volumes.
 
+## TrueNAS SCALE
+
+Back up your data and uploads, then update TREK from **Apps → Installed Applications** when an update is available. TrueNAS catalog updates may arrive separately from TREK releases. See [Install-TrueNAS-SCALE](Install-TrueNAS-SCALE) and [Database Migrations](#database-migrations) for storage and rollback guidance.
+
 ## Open apps after an update
 
 A browser tab or installed app that stays open while you update notices the new version as soon as it reconnects to the restarted server. It shows a small notice with **Reload page**, which loads the new version without waiting for the next start; a page that is closed and opened again switches on its own. The notice stays away while the device is offline and can be closed until the next start.
