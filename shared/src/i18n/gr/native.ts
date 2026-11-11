@@ -93,6 +93,14 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Δεν βρέθηκε ενεργή συνδρομή σε αυτόν τον λογαριασμό Google.',
   'native.claim.agree':
     'Με την εγγραφή, για την παροχή της instance σας ισχύουν οι όροι του TREK Cloud (πάροχος: Maurice Bötger, Ρόστοκ). Την αγορά, την πληρωμή και τις επιστροφές χειρίζεται το κατάστημα.',
+  'native.claim.consentTitle':
+    'Διαφορές του TREK Cloud από ένα αυτοφιλοξενούμενο TREK (στα γερμανικά, νομικά δεσμευτικό):',
+  'native.claim.consentLoading': 'Φόρτωση της συμφωνίας…',
+  'native.claim.consentUnavailable':
+    'Δεν ήταν δυνατή η φόρτωση της συμφωνίας. Έλεγξε τη σύνδεσή σου και δοκίμασε ξανά.',
+  'native.claim.consentRequired': 'Διάβασε και επιβεβαίωσε πρώτα τη συμφωνία.',
+  'native.claim.consentChanged':
+    'Η συμφωνία ενημερώθηκε. Διάβασέ τη ξανά και επιβεβαίωσέ τη· δεν θα χρεωθείς δύο φορές.',
   'native.claim.pending': 'Η αγορά σας περιμένει έγκριση. Μόλις ολοκληρωθεί, πατήστε Επαναφορά αγορών.',
   'native.provisioning.title': 'Ετοιμάζουμε το TREK σας',
   'native.provisioning.sub': 'Ετοιμάζουμε το {host}. Χρειάζεται μόνο ένα λεπτό.',

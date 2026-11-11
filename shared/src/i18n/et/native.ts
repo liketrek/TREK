@@ -90,6 +90,12 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': "Selle Google'i kontoga ei leitud aktiivset tellimust.",
   'native.claim.agree':
     'Tellides kehtivad sinu eksemplari pakkumisele TREK Cloudi tingimused (pakkuja: Maurice Bötger, Rostock). Ostu, makset ja tagasimakseid haldab pood.',
+  'native.claim.consentTitle': 'TREK Cloudi erinevused isehostitud TREKist (saksa keeles, õiguslikult siduv):',
+  'native.claim.consentLoading': 'Kokkulepe laadib…',
+  'native.claim.consentUnavailable': 'Kokkulepet ei õnnestunud laadida. Kontrolli ühendust ja proovi uuesti.',
+  'native.claim.consentRequired': 'Loe kokkulepe esmalt läbi ja kinnita see.',
+  'native.claim.consentChanged':
+    'Kokkulepet on muudetud. Loe see uuesti läbi ja kinnita; sinult ei võeta tasu kaks korda.',
   'native.claim.pending': 'Sinu ost ootab kinnitust. Kui see on läbi, puuduta Taasta ostud.',
   'native.provisioning.title': 'Seadistame sinu TREK-i',
   'native.provisioning.sub': 'Valmistame ette aadressi {host}. See võtab vaid minuti.',

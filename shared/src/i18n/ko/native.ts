@@ -87,6 +87,11 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': '이 Google 계정에서 활성 구독을 찾을 수 없습니다.',
   'native.claim.agree':
     '구독하면 인스턴스 제공에 TREK Cloud 약관이 적용됩니다(제공자: Maurice Bötger, 로스토크). 구매, 결제, 환불은 스토어가 처리합니다.',
+  'native.claim.consentTitle': 'TREK Cloud와 직접 호스팅한 TREK의 차이점(독일어, 법적 구속력 있음):',
+  'native.claim.consentLoading': '동의 내용을 불러오는 중…',
+  'native.claim.consentUnavailable': '동의 내용을 불러올 수 없습니다. 연결을 확인하고 다시 시도하세요.',
+  'native.claim.consentRequired': '먼저 동의 내용을 읽고 확인해 주세요.',
+  'native.claim.consentChanged': '동의 내용이 변경되었습니다. 다시 읽고 확인해 주세요. 이중으로 청구되지 않습니다.',
   'native.claim.pending': '구입이 승인을 기다리고 있습니다. 완료되면 구입 내역 복원을 탭하세요.',
   'native.provisioning.title': 'TREK 준비 중',
   'native.provisioning.sub': '{host}을(를) 준비하고 있습니다. 1분이면 됩니다.',

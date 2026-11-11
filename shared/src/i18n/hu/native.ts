@@ -92,6 +92,12 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Ehhez a Google-fiókhoz nem található aktív előfizetés.',
   'native.claim.agree':
     'Előfizetéssel a példányod biztosítására a TREK Cloud feltételei érvényesek (szolgáltató: Maurice Bötger, Rostock). A vásárlást, a fizetést és a visszatérítést az áruház intézi.',
+  'native.claim.consentTitle': 'A TREK Cloud eltérései a saját üzemeltetésű TREK-től (németül, jogilag kötelező):',
+  'native.claim.consentLoading': 'Megállapodás betöltése…',
+  'native.claim.consentUnavailable':
+    'A megállapodást nem sikerült betölteni. Ellenőrizd a kapcsolatot, és próbáld újra.',
+  'native.claim.consentRequired': 'Előbb olvasd el és erősítsd meg a megállapodást.',
+  'native.claim.consentChanged': 'A megállapodás frissült. Olvasd el újra és erősítsd meg; nem fizetsz kétszer.',
   'native.claim.pending': 'A vásárlásod jóváhagyásra vár. Ha teljesült, koppints a Vásárlások visszaállítása gombra.',
   'native.provisioning.title': 'A TREK-edet állítjuk be',
   'native.provisioning.sub': 'A(z) {host} előkészítése. Csak egy percet vesz igénybe.',

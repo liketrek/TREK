@@ -90,6 +90,12 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'この Google アカウントには有効なサブスクリプションがありません。',
   'native.claim.agree':
     '登録すると、インスタンスの提供には TREK Cloud 利用規約が適用されます（提供者: Maurice Bötger、ロストック）。購入、支払い、返金はストアが行います。',
+  'native.claim.consentTitle': 'TREK Cloud とセルフホスト版 TREK の違い（ドイツ語、法的拘束力あり）：',
+  'native.claim.consentLoading': '同意内容を読み込み中…',
+  'native.claim.consentUnavailable': '同意内容を読み込めませんでした。接続を確認して、もう一度お試しください。',
+  'native.claim.consentRequired': '先に同意内容を読み、確認してください。',
+  'native.claim.consentChanged':
+    '同意内容が更新されました。もう一度読んで確認してください。二重に請求されることはありません。',
   'native.claim.pending': '購入は承認待ちです。完了したら「購入を復元」をタップしてください。',
   'native.provisioning.title': 'TREKを準備中',
   'native.provisioning.sub': '{host} を準備しています。1分ほどで完了します。',

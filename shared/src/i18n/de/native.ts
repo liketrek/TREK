@@ -92,6 +92,13 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Für dieses Google-Konto wurde kein aktives Abo gefunden.',
   'native.claim.agree':
     'Mit dem Abonnieren gelten für die Bereitstellung deiner Instanz die AGB von TREK Cloud (Anbieter: Maurice Bötger, Rostock). Kauf, Zahlung und Erstattung wickelt der Store ab.',
+  'native.claim.consentTitle': 'Abweichungen von einem selbst betriebenen TREK (verbindlich auf Deutsch):',
+  'native.claim.consentLoading': 'Vereinbarung wird geladen…',
+  'native.claim.consentUnavailable':
+    'Die Vereinbarung konnte nicht geladen werden. Prüf deine Verbindung und versuch es erneut.',
+  'native.claim.consentRequired': 'Bitte lies und bestätige zuerst die Vereinbarung.',
+  'native.claim.consentChanged':
+    'Die Vereinbarung wurde geändert. Bitte lies sie erneut und bestätige sie; du zahlst nicht doppelt.',
   'native.claim.pending':
     'Dein Kauf wartet noch auf eine Freigabe. Sobald er durch ist, tippe auf Käufe wiederherstellen.',
   'native.provisioning.title': 'Dein TREK wird eingerichtet',

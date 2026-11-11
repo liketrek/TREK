@@ -91,6 +91,11 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Bu Google hesabında etkin abonelik bulunamadı.',
   'native.claim.agree':
     'Abone olduğunuzda örneğinizin sağlanmasına TREK Cloud koşulları uygulanır (sağlayıcı: Maurice Bötger, Rostock). Satın alma, ödeme ve iadeleri mağaza yürütür.',
+  'native.claim.consentTitle': 'TREK Cloud’un kendi barındırdığın TREK’ten farkları (Almanca, hukuken bağlayıcı):',
+  'native.claim.consentLoading': 'Sözleşme yükleniyor…',
+  'native.claim.consentUnavailable': 'Sözleşme yüklenemedi. Bağlantını kontrol edip tekrar dene.',
+  'native.claim.consentRequired': 'Lütfen önce sözleşmeyi okuyup onayla.',
+  'native.claim.consentChanged': 'Sözleşme güncellendi. Lütfen tekrar okuyup onayla; iki kez ücret alınmaz.',
   'native.claim.pending': 'Satın alımınız onay bekliyor. Tamamlandığında Satın alımları geri yükle’ye dokunun.',
   'native.provisioning.title': 'TREK’iniz hazırlanıyor',
   'native.provisioning.sub': '{host} hazırlanıyor. Bu yalnızca bir dakika sürer.',

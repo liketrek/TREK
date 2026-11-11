@@ -88,6 +88,11 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'لم يُعثر على اشتراك نشط في حساب Google هذا.',
   'native.claim.agree':
     'بالاشتراك تسري شروط TREK Cloud على توفير نسختك (المزوّد: Maurice Bötger، روستوك). يتولى المتجر الشراء والدفع والاسترداد.',
+  'native.claim.consentTitle': 'اختلافات TREK Cloud عن TREK المستضاف ذاتيًا (بالألمانية، ملزمة قانونيًا):',
+  'native.claim.consentLoading': 'جارٍ تحميل الاتفاقية…',
+  'native.claim.consentUnavailable': 'تعذّر تحميل الاتفاقية. تحقق من اتصالك وحاول مرة أخرى.',
+  'native.claim.consentRequired': 'يرجى قراءة الاتفاقية وتأكيدها أولًا.',
+  'native.claim.consentChanged': 'تم تحديث الاتفاقية. يرجى قراءتها مرة أخرى وتأكيدها؛ لن يتم تحصيل المبلغ مرتين.',
   'native.claim.pending': 'عملية الشراء بانتظار الموافقة. عند اكتمالها، اضغط على استعادة المشتريات.',
   'native.provisioning.title': 'جارٍ إعداد TREK الخاص بك',
   'native.provisioning.sub': 'نُحضّر {host}. يستغرق هذا دقيقة واحدة فقط.',

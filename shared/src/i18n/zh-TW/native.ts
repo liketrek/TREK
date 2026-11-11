@@ -85,6 +85,11 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': '此 Google 帳號沒有有效的訂閱。',
   'native.claim.agree':
     '訂閱後，你的執行個體的提供適用 TREK Cloud 條款（提供者：Maurice Bötger，羅斯托克）。購買、付款和退款由商店處理。',
+  'native.claim.consentTitle': 'TREK Cloud 與自行架設 TREK 的差異（德文，具法律效力）：',
+  'native.claim.consentLoading': '正在載入協議…',
+  'native.claim.consentUnavailable': '無法載入協議。請檢查網路連線後再試一次。',
+  'native.claim.consentRequired': '請先閱讀並確認協議。',
+  'native.claim.consentChanged': '協議已更新。請重新閱讀並確認；不會重複扣款。',
   'native.claim.pending': '你的購買正在等待核准。完成後，請點一下「恢復購買項目」。',
   'native.provisioning.title': '正在設定你的 TREK',
   'native.provisioning.sub': '正在準備 {host}。只需一分鐘。',

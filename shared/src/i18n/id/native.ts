@@ -91,6 +91,13 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Tidak ditemukan langganan aktif di akun Google ini.',
   'native.claim.agree':
     'Dengan berlangganan, ketentuan TREK Cloud berlaku untuk penyediaan instans Anda (penyedia: Maurice Bötger, Rostock). Pembelian, pembayaran, dan pengembalian dana ditangani oleh toko.',
+  'native.claim.consentTitle':
+    'Perbedaan TREK Cloud dari TREK yang dihosting sendiri (dalam bahasa Jerman, mengikat secara hukum):',
+  'native.claim.consentLoading': 'Memuat perjanjian…',
+  'native.claim.consentUnavailable': 'Perjanjian tidak dapat dimuat. Periksa koneksi Anda dan coba lagi.',
+  'native.claim.consentRequired': 'Baca dan konfirmasi perjanjian terlebih dahulu.',
+  'native.claim.consentChanged':
+    'Perjanjian telah diperbarui. Baca lagi dan konfirmasi; Anda tidak akan ditagih dua kali.',
   'native.claim.pending': 'Pembelian Anda menunggu persetujuan. Setelah selesai, ketuk Pulihkan pembelian.',
   'native.provisioning.title': 'Menyiapkan TREK Anda',
   'native.provisioning.sub': 'Menyiapkan {host}. Ini hanya perlu satu menit.',

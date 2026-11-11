@@ -829,6 +829,32 @@ async function slugStatus(slug: string): Promise<SlugStatus> {
   }
 }
 
+/**
+ * The separate agreement on how a cloud instance differs from a self-run TREK
+ * (terms § 2 (1a), § 327h BGB), as the control plane words and versions it. The
+ * app shows the server's text, never its own, and sends back the version it showed.
+ */
+interface DeviationsConsent {
+  version: string;
+  text: string;
+}
+async function fetchConsent(): Promise<DeviationsConsent | null> {
+  try {
+    const res = await CapacitorHttp.get({
+      url: `${CLOUD_URL}/api/iap/consent`,
+      connectTimeout: PROBE_TIMEOUT_MS,
+      readTimeout: PROBE_TIMEOUT_MS,
+    });
+    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+    const body = (data ?? {}) as { version?: unknown; deviations?: unknown };
+    if (res.status !== 200 || typeof body.version !== 'string' || typeof body.deviations !== 'string') return null;
+    if (!body.version || !body.deviations) return null;
+    return { version: body.version, text: body.deviations };
+  } catch {
+    return null;
+  }
+}
+
 interface RedeemResult {
   ok: boolean;
   /** Set when ok: the address the app loads. */
@@ -838,7 +864,13 @@ interface RedeemResult {
   /** Set when not ok: a stable refusal code. */
   code?: string;
 }
-async function redeemPurchase(slug: string, email: string, purchase: Purchase, password = ''): Promise<RedeemResult> {
+async function redeemPurchase(
+  slug: string,
+  email: string,
+  purchase: Purchase,
+  password = '',
+  consentVersion: string | null = null
+): Promise<RedeemResult> {
   try {
     const res = await CapacitorHttp.post({
       url: `${CLOUD_URL}/api/iap/redeem`,
@@ -854,6 +886,8 @@ async function redeemPurchase(slug: string, email: string, purchase: Purchase, p
         email,
         // Hashed by the control plane on arrival and set on the new instance; empty for a restore.
         ...(password ? { password } : {}),
+        // Only a new contract carries the agreement; a restore finds one that already holds it.
+        ...(consentVersion ? { consent: { acceptedDeviations: true, version: consentVersion } } : {}),
         locale,
       },
     });
@@ -932,6 +966,27 @@ function showClaim(
   const passwordField = el('div', { className: 'field' }, passwordInput);
   const passwordHint = el('p', { className: 'hint' }, t('native.claim.passwordHint'));
 
+  // The § 327h agreement, asked on its own before anything is bought.
+  let consent: DeviationsConsent | null = null;
+  const consentBox = el('input', { type: 'checkbox' });
+  const consentText = el('span', { className: 'consent-text' }, t('native.claim.consentLoading'));
+  const consentField = el(
+    'label',
+    { className: 'consent' },
+    consentBox,
+    el('span', {}, el('strong', {}, t('native.claim.consentTitle')), ' ', consentText)
+  );
+  const loadConsent = async (): Promise<DeviationsConsent | null> => {
+    consentBox.checked = false;
+    consentBox.disabled = true;
+    consentText.textContent = t('native.claim.consentLoading');
+    consent = await fetchConsent();
+    consentBox.disabled = consent === null;
+    consentText.textContent = consent ? consent.text : t('native.claim.consentUnavailable');
+    return consent;
+  };
+  void loadConsent();
+
   const submit = el('button', { type: 'submit', className: 'btn' }, t('native.claim.subscribe', { price }));
   const error = el('p', { className: 'error', role: 'alert' });
   const form = el(
@@ -951,6 +1006,7 @@ function showClaim(
       ' ',
       externalLink(t('native.plans.ourTerms'), CLOUD_TERMS_URL)
     ),
+    consentField,
     submit,
     error
   );
@@ -1021,6 +1077,19 @@ function showClaim(
       return;
     }
     passwordHint.className = 'hint';
+    // Nothing is bought without the agreement on the text the server holds today.
+    if (!consent && !(await loadConsent())) {
+      shake(consentField);
+      error.textContent = t('native.claim.consentUnavailable');
+      return;
+    }
+    if (!consentBox.checked) {
+      shake(consentField);
+      error.textContent = t('native.claim.consentRequired');
+      consentBox.focus();
+      return;
+    }
+    const consentVersion = consent ? consent.version : null;
 
     void tap(ImpactStyle.Medium);
     // The purchase sheet and the progress want the whole screen, not the keyboard.
@@ -1029,6 +1098,7 @@ function showClaim(
       slugInput.disabled = on;
       emailInput.disabled = on;
       passwordInput.disabled = on;
+      consentBox.disabled = on || consent === null;
       submit.disabled = on;
     };
     lock(true);
@@ -1059,7 +1129,7 @@ function showClaim(
       bought = outcome.purchase;
     }
 
-    const redeemed = await redeemPurchase(slug, email, bought, password);
+    const redeemed = await redeemPurchase(slug, email, bought, password, consentVersion);
     if (redeemed.ok && redeemed.instanceUrl) {
       await iap.finish(bought);
       showProvisioning(redeemed.instanceUrl, redeemed.welcome);
@@ -1071,6 +1141,11 @@ function showClaim(
       shake(slugField);
       slugNote.textContent = t('native.claim.taken');
       slugNote.className = 'hint bad';
+    } else if (redeemed.code === 'consent-outdated' || redeemed.code === 'consent-deviations') {
+      // The text changed since it was shown: the purchase waits, unredeemed, for the agreement on today's.
+      await loadConsent();
+      shake(consentField);
+      error.textContent = t('native.claim.consentChanged');
     } else if (redeemed.code === 'password-weak') {
       // A common password the list on the server knows: the purchase waits, unredeemed, for a better one.
       shake(passwordField);

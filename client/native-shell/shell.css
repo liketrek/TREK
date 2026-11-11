@@ -1302,3 +1302,35 @@ a.linkbtn {
     padding-top: 10px;
   }
 }
+
+/* The separate § 327h agreement on the claim screen: its own box, ticked by hand. */
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  max-height: 34vh;
+  overflow-y: auto;
+  cursor: pointer;
+}
+.consent input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--ink);
+}
+.consent strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.consent.bad {
+  border-color: var(--danger);
+  animation: shake 0.35s;
+}

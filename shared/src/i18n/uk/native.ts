@@ -91,6 +91,12 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Для цього облікового запису Google активної підписки не знайдено.',
   'native.claim.agree':
     'Оформлюючи підписку, ви погоджуєтеся, що до надання вашого екземпляра застосовуються умови TREK Cloud (постачальник: Maurice Bötger, Росток). Купівлю, оплату й повернення коштів обробляє магазин.',
+  'native.claim.consentTitle':
+    'Відмінності TREK Cloud від самостійно розміщеного TREK (німецькою, юридично обов’язково):',
+  'native.claim.consentLoading': 'Завантаження угоди…',
+  'native.claim.consentUnavailable': 'Не вдалося завантажити угоду. Перевірте з’єднання та спробуйте ще раз.',
+  'native.claim.consentRequired': 'Спочатку прочитайте та підтвердьте угоду.',
+  'native.claim.consentChanged': 'Угоду оновлено. Прочитайте її знову та підтвердьте; повторно оплата не спишеться.',
   'native.claim.pending': 'Ваша покупка очікує схвалення. Коли вона пройде, торкніться «Відновити покупки».',
   'native.provisioning.title': 'Налаштовуємо ваш TREK',
   'native.provisioning.sub': 'Готуємо {host}. Це займе лише хвилину.',

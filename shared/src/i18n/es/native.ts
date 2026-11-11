@@ -92,6 +92,13 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'No se encontró ninguna suscripción activa en esta cuenta de Google.',
   'native.claim.agree':
     'Al suscribirte, se aplican las condiciones de TREK Cloud a la provisión de tu instancia (proveedor: Maurice Bötger, Rostock). La tienda gestiona la compra, el pago y los reembolsos.',
+  'native.claim.consentTitle':
+    'Diferencias de TREK Cloud con un TREK autoalojado (en alemán, jurídicamente vinculante):',
+  'native.claim.consentLoading': 'Cargando el acuerdo…',
+  'native.claim.consentUnavailable': 'No se pudo cargar el acuerdo. Comprueba tu conexión e inténtalo de nuevo.',
+  'native.claim.consentRequired': 'Lee y confirma primero el acuerdo.',
+  'native.claim.consentChanged':
+    'El acuerdo se ha actualizado. Léelo de nuevo y confírmalo; no se te cobrará dos veces.',
   'native.claim.pending': 'Tu compra está pendiente de aprobación. Cuando se complete, toca Restaurar compras.',
   'native.provisioning.title': 'Preparando tu TREK',
   'native.provisioning.sub': 'Preparando {host}. Solo tarda un minuto.',

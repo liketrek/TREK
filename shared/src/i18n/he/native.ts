@@ -88,6 +88,11 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'לא נמצא מינוי פעיל בחשבון Google הזה.',
   'native.claim.agree':
     'בהרשמה חלים על אספקת המופע שלכם התנאים של TREK Cloud (ספק: Maurice Bötger, רוסטוק). החנות מטפלת ברכישה, בתשלום ובהחזרים.',
+  'native.claim.consentTitle': 'ההבדלים בין TREK Cloud לבין TREK באירוח עצמי (בגרמנית, מחייב משפטית):',
+  'native.claim.consentLoading': 'טוען את ההסכם…',
+  'native.claim.consentUnavailable': 'לא ניתן היה לטעון את ההסכם. בדקו את החיבור ונסו שוב.',
+  'native.claim.consentRequired': 'יש לקרוא ולאשר קודם את ההסכם.',
+  'native.claim.consentChanged': 'ההסכם עודכן. יש לקרוא אותו שוב ולאשר; לא תחויבו פעמיים.',
   'native.claim.pending': 'הרכישה שלך ממתינה לאישור. כשהיא תושלם, הקישו על שחזור רכישות.',
   'native.provisioning.title': 'מכינים את ה-TREK שלכם',
   'native.provisioning.sub': 'מכינים את {host}. זה לוקח רק דקה.',

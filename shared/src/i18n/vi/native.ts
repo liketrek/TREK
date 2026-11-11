@@ -92,6 +92,12 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'Không tìm thấy gói đăng ký đang hoạt động trên tài khoản Google này.',
   'native.claim.agree':
     'Khi đăng ký, việc cung cấp phiên bản của bạn tuân theo điều khoản TREK Cloud (nhà cung cấp: Maurice Bötger, Rostock). Cửa hàng xử lý việc mua, thanh toán và hoàn tiền.',
+  'native.claim.consentTitle': 'Khác biệt của TREK Cloud so với TREK tự lưu trữ (bằng tiếng Đức, có giá trị pháp lý):',
+  'native.claim.consentLoading': 'Đang tải thỏa thuận…',
+  'native.claim.consentUnavailable': 'Không thể tải thỏa thuận. Hãy kiểm tra kết nối và thử lại.',
+  'native.claim.consentRequired': 'Vui lòng đọc và xác nhận thỏa thuận trước.',
+  'native.claim.consentChanged':
+    'Thỏa thuận đã được cập nhật. Vui lòng đọc lại và xác nhận; bạn sẽ không bị tính phí hai lần.',
   'native.claim.pending': 'Giao dịch mua của bạn đang chờ phê duyệt. Khi hoàn tất, hãy chạm Khôi phục giao dịch mua.',
   'native.provisioning.title': 'Đang thiết lập TREK của bạn',
   'native.provisioning.sub': 'Đang chuẩn bị {host}. Chỉ mất một phút.',
