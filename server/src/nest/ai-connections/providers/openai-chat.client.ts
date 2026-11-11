@@ -1,3 +1,4 @@
+import { logWarn } from '../../audit/audit-log.logger';
 import type {
   AiChatClient,
   AiChatEvent,
@@ -8,7 +9,7 @@ import type {
   AiSource,
   AiToolCall,
 } from '../ai-chat-client.interface';
-import { AiProviderError, errorCodeOf, providerFailure } from './provider-errors';
+import { AiProviderError, errorCodeOf, isReasoningEffortRefusal, providerFailure } from './provider-errors';
 import {
   asCount,
   asRecord,
@@ -107,6 +108,13 @@ const FINISH_REASONS: Record<string, AiFinishReason> = { tool_calls: 'tool-calls
  * schemas, also when an admin enters its endpoint as their own server, and
  * OpenAI the prompt cache key, which the others do not know. Gemini's thought
  * signatures come back as the turn's provider state.
+ *
+ * No request names a reasoning effort, since a server that does not reason may
+ * refuse the field. A reasoning model that takes function tools only without
+ * reasoning (Azure AI Foundry's deployments, #3043) refuses the default effort
+ * by naming `reasoning_effort`; the request then goes out once more with
+ * `reasoning_effort: "none"`, and so does every later request with tools on
+ * this client, which lives for one turn.
  */
 export class OpenAiChatClient implements AiChatClient {
   /** OpenRouter searches the web for any model through its web plugin; the others have no search here. */
@@ -116,6 +124,9 @@ export class OpenAiChatClient implements AiChatClient {
 
   /** The kind whose tool schemas the endpoint takes. */
   private readonly schemaKind: AiConnectionKind;
+
+  /** Whether the server refused function tools with the model's reasoning, so they go out without it. */
+  private toolsWithoutReasoning = false;
 
   constructor(
     readonly kind: AiConnectionKind,
@@ -128,42 +139,7 @@ export class OpenAiChatClient implements AiChatClient {
   }
 
   async *stream(request: AiChatRequest, signal: AbortSignal): AsyncGenerator<AiChatEvent> {
-    const body = {
-      model: this.model,
-      stream: true,
-      stream_options: { include_usage: true },
-      messages: toChatMessages(request, this.model),
-      ...(request.tools.length > 0
-        ? {
-            tools: request.tools.map((tool) => ({
-              type: 'function',
-              function: {
-                name: tool.name,
-                description: tool.description,
-                parameters: toProviderSchema(tool.parameters, this.schemaKind),
-              },
-            })),
-            tool_choice: request.toolChoice ?? 'auto',
-          }
-        : {}),
-      ...(this.kind === 'openai' && request.cacheKey ? { prompt_cache_key: request.cacheKey } : {}),
-      ...(request.webSearch && this.webSearch ? { plugins: [{ id: 'web', max_results: 5 }] } : {}),
-    };
-    const events = await openProviderStream(
-      this.fetcher,
-      this.kind,
-      `${this.baseUrl}/chat/completions`,
-      {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          accept: 'text/event-stream',
-          ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
-        },
-        body: JSON.stringify(body),
-      },
-      signal,
-    );
+    const events = await this.open(request, signal);
 
     const turn = new ChatTurn();
     for await (const sse of readSseEvents(events)) {
@@ -191,6 +167,61 @@ export class OpenAiChatClient implements AiChatClient {
       yield { type: 'provider-state', state: { adapter: 'openai-chat', model: this.model, signatures } };
     }
     yield { type: 'finish', reason: turn.finishReason() };
+  }
+
+  /**
+   * Opens the request's stream. A refusal of the model's reasoning effort for
+   * a request with tools is answered once by asking again without reasoning.
+   */
+  private async open(request: AiChatRequest, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> {
+    try {
+      return await this.send(request, signal);
+    } catch (err) {
+      if (this.toolsWithoutReasoning || request.tools.length === 0 || !isReasoningEffortRefusal(err)) throw err;
+      this.toolsWithoutReasoning = true;
+      logWarn(`[ai] ${this.kind} takes function tools only without reasoning: asking again with reasoning_effort none`);
+      return this.send(request, signal);
+    }
+  }
+
+  private send(request: AiChatRequest, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> {
+    const body = {
+      model: this.model,
+      stream: true,
+      stream_options: { include_usage: true },
+      messages: toChatMessages(request, this.model),
+      ...(request.tools.length > 0
+        ? {
+            tools: request.tools.map((tool) => ({
+              type: 'function',
+              function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: toProviderSchema(tool.parameters, this.schemaKind),
+              },
+            })),
+            tool_choice: request.toolChoice ?? 'auto',
+          }
+        : {}),
+      ...(this.toolsWithoutReasoning && request.tools.length > 0 ? { reasoning_effort: 'none' } : {}),
+      ...(this.kind === 'openai' && request.cacheKey ? { prompt_cache_key: request.cacheKey } : {}),
+      ...(request.webSearch && this.webSearch ? { plugins: [{ id: 'web', max_results: 5 }] } : {}),
+    };
+    return openProviderStream(
+      this.fetcher,
+      this.kind,
+      `${this.baseUrl}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'text/event-stream',
+          ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
+        },
+        body: JSON.stringify(body),
+      },
+      signal,
+    );
   }
 }
 

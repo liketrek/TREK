@@ -676,6 +676,74 @@ describe('OpenAiChatClient', () => {
     expect(await parameters('http://ollama:11434/v1')).toEqual(toProviderSchema(TOOL.parameters, 'custom'));
     expect(await parameters('not a url')).toEqual(toProviderSchema(TOOL.parameters, 'custom'));
   });
+
+  // Azure AI Foundry's answer for a reasoning deployment asked for function tools on Chat Completions (#3043).
+  const REASONING_REFUSAL = {
+    error: {
+      message:
+        "Function tools with reasoning_effort are not supported for gpt-6-luna in /v1/chat/completions. To use function tools, use /v1/responses or set reasoning_effort to 'none'.",
+      type: 'invalid_request_error',
+      param: 'reasoning_effort',
+      code: null,
+    },
+  };
+  const AZURE = 'https://res.services.ai.azure.com/openai/v1';
+
+  it('OACH-010: a server that takes tools only without reasoning is asked again with reasoning_effort none (#3043)', async () => {
+    logWarn.mockClear();
+    const http = fetchAnswering(
+      jsonResponse(400, REASONING_REFUSAL),
+      streamResponse(STREAM),
+      streamResponse(STREAM),
+      streamResponse([{ choices: [{ delta: { content: 'hi' }, finish_reason: 'stop' }] }]),
+    );
+    const client = new OpenAiChatClient('custom', 'gpt-6-luna', AZURE, 'k', http.fetcher);
+
+    const events = await run(client.stream(REQUEST, signal()));
+    // Nothing of the refused request reaches the turn: it answers as if the first request had been taken.
+    expect(events.filter((event) => event.type === 'tool-call')).toHaveLength(1);
+    expect(events.at(-1)).toEqual({ type: 'finish', reason: 'tool-calls' });
+    expect(http.body(0)).not.toHaveProperty('reasoning_effort');
+    expect(http.body(1)).toMatchObject({ reasoning_effort: 'none', tool_choice: 'auto' });
+    expect(logWarn).toHaveBeenCalledWith(
+      '[ai] custom takes function tools only without reasoning: asking again with reasoning_effort none',
+    );
+
+    // The turn's next step goes out without reasoning right away; a step without tools may reason again.
+    await run(client.stream(REQUEST, signal()));
+    expect(http.body(2)).toMatchObject({ reasoning_effort: 'none' });
+    await run(client.stream({ ...REQUEST, tools: [] }, signal()));
+    expect(http.body(3)).not.toHaveProperty('reasoning_effort');
+    expect(http.calls).toHaveLength(4);
+  });
+
+  it('OACH-011: any other server, refusal or request keeps the body as it was and is not asked again (#3043)', async () => {
+    // Ollama, LM Studio, vLLM and OpenRouter never see the parameter.
+    for (const kind of ['custom', 'openrouter', 'openai', 'gemini'] as const) {
+      const plain = fetchAnswering(streamResponse(STREAM));
+      await run(
+        new OpenAiChatClient(kind, 'm', 'http://ollama:11434/v1', null, plain.fetcher).stream(REQUEST, signal()),
+      );
+      expect(plain.body()).not.toHaveProperty('reasoning_effort');
+    }
+
+    const once = async (request: AiChatRequest, ...responses: Response[]) => {
+      const http = fetchAnswering(...responses);
+      const err = await failure(
+        new OpenAiChatClient('custom', 'm', AZURE, 'k', http.fetcher).stream(request, signal()),
+      );
+      return { err, calls: http.calls.length };
+    };
+    // A refusal of another field, of the same field with another status, or of a request without tools.
+    const other = { error: { ...REASONING_REFUSAL.error, param: 'tools[0]' } };
+    expect(await once(REQUEST, jsonResponse(400, other))).toMatchObject({ err: { code: 'generic' }, calls: 1 });
+    expect(await once(REQUEST, jsonResponse(422, REASONING_REFUSAL))).toMatchObject({ calls: 1 });
+    expect(await once({ ...REQUEST, tools: [] }, jsonResponse(400, REASONING_REFUSAL))).toMatchObject({ calls: 1 });
+    // A server that refuses `none` as well is asked only once more, and its refusal is the turn's error.
+    expect(
+      await once(REQUEST, jsonResponse(400, REASONING_REFUSAL), jsonResponse(400, REASONING_REFUSAL)),
+    ).toMatchObject({ err: { code: 'generic', status: 400 }, calls: 2 });
+  });
 });
 
 describe('OpenAiResponsesClient', () => {
