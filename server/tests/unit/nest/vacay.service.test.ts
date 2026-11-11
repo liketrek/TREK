@@ -111,6 +111,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   resetTestDb(testDb);
+  (svc as unknown as { holidayCache: Map<string, unknown> }).holidayCache.clear();
   // Stub fetch with empty holiday list by default so updatePlan / applyHolidayCalendars
   // never makes real network calls.
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -1389,7 +1390,7 @@ describe('applyHolidayCalendars', () => {
     // Override fetch to return one global holiday matching that entry
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ date: holidayDate, global: true }],
+      json: async () => [{ date: holidayDate, name: 'New Year', nationalHoliday: true, subdivisionCodes: null }],
     }));
 
     await svc.applyHolidayCalendars(plan.id);
@@ -1406,7 +1407,10 @@ describe('applyHolidayCalendars', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
     await expect(svc.applyHolidayCalendars(plan.id)).resolves.toBeUndefined();
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [{ date: '2031-07-14', global: true }] }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ date: '2031-07-14', name: 'Bastille Day', nationalHoliday: true, subdivisionCodes: null }],
+    }));
     const entries = (svc as unknown as { entries: { deleteForPlanAndDate: () => Promise<void> } }).entries;
     const del = vi.spyOn(entries, 'deleteForPlanAndDate').mockRejectedValueOnce(new Error('database is locked'));
     await expect(svc.applyHolidayCalendars(plan.id)).rejects.toThrow('database is locked');
@@ -1774,7 +1778,59 @@ describe('quirk fixes', () => {
     // Nothing cached: a retry hits the network again.
     expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://nagerholidays.com/api/v4/Countries/Available',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('VACAY-SVC-070e: getHolidays maps Nager.Holidays v4 fields to the Vacay response and caches by year and country', async () => {
+    const holidays = [
+      { date: '2026-01-01', name: "New Year's Day", countryCode: 'US', nationalHoliday: true, subdivisionCodes: null, holidayTypes: ['Public'] },
+      { date: '2026-02-16', name: 'Washington’s Birthday', countryCode: 'US', nationalHoliday: false, subdivisionCodes: ['US-CA'], holidayTypes: ['Public'] },
+    ];
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => holidays });
+    vi.stubGlobal('fetch', fetchMock);
+    const fresh = await freshVacayService();
+
+    const expected = [
+      { date: '2026-01-01', name: "New Year's Day", localName: "New Year's Day", global: true, counties: null },
+      { date: '2026-02-16', name: 'Washington’s Birthday', localName: 'Washington’s Birthday', global: false, counties: ['US-CA'] },
+    ];
+    expect((await fresh.getHolidays('2026', 'US')).data).toEqual(expected);
+    expect((await fresh.getHolidays('2026', 'US')).data).toEqual(expected);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://nagerholidays.com/api/v4/Holidays/US/2026',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('VACAY-SVC-070f: getCountries passes through v4 country records and caches them', async () => {
+    const countries = [{ countryCode: 'US', name: 'United States' }, { countryCode: 'CN', name: 'China' }];
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => countries });
+    vi.stubGlobal('fetch', fetchMock);
+    const fresh = await freshVacayService();
+
+    expect((await fresh.getCountries()).data).toEqual(countries);
+    expect((await fresh.getCountries()).data).toEqual(countries);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://nagerholidays.com/api/v4/Countries/Available',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('VACAY-SVC-070g: getHolidays treats an invalid v4 payload as an upstream failure and does not cache it', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ date: '2026-01-01', name: 'New Year' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] });
+    vi.stubGlobal('fetch', fetchMock);
+    const fresh = await freshVacayService();
+
+    expect(await asLegacyResult(fresh.getHolidays('2026', 'CN'))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
+    expect((await fresh.getHolidays('2026', 'CN')).data).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('VACAY-SVC-070a: getHolidays refuses a year or country that is not a plain code', async () => {
@@ -1814,7 +1870,7 @@ describe('quirk fixes', () => {
   });
 
   it('VACAY-SVC-070d: a chunked provider body past the cap reads as the usual fetch error', async () => {
-    // nager.at answers chunked, so there is no content-length for the declared
+    // Nager.Holidays answers chunked, so there is no content-length for the declared
     // check to look at — only the streaming read stops this being buffered whole.
     const payload = `[${'{"date":"2026-01-01"},'.repeat(200_000)}{"date":"2026-12-24"}]`;
     const fetchMock = vi.fn().mockImplementation(async () => {

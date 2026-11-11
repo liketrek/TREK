@@ -80,6 +80,37 @@ export interface Holiday {
   counties?: string[] | null;
 }
 
+interface NagerHolidayV4 {
+  date: string;
+  name: string;
+  nationalHoliday: boolean;
+  subdivisionCodes: string[] | null;
+}
+
+/** Adapt Nager.Holidays v4 records to Vacay's long-standing holiday shape. */
+function normalizeNagerHolidays(data: unknown): Holiday[] | undefined {
+  if (!Array.isArray(data)) return undefined;
+  const holidays: Holiday[] = [];
+  for (const row of data) {
+    if (
+      !row || typeof row !== 'object' ||
+      typeof row.date !== 'string' || typeof row.name !== 'string' ||
+      typeof row.nationalHoliday !== 'boolean' ||
+      (row.subdivisionCodes !== null &&
+        (!Array.isArray(row.subdivisionCodes) || row.subdivisionCodes.some((code: unknown) => typeof code !== 'string')))
+    ) return undefined;
+    const holiday = row as NagerHolidayV4;
+    holidays.push({
+      date: holiday.date,
+      name: holiday.name,
+      localName: holiday.name,
+      global: holiday.nationalHoliday,
+      counties: holiday.subdivisionCodes,
+    });
+  }
+  return holidays;
+}
+
 export interface SchoolHoliday {
   startDate?: string;
   endDate?: string;
@@ -134,7 +165,7 @@ export interface VacayShare {
  * imports.
  *
  * Multi-statement writes run in uow.transactional(), never around the
- * nager.at fetch (timed out and ok-checked, cached per instance for the TTL);
+ * nagerholidays.com fetch (timed out and ok-checked, cached per instance for the TTL);
  * addYear does not swallow real errors. TripsService injects this class.
  *
  * `removeShare`/`setShareHidden` scope their ownership check in the SQL
@@ -449,9 +480,10 @@ export class VacayService {
     if (cached && Date.now() - cached.time < CACHE_TTL) return cached.data as Holiday[];
     if (!COUNTRY_RE.test(country)) return undefined;
     try {
-      const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const resp = await fetch(`https://nagerholidays.com/api/v4/Holidays/${country}/${year}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (!resp.ok) { discardBody(resp); return undefined; }
-      const parsed = await readCappedJson<Holiday[]>(resp, MAX_HOLIDAY_BYTES);
+      const data = await readCappedJson<unknown>(resp, MAX_HOLIDAY_BYTES);
+      const parsed = normalizeNagerHolidays(data);
       if (parsed === undefined) return undefined;
       this.holidayCache.set(cacheKey, { data: parsed, time: Date.now() });
       return parsed;
@@ -1284,7 +1316,7 @@ export class VacayService {
   }
 
   // -------------------------------------------------------------------------
-  // Holidays (nager.at proxy with cache)
+  // Holidays (nagerholidays.com proxy with cache)
   // -------------------------------------------------------------------------
 
   async getCountries(): Promise<{ data?: unknown }> {
@@ -1292,7 +1324,7 @@ export class VacayService {
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
-      const resp = await fetch('https://date.nager.at/api/v3/AvailableCountries', { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const resp = await fetch('https://nagerholidays.com/api/v4/Countries/Available', { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (!resp.ok) { discardBody(resp); throw new DomainError(502, 'Failed to fetch countries'); }
       const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
       if (data === undefined) throw new DomainError(502, 'Failed to fetch countries');
@@ -1307,19 +1339,9 @@ export class VacayService {
     // Both segments land in the URL path, so they are checked before the cache
     // lookup rather than after it.
     if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) throw new DomainError(502, 'Failed to fetch holidays');
-    const cacheKey = `${year}-${country}`;
-    const cached = this.holidayCache.get(cacheKey);
-    if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
-    try {
-      const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) { discardBody(resp); throw new DomainError(502, 'Failed to fetch holidays'); }
-      const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
-      if (data === undefined) throw new DomainError(502, 'Failed to fetch holidays');
-      this.holidayCache.set(cacheKey, { data, time: Date.now() });
-      return { data };
-    } catch {
-      throw new DomainError(502, 'Failed to fetch holidays');
-    }
+    const data = await this.fetchPublicHolidays(Number(year), country);
+    if (data === undefined) throw new DomainError(502, 'Failed to fetch holidays');
+    return { data };
   }
 
   async getSchoolHolidayRegions(country: string, language = 'EN'): Promise<{ data?: unknown }> {

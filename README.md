@@ -146,7 +146,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 #### 🗺️ Atlas, Vacay and Collections
 
 - **Atlas**: countries and regions visited on [geoBoundaries](https://www.geoboundaries.org/) outlines, a bucket list, travel stats, and a tour activities tab with planned against recorded totals
-- **Vacay**: leave calendar with half days, public holidays from date.nager.at, school holidays for 16 European countries, company holidays, carry-over between years, and joint or read-only sharing
+- **Vacay**: leave calendar with half days, public holidays from [nagerholidays.com](https://nagerholidays.com), school holidays for 16 European countries, company holidays, carry-over between years, and joint or read-only sharing
 - **Collections** (off by default): a place library outside any trip with lists, labels, ratings, a status per place, cover images, GPX and file export, copy into a trip, and sharing by invite
 - **Dawarich** (off by default): link a Dawarich instance for recorded tracks, suggested stays and countries for the Atlas
 
