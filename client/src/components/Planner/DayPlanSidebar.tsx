@@ -10,6 +10,7 @@ import { safeHttpUrl } from '../../utils/safeUrl'
 import { ChevronDown, ChevronRight, ChevronUp, Compass, RotateCcw, ExternalLink, Pencil, GripVertical, Ticket, Plus, FileText, Trash2, Car, Lock, Hotel, Eraser, Route as RouteIcon, RouteOff, Bookmark, StickyNote, TramFront, Zap, MapPin, Globe } from 'lucide-react'
 import type { PlannedTransitLeg } from './transitLeg'
 import { useTransitLegPlanner } from './useTransitLegPlanner'
+import { useDayPlanDragState } from './useDayPlanDragState'
 import { WalkLateLine } from '../Tours/walk/WalkTransitNote'
 import { TourOverrunLine } from '../Tours/TourDayTimeParts'
 import { dayItemOverrun } from '../Tours/tourDayTime'
@@ -246,17 +247,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // distances refresh instead of showing stale cached text (#1300).
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const legsAbortRef = useRef<AbortController | null>(null)
-  const [draggingId, _setDraggingId] = useState(null)
-  // The day list fades in once, on mount. Switching its stagger back on when a
-  // drag ended played that entrance again on every drop, so the first drag turns
-  // it off for good (#3041).
-  const [hasDragged, setHasDragged] = useState(false)
-  const setDraggingId = (id) => { if (id != null) setHasDragged(true); _setDraggingId(id) }
   const [lockedIds, setLockedIds] = useState(new Set())
-  const [dropTargetKey, _setDropTargetKey] = useState(null)
-  const dropTargetRef = useRef(null)
-  const setDropTargetKey = (key) => { dropTargetRef.current = key; _setDropTargetKey(key) }
-  const [dragOverDayId, setDragOverDayId] = useState(null)
   const [transportDetail, setTransportDetail] = useState(null)
   const [transportPosVersion, setTransportPosVersion] = useState(0)
 
@@ -273,6 +264,9 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     fromType?: string; toType?: string; toId?: number; insertAfter?: boolean; toLegIndex?: number | null;
   } | null>(null)
   const dragDataRef = useRef(null)
+  const {
+    draggingId, setDraggingId, hasDragged, dropTargetKey, dropTargetRef, setDropTargetKey, dragOverDayId, setDragOverDayId,
+  } = useDayPlanDragState(dragDataRef)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const dayRefs = useRef<Map<number, HTMLElement>>(new Map())
 
@@ -380,31 +374,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     document.addEventListener('dragend', cleanup)
     return () => document.removeEventListener('dragend', cleanup)
   }, [])
-
-  // A drag whose source row re-rendered away never sends its dragend to the
-  // document, and the drop line then stayed on a row until the next reload. The
-  // browser sends no mousemove during a drag, so the first plain mouse move or
-  // press after one means it is over. Plain means no button held: Firefox fires
-  // dragstart while it handles the move that starts the drag and hands that move
-  // to the page afterwards, button still down. Read as the end, it threw the drag
-  // away at pick-up and left only the arrows to reorder a day (#3041).
-  useEffect(() => {
-    if (!draggingId && !dropTargetKey && !dragOverDayId) return
-    const settle = (e: MouseEvent | PointerEvent) => {
-      if (e.type === 'mousemove' && e.buttons !== 0) return
-      setDraggingId(null)
-      setDropTargetKey(null)
-      setDragOverDayId(null)
-      dragDataRef.current = null
-      window.__dragData = null
-    }
-    document.addEventListener('mousemove', settle)
-    document.addEventListener('pointerdown', settle, true)
-    return () => {
-      document.removeEventListener('mousemove', settle)
-      document.removeEventListener('pointerdown', settle, true)
-    }
-  }, [draggingId, dropTargetKey, dragOverDayId])
 
   // Initialize missing transport positions outside of render to avoid setState-during-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
