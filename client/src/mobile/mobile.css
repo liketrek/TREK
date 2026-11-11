@@ -664,6 +664,15 @@ html:has(.m-shell) {
 html:has(.m-shell) [data-desktop-navbar] {
   display: none;
 }
+/* A plugin's page inside the touch shell: below the status bar, above the dock,
+   after the rail, and exactly the visible height (100dvh), so the plugin's own
+   document is what scrolls instead of the app stretching past the screen. */
+html:has(.m-shell) [data-plugin-page] {
+  --plugin-page-h: calc(100dvh - var(--bottom-nav-h, 0px));
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-inline-start: var(--m-rail-w, 0px);
+}
 html:has(.m-shell) .leaflet-control-zoom {
   display: none !important;
 }
