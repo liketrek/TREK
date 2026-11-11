@@ -26,7 +26,7 @@ interface MVacaySettingsSheetProps {
 
 /**
  * Vacay settings sheet: weekend blocking (+ selectable weekend days), week
- * start, carry-over, company holidays, public-holiday calendars (nager.at —
+ * start, carry-over, company holidays, public-holiday calendars (Nager.Holidays —
  * label/color/country/region, several) and dissolving the Fusion.
  */
 /** Each setting is a card on the inner surface, as the trip settings' sections. */

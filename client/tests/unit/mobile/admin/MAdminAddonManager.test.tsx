@@ -169,7 +169,7 @@ describe('MAdminAddonManager', () => {
     const user = userEvent.setup();
     server.use(
       addonsRoute([buildAddon({ id: 'todo', enabled: true })]),
-      http.put('/api/admin/addons/todo', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.put('/api/admin/addons/todo', () => HttpResponse.error()),
     );
     render(<><ToastContainer /><MAdminAddonManager /></>);
     await screen.findByText('Todo List');
