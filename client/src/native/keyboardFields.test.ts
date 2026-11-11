@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { closeOnDone, prepareField, prepareKeyboardFields } from './keyboardFields';
+import { prepareField, prepareKeyboardFields } from './keyboardFields';
 
 function field(html: string): HTMLInputElement {
   document.body.innerHTML = html;
@@ -91,40 +91,46 @@ describe('prepareKeyboardFields', () => {
 });
 
 describe('closeOnDone', () => {
-  const enter = (el: HTMLElement) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  // Wired the way the app wires it: on the document, in the capture phase,
+  // ahead of every handler the field has of its own.
+  const enter = (el: HTMLElement) =>
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  let stop: () => void = () => {};
+  afterEach(() => {
+    stop();
+    vi.useRealTimers();
+  });
 
   it('closes the keyboard when nothing took the Enter of a "done" field', () => {
     vi.useFakeTimers();
+    stop = prepareKeyboardFields(document);
     const el = field('<input name="title" enterkeyhint="done">');
     el.focus();
-    el.addEventListener('keydown', closeOnDone);
     enter(el);
     vi.runAllTimers();
     expect(document.activeElement).not.toBe(el);
-    vi.useRealTimers();
   });
 
   it('keeps the keyboard for a field that acted on the Enter and cleared itself', () => {
     vi.useFakeTimers();
+    stop = prepareKeyboardFields(document);
     const el = field('<input name="item" enterkeyhint="done">');
     el.value = 'Socks';
     el.focus();
     el.addEventListener('keydown', () => {
       el.value = '';
     });
-    el.addEventListener('keydown', closeOnDone);
     enter(el);
     vi.runAllTimers();
     expect(document.activeElement).toBe(el);
-    vi.useRealTimers();
   });
 
   it('leaves "go" and "search" fields and handled Enters alone', () => {
     vi.useFakeTimers();
+    stop = prepareKeyboardFields(document);
     for (const hint of ['go', 'search']) {
       const el = field(`<input enterkeyhint="${hint}">`);
       el.focus();
-      el.addEventListener('keydown', closeOnDone);
       enter(el);
       vi.runAllTimers();
       expect(document.activeElement).toBe(el);
@@ -132,10 +138,8 @@ describe('closeOnDone', () => {
     const handled = field('<input enterkeyhint="done">');
     handled.focus();
     handled.addEventListener('keydown', (e) => e.preventDefault());
-    handled.addEventListener('keydown', closeOnDone);
-    handled.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    enter(handled);
     vi.runAllTimers();
     expect(document.activeElement).toBe(handled);
-    vi.useRealTimers();
   });
 });

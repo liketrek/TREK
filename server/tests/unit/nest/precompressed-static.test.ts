@@ -20,6 +20,9 @@ describe('precompressedStatic', () => {
   writeFileSync(path.join(assets, 'nested', 'Map-AbCd1234.css'), STYLE);
   writeFileSync(path.join(assets, 'nested', 'Map-AbCd1234.css.br'), brotliCompressSync(STYLE));
   writeFileSync(path.join(assets, 'plain-AbCd1234.js'), SCRIPT);
+  const WASM = Buffer.alloc(4096, 7);
+  writeFileSync(path.join(assets, 'engine-AbCd1234.wasm'), WASM);
+  writeFileSync(path.join(assets, 'engine-AbCd1234.wasm.br'), brotliCompressSync(WASM));
   writeFileSync(path.join(root, 'secret.js'), SCRIPT);
   writeFileSync(path.join(root, 'secret.js.br'), brotliCompressSync(SCRIPT));
   afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -98,6 +101,14 @@ describe('precompressedStatic', () => {
     expect(outside.headers['content-encoding']).toBeUndefined();
     const climbing = await get('/assets/%2e%2e/secret.js', 'br');
     expect(climbing.headers['content-encoding']).toBeUndefined();
+  });
+
+  it('PRECOMP-008: a copy of a type without a charset is typed as the original, with no charset', async () => {
+    const res = await get('/assets/engine-AbCd1234.wasm', 'br');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-encoding']).toBe('br');
+    expect(res.headers['content-type']).toBe('application/wasm');
   });
 
   it('PRECOMP-007: a build without copies is served as before', async () => {

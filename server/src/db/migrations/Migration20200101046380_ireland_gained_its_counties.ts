@@ -72,13 +72,14 @@ export class Migration20200101046380_ireland_gained_its_counties extends Migrati
   override async up(): Promise<void> {
     await this.execute(`DELETE FROM place_regions WHERE UPPER(COALESCE(country_code, '')) = 'IE'`);
 
+    // Queued in order, run after the reads below: the codes come from the table
+    // above and the row ids from the database, nothing a user typed.
     for (const [code, , province] of COUNTIES) {
-      await this.execute(
+      this.addSql(
         `INSERT INTO hidden_regions (user_id, region_code, country_code)
-         SELECT h.user_id, ?, h.country_code FROM hidden_regions h
-         WHERE h.region_code = ? AND UPPER(h.country_code) = 'IE'
-           AND NOT EXISTS (SELECT 1 FROM hidden_regions x WHERE x.user_id = h.user_id AND x.region_code = ?)`,
-        [code, province, code],
+         SELECT h.user_id, '${code}', h.country_code FROM hidden_regions h
+         WHERE h.region_code = '${province}' AND UPPER(h.country_code) = 'IE'
+           AND NOT EXISTS (SELECT 1 FROM hidden_regions x WHERE x.user_id = h.user_id AND x.region_code = '${code}')`,
       );
     }
 
@@ -95,14 +96,14 @@ export class Migration20200101046380_ireland_gained_its_counties extends Migrati
       const county = counties.get(countyKey(row.region_name || ''));
       if (!county) continue;
       const target = `${row.user_id}|${county.code}`;
+      const id = Number(row.id);
+      if (!Number.isInteger(id)) continue;
       if (held.has(target)) {
-        await this.execute(`DELETE FROM visited_regions WHERE id = ?`, [row.id]);
+        this.addSql(`DELETE FROM visited_regions WHERE id = ${id}`);
       } else {
-        await this.execute(`UPDATE visited_regions SET region_code = ?, region_name = ? WHERE id = ?`, [
-          county.code,
-          county.name,
-          row.id,
-        ]);
+        this.addSql(
+          `UPDATE visited_regions SET region_code = '${county.code}', region_name = '${county.name}' WHERE id = ${id}`,
+        );
         held.add(target);
       }
     }

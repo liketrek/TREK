@@ -719,13 +719,15 @@ describe('OpenAiChatClient', () => {
 
   it('OACH-011: any other server, refusal or request keeps the body as it was and is not asked again (#3043)', async () => {
     // Ollama, LM Studio, vLLM and OpenRouter never see the parameter.
-    for (const kind of ['custom', 'openrouter', 'openai', 'gemini'] as const) {
-      const plain = fetchAnswering(streamResponse(STREAM));
-      await run(
-        new OpenAiChatClient(kind, 'm', 'http://ollama:11434/v1', null, plain.fetcher).stream(REQUEST, signal()),
-      );
-      expect(plain.body()).not.toHaveProperty('reasoning_effort');
-    }
+    await Promise.all(
+      (['custom', 'openrouter', 'openai', 'gemini'] as const).map(async (kind) => {
+        const plain = fetchAnswering(streamResponse(STREAM));
+        await run(
+          new OpenAiChatClient(kind, 'm', 'http://ollama:11434/v1', null, plain.fetcher).stream(REQUEST, signal()),
+        );
+        expect(plain.body()).not.toHaveProperty('reasoning_effort');
+      }),
+    );
 
     const once = async (request: AiChatRequest, ...responses: Response[]) => {
       const http = fetchAnswering(...responses);

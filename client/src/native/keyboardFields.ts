@@ -110,14 +110,19 @@ export function prepareField(target: EventTarget | null): void {
   }
 }
 
-/** Enter on a "done" field that nothing acted on closes the keyboard. */
+/**
+ * Enter on a "done" field that nothing acted on closes the keyboard. Listens in
+ * the capture phase, so the field's text is read before any handler of the field
+ * runs; whether one took the Enter is read off the event once it has gone round.
+ */
 export function closeOnDone(e: KeyboardEvent): void {
   const el = e.target;
-  if (e.key !== 'Enter' || e.isComposing || e.defaultPrevented) return;
+  if (e.key !== 'Enter' || e.isComposing) return;
   if (!(el instanceof HTMLInputElement) || el.getAttribute('enterkeyhint') !== 'done') return;
   const before = el.value;
   // After every handler of this Enter, including ones React schedules.
   setTimeout(() => {
+    if (e.defaultPrevented) return;
     if (el.ownerDocument.activeElement === el && el.value === before) el.blur();
   }, 0);
 }
@@ -128,11 +133,11 @@ export function prepareKeyboardFields(doc: Document = document): () => void {
   const onFocus = (e: FocusEvent) => prepareField(e.target);
   doc.addEventListener('touchstart', onTouch, { capture: true, passive: true });
   doc.addEventListener('focusin', onFocus, true);
-  // Bubbling, so a field's own handler runs first and can take the Enter.
-  doc.addEventListener('keydown', closeOnDone);
+  // Capturing, so the text is read before the field's own handler can change it.
+  doc.addEventListener('keydown', closeOnDone, true);
   return () => {
     doc.removeEventListener('touchstart', onTouch, { capture: true });
     doc.removeEventListener('focusin', onFocus, true);
-    doc.removeEventListener('keydown', closeOnDone);
+    doc.removeEventListener('keydown', closeOnDone, true);
   };
 }

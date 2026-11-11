@@ -41,6 +41,7 @@ class TrekBridgeViewController: CAPBridgeViewController {
         // reachable" with a server that was there all along.
         if let webView, let inner = webView.navigationDelegate {
             let proxy = TrekNavigationProxy(inner: inner)
+            proxy.onErrorPage = { [weak self] error in self?.errorPageChanged(error) }
             navigationProxy = proxy
             webView.navigationDelegate = proxy
         }
@@ -711,6 +712,8 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     private let inner: WKNavigationDelegate
     /// A page of the server has shown since launch; from then on no sign-in host is learned (TrekSignInRedirect).
     private var serverShown = false
+    /// Told on the main thread whether the main frame now shows an error page in place of the server's.
+    var onErrorPage: ((Bool) -> Void)?
 
     init(inner: WKNavigationDelegate) {
         self.inner = inner
@@ -808,7 +811,7 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
         }
         if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse {
             let error = http.statusCode >= 400 && http.statusCode < 500
-            DispatchQueue.main.async { [weak self] in self?.errorPageChanged(error) }
+            DispatchQueue.main.async { [weak self] in self?.onErrorPage?(error) }
         }
         let selector = NSSelectorFromString("webView:decidePolicyForNavigationResponse:decisionHandler:")
         guard (inner as AnyObject).responds(to: selector) else {

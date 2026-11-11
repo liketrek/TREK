@@ -93,7 +93,7 @@ const native: TranslationStrings = {
   'native.plans.restoreNoneAndroid': 'No active subscription found on this Google account.',
   'native.claim.agree':
     'By subscribing, the TREK Cloud terms apply to providing your instance (provider: Maurice Bötger, Rostock). The store handles the purchase, payment and refunds.',
-  'native.claim.consentTitle': 'How TREK Cloud differs from a self-hosted TREK (German, legally binding):',
+  'native.claim.consentTitle': 'How TREK Cloud differs from TREK on your own server (German, legally binding):',
   'native.claim.consentLoading': 'Loading the agreement…',
   'native.claim.consentUnavailable': 'The agreement could not be loaded. Check your connection and try again.',
   'native.claim.consentRequired': 'Please read and confirm the agreement first.',

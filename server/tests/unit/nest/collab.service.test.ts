@@ -344,7 +344,7 @@ describe('listMessages', () => {
     expect(msgs[0].text).toBe('');
     expect(msgs[0].deleted).toBe(1);
     // Gone from the row itself, not only blanked on the way out.
-    const row = await findRow(orm, CollabMessages, { id: r.message!.id });
+    const row = await findRow(orm, CollabMessages, { id: msgs[0].id });
     expect(row?.text).toBe('');
   });
 
