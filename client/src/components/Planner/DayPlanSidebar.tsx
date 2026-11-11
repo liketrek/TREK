@@ -246,7 +246,12 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // distances refresh instead of showing stale cached text (#1300).
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const legsAbortRef = useRef<AbortController | null>(null)
-  const [draggingId, setDraggingId] = useState(null)
+  const [draggingId, _setDraggingId] = useState(null)
+  // The day list fades in once, on mount. Switching its stagger back on when a
+  // drag ended played that entrance again on every drop, so the first drag turns
+  // it off for good (#3041).
+  const [hasDragged, setHasDragged] = useState(false)
+  const setDraggingId = (id) => { if (id != null) setHasDragged(true); _setDraggingId(id) }
   const [lockedIds, setLockedIds] = useState(new Set())
   const [dropTargetKey, _setDropTargetKey] = useState(null)
   const dropTargetRef = useRef(null)
@@ -379,10 +384,14 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   // A drag whose source row re-rendered away never sends its dragend to the
   // document, and the drop line then stayed on a row until the next reload. The
   // browser sends no mousemove during a drag, so the first plain mouse move or
-  // press after one means it is over.
+  // press after one means it is over. Plain means no button held: Firefox fires
+  // dragstart while it handles the move that starts the drag and hands that move
+  // to the page afterwards, button still down. Read as the end, it threw the drag
+  // away at pick-up and left only the arrows to reorder a day (#3041).
   useEffect(() => {
     if (!draggingId && !dropTargetKey && !dragOverDayId) return
-    const settle = () => {
+    const settle = (e: MouseEvent | PointerEvent) => {
+      if (e.type === 'mousemove' && e.buttons !== 0) return
       setDraggingId(null)
       setDropTargetKey(null)
       setDragOverDayId(null)
@@ -1148,6 +1157,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     hotelLegs,
     draggingId,
     setDraggingId,
+    hasDragged,
     lockedIds,
     dropTargetKey,
     dropTargetRef,
@@ -1316,6 +1326,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     hotelLegs,
     draggingId,
     setDraggingId,
+    hasDragged,
     lockedIds,
     dropTargetKey,
     dropTargetRef,
@@ -1476,7 +1487,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       />
 
       {/* Tagesliste */}
-      <div className={`scroll-container flex flex-col gap-2 p-2${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
+      <div className={`scroll-container flex flex-col gap-2 p-2${hasDragged ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
         {days.map((day, index) => {
           const isSelected = selectedDayId === day.id
           // Shared by the click and the key handler so the two can never drift
