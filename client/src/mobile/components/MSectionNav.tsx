@@ -62,7 +62,7 @@ export function MSectionList({
           <div key={section.id} role="presentation">
             {heading && (
               <div
-                className={`px-[10px] pb-1 font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint ${
+                className={`px-[10px] pb-1 font-geist text-caption font-bold uppercase tracking-[.09em] text-m-faint ${
                   i === 0 ? 'pt-1' : 'pt-3'
                 }`}
               >
