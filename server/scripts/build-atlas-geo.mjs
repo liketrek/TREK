@@ -14,7 +14,13 @@
 // FeatureCollections that the server serves at runtime (no network at boot): one for
 // every country's borders, and one per country for its regions.
 //
+// A few countries take their regions from another source instead (REGION_SOURCES below:
+// Ireland's counties from Tailte Éireann).
+//
 // geoBoundaries: CC BY 4.0 — https://www.geoboundaries.org/  (attribution required).
+// Tailte Éireann: CC BY 4.0 — https://data-osi.opendata.arcgis.com/  (attribution required).
+import { simplifySharedBorders } from './lib/shared-border-simplify.mjs';
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -317,13 +323,86 @@ const A3_TO_A2 = {
  */
 const ADM_LEVEL = { GBR: 'ADM2' };
 
+/**
+ * The 26 counties of Ireland, keyed by the COUNTY field of Tailte Éireann's layer, with
+ * their ISO 3166-2:IE codes (the source carries none).
+ */
+const IE_COUNTIES = {
+  CARLOW: ['IE-CW', 'Carlow'],
+  CAVAN: ['IE-CN', 'Cavan'],
+  CLARE: ['IE-CE', 'Clare'],
+  CORK: ['IE-CO', 'Cork'],
+  DONEGAL: ['IE-DL', 'Donegal'],
+  DUBLIN: ['IE-D', 'Dublin'],
+  GALWAY: ['IE-G', 'Galway'],
+  KERRY: ['IE-KY', 'Kerry'],
+  KILDARE: ['IE-KE', 'Kildare'],
+  KILKENNY: ['IE-KK', 'Kilkenny'],
+  LAOIS: ['IE-LS', 'Laois'],
+  LEITRIM: ['IE-LM', 'Leitrim'],
+  LIMERICK: ['IE-LK', 'Limerick'],
+  LONGFORD: ['IE-LD', 'Longford'],
+  LOUTH: ['IE-LH', 'Louth'],
+  MAYO: ['IE-MO', 'Mayo'],
+  MEATH: ['IE-MH', 'Meath'],
+  MONAGHAN: ['IE-MN', 'Monaghan'],
+  OFFALY: ['IE-OY', 'Offaly'],
+  ROSCOMMON: ['IE-RN', 'Roscommon'],
+  SLIGO: ['IE-SO', 'Sligo'],
+  TIPPERARY: ['IE-TA', 'Tipperary'],
+  WATERFORD: ['IE-WD', 'Waterford'],
+  WESTMEATH: ['IE-WH', 'Westmeath'],
+  WEXFORD: ['IE-WX', 'Wexford'],
+  WICKLOW: ['IE-WW', 'Wicklow'],
+};
+
+/**
+ * Countries whose regions come from somewhere other than geoBoundaries, because no
+ * geoBoundaries level is the one people think in.
+ *
+ * IRL: ADM1 is the four provinces and ADM2 the 166 local electoral areas; there is no
+ * county layer at all (#2922). Tailte Éireann (CC BY 4.0) publishes the 26 counties,
+ * with Dublin, Cork, Galway and Limerick each one county (city and county together),
+ * which is what ISO 3166-2:IE lists.
+ *
+ * Each entry names the download, the file it is cached under, how many features it must
+ * yield, the tolerance its full-detail outlines are simplified with (see
+ * lib/shared-border-simplify.mjs) and how one feature's properties become the
+ * geoBoundaries `shapeName`/`shapeISO` that normalizeAdm1 reads, so everything after the
+ * download treats it like any other country. A feature it cannot place fails the build.
+ */
+const REGION_SOURCES = {
+  IRL: {
+    url:
+      'https://services-eu1.arcgis.com/FH5XCsx8rYXqnjF5/arcgis/rest/services/' +
+      'Counties___OSi_National_Statutory_Boundaries___Generalised_20m/FeatureServer/0/query' +
+      '?where=1%3D1&outFields=COUNTY&outSR=4326&f=geojson',
+    cacheFile: 'tailte-eireann-counties-2019-generalised-20m.geojson',
+    count: 26,
+    tolerance: 0.002,
+    toShape: ({ COUNTY }) => {
+      const county = IE_COUNTIES[COUNTY];
+      return county && { shapeISO: county[0], shapeName: county[1] };
+    },
+  },
+};
+
 const COUNTRIES = Object.keys(A3_TO_A2); // every ISO alpha-3 code (ADM1 fetch list)
+
+// ATLAS_ONLY=IRL[,GBR…] rebuilds just those countries' regions: their admin1/<A2> files
+// are rewritten and their features swapped into admin1.geojson.gz in place, while admin0
+// and every other country stay as they are. Saves fetching the whole world for one fix.
+const ONLY = (process.env.ATLAS_ONLY || '')
+  .split(',')
+  .map((s) => s.trim().toUpperCase())
+  .filter(Boolean);
+for (const a3 of ONLY) if (!A3_TO_A2[a3]) throw new Error(`ATLAS_ONLY: unknown alpha-3 code ${a3}`);
 
 // Cache raw downloads so re-runs (e.g. to tune simplification) don't re-fetch ~360 files.
 const CACHE_DIR = path.join(__dirname, '..', '.atlas-geo-cache', GB_REF);
 
-async function fetchGeo(url) {
-  const cacheFile = path.join(CACHE_DIR, url.split('/').slice(-1)[0]);
+async function fetchGeo(url, cacheName = url.split('/').slice(-1)[0]) {
+  const cacheFile = path.join(CACHE_DIR, cacheName);
   if (fs.existsSync(cacheFile)) {
     const cached = fs.readFileSync(cacheFile, 'utf8');
     return cached === '' ? null : JSON.parse(cached);
@@ -422,6 +501,30 @@ function normalizeAdm0Feature(f) {
   };
 }
 
+// A country's raw region layer: from its REGION_SOURCES entry when it has one, else the
+// geoBoundaries level ADM_LEVEL names (ADM1 by default).
+async function fetchRegions(a3) {
+  const source = REGION_SOURCES[a3];
+  if (!source) return fetchGeo(MEDIA(a3, ADM_LEVEL[a3] || 'ADM1'));
+
+  const geo = await fetchGeo(source.url, source.cacheFile);
+  if (!geo?.features) throw new Error(`${a3}: region source could not be downloaded`);
+  const features = geo.features.map((f) => {
+    const shape = source.toShape(f.properties || {});
+    if (!shape) throw new Error(`${a3}: region source has a feature it cannot place: ${JSON.stringify(f.properties)}`);
+    return { type: 'Feature', properties: shape, geometry: quantizeGeometry(f.geometry, ADM1_DECIMALS) };
+  });
+  const codes = new Set(features.map((f) => f.properties.shapeISO));
+  if (features.length !== source.count || codes.size !== source.count) {
+    throw new Error(
+      `${a3}: expected ${source.count} distinct regions, the source has ${features.length} (${codes.size} distinct)`,
+    );
+  }
+  // By code, so the output does not depend on the order the service happens to answer in.
+  features.sort((a, b) => (a.properties.shapeISO < b.properties.shapeISO ? -1 : 1));
+  return { features: simplifySharedBorders(features, source.tolerance) };
+}
+
 function normalizeAdm1(geo, a3, countryName) {
   if (!geo?.features) return [];
   const a2 = A3_TO_A2[a3] || null;
@@ -477,7 +580,46 @@ function normalizeAdm1(geo, a3, countryName) {
     .filter(Boolean);
 }
 
+const write = (name, features) => {
+  const fc = { type: 'FeatureCollection', features };
+  const gz = zlib.gzipSync(Buffer.from(JSON.stringify(fc)), { level: 9 });
+  const file = path.join(OUT_DIR, `${name}.geojson.gz`);
+  fs.writeFileSync(file, gz);
+  console.log(
+    `[atlas-geo] wrote ${path.relative(path.join(__dirname, '..'), file)} — ${features.length} features, ${(gz.length / 1e6).toFixed(1)} MB gz`,
+  );
+};
+
+const readShipped = (name) =>
+  JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(OUT_DIR, `${name}.geojson.gz`))).toString('utf8')).features;
+
+// The ATLAS_ONLY path. A full build writes the countries in COUNTRIES order, each one's
+// features in a single run, so a rebuilt country goes back where its run was, or where
+// it would have been, and admin1.geojson.gz ends up as a full build would leave it.
+async function rebuildOnly(countries) {
+  console.log(`[atlas-geo] rebuilding the regions of ${countries.join(', ')} only`);
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  const a3ToName = Object.fromEntries(readShipped('admin0').map((f) => [f.properties.ADM0_A3, f.properties.NAME]));
+  const order = new Map(COUNTRIES.map((a3, i) => [A3_TO_A2[a3], i]));
+  let bundle = readShipped('admin1');
+
+  for (const a3 of countries) {
+    const a2 = A3_TO_A2[a3];
+    const features = normalizeAdm1(await fetchRegions(a3), a3, a3ToName[a3] || a3);
+    if (!features.length) throw new Error(`${a3}: no regions to write`);
+    const first = bundle.findIndex((f) => f.properties.iso_a2 === a2);
+    const at = first !== -1 ? first : bundle.findIndex((f) => order.get(f.properties.iso_a2) > order.get(a2));
+    const rest = bundle.filter((f) => f.properties.iso_a2 !== a2);
+    const cut = at === -1 ? rest.length : at;
+    bundle = [...rest.slice(0, cut), ...features, ...rest.slice(cut)];
+    write(`admin1/${a2}`, features);
+  }
+  write('admin1', bundle);
+}
+
 async function main() {
+  if (ONLY.length) return rebuildOnly(ONLY);
+
   console.log(`[atlas-geo] geoBoundaries ref ${GB_REF}; ${COUNTRIES.length} countries`);
   fs.mkdirSync(OUT_DIR, { recursive: true });
   fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -496,9 +638,10 @@ async function main() {
     }
   }
 
-  // ADM1 (sub-national regions) — per-country gbOpen (carries ISO 3166-2 `shapeISO`).
+  // ADM1 (sub-national regions) — per-country gbOpen (carries ISO 3166-2 `shapeISO`),
+  // or the country's own source (REGION_SOURCES).
   console.log('[atlas-geo] downloading ADM1 (regions)…');
-  const adm1Raw = await pool(COUNTRIES, (a3) => fetchGeo(MEDIA(a3, ADM_LEVEL[a3] || 'ADM1')));
+  const adm1Raw = await pool(COUNTRIES, fetchRegions);
   const adm1Features = [];
   let withCodes = 0;
   COUNTRIES.forEach((a3, idx) => {
@@ -506,16 +649,6 @@ async function main() {
     for (const f of feats) if (f.properties.iso_3166_2) withCodes++;
     adm1Features.push(...feats);
   });
-
-  const write = (name, features) => {
-    const fc = { type: 'FeatureCollection', features };
-    const gz = zlib.gzipSync(Buffer.from(JSON.stringify(fc)), { level: 9 });
-    const file = path.join(OUT_DIR, `${name}.geojson.gz`);
-    fs.writeFileSync(file, gz);
-    console.log(
-      `[atlas-geo] wrote ${path.relative(path.join(__dirname, '..'), file)} — ${features.length} features, ${(gz.length / 1e6).toFixed(1)} MB gz`,
-    );
-  };
 
   write('admin0', adm0Features);
   // Read only by two shipped migrations (Migration20200101021500/…031500), whose bodies

@@ -439,8 +439,9 @@ Every variable, its default and what it does: see
 
 The Atlas map's country and sub-national (province/county) boundaries come from
 [**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
-for full third-party attributions.
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); Ireland's counties come from
+[**Tailte Éireann**](https://data-osi.opendata.arcgis.com/), also CC BY 4.0. See
+[NOTICE.md](NOTICE.md) for full third-party attributions.
 
 <br />
 
