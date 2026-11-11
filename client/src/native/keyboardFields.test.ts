@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { prepareField, prepareKeyboardFields } from './keyboardFields';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { closeOnDone, prepareField, prepareKeyboardFields } from './keyboardFields';
 
 function field(html: string): HTMLInputElement {
   document.body.innerHTML = html;
@@ -87,5 +87,55 @@ describe('prepareKeyboardFields', () => {
     const b = field('<input name="other">');
     b.focus();
     expect(b.hasAttribute('enterkeyhint')).toBe(false);
+  });
+});
+
+describe('closeOnDone', () => {
+  const enter = (el: HTMLElement) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+  it('closes the keyboard when nothing took the Enter of a "done" field', () => {
+    vi.useFakeTimers();
+    const el = field('<input name="title" enterkeyhint="done">');
+    el.focus();
+    el.addEventListener('keydown', closeOnDone);
+    enter(el);
+    vi.runAllTimers();
+    expect(document.activeElement).not.toBe(el);
+    vi.useRealTimers();
+  });
+
+  it('keeps the keyboard for a field that acted on the Enter and cleared itself', () => {
+    vi.useFakeTimers();
+    const el = field('<input name="item" enterkeyhint="done">');
+    el.value = 'Socks';
+    el.focus();
+    el.addEventListener('keydown', () => {
+      el.value = '';
+    });
+    el.addEventListener('keydown', closeOnDone);
+    enter(el);
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(el);
+    vi.useRealTimers();
+  });
+
+  it('leaves "go" and "search" fields and handled Enters alone', () => {
+    vi.useFakeTimers();
+    for (const hint of ['go', 'search']) {
+      const el = field(`<input enterkeyhint="${hint}">`);
+      el.focus();
+      el.addEventListener('keydown', closeOnDone);
+      enter(el);
+      vi.runAllTimers();
+      expect(document.activeElement).toBe(el);
+    }
+    const handled = field('<input enterkeyhint="done">');
+    handled.focus();
+    handled.addEventListener('keydown', (e) => e.preventDefault());
+    handled.addEventListener('keydown', closeOnDone);
+    handled.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(handled);
+    vi.useRealTimers();
   });
 });

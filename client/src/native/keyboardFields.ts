@@ -18,6 +18,12 @@
  *
  * An attribute the field sets itself always wins, and textareas, which take
  * Enter as a new line, keep the return key. Only the app calls this.
+ *
+ * The "done" key also has to close the keyboard: a web view only sends Enter,
+ * and a field outside a form has nothing listening for it, so the key did
+ * nothing. When no handler took the Enter (the field still has focus and the
+ * same text a moment later) the field lets go of the focus. A field that acts
+ * on Enter and clears itself, such as a list that adds the next item, keeps it.
  */
 
 const SKIP_TYPES = new Set([
@@ -104,14 +110,29 @@ export function prepareField(target: EventTarget | null): void {
   }
 }
 
+/** Enter on a "done" field that nothing acted on closes the keyboard. */
+export function closeOnDone(e: KeyboardEvent): void {
+  const el = e.target;
+  if (e.key !== 'Enter' || e.isComposing || e.defaultPrevented) return;
+  if (!(el instanceof HTMLInputElement) || el.getAttribute('enterkeyhint') !== 'done') return;
+  const before = el.value;
+  // After every handler of this Enter, including ones React schedules.
+  setTimeout(() => {
+    if (el.ownerDocument.activeElement === el && el.value === before) el.blur();
+  }, 0);
+}
+
 export function prepareKeyboardFields(doc: Document = document): () => void {
   // On the touch, before the focus: the keyboard is set up as the field takes it.
   const onTouch = (e: Event) => prepareField(e.target instanceof Element ? e.target.closest('input') : null);
   const onFocus = (e: FocusEvent) => prepareField(e.target);
   doc.addEventListener('touchstart', onTouch, { capture: true, passive: true });
   doc.addEventListener('focusin', onFocus, true);
+  // Bubbling, so a field's own handler runs first and can take the Enter.
+  doc.addEventListener('keydown', closeOnDone);
   return () => {
     doc.removeEventListener('touchstart', onTouch, { capture: true });
     doc.removeEventListener('focusin', onFocus, true);
+    doc.removeEventListener('keydown', closeOnDone);
   };
 }
