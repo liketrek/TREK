@@ -343,6 +343,9 @@ describe('listMessages', () => {
     expect(msgs).toHaveLength(1);
     expect(msgs[0].text).toBe('');
     expect(msgs[0].deleted).toBe(1);
+    // Gone from the row itself, not only blanked on the way out.
+    const row = await findRow(orm, CollabMessages, { id: r.message!.id });
+    expect(row?.text).toBe('');
   });
 
   it('COLLAB-SVC-013b: blanks reply_text when the quoted message was deleted', async () => {

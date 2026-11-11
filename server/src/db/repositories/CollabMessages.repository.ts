@@ -179,9 +179,13 @@ export class CollabMessagesRepository extends TrekRepository<CollabMessages> {
     return await this.insert({ trip: trip_id, user: user_id, text, reply_to, origin });
   }
 
-  /** CB54 (`deleteMessage`, inside its transaction) — `UPDATE collab_messages SET deleted = 1 WHERE id = ?`, soft delete — the row survives for the placeholder. */
+  /**
+   * CB54 (`deleteMessage`, inside its transaction) — `UPDATE collab_messages SET deleted = 1, text = '' WHERE id = ?`,
+   * soft delete: the row survives for the placeholder, its text does not, so a deleted message is gone from the
+   * database and every backup made after it, not only hidden from the client.
+   */
   async softDelete(id: number): Promise<void> {
-    await this.nativeUpdate({ id }, { deleted: 1 });
+    await this.nativeUpdate({ id }, { deleted: 1, text: '' });
   }
 
   // -------------------------------------------------------------------------
