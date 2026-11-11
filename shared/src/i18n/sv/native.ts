@@ -20,6 +20,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK kunde inte nå {server}. Kontrollera din anslutning och försök igen.',
   'native.offline.retry': 'Försök igen',
   'native.changeServer': 'Byt server',
+  'native.errorPageBar.hint':
+    'Den här sidan kommer inte från TREK: servern eller en proxy framför den nekade appen. Kontrollera din proxy eller ditt certifikat, eller byt server.',
   'native.signInBar.hint':
     'Nyckelpass och säkerhetsnycklar fungerar inte på den här sidan i appen. Logga in med lösenord eller släpp igenom appen i din proxy.',
   'native.login.failed': 'Inloggningen misslyckades. Försök igen.',

@@ -26,6 +26,7 @@ final class TrekServerStore {
     private static final String KEY_SERVER_CHECK = "server_check";
     private static final String KEY_LABEL_SIGN_IN_HINT = "label_sign_in_hint";
     private static final String KEY_LABEL_CHANGE_SERVER = "label_change_server";
+    private static final String KEY_LABEL_ERROR_PAGE_HINT = "label_error_page_hint";
 
     /**
      * The server API this build needs (MIN_NATIVE_API in serverAddress.ts). A
@@ -83,11 +84,19 @@ final class TrekServerStore {
      * as the address screen passed them (setServer's `labels`): the server's UI
      * is not there to say them. Null keeps the English fallback.
      */
-    static void setLabels(Context context, String signInHint, String changeServer) {
+    static void setLabels(Context context, String signInHint, String changeServer, String errorPageHint) {
         SharedPreferences.Editor editor = prefs(context).edit();
         if (signInHint != null) editor.putString(KEY_LABEL_SIGN_IN_HINT, signInHint);
         if (changeServer != null) editor.putString(KEY_LABEL_CHANGE_SERVER, changeServer);
+        if (errorPageHint != null) editor.putString(KEY_LABEL_ERROR_PAGE_HINT, errorPageHint);
         editor.commit();
+    }
+
+    static String errorPageHintLabel(Context context) {
+        return prefs(context).getString(
+            KEY_LABEL_ERROR_PAGE_HINT,
+            "This page is not from TREK: the server or a proxy in front of it refused the app. Check your proxy or certificate, or change the server."
+        );
     }
 
     static String signInHintLabel(Context context) {

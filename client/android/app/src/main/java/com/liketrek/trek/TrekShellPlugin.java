@@ -328,7 +328,12 @@ public class TrekShellPlugin extends Plugin {
         TrekServerStore.setServer(getContext(), url, signInHostsOf(call));
         JSObject labels = call.getObject("labels");
         if (labels != null) {
-            TrekServerStore.setLabels(getContext(), labels.getString("signInHint"), labels.getString("changeServer"));
+            TrekServerStore.setLabels(
+                getContext(),
+                labels.getString("signInHint"),
+                labels.getString("changeServer"),
+                labels.getString("errorPageHint")
+            );
         }
         // A TREK Cloud purchase: the code that signs the buyer in, opened once after the first page.
         String welcome = call.getString("welcome");

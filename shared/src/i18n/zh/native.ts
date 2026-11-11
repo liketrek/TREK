@@ -17,6 +17,7 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK 无法连接到 {server}。请检查网络连接后重试。',
   'native.offline.retry': '重试',
   'native.changeServer': '更换服务器',
+  'native.errorPageBar.hint': '此页面并非来自 TREK：服务器或其前面的代理拒绝了应用。请检查代理或证书，或更换服务器。',
   'native.signInBar.hint': '在应用中，此页面无法使用通行密钥和安全密钥。请使用密码登录，或让应用绕过你的代理。',
   'native.login.failed': '登录未成功，请重试。',
   'native.handoff.title': '在应用中继续',

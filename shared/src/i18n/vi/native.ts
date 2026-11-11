@@ -20,6 +20,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'TREK không thể kết nối tới {server}. Hãy kiểm tra kết nối và thử lại.',
   'native.offline.retry': 'Thử lại',
   'native.changeServer': 'Đổi máy chủ',
+  'native.errorPageBar.hint':
+    'Trang này không phải của TREK: máy chủ hoặc proxy phía trước đã từ chối ứng dụng. Hãy kiểm tra proxy hoặc chứng chỉ, hoặc đổi máy chủ.',
   'native.signInBar.hint':
     'Khóa truy cập và khóa bảo mật không hoạt động trên trang này trong ứng dụng. Hãy đăng nhập bằng mật khẩu hoặc cho ứng dụng đi qua proxy của bạn.',
   'native.login.failed': 'Đăng nhập không thành công. Vui lòng thử lại.',

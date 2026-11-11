@@ -1281,7 +1281,11 @@ async function connected(url: string, signInHosts: string[] = [], welcome?: stri
   await new Promise((r) => setTimeout(r, 700));
   await TrekShell.setServer({
     url,
-    labels: { signInHint: t('native.signInBar.hint'), changeServer: t('native.changeServer') },
+    labels: {
+      signInHint: t('native.signInBar.hint'),
+      changeServer: t('native.changeServer'),
+      errorPageHint: t('native.errorPageBar.hint'),
+    },
     ...(signInHosts.length ? { signInHosts } : {}),
     ...(welcome ? { welcome } : {}),
   });

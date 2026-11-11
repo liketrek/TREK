@@ -27,13 +27,14 @@ export interface TrekShellPlugin {
    * opens the server's welcome page with it, which signs the buyer in. A build
    * without this option ignores it and opens the server as usual.
    * `labels` are the words of the bar the app shows over a proxy's sign-in page,
-   * in the user's language: the server's UI is not there to say them.
+   * or over an error page in place of the server's (a proxy's block page), in the
+   * user's language: the server's UI is not there to say them.
    */
   setServer(options: {
     url: string;
     signInHosts?: string[];
     welcome?: string;
-    labels?: { signInHint: string; changeServer: string };
+    labels?: { signInHint: string; changeServer: string; errorPageHint?: string };
   }): Promise<void>;
   /** Forgets the server and returns to the address screen. */
   resetServer(): Promise<void>;

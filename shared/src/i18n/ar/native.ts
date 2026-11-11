@@ -19,6 +19,8 @@ const native: TranslationStrings = {
   'native.offline.hint': 'تعذّر على TREK الوصول إلى {server}. تحقق من اتصالك ثم حاول مرة أخرى.',
   'native.offline.retry': 'إعادة المحاولة',
   'native.changeServer': 'تغيير الخادم',
+  'native.errorPageBar.hint':
+    'هذه الصفحة ليست من TREK: رفض الخادم أو وكيل أمامه التطبيق. تحقق من الوكيل أو الشهادة، أو غيّر الخادم.',
   'native.signInBar.hint':
     'لا تعمل مفاتيح المرور ومفاتيح الأمان على هذه الصفحة داخل التطبيق. سجّل الدخول بكلمة مرور، أو اسمح للتطبيق بتجاوز الوكيل.',
   'native.login.failed': 'تعذّر تسجيل الدخول. يرجى المحاولة مرة أخرى.',

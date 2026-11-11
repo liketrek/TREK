@@ -27,14 +27,25 @@ class TrekWebViewClient extends BridgeWebViewClient {
     private final Runnable onUnreachable;
     /** Told whether the page now shown is a proxy's sign-in page, for the bar with the way out. */
     private final Consumer<Boolean> onSignInPage;
+    /** Told whether the page now shown is an error page in place of the server's, for the same bar. */
+    private final Consumer<Boolean> onErrorPage;
+    /** The main-frame address that last came back as a 4xx page nobody else handled. */
+    private String errorPageUrl;
     private final Set<String> signInHosts;
     /** A page of the server has shown since launch; from then on no sign-in host is learned (SignInRedirect). */
     private boolean serverShown;
 
-    TrekWebViewClient(Bridge bridge, Runnable onUnreachable, Consumer<Boolean> onSignInPage, Set<String> signInHosts) {
+    TrekWebViewClient(
+        Bridge bridge,
+        Runnable onUnreachable,
+        Consumer<Boolean> onSignInPage,
+        Consumer<Boolean> onErrorPage,
+        Set<String> signInHosts
+    ) {
         super(bridge);
         this.onUnreachable = onUnreachable;
         this.onSignInPage = onSignInPage;
+        this.onErrorPage = onErrorPage;
         this.signInHosts = new HashSet<>(signInHosts);
     }
 
@@ -70,6 +81,11 @@ class TrekWebViewClient extends BridgeWebViewClient {
     public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
         super.doUpdateVisitedHistory(view, url, isReload);
         onSignInPage.accept(url != null && isSignInHost(Uri.parse(url)));
+        // The 4xx answer arrives before this commit or after it; either way the
+        // flag is read once here, so the next page clears the bar again.
+        boolean error = url != null && url.equals(errorPageUrl);
+        errorPageUrl = null;
+        onErrorPage.accept(error);
     }
 
     /** After the server's first page, a pending welcome code opens the welcome page once (TrekServerStore.takeWelcomeUrl). */
@@ -132,10 +148,12 @@ class TrekWebViewClient extends BridgeWebViewClient {
 
     /**
      * Only a 5xx on the page itself means the server is down (a proxy's 502 or
-     * 503 while TREK restarts). A 4xx page is left alone: the server answered,
-     * and TREK serves its UI for every other path. The exception is a proxy
-     * that asked this page for a client certificate and got none, as Cloudflare
-     * does with a 403: the address screen then says so and offers to add one.
+     * 503 while TREK restarts). A 4xx page is not TREK's, which serves its UI for
+     * every path: a proxy that asked this page for a client certificate and got
+     * none, as Cloudflare does with a 403, sends the app to the address screen,
+     * which says so and offers to add one. Any other 4xx page (a proxy's block
+     * page, a certificate it refused) stays up with the bar and its way out, so
+     * the app is never stuck on a page without TREK's UI.
      */
     @Override
     public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
@@ -144,6 +162,9 @@ class TrekWebViewClient extends BridgeWebViewClient {
             super.onReceivedHttpError(view, request, errorResponse);
         } else if (status >= 500 || (status >= 400 && wantedCertificate(request.getUrl()))) {
             onUnreachable.run();
+        } else if (status >= 400) {
+            errorPageUrl = request.getUrl().toString();
+            onErrorPage.accept(true);
         }
     }
 

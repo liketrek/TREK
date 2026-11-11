@@ -47,7 +47,13 @@ public class MainActivity extends BridgeActivity {
         // Set before any WebView callback can run: they are posted to this thread.
         if (onServer) {
             bridge.setWebViewClient(
-                new TrekWebViewClient(bridge, this::showAddressScreen, this::showSignInBar, TrekServerStore.getSignInHosts(this))
+                new TrekWebViewClient(
+                    bridge,
+                    this::showAddressScreen,
+                    this::showSignInBar,
+                    this::showErrorPageBar,
+                    TrekServerStore.getSignInHosts(this)
+                )
             );
         }
         TrekSharedFiles.receive(this, getIntent());
@@ -84,7 +90,10 @@ public class MainActivity extends BridgeActivity {
     private View signInBar;
     /** Whether the page is a proxy's sign-in page, and whether the keyboard is up over it. */
     private boolean onSignInPage;
+    /** Whether the page is an error page in place of the server's (TrekWebViewClient.onReceivedHttpError). */
+    private boolean onErrorPage;
     private boolean keyboardUp;
+    private TextView signInHint;
 
     /**
      * Over a proxy's sign-in page (Pangolin, authentik, ...): the server's UI is
@@ -100,9 +109,22 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    /** The same bar over an error page in place of the server's, with words for that. */
+    private void showErrorPageBar(boolean show) {
+        runOnUiThread(() -> {
+            onErrorPage = show;
+            if (show && signInBar == null) signInBar = buildSignInBar();
+            updateSignInBar();
+        });
+    }
+
     /** Out of the way while the keyboard is up: the form needs the room, and the bar is there again once it closes. */
     private void updateSignInBar() {
-        if (signInBar != null) signInBar.setVisibility(onSignInPage && !keyboardUp ? View.VISIBLE : View.GONE);
+        if (signInBar == null) return;
+        if (signInHint != null) {
+            signInHint.setText(onSignInPage ? TrekServerStore.signInHintLabel(this) : TrekServerStore.errorPageHintLabel(this));
+        }
+        signInBar.setVisibility((onSignInPage || onErrorPage) && !keyboardUp ? View.VISIBLE : View.GONE);
     }
 
     private View buildSignInBar() {
@@ -118,6 +140,7 @@ public class MainActivity extends BridgeActivity {
         bar.setElevation(6 * dp);
 
         TextView hint = new TextView(this);
+        signInHint = hint;
         hint.setText(TrekServerStore.signInHintLabel(this));
         hint.setTextColor(0xFFE5E7EB);
         hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);

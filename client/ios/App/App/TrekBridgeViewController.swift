@@ -68,6 +68,10 @@ class TrekBridgeViewController: CAPBridgeViewController {
     private var urlObservation: NSKeyValueObservation?
     private var insetObservation: NSKeyValueObservation?
     private var onSignInPage = false
+    /// Whether the main frame shows an error page in place of the server's (a 4xx
+    /// nobody else handled: a proxy's block page, a client certificate it refused).
+    private var onErrorPage = false
+    private var signInHint: UILabel?
     private var keyboardUp = false
     /// How far the keyboard reaches into the view while it is up.
     private var keyboardRoom: CGFloat = 0
@@ -97,9 +101,20 @@ class TrekBridgeViewController: CAPBridgeViewController {
         updateSignInBar()
     }
 
+    private func errorPageChanged(_ error: Bool) {
+        onErrorPage = error
+        if error && signInBar == nil { signInBar = makeSignInBar() }
+        updateSignInBar()
+    }
+
     /// Out of the way while the keyboard is up: the form needs the room.
     private func updateSignInBar() {
-        signInBar?.isHidden = !(onSignInPage && !keyboardUp)
+        let labels = TrekServerStore.labels
+        signInHint?.text = onSignInPage
+            ? labels["signInHint"]
+                ?? "Passkeys and security keys do not work on this page in the app. Sign in with a password, or let the app through your proxy."
+            : labels["errorPageHint"] ?? "This page is not from TREK: the server or a proxy in front of it refused the app. Check your proxy or certificate, or change the server."
+        signInBar?.isHidden = !((onSignInPage || onErrorPage) && !keyboardUp)
         applyInset()
     }
 
@@ -108,7 +123,7 @@ class TrekBridgeViewController: CAPBridgeViewController {
     private func applyInset() {
         guard let scrollView = webView?.scrollView else { return }
         let wanted: CGFloat
-        if onSignInPage {
+        if onSignInPage || onErrorPage {
             if keyboardUp {
                 wanted = keyboardRoom
             } else if let bar = signInBar {
@@ -172,6 +187,7 @@ class TrekBridgeViewController: CAPBridgeViewController {
         hint.font = .preferredFont(forTextStyle: .footnote)
         hint.adjustsFontForContentSizeCategory = true
         hint.numberOfLines = 0
+        signInHint = hint
         hint.translatesAutoresizingMaskIntoConstraints = false
 
         let change = UIButton(type: .system)
@@ -748,7 +764,9 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     /// A proxy that asked the page for a client certificate, got none and
     /// answered with its own refusal (Cloudflare's 403, nginx's 400) sends the
     /// app to the address screen, which says so and offers to add one, rather
-    /// than leaving the proxy's error page up.
+    /// than leaving the proxy's error page up. Any other 4xx page is not TREK's,
+    /// which serves its UI for every path (a proxy's block page, a certificate it
+    /// refused): it stays up with the bar and its way out to another server.
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
                  decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse,
@@ -757,6 +775,10 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
             decisionHandler(.cancel)
             inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRequired))
             return
+        }
+        if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse {
+            let error = http.statusCode >= 400 && http.statusCode < 500
+            DispatchQueue.main.async { [weak self] in self?.errorPageChanged(error) }
         }
         let selector = NSSelectorFromString("webView:decidePolicyForNavigationResponse:decisionHandler:")
         guard (inner as AnyObject).responds(to: selector) else {
