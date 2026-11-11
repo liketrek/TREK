@@ -5,6 +5,7 @@ import { frameLine } from '../../utils/lngFrame'
 import type { DawarichTrack } from '@trek/shared'
 import {
   DAWARICH_TRAIL_CASING,
+  DAWARICH_TRAIL_STROKE,
   trailSegments,
   type DawarichTrailSegment,
 } from './dawarichTrail'
@@ -55,8 +56,8 @@ export default function DawarichTrailLayer({
           // theme-lint-disable — map paint
           pathOptions={{
             color: DAWARICH_TRAIL_CASING,
-            weight: 6,
-            opacity: 0.55,
+            weight: DAWARICH_TRAIL_STROKE.casingWidth,
+            opacity: DAWARICH_TRAIL_STROKE.casingOpacity,
             lineCap: 'round',
             lineJoin: 'round',
           }}
@@ -72,9 +73,9 @@ export default function DawarichTrailLayer({
           positions={segment.points}
           pathOptions={{
             color: segment.color,
-            weight: 3,
-            opacity: 0.85,
-            dashArray: '6 5',
+            weight: DAWARICH_TRAIL_STROKE.width,
+            opacity: DAWARICH_TRAIL_STROKE.opacity,
+            dashArray: DAWARICH_TRAIL_STROKE.dashLeaflet,
             lineCap: 'round',
             lineJoin: 'round',
           }}

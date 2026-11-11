@@ -28,6 +28,22 @@ export const DAWARICH_TRAIL_COLOR = '#2563EB' // theme-lint-disable — map pain
 export const DAWARICH_TRAIL_CASING = '#FFFFFF' // theme-lint-disable — map paint
 
 /**
+ * How the recorded route is stroked, shared by the Leaflet and GL layers. A
+ * thin, translucent dash over a nearly opaque white casing read as a pale
+ * lavender trace on a busy street map and was barely visible (TestFlight
+ * feedback, 5.1.3). Full colour, a wider line and longer dashes keep it
+ * readable; the dash still tells it apart from the planned route.
+ */
+export const DAWARICH_TRAIL_STROKE = {
+  casingWidth: 7,
+  casingOpacity: 0.9,
+  width: 4,
+  opacity: 1,
+  dashLeaflet: '10 5',
+  dashGL: [2.5, 1.25] as [number, number],
+} as const
+
+/**
  * Per-day hues, cycled.
  *
  * A multi-day trip drawn in one colour is a scribble; per-day colours make "we
