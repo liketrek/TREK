@@ -9,6 +9,9 @@ const settings: TranslationStrings = {
   'settings.tabs.integrations': 'Integracions',
   'settings.tabs.account': 'Compte',
   'settings.tabs.offline': 'Fora de línia',
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'El teu compte',
+  'settings.groups.device': 'Aquest dispositiu',
   'settings.tabs.about': 'Quant a',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Plantilla del mapa',

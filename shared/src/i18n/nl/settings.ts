@@ -20,6 +20,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" is vereist',
   'settings.tabs.account': 'Account', // same-as-en
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'Je account',
+  'settings.groups.device': 'Dit apparaat',
   'settings.tabs.about': 'Over',
   'settings.map': 'Kaart',
   'settings.mapTemplate': 'Kaartsjabloon',

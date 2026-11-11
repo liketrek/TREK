@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" wajib diisi',
   'settings.tabs.account': 'Akun',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'Aplikasi',
+  'settings.groups.account': 'Akun Anda',
+  'settings.groups.device': 'Perangkat ini',
   'settings.tabs.about': 'Tentang',
   'settings.map': 'Peta',
   'settings.mapTemplate': 'Template Peta',

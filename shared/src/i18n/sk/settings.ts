@@ -28,6 +28,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.status': 'Výsledok',
   'settings.tabs.account': 'Účet',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'Aplikácia',
+  'settings.groups.account': 'Tvoj účet',
+  'settings.groups.device': 'Toto zariadenie',
   'settings.tabs.about': 'O aplikácii',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Šablóna mapy',

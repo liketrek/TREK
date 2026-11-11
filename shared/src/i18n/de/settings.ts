@@ -20,6 +20,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" ist erforderlich',
   'settings.tabs.account': 'Konto',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'Dein Konto',
+  'settings.groups.device': 'Dieses Gerät',
   'settings.tabs.about': 'Über',
   'settings.map': 'Karte',
   'settings.mapTemplate': 'Karten-Vorlage',

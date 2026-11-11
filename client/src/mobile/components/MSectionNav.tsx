@@ -6,6 +6,11 @@ export interface MSection {
   id: string;
   label: string;
   icon: LucideIcon;
+  /**
+   * The heading the section stands under. Consecutive sections with the same
+   * group share one heading; a screen whose sections name none shows none.
+   */
+  group?: string;
 }
 
 interface MSectionRowProps {
@@ -30,6 +35,50 @@ export function MSectionRow({ section, active, current = false, onPick }: MSecti
       <section.icon size={15} strokeWidth={2} className="flex-none" />
       <span className="min-w-0 flex-1 truncate">{section.label}</span>
     </button>
+  );
+}
+
+/**
+ * The sections in order, each run of one group under its heading: the same list
+ * in the dropdown of a phone and in the list beside the page.
+ */
+export function MSectionList({
+  sections,
+  activeId,
+  markCurrent = false,
+  onPick,
+}: {
+  sections: MSection[];
+  activeId: string;
+  /** Marks the active row as the page on show (the list beside the page). */
+  markCurrent?: boolean;
+  onPick: (id: string) => void;
+}) {
+  return (
+    <>
+      {sections.map((section, i) => {
+        const heading = section.group && section.group !== sections[i - 1]?.group ? section.group : null;
+        return (
+          <div key={section.id} role="presentation">
+            {heading && (
+              <div
+                className={`px-[10px] pb-1 font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint ${
+                  i === 0 ? 'pt-1' : 'pt-3'
+                }`}
+              >
+                {heading}
+              </div>
+            )}
+            <MSectionRow
+              section={section}
+              active={section.id === activeId}
+              current={markCurrent && section.id === activeId}
+              onPick={() => onPick(section.id)}
+            />
+          </div>
+        );
+      })}
+    </>
   );
 }
 
@@ -88,15 +137,7 @@ export default function MSectionNav({
         <span className="min-w-0 flex-1 truncate text-subtitle font-bold text-m-ink">{title}</span>
       </div>
       {action && <div className="mb-1 px-[4px]">{action}</div>}
-      {sections.map((section) => (
-        <MSectionRow
-          key={section.id}
-          section={section}
-          active={section.id === activeId}
-          current={section.id === activeId}
-          onPick={() => onPick(section.id)}
-        />
-      ))}
+      <MSectionList sections={sections} activeId={activeId} markCurrent onPick={onPick} />
     </nav>
   );
 }

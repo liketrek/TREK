@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '„{field}" je povinné',
   'settings.tabs.account': 'Účet',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'Aplikace',
+  'settings.groups.account': 'Tvůj účet',
+  'settings.groups.device': 'Toto zařízení',
   'settings.tabs.about': 'O aplikaci',
   'settings.map': 'Mapy',
   'settings.mapTemplate': 'Šablona mapy',

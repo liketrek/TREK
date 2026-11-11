@@ -31,6 +31,9 @@ const settings: TranslationStrings = {
 
   'settings.tabs.account': 'Hesab',
   'settings.tabs.offline': 'Oflayn',
+  'settings.tabs.device': 'Tətbiq',
+  'settings.groups.account': 'Hesabınız',
+  'settings.groups.device': 'Bu cihaz',
   'settings.tabs.about': 'Haqqında',
 
   'settings.map': 'Xəritə',

@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" kötelező',
   'settings.tabs.account': 'Fiók',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'Alkalmazás',
+  'settings.groups.account': 'Fiókod',
+  'settings.groups.device': 'Ez az eszköz',
   'settings.tabs.about': 'Névjegy',
   'settings.map': 'Térkép',
   'settings.mapTemplate': 'Térkép sablon',

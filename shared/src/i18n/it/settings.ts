@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" è obbligatorio',
   'settings.tabs.account': 'Account', // same-as-en
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'Il tuo account',
+  'settings.groups.device': 'Questo dispositivo',
   'settings.tabs.about': 'Informazioni',
   'settings.map': 'Mappa',
   'settings.mapTemplate': 'Modello Mappa',
