@@ -63,8 +63,10 @@ describe('safe area in the touch shell', () => {
   it('FE-MOB-CHROME-005: without the rail the floating bars keep clear of a side inset, such as a camera in a corner', () => {
     const narrow = "html:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {";
     const rule = css.split(narrow)[1]?.split('}')[0] ?? '';
-    expect(rule).toContain('margin-left: var(--m-safe-l, 0px);');
-    expect(rule).toContain('margin-right: var(--m-safe-r, 0px);');
+    expect(rule).toContain('margin-inline: var(--m-safe-l, 0px) var(--m-safe-r, 0px);');
+    // The insets are the screen's: right to left takes them the other way round.
+    const rtl = css.split(`html[dir='rtl']${narrow.slice('html'.length)}`)[1]?.split('}')[0] ?? '';
+    expect(rtl).toContain('margin-inline: var(--m-safe-r, 0px) var(--m-safe-l, 0px);');
     // On a wide window the bars keep no side margin, so mx-auto still centres them.
     for (const cls of ['m-bar-x', 'm-span-x']) {
       expect(css.split(`\n.${cls} {`)[1]?.split('}')[0] ?? '').not.toContain('margin');

@@ -1554,12 +1554,10 @@ function showProvisioning(instanceUrl: string, welcome?: string): void {
     stepServer,
     stepReady
   );
+  // The address set in bold inside the sentence, wherever the language puts it.
+  const sentence = t('native.provisioning.sub', { host: '\u0000' });
   const sub = el('span', {});
-  sub.append(
-    ...t('native.provisioning.sub', { host: '\u0000' })
-      .split('\u0000')
-      .flatMap((part, i) => (i ? [el('b', { dir: 'ltr' }, host), part] : [part]))
-  );
+  sub.append(...sentence.split('\u0000').flatMap((part, i) => (i ? [el('b', { dir: 'ltr' }, host), part] : [part])));
   const view = stateScreen({
     camera: chosenCamera,
     kicker: t('native.provisioning.kicker'),
