@@ -1013,6 +1013,11 @@ const admin: TranslationStrings = {
     'Bu kullanıcının iki faktörlü kimlik doğrulamasını kapatır, örneğin telefon kaybedildiğinde. Kullanıcının tüm oturumları kapatılır ve parolasıyla giriş yaptıktan sonra yeniden kurabilir.',
   'admin.mfa.resetConfirm': '{name} için iki faktörlü kimlik doğrulama kapatılsın mı?',
   'admin.mfa.resetDone': 'İki faktörlü kimlik doğrulama sıfırlandı',
+  'admin.sso.unlink': 'SSO bağlantısını kaldır',
+  'admin.sso.unlinkHint':
+    'SSO sağlayıcınızdaki hangi girişin bu hesaba ait olduğunu unutur, örneğin sağlayıcı kullanıcı kimliklerini değiştirdiğinde. Onaylanmış bir e-posta adresiyle yapılan sonraki SSO girişi hesabı yeniden bağlar.',
+  'admin.sso.unlinkConfirm': '{name} için SSO bağlantısı kaldırılsın mı?',
+  'admin.sso.unlinkDone': 'SSO bağlantısı kaldırıldı',
   'admin.danger.title': 'Tehlikeli Bölge',
   'admin.rotateJwt.title': 'JWT sırrını yenile',
   'admin.rotateJwt.hint': 'Yeni bir JWT imzalama sırrı oluşturur. Tüm etkin oturumlar hemen geçersiz kılınır.',

@@ -1030,6 +1030,11 @@ const admin: TranslationStrings = {
     'Bu istifadəçi üçün iki faktorlu doğrulamanı söndürür, məsələn telefon itirildikdən sonra. İstifadəçi hər yerdən çıxarılır və parolu ilə daxil olduqdan sonra onu yenidən quraşdıra bilər.',
   'admin.mfa.resetConfirm': '{name} üçün iki faktorlu doğrulama söndürülsün?',
   'admin.mfa.resetDone': 'İki faktorlu doğrulama sıfırlandı',
+  'admin.sso.unlink': 'SSO bağlantısını sil',
+  'admin.sso.unlinkHint':
+    'SSO provayderindəki hansı girişin bu hesaba aid olduğunu unudur, məsələn provayder istifadəçi ID-lərini dəyişdikdən sonra. Təsdiqlənmiş e-poçt ünvanı ilə növbəti SSO girişi hesabı yenidən bağlayır.',
+  'admin.sso.unlinkConfirm': '{name} üçün SSO bağlantısı silinsin?',
+  'admin.sso.unlinkDone': 'SSO bağlantısı silindi',
   'admin.danger.title': 'Təhlükəli zona',
   'admin.rotateJwt.title': 'JWT sirrini yenilə',
   'admin.rotateJwt.hint': 'Yeni JWT imza sirri yaradın. Bütün aktiv sessiyalar dərhal etibarsız olacaq.',

@@ -12,8 +12,8 @@ interface UserActionsHost {
 /**
  * The irreversible user actions behind the admin dialogs and their phone sheets:
  * rotating the JWT secret, which signs everyone out including the admin, removing a
- * user's passkeys and switching off a user's two-factor login. Each shell keeps its own
- * confirm step and busy state around them.
+ * user's passkeys, switching off a user's two-factor login and removing a user's SSO
+ * link. Each shell keeps its own confirm step and busy state around them.
  */
 export function useAdminUserActions(admin: UserActionsHost, t: TranslationFn) {
   const { toast, setRotatingJwt, setShowRotateJwtModal, logout, navigate } = admin;
@@ -55,5 +55,17 @@ export function useAdminUserActions(admin: UserActionsHost, t: TranslationFn) {
     }
   };
 
-  return { rotateJwt, resetPasskeys, resetMfa };
+  /** Forgets the user's SSO identity so the next SSO sign-in links again (#3065); true when it worked. */
+  const unlinkSso = async (user: { id: number }): Promise<boolean> => {
+    try {
+      await adminApi.unlinkUserSso(user.id);
+      toast.success(t('admin.sso.unlinkDone'));
+      return true;
+    } catch {
+      toast.error(t('common.error'));
+      return false;
+    }
+  };
+
+  return { rotateJwt, resetPasskeys, resetMfa, unlinkSso };
 }

@@ -1021,6 +1021,11 @@ const admin: TranslationStrings = {
     'Kikapcsolja a felhasználó kétlépcsős hitelesítését, például elveszett telefon esetén. Mindenhonnan kijelentkezik, és a jelszavával való belépés után újra beállíthatja.',
   'admin.mfa.resetConfirm': 'Kikapcsolod {name} kétlépcsős hitelesítését?',
   'admin.mfa.resetDone': 'A kétlépcsős hitelesítés visszaállítva',
+  'admin.sso.unlink': 'SSO-kapcsolat eltávolítása',
+  'admin.sso.unlinkHint':
+    'Elfelejti, hogy az SSO-szolgáltatónál melyik bejelentkezés tartozik ehhez a fiókhoz, például miután a szolgáltató megváltoztatta a felhasználói azonosítókat. A következő SSO-bejelentkezés megerősített e-mail-címmel újra összekapcsolja a fiókot.',
+  'admin.sso.unlinkConfirm': 'Eltávolítod {name} SSO-kapcsolatát?',
+  'admin.sso.unlinkDone': 'Az SSO-kapcsolat eltávolítva',
   'admin.danger.title': 'Veszélyzóna',
   'admin.rotateJwt.title': 'JWT-titok cseréje',
   'admin.rotateJwt.hint': 'Új JWT-aláírási titkot hoz létre. Az összes aktív munkamenet azonnal érvénytelenné válik.',

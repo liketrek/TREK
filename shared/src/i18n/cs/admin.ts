@@ -1012,6 +1012,11 @@ const admin: TranslationStrings = {
     'Vypne pro tohoto uživatele dvoufázové ověření, například po ztrátě telefonu. Bude odhlášen všude a po přihlášení heslem si ho může nastavit znovu.',
   'admin.mfa.resetConfirm': 'Vypnout dvoufázové ověření uživatele {name}?',
   'admin.mfa.resetDone': 'Dvoufázové ověření bylo resetováno',
+  'admin.sso.unlink': 'Odebrat propojení SSO',
+  'admin.sso.unlinkHint':
+    'Zapomene, které přihlášení u vašeho poskytovatele SSO patří k tomuto účtu, například poté, co poskytovatel změnil ID uživatelů. Další přihlášení přes SSO s potvrzenou e-mailovou adresou účet znovu propojí.',
+  'admin.sso.unlinkConfirm': 'Odebrat propojení SSO uživatele {name}?',
+  'admin.sso.unlinkDone': 'Propojení SSO bylo odebráno',
   'admin.danger.title': 'Nebezpečná zóna',
   'admin.rotateJwt.title': 'Obnovit tajný klíč JWT',
   'admin.rotateJwt.hint': 'Vygeneruje nový podpisový klíč JWT. Všechny aktivní relace budou okamžitě zneplatněny.',

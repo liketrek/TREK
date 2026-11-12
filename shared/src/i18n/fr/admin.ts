@@ -1023,6 +1023,11 @@ const admin: TranslationStrings = {
     "Désactive l'authentification à deux facteurs de cet utilisateur, par exemple après la perte d'un téléphone. Il est déconnecté partout et pourra la reconfigurer après s'être connecté avec son mot de passe.",
   'admin.mfa.resetConfirm': "Désactiver l'authentification à deux facteurs de {name} ?",
   'admin.mfa.resetDone': 'Authentification à deux facteurs réinitialisée',
+  'admin.sso.unlink': 'Supprimer la liaison SSO',
+  'admin.sso.unlinkHint':
+    'Oublie quelle connexion chez votre fournisseur SSO appartient à ce compte, par exemple après un changement des identifiants utilisateur chez le fournisseur. La prochaine connexion SSO avec une adresse e-mail confirmée relie à nouveau le compte.',
+  'admin.sso.unlinkConfirm': 'Supprimer la liaison SSO de {name} ?',
+  'admin.sso.unlinkDone': 'Liaison SSO supprimée',
   'admin.danger.title': 'Zone de danger',
   'admin.rotateJwt.title': 'Renouveler le secret JWT',
   'admin.rotateJwt.hint':

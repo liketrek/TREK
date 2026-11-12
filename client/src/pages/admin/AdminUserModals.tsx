@@ -8,6 +8,7 @@ import {
   Fingerprint,
   RefreshCw,
   ShieldOff,
+  Unlink,
   UserCog,
   UserPlus,
 } from 'lucide-react';
@@ -114,14 +115,17 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
     rotatingJwt,
     handleCreateUser,
     handleSaveUser,
+    oidcConfigured,
   } = admin;
-  const { rotateJwt, resetPasskeys, resetMfa } = useAdminUserActions(admin, t);
+  const { rotateJwt, resetPasskeys, resetMfa, unlinkSso } = useAdminUserActions(admin, t);
   const [showCreatePw, setShowCreatePw] = React.useState(false);
   const [showEditPw, setShowEditPw] = React.useState(false);
   // The user whose passkeys wait for the admin's answer in the confirm dialog.
   const [passkeyResetUser, setPasskeyResetUser] = React.useState<typeof editingUser>(null);
   // Same for the two-factor reset; an admin turns off their own 2FA in Settings, not here.
   const [mfaResetUser, setMfaResetUser] = React.useState<typeof editingUser>(null);
+  // Same for removing the SSO link, offered only while SSO is set up (#3065).
+  const [ssoUnlinkUser, setSsoUnlinkUser] = React.useState<typeof editingUser>(null);
   const uid = useId();
   const createId = `${uid}-create`;
   const editId = `${uid}-edit`;
@@ -318,6 +322,23 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                 </div>
               </DialogSection>
             )}
+            {oidcConfigured && editingUser && editingUser.id !== currentUser?.id && (
+              <DialogSection label={t('admin.sso.unlink')}>
+                <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
+                  <p className="m-0 min-w-0 flex-1 basis-52 leading-snug text-content-muted" style={fs(12, 'body')}>
+                    {t('admin.sso.unlinkHint')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSsoUnlinkUser(editingUser)}
+                    className={`${SETTINGS_BUTTON_DANGER} flex-none`}
+                    style={fs(12.5, 'body')}
+                  >
+                    <Unlink size={14} /> {t('admin.sso.unlink')}
+                  </button>
+                </div>
+              </DialogSection>
+            )}
           </>
         )}
       </DialogShell>
@@ -478,6 +499,19 @@ docker run -d --name trek \\
         title={t('admin.mfa.reset')}
         message={mfaResetUser ? t('admin.mfa.resetConfirm', { name: mfaResetUser.username }) : ''}
         confirmLabel={t('admin.mfa.reset')}
+        danger
+      />
+
+      <ConfirmDialog
+        isOpen={ssoUnlinkUser !== null}
+        onClose={() => setSsoUnlinkUser(null)}
+        onConfirm={async () => {
+          if (!ssoUnlinkUser) return;
+          await unlinkSso(ssoUnlinkUser);
+        }}
+        title={t('admin.sso.unlink')}
+        message={ssoUnlinkUser ? t('admin.sso.unlinkConfirm', { name: ssoUnlinkUser.username }) : ''}
+        confirmLabel={t('admin.sso.unlink')}
         danger
       />
     </>

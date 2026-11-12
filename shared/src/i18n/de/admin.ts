@@ -1014,6 +1014,11 @@ const admin: TranslationStrings = {
     'Schaltet die Zwei-Faktor-Authentifizierung für diesen Benutzer ab, zum Beispiel nach dem Verlust des Handys. Die Person wird überall abgemeldet und kann sie nach der Anmeldung mit dem Passwort neu einrichten.',
   'admin.mfa.resetConfirm': 'Zwei-Faktor-Authentifizierung für {name} abschalten?',
   'admin.mfa.resetDone': 'Zwei-Faktor-Authentifizierung zurückgesetzt',
+  'admin.sso.unlink': 'SSO-Verknüpfung entfernen',
+  'admin.sso.unlinkHint':
+    'Vergisst, welche Anmeldung bei deinem SSO-Anbieter zu diesem Konto gehört, zum Beispiel nachdem der Anbieter seine Benutzer-IDs geändert hat. Die nächste SSO-Anmeldung mit bestätigter E-Mail-Adresse verknüpft das Konto wieder.',
+  'admin.sso.unlinkConfirm': 'SSO-Verknüpfung von {name} entfernen?',
+  'admin.sso.unlinkDone': 'SSO-Verknüpfung entfernt',
   'admin.danger.title': 'Gefahrenzone',
   'admin.rotateJwt.title': 'JWT-Secret erneuern',
   'admin.rotateJwt.hint': 'Erzeugt ein neues JWT-Signatur-Secret. Alle aktiven Sitzungen werden sofort ungültig.',

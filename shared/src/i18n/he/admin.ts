@@ -970,6 +970,11 @@ const admin: TranslationStrings = {
     'מכבה את האימות הדו-שלבי של המשתמש הזה, למשל אחרי שאבד לו הטלפון. הוא ינותק מכל המכשירים ויוכל להגדיר אותו מחדש אחרי התחברות עם הסיסמה.',
   'admin.mfa.resetConfirm': 'לכבות את האימות הדו-שלבי של {name}?',
   'admin.mfa.resetDone': 'האימות הדו-שלבי אופס',
+  'admin.sso.unlink': 'הסרת קישור SSO',
+  'admin.sso.unlinkHint':
+    'שוכח איזו כניסה אצל ספק ה-SSO שייכת לחשבון הזה, למשל אחרי שהספק שינה את מזהי המשתמשים. הכניסה הבאה דרך SSO עם כתובת דוא״ל מאומתת מקשרת את החשבון מחדש.',
+  'admin.sso.unlinkConfirm': 'להסיר את קישור ה-SSO של {name}?',
+  'admin.sso.unlinkDone': 'קישור ה-SSO הוסר',
   'admin.danger.title': 'אזור מסוכן',
   'admin.rotateJwt.title': 'החלפת סוד ה-JWT',
   'admin.rotateJwt.hint': 'יצירת סוד חתימה חדש ל-JWT. כל ההפעלות הפעילות יבוטלו מיד.',

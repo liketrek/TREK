@@ -943,6 +943,11 @@ const admin: TranslationStrings = {
     '이 사용자의 2단계 인증을 해제합니다. 예를 들어 휴대폰을 분실한 경우에 사용합니다. 모든 기기에서 로그아웃되며, 비밀번호로 로그인한 뒤 다시 설정할 수 있습니다.',
   'admin.mfa.resetConfirm': '{name}의 2단계 인증을 해제할까요?',
   'admin.mfa.resetDone': '2단계 인증이 초기화되었습니다',
+  'admin.sso.unlink': 'SSO 연결 해제',
+  'admin.sso.unlinkHint':
+    'SSO 공급자의 어떤 로그인이 이 계정에 속하는지 잊습니다. 예를 들어 공급자가 사용자 ID를 변경한 경우에 사용합니다. 확인된 이메일 주소로 다음에 SSO 로그인하면 계정이 다시 연결됩니다.',
+  'admin.sso.unlinkConfirm': '{name}의 SSO 연결을 해제할까요?',
+  'admin.sso.unlinkDone': 'SSO 연결이 해제되었습니다',
   'admin.danger.title': '위험 구역',
   'admin.rotateJwt.title': 'JWT 시크릿 교체',
   'admin.rotateJwt.hint': '새 JWT 서명 시크릿을 생성합니다. 활성 세션이 모두 즉시 무효화됩니다.',

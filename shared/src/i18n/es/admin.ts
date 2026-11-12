@@ -1022,6 +1022,11 @@ const admin: TranslationStrings = {
     'Desactiva la autenticación en dos factores de este usuario, por ejemplo tras perder el móvil. Se cierra su sesión en todas partes y podrá volver a configurarla después de iniciar sesión con su contraseña.',
   'admin.mfa.resetConfirm': '¿Desactivar la autenticación en dos factores de {name}?',
   'admin.mfa.resetDone': 'Autenticación en dos factores restablecida',
+  'admin.sso.unlink': 'Quitar vínculo SSO',
+  'admin.sso.unlinkHint':
+    'Olvida qué inicio de sesión de tu proveedor SSO pertenece a esta cuenta, por ejemplo después de que el proveedor cambiara los ID de usuario. El siguiente inicio de sesión SSO con un correo confirmado vuelve a vincular la cuenta.',
+  'admin.sso.unlinkConfirm': '¿Quitar el vínculo SSO de {name}?',
+  'admin.sso.unlinkDone': 'Vínculo SSO quitado',
   'admin.danger.title': 'Zona de peligro',
   'admin.rotateJwt.title': 'Rotar secreto JWT',
   'admin.rotateJwt.hint':

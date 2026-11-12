@@ -991,6 +991,11 @@ const admin: TranslationStrings = {
     'Tắt xác thực hai yếu tố của người dùng này, ví dụ khi mất điện thoại. Họ bị đăng xuất ở mọi nơi và có thể thiết lập lại sau khi đăng nhập bằng mật khẩu.',
   'admin.mfa.resetConfirm': 'Tắt xác thực hai yếu tố của {name}?',
   'admin.mfa.resetDone': 'Đã đặt lại xác thực hai yếu tố',
+  'admin.sso.unlink': 'Gỡ liên kết SSO',
+  'admin.sso.unlinkHint':
+    'Quên lần đăng nhập nào ở nhà cung cấp SSO thuộc về tài khoản này, ví dụ sau khi nhà cung cấp thay đổi ID người dùng. Lần đăng nhập SSO tiếp theo bằng địa chỉ email đã xác nhận sẽ liên kết lại tài khoản.',
+  'admin.sso.unlinkConfirm': 'Gỡ liên kết SSO của {name}?',
+  'admin.sso.unlinkDone': 'Đã gỡ liên kết SSO',
   'admin.danger.title': 'Vùng nguy hiểm',
   'admin.rotateJwt.title': 'Xoay vòng khóa bí mật JWT',
   'admin.rotateJwt.hint': 'Tạo khóa bí mật ký JWT mới. Tất cả phiên đang hoạt động sẽ bị vô hiệu hóa ngay lập tức.',

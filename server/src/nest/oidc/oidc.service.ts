@@ -686,7 +686,7 @@ export class OidcService implements OnModuleDestroy {
       // provider, never this account under a new name.
       if (user.oidc_sub && user.oidc_issuer === config.issuer) {
         logWarn(
-          `[OIDC] Refused to link a sign-in to user ${user.id} by email: it is linked to another subject of this provider.`,
+          `[OIDC] Refused to link a sign-in to user ${user.id} by email: it is linked to another subject of this provider. If the provider changed the subject of the same person, an admin can remove the SSO link of this user in the admin panel.`,
         );
         return { error: 'email_link_blocked' };
       }

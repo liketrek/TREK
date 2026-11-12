@@ -1018,6 +1018,11 @@ const admin: TranslationStrings = {
     "Desactiva l'autenticació de dos factors d'aquest usuari, per exemple després de perdre el telèfon. Es tanca la seva sessió a tot arreu i podrà tornar-la a configurar després d'iniciar sessió amb la contrasenya.",
   'admin.mfa.resetConfirm': "Vols desactivar l'autenticació de dos factors de {name}?",
   'admin.mfa.resetDone': 'Autenticació de dos factors restablerta',
+  'admin.sso.unlink': "Elimina l'enllaç SSO",
+  'admin.sso.unlinkHint':
+    "Oblida quin inici de sessió del teu proveïdor SSO pertany a aquest compte, per exemple després que el proveïdor hagi canviat els identificadors d'usuari. El següent inici de sessió SSO amb una adreça confirmada torna a enllaçar el compte.",
+  'admin.sso.unlinkConfirm': "Vols eliminar l'enllaç SSO de {name}?",
+  'admin.sso.unlinkDone': 'Enllaç SSO eliminat',
   'admin.danger.title': 'Zona de perill',
   'admin.rotateJwt.title': 'Rota el secret JWT',
   'admin.rotateJwt.hint':

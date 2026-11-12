@@ -357,6 +357,42 @@ describe('AdminController addons + sessions + jwt + defaults', () => {
   });
 });
 
+describe('AdminController SSO unlink (#3065)', () => {
+  it('ADMIN-CTRL-SSO-001: audits a removed link and answers unlinked: true', async () => {
+    writeAudit.mockClear();
+    const unlinkUserSso = vi.fn().mockResolvedValue({ email: 'a@b.c', unlinked: true });
+    expect(await adminCtl(svc({ unlinkUserSso } as Partial<AdminService>)).unlinkUserSso(user, '4', req)).toEqual({
+      success: true,
+      unlinked: true,
+    });
+    expect(unlinkUserSso).toHaveBeenCalledWith('4', user.id);
+    expect(writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'admin.user_sso_unlink', resource: '4', details: { targetUser: 'a@b.c' } }),
+    );
+  });
+
+  it('ADMIN-CTRL-SSO-002: writes no audit row when there was no link, and maps the self refusal', async () => {
+    writeAudit.mockClear();
+    expect(
+      await adminCtl(
+        svc({ unlinkUserSso: vi.fn().mockResolvedValue({ email: 'a@b.c', unlinked: false }) } as Partial<AdminService>),
+      ).unlinkUserSso(user, '4', req),
+    ).toEqual({ success: true, unlinked: false });
+    expect(writeAudit).not.toHaveBeenCalled();
+    expect(
+      await thrown(() =>
+        adminCtl(
+          svc({
+            unlinkUserSso: vi
+              .fn()
+              .mockRejectedValue(new DomainError(400, 'You cannot remove the SSO link of your own account')),
+          } as Partial<AdminService>),
+        ).unlinkUserSso(user, '1', req),
+      ),
+    ).toEqual({ status: 400, body: { error: 'You cannot remove the SSO link of your own account' } });
+  });
+});
+
 describe('AdminController read-only getters', () => {
   it('return service values verbatim', async () => {
     expect(

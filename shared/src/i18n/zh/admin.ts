@@ -906,6 +906,11 @@ const admin: TranslationStrings = {
     '为该用户关闭双因素验证，例如手机丢失后。该用户会在所有设备上退出登录，使用密码登录后可重新设置。',
   'admin.mfa.resetConfirm': '要关闭 {name} 的双因素验证吗？',
   'admin.mfa.resetDone': '双因素验证已重置',
+  'admin.sso.unlink': '解除 SSO 关联',
+  'admin.sso.unlinkHint':
+    '忘记 SSO 提供商中哪个登录属于该账户，例如提供商更改了用户 ID 之后。下一次使用已验证邮箱地址的 SSO 登录会重新关联该账户。',
+  'admin.sso.unlinkConfirm': '要解除 {name} 的 SSO 关联吗？',
+  'admin.sso.unlinkDone': 'SSO 关联已解除',
   'admin.danger.title': '危险区域',
   'admin.rotateJwt.title': '轮换 JWT 密钥',
   'admin.rotateJwt.hint': '生成新的 JWT 签名密钥。所有活动会话将立即失效。',

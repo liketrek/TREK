@@ -669,6 +669,25 @@ describe('UsersRepository', () => {
     expect(row.updated_at).toBe('2020-01-01 00:00:00');
   });
 
+  it('USERSREPO-088: clearOidcIdentity nulls sub+issuer WITHOUT touching updated_at (#3065)', async () => {
+    const { user } = createUser(testDb);
+    await updateRows(
+      t,
+      Users,
+      { id: user.id },
+      { oidc_sub: 'sub-1', oidc_issuer: 'https://idp.example.com', updated_at: '2020-01-01 00:00:00' },
+    );
+    await users.clearOidcIdentity(user.id);
+    const row = (await findRow(t, Users, { id: user.id })) as {
+      oidc_sub: string | null;
+      oidc_issuer: string | null;
+      updated_at: string;
+    };
+    expect(row.oidc_sub).toBeNull();
+    expect(row.oidc_issuer).toBeNull();
+    expect(row.updated_at).toBe('2020-01-01 00:00:00');
+  });
+
   it('USERSREPO-042: setRole (O8) writes role WITHOUT touching updated_at', async () => {
     const { user } = createUser(testDb);
     await updateRows(t, Users, { id: user.id }, { updated_at: '2020-01-01 00:00:00' });

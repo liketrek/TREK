@@ -823,6 +823,14 @@ export class UsersRepository extends TrekRepository<Users> {
     await this.nativeUpdate({ id }, { oidc_sub: sub, oidc_issuer: issuer });
   }
 
+  /**
+   * `UPDATE users SET oidc_sub = NULL, oidc_issuer = NULL WHERE id = ?`: the
+   * admin's "Remove SSO link" (#3065). No `updated_at`, like the link it undoes.
+   */
+  async clearOidcIdentity(id: number): Promise<void> {
+    await this.nativeUpdate({ id }, { oidc_sub: null, oidc_issuer: null });
+  }
+
   // ---------------------------------------------------------------------
   // O8 — claims-based role change
   // ---------------------------------------------------------------------

@@ -1007,6 +1007,11 @@ const admin: TranslationStrings = {
     'Stänger av tvåfaktorsautentiseringen för den här användaren, till exempel efter en förlorad telefon. Användaren loggas ut överallt och kan ställa in den igen efter inloggning med lösenordet.',
   'admin.mfa.resetConfirm': 'Stänga av tvåfaktorsautentiseringen för {name}?',
   'admin.mfa.resetDone': 'Tvåfaktorsautentiseringen har återställts',
+  'admin.sso.unlink': 'Ta bort SSO-koppling',
+  'admin.sso.unlinkHint':
+    'Glömmer vilken inloggning hos din SSO-leverantör som hör till det här kontot, till exempel efter att leverantören bytt användar-ID:n. Nästa SSO-inloggning med en bekräftad e-postadress kopplar kontot igen.',
+  'admin.sso.unlinkConfirm': 'Ta bort SSO-kopplingen för {name}?',
+  'admin.sso.unlinkDone': 'SSO-kopplingen har tagits bort',
   'admin.danger.title': 'Farozon',
   'admin.rotateJwt.title': 'Rotera JWT-hemlighet',
   'admin.rotateJwt.hint': 'Skapar en ny JWT-signeringshemlighet. Alla aktiva sessioner ogiltigförklaras omedelbart.',

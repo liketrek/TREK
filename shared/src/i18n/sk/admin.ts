@@ -1022,6 +1022,11 @@ const admin: TranslationStrings = {
     'Vypne pre tohto používateľa dvojfaktorové overenie, napríklad po strate telefónu. Bude odhlásený všade a po prihlásení heslom si ho môže nastaviť znova.',
   'admin.mfa.resetConfirm': 'Vypnúť dvojfaktorové overenie pre používateľa {name}?',
   'admin.mfa.resetDone': 'Dvojfaktorové overenie bolo resetované',
+  'admin.sso.unlink': 'Odstrániť prepojenie SSO',
+  'admin.sso.unlinkHint':
+    'Zabudne, ktoré prihlásenie u poskytovateľa SSO patrí k tomuto účtu, napríklad po tom, ako poskytovateľ zmenil ID používateľov. Ďalšie prihlásenie cez SSO s potvrdenou e-mailovou adresou účet znova prepojí.',
+  'admin.sso.unlinkConfirm': 'Odstrániť prepojenie SSO používateľa {name}?',
+  'admin.sso.unlinkDone': 'Prepojenie SSO bolo odstránené',
   'admin.danger.title': 'Nebezpečná zóna',
   'admin.rotateJwt.title': 'Obnoviť tajný kľúč JWT',
   'admin.rotateJwt.hint': 'Vygeneruje nový podpisový kľúč JWT. Všetky aktívne relácie budú okamžite zneplatnené.',

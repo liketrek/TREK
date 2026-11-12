@@ -565,6 +565,7 @@ export const adminApi = {
   deleteUser: (id: number) => apiClient.delete(`/admin/users/${id}`).then(r => r.data),
   resetUserPasskeys: (id: number) => apiClient.delete(`/admin/users/${id}/passkeys`).then(r => r.data),
   resetUserMfa: (id: number) => apiClient.delete(`/admin/users/${id}/mfa`).then(r => r.data),
+  unlinkUserSso: (id: number) => apiClient.delete(`/admin/users/${id}/sso`).then(r => r.data),
   stats: () => apiClient.get('/admin/stats').then(r => r.data),
   saveDemoBaseline: () => apiClient.post('/admin/save-demo-baseline').then(r => r.data),
   getOidc: () => apiClient.get('/admin/oidc').then(r => r.data),

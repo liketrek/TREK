@@ -907,6 +907,11 @@ const admin: TranslationStrings = {
     '為該使用者關閉雙因素驗證，例如手機遺失後。該使用者會在所有裝置上登出，使用密碼登入後可重新設定。',
   'admin.mfa.resetConfirm': '要關閉 {name} 的雙因素驗證嗎？',
   'admin.mfa.resetDone': '雙因素驗證已重設',
+  'admin.sso.unlink': '解除 SSO 連結',
+  'admin.sso.unlinkHint':
+    '忘記 SSO 提供者中哪個登入屬於該帳號，例如提供者變更了使用者 ID 之後。下一次使用已驗證電子郵件地址的 SSO 登入會重新連結該帳號。',
+  'admin.sso.unlinkConfirm': '要解除 {name} 的 SSO 連結嗎？',
+  'admin.sso.unlinkDone': 'SSO 連結已解除',
   'admin.danger.title': '危險區域',
   'admin.rotateJwt.title': '輪替 JWT 密鑰',
   'admin.rotateJwt.hint': '產生新的 JWT 簽署密鑰。所有進行中的工作階段將立即失效。',

@@ -1013,6 +1013,11 @@ const admin: TranslationStrings = {
     'Schakelt tweestapsverificatie voor deze gebruiker uit, bijvoorbeeld na verlies van de telefoon. De gebruiker wordt overal afgemeld en kan het na inloggen met het wachtwoord opnieuw instellen.',
   'admin.mfa.resetConfirm': 'Tweestapsverificatie voor {name} uitschakelen?',
   'admin.mfa.resetDone': 'Tweestapsverificatie is gereset',
+  'admin.sso.unlink': 'SSO-koppeling verwijderen',
+  'admin.sso.unlinkHint':
+    'Vergeet welke aanmelding bij je SSO-provider bij dit account hoort, bijvoorbeeld nadat de provider zijn gebruikers-ID’s heeft gewijzigd. De volgende SSO-aanmelding met een bevestigd e-mailadres koppelt het account opnieuw.',
+  'admin.sso.unlinkConfirm': 'SSO-koppeling van {name} verwijderen?',
+  'admin.sso.unlinkDone': 'SSO-koppeling verwijderd',
   'admin.danger.title': 'Gevarenzone',
   'admin.rotateJwt.title': 'JWT-geheim roteren',
   'admin.rotateJwt.hint': 'Genereert een nieuw JWT-ondertekeningsgeheim. Alle actieve sessies worden direct ongeldig.',

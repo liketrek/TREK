@@ -951,6 +951,11 @@ const admin: TranslationStrings = {
     'このユーザーの二要素認証をオフにします（スマートフォンを紛失した場合など）。すべての場所からサインアウトされ、パスワードでサインインした後に再設定できます。',
   'admin.mfa.resetConfirm': '{name} の二要素認証をオフにしますか？',
   'admin.mfa.resetDone': '二要素認証をリセットしました',
+  'admin.sso.unlink': 'SSO連携を解除',
+  'admin.sso.unlinkHint':
+    'SSOプロバイダーのどのサインインがこのアカウントに属するかを忘れます（プロバイダーがユーザーIDを変更した場合など）。確認済みのメールアドレスで次にSSOサインインすると、アカウントが再び連携されます。',
+  'admin.sso.unlinkConfirm': '{name} のSSO連携を解除しますか？',
+  'admin.sso.unlinkDone': 'SSO連携を解除しました',
   'admin.danger.title': '危険ゾーン',
   'admin.rotateJwt.title': 'JWTシークレットをローテーション',
   'admin.rotateJwt.hint':

@@ -1015,6 +1015,11 @@ const admin: TranslationStrings = {
     "Disattiva l'autenticazione a due fattori per questo utente, ad esempio dopo la perdita del telefono. L'utente viene disconnesso ovunque e può configurarla di nuovo dopo aver effettuato l'accesso con la password.",
   'admin.mfa.resetConfirm': "Disattivare l'autenticazione a due fattori per {name}?",
   'admin.mfa.resetDone': 'Autenticazione a due fattori reimpostata',
+  'admin.sso.unlink': 'Rimuovi collegamento SSO',
+  'admin.sso.unlinkHint':
+    "Dimentica quale accesso presso il provider SSO appartiene a questo account, ad esempio dopo che il provider ha cambiato gli ID utente. Il prossimo accesso SSO con un indirizzo email confermato collega di nuovo l'account.",
+  'admin.sso.unlinkConfirm': 'Rimuovere il collegamento SSO di {name}?',
+  'admin.sso.unlinkDone': 'Collegamento SSO rimosso',
   'admin.danger.title': 'Zona pericolosa',
   'admin.rotateJwt.title': 'Ruota il secret JWT',
   'admin.rotateJwt.hint':

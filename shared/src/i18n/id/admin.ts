@@ -992,6 +992,11 @@ const admin: TranslationStrings = {
     'Menonaktifkan autentikasi dua faktor untuk pengguna ini, misalnya setelah ponsel hilang. Pengguna dikeluarkan dari semua sesi dan dapat mengaturnya lagi setelah masuk dengan kata sandinya.',
   'admin.mfa.resetConfirm': 'Nonaktifkan autentikasi dua faktor untuk {name}?',
   'admin.mfa.resetDone': 'Autentikasi dua faktor telah diatur ulang',
+  'admin.sso.unlink': 'Hapus tautan SSO',
+  'admin.sso.unlinkHint':
+    'Melupakan login mana di penyedia SSO yang dimiliki akun ini, misalnya setelah penyedia mengubah ID pengguna. Login SSO berikutnya dengan alamat email yang terkonfirmasi menautkan akun ini lagi.',
+  'admin.sso.unlinkConfirm': 'Hapus tautan SSO untuk {name}?',
+  'admin.sso.unlinkDone': 'Tautan SSO dihapus',
   'admin.danger.title': 'Zona Berbahaya',
   'admin.rotateJwt.title': 'Putar Secret JWT',
   'admin.rotateJwt.hint': 'Buat secret penandatanganan JWT baru. Semua sesi aktif akan langsung tidak berlaku.',

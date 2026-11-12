@@ -982,6 +982,11 @@ const admin: TranslationStrings = {
     'Switches off two-factor authentication for this user, for example after a lost phone. They are signed out everywhere and can set it up again after logging in with their password.',
   'admin.mfa.resetConfirm': 'Turn off two-factor authentication for {name}?',
   'admin.mfa.resetDone': 'Two-factor authentication reset',
+  'admin.sso.unlink': 'Remove SSO link',
+  'admin.sso.unlinkHint':
+    'Forgets which sign-in at your SSO provider belongs to this account, for example after the provider changed its user IDs. The next SSO sign-in with a confirmed email address links the account again.',
+  'admin.sso.unlinkConfirm': 'Remove the SSO link of {name}?',
+  'admin.sso.unlinkDone': 'SSO link removed',
   'admin.danger.title': 'Danger Zone',
   'admin.rotateJwt.title': 'Rotate JWT Secret',
   'admin.rotateJwt.hint': 'Generate a new JWT signing secret. All active sessions will be invalidated immediately.',

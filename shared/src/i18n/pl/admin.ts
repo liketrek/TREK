@@ -1059,6 +1059,11 @@ const admin: TranslationStrings = {
     'Wyłącza uwierzytelnianie dwuskładnikowe tego użytkownika, na przykład po zgubieniu telefonu. Użytkownik zostaje wylogowany ze wszystkich urządzeń i po zalogowaniu hasłem może skonfigurować je ponownie.',
   'admin.mfa.resetConfirm': 'Wyłączyć uwierzytelnianie dwuskładnikowe dla {name}?',
   'admin.mfa.resetDone': 'Uwierzytelnianie dwuskładnikowe zostało zresetowane',
+  'admin.sso.unlink': 'Usuń powiązanie SSO',
+  'admin.sso.unlinkHint':
+    'Zapomina, które logowanie u dostawcy SSO należy do tego konta, na przykład po zmianie identyfikatorów użytkowników przez dostawcę. Następne logowanie przez SSO z potwierdzonym adresem e-mail ponownie powiąże konto.',
+  'admin.sso.unlinkConfirm': 'Usunąć powiązanie SSO dla {name}?',
+  'admin.sso.unlinkDone': 'Powiązanie SSO zostało usunięte',
   'admin.danger.title': 'Strefa zagrożenia',
   'admin.rotateJwt.title': 'Zmień sekret JWT',
   'admin.rotateJwt.hint': 'Generuje nowy sekret podpisu JWT. Wszystkie aktywne sesje zostaną natychmiast unieważnione.',

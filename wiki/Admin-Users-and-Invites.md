@@ -42,6 +42,8 @@ Below the fields sits **Reset passkeys**, which removes every passkey that user 
 
 For every other account the dialog also has **Reset 2FA**, for example after a lost phone. After you confirm (**Turn off two-factor authentication for {name}?**) it switches 2FA off for that user and signs them out everywhere; they can set it up again after logging in with their password. It is not offered for your own account, and it is recorded in the [Audit-Log](Audit-Log). See [Two-Factor-Authentication](Two-Factor-Authentication).
 
+While SSO is set up, the dialog of every other account also has **Remove SSO link**. It forgets which sign-in at the provider belongs to the account, for when the provider changed the user's subject and their login now ends with *"This sign-in could not be linked to the existing account with this email"*. After you confirm, the next SSO sign-in with a verified email links the account again. It takes effect immediately, is not offered for your own account and is recorded in the [Audit-Log](Audit-Log). See [OIDC-SSO](OIDC-SSO#how-an-existing-account-gets-linked).
+
 ### Delete a user
 
 Click the trash icon and confirm in the **Delete user** dialog (**Delete user "name"? All trips will be permanently deleted.**). Deletion is permanent. The user's account is removed from the database along with their data, including the trips they own (cascade behavior is enforced at the database level).

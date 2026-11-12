@@ -1052,6 +1052,11 @@ const admin: TranslationStrings = {
     'يعطّل المصادقة الثنائية لهذا المستخدم، مثلاً بعد فقدان هاتفه. يتم تسجيل خروجه من كل مكان، ويمكنه إعدادها من جديد بعد تسجيل الدخول بكلمة مروره.',
   'admin.mfa.resetConfirm': 'إيقاف المصادقة الثنائية لـ {name}؟',
   'admin.mfa.resetDone': 'تمت إعادة تعيين المصادقة الثنائية',
+  'admin.sso.unlink': 'إزالة ربط SSO',
+  'admin.sso.unlinkHint':
+    'ينسى أي تسجيل دخول لدى مزوّد SSO ينتمي إلى هذا الحساب، مثلاً بعد أن غيّر المزوّد معرّفات المستخدمين. أول تسجيل دخول عبر SSO بعنوان بريد مؤكَّد يربط الحساب من جديد.',
+  'admin.sso.unlinkConfirm': 'إزالة ربط SSO لـ {name}؟',
+  'admin.sso.unlinkDone': 'تمت إزالة ربط SSO',
   'admin.danger.title': 'منطقة الخطر',
   'admin.rotateJwt.title': 'تدوير سر JWT',
   'admin.rotateJwt.hint': 'أنشئ سرًّا جديدًا لتوقيع JWT. ستُلغى جميع الجلسات النشطة فورًا.',

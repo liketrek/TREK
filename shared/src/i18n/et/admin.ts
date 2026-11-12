@@ -1004,6 +1004,11 @@ const admin: TranslationStrings = {
     'Lülitab selle kasutaja kaheastmelise autentimise välja, näiteks pärast telefoni kaotamist. Kasutaja logitakse kõikjalt välja ja ta saab selle pärast parooliga sisselogimist uuesti seadistada.',
   'admin.mfa.resetConfirm': 'Kas lülitada kasutaja {name} kaheastmeline autentimine välja?',
   'admin.mfa.resetDone': 'Kaheastmeline autentimine lähtestatud',
+  'admin.sso.unlink': 'Eemalda SSO-seos',
+  'admin.sso.unlinkHint':
+    'Unustab, milline sisselogimine teie SSO-teenusepakkuja juures sellele kontole kuulub, näiteks pärast seda, kui teenusepakkuja muutis kasutajate ID-sid. Järgmine kinnitatud e-posti aadressiga SSO-sisselogimine seob konto uuesti.',
+  'admin.sso.unlinkConfirm': 'Kas eemaldada kasutaja {name} SSO-seos?',
+  'admin.sso.unlinkDone': 'SSO-seos eemaldatud',
   'admin.danger.title': 'Ohutsoon',
   'admin.rotateJwt.title': 'Roteeri JWT saladus',
   'admin.rotateJwt.hint': 'Loo uus JWT allkirjastamise saladus. Kõik aktiivsed seansid muutuvad kohe kehtetuks.',
