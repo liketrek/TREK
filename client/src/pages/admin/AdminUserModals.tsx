@@ -124,8 +124,6 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
   const [passkeyResetUser, setPasskeyResetUser] = React.useState<typeof editingUser>(null);
   // Same for the two-factor reset; an admin turns off their own 2FA in Settings, not here.
   const [mfaResetUser, setMfaResetUser] = React.useState<typeof editingUser>(null);
-  // Same for removing the SSO link, offered only while SSO is set up (#3065).
-  const [ssoUnlinkUser, setSsoUnlinkUser] = React.useState<typeof editingUser>(null);
   const uid = useId();
   const createId = `${uid}-create`;
   const editId = `${uid}-edit`;
@@ -322,23 +320,13 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                 </div>
               </DialogSection>
             )}
-            {oidcConfigured && editingUser && editingUser.id !== currentUser?.id && (
-              <DialogSection label={t('admin.sso.unlink')}>
-                <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
-                  <p className="m-0 min-w-0 flex-1 basis-52 leading-snug text-content-muted" style={fs(12, 'body')}>
-                    {t('admin.sso.unlinkHint')}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSsoUnlinkUser(editingUser)}
-                    className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-                    style={fs(12.5, 'body')}
-                  >
-                    <Unlink size={14} /> {t('admin.sso.unlink')}
-                  </button>
-                </div>
-              </DialogSection>
-            )}
+            <SsoUnlinkSection
+              user={editingUser}
+              me={currentUser}
+              ssoSetUp={oidcConfigured}
+              onUnlink={unlinkSso}
+              t={t}
+            />
           </>
         )}
       </DialogShell>
@@ -502,14 +490,53 @@ docker run -d --name trek \\
         danger
       />
 
+    </>
+  );
+}
+
+/**
+ * Removing a user's SSO link (#3065): its section in the edit dialog and the
+ * question before it. Offered only while SSO is set up, and never for the
+ * admin's own account.
+ */
+function SsoUnlinkSection({
+  user,
+  me,
+  ssoSetUp,
+  onUnlink,
+  t,
+}: {
+  user: { id: number; username: string } | null;
+  me: { id: number } | null | undefined;
+  ssoSetUp: boolean;
+  onUnlink: (user: { id: number }) => Promise<boolean>;
+  t: TranslationFn;
+}): React.ReactElement | null {
+  const [asking, setAsking] = React.useState(false);
+  if (!ssoSetUp || !user || user.id === me?.id) return null;
+  return (
+    <>
+      <DialogSection label={t('admin.sso.unlink')}>
+        <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
+          <p className="m-0 min-w-0 flex-1 basis-52 leading-snug text-content-muted" style={fs(12, 'body')}>
+            {t('admin.sso.unlinkHint')}
+          </p>
+          <button
+            type="button"
+            onClick={() => setAsking(true)}
+            className={`${SETTINGS_BUTTON_DANGER} flex-none`}
+            style={fs(12.5, 'body')}
+          >
+            <Unlink size={14} /> {t('admin.sso.unlink')}
+          </button>
+        </div>
+      </DialogSection>
       <ConfirmDialog
-        isOpen={ssoUnlinkUser !== null}
-        onClose={() => setSsoUnlinkUser(null)}
-        onConfirm={() => {
-          if (ssoUnlinkUser) void unlinkSso(ssoUnlinkUser);
-        }}
+        isOpen={asking}
+        onClose={() => setAsking(false)}
+        onConfirm={() => void onUnlink(user)}
         title={t('admin.sso.unlink')}
-        message={ssoUnlinkUser ? t('admin.sso.unlinkConfirm', { name: ssoUnlinkUser.username }) : ''}
+        message={t('admin.sso.unlinkConfirm', { name: user.username })}
         confirmLabel={t('admin.sso.unlink')}
         danger
       />
