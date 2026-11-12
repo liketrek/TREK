@@ -93,17 +93,19 @@ describe('AirtrailService — at-rest encryption (3h L3)', () => {
 describe('AirtrailService — the stored key stays with its host (GHSA-mwf5-5px8-c9h5)', () => {
   const MASK = '••••••••';
 
-  it('AIRTRAIL-SVC-HOST-001: a new host saved with the key masked or blank drops the stored key', async () => {
-    for (const keyField of [MASK, '', undefined]) {
-      const { user } = createUser(testDb);
-      await svc.saveSettings(user.id, 'https://airtrail-a.example.test', 'key-for-a', false, false, null);
+  it.each([
+    ['masked', MASK],
+    ['blank', ''],
+    ['left out', undefined],
+  ])('AIRTRAIL-SVC-HOST-001: a new host saved with the key %s drops the stored key', async (_label, keyField) => {
+    const { user } = createUser(testDb);
+    await svc.saveSettings(user.id, 'https://airtrail-a.example.test', 'key-for-a', false, false, null);
 
-      await svc.saveSettings(user.id, 'https://other-host.example.test', keyField, false, false, null);
+    await svc.saveSettings(user.id, 'https://other-host.example.test', keyField, false, false, null);
 
-      expect(await rawAirtrailKey(user.id)).toBeNull();
-      expect(await svc.getAirtrailCredentials(user.id)).toBeNull();
-      expect((await readUser(t, user.id)).airtrail_url).toBe('https://other-host.example.test');
-    }
+    expect(await rawAirtrailKey(user.id)).toBeNull();
+    expect(await svc.getAirtrailCredentials(user.id)).toBeNull();
+    expect((await readUser(t, user.id)).airtrail_url).toBe('https://other-host.example.test');
   });
 
   it('AIRTRAIL-SVC-HOST-002: a path edit on the same origin keeps the stored key', async () => {
