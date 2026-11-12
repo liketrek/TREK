@@ -135,7 +135,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         meta_seat: meta.seat || '',
       }),
     })
-  }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
+    // Keyed only on what opens a different form. A store refresh while the dialog
+    // is open (a socket reconnect re-reads the trip, a fellow traveller's cost) must
+    // not reseed it and wipe what the user is typing (#3069).
+  }, [isOpen, reservation, prefill, selectedDayId])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
