@@ -538,9 +538,33 @@ describe('MSheet', () => {
           <span>body</span>
         </MSheet>,
       );
-      const scrim = panel().closest('[role="presentation"]') as HTMLElement;
+      const root = panel().closest('[role="presentation"]') as HTMLElement;
+      const scrim = root.querySelector('[data-m-scrim]') as HTMLElement;
       expect(scrim.className).toContain('bg-transparent');
       expect(scrim.className).toContain('short:bg-[color:var(--m-dim)]');
+    });
+
+    it('FE-MOB-SHEET-036: the dim fades beside the sheet, never around it, so the opaque sheet is never see-through', () => {
+      const { rerender } = render(
+        <MSheet open onClose={() => {}} ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      const root = panel().closest('[role="presentation"]') as HTMLElement;
+      const scrim = root.querySelector('[data-m-scrim]') as HTMLElement;
+      expect(scrim.className).toContain('m-fade-in');
+      expect(scrim.className).toContain('pointer-events-none');
+      expect(scrim.contains(panel())).toBe(false);
+      // No ancestor of the sheet animates its opacity.
+      for (let el: HTMLElement | null = panel().parentElement; el; el = el.parentElement) {
+        expect(el.className || '').not.toMatch(/\bm-fade-(in|out)\b/);
+      }
+      rerender(
+        <MSheet open={false} onClose={() => {}} ariaLabel="Sheet">
+          <span>body</span>
+        </MSheet>,
+      );
+      expect(scrim.className).toContain('m-fade-out');
     });
 
     it('FE-MOB-SHEET-035: the region lets taps through to the scrim, the sheet itself takes them', () => {

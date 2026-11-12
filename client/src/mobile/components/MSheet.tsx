@@ -154,6 +154,9 @@ const SHORT_FORM_SHAPE = 'm-form-sheet short:flex-1 short:border-b-0 short:[--m-
 // behind read through as sharp ghost text: the frosting it counted on is
 // dropped whenever an ancestor animates its opacity (the scrim fading in),
 // which WebKit and Chromium both do, so the fields floated over the list behind.
+// For the same reason the dim fades on a layer of its own, beside the sheet and
+// not around it: opacity multiplies down the tree, so a fading parent made even
+// the opaque sheet see-through for its first frames.
 const SURFACE = 'bg-[color:var(--m-sheetop)] border border-[color:var(--m-shbr)]'
 
 // The docked sheet rises from below the screen edge like a native sheet; the
@@ -283,12 +286,17 @@ export default function MSheet({
     // has to fall back to document.body (sheet mounted in the same commit as
     // the shell).
     <div
-      className={`m-root fixed inset-0 z-[60] ${dimTransparent ? 'bg-transparent short:bg-[color:var(--m-dim)]' : 'bg-[color:var(--m-dim)]'} ${open ? 'm-fade-in' : 'm-fade-out'}`}
+      className="m-root fixed inset-0 z-[60]"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) requestClose()
       }}
     >
+      <div
+        aria-hidden="true"
+        data-m-scrim=""
+        className={`pointer-events-none absolute inset-0 ${dimTransparent ? 'bg-transparent short:bg-[color:var(--m-dim)]' : 'bg-[color:var(--m-dim)]'} ${open ? 'm-fade-in' : 'm-fade-out'}`}
+      />
       <div className={regionClass(variant, wideAnchor, form)}>
         <div className={boxClass(variant, wideWidth, form)}>
           <PopoverArrow variant={variant} anchor={wideAnchor} />

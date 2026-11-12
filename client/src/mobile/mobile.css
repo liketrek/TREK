@@ -123,9 +123,11 @@ html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-
 
 /* ── Keyframes ──────────────────────────────────────────────────────────── */
 
-/* The floating card pops in place, the way a native alert does. */
+/* The floating card pops in place, the way a native alert does. It is opaque
+   halfway through the pop, so the page behind never reads through its fields. */
 @keyframes m-sheet-in {
   from { opacity: 0; transform: translateY(10px) scale(.96); }
+  45% { opacity: 1; }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes m-sheet-out {
