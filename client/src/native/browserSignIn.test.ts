@@ -8,6 +8,7 @@ import {
   BrowserSignInCancelled,
   createHandoffSecret,
   handoffUrl,
+  isHandoffReturn,
   rememberHandoffReturn,
   requestHandoffCode,
   resumeBrowserSignIn,
@@ -198,6 +199,14 @@ describe('the remembered handoff return', () => {
     expect(takeHandoffReturn()).toBeNull();
     localStorage.setItem('trek_native_handoff_return', 'not json');
     expect(takeHandoffReturn()).toBeNull();
+  });
+
+  it('tells a way back to the handoff page from any other stored path', () => {
+    expect(isHandoffReturn(path)).toBe(true);
+    expect(isHandoffReturn('/native-handoff')).toBe(false);
+    expect(isHandoffReturn('/oauth/consent?client_id=foo')).toBe(false);
+    expect(isHandoffReturn(null)).toBe(false);
+    expect(isHandoffReturn(42)).toBe(false);
   });
 });
 

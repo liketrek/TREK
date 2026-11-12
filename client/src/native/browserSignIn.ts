@@ -50,6 +50,11 @@ export function rememberHandoffReturn(path: string): void {
   }
 }
 
+/** A path back to the handoff page itself, and nothing else a stored value could point at. */
+export function isHandoffReturn(path: unknown): path is string {
+  return typeof path === 'string' && path.startsWith(`${HANDOFF_PATH}?challenge=`);
+}
+
 /** The remembered handoff page, once: only a fresh path to the handoff page itself. */
 export function takeHandoffReturn(): string | null {
   try {
@@ -57,9 +62,9 @@ export function takeHandoffReturn(): string | null {
     localStorage.removeItem(HANDOFF_RETURN_KEY);
     if (!raw) return null;
     const { path, at } = JSON.parse(raw) as { path?: unknown; at?: unknown };
-    if (typeof path !== 'string' || typeof at !== 'number') return null;
+    if (!isHandoffReturn(path) || typeof at !== 'number') return null;
     if (Date.now() - at > HANDOFF_RETURN_TTL_MS) return null;
-    return path.startsWith(`${HANDOFF_PATH}?challenge=`) ? path : null;
+    return path;
   } catch {
     return null;
   }

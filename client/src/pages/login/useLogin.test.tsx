@@ -417,6 +417,37 @@ describe('useLogin — OIDC callback', () => {
     const { result } = renderLogin();
     await waitFor(() => expect(result.current.error).toBe('some_new_provider_code'));
   });
+
+  it('FE-LOGIN-HOOK-213: a failed round trip the app started keeps the way back to the handoff page', async () => {
+    const handoff = `/native-handoff?challenge=${'a'.repeat(64)}`;
+    sessionStorage.setItem('oidc_redirect', handoff);
+    localStorage.removeItem('trek_native_handoff_return');
+    setSearch('?oidc_error=invalid_state');
+
+    const { result } = renderLogin();
+    await waitFor(() => expect(result.current.error).toBe('Invalid session. Please try again.'));
+    expect(sessionStorage.getItem('oidc_redirect')).toBe(handoff);
+    expect(JSON.parse(localStorage.getItem('trek_native_handoff_return') ?? '{}').path).toBe(handoff);
+  });
+
+  it('FE-LOGIN-HOOK-214: the SSO retry after that failure ends on the handoff page, not in the web app', async () => {
+    const handoff = `/native-handoff?challenge=${'b'.repeat(64)}`;
+    sessionStorage.setItem('oidc_redirect', handoff);
+    localStorage.removeItem('trek_native_handoff_return');
+    setSearch('?oidc_error=invalid_state');
+
+    const failed = renderLogin();
+    await waitFor(() => expect(failed.result.current.error).toBe('Invalid session. Please try again.'));
+    failed.unmount();
+
+    setSearch('?oidc_code=code-retry');
+    server.use(http.get('/api/auth/oidc/exchange', () => HttpResponse.json({ success: true })));
+    renderLogin();
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(handoff, { replace: true }));
+    expect(sessionStorage.getItem('oidc_redirect')).toBeNull();
+    expect(localStorage.getItem('trek_native_handoff_return')).toBeNull();
+  });
 });
 
 describe('useLogin — language detection', () => {

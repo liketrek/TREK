@@ -12,6 +12,8 @@ import { passwordErrorKey } from '../../utils/passwordError'
 import { isNativeApp } from '../../native/platform'
 import {
   BrowserSignInCancelled,
+  isHandoffReturn,
+  rememberHandoffReturn,
   resumeBrowserSignIn,
   signInThroughBrowser,
   takeHandoffReturn,
@@ -256,7 +258,14 @@ export function useLogin() {
         email_link_blocked: t('login.oidc.emailLinkBlocked'),
       }
       setError(errorMessages[oidcError] || oidcError)
-      sessionStorage.removeItem('oidc_redirect')
+      // A round trip the app's sign-in started keeps its way back. The next SSO
+      // attempt from this page is a plain web login, and without the handoff page
+      // to return to it ends in the web app inside the app's browser sheet. The
+      // handoff page asks for a tap before it passes anything on, so keeping the
+      // path hands nothing over by itself; the copy is renewed for a slow retry.
+      const stashed = sessionStorage.getItem('oidc_redirect')
+      if (isHandoffReturn(stashed)) rememberHandoffReturn(stashed)
+      else sessionStorage.removeItem('oidc_redirect')
       window.history.replaceState({}, '', '/login')
       loadConfig(false)
       return
