@@ -1,14 +1,17 @@
 /*
- * The address screen the app ships. Dark first, mirroring the app's neutral
- * default scheme (client/src/index.css), so it shares the launch screen's
- * background and never flashes. Everything past this screen is the UI the
- * chosen server delivers.
+ * The first screens the app ships itself: welcome, plans, address, an own
+ * server, and the states between. Light, on a landscape seen from above
+ * (scenery.ts). Everything past them is the UI the chosen server delivers.
+ *
+ * Every side is a logical one (inline start and end), so Arabic and Hebrew
+ * mirror the layout without rules of their own.
  */
 
 /*
- * TREK's own type, self-hosted (latin subset, bundled — the shell loads offline
- * and hotlinks nothing). Poppins is the display face across the app and
- * liketrek.com; MuseoModerno draws the "cloud" of the TREK Cloud wordmark.
+ * TREK's own type, self-hosted (latin subset, bundled: the shell loads offline
+ * and hotlinks nothing). Poppins sets the headlines and prices. Poppins has no
+ * Cyrillic, so Russian and Ukrainian get Montserrat under the same family name,
+ * loaded only when a Cyrillic letter is on screen.
  */
 @font-face {
   font-family: 'Poppins';
@@ -31,20 +34,6 @@
   font-display: swap;
   src: url('./fonts/poppins-latin-700.woff2') format('woff2');
 }
-@font-face {
-  font-family: 'MuseoModerno';
-  font-style: normal;
-  font-weight: 600 700;
-  font-display: swap;
-  src: url('./fonts/museomoderno-latin-600.woff2') format('woff2');
-}
-/*
- * Poppins and MuseoModerno have no Cyrillic, so Russian and Ukrainian fell back
- * to the system's plain sans. Each family gets a Cyrillic-only stand-in under its
- * own name, picked for the same build: Montserrat for the geometric text face,
- * Comfortaa for the rounded headline. The unicode-range keeps Latin on TREK's
- * own faces and loads these only when a Cyrillic letter is on screen.
- */
 @font-face {
   font-family: 'Poppins';
   font-style: normal;
@@ -69,742 +58,417 @@
   src: url('./fonts/montserrat-cyrillic-700.woff2') format('woff2');
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
+/*
+ * Plus Jakarta Sans, the text face of the first screens: Latin and Latin
+ * Extended (Czech, Polish, Turkish, Vietnamese letters), each loaded only when
+ * a letter of its range is on screen. Cyrillic borrows Montserrat under the same
+ * family name, as Poppins does.
+ */
 @font-face {
-  font-family: 'MuseoModerno';
+  font-family: 'Plus Jakarta Sans';
   font-style: normal;
-  font-weight: 600 700;
+  font-weight: 400;
   font-display: swap;
-  src: url('./fonts/comfortaa-cyrillic-700.woff2') format('woff2');
-  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+  src: url('./fonts/plus-jakarta-sans-latin-400.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-/* Italic, subset to the letters of "cloud" — the wordmark's badge, nothing else. */
 @font-face {
-  font-family: 'MuseoModerno';
-  font-style: italic;
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-500.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('./fonts/museomoderno-italic-600.woff2') format('woff2');
+  src: url('./fonts/plus-jakarta-sans-latin-600.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-700.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-800.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-400.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-500.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-600.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-700.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('./fonts/plus-jakarta-sans-latin-ext-800.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/montserrat-cyrillic-500.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/montserrat-cyrillic-600.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/montserrat-cyrillic-700.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
 :root {
-  --bg: #09090b;
-  --bg-2: #101013;
-  --surface: #18181b;
-  --surface-2: #1f1f23;
-  --edge: #27272a;
-  --edge-strong: #3f3f46;
-  --ink: #fafafa;
-  --muted: #a1a1aa;
-  --faint: #71717a;
-  --accent: #fafafa;
-  --accent-ink: #09090b;
-  --danger: #f87171;
-  --ok: #4ade80;
-  /* The hairline the ambient grid is drawn in, and a travel-dusk wash for depth. */
-  --grid: rgba(255, 255, 255, 0.055);
-  --wash-1: rgba(129, 140, 248, 0.12);
-  /* Mixes with transparent, spelled out per scheme: older Android web views (Chrome 113)
-     resolved color-mix() towards transparent as opaque and drew solid halos and rings. */
-  --accent-ink-a16: rgba(9, 9, 11, 0.16);
-  --accent-ink-a35: rgba(9, 9, 11, 0.35);
-  --danger-a16: rgba(248, 113, 113, 0.16);
-  --ink-a22: rgba(250, 250, 250, 0.22);
-  --ink-a3: rgba(250, 250, 250, 0.03);
-  --ink-a4: rgba(250, 250, 250, 0.04);
-  --ink-a9: rgba(250, 250, 250, 0.09);
-  --ok-a16: rgba(74, 222, 128, 0.16);
-  --ok-a22: rgba(74, 222, 128, 0.22);
-  --wash-1-a85: rgba(129, 140, 248, 0.102);
-  --wash-1-a90: rgba(129, 140, 248, 0.108);
-  --wash-2: rgba(244, 114, 182, 0.08);
-  --veil-top: rgba(9, 9, 11, 0.4);
-  --veil-mid: rgba(9, 9, 11, 0.72);
-  --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
-  --radius: 16px;
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-  /* 1 left to right, -1 in Arabic: a screen that comes next slides in from the trailing side. */
-  --flow: 1;
-  color-scheme: dark;
-}
-:root[dir='rtl'] {
-  --flow: -1;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #ffffff;
-    --bg-2: #fafafa;
-    --surface: #f4f4f5;
-    --surface-2: #ececef;
-    --edge: #e4e4e7;
-    --edge-strong: #d4d4d8;
-    --ink: #111827;
-    --muted: #52525b;
-    --faint: #9ca3af;
-    --accent: #111827;
-    --accent-ink: #ffffff;
-    --danger: #dc2626;
-    --ok: #16a34a;
-    --grid: rgba(17, 24, 39, 0.075);
-    --wash-1: rgba(79, 70, 229, 0.1);
-    --accent-ink-a16: rgba(255, 255, 255, 0.16);
-    --accent-ink-a35: rgba(255, 255, 255, 0.35);
-    --danger-a16: rgba(220, 38, 38, 0.16);
-    --ink-a22: rgba(17, 24, 39, 0.22);
-    --ink-a3: rgba(17, 24, 39, 0.03);
-    --ink-a4: rgba(17, 24, 39, 0.04);
-    --ink-a9: rgba(17, 24, 39, 0.09);
-    --ok-a16: rgba(22, 163, 74, 0.16);
-    --ok-a22: rgba(22, 163, 74, 0.22);
-    --wash-1-a85: rgba(79, 70, 229, 0.085);
-    --wash-1-a90: rgba(79, 70, 229, 0.09);
-    --wash-2: rgba(219, 39, 119, 0.07);
-    --veil-top: rgba(255, 255, 255, 0.12);
-    --veil-mid: rgba(255, 255, 255, 0.74);
-    color-scheme: light;
-  }
-  .mark {
-    filter: none;
-  }
-  /* The app icon is drawn white; on the light surface it turns black. */
-  .shell-logo {
-    filter: brightness(0);
-  }
+  --page: #fffaf5;
+  --ink: #1f1a17;
+  --text: #6b5f57;
+  --muted: #8a7b6f;
+  --faint: #b9ab9e;
+  --line: #efe4d8;
+  --line-soft: #f3ebe1;
+  --sand: #f6efe6;
+  --dark: #111827;
+  --good: #1d7a46;
+  --bad: #b42318;
+  --sea: #cfe3ef;
+  --text-face: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --display-face: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* The insets of the device, from the web view or, on iOS, from the native side. */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--trek-native-safe-bottom, 0px));
+  --safe-start: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));
+  --safe-end: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
-
 html,
 body {
   margin: 0;
-  min-height: 100%;
-  background:
-    radial-gradient(90% 55% at 50% -12%, var(--wash-1), transparent 62%),
-    radial-gradient(80% 50% at 50% 112%, var(--wash-2), transparent 64%), var(--bg);
+  height: 100%;
+  background: var(--page);
   color: var(--ink);
-  font-family: var(--font);
-  -webkit-text-size-adjust: 100%;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  user-select: none;
-  -webkit-user-select: none;
-  /* A double tap on a button zoomed the screen on iOS. An app does not zoom:
-     taps stay taps, panning still scrolls. */
-  touch-action: manipulation;
+  font-family: var(--text-face);
+  overscroll-behavior: none;
+}
+button,
+input {
+  font: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--dark);
+  outline-offset: 2px;
 }
 
-/*
- * The backdrop, in two fixed layers behind the content. First a soft dusk wash
- * at top and bottom — a trace of the colour the app's photos carry, never loud
- * enough to read as decoration. Then a quiet grid that fades out through a
- * radial mask: depth, the way liketrek.com's hero carries it.
- */
-/* The grid, strongest at the top-right and fading left and down — the half the
-   photo leaves open, so the two meet in a soft seam down the middle. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0 0 auto;
-  height: 440px;
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 54px 54px;
-  -webkit-mask-image: radial-gradient(135% 95% at 100% 0%, #000 34%, transparent 80%);
-  mask-image: radial-gradient(135% 95% at 100% 0%, #000 34%, transparent 80%);
-  pointer-events: none;
-  z-index: 0;
-}
-/*
- * A travel photo as a top band (Kyoto at dusk, the same image liketrek.com uses
- * in its pricing section), under a dark gradient and faded out at the bottom so
- * the headline stays legible. Dark-first; in light mode it steps back to the
- * quiet grid instead, which reads better on a white page.
- */
-/* The travel photo (Kyoto at dusk, as on liketrek.com), anchored left and faded
-   out toward the right so it hands over to the grid, and down into the page.
-   The veil over it takes the scheme's page colour: a dark dusk in dark mode, a
-   bright morning haze in light mode, so the black wordmark still reads on it. */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0 0 auto;
-  height: 440px;
-  background:
-    linear-gradient(180deg, var(--veil-top) 0%, var(--veil-mid) 62%, var(--bg) 100%),
-    url('./img/kyoto.webp') left 28% / cover no-repeat;
-  /* A long, soft hand-over to the grid: a short one read as an edge. */
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 22%, transparent 96%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 22%, transparent 96%);
-  pointer-events: none;
-  z-index: 0;
-}
-/* In Arabic the photo holds the leading (right) side and the grid the other. */
-:root[dir='rtl'] body::after {
-  background-position:
-    0 0,
-    right 28%;
-  -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 22%, transparent 96%);
-  mask-image: linear-gradient(270deg, #000 0%, #000 22%, transparent 96%);
-}
-:root[dir='rtl'] body::before {
-  -webkit-mask-image: radial-gradient(135% 95% at 0% 0%, #000 34%, transparent 80%);
-  mask-image: radial-gradient(135% 95% at 0% 0%, #000 34%, transparent 80%);
-}
-
+/* The page: one screen at a time, each its own scroller. */
 .shell {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  max-width: 440px;
-  margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 28px) 24px calc(env(safe-area-inset-bottom) + 24px);
-  /* Clip only the sideways slide: a screen taller than the window scrolls the
-     page instead (and a sticky column needs an ancestor that does not scroll). */
+  position: fixed;
+  inset: 0;
   overflow-x: clip;
 }
-
-/* ── Screen transitions ──────────────────────────────────────────────────── */
-.screen {
+.scr {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  /* Centred while it fits; taller than the window it starts at the top and the
-     page scrolls, rather than overflowing both edges as justify-content would. */
-  margin-block: auto;
+  padding-bottom: 30px;
+  background: var(--page);
 }
-/* A screen's two halves (main.ts, columns()): one column unless the layout asks. */
-.col {
+.scr::-webkit-scrollbar {
+  display: none;
+}
+.scr.enter {
+  animation: scrIn 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.scr.enter.reverse {
+  animation-name: scrInBack;
+}
+:root[dir='rtl'] .scr.enter {
+  animation-name: scrInBack;
+}
+:root[dir='rtl'] .scr.enter.reverse {
+  animation-name: scrIn;
+}
+@keyframes scrIn {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes scrInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* On a phone the content flows in the screen's own column. */
+.body {
   display: contents;
 }
-.screen-enter {
-  animation: screenIn 0.5s var(--ease) both;
+
+/* ── The landscape at the top ── */
+.hero {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  background: var(--sea);
+  margin-bottom: -1px;
+  height: min(300px, 36svh);
 }
-/* Lifted out where it stood: main.ts sets its top, left and width. */
-.screen-leave {
-  animation: screenOut 0.28s var(--ease-in) both;
+.hero.tall {
+  height: min(320px, 38svh);
+}
+.hero.welcome {
+  height: min(376px, 44.5svh);
+  min-height: 250px;
+}
+.hero .scenery {
   position: absolute;
-  margin: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
-.screen-back.screen-enter {
-  animation-name: screenInBack;
+/* The status bar's clock and icons stay readable on the sea. */
+.hero::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  top: 0;
+  height: calc(var(--safe-top) + 36px);
+  background: linear-gradient(180deg, rgba(8, 24, 40, 0.28), rgba(8, 24, 40, 0));
+  pointer-events: none;
 }
-.screen-back.screen-leave {
-  animation-name: screenOutBack;
+.hero::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 110px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 250, 245, 0) 0%,
+    rgba(255, 250, 245, 0.8) 55%,
+    #fffaf5 82%,
+    #fffaf5 100%
+  );
+  pointer-events: none;
 }
-@keyframes screenIn {
-  from {
-    opacity: 0;
-    transform: translateX(calc(26px * var(--flow)));
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.hero.welcome::after {
+  height: 18px;
+  background: linear-gradient(180deg, rgba(255, 250, 245, 0), #fffaf5 88%);
 }
-@keyframes screenOut {
-  to {
-    opacity: 0;
-    transform: translateX(calc(-22px * var(--flow)));
-  }
+.logo {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--safe-top) + 10px);
+  inset-inline-start: calc(24px + var(--safe-start));
+  height: 40px;
+  filter: drop-shadow(0 1px 6px rgba(7, 40, 70, 0.45));
 }
-@keyframes screenInBack {
-  from {
-    opacity: 0;
-    transform: translateX(calc(-26px * var(--flow)));
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes screenOutBack {
-  to {
-    opacity: 0;
-    transform: translateX(calc(22px * var(--flow)));
-  }
-}
-
-/* Children stagger in, so a screen assembles rather than snaps. Inside the two
-   halves the explanation comes first and the choices follow. */
-.screen-enter > :not(.col),
-.screen-enter > .col > * {
-  animation: riseIn 0.55s var(--ease) both;
-}
-.screen-enter > .col > :nth-child(1) {
-  animation-delay: 0.02s;
-}
-.screen-enter > .col > :nth-child(2) {
-  animation-delay: 0.07s;
-}
-.screen-enter > .col > :nth-child(3) {
-  animation-delay: 0.12s;
-}
-.screen-enter > .col > :nth-child(4) {
-  animation-delay: 0.17s;
-}
-.screen-enter > .col-act > :nth-child(1) {
-  animation-delay: 0.15s;
-}
-.screen-enter > .col-act > :nth-child(2) {
-  animation-delay: 0.2s;
-}
-.screen-enter > .col-act > :nth-child(3) {
-  animation-delay: 0.25s;
-}
-.screen-enter > .col-act > :nth-child(4) {
-  animation-delay: 0.3s;
-}
-.screen-enter > *:nth-child(1) {
-  animation-delay: 0.02s;
-}
-.screen-enter > *:nth-child(2) {
-  animation-delay: 0.07s;
-}
-.screen-enter > *:nth-child(3) {
-  animation-delay: 0.12s;
-}
-.screen-enter > *:nth-child(4) {
-  animation-delay: 0.17s;
-}
-.screen-enter > *:nth-child(5) {
-  animation-delay: 0.22s;
-}
-.screen-enter > *:nth-child(6) {
-  animation-delay: 0.27s;
-}
-@keyframes riseIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ── Brand ───────────────────────────────────────────────────────────────── */
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
-  margin-bottom: 6px;
-}
-.brand .mark {
+.back {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--safe-top) + 8px);
+  inset-inline-start: calc(20px + var(--safe-start));
   width: 40px;
   height: 40px;
-}
-.brand .wordmark {
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: -0.01em;
-}
-.brand .tag {
-  font-style: italic;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--accent-ink);
-  background: var(--accent);
+  display: grid;
+  place-items: center;
+  border: 0;
   border-radius: 999px;
-  padding: 2px 10px;
-  line-height: 1.3;
-}
-
-.shell-logo {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 4px;
-}
-
-/* The big hero mark on the welcome screen, with a gentle breathing float. */
-.hero-mark {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 20px;
-  animation: floaty 6s ease-in-out infinite;
-  filter: drop-shadow(0 14px 36px var(--wash-1-a90))
-    drop-shadow(0 6px 16px var(--ink-a22));
-}
-
-/* The full TREK wordmark on the welcome screen, in the variant that reads on the scheme. */
-.hero-logo {
-  display: block;
-  margin-bottom: 22px;
-  filter: drop-shadow(0 14px 36px var(--wash-1-a90))
-    drop-shadow(0 6px 16px var(--ink-a22));
-  animation: logoRise 0.7s var(--ease) both;
-}
-.hero-logo img {
-  display: block;
-  height: 62px;
-  width: auto;
-}
-.hero-logo .on-light {
-  display: none;
-}
-@media (prefers-color-scheme: light) {
-  .hero-logo .on-dark {
-    display: none;
-  }
-  .hero-logo .on-light {
-    display: block;
-  }
-}
-@keyframes logoRise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes floaty {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-/* ── Type ────────────────────────────────────────────────────────────────── */
-.title {
-  font-size: 2.05rem;
-  line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  margin: 0;
-  /* Honour the newline in the headline string (e.g. "Deine Reisen.\nDein Plan."). */
-  white-space: pre-line;
-  text-wrap: balance;
-}
-/* The welcome headline as the brand says it: MuseoModerno, lower case. */
-.brand-title {
-  font-family: 'MuseoModerno', 'Poppins', sans-serif;
-  font-weight: 700;
-  text-transform: lowercase;
-  letter-spacing: -0.01em;
-  line-height: 1.08;
-}
-
-/* The TREK Cloud lockup (cloud intro screen): the wordmark plus the "cloud"
-   badge in italic MuseoModerno, an inverted pill, exactly as on liketrek.com. */
-.cloud-wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  /* Left to right inside (dir="ltr"), yet on the screen's start edge in Arabic. */
-  align-self: flex-start;
-}
-.cloud-wordmark img {
-  display: block;
-  height: 38px;
-  width: auto;
-}
-.cloud-wordmark .on-light {
-  display: none;
-}
-@media (prefers-color-scheme: light) {
-  .cloud-wordmark .on-dark {
-    display: none;
-  }
-  .cloud-wordmark .on-light {
-    display: block;
-  }
-}
-.cloud-tag {
-  font-family: 'MuseoModerno', system-ui, sans-serif;
-  font-style: italic;
-  font-weight: 600;
-  font-size: 0.95rem;
-  line-height: 1.35;
-  padding: 2px 11px;
-  border-radius: 999px;
-  color: var(--bg);
-  background: var(--ink);
-}
-.title-sm {
-  font-size: 1.5rem;
-  line-height: 1.18;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  margin: 0;
-  text-wrap: balance;
-}
-.sub {
-  color: var(--muted);
-  margin: 0;
-  line-height: 1.55;
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
-  /* No lone last word ("AI.") on a line of its own. */
-  text-wrap: balance;
-}
-
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
-.btn {
-  font: inherit;
-  font-weight: 600;
-  font-size: 1.02rem;
-  padding: 16px 22px;
-  border: 1px solid transparent;
-  /* A pill, as the app's buttons are. */
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  cursor: pointer;
-  box-shadow:
-    0 8px 22px -14px rgba(0, 0, 0, 0.55),
-    0 1px 2px rgba(0, 0, 0, 0.25);
-  transition:
-    transform 0.14s var(--ease),
-    opacity 0.2s,
-    background 0.2s,
-    box-shadow 0.2s,
-    border-color 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 54px;
-}
-.btn:active {
-  transform: scale(0.975);
-}
-.btn:disabled {
-  opacity: 0.55;
-}
-/* A two-line choice (welcome) is a card rather than a button: the app's card radius. */
-.btn:has(.btn-row) {
-  border-radius: 22px;
-  padding-inline: 18px;
-}
-.btn-ghost {
-  background: var(--surface);
+  background: #fff;
   color: var(--ink);
-  border-color: var(--edge);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.22),
-    inset 0 0 0 1px var(--ink-a4);
+  cursor: pointer;
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.5);
 }
-.btn-ghost:active {
-  background: var(--surface-2);
-}
-.btn-row {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  /* A subtitle that wraps keeps to the start edge under its title. */
-  text-align: start;
-}
-.btn-row b {
-  font-weight: 650;
-}
-.btn-row small {
-  font-weight: 500;
-  font-size: 0.86rem;
-  opacity: 0.7;
-}
-.btn .chev {
-  flex: none;
-  margin-inline-start: auto;
-  opacity: 0.5;
-}
-/* A centred label with the chevron at the far edge, the label optically centred. */
-.btn-go .btn-label {
-  flex: 1;
-  padding-inline-start: 20px;
-}
-/* Chevrons point along the reading direction. */
-:root[dir='rtl'] .chev,
-:root[dir='rtl'] .back svg {
+:root[dir='rtl'] .back svg,
+:root[dir='rtl'] .flip {
   transform: scaleX(-1);
 }
 
-.linkbtn {
-  font: inherit;
-  font-size: 0.95rem;
-  padding: 12px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  align-self: center;
-  transition: color 0.2s;
+/* ── The glass card over the landscape ── */
+.card {
+  position: absolute;
+  z-index: 2;
+  inset-inline: calc(20px + var(--safe-start)) calc(20px + var(--safe-end));
+  /* Lower in a short landscape (the keyboard is up), so it never meets the back button. */
+  bottom: clamp(18px, calc(100% - 242px), 78px);
+  padding: 12px 16px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow:
+    0 18px 36px -18px rgba(17, 24, 39, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
-
-/* "Try the demo": a tertiary action, but a tidy pill so it reads as a choice, not stray text. */
-.demo-link {
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.95rem;
-  align-self: stretch;
-  width: 100%;
-  margin-top: 2px;
-  padding: 9px 18px;
-  min-height: 40px;
-  border-radius: 999px;
-  border: 1px solid var(--edge);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    color 0.2s,
-    background 0.2s,
-    border-color 0.2s,
-    transform 0.14s var(--ease);
-}
-.demo-link:active {
-  transform: scale(0.97);
-  background: var(--surface-2);
-  color: var(--ink);
-}
-.linkbtn:active {
-  color: var(--ink);
-}
-a.linkbtn {
-  text-decoration: none;
-}
-
-.foot-links {
+.card small {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 22px;
-  margin-top: 6px;
-  padding-top: 16px;
-  border-top: 1px solid var(--edge);
-  font-size: 0.86rem;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
 }
-.foot-links a {
+.card.ok small {
+  color: var(--good);
+}
+.card.bad small,
+.card.bad .url i {
+  color: var(--bad);
+}
+.url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  min-width: 0;
+}
+.url i {
+  display: flex;
+  flex: none;
+  color: var(--dark);
+}
+.url-text {
+  font-family: var(--display-face);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
+}
+.url-text b {
+  font-weight: 600;
+  color: var(--dark);
+}
+.url-text b.ph {
+  color: #a99a8c;
+}
+.url-text span {
   color: var(--muted);
   font-weight: 500;
-  text-decoration: none;
-  padding: 6px 2px;
-  transition: color 0.2s;
 }
-.foot-links a:active {
-  color: var(--ink);
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin: 0 1px;
+  vertical-align: -0.17em;
+  background: var(--dark);
+  border-radius: 2px;
+  animation: blink 1.1s steps(1) infinite;
 }
-
-/* ── Address form ────────────────────────────────────────────────────────── */
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.field {
-  position: relative;
-}
-.field input {
-  width: 100%;
-  font: inherit;
-  font-size: 1rem;
-  padding: 13px 18px;
-  border-radius: 999px;
-  border: 1px solid var(--edge);
-  background: var(--surface);
-  color: var(--ink);
-  outline: none;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 var(--ink-a4);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.25s;
-  user-select: text;
-  -webkit-user-select: text;
-}
-.field input::placeholder {
-  color: var(--faint);
-}
-.field input:focus {
-  border-color: var(--edge-strong);
-  box-shadow: 0 0 0 4px var(--ink-a9);
-}
-.field.bad input {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 4px var(--danger-a16);
-  animation: shake 0.3s;
-}
-@keyframes shake {
-  25% {
-    transform: translateX(-5px);
-  }
-  50% {
-    transform: translateX(5px);
-  }
-  75% {
-    transform: translateX(-3px);
-  }
-}
-
-.error {
-  color: var(--danger);
-  margin: 0;
-  min-height: 1.4em;
-  line-height: 1.45;
-  font-size: 0.95rem;
-  transition: opacity 0.2s;
-}
-
-/* A sign-in proxy in front of the server: which one, sign in to it here, or let the app through. */
-.gate {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
-  border-radius: 22px;
-  background: var(--surface);
-  border: 1px solid var(--edge);
-  text-align: start;
-}
-.gate[hidden] {
+.card:not(.typing) .caret {
   display: none;
 }
-.gate-title {
-  margin: 0;
-  font-weight: 600;
-  color: var(--ink);
-  line-height: 1.4;
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
-.gate-text {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-.gate-note {
-  margin: 0;
-  color: var(--faint);
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-.gate a {
-  color: var(--ink);
-  font-size: 0.9rem;
-}
-
-/* Spinner inside the connect button while probing. */
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--accent-ink-a35);
-  border-top-color: var(--accent-ink);
+.spin {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  border: 2px solid var(--text);
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+.cta .spin {
+  width: 16px;
+  height: 16px;
+  border-color: #fff;
+  border-top-color: transparent;
 }
 @keyframes spin {
   to {
@@ -812,758 +476,939 @@ a.linkbtn {
   }
 }
 
-/* ── Feature list (cloud screen) ─────────────────────────────────────────── */
-.features {
+/* ── Content ── */
+.pad {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 4px 0 2px;
+  gap: 14px;
+  padding-inline: calc(24px + var(--safe-start)) calc(24px + var(--safe-end));
 }
-.feature {
+.pad.grow {
+  flex: 1;
+  margin-top: -30px;
+}
+.pad.lift {
+  margin-top: -34px;
+  gap: 16px;
+}
+.pad.lift + .pad {
+  margin-top: 16px;
+}
+.stack {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.pad.form {
+  margin-top: 2px;
+  gap: 12px;
+}
+.push {
+  flex: 1;
+  min-height: 0;
+}
+h1 {
+  margin: 0;
+  font-family: var(--display-face);
+  font-weight: 600;
+  font-size: 36px;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+.lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.title {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+.sub {
+  margin: -4px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.sub b {
+  color: var(--ink);
+}
+.perks {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  padding: 2px 16px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 14px 28px -24px rgba(31, 26, 23, 0.6);
+}
+.perks div {
+  display: flex;
+  align-items: center;
   gap: 13px;
-  padding: 11px 0;
-  border-top: 1px solid var(--edge);
+  padding: 8px 0;
 }
-.feature:first-child {
-  border-top: 0;
+.perks div + div {
+  border-top: 1px solid var(--line-soft);
 }
-.feature .ic {
-  flex: none;
+.perks i {
   width: 34px;
   height: 34px;
+  flex: none;
   border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--edge);
+  background: var(--dark);
+  color: #fff;
   display: grid;
   place-items: center;
-  color: var(--ink);
 }
-.feature .tx {
-  line-height: 1.4;
-  padding-top: 5px;
-  font-size: 0.98rem;
+.perks b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
 }
-
-/* ── Success tick before the server loads ────────────────────────────────── */
-.success {
-  align-items: center;
-  text-align: center;
-  justify-content: center;
+.perks small {
+  display: block;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 1px;
 }
-.tick {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--ok-a16);
-  display: grid;
-  place-items: center;
-  margin-bottom: 8px;
-  animation: pop 0.45s var(--ease) both;
-}
-.tick svg {
-  width: 38px;
-  height: 38px;
-  color: var(--ok);
-}
-.tick path {
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
-  animation: draw 0.45s 0.15s var(--ease) forwards;
-}
-@keyframes pop {
-  from {
-    transform: scale(0.4);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
+.btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.topbar {
+/* ── Buttons ── */
+.cta,
+.cta2 {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  margin-block: 0 2px;
-  margin-inline-start: -8px;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.15s;
 }
-.back {
-  font: inherit;
+.cta {
+  min-height: 58px;
+  background: var(--dark);
+  color: #fff;
+  font: 700 17px var(--text-face);
+  box-shadow: 0 14px 28px -14px rgba(17, 24, 39, 0.55);
+}
+.cta2 {
+  min-height: 52px;
+  background: #fff;
+  color: var(--dark);
+  font: 700 16px var(--text-face);
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+.cta:active,
+.cta2:active {
+  transform: scale(0.985);
+}
+.cta:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.link {
+  display: block;
+  margin: 6px auto 0;
+  padding: 8px;
   border: 0;
   background: none;
-  color: var(--muted);
-  font-size: 0.98rem;
-  padding: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  color: var(--text);
+  font: 600 15px var(--text-face);
   cursor: pointer;
 }
-.back:active {
-  color: var(--ink);
+.link.msg {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dock {
+  position: sticky;
+  bottom: -30px;
+  z-index: 3;
+  margin-top: auto;
+  padding-block: 22px calc(30px + var(--safe-bottom));
+  padding-inline: calc(24px + var(--safe-start)) calc(24px + var(--safe-end));
+  background: linear-gradient(180deg, rgba(255, 250, 245, 0), #fffaf5 34%);
+}
+.dock .cta2 {
+  margin-top: 8px;
+}
+.fine {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.diag {
+  margin: 10px 0 0;
+  text-align: center;
+  font:
+    500 11px ui-monospace,
+    'SF Mono',
+    Menlo,
+    monospace;
+  color: #a99a8c;
+  overflow-wrap: anywhere;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-/* ── Plan picker (cloud subscription) ────────────────────────────────────── */
-.segmented {
-  display: flex;
+/* ── Plans ── */
+.tiers {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 4px;
   padding: 4px;
-  background: var(--surface);
-  border: 1px solid var(--edge);
-  border-radius: 999px;
-  align-self: stretch;
+  border-radius: 16px;
+  background: var(--line-soft);
 }
-.segmented button {
-  flex: 1;
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.95rem;
-  padding: 9px;
+.tiers button {
   border: 0;
-  border-radius: 999px;
-  background: none;
-  color: var(--muted);
+  border-radius: 12px;
+  padding: 10px 0;
+  background: transparent;
+  font: 700 14px var(--text-face);
+  color: var(--text);
   cursor: pointer;
   transition:
     background 0.2s,
     color 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
 }
-.segmented button[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--accent-ink);
+.tiers button[aria-checked='true'] {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
-.segmented .save {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--ok-a22);
-  color: var(--ok);
-}
-.segmented button[aria-pressed='true'] .save {
-  background: var(--accent-ink-a16);
-  color: var(--accent-ink);
-}
-
-.plans {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  /* Room for the badge that sits on the first card's top edge. */
-  padding-top: 4px;
-}
-.plan {
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  padding: 16px;
-  background: var(--surface);
-  box-shadow:
-    0 2px 10px -4px rgba(0, 0, 0, 0.3),
-    inset 0 0 0 1px var(--ink-a3);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s,
-    transform 0.14s var(--ease);
-}
-.plan.featured {
-  box-shadow:
-    0 10px 30px -10px var(--wash-1-a85),
-    0 2px 8px -3px rgba(0, 0, 0, 0.35);
-}
-.plan:active {
-  transform: scale(0.99);
-}
-.plan.featured {
-  border-color: var(--edge-strong);
-  background: var(--surface-2);
-}
-.plan-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-.plan-name {
-  font-weight: 700;
-  font-size: 1.12rem;
-}
-.plan-price {
-  font-weight: 700;
-  font-size: 1.3rem;
-  letter-spacing: -0.01em;
-}
-.plan-price small {
-  font-weight: 500;
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-inline-start: 7px;
-}
-.plan-feats {
-  margin: 10px 0 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-.plan-feats span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.plan-feats svg {
-  flex: none;
-  color: var(--ok);
-}
-.plan-feats .off,
-.plan-feats .off svg {
-  color: var(--faint);
-}
-/* A plan is a choice, as a radio button is: the whole card takes the tap. */
-button.plan {
-  font: inherit;
-  color: inherit;
-  text-align: start;
-  width: 100%;
-  cursor: pointer;
-  position: relative;
-  padding-inline-start: 48px;
-}
-.plan-radio {
-  position: absolute;
-  inset-inline-start: 16px;
-  top: 19px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid var(--edge-strong);
-  transition:
-    border-color 0.2s,
-    border-width 0.2s var(--ease);
-}
-.plan.selected {
-  border-color: var(--ink);
-  box-shadow:
-    0 0 0 1px var(--ink),
-    0 14px 34px -14px var(--wash-1-a85),
-    0 2px 8px -3px rgba(0, 0, 0, 0.35);
-}
-.plan.selected .plan-radio {
-  border: 6px solid var(--ink);
-}
-/* Pinned to the card's top edge, so the name and the price keep their line. */
-.plan {
-  position: relative;
-}
-.plan-badge {
-  position: absolute;
-  top: -9px;
-  inset-inline-end: 16px;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-.plan-feats small {
-  color: var(--faint);
-  font-size: 0.8rem;
-  margin-inline-start: 2px;
-}
-.plan-feats {
-  margin-bottom: 0;
-}
-
-/* What every plan has, once above the cards. */
-.plans-every {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 2px;
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-.plans-every svg {
-  flex: none;
-  color: var(--ok);
-}
-
-/* The one button on, held at the foot of the screen over a fade while the plans scroll. */
-.plans-cta {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  margin: 0 -2px;
-  padding: 18px 2px calc(env(safe-area-inset-bottom, 0px) + 10px);
-  background: linear-gradient(to bottom, transparent, var(--bg) 38%);
-}
-.plans-cta .btn {
-  width: 100%;
-  justify-content: space-between;
-  border-radius: 22px;
-  padding-inline: 22px 18px;
-}
-.plans-cta .btn-row small {
-  opacity: 0.72;
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  padding: 40px 0;
-}
-.loading .spinner {
-  width: 26px;
-  height: 26px;
-  border-color: var(--edge-strong);
-  border-top-color: var(--ink);
-}
-/* Small print (the terms a purchase is under, how it renews): in the system's
-   own text face at its regular weight. Poppins ships from 500 up only, which
-   made a paragraph of legal text read as heavy as a heading. */
-.note {
-  text-align: center;
-  color: var(--faint);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Roboto, system-ui, sans-serif;
-  font-weight: 400;
-  font-size: 0.76rem;
-  margin: 2px 0 0;
-  line-height: 1.5;
-}
-.note a {
-  color: var(--muted);
-}
-/* Under the plans: restore, the renewal terms, the legal links. */
-.plans-foot {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-}
-.plans-foot .hint {
-  text-align: center;
-  margin: 0;
-}
-.plans-foot .hint:empty {
-  display: none;
-}
-
-/* ── Claim: address + email, and the provisioning wait ───────────────────── */
-/* One rounded field holding the address input and its fixed ".liketrek.com"
-   suffix — the input itself is seamless, the box and its states live here. */
-.slug-field {
-  display: flex;
-  align-items: center;
-  padding-inline-end: 18px;
-  border-radius: 999px;
-  border: 1px solid var(--edge);
-  background: var(--surface);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 var(--ink-a4);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.25s;
-}
-.slug-field .slug-input,
-.slug-field .slug-input:focus {
-  flex: 1;
+.trip {
   min-width: 0;
-  text-align: start;
+  margin-top: 10px;
+}
+.trip h1 {
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.trip p {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.badge {
+  font-family: var(--text-face);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--dark);
+  color: #fff;
+}
+.pricebox {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 6px 16px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 16px 30px -24px rgba(31, 26, 23, 0.55);
+}
+.cycle {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: 15px;
+  background: var(--sand);
+}
+.cycle .thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  inset-inline-start: 4px;
+  width: calc(50% - 4px);
+  border-radius: 11px;
+  background: var(--dark);
+  box-shadow: 0 4px 10px -4px rgba(17, 24, 39, 0.5);
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cycle[data-year='true'] .thumb {
+  transform: translateX(100%);
+}
+:root[dir='rtl'] .cycle[data-year='true'] .thumb {
+  transform: translateX(-100%);
+}
+.cycle button {
+  position: relative;
+  z-index: 1;
   border: 0;
   background: transparent;
-  /* The ring is the whole field's (focus-within below), not a second one inside it. */
-  box-shadow: none;
-}
-/* An email is typed left to right, but its Arabic placeholder reads from the right. */
-:root[dir='rtl'] .field input.ltr-value:placeholder-shown {
-  direction: rtl;
-}
-.slug-field:focus-within {
-  border-color: var(--edge-strong);
-  box-shadow: 0 0 0 4px var(--ink-a9);
-}
-.slug-field.bad {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 4px var(--danger-a16);
-  animation: shake 0.3s;
-}
-.slug-suffix {
-  flex: none;
-  color: var(--muted);
-  font-size: 0.95rem;
-  padding-inline-start: 4px;
-  user-select: none;
-}
-.hint {
-  margin: -6px 2px 2px;
-  font-size: 0.84rem;
-  color: var(--faint);
-  min-height: 1.1em;
-  transition: color 0.2s;
-}
-.hint.ok {
-  color: var(--ok);
-}
-.hint.bad {
-  color: var(--danger);
-}
-
-.screen-center {
-  justify-content: center;
-  text-align: center;
-  align-items: center;
-  gap: 18px;
-}
-.screen-center .title-sm,
-.screen-center .sub {
-  text-align: center;
-}
-.provision-mark {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 4px;
-}
-.provision-mark .spinner {
-  width: 40px;
-  height: 40px;
-  border-width: 3px;
-  border-color: var(--edge-strong);
-  border-top-color: var(--accent);
-}
-
-/* ── A large screen ──────────────────────────────────────────────────────────
-   On its side (an iPad, a foldable unfolded) the photo becomes a panel of its
-   own on the leading half, full height, and the column of choices stands
-   centred in the other half, the way a split sign-in page uses the width.
-   Upright, the photo band grows with the screen instead of stopping at a
-   phone's 440px. Logical sides, so Arabic mirrors it. */
-@media (min-width: 840px) and (min-height: 600px) and (orientation: landscape) {
-  body::after,
-  :root[dir='rtl'] body::after {
-    inset: 16px auto 16px 16px;
-    inset-block: 16px;
-    inset-inline: 16px auto;
-    width: calc(50% - 24px);
-    height: auto;
-    border-radius: 28px;
-    background:
-      linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.32) 100%),
-      url('./img/kyoto.webp') 30% 45% / cover no-repeat;
-    -webkit-mask-image: none;
-    mask-image: none;
-    box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.55);
-  }
-  body::before {
-    inset: 0;
-    inset-inline-start: 50%;
-    height: auto;
-  }
-  .shell {
-    max-width: none;
-    width: 50%;
-    margin-inline: 50% 0;
-    padding-inline: max(32px, calc(25vw - 220px));
-  }
-}
-/* With the whole half of a 13" iPad on its side, the plans stand two by two
-   rather than in a column to scroll through. */
-@media (min-width: 1200px) and (min-height: 600px) and (orientation: landscape) {
-  .shell:has(.plans) {
-    padding-inline: max(32px, calc(25vw - 320px));
-  }
-  .plans {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-/* An iPad upright, a foldable unfolded, half of an iPad in Split View: the photo
-   spans the whole width as a band across the top and fades out only downwards,
-   and the choices stand under it in a wider column than a phone's, centred in
-   the room the band leaves, so the page reads as one composition rather than a
-   phone screen at the top of the glass. The plans take two columns. */
-@media (min-width: 600px) and (min-height: 800px) and (orientation: portrait) {
-  body::before,
-  body::after {
-    height: 56vh;
-  }
-  body::after,
-  :root[dir='rtl'] body::after {
-    background-position:
-      0 0,
-      center 30%;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .shell {
-    max-width: 560px;
-    padding-top: calc(env(safe-area-inset-top) + 28vh);
-    padding-bottom: calc(env(safe-area-inset-bottom) + 6vh);
-  }
-  .shell:has(.plans) {
-    max-width: 760px;
-    padding-top: calc(env(safe-area-inset-top) + 16vh);
-  }
-  .plans {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* ── A short screen on its side ──────────────────────────────────────────────
-   A phone, or a foldable folded, turned landscape: one column of choices is
-   taller than the glass, and the second choice or the main button ended up
-   below the edge. The two halves of a screen stand side by side instead, what
-   it is on the leading side and what to do on the other, top-aligned under the
-   status bar. The leading half stays put while a long list beside it (the
-   plans) scrolls, so Back is always in reach. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .shell {
-    max-width: 880px;
-    padding-top: calc(env(safe-area-inset-top) + 16px);
-    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
-    padding-inline: max(28px, env(safe-area-inset-left)) max(28px, env(safe-area-inset-right));
-  }
-  .screen:has(> .col) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 40px;
-    align-items: center;
-  }
-  /* The plans run longer than the window: both halves start at the top. */
-  .screen:has(.plans) {
-    align-items: start;
-  }
-  .col {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .col-about {
-    position: sticky;
-    top: calc(env(safe-area-inset-top) + 16px);
-  }
-  .hero-logo {
-    margin-bottom: 4px;
-  }
-  .hero-logo img {
-    height: 46px;
-  }
-  .title {
-    font-size: 1.75rem;
-  }
-  .btn {
-    min-height: 50px;
-    padding-block: 12px;
-  }
-  .features {
-    margin: 0;
-  }
-  .feature {
-    padding: 7px 0;
-  }
-  .foot-links {
-    margin-top: 0;
-    padding-top: 10px;
-  }
-}
-
-/* The separate § 327h agreement on the claim screen: its own box, ticked by hand. */
-.consent {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 12px 14px;
-  border: 1px solid var(--edge);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.45;
-  max-height: 34vh;
-  overflow-y: auto;
+  padding: 9px 0;
+  font: 600 14px var(--text-face);
+  color: var(--text);
   cursor: pointer;
+  transition: color 0.25s;
 }
-.consent input {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  margin: 1px 0 0;
-  accent-color: var(--ink);
+.cycle button[aria-checked='true'] {
+  color: #fff;
 }
-.consent strong {
-  color: var(--ink);
+.price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.price b {
+  font-family: var(--display-face);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.price span {
+  color: var(--text);
+  font-size: 14px;
   font-weight: 600;
 }
-.consent.bad {
-  border-color: var(--danger);
-  animation: shake 0.35s;
+.equals {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.equals:empty {
+  display: none;
+}
+.specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.spec {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.spec i {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--sand);
+  color: var(--dark);
+}
+.spec b {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.spec small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.spec.off i {
+  color: var(--faint);
+}
+.spec.off b {
+  color: var(--muted);
+}
+.spec.wide {
+  grid-column: 1 / -1;
+}
+.spec.wide em {
+  margin-inline-start: auto;
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--sand);
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.legal {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: pretty;
+}
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin-top: -4px;
+}
+.legal-links a,
+.agree a {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: #d9cbbb;
+}
+.loading {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+}
+.loading .spin {
+  width: 22px;
+  height: 22px;
 }
 
-/* ── Claim: what is bought, the address as it will be, the password rules ── */
-/* A form reads on a calm page: the photo steps back while one is on screen. */
-body::after {
-  transition: opacity 0.4s var(--ease);
-}
-body.quiet::after {
-  opacity: 0;
-}
-.claim-plan {
+/* ── Address and sign-up ── */
+.plan-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 4px;
-  padding: 12px 14px 12px 16px;
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding-block: 10px;
+  padding-inline: 16px 10px;
+  border-radius: 14px;
+  background: var(--sand);
 }
-.claim-plan > span {
+.plan-row > span {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
-.claim-plan b {
-  font-weight: 650;
-}
-.claim-plan bdi {
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-.claim-plan .linkbtn {
-  flex: none;
-}
-.slug-free {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-.slug-free bdi {
-  color: var(--ink);
-  font-weight: 600;
-}
-.slug-free small {
-  font-size: inherit;
-}
-.pw-rules {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: -4px 0 0;
-}
-.pw-rules span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px 4px 8px;
+.plan-row b {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--dark);
+  padding: 4px 11px;
   border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--edge);
-  color: var(--faint);
-  font-size: 0.78rem;
-  transition:
-    color 0.2s,
-    background 0.2s,
-    border-color 0.2s;
 }
-.pw-rules svg {
-  opacity: 0.35;
-  transition: opacity 0.2s;
+.plan-row small {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
 }
-.pw-rules .met {
-  color: var(--ok);
-  background: var(--ok-a16);
-  border-color: transparent;
+.plan-row button {
+  border: 0;
+  background: #fff;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font: 700 13px var(--text-face);
+  color: var(--dark);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-.pw-rules .met svg {
-  opacity: 1;
-}
-/* Three short facts right above the purchase. */
-.trust {
+.fld {
+  position: relative;
+  margin-top: 8px;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px 16px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px 11px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: text;
+  transition: box-shadow 0.2s;
+}
+.fld:focus-within {
+  box-shadow: 0 0 0 2px var(--dark);
+}
+.fld.bad {
+  box-shadow: 0 0 0 2px var(--bad);
+  animation: shake 0.35s;
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+.fld .lab {
+  font-size: 12px;
+  font-weight: 700;
   color: var(--muted);
-  font-size: 0.8rem;
 }
-.trust span {
-  display: inline-flex;
+.fld .row {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
 }
-.trust svg {
-  flex: none;
-  color: var(--ok);
+.fld input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font: 600 16px var(--text-face);
+  color: var(--ink);
 }
-
-/* ── Cloud: the app itself, and a quieter way out ── */
-.cloud-preview {
-  margin: 2px -8px 4px;
-  border-radius: 22px;
-  overflow: hidden;
-  aspect-ratio: 720 / 562;
-  background: var(--surface);
-  box-shadow:
-    0 24px 50px -24px var(--wash-1-a85),
-    0 2px 10px -4px rgba(0, 0, 0, 0.35),
-    inset 0 0 0 1px var(--ink-a4);
-}
-.cloud-preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.linkbtn-quiet {
-  font-size: 0.86rem;
+.fld input::placeholder {
   color: var(--faint);
-  padding-top: 4px;
 }
-.plan-photos {
+.fld input:disabled {
+  opacity: 0.6;
+}
+.fld em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--muted);
+}
+/* A badge on the card's edge: free, a rule met. */
+.fld .edge {
+  position: absolute;
+  top: -10px;
+  inset-inline-end: 14px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: #f1e7db;
+  box-shadow: 0 0 0 3px var(--page);
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
-.plan-feats .plan-photos svg {
-  color: var(--faint);
+.fld .edge.on {
+  color: #fff;
+  background: var(--good);
+  animation: pop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fld .note {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--bad);
+}
+.fld .note:empty {
+  display: none;
+}
+.rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.rules span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--sand);
+  padding: 3px 9px;
+  border-radius: 999px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.rules span.met {
+  color: #fff;
+  background: var(--good);
+}
+.eye {
+  display: flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.agree {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: pretty;
+}
+.consent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+  cursor: pointer;
+}
+.consent.bad {
+  box-shadow: 0 0 0 2px var(--bad);
+  animation: shake 0.35s;
+}
+.consent input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 2px #e6dccf;
+  background: #fff center / 14px no-repeat;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+.consent input:checked {
+  background-color: var(--dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  box-shadow: none;
+}
+.consent strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.consent-text {
+  display: block;
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-line;
 }
 
-/* The cause of a failed load, for a report: small, quiet, and selectable. */
-.diag {
+/* ── Own server ── */
+.notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
   margin: 0;
-  text-align: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fbeeec;
+  color: #8f2a1d;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.notice:empty {
+  display: none;
+}
+.notice i {
+  display: flex;
+  flex: none;
+  margin-top: 1px;
+}
+.side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
+  font: 600 14.5px var(--text-face);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+}
+.side svg {
+  flex: none;
+  color: var(--dark);
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 16px 30px -26px rgba(31, 26, 23, 0.6);
+}
+.panel[hidden],
+[hidden] {
+  display: none !important;
+}
+.panel-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.panel-head i {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--dark);
+  color: #fff;
+  display: grid;
+  place-items: center;
+}
+.panel-head b {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.panel p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.panel p b {
+  color: var(--ink);
+}
+.panel .panel-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.panel .panel-status {
+  color: var(--bad);
+  font-weight: 600;
+}
+.panel .panel-status:empty {
+  display: none;
+}
+.panel-btn {
+  min-height: 46px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--dark);
+  color: #fff;
+  font: 700 15px var(--text-face);
+  cursor: pointer;
+}
+.panel-btn:disabled {
+  opacity: 0.7;
+}
+.panel-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.status-line {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.status-line:empty {
+  display: none;
+}
+.status-line.bad {
+  color: var(--bad);
+}
+/* A panel needs the room: the landscape steps back while it is open. */
+.hero.tall {
+  transition: height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.scr.compact .hero.tall {
+  height: min(214px, 26svh);
+}
+.scr.compact .card {
+  bottom: 30px;
+}
+.scr.compact .sub {
+  display: none;
+}
+
+/* ── Setting up ── */
+.steps {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.steps span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  font-size: 14.5px;
+  font-weight: 700;
   color: var(--faint);
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 0.72rem;
-  user-select: text;
-  -webkit-user-select: text;
+  transition: color 0.3s;
+}
+.steps span + span {
+  border-top: 1px solid var(--line-soft);
+}
+.steps span::before {
+  content: '';
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px #e6dccf;
+  transition: all 0.3s;
+}
+.steps span.on {
+  color: var(--ink);
+}
+.steps span.on::before {
+  background: var(--good)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
+    center / 12px no-repeat;
+  box-shadow: none;
+}
+
+/*
+ * Wide screens (an iPad, an unfolded phone) and a phone on its side: two
+ * columns, the landscape at full height on one side, the content beside it in
+ * a column of its own that scrolls on its own.
+ */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
+  .scr {
+    flex-direction: row;
+    padding: 0;
+    overflow: hidden;
+  }
+  .hero,
+  .hero.tall,
+  .hero.welcome,
+  .scr.compact .hero.tall {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+  }
+  .hero::after {
+    display: none;
+  }
+  .body {
+    flex: none;
+    width: 460px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-top: calc(var(--safe-top) + 48px);
+    background: var(--page);
+    box-shadow: -1px 0 0 rgba(31, 26, 23, 0.06);
+  }
+  .body::-webkit-scrollbar {
+    display: none;
+  }
+  .pad.grow,
+  .pad.lift,
+  .pad.form {
+    margin-top: 0;
+  }
+  .pad.grow {
+    justify-content: center;
+  }
+  .pad.grow .push {
+    flex: 0 0 18px;
+  }
+  .scr.compact .sub {
+    display: block;
+  }
+  .card {
+    inset-inline: calc(32px + var(--safe-start)) auto;
+    width: min(420px, calc(100% - 64px));
+    bottom: 40px;
+  }
+  .logo {
+    top: calc(var(--safe-top) + 24px);
+    inset-inline-start: calc(32px + var(--safe-start));
+    height: 46px;
+  }
+  .back {
+    top: calc(var(--safe-top) + 20px);
+    inset-inline-start: calc(28px + var(--safe-start));
+  }
+  .pad,
+  .dock {
+    padding-inline: 24px calc(24px + var(--safe-end));
+  }
+}
+/* A phone on its side has little height: the column is narrower and starts higher. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .body {
+    width: min(420px, 52vw);
+    padding-top: calc(var(--safe-top) + 20px);
+  }
+}
+/* Two screens with a hinge between them: the landscape on one, the content on the other. */
+@media (horizontal-viewport-segments: 2) {
+  .hero,
+  .hero.tall,
+  .hero.welcome,
+  .scr.compact .hero.tall {
+    flex: none;
+    width: env(viewport-segment-width 0 0);
+  }
+  .body {
+    width: env(viewport-segment-width 1 0);
+    margin-inline-start: calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scr.enter,
+  .scr * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

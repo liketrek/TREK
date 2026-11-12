@@ -249,25 +249,38 @@ class TrekBridgeViewController: CAPBridgeViewController {
 
     private func makeSignInBar() -> UIView {
         let labels = TrekServerStore.labels
+        // The look of the app's own first screens: a white card with a sand edge,
+        // warm grey text and a dark button, over whatever page the proxy shows.
         let bar = UIView()
-        bar.backgroundColor = UIColor(red: 17 / 255, green: 24 / 255, blue: 39 / 255, alpha: 0.95)
-        bar.layer.cornerRadius = 16
+        bar.backgroundColor = UIColor(white: 1, alpha: 0.97)
+        bar.layer.cornerRadius = 18
         bar.layer.cornerCurve = .continuous
+        bar.layer.borderWidth = 1
+        bar.layer.borderColor = UIColor(red: 0xEF / 255, green: 0xE4 / 255, blue: 0xD8 / 255, alpha: 1).cgColor
+        bar.layer.shadowColor = UIColor(red: 0x1F / 255, green: 0x1A / 255, blue: 0x17 / 255, alpha: 1).cgColor
+        bar.layer.shadowOpacity = 0.18
+        bar.layer.shadowRadius = 18
+        bar.layer.shadowOffset = CGSize(width: 0, height: 10)
         bar.translatesAutoresizingMaskIntoConstraints = false
 
         let hint = UILabel()
         hint.text = labels["signInHint"]
             ?? "Passkeys and security keys do not work on this page in the app. Sign in with a password, or let the app through your proxy."
-        hint.textColor = UIColor(white: 0.9, alpha: 1)
+        hint.textColor = UIColor(red: 0x6B / 255, green: 0x5F / 255, blue: 0x57 / 255, alpha: 1)
         hint.font = .preferredFont(forTextStyle: .footnote)
         hint.adjustsFontForContentSizeCategory = true
         hint.numberOfLines = 0
         signInHint = hint
         hint.translatesAutoresizingMaskIntoConstraints = false
 
-        let change = UIButton(type: .system)
+        var look = UIButton.Configuration.filled()
+        look.baseBackgroundColor = UIColor(red: 0x11 / 255, green: 0x18 / 255, blue: 0x27 / 255, alpha: 1)
+        look.baseForegroundColor = .white
+        look.cornerStyle = .fixed
+        look.background.cornerRadius = 12
+        look.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 14, bottom: 9, trailing: 14)
+        let change = UIButton(configuration: look)
         change.setTitle(labels["changeServer"] ?? "Change server", for: .normal)
-        change.setTitleColor(.white, for: .normal)
         change.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
         change.addTarget(self, action: #selector(changeServerFromSignIn), for: .touchUpInside)
         change.translatesAutoresizingMaskIntoConstraints = false

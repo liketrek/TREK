@@ -132,17 +132,20 @@ public class MainActivity extends BridgeActivity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setPadding(Math.round(14 * dp), Math.round(10 * dp), Math.round(8 * dp), Math.round(10 * dp));
+        bar.setPaddingRelative(Math.round(16 * dp), Math.round(10 * dp), Math.round(10 * dp), Math.round(10 * dp));
+        // The look of the app's own first screens: a white card with a sand edge,
+        // warm grey text and a dark button, over whatever page the proxy shows.
         GradientDrawable background = new GradientDrawable();
-        background.setColor(0xF2111827);
-        background.setCornerRadius(16 * dp);
+        background.setColor(0xF7FFFFFF);
+        background.setCornerRadius(18 * dp);
+        background.setStroke(Math.max(1, Math.round(dp)), 0xFFEFE4D8);
         bar.setBackground(background);
-        bar.setElevation(6 * dp);
+        bar.setElevation(8 * dp);
 
         TextView hint = new TextView(this);
         signInHint = hint;
         hint.setText(TrekServerStore.signInHintLabel(this));
-        hint.setTextColor(0xFFE5E7EB);
+        hint.setTextColor(0xFF6B5F57);
         hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
         bar.addView(hint, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -150,12 +153,21 @@ public class MainActivity extends BridgeActivity {
         change.setText(TrekServerStore.changeServerLabel(this));
         change.setAllCaps(false);
         change.setTextColor(0xFFFFFFFF);
+        GradientDrawable pill = new GradientDrawable();
+        pill.setColor(0xFF111827);
+        pill.setCornerRadius(12 * dp);
+        change.setBackground(pill);
+        change.setMinHeight(0);
+        change.setMinimumHeight(0);
+        change.setPaddingRelative(Math.round(14 * dp), Math.round(9 * dp), Math.round(14 * dp), Math.round(9 * dp));
+        LinearLayout.LayoutParams changeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        changeParams.setMarginStart(Math.round(10 * dp));
         change.setOnClickListener((v) -> {
             TrekServerStore.setUrl(this, null);
             TrekServerStore.markRestart(this);
             recreate();
         });
-        bar.addView(change, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        bar.addView(change, changeParams);
 
         int margin = Math.round(12 * dp);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
