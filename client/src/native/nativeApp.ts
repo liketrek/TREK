@@ -59,6 +59,8 @@ export function startNativeApp(): void {
     const prefix = `${APP_URL_SCHEME}://navigate`;
     if (url.startsWith(prefix)) openPushTarget(url.slice(prefix.length) || '/');
   });
+  // A tap that launched the app comes as the launch URL, not as appUrlOpen.
+  void openLaunchLink();
 
   // A tap on the status bar scrolls the list under it back to the top, as in
   // every iOS app (the status-bar plugin fires statusTap on iOS).
@@ -114,6 +116,29 @@ async function fetchServerFeatures(): Promise<{ minNativeShellApi?: unknown }> {
 }
 
 /** The scrolled list in the middle of the screen, else the page, back to its top. */
+/** The launch link this web view has already followed, so a reload does not follow it again. */
+const LAUNCH_LINK_KEY = 'trek_launch_link_done';
+
+/**
+ * A widget or Live Activity tap that starts the app from closed hands it
+ * com.liketrek.trek://navigate/<path> as the launch URL. appUrlOpen only fires
+ * for a running app, so the path was lost and the app opened its start page
+ * (a packing widget landed on the trip's plan, not its lists). Followed once
+ * per launch; the trip planner takes a ?tab= on a trip it already shows.
+ */
+async function openLaunchLink(): Promise<void> {
+  const prefix = `${APP_URL_SCHEME}://navigate`;
+  try {
+    const url = (await App.getLaunchUrl())?.url;
+    if (!url || !url.startsWith(prefix)) return;
+    if (sessionStorage.getItem(LAUNCH_LINK_KEY) === url) return;
+    sessionStorage.setItem(LAUNCH_LINK_KEY, url);
+    openPushTarget(url.slice(prefix.length) || '/');
+  } catch {
+    /* no launch URL here (an older app binary, or storage blocked): the start page stays */
+  }
+}
+
 export function scrollToTop(): void {
   let el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2) as HTMLElement | null;
   while (el && el !== document.body) {

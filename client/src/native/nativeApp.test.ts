@@ -11,9 +11,12 @@ import { prepareKeyboardFields } from './keyboardFields';
 import { scrollToTop, startNativeApp } from './nativeApp';
 import { keepOfflineShellFresh } from './offlineShell';
 import { isNativeApp, isNativeIos } from './platform';
+import { openPushTarget } from './push';
 import { trackTouchInput } from './touchInput';
 
-vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), minimizeApp: vi.fn() } }));
+vi.mock('@capacitor/app', () => ({
+  App: { addListener: vi.fn(), minimizeApp: vi.fn(), getLaunchUrl: vi.fn(async () => undefined) },
+}));
 vi.mock('@capacitor/keyboard', () => ({
   Keyboard: { setAccessoryBarVisible: vi.fn(), addListener: vi.fn(async () => ({ remove: vi.fn() })) },
 }));
@@ -192,5 +195,27 @@ describe('startNativeApp', () => {
     await Promise.resolve();
     expect(report).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it('follows the link a widget tap launched the app with, once per launch', async () => {
+    sessionStorage.clear();
+    vi.mocked(App.getLaunchUrl).mockResolvedValue({ url: 'com.liketrek.trek://navigate/trips/5?tab=listen' });
+    startNativeApp();
+    await vi.waitFor(() => expect(openPushTarget).toHaveBeenCalledWith('/trips/5?tab=listen'));
+    // A reload of the page in the same launch does not follow it again.
+    vi.mocked(openPushTarget).mockClear();
+    startNativeApp();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(openPushTarget).not.toHaveBeenCalled();
+  });
+
+  it('leaves the start page alone for a launch without a TREK link', async () => {
+    sessionStorage.clear();
+    vi.mocked(App.getLaunchUrl).mockResolvedValue({ url: 'https://example.com/elsewhere' });
+    startNativeApp();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(openPushTarget).not.toHaveBeenCalled();
   });
 });
