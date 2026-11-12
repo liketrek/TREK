@@ -6,6 +6,7 @@ import { loadUnionPlaces } from '../../store/collectionUnion'
 import { STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
 import type { CollectionPlace, CollectionStatus } from '@trek/shared'
 import type { TranslationFn } from '../../types'
+import { textMatchesSearch } from '../../utils/placeSearch'
 import { fs } from '../shared/DialogShell'
 import { EditorField, INPUT, LABEL } from '../shared/dialogParts'
 import { ColumnHead, HintCard, SIDE_COLUMN, WHITE_BUTTON } from '../Planner/placeDialogParts'
@@ -143,12 +144,10 @@ export default function CollectionPicker({ bias, onSelect, t }: CollectionPicker
   const [shown, setShown] = useState(PAGE)
 
   const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
     const list = places.filter(p => {
       if (listFilter !== 'all' && p.collection_id !== listFilter) return false
       if (statusFilter !== 'all' && p.status !== statusFilter) return false
-      if (!q) return true
-      return p.name.toLowerCase().includes(q) || (p.address ?? '').toLowerCase().includes(q)
+      return textMatchesSearch([p.name, p.address], search)
     })
     if (center) list.sort((a, b) => distanceTo(a, center) - distanceTo(b, center))
     else list.sort((a, b) => a.name.localeCompare(b.name))

@@ -53,6 +53,17 @@ const HOLE = undefined as unknown as CollectionPlace;
 describe('collectionsModel', () => {
   // ── filterPlaces ────────────────────────────────────────────────────────────
   describe('filterPlaces', () => {
+    it('FE-COLLECTIONS-MODEL-045: the search finds Óbidos and São Brás typed without accents (#3075)', () => {
+      const places = [
+        cp({ id: 1, name: 'Óbidos', status: 'idea' }),
+        cp({ id: 2, name: 'São Brás de Alportel', status: 'idea' }),
+        cp({ id: 3, name: 'Lagos', status: 'idea', address: 'Rua de Évora' }),
+      ];
+      expect(filterPlaces(places, 'all', 'obidos').map(p => p.id)).toEqual([1]);
+      expect(filterPlaces(places, 'all', 'Sao Bras').map(p => p.id)).toEqual([2]);
+      expect(filterPlaces(places, 'all', 'evora').map(p => p.id)).toEqual([3]);
+    });
+
     it('FE-COLLECTIONS-MODEL-001: status filter keeps only the matching status', () => {
       const places = [
         cp({ id: 1, name: 'A', status: 'idea' }),

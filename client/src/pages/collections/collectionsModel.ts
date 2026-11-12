@@ -1,5 +1,6 @@
 import type { CollectionPlace, CollectionLabel } from '@trek/shared'
 import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
+import { textMatchesSearch } from '../../utils/placeSearch'
 
 /**
  * Pure data shaping + presentation metadata for the Collections page. No React
@@ -36,7 +37,6 @@ export function filterPlaces(
   labelFilter: number[] = [],
   ratingFilter: number | 'all' = 'all',
 ): CollectionPlace[] {
-  const q = search.trim().toLowerCase()
   return places.filter(p => {
     if (!p) return false
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
@@ -44,12 +44,7 @@ export function filterPlaces(
     // Minimum-average-stars filter (#1435): unrated places drop out once a floor is set.
     if (ratingFilter !== 'all' && (p.rating_avg == null || p.rating_avg < ratingFilter)) return false
     if (labelFilter.length && !labelFilter.some(id => (p.label_ids ?? []).includes(id))) return false
-    if (!q) return true
-    return (
-      p.name.toLowerCase().includes(q) ||
-      (p.address ?? '').toLowerCase().includes(q) ||
-      (p.notes ?? '').toLowerCase().includes(q)
-    )
+    return textMatchesSearch([p.name, p.address, p.notes], search)
   })
 }
 
