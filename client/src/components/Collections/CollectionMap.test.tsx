@@ -12,6 +12,7 @@ import L from 'leaflet';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
+import { withMarkerCategory } from '../../pages/collections/collectionsModel';
 import CollectionMap from './CollectionMap';
 
 vi.mock('../../hooks/useGeolocation', () => ({
@@ -256,5 +257,28 @@ describe('CollectionMap framing', () => {
     // bar under a full-screen map. The card ends above the tab bar, so its wrapper zeroes it
     // and the buttons sit in the bottom 54 px the frame keeps free.
     expect(wrappedIn(map, '[--bottom-nav-h:0px]')).toBe(true);
+  });
+});
+
+describe('CollectionMap pins (#3073)', () => {
+  const MUSEUM = { id: 4, name: 'Museum', color: '#7c3aed', icon: 'Landmark' };
+
+  it('FE-COMP-COLMAP-008: a saved place carries its category where the markers read it', () => {
+    const pin = withMarkerCategory({ ...place(1, 'Belvedere', 48.1915, 16.3809), category_id: 4, category: MUSEUM });
+    expect(pin).toMatchObject({ category_name: 'Museum', category_color: '#7c3aed', category_icon: 'Landmark' });
+    expect(withMarkerCategory(place(2, 'Somewhere', 48.2, 16.37))).toMatchObject({
+      category_name: null,
+      category_color: null,
+      category_icon: null,
+    });
+  });
+
+  it('FE-COMP-COLMAP-009: the pin of a place with a category wears its colour, not the grey default', async () => {
+    const { view } = await renderMap([
+      { ...place(1, 'Belvedere', 48.1915, 16.3809), category_id: 4, category: MUSEUM },
+    ]);
+    await waitFor(() => expect(view.container.querySelector('.leaflet-marker-icon')).not.toBeNull());
+    const html = view.container.querySelector('.leaflet-marker-icon')?.innerHTML ?? '';
+    expect(html.toLowerCase()).toContain('#7c3aed');
   });
 });

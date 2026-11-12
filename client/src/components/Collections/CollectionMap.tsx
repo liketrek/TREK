@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { MapViewAuto } from '../Map/MapViewAuto'
 import type { CollectionPlace } from '@trek/shared'
-import { mappablePlaces } from '../../pages/collections/collectionsModel'
+import { mappablePlaces, withMarkerCategory } from '../../pages/collections/collectionsModel'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
 import type { ViewportPadding } from '../../utils/mapViewport'
@@ -70,7 +70,7 @@ function framePoints(places: CollectionPlace[]): [number, number][] {
  * while the map is built rather than flying in.
  */
 export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark, underBar = false }: CollectionMapProps): React.ReactElement {
-  const pts = useMemo(() => mappablePlaces(places), [places])
+  const pts = useMemo(() => mappablePlaces(places).map(withMarkerCategory), [places])
   const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON)
   const focusPoints = useMemo(() => framePoints(pts), [pts])
   // The places as a set: another list, a filter or a new place frames again, while a

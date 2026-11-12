@@ -94,6 +94,25 @@ export function mappablePlaces(places: CollectionPlace[]): CollectionPlace[] {
 }
 
 /**
+ * A saved place with its category where the trip map reads it. The server nests a
+ * collection place's category (`category.color`), the markers and the hover card
+ * read the flat fields a trip place carries, so every pin here was the grey default
+ * (#3073).
+ */
+export function withMarkerCategory(place: CollectionPlace): CollectionPlace & {
+  category_name: string | null
+  category_color: string | null
+  category_icon: string | null
+} {
+  return {
+    ...place,
+    category_name: place.category?.name ?? null,
+    category_color: place.category?.color ?? null,
+    category_icon: place.category?.icon ?? null,
+  }
+}
+
+/**
  * Normalise a user-typed link: prepend https:// when there's no scheme so the
  * href is absolute (a bare "booking.com" would otherwise resolve relative to the
  * SPA route and 404). Returns '' for blanks. The server further restricts to
