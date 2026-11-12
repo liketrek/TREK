@@ -1556,3 +1556,14 @@ body.quiet::after {
 .plan-feats .plan-photos svg {
   color: var(--faint);
 }
+
+/* The cause of a failed load, for a report: small, quiet, and selectable. */
+.diag {
+  margin: 0;
+  text-align: center;
+  color: var(--faint);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  user-select: text;
+  -webkit-user-select: text;
+}

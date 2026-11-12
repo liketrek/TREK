@@ -143,7 +143,10 @@ class TrekWebViewClient extends BridgeWebViewClient {
         String server = TrekServerStore.getUrl(view.getContext());
         Uri serverUri = server == null ? null : Uri.parse(server);
         if (serverUri != null && TrekClientIdentity.matches(String.valueOf(serverUri.getHost()), serverUri.getPort() > 0 ? serverUri.getPort() : 443, request.getHost(), request.getPort())) {
-            com.liketrek.trek.clientcert.ClientCertWatch.serverAsked(view.getContext(), server, onUnreachable);
+            com.liketrek.trek.clientcert.ClientCertWatch.serverAsked(view.getContext(), server, () -> {
+                TrekServerStore.setFailure(view.getContext(), "client certificate requested");
+                onUnreachable.run();
+            });
         }
     }
 
@@ -168,6 +171,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
                 }, 1500);
                 return;
             }
+            TrekServerStore.setFailure(view.getContext(), error.getDescription() + " (" + error.getErrorCode() + ")");
             onUnreachable.run();
             return;
         }
@@ -189,6 +193,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
         if (!request.isForMainFrame()) {
             super.onReceivedHttpError(view, request, errorResponse);
         } else if (status >= 500 || (status >= 400 && wantedCertificate(request.getUrl()))) {
+            TrekServerStore.setFailure(view.getContext(), "HTTP " + status);
             onUnreachable.run();
         } else if (status >= 400) {
             errorPageUrl = request.getUrl().toString();

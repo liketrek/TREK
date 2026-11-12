@@ -352,6 +352,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         call.resolve([
             "url": TrekServerStore.url ?? NSNull(),
             "previousUrl": TrekServerStore.previousURL ?? NSNull(),
+            "failure": TrekServerStore.takeFailure() ?? NSNull(),
         ])
     }
 

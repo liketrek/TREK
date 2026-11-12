@@ -1546,7 +1546,7 @@ async function connected(url: string, signInHosts: string[] = [], welcome?: stri
   });
 }
 
-function showUnreachable(server: string, cert?: ClientCertDemand): void {
+function showUnreachable(server: string, cert?: ClientCertDemand, failure?: string): void {
   const certPanel = el('div', { className: 'gate', role: 'alert', hidden: true });
   if (cert) fillCertPanel(certPanel, cert, () => void TrekShell.reload());
   const retry = el('button', { type: 'button', className: cert ? 'linkbtn' : 'btn' }, t('native.offline.retry'));
@@ -1576,7 +1576,14 @@ function showUnreachable(server: string, cert?: ClientCertDemand): void {
               : t('native.offline.hint', { server: new URL(server).host })
           ),
         ],
-        [certPanel, retry, change, footLinks()]
+        [
+          certPanel,
+          retry,
+          change,
+          // The cause in the web view's own terms, small: what a report needs, not a second message.
+          ...(failure ? [el('p', { className: 'diag', dir: 'ltr' }, failure.slice(0, 120))] : []),
+          footLinks(),
+        ]
       )
     )
   );
@@ -1664,8 +1671,9 @@ async function start(): Promise<void> {
   letKeyboardClose();
   let url: string | null;
   let previousUrl: string | null | undefined;
+  let failure: string | null | undefined;
   try {
-    ({ url, previousUrl } = await TrekShell.getServer());
+    ({ url, previousUrl, failure } = await TrekShell.getServer());
   } catch {
     // No native shell under us (a web preview, or a simulator without the
     // plugin): there is no remembered server, so start at the welcome screen
@@ -1689,7 +1697,7 @@ async function start(): Promise<void> {
       // On iOS the stored copy of its start page brings the offline-capable UI up anyway.
       const { opened } = await TrekShell.openOfflineCopy();
       if (opened) return;
-      showUnreachable(url);
+      showUnreachable(url, undefined, failure ?? undefined);
     }
   }
   await SplashScreen.hide();

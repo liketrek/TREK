@@ -156,6 +156,24 @@ final class TrekServerStore {
     }
 
     /** Start the next launch on the bundled address screen, even with a server remembered. */
+    private static final String KEY_FAILURE = "last_failure";
+
+    /**
+     * Why the server's page did not load, in the WebView's own terms
+     * ("net::ERR_NAME_NOT_RESOLVED (-2)", "HTTP 503"): the address screen shows
+     * it small under its message, so a report carries the cause.
+     */
+    static void setFailure(Context context, String failure) {
+        prefs(context).edit().putString(KEY_FAILURE, failure).commit();
+    }
+
+    /** The failure behind this address screen, once. */
+    static String takeFailure(Context context) {
+        String failure = prefs(context).getString(KEY_FAILURE, null);
+        if (failure != null) prefs(context).edit().remove(KEY_FAILURE).commit();
+        return failure;
+    }
+
     static void showShellOnce(Context context) {
         prefs(context).edit().putBoolean(KEY_SHELL_ONCE, true).commit();
     }

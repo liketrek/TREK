@@ -315,6 +315,8 @@ public class TrekShellPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("url", url == null ? JSONObject.NULL : url);
         result.put("previousUrl", previous == null ? JSONObject.NULL : previous);
+        String failure = TrekServerStore.takeFailure(getContext());
+        result.put("failure", failure == null ? JSONObject.NULL : failure);
         call.resolve(result);
     }
 

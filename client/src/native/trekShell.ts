@@ -18,7 +18,12 @@ export interface TrekShellPlugin {
    * newer one (SERVER_CHECK in TrekServerStore). Set only while no server is,
    * so the address screen can check it again, pre-filled.
    */
-  getServer(): Promise<{ url: string | null; previousUrl?: string | null }>;
+  /**
+   * The server picked, the one before an update asked to check it again, and
+   * why its page did not load last time (taken once; builds before 5.1.4 leave
+   * it out).
+   */
+  getServer(): Promise<{ url: string | null; previousUrl?: string | null; failure?: string | null }>;
   /**
    * Remembers the server and loads it. The current page is gone afterwards.
    * `signInHosts` are the hosts of a proxy's sign-in page in front of it

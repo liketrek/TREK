@@ -399,6 +399,22 @@ enum TrekKeyCommands {
 enum TrekServerStore {
     private static let key = "TrekServerURL"
 
+    private static let failureKey = "TrekLastFailure"
+
+    /// Why the server's page did not load ("NSURLErrorDomain -1003"): the
+    /// address screen shows it small under its message, so a report carries
+    /// the cause. Taken once.
+    static func noteFailure(_ error: Error) {
+        let ns = error as NSError
+        UserDefaults.standard.set("\(ns.domain) \(ns.code)", forKey: failureKey)
+    }
+
+    static func takeFailure() -> String? {
+        let failure = UserDefaults.standard.string(forKey: failureKey)
+        UserDefaults.standard.removeObject(forKey: failureKey)
+        return failure
+    }
+
     private static let previousKey = "TrekPreviousServerURL"
 
     private static let checkedKey = "TrekServerCheck"
@@ -813,7 +829,11 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         inner.webView?(webView, didFinish: navigation)
         onPageShown?()
-        if TrekSignInRedirect.onServer(server: TrekServerStore.url, url: webView.url) { serverShown = true }
+        if TrekSignInRedirect.onServer(server: TrekServerStore.url, url: webView.url) {
+            serverShown = true
+            // The server's page is up: an earlier failure is no cause any more.
+            _ = TrekServerStore.takeFailure()
+        }
         if let welcome = TrekServerStore.takeWelcomeURL() {
             webView.load(URLRequest(url: welcome))
         }
@@ -829,6 +849,7 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
             TrekClientCertWatch.serverAsked(host: space.host, port: space.port) { [weak self, weak webView] in
                 guard let self, let webView else { return }
                 // Capacitor's own answer to a failed load: the address screen (errorPath).
+                TrekServerStore.noteFailure(URLError(.clientCertificateRejected))
                 self.inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRejected))
             }
             return
@@ -853,6 +874,7 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
            http.statusCode >= 400, http.statusCode < 500, let asked = TrekClientIdentity.lastRequest, !asked.served,
            let url = http.url, url.host?.lowercased() == asked.host, (url.port ?? 443) == asked.port {
             decisionHandler(.cancel)
+            TrekServerStore.noteFailure(URLError(.clientCertificateRequired))
             inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRequired))
             return
         }
@@ -870,11 +892,13 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
+        TrekServerStore.noteFailure(error)
         inner.webView?(webView, didFail: navigation, withError: error)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
+        TrekServerStore.noteFailure(error)
         inner.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
     }
 }
