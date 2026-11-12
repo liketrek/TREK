@@ -6,9 +6,11 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import logoUrl from '../public/icons/icon-white.svg';
 import logoBlack from '../public/logo-dark.svg'; // #000 wordmark, for light backgrounds
 import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for dark backgrounds
+import previewImage from './img/preview.webp'; // real app screens, from docs/screenshots/showcase-mobile.webp
 import { AUTH_GATE_NAMES, canSignInInApp, type AuthGate } from '../src/native/authGate';
 import { opensSoon, refundedBeforeOpening } from '../src/native/cloudOrders';
 import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
+import { priceValue } from '../src/native/priceValue';
 import {
   AUTH_PROXY_DOCS_URL,
   CLIENT_CERT_DOCS_URL,
@@ -27,7 +29,7 @@ import {
   type ProbeFailure,
   type ProbeGet,
 } from '../src/native/serverAddress';
-import { passwordProblem } from '../../shared/src/auth/password-policy';
+import { PASSWORD_MIN_LENGTH, passwordProblem, passwordRuleStates } from '../../shared/src/auth/password-policy';
 import { TrekShell, type ClientCertificateFailure } from '../src/native/trekShell';
 import { directionOf, pickLocale, translator } from './i18n';
 import './shell.css';
@@ -150,6 +152,7 @@ const I = {
   bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
   shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10',
   check: 'M20 6 9 17l-5-5',
+  camera: 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
 };
 
 async function tap(style: ImpactStyle = ImpactStyle.Light): Promise<void> {
@@ -188,6 +191,8 @@ function show(screen: HTMLElement, opts: { back?: boolean } = {}): void {
   }
   root.append(screen);
   current = screen;
+  // A form reads on a calm page: the photo steps back while it is on screen.
+  document.body.classList.toggle('quiet', screen.classList.contains('screen-quiet'));
 }
 
 function externalLink(text: string, href: string): HTMLAnchorElement {
@@ -533,7 +538,8 @@ function showCloud(opts: { back?: boolean } = {}): void {
     showPlans();
   });
 
-  const have = el('button', { type: 'button', className: 'linkbtn' }, t('native.cloud.haveServer'));
+  // The way out for someone who already runs TREK: there, but quieter than the way in.
+  const have = el('button', { type: 'button', className: 'linkbtn linkbtn-quiet' }, t('native.cloud.haveServer'));
   have.addEventListener('click', () => {
     void tap();
     showConnect();
@@ -557,6 +563,12 @@ function showCloud(opts: { back?: boolean } = {}): void {
           el('p', { className: 'sub' }, t('native.cloud.sub')),
         ],
         [
+          // The app itself, as it runs on TREK Cloud: real screens, nothing drawn for the purpose.
+          el(
+            'div',
+            { className: 'cloud-preview' },
+            el('img', { src: previewImage, alt: '', loading: 'lazy', decoding: 'async' })
+          ),
           el(
             'div',
             { className: 'features' },
@@ -652,34 +664,58 @@ async function loadOffer(list: CloudPlans): Promise<Offer> {
   return { canBuy, storePrices: await iap.prices(ids), opensSoon: soon };
 }
 
-function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HTMLElement {
-  const { label, buyable } = offerFor(offer, plan, interval);
+/** The plan the picker starts on and marks: the smallest one with AI documents, the one most trips want. */
+function recommendedPlan(plans: CloudPlan[]): CloudPlan | undefined {
+  return plans.find((p) => p.aiDocuments > 0) ?? plans[0];
+}
+
+/**
+ * What a year saves against twelve months, in whole percent, rounded down so
+ * the badge never promises more than the price gives. From the store's own price
+ * strings where both parse (the buyer's currency), else from the plan list.
+ */
+function yearlySaving(plans: CloudPlan[], offer: Offer): number | null {
+  const savings = plans.map((plan) => {
+    const month = priceValue(offer.storePrices?.get(productIdFor(plan.id, 'month'))) ?? plan.monthlyCents;
+    const year = priceValue(offer.storePrices?.get(productIdFor(plan.id, 'year'))) ?? plan.yearlyCents;
+    if (!month || !year) return null;
+    return Math.floor((1 - year / (month * 12)) * 100);
+  });
+  if (savings.some((v) => v === null)) return null;
+  const least = Math.min(...(savings as number[]));
+  return least >= 5 ? least : null;
+}
+
+function planCard(
+  plan: CloudPlan,
+  interval: 'month' | 'year',
+  offer: Offer,
+  opts: { recommended: boolean; selected: boolean; onSelect?: () => void }
+): HTMLElement {
+  const { label } = offerFor(offer, plan, interval);
   const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth');
-  const feat = (text: string) => el('span', {}, icon(I.check, 16), text);
+  const feat = (text: string, extra?: Node) => el('span', {}, icon(I.check, 16), text, ...(extra ? [extra] : []));
   // An absent feature (e.g. a plan with no AI documents): a muted dash, not a
   // green tick, so "none" never reads as a perk.
   const featOff = (text: string) => el('span', { className: 'off' }, icon('M5 12h14', 16), text);
-  let sub: HTMLElement | null = null;
-  if (buyable) {
-    const button = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
-    sub = button;
-    button.addEventListener('click', async () => {
-      void tap(ImpactStyle.Medium);
-      // A store account with a running subscription buys nothing more: say so before the form.
-      button.disabled = true;
-      const held = await iap.held();
-      button.disabled = false;
-      if (held) showSubscribed();
-      else showClaim(plan, interval, `${label} ${per}`);
-    });
-  }
-  return el(
-    'div',
-    { className: 'plan' },
+  // About 3 MB a photo, as a phone takes them: a size people can picture, as a
+  // camera and a number, which needs no words in any language.
+  const photos = el(
+    'small',
+    { className: 'plan-photos' },
+    icon(I.camera, 13),
+    `≈ ${new Intl.NumberFormat(locale).format(plan.storageGb * 300)}`
+  );
+  const body = [
     el(
       'div',
       { className: 'plan-top' },
-      el('span', { className: 'plan-name' }, plan.name),
+      el(
+        'span',
+        { className: 'plan-name' },
+        plan.name,
+        ...(opts.recommended ? [el('span', { className: 'plan-badge' }, t('native.plans.recommended'))] : [])
+      ),
       // No price yet (orders not open): the plan shows without one rather than with an empty one.
       // The price is figures and a currency sign: one left-to-right run, so Arabic
       // keeps "5,99 €" whole, with the period standing apart beside it.
@@ -688,14 +724,24 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
     el(
       'div',
       { className: 'plan-feats' },
-      feat(t('native.plans.unlimited')),
-      feat(t('native.plans.storage', { n: String(plan.storageGb) })),
+      feat(t('native.plans.storage', { n: String(plan.storageGb) }), photos),
       plan.aiDocuments > 0
         ? feat(t('native.plans.aiDocs', { n: String(plan.aiDocuments) }))
         : featOff(t('native.plans.noAi'))
     ),
-    ...(sub ? [sub] : [])
-  );
+  ];
+  const className = `plan${opts.recommended ? ' featured' : ''}${opts.selected ? ' selected' : ''}`;
+  if (!opts.onSelect) return el('div', { className }, ...body);
+  // A choice among the plans, as radio buttons are: the one button below acts on it.
+  const card = el('button', { type: 'button', className }, el('span', { className: 'plan-radio' }), ...body);
+  card.setAttribute('role', 'radio');
+  card.setAttribute('aria-checked', String(opts.selected));
+  const select = opts.onSelect;
+  card.addEventListener('click', () => {
+    void tap();
+    select();
+  });
+  return card;
 }
 
 /**
@@ -784,23 +830,62 @@ function showPlans(opts: { back?: boolean } = {}): void {
   let interval: 'month' | 'year' = 'month';
   let plans: CloudPlan[] | null = null;
   let offer: Offer = { canBuy: false, storePrices: null, opensSoon: false };
+  let selectedId: string | null = null;
 
   const content = el('div', { className: 'loading' }, el('span', { className: 'spinner' }));
   const footer = el('div', { className: 'plans-foot' });
+  // What every plan has, said once above them, so the cards show only what differs.
+  const everyPlan = el('p', { className: 'plans-every', hidden: true }, icon(I.check, 16), t('native.plans.everyPlan'));
 
   const monthBtn = el('button', { type: 'button' }, t('native.plans.monthly'));
-  const yearBtn = el('button', { type: 'button' }, t('native.plans.yearly'));
+  const saveBadge = el('span', { className: 'save', hidden: true });
+  const yearBtn = el('button', { type: 'button' }, t('native.plans.yearly'), saveBadge);
   const seg = el('div', { className: 'segmented' }, monthBtn, yearBtn);
 
+  // The one way on, kept in reach at the foot of the screen while the plans scroll.
+  const ctaName = el('span', { className: 'btn-label' });
+  const ctaPrice = el('small', {});
+  const cta = el('button', { type: 'button', className: 'btn plans-go' }, el('span', { className: 'btn-row' }, el('b', {}, ctaName), ctaPrice), icon(I.chevron, 20, 'chev'));
+  const ctaBar = el('div', { className: 'plans-cta', hidden: true }, cta);
+
+  const selected = (): CloudPlan | undefined => plans?.find((p) => p.id === selectedId);
   const paintSeg = () => {
     monthBtn.setAttribute('aria-pressed', String(interval === 'month'));
     yearBtn.setAttribute('aria-pressed', String(interval === 'year'));
   };
+  const paintCta = () => {
+    const plan = selected();
+    const buyable = plan ? offerFor(offer, plan, interval).buyable : false;
+    ctaBar.hidden = !buyable;
+    if (!plan || !buyable) return;
+    const { label } = offerFor(offer, plan, interval);
+    const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth');
+    ctaName.textContent = t('native.plans.continueWith', { plan: plan.name });
+    ctaPrice.textContent = `${label} ${per}`;
+  };
   const renderList = () => {
     const list = plans;
     if (!list) return;
+    const recommended = recommendedPlan(list);
     content.className = 'plans';
-    content.replaceChildren(...list.map((p) => planCard(p, interval, offer)));
+    content.setAttribute('role', 'radiogroup');
+    content.setAttribute('aria-label', t('native.plans.title'));
+    content.replaceChildren(
+      ...list.map((p) =>
+        planCard(p, interval, offer, {
+          recommended: p.id === recommended?.id,
+          selected: p.id === selectedId,
+          // Only a plan that can be bought here is a choice; a closed shop shows them as they are.
+          onSelect: offerFor(offer, p, interval).buyable
+            ? () => {
+                selectedId = p.id;
+                renderList();
+              }
+            : undefined,
+        })
+      )
+    );
+    paintCta();
   };
   const choose = (next: 'month' | 'year') => {
     if (interval === next) return;
@@ -813,11 +898,35 @@ function showPlans(opts: { back?: boolean } = {}): void {
   yearBtn.addEventListener('click', () => choose('year'));
   paintSeg();
 
+  cta.addEventListener('click', async () => {
+    const plan = selected();
+    if (!plan) return;
+    void tap(ImpactStyle.Medium);
+    // A store account with a running subscription buys nothing more: say so before the form.
+    cta.disabled = true;
+    const held = await iap.held();
+    cta.disabled = false;
+    if (held) {
+      showSubscribed();
+      return;
+    }
+    const { label } = offerFor(offer, plan, interval);
+    const per = interval === 'year' ? t('native.plans.perYear') : t('native.plans.perMonth');
+    showClaim(plan, interval, `${label} ${per}`);
+  });
+
   const load = async () => {
     const list = await fetchPlans();
     if (list) {
       offer = await loadOffer(list);
       plans = list.plans;
+      selectedId = recommendedPlan(list.plans)?.id ?? null;
+      const saving = yearlySaving(list.plans, offer);
+      if (saving !== null) {
+        saveBadge.textContent = `−${new Intl.NumberFormat(locale, { style: 'percent' }).format(saving / 100)}`;
+        saveBadge.hidden = false;
+      }
+      everyPlan.hidden = false;
       renderList();
       footer.replaceChildren(...planFooter(offer, list.plans));
       return;
@@ -844,7 +953,7 @@ function showPlans(opts: { back?: boolean } = {}): void {
           el('p', { className: 'sub' }, t('native.plans.sub')),
           seg,
         ],
-        [content, footer]
+        [everyPlan, content, ctaBar, footer]
       )
     ),
     opts
@@ -1002,7 +1111,31 @@ function showClaim(
   passwordInput.dir = 'ltr';
   passwordInput.classList.add('ltr-value');
   const passwordField = el('div', { className: 'field' }, passwordInput);
-  const passwordHint = el('p', { className: 'hint' }, t('native.claim.passwordHint'));
+  // Shown when the server's list knows the password, or on a send with a rule unmet.
+  const passwordHint = el('p', { className: 'hint', hidden: true }, t('native.claim.passwordHint'));
+  // The rules, each ticked off as it is met, rather than a paragraph to read.
+  const ruleLabels = {
+    // The number outside the words: it is always the same, and the word reads after it in every language.
+    length: `${PASSWORD_MIN_LENGTH}+ ${t('native.claim.ruleLength')}`,
+    upper: t('native.claim.ruleUpper'),
+    lower: t('native.claim.ruleLower'),
+    digit: t('native.claim.ruleDigit'),
+    special: t('native.claim.ruleSpecial'),
+  } as const;
+  const ruleItems = (Object.keys(ruleLabels) as (keyof typeof ruleLabels)[]).map((rule) => ({
+    rule,
+    node: el('span', {}, icon(I.check, 13), ruleLabels[rule]),
+  }));
+  const passwordRules = el('div', { className: 'pw-rules' }, ...ruleItems.map((r) => r.node));
+  const paintRules = () => {
+    const states = passwordRuleStates(passwordInput.value);
+    for (const { rule, node } of ruleItems) node.classList.toggle('met', states[rule]);
+  };
+  passwordInput.addEventListener('input', () => {
+    paintRules();
+    passwordHint.hidden = true;
+    passwordHint.className = 'hint';
+  });
 
   // The § 327h agreement, asked on its own before anything is bought.
   let consent: DeviationsConsent | null = null;
@@ -1026,6 +1159,19 @@ function showClaim(
   void loadConsent();
 
   const submit = el('button', { type: 'submit', className: 'btn' }, t('native.claim.subscribe', { price }));
+  // What is about to be bought, so nobody pays for a plan they did not mean.
+  const change = el('button', { type: 'button', className: 'linkbtn' }, t('native.claim.change'));
+  change.addEventListener('click', () => {
+    void tap();
+    showPlans({ back: true });
+  });
+  const planSummary = el(
+    'div',
+    { className: 'claim-plan' },
+    el('span', {}, el('b', {}, `TREK Cloud ${plan.name}`), el('bdi', { dir: 'ltr' }, price)),
+    // A purchase already made is not a choice any more.
+    ...(bought ? [] : [change])
+  );
   const error = el('p', { className: 'error', role: 'alert' });
   const form = el(
     'form',
@@ -1035,6 +1181,7 @@ function showClaim(
     emailField,
     el('p', { className: 'hint' }, t('native.claim.emailHint')),
     passwordField,
+    passwordRules,
     passwordHint,
     // Our terms govern the instance (terms § 5a): named before the purchase, not only in the confirmation mail.
     el(
@@ -1045,6 +1192,13 @@ function showClaim(
       externalLink(t('native.plans.ourTerms'), CLOUD_TERMS_URL)
     ),
     consentField,
+    el(
+      'div',
+      { className: 'trust' },
+      el('span', {}, icon(I.globe, 15), t('native.claim.trustServers')),
+      el('span', {}, icon(I.check, 15), t('native.claim.trustCancel')),
+      el('span', {}, icon(I.shield, 15), t('native.claim.trustNoAds'))
+    ),
     submit,
     error
   );
@@ -1080,8 +1234,18 @@ function showClaim(
       const result = await slugStatus(value);
       if (slugInput.value.trim().toLowerCase() !== value) return;
       status = result;
-      slugNote.textContent = noteFor[result] ?? '';
       slugNote.className = `hint ${result === 'available' ? 'ok' : result === 'error' ? '' : 'bad'}`;
+      if (result === 'available') {
+        // The address as it will be, the moment it is theirs to take.
+        slugNote.className = 'hint ok slug-free';
+        slugNote.replaceChildren(
+          icon(I.check, 16),
+          el('bdi', { dir: 'ltr' }, `${value}${cloudSuffix()}`),
+          el('small', {}, noteFor.available ?? '')
+        );
+        return;
+      }
+      slugNote.textContent = noteFor[result] ?? '';
     }, 350);
   });
 
@@ -1110,10 +1274,12 @@ function showClaim(
     const password = passwordInput.value;
     if (passwordProblem(password) || password.length > 128) {
       shake(passwordField);
+      passwordHint.hidden = false;
       passwordHint.className = 'hint bad';
       passwordInput.focus();
       return;
     }
+    passwordHint.hidden = true;
     passwordHint.className = 'hint';
     // Nothing is bought without the agreement on the text the server holds today.
     if (!consent && !(await loadConsent())) {
@@ -1191,6 +1357,7 @@ function showClaim(
     } else if (redeemed.code === 'password-weak') {
       // A common password the list on the server knows: the purchase waits, unredeemed, for a better one.
       shake(passwordField);
+      passwordHint.hidden = false;
       passwordHint.className = 'hint bad';
     } else {
       error.textContent = refundedBeforeOpening(redeemed.code, onPlay)
@@ -1202,12 +1369,13 @@ function showClaim(
   show(
     el(
       'div',
-      {},
+      { className: 'screen-quiet' },
       ...columns(
         [
           topbar(() => showPlans({ back: true })),
           el('h1', { className: 'title-sm' }, t('native.claim.title')),
           el('p', { className: 'sub' }, t('native.claim.sub')),
+          planSummary,
         ],
         [form]
       )

@@ -236,8 +236,9 @@ body::after {
   background:
     linear-gradient(180deg, var(--veil-top) 0%, var(--veil-mid) 62%, var(--bg) 100%),
     url('./img/kyoto.webp') left 28% / cover no-repeat;
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 40%, transparent 80%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 40%, transparent 80%);
+  /* A long, soft hand-over to the grid: a short one read as an edge. */
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 22%, transparent 96%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 22%, transparent 96%);
   pointer-events: none;
   z-index: 0;
 }
@@ -246,8 +247,8 @@ body::after {
   background-position:
     0 0,
     right 28%;
-  -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 40%, transparent 80%);
-  mask-image: linear-gradient(270deg, #000 0%, #000 40%, transparent 80%);
+  -webkit-mask-image: linear-gradient(270deg, #000 0%, #000 22%, transparent 96%);
+  mask-image: linear-gradient(270deg, #000 0%, #000 22%, transparent 96%);
 }
 :root[dir='rtl'] body::before {
   -webkit-mask-image: radial-gradient(135% 95% at 0% 0%, #000 34%, transparent 80%);
@@ -967,7 +968,9 @@ a.linkbtn {
 .plans {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  /* Room for the badge that sits on the first card's top edge. */
+  padding-top: 4px;
 }
 .plan {
   border: 1px solid var(--edge);
@@ -1036,15 +1039,94 @@ a.linkbtn {
 .plan-feats .off svg {
   color: var(--faint);
 }
-.plan .btn {
+/* A plan is a choice, as a radio button is: the whole card takes the tap. */
+button.plan {
+  font: inherit;
+  color: inherit;
+  text-align: start;
   width: 100%;
-  min-height: 48px;
-  padding: 13px;
+  cursor: pointer;
+  position: relative;
+  padding-inline-start: 48px;
 }
-.plan:not(.featured) .btn {
-  background: var(--surface-2);
-  color: var(--ink);
-  border-color: var(--edge);
+.plan-radio {
+  position: absolute;
+  inset-inline-start: 16px;
+  top: 19px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--edge-strong);
+  transition:
+    border-color 0.2s,
+    border-width 0.2s var(--ease);
+}
+.plan.selected {
+  border-color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--ink),
+    0 14px 34px -14px var(--wash-1-a85),
+    0 2px 8px -3px rgba(0, 0, 0, 0.35);
+}
+.plan.selected .plan-radio {
+  border: 6px solid var(--ink);
+}
+/* Pinned to the card's top edge, so the name and the price keep their line. */
+.plan {
+  position: relative;
+}
+.plan-badge {
+  position: absolute;
+  top: -9px;
+  inset-inline-end: 16px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.plan-feats small {
+  color: var(--faint);
+  font-size: 0.8rem;
+  margin-inline-start: 2px;
+}
+.plan-feats {
+  margin-bottom: 0;
+}
+
+/* What every plan has, once above the cards. */
+.plans-every {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.plans-every svg {
+  flex: none;
+  color: var(--ok);
+}
+
+/* The one button on, held at the foot of the screen over a fade while the plans scroll. */
+.plans-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 0 -2px;
+  padding: 18px 2px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  background: linear-gradient(to bottom, transparent, var(--bg) 38%);
+}
+.plans-cta .btn {
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 22px;
+  padding-inline: 22px 18px;
+}
+.plans-cta .btn-row small {
+  opacity: 0.72;
 }
 
 .loading {
@@ -1341,4 +1423,136 @@ a.linkbtn {
 .consent.bad {
   border-color: var(--danger);
   animation: shake 0.35s;
+}
+
+/* ── Claim: what is bought, the address as it will be, the password rules ── */
+/* A form reads on a calm page: the photo steps back while one is on screen. */
+body::after {
+  transition: opacity 0.4s var(--ease);
+}
+body.quiet::after {
+  opacity: 0;
+}
+.claim-plan {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 12px 14px 12px 16px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.claim-plan > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.claim-plan b {
+  font-weight: 650;
+}
+.claim-plan bdi {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.claim-plan .linkbtn {
+  flex: none;
+}
+.slug-free {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.slug-free bdi {
+  color: var(--ink);
+  font-weight: 600;
+}
+.slug-free small {
+  font-size: inherit;
+}
+.pw-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 0;
+}
+.pw-rules span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  color: var(--faint);
+  font-size: 0.78rem;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+.pw-rules svg {
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+.pw-rules .met {
+  color: var(--ok);
+  background: var(--ok-a16);
+  border-color: transparent;
+}
+.pw-rules .met svg {
+  opacity: 1;
+}
+/* Three short facts right above the purchase. */
+.trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.trust span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.trust svg {
+  flex: none;
+  color: var(--ok);
+}
+
+/* ── Cloud: the app itself, and a quieter way out ── */
+.cloud-preview {
+  margin: 2px -8px 4px;
+  border-radius: 22px;
+  overflow: hidden;
+  aspect-ratio: 720 / 562;
+  background: var(--surface);
+  box-shadow:
+    0 24px 50px -24px var(--wash-1-a85),
+    0 2px 10px -4px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px var(--ink-a4);
+}
+.cloud-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.linkbtn-quiet {
+  font-size: 0.86rem;
+  color: var(--faint);
+  padding-top: 4px;
+}
+.plan-photos {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.plan-feats .plan-photos svg {
+  color: var(--faint);
 }
