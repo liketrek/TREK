@@ -12,9 +12,9 @@ import { APP_URL_SCHEME, TrekShell } from './trekShell';
  * opens the server's /native-handoff page in the system browser, lets the user
  * sign in there, and carries the session back with a one-time code.
  *
- * The verifier never leaves this function. Only its sha256 travels into the
- * browser, and the code that comes back through the URL scheme is useless to
- * anyone who does not also hold the verifier. The hash is computed in JS
+ * The verifier stays in the app. Only its sha256 travels into the browser, and
+ * the code that comes back through the URL scheme is useless to anyone who does
+ * not also hold the verifier. The hash is computed in JS
  * because crypto.subtle is missing on a plain-http server, which is how many
  * home networks reach theirs.
  */
@@ -99,9 +99,76 @@ export class BrowserSignInCancelled extends Error {
   }
 }
 
+const PENDING_SIGN_IN_KEY = 'trek_native_pending_sign_in';
+// The server keeps the code a minute (NATIVE_HANDOFF_CODE_TTL_MS); two leave room for a slow start.
+const PENDING_SIGN_IN_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * Android may end the app while the system browser is in front, a Samsung
+ * phone short of memory readily so. The browser's return then starts a new
+ * app, and the call that waited for it is gone with the verifier it held, so
+ * the user came back to the sign-in page, signed in to the server but not to
+ * the app. The verifier is kept in this server's storage in the app until the
+ * return is redeemed, or for two minutes at most.
+ */
+function keepPendingSignIn(verifier: string): void {
+  try {
+    localStorage.setItem(PENDING_SIGN_IN_KEY, JSON.stringify({ verifier, at: Date.now() }));
+  } catch {
+    /* storage blocked: only the return to a running app can be redeemed */
+  }
+}
+
+/** Drops the kept verifier, if it is still this sign-in's: a newer one may have taken its place. */
+function dropPendingSignIn(verifier: string): void {
+  try {
+    const raw = localStorage.getItem(PENDING_SIGN_IN_KEY);
+    if (raw && (JSON.parse(raw) as { verifier?: unknown }).verifier === verifier) {
+      localStorage.removeItem(PENDING_SIGN_IN_KEY);
+    }
+  } catch {
+    /* storage blocked or the entry unreadable: nothing of ours to drop */
+  }
+}
+
+/** The verifier of a sign-in still open, once. */
+function takePendingSignIn(): string | null {
+  try {
+    const raw = localStorage.getItem(PENDING_SIGN_IN_KEY);
+    localStorage.removeItem(PENDING_SIGN_IN_KEY);
+    if (!raw) return null;
+    const { verifier, at } = JSON.parse(raw) as { verifier?: unknown; at?: unknown };
+    if (typeof verifier !== 'string' || typeof at !== 'number') return null;
+    return Date.now() - at <= PENDING_SIGN_IN_TTL_MS ? verifier : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Redeems a sign-in whose return reached an app started anew (see
+ * keepPendingSignIn). True when the WebView now holds a session; false when
+ * there was nothing to redeem, or the app is a build that cannot tell.
+ */
+export async function resumeBrowserSignIn(): Promise<boolean> {
+  let returned: string | null;
+  try {
+    ({ url: returned } = await TrekShell.takeAuthCallback());
+  } catch {
+    return false; // a build without takeAuthCallback
+  }
+  if (!returned) return false;
+  const verifier = takePendingSignIn();
+  const code = new URL(returned).searchParams.get('code');
+  if (!verifier || !code) return false;
+  await nativeAuthApi.exchange({ code, verifier });
+  return true;
+}
+
 /** Resolves once the WebView holds a session cookie of its own. */
 export async function signInThroughBrowser(start?: BrowserSignInStart, invite?: string): Promise<void> {
   const { verifier, challenge } = createHandoffSecret();
+  keepPendingSignIn(verifier);
   let returned: string;
   try {
     ({ url: returned } = await TrekShell.authenticate({
@@ -109,9 +176,11 @@ export async function signInThroughBrowser(start?: BrowserSignInStart, invite?: 
       callbackScheme: APP_URL_SCHEME,
     }));
   } catch (err) {
+    dropPendingSignIn(verifier);
     if ((err as { code?: string })?.code === 'CANCELLED') throw new BrowserSignInCancelled();
     throw err;
   }
+  dropPendingSignIn(verifier);
   const code = new URL(returned).searchParams.get('code');
   if (!code) throw new Error('The browser returned without a sign-in code');
   await nativeAuthApi.exchange({ code, verifier });

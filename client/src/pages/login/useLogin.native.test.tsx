@@ -1,4 +1,4 @@
-// FE-LOGIN-NATIVE-001 to FE-LOGIN-NATIVE-006: useLogin inside the iOS/Android app
+// FE-LOGIN-NATIVE-001 to FE-LOGIN-NATIVE-008: useLogin inside the iOS/Android app
 import { startAuthentication } from '@simplewebauthn/browser';
 import { http, HttpResponse } from 'msw';
 import React from 'react';
@@ -9,7 +9,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { TranslationProvider } from '../../i18n/TranslationContext';
-import { BrowserSignInCancelled, signInThroughBrowser } from '../../native/browserSignIn';
+import { BrowserSignInCancelled, resumeBrowserSignIn, signInThroughBrowser } from '../../native/browserSignIn';
 import { useAuthStore } from '../../store/authStore';
 import { markSignedOut, wasSignedOut } from '../../utils/signedOut';
 import { useLogin } from './useLogin';
@@ -24,7 +24,7 @@ vi.mock('@simplewebauthn/browser', () => ({ startAuthentication: vi.fn() }));
 vi.mock('../../native/platform', () => ({ isNativeApp: () => true }));
 vi.mock('../../native/browserSignIn', async () => {
   const actual = await vi.importActual<typeof import('../../native/browserSignIn')>('../../native/browserSignIn');
-  return { ...actual, signInThroughBrowser: vi.fn() };
+  return { ...actual, signInThroughBrowser: vi.fn(), resumeBrowserSignIn: vi.fn() };
 });
 
 const realLocation = window.location;
@@ -47,6 +47,7 @@ function clickEvent() {
 beforeEach(() => {
   resetAllStores();
   vi.mocked(signInThroughBrowser).mockReset();
+  vi.mocked(resumeBrowserSignIn).mockReset().mockResolvedValue(false);
   vi.mocked(startAuthentication).mockReset();
   loadUser.mockClear();
   useAuthStore.setState({ loadUser });
@@ -132,5 +133,22 @@ describe('useLogin in the native app', () => {
 
     expect(result.current.error).toBe('Signing in did not work. Please try again.');
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('FE-LOGIN-NATIVE-007: signs in with a browser return that reached an app Android started anew', async () => {
+    vi.mocked(resumeBrowserSignIn).mockResolvedValue(true);
+    const { result } = renderLogin();
+
+    await waitFor(() => expect(loadUser).toHaveBeenCalledWith({ silent: true }));
+    await waitFor(() => expect(result.current.showTakeoff).toBe(true));
+    expect(signInThroughBrowser).not.toHaveBeenCalled();
+  });
+
+  it('FE-LOGIN-NATIVE-008: explains a kept return that could not be redeemed, and stays on the page otherwise', async () => {
+    vi.mocked(resumeBrowserSignIn).mockRejectedValue(new Error('exchange failed'));
+    const { result } = renderLogin();
+
+    await waitFor(() => expect(result.current.error).toBe('Signing in did not work. Please try again.'));
+    expect(result.current.showTakeoff).toBe(false);
   });
 });

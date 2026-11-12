@@ -46,6 +46,12 @@ export interface TrekShellPlugin {
    * user closes the browser.
    */
   authenticate(options: { url: string; callbackScheme: string }): Promise<{ url: string }>;
+  /**
+   * Android: a return to the sign-in scheme that found no authenticate() call
+   * waiting, because the app was started anew meanwhile. Handed out once, and
+   * only for two minutes, as long as the server keeps its code. Not in iOS builds, nor in Android builds before 5.1.4.
+   */
+  takeAuthCallback(): Promise<{ url: string | null }>;
   /** iOS: stores the server's start page for a cold start without network. */
   refreshOfflineCopy(): Promise<{ saved: boolean }>;
   /** iOS: loads that copy under the server's origin. False when there is none. */

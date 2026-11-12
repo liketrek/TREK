@@ -12,6 +12,7 @@ import { passwordErrorKey } from '../../utils/passwordError'
 import { isNativeApp } from '../../native/platform'
 import {
   BrowserSignInCancelled,
+  resumeBrowserSignIn,
   signInThroughBrowser,
   takeHandoffReturn,
   type BrowserSignInStart,
@@ -302,6 +303,23 @@ export function useLogin() {
       setIsLoading(false)
     }
   }
+
+  // In the app: a sign-in the system browser finished while Android started the
+  // app anew. Its return waited natively; redeemed here, it signs the app in.
+  useEffect(() => {
+    if (!nativeApp) return
+    resumeBrowserSignIn()
+      .then(async (signedIn) => {
+        if (!signedIn) return
+        await loadUser({ silent: true })
+        setShowTakeoff(true)
+        void loadSettings()
+        setTimeout(() => {
+          void navigate(redirectTarget)
+        }, 2600)
+      })
+      .catch(() => setError(t('native.login.failed')))
+  }, [nativeApp, loadUser, loadSettings, navigate, redirectTarget, t])
 
   /** In the app: SSO and passkeys run in the system browser (native/browserSignIn.ts). */
   const handleBrowserSignIn = async (start?: BrowserSignInStart): Promise<void> => {

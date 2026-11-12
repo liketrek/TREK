@@ -2,6 +2,7 @@ package com.liketrek.trek;
 
 import android.Manifest;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -433,7 +434,11 @@ public class TrekShellPlugin extends Plugin {
         }
         Uri data = intent.getData();
         PluginCall call = pendingAuthCall();
-        if (call == null || data == null || !authScheme.equals(data.getScheme())) return;
+        if (call == null) {
+            keepOrphanAuthReturn(intent);
+            return;
+        }
+        if (data == null || !authScheme.equals(data.getScheme())) return;
         JSObject result = new JSObject();
         result.put("url", data.toString());
         call.resolve(result);
@@ -457,6 +462,48 @@ public class TrekShellPlugin extends Plugin {
             call.reject("Sign-in cancelled", "CANCELLED");
             finishAuth(call);
         }, CANCEL_GRACE_MS);
+    }
+
+    private static final String AUTH_PREFS = "trek_auth_return";
+    /** As long as the server keeps the code it carries (NATIVE_HANDOFF_CODE_TTL_MS), with room to spare. */
+    private static final long ORPHAN_AUTH_TTL_MS = 2 * 60 * 1000;
+
+    /**
+     * A return to the sign-in scheme with no call waiting for it: Android ended
+     * the app while the browser was in front, and the browser's return started
+     * it anew (the launch intent comes through here as well). Kept on disk, as
+     * the process may be new too, until the sign-in page takes it. The return
+     * is then taken off the activity's intent: Capacitor hands the launch intent
+     * in again whenever the activity is created, and Android does as well when
+     * it rebuilds the task from the recent apps.
+     */
+    private void keepOrphanAuthReturn(Intent intent) {
+        Uri data = intent.getData();
+        if (data == null || !"auth".equals(data.getHost())) return;
+        if (!getContext().getString(R.string.custom_url_scheme).equals(data.getScheme())) return;
+        if (getActivity() != null && getActivity().getIntent() != null && getActivity().getIntent().getData() != null
+                && data.equals(getActivity().getIntent().getData())) {
+            getActivity().setIntent(new Intent(getActivity().getIntent()).setData(null));
+        }
+        if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) return;
+        getContext().getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString("url", data.toString())
+            .putLong("at", System.currentTimeMillis())
+            .commit();
+    }
+
+    /** The kept return of a sign-in (keepOrphanAuthReturn), once and while fresh; null otherwise. */
+    @PluginMethod
+    public void takeAuthCallback(PluginCall call) {
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE);
+        String url = prefs.getString("url", null);
+        long at = prefs.getLong("at", 0);
+        prefs.edit().clear().commit();
+        boolean fresh = url != null && System.currentTimeMillis() - at <= ORPHAN_AUTH_TTL_MS;
+        JSObject result = new JSObject();
+        result.put("url", fresh ? url : JSONObject.NULL);
+        call.resolve(result);
     }
 
     private PluginCall pendingAuthCall() {

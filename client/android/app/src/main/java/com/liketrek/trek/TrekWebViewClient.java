@@ -1,11 +1,13 @@
 package com.liketrek.trek;
 
 import android.net.Uri;
+import android.util.Log;
 import android.webkit.ClientCertRequest;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeWebViewClient;
 import com.liketrek.trek.clientcert.TrekClientIdentity;
@@ -34,6 +36,10 @@ class TrekWebViewClient extends BridgeWebViewClient {
     private final Set<String> signInHosts;
     /** A page of the server has shown since launch; from then on no sign-in host is learned (SignInRedirect). */
     private boolean serverShown;
+    /** The page itself failed on the network once already; the next failure goes to the address screen. */
+    private boolean retriedMainFrame;
+    /** The page loaded again after a network error, until that load starts: its error page counts for nothing. */
+    private String retryUrl;
 
     TrekWebViewClient(
         Bridge bridge,
@@ -80,6 +86,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
     @Override
     public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
         super.doUpdateVisitedHistory(view, url, isReload);
+        if (retryUrl != null) return;
         onSignInPage.accept(url != null && isSignInHost(Uri.parse(url)));
         // The 4xx answer arrives before this commit or after it; either way the
         // flag is read once here, so the next page clears the bar again.
@@ -92,6 +99,9 @@ class TrekWebViewClient extends BridgeWebViewClient {
     @Override
     public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
+        // The error page of a load that is about to be retried: not the server's
+        // first page, so no welcome page and no learning of sign-in hosts yet.
+        if (retryUrl != null) return;
         if (SignInRedirect.onServer(TrekServerStore.getUrl(view.getContext()), url)) serverShown = true;
         String welcome = TrekServerStore.takeWelcomeUrl(view.getContext());
         if (welcome != null) view.loadUrl(welcome);
@@ -137,9 +147,27 @@ class TrekWebViewClient extends BridgeWebViewClient {
         }
     }
 
+    /**
+     * A page that failed on the network is loaded once more before the app says
+     * the server is unreachable. Started from the background, as when the
+     * browser hands a sign-in back to an app Android had ended, a Samsung phone
+     * may hold its network back for a moment, and the first load fails with the
+     * server there all along. The error is logged, as a report has nothing else.
+     */
     @Override
     public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
         if (request.isForMainFrame()) {
+            Log.w("TrekShell", "Page failed: " + error.getErrorCode() + " " + error.getDescription());
+            if (!retriedMainFrame && isNetworkError(error.getErrorCode())) {
+                retriedMainFrame = true;
+                retryUrl = request.getUrl().toString();
+                view.postDelayed(() -> {
+                    String url = retryUrl;
+                    retryUrl = null;
+                    view.loadUrl(url);
+                }, 1500);
+                return;
+            }
             onUnreachable.run();
             return;
         }
@@ -166,6 +194,14 @@ class TrekWebViewClient extends BridgeWebViewClient {
             errorPageUrl = request.getUrl().toString();
             onErrorPage.accept(true);
         }
+    }
+
+    private static boolean isNetworkError(int code) {
+        return code == WebViewClient.ERROR_HOST_LOOKUP
+            || code == WebViewClient.ERROR_CONNECT
+            || code == WebViewClient.ERROR_TIMEOUT
+            || code == WebViewClient.ERROR_IO
+            || code == WebViewClient.ERROR_UNKNOWN;
     }
 
     private static boolean wantedCertificate(Uri url) {
