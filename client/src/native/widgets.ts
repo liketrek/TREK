@@ -357,6 +357,23 @@ export function tripDayState(day: TripDay, nowMinutes: number, allDone: string):
   };
 }
 
+/** How long before the day's first timed stop its Live Activity appears. */
+export const LIVE_LEAD_MINUTES = 3 * 60;
+
+/**
+ * Whether the travel day's Live Activity belongs on the lock screen now: from
+ * three hours before the first stop with a time, then until the day is done. A
+ * day whose first stop is an evening flight does not hold the lock screen from
+ * the morning on.
+ */
+export function liveDayDue(day: TripDay, nowMinutes: number): boolean {
+  const first = day.stops.reduce<number | null>(
+    (min, s) => (s.minutes != null && (min === null || s.minutes < min) ? s.minutes : min),
+    null
+  );
+  return first !== null && nowMinutes >= first - LIVE_LEAD_MINUTES;
+}
+
 /** A trip a widget can be set to in Edit Widget, and its snapshot. */
 export interface TripWidgetSnapshot {
   id: number;

@@ -20,6 +20,7 @@ import { widgetCover, widgetWeather } from '../../native/widgetMedia';
 import { atlasSummary, collabSummary, packingDetail, type WidgetAtlas } from '../../native/widgetOnline';
 import {
   buildSnapshot,
+  liveDayDue,
   pickTrip,
   publishWidgets,
   todayOf,
@@ -207,9 +208,10 @@ export default function NativeWidgetsSync(): null {
         });
       }
       if (cancelled) return;
-      const live = main.day
-        ? tripDayState(main.day, now.getHours() * 60 + now.getMinutes(), t('native.widget.dayDone'))
-        : null;
+      // The Live Activity from three hours before the day's first timed stop, not all day long.
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const live =
+        main.day && liveDayDue(main.day, minutes) ? tripDayState(main.day, minutes, t('native.widget.dayDone')) : null;
       await publishWidgets(main.snapshot, live, choices);
       await publishToWatch(hero, main, today);
     };

@@ -15,6 +15,7 @@ vi.mock('./trekShell', () => ({
 import { TrekShell } from './trekShell';
 import {
   buildSnapshot,
+  liveDayDue,
   pickTrip,
   publishWidgets,
   todayOf,
@@ -148,6 +149,40 @@ describe('todayOf and tripDayState', () => {
     expect(
       tripDayState({ tripTitle: 'T', path: '/', dayLabel: 'D', stops: [] }, 0, 'done').nextMinutes
     ).toBeUndefined();
+  });
+});
+
+describe('liveDayDue', () => {
+  const evening = {
+    tripTitle: 'T',
+    path: '/trips/1',
+    dayLabel: 'D',
+    stops: [
+      { name: 'Walk', time: null, minutes: null },
+      { name: 'Uber to the airport', time: '18:00', minutes: 18 * 60 },
+      { name: 'Flight', time: '21:00', minutes: 21 * 60 },
+    ],
+  };
+
+  it('keeps the lock screen free until three hours before the first timed stop', () => {
+    expect(liveDayDue(evening, 6 * 60 + 32)).toBe(false);
+    expect(liveDayDue(evening, 14 * 60 + 59)).toBe(false);
+    expect(liveDayDue(evening, 15 * 60)).toBe(true);
+  });
+
+  it('stays on through the day once it has started, until the day is done', () => {
+    expect(liveDayDue(evening, 19 * 60)).toBe(true);
+    expect(liveDayDue(evening, 23 * 60 + 30)).toBe(true);
+  });
+
+  it('starts from the earliest timed stop, wherever it stands in the list', () => {
+    const early = { ...evening, stops: [...evening.stops, { name: 'Breakfast', time: '08:00', minutes: 8 * 60 }] };
+    expect(liveDayDue(early, 5 * 60)).toBe(true);
+    expect(liveDayDue(early, 4 * 60 + 59)).toBe(false);
+  });
+
+  it('has nothing to show on a day without times', () => {
+    expect(liveDayDue({ ...evening, stops: [{ name: 'Walk', time: null, minutes: null }] }, 12 * 60)).toBe(false);
   });
 });
 
