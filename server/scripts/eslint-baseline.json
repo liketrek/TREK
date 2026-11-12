@@ -17,7 +17,7 @@
   },
   "tests": {
     "@typescript-eslint/no-explicit-any": 1555,
-    "@typescript-eslint/no-non-null-assertion": 1755,
+    "@typescript-eslint/no-non-null-assertion": 1754,
     "@typescript-eslint/no-require-imports": 25,
     "@typescript-eslint/no-unsafe-function-type": 7,
     "@typescript-eslint/no-unused-vars": 96,
