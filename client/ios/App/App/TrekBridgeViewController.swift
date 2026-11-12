@@ -42,6 +42,7 @@ class TrekBridgeViewController: CAPBridgeViewController {
         if let webView, let inner = webView.navigationDelegate {
             let proxy = TrekNavigationProxy(inner: inner)
             proxy.onErrorPage = { [weak self] error in self?.errorPageChanged(error) }
+            proxy.onPageShown = { [weak self] in self?.publishSafeArea(force: true) }
             navigationProxy = proxy
             webView.navigationDelegate = proxy
         }
@@ -86,6 +87,49 @@ class TrekBridgeViewController: CAPBridgeViewController {
         view.backgroundColor = color
         webView?.scrollView.backgroundColor = color
         webView?.underPageBackgroundColor = color
+    }
+
+    // MARK: - The safe area the page keeps clear of
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        publishSafeArea()
+    }
+
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        publishSafeArea()
+    }
+
+    private var publishedSafeArea: UIEdgeInsets?
+
+    /// WebKit's env(safe-area-inset-*) is the window's safe area only where the
+    /// web view overlaps it. Where a release lays the web view out below the
+    /// status bar it reports 0, yet a camera in a corner can still reach into
+    /// the page. The part of the window's safe area (and of the status bar) that
+    /// falls inside the web view goes to the page as --trek-native-safe-*, which
+    /// mobile.css takes as a floor under env(), never in its place.
+    func publishSafeArea(force: Bool = false) {
+        guard let webView, let window = view.window else { return }
+        let frame = webView.convert(webView.bounds, to: window)
+        let safe = window.safeAreaInsets
+        let statusBar = window.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
+        let insets = UIEdgeInsets(
+            top: max(0, max(safe.top, statusBar) - frame.minY),
+            left: max(0, safe.left - frame.minX),
+            bottom: max(0, safe.bottom - (window.bounds.maxY - frame.maxY)),
+            right: max(0, safe.right - (window.bounds.maxX - frame.maxX))
+        )
+        if !force, insets == publishedSafeArea { return }
+        publishedSafeArea = insets
+        let px = { (v: CGFloat) in "'\(Int(v.rounded(.up)))px'" }
+        let js = "(function(s){"
+            + "s.setProperty('--trek-native-safe-top',\(px(insets.top)));"
+            + "s.setProperty('--trek-native-safe-left',\(px(insets.left)));"
+            + "s.setProperty('--trek-native-safe-right',\(px(insets.right)));"
+            + "s.setProperty('--trek-native-safe-bottom',\(px(insets.bottom)));"
+            + "})(document.documentElement.style)"
+        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     // MARK: - A proxy's sign-in page
@@ -714,6 +758,8 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     private var serverShown = false
     /// Told on the main thread whether the main frame now shows an error page in place of the server's.
     var onErrorPage: ((Bool) -> Void)?
+    /// Told when a page has finished loading: a new document starts without the safe area the controller handed the last one.
+    var onPageShown: (() -> Void)?
 
     init(inner: WKNavigationDelegate) {
         self.inner = inner
@@ -766,6 +812,7 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     /// page once (TrekServerStore.takeWelcomeURL); it is on the server's origin.
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         inner.webView?(webView, didFinish: navigation)
+        onPageShown?()
         if TrekSignInRedirect.onServer(server: TrekServerStore.url, url: webView.url) { serverShown = true }
         if let welcome = TrekServerStore.takeWelcomeURL() {
             webView.load(URLRequest(url: welcome))

@@ -62,7 +62,14 @@
    * 52px/26px offsets stand in for the phone status bar / home indicator, so
    * real devices derive them from the safe-area insets. */
   --bottom-nav-h: calc(84px + env(safe-area-inset-bottom, 0px));
-  --m-safe-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  /* The safe area the iOS app measures (TrekBridgeViewController
+   * publishSafeArea) is a floor under env(): where a release lays the web view
+   * out below the status bar, WebKit reports 0 while a camera in a corner still
+   * reaches into the page. In a browser the variables are unset: env() alone. */
+  --m-safe-t: max(env(safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));
+  --m-safe-l: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));
+  --m-safe-r: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));
+  --m-safe-top: calc(var(--m-safe-t) + 12px);
   /* The navigation rail's share of the leading edge (wide windows only), what
    * every full-width fixed bar and the page column start after. */
   --m-rail-w: 0px;
@@ -75,10 +82,10 @@
  * reads the same values as the shell. */
 html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {
   --bottom-nav-h: env(safe-area-inset-bottom, 0px);
-  --m-rail-w: calc(env(safe-area-inset-left, 0px) + 100px);
+  --m-rail-w: calc(var(--m-safe-l) + 100px);
 }
 html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {
-  --m-rail-w: calc(env(safe-area-inset-right, 0px) + 100px);
+  --m-rail-w: calc(var(--m-safe-r) + 100px);
 }
 
 .dark .m-root {
@@ -569,6 +576,14 @@ html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-
 .m-span-x {
   inset-inline-start: var(--m-rail-w, 0px);
   inset-inline-end: 0;
+}
+/* Without the rail the floating bars keep clear of the sides' safe area too:
+   a camera in a corner can come as a side inset. Physical sides, as the
+   insets are the screen's, not the text direction's. On a wide window the
+   rail takes the leading side and a bar may centre itself (mx-auto). */
+html:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {
+  margin-left: var(--m-safe-l, 0px);
+  margin-right: var(--m-safe-r, 0px);
 }
 /* A screen whose background is a map reaches under the rail: the map runs to
    the window's edge and the rail floats over it like the top controls do. Its

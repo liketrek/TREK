@@ -48,3 +48,26 @@ describe('MGlassBar', () => {
     expect(container.firstElementChild).toBe(screen.getByText('bar').parentElement);
   });
 });
+
+describe('safe area in the touch shell', () => {
+  // jsdom applies no stylesheet and has no env(), so the rules are read from source.
+  const css = readFileSync(resolve(root, 'src/mobile/mobile.css'), 'utf8');
+
+  it('FE-MOB-CHROME-004: the top clearance takes env() with the measurement of the app as a floor, never in its place', () => {
+    expect(css).toContain('--m-safe-t: max(env(safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));');
+    expect(css).toContain('--m-safe-top: calc(var(--m-safe-t) + 12px);');
+    expect(css).toContain('--m-safe-l: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));');
+    expect(css).toContain('--m-safe-r: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));');
+  });
+
+  it('FE-MOB-CHROME-005: without the rail the floating bars keep clear of a side inset, such as a camera in a corner', () => {
+    const narrow = "html:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {";
+    const rule = css.split(narrow)[1]?.split('}')[0] ?? '';
+    expect(rule).toContain('margin-left: var(--m-safe-l, 0px);');
+    expect(rule).toContain('margin-right: var(--m-safe-r, 0px);');
+    // On a wide window the bars keep no side margin, so mx-auto still centres them.
+    for (const cls of ['m-bar-x', 'm-span-x']) {
+      expect(css.split(`\n.${cls} {`)[1]?.split('}')[0] ?? '').not.toContain('margin');
+    }
+  });
+});
