@@ -866,7 +866,7 @@ describe('runAgentLoop', () => {
       expect(t.requests).toHaveLength(2);
     });
 
-    it('ASTAGT-047: the text-only request is the one step after the ask, never the ones before or after it (#3016)', async () => {
+    it('ASTAGT-047: the text-only request starts with the step after the ask, never before it (#3016)', async () => {
       const t = setup([
         [{ type: 'tool-call', call: { id: 'l1', name: 'list_places', args: {} } }],
         [ask('toolu_9', ['More stops']), { type: 'finish', reason: 'tool-calls' }],
@@ -878,6 +878,22 @@ describe('runAgentLoop', () => {
       const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
       expect(outcome.end).toBe('stop');
       expect(t.requests.map((request) => request.toolChoice)).toEqual([undefined, undefined, 'none']);
+    });
+
+    it('ASTAGT-050: an empty step after the ask gets a push that is text-only too, so offered follow-ups cannot hide the answer again', async () => {
+      const t = setup([
+        [ask('toolu_10', ['Stops on the drive']), { type: 'finish', reason: 'tool-calls' }],
+        [{ type: 'finish', reason: 'stop' }],
+        [
+          { type: 'text-delta', delta: 'You leave Lisbon on day 4.' },
+          { type: 'finish', reason: 'stop' },
+        ],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome.end).toBe('stop');
+      expect(t.requests.map((request) => request.toolChoice)).toEqual([undefined, 'none', 'none']);
+      expect(t.requests[2].messages.at(-1)).toMatchObject({ role: 'user', text: expect.stringContaining('as text') });
+      expect(t.chunks).toContainEqual({ type: 'data-trek-follow-ups', data: { questions: ['Stops on the drive'] } });
     });
 
     it('ASTAGT-045: follow-ups with no answer after an announcing first answer are still asked for the answer', async () => {

@@ -199,6 +199,10 @@ const GO_ON =
   'Your last reply came back empty or was cut off. Carry on from where you were: answer, or make the calls now. ' +
   'If the plan is large, propose part of it now; after the user decided you continue with the rest.';
 
+/** The push for an empty step after the ask for the answer: no calls are open to it any more. */
+const ANSWER_NOW =
+  'Your last reply came back empty, and the user still sees no answer. Write your answer to them now, as text.';
+
 /**
  * Runs a read at once and records it: where it looks (streamed only), its
  * call and answer, and the cards its answer makes (its package's card first,
@@ -590,7 +594,14 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
   // An answer that offered follow-ups is finished, however it ends.
   const settled = asks.length > 0 && !empty;
   const announced = !settled && received.length === 0 && step === 0 && ANNOUNCED.test(text.trimEnd());
-  const push = empty || (!settled && received.length === 0 && cutOff) ? GO_ON : announced ? MAKE_THE_CALLS : null;
+  const push =
+    empty && turn.askedForAnswer
+      ? ANSWER_NOW
+      : empty || (!settled && received.length === 0 && cutOff)
+        ? GO_ON
+        : announced
+          ? MAKE_THE_CALLS
+          : null;
   // Follow-ups with no answer a second time end the turn: the model was already asked for the answer.
   const wordlessAgain = empty && asks.length > 0;
   if (push && !turn.nudged && !wordlessAgain) {
@@ -600,6 +611,12 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
     // An empty assistant message is one the providers refuse; only the push goes back.
     if (!empty) history.push({ role: 'assistant', text, toolCalls: [], providerState });
     history.push({ role: 'user', text: push });
+    // Once the answer was asked for, the push is held to text as well. Claude
+    // Sonnet 5.5 hands back the words it writes before a tool call as a hidden
+    // thinking block: with tools open again it answers, offers follow-ups once
+    // more, and the answer is lost a second time. The chips of the first offer
+    // are kept in turn.followUps.
+    if (turn.askedForAnswer) turn.textOnlyNext = true;
     return null;
   }
   if (empty) {
