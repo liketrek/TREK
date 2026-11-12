@@ -141,9 +141,11 @@ export default function MDayPager({
       const next = dayId != null && Number.isFinite(dayId) ? dayId : null;
       if (next === previewed) return;
       previewed = next;
-      // Draw ahead of the finger: the days around this one, before it lands.
-      if (next !== null) setFocusDayId(next);
-      if (next !== null) tickHaptic();
+      if (next !== null) {
+        // Draw ahead of the finger: the days around this one, before it lands.
+        setFocusDayId(next);
+        tickHaptic();
+      }
       latest.current.onPreview?.(next);
     };
 

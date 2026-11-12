@@ -423,7 +423,7 @@ export class AdminService {
     if (!target || target.is_guest) throw new DomainError(404, 'User not found');
     if (!target.oidc_sub && !target.oidc_issuer) return { email: target.email, unlinked: false };
 
-    await this.users.clearOidcIdentity(targetId);
+    await this.users.linkOidcIdentity(targetId, null, null);
     return { email: target.email, unlinked: true };
   }
 

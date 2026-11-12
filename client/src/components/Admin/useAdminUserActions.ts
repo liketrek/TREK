@@ -1,4 +1,4 @@
-import { adminApi } from '../../api/client';
+import { adminApi, apiClient } from '../../api/client';
 import type { TranslationFn } from '../../types';
 
 interface UserActionsHost {
@@ -58,7 +58,7 @@ export function useAdminUserActions(admin: UserActionsHost, t: TranslationFn) {
   /** Forgets the user's SSO identity so the next SSO sign-in links again (#3065); true when it worked. */
   const unlinkSso = async (user: { id: number }): Promise<boolean> => {
     try {
-      await adminApi.unlinkUserSso(user.id);
+      await apiClient.delete(`/admin/users/${user.id}/sso`);
       toast.success(t('admin.sso.unlinkDone'));
       return true;
     } catch {

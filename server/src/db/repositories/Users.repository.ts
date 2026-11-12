@@ -817,18 +817,10 @@ export class UsersRepository extends TrekRepository<Users> {
   /**
    * `UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?` (O5, the
    * email-matched/unlinked/verified-email branch; O6, the provider-switch
-   * branch — identical statement, two call sites, no `updated_at`).
+   * branch; with nulls the admin's "Remove SSO link", #3065; no `updated_at`).
    */
-  async linkOidcIdentity(id: number, sub: string, issuer: string): Promise<void> {
+  async linkOidcIdentity(id: number, sub: string | null, issuer: string | null): Promise<void> {
     await this.nativeUpdate({ id }, { oidc_sub: sub, oidc_issuer: issuer });
-  }
-
-  /**
-   * `UPDATE users SET oidc_sub = NULL, oidc_issuer = NULL WHERE id = ?`: the
-   * admin's "Remove SSO link" (#3065). No `updated_at`, like the link it undoes.
-   */
-  async clearOidcIdentity(id: number): Promise<void> {
-    await this.nativeUpdate({ id }, { oidc_sub: null, oidc_issuer: null });
   }
 
   // ---------------------------------------------------------------------

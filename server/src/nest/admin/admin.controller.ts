@@ -42,7 +42,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { adminFeatureToggleResponseSchema } from '@trek/shared';
+import { adminFeatureToggleResponseSchema, adminSsoUnlinkResponseSchema } from '@trek/shared';
 
 import type { Request } from 'express';
 
@@ -157,6 +157,7 @@ export class AdminController {
   }
 
   @Delete('users/:id/sso')
+  @ResponseContract(adminSsoUnlinkResponseSchema)
   async unlinkUserSso(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     const result = await this.admin.unlinkUserSso(id, user.id);
     if (result.unlinked) {

@@ -11,6 +11,10 @@ interface Page {
   near: boolean;
 }
 
+/** Where a day stands in the strip, -1 for none. */
+const indexOfDay = (days: PagerItem[], id: number | null): number =>
+  id == null ? -1 : days.findIndex((d) => d.id === id);
+
 /** Pages drawn with their content either side of the selection, and of the page a swipe heads for. */
 const REACH = 2;
 
@@ -33,7 +37,7 @@ export function pagesFor(days: PagerItem[], selectedDayId: number | null, focusD
       ...(first ? [{ key: `d${first.id}`, dayId: first.id, active: false, near: true }] : []),
     ];
   }
-  const f = focusDayId == null ? -1 : days.findIndex((d) => d.id === focusDayId);
+  const f = indexOfDay(days, focusDayId);
   const near = (j: number) => Math.abs(j - i) <= REACH || (f >= 0 && Math.abs(j - f) <= REACH);
   return days.map((d, j) => ({ key: `d${d.id}`, dayId: d.id, active: j === i, near: near(j) }));
 }

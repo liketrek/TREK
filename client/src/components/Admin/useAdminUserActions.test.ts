@@ -9,9 +9,9 @@ const api = vi.hoisted(() => ({
   rotateJwtSecret: vi.fn(),
   resetUserPasskeys: vi.fn(),
   resetUserMfa: vi.fn(),
-  unlinkUserSso: vi.fn(),
 }));
-vi.mock('../../api/client', () => ({ adminApi: api }));
+const http = vi.hoisted(() => ({ delete: vi.fn() }));
+vi.mock('../../api/client', () => ({ adminApi: api, apiClient: http }));
 
 const t = (key: string, params?: Record<string, unknown>) => (params ? `${key} ${JSON.stringify(params)}` : key);
 
@@ -33,7 +33,7 @@ beforeEach(() => {
   api.rotateJwtSecret.mockReset().mockResolvedValue({});
   api.resetUserPasskeys.mockReset().mockResolvedValue({ deleted: 2 });
   api.resetUserMfa.mockReset().mockResolvedValue({ success: true });
-  api.unlinkUserSso.mockReset().mockResolvedValue({ success: true, unlinked: true });
+  http.delete.mockReset().mockResolvedValue({ data: { success: true, unlinked: true } });
 });
 
 describe('useAdminUserActions', () => {
@@ -114,13 +114,13 @@ describe('useAdminUserActions', () => {
     await act(async () => {
       ok = await actions.unlinkSso({ id: 11 });
     });
-    expect(api.unlinkUserSso).toHaveBeenCalledWith(11);
+    expect(http.delete).toHaveBeenCalledWith('/admin/users/11/sso');
     expect(admin.toast.success).toHaveBeenCalledWith('admin.sso.unlinkDone');
     expect(ok).toBe(true);
   });
 
   it('FE-HOOK-ADMUSERACT-009: a failed SSO unlink toasts and reports failure', async () => {
-    api.unlinkUserSso.mockRejectedValue(new Error('x'));
+    http.delete.mockRejectedValue(new Error('x'));
     const { admin, actions } = mount();
     let ok: boolean | undefined;
     await act(async () => {

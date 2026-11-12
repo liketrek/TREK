@@ -669,7 +669,7 @@ describe('UsersRepository', () => {
     expect(row.updated_at).toBe('2020-01-01 00:00:00');
   });
 
-  it('USERSREPO-088: clearOidcIdentity nulls sub+issuer WITHOUT touching updated_at (#3065)', async () => {
+  it('USERSREPO-088: linkOidcIdentity with nulls removes the SSO link WITHOUT touching updated_at (#3065)', async () => {
     const { user } = createUser(testDb);
     await updateRows(
       t,
@@ -677,7 +677,7 @@ describe('UsersRepository', () => {
       { id: user.id },
       { oidc_sub: 'sub-1', oidc_issuer: 'https://idp.example.com', updated_at: '2020-01-01 00:00:00' },
     );
-    await users.clearOidcIdentity(user.id);
+    await users.linkOidcIdentity(user.id, null, null);
     const row = (await findRow(t, Users, { id: user.id })) as {
       oidc_sub: string | null;
       oidc_issuer: string | null;

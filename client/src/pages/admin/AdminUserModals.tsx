@@ -505,9 +505,8 @@ docker run -d --name trek \\
       <ConfirmDialog
         isOpen={ssoUnlinkUser !== null}
         onClose={() => setSsoUnlinkUser(null)}
-        onConfirm={async () => {
-          if (!ssoUnlinkUser) return;
-          await unlinkSso(ssoUnlinkUser);
+        onConfirm={() => {
+          if (ssoUnlinkUser) void unlinkSso(ssoUnlinkUser);
         }}
         title={t('admin.sso.unlink')}
         message={ssoUnlinkUser ? t('admin.sso.unlinkConfirm', { name: ssoUnlinkUser.username }) : ''}

@@ -60,6 +60,13 @@ export const adminFeatureToggleResponseSchema = z.object({
 });
 export type AdminFeatureToggleResponse = z.infer<typeof adminFeatureToggleResponseSchema>;
 
+/** DELETE /api/admin/users/:id/sso (#3065): whether the account had an SSO link to remove. */
+export const adminSsoUnlinkResponseSchema = z.object({
+  success: z.literal(true),
+  unlinked: z.boolean(),
+});
+export type AdminSsoUnlinkResponse = z.infer<typeof adminSsoUnlinkResponseSchema>;
+
 /**
  * PUT /api/admin/google-quota (#1582): the most Google API calls TREK may make
  * in one UTC day. Null or 0 removes the ceiling.
