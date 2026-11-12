@@ -16,7 +16,10 @@ import { pagesFor, type PagerItem } from './dayPagerPages';
  * the swipe is decided, not once the snap has settled, which on iOS comes
  * a good while later. The day only changes once the strip has come to rest on
  * another page. Then
- * the selection moves and the days around it draw their content.
+ * the selection moves and the days around it draw their content. The days
+ * around the page a swipe is heading for draw theirs as soon as it becomes the
+ * nearer one, so a run of quick swipes that never rests finds them drawn
+ * instead of blank until the snap lands (#3067).
  * Keys follow the day ids, so the page that slid in keeps its state (scroll
  * position, fetched route and weather) as it becomes the current one.
  *
@@ -69,7 +72,10 @@ export default function MDayPager({
 }: MDayPagerProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState('');
-  const pages = pagesFor(days, selectedDayId);
+  /** The page a swipe last headed for. It stays after the landing, so swiping
+   *  back over the same days finds them drawn too. */
+  const [focusDayId, setFocusDayId] = useState<number | null>(null);
+  const pages = pagesFor(days, selectedDayId, focusDayId);
   // Which page is current belongs in the key: on a trip of up to five days a
   // chip tap can keep the same pages, and the strip then stayed on the old day
   // while the rail already showed the new one.
@@ -135,6 +141,8 @@ export default function MDayPager({
       const next = dayId != null && Number.isFinite(dayId) ? dayId : null;
       if (next === previewed) return;
       previewed = next;
+      // Draw ahead of the finger: the days around this one, before it lands.
+      if (next !== null) setFocusDayId(next);
       if (next !== null) tickHaptic();
       latest.current.onPreview?.(next);
     };

@@ -8,6 +8,7 @@ import { pagesFor } from './dayPagerPages';
 vi.mock('../../native/haptics', () => ({ tickHaptic: vi.fn() }));
 
 const DAYS = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }] as unknown as Day[];
+const LONG = Array.from({ length: 10 }, (_, k) => ({ id: k + 1 })) as unknown as Day[];
 
 function setup(selectedDayId: number | null, over: Partial<Parameters<typeof MDayPager>[0]> = {}) {
   const onSelectDay = vi.fn();
@@ -57,6 +58,19 @@ describe('pagesFor', () => {
         .filter((p) => p.near)
         .map((p) => p.dayId)
     ).toEqual([4, 5, 6]);
+  });
+
+  it('also draws the days around the page a swipe heads for, so a run of swipes never meets blank pages', () => {
+    const drawn = (focusDayId: number | null) =>
+      pagesFor(LONG, 1, focusDayId)
+        .filter((p) => p.near)
+        .map((p) => p.dayId);
+    expect(drawn(6)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    // Still only the selection's own window where nothing is previewed or the preview is gone.
+    expect(drawn(null)).toEqual([1, 2, 3]);
+    expect(drawn(99)).toEqual([1, 2, 3]);
+    // The focus never changes which page is current.
+    expect(pagesFor(LONG, 1, 6).find((p) => p.active)?.dayId).toBe(1);
   });
 
   it('keeps a page for a selection that points at no day, with the first day as the way back', () => {
@@ -127,6 +141,19 @@ describe('MDayPager', () => {
     place(strip, 2, true);
     fireEvent.scroll(strip);
     expect(onPreview).toHaveBeenLastCalledWith(null);
+  });
+
+  it('draws the days ahead of a swipe while the strip still moves, before the selection lands', () => {
+    const { strip, onSelectDay } = setup(1);
+    expect(screen.queryByText('page 5')).not.toBeInTheDocument();
+
+    place(strip, 3, true);
+    fireEvent.scroll(strip);
+
+    expect(onSelectDay).not.toHaveBeenCalled();
+    expect(screen.getByText('page 1 live')).toBeInTheDocument();
+    expect(screen.getByText('page 5')).toBeInTheDocument();
+    expect(screen.queryByText('page 6')).not.toBeInTheDocument();
   });
 
   it('asks once, however many events report the same landing', () => {
