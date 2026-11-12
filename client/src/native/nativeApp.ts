@@ -115,7 +115,6 @@ async function fetchServerFeatures(): Promise<{ minNativeShellApi?: unknown }> {
   return (await res.json()) as { minNativeShellApi?: unknown };
 }
 
-/** The scrolled list in the middle of the screen, else the page, back to its top. */
 /** The launch link this web view has already followed, so a reload does not follow it again. */
 const LAUNCH_LINK_KEY = 'trek_launch_link_done';
 
@@ -139,6 +138,7 @@ async function openLaunchLink(): Promise<void> {
   }
 }
 
+/** The scrolled list in the middle of the screen, else the page, back to its top. */
 export function scrollToTop(): void {
   let el = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2) as HTMLElement | null;
   while (el && el !== document.body) {

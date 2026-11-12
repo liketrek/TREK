@@ -119,6 +119,17 @@ export class AirtrailService {
     const provided = (apiKey || '').trim();
     const newKey = provided && provided !== KEY_MASK ? maybe_encrypt_api_key(provided) : undefined;
 
+    // A key belongs to the instance it was issued on, as in testConnection. A
+    // new host with the key field left masked or blank would otherwise send the
+    // old instance's key to the new one on the next sync, so the key goes with
+    // the host. A path edit on the same origin keeps it. The key is cleared
+    // before the new address is written, so no moment stores the new address
+    // beside the old key.
+    if (newKey === undefined) {
+      const previousUrl = (await this.readRow(userId))?.airtrail_url ?? null;
+      if (movedHost(previousUrl, trimmedUrl)) await this.airtrailRepo.clearAirtrailApiKey(userId);
+    }
+
     if (newKey !== undefined) {
       await this.airtrailRepo.setAirtrailSettingsWithKey(
         userId,
