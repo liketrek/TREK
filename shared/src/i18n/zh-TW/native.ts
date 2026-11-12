@@ -200,8 +200,8 @@ const native: TranslationStrings = {
   'native.plans.billing': '付款',
   'native.claim.almost': '快到了',
   'native.claim.addressField': '網址',
-  'native.claim.slugPlaceholder': 'yourname', // same-as-en
-  'native.claim.emailPlaceholder': 'you@example.com', // same-as-en
+  'native.claim.slugPlaceholder': 'nidemingzi',
+  'native.claim.emailPlaceholder': 'ni@shili.tw',
   'native.claim.passwordPlaceholder': '設定密碼',
   'native.claim.freeBadge': '可用',
   'native.claim.renews': '自動續訂，隨時可取消。',

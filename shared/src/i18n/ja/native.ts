@@ -212,8 +212,8 @@ const native: TranslationStrings = {
   'native.plans.billing': 'お支払い',
   'native.claim.almost': 'もうすぐ到着',
   'native.claim.addressField': 'アドレス',
-  'native.claim.slugPlaceholder': 'yourname', // same-as-en
-  'native.claim.emailPlaceholder': 'you@example.com', // same-as-en
+  'native.claim.slugPlaceholder': 'namae',
+  'native.claim.emailPlaceholder': 'anata@rei.jp',
   'native.claim.passwordPlaceholder': 'パスワードを決める',
   'native.claim.freeBadge': '空き',
   'native.claim.renews': '自動更新、いつでも解約できます。',

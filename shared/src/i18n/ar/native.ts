@@ -207,8 +207,8 @@ const native: TranslationStrings = {
   'native.plans.billing': 'الدفع',
   'native.claim.almost': 'اقتربنا',
   'native.claim.addressField': 'العنوان',
-  'native.claim.slugPlaceholder': 'yourname', // same-as-en
-  'native.claim.emailPlaceholder': 'you@example.com', // same-as-en
+  'native.claim.slugPlaceholder': 'ismuka',
+  'native.claim.emailPlaceholder': 'anta@mithal.com',
   'native.claim.passwordPlaceholder': 'اختر كلمة مرور',
   'native.claim.freeBadge': 'متاح',
   'native.claim.renews': 'يتجدّد تلقائيًا، ألغِ في أي وقت.',

@@ -12,9 +12,9 @@ interface Amount {
   render(value: number): string;
 }
 
-// Digits with the marks stores put between them: . , space, no-break spaces, and
-// the apostrophes Swiss formats group thousands with (1'290 and 1’290).
-const NUMBER = /\d[\d.,\s  '’]*\d|\d/;
+// Digits with the marks stores put between them: . , any space (\s takes the
+// no-break ones too) and the apostrophes Swiss formats group thousands with.
+const NUMBER = /\d[\d.,\s'’]*\d|\d/;
 
 export function amountIn(label: string): Amount | null {
   const match = NUMBER.exec(label);
@@ -25,7 +25,7 @@ export function amountIn(label: string): Amount | null {
   const decimals = decimal ? decimal[2].length : 0;
   const mark = decimal ? decimal[1] : '';
   const whole = decimal ? raw.slice(0, raw.length - decimal[0].length) : raw;
-  const group = /[.,\s  '’]/.exec(whole)?.[0] ?? '';
+  const group = /[.,\s'’]/.exec(whole)?.[0] ?? '';
   const digits = whole.replace(/\D/g, '') + (decimal ? `.${decimal[2]}` : '');
   const value = Number(digits);
   if (!Number.isFinite(value)) return null;

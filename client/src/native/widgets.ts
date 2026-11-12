@@ -358,7 +358,7 @@ export function tripDayState(day: TripDay, nowMinutes: number, allDone: string):
 }
 
 /** How long before the day's first timed stop its Live Activity appears. */
-export const LIVE_LEAD_MINUTES = 3 * 60;
+const LIVE_LEAD_MINUTES = 3 * 60;
 
 /**
  * Whether the travel day's Live Activity belongs on the lock screen now: from

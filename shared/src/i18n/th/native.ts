@@ -205,8 +205,8 @@ const native: TranslationStrings = {
   'native.plans.billing': 'การชำระเงิน',
   'native.claim.almost': 'ใกล้ถึงแล้ว',
   'native.claim.addressField': 'ที่อยู่',
-  'native.claim.slugPlaceholder': 'yourname', // same-as-en
-  'native.claim.emailPlaceholder': 'you@example.com', // same-as-en
+  'native.claim.slugPlaceholder': 'chue-khong-khun',
+  'native.claim.emailPlaceholder': 'khun@tuayang.co.th',
   'native.claim.passwordPlaceholder': 'ตั้งรหัสผ่าน',
   'native.claim.freeBadge': 'ว่าง',
   'native.claim.renews': 'ต่ออายุอัตโนมัติ ยกเลิกได้ทุกเมื่อ',

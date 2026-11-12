@@ -206,8 +206,8 @@ const native: TranslationStrings = {
   'native.plans.billing': 'חיוב',
   'native.claim.almost': 'כמעט שם',
   'native.claim.addressField': 'כתובת',
-  'native.claim.slugPlaceholder': 'yourname', // same-as-en
-  'native.claim.emailPlaceholder': 'you@example.com', // same-as-en
+  'native.claim.slugPlaceholder': 'hashem-shelcha',
+  'native.claim.emailPlaceholder': 'ata@dugma.co.il',
   'native.claim.passwordPlaceholder': 'בחרו סיסמה',
   'native.claim.freeBadge': 'פנויה',
   'native.claim.renews': 'מתחדש אוטומטית, ביטול בכל עת.',

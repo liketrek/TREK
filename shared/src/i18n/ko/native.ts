@@ -209,8 +209,8 @@ const native: TranslationStrings = {
   'native.plans.billing': '결제',
   'native.claim.almost': '거의 다 왔어요',
   'native.claim.addressField': '주소',
-  'native.claim.slugPlaceholder': 'yourname', // same-as-en
-  'native.claim.emailPlaceholder': 'you@example.com', // same-as-en
+  'native.claim.slugPlaceholder': 'ireum',
+  'native.claim.emailPlaceholder': 'na@yesi.kr',
   'native.claim.passwordPlaceholder': '비밀번호 정하기',
   'native.claim.freeBadge': '사용 가능',
   'native.claim.renews': '자동 갱신되며 언제든 해지할 수 있습니다.',

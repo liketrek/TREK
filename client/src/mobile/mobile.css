@@ -578,12 +578,15 @@ html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-
   inset-inline-end: 0;
 }
 /* Without the rail the floating bars keep clear of the sides' safe area too:
-   a camera in a corner can come as a side inset. Physical sides, as the
-   insets are the screen's, not the text direction's. On a wide window the
-   rail takes the leading side and a bar may centre itself (mx-auto). */
+   a camera in a corner can come as a side inset. The insets are the screen's,
+   not the text direction's, so right to left takes them the other way round.
+   On a wide window the rail takes the leading side and a bar may centre itself
+   (mx-auto). */
 html:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {
-  margin-left: var(--m-safe-l, 0px);
-  margin-right: var(--m-safe-r, 0px);
+  margin-inline: var(--m-safe-l, 0px) var(--m-safe-r, 0px);
+}
+html[dir='rtl']:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {
+  margin-inline: var(--m-safe-r, 0px) var(--m-safe-l, 0px);
 }
 /* A screen whose background is a map reaches under the rail: the map runs to
    the window's edge and the rail floats over it like the top controls do. Its
