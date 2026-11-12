@@ -19,6 +19,7 @@ import {
   STORE_TERMS_URL,
 } from '../src/native/links';
 import {
+  certificateTargetFor,
   probeDemo,
   probeServer,
   type ClientCertDemand,
@@ -318,11 +319,40 @@ function showConnect(prefill = '', opts: { back?: boolean; recheck?: boolean } =
     }
     input.disabled = false;
     submit.disabled = false;
+    // The certificate panel brings its own button for the same file.
+    addCert.hidden = !gatePanel.hidden;
+    addCert.disabled = false;
     label.textContent = t('native.connect.submit');
     submit.replaceChildren(label);
     // A panel with its own next step stays in view; the keyboard would cover it.
     if (gatePanel.hidden) input.focus();
   };
+
+  // The check offers a certificate when the proxy asks for one during the
+  // handshake. This adds one up front: for someone who knows their proxy wants
+  // it, and for a proxy that refuses without asking, which the check cannot tell.
+  const addCert = el('button', { type: 'button', className: 'linkbtn' }, t('native.cert.choose'));
+  addCert.addEventListener('click', async () => {
+    if (submit.disabled) return; // a check is running
+    const target = certificateTargetFor(input.value);
+    if (!target) {
+      error.textContent = failureMessage('invalid');
+      input.focus();
+      return;
+    }
+    void tap();
+    error.textContent = '';
+    addCert.disabled = true;
+    const outcome = await importCertificate(target.host, target.port);
+    addCert.disabled = false;
+    if (outcome === 'imported') {
+      void notify(NotificationType.Success);
+      form.requestSubmit();
+    } else if (outcome !== 'cancelled') {
+      void notify(NotificationType.Error);
+      error.textContent = certFailureMessage(outcome);
+    }
+  });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -332,6 +362,7 @@ function showConnect(prefill = '', opts: { back?: boolean; recheck?: boolean } =
     gatePanel.replaceChildren();
     input.disabled = true;
     submit.disabled = true;
+    addCert.disabled = true;
     submit.replaceChildren(el('span', { className: 'spinner' }), t('native.connect.checking'));
     const result = await probeServer(input.value, get);
     if (result.ok) {
@@ -351,7 +382,7 @@ function showConnect(prefill = '', opts: { back?: boolean; recheck?: boolean } =
           el('h1', { className: 'title-sm' }, t('native.connect.title')),
           el('p', { className: 'sub' }, t(opts.recheck ? 'native.connect.recheckHint' : 'native.connect.hint')),
         ],
-        [form, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
+        [form, addCert, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
       )
     ),
     opts

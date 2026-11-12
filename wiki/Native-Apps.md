@@ -50,11 +50,11 @@ For those, let TREK through the proxy instead: a bypass rule for TREK's address 
 
 A proxy can let in only devices that show a certificate signed by your own certificate authority: mutual TLS, offered by Cloudflare, nginx, Caddy, Traefik and HAProxy. The app supports it, on iOS and Android.
 
-**Adding the certificate.** Enter your server's address as usual. When the proxy asks for a certificate, the app says **This server asks for a client certificate** and offers **Add certificate file**. Pick the `.p12` or `.pfx` file you made for this phone (from Files, iCloud Drive, Google Drive or your downloads), enter its password, and the app connects. The same happens when a stored certificate expires or the proxy stops accepting it: the app returns to that screen instead of showing the proxy's error page.
+**Adding the certificate.** Enter your server's address as usual. When the proxy asks for a certificate, the app says **This server asks for a client certificate** and offers **Add certificate file**. You can also add it before connecting: type the address and tap **Add certificate file** below **Connect**. Pick the `.p12` or `.pfx` file you made for this phone (from Files, iCloud Drive, Google Drive or your downloads), enter its password, and the app connects. The same happens when a stored certificate expires or the proxy stops accepting it: the app returns to that screen instead of showing the proxy's error page.
 
-**Where it is kept.** On iOS in the keychain, for this device only and not in backups. On Android the private key is sealed with a key of the Android Keystore, which never leaves it. The password of the file is not stored. The app shows the certificate only to the server it was added for, the exact host and port, and never to a sign-in page, a map provider or any other site. It holds one certificate at a time; certificates installed in the system settings are not used.
+**Where it is kept.** On iOS in the keychain, for this device only and not in backups. On Android the private key is sealed with a key of the Android Keystore, which never leaves it. The password of the file is not stored. The app shows the certificate only to the server it was added for, the exact host and port, and never to a sign-in page, a map provider or any other site. It holds one certificate at a time. Certificates installed in the system settings are not used: on iOS, a certificate from a configuration profile is open to Safari and the system but not to other apps, so add the `.p12` to the app as well.
 
-**Changing or removing it.** **Settings → Account → Client certificate** shows whom the certificate names, who issued it, the server it is for and how long it is valid, with **Replace** and **Remove**.
+**Changing or removing it.** **Settings → App → Client certificate** shows whom the certificate names, who issued it, the server it is for and how long it is valid, with **Replace** and **Remove**.
 
 ### Making a certificate for the app
 

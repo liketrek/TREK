@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { candidateUrls, probeDemo, probeServer, type ProbeResponse } from './serverAddress';
+import { candidateUrls, certificateTargetFor, probeDemo, probeServer, type ProbeResponse } from './serverAddress';
 
 const features = (
   url: string,
@@ -21,6 +21,21 @@ describe('candidateUrls', () => {
     expect(candidateUrls('   ')).toEqual([]);
     expect(candidateUrls('ftp://trek.example.com')).toEqual([]);
     expect(candidateUrls('javascript://alert(1)')).toEqual([]);
+  });
+});
+
+describe('certificateTargetFor', () => {
+  it('keeps a certificate for the https address the typed text stands for', () => {
+    expect(certificateTargetFor('Trek.Example.com')).toEqual({ host: 'trek.example.com', port: 443 });
+    expect(certificateTargetFor(' nas.local:8443/trek ')).toEqual({ host: 'nas.local', port: 8443 });
+    expect(certificateTargetFor('https://trek.example.com:443/')).toEqual({ host: 'trek.example.com', port: 443 });
+  });
+
+  it('has no target for a plain http address or nothing typed', () => {
+    expect(certificateTargetFor('http://nas.local:3001')).toBeNull();
+    expect(certificateTargetFor('')).toBeNull();
+    expect(certificateTargetFor('   ')).toBeNull();
+    expect(certificateTargetFor('ftp://trek.example.com')).toBeNull();
   });
 });
 

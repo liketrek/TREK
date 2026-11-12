@@ -74,6 +74,18 @@ export function candidateUrls(input: string): string[] {
   return candidates.filter((url): url is string => url !== null);
 }
 
+/**
+ * The host and port a client certificate added on the address screen, before
+ * any check, is kept for: the https address the typed text stands for. Null
+ * for nothing typed or a plain http address, which never gets a certificate.
+ */
+export function certificateTargetFor(input: string): { host: string; port: number } | null {
+  const https = candidateUrls(input).find((url) => url.startsWith('https://'));
+  if (!https) return null;
+  const url = new URL(https);
+  return { host: url.hostname.toLowerCase(), port: url.port ? Number(url.port) : 443 };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
