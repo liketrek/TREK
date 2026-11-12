@@ -11,9 +11,9 @@ const native: TranslationStrings = {
   'native.connect.errorUnreachable': 'Ezen a címen nem válaszol szerver. Ellenőrizd a címet és a kapcsolatot.',
   'native.connect.errorNotTrek': 'Az ezen a címen futó szerver nem TREK.',
   'native.connect.errorTooOld':
-    'Ezen a szerveren régebbi TREK fut. Az alkalmazásnak TREK 5.1.3 vagy újabb kell, ezért előbb frissíteni kell a szervert.',
+    'Ezen a szerveren régebbi TREK fut. Az alkalmazásnak TREK 5.1.4 vagy újabb kell, ezért előbb frissíteni kell a szervert.',
   'native.connect.recheckHint':
-    'Az alkalmazás ezen verziójának TREK 5.1.3 vagy újabb kell a szervereden, ezért még egyszer ellenőrzi.',
+    'Az alkalmazás ezen verziójának TREK 5.1.4 vagy újabb kell a szervereden, ezért még egyszer ellenőrzi.',
   'native.offline.title': 'A szerver nem érhető el',
   'native.offline.hint': 'A TREK nem érte el ezt: {server}. Ellenőrizd a kapcsolatot, és próbáld újra.',
   'native.offline.retry': 'Újra',

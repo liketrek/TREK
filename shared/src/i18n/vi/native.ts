@@ -12,9 +12,9 @@ const native: TranslationStrings = {
     'Không có máy chủ nào phản hồi tại địa chỉ này. Hãy kiểm tra địa chỉ và kết nối của bạn.',
   'native.connect.errorNotTrek': 'Máy chủ tại địa chỉ này không phải TREK.',
   'native.connect.errorTooOld':
-    'Máy chủ này đang chạy phiên bản TREK cũ. Ứng dụng cần TREK 5.1.3 trở lên, vì vậy máy chủ cần được cập nhật trước.',
+    'Máy chủ này đang chạy phiên bản TREK cũ. Ứng dụng cần TREK 5.1.4 trở lên, vì vậy máy chủ cần được cập nhật trước.',
   'native.connect.recheckHint':
-    'Phiên bản ứng dụng này cần TREK 5.1.3 trở lên trên máy chủ của bạn, vì vậy ứng dụng kiểm tra lại máy chủ một lần nữa.',
+    'Phiên bản ứng dụng này cần TREK 5.1.4 trở lên trên máy chủ của bạn, vì vậy ứng dụng kiểm tra lại máy chủ một lần nữa.',
   'native.offline.title': 'Không kết nối được máy chủ',
   'native.offline.hint': 'TREK không thể kết nối tới {server}. Hãy kiểm tra kết nối và thử lại.',
   'native.offline.retry': 'Thử lại',

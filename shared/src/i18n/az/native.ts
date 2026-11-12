@@ -11,9 +11,9 @@ const native: TranslationStrings = {
   'native.connect.errorUnreachable': 'Bu ünvanda heç bir server cavab vermədi. Ünvanı və bağlantınızı yoxlayın.',
   'native.connect.errorNotTrek': 'Bu ünvandakı server TREK deyil.',
   'native.connect.errorTooOld':
-    'Bu serverdə köhnə TREK işləyir. Tətbiqə TREK 5.1.3 və ya daha yenisi lazımdır, ona görə əvvəlcə serveri yeniləmək lazımdır.',
+    'Bu serverdə köhnə TREK işləyir. Tətbiqə TREK 5.1.4 və ya daha yenisi lazımdır, ona görə əvvəlcə serveri yeniləmək lazımdır.',
   'native.connect.recheckHint':
-    'Tətbiqin bu versiyası serverinizdə TREK 5.1.3 və ya daha yenisini tələb edir, ona görə serverinizi bir daha yoxlayır.',
+    'Tətbiqin bu versiyası serverinizdə TREK 5.1.4 və ya daha yenisini tələb edir, ona görə serverinizi bir daha yoxlayır.',
   'native.offline.title': 'Serverə çatmaq mümkün deyil',
   'native.offline.hint': 'TREK {server} ünvanına çata bilmədi. Bağlantınızı yoxlayın və yenidən cəhd edin.',
   'native.offline.retry': 'Yenidən cəhd et',

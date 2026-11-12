@@ -11,9 +11,9 @@ const native: TranslationStrings = {
   'native.connect.errorUnreachable': 'Sellel aadressil ei vastanud ükski server. Kontrolli aadressi ja oma ühendust.',
   'native.connect.errorNotTrek': 'Sellel aadressil olev server ei ole TREK.',
   'native.connect.errorTooOld':
-    'Selles serveris töötab vanem TREK. Rakendus vajab TREK 5.1.3 või uuemat, seega tuleb server esmalt uuendada.',
+    'Selles serveris töötab vanem TREK. Rakendus vajab TREK 5.1.4 või uuemat, seega tuleb server esmalt uuendada.',
   'native.connect.recheckHint':
-    'See rakenduse versioon vajab sinu serveris TREK 5.1.3 või uuemat, seega kontrollib see serverit veel kord.',
+    'See rakenduse versioon vajab sinu serveris TREK 5.1.4 või uuemat, seega kontrollib see serverit veel kord.',
   'native.offline.title': 'Server pole kättesaadav',
   'native.offline.hint': 'TREK ei jõudnud serverini {server}. Kontrolli oma ühendust ja proovi uuesti.',
   'native.offline.retry': 'Proovi uuesti',

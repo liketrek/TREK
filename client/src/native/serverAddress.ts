@@ -43,12 +43,13 @@ const FEATURES_PATH = '/api/health/features';
 
 /**
  * The oldest server API this app can work with (`nativeApi` in the features
- * response). 2 is TREK 5.1.3, the first server whose sign-in from the app does
- * not end in the browser. A server without the field is older still. Raising it
+ * response). 3 is TREK 5.1.4, whose UI follows a widget or Live Activity tap
+ * that starts the app; 2 was 5.1.3, the first server whose sign-in from the app
+ * does not end in the browser. A server without the field is older still. Raising it
  * goes with SERVER_CHECK in TrekServerStore (iOS and Android), so a server the
  * app remembers from before is checked against the new minimum once.
  */
-const MIN_NATIVE_API = 2;
+const MIN_NATIVE_API = 3;
 
 function normalize(raw: string): string | null {
   let parsed: URL;

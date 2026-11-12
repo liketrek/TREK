@@ -34,7 +34,7 @@ final class TrekServerStore {
      * launch after an update that raised it puts the address screen back up,
      * filled in with that server (getPreviousUrl). Raise both together.
      */
-    private static final int SERVER_CHECK = 2;
+    private static final int SERVER_CHECK = 3;
     private static final String KEY_SIGN_IN_HOSTS = "sign_in_hosts";
     private static final String KEY_SHELL_ONCE = "shell_once";
     private static final String KEY_RESTART = "restart";

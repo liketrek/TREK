@@ -37,7 +37,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiParsing: true,
       aiAssistant: true,
       nativeApp: true,
-      nativeApi: 2,
+      nativeApi: 3,
       minNativeShellApi: 1,
     });
   });
@@ -49,7 +49,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiParsing: false,
       aiAssistant: false,
       nativeApp: true,
-      nativeApi: 2,
+      nativeApi: 3,
       minNativeShellApi: 1,
     });
   });
@@ -60,7 +60,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiParsing: false,
       aiAssistant: false,
       nativeApp: true,
-      nativeApi: 2,
+      nativeApi: 3,
       minNativeShellApi: 1,
     });
     expect(await make(false, true).controller.features()).toEqual({
@@ -68,7 +68,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
       aiParsing: true,
       aiAssistant: true,
       nativeApp: true,
-      nativeApi: 2,
+      nativeApi: 3,
       minNativeShellApi: 1,
     });
   });
@@ -94,7 +94,7 @@ describe('FeaturesController (GET /api/health/features)', () => {
   it('FEAT-014: tells the native apps it speaks their sign-in hand-off, and at which version', async () => {
     const features = await make(false, false).controller.features();
     expect(features.nativeApp).toBe(true);
-    expect(features.nativeApi).toBe(2);
+    expect(features.nativeApi).toBe(3);
     // And which app binaries its UI still works with.
     expect(features.minNativeShellApi).toBe(1);
   });

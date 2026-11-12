@@ -446,7 +446,7 @@ enum TrekServerStore {
     /// A server remembered under a lower value is checked once more: the first
     /// launch after an update that raised it puts the address screen back up,
     /// filled in with that server (previousURL). Raise both together.
-    private static let serverCheck = 2
+    private static let serverCheck = 3
 
     /// Runs before the first bridge is built, so a server picked under an older
     /// minimum is not loaded unchecked.

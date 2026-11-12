@@ -3,7 +3,7 @@ import { candidateUrls, certificateTargetFor, probeDemo, probeServer, type Probe
 
 const features = (
   url: string,
-  data: unknown = { bookingImport: false, aiParsing: false, nativeApp: true, nativeApi: 2 }
+  data: unknown = { bookingImport: false, aiParsing: false, nativeApp: true, nativeApi: 3 }
 ): ProbeResponse => ({ status: 200, data, url });
 
 describe('candidateUrls', () => {
@@ -41,7 +41,7 @@ describe('certificateTargetFor', () => {
 
 describe('probeServer', () => {
   it('accepts a server at the minimum native API version or above', async () => {
-    for (const nativeApi of [2, 3]) {
+    for (const nativeApi of [3, 4]) {
       const data = { bookingImport: false, nativeApp: true, nativeApi };
       const get = vi.fn().mockResolvedValue(features('https://trek.example.com/api/health/features', data));
       expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: true, url: 'https://trek.example.com' });
@@ -49,7 +49,7 @@ describe('probeServer', () => {
   });
 
   it('calls a server below the minimum native API version too old', async () => {
-    const data = { bookingImport: false, nativeApp: true, nativeApi: 1 };
+    const data = { bookingImport: false, nativeApp: true, nativeApi: 2 };
     const get = vi.fn().mockResolvedValue(features('https://trek.example.com/api/health/features', data));
     expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: false, reason: 'tooOld' });
   });
@@ -196,7 +196,7 @@ describe('probeServer behind mutual TLS', () => {
   });
 
   it('connects where the proxy asked and TREK answered, with or without a certificate', async () => {
-    const trek = { bookingImport: false, nativeApp: true, nativeApi: 2 };
+    const trek = { bookingImport: false, nativeApp: true, nativeApi: 3 };
     for (const sent of [true, false]) {
       const get = vi.fn().mockResolvedValue(asked(200, sent, trek));
       expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: true, url: 'https://trek.example.com' });
