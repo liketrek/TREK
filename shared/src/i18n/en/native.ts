@@ -30,7 +30,7 @@ const native: TranslationStrings = {
   'native.privacy': 'Privacy policy',
   'native.settings.server': 'Server',
   'native.settings.serverHint': 'This app is connected to {server}.',
-  'native.cloud.haveServer': 'I already have a TREK',
+  'native.cloud.haveServer': 'I already have TREK',
   'native.back': 'Back',
   'native.plans.title': 'Choose your plan',
   'native.plans.monthly': 'Monthly',

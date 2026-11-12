@@ -82,7 +82,7 @@ const native: TranslationStrings = {
   'native.claim.agree':
     'En subscriure’t, s’apliquen les condicions de TREK Cloud a la provisió de la teva instància (proveïdor: Maurice Bötger, Rostock). La botiga gestiona la compra, el pagament i els reemborsaments.',
   'native.claim.consentTitle':
-    'Diferències de TREK Cloud respecte a un TREK autoallotjat (en alemany, jurídicament vinculant):',
+    'Diferències de TREK Cloud respecte a TREK autoallotjat (en alemany, jurídicament vinculant):',
   'native.claim.consentLoading': 'S’està carregant l’acord…',
   'native.claim.consentUnavailable': 'No s’ha pogut carregar l’acord. Comprova la connexió i torna-ho a provar.',
   'native.claim.consentRequired': 'Llegeix i confirma primer l’acord.',

@@ -9,7 +9,7 @@ const native: TranslationStrings = {
   'native.connect.tryDemo': 'Probeer de demo',
   'native.connect.errorInvalid': 'Dat lijkt geen webadres.',
   'native.connect.errorUnreachable': 'Er reageert geen server op dit adres. Controleer het adres en je verbinding.',
-  'native.connect.errorNotTrek': 'De server op dit adres is geen TREK.',
+  'native.connect.errorNotTrek': 'Op dit adres draait TREK niet.',
   'native.connect.errorTooOld':
     'Op deze server draait een oudere TREK. De app heeft TREK 5.1.3 of nieuwer nodig, dus de server moet eerst worden bijgewerkt.',
   'native.connect.recheckHint':
@@ -228,7 +228,7 @@ const native: TranslationStrings = {
   'native.connect.addCert': 'Clientcertificaat toevoegen',
   'native.connect.recheck': 'Opnieuw controleren',
   'native.connect.kickerUnreachable': 'Niet bereikbaar',
-  'native.connect.kickerNotTrek': 'Geen TREK',
+  'native.connect.kickerNotTrek': 'Niet TREK',
   'native.connect.kickerTooOld': 'Update nodig',
   'native.connect.kickerCert': 'Certificaat nodig',
   'native.connect.kickerGate': 'Aanmelden nodig',

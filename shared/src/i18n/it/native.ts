@@ -83,7 +83,7 @@ const native: TranslationStrings = {
   'native.claim.agree':
     'Abbonandoti, alla fornitura della tua istanza si applicano le condizioni di TREK Cloud (fornitore: Maurice Bötger, Rostock). Lo store gestisce acquisto, pagamento e rimborsi.',
   'native.claim.consentTitle':
-    'Differenze di TREK Cloud rispetto a un TREK self-hosted (in tedesco, giuridicamente vincolante):',
+    'Differenze di TREK Cloud rispetto a TREK self-hosted (in tedesco, giuridicamente vincolante):',
   'native.claim.consentLoading': 'Caricamento dell’accordo…',
   'native.claim.consentUnavailable': 'Impossibile caricare l’accordo. Controlla la connessione e riprova.',
   'native.claim.consentRequired': 'Leggi e conferma prima l’accordo.',
