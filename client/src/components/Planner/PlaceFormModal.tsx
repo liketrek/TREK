@@ -135,9 +135,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   // the next pick may replace it and a hand choice is never overwritten (#2282).
   const categoryGuessedRef = useRef(false)
   const guessedCategory = (result: Record<string, unknown>): string => {
-    const id = guessCategoryId(result, categories || [])
+    const saved = savedCategoryId(result, categories || []) // a collection's place keeps its own (#3074)
+    const id = saved ? null : guessCategoryId(result, categories || [])
     categoryGuessedRef.current = id != null
-    return id != null ? String(id) : ''
+    return saved ?? (id != null ? String(id) : '')
   }
   // The hours the details column looked up, as a week the contact block can take over (#2472).
   const [detailsHours, setDetailsHours] = useState<PlaceOpeningHours | null>(null)
@@ -233,12 +234,6 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     setForm(prev => {
       const merged = mergeResult(prev, result, autoFilledRef.current)
       if (prev.category_id && !categoryGuessedRef.current) return merged
-      // A place from a collection brings the category it was saved under (#3074).
-      const saved = savedCategoryId(result, categories || [])
-      if (saved) {
-        categoryGuessedRef.current = false
-        return { ...merged, category_id: saved }
-      }
       return { ...merged, category_id: guessedCategory(result) }
     })
     setPickedSource(label)
