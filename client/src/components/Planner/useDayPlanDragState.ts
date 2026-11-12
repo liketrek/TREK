@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 
 /** A stop's or a day's id, as the day plan's drag handlers pass them around. */
 type DragKey = string | number | null;
@@ -27,14 +27,15 @@ export function useDayPlanDragState(dragDataRef: MutableRefObject<unknown>) {
   const dropTargetRef = useRef<string | null>(null);
   const [dragOverDayId, setDragOverDayId] = useState<DragKey>(null);
 
-  const setDraggingId = (id: DragKey) => {
+  // Stable, so the sidebar's listeners that call them are set up once.
+  const setDraggingId = useCallback((id: DragKey) => {
     if (id != null) setHasDragged(true);
     setDraggingIdState(id);
-  };
-  const setDropTargetKey = (key: string | null) => {
+  }, []);
+  const setDropTargetKey = useCallback((key: string | null) => {
     dropTargetRef.current = key;
     setDropTargetKeyState(key);
-  };
+  }, []);
 
   useEffect(() => {
     if (!draggingId && !dropTargetKey && !dragOverDayId) return;

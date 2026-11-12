@@ -373,7 +373,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
     }
     document.addEventListener('dragend', cleanup)
     return () => document.removeEventListener('dragend', cleanup)
-  }, [])
+  }, [setDraggingId, setDropTargetKey, setDragOverDayId])
 
   // Initialize missing transport positions outside of render to avoid setState-during-render
   // eslint-disable-next-line react-hooks/exhaustive-deps
