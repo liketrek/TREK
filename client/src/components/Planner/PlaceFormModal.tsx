@@ -19,7 +19,7 @@ import { weekFromPeriods } from './placeHours'
 import type { PlaceOpeningHours } from '@trek/shared'
 import {
   DEFAULT_FORM, endsBeforeStart, findDuplicatePlace, formPin, mergeResult, parseCoordinatePair, placeEditForm, placeFormPayload,
-  prefillForm, type PlaceFormData, type PlacePrefill,
+  prefillForm, savedCategoryId, type PlaceFormData, type PlacePrefill,
 } from './PlaceFormModal.helpers'
 import { useNewCategory, usePlaceForm } from './usePlaceForm'
 import { usePlaceSearch } from './usePlaceSearch'
@@ -233,6 +233,12 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     setForm(prev => {
       const merged = mergeResult(prev, result, autoFilledRef.current)
       if (prev.category_id && !categoryGuessedRef.current) return merged
+      // A place from a collection brings the category it was saved under (#3074).
+      const saved = savedCategoryId(result, categories || [])
+      if (saved) {
+        categoryGuessedRef.current = false
+        return { ...merged, category_id: saved }
+      }
       return { ...merged, category_id: guessedCategory(result) }
     })
     setPickedSource(label)

@@ -410,3 +410,15 @@ export function formPin(form: Pick<PlaceFormData, 'lat' | 'lng'>): { lat: number
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
   return { lat, lng }
 }
+
+/**
+ * The category a picked place already carries, as the form's value, when this server
+ * has it. A place saved in a collection keeps its category_id, and categories are the
+ * server's own, so it fits the trip as it stands. Guessing from the place's kind
+ * instead dropped it (#3074).
+ */
+export function savedCategoryId(result: Record<string, unknown>, categories: readonly { id: number }[]): string | null {
+  const id = result.category_id
+  if (typeof id !== 'number') return null
+  return categories.some(c => c.id === id) ? String(id) : null
+}
