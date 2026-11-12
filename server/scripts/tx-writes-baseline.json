@@ -28,7 +28,6 @@
   "src/nest/integrations/airtrail-link.service.ts#AirtrailLinkService.pushReservationToAirtrail": 2,
   "src/nest/integrations/airtrail-sync.service.ts#AirtrailSyncService.runAirtrailSync": 2,
   "src/nest/integrations/airtrail-sync.service.ts#AirtrailSyncService.syncOwner": 8,
-  "src/nest/integrations/airtrail.service.ts#AirtrailService.saveSettings": 2,
   "src/nest/integrations/dawarich-sync.service.ts#DawarichSyncService.runSync": 2,
   "src/nest/integrations/dawarich-sync.service.ts#DawarichSyncService.syncTripWindow": 3,
   "src/nest/integrations/dawarich-sync.service.ts#DawarichSyncService.syncUserOnce": 3,

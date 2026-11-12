@@ -3,6 +3,7 @@ import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
 import { AuditService } from '../../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
 import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
 import { createUser } from '../../../helpers/factories';
@@ -24,9 +25,14 @@ let t: TestOrm;
 
 beforeAll(async () => {
   t = await createTestOrm(db);
-  svc = new AirtrailService(new UserAirtrailRepository(t.orm.em), new AuditService(t.repo(AuditLog), t.repo(Users)), {
-    listFlights,
-  } as unknown as AirtrailClient);
+  svc = new AirtrailService(
+    new UserAirtrailRepository(t.orm.em),
+    new AuditService(t.repo(AuditLog), t.repo(Users)),
+    {
+      listFlights,
+    } as unknown as AirtrailClient,
+    new UnitOfWork(t.orm.em),
+  );
 });
 
 afterAll(async () => {
