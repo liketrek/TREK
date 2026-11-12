@@ -115,7 +115,7 @@ export function prepareField(target: EventTarget | null): void {
  * the capture phase, so the field's text is read before any handler of the field
  * runs; whether one took the Enter is read off the event once it has gone round.
  */
-export function closeOnDone(e: KeyboardEvent): void {
+function closeOnDone(e: KeyboardEvent): void {
   const el = e.target;
   if (e.key !== 'Enter' || e.isComposing) return;
   if (!(el instanceof HTMLInputElement) || el.getAttribute('enterkeyhint') !== 'done') return;

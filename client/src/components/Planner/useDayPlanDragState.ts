@@ -40,8 +40,9 @@ export function useDayPlanDragState(dragDataRef: MutableRefObject<unknown>) {
     if (!draggingId && !dropTargetKey && !dragOverDayId) return;
     const settle = (e: MouseEvent | PointerEvent) => {
       if (e.type === 'mousemove' && e.buttons !== 0) return;
-      setDraggingId(null);
-      setDropTargetKey(null);
+      setDraggingIdState(null);
+      dropTargetRef.current = null;
+      setDropTargetKeyState(null);
       setDragOverDayId(null);
       dragDataRef.current = null;
       window.__dragData = null;
@@ -52,9 +53,7 @@ export function useDayPlanDragState(dragDataRef: MutableRefObject<unknown>) {
       document.removeEventListener('mousemove', settle);
       document.removeEventListener('pointerdown', settle, true);
     };
-    // The setters close over nothing that changes; the effect follows the drag state only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draggingId, dropTargetKey, dragOverDayId]);
+  }, [draggingId, dropTargetKey, dragOverDayId, dragDataRef]);
 
   return {
     draggingId,

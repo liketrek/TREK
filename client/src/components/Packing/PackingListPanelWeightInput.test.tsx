@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/rende
 import { WeightInput } from './PackingListPanelWeightInput';
 
 /** A row whose stored weight changes only once a save answers, as the store does. */
-function SlowRow({ onSave }: { onSave: (grams: number | null) => void }) {
+function SlowRow({ onSave, onStored }: { onSave: (grams: number | null) => void; onStored: () => void }) {
   const [stored, setStored] = useState<number | null>(null);
   return (
     <WeightInput
@@ -13,7 +13,10 @@ function SlowRow({ onSave }: { onSave: (grams: number | null) => void }) {
       width={36}
       onSave={(grams) => {
         onSave(grams);
-        setTimeout(() => setStored(grams), 300);
+        setTimeout(() => {
+          setStored(grams);
+          onStored();
+        }, 300);
       }}
     />
   );
@@ -22,7 +25,8 @@ function SlowRow({ onSave }: { onSave: (grams: number | null) => void }) {
 describe('WeightInput', () => {
   it('FE-COMP-PACKING-095: #3005 keeps every typed digit and saves the whole weight once', async () => {
     const onSave = vi.fn();
-    render(<SlowRow onSave={onSave} />);
+    const onStored = vi.fn();
+    render(<SlowRow onSave={onSave} onStored={onStored} />);
     const input = screen.getByRole('textbox') as HTMLInputElement;
 
     fireEvent.focus(input);
@@ -35,7 +39,9 @@ describe('WeightInput', () => {
     fireEvent.blur(input);
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledWith(250);
-    await waitFor(() => expect(input.value).toBe('250'));
+    // Wait for the save to answer, so its update lands while the test still runs.
+    await waitFor(() => expect(onStored).toHaveBeenCalled());
+    expect(input.value).toBe('250');
   });
 
   it('FE-COMP-PACKING-096: saves on Enter and stores an empty field as no weight', () => {
