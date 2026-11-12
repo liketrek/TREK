@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Qoşul',
   'native.connect.checking': 'Yoxlanılır…',
   'native.connect.tryDemo': 'Demonu sınayın',
-  'native.connect.whatIsServer': 'TREK serveri nədir?',
   'native.connect.errorInvalid': 'Bu, veb ünvana bənzəmir.',
   'native.connect.errorUnreachable': 'Bu ünvanda heç bir server cavab vermədi. Ünvanı və bağlantınızı yoxlayın.',
   'native.connect.errorNotTrek': 'Bu ünvandakı server TREK deyil.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Ödəniş təsdiq etdikdə Google hesabınızdan tutulur. Abunəlik dövr bitməzdən əvvəl ləğv etməsəniz avtomatik yenilənir. Onu Google Play-də Profil, Ödənişlər və abunəliklər, Abunəliklər bölməsində idarə edə və ya ləğv edə bilərsiniz.',
   'native.plans.restoreNoneAndroid': 'Bu Google hesabında aktiv abunəlik tapılmadı.',
+  'native.subscribed.title': 'Artıq TREK Cloud-unuz var',
+  'native.subscribed.text':
+    'Bu Apple ID-də artıq aktiv TREK Cloud abunəliyi var. O bitdikdən sonra yenisini, həm də yeni ünvanla, ala bilərsiniz.',
+  'native.subscribed.textAndroid':
+    'Bu Google hesabında artıq aktiv TREK Cloud abunəliyi var. O bitdikdən sonra yenisini, həm də yeni ünvanla, ala bilərsiniz.',
+  'native.subscribed.open': 'TREK-imi aç',
+  'native.subscribed.manage': 'Abunəliyi idarə et',
   'native.claim.agree':
     'Abunə olmaqla nümunənizin təqdim edilməsinə TREK Cloud şərtləri tətbiq olunur (təchizatçı: Maurice Bötger, Rostok). Alış, ödəniş və geri qaytarmanı mağaza həyata keçirir.',
   'native.claim.consentTitle':

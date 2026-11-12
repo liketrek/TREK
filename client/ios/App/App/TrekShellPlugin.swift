@@ -46,6 +46,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "storePurchase", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeFinish", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeRestore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storeHeld", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "addToWallet", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWatchSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeWatchActions", returnType: CAPPluginReturnPromise),
@@ -679,6 +680,17 @@ extension TrekShellPlugin {
             return
         }
         Task {
+            // One subscription per Apple ID: another plan would change it, not add one.
+            // A held one that was delivered stops the purchase here. One that was paid
+            // but never set up is handed back as bought, so its instance is set up now.
+            if let held = await TrekStore.currentEntitlement(prefix: "cloud.") {
+                if await TrekStore.isUnfinished(held.id) {
+                    call.resolve(["kind": "bought", "jws": held.jws, "transactionId": String(held.id), "productId": held.productId])
+                } else {
+                    call.resolve(["kind": "subscribed"])
+                }
+                return
+            }
             do {
                 guard let product = try await Product.products(for: [id]).first else {
                     call.resolve(["kind": "failed"])
@@ -735,6 +747,21 @@ extension TrekShellPlugin {
             call.resolve(["jws": found.jws, "transactionId": String(found.id)])
         }
     }
+
+    /// Feature storeKit: whether this Apple ID holds a delivered subscription under
+    /// `prefix`. Read from the entitlements on the device, so no password is asked;
+    /// while one runs, the shell offers no purchase.
+    @objc func storeHeld(_ call: CAPPluginCall) {
+        let prefix = call.getString("prefix") ?? "cloud."
+        Task {
+            guard let held = await TrekStore.currentEntitlement(prefix: prefix) else {
+                call.resolve(["held": false])
+                return
+            }
+            let unfinished = await TrekStore.isUnfinished(held.id)
+            call.resolve(["held": !unfinished])
+        }
+    }
 }
 
 enum TrekStore {
@@ -765,17 +792,25 @@ enum TrekStore {
         }
     }
 
-    static func currentEntitlement(prefix: String) async -> (jws: String, id: UInt64)? {
-        var newest: (date: Date, jws: String, id: UInt64)?
+    static func currentEntitlement(prefix: String) async -> (jws: String, id: UInt64, productId: String)? {
+        var newest: (date: Date, jws: String, id: UInt64, productId: String)?
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
                   transaction.productID.hasPrefix(prefix),
                   transaction.revocationDate == nil else { continue }
             if newest == nil || transaction.purchaseDate > newest!.date {
-                newest = (transaction.purchaseDate, result.jwsRepresentation, transaction.id)
+                newest = (transaction.purchaseDate, result.jwsRepresentation, transaction.id, transaction.productID)
             }
         }
-        return newest.map { ($0.jws, $0.id) }
+        return newest.map { (jws: $0.jws, id: $0.id, productId: $0.productId) }
+    }
+
+    /// Paid but not delivered yet: the shell finishes a transaction once its instance exists.
+    static func isUnfinished(_ id: UInt64) async -> Bool {
+        for await result in Transaction.unfinished {
+            if case .verified(let transaction) = result, transaction.id == id { return true }
+        }
+        return false
     }
 }
 

@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Připojit',
   'native.connect.checking': 'Ověřování…',
   'native.connect.tryDemo': 'Vyzkoušet demo',
-  'native.connect.whatIsServer': 'Co je server TREK?',
   'native.connect.errorInvalid': 'To nevypadá jako webová adresa.',
   'native.connect.errorUnreachable': 'Na této adrese neodpovídá žádný server. Zkontrolujte adresu a připojení.',
   'native.connect.errorNotTrek': 'Server na této adrese není TREK.',
@@ -89,6 +88,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Platba se při potvrzení strhne z vašeho účtu Google. Předplatné se automaticky obnovuje, pokud je nezrušíte před koncem období. Spravovat nebo zrušit ho můžete v Google Play v části Profil, Platby a odběry, Odběry.',
   'native.plans.restoreNoneAndroid': 'Pro tento účet Google nebylo nalezeno žádné aktivní předplatné.',
+  'native.subscribed.title': 'TREK Cloud už máte',
+  'native.subscribed.text':
+    'Toto Apple ID už má aktivní předplatné TREK Cloud. Nové, i s novou adresou, si můžete sjednat, až skončí.',
+  'native.subscribed.textAndroid':
+    'Tento účet Google už má aktivní předplatné TREK Cloud. Nové, i s novou adresou, si můžete sjednat, až skončí.',
+  'native.subscribed.open': 'Otevřít můj TREK',
+  'native.subscribed.manage': 'Spravovat předplatné',
   'native.claim.agree':
     'Předplacením se na poskytování vaší instance vztahují podmínky TREK Cloud (poskytovatel: Maurice Bötger, Rostock). Nákup, platbu a vrácení peněz vyřizuje obchod.',
   'native.claim.consentTitle': 'Odlišnosti TREK Cloud od vlastního TREK (v němčině, právně závazné):',

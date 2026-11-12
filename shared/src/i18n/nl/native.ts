@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Verbinden',
   'native.connect.checking': 'Controleren…',
   'native.connect.tryDemo': 'Probeer de demo',
-  'native.connect.whatIsServer': 'Wat is een TREK-server?',
   'native.connect.errorInvalid': 'Dat lijkt geen webadres.',
   'native.connect.errorUnreachable': 'Er reageert geen server op dit adres. Controleer het adres en je verbinding.',
   'native.connect.errorNotTrek': 'De server op dit adres is geen TREK.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'De betaling wordt bij bevestiging via je Google-account in rekening gebracht. Het abonnement wordt automatisch verlengd, tenzij je het vóór het einde van de periode opzegt. Beheer of zeg het op in Google Play onder Profiel, Betalingen en abonnementen, Abonnementen.',
   'native.plans.restoreNoneAndroid': 'Geen actief abonnement gevonden voor dit Google-account.',
+  'native.subscribed.title': 'Je hebt al TREK Cloud',
+  'native.subscribed.text':
+    'Deze Apple ID heeft al een actief TREK Cloud-abonnement. Je kunt een nieuw afsluiten, ook met een nieuw adres, zodra het is afgelopen.',
+  'native.subscribed.textAndroid':
+    'Dit Google-account heeft al een actief TREK Cloud-abonnement. Je kunt een nieuw afsluiten, ook met een nieuw adres, zodra het is afgelopen.',
+  'native.subscribed.open': 'Mijn TREK openen',
+  'native.subscribed.manage': 'Abonnement beheren',
   'native.claim.agree':
     'Door je te abonneren gelden voor het leveren van je instantie de voorwaarden van TREK Cloud (aanbieder: Maurice Bötger, Rostock). De store regelt aankoop, betaling en terugbetaling.',
   'native.claim.consentTitle':

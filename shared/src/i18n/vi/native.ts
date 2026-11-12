@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Kết nối',
   'native.connect.checking': 'Đang kiểm tra…',
   'native.connect.tryDemo': 'Dùng thử bản demo',
-  'native.connect.whatIsServer': 'Máy chủ TREK là gì?',
   'native.connect.errorInvalid': 'Đây có vẻ không phải là địa chỉ web.',
   'native.connect.errorUnreachable':
     'Không có máy chủ nào phản hồi tại địa chỉ này. Hãy kiểm tra địa chỉ và kết nối của bạn.',
@@ -92,6 +91,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Khoản thanh toán được tính vào tài khoản Google của bạn khi xác nhận. Gói đăng ký tự động gia hạn trừ khi bạn hủy trước khi hết kỳ. Quản lý hoặc hủy trong Google Play tại Hồ sơ, Thanh toán và gói thuê bao, Gói thuê bao.',
   'native.plans.restoreNoneAndroid': 'Không tìm thấy gói đăng ký đang hoạt động trên tài khoản Google này.',
+  'native.subscribed.title': 'Bạn đã có TREK Cloud',
+  'native.subscribed.text':
+    'Apple ID này đã có gói đăng ký TREK Cloud đang hoạt động. Bạn có thể đăng ký gói mới, kể cả với địa chỉ mới, sau khi gói này kết thúc.',
+  'native.subscribed.textAndroid':
+    'Tài khoản Google này đã có gói đăng ký TREK Cloud đang hoạt động. Bạn có thể đăng ký gói mới, kể cả với địa chỉ mới, sau khi gói này kết thúc.',
+  'native.subscribed.open': 'Mở TREK của tôi',
+  'native.subscribed.manage': 'Quản lý gói đăng ký',
   'native.claim.agree':
     'Khi đăng ký, việc cung cấp phiên bản của bạn tuân theo điều khoản TREK Cloud (nhà cung cấp: Maurice Bötger, Rostock). Cửa hàng xử lý việc mua, thanh toán và hoàn tiền.',
   'native.claim.consentTitle': 'Khác biệt của TREK Cloud so với TREK tự lưu trữ (bằng tiếng Đức, có giá trị pháp lý):',

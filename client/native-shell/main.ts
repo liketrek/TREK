@@ -15,8 +15,9 @@ import {
   CLOUD_TERMS_URL,
   CLOUD_URL,
   PRIVACY_URL,
-  SERVER_DOCS_URL,
   STORE_TERMS_URL,
+  APP_STORE_SUBSCRIPTIONS_URL,
+  PLAY_SUBSCRIPTIONS_URL,
 } from '../src/native/links';
 import {
   certificateTargetFor,
@@ -268,7 +269,7 @@ function showWelcome(opts: { back?: boolean } = {}): void {
           el('h1', { className: 'title brand-title' }, t('native.welcome.headline')),
           el('p', { className: 'sub' }, t('native.welcome.sub')),
         ],
-        [cloud, connect, demo, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
+        [cloud, connect, demo, footLinks()]
       )
     ),
     opts
@@ -382,7 +383,7 @@ function showConnect(prefill = '', opts: { back?: boolean; recheck?: boolean } =
           el('h1', { className: 'title-sm' }, t('native.connect.title')),
           el('p', { className: 'sub' }, t(opts.recheck ? 'native.connect.recheckHint' : 'native.connect.hint')),
         ],
-        [form, addCert, footLinks(externalLink(t('native.connect.whatIsServer'), SERVER_DOCS_URL))]
+        [form, addCert, footLinks()]
       )
     ),
     opts
@@ -660,10 +661,16 @@ function planCard(plan: CloudPlan, interval: 'month' | 'year', offer: Offer): HT
   const featOff = (text: string) => el('span', { className: 'off' }, icon('M5 12h14', 16), text);
   let sub: HTMLElement | null = null;
   if (buyable) {
-    sub = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
-    sub.addEventListener('click', () => {
+    const button = el('button', { type: 'button', className: 'btn' }, t('native.plans.subscribe'));
+    sub = button;
+    button.addEventListener('click', async () => {
       void tap(ImpactStyle.Medium);
-      showClaim(plan, interval, `${label} ${per}`);
+      // A store account with a running subscription buys nothing more: say so before the form.
+      button.disabled = true;
+      const held = await iap.held();
+      button.disabled = false;
+      if (held) showSubscribed();
+      else showClaim(plan, interval, `${label} ${per}`);
     });
   }
   return el(
@@ -1157,6 +1164,10 @@ function showClaim(
         error.textContent = t('native.claim.failed');
         return;
       }
+      if (outcome.kind === 'subscribed') {
+        showSubscribed();
+        return;
+      }
       bought = outcome.purchase;
     }
 
@@ -1204,6 +1215,51 @@ function showClaim(
     opts
   );
   requestAnimationFrame(() => slugInput.focus());
+}
+
+/**
+ * The store account already holds a TREK Cloud subscription: one per Apple ID or
+ * Google account. Another plan would change it on the App Store and run beside
+ * it on Google Play, so the app buys nothing and says why. Offered instead: the
+ * TREK the subscription belongs to, and the store's own page to manage or end
+ * it. Once it has ended, a new one can be taken out, at a new address too.
+ */
+function showSubscribed(): void {
+  void notify(NotificationType.Warning);
+  const status = el('p', { className: 'hint', role: 'status' });
+  const open = el('button', { type: 'button', className: 'btn' }, t('native.subscribed.open'));
+  open.addEventListener('click', async () => {
+    void tap(ImpactStyle.Medium);
+    open.disabled = true;
+    status.className = 'hint';
+    status.textContent = t('native.plans.restoring');
+    const purchase = await iap.restore();
+    const redeemed = purchase ? await redeemPurchase('', '', purchase) : null;
+    if (purchase && redeemed?.ok && redeemed.instanceUrl) {
+      await iap.finish(purchase);
+      showProvisioning(redeemed.instanceUrl);
+      return;
+    }
+    void notify(NotificationType.Error);
+    open.disabled = false;
+    status.className = 'hint bad';
+    status.textContent = t('native.plans.restoreFailed');
+  });
+  const manage = externalLink(t('native.subscribed.manage'), onPlay ? PLAY_SUBSCRIPTIONS_URL : APP_STORE_SUBSCRIPTIONS_URL);
+  show(
+    el(
+      'div',
+      {},
+      ...columns(
+        [
+          topbar(() => showPlans({ back: true })),
+          el('h1', { className: 'title-sm' }, t('native.subscribed.title')),
+          el('p', { className: 'sub' }, t(onPlay ? 'native.subscribed.textAndroid' : 'native.subscribed.text')),
+        ],
+        [open, status, el('div', { className: 'foot-links' }, manage)]
+      )
+    )
+  );
 }
 
 /** The build runs on the server; the app waits on the new address and loads it the moment it answers. */

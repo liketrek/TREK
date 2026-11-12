@@ -731,6 +731,12 @@ public class TrekShellPlugin extends Plugin {
         com.liketrek.trek.billing.TrekBilling.INSTANCE.restore(getContext(), call);
     }
 
+    /** Whether this Google account already holds a delivered cloud subscription. */
+    @PluginMethod
+    public void storeHeld(PluginCall call) {
+        com.liketrek.trek.billing.TrekBilling.INSTANCE.held(getContext(), call);
+    }
+
     /** A paid subscription never delivered (it cleared while the app was closed), for the shell to redeem. */
     @PluginMethod
     public void storeUnfinished(PluginCall call) {

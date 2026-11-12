@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': '連線',
   'native.connect.checking': '正在檢查…',
   'native.connect.tryDemo': '試試示範版',
-  'native.connect.whatIsServer': '什麼是 TREK 伺服器？',
   'native.connect.errorInvalid': '這看起來不像網址。',
   'native.connect.errorUnreachable': '此網址沒有伺服器回應。請檢查網址與網路連線。',
   'native.connect.errorNotTrek': '此網址上的伺服器不是 TREK。',
@@ -85,6 +84,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     '確認後將從你的 Google 帳號扣款。除非你在期滿前取消，訂閱會自動續訂。可在 Google Play 的「個人資料」「付款和訂閱」「訂閱」中管理或取消。',
   'native.plans.restoreNoneAndroid': '此 Google 帳號沒有有效的訂閱。',
+  'native.subscribed.title': '你已經訂閱 TREK Cloud',
+  'native.subscribed.text':
+    '此 Apple ID 已有一個有效的 TREK Cloud 訂閱。訂閱結束後，你可以重新訂閱，也可以使用新網址。',
+  'native.subscribed.textAndroid':
+    '此 Google 帳號已有一個有效的 TREK Cloud 訂閱。訂閱結束後，你可以重新訂閱，也可以使用新網址。',
+  'native.subscribed.open': '開啟我的 TREK',
+  'native.subscribed.manage': '管理訂閱',
   'native.claim.agree':
     '訂閱後，你的執行個體的提供適用 TREK Cloud 條款（提供者：Maurice Bötger，羅斯托克）。購買、付款和退款由商店處理。',
   'native.claim.consentTitle': 'TREK Cloud 與自行架設 TREK 的差異（德文，具法律效力）：',

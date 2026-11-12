@@ -119,23 +119,38 @@ object TrekBilling {
         val id = call.getString("productId") ?: return call.reject("productId is required")
         ready(activity) { ok ->
             if (!ok) return@ready call.resolve(JSObject().put("kind", "failed"))
-            details(activity, listOf(id)) { found ->
-                val product = found.firstOrNull()
-                val offer = product?.let(::baseOffer)
-                if (product == null || offer == null) return@details call.resolve(JSObject().put("kind", "failed"))
-                pendingPurchase?.resolve(JSObject().put("kind", "cancelled"))
-                pendingPurchase = call
-                pendingProduct = id
-                val params = BillingFlowParams.newBuilder()
-                    .setProductDetailsParamsList(
-                        listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(product).setOfferToken(offer.offerToken).build()),
-                    )
-                    .build()
-                activity.runOnUiThread {
-                    val launch = client(activity).launchBillingFlow(activity, params)
-                    if (launch.responseCode != BillingClient.BillingResponseCode.OK) {
-                        settle(if (launch.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) "cancelled" else "failed", null)
-                    }
+            // One subscription per Google account: a second plan would run beside the first.
+            // A delivered one stops the purchase here; one that was paid but never set up is
+            // handed back as bought, so its instance is set up now.
+            val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
+            client(activity).queryPurchasesAsync(params) { result, purchases ->
+                val held = if (result.responseCode == BillingClient.BillingResponseCode.OK) newest(purchases, PREFIX) else null
+                when {
+                    held == null -> launchPurchase(activity, call, id)
+                    held.isAcknowledged -> call.resolve(JSObject().put("kind", "subscribed"))
+                    else -> call.resolve(receipt(held).put("kind", "bought"))
+                }
+            }
+        }
+    }
+
+    private fun launchPurchase(activity: Activity, call: PluginCall, id: String) {
+        details(activity, listOf(id)) { found ->
+            val product = found.firstOrNull()
+            val offer = product?.let(::baseOffer)
+            if (product == null || offer == null) return@details call.resolve(JSObject().put("kind", "failed"))
+            pendingPurchase?.resolve(JSObject().put("kind", "cancelled"))
+            pendingPurchase = call
+            pendingProduct = id
+            val params = BillingFlowParams.newBuilder()
+                .setProductDetailsParamsList(
+                    listOf(BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(product).setOfferToken(offer.offerToken).build()),
+                )
+                .build()
+            activity.runOnUiThread {
+                val launch = client(activity).launchBillingFlow(activity, params)
+                if (launch.responseCode != BillingClient.BillingResponseCode.OK) {
+                    settle(if (launch.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) "cancelled" else "failed", null)
                 }
             }
         }
@@ -205,6 +220,19 @@ object TrekBilling {
             if (!ok) return@ready call.resolve()
             val params = AcknowledgePurchaseParams.newBuilder().setPurchaseToken(token).build()
             client(context).acknowledgePurchase(params) { call.resolve() }
+        }
+    }
+
+    /** Whether this Google account holds a delivered subscription under `prefix`; while one runs, the shell offers no purchase. */
+    fun held(context: Context, call: PluginCall) {
+        val prefix = call.getString("prefix") ?: PREFIX
+        ready(context) { ok ->
+            if (!ok) return@ready call.resolve(JSObject().put("held", false))
+            val params = QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()
+            client(context).queryPurchasesAsync(params) { result, purchases ->
+                val found = if (result.responseCode == BillingClient.BillingResponseCode.OK) newest(purchases, prefix) else null
+                call.resolve(JSObject().put("held", found?.isAcknowledged == true))
+            }
         }
     }
 

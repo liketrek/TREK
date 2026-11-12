@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Verbinden',
   'native.connect.checking': 'Wird geprüft…',
   'native.connect.tryDemo': 'Demo ausprobieren',
-  'native.connect.whatIsServer': 'Was ist ein TREK-Server?',
   'native.connect.errorInvalid': 'Das sieht nicht nach einer Webadresse aus.',
   'native.connect.errorUnreachable':
     'Unter dieser Adresse antwortet kein Server. Prüfe die Adresse und deine Verbindung.',
@@ -92,6 +91,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Die Zahlung wird bei Bestätigung über dein Google-Konto abgerechnet. Das Abo verlängert sich automatisch, wenn du es nicht vor Ablauf des Zeitraums kündigst. Verwalten und kündigen kannst du es in Google Play unter Profil, Zahlungen und Abos, Abos.',
   'native.plans.restoreNoneAndroid': 'Für dieses Google-Konto wurde kein aktives Abo gefunden.',
+  'native.subscribed.title': 'Du hast schon TREK Cloud',
+  'native.subscribed.text':
+    'Über diese Apple-ID läuft bereits ein TREK-Cloud-Abo. Ein neues kannst du abschließen, auch mit neuer Adresse, sobald es beendet ist.',
+  'native.subscribed.textAndroid':
+    'Über dieses Google-Konto läuft bereits ein TREK-Cloud-Abo. Ein neues kannst du abschließen, auch mit neuer Adresse, sobald es beendet ist.',
+  'native.subscribed.open': 'Mein TREK öffnen',
+  'native.subscribed.manage': 'Abo verwalten',
   'native.claim.agree':
     'Mit dem Abonnieren gelten für die Bereitstellung deiner Instanz die AGB von TREK Cloud (Anbieter: Maurice Bötger, Rostock). Kauf, Zahlung und Erstattung wickelt der Store ab.',
   'native.claim.consentTitle': 'Abweichungen von einem selbst betriebenen TREK (verbindlich auf Deutsch):',

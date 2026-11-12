@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Σύνδεση',
   'native.connect.checking': 'Έλεγχος…',
   'native.connect.tryDemo': 'Δοκιμάστε την επίδειξη',
-  'native.connect.whatIsServer': 'Τι είναι ένας διακομιστής TREK;',
   'native.connect.errorInvalid': 'Αυτό δεν μοιάζει με διεύθυνση ιστού.',
   'native.connect.errorUnreachable':
     'Κανένας διακομιστής δεν απαντά σε αυτή τη διεύθυνση. Ελέγξτε τη διεύθυνση και τη σύνδεσή σας.',
@@ -93,6 +92,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Η πληρωμή χρεώνεται στον λογαριασμό σας Google κατά την επιβεβαίωση. Η συνδρομή ανανεώνεται αυτόματα, εκτός αν την ακυρώσετε πριν λήξει η περίοδος. Διαχειριστείτε ή ακυρώστε τη στο Google Play, στο Προφίλ, Πληρωμές και συνδρομές, Συνδρομές.',
   'native.plans.restoreNoneAndroid': 'Δεν βρέθηκε ενεργή συνδρομή σε αυτόν τον λογαριασμό Google.',
+  'native.subscribed.title': 'Έχετε ήδη TREK Cloud',
+  'native.subscribed.text':
+    'Αυτό το Apple ID έχει ήδη ενεργή συνδρομή στο TREK Cloud. Μπορείτε να κάνετε νέα, και με νέα διεύθυνση, όταν λήξει.',
+  'native.subscribed.textAndroid':
+    'Αυτός ο λογαριασμός Google έχει ήδη ενεργή συνδρομή στο TREK Cloud. Μπορείτε να κάνετε νέα, και με νέα διεύθυνση, όταν λήξει.',
+  'native.subscribed.open': 'Άνοιγμα του TREK μου',
+  'native.subscribed.manage': 'Διαχείριση συνδρομής',
   'native.claim.agree':
     'Με την εγγραφή, για την παροχή της instance σας ισχύουν οι όροι του TREK Cloud (πάροχος: Maurice Bötger, Ρόστοκ). Την αγορά, την πληρωμή και τις επιστροφές χειρίζεται το κατάστημα.',
   'native.claim.consentTitle':

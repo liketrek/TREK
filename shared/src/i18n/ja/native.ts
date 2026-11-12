@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': '接続',
   'native.connect.checking': '確認中…',
   'native.connect.tryDemo': 'デモを試す',
-  'native.connect.whatIsServer': 'TREK サーバーとは？',
   'native.connect.errorInvalid': 'Web アドレスではないようです。',
   'native.connect.errorUnreachable': 'このアドレスで応答するサーバーがありません。アドレスと接続を確認してください。',
   'native.connect.errorNotTrek': 'このアドレスのサーバーは TREK ではありません。',
@@ -90,6 +89,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     '確認時に Google アカウントに請求されます。期間終了前に解約しない限り、サブスクリプションは自動更新されます。Google Play の［プロフィール］［お支払いと定期購入］［定期購入］で管理または解約できます。',
   'native.plans.restoreNoneAndroid': 'この Google アカウントには有効なサブスクリプションがありません。',
+  'native.subscribed.title': 'TREK Cloud はすでにご利用中です',
+  'native.subscribed.text':
+    'この Apple ID にはすでに有効な TREK Cloud のサブスクリプションがあります。終了後に、新しいアドレスでも新たに申し込めます。',
+  'native.subscribed.textAndroid':
+    'この Google アカウントにはすでに有効な TREK Cloud のサブスクリプションがあります。終了後に、新しいアドレスでも新たに申し込めます。',
+  'native.subscribed.open': '自分の TREK を開く',
+  'native.subscribed.manage': 'サブスクリプションを管理',
   'native.claim.agree':
     '登録すると、インスタンスの提供には TREK Cloud 利用規約が適用されます（提供者: Maurice Bötger、ロストック）。購入、支払い、返金はストアが行います。',
   'native.claim.consentTitle': 'TREK Cloud とセルフホスト版 TREK の違い（ドイツ語、法的拘束力あり）：',

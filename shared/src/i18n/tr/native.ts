@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Bağlan',
   'native.connect.checking': 'Kontrol ediliyor…',
   'native.connect.tryDemo': 'Demoyu dene',
-  'native.connect.whatIsServer': 'TREK sunucusu nedir?',
   'native.connect.errorInvalid': 'Bu bir web adresine benzemiyor.',
   'native.connect.errorUnreachable': 'Bu adreste yanıt veren bir sunucu yok. Adresi ve bağlantını kontrol et.',
   'native.connect.errorNotTrek': 'Bu adresteki sunucu TREK değil.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     "Ödeme, onayladığınızda Google hesabınızdan tahsil edilir. Abonelik, dönem bitmeden iptal etmezseniz otomatik olarak yenilenir. Google Play'de Profil, Ödemeler ve abonelikler, Abonelikler bölümünden yönetebilir veya iptal edebilirsiniz.",
   'native.plans.restoreNoneAndroid': 'Bu Google hesabında etkin abonelik bulunamadı.',
+  'native.subscribed.title': "Zaten TREK Cloud'unuz var",
+  'native.subscribed.text':
+    'Bu Apple Kimliğinde zaten etkin bir TREK Cloud aboneliği var. Sona erdikten sonra yeni bir abonelik, yeni bir adresle de, başlatabilirsiniz.',
+  'native.subscribed.textAndroid':
+    'Bu Google hesabında zaten etkin bir TREK Cloud aboneliği var. Sona erdikten sonra yeni bir abonelik, yeni bir adresle de, başlatabilirsiniz.',
+  'native.subscribed.open': "TREK'imi aç",
+  'native.subscribed.manage': 'Aboneliği yönet',
   'native.claim.agree':
     'Abone olduğunuzda örneğinizin sağlanmasına TREK Cloud koşulları uygulanır (sağlayıcı: Maurice Bötger, Rostock). Satın alma, ödeme ve iadeleri mağaza yürütür.',
   'native.claim.consentTitle': 'TREK Cloud’un kendi barındırdığın TREK’ten farkları (Almanca, hukuken bağlayıcı):',

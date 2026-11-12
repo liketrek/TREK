@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'اتصال',
   'native.connect.checking': 'جارٍ التحقق…',
   'native.connect.tryDemo': 'جرّب النسخة التجريبية',
-  'native.connect.whatIsServer': 'ما هو خادم TREK؟',
   'native.connect.errorInvalid': 'لا يبدو هذا عنوان ويب.',
   'native.connect.errorUnreachable': 'لا يستجيب أي خادم على هذا العنوان. تحقق من العنوان ومن اتصالك.',
   'native.connect.errorNotTrek': 'الخادم على هذا العنوان ليس TREK.',
@@ -88,6 +87,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'يُخصم المبلغ من حساب Google الخاص بك عند التأكيد. يتجدد الاشتراك تلقائيًا ما لم تلغِه قبل نهاية الفترة. يمكنك إدارته أو إلغاؤه في Google Play من الملف الشخصي، الدفعات والاشتراكات، الاشتراكات.',
   'native.plans.restoreNoneAndroid': 'لم يُعثر على اشتراك نشط في حساب Google هذا.',
+  'native.subscribed.title': 'لديك TREK Cloud بالفعل',
+  'native.subscribed.text':
+    'يوجد بالفعل اشتراك نشط في TREK Cloud على معرّف Apple هذا. يمكنك الاشتراك من جديد، وبعنوان جديد أيضًا، بعد انتهائه.',
+  'native.subscribed.textAndroid':
+    'يوجد بالفعل اشتراك نشط في TREK Cloud على حساب Google هذا. يمكنك الاشتراك من جديد، وبعنوان جديد أيضًا، بعد انتهائه.',
+  'native.subscribed.open': 'افتح TREK الخاص بي',
+  'native.subscribed.manage': 'إدارة الاشتراك',
   'native.claim.agree':
     'بالاشتراك تسري شروط TREK Cloud على توفير نسختك (المزوّد: Maurice Bötger، روستوك). يتولى المتجر الشراء والدفع والاسترداد.',
   'native.claim.consentTitle': 'اختلافات TREK Cloud عن TREK المستضاف ذاتيًا (بالألمانية، ملزمة قانونيًا):',

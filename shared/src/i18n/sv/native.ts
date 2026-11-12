@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Anslut',
   'native.connect.checking': 'Kontrollerar…',
   'native.connect.tryDemo': 'Testa demon',
-  'native.connect.whatIsServer': 'Vad är en TREK-server?',
   'native.connect.errorInvalid': 'Det ser inte ut som en webbadress.',
   'native.connect.errorUnreachable':
     'Ingen server svarar på den här adressen. Kontrollera adressen och din anslutning.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Betalningen debiteras ditt Google-konto när du bekräftar. Prenumerationen förnyas automatiskt om du inte säger upp den innan perioden tar slut. Hantera eller säg upp den i Google Play under Profil, Betalningar och prenumerationer, Prenumerationer.',
   'native.plans.restoreNoneAndroid': 'Ingen aktiv prenumeration hittades för det här Google-kontot.',
+  'native.subscribed.title': 'Du har redan TREK Cloud',
+  'native.subscribed.text':
+    'Det här Apple-ID:t har redan en aktiv TREK Cloud-prenumeration. Du kan teckna en ny, även med en ny adress, när den har upphört.',
+  'native.subscribed.textAndroid':
+    'Det här Google-kontot har redan en aktiv TREK Cloud-prenumeration. Du kan teckna en ny, även med en ny adress, när den har upphört.',
+  'native.subscribed.open': 'Öppna mitt TREK',
+  'native.subscribed.manage': 'Hantera prenumeration',
   'native.claim.agree':
     'När du prenumererar gäller villkoren för TREK Cloud för tillhandahållandet av din instans (leverantör: Maurice Bötger, Rostock). Butiken sköter köp, betalning och återbetalning.',
   'native.claim.consentTitle': 'Skillnader mellan TREK Cloud och ett egenhostat TREK (på tyska, juridiskt bindande):',

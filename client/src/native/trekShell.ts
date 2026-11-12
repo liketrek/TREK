@@ -112,7 +112,8 @@ export interface TrekShellPlugin {
    * Android `purchaseToken`, which the control plane verifies with Google Play.
    */
   storePurchase(options: { productId: string }): Promise<{
-    kind: 'bought' | 'cancelled' | 'pending' | 'failed';
+    /** `subscribed`: this store account already holds a delivered subscription, so nothing was bought. */
+    kind: 'bought' | 'cancelled' | 'pending' | 'failed' | 'subscribed';
     jws?: string;
     purchaseToken?: string;
     productId?: string;
@@ -134,6 +135,11 @@ export interface TrekShellPlugin {
   }): Promise<{ result: 'shown' | 'unsupported' }>;
   /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
   storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
+  /**
+   * Whether this Apple ID or Google account holds a delivered subscription under
+   * `prefix`, read without asking for a password. Not in builds before 5.1.4.
+   */
+  storeHeld(options: { prefix: string }): Promise<{ held: boolean }>;
   /** Feature watch: what the Apple Watch app shows (native/watch.ts), as JSON, sent on through WatchConnectivity. */
   setWatchSnapshot(options: { json: string }): Promise<void>;
   /** Feature watch: the ticks the watch sent since the last call, oldest first (parsed by parseWatchActions). */

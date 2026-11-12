@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': '연결',
   'native.connect.checking': '확인 중…',
   'native.connect.tryDemo': '데모 체험하기',
-  'native.connect.whatIsServer': 'TREK 서버란?',
   'native.connect.errorInvalid': '웹 주소가 아닌 것 같습니다.',
   'native.connect.errorUnreachable': '이 주소에서 응답하는 서버가 없습니다. 주소와 연결 상태를 확인하세요.',
   'native.connect.errorNotTrek': '이 주소의 서버는 TREK이 아닙니다.',
@@ -87,6 +86,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     '확인 시 Google 계정으로 결제됩니다. 기간이 끝나기 전에 취소하지 않으면 구독이 자동으로 갱신됩니다. Google Play의 프로필, 결제 및 정기 결제, 정기 결제에서 관리하거나 취소할 수 있습니다.',
   'native.plans.restoreNoneAndroid': '이 Google 계정에서 활성 구독을 찾을 수 없습니다.',
+  'native.subscribed.title': '이미 TREK Cloud를 이용 중입니다',
+  'native.subscribed.text':
+    '이 Apple ID에는 이미 활성 TREK Cloud 구독이 있습니다. 구독이 끝나면 새 주소로도 새로 구독할 수 있습니다.',
+  'native.subscribed.textAndroid':
+    '이 Google 계정에는 이미 활성 TREK Cloud 구독이 있습니다. 구독이 끝나면 새 주소로도 새로 구독할 수 있습니다.',
+  'native.subscribed.open': '내 TREK 열기',
+  'native.subscribed.manage': '구독 관리',
   'native.claim.agree':
     '구독하면 인스턴스 제공에 TREK Cloud 약관이 적용됩니다(제공자: Maurice Bötger, 로스토크). 구매, 결제, 환불은 스토어가 처리합니다.',
   'native.claim.consentTitle': 'TREK Cloud와 직접 호스팅한 TREK의 차이점(독일어, 법적 구속력 있음):',

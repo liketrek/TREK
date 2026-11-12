@@ -6,9 +6,6 @@
 /** The privacy policy the store listings name too. */
 export const PRIVACY_URL = 'https://liketrek.com/privacy?app=1';
 
-/** What a TREK server is and how to run one, for someone who has none yet. */
-export const SERVER_DOCS_URL = 'https://github.com/liketrek/TREK#readme';
-
 /** Running the app with a sign-in proxy (Cloudflare Access, Pangolin and the like) in front of TREK. */
 export const AUTH_PROXY_DOCS_URL = 'https://github.com/liketrek/TREK/wiki/Native-Apps#behind-a-sign-in-proxy';
 
@@ -27,5 +24,8 @@ export const CLOUD_URL = 'https://liketrek.com';
  * store rules ask for it next to the purchase, together with the privacy policy.
  */
 export const STORE_TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+/** Where the App Store and Google Play let someone manage or end a subscription. */
+export const APP_STORE_SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
+export const PLAY_SUBSCRIPTIONS_URL = 'https://play.google.com/store/account/subscriptions?package=com.liketrek.trek';
 /** Our terms for TREK Cloud (§ 5a covers a purchase in the app), as the app opens them: without the site's sales header. */
 export const CLOUD_TERMS_URL = 'https://liketrek.com/terms?app=1';

@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'התחברות',
   'native.connect.checking': 'בודק…',
   'native.connect.tryDemo': 'נסו את הדמו',
-  'native.connect.whatIsServer': 'מהו שרת TREK?',
   'native.connect.errorInvalid': 'זה לא נראה ככתובת אינטרנט.',
   'native.connect.errorUnreachable': 'אף שרת לא ענה בכתובת הזו. בדקו את הכתובת ואת החיבור.',
   'native.connect.errorNotTrek': 'השרת בכתובת הזו אינו TREK.',
@@ -88,6 +87,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'התשלום יחויב בחשבון Google שלכם עם האישור. המינוי מתחדש אוטומטית אלא אם תבטלו אותו לפני סוף התקופה. אפשר לנהל או לבטל אותו ב-Google Play תחת פרופיל, תשלומים ומינויים, מינויים.',
   'native.plans.restoreNoneAndroid': 'לא נמצא מינוי פעיל בחשבון Google הזה.',
+  'native.subscribed.title': 'כבר יש לך TREK Cloud',
+  'native.subscribed.text':
+    'ל-Apple ID הזה כבר יש מינוי פעיל ל-TREK Cloud. אפשר להירשם למינוי חדש, גם בכתובת חדשה, אחרי שהוא יסתיים.',
+  'native.subscribed.textAndroid':
+    'לחשבון Google הזה כבר יש מינוי פעיל ל-TREK Cloud. אפשר להירשם למינוי חדש, גם בכתובת חדשה, אחרי שהוא יסתיים.',
+  'native.subscribed.open': 'פתיחת ה-TREK שלי',
+  'native.subscribed.manage': 'ניהול המינוי',
   'native.claim.agree':
     'בהרשמה חלים על אספקת המופע שלכם התנאים של TREK Cloud (ספק: Maurice Bötger, רוסטוק). החנות מטפלת ברכישה, בתשלום ובהחזרים.',
   'native.claim.consentTitle': 'ההבדלים בין TREK Cloud לבין TREK באירוח עצמי (בגרמנית, מחייב משפטית):',

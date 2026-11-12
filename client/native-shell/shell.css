@@ -1058,12 +1058,20 @@ a.linkbtn {
   border-color: var(--edge-strong);
   border-top-color: var(--ink);
 }
+/* Small print (the terms a purchase is under, how it renews): in the system's
+   own text face at its regular weight. Poppins ships from 500 up only, which
+   made a paragraph of legal text read as heavy as a heading. */
 .note {
   text-align: center;
   color: var(--faint);
-  font-size: 0.84rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Roboto, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.76rem;
   margin: 2px 0 0;
-  line-height: 1.45;
+  line-height: 1.5;
+}
+.note a {
+  color: var(--muted);
 }
 /* Under the plans: restore, the renewal terms, the legal links. */
 .plans-foot {

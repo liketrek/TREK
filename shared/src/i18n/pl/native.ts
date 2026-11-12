@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Połącz',
   'native.connect.checking': 'Sprawdzanie…',
   'native.connect.tryDemo': 'Wypróbuj demo',
-  'native.connect.whatIsServer': 'Czym jest serwer TREK?',
   'native.connect.errorInvalid': 'To nie wygląda na adres internetowy.',
   'native.connect.errorUnreachable': 'Pod tym adresem nie odpowiada żaden serwer. Sprawdź adres i połączenie.',
   'native.connect.errorNotTrek': 'Serwer pod tym adresem to nie TREK.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Płatność zostanie pobrana z Twojego konta Google po potwierdzeniu. Subskrypcja odnawia się automatycznie, jeśli nie anulujesz jej przed końcem okresu. Zarządzaj nią lub ją anuluj w Google Play w sekcji Profil, Płatności i subskrypcje, Subskrypcje.',
   'native.plans.restoreNoneAndroid': 'Nie znaleziono aktywnej subskrypcji na tym koncie Google.',
+  'native.subscribed.title': 'Masz już TREK Cloud',
+  'native.subscribed.text':
+    'To Apple ID ma już aktywną subskrypcję TREK Cloud. Nową, także z nowym adresem, możesz wykupić, gdy ta się zakończy.',
+  'native.subscribed.textAndroid':
+    'To konto Google ma już aktywną subskrypcję TREK Cloud. Nową, także z nowym adresem, możesz wykupić, gdy ta się zakończy.',
+  'native.subscribed.open': 'Otwórz mój TREK',
+  'native.subscribed.manage': 'Zarządzaj subskrypcją',
   'native.claim.agree':
     'Subskrybując, do udostępnienia Twojej instancji stosuje się warunki TREK Cloud (dostawca: Maurice Bötger, Rostock). Zakup, płatność i zwroty obsługuje sklep.',
   'native.claim.consentTitle':

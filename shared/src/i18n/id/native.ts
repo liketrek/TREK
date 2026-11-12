@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Hubungkan',
   'native.connect.checking': 'Memeriksa…',
   'native.connect.tryDemo': 'Coba demonya',
-  'native.connect.whatIsServer': 'Apa itu server TREK?',
   'native.connect.errorInvalid': 'Itu tidak terlihat seperti alamat web.',
   'native.connect.errorUnreachable': 'Tidak ada server yang merespons di alamat ini. Periksa alamat dan koneksimu.',
   'native.connect.errorNotTrek': 'Server di alamat ini bukan TREK.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Pembayaran ditagihkan ke akun Google Anda saat konfirmasi. Langganan diperpanjang otomatis kecuali Anda membatalkannya sebelum periode berakhir. Kelola atau batalkan di Google Play pada Profil, Pembayaran & langganan, Langganan.',
   'native.plans.restoreNoneAndroid': 'Tidak ditemukan langganan aktif di akun Google ini.',
+  'native.subscribed.title': 'Kamu sudah punya TREK Cloud',
+  'native.subscribed.text':
+    'Apple ID ini sudah memiliki langganan TREK Cloud yang aktif. Kamu bisa berlangganan lagi, juga dengan alamat baru, setelah langganan ini berakhir.',
+  'native.subscribed.textAndroid':
+    'Akun Google ini sudah memiliki langganan TREK Cloud yang aktif. Kamu bisa berlangganan lagi, juga dengan alamat baru, setelah langganan ini berakhir.',
+  'native.subscribed.open': 'Buka TREK saya',
+  'native.subscribed.manage': 'Kelola langganan',
   'native.claim.agree':
     'Dengan berlangganan, ketentuan TREK Cloud berlaku untuk penyediaan instans Anda (penyedia: Maurice Bötger, Rostock). Pembelian, pembayaran, dan pengembalian dana ditangani oleh toko.',
   'native.claim.consentTitle':

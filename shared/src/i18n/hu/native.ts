@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Csatlakozás',
   'native.connect.checking': 'Ellenőrzés…',
   'native.connect.tryDemo': 'Próbáld ki a demót',
-  'native.connect.whatIsServer': 'Mi az a TREK-szerver?',
   'native.connect.errorInvalid': 'Ez nem úgy néz ki, mint egy webcím.',
   'native.connect.errorUnreachable': 'Ezen a címen nem válaszol szerver. Ellenőrizd a címet és a kapcsolatot.',
   'native.connect.errorNotTrek': 'Az ezen a címen futó szerver nem TREK.',
@@ -92,6 +91,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'A díjat a megerősítéskor a Google-fiókodra terheljük. Az előfizetés automatikusan megújul, ha nem mondod le az időszak vége előtt. Kezelni vagy lemondani a Google Playben tudod: Profil, Fizetések és előfizetések, Előfizetések.',
   'native.plans.restoreNoneAndroid': 'Ehhez a Google-fiókhoz nem található aktív előfizetés.',
+  'native.subscribed.title': 'Már van TREK Cloud-előfizetésed',
+  'native.subscribed.text':
+    'Ehhez az Apple ID-hoz már tartozik aktív TREK Cloud-előfizetés. Újat, akár új címmel is, akkor köthetsz, ha ez lejárt.',
+  'native.subscribed.textAndroid':
+    'Ehhez a Google-fiókhoz már tartozik aktív TREK Cloud-előfizetés. Újat, akár új címmel is, akkor köthetsz, ha ez lejárt.',
+  'native.subscribed.open': 'TREK megnyitása',
+  'native.subscribed.manage': 'Előfizetés kezelése',
   'native.claim.agree':
     'Előfizetéssel a példányod biztosítására a TREK Cloud feltételei érvényesek (szolgáltató: Maurice Bötger, Rostock). A vásárlást, a fizetést és a visszatérítést az áruház intézi.',
   'native.claim.consentTitle': 'A TREK Cloud eltérései a saját üzemeltetésű TREK-től (németül, jogilag kötelező):',

@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'เชื่อมต่อ',
   'native.connect.checking': 'กำลังตรวจสอบ…',
   'native.connect.tryDemo': 'ลองใช้เดโม',
-  'native.connect.whatIsServer': 'เซิร์ฟเวอร์ TREK คืออะไร',
   'native.connect.errorInvalid': 'ดูเหมือนว่านี่ไม่ใช่ที่อยู่เว็บ',
   'native.connect.errorUnreachable': 'ไม่มีเซิร์ฟเวอร์ตอบกลับที่ที่อยู่นี้ โปรดตรวจสอบที่อยู่และการเชื่อมต่อของคุณ',
   'native.connect.errorNotTrek': 'เซิร์ฟเวอร์ที่ที่อยู่นี้ไม่ใช่ TREK',
@@ -88,6 +87,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'ระบบจะเรียกเก็บเงินจากบัญชี Google ของคุณเมื่อยืนยัน การสมัครสมาชิกจะต่ออายุอัตโนมัติ เว้นแต่คุณจะยกเลิกก่อนสิ้นสุดรอบ จัดการหรือยกเลิกได้ใน Google Play ที่ โปรไฟล์ การชำระเงินและการสมัครใช้บริการ การสมัครใช้บริการ',
   'native.plans.restoreNoneAndroid': 'ไม่พบการสมัครสมาชิกที่ใช้งานอยู่ในบัญชี Google นี้',
+  'native.subscribed.title': 'คุณมี TREK Cloud อยู่แล้ว',
+  'native.subscribed.text':
+    'Apple ID นี้มีการสมัครสมาชิก TREK Cloud ที่ใช้งานอยู่แล้ว คุณสมัครใหม่ได้ รวมถึงใช้ที่อยู่ใหม่ หลังจากการสมัครนี้สิ้นสุดลง',
+  'native.subscribed.textAndroid':
+    'บัญชี Google นี้มีการสมัครสมาชิก TREK Cloud ที่ใช้งานอยู่แล้ว คุณสมัครใหม่ได้ รวมถึงใช้ที่อยู่ใหม่ หลังจากการสมัครนี้สิ้นสุดลง',
+  'native.subscribed.open': 'เปิด TREK ของฉัน',
+  'native.subscribed.manage': 'จัดการการสมัครสมาชิก',
   'native.claim.agree':
     'เมื่อสมัครสมาชิก การให้บริการอินสแตนซ์ของคุณจะเป็นไปตามข้อกำหนดของ TREK Cloud (ผู้ให้บริการ: Maurice Bötger, รอสต็อก) ร้านค้าจะดูแลการซื้อ การชำระเงิน และการคืนเงิน',
   'native.claim.consentTitle': 'ความแตกต่างของ TREK Cloud จาก TREK ที่โฮสต์เอง (ภาษาเยอรมัน มีผลผูกพันทางกฎหมาย):',

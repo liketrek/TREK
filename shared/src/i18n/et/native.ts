@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Ühenda',
   'native.connect.checking': 'Kontrollin…',
   'native.connect.tryDemo': 'Proovi demot',
-  'native.connect.whatIsServer': 'Mis on TREKi server?',
   'native.connect.errorInvalid': 'See ei näe välja nagu veebiaadress.',
   'native.connect.errorUnreachable': 'Sellel aadressil ei vastanud ükski server. Kontrolli aadressi ja oma ühendust.',
   'native.connect.errorNotTrek': 'Sellel aadressil olev server ei ole TREK.',
@@ -90,6 +89,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     "Makse võetakse kinnitamisel sinu Google'i kontolt. Tellimus uueneb automaatselt, kui sa ei tühista seda enne perioodi lõppu. Halda või tühista seda Google Plays: Profiil, Maksed ja tellimused, Tellimused.",
   'native.plans.restoreNoneAndroid': "Selle Google'i kontoga ei leitud aktiivset tellimust.",
+  'native.subscribed.title': 'Sul on juba TREK Cloud',
+  'native.subscribed.text':
+    'Sellel Apple ID-l on juba aktiivne TREK Cloudi tellimus. Uue, ka uue aadressiga, saad võtta pärast selle lõppemist.',
+  'native.subscribed.textAndroid':
+    "Sellel Google'i kontol on juba aktiivne TREK Cloudi tellimus. Uue, ka uue aadressiga, saad võtta pärast selle lõppemist.",
+  'native.subscribed.open': 'Ava minu TREK',
+  'native.subscribed.manage': 'Halda tellimust',
   'native.claim.agree':
     'Tellides kehtivad sinu eksemplari pakkumisele TREK Cloudi tingimused (pakkuja: Maurice Bötger, Rostock). Ostu, makset ja tagasimakseid haldab pood.',
   'native.claim.consentTitle': 'TREK Cloudi erinevused isehostitud TREKist (saksa keeles, õiguslikult siduv):',

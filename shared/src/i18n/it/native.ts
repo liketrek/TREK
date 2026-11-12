@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Connetti',
   'native.connect.checking': 'Verifica in corso…',
   'native.connect.tryDemo': 'Prova la demo',
-  'native.connect.whatIsServer': 'Che cos’è un server TREK?',
   'native.connect.errorInvalid': 'Non sembra un indirizzo web.',
   'native.connect.errorUnreachable':
     'Nessun server risponde a questo indirizzo. Controlla l’indirizzo e la connessione.',
@@ -92,6 +91,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Il pagamento viene addebitato sul tuo account Google alla conferma. L’abbonamento si rinnova automaticamente se non lo annulli prima della fine del periodo. Gestiscilo o annullalo in Google Play da Profilo, Pagamenti e abbonamenti, Abbonamenti.',
   'native.plans.restoreNoneAndroid': 'Nessun abbonamento attivo trovato per questo account Google.',
+  'native.subscribed.title': 'Hai già TREK Cloud',
+  'native.subscribed.text':
+    'Questo ID Apple ha già un abbonamento TREK Cloud attivo. Potrai sottoscriverne uno nuovo, anche con un nuovo indirizzo, quando sarà terminato.',
+  'native.subscribed.textAndroid':
+    'Questo account Google ha già un abbonamento TREK Cloud attivo. Potrai sottoscriverne uno nuovo, anche con un nuovo indirizzo, quando sarà terminato.',
+  'native.subscribed.open': 'Apri il mio TREK',
+  'native.subscribed.manage': 'Gestisci abbonamento',
   'native.claim.agree':
     'Abbonandoti, alla fornitura della tua istanza si applicano le condizioni di TREK Cloud (fornitore: Maurice Bötger, Rostock). Lo store gestisce acquisto, pagamento e rimborsi.',
   'native.claim.consentTitle':

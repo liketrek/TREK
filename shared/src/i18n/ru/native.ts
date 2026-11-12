@@ -7,7 +7,6 @@ const native: TranslationStrings = {
   'native.connect.submit': 'Подключиться',
   'native.connect.checking': 'Проверка…',
   'native.connect.tryDemo': 'Попробовать демо',
-  'native.connect.whatIsServer': 'Что такое сервер TREK?',
   'native.connect.errorInvalid': 'Это не похоже на веб-адрес.',
   'native.connect.errorUnreachable': 'По этому адресу не отвечает ни один сервер. Проверьте адрес и подключение.',
   'native.connect.errorNotTrek': 'Сервер по этому адресу не является TREK.',
@@ -91,6 +90,13 @@ const native: TranslationStrings = {
   'native.plans.legalAndroid':
     'Оплата списывается с вашего аккаунта Google при подтверждении. Подписка продлевается автоматически, если вы не отмените её до конца периода. Управлять ею или отменить можно в Google Play: Профиль, Платежи и подписки, Подписки.',
   'native.plans.restoreNoneAndroid': 'Для этого аккаунта Google активная подписка не найдена.',
+  'native.subscribed.title': 'У вас уже есть TREK Cloud',
+  'native.subscribed.text':
+    'На этом Apple ID уже есть активная подписка TREK Cloud. Оформить новую, в том числе с новым адресом, можно после её окончания.',
+  'native.subscribed.textAndroid':
+    'В этом аккаунте Google уже есть активная подписка TREK Cloud. Оформить новую, в том числе с новым адресом, можно после её окончания.',
+  'native.subscribed.open': 'Открыть мой TREK',
+  'native.subscribed.manage': 'Управлять подпиской',
   'native.claim.agree':
     'Оформляя подписку, вы соглашаетесь, что к предоставлению вашего экземпляра применяются условия TREK Cloud (поставщик: Maurice Bötger, Росток). Покупку, оплату и возвраты обрабатывает магазин.',
   'native.claim.consentTitle':
