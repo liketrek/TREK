@@ -579,6 +579,12 @@
       "mobile": ["src/mobile/screens/trip/tabs/MPackingListTab.tsx"]
     },
     {
+      "feature": "Packing list: sharing of a whole list",
+      "hooks": ["src/components/Packing/usePackingCategorySharing.ts"],
+      "desktop": ["src/components/Packing/usePackingListPanel.ts"],
+      "mobile": ["src/mobile/screens/trip/tabs/MPackingListTab.tsx"]
+    },
+    {
       "feature": "Packing list: usePackingImport",
       "hooks": ["src/components/Packing/usePackingImport.ts"],
       "desktop": ["src/components/Packing/usePackingListPanel.ts"],
@@ -1087,6 +1093,7 @@
     "src/mobile/screens/trip/tabs/MCollabTab.tsx": "Phone collab sub tab router that reuses the desktop CollabLinks component.",
     "src/mobile/screens/trip/tabs/MFilesBoard.tsx": "Markup only; the trip's files as tiles and the picked file's preview on a wide window, with the files and their actions handed in through props from MFilesTab.",
     "src/mobile/screens/trip/tabs/MListsTab.tsx": "Phone router between the packing and to-do bodies, with no logic of its own.",
+    "src/mobile/screens/trip/tabs/MPackingCategorySharingSheet.tsx": "Markup only; the sheet that shares a whole list, with its state from usePackingCategorySharing handed in through props by MPackingListTab.",
     "src/mobile/screens/trip/tabs/MReceiptScanButton.tsx": "Already shares useReceiptScan and ReceiptScanModal with the desktop CostsPanel.",
     "src/mobile/screens/trip/tabs/MReservationCardParts.tsx": "Markup only: the title, actions, date, files and delete sheet parts both phone booking tabs draw.",
     "src/mobile/screens/trip/tabs/MTodoSidebar.tsx": "Markup only; the to-do filters as a pane beside the tasks on a wide window, with the filter state and the counts handed in through props from useTodoView.",
