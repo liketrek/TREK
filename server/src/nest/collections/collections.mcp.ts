@@ -10,11 +10,13 @@ import {
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   ok,
+  okCompact,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollectionsItemsService } from './collections-items.service';
+import { CollectionsPlacesPageService } from './collections-places-page.service';
 import { CollectionsService } from './collections.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import {
@@ -29,7 +31,10 @@ import {
   collectionInviteRequestSchema,
   collectionSetStatusFromTripRequestSchema,
   collectionItemsRequestSchema,
+  collectionPlacesPageRequestSchema,
   collectionLinkSchema,
+  COLLECTION_PLACES_PAGE_DEFAULT,
+  COLLECTION_PLACES_PAGE_MAX,
   COLLECTION_STATUSES,
   COLLECTION_ROLES,
   idSchema,
@@ -46,6 +51,7 @@ import type {
   CollectionLabelAssignRequest,
   CollectionSetStatusFromTripRequest,
   CollectionItemsRequest,
+  CollectionPlacesPageRequest,
   CollectionStatus,
   CollectionRole,
 } from '@trek/shared';
@@ -90,6 +96,7 @@ export class CollectionsMcp {
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
     private readonly items: CollectionsItemsService,
+    private readonly placesPage: CollectionsPlacesPageService,
   ) {}
 
   // ── Read ──────────────────────────────────────────────────────────────
@@ -114,7 +121,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'get_collection',
     description:
-      'Get one collection with its members, labels, and all saved places. Each place includes rating_avg / rating_count and the per-member ratings (#1435) so you can plan around highly-rated spots.',
+      'Get one collection with its members, labels, and all saved places. Each place includes rating_avg / rating_count and the per-member ratings (#1435) so you can plan around highly-rated spots. For a long list, page through it with list_collection_places instead.',
     inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collectionsAddonOn,
@@ -123,6 +130,23 @@ export class CollectionsMcp {
   async getCollection({ collectionId }: { collectionId: number }, ctx: McpContext) {
     try {
       return ok(await this.collections.getCollection(ctx.userId, collectionId));
+    } catch (err) {
+      return fail(err);
+    }
+  }
+
+  @Tool({
+    name: 'list_collection_places',
+    description: `Page through one list's saved places in the list's own order (the order get_collection uses), ${COLLECTION_PLACES_PAGE_DEFAULT} at a time unless limit says otherwise (at most ${COLLECTION_PLACES_PAGE_MAX}). Each place as a compact row: id, name, status and label_ids, plus address, lat, lng, google_place_id, website and phone, every one left out when empty. Filter by status, by labelId (a label of this list) or with unlabeled: true for the places without any label. Next to the page: the list's labels, total (the places the filter matches) and next_cursor; pass it back as cursor for the next page, null on the last. A page of long rows can end before limit, so always go on at next_cursor. Labelling the places of a page while paging through unlabeled ones skips none. Pairs with assign_collection_labels and update_collection_place; get_collection_items reads a place in full.`,
+    inputSchema: collectionPlacesPageRequestSchema.shape,
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: collectionsAddonOn,
+    access: { group: 'collections', mode: 'read' },
+  })
+  async listCollectionPlaces(request: CollectionPlacesPageRequest, ctx: McpContext) {
+    try {
+      // One line of JSON: the size of a long list is what this tool exists for (#2647).
+      return okCompact(await this.placesPage.listPlaces(ctx.userId, request));
     } catch (err) {
       return fail(err);
     }

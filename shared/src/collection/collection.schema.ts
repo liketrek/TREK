@@ -294,6 +294,38 @@ export const collectionItemsRequestSchema = z.object({
 });
 export type CollectionItemsRequest = z.infer<typeof collectionItemsRequestSchema>;
 
+export const COLLECTION_PLACES_PAGE_DEFAULT = 100;
+export const COLLECTION_PLACES_PAGE_MAX = 500;
+
+/**
+ * One page of a list's places for an MCP client (list_collection_places, #2647):
+ * get_collection answers a long list as one block a client cuts in the middle.
+ * Pages follow the list's own order and continue from a cursor rather than an
+ * offset, so labelling the places of one page while filtering on `unlabeled`
+ * cannot make the next page skip any.
+ */
+export const collectionPlacesPageRequestSchema = z.object({
+  collectionId: idSchema,
+  cursor: z
+    .string()
+    .max(200)
+    .optional()
+    .describe('Where to go on: the next_cursor of the page before. Leave it out for the first page.'),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(COLLECTION_PLACES_PAGE_MAX)
+    .optional()
+    .describe(
+      `How many places at most (default ${COLLECTION_PLACES_PAGE_DEFAULT}, at most ${COLLECTION_PLACES_PAGE_MAX})`,
+    ),
+  status: z.enum(COLLECTION_STATUSES).optional().describe('Only places with this status'),
+  labelId: idSchema.optional().describe('Only places carrying this label of the list'),
+  unlabeled: z.boolean().optional().describe('true: only places without any label. Not together with labelId.'),
+});
+export type CollectionPlacesPageRequest = z.infer<typeof collectionPlacesPageRequestSchema>;
+
 // Fusion invitations. user_id is NUMERIC ONLY — the UI always sends an id from availableUsers.
 export const collectionInviteRequestSchema = z.object({
   collection_id: z.number(),

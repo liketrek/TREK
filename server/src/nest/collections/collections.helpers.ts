@@ -1,4 +1,7 @@
+import type { CollectionPlacePosition } from '../../db/repositories/Collections.repository';
 import type { CollectionLink, CollectionPlaceUpdateRequest } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Pure helpers of the collections domain, moved verbatim out of
@@ -47,4 +50,30 @@ export function listingWriteOf(body: CollectionPlaceUpdateRequest): ListingWrite
   if (body.price !== undefined) write.price = body.price ?? null;
   if (body.currency !== undefined) write.currency = body.currency ?? null;
   return write;
+}
+
+/** A cursor as list_collection_places hands it out: the position of the last place of a page. */
+const placesCursorSchema = z.tuple([z.number().int(), z.string().max(40), z.number().int().positive()]);
+
+/**
+ * The cursor of the page after a place (#2647): its position in the list, so
+ * the next page starts right after it whatever changed in between. Opaque to
+ * the client, which passes it back as it came.
+ */
+export function encodePlacesCursor(position: CollectionPlacePosition): string {
+  return Buffer.from(JSON.stringify([position.sortOrder, position.createdAt, position.id])).toString('base64url');
+}
+
+/** The position a cursor names; null for anything encodePlacesCursor did not write. */
+export function decodePlacesCursor(cursor: string): CollectionPlacePosition | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+  const parsed = placesCursorSchema.safeParse(value);
+  if (!parsed.success) return null;
+  const [sortOrder, createdAt, id] = parsed.data;
+  return { sortOrder, createdAt, id };
 }

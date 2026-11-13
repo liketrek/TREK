@@ -2,8 +2,10 @@ import {
   collectionDeleteManyRequestSchema,
   collectionItemsRequestSchema,
   collectionMembershipSchema,
+  collectionPlacesPageRequestSchema,
   collectionPlaceUpdateRequestSchema,
   collectionReorderRequestSchema,
+  COLLECTION_PLACES_PAGE_DEFAULT,
   collectionSavePlaceRequestSchema,
   collectionStatusSchema,
   isVisitedCollectionStatus,
@@ -132,5 +134,30 @@ describe('collectionMembershipSchema', () => {
     const coloured = collectionMembershipSchema.parse({ saved: true, lists: [{ ...list, color: '#e11d48' }] });
     expect(coloured.lists[0]?.color).toBe('#e11d48');
     expect(collectionMembershipSchema.parse({ saved: true, lists: [list] }).lists[0]?.color).toBeUndefined();
+  });
+});
+
+describe('collectionPlacesPageRequestSchema', () => {
+  // #2647: a page of a list for list_collection_places.
+  it('takes a list alone, or a cursor, a limit of 1 to 500 and the filters', () => {
+    expect(collectionPlacesPageRequestSchema.safeParse({ collectionId: 4 }).success).toBe(true);
+    const full = {
+      collectionId: 4,
+      cursor: 'WzAsIiIsMV0',
+      limit: 500,
+      status: 'revisit',
+      labelId: 7,
+      unlabeled: false,
+    };
+    expect(collectionPlacesPageRequestSchema.parse(full)).toEqual(full);
+    for (const page of [
+      {},
+      { collectionId: 4, limit: 0 },
+      { collectionId: 4, limit: 501 },
+      { collectionId: 4, status: 'gone' },
+    ]) {
+      expect(collectionPlacesPageRequestSchema.safeParse(page).success, JSON.stringify(page)).toBe(false);
+    }
+    expect(COLLECTION_PLACES_PAGE_DEFAULT).toBe(100);
   });
 });
