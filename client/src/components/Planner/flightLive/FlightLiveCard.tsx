@@ -1,142 +1,167 @@
-import { Info, Radio } from 'lucide-react';
+import { Clock, Info } from 'lucide-react';
 import { useTranslation } from '../../../i18n';
 import type { DelayTone } from '../../../utils/flightLiveModel';
-import FlightArc from './FlightArc';
+import { Field } from '../bookings/bookingParts';
+import FlightMiniMap, { FLIGHT_MAP_CREDIT } from './FlightMiniMap';
 import { useFlightLiveCard, type FlightTimeCell } from './useFlightLiveCard';
 
-const DELAY_CHIP: Record<DelayTone, string> = {
-  ok: 'bg-success-soft text-success',
-  minor: 'bg-warning-soft text-warning',
-  major: 'bg-danger-soft text-danger',
+type CardTone = 'live' | 'done' | 'planned';
+
+/** The dialog head's pill, one size down: this head sits inside the dialog, under the real one. */
+const PILL =
+  'inline-flex flex-none items-center gap-1 rounded-full bg-surface-card px-2 py-0.5 text-caption font-semibold text-content shadow-sm';
+
+const DELAY_TONE: Record<DelayTone, string> = {
+  ok: 'text-success',
+  minor: 'text-warning',
+  major: 'text-danger',
+};
+
+/** The head band's tint and the status dot, in the stage's colour like a booking dialog's head. */
+const HEAD: Record<CardTone, { band: string; dot: string }> = {
+  live: { band: 'bg-[color-mix(in_srgb,var(--info)_11%,transparent)]', dot: 'bg-info' },
+  done: { band: 'bg-[color-mix(in_srgb,var(--success)_11%,transparent)]', dot: 'bg-success' },
+  planned: { band: 'bg-surface-tertiary', dot: 'bg-content-faint' },
 };
 
 interface FlightLiveCardProps {
   tripId: number;
   reservationId: number;
   legIndex: number;
-  /** "Flight 2 of 3" above the card, for a booking with stopovers. */
+  /** "Flight 2 of 3" in the head, for a booking with stopovers. */
   legLabel?: string;
 }
 
-function TimeBlock({
+/** The time that counts on a white tile, the planned one struck beside it; both ends' tiles are the same size. */
+function TimeTile({ cell, end }: { cell: FlightTimeCell; end?: boolean }) {
+  return (
+    <span
+      className={`mt-auto flex w-full items-baseline gap-1.5 rounded-lg bg-surface-card px-2.5 py-1.5 tabular-nums shadow-sm ${end ? 'justify-end' : 'justify-start'}`}
+    >
+      {cell.planned && <s className="text-caption text-content-faint">{cell.planned}</s>}
+      <span className="text-subtitle font-semibold leading-tight text-content">{cell.value}</span>
+    </span>
+  );
+}
+
+/** One end of the pass: its label, the airport code large, the city, and its time at the foot. */
+function End({
+  label,
   code,
   city,
   cell,
   end,
 }: {
+  label: string;
   code: string;
   city: string | null;
   cell: FlightTimeCell;
   end?: boolean;
 }) {
   return (
-    <div className={`flex min-w-0 flex-col ${end ? 'items-end text-end' : 'items-start text-start'}`}>
-      <span className="font-geist text-title font-bold leading-none tracking-[-0.02em] text-content">{code}</span>
+    <div className={`relative z-[1] flex min-w-0 flex-col ${end ? 'items-end text-end' : 'items-start text-start'}`}>
+      <span className="font-geist text-caption font-semibold uppercase tracking-[0.08em] text-content-faint">
+        {label}
+      </span>
+      <span className="mt-1 font-geist text-title font-bold leading-none tracking-[-0.02em] text-content">{code}</span>
       {city && (
-        <span dir="auto" className="mt-1 max-w-full truncate text-caption text-content-faint">
+        <span
+          dir="auto"
+          className="mt-1 line-clamp-2 max-w-full break-words text-caption leading-snug text-content-muted"
+        >
           {city}
         </span>
       )}
-      <span className="mt-2.5 flex items-baseline gap-1.5 tabular-nums">
-        {cell.planned && <s className="text-caption text-content-faint">{cell.planned}</s>}
-        <span className="text-subtitle font-semibold text-content">{cell.value}</span>
-      </span>
-      {cell.note && <span className="text-caption text-content-muted">{cell.note}</span>}
+      <span className="h-3 flex-none" />
+      <TimeTile cell={cell} end={end} />
     </div>
   );
 }
 
 /**
- * A flight's live state in the booking dialog: what is happening now in one
- * line, both airports with their times, the route as an arc with the aircraft
- * on it, and the numbers of the moment. Renders nothing while TREK follows no
- * state for this leg, so the dialog keeps its plain schedule tiles.
+ * A flight's live state in the booking dialog, built from the dialog's own
+ * parts: a tinted head with pills (where the flight stands, what comes next,
+ * the delay) like the dialog's head; the pass with a small real map of the
+ * route behind it and both times on tiles; then the numbers of the moment as
+ * the dialog's fields. Renders nothing while TREK has no live state to show
+ * for this leg, so the dialog keeps its plain schedule tiles.
  */
 export default function FlightLiveCard({ tripId, reservationId, legIndex, legLabel }: FlightLiveCardProps) {
   const { t } = useTranslation();
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
   if (!card) return null;
   const { leg, view } = card;
-  const quiet = view.stage === 'past' || view.stage === 'unknown';
+  const head = HEAD[card.tone];
 
   return (
     <section
-      className="rounded-xl border border-edge bg-surface-card p-4"
+      className="overflow-hidden rounded-xl border border-edge bg-surface-card"
       aria-label={`${leg.flight_number} ${card.headline}`}
     >
-      {legLabel && (
-        <div className="mb-2 font-geist text-caption font-semibold uppercase tracking-[0.06em] text-content-faint">
-          {legLabel}
-        </div>
-      )}
-      <header className="flex items-start gap-2.5">
-        <span className="relative mt-[7px] flex h-2.5 w-2.5 flex-none">
-          {card.live && (
-            <span className="absolute inset-0 rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
-          )}
-          <span
-            className={`relative h-2.5 w-2.5 rounded-full ${card.live ? 'bg-accent' : view.stage === 'landed' ? 'bg-success' : 'bg-content-faint'}`}
-          />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-subtitle font-semibold leading-snug text-content">{card.headline}</div>
-          {card.detail && <div className="text-caption text-content-muted">{card.detail}</div>}
-        </div>
-        {card.delay && (
-          <span
-            className={`flex-none rounded-full px-2.5 py-1 text-caption font-semibold tabular-nums ${DELAY_CHIP[card.delay.tone]}`}
-          >
-            {card.delay.text}
+      <header className={`flex flex-wrap items-center gap-1.5 px-3 py-2 ${head.band}`}>
+        {legLabel && (
+          <span className="me-1 font-geist text-caption font-semibold uppercase tracking-[0.08em] text-content-faint">
+            {legLabel}
           </span>
+        )}
+        <span className={PILL}>
+          <span className={`h-1.5 w-1.5 flex-none rounded-full ${head.dot}`} />
+          {card.headline}
+        </span>
+        {card.detail && (
+          <span className={PILL}>
+            <Clock size={11} strokeWidth={2.2} className="text-content-faint" />
+            <span className="font-medium text-content-muted">{card.detail}</span>
+          </span>
+        )}
+        {card.delay && (
+          <span className={`${PILL} ms-auto tabular-nums ${DELAY_TONE[card.delay.tone]}`}>{card.delay.text}</span>
         )}
       </header>
 
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)] items-start gap-3">
-        <TimeBlock code={leg.origin.code} city={leg.origin.name} cell={card.dep} />
-        <div className="flex flex-col items-center pt-1">
-          <FlightArc
+      <div className="p-4">
+        <div className="relative grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-stretch gap-3 overflow-hidden rounded-lg bg-surface-tertiary px-4 py-3.5">
+          <FlightMiniMap
+            leg={leg}
             progress={view.progress}
-            showPlane={!quiet}
+            showPlane={view.stage !== 'upcoming' && view.stage !== 'soon'}
             dimPlane={view.stale}
-            track="var(--text-faint)"
-            flown="var(--accent)"
-            plane={view.stage === 'landed' ? 'var(--text-muted)' : 'var(--accent)'}
-            className="max-w-[260px]"
+            credits={card.attribution ? [card.attribution, FLIGHT_MAP_CREDIT] : [FLIGHT_MAP_CREDIT]}
+            inset={0.36}
+            className="!absolute inset-0 [--fm-ahead:var(--text-muted)] [--fm-code:var(--text-muted)] [--fm-end:var(--bg-card)] [--fm-flown:var(--info)] [--fm-halo:var(--bg-card)] [--fm-plane:var(--info)]"
           />
-          <span className="mt-1 font-geist text-caption font-semibold tracking-[0.04em] text-content-muted">
-            {leg.flight_number}
-          </span>
+          <End label={t('reservations.span.departure')} code={leg.origin.code} city={leg.origin.name} cell={card.dep} />
+          <div className="relative z-[1] flex items-end justify-center">
+            <span className="rounded-full bg-surface-card px-2 py-0.5 font-geist text-caption font-semibold tracking-[0.04em] text-content-muted shadow-sm">
+              {leg.flight_number}
+            </span>
+          </div>
+          <End
+            label={t('reservations.span.arrival')}
+            code={leg.destination.code}
+            city={leg.destination.name}
+            cell={card.arr}
+            end
+          />
         </div>
-        <TimeBlock code={leg.destination.code} city={leg.destination.name} cell={card.arr} end />
+
+        {card.stats.length > 0 && (
+          <div className="mt-3 grid auto-cols-fr grid-flow-col gap-2">
+            {card.stats.map((s) => (
+              <Field key={s.label} label={s.label} tabular>
+                {s.value}
+              </Field>
+            ))}
+          </div>
+        )}
+
+        {card.gateHint && (
+          <p className="mt-3 flex items-start gap-1.5 text-caption text-content-faint">
+            <Info size={13} strokeWidth={2} className="mt-px flex-none" />
+            {t('flightLive.noGateHint')}
+          </p>
+        )}
       </div>
-
-      {card.stats.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {card.stats.map((s) => (
-            <div key={s.label} className="min-w-0 rounded-lg bg-surface-tertiary px-2.5 py-2">
-              <div className="truncate text-caption text-content-faint">{s.label}</div>
-              <div className="truncate text-body font-semibold tabular-nums text-content">{s.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {card.gateHint && (
-        <p className="mt-3 flex items-start gap-1.5 text-caption text-content-faint">
-          <Info size={13} strokeWidth={2} className="mt-px flex-none" />
-          {t('flightLive.noGateHint')}
-        </p>
-      )}
-
-      {card.footnote && (
-        <footer className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-content-faint">
-          <span className="inline-flex items-center gap-1.5">
-            <Radio size={12} strokeWidth={2} className={view.stale ? 'text-warning' : ''} />
-            {card.footnote}
-          </span>
-          {card.attribution && <span className="ms-auto">{card.attribution}</span>}
-        </footer>
-      )}
     </section>
   );
 }

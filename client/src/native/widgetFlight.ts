@@ -72,6 +72,34 @@ export function pickWidgetLeg(legs: FlightLiveLeg[], nowMs: number): FlightLiveL
   );
 }
 
+/** What the feed observed about a leg, for the widget: each part only when it is known. */
+function observed(
+  leg: FlightLiveLeg,
+  depSeconds: number,
+  time: (ms: number, tz: string | null) => string
+): Partial<WidgetFlight> {
+  const landed = toMs(leg.landed_at);
+  const expected = landed ?? (leg.phase === 'airborne' ? toMs(leg.estimated_arrival) : null);
+  const lateBy = leg.departure_delay_min ?? 0;
+  const delay = leg.arrival_delay_min ?? leg.departure_delay_min;
+  const aircraft = [leg.aircraft?.type, leg.aircraft?.registration].filter(Boolean).join(' ');
+  return {
+    ...(leg.departed_at
+      ? { depActual: sec(toMs(leg.departed_at)) }
+      : lateBy > 0
+        ? { depExpected: depSeconds + lateBy * 60 }
+        : {}),
+    ...(leg.phase === 'airborne' ? { airborne: true } : {}),
+    ...(expected != null
+      ? { arrExpected: sec(expected), arrTimeExpected: time(expected, leg.destination.timezone) }
+      : {}),
+    ...(landed != null ? { landed: true } : {}),
+    ...(delay != null ? { delay } : {}),
+    ...(aircraft ? { aircraft } : {}),
+    ...(leg.last_seen_at ? { seen: sec(toMs(leg.last_seen_at)) } : {}),
+  };
+}
+
 export function widgetFlight(
   legs: FlightLiveLeg[],
   nowMs: number,
@@ -83,10 +111,6 @@ export function widgetFlight(
   const arr = leg ? toMs(leg.scheduled_arrival) : null;
   if (!leg || dep == null || arr == null) return undefined;
   const time = (ms: number, tz: string | null) => airportTime(ms, tz, clock.locale, clock.timeFormat);
-  const landed = toMs(leg.landed_at);
-  const expected = landed ?? (leg.phase === 'airborne' ? toMs(leg.estimated_arrival) : null);
-  const aircraft = [leg.aircraft?.type, leg.aircraft?.registration].filter(Boolean).join(' ');
-  const delay = leg.arrival_delay_min ?? leg.departure_delay_min;
   return {
     number: leg.flight_number,
     from: leg.origin.code,
@@ -95,20 +119,9 @@ export function widgetFlight(
     ...(leg.destination.name ? { toCity: leg.destination.name } : {}),
     dep: Math.round(dep / 1000),
     arr: Math.round(arr / 1000),
-    ...(leg.departed_at ? { depActual: sec(toMs(leg.departed_at)) } : {}),
-    ...(!leg.departed_at && leg.departure_delay_min != null && leg.departure_delay_min > 0
-      ? { depExpected: Math.round(dep / 1000) + leg.departure_delay_min * 60 }
-      : {}),
-    ...(leg.phase === 'airborne' ? { airborne: true } : {}),
-    ...(expected != null
-      ? { arrExpected: sec(expected), arrTimeExpected: time(expected, leg.destination.timezone) }
-      : {}),
-    ...(landed != null ? { landed: true } : {}),
     depTime: time(dep, leg.origin.timezone),
     arrTime: time(arr, leg.destination.timezone),
-    ...(delay != null ? { delay } : {}),
-    ...(aircraft ? { aircraft } : {}),
-    ...(leg.last_seen_at ? { seen: sec(toMs(leg.last_seen_at)) } : {}),
+    ...observed(leg, Math.round(dep / 1000), time),
     path: `${tripPath}?booking=${leg.reservation_id}`,
   };
 }

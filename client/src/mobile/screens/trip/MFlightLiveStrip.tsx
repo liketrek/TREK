@@ -9,24 +9,6 @@ const DELAY_COLOR: Record<DelayTone, string> = {
 
 const LIVE = 'var(--m-st-info)';
 
-/** The status dot: pulsing blue while the aircraft moves, green once landed, faint otherwise. */
-function Dot({ live, landed, size }: { live: boolean; landed: boolean; size: string }) {
-  return (
-    <span className={`relative flex flex-none ${size}`}>
-      {live && (
-        <span
-          className="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping"
-          style={{ background: LIVE }}
-        />
-      )}
-      <span
-        className={`relative rounded-full ${size}`}
-        style={{ background: live ? LIVE : landed ? 'var(--m-st-confirmed)' : 'var(--m-faint)' }}
-      />
-    </span>
-  );
-}
-
 interface MFlightLiveStripProps {
   tripId: number;
   reservationId: number;
@@ -51,7 +33,7 @@ export default function MFlightLiveStrip({ tripId, reservationId, onOpen, classN
 
 function Strip({ tripId, reservationId, legIndex, onOpen, className }: MFlightLiveStripProps & { legIndex: number }) {
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
-  if (!card || card.view.stage === 'past' || card.view.stage === 'upcoming') return null;
+  if (!card || card.view.stage === 'upcoming') return null;
   const { view } = card;
   return (
     <button
@@ -60,7 +42,6 @@ function Strip({ tripId, reservationId, legIndex, onOpen, className }: MFlightLi
       className={`flex min-w-0 flex-col gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px] text-start ${className}`}
     >
       <span className="flex w-full min-w-0 items-center gap-2">
-        <Dot live={card.live} landed={view.stage === 'landed'} size="h-[7px] w-[7px]" />
         <span className="min-w-0 flex-1 truncate text-caption font-semibold text-m-ink">{card.line}</span>
         {card.delay && card.delay.tone !== 'ok' && (
           <span
@@ -102,10 +83,9 @@ export function MPlanFlightLine({
 }) {
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
   const stage = card?.view.stage;
-  if (!card || stage === 'past' || stage === 'upcoming') return null;
+  if (!card || stage === 'upcoming') return null;
   return (
     <div className="mt-[2px] flex min-w-0 items-center gap-[6px] font-geist text-caption">
-      <Dot live={card.live} landed={stage === 'landed'} size="h-[6px] w-[6px]" />
       <span className="min-w-0 truncate font-semibold" style={{ color: card.live ? LIVE : 'var(--m-muted)' }}>
         {card.line}
       </span>

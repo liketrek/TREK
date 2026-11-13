@@ -72,7 +72,7 @@ export default function BookingCard(p: BookingCardProps) {
 
       <div className="flex flex-1 flex-col gap-2 px-3 pb-3 pt-2.5">
         <WhenFields facts={facts} />
-        {r.type === 'flight' && <FlightLiveStrip tripId={p.tripId} reservationId={r.id} />}
+        <FlightLiveStrip tripId={p.tripId} reservationId={r.id} type={r.type} />
 
         {transit ? <TransitBody r={r} /> : (
           <>

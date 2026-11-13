@@ -1,46 +1,73 @@
-import { Info, Radio } from 'lucide-react';
-import FlightArc from '../../../../components/Planner/flightLive/FlightArc';
+import { Clock, Info } from 'lucide-react';
+import FlightMiniMap, { FLIGHT_MAP_CREDIT } from '../../../../components/Planner/flightLive/FlightMiniMap';
 import { useFlightLiveCard, type FlightTimeCell } from '../../../../components/Planner/flightLive/useFlightLiveCard';
 import { useTranslation } from '../../../../i18n';
 import type { DelayTone } from '../../../../utils/flightLiveModel';
 import { INNER_CLS, StatBox } from './MTripSheetUi';
 
-const DELAY_CHIP: Record<DelayTone, string> = {
-  ok: 'bg-[color-mix(in_srgb,var(--m-st-confirmed)_16%,transparent)] text-[color:var(--m-st-confirmed)]',
-  minor: 'bg-[color-mix(in_srgb,var(--m-st-pending)_18%,transparent)] text-[color:var(--m-st-pending)]',
-  major: 'bg-[color-mix(in_srgb,var(--m-st-danger)_16%,transparent)] text-[color:var(--m-st-danger)]',
+type CardTone = 'live' | 'done' | 'planned';
+
+const DELAY_TONE: Record<DelayTone, string> = {
+  ok: 'text-[color:var(--m-st-confirmed)]',
+  minor: 'text-[color:var(--m-st-pending)]',
+  major: 'text-[color:var(--m-st-danger)]',
 };
 
-const LIVE = 'var(--m-st-info)';
+/** The head band's tint and the status dot, in the stage's colour. */
+const HEAD: Record<CardTone, { band: string; dot: string }> = {
+  live: { band: 'bg-[color-mix(in_srgb,var(--m-st-info)_12%,transparent)]', dot: 'bg-[color:var(--m-st-info)]' },
+  done: {
+    band: 'bg-[color-mix(in_srgb,var(--m-st-confirmed)_12%,transparent)]',
+    dot: 'bg-[color:var(--m-st-confirmed)]',
+  },
+  planned: { band: 'bg-[color:var(--m-ic)]', dot: 'bg-[color:var(--m-faint)]' },
+};
 
-function Airport({
+const BADGE =
+  'inline-flex flex-none items-center gap-[5px] rounded-full bg-[color:var(--m-inner)] px-[7px] py-[2px] font-geist text-caption font-bold shadow-sm';
+
+/** The time that counts on a tile, the planned one struck beside it; both ends' tiles are the same size. */
+function TimeTile({ cell, end }: { cell: FlightTimeCell; end?: boolean }) {
+  return (
+    <span
+      className={`mt-auto flex w-full items-baseline gap-[5px] rounded-[10px] bg-[color:var(--m-inner)] px-[9px] py-[6px] tabular-nums shadow-sm ${end ? 'justify-end' : 'justify-start'}`}
+    >
+      {cell.planned && <s className="font-geist text-caption text-m-faint">{cell.planned}</s>}
+      <span className="font-geist text-subtitle font-bold leading-tight text-m-ink">{cell.value}</span>
+    </span>
+  );
+}
+
+/** One end of the pass: its label, the airport code large, the city, and its time at the foot. */
+function End({
+  label,
   code,
   city,
   cell,
   end,
 }: {
+  label: string;
   code: string;
   city: string | null;
   cell: FlightTimeCell;
   end?: boolean;
 }) {
   return (
-    <div className={`flex min-w-0 flex-col ${end ? 'items-end text-end' : 'items-start text-start'}`}>
-      <span className="font-geist text-title font-bold leading-none tracking-[-0.03em] text-m-ink">{code}</span>
+    <div className={`relative z-[1] flex min-w-0 flex-col ${end ? 'items-end text-end' : 'items-start text-start'}`}>
+      <span className="font-geist text-caption font-bold uppercase tracking-[.08em] text-m-faint">{label}</span>
+      <span className="mt-[3px] font-geist text-title font-bold leading-none tracking-[-0.03em] text-m-ink">
+        {code}
+      </span>
       {city && (
-        <span dir="auto" className="mt-[3px] max-w-full truncate text-caption text-m-faint">
+        <span
+          dir="auto"
+          className="mt-[3px] line-clamp-2 max-w-full break-words text-caption leading-snug text-m-muted"
+        >
           {city}
         </span>
       )}
-      {cell.planned && <s className="mt-[7px] font-geist text-caption tabular-nums text-m-faint">{cell.planned}</s>}
-      <span
-        className={`${cell.planned ? '' : 'mt-[7px]'} font-geist text-subtitle font-bold tabular-nums leading-tight text-m-ink`}
-      >
-        {cell.value}
-      </span>
-      {cell.note && (
-        <span className="text-caption font-medium uppercase tracking-[.05em] text-m-muted">{cell.note}</span>
-      )}
+      <span className="h-[10px] flex-none" />
+      <TimeTile cell={cell} end={end} />
     </div>
   );
 }
@@ -53,98 +80,86 @@ interface MFlightLiveCardProps {
 }
 
 /**
- * The live flight card of the phone's transport sheet: the moment in one line,
- * the two airports large with their times, the route as an arc with the
- * aircraft on it, and the numbers of the moment as the sheet's own stat boxes.
- * Same data as the desktop card (useFlightLiveCard), laid out for a thumb.
+ * The live flight card of the phone's transport sheet, laid out like the
+ * desktop card (useFlightLiveCard) from the sheet's own parts: a tinted head
+ * with badges (where the flight stands, what comes next, the delay), the pass
+ * with the small route map behind it and both times on tiles, then the numbers
+ * of the moment as the sheet's stat boxes. Nothing without live data.
  */
 export default function MFlightLiveCard({ tripId, reservationId, legIndex, legLabel }: MFlightLiveCardProps) {
   const { t } = useTranslation();
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
   if (!card) return null;
   const { leg, view } = card;
-  const quiet = view.stage === 'past' || view.stage === 'unknown';
+  const head = HEAD[card.tone];
 
   return (
     <section
-      className={`mt-[14px] rounded-[18px] px-[14px] pb-3 pt-[13px] ${INNER_CLS}`}
+      className={`mt-[14px] overflow-hidden rounded-[18px] ${INNER_CLS}`}
       aria-label={`${leg.flight_number} ${card.headline}`}
     >
-      {legLabel && (
-        <div className="mb-[6px] font-geist text-caption font-bold uppercase tracking-[.08em] text-m-faint">
-          {legLabel}
-        </div>
-      )}
-      <div className="flex items-start gap-[9px]">
-        <span className="relative mt-[7px] flex h-2 w-2 flex-none">
-          {card.live && (
-            <span
-              className="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping"
-              style={{ background: LIVE }}
-            />
-          )}
-          <span
-            className="relative h-2 w-2 rounded-full"
-            style={{
-              background: card.live ? LIVE : view.stage === 'landed' ? 'var(--m-st-confirmed)' : 'var(--m-faint)',
-            }}
-          />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-body font-semibold leading-snug text-m-ink">{card.headline}</div>
-          {card.detail && <div className="mt-px text-caption text-m-muted">{card.detail}</div>}
-        </div>
-        {card.delay && (
-          <span
-            className={`flex-none rounded-full px-[9px] py-[3px] font-geist text-caption font-bold tabular-nums ${DELAY_CHIP[card.delay.tone]}`}
-          >
-            {card.delay.text}
+      <div className={`flex items-center gap-[5px] px-[10px] py-[7px] ${head.band}`}>
+        {legLabel && (
+          <span className="me-[2px] font-geist text-caption font-bold uppercase tracking-[.08em] text-m-faint">
+            {legLabel}
           </span>
+        )}
+        <span className={`${BADGE} text-m-ink`}>
+          <span className={`h-[6px] w-[6px] flex-none rounded-full ${head.dot}`} />
+          {card.headline}
+        </span>
+        {card.detail && (
+          <span className={`${BADGE} min-w-0 flex-initial font-semibold text-m-muted`}>
+            <Clock size={10} strokeWidth={2.2} className="flex-none" />
+            <span className="truncate">{card.detail}</span>
+          </span>
+        )}
+        {card.delay && (
+          <span className={`${BADGE} ms-auto tabular-nums ${DELAY_TONE[card.delay.tone]}`}>{card.delay.text}</span>
         )}
       </div>
 
-      <div className="mt-[14px] grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)] items-start gap-2">
-        <Airport code={leg.origin.code} city={leg.origin.name} cell={card.dep} />
-        <div className="flex flex-col items-center pt-[2px]">
-          <FlightArc
+      <div className="px-[12px] pb-3 pt-[12px]">
+        <div className="relative grid grid-cols-[minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,1fr)] items-stretch gap-2 overflow-hidden rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[11px]">
+          <FlightMiniMap
+            leg={leg}
             progress={view.progress}
-            showPlane={!quiet}
+            showPlane={view.stage !== 'upcoming' && view.stage !== 'soon'}
             dimPlane={view.stale}
-            track="var(--m-faint)"
-            flown={view.stage === 'landed' ? 'var(--m-muted)' : LIVE}
-            plane={view.stage === 'landed' ? 'var(--m-muted)' : 'var(--m-ink)'}
+            credits={card.attribution ? [card.attribution, FLIGHT_MAP_CREDIT] : [FLIGHT_MAP_CREDIT]}
+            inset={0.36}
+            className="!absolute inset-0 [--fm-ahead:var(--m-muted)] [--fm-code:var(--m-muted)] [--fm-end:var(--m-inner)] [--fm-flown:var(--m-st-info)] [--fm-halo:var(--m-inner)] [--fm-plane:var(--m-st-info)]"
           />
-          <span className="mt-[2px] font-geist text-caption font-bold tracking-[.06em] text-m-muted">
-            {leg.flight_number}
-          </span>
+          <End label={t('reservations.span.departure')} code={leg.origin.code} city={leg.origin.name} cell={card.dep} />
+          <div className="relative z-[1] flex items-end justify-center">
+            <span className="rounded-full bg-[color:var(--m-inner)] px-[7px] py-px font-geist text-caption font-bold tracking-[.06em] text-m-muted shadow-sm">
+              {leg.flight_number}
+            </span>
+          </div>
+          <End
+            label={t('reservations.span.arrival')}
+            code={leg.destination.code}
+            city={leg.destination.name}
+            cell={card.arr}
+            end
+          />
         </div>
-        <Airport code={leg.destination.code} city={leg.destination.name} cell={card.arr} end />
+
+        {card.stats.length > 0 && (
+          <div className="mt-[10px] grid grid-cols-2 gap-[6px]">
+            {card.stats.map((s) => (
+              <StatBox key={s.label} value={s.value} label={s.label} />
+            ))}
+          </div>
+        )}
+
+        {card.gateHint && (
+          <p className="mt-[10px] flex items-start gap-[6px] text-caption text-m-faint">
+            <Info size={12} strokeWidth={2} className="mt-px flex-none" />
+            {t('flightLive.noGateHint')}
+          </p>
+        )}
       </div>
-
-      {card.stats.length > 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-[6px]">
-          {card.stats.map((s) => (
-            <StatBox key={s.label} value={s.value} label={s.label} />
-          ))}
-        </div>
-      )}
-
-      {card.gateHint && (
-        <p className="mt-[10px] flex items-start gap-[6px] text-caption text-m-faint">
-          <Info size={12} strokeWidth={2} className="mt-px flex-none" />
-          {t('flightLive.noGateHint')}
-        </p>
-      )}
-
-      {card.footnote && (
-        <div className="mt-[10px] flex flex-wrap items-center gap-x-2 gap-y-[2px] font-geist text-caption text-m-faint">
-          <span className="inline-flex items-center gap-1">
-            <Radio size={11} strokeWidth={2} style={view.stale ? { color: 'var(--m-st-pending)' } : undefined} />
-            {card.footnote}
-          </span>
-          {card.attribution && <span className="ms-auto">{card.attribution}</span>}
-        </div>
-      )}
     </section>
   );
 }

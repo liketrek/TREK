@@ -4,21 +4,11 @@ import { useCurrentFlightLegIndex, useFlightLiveCard } from './useFlightLiveCard
 
 const DELAY_TEXT: Record<DelayTone, string> = { ok: 'text-success', minor: 'text-warning', major: 'text-danger' };
 
-/** The status dot: pulsing accent while the aircraft moves, green once landed, faint otherwise. */
-function Dot({ live, landed, size }: { live: boolean; landed: boolean; size: string }) {
-  return (
-    <span className={`relative flex flex-none ${size}`}>
-      {live && <span className="absolute inset-0 rounded-full bg-accent opacity-60 motion-safe:animate-ping" />}
-      <span
-        className={`relative rounded-full ${size} ${live ? 'bg-accent' : landed ? 'bg-success' : 'bg-content-faint'}`}
-      />
-    </span>
-  );
-}
-
 interface FlightLiveStripProps {
   tripId: number;
   reservationId: number;
+  /** The booking's type: anything but a flight renders nothing, so a card can hand every booking in. */
+  type: string;
   className?: string;
 }
 
@@ -28,20 +18,24 @@ interface FlightLiveStripProps {
  * picture is one click away in the booking dialog. Nothing far ahead of the
  * flight (the card shows its date already), nothing once it is long over.
  */
-export default function FlightLiveStrip({ tripId, reservationId, className = '' }: FlightLiveStripProps) {
+export default function FlightLiveStrip({ tripId, reservationId, type, className = '' }: FlightLiveStripProps) {
   const legIndex = useCurrentFlightLegIndex(tripId, reservationId);
-  if (legIndex == null) return null;
+  if (type !== 'flight' || legIndex == null) return null;
   return <Strip tripId={tripId} reservationId={reservationId} legIndex={legIndex} className={className} />;
 }
 
-function Strip({ tripId, reservationId, legIndex, className }: FlightLiveStripProps & { legIndex: number }) {
+function Strip({
+  tripId,
+  reservationId,
+  legIndex,
+  className,
+}: Omit<FlightLiveStripProps, 'type'> & { legIndex: number }) {
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
-  if (!card || card.view.stage === 'past' || card.view.stage === 'upcoming') return null;
+  if (!card || card.view.stage === 'upcoming') return null;
   const { view } = card;
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 rounded-lg bg-surface-tertiary px-2.5 py-[7px] ${className}`}>
       <div className="flex min-w-0 items-center gap-2">
-        <Dot live={card.live} landed={view.stage === 'landed'} size="h-2 w-2" />
         <span className="min-w-0 flex-1 truncate text-caption font-semibold text-content">{card.line}</span>
         {card.delay && card.delay.tone !== 'ok' && (
           <span className={`flex-none text-caption font-semibold tabular-nums ${DELAY_TEXT[card.delay.tone]}`}>
@@ -84,10 +78,9 @@ export function PlanFlightLiveLine({
 function PlanLine({ tripId, reservationId, legIndex }: { tripId: number; reservationId: number; legIndex: number }) {
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
   const stage = card?.view.stage;
-  if (!card || stage === 'past' || stage === 'upcoming') return null;
+  if (!card || stage === 'upcoming') return null;
   return (
     <div className="mt-1 flex min-w-0 items-center gap-1.5 text-caption">
-      <Dot live={card.live} landed={stage === 'landed'} size="h-1.5 w-1.5" />
       <span className={`min-w-0 truncate font-semibold ${card.live ? 'text-content' : 'text-content-muted'}`}>
         {card.line}
       </span>

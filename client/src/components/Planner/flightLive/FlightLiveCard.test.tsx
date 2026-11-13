@@ -1,15 +1,17 @@
-// FE-PLANNER-FLIGHTLIVE-001 to FE-PLANNER-FLIGHTLIVE-008
+// FE-PLANNER-FLIGHTLIVE-001 to FE-PLANNER-FLIGHTLIVE-007
 import type { FlightLiveLeg } from '@trek/shared';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { render, screen } from '../../../../tests/helpers/render';
 import MFlightLiveStrip, { MPlanFlightLine } from '../../../mobile/screens/trip/MFlightLiveStrip';
 import MFlightLiveCard from '../../../mobile/screens/trip/sheets/MFlightLiveCard';
 import { legKey, useFlightLiveStore } from '../../../store/flightLiveStore';
 import type { Reservation } from '../../../types';
-import FlightArc from './FlightArc';
 import FlightLiveCard from './FlightLiveCard';
 import FlightLiveStrip, { PlanFlightLiveLine } from './FlightLiveStrip';
+
+// The map is Leaflet and WebGL, neither of which jsdom draws; the card around it is what is under test here.
+vi.mock('./FlightMiniMap', () => ({ default: () => null, FLIGHT_MAP_CREDIT: 'map credit' }));
 
 const H = 3_600_000;
 
@@ -76,7 +78,6 @@ describe('FlightLiveCard', () => {
     expect(screen.getByText('+35 min')).toBeInTheDocument();
     expect(screen.getByText('Altitude')).toBeInTheDocument();
     expect(screen.getByText('A359 D-AIXA')).toBeInTheDocument();
-    expect(screen.getByText('Live positions: adsb.lol (ODbL)')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-FLIGHTLIVE-002: renders nothing while TREK follows no state for the leg', () => {
@@ -106,7 +107,7 @@ describe('FlightLiveCard', () => {
     expect(screen.queryByText('Altitude')).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-FLIGHTLIVE-004: explains a flight the feed cannot find, and the missing gate only around boarding', () => {
+  it('FE-PLANNER-FLIGHTLIVE-004: shows nothing without live data, and the missing gate only around boarding', () => {
     seed(
       leg({
         phase: 'unknown',
@@ -117,11 +118,8 @@ describe('FlightLiveCard', () => {
         last_seen_at: null,
       })
     );
-    const { unmount } = render(<FlightLiveCard tripId={1} reservationId={6} legIndex={0} />);
-    expect(screen.getByText('No live data')).toBeInTheDocument();
-    expect(screen.queryByText(/Gate, terminal and baggage belt/)).not.toBeInTheDocument();
-    // Nothing heard, so the feed is not credited either.
-    expect(screen.queryByText('Live positions: adsb.lol (ODbL)')).not.toBeInTheDocument();
+    const { container, unmount } = render(<FlightLiveCard tripId={1} reservationId={6} legIndex={0} />);
+    expect(container).toBeEmptyDOMElement();
     unmount();
     const now = Date.now();
     seed(
@@ -156,7 +154,7 @@ describe('strips and plan lines', () => {
     seed(leg());
     render(
       <>
-        <FlightLiveStrip tripId={1} reservationId={6} />
+        <FlightLiveStrip tripId={1} reservationId={6} type="flight" />
         <MFlightLiveStrip tripId={1} reservationId={6} onOpen={() => {}} />
       </>
     );
@@ -179,23 +177,12 @@ describe('strips and plan lines', () => {
     const res = { id: 6, type: 'flight' } as Reservation;
     const { container } = render(
       <>
-        <FlightLiveStrip tripId={1} reservationId={6} />
+        <FlightLiveStrip tripId={1} reservationId={6} type="flight" />
         <PlanFlightLiveLine tripId={1} res={res} />
         <MPlanFlightLine tripId={1} reservationId={6} legIndex={0} />
         <PlanFlightLiveLine tripId={1} res={{ ...res, type: 'train' }} />
       </>
     );
     expect(container).toBeEmptyDOMElement();
-  });
-});
-
-describe('FlightArc', () => {
-  it('FE-PLANNER-FLIGHTLIVE-008: draws the flown part only once under way, and the aircraft on request', () => {
-    const { container, rerender } = render(
-      <FlightArc progress={0} showPlane={false} track="#999" flown="#00f" plane="#00f" />
-    );
-    expect(container.querySelectorAll('path')).toHaveLength(1);
-    rerender(<FlightArc progress={0.5} showPlane track="#999" flown="#00f" plane="#00f" />);
-    expect(container.querySelectorAll('path')).toHaveLength(3);
   });
 });

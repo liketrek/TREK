@@ -47,7 +47,45 @@ async function loadLayerFactory() {
     import('./engines/maplibre'),
     import('@maplibre/maplibre-gl-leaflet'),
   ])
+  guardTransitionEnd(bridge.MaplibreGL.prototype as unknown as GlLayerInternals)
   return bridge.maplibreGL
+}
+
+interface GlLayerInternals {
+  _map: L.Map | null
+  _glMap: { _actualCanvas: HTMLElement; once(event: string, fn: () => void): void; jumpTo(view: { center: L.LatLng; zoom: number }): void }
+  _resizeContainer(): void
+  _zoomEnd(): void
+  _transitionEnd: (e?: unknown) => void
+  _trekGuarded?: boolean
+}
+
+/**
+ * The bridge answers a map resize by scheduling a frame that reads
+ * `this._map.getZoom()` without asking whether the layer is still on a map. A
+ * layer taken off before that frame (a dialog closed at once, React mounting a
+ * map twice in development) threw "Cannot read properties of null (reading
+ * 'getZoom')" from inside the frame. This is the bridge's own method (0.1.4,
+ * pinned) with that question added; patched once, on the class.
+ */
+function guardTransitionEnd(proto: GlLayerInternals): void {
+  if (proto._trekGuarded) return
+  proto._transitionEnd = function (this: GlLayerInternals) {
+    L.Util.requestAnimFrame(() => {
+      const map = this._map
+      if (!map) return
+      const zoom = map.getZoom()
+      const center = map.getCenter()
+      const offset = map.latLngToContainerPoint(map.getBounds().getNorthWest())
+      this._resizeContainer()
+      L.DomUtil.setTransform(this._glMap._actualCanvas, offset, 1)
+      this._glMap.once('moveend', () => {
+        if (this._map) this._zoomEnd()
+      })
+      this._glMap.jumpTo({ center, zoom: zoom - 1 })
+    })
+  }
+  proto._trekGuarded = true
 }
 
 /** The factory, or null when its chunk never arrived. A dead chunk is not the basemap's problem. */

@@ -11,6 +11,7 @@ import {
   splitDuration,
   type DelayTone,
   type FlightLiveView,
+  type FlightStage,
 } from '../../../utils/flightLiveModel';
 
 type T = ReturnType<typeof useTranslation>['t'];
@@ -18,10 +19,8 @@ type T = ReturnType<typeof useTranslation>['t'];
 export interface FlightTimeCell {
   /** The time that counts now: observed, estimated or planned. */
   value: string;
-  /** The planned time, only when it differs from `value`. */
+  /** The planned time, only when it differs from `value`, shown struck beside it. */
   planned: string | null;
-  /** Shown under the time: "estimated", "actual" or nothing. */
-  note: string | null;
 }
 
 interface FlightStat {
@@ -32,9 +31,9 @@ interface FlightStat {
 interface FlightLiveCard {
   leg: FlightLiveLeg;
   view: FlightLiveView;
-  /** The big line: "Departs in 2 h 10 min", "In the air", "Landed". */
+  /** Where the flight stands: "Scheduled", "In the air", "Landed". */
   headline: string;
-  /** The quieter line under it, or null. */
+  /** What comes next: "Departs in 2 h 10 min", "Lands in 5 h", or null. */
   detail: string | null;
   /** Both in one line for the strips and plan rows, in the language's own joining. */
   line: string;
@@ -42,22 +41,28 @@ interface FlightLiveCard {
   dep: FlightTimeCell;
   arr: FlightTimeCell;
   stats: FlightStat[];
-  /** "Updated 2 min ago" with the feed's credit, or null before any data. */
-  footnote: string | null;
+  /** Who the live data came from, credited quietly on the map once the feed has seen this flight. */
   attribution: string | null;
   /** Around boarding, where a traveller looks for a gate open data does not have. */
   gateHint: boolean;
-  /** True while the aircraft is moving, for the pulsing status dot. */
+  /** True while the aircraft is moving. */
   live: boolean;
+  /** The colour family of the stage, for the tinted head of the card. */
+  tone: 'live' | 'done' | 'planned';
 }
 
-/** The current time, ticking every `ms` while mounted, for countdowns that move. */
-function useNow(ms: number): number {
+/**
+ * The current time, ticking every `ms` while `active`, for countdowns that move.
+ * Idle without a flight to show, so a booking TREK follows no state for sets
+ * no timer at all.
+ */
+function useNow(ms: number, active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    if (!active) return;
     const id = window.setInterval(() => setNow(Date.now()), ms);
     return () => window.clearInterval(id);
-  }, [ms]);
+  }, [ms, active]);
   return now;
 }
 
@@ -75,21 +80,23 @@ function delayText(minutes: number | null, t: T): { text: string; tone: DelayTon
   return { text: t('flightLive.onTime'), tone: 'ok' };
 }
 
+/** The stages a card speaks for; without live data (past, unknown) there is no card. */
+type ShownStage = Exclude<FlightStage, 'past' | 'unknown'>;
+
 function headlineOf(
+  stage: ShownStage,
   view: FlightLiveView,
   leg: FlightLiveLeg,
   t: T,
   time: (ms: number, tz: string | null) => string
 ): { headline: string; detail: string | null } {
-  switch (view.stage) {
+  switch (stage) {
     case 'upcoming':
     case 'soon':
       return {
-        headline:
-          view.countdownMs != null
-            ? t('flightLive.departsIn', { time: durationText(view.countdownMs, t) })
-            : t('flightLive.scheduled'),
-        detail: view.stage === 'soon' ? t('flightLive.watching') : null,
+        headline: t('flightLive.scheduled'),
+        detail:
+          view.countdownMs != null ? t('flightLive.departsIn', { time: durationText(view.countdownMs, t) }) : null,
       };
     case 'taxiing':
       return { headline: t('flightLive.taxiing'), detail: t('flightLive.atAirport', { code: leg.origin.code }) };
@@ -109,31 +116,30 @@ function headlineOf(
               })
             : null,
       };
-    case 'past':
-      return { headline: t('flightLive.over'), detail: null };
-    case 'unknown':
-      return { headline: t('flightLive.noSignal'), detail: t('flightLive.noSignalHint') };
   }
 }
 
+/** One end's time: what counts now (observed or estimated), the planned one beside it when they differ. */
 function timeCell(
   actual: number | null,
   planned: number | null,
   tz: string | null,
-  estimate: boolean,
-  time: (ms: number, tz: string | null) => string,
-  t: T
+  time: (ms: number, tz: string | null) => string
 ): FlightTimeCell {
   const shown = actual ?? planned;
-  if (shown == null) return { value: '--:--', planned: null, note: null };
+  if (shown == null) return { value: '--:--', planned: null };
   const value = time(shown, tz);
   const plannedText = planned != null ? time(planned, tz) : null;
-  return {
-    value,
-    planned: actual != null && plannedText !== value ? plannedText : null,
-    note: actual == null ? null : estimate ? t('flightLive.estimated') : t('flightLive.actual'),
-  };
+  return { value, planned: actual != null && plannedText !== value ? plannedText : null };
 }
+
+const TONE: Record<ShownStage, FlightLiveCard['tone']> = {
+  upcoming: 'planned',
+  soon: 'planned',
+  taxiing: 'live',
+  airborne: 'live',
+  landed: 'done',
+};
 
 /** Altitude, speed and distance in the user's units while in the air, and the aircraft when known. */
 function statsOf(leg: FlightLiveLeg, view: FlightLiveView, imperial: boolean, locale: string, t: T): FlightStat[] {
@@ -164,18 +170,8 @@ function statsOf(leg: FlightLiveLeg, view: FlightLiveView, imperial: boolean, lo
   return stats;
 }
 
-/** "Updated 2 min ago", or the age of the last signal once it is stale; null before the feed ever heard it. */
-function footnoteOf(leg: FlightLiveLeg, view: FlightLiveView, now: number, t: T): string | null {
-  if (!leg.last_seen_at) return null;
-  const age = now - Date.parse(leg.last_seen_at);
-  return view.stale
-    ? t('flightLive.lastSignal', { time: durationText(age, t) })
-    : t('flightLive.updated', { time: durationText(Math.max(60_000, age), t) });
-}
-
 /** In the air and on the ground the arrival delay counts, before take-off the departure delay. */
 function delayOf(view: FlightLiveView, t: T): { text: string; tone: DelayTone } | null {
-  if (view.stage === 'past' || view.stage === 'unknown') return null;
   const flying = view.stage === 'airborne' || view.stage === 'landed';
   return delayText(flying ? (view.arrDelay ?? view.depDelay) : view.depDelay, t);
 }
@@ -192,13 +188,14 @@ export function useFlightLiveCard(tripId: number, reservationId: number, legInde
   const leg = useFlightLiveLeg(tripId, reservationId, legIndex);
   const attribution = useFlightLiveAttribution(tripId);
   // A second-level countdown is noise; the minute tick is what a traveller reads.
-  const now = useNow(30_000);
+  const now = useNow(30_000, !!leg);
   if (!leg) return null;
 
   const view = flightLiveView(leg, now);
+  // No live data to show: the flight is long over, or the feed never heard it. Nothing at all then.
+  if (view.stage === 'past' || view.stage === 'unknown') return null;
   const time = (ms: number, tz: string | null) => airportTime(ms, tz, locale, timeFormat);
-  const { headline, detail } = headlineOf(view, leg, t, time);
-  const footnote = footnoteOf(leg, view, now, t);
+  const { headline, detail } = headlineOf(view.stage, view, leg, t, time);
   return {
     leg,
     view,
@@ -206,14 +203,14 @@ export function useFlightLiveCard(tripId: number, reservationId: number, legInde
     detail,
     line: detail && view.stage === 'airborne' ? t('flightLive.headlineDetail', { headline, detail }) : headline,
     delay: delayOf(view, t),
-    dep: timeCell(view.depActual, view.depPlanned, leg.origin.timezone, false, time, t),
-    arr: timeCell(view.arrExpected, view.arrPlanned, leg.destination.timezone, view.arrIsEstimate, time, t),
+    dep: timeCell(view.depActual, view.depPlanned, leg.origin.timezone, time),
+    arr: timeCell(view.arrExpected, view.arrPlanned, leg.destination.timezone, time),
     stats: statsOf(leg, view, imperial, locale, t),
-    footnote,
     // The feed is credited only for data it gave.
-    attribution: footnote ? attribution : null,
+    attribution: leg.last_seen_at ? attribution : null,
     gateHint: view.stage === 'soon' || view.stage === 'taxiing',
     live: view.stage === 'airborne' || view.stage === 'taxiing',
+    tone: TONE[view.stage],
   };
 }
 
@@ -223,6 +220,6 @@ export function useFlightLiveCard(tripId: number, reservationId: number, legInde
  */
 export function useCurrentFlightLegIndex(tripId: number, reservationId: number): number | null {
   const legs = useFlightLiveLegs(tripId, reservationId);
-  const now = useNow(60_000);
+  const now = useNow(60_000, legs.length > 0);
   return currentLeg(legs, now)?.leg_index ?? null;
 }

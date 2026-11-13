@@ -146,11 +146,12 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
           {!!r.needs_review && <ReviewPill pill />}
           <AirTrailPill r={r} pill />
           {r.confirmation_number && (
-            <span className={`${PILL} gap-1 py-0.5 pe-1`}>
+            // The copy button rides in the pill's padding (-my-1), so this pill is as tall as its neighbours.
+            <span className={`${PILL} gap-1 pe-1`}>
               <BlurredCode className="font-geist tabular-nums">#{r.confirmation_number}</BlurredCode>
               <Tooltip label={t('reservations.copyCode')}>
                 <button type="button" onClick={copyCode} aria-label={t('reservations.copyCode')}
-                  className="grid h-6 w-6 place-items-center rounded-full text-content-faint hover:bg-surface-hover hover:text-content">
+                  className="-my-1 grid h-6 w-6 place-items-center rounded-full text-content-faint hover:bg-surface-hover hover:text-content">
                   <Copy size={12} strokeWidth={2} />
                 </button>
               </Tooltip>

@@ -188,24 +188,13 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
       </MAdminCard>
 
       {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
-      <MAdminCard>
-        <MAdminCardHead
-          title={t('flightLive.adminTitle')}
-          hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}
-        />
-        <MAdminRow
-          title={t('flightLive.adminToggle')}
-          hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
-          trailing={
-            <MToggle
-              checked={flightLive}
-              ariaLabel={t('flightLive.adminToggle')}
-              disabled={flightLiveLocked}
-              onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
-            />
-          }
-        />
-      </MAdminCard>
+      <FlightLiveCard
+        t={t}
+        managed={!!managed}
+        on={flightLive}
+        locked={flightLiveLocked}
+        onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
+      />
 
       {/* Allowed file types */}
       <MAdminCard>
@@ -438,5 +427,25 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
         />
       </MAdminCard>
     </div>
+  )
+}
+
+/** The live flight status switch, locked with a word when the server environment holds it. */
+function FlightLiveCard({ t, managed, on, locked, onChange }: {
+  t: TranslationFn
+  managed: boolean
+  on: boolean
+  locked: boolean
+  onChange: (on: boolean) => void
+}) {
+  return (
+    <MAdminCard>
+      <MAdminCardHead title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')} />
+      <MAdminRow
+        title={t('flightLive.adminToggle')}
+        hint={locked ? t('flightLive.envLocked') : undefined}
+        trailing={<MToggle checked={on} ariaLabel={t('flightLive.adminToggle')} disabled={locked} onChange={onChange} />}
+      />
+    </MAdminCard>
   )
 }

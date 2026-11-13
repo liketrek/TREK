@@ -16,7 +16,7 @@ import type { FlightLiveLeg } from '@trek/shared';
  * - past:     the schedule is over and the feed never confirmed the flight.
  * - unknown:  the departure time has passed and the callsign never showed up.
  */
-type FlightStage = 'upcoming' | 'soon' | 'taxiing' | 'airborne' | 'landed' | 'past' | 'unknown';
+export type FlightStage = 'upcoming' | 'soon' | 'taxiing' | 'airborne' | 'landed' | 'past' | 'unknown';
 
 /** ok: on time or early; minor: up to half an hour; major: more. */
 export type DelayTone = 'ok' | 'minor' | 'major';
