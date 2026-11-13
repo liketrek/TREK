@@ -60,6 +60,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar(props: PlacesSidebarProp
               daysForTrip={() => days.map(day => ({
                 id: day.id,
                 ...formatDayOption(day.day_number, day.date, locale, t),
+                date: day.date ?? undefined,
               }))}
               // The place it just created belongs on the map and in the list
               // now, not after a reload.
