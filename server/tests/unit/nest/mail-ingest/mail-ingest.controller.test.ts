@@ -8,6 +8,7 @@
 import type { MailIngestCandidateRow } from '../../../../src/db/repositories/MailIngestCandidates.repository';
 import type { McpContext } from '../../../../src/nest-mcp';
 import { DomainError } from '../../../../src/nest/common/domain-error';
+import type { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
 import type { MailIngestActionsService } from '../../../../src/nest/mail-ingest/mail-ingest-actions.service';
 import { MailIngestAdminController } from '../../../../src/nest/mail-ingest/mail-ingest-admin.controller';
 import { MailIngestInboundController } from '../../../../src/nest/mail-ingest/mail-ingest-inbound.controller';
@@ -189,6 +190,7 @@ describe('acting on an entry, over REST and MCP alike', () => {
       pending: 0,
     });
     expect(JSON.stringify(answer)).not.toContain('secrettoken');
+    await expect(mcp().updateMailImportSettings({}, ctx)).rejects.toThrow('Name at least one setting');
   });
 
   it('list_mail_inbox reads the same page the REST inbox reads', async () => {
@@ -250,9 +252,15 @@ describe('POST /api/mail-ingest/inbound', () => {
   const webhook = {
     secret: vi.fn(),
     maxBytes: vi.fn(() => 10),
+    plausiblySigned: vi.fn(() => true),
     receive: vi.fn(),
   };
-  const controller = () => new MailIngestInboundController(webhook as unknown as MailIngestWebhookService);
+  const rateLimit = { check: vi.fn(async () => true) };
+  const controller = () =>
+    new MailIngestInboundController(
+      webhook as unknown as MailIngestWebhookService,
+      rateLimit as unknown as RateLimitService,
+    );
 
   /** A request whose body arrives as a stream, the way Express hands an unparsed one on. */
   function request(body: string, headers: Record<string, string>): Request {
@@ -268,7 +276,9 @@ describe('POST /api/mail-ingest/inbound', () => {
 
   beforeEach(() => {
     webhook.secret.mockResolvedValue('s3cret');
+    webhook.plausiblySigned.mockReturnValue(true);
     webhook.receive.mockResolvedValue({ accepted: true, duplicate: false });
+    rateLimit.check.mockResolvedValue(true);
   });
 
   it('reads the raw mail and hands it with the signed headers to the webhook service', async () => {
@@ -299,5 +309,39 @@ describe('POST /api/mail-ingest/inbound', () => {
     const declared = request('x', { 'content-type': 'message/rfc822', 'content-length': '999' });
     expect((await thrown(() => controller().receive(declared))).status).toBe(413);
     expect(webhook.receive).not.toHaveBeenCalled();
+  });
+
+  it('refuses before reading the body: headers that cannot be signed right, and an address over its share', async () => {
+    const mail = () => request('Subject: x', { 'content-type': 'message/rfc822' });
+    webhook.plausiblySigned.mockReturnValueOnce(false);
+    expect(await thrown(() => controller().receive(mail()))).toEqual({
+      status: 401,
+      body: { error: 'The signature does not match' },
+    });
+    expect(rateLimit.check).not.toHaveBeenCalled();
+    rateLimit.check.mockResolvedValueOnce(false);
+    expect((await thrown(() => controller().receive(mail()))).status).toBe(429);
+    expect(rateLimit.check).toHaveBeenCalledWith('mail-ingest-webhook', 'unknown', 120, 60_000, expect.any(Number));
+    expect(webhook.receive).not.toHaveBeenCalled();
+  });
+
+  it('reads only a few bodies at once, and tells the next sender to come back', async () => {
+    const inbound = controller();
+    const slow = () => {
+      const req = new PassThrough();
+      Object.assign(req, { get: () => undefined, is: (type: string) => type });
+      return req;
+    };
+    const held = [slow(), slow(), slow(), slow()];
+    const pending = held.map((req) => inbound.receive(req as unknown as Request));
+    await new Promise((resolve) => setImmediate(resolve));
+    const fifth = await thrown(() => inbound.receive(request('Subject: x', { 'content-type': 'message/rfc822' })));
+    expect(fifth).toEqual({ status: 429, body: { error: 'Too many mails at once; try again shortly' } });
+    held.forEach((req) => req.end('x'));
+    await Promise.all(pending);
+    expect(await inbound.receive(request('Subject: x', { 'content-type': 'message/rfc822' }))).toEqual({
+      accepted: true,
+      duplicate: false,
+    });
   });
 });

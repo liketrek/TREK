@@ -46,6 +46,8 @@ export interface AppSettingDef {
   readonly encrypted?: 'always' | 'if-plain';
   readonly managedLocked?: true;
   readonly publicConfig?: true;
+  /** The admin save refuses a value the schema does not take, with the schema's own message, instead of storing it. */
+  readonly validated?: true;
 }
 
 // The admin form's keys come first, in the order the form has always answered them.
@@ -192,12 +194,14 @@ export const APP_SETTINGS = {
   mail_ingest_address_template: { schema: text, default: null, adminForm: true, managedLocked: true },
   /** The key the webhook's sender signs every mail with (HMAC-SHA256). */
   mail_ingest_webhook_secret: {
-    schema: text,
+    // As MAIL_INGEST_WEBHOOK_SECRET: a short secret's HMAC can be guessed. Empty switches the webhook off.
+    schema: z.union([z.literal(''), z.string().min(32, 'The webhook secret needs at least 32 characters')]),
     default: null,
     adminForm: true,
     masked: true,
     encrypted: 'always',
     managedLocked: true,
+    validated: true,
   },
   /** How many forwarded mails a day an AI reads for one person. */
   mail_ingest_ai_per_user_daily: { schema: intText, default: '10', adminForm: true, managedLocked: true },

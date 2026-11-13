@@ -25,7 +25,7 @@ const REFUSALS: Record<MailIntakeRefusal, [status: number, error: string]> = {
 };
 
 /** The signed parts of a webhook request, as the sender put them in its headers. */
-interface WebhookSignedParts {
+export interface WebhookSignedParts {
   timestamp?: string;
   signature?: string;
   recipient?: string;
@@ -63,6 +63,20 @@ export class MailIngestWebhookService {
     return this.settings.maxMailBytes();
   }
 
+  /**
+   * Whether the headers could carry a valid signature at all: a fresh
+   * timestamp, a signature of the right form and a recipient within its
+   * length. Checked before the body is read, so a request that can never
+   * pass holds no memory.
+   */
+  plausiblySigned(signed: WebhookSignedParts, now: number = Date.now()): boolean {
+    const { timestamp } = signed;
+    if (!timestamp || !/^\d{1,12}$/.test(timestamp) || Math.abs(now - Number(timestamp) * 1000) > WINDOW_MS) {
+      return false;
+    }
+    return /^[0-9a-f]{64}$/.test(signatureOf(signed)) && (signed.recipient?.trim() ?? '').length <= 320;
+  }
+
   async receive(
     secret: string,
     raw: Buffer,
@@ -70,7 +84,9 @@ export class MailIngestWebhookService {
     now: number = Date.now(),
   ): Promise<MailIngestInboundResponse> {
     const recipient = signed.recipient?.trim() ?? '';
-    if (!verifyWebhook(secret, signed, recipient, raw, now)) throw new DomainError(401, 'The signature does not match');
+    if (!this.plausiblySigned(signed, now) || !verifyWebhook(secret, signed, recipient, raw)) {
+      throw new DomainError(401, 'The signature does not match');
+    }
     const result = await this.intake.receive(raw, 'webhook', recipient ? [recipient] : []);
     if (result.status === 'refused') {
       const [status, error] = REFUSALS[result.reason];
@@ -89,19 +105,13 @@ export function signWebhookMail(secret: string, timestamp: string, recipient: st
   return createHmac('sha256', secret).update(`${timestamp}\n${recipient}\n`).update(raw).digest('hex');
 }
 
-function verifyWebhook(
-  secret: string,
-  signed: WebhookSignedParts,
-  recipient: string,
-  raw: Buffer,
-  now: number,
-): boolean {
-  const { timestamp, signature } = signed;
-  if (!timestamp || !/^\d{1,12}$/.test(timestamp) || Math.abs(now - Number(timestamp) * 1000) > WINDOW_MS) {
-    return false;
-  }
-  const given = (signature ?? '').trim().replace(/^sha256=/i, '').toLowerCase();
-  if (!/^[0-9a-f]{64}$/.test(given) || recipient.length > 320) return false;
-  const expected = signWebhookMail(secret, timestamp, recipient, raw);
-  return timingSafeEqual(Buffer.from(given, 'hex'), Buffer.from(expected, 'hex'));
+/** The signature over a request whose headers were found plausible: compared in constant time. */
+function verifyWebhook(secret: string, signed: WebhookSignedParts, recipient: string, raw: Buffer): boolean {
+  const expected = signWebhookMail(secret, signed.timestamp ?? '', recipient, raw);
+  return timingSafeEqual(Buffer.from(signatureOf(signed), 'hex'), Buffer.from(expected, 'hex'));
+}
+
+/** The hex signature as sent, with or without its `sha256=` prefix. */
+function signatureOf(signed: WebhookSignedParts): string {
+  return (signed.signature ?? '').trim().replace(/^sha256=/i, '').toLowerCase();
 }

@@ -9,6 +9,7 @@ import {
   ok,
   type McpContext,
 } from '../../nest-mcp';
+import { DomainError } from '../common/domain-error';
 import { MailIngestActionsService } from './mail-ingest-actions.service';
 import { MailIngestInboxService } from './mail-ingest-inbox.service';
 import {
@@ -65,7 +66,7 @@ export class MailIngestMcp {
   @Tool({
     name: 'move_mail_booking',
     description:
-      'Move a booking that was added from a mail into another trip (trip_id), while it can still be undone. The booking is written there anew and removed from the first trip. One whose cost was settled with, or that was edited since, is refused with needs_confirmation until confirm is true; the edit is lost.',
+      'Move a booking that was added from a mail into another trip (trip_id), while it can still be undone; only the person who forwarded the mail can move it. The booking is written there anew and removed from the first trip. One whose cost was settled with, or that was edited since, is refused with needs_confirmation until confirm is true; the edit is lost.',
     inputSchema: { candidateId, ...mailIngestMoveRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'reservations', mode: 'write' },
@@ -116,12 +117,15 @@ export class MailIngestMcp {
     name: 'update_mail_import_settings',
     description:
       "Change the user's own switches of the mail import: enabled (whether their address takes mail), ai_enabled (whether an AI reads their mails) and auto_add (add a booking that passes every check on its own, or ask first). Name at least one.",
-    inputSchema: mailIngestPrefsUpdateRequestSchema,
+    // The shape, registered strict like every other tool's; its "at least one" check runs below.
+    inputSchema: mailIngestPrefsUpdateRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'reservations', mode: 'write' },
   })
   async updateMailImportSettings(update: MailIngestPrefsUpdateRequest, ctx: McpContext) {
-    const { available, prefs, ai_available, pending } = await this.inbox.updatePrefs(ctx.userId, update);
+    const checked = mailIngestPrefsUpdateRequestSchema.safeParse(update);
+    if (!checked.success) throw new DomainError(400, 'Name at least one setting');
+    const { available, prefs, ai_available, pending } = await this.inbox.updatePrefs(ctx.userId, checked.data);
     return ok({ available, prefs, ai_available, pending });
   }
 

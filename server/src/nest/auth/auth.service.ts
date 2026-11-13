@@ -770,7 +770,12 @@ export class AuthService {
           if (key === 'places_provider' && !isPlacesProviderChoice(val)) continue;
           // A masked key sent back unchanged keeps its stored value.
           if (MASKED_ADMIN_SETTING_KEYS.has(key) && val === '••••••••') continue;
-          const encrypted: AppSettingDef['encrypted'] = (APP_SETTINGS[key] as AppSettingDef).encrypted;
+          const def = APP_SETTINGS[key] as AppSettingDef;
+          if (def.validated) {
+            const checked = def.schema.safeParse(val);
+            if (!checked.success) throw new DomainError(400, checked.error.issues[0]?.message ?? `${key} is not valid`);
+          }
+          const encrypted: AppSettingDef['encrypted'] = def.encrypted;
           if (encrypted === 'always') val = encrypt_api_key(val);
           else if (encrypted === 'if-plain' && val) val = maybe_encrypt_api_key(val) ?? val;
           await this.appSettings.setValue(key, val);

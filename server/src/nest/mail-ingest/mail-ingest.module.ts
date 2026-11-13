@@ -9,6 +9,7 @@ import { AppConfigModule } from '../app-config/app-config.module';
 import { BookingImportModule } from '../booking-import/booking-import.module';
 import { BudgetModule } from '../budget/budget.module';
 import { DemoModule } from '../common/demo.module';
+import { RateLimitModule } from '../common/rate-limit.module';
 import { FilesModule } from '../files/files.module';
 import { LlmParseModule } from '../llm-parse/llm-parse.module';
 import { MapsModule } from '../maps/maps.module';
@@ -72,6 +73,7 @@ import { Module } from '@nestjs/common';
     BookingImportModule,
     LlmParseModule,
     SchedulingModule,
+    RateLimitModule,
     MikroOrmModule.forFeature([
       MailIngestAddresses,
       MailIngestPrefs,

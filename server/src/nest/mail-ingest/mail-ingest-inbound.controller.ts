@@ -1,11 +1,13 @@
 import { Public } from '../auth-core/public.decorator';
 import { DomainError } from '../common/domain-error';
+import { RateLimitService } from '../common/rate-limit.service';
 import { ResponseContract } from '../common/response-contract';
 import {
   MailIngestWebhookService,
   WEBHOOK_RECIPIENT_HEADER,
   WEBHOOK_SIGNATURE_HEADER,
   WEBHOOK_TIMESTAMP_HEADER,
+  type WebhookSignedParts,
 } from './mail-ingest-webhook.service';
 import { Controller, HttpCode, Post, Req } from '@nestjs/common';
 import { mailIngestInboundResponseSchema, type MailIngestInboundResponse } from '@trek/shared';
@@ -13,18 +15,30 @@ import { mailIngestInboundResponseSchema, type MailIngestInboundResponse } from 
 import type { Request } from 'express';
 
 const TOO_LARGE = 'This mail is larger than the import takes';
+/** Requests one address may post in a minute: a mail service delivers in bursts, never at this rate for long. */
+const REQUESTS_PER_MINUTE = 120;
+/** Bodies read at once, from all senders together: each may hold the import's largest mail in memory. */
+const MAX_BODIES_IN_FLIGHT = 4;
 
 /**
  * `POST /api/mail-ingest/inbound`: the signed webhook a mail service posts
  * every mail to, raw (message/rfc822). It does not exist (404) unless the
  * import is on, the webhook is its transport and a secret is set; then the
  * body is read up to the import's limit, and the signature over it decides.
- * The JSON parsers leave a message/rfc822 body alone, so this route reads
- * the stream itself and nothing of the mail reaches the request log.
+ * Before a byte of the body is read, a request whose headers cannot carry a
+ * valid signature is refused, each address has its share of requests a
+ * minute, and only a few bodies are read at once; a sender told 429 tries
+ * again. The JSON parsers leave a message/rfc822 body alone, so this route
+ * reads the stream itself and nothing of the mail reaches the request log.
  */
 @Controller('api/mail-ingest/inbound')
 export class MailIngestInboundController {
-  constructor(private readonly webhook: MailIngestWebhookService) {}
+  private reading = 0;
+
+  constructor(
+    private readonly webhook: MailIngestWebhookService,
+    private readonly rateLimit: RateLimitService,
+  ) {}
 
   @Post()
   @Public(
@@ -37,12 +51,28 @@ export class MailIngestInboundController {
     if (!req.is('message/rfc822')) {
       throw new DomainError(415, 'Send the raw mail as message/rfc822');
     }
-    const raw = await readBody(req, this.webhook.maxBytes());
-    return this.webhook.receive(secret, raw, {
+    const signed: WebhookSignedParts = {
       timestamp: req.get(WEBHOOK_TIMESTAMP_HEADER),
       signature: req.get(WEBHOOK_SIGNATURE_HEADER),
       recipient: req.get(WEBHOOK_RECIPIENT_HEADER),
-    });
+    };
+    if (!this.webhook.plausiblySigned(signed)) throw new DomainError(401, 'The signature does not match');
+    const now = Date.now();
+    if (!(await this.rateLimit.check('mail-ingest-webhook', req.ip ?? 'unknown', REQUESTS_PER_MINUTE, 60_000, now))) {
+      throw new DomainError(429, 'Too many mails in a short time; try again later');
+    }
+    return this.webhook.receive(secret, await this.readLimited(req), signed);
+  }
+
+  /** The body, while fewer than {@link MAX_BODIES_IN_FLIGHT} others are being read. */
+  private async readLimited(req: Request): Promise<Buffer> {
+    if (this.reading >= MAX_BODIES_IN_FLIGHT) throw new DomainError(429, 'Too many mails at once; try again shortly');
+    this.reading += 1;
+    try {
+      return await readBody(req, this.webhook.maxBytes());
+    } finally {
+      this.reading -= 1;
+    }
   }
 }
 
