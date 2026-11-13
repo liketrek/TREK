@@ -67,7 +67,7 @@ Each person's token is 24 random characters.
 
 TREK reads one mailbox every two minutes. Point a catch-all, or a mailbox with sub-addressing (`trek+anything@`), at it and use the matching address template. Read mails move to the folder `TREK/processed` and are never deleted, so anyone with access to the mailbox can read them. A mail TREK cannot take for now, because its address took its 50 mails of the day or its person has 200 bookings waiting, moves to `TREK/deferred` and is offered again on every run for three days; after that it moves to `TREK/processed` as well.
 
-TREK files a mail under the address in the topmost `Delivered-To` header, else the topmost `X-Original-To`, which the receiving server adds; only without either does it read `To`. A mail addressed to several people's addresses reaches each of them.
+TREK files a mail under the address in the topmost `Delivered-To` header, else the topmost `X-Original-To`, which the receiving server adds, else `To`. A header that names the mailbox without its `+` part (Stalwart writes `Delivered-To` that way) names no address, so TREK reads on to the next. A mail addressed to several people's addresses reaches each of them.
 
 | Field | Default |
 |---|---|
@@ -88,7 +88,7 @@ Each request carries three headers:
 | Header | Value |
 |---|---|
 | `X-Trek-Timestamp` | The time of sending, in Unix seconds. Requests more than five minutes off are refused. |
-| `X-Trek-Recipient` | The address the mail was sent to (the envelope recipient). Optional; without it TREK reads the topmost `Delivered-To`, else `X-Original-To`, else `To`. |
+| `X-Trek-Recipient` | The address the mail was sent to (the envelope recipient). Optional; without it TREK reads the topmost `Delivered-To`, else `X-Original-To`, else `To`, skipping a header that names no TREK address. |
 | `X-Trek-Signature` | `sha256=` followed by the hex HMAC-SHA256 of `<timestamp>\n<recipient>\n<raw mail>`, keyed with the secret. |
 
 A Cloudflare Email Worker that forwards a mail:

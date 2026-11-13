@@ -59,8 +59,8 @@ export class MailIngestIntakeService {
   /**
    * A mail a transport received, stored once for every live address it was
    * sent to. `envelopeRecipients` are the RCPT TO addresses where the
-   * transport knows them, and then the only ones read; otherwise the delivery
-   * header the receiving server put on top names the address.
+   * transport knows them, and then the only ones read; otherwise the headers
+   * name it (see headerAddresses).
    *
    * When one of its addresses refuses it for now, the whole mail answers that
    * refusal: the transport offers it again, and the copies stored already
@@ -77,8 +77,10 @@ export class MailIngestIntakeService {
     if (refused) return { status: 'refused', reason: refused };
     const mail = this.reader.walk(raw);
     if (!mail) return { status: 'refused', reason: 'not_a_mail' };
-    const recipients = envelopeRecipients.length > 0 ? envelopeRecipients : headerRecipients(mail.envelope);
-    const addresses = await this.addresses.resolveAll(recipients);
+    const addresses =
+      envelopeRecipients.length > 0
+        ? await this.addresses.resolveAll(envelopeRecipients)
+        : await this.headerAddresses(mail.envelope);
     if (addresses.length === 0) return { status: 'refused', reason: 'unknown_address' };
     const results = await addresses.reduce<Promise<MailIntakeResult[]>>(async (previous, address) => {
       const done = await previous;
@@ -99,6 +101,18 @@ export class MailIngestIntakeService {
     if (!mail) return { status: 'refused', reason: 'not_a_mail' };
     const address = await this.addresses.ensureOwn(userId);
     return this.store(raw, 'upload', address, mail.envelope.messageId);
+  }
+
+  /**
+   * The live addresses a mail's headers name, read in the order they are
+   * trusted: Delivered-To and X-Original-To, which the receiving server
+   * writes, then To. The first that names one decides. A delivery header
+   * without a token names none: Stalwart writes the box itself there, its
+   * sub-address dropped, and the token then stands only in To.
+   */
+  private async headerAddresses(envelope: WalkedMail['envelope']): Promise<MailIngestAddressRow[]> {
+    const named = await Promise.all(headerRecipients(envelope).map((list) => this.addresses.resolveAll(list)));
+    return named.find((addresses) => addresses.length > 0) ?? [];
   }
 
   private async precheck(raw: Buffer): Promise<MailIntakeRefusal | null> {
@@ -155,10 +169,11 @@ export class MailIngestIntakeService {
  * the To line. A sender who names another token there gains nothing over
  * sending to that token directly.
  */
-function headerRecipients(envelope: WalkedMail['envelope']): string[] {
-  const delivered = [envelope.deliveredTo, envelope.xOriginalTo].find((value) => !!value?.trim());
-  if (delivered) return [delivered];
-  return (envelope.to ?? '').split(',').filter((value) => value.trim() !== '');
+/** The recipients each header names, most trusted first: Delivered-To, X-Original-To, To. */
+function headerRecipients(envelope: WalkedMail['envelope']): string[][] {
+  return [[envelope.deliveredTo ?? ''], [envelope.xOriginalTo ?? ''], (envelope.to ?? '').split(',')]
+    .map((list) => list.filter((value) => value.trim() !== ''))
+    .filter((list) => list.length > 0);
 }
 
 /** One answer for a mail stored per address: a passing refusal first, then accepted, then duplicate. */

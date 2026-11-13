@@ -138,6 +138,25 @@ describe('a mail to several addresses', () => {
     expect(await findRow(orm(), MailIngestMessages, { user: mia.id })).not.toBeNull();
     expect(await findRow(orm(), MailIngestMessages, { user: noah.id })).toBeNull();
   });
+
+  it('reads on to To when the delivery header names the box without its token, as Stalwart writes it', async () => {
+    const { user: mia } = await makeUser(orm());
+    const miaOwn = (await addresses().renewOwn(mia.id))?.address ?? '';
+    const box = miaOwn.replace(/\+[^@]+@/, '@');
+    const headers = [`Delivered-To: ${box}`, `To: <${miaOwn}>`, 'From: x@example.com'];
+    const raw = Buffer.from(
+      `${headers.join('\r\n')}\r\nSubject: WG: Booking\r\nMessage-ID: <fwd@x>\r\n\r\nBooking ABC123`,
+    );
+
+    expect(await t.get(MailIngestIntakeService).receive(raw, 'imap')).toEqual({ status: 'accepted' });
+    expect(await findRow(orm(), MailIngestMessages, { user: mia.id })).not.toBeNull();
+
+    const nobody = Buffer.from(`Delivered-To: ${box}\r\nTo: ${box}\r\nSubject: Hi\r\nMessage-ID: <none@x>\r\n\r\nHi`);
+    expect(await t.get(MailIngestIntakeService).receive(nobody, 'imap')).toEqual({
+      status: 'refused',
+      reason: 'unknown_address',
+    });
+  });
 });
 
 describe('a trip address', () => {
