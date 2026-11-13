@@ -1,6 +1,6 @@
-// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-061
+// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-063
 import type { Mock } from 'vitest';
-import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import { act, render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -1106,5 +1106,25 @@ describe('TripMembersModal', () => {
     expect(screen.getByText('Copy')).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/join/inv9'));
     view.unmount();
+  });
+
+  it('FE-COMP-MEMBERS-062: Edit Trip in the side column hands over to the trip form (#2811)', async () => {
+    const user = userEvent.setup();
+    const onEditTrip = vi.fn();
+    render(<TripMembersModal {...defaultProps} onEditTrip={onEditTrip} />);
+
+    // The column stands for it even where People is the only area.
+    const nav = await screen.findByRole('navigation', { name: 'Trip settings' });
+    await user.click(within(nav).getByRole('button', { name: 'Edit Trip' }));
+
+    expect(onEditTrip).toHaveBeenCalledTimes(1);
+    expect(within(nav).getByText('Title, dates, cover, description and currency.')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MEMBERS-063: without the right to edit the trip, the dialog offers no way to its form', async () => {
+    render(<TripMembersModal {...defaultProps} />);
+
+    expect(await screen.findByText('owner')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit Trip' })).toBeNull();
   });
 });

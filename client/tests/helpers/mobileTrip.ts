@@ -134,6 +134,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
     setShowTripForm: vi.fn(),
     showMembersModal: false,
     setShowMembersModal: vi.fn(),
+    editTripFromSettings: vi.fn(),
     showReservationModal: false,
     setShowReservationModal: vi.fn(),
     editingReservation: null,

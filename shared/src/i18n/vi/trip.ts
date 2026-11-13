@@ -102,6 +102,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Những ai trong chuyến đi này, và khách không có tài khoản.',
   'trip.settings.sharing': 'Chia sẻ',
   'trip.settings.sharingHint': 'Liên kết chỉ đọc cho mọi người và liên kết mời để tham gia.',
+  'trip.settings.editTripHint': 'Tiêu đề, ngày, ảnh bìa, mô tả và tiền tệ.',
   'trip.tabs.journal': 'Nhật ký',
   'trip.journal.title': 'Nhật ký',
   'trip.journal.hint':

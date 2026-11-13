@@ -360,7 +360,7 @@ export function useTripPlanner() {
   // The dialog state that only passes through to the shells.
   const {
     showPlaceForm, prefillCoords, reservationModalDayId, setReservationModalDayId,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, showReservationModal,
+    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, editTripFromSettings, showReservationModal,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
     airTrailAvailable, showAirTrailImport, setShowAirTrailImport, bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, transportModalDayId, transportModalAutomated, setTransportModalAutomated,
@@ -749,7 +749,7 @@ export function useTripPlanner() {
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,
     dropPoiOnRoute,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
+    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, editTripFromSettings,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
     airTrailAvailable, showAirTrailImport, setShowAirTrailImport,

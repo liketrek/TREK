@@ -9,6 +9,8 @@
 
 On a wide screen the areas are listed down the left side, each with a line saying what it is for; on a narrow one they are a row of pills above the content. The head of the dialog shows how many people and guests the trip has.
 
+If you may edit the trip (`trip_edit`), **Edit Trip** sits at the foot of that list (at the end of the pills on a narrow screen). It closes Trip settings and opens the trip's own dialog, the same one as the pencil on the trip card in **My Trips**, so the title, description, dates, currency and cover can be changed without leaving the planner.
+
 ## People
 
 *Who is on this trip, and the guests without an account.*

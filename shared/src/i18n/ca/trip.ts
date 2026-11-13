@@ -107,6 +107,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Qui és en aquest viatge i els convidats sense compte.',
   'trip.settings.sharing': 'Compartir',
   'trip.settings.sharingHint': "Un enllaç de només lectura per a tothom i un enllaç d'invitació per unir-se.",
+  'trip.settings.editTripHint': 'Títol, dates, portada, descripció i moneda.',
   'trip.tabs.journal': 'Diari',
   'trip.journal.title': 'Diari',
   'trip.journal.hint':

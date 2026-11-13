@@ -112,6 +112,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Kdo je na této cestě a hosté bez účtu.',
   'trip.settings.sharing': 'Sdílení',
   'trip.settings.sharingHint': 'Odkaz jen pro čtení pro kohokoli a pozvánka k připojení.',
+  'trip.settings.editTripHint': 'Název, termíny, obálka, popis a měna.',
   'trip.tabs.journal': 'Deník',
   'trip.journal.title': 'Deník',
   'trip.journal.hint':

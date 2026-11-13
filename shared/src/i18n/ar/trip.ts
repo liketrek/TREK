@@ -127,6 +127,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'من المشاركون في هذه الرحلة، والضيوف بلا حساب.',
   'trip.settings.sharing': 'المشاركة',
   'trip.settings.sharingHint': 'رابط للقراءة فقط لأي شخص، ورابط دعوة للانضمام.',
+  'trip.settings.editTripHint': 'العنوان والتواريخ والغلاف والوصف والعملة.',
   'trip.tabs.journal': 'اليوميات',
   'trip.journal.title': 'اليوميات',
   'trip.journal.hint': 'اربط إحدى يومياتك بهذه الرحلة. من تمنحه الوصول يفتحها هنا مباشرة في تبويب اليوميات، بشكل حي.',

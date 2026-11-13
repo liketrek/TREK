@@ -1,4 +1,4 @@
-// FE-TP-DIALOGS-001 to FE-TP-DIALOGS-012
+// FE-TP-DIALOGS-001 to FE-TP-DIALOGS-013
 //
 // The planner's dialogs and the URL intents that open them, driven straight through
 // usePlannerDialogs. The search params come in as options, so each test owns the URL
@@ -247,5 +247,15 @@ describe('usePlannerDialogs', () => {
 
     act(() => { result.current.changeTransitRoute(buildReservation({ id: 15, type: 'transit' })) })
     expect(result.current.transitPrefill).toEqual({ from: null, to: null })
+  })
+
+  it('FE-TP-DIALOGS-013: editing the trip from its settings swaps the settings for the trip form (#2811)', () => {
+    const { result } = renderDialogs()
+    act(() => { result.current.setShowMembersModal(true) })
+
+    act(() => { result.current.editTripFromSettings() })
+
+    expect(result.current.showMembersModal).toBe(false)
+    expect(result.current.showTripForm).toBe(true)
   })
 })

@@ -108,6 +108,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Bu seyahatte kimlerin olduğu ve hesabı olmayan misafirler.',
   'trip.settings.sharing': 'Paylaşım',
   'trip.settings.sharingHint': 'Herkes için salt okunur bir bağlantı ve katılmak için davet bağlantısı.',
+  'trip.settings.editTripHint': 'Başlık, tarihler, kapak, açıklama ve para birimi.',
   'trip.tabs.journal': 'Günlük',
   'trip.journal.title': 'Günlük',
   'trip.journal.hint':

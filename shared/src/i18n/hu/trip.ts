@@ -110,6 +110,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Kik vannak ezen az utazáson, és a fiók nélküli vendégek.',
   'trip.settings.sharing': 'Megosztás',
   'trip.settings.sharingHint': 'Csak olvasható link bárkinek, és meghívó link a csatlakozáshoz.',
+  'trip.settings.editTripHint': 'Cím, dátumok, borítókép, leírás és pénznem.',
   'trip.tabs.journal': 'Napló',
   'trip.journal.title': 'Napló',
   'trip.journal.hint':

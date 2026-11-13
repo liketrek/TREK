@@ -103,6 +103,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Siapa saja dalam perjalanan ini, dan tamu tanpa akun.',
   'trip.settings.sharing': 'Berbagi',
   'trip.settings.sharingHint': 'Tautan hanya-baca untuk siapa saja, dan tautan undangan untuk bergabung.',
+  'trip.settings.editTripHint': 'Judul, tanggal, sampul, deskripsi, dan mata uang.',
   'trip.tabs.journal': 'Jurnal',
   'trip.journal.title': 'Jurnal',
   'trip.journal.hint':

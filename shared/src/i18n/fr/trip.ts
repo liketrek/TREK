@@ -108,6 +108,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Qui participe à ce voyage, et les invités sans compte.',
   'trip.settings.sharing': 'Partage',
   'trip.settings.sharingHint': "Un lien en lecture seule pour tous, et un lien d'invitation pour rejoindre.",
+  'trip.settings.editTripHint': 'Titre, dates, couverture, description et devise.',
   'trip.tabs.journal': 'Journal', // same-as-en
   'trip.journal.title': 'Journal', // same-as-en
   'trip.journal.hint':

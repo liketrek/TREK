@@ -99,6 +99,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': '參與此旅行的人，以及沒有帳戶的訪客。',
   'trip.settings.sharing': '分享',
   'trip.settings.sharingHint': '任何人可用的唯讀連結，以及用於加入的邀請連結。',
+  'trip.settings.editTripHint': '標題、日期、封面、描述和貨幣。',
   'trip.tabs.journal': '日誌',
   'trip.journal.title': '日誌',
   'trip.journal.hint': '將你的一本日誌連結到此旅行。獲得存取權限的人可在此處的日誌分頁中即時開啟它。',

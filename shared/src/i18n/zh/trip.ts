@@ -99,6 +99,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': '参与此旅行的人，以及没有账户的访客。',
   'trip.settings.sharing': '分享',
   'trip.settings.sharingHint': '任何人可用的只读链接，以及用于加入的邀请链接。',
+  'trip.settings.editTripHint': '标题、日期、封面、描述和货币。',
   'trip.tabs.journal': '日志',
   'trip.journal.title': '日志',
   'trip.journal.hint': '将你的一本日志关联到此旅行。获得访问权限的人可在此处的日志标签中实时打开它。',

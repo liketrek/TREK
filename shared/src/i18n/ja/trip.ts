@@ -100,6 +100,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'この旅行の参加者と、アカウントのないゲスト。',
   'trip.settings.sharing': '共有',
   'trip.settings.sharingHint': '誰でも見られる閲覧専用リンクと、参加用の招待リンク。',
+  'trip.settings.editTripHint': 'タイトル、日程、カバー画像、説明、通貨。',
   'trip.tabs.journal': 'ジャーナル',
   'trip.journal.title': 'ジャーナル',
   'trip.journal.hint':

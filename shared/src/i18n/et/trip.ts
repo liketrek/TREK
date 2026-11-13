@@ -107,6 +107,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Kes on sellel reisil, ja kontota külalised.',
   'trip.settings.sharing': 'Jagamine',
   'trip.settings.sharingHint': 'Kirjutuskaitstud link kõigile ja kutselink liitumiseks.',
+  'trip.settings.editTripHint': 'Pealkiri, kuupäevad, kaanepilt, kirjeldus ja valuuta.',
   'trip.tabs.journal': 'Päevik',
   'trip.journal.title': 'Päevik',
   'trip.journal.hint':

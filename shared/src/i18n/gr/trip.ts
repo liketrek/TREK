@@ -110,6 +110,7 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Κοινοποίηση',
   'trip.settings.sharingHint':
     'Ένας σύνδεσμος μόνο για ανάγνωση για όλους και ένας σύνδεσμος πρόσκλησης για συμμετοχή.',
+  'trip.settings.editTripHint': 'Τίτλος, ημερομηνίες, εξώφυλλο, περιγραφή και νόμισμα.',
   'trip.tabs.journal': 'Ημερολόγιο',
   'trip.journal.title': 'Ημερολόγιο',
   'trip.journal.hint':

@@ -111,6 +111,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'מי בטיול הזה, והאורחים שאין להם חשבון.',
   'trip.settings.sharing': 'שיתוף',
   'trip.settings.sharingHint': 'קישור לקריאה בלבד לכל אחד, וקישור הזמנה להצטרפות.',
+  'trip.settings.editTripHint': 'כותרת, תאריכים, תמונת שער, תיאור ומטבע.',
   'trip.tabs.journal': 'יומן',
   'trip.journal.title': 'יומן',
   'trip.journal.hint':

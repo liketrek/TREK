@@ -102,6 +102,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'ใครอยู่ในทริปนี้ และแขกที่ไม่มีบัญชี',
   'trip.settings.sharing': 'การแชร์',
   'trip.settings.sharingHint': 'ลิงก์อ่านอย่างเดียวสำหรับทุกคน และลิงก์เชิญเพื่อเข้าร่วม',
+  'trip.settings.editTripHint': 'ชื่อ วันที่ ภาพปก คำอธิบาย และสกุลเงิน',
   'trip.tabs.journal': 'บันทึก',
   'trip.journal.title': 'บันทึก',
   'trip.journal.hint': 'เชื่อมบันทึกของคุณเล่มหนึ่งเข้ากับทริปนี้ ผู้ที่คุณให้สิทธิ์จะเปิดได้ที่แท็บบันทึกตรงนี้ แบบสด',

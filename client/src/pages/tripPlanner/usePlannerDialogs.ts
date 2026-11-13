@@ -104,6 +104,12 @@ export function usePlannerDialogs(options: PlannerDialogsOptions) {
   }, [searchParams])
   const [showTripForm, setShowTripForm] = useState<boolean>(false)
   const [showMembersModal, setShowMembersModal] = useState<boolean>(false)
+  // The trip settings hand over to the trip's form rather than stack a second dialog
+  // on their own: the planner's way to the title, dates, cover and currency (#2811).
+  const editTripFromSettings = useCallback(() => {
+    setShowMembersModal(false)
+    setShowTripForm(true)
+  }, [])
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [showBookingImport, setShowBookingImport] = useState<boolean>(false)
@@ -167,7 +173,7 @@ export function usePlannerDialogs(options: PlannerDialogsOptions) {
     editingAssignmentId, setEditingAssignmentId, placeFormDayId, setPlaceFormDayId,
     placeFormPosition, setPlaceFormPosition, serviceStopForm, setServiceStopForm, serviceStopKind, setServiceStopKind,
     stopDraft, setStopDraft, stayRelease, setStayRelease, reservationModalDayId, setReservationModalDayId,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
+    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, editTripFromSettings,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind,
     bookingImportAvailable, setBookingImportAvailable, airTrailAvailable, showAirTrailImport, setShowAirTrailImport,

@@ -117,6 +117,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Хто бере участь у подорожі, і гості без облікового запису.',
   'trip.settings.sharing': 'Поширення',
   'trip.settings.sharingHint': 'Посилання лише для читання для всіх і посилання-запрошення, щоб приєднатися.',
+  'trip.settings.editTripHint': 'Назва, дати, обкладинка, опис і валюта.',
   'trip.tabs.journal': 'Щоденник',
   'trip.journal.title': 'Щоденник',
   'trip.journal.hint':

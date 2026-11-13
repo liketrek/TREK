@@ -1,4 +1,4 @@
-// FE-PAGE-TPW-001 to FE-PAGE-TPW-074
+// FE-PAGE-TPW-001 to FE-PAGE-TPW-075
 //
 // The planner page is a wiring container: everything stateful lives in
 // useTripPlanner (covered in src/pages/tripPlanner/useTripPlanner.test.tsx).
@@ -1550,6 +1550,14 @@ describe('TripPlannerPage — modals', () => {
 
     act(() => { props('membersModal').onClose() })
     expect(hookState.setShowMembersModal).toHaveBeenCalledWith(false)
+  })
+
+  it('FE-PAGE-TPW-075: the members modal leads to the trip form only for someone who may edit the trip (#2811)', () => {
+    renderPage()
+    expect(props('membersModal').onEditTrip).toBe(hookState.editTripFromSettings)
+
+    renderPage({ can: vi.fn((action: string) => action !== 'trip_edit') })
+    expect(props('membersModal').onEditTrip).toBeUndefined()
   })
 
   it('FE-PAGE-TPW-050: closing the booking modal outside a review resets the editor', async () => {

@@ -107,6 +107,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Wie er op deze reis zijn, en gasten zonder account.',
   'trip.settings.sharing': 'Delen',
   'trip.settings.sharingHint': 'Een alleen-lezen-link voor iedereen en een uitnodigingslink om mee te doen.',
+  'trip.settings.editTripHint': 'Titel, data, omslagfoto, beschrijving en valuta.',
   'trip.tabs.journal': 'Dagboek',
   'trip.journal.title': 'Dagboek',
   'trip.journal.hint':

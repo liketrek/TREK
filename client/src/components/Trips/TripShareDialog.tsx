@@ -18,6 +18,8 @@ interface TripShareDialogProps {
   tripId: number
   tripTitle: string
   onMembersChanged?: () => void
+  /** Hands over to the trip's own form; left out for someone who may not edit the trip (#2811). */
+  onEditTrip?: () => void
 }
 
 /** A question the dialog asks before it acts, answered in a ConfirmDialog over it. */
@@ -35,6 +37,8 @@ const BADGE = 'inline-flex flex-none items-center gap-1 rounded-full px-2 py-[2p
 /** A fixed height on a wide screen, so the dialog does not jump when another area is picked. */
 const BODY = 'flex min-h-0 flex-1 max-md:flex-col md:h-[min(640px,calc(100dvh-240px))]'
 const NAV = 'flex flex-none gap-1 border-edge-faint bg-surface-secondary p-3 md:w-[236px] md:flex-col md:border-e max-md:overflow-x-auto max-md:border-b'
+const NAV_ENTRY = 'flex flex-none items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start transition-colors'
+const NAV_ENTRY_OFF = 'text-content-muted hover:bg-surface-hover hover:text-content'
 const DANGER_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 font-medium text-danger shadow-sm ring-1 ring-edge-faint hover:bg-danger-soft disabled:cursor-default disabled:opacity-50'
 
 /**
@@ -54,7 +58,7 @@ const AREAS: { id: Area; icon: (on: boolean) => ReactNode; labelKey: string; hin
   { id: 'journal', icon: () => <LinkedJournalIcon size={16} />, labelKey: 'trip.journal.title', hintKey: 'trip.journal.hint' },
 ]
 
-function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged }: TripShareDialogProps) {
+function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, onEditTrip }: TripShareDialogProps) {
   const { t } = useTranslation()
   const labelId = useId()
   const m = useTripMembers({ isOpen: true, tripId, onClose, onMembersChanged })
@@ -65,13 +69,15 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged }: TripShareD
   const current = areas.find(a => a.id === area) ?? areas[0]
   const panelOf = (id: Area) => areas.find(a => a.id === id)
   const persons = `${m.realMembers.length} ${t('members.persons', { count: m.realMembers.length })}`
+  // The way to the trip's form needs the side nav even where People is the only area.
+  const withNav = areas.length > 1 || !!onEditTrip
 
   return (
     <>
       <DialogShell
         onClose={onClose}
         labelledBy={labelId}
-        width={areas.length > 1 ? 'wide' : 'detail'}
+        width={withNav ? 'wide' : 'detail'}
         blocked={!!ask}
         bodyClassName={BODY}
         header={(
@@ -91,10 +97,10 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged }: TripShareD
           />
         )}
       >
-        {areas.length > 1 && <AreaNav areas={areas} current={current.id} onPick={setArea} />}
+        {withNav && <AreaNav areas={areas} current={current.id} onPick={setArea} onEditTrip={onEditTrip} />}
         <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-7 pt-6 max-sm:px-5">
           {/* Every area stays mounted, so its links and lists are loaded by the time it is picked. */}
-          <AreaPanel area={panelOf('people')} shown={current.id === 'people'} titled={areas.length > 1}>
+          <AreaPanel area={panelOf('people')} shown={current.id === 'people'} titled={withNav}>
             {m.canManageMembers && <InviteUser m={m} />}
             <MembersList m={m} onAsk={setAsk} />
             {(m.isCurrentOwner || m.guests.length > 0) && <GuestsList m={m} onAsk={setAsk} />}
@@ -124,8 +130,11 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged }: TripShareD
   )
 }
 
-/** The areas down the side on a wide screen, a row of pills above the content on a narrow one. */
-function AreaNav({ areas, current, onPick }: { areas: typeof AREAS; current: Area; onPick: (area: Area) => void }) {
+/**
+ * The areas down the side on a wide screen, a row of pills above the content on a narrow one.
+ * Edit trip sits at the foot of the column: it opens the trip's form rather than an area of its own.
+ */
+function AreaNav({ areas, current, onPick, onEditTrip }: { areas: typeof AREAS; current: Area; onPick: (area: Area) => void; onEditTrip?: () => void }) {
   const { t } = useTranslation()
   return (
     <nav aria-label={t('trip.settings.title')} className={NAV}>
@@ -133,16 +142,30 @@ function AreaNav({ areas, current, onPick }: { areas: typeof AREAS; current: Are
         const on = a.id === current
         return (
           <button key={a.id} type="button" aria-current={on ? 'page' : undefined} aria-label={t(a.labelKey)} onClick={() => onPick(a.id)}
-            className={`flex flex-none items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start transition-colors ${on ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint' : 'text-content-muted hover:bg-surface-hover hover:text-content'}`}>
-            <span className={`grid h-8 w-8 flex-none place-items-center rounded-[9px] ${on ? 'bg-accent text-accent-text' : 'bg-surface-tertiary'}`}>{a.icon(on)}</span>
-            <span className="min-w-0">
-              <span className="block truncate font-semibold" style={fs(13, 'body')}>{t(a.labelKey)}</span>
-              <span className="block truncate text-content-faint max-md:hidden" style={fs(11)}>{t(a.hintKey)}</span>
-            </span>
+            className={`${NAV_ENTRY} ${on ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint' : NAV_ENTRY_OFF}`}>
+            <NavEntryText icon={a.icon(on)} on={on} label={t(a.labelKey)} hint={t(a.hintKey)} />
           </button>
         )
       })}
+      {onEditTrip && (
+        <button type="button" aria-label={t('dashboard.editTrip')} onClick={onEditTrip} className={`${NAV_ENTRY} ${NAV_ENTRY_OFF} md:mt-auto`}>
+          <NavEntryText icon={<Pencil size={16} strokeWidth={2} />} on={false} label={t('dashboard.editTrip')} hint={t('trip.settings.editTripHint')} />
+        </button>
+      )}
     </nav>
+  )
+}
+
+/** An entry's tile, its name and, on a wide screen, the line under the name. */
+function NavEntryText({ icon, on, label, hint }: { icon: ReactNode; on: boolean; label: string; hint: string }) {
+  return (
+    <>
+      <span className={`grid h-8 w-8 flex-none place-items-center rounded-[9px] ${on ? 'bg-accent text-accent-text' : 'bg-surface-tertiary'}`}>{icon}</span>
+      <span className="min-w-0">
+        <span className="block truncate font-semibold" style={fs(13, 'body')}>{label}</span>
+        <span className="block truncate text-content-faint max-md:hidden" style={fs(11)}>{hint}</span>
+      </span>
+    </>
   )
 }
 

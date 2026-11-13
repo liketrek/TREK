@@ -107,6 +107,7 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Vilka som är med på resan, och gäster utan konto.',
   'trip.settings.sharing': 'Dela',
   'trip.settings.sharingHint': 'En skrivskyddad länk för alla och en inbjudningslänk för att gå med.',
+  'trip.settings.editTripHint': 'Titel, datum, omslagsbild, beskrivning och valuta.',
   'trip.tabs.journal': 'Dagbok',
   'trip.journal.title': 'Dagbok',
   'trip.journal.hint':
