@@ -6,7 +6,7 @@
  * failure the status card reads), the TREK Cloud relay (its page format,
  * paging, hash check, a mail it cannot read, a mail kept for now,
  * acknowledgement, idle without a relay or an import there) and the status
- * card and connection test.
+ * card and connection test. Whatever a transport takes in is read at once.
  */
 import { MailIngestCandidates } from '../../../../src/db/entities/MailIngestCandidates.entity';
 import { MailIngestCursor } from '../../../../src/db/entities/MailIngestCursor.entity';
@@ -19,6 +19,7 @@ import {
 } from '../../../../src/nest/mail-ingest/mail-ingest-imap.client';
 import { MailIngestImapJob } from '../../../../src/nest/mail-ingest/mail-ingest-imap.job';
 import { MailIngestIntakeService } from '../../../../src/nest/mail-ingest/mail-ingest-intake.service';
+import { MailIngestProcessJob } from '../../../../src/nest/mail-ingest/mail-ingest-process.job';
 import { MailIngestRelayJob } from '../../../../src/nest/mail-ingest/mail-ingest-relay.job';
 import { MailIngestRelayHost } from '../../../../src/nest/mail-ingest/mail-ingest-relay.service';
 import { MailIngestSettingsService } from '../../../../src/nest/mail-ingest/mail-ingest-settings.service';
@@ -72,6 +73,7 @@ const settings = {
   maxMailBytes: vi.fn(() => 1000),
 };
 const intake = { receive: vi.fn() };
+const processing = { runSoon: vi.fn() };
 const cursor = {
   acquireLease: vi.fn(async () => true),
   releaseLease: vi.fn(async () => undefined),
@@ -103,6 +105,7 @@ async function build() {
       { provide: MailIngestRelayHost, useValue: relays },
       { provide: MailIngestSettingsService, useValue: settings },
       { provide: MailIngestIntakeService, useValue: intake },
+      { provide: MailIngestProcessJob, useValue: processing },
       { provide: MailIngestImapClient, useValue: imap },
       { provide: CronRegistrarService, useValue: registrar },
       { provide: getRepositoryToken(MailIngestCursor), useValue: cursor },
@@ -155,10 +158,13 @@ describe('the signed webhook', () => {
     intake.receive.mockResolvedValue({ status: 'accepted' });
     expect(await service().receive(SECRET, RAW, signed(), NOW)).toEqual({ accepted: true, duplicate: false });
     expect(intake.receive).toHaveBeenCalledWith(RAW, 'webhook', ['trek+tok@example.com']);
+    expect(processing.runSoon).toHaveBeenCalledTimes(1);
     intake.receive.mockResolvedValue({ status: 'duplicate' });
     const noRecipient = signed({ recipient: '' });
     expect(await service().receive(SECRET, RAW, noRecipient, NOW)).toEqual({ accepted: true, duplicate: true });
     expect(intake.receive).toHaveBeenLastCalledWith(RAW, 'webhook', []);
+    // A duplicate is in already: nothing new to read.
+    expect(processing.runSoon).toHaveBeenCalledTimes(1);
   });
 
   it('refuses another secret, another recipient, a changed mail and a timestamp out of its window', async () => {
@@ -221,6 +227,8 @@ describe('the IMAP run', () => {
     expect(cursor.recordOk).toHaveBeenCalledWith('imap', 'INBOX', expect.any(String), { uidValidity: 9, lastUid: 42 });
     expect(session.close).toHaveBeenCalled();
     expect(cursor.releaseLease).toHaveBeenCalled();
+    // What came in is read at once, by one run for the whole box.
+    expect(processing.runSoon).toHaveBeenCalledTimes(1);
   });
 
   it('starts over when the server renumbered the box, and leaves a mail over the limit unread', async () => {
@@ -263,6 +271,7 @@ describe('the IMAP run', () => {
     expect(await job().tick(NOW)).toBe(0);
     expect(session.move).not.toHaveBeenCalled();
     expect(intake.receive).not.toHaveBeenCalled();
+    expect(processing.runSoon).not.toHaveBeenCalled();
     expect(cursor.recordOk).toHaveBeenCalledWith('imap', 'INBOX', expect.any(String), { uidValidity: 9, lastUid: 0 });
     settings.transport.mockResolvedValue('webhook');
     vi.clearAllMocks();
@@ -349,6 +358,7 @@ describe('the TREK Cloud relay', () => {
     // 2 did not arrive whole and stays with the relay; 3 is refused for good and dropped.
     expect(relay.ack.mock.calls).toEqual([[uuid(1)], [uuid(3)]]);
     expect(cursor.recordOk).toHaveBeenCalledWith('cloud', '', expect.any(String));
+    expect(processing.runSoon).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a mail the import cannot take for now, and reads the mails after it', async () => {

@@ -4,6 +4,7 @@ import { dbNow } from '../../db/types';
 import { logError, logWarn } from '../audit/audit-log.logger';
 import { CronRegistrarService, LEASE_OWNER } from '../scheduling/cron-registrar.service';
 import { isPassingRefusal, MailIngestIntakeService } from './mail-ingest-intake.service';
+import { MailIngestProcessJob } from './mail-ingest-process.job';
 import { MailIngestRelayHost, type MailInboxRelay } from './mail-ingest-relay.service';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { MAIL_INGEST_LIMITS } from './mail-ingest.constants';
@@ -69,6 +70,7 @@ export class MailIngestRelayJob implements OnApplicationBootstrap {
     private readonly intake: MailIngestIntakeService,
     private readonly relays: MailIngestRelayHost,
     private readonly registrar: CronRegistrarService,
+    private readonly process: MailIngestProcessJob,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -91,6 +93,8 @@ export class MailIngestRelayJob implements OnApplicationBootstrap {
     try {
       const taken = await this.drain(relay, null, PAGES_PER_RUN);
       await this.cursor.recordOk('cloud', '', dbNow(new Date()));
+      // Read what came in now, not at the next processing tick.
+      if (taken > 0) this.process.runSoon();
       return taken;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);

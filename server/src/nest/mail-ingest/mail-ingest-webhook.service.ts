@@ -1,5 +1,6 @@
 import { DomainError } from '../common/domain-error';
 import { MailIngestIntakeService, type MailIntakeRefusal } from './mail-ingest-intake.service';
+import { MailIngestProcessJob } from './mail-ingest-process.job';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { Injectable } from '@nestjs/common';
 import type { MailIngestInboundResponse } from '@trek/shared';
@@ -45,6 +46,7 @@ export class MailIngestWebhookService {
   constructor(
     private readonly settings: MailIngestSettingsService,
     private readonly intake: MailIngestIntakeService,
+    private readonly process: MailIngestProcessJob,
   ) {}
 
   /**
@@ -92,6 +94,8 @@ export class MailIngestWebhookService {
       const [status, error] = REFUSALS[result.reason];
       throw new DomainError(status, error);
     }
+    // Read it now, not at the next processing tick.
+    if (result.status === 'accepted') this.process.runSoon();
     return { accepted: true, duplicate: result.status === 'duplicate' };
   }
 }

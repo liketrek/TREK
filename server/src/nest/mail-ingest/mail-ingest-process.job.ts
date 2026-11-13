@@ -75,6 +75,8 @@ export class MailIngestProcessJob implements OnApplicationBootstrap {
    * Starts a run now instead of at the next tick, without waiting for it.
    * Where the crons are off (the test suites) nothing starts, as no tick
    * would either, so a run never outlives the request that asked for it.
+   *
+   * @txStandalone a run of its own, not awaited, under its own lease; nothing of the caller's writes rides on it.
    */
   runSoon(): void {
     if (!this.registrar.isEnabled()) return;

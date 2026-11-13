@@ -10,6 +10,7 @@ import {
   type ImapSession,
 } from './mail-ingest-imap.client';
 import { isPassingRefusal, MailIngestIntakeService } from './mail-ingest-intake.service';
+import { MailIngestProcessJob } from './mail-ingest-process.job';
 import { MailIngestSettingsService, type MailIngestImapConfig } from './mail-ingest-settings.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
@@ -51,6 +52,7 @@ export class MailIngestImapJob implements OnApplicationBootstrap {
     private readonly intake: MailIngestIntakeService,
     private readonly imap: MailIngestImapClient,
     private readonly registrar: CronRegistrarService,
+    private readonly process: MailIngestProcessJob,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -76,6 +78,8 @@ export class MailIngestImapJob implements OnApplicationBootstrap {
     try {
       const { taken, uidValidity, lastUid } = await this.poll(config, now);
       await this.cursor.recordOk('imap', config.mailbox, dbNow(new Date()), { uidValidity, lastUid });
+      // Read what came in now, not at the next processing tick.
+      if (taken > 0) this.process.runSoon();
       return taken;
     } catch (err) {
       const reason = describeImapFailure(err);
