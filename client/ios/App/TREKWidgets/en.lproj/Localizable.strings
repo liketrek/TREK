@@ -5,6 +5,8 @@
 "widget.today.description" = "Today's plan as a timeline, with the weather and what is next.";
 "widget.bookings.name" = "Bookings";
 "widget.bookings.description" = "Your next flights, trains, hotels and tables, and when they are due.";
+"widget.flight.name" = "Flight";
+"widget.flight.description" = "Your next flight live: departure countdown, the aircraft on its way, delay and arrival.";
 "widget.todos.name" = "To-dos";
 "widget.todos.description" = "What is still open for the trip, and how far the packing has come.";
 "widget.packing.name" = "Packing";

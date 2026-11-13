@@ -5,6 +5,8 @@
 "widget.today.description" = "El plan del día como línea de tiempo, con el tiempo y la próxima parada.";
 "widget.bookings.name" = "Reservas";
 "widget.bookings.description" = "Tus próximos vuelos, trenes, hoteles y mesas, y cuándo tocan.";
+"widget.flight.name" = "Vuelo";
+"widget.flight.description" = "Tu próximo vuelo en directo: cuenta atrás de la salida, el avión en camino, retraso y llegada.";
 "widget.todos.name" = "Tareas";
 "widget.todos.description" = "Lo que aún queda para el viaje y cómo va la maleta.";
 "widget.packing.name" = "Equipaje";

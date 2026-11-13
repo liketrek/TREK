@@ -174,7 +174,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
                 nextName: nextName,
                 nextTime: call.getString("nextTime"),
                 done: call.getInt("done") ?? 0,
-                total: call.getInt("total") ?? 0
+                total: call.getInt("total") ?? 0,
+                flight: TrekShellPlugin.activityFlight(call.getObject("flight"))
             )
             // Stale at the end of the day, so a forgotten one fades out on its own.
             let stale = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400))
@@ -192,6 +193,19 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         #endif
         call.resolve(["running": false])
+    }
+
+    /// The day's flight the UI sent along (native/widgets.ts tripDayState), when complete.
+    @available(iOS 16.1, *)
+    static func activityFlight(_ raw: JSObject?) -> TripDayAttributes.Flight? {
+        guard let raw, let number = raw["number"] as? String, let from = raw["from"] as? String, let to = raw["to"] as? String,
+              let dep = (raw["dep"] as? NSNumber)?.doubleValue, let arr = (raw["arr"] as? NSNumber)?.doubleValue, arr > dep,
+              let depTime = raw["depTime"] as? String, let arrTime = raw["arrTime"] as? String else { return nil }
+        return TripDayAttributes.Flight(
+            number: number, from: from, to: to, dep: dep, arr: arr, depTime: depTime, arrTime: arrTime,
+            delay: (raw["delay"] as? NSNumber)?.intValue,
+            airborne: (raw["airborne"] as? Bool) ?? false
+        )
     }
 
     @objc func endTripDay(_ call: CAPPluginCall) {

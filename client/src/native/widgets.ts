@@ -7,6 +7,7 @@ import { isNativeApp } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell } from './trekShell';
 import { stopLook, type WidgetBooking, type WidgetPacking, type WidgetTodos } from './widgetExtras';
+import type { WidgetFlight } from './widgetFlight';
 import type { WidgetAtlas, WidgetCollab, WidgetPackingDetail } from './widgetOnline';
 
 /**
@@ -48,6 +49,27 @@ export interface WidgetLabels {
   votes?: string;
   noMessages?: string;
   departure?: string;
+  /** The flight widget: its title and the words around the moment. */
+  flight?: string;
+  /** Contains "{time}", where the widget puts its own running countdown. */
+  flightDeparts?: string;
+  flightInAir?: string;
+  /** Contains "{time}". */
+  flightLands?: string;
+  flightLanded?: string;
+  flightOnTime?: string;
+  /** Contains "{m}". */
+  flightLate?: string;
+  /** Contains "{m}". */
+  flightEarly?: string;
+  flightEstimated?: string;
+  /** Past the departure time with the aircraft not yet in the air. */
+  flightReady?: string;
+  noFlight?: string;
+  /** Android, which has no running countdown text: "{d} d {h} h", "{h} h {m} min", "{m} min". */
+  durDaysHours?: string;
+  durHoursMinutes?: string;
+  durMinutes?: string;
 }
 
 interface WidgetStop {
@@ -89,6 +111,7 @@ export interface WidgetSnapshot {
   packing?: WidgetPacking & Partial<WidgetPackingDetail>;
   atlas?: WidgetAtlas;
   collab?: WidgetCollab;
+  flight?: WidgetFlight;
   labels: WidgetLabels;
 }
 
@@ -116,6 +139,7 @@ interface SnapshotExtras {
   packing?: (WidgetPacking & Partial<WidgetPackingDetail>) | null;
   atlas?: WidgetAtlas | null;
   collab?: WidgetCollab | null;
+  flight?: WidgetFlight;
 }
 
 export interface TripDay {
@@ -314,6 +338,7 @@ export function buildSnapshot(
   if (extras.packing) snapshot.packing = extras.packing;
   if (extras.atlas) snapshot.atlas = extras.atlas;
   if (extras.collab) snapshot.collab = extras.collab;
+  if (extras.flight) snapshot.flight = extras.flight;
   return snapshot;
 }
 
@@ -330,6 +355,41 @@ interface TripDayState {
   colors?: (string | null)[];
   done: number;
   total: number;
+  /** iOS: the day's flight while it is near or in the air, drawn as a boarding pass. */
+  flight?: LiveFlight;
+}
+
+/** The flight a Live Activity follows: times in epoch seconds, the clocks formatted. */
+interface LiveFlight {
+  number: string;
+  from: string;
+  to: string;
+  dep: number;
+  arr: number;
+  depTime: string;
+  arrTime: string;
+  delay?: number;
+  /** In the air when the app last looked: the countdown then runs to touchdown. */
+  airborne?: boolean;
+}
+
+/** From three hours before take-off until an hour after touchdown the activity is about the flight. */
+export function liveFlightOf(flight: WidgetFlight | undefined, nowSeconds: number): LiveFlight | undefined {
+  if (!flight || flight.landed) return undefined;
+  const dep = flight.depActual ?? flight.depExpected ?? flight.dep;
+  const arr = flight.arrExpected ?? flight.arr;
+  if (nowSeconds < dep - 3 * 3600 || nowSeconds > arr + 3600) return undefined;
+  return {
+    number: flight.number,
+    from: flight.from,
+    to: flight.to,
+    dep,
+    arr,
+    depTime: flight.depTime,
+    arrTime: flight.arrTimeExpected ?? flight.arrTime,
+    ...(flight.delay != null ? { delay: flight.delay } : {}),
+    ...(flight.airborne ? { airborne: true } : {}),
+  };
 }
 
 /**

@@ -8,6 +8,8 @@
     <string name="widget_today_description">Il programma del giorno come linea del tempo, con il meteo e la prossima tappa.</string>
     <string name="widget_bookings_name">Prenotazioni</string>
     <string name="widget_bookings_description">I tuoi prossimi voli, treni, hotel e tavoli, e quando sono.</string>
+    <string name="widget_flight_name">Volo</string>
+    <string name="widget_flight_description">Il tuo prossimo volo in tempo reale: conto alla rovescia per la partenza, l’aereo in viaggio, ritardo e arrivo.</string>
     <string name="widget_todos_name">Da fare</string>
     <string name="widget_todos_description">Cosa manca ancora per il viaggio e a che punto è la valigia.</string>
     <string name="widget_packing_name">Bagagli</string>

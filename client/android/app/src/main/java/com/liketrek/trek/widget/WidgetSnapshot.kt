@@ -25,6 +25,8 @@ data class WidgetSnapshot(
     val atlas: Atlas?,
     val collab: Collab?,
     val labels: Labels,
+    /** The trip's next flight or the one in the air; last and defaulted, so older callers keep compiling. */
+    val flight: Flight? = null,
 ) {
     data class Trip(
         val title: String,
@@ -105,6 +107,39 @@ data class WidgetSnapshot(
 
     data class Collab(val members: List<Member>, val messages: List<Message>, val poll: Poll?, val path: String)
 
+    /**
+     * The flight widget's flight. Times are epoch seconds, so the widget moves on
+     * with the clock between two snapshots; the clock times at either airport
+     * come formatted, since the widget has no zone data.
+     */
+    data class Flight(
+        val number: String,
+        val from: String,
+        val to: String,
+        val fromCity: String?,
+        val toCity: String?,
+        val dep: Long,
+        val arr: Long,
+        /** Observed take-off. */
+        val depActual: Long?,
+        /** Before take-off: the planned departure plus the delay seen so far. */
+        val depExpected: Long?,
+        /** The feed saw the aircraft in the air when the app last looked. */
+        val airborne: Boolean,
+        /** Touchdown once landed, else the estimate while in the air. */
+        val arrExpected: Long?,
+        val landed: Boolean,
+        val depTime: String,
+        val arrTime: String,
+        val arrTimeExpected: String?,
+        /** Minutes late against the schedule, negative when early. */
+        val delay: Int?,
+        val aircraft: String?,
+        /** When the feed last heard the aircraft; null for a flight it never heard of. */
+        val seen: Long?,
+        val path: String,
+    )
+
     /** The labels, translated by the app. The optional ones fall back to English. */
     data class Labels(private val raw: JSONObject) {
         val nextTrip get() = text("nextTrip", "Next trip")
@@ -137,6 +172,23 @@ data class WidgetSnapshot(
         val votes get() = text("votes", "votes")
         val noMessages get() = text("noMessages", "No messages yet")
         val departure get() = text("departure", "Departure")
+        val flight get() = text("flight", "Flight")
+        /** Contains "{time}". */
+        val flightDeparts get() = text("flightDeparts", "Departs in {time}")
+        /** Contains "{time}". */
+        val flightLands get() = text("flightLands", "Lands in {time}")
+        val flightLanded get() = text("flightLanded", "Landed")
+        val flightReady get() = text("flightReady", "Ready for departure")
+        val noFlight get() = text("noFlight", "No flight ahead")
+        val flightOnTime get() = text("flightOnTime", "On time")
+        /** Contains "{m}". */
+        val flightLate get() = text("flightLate", "+{m} min")
+        /** Contains "{m}". */
+        val flightEarly get() = text("flightEarly", "{m} min early")
+        /** Contain "{d}" and "{h}", "{h}" and "{m}", and "{m}". */
+        val durDaysHours get() = text("durDaysHours", "{d} d {h} h")
+        val durHoursMinutes get() = text("durHoursMinutes", "{h} h {m} min")
+        val durMinutes get() = text("durMinutes", "{m} min")
 
         private fun text(key: String, fallback: String): String = raw.optString(key).ifBlank { fallback }
     }
@@ -240,6 +292,29 @@ data class WidgetSnapshot(
                 )
             },
             labels = Labels(o.optJSONObject("labels") ?: JSONObject()),
+            flight = o.optJSONObject("flight")?.let { f ->
+                Flight(
+                    number = f.optString("number"),
+                    from = f.optString("from"),
+                    to = f.optString("to"),
+                    fromCity = f.str("fromCity"),
+                    toCity = f.str("toCity"),
+                    dep = f.optLong("dep"),
+                    arr = f.optLong("arr"),
+                    depActual = f.long("depActual"),
+                    depExpected = f.long("depExpected"),
+                    airborne = f.optBoolean("airborne"),
+                    arrExpected = f.long("arrExpected"),
+                    landed = f.optBoolean("landed"),
+                    depTime = f.optString("depTime"),
+                    arrTime = f.optString("arrTime"),
+                    arrTimeExpected = f.str("arrTimeExpected"),
+                    delay = f.int("delay"),
+                    aircraft = f.str("aircraft"),
+                    seen = f.long("seen"),
+                    path = f.optString("path", "/"),
+                )
+            }?.takeIf { it.dep > 0 && it.arr > 0 },
         )
 
         fun day(iso: String?): LocalDate? {
@@ -257,6 +332,8 @@ data class WidgetSnapshot(
         private fun JSONObject.str(key: String): String? = if (isNull(key)) null else optString(key).ifEmpty { null }
 
         private fun JSONObject.int(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
+
+        private fun JSONObject.long(key: String): Long? = if (has(key) && !isNull(key)) optLong(key) else null
 
         private fun JSONArray?.objects(): List<JSONObject> =
             if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }

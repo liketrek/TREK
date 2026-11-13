@@ -5,6 +5,8 @@
 "widget.today.description" = "Dagens plan som tidslinje, med vädret och nästa stopp.";
 "widget.bookings.name" = "Bokningar";
 "widget.bookings.description" = "Dina nästa flyg, tåg, hotell och bord, och när de är.";
+"widget.flight.name" = "Flyg";
+"widget.flight.description" = "Ditt nästa flyg live: nedräkning till avgång, planet på väg, försening och ankomst.";
 "widget.todos.name" = "Att göra";
 "widget.todos.description" = "Vad som återstår inför resan och hur långt packningen har kommit.";
 "widget.packing.name" = "Packning";

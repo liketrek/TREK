@@ -448,6 +448,170 @@ private fun BookingRow(booking: WidgetSnapshot.Booking, labels: WidgetSnapshot.L
     }
 }
 
+// ---- Flight ----
+
+/**
+ * Where a flight stands now (as FlightMoment on iOS). What the feed saw wins: a
+ * flight still at the gate past its planned departure is not flown along the
+ * arc, and it is only landed once confirmed. Only a flight the feed never heard
+ * of moves on by its schedule alone; a lost one stops two hours after arrival.
+ */
+private class FlightMoment(f: WidgetSnapshot.Flight, nowSeconds: Long) {
+    val start: Long = f.depActual ?: f.depExpected ?: f.dep
+    val end: Long = maxOf(f.arrExpected ?: f.arr, start + 60)
+    private val heard = f.seen != null
+    val landed = f.landed || (!heard && nowSeconds >= end) || nowSeconds >= end + 7200
+    val airborne = !landed && (f.airborne || f.depActual != null || (!heard && nowSeconds >= start))
+    val ready = !landed && !airborne && nowSeconds >= start
+    val progress: Float = when {
+        landed -> 1f
+        airborne -> ((nowSeconds - start).toFloat() / (end - start)).coerceIn(0f, 0.98f)
+        else -> 0f
+    }
+}
+
+/** A duration in the app's words: "2 d 4 h", "1 h 5 min", "12 min". */
+private fun durationText(seconds: Long, labels: WidgetSnapshot.Labels): String {
+    val minutes = ((seconds + 59) / 60).coerceAtLeast(1)
+    val days = minutes / 1440
+    val hours = (minutes % 1440) / 60
+    val rest = minutes % 60
+    return when {
+        days > 0 -> labels.durDaysHours.replace("{d}", "$days").replace("{h}", "$hours")
+        hours > 0 -> labels.durHoursMinutes.replace("{h}", "$hours").replace("{m}", "$rest")
+        else -> labels.durMinutes.replace("{m}", "$rest")
+    }
+}
+
+/** "Departs in 2 h 10 min", "Lands in 1 h 5 min", "Landed". */
+private fun momentText(m: FlightMoment, labels: WidgetSnapshot.Labels, nowSeconds: Long): String = when {
+    m.landed -> labels.flightLanded
+    m.ready -> labels.flightReady
+    m.airborne -> labels.flightLands.replace("{time}", durationText(m.end - nowSeconds, labels))
+    else -> labels.flightDeparts.replace("{time}", durationText(m.start - nowSeconds, labels))
+}
+
+/** The delay as a chip's text and colour; nothing to say without data. */
+private fun delayChip(delay: Int?, labels: WidgetSnapshot.Labels): Pair<String, ColorProvider>? = when {
+    delay == null -> null
+    delay > 5 -> labels.flightLate.replace("{m}", "$delay") to (if (delay >= 30) TrekStatus.danger else TrekStatus.pending)
+    delay < -5 -> labels.flightEarly.replace("{m}", "${-delay}") to TrekStatus.confirmed
+    else -> labels.flightOnTime to TrekStatus.confirmed
+}
+
+private const val FLIGHT_BLUE = 0xFF4A7DDB.toInt()
+
+/**
+ * The trip's next flight, or the one in the air: both airports large, the
+ * route as an arc with the aircraft on it, the moment in words and the delay.
+ * The arc and the words follow the clock each time the widget is drawn.
+ */
+class FlightWidget : TrekWidget() {
+    @Composable
+    override fun Content(snapshot: WidgetSnapshot?) {
+        val context = LocalContext.current
+        val size = LocalSize.current
+        val labels = snapshot?.labels ?: return EmptyWidget(WidgetSamples.emptyText(context))
+        val flight = snapshot.flight
+        WidgetFrame(onClick = openPath(context, flight?.path ?: snapshot.trip?.path ?: "/")) {
+            Column(modifier = GlanceModifier.fillMaxSize()) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
+                    Icon(Icons.Rounded.Flight, GlanceTheme.colors.primary, 14.dp)
+                    Spacer(GlanceModifier.width(5.dp))
+                    Eyebrow(flight?.number ?: labels.flight, GlanceTheme.colors.primary, GlanceModifier.defaultWeight())
+                    flight?.let { f ->
+                        delayChip(f.delay, labels)?.let { (text, color) ->
+                            if (size.isWide || (f.delay ?: 0) > 5) Chip(text, GlanceTheme.colors.surfaceVariant, color)
+                        }
+                    }
+                }
+                if (flight == null) {
+                    Spacer(GlanceModifier.defaultWeight())
+                    Line(labels.noFlight, 14.sp, GlanceTheme.colors.onSurfaceVariant, FontWeight.Medium, maxLines = 2)
+                    Spacer(GlanceModifier.defaultWeight())
+                } else {
+                    FlightBody(flight, labels, size.isWide, size.isTall)
+                }
+            }
+        }
+    }
+}
+
+/** The origin stands on the right in a right-to-left layout, so the drawn arc is mirrored with it. */
+@Composable
+private fun isRtl(): Boolean =
+    LocalContext.current.resources.configuration.layoutDirection == android.view.View.LAYOUT_DIRECTION_RTL
+
+@Composable
+private fun ColumnScope.FlightBody(f: WidgetSnapshot.Flight, labels: WidgetSnapshot.Labels, wide: Boolean, tall: Boolean) {
+    val now = System.currentTimeMillis() / 1000
+    val m = FlightMoment(f, now)
+    val arrival = f.arrTimeExpected ?: f.arrTime
+    val momentColor = if (m.airborne) GlanceTheme.colors.primary else GlanceTheme.colors.onSurface
+    Spacer(GlanceModifier.defaultWeight())
+    if (!wide) Line(momentText(m, labels, now), 13.sp, momentColor, FontWeight.Bold, maxLines = 2)
+    Spacer(GlanceModifier.height(6.dp))
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
+        Column(modifier = GlanceModifier.defaultWeight()) {
+            Line(f.from, if (wide) 26.sp else 22.sp, weight = FontWeight.Bold)
+            if (wide) f.fromCity?.let { Line(it, 11.sp, GlanceTheme.colors.onSurfaceVariant) }
+        }
+        if (wide) {
+            Image(
+                provider = ImageProvider(WidgetArt.flightArc(m.progress, FLIGHT_BLUE, android.graphics.Color.argb(90, 120, 120, 130), rtl = isRtl())),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = GlanceModifier.width(120.dp).height(26.dp),
+            )
+        }
+        Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = Alignment.End) {
+            Line(f.to, if (wide) 26.sp else 22.sp, weight = FontWeight.Bold)
+            if (wide) f.toCity?.let { Line(it, 11.sp, GlanceTheme.colors.onSurfaceVariant) }
+        }
+    }
+    if (!wide) {
+        Image(
+            provider = ImageProvider(WidgetArt.flightArc(m.progress, FLIGHT_BLUE, android.graphics.Color.argb(90, 120, 120, 130), rtl = isRtl())),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = GlanceModifier.fillMaxWidth().height(22.dp),
+        )
+    }
+    Spacer(GlanceModifier.height(4.dp))
+    Row(modifier = GlanceModifier.fillMaxWidth()) {
+        Line(f.depTime, 12.sp, GlanceTheme.colors.onSurfaceVariant, FontWeight.Bold, modifier = GlanceModifier.defaultWeight())
+        Line(arrival, 12.sp, GlanceTheme.colors.onSurfaceVariant, FontWeight.Bold)
+    }
+    if (wide) {
+        Spacer(GlanceModifier.height(8.dp))
+        Line(momentText(m, labels, now), 13.sp, momentColor, FontWeight.Bold)
+        if (m.airborne) {
+            Spacer(GlanceModifier.height(5.dp))
+            Bar(m.progress, GlanceTheme.colors.primary, GlanceTheme.colors.surfaceVariant, 5.dp)
+        }
+    }
+    if (tall) {
+        Spacer(GlanceModifier.height(10.dp))
+        f.aircraft?.let { FlightFact(it) }
+        f.fromCity?.let { from -> f.toCity?.let { to -> FlightFact("$from \u2192 $to") } }
+    }
+    Spacer(GlanceModifier.defaultWeight())
+}
+
+@Composable
+private fun FlightFact(text: String) {
+    Row(
+        modifier = GlanceModifier.fillMaxWidth().background(GlanceTheme.colors.surfaceVariant).cornerRadius(12.dp)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Flight, GlanceTheme.colors.primary, 13.dp)
+        Spacer(GlanceModifier.width(7.dp))
+        Line(text, 12.sp, GlanceTheme.colors.onSurfaceVariant, FontWeight.Medium)
+    }
+    Spacer(GlanceModifier.height(5.dp))
+}
+
 // ---- To-dos ----
 
 /** What is still open for the trip, and how far the packing has come. */

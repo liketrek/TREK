@@ -5,6 +5,8 @@
 "widget.today.description" = "Günün planı zaman çizelgesi olarak, hava durumu ve sonraki durakla.";
 "widget.bookings.name" = "Rezervasyonlar";
 "widget.bookings.description" = "Sıradaki uçuşların, trenlerin, otellerin ve masaların, ne zaman oldukları ile.";
+"widget.flight.name" = "Uçuş";
+"widget.flight.description" = "Bir sonraki uçuşun canlı: kalkışa geri sayım, yoldaki uçak, gecikme ve varış.";
 "widget.todos.name" = "Yapılacaklar";
 "widget.todos.description" = "Seyahat için hâlâ açık olanlar ve bavulun ne durumda olduğu.";
 "widget.packing.name" = "Bavul";

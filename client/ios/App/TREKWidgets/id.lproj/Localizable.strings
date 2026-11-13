@@ -5,6 +5,8 @@
 "widget.today.description" = "Rencana hari ini sebagai linimasa, dengan cuaca dan perhentian berikutnya.";
 "widget.bookings.name" = "Pemesanan";
 "widget.bookings.description" = "Penerbangan, kereta, hotel, dan meja berikutnya, beserta waktunya.";
+"widget.flight.name" = "Penerbangan";
+"widget.flight.description" = "Penerbangan berikutnya secara langsung: hitung mundur keberangkatan, pesawat dalam perjalanan, keterlambatan, dan kedatangan.";
 "widget.todos.name" = "Tugas";
 "widget.todos.description" = "Yang masih tersisa untuk perjalanan dan sejauh mana persiapan barang.";
 "widget.packing.name" = "Barang bawaan";

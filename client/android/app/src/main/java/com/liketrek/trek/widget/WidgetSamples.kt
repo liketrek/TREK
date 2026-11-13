@@ -11,6 +11,19 @@ import org.json.JSONObject
  * (WidgetSnapshot.sample in TrekFamily.swift).
  */
 object WidgetSamples {
+    /** In the air on a running trip, two days ahead before one: the same LH 716 as the iOS sample. */
+    private fun flightJson(running: Boolean): String {
+        val now = System.currentTimeMillis() / 1000
+        val dep = if (running) now - 4 * 3600 else now + 2 * 86_400 + 5 * 3600
+        val live = if (running) {
+            """"depActual": ${dep + 18 * 60}, "arrExpected": ${dep + 12 * 3600 + 41 * 60}, "arrTimeExpected": "08:46", "delay": 16, "aircraft": "A359 D-AIXA","""
+        } else {
+            ""
+        }
+        return """{"number": "LH 716", "from": "FRA", "to": "HND", "fromCity": "Frankfurt", "toCity": "Tokyo Haneda",
+            "dep": $dep, "arr": ${dep + 12 * 3600 + 25 * 60}, $live "depTime": "13:05", "arrTime": "08:30", "path": "/trips/1?booking=1"}"""
+    }
+
     fun emptyText(context: Context): String = context.getString(R.string.widget_empty)
 
     fun snapshot(running: Boolean, now: LocalDate = LocalDate.now()): WidgetSnapshot = WidgetSnapshot.fromJson(JSONObject(json(running, now)))
@@ -37,6 +50,7 @@ object WidgetSamples {
                    "place": "Kyoto, Japan", "dayCount": 9, "placeCount": 34, "memberCount": 3},
           $today
           "weather": {"temp": 18, "high": 21, "low": 11, "main": "${if (running) "Clear" else "Clouds"}", "label": "Mostly sunny", "place": "Kyoto", "rain": 10},
+          "flight": ${flightJson(running)},
           "bookings": [
             {"title": "LH 716", "kind": "flight", "date": "${iso(if (running) 6 else 12)}", "time": "13:05", "detail": "FRA → HND", "confirmed": true, "path": "/trips/1"},
             {"title": "Shinkansen Nozomi 21", "kind": "train", "date": "${iso(if (running) 0 else 13)}", "time": "09:12", "detail": "Tokyo → Kyoto", "confirmed": true, "path": "/trips/1"},

@@ -8,6 +8,8 @@
     <string name="widget_today_description">以時間軸顯示今天的計畫，附上天氣與下一站。</string>
     <string name="widget_bookings_name">預訂</string>
     <string name="widget_bookings_description">你接下來的航班、火車、飯店與餐廳，以及時間。</string>
+    <string name="widget_flight_name">航班</string>
+    <string name="widget_flight_description">即時查看下一班航班：起飛倒數、飛行中的飛機、延誤和抵達。</string>
     <string name="widget_todos_name">待辦</string>
     <string name="widget_todos_description">旅行還剩哪些事沒做，以及行李整理到哪一步。</string>
     <string name="widget_packing_name">行李</string>

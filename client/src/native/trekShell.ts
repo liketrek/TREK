@@ -106,6 +106,18 @@ export interface TrekShellPlugin {
     nextMinutes?: number;
     /** Android: each stop's colour (#rrggbb) for the Live Update's segments. */
     colors?: (string | null)[];
+    /** iOS: the day's flight near or in the air, drawn as a boarding pass; older binaries ignore it. */
+    flight?: {
+      number: string;
+      from: string;
+      to: string;
+      dep: number;
+      arr: number;
+      depTime: string;
+      arrTime: string;
+      delay?: number;
+      airborne?: boolean;
+    };
   }): Promise<{ running: boolean }>;
   endTripDay(): Promise<void>;
   /** Feature storeKit (iOS) or playBilling (Android): the store's price strings for the products it knows. */

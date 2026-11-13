@@ -8,6 +8,8 @@
     <string name="widget_today_description">תוכנית היום כציר זמן, עם מזג האוויר והעצירה הבאה.</string>
     <string name="widget_bookings_name">הזמנות</string>
     <string name="widget_bookings_description">הטיסות, הרכבות, המלונות והשולחנות הבאים שלך, ומתי הם.</string>
+    <string name="widget_flight_name">טיסה</string>
+    <string name="widget_flight_description">הטיסה הבאה שלך בזמן אמת: ספירה לאחור עד ההמראה, המטוס בדרך, עיכוב והגעה.</string>
     <string name="widget_todos_name">משימות</string>
     <string name="widget_todos_description">מה עוד פתוח לטיול וכמה התקדמה האריזה.</string>
     <string name="widget_packing_name">אריזה</string>

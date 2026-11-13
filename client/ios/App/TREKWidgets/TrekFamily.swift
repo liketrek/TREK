@@ -115,6 +115,29 @@ extension WidgetSnapshot {
                 poll: "Poll", votes: "votes", noMessages: "No messages yet", departure: "Departure"
             )
         )
+        // In the air on a running trip, two days ahead before one.
+        let departure = running ? now.addingTimeInterval(-4 * 3600) : now.addingTimeInterval(2 * 86_400 + 5 * 3600)
+        snapshot.flight = Flight(
+            number: "LH 716", from: "FRA", to: "HND", fromCity: "Frankfurt", toCity: "Tokyo Haneda",
+            dep: departure.timeIntervalSince1970, arr: departure.addingTimeInterval(12 * 3600 + 25 * 60).timeIntervalSince1970,
+            depActual: running ? departure.addingTimeInterval(18 * 60).timeIntervalSince1970 : nil,
+            depExpected: nil, airborne: running ? true : nil,
+            arrExpected: running ? departure.addingTimeInterval(12 * 3600 + 41 * 60).timeIntervalSince1970 : nil,
+            landed: nil, depTime: "13:05", arrTime: "08:30", arrTimeExpected: running ? "08:46" : nil,
+            delay: running ? 16 : nil, aircraft: running ? "A359 D-AIXA" : nil, seen: running ? now.timeIntervalSince1970 : nil,
+            path: "/trips/1?booking=1"
+        )
+        snapshot.labels.flight = "Flight"
+        snapshot.labels.flightDeparts = "Departs in {time}"
+        snapshot.labels.flightInAir = "In the air"
+        snapshot.labels.flightLands = "Lands in {time}"
+        snapshot.labels.flightLanded = "Landed"
+        snapshot.labels.flightOnTime = "On time"
+        snapshot.labels.flightLate = "+{m} min"
+        snapshot.labels.flightEarly = "{m} min early"
+        snapshot.labels.flightEstimated = "estimated"
+        snapshot.labels.flightReady = "Ready for departure"
+        snapshot.labels.noFlight = "No flight ahead"
         snapshot.packing?.bags = [
             .init(name: "Suitcase", color: "#4A7DDB", grams: 14_200, limit: 23_000, packed: 15, total: 19),
             .init(name: "Daypack", color: "#2FA37A", grams: 4_100, limit: 8_000, packed: 8, total: 12),
@@ -174,6 +197,7 @@ extension WidgetSnapshot {
         snapshot.packing = nil
         snapshot.atlas = Atlas(count: 0, codes: [], recent: [], continents: [])
         snapshot.collab = nil
+        snapshot.flight = nil
         return snapshot
     }
 }

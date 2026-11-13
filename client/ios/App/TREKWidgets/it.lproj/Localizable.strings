@@ -5,6 +5,8 @@
 "widget.today.description" = "Il programma del giorno come linea del tempo, con il meteo e la prossima tappa.";
 "widget.bookings.name" = "Prenotazioni";
 "widget.bookings.description" = "I tuoi prossimi voli, treni, hotel e tavoli, e quando sono.";
+"widget.flight.name" = "Volo";
+"widget.flight.description" = "Il tuo prossimo volo in tempo reale: conto alla rovescia per la partenza, l’aereo in viaggio, ritardo e arrivo.";
 "widget.todos.name" = "Da fare";
 "widget.todos.description" = "Cosa manca ancora per il viaggio e a che punto è la valigia.";
 "widget.packing.name" = "Bagagli";

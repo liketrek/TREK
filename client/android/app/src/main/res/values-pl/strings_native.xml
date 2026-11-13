@@ -8,6 +8,8 @@
     <string name="widget_today_description">Plan dnia jako oś czasu, z pogodą i kolejnym przystankiem.</string>
     <string name="widget_bookings_name">Rezerwacje</string>
     <string name="widget_bookings_description">Twoje najbliższe loty, pociągi, hotele i stoliki oraz ich terminy.</string>
+    <string name="widget_flight_name">Lot</string>
+    <string name="widget_flight_description">Twój następny lot na żywo: odliczanie do odlotu, samolot w drodze, opóźnienie i przylot.</string>
     <string name="widget_todos_name">Zadania</string>
     <string name="widget_todos_description">Co jeszcze zostało do zrobienia przed podróżą i jak idzie pakowanie.</string>
     <string name="widget_packing_name">Pakowanie</string>

@@ -8,6 +8,8 @@
     <string name="widget_today_description">Plán dne jako časová osa, s počasím a další zastávkou.</string>
     <string name="widget_bookings_name">Rezervace</string>
     <string name="widget_bookings_description">Tvoje další lety, vlaky, hotely a stoly, a kdy tě čekají.</string>
+    <string name="widget_flight_name">Let</string>
+    <string name="widget_flight_description">Tvůj další let živě: odpočet do odletu, letadlo na cestě, zpoždění a přílet.</string>
     <string name="widget_todos_name">Úkoly</string>
     <string name="widget_todos_description">Co ještě zbývá k cestě a jak daleko je balení.</string>
     <string name="widget_packing_name">Balení</string>

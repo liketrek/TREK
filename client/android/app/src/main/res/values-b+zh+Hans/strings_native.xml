@@ -8,6 +8,8 @@
     <string name="widget_today_description">以时间线显示今天的计划，附带天气和下一站。</string>
     <string name="widget_bookings_name">预订</string>
     <string name="widget_bookings_description">你接下来的航班、火车、酒店和餐厅，以及时间。</string>
+    <string name="widget_flight_name">航班</string>
+    <string name="widget_flight_description">实时查看下一班航班：起飞倒计时、飞行中的飞机、延误和到达。</string>
     <string name="widget_todos_name">待办</string>
     <string name="widget_todos_description">旅行还剩哪些事没做，以及行李收拾到哪一步。</string>
     <string name="widget_packing_name">行李</string>
