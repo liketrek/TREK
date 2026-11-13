@@ -139,6 +139,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'אפשרו למשתמשים להתחבר עם SSO',
   'admin.oidcRegistration': 'יצירת חשבונות אוטומטית ב-SSO',
   'admin.oidcRegistrationHint': 'יצירה אוטומטית של חשבונות למשתמשי SSO חדשים',
+  'admin.oidcAutoRedirect': 'מעבר ישיר ל-SSO',
+  'admin.oidcAutoRedirectHint':
+    'כשהתחברות עם סיסמה כבויה, המבקרים מועברים מיד לספק הזהות. כבו את האפשרות כדי להציג קודם את דף ההתחברות עם כפתור ה-SSO.',
   'admin.envOverrideHint': 'הגדרות ההתחברות בסיסמה נשלטות על ידי משתנה הסביבה OIDC_ONLY ולא ניתן לשנות אותן כאן.',
   'admin.lockoutWarning': 'לפחות שיטת התחברות אחת חייבת להישאר מופעלת',
   'admin.requireMfa': 'חיוב אימות דו-שלבי (2FA)',

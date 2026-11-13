@@ -1,4 +1,4 @@
-// FE-ADMSET-001 to FE-ADMSET-043
+// FE-ADMSET-001 to FE-ADMSET-044
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -143,6 +143,7 @@ describe('AdminSettingsTab', () => {
 
     expect(screen.queryByText('SSO Login')).not.toBeInTheDocument();
     expect(screen.queryByText('SSO Auto-Provisioning')).not.toBeInTheDocument();
+    expect(screen.queryByText('Go straight to SSO')).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-008: SSO login toggle sends the inverted value', () => {
@@ -165,6 +166,14 @@ describe('AdminSettingsTab', () => {
     fireEvent.click(toggleFor('SSO Auto-Provisioning'));
 
     expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith('oidc_registration', true, admin.setOidcRegistration);
+  });
+
+  it('FE-ADMSET-044: the SSO auto redirect toggle sends the inverted value (#2925)', () => {
+    const admin = renderTab({ oidcConfigured: true, oidcAutoRedirect: true });
+
+    fireEvent.click(toggleFor('Go straight to SSO'));
+
+    expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith('oidc_auto_redirect', false, admin.setOidcAutoRedirect);
   });
 
   it('FE-ADMSET-011: passkey toggle sends the inverted value', () => {

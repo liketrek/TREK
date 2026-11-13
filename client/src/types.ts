@@ -449,6 +449,8 @@ export interface AppConfig {
   password_registration?: boolean
   oidc_login?: boolean
   oidc_registration?: boolean
+  /** Whether an instance without password login sends visitors straight to the IdP */
+  oidc_auto_redirect?: boolean
   env_override_oidc_only?: boolean
 }
 

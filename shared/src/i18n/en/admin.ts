@@ -137,6 +137,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Allow users to sign in with SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Automatically create accounts for new SSO users',
+  'admin.oidcAutoRedirect': 'Go straight to SSO',
+  'admin.oidcAutoRedirectHint':
+    'With password login off, visitors are sent to the identity provider at once. Turn this off to show the login page with the SSO button first.',
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',

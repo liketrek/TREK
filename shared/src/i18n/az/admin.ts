@@ -141,6 +141,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'İstifadəçilərə SSO ilə daxil olmağa icazə verin',
   'admin.oidcRegistration': 'SSO ilə avtomatik hesab yaratma',
   'admin.oidcRegistrationHint': 'Yeni SSO istifadəçiləri üçün avtomatik hesab yaradın',
+  'admin.oidcAutoRedirect': 'Birbaşa SSO-ya keç',
+  'admin.oidcAutoRedirectHint':
+    'Parol ilə giriş söndürüləndə ziyarətçilər dərhal kimlik provayderinə yönləndirilir. Əvvəlcə SSO düyməsi olan giriş səhifəsini göstərmək üçün bunu söndürün.',
   'admin.envOverrideHint':
     'Parolla giriş tənzimləmələri OIDC_ONLY mühit dəyişəni ilə idarə olunur və burada dəyişdirilə bilməz.',
   'admin.lockoutWarning': 'Ən azı bir giriş üsulu aktiv qalmalıdır',

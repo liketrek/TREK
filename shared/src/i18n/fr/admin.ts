@@ -86,6 +86,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Autoriser les utilisateurs à se connecter via SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Créer automatiquement des comptes pour les nouveaux utilisateurs SSO',
+  'admin.oidcAutoRedirect': 'Aller directement au SSO',
+  'admin.oidcAutoRedirectHint':
+    'Quand la connexion par mot de passe est désactivée, les visiteurs sont envoyés directement au fournisseur d’identité. Désactivez cette option pour afficher d’abord la page de connexion avec le bouton SSO.',
   'admin.envOverrideHint':
     "Les réglages de connexion par mot de passe sont contrôlés par la variable d'environnement OIDC_ONLY et ne peuvent pas être modifiés ici.",
   'admin.lockoutWarning': 'Au moins une méthode de connexion doit rester activée',

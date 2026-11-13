@@ -133,6 +133,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'อนุญาตให้ผู้ใช้ลงชื่อเข้าใช้ด้วย SSO',
   'admin.oidcRegistration': 'การจัดสรร SSO อัตโนมัติ',
   'admin.oidcRegistrationHint': 'สร้างบัญชีสำหรับผู้ใช้ SSO ใหม่โดยอัตโนมัติ',
+  'admin.oidcAutoRedirect': 'ไปที่ SSO โดยตรง',
+  'admin.oidcAutoRedirectHint':
+    'เมื่อปิดการเข้าสู่ระบบด้วยรหัสผ่าน ผู้เยี่ยมชมจะถูกส่งไปยังผู้ให้บริการข้อมูลประจำตัวทันที ปิดตัวเลือกนี้เพื่อแสดงหน้าเข้าสู่ระบบพร้อมปุ่ม SSO ก่อน',
   'admin.envOverrideHint':
     'การตั้งค่าการเข้าสู่ระบบด้วยรหัสผ่านได้รับการควบคุมโดยตัวแปรสภาพแวดล้อม OIDC_ONLY และไม่สามารถเปลี่ยนแปลงได้ที่นี่',
   'admin.lockoutWarning': 'ต้องเปิดใช้งานวิธีการเข้าสู่ระบบอย่างน้อยหนึ่งวิธี',

@@ -141,6 +141,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Umožniť používateľom prihlásiť sa cez SSO',
   'admin.oidcRegistration': 'Automatické vytváranie účtov SSO',
   'admin.oidcRegistrationHint': 'Automaticky vytvárať účty pre nových používateľov SSO',
+  'admin.oidcAutoRedirect': 'Rovno na SSO',
+  'admin.oidcAutoRedirectHint':
+    'Keď je prihlásenie heslom vypnuté, návštevníci sú hneď presmerovaní k poskytovateľovi identity. Vypnite to, aby sa najprv zobrazila prihlasovacia stránka s tlačidlom SSO.',
   'admin.envOverrideHint': 'Nastavenia prihlásenia heslom riadi premenná prostredia OIDC_ONLY a nedajú sa tu zmeniť.',
   'admin.lockoutWarning': 'Aspoň jedna metóda prihlásenia musí zostať zapnutá',
   'admin.requireMfa': 'Vyžadovať dvojfaktorové overenie (2FA)',

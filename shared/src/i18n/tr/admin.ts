@@ -138,6 +138,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Kullanıcıların SSO ile oturum açmasına izin Ver',
   'admin.oidcRegistration': 'SSO Otomatik Temel Hazırlığı',
   'admin.oidcRegistrationHint': 'Yeni SSO kullanıcıları için otomatik olarak hesap oluşturun',
+  'admin.oidcAutoRedirect': 'Doğrudan SSO’ya git',
+  'admin.oidcAutoRedirectHint':
+    'Parolayla giriş kapalıyken ziyaretçiler hemen kimlik sağlayıcısına yönlendirilir. Önce SSO düğmeli giriş sayfasını göstermek için bunu kapat.',
   'admin.envOverrideHint':
     'Şifre oturum açma ayarları OIDC_ONLY ortam değişkeni tarafından kontrol edilir ve burada değiştirilemez.',
   'admin.lockoutWarning': 'En az bir oturum açma yöntemi etkin kalmalıdır',

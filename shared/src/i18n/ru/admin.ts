@@ -94,6 +94,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Разрешить пользователям входить через SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Автоматически создавать учётные записи для новых пользователей SSO',
+  'admin.oidcAutoRedirect': 'Сразу к SSO',
+  'admin.oidcAutoRedirectHint':
+    'Когда вход по паролю выключен, посетители сразу попадают к провайдеру удостоверений. Выключите это, чтобы сначала показывать страницу входа с кнопкой SSO.',
   'admin.envOverrideHint':
     'Настройки входа по паролю управляются переменной окружения OIDC_ONLY и не могут быть изменены здесь.',
   'admin.lockoutWarning': 'Должен оставаться включённым хотя бы один способ входа',

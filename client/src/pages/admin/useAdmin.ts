@@ -145,6 +145,7 @@ export function useAdmin() {
   const [passwordRegistration, setPasswordRegistration] = useState<boolean>(true)
   const [oidcLogin, setOidcLogin] = useState<boolean>(true)
   const [oidcRegistration, setOidcRegistration] = useState<boolean>(true)
+  const [oidcAutoRedirect, setOidcAutoRedirect] = useState<boolean>(true)
   const [envOverrideOidcOnly, setEnvOverrideOidcOnly] = useState<boolean>(false)
   const [oidcConfigured, setOidcConfigured] = useState<boolean>(false)
   const [requireMfa, setRequireMfa] = useState<boolean>(false)
@@ -286,6 +287,7 @@ export function useAdmin() {
       setPasswordRegistration(config.password_registration ?? config.allow_registration ?? true)
       setOidcLogin(config.oidc_login ?? true)
       setOidcRegistration(config.oidc_registration ?? config.allow_registration ?? true)
+      setOidcAutoRedirect(config.oidc_auto_redirect ?? true)
       setEnvOverrideOidcOnly(config.env_override_oidc_only ?? false)
       setOidcConfigured(config.oidc_configured ?? false)
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
@@ -600,7 +602,7 @@ export function useAdmin() {
     collabFeatures, setCollabFeatures,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
-    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
+    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
     envOverrideOidcOnly, setEnvOverrideOidcOnly, oidcConfigured, setOidcConfigured,
     requireMfa, setRequireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,

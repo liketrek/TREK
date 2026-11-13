@@ -85,6 +85,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'A felhasználók SSO-val jelentkezhetnek be',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Fiók automatikus létrehozása az új SSO-felhasználóknak',
+  'admin.oidcAutoRedirect': 'Közvetlenül az SSO-ra',
+  'admin.oidcAutoRedirectHint':
+    'Ha a jelszavas bejelentkezés ki van kapcsolva, a látogatók azonnal az identitásszolgáltatóhoz kerülnek. Kapcsold ki, hogy előbb a bejelentkezési oldal jelenjen meg az SSO gombbal.',
   'admin.envOverrideHint':
     'A jelszavas bejelentkezés beállításait az OIDC_ONLY környezeti változó vezérli, itt nem módosíthatók.',
   'admin.lockoutWarning': 'Legalább egy bejelentkezési módnak engedélyezve kell maradnia',

@@ -86,6 +86,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Erlaube Nutzern die Anmeldung per SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Konten für neue SSO-Nutzer automatisch anlegen',
+  'admin.oidcAutoRedirect': 'Direkt zum SSO',
+  'admin.oidcAutoRedirectHint':
+    'Ist die Passwort-Anmeldung aus, werden Besucher sofort zum Identitätsanbieter weitergeleitet. Ausschalten, um zuerst die Anmeldeseite mit dem SSO-Button zu zeigen.',
   'admin.envOverrideHint':
     'Die Einstellungen zur Passwort-Anmeldung werden über die Umgebungsvariable OIDC_ONLY gesteuert und lassen sich hier nicht ändern.',
   'admin.lockoutWarning': 'Mindestens eine Anmeldemethode muss aktiviert bleiben',

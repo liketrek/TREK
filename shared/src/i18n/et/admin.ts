@@ -139,6 +139,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Luba kasutajatel SSO-ga sisse logida',
   'admin.oidcRegistration': 'SSO kontode automaatne loomine',
   'admin.oidcRegistrationHint': 'Loo uutele SSO kasutajatele kontod automaatselt',
+  'admin.oidcAutoRedirect': 'Otse SSO-sse',
+  'admin.oidcAutoRedirectHint':
+    'Kui parooliga sisselogimine on välja lülitatud, suunatakse külastajad kohe identiteedipakkuja juurde. Lülita see välja, et näidata esmalt SSO-nupuga sisselogimislehte.',
   'admin.envOverrideHint':
     'Parooliga sisselogimise seadeid juhib keskkonnamuutuja OIDC_ONLY ja neid ei saa siin muuta.',
   'admin.lockoutWarning': 'Vähemalt üks sisselogimisviis peab jääma lubatuks',

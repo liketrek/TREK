@@ -82,6 +82,8 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': '允许用户通过 SSO 登录',
   'admin.oidcRegistration': 'SSO 自动创建账户',
   'admin.oidcRegistrationHint': '为首次通过 SSO 登录的用户自动创建账户',
+  'admin.oidcAutoRedirect': '直接跳转到 SSO',
+  'admin.oidcAutoRedirectHint': '关闭密码登录后，访客会被直接带到身份提供商。关闭此项可先显示带有 SSO 按钮的登录页。',
   'admin.envOverrideHint': '密码登录设置由 OIDC_ONLY 环境变量控制，无法在此处修改。',
   'admin.lockoutWarning': '至少需要保留一种登录方式',
   'admin.requireMfa': '要求双因素身份验证（2FA）',

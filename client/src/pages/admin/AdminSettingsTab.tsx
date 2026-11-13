@@ -121,7 +121,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
     placeShadowEnabled,
     oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
-    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
+    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
@@ -231,6 +231,20 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                     on={oidcRegistration}
                     label={t('admin.oidcRegistration')}
                     onToggle={() => handleToggleAuthSetting('oidc_registration', !oidcRegistration, setOidcRegistration)}
+                  />
+                }
+              />
+            )}
+            {/* Whether an instance without password login skips its own login page (#2925) */}
+            {oidcConfigured && (
+              <SettingRow
+                label={t('admin.oidcAutoRedirect')}
+                hint={t('admin.oidcAutoRedirectHint')}
+                control={
+                  <ToggleSwitch
+                    on={oidcAutoRedirect}
+                    label={t('admin.oidcAutoRedirect')}
+                    onToggle={() => handleToggleAuthSetting('oidc_auto_redirect', !oidcAutoRedirect, setOidcAutoRedirect)}
                   />
                 }
               />

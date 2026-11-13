@@ -900,6 +900,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'السماح للمستخدمين بتسجيل الدخول عبر SSO',
   'admin.oidcRegistration': 'إنشاء الحسابات تلقائيًا عبر SSO',
   'admin.oidcRegistrationHint': 'إنشاء حسابات تلقائيًا للمستخدمين الجدد عبر SSO',
+  'admin.oidcAutoRedirect': 'الانتقال مباشرة إلى SSO',
+  'admin.oidcAutoRedirectHint':
+    'عند إيقاف تسجيل الدخول بكلمة المرور يُحوَّل الزوار فورًا إلى مزوّد الهوية. أوقف هذا الخيار لعرض صفحة تسجيل الدخول مع زر SSO أولًا.',
   'admin.envOverrideHint':
     'يتم التحكم في إعدادات تسجيل الدخول بكلمة المرور عبر متغير البيئة OIDC_ONLY ولا يمكن تغييرها من هنا.',
   'admin.lockoutWarning': 'يجب أن تبقى طريقة تسجيل دخول واحدة على الأقل مفعّلة',

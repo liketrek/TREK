@@ -132,6 +132,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': '사용자가 SSO로 로그인할 수 있습니다',
   'admin.oidcRegistration': 'SSO 자동 프로비저닝',
   'admin.oidcRegistrationHint': '새 SSO 사용자의 계정을 자동으로 생성합니다',
+  'admin.oidcAutoRedirect': 'SSO로 바로 이동',
+  'admin.oidcAutoRedirectHint':
+    '비밀번호 로그인이 꺼져 있으면 방문자는 바로 ID 공급자로 이동합니다. 끄면 SSO 버튼이 있는 로그인 페이지를 먼저 보여 줍니다.',
   'admin.envOverrideHint': '비밀번호 로그인 설정은 OIDC_ONLY 환경 변수로 제어되며 여기서 변경할 수 없습니다.',
   'admin.lockoutWarning': '최소 하나의 로그인 방법이 활성화되어 있어야 합니다',
   'admin.requireMfa': '2단계 인증 (2FA) 요구',

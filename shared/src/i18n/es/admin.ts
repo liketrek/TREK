@@ -86,6 +86,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Permite a los usuarios iniciar sesión con SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Crea cuentas automáticamente para los nuevos usuarios de SSO',
+  'admin.oidcAutoRedirect': 'Ir directamente al SSO',
+  'admin.oidcAutoRedirectHint':
+    'Con el inicio de sesión con contraseña desactivado, los visitantes van directamente al proveedor de identidad. Desactívalo para mostrar primero la página de inicio de sesión con el botón SSO.',
   'admin.envOverrideHint':
     'Los ajustes del inicio de sesión con contraseña se controlan con la variable de entorno OIDC_ONLY y no se pueden cambiar aquí.',
   'admin.lockoutWarning': 'Debe quedar activado al menos un método de inicio de sesión',

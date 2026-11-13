@@ -133,6 +133,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Izinkan pengguna masuk dengan SSO',
   'admin.oidcRegistration': 'Penyediaan Otomatis SSO',
   'admin.oidcRegistrationHint': 'Buat akun otomatis untuk pengguna SSO baru',
+  'admin.oidcAutoRedirect': 'Langsung ke SSO',
+  'admin.oidcAutoRedirectHint':
+    'Saat login dengan kata sandi nonaktif, pengunjung langsung diarahkan ke penyedia identitas. Matikan ini untuk menampilkan halaman login dengan tombol SSO terlebih dahulu.',
   'admin.envOverrideHint':
     'Pengaturan login kata sandi dikendalikan oleh variabel lingkungan OIDC_ONLY dan tidak dapat diubah di sini.',
   'admin.lockoutWarning': 'Minimal satu metode login harus tetap aktif',

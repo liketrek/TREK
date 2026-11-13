@@ -86,6 +86,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Gebruikers toestaan om in te loggen via SSO',
   'admin.oidcRegistration': 'Automatische SSO-provisioning',
   'admin.oidcRegistrationHint': 'Automatisch accounts aanmaken voor nieuwe SSO-gebruikers',
+  'admin.oidcAutoRedirect': 'Direct naar SSO',
+  'admin.oidcAutoRedirectHint':
+    'Als inloggen met een wachtwoord uit staat, gaan bezoekers meteen naar de identiteitsprovider. Zet dit uit om eerst de inlogpagina met de SSO-knop te tonen.',
   'admin.envOverrideHint':
     'De instellingen voor inloggen met wachtwoord worden beheerd via de omgevingsvariabele OIDC_ONLY en kunnen hier niet worden gewijzigd.',
   'admin.lockoutWarning': 'Er moet minstens één inlogmethode ingeschakeld blijven',

@@ -82,6 +82,7 @@ describe('MAdminSettingsSection', () => {
 
     expect(screen.queryByRole('switch', { name: 'SSO Login' })).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'SSO Auto-Provisioning' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Go straight to SSO' })).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ASET-003: an env override disables the password toggles and shows the hint', () => {
@@ -124,6 +125,11 @@ describe('MAdminSettingsSection', () => {
     await user.click(toggle('SSO Auto-Provisioning'));
     expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith(
       'oidc_registration', true, admin.setOidcRegistration,
+    );
+
+    await user.click(toggle('Go straight to SSO'));
+    expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith(
+      'oidc_auto_redirect', false, admin.setOidcAutoRedirect,
     );
 
     await user.click(toggle('Enable passkey login'));

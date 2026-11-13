@@ -45,6 +45,7 @@ describe('the derived key lists', () => {
       'password_registration',
       'oidc_login',
       'oidc_registration',
+      'oidc_auto_redirect',
       'passkey_login',
       'webauthn_rp_id',
       'webauthn_origins',
@@ -82,6 +83,7 @@ describe('the derived key lists', () => {
         'places_details_enabled',
         'places_enrich_enabled',
         'place_shadow_enabled',
+        'oidc_auto_redirect',
       ].sort(),
     );
   });

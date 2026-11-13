@@ -138,6 +138,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Låt användarna logga in med SSO',
   'admin.oidcRegistration': 'SSO Automatisk konfigurering',
   'admin.oidcRegistrationHint': 'Skapa konton automatiskt för nya SSO-användare',
+  'admin.oidcAutoRedirect': 'Direkt till SSO',
+  'admin.oidcAutoRedirectHint':
+    'När inloggning med lösenord är av skickas besökare direkt till identitetsleverantören. Stäng av detta för att först visa inloggningssidan med SSO-knappen.',
   'admin.envOverrideHint':
     'Inställningarna för inloggning med lösenord styrs av miljövariabeln OIDC_ONLY och kan inte ändras här.',
   'admin.lockoutWarning': 'Minst en inloggningsmetod måste vara aktiverad',

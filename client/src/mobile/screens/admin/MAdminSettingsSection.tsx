@@ -33,7 +33,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     placesGoogleOnly, handleTogglePlacesGoogleOnly,
     placeShadowEnabled,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
-    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
+    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
@@ -108,6 +108,19 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
                 checked={oidcRegistration}
                 ariaLabel={t('admin.oidcRegistration')}
                 onChange={(v) => handleToggleAuthSetting('oidc_registration', v, setOidcRegistration)}
+              />
+            }
+          />
+        )}
+        {oidcConfigured && (
+          <MAdminRow
+            title={t('admin.oidcAutoRedirect')}
+            hint={t('admin.oidcAutoRedirectHint')}
+            trailing={
+              <MToggle
+                checked={oidcAutoRedirect}
+                ariaLabel={t('admin.oidcAutoRedirect')}
+                onChange={(v) => handleToggleAuthSetting('oidc_auto_redirect', v, setOidcAutoRedirect)}
               />
             }
           />

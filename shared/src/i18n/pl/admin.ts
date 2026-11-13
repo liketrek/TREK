@@ -84,6 +84,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Zezwalaj użytkownikom na logowanie przez SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Automatycznie twórz konta dla nowych użytkowników SSO',
+  'admin.oidcAutoRedirect': 'Od razu do SSO',
+  'admin.oidcAutoRedirectHint':
+    'Gdy logowanie hasłem jest wyłączone, odwiedzający od razu trafiają do dostawcy tożsamości. Wyłącz to, aby najpierw pokazać stronę logowania z przyciskiem SSO.',
   'admin.envOverrideHint':
     'Ustawienia logowania hasłem są kontrolowane przez zmienną środowiskową OIDC_ONLY i nie można ich tu zmienić.',
   'admin.lockoutWarning': 'Co najmniej jedna metoda logowania musi pozostać włączona',

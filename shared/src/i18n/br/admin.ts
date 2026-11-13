@@ -85,6 +85,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Permitir que os usuários entrem com SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Criar contas automaticamente para novos usuários SSO',
+  'admin.oidcAutoRedirect': 'Ir direto para o SSO',
+  'admin.oidcAutoRedirectHint':
+    'Com o login por senha desativado, os visitantes são enviados na hora ao provedor de identidade. Desative isto para mostrar primeiro a página de login com o botão SSO.',
   'admin.envOverrideHint':
     'As configurações de login com senha são controladas pela variável de ambiente OIDC_ONLY e não podem ser alteradas aqui.',
   'admin.lockoutWarning': 'Pelo menos um método de login deve permanecer ativado',

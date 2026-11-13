@@ -134,6 +134,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Cho phép người dùng đăng nhập bằng SSO',
   'admin.oidcRegistration': 'SSO Tự động cấp phép',
   'admin.oidcRegistrationHint': 'Tự động tạo tài khoản cho người dùng SSO mới',
+  'admin.oidcAutoRedirect': 'Chuyển thẳng đến SSO',
+  'admin.oidcAutoRedirectHint':
+    'Khi tắt đăng nhập bằng mật khẩu, khách truy cập được chuyển ngay đến nhà cung cấp danh tính. Tắt tùy chọn này để hiển thị trang đăng nhập có nút SSO trước.',
   'admin.envOverrideHint':
     'Cài đặt đăng nhập mật khẩu được kiểm soát bởi biến môi trường OIDC_ONLY và không thể thay đổi tại đây.',
   'admin.lockoutWarning': 'Ít nhất một phương thức đăng nhập phải được bật',

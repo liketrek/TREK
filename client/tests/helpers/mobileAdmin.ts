@@ -107,6 +107,8 @@ export function buildAdminHook(overrides: Record<string, unknown> = {}): AdminHo
     setOidcLogin: vi.fn(),
     oidcRegistration: false,
     setOidcRegistration: vi.fn(),
+    oidcAutoRedirect: true,
+    setOidcAutoRedirect: vi.fn(),
     envOverrideOidcOnly: false,
     setEnvOverrideOidcOnly: vi.fn(),
     oidcConfigured: false,

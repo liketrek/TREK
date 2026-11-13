@@ -815,6 +815,15 @@ describe('getAppConfig', () => {
     vi.unstubAllEnvs();
   });
 
+  it('AUTH-DB-052d: oidc_auto_redirect stays on until an admin stores false (#2925)', async () => {
+    createUser(testDb);
+    expect((await svc.getAppConfig(null)).oidc_auto_redirect).toBe(true);
+    await appSetting('oidc_auto_redirect', 'false');
+    expect((await svc.getAppConfig(null)).oidc_auto_redirect).toBe(false);
+    await appSetting('oidc_auto_redirect', 'true');
+    expect((await svc.getAppConfig(null)).oidc_auto_redirect).toBe(true);
+  });
+
   it('AUTH-DB-052b: managed is false unless the install says otherwise', async () => {
     createUser(testDb);
     expect((await svc.getAppConfig(null)).managed).toBe(false);

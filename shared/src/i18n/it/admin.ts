@@ -85,6 +85,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Consenti agli utenti di accedere con SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Crea automaticamente gli account per i nuovi utenti SSO',
+  'admin.oidcAutoRedirect': 'Vai direttamente all’SSO',
+  'admin.oidcAutoRedirectHint':
+    'Con l’accesso tramite password disattivato, i visitatori vengono inviati subito al provider di identità. Disattiva questa opzione per mostrare prima la pagina di accesso con il pulsante SSO.',
   'admin.envOverrideHint':
     "Le impostazioni di accesso con password sono controllate dalla variabile d'ambiente OIDC_ONLY e non possono essere modificate qui.",
   'admin.lockoutWarning': 'Deve restare attivo almeno un metodo di accesso',

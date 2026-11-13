@@ -91,6 +91,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Permet que els usuaris iniciïn sessió amb SSO',
   'admin.oidcRegistration': 'Aprovisionament automàtic SSO',
   'admin.oidcRegistrationHint': 'Crea comptes automàticament per als nous usuaris SSO',
+  'admin.oidcAutoRedirect': 'Anar directament a l’SSO',
+  'admin.oidcAutoRedirectHint':
+    'Amb l’inici de sessió amb contrasenya desactivat, els visitants van directament al proveïdor d’identitat. Desactiva-ho per mostrar primer la pàgina d’inici de sessió amb el botó SSO.',
   'admin.envOverrideHint':
     "La configuració d'inici de sessió amb contrasenya està controlada per la variable d'entorn OIDC_ONLY i no es pot canviar aquí.",
   'admin.lockoutWarning': "Almenys un mètode d'inici de sessió ha de romandre activat",

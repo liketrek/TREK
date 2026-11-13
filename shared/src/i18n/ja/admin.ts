@@ -127,6 +127,9 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'SSOでのログインを許可',
   'admin.oidcRegistration': 'SSO自動登録',
   'admin.oidcRegistrationHint': '新しいSSOユーザーを自動作成',
+  'admin.oidcAutoRedirect': 'SSO に直接移動',
+  'admin.oidcAutoRedirectHint':
+    'パスワードログインがオフのとき、訪問者はすぐに ID プロバイダーへ移動します。オフにすると、先に SSO ボタン付きのログインページを表示します。',
   'admin.envOverrideHint': 'パスワードログイン設定は OIDC_ONLY 環境変数で制御されています。',
   'admin.lockoutWarning': '少なくとも1つのログイン方法を有効にしてください',
   'admin.requireMfa': '二要素認証（2FA）を必須にする',
