@@ -96,6 +96,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Desnivel positivo',
   'tours.detail.descent': 'Desnivel negativo',
   'tours.detail.navigationHint': 'La navegación abre el punto de inicio; no guía a lo largo de la ruta.',
+  'tours.detail.openRoute': 'Abrir la ruta en una app de mapas',
+  'tours.detail.mapsShort': 'Mapas',
   'tours.planner.title': 'Planificar una excursión',
   'tours.planner.newTour': 'Planificar nueva excursión',
   'tours.planner.addTour': 'Añadir ruta',

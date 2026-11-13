@@ -85,6 +85,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': '누적 상승 고도',
   'tours.detail.descent': '누적 하강 고도',
   'tours.detail.navigationHint': '길찾기는 탐방로 입구를 목적지로 엽니다. 투어 경로를 따라 안내하지는 않습니다.',
+  'tours.detail.openRoute': '지도 앱에서 경로 열기',
+  'tours.detail.mapsShort': '지도',
   'tours.planner.title': '투어 계획',
   'tours.planner.newTour': '새 투어 계획',
   'tours.planner.addTour': '투어 추가',

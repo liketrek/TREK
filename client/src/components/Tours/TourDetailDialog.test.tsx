@@ -411,4 +411,23 @@ describe('TourDetailDialog', () => {
     expect(screen.queryByTestId('paddle-check-summary')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Paddling has risks/ })).not.toBeInTheDocument()
   })
+
+  it("#2812: offers the whole route in the map apps that follow one, in the tour's own mode", () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<TourDetailDialog {...defaultProps} tour={{ ...tour, tour_type: 'bike' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open the route in a map app' }))
+    const menu = screen.getByRole('menu')
+    // Only the apps that take a route: Waze and geo: lead to the start, which Navigation already does.
+    expect(Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)).toEqual(['Google Maps', 'CoMaps'])
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'CoMaps' }))
+    // Three points along the line go as pins; the start carries the tour's name.
+    expect(open).toHaveBeenCalledWith(expect.stringContaining('https://comaps.at/map?v=1&ll=48,11&n=Ridge%20walk'), '_blank', 'noopener,noreferrer')
+  })
+
+  it('#2812: a paddle tour is not handed to a map app, which would route it by road', () => {
+    render(<TourDetailDialog {...defaultProps} tour={{ ...tour, tour_type: 'kayak', paddle_check: paddleBench() }} />)
+    expect(screen.queryByRole('button', { name: 'Open the route in a map app' })).not.toBeInTheDocument()
+  })
 })

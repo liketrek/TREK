@@ -103,6 +103,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'إجمالي الصعود',
   'tours.detail.descent': 'إجمالي الهبوط',
   'tours.detail.navigationHint': 'تفتح الملاحة نقطة بداية الدرب، ولا توفّر إرشادًا على طول مسار الجولة.',
+  'tours.detail.openRoute': 'افتح المسار في تطبيق خرائط',
+  'tours.detail.mapsShort': 'الخرائط',
   'tours.planner.title': 'تخطيط جولة',
   'tours.planner.newTour': 'تخطيط جولة جديدة',
   'tours.planner.addTour': 'إضافة جولة',

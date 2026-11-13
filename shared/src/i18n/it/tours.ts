@@ -94,6 +94,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Dislivello positivo',
   'tours.detail.descent': 'Dislivello negativo',
   'tours.detail.navigationHint': 'La navigazione apre il punto di partenza del sentiero; non guida lungo il percorso.',
+  'tours.detail.openRoute': "Apri il percorso in un'app di mappe",
+  'tours.detail.mapsShort': 'Mappe',
   'tours.planner.title': "Pianifica un'escursione",
   'tours.planner.newTour': 'Pianifica nuova escursione',
   'tours.planner.addTour': 'Aggiungi giro',

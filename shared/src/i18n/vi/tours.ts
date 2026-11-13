@@ -92,6 +92,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Tổng độ cao leo lên',
   'tours.detail.descent': 'Tổng độ cao đi xuống',
   'tours.detail.navigationHint': 'Chỉ đường sẽ mở điểm bắt đầu đường mòn, không hướng dẫn đi dọc theo tuyến đường.',
+  'tours.detail.openRoute': 'Mở lộ trình trong ứng dụng bản đồ',
+  'tours.detail.mapsShort': 'Bản đồ',
   'tours.planner.title': 'Lên kế hoạch tham quan',
   'tours.planner.newTour': 'Lên kế hoạch tham quan mới',
   'tours.planner.addTour': 'Thêm chuyến đi',
