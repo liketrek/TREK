@@ -7,16 +7,18 @@ import {
   computeTotals,
   currencyOptions,
   filterBudgetItems,
+  isPlainSplit,
   myShareOf,
   paymentAmount,
   paymentLineOf,
   settledShareOf,
+  showsSplitting,
   type CostsCtx,
   type CostsFilterState,
   type CostsSettlement,
 } from './costsModel';
 
-// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-011
+// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-013
 // The pieces both ledgers share since the desktop panel runs on this model too;
 // the rest of the model is pinned in tests/unit/mobile/trip/costsModel.test.ts.
 
@@ -143,5 +145,31 @@ describe('costsModel: the currency picker options', () => {
     expect(values).toHaveLength(currencyOptions('EUR').length);
     // A pin the picker cannot offer is left out rather than invented.
     expect(currencyOptions(null, ['ZZZ']).some((o) => o.value === 'ZZZ')).toBe(false);
+  });
+});
+
+describe('costsModel: when Costs shows who paid and the shares (#2689)', () => {
+  const settled = { flows: [], balances: [] };
+
+  it('FE-BUDGET-COSTSMODEL-012: a trip of one has nothing to split, unless the ledger still names someone else', () => {
+    const mine = expense({ payers: [payer(1, 20)], members: [member(1)] });
+    expect(showsSplitting(2, [], null, 1)).toBe(true);
+    expect(showsSplitting(1, [mine], settled, 1)).toBe(false);
+    expect(showsSplitting(0, [], null, 1)).toBe(false);
+    // Someone who left: named on an expense, owed money, or still in a transfer.
+    expect(showsSplitting(1, [expense({ members: [member(1), member(9)] })], settled, 1)).toBe(true);
+    const owed = { flows: [], balances: [{ user_id: 9, username: 'u9', avatar_url: null, balance: 5 }] };
+    expect(showsSplitting(1, [mine], owed, 1)).toBe(true);
+    const flow = { from: { user_id: 9, username: 'u9' }, to: { user_id: 1, username: 'u1' }, amount: 5 };
+    expect(showsSplitting(1, [mine], { flows: [flow], balances: [] }, 1)).toBe(true);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-013: a split is plain with one payer, equal shares, no receipt lines and only current members', () => {
+    expect(isPlainSplit(null, [1])).toBe(true);
+    expect(isPlainSplit(expense({ payers: [payer(1, 20)], members: [member(1)] }), [1])).toBe(true);
+    expect(isPlainSplit(expense({ payers: [payer(1, 10), payer(2, 10)], members: [] }), [1, 2])).toBe(false);
+    expect(isPlainSplit(expense({ members: [{ ...member(1), amount: 15 }] }), [1])).toBe(false);
+    expect(isPlainSplit(expense({ ticket_json: '{"items":[]}', members: [member(1)] }), [1])).toBe(false);
+    expect(isPlainSplit(expense({ payers: [payer(9, 20)], members: [] }), [1])).toBe(false);
   });
 });

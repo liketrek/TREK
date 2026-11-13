@@ -20,6 +20,7 @@ import {
   filterSettlements,
   myShareOf,
   settledShareOf,
+  showsSplitting,
   type CostsCtx,
   type CostsSegment,
   type CostsSettlementResponse,
@@ -52,6 +53,9 @@ interface Toaster {
  * breakdown, the CSV export and the ledger writes. Each surface lays it out
  * and keeps its own dialogs or sheets.
  *
+ * `splitting` says whether the ledger has anything to split at all (#2689);
+ * without it the owner filter and the recorded payments are left out too.
+ *
  * Where the two differ today, the surface says which way: the desktop also
  * reads the settlement when the trip changes (`settlementOnTripChange`), leaves
  * an expense nobody paid out of my share (`skipUnfinishedShares`, #2225) and
@@ -61,6 +65,7 @@ export function useCostsLedger({
   tripId,
   trip,
   budgetItems,
+  memberCount,
   actions,
   canEdit,
   t,
@@ -72,6 +77,8 @@ export function useCostsLedger({
   tripId: number;
   trip: Trip | null | undefined;
   budgetItems: BudgetItem[];
+  /** The trip's current members; with one, there is nothing to split. */
+  memberCount: number;
   actions: Pick<TripStoreState, 'loadBudgetItems' | 'deleteBudgetItem'>;
   canEdit: boolean;
   t: Translate;
@@ -179,23 +186,37 @@ export function useCostsLedger({
 
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
   const flows = useMemo(() => settlement?.flows || [], [settlement]);
+  const splitting = useMemo(
+    () => showsSplitting(memberCount, budgetItems, settlement, me),
+    [memberCount, budgetItems, settlement, me]
+  );
+  // The owner filter is hidden while nothing is split, so it cannot hold the list back.
+  const activeSegment = splitting ? segment : 'all';
   // Names for people the expenses still name after they left the trip (#2604).
   const knownNames = useMemo(() => knownPersonNames(budgetItems, settlement), [budgetItems, settlement]);
   // `ctx` carries the rates. They can land after the expenses, and without it in the
   // deps the cards kept the sums they were first added up with while the rows moved on.
   const totals = useMemo(() => computeTotals(budgetItems, flows, ctx, shareOf), [budgetItems, flows, ctx, shareOf]);
   const filtered = useMemo(
-    () => filterBudgetItems(budgetItems, { search, segment, categoryKey: catFilter, dayKey: dayFilter }, ctx, shareOf),
-    [budgetItems, search, segment, catFilter, dayFilter, ctx, shareOf]
+    () =>
+      filterBudgetItems(
+        budgetItems,
+        { search, segment: activeSegment, categoryKey: catFilter, dayKey: dayFilter },
+        ctx,
+        shareOf
+      ),
+    [budgetItems, search, activeSegment, catFilter, dayFilter, ctx, shareOf]
   );
   const filteredSettlements = useMemo(
     () =>
-      filterSettlements(
-        settlement?.settlements || [],
-        { search, segment, categoryKey: catFilter, dayKey: dayFilter },
-        me
-      ),
-    [settlement, search, segment, catFilter, dayFilter, me]
+      splitting
+        ? filterSettlements(
+            settlement?.settlements || [],
+            { search, segment: activeSegment, categoryKey: catFilter, dayKey: dayFilter },
+            me
+          )
+        : [],
+    [splitting, settlement, search, activeSegment, catFilter, dayFilter, me]
   );
   const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx), [budgetItems, ctx]);
 
@@ -288,6 +309,7 @@ export function useCostsLedger({
     settlementError,
     loadSettlement,
     flows,
+    splitting,
     knownNames,
     search,
     setSearch,

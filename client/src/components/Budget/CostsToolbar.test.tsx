@@ -1,4 +1,4 @@
-// FE-COSTSBAR-001 to FE-COSTSBAR-013
+// FE-COSTSBAR-001 to FE-COSTSBAR-014
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
@@ -159,6 +159,20 @@ describe('CostsToolbar', () => {
       expect(buttons[0]).toHaveAttribute('aria-pressed', 'true')
       await user.click(buttons[1])
       expect(onView).toHaveBeenCalledWith('table')
+    })
+
+    it('FE-COSTSBAR-014: with nothing to split the travelers, Settle up and the owner filter stay away (#2689)', async () => {
+      const user = userEvent.setup()
+      // An owner filter left on from before neither counts nor shows.
+      setup({ splitting: false, filters: filters({ owner: 'owed' }) })
+      expect(screen.queryByText('2 travelers')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Settle up' })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Add expense' })).toBeInTheDocument()
+      const button = screen.getByRole('button', { name: 'Filter' })
+      expect(within(button).queryByText('1')).toBeNull()
+      await user.click(button)
+      expect(within(screen.getByRole('menu')).queryByRole('button', { name: 'Paid by me' })).toBeNull()
+      expect(within(screen.getByRole('menu')).getByRole('button', { name: 'Food' })).toBeInTheDocument()
     })
   })
 })

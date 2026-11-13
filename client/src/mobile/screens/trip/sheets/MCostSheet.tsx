@@ -62,7 +62,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   const {
     sym, nameOf, tripCur, name, setName, cat, setCat, currency, setCurrency, currencyChoices, day, setDay, note, setNote, total, onTotalChange,
     totalNum, fx, participants, toggleParticipant, payerId, setPayerId, multiPayer, enableMultiPayer, disableMultiPayer,
-    payerIds, payerAmounts, togglePayer, onPayerAmountChange, payersOk, splitMode, setSplitMode, isTicketMode, ticketItems,
+    payerIds, payerAmounts, togglePayer, onPayerAmountChange, payersOk, showSplit, splitMode, setSplitMode, isTicketMode, ticketItems,
     ticketInfo, handleAddEmptyItem, handleUpdateItemName, handleUpdateItemPrice, handleRemoveItem, handleToggleItemParticipant,
     customAmounts, handleCustomAmountChange, splitUnits, splitSum, customBalanced, each, equalShares, placeholderShares,
     receipts, pendingReceiptFiles, uploadingReceipt, handleReceiptFileSelect, handleRemoveReceipt, handleRemovePendingReceipt,
@@ -246,252 +246,256 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           </div>
         )}
 
-        {/* WHO PAID */}
-        <div className="mb-[6px] mt-3 flex items-center justify-between">
-          <Eyebrow className="uppercase">{t('costs.whoPaid')}</Eyebrow>
-          <button
-            type="button"
-            onClick={() => (multiPayer ? disableMultiPayer() : enableMultiPayer())}
-            className="font-geist text-[0.625rem] font-semibold text-m-muted underline"
-          >
-            {multiPayer ? t('costs.singlePayer') : t('costs.multiplePayers')}
-          </button>
-        </div>
-        {!multiPayer ? (
-          <CustomSelect
-            value={String(payerId)}
-            onChange={v => setPayerId(Number(v))}
-            size="sm"
-            options={[
-              { value: '0', label: t('costs.noOnePaid') },
-              ...people.map(p => ({ value: String(p.id), label: nameOf(p) })),
-            ]}
-            style={{ width: '100%' }}
-          />
-        ) : (
+        {/* WHO PAID and SPLIT: nothing to split on a trip of one (#2689). */}
+        {showSplit && (
           <>
-            <div className="flex flex-col gap-[6px]">
-              {people.map((p, idx) => {
-                const on = payerIds.has(p.id)
-                return (
-                  <div key={p.id} className={`${ROW_CLS} ${on ? '' : 'opacity-60'}`}>
-                    <button
-                      type="button"
-                      onClick={() => togglePayer(p.id)}
-                      className="flex min-w-0 flex-1 items-center gap-[8px] text-start"
-                    >
-                      <Avatar p={p} idx={idx} dim={!on} />
-                      <span className="truncate text-[0.8125rem] font-medium text-m-ink">{nameOf(p)}</span>
-                    </button>
-                    {on ? (
-                      <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
-                        <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
-                        <NumericInput
-                          mode="signed-decimal"
-                          signToggleLabel={t('costs.toggleSign')}
-                          placeholder={zeroAmountInput(currency)}
-                          value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
-                          onValueChange={v => onPayerAmountChange(p.id, v)}
-                          className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
-                        />
-                      </div>
-                    ) : (
-                      <button type="button" onClick={() => togglePayer(p.id)} className="flex-none text-[0.6875rem] text-m-faint">
-                        {t('costs.tapToInclude')}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
+            <div className="mb-[6px] mt-3 flex items-center justify-between">
+              <Eyebrow className="uppercase">{t('costs.whoPaid')}</Eyebrow>
+              <button
+                type="button"
+                onClick={() => (multiPayer ? disableMultiPayer() : enableMultiPayer())}
+                className="font-geist text-[0.625rem] font-semibold text-m-muted underline"
+              >
+                {multiPayer ? t('costs.singlePayer') : t('costs.multiplePayers')}
+              </button>
             </div>
-            {!payersOk && (
-              <div className="mt-2 text-[0.6875rem] text-[color:var(--m-st-danger)]">
-                {t('costs.payersUnbalanced', { amount: formatMoney(totalNum, currency, locale) })}
-              </div>
+            {!multiPayer ? (
+              <CustomSelect
+                value={String(payerId)}
+                onChange={v => setPayerId(Number(v))}
+                size="sm"
+                options={[
+                  { value: '0', label: t('costs.noOnePaid') },
+                  ...people.map(p => ({ value: String(p.id), label: nameOf(p) })),
+                ]}
+                style={{ width: '100%' }}
+              />
+            ) : (
+              <>
+                <div className="flex flex-col gap-[6px]">
+                  {people.map((p, idx) => {
+                    const on = payerIds.has(p.id)
+                    return (
+                      <div key={p.id} className={`${ROW_CLS} ${on ? '' : 'opacity-60'}`}>
+                        <button
+                          type="button"
+                          onClick={() => togglePayer(p.id)}
+                          className="flex min-w-0 flex-1 items-center gap-[8px] text-start"
+                        >
+                          <Avatar p={p} idx={idx} dim={!on} />
+                          <span className="truncate text-[0.8125rem] font-medium text-m-ink">{nameOf(p)}</span>
+                        </button>
+                        {on ? (
+                          <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
+                            <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
+                            <NumericInput
+                              mode="signed-decimal"
+                              signToggleLabel={t('costs.toggleSign')}
+                              placeholder={zeroAmountInput(currency)}
+                              value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
+                              onValueChange={v => onPayerAmountChange(p.id, v)}
+                              className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
+                            />
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => togglePayer(p.id)} className="flex-none text-[0.6875rem] text-m-faint">
+                            {t('costs.tapToInclude')}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                {!payersOk && (
+                  <div className="mt-2 text-[0.6875rem] text-[color:var(--m-st-danger)]">
+                    {t('costs.payersUnbalanced', { amount: formatMoney(totalNum, currency, locale) })}
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
 
-        {/* SPLIT */}
-        <Eyebrow className="mb-[6px] mt-3 uppercase">{t('costs.split')}</Eyebrow>
-        <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
-          {SPLIT_MODES.map(m => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setSplitMode(m.id)}
-              className={`flex-1 rounded-full py-[7px] text-[0.71875rem] font-semibold ${splitMode === m.id ? 'bg-m-act text-m-actfg' : 'text-m-muted'}`}
-            >
-              {t(m.labelKey)}
-            </button>
-          ))}
-        </div>
-
-        {splitMode === 'custom' && (
-          <>
-            <div role="radiogroup" aria-label={t('costs.splitUnit')} className="mt-2 flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
-              {unitOptions.map(u => (
+            {/* SPLIT */}
+            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('costs.split')}</Eyebrow>
+            <div className="flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
+              {SPLIT_MODES.map(m => (
                 <button
-                  key={u.id}
+                  key={m.id}
                   type="button"
-                  role="radio"
-                  aria-checked={splitUnits.unit === u.id}
-                  onClick={() => splitUnits.setUnit(u.id)}
-                  className={`min-w-0 flex-1 truncate rounded-full px-2 py-[6px] text-caption font-semibold ${splitUnits.unit === u.id ? 'bg-m-act text-m-actfg' : 'text-m-muted'}`}
+                  onClick={() => setSplitMode(m.id)}
+                  className={`flex-1 rounded-full py-[7px] text-[0.71875rem] font-semibold ${splitMode === m.id ? 'bg-m-act text-m-actfg' : 'text-m-muted'}`}
                 >
-                  {u.label}
+                  {t(m.labelKey)}
                 </button>
               ))}
             </div>
-            <p className="mt-[6px] text-caption text-m-faint">
-              {t(inPercent ? 'costs.splitHint.percent' : inUnits ? 'costs.splitHint.shares' : 'costs.splitHint.custom')}
-            </p>
-          </>
-        )}
 
-        {isTicketMode ? (
-          <div className="mt-2 flex flex-col gap-2">
-            {ticketItems.map(item => (
-              <div key={item.id} className="flex flex-col gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[10px]">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder={t('costs.whatFor')}
-                    value={item.name}
-                    onChange={e => handleUpdateItemName(item.id, e.target.value)}
-                    className="min-w-0 flex-[2] rounded-[9px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[10px] py-[7px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
-                  />
-                  <div className={`${MINI_INPUT_WRAP} min-w-0 flex-1`}>
-                    <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
-                    <NumericInput
-                      mode="decimal"
-                      placeholder={zeroAmountInput(currency)}
-                      value={localizeAmountInput(item.price, currency)}
-                      onValueChange={v => handleUpdateItemPrice(item.id, v)}
-                      className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
-                    />
-                  </div>
-                  <button type="button" onClick={() => handleRemoveItem(item.id)} className="flex-none text-m-muted" aria-label={t('common.delete')}>
-                    <Trash2 size={15} strokeWidth={2} />
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-[5px]">
-                  {people.map((p, idx) => (
+            {splitMode === 'custom' && (
+              <>
+                <div role="radiogroup" aria-label={t('costs.splitUnit')} className="mt-2 flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
+                  {unitOptions.map(u => (
                     <button
-                      key={p.id}
+                      key={u.id}
                       type="button"
-                      onClick={() => handleToggleItemParticipant(item.id, p.id)}
-                      className={`flex items-center gap-[4px] rounded-full px-[8px] py-[3px] text-[0.6875rem] font-medium ${
-                        item.participants.has(p.id) ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] text-m-muted'
-                      }`}
+                      role="radio"
+                      aria-checked={splitUnits.unit === u.id}
+                      onClick={() => splitUnits.setUnit(u.id)}
+                      className={`min-w-0 flex-1 truncate rounded-full px-2 py-[6px] text-caption font-semibold ${splitUnits.unit === u.id ? 'bg-m-act text-m-actfg' : 'text-m-muted'}`}
                     >
-                      <Avatar p={p} idx={idx} size={14} dim={!item.participants.has(p.id)} />
-                      <span>{nameOf(p)}</span>
+                      {u.label}
                     </button>
                   ))}
                 </div>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleAddEmptyItem}
-              className="flex items-center justify-center gap-[6px] rounded-[12px] border border-dashed border-[color:var(--m-rowbr)] py-[10px] text-[0.78125rem] font-semibold text-m-muted"
-            >
-              <Plus size={14} strokeWidth={2.2} /> {t('common.add')}
-            </button>
-            {ticketItems.length > 0 && (
-              <div className="rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
-                <Eyebrow className="mb-[8px] uppercase">{t('costs.split')}</Eyebrow>
-                <div className="flex flex-col gap-1">
-                  {people.map(p => (
-                    <div key={p.id} className="flex justify-between text-[0.8125rem]">
-                      <span className="text-m-muted">{nameOf(p)}</span>
-                      <span className="font-semibold text-m-ink [font-variant-numeric:tabular-nums]">{formatMoney(ticketInfo.shares[p.id] || 0, currency, locale)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <p className="mt-[6px] text-caption text-m-faint">
+                  {t(inPercent ? 'costs.splitHint.percent' : inUnits ? 'costs.splitHint.shares' : 'costs.splitHint.custom')}
+                </p>
+              </>
             )}
-          </div>
-        ) : (
-          <>
-            <div className="mt-2 flex flex-col gap-[6px]">
-              {people.map((p, idx) => {
-                const on = participants.has(p.id)
-                return (
-                  <div key={p.id} className={`${ROW_CLS} ${on ? '' : 'opacity-60'}`}>
-                    <button
-                      type="button"
-                      onClick={() => toggleParticipant(p.id)}
-                      className="flex min-w-0 flex-1 items-center gap-[8px] text-start"
-                    >
-                      <Avatar p={p} idx={idx} dim={!on} />
-                      <span className="truncate text-[0.8125rem] font-medium text-m-ink">{nameOf(p)}</span>
-                      {p.is_guest && <GuestBadge size="xs" />}
-                    </button>
-                    {splitMode === 'equally' ? (
-                      on ? (
-                        <span className="flex-none pe-1 text-[0.8125rem] font-semibold text-m-ink [font-variant-numeric:tabular-nums]">
-                          {formatMoney(equalShares[p.id] || 0, currency, locale)}
-                        </span>
-                      ) : (
-                        <span className="flex-none pe-1 text-[0.6875rem] text-m-faint">{t('costs.tapToInclude')}</span>
-                      )
-                    ) : on && inUnits ? (
-                      <div className="flex w-[120px] flex-none flex-col items-end gap-[2px]">
-                        <div className={`${MINI_INPUT_WRAP} w-full`}>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            aria-label={inPercent ? `${nameOf(p)} %` : t('costs.splitSharesOf', { name: nameOf(p) })}
-                            placeholder={splitUnits.placeholder}
-                            value={splitUnits.entries[p.id] ?? ''}
-                            onChange={e => splitUnits.onEntryChange(p.id, e.target.value)}
-                            className="w-full border-0 bg-transparent py-[7px] text-end text-body font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
-                          />
-                          {inPercent && <span className="text-caption text-m-faint">%</span>}
-                        </div>
-                        {customAmounts[p.id] && (
-                          <span className="text-caption text-m-faint [font-variant-numeric:tabular-nums]">
-                            {formatMoney(Number.parseFloat(customAmounts[p.id]) || 0, currency, locale)}
-                          </span>
-                        )}
-                      </div>
-                    ) : on ? (
-                      <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
+
+            {isTicketMode ? (
+              <div className="mt-2 flex flex-col gap-2">
+                {ticketItems.map(item => (
+                  <div key={item.id} className="flex flex-col gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[10px]">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={t('costs.whatFor')}
+                        value={item.name}
+                        onChange={e => handleUpdateItemName(item.id, e.target.value)}
+                        className="min-w-0 flex-[2] rounded-[9px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[10px] py-[7px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
+                      />
+                      <div className={`${MINI_INPUT_WRAP} min-w-0 flex-1`}>
                         <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder={localizeAmountInput(amountToInputString(placeholderShares[p.id] || 0, currency), currency)}
-                          value={localizeAmountInput(customAmounts[p.id] || '', currency)}
-                          onChange={e => handleCustomAmountChange(p.id, e.target.value)}
+                        <NumericInput
+                          mode="decimal"
+                          placeholder={zeroAmountInput(currency)}
+                          value={localizeAmountInput(item.price, currency)}
+                          onValueChange={v => handleUpdateItemPrice(item.id, v)}
                           className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
                         />
                       </div>
-                    ) : (
-                      <button type="button" onClick={() => toggleParticipant(p.id)} className="flex-none text-[0.6875rem] text-m-faint">
-                        {t('costs.tapToInclude')}
+                      <button type="button" onClick={() => handleRemoveItem(item.id)} className="flex-none text-m-muted" aria-label={t('common.delete')}>
+                        <Trash2 size={15} strokeWidth={2} />
                       </button>
-                    )}
+                    </div>
+                    <div className="flex flex-wrap gap-[5px]">
+                      {people.map((p, idx) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleToggleItemParticipant(item.id, p.id)}
+                          className={`flex items-center gap-[4px] rounded-full px-[8px] py-[3px] text-[0.6875rem] font-medium ${
+                            item.participants.has(p.id) ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] text-m-muted'
+                          }`}
+                        >
+                          <Avatar p={p} idx={idx} size={14} dim={!item.participants.has(p.id)} />
+                          <span>{nameOf(p)}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                )
-              })}
-            </div>
-            <div className="mt-2 text-[0.71875rem]">
-              {splitMode === 'equally' ? (
-                <span className="text-m-faint">
-                  {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: splitShareLabel(each, currency, fx, participants.size, base, locale) })}
-                </span>
-              ) : (
-                <span className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
-                  {/* An uneven split has no one share to print "each" with. */}
-                  {customBalanced
-                    ? t('costs.splitBalanced')
-                    : `${formatMoney(splitSum, currency, locale)} / ${formatMoney(totalNum, currency, locale)}`}
-                </span>
-              )}
-            </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleAddEmptyItem}
+                  className="flex items-center justify-center gap-[6px] rounded-[12px] border border-dashed border-[color:var(--m-rowbr)] py-[10px] text-[0.78125rem] font-semibold text-m-muted"
+                >
+                  <Plus size={14} strokeWidth={2.2} /> {t('common.add')}
+                </button>
+                {ticketItems.length > 0 && (
+                  <div className="rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
+                    <Eyebrow className="mb-[8px] uppercase">{t('costs.split')}</Eyebrow>
+                    <div className="flex flex-col gap-1">
+                      {people.map(p => (
+                        <div key={p.id} className="flex justify-between text-[0.8125rem]">
+                          <span className="text-m-muted">{nameOf(p)}</span>
+                          <span className="font-semibold text-m-ink [font-variant-numeric:tabular-nums]">{formatMoney(ticketInfo.shares[p.id] || 0, currency, locale)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="mt-2 flex flex-col gap-[6px]">
+                  {people.map((p, idx) => {
+                    const on = participants.has(p.id)
+                    return (
+                      <div key={p.id} className={`${ROW_CLS} ${on ? '' : 'opacity-60'}`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleParticipant(p.id)}
+                          className="flex min-w-0 flex-1 items-center gap-[8px] text-start"
+                        >
+                          <Avatar p={p} idx={idx} dim={!on} />
+                          <span className="truncate text-[0.8125rem] font-medium text-m-ink">{nameOf(p)}</span>
+                          {p.is_guest && <GuestBadge size="xs" />}
+                        </button>
+                        {splitMode === 'equally' ? (
+                          on ? (
+                            <span className="flex-none pe-1 text-[0.8125rem] font-semibold text-m-ink [font-variant-numeric:tabular-nums]">
+                              {formatMoney(equalShares[p.id] || 0, currency, locale)}
+                            </span>
+                          ) : (
+                            <span className="flex-none pe-1 text-[0.6875rem] text-m-faint">{t('costs.tapToInclude')}</span>
+                          )
+                        ) : on && inUnits ? (
+                          <div className="flex w-[120px] flex-none flex-col items-end gap-[2px]">
+                            <div className={`${MINI_INPUT_WRAP} w-full`}>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                aria-label={inPercent ? `${nameOf(p)} %` : t('costs.splitSharesOf', { name: nameOf(p) })}
+                                placeholder={splitUnits.placeholder}
+                                value={splitUnits.entries[p.id] ?? ''}
+                                onChange={e => splitUnits.onEntryChange(p.id, e.target.value)}
+                                className="w-full border-0 bg-transparent py-[7px] text-end text-body font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
+                              />
+                              {inPercent && <span className="text-caption text-m-faint">%</span>}
+                            </div>
+                            {customAmounts[p.id] && (
+                              <span className="text-caption text-m-faint [font-variant-numeric:tabular-nums]">
+                                {formatMoney(Number.parseFloat(customAmounts[p.id]) || 0, currency, locale)}
+                              </span>
+                            )}
+                          </div>
+                        ) : on ? (
+                          <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
+                            <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder={localizeAmountInput(amountToInputString(placeholderShares[p.id] || 0, currency), currency)}
+                              value={localizeAmountInput(customAmounts[p.id] || '', currency)}
+                              onChange={e => handleCustomAmountChange(p.id, e.target.value)}
+                              className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
+                            />
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => toggleParticipant(p.id)} className="flex-none text-[0.6875rem] text-m-faint">
+                            {t('costs.tapToInclude')}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-2 text-[0.71875rem]">
+                  {splitMode === 'equally' ? (
+                    <span className="text-m-faint">
+                      {participants.size > 0 && t('costs.splitSummary', { count: participants.size, amount: splitShareLabel(each, currency, fx, participants.size, base, locale) })}
+                    </span>
+                  ) : (
+                    <span className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
+                      {/* An uneven split has no one share to print "each" with. */}
+                      {customBalanced
+                        ? t('costs.splitBalanced')
+                        : `${formatMoney(splitSum, currency, locale)} / ${formatMoney(totalNum, currency, locale)}`}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
 

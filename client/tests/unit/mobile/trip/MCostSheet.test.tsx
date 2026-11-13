@@ -10,7 +10,7 @@ import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-041
+// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-042
 // The sheet reads its copy from useTranslation(), so assertions are English.
 // EUR formats de-DE style: displayed amounts and inputs use a comma.
 
@@ -789,5 +789,18 @@ describe('MCostSheet', () => {
     fireEvent.click(submit())
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
     expect(addBudgetItem.mock.calls[0][1]).toMatchObject({ receipt_file_ids: [51] })
+  })
+
+  it('FE-MOB-COSTSH-042: on a trip of one the sheet asks for no payer or split, and saves the expense as mine (#2689)', async () => {
+    renderSheet({ people: [PEOPLE[0]] })
+    expect(screen.queryByText(/Who paid/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Equally' })).not.toBeInTheDocument()
+    fillBasics('Museum', '12')
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({
+      payers: [{ user_id: 1, amount: 12 }],
+      members: [{ user_id: 1, amount: null }],
+    })
   })
 })

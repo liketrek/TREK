@@ -26,7 +26,7 @@ import {
   type TicketItem,
 } from './CostsPanel.helpers';
 import { catMeta } from './costsCategories';
-import { currencyOptions } from './costsModel';
+import { currencyOptions, isPlainSplit } from './costsModel';
 import { useExpenseFx } from './expenseFx';
 import { linkableReceiptFiles, receiptOfFile } from './receiptLinks';
 import { saveWithReceipts } from './receiptUploads';
@@ -131,6 +131,16 @@ export function useExpenseForm({
   // Payers the user typed an amount for: rebalance leaves these alone and makes
   // the others absorb the remainder.
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
+
+  // A trip of one has nothing to split (#2689): who paid and the split stay out of
+  // sight, unless the expense being edited carries more than that one person.
+  const [plainSplit] = useState(() =>
+    isPlainSplit(
+      editing,
+      people.map((p) => p.id)
+    )
+  );
+  const showSplit = people.length > 1 || !plainSplit;
 
   const [splitMode, setSplitMode] = useState<ExpenseSplitMode>(() => {
     if (hasTicketSplit(editing)) return 'ticket';
@@ -472,6 +482,7 @@ export function useExpenseForm({
     togglePayer,
     onPayerAmountChange,
     payersOk,
+    showSplit,
     splitMode,
     setSplitMode,
     isTicketMode,

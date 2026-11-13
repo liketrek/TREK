@@ -5,7 +5,7 @@ import type { BudgetItem } from '../../types';
 import { formatDisplayDate } from '../../utils/dateFormat';
 import { currencyDecimals } from '../../utils/formatters';
 import { currenciesWith, SYMBOLS } from './BudgetPanel.constants';
-import { paidByUser, readUserNote, settlementDate, splitEqualShares } from './CostsPanel.helpers';
+import { hasTicketSplit, paidByUser, readUserNote, settlementDate, splitEqualShares } from './CostsPanel.helpers';
 import { catMeta, COST_CATEGORY_LIST } from './costsCategories';
 
 /**
@@ -168,6 +168,46 @@ export interface CostsSettlementResponse {
   currency?: string;
   /** Rows no rate could convert, left out of every figure above. */
   unconverted?: BudgetUnconverted;
+}
+
+// ── who paid and the shares: when Costs shows them ─────────────────────────
+
+/**
+ * Whether Costs shows the splitting side: who paid, the shares, the balances
+ * and settling up. A trip of one has nothing to split, since every share is the
+ * whole amount and nobody can owe anybody (#2689), so it is left out there,
+ * unless the ledger still names someone else: a traveller who left the trip
+ * with money open, or members that have not loaded yet.
+ */
+export function showsSplitting(
+  memberCount: number,
+  items: BudgetItem[],
+  settlement: Pick<CostsSettlementResponse, 'flows' | 'balances'> | null,
+  me: number
+): boolean {
+  if (memberCount > 1) return true;
+  const namesOthers = items.some((e) => [...(e.payers || []), ...(e.members || [])].some((p) => p.user_id !== me));
+  const moneyOpen = (settlement?.balances || []).some((b) => Math.abs(b.balance) >= 0.005);
+  return namesOthers || moneyOpen || (settlement?.flows || []).length > 0;
+}
+
+/**
+ * Whether an expense's payers and split hold nothing beyond the obvious, so an
+ * editor that leaves them out of sight loses nothing by it: at most one payer,
+ * an equal split, no receipt lines, and only people still on the trip. A new
+ * expense (null) has nothing yet.
+ */
+export function isPlainSplit(e: BudgetItem | null, memberIds: number[]): boolean {
+  if (!e) return true;
+  const payers = (e.payers || []).filter((p) => p.amount !== 0);
+  const members = e.members || [];
+  const people = [...payers, ...members].map((p) => p.user_id);
+  return (
+    payers.length <= 1 &&
+    !hasTicketSplit(e) &&
+    members.every((m) => m.amount === null || m.amount === undefined) &&
+    people.every((id) => memberIds.includes(id))
+  );
 }
 
 // ── hero / tile totals (spec §3.1-§3.3) ────────────────────────────────────

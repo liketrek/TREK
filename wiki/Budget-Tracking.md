@@ -161,6 +161,12 @@ The **Add payment** dialog has **From** and **To** (the head band reads *You →
 
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end, so they stay stable even when the trip mixes currencies. An expense or payment in a foreign currency for which no exchange rate is known yet is left out of the balances and totals rather than counted 1:1; see [Currencies](Currencies#expense-currency).
 
+## A trip of one
+
+With only you on the trip there is nothing to split: every share is the whole amount, and nobody can owe anybody. Costs then leaves that side out. The summary is the **Total trip spend** card on its own, with the number of expenses under it, and the right-hand column keeps **By category**. **You owe**, **You're owed**, **Outstanding amount**, **Settle up**, **Balances** and **Final budget** are gone, and so are the travelers in the bar, the **Settle up** button and the **All / Paid by me / I'm owed** switch. Rows show no payers, no split and no **Unfinished** chip, and the expense dialog asks for neither **Who paid?** nor **Split**; a new expense is saved as paid by you. The phone does the same.
+
+Everything comes back as soon as a second member joins. It also stays while the ledger still names someone else: a traveler who left with money open, or an expense split with them. An expense whose payers or split hold more than you alone (several payers, an uneven split, a ticket) keeps both sections in its dialog, so nothing on it is hidden from you.
+
 ## Members who left and deleted guests
 
 Someone who has left the trip is still named in the lists and keeps their balance, so the settlement stays correct. Deleting a guest keeps the costs adding up: their payments are not dropped from the totals.

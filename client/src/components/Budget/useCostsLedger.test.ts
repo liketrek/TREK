@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-013
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-014
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -82,6 +82,7 @@ let toastInfo: Mock<(message: string) => void>;
 interface Options {
   trip?: Trip;
   items?: BudgetItem[];
+  memberCount?: number;
   settlementOnTripChange?: boolean;
   skipUnfinishedShares?: boolean;
   csvCurrencyAsStored?: boolean;
@@ -95,6 +96,7 @@ function setup(options: Options = {}) {
         tripId,
         trip: options.trip ?? buildTrip({ id: 7, currency: 'EUR', title: 'Rome' }),
         budgetItems: items,
+        memberCount: options.memberCount ?? 3,
         actions: { loadBudgetItems, deleteBudgetItem },
         canEdit: true,
         t: (key: string) => key,
@@ -237,6 +239,27 @@ describe('useCostsLedger: totals and filters', () => {
     });
     expect(result.current.segment).toBe('owed');
     expect(result.current.filteredSettlements).toEqual([]);
+  });
+});
+
+describe('useCostsLedger: a trip of one (#2689)', () => {
+  it('FE-BUDGET-LEDGER-014: nothing to split leaves out the payments and the owner filter', async () => {
+    const mine = buildBudgetItem({
+      id: 8,
+      name: 'Museum',
+      total_price: 20,
+      members: [member(1)],
+      payers: [payer(1, 20)],
+    });
+    settlementMock().mockResolvedValue({ ...SETTLEMENT, flows: [], balances: [] });
+    const { result } = setup({ items: [mine], memberCount: 1 });
+    await waitFor(() => expect(settlementMock()).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.settlement?.flows).toEqual([]));
+    expect(result.current.splitting).toBe(false);
+    expect(result.current.filteredSettlements).toEqual([]);
+    // A filter left on "I'm owed" from before cannot hide the expenses either.
+    act(() => result.current.setSegment('owed'));
+    expect(result.current.filtered.map((e) => e.id)).toEqual([8]);
   });
 });
 

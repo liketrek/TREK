@@ -290,7 +290,7 @@
     {
       "feature": "Costs/budget settle-up payment: useSettlementForm",
       "hooks": ["src/components/Budget/useSettlementForm.ts"],
-      "desktop": ["src/components/Budget/CostsPanel.tsx"],
+      "desktop": ["src/components/Budget/SettlementModal.tsx"],
       "mobile": ["src/mobile/screens/trip/tabs/MCostsPayment.tsx"]
     },
     {

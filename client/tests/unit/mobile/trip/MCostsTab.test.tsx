@@ -18,7 +18,7 @@ import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-053
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-056
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -967,5 +967,19 @@ describe('MCostsTab', () => {
       // Back to the prototype's reflected attribute.
       delete (document.documentElement as { dir?: string }).dir
     }
+  })
+
+  it('FE-MOB-COSTT-056: a trip of one shows the total and the categories, nothing owed or to settle (#2689)', async () => {
+    serveSettlement({ balances: [], flows: [], settlements: [] })
+    const solo = planner({ tripMembers: [MEMBERS[0]] as unknown as TripPlanner['tripMembers'], budgetItems: [TAXI, SOUVENIR] })
+    render(<MCostsTab planner={solo} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    expect(screen.getByText('costs.totalSpend')).toBeInTheDocument()
+    expect(screen.getByText('costs.byCategory')).toBeInTheDocument()
+    for (const key of ['costs.yourShare', 'costs.youOwe', 'costs.outstanding', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    // The souvenirs nobody paid for are an expense like any other here.
+    expect(screen.getByText('Souvenirs')).toBeInTheDocument()
   })
 })

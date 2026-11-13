@@ -37,6 +37,11 @@ interface CostsToolbarProps {
   canEdit: boolean
   /** Whether there is any suggested transfer left to settle. */
   canSettle: boolean
+  /**
+   * False when there is nothing to split (#2689): the travelers, Settle up and
+   * the owner filter go, since each one is about who owes whom.
+   */
+  splitting?: boolean
   onSettleAll: () => void
   onAddExpense: () => void
   /** Opens the receipt scan; left out when the AI model reads no images. */
@@ -57,7 +62,7 @@ const BAR_BTN = 'relative grid h-9 w-9 flex-none place-items-center rounded-[10p
  * Bookings, Lists and Files open with: the tab's name and what the numbers
  * cover, then how to narrow the ledger and the actions on the right.
  */
-export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, canSettle, onSettleAll, onAddExpense, onScanReceipt, filters, view, onView }: CostsToolbarProps) {
+export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, canSettle, splitting = true, onSettleAll, onAddExpense, onScanReceipt, filters, view, onView }: CostsToolbarProps) {
   const { t } = useTranslation()
   const searchRef = useRef<HTMLInputElement>(null)
   const chip = 'inline-flex items-center whitespace-nowrap rounded-full bg-surface-card px-3 py-1.5 font-medium text-content-muted shadow-sm'
@@ -76,22 +81,24 @@ export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, 
             <b className="text-content">{t('costs.daysCount', { count: dateMeta.days })}</b>
           </span>
         )}
-        <span className={`${chip} gap-2 ps-1.5`}>
-          <span className="inline-flex">
-            {people.slice(0, 4).map((p, i) => {
-              const ring = { width: 22, height: 22, marginInlineStart: i ? -8 : 0 }
-              return p.avatar_url
-                ? <img key={p.id} src={p.avatar_url} alt="" className="block shrink-0 rounded-full border-2 border-surface-card object-cover" style={ring} />
-                : (
-                  <span key={p.id} className="grid shrink-0 place-items-center rounded-full border-2 border-surface-card font-bold" style={{
-                    ...ring, background: colorFor(p.id), fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
-                    color: '#fff', // theme-lint-disable: an initial on the member's own colour
-                  }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>
-                )
-            })}
+        {splitting && (
+          <span className={`${chip} gap-2 ps-1.5`}>
+            <span className="inline-flex">
+              {people.slice(0, 4).map((p, i) => {
+                const ring = { width: 22, height: 22, marginInlineStart: i ? -8 : 0 }
+                return p.avatar_url
+                  ? <img key={p.id} src={p.avatar_url} alt="" className="block shrink-0 rounded-full border-2 border-surface-card object-cover" style={ring} />
+                  : (
+                    <span key={p.id} className="grid shrink-0 place-items-center rounded-full border-2 border-surface-card font-bold" style={{
+                      ...ring, background: colorFor(p.id), fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
+                      color: '#fff', // theme-lint-disable: an initial on the member's own colour
+                    }}>{(p.id === me ? t('costs.youShort') : p.username.charAt(0)).toUpperCase()}</span>
+                  )
+              })}
+            </span>
+            <b className="text-content">{t('costs.travelers', { count: people.length })}</b>
           </span>
-          <b className="text-content">{t('costs.travelers', { count: people.length })}</b>
-        </span>
+        )}
       </div>
 
       {filters && (
@@ -114,7 +121,7 @@ export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, 
               </Tooltip>
             )}
           </label>
-          <FilterMenu {...filters} />
+          <FilterMenu {...filters} splitting={splitting} />
           <Tooltip label={t('budget.exportCsv')}>
             <button type="button" onClick={filters.onExport} disabled={!filters.canExport} aria-label={t('budget.exportCsv')} className={BAR_BTN}>
               <Download size={15} strokeWidth={2} />
@@ -141,11 +148,13 @@ export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, 
         <>
           {filters && <span className="mx-0.5 h-[22px] w-px flex-none bg-edge-faint" />}
           <div className="flex shrink-0 flex-wrap gap-1.5" style={{ fontSize: BODY_SIZE }}>
-            <button type="button" onClick={onSettleAll} disabled={!canSettle}
-              className={`${button} bg-surface-card text-content disabled:cursor-default disabled:opacity-40`}>
-              <Check size={14} strokeWidth={2.5} />
-              {t('costs.settleUp')}
-            </button>
+            {splitting && (
+              <button type="button" onClick={onSettleAll} disabled={!canSettle}
+                className={`${button} bg-surface-card text-content disabled:cursor-default disabled:opacity-40`}>
+                <Check size={14} strokeWidth={2.5} />
+                {t('costs.settleUp')}
+              </button>
+            )}
             {onScanReceipt && (
               <button type="button" onClick={onScanReceipt} className={`${button} bg-surface-card text-content`}>
                 <ScanLine size={14} strokeWidth={2.5} />
@@ -164,13 +173,14 @@ export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, 
 }
 
 /** Whose expenses, which category and which day, in one place; the button counts what is switched on. */
-function FilterMenu(f: CostsFilterProps) {
+function FilterMenu(f: CostsFilterProps & { splitting: boolean }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const close = useCallback(() => setOpen(false), [])
   useDismissOnOutside(ref, open, close)
-  const active = (f.owner !== 'all' ? 1 : 0) + (f.category ? 1 : 0) + (f.day ? 1 : 0)
+  // Whose expenses is only a question while something is split.
+  const active = (f.splitting && f.owner !== 'all' ? 1 : 0) + (f.category ? 1 : 0) + (f.day ? 1 : 0)
   const owners: [OwnerFilter, string][] = [['all', t('costs.filter.all')], ['mine', t('costs.filter.mine')], ['owed', t('costs.filter.owed')]]
 
   return (
@@ -183,6 +193,7 @@ function FilterMenu(f: CostsFilterProps) {
       </Tooltip>
       {open && (
         <div role="menu" onKeyDown={e => { if (e.key === 'Escape') close() }} className="absolute end-0 top-11 z-30" style={{ ...POPOVER, width: 310 }}>
+          {f.splitting && <>
           <div className="mx-1.5 mb-1 mt-1.5 flex rounded-[10px] bg-surface-tertiary p-[3px]">
             {owners.map(([o, label]) => (
               <button key={o} type="button" onClick={() => f.onOwner(o)} aria-pressed={f.owner === o}
@@ -194,6 +205,7 @@ function FilterMenu(f: CostsFilterProps) {
           </div>
 
           <div style={POPOVER_DIVIDER} />
+          </>}
           <div style={POPOVER_CAPTION}>{t('costs.category')}</div>
           <div className="max-h-[220px] overflow-y-auto">
             {f.categoryOptions.map(o => (

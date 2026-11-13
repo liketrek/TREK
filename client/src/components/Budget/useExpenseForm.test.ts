@@ -21,7 +21,7 @@ vi.mock('./receiptUploads', () => ({
   ),
 }));
 
-// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-026
+// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-027
 
 const PEOPLE: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -161,6 +161,26 @@ describe('useExpenseForm: where it starts', () => {
     expect(setup({ prefill: { currency: 'usd' } }).result.current.currency).toBe('USD');
     const editing = buildBudgetItem({ total_price: 20, currency: 'EUR', payers: [], members: [] });
     expect(setup({ editing }).result.current.currency).toBe('EUR');
+  });
+
+  it('FE-BUDGET-EXPFORM-027: a trip of one hides who paid and the split, unless the expense holds more (#2689)', () => {
+    expect(setup().result.current.showSplit).toBe(true);
+    const solo = (editing: BudgetItem | null) =>
+      renderHook(() =>
+        useExpenseForm({ tripId: 7, base: 'EUR', people: [PEOPLE[0]], me: 1, editing, onSaved: vi.fn() })
+      ).result.current;
+    expect(solo(null).showSplit).toBe(false);
+    expect(solo(buildBudgetItem({ payers: [{ user_id: 1, amount: 20 }], members: [] })).showSplit).toBe(false);
+    // Someone who left the trip, or an uneven split, stays in reach.
+    const withBob = buildBudgetItem({
+      payers: [{ user_id: 1, amount: 20 }],
+      members: [{ user_id: 2, paid: 0, username: 'bob', amount: null }],
+    } as Partial<BudgetItem>);
+    expect(solo(withBob).showSplit).toBe(true);
+    const custom = buildBudgetItem({
+      members: [{ user_id: 1, paid: 0, username: 'alice', amount: 15 }],
+    } as Partial<BudgetItem>);
+    expect(solo(custom).showSplit).toBe(true);
   });
 
   it('FE-BUDGET-EXPFORM-003: an edited expense reopens with its payer, its custom split, its note and receipts', () => {

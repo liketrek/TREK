@@ -45,11 +45,11 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   // The display and trip currencies, the server-computed settlement, totals,
   // filters and the ledger writes: the same ledger the desktop panel runs on.
   const {
-    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, knownNames,
+    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, splitting, knownNames,
     search, setSearch, segment, setSegment, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, exportCsv: handleExportCsv,
     deleteExpense, undoSettlement: handleUndoSettlement,
-  } = useCostsLedger({ tripId, trip, budgetItems, actions: planner.tripActions, canEdit, t, toast })
+  } = useCostsLedger({ tripId, trip, budgetItems, memberCount: tripMembers.length, actions: planner.tripActions, canEdit, t, toast })
 
   const [catOpen, setCatOpen] = useState(false)
   const [dayOpen, setDayOpen] = useState(false)
@@ -137,8 +137,9 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         <div className="mt-1 font-geist text-[1.875rem] font-extrabold tabular-nums tracking-[-0.02em]">
           {formatMoney(totals.totalSpend, base, locale)}
         </div>
-        {/* Each figure under its own label, so the two pairs never read as one run. */}
-        <div className="mt-[8px] flex flex-wrap gap-x-[22px] gap-y-[6px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
+        {/* Each figure under its own label, so the two pairs never read as one run.
+            Only with something to split (#2689), like everything owed below. */}
+        {splitting && <div className="mt-[8px] flex flex-wrap gap-x-[22px] gap-y-[6px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
           <span className="flex flex-col">
             {t('costs.yourShare')}
             <b className="tabular-nums" style={{ color: '#F5F5F7' }}>{formatMoney(totals.myShare, base, locale)}</b>
@@ -147,9 +148,10 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             {t('costs.youPaid')}
             <b className="tabular-nums" style={{ color: '#F5F5F7' }}>{formatMoney(totals.myPaid, base, locale)}</b>
           </span>
-        </div>
+        </div>}
       </div>
 
+      {splitting && <>
       {/* You owe / You're owed (spec §3.2). The two tiles stand level and each
           amount sits at the foot of its tile, so a label that wraps in one of
           them (German "Dir wird geschuldet") leaves both amounts on one line. */}
@@ -300,6 +302,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         })}
       </div>
 
+      </>}
+
       {/* By category (spec §3.5) */}
       <div className="mt-2 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
         <div className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('costs.byCategory')}</div>
@@ -342,7 +346,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         aria-label={t('costs.searchPlaceholder')}
         className="mt-2 block w-full rounded-full border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[10px] font-[inherit] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
       />
-      <div className="mt-2 flex rounded-full bg-m-card p-[3px]">
+      {splitting && <div className="mt-2 flex rounded-full bg-m-card p-[3px]">
         {(['all', 'mine', 'owed'] as const).map(seg => (
           <button
             key={seg}
@@ -354,7 +358,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             {t('costs.filter.' + seg)}
           </button>
         ))}
-      </div>
+      </div>}
 
       <div className="mt-2 flex gap-2">
         <button
@@ -469,6 +473,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 locale={locale}
                 t={t}
                 canEdit={canEdit}
+                splitting={splitting}
                 onEdit={() => {
                   setEditingExpense(en.item)
                   setExpenseModalOpen(true)
@@ -573,13 +578,15 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 }
 
 /** One expense card (spec 03 §3.7): category ribbon, optional unfinished ribbon, member chips, total pill, edit/delete stack. */
-function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onTogglePaid, onPreviewReceipts }: {
+function ExpenseRow({ item, ctx, base, locale, t, canEdit, splitting, onEdit, onDelete, onTogglePaid, onPreviewReceipts }: {
   item: BudgetItem
   ctx: CostsCtx
   base: string
   locale: string
   t: TFn
   canEdit: boolean
+  /** False with nothing to split (#2689): no unfinished ribbon, no shares to tick paid. */
+  splitting: boolean
   onEdit: () => void
   onDelete: () => void
   onTogglePaid: (userId: number, paid: boolean) => void
@@ -589,9 +596,9 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
   const Icon = meta.Icon
   const total = baseTotal(item, ctx)
   const line = lineOf(item.total_price || 0, item, ctx, total)
-  const unfinished = isUnfinished(item, ctx)
+  const unfinished = splitting && isUnfinished(item, ctx)
   const borderColor = tint(meta.color, 0.55)
-  const members = item.members || []
+  const members = splitting ? item.members || [] : []
   const note = readUserNote(item)
 
   // No swipe here: edit and delete stand beside the card already, and a swipe
