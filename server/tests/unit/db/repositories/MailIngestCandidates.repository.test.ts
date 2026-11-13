@@ -15,9 +15,10 @@ import type { MailIngestMessagesRepository } from '../../../../src/db/repositori
 import { dbNow } from '../../../../src/db/types';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { addBudgetItemPayer, makeBudgetItem } from '../../../helpers/factories/budget';
+import { makeDayAssignment } from '../../../helpers/factories/itinerary';
 import { makePlace } from '../../../helpers/factories/places';
 import { makeReservation } from '../../../helpers/factories/reservations';
-import { addTripMember, makeTrip } from '../../../helpers/factories/trips';
+import { addTripMember, makeTrip, readTripDays } from '../../../helpers/factories/trips';
 import { makeUser } from '../../../helpers/factories/users';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
@@ -67,7 +68,8 @@ async function mailOf(userId: number): Promise<number> {
     rawEnc: 'enc',
     receivedAt: DAY1,
   });
-  return id!;
+  if (id === null) throw new Error('the mail was stored already');
+  return id;
 }
 
 function entry(messageId: number, userId: number, over: Partial<MailIngestCandidateInsert> = {}) {
@@ -128,6 +130,26 @@ describe('MailIngestCandidatesRepository: the entries', () => {
     });
   });
 
+  it('writes an entry decided as it is written with its trip, ids and undo window', async () => {
+    const { user } = await makeUser(t);
+    const trip = await makeTrip(t, user.id);
+    const until = at('2026-11-08T10:00:00Z');
+    const id = await entry(await mailOf(user.id), user.id, {
+      resolution: 'auto_applied',
+      reason: null,
+      resolvedTripId: trip.id,
+      createdIdsJson: '{"reservation_ids":[3]}',
+      resolvedAt: DAY1,
+      undoUntil: until,
+    });
+    expect(await candidates.findById(id)).toMatchObject({
+      resolved_trip_id: trip.id,
+      created_ids_json: '{"reservation_ids":[3]}',
+      resolved_at: DAY1,
+      undo_until: until,
+    });
+  });
+
   it('remembers a booking undone in a trip by its content', async () => {
     const { user } = await makeUser(t);
     const trip = await makeTrip(t, user.id);
@@ -184,17 +206,32 @@ describe('MailIngestCandidatesRepository: what it reads of the trips', () => {
     expect(await candidates.listOpenTrips(user.id, '2026-10-01', 1)).toHaveLength(1);
   });
 
+  it('finds one open trip of the person whatever its dates, and none of a stranger', async () => {
+    const { user } = await makeUser(t);
+    const { user: other } = await makeUser(t);
+    const ended = await makeTrip(t, user.id, { start_date: '2025-01-01', end_date: '2025-01-02' });
+    const archived = await makeTrip(t, user.id, { is_archived: 1 });
+    const foreign = await makeTrip(t, other.id);
+    expect(await candidates.findOpenTrip(user.id, ended.id)).toMatchObject({ id: ended.id, user_id: user.id });
+    expect(await candidates.findOpenTrip(user.id, archived.id)).toBeNull();
+    expect(await candidates.findOpenTrip(user.id, foreign.id)).toBeNull();
+    await addTripMember(t, foreign.id, user.id);
+    expect(await candidates.findOpenTrip(user.id, foreign.id)).toMatchObject({ id: foreign.id });
+  });
+
   it('reads the dated days and the placed places of trips', async () => {
     const { user } = await makeUser(t);
     const trip = await makeTrip(t, user.id, { start_date: '2027-03-01', end_date: '2027-03-02' });
     await makePlace(t, trip.id, { name: 'Hotel Sakura', address: 'Tokyo', lat: 35.68, lng: 139.76 });
     await makePlace(t, trip.id, { name: 'Somewhere', lat: null, lng: null });
 
-    expect(await candidates.listDayDates([trip.id])).toEqual([
-      { trip_id: trip.id, date: '2027-03-01' },
-      { trip_id: trip.id, date: '2027-03-02' },
+    const days = await candidates.listDatedDays([trip.id]);
+    expect(days.map(({ trip_id, date }) => [trip_id, date])).toEqual([
+      [trip.id, '2027-03-01'],
+      [trip.id, '2027-03-02'],
     ]);
-    expect(await candidates.listDayDates([])).toEqual([]);
+    expect(days.every((day) => day.id > 0)).toBe(true);
+    expect(await candidates.listDatedDays([])).toEqual([]);
     expect(await candidates.listPlacesWithPosition([trip.id])).toEqual([
       { trip_id: trip.id, name: 'Hotel Sakura', address: 'Tokyo', lat: 35.68, lng: 139.76 },
     ]);
@@ -241,6 +278,20 @@ describe('MailIngestCandidatesRepository: what it reads of the trips', () => {
         startTo: '2027-03-01T10:30',
       }),
     ).toBe(false);
+  });
+
+  it('tells a place something still names from one nothing does', async () => {
+    const { user } = await makeUser(t);
+    const trip = await makeTrip(t, user.id, { start_date: '2027-03-01', end_date: '2027-03-01' });
+    const [day] = await readTripDays(t, trip.id);
+    const free = await makePlace(t, trip.id);
+    const booked = await makePlace(t, trip.id);
+    const planned = await makePlace(t, trip.id);
+    await makeReservation(t, trip.id, { place: booked.id });
+    await makeDayAssignment(t, day.id, planned.id);
+    expect(await candidates.placeInUse(free.id)).toBe(false);
+    expect(await candidates.placeInUse(booked.id)).toBe(true);
+    expect(await candidates.placeInUse(planned.id)).toBe(true);
   });
 
   it('counts the payers of costs', async () => {

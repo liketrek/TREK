@@ -158,22 +158,21 @@ export class MailIngestMessagesRepository extends TrekRepository<MailIngestMessa
       .orderBy('id', 'asc')
       .limit(limit)
       .execute();
-    const claimed: number[] = [];
-    for (const { id } of due) {
-      const result = await this.db()
-        .updateTable('mail_ingest_messages')
-        .set((eb) => ({ status: 'processing', lease_until: leaseUntil, attempts: eb('attempts', '+', 1) }))
-        .where('id', '=', id)
-        .where((eb) =>
-          eb.or([
-            eb('status', '=', 'queued'),
-            eb.and([eb('status', '=', 'processing'), eb('lease_until', '<', now)]),
-          ]),
-        )
-        .executeTakeFirst();
-      if (Number(result.numUpdatedRows) > 0) claimed.push(id);
-    }
-    return claimed;
+    const won = await Promise.all(due.map(({ id }) => this.claim(id, now, leaseUntil)));
+    return due.flatMap(({ id }, i) => (won[i] ? [id] : []));
+  }
+
+  /** One mail's claim: it is still queued, or its last claim ran out at `now`. */
+  private async claim(id: number, now: DbTimestamp, leaseUntil: DbTimestamp): Promise<boolean> {
+    const result = await this.db()
+      .updateTable('mail_ingest_messages')
+      .set((eb) => ({ status: 'processing', lease_until: leaseUntil, attempts: eb('attempts', '+', 1) }))
+      .where('id', '=', id)
+      .where((eb) =>
+        eb.or([eb('status', '=', 'queued'), eb.and([eb('status', '=', 'processing'), eb('lease_until', '<', now)])]),
+      )
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows) > 0;
   }
 
   /** Writes what the pipeline made of the mail and lets go of its claim. */

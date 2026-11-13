@@ -56,7 +56,14 @@ async function inbox() {
   return { userId: user.id, addressId };
 }
 
-function store(box: { userId: number; addressId: number }, hash: string, receivedAt = DAY1) {
+/** Stores a mail and answers its id; a second store of the same hash fails the test. */
+async function store(box: { userId: number; addressId: number }, hash: string, receivedAt = DAY1): Promise<number> {
+  const id = await insert(box, hash, receivedAt);
+  if (id === null) throw new Error(`mail ${hash} was stored already`);
+  return id;
+}
+
+function insert(box: { userId: number; addressId: number }, hash: string, receivedAt = DAY1) {
   return messages.insertIfNew({
     transport: 'upload',
     messageIdHdr: `<${hash}@x>`,
@@ -88,12 +95,11 @@ describe('MailIngestMessagesRepository', () => {
   it('stores a mail once and finds it by its hash', async () => {
     const box = await inbox();
     const id = await store(box, 'm1');
-    expect(id).not.toBeNull();
-    expect(await store(box, 'm1')).toBeNull();
+    expect(await insert(box, 'm1')).toBeNull();
     expect(await messages.findIdByDedupeHash('m1')).toBe(id);
     expect(await messages.findIdByDedupeHash('m2')).toBeNull();
-    expect(await messages.findById(id!)).toMatchObject({ status: 'queued', attempts: 0, raw_eml_enc: 'enc' });
-    expect(await messages.findById(id! + 1)).toBeNull();
+    expect(await messages.findById(id)).toMatchObject({ status: 'queued', attempts: 0, raw_eml_enc: 'enc' });
+    expect(await messages.findById(id + 1)).toBeNull();
   });
 
   it('counts the mails of an address and the AI-read mails of a person since a time', async () => {
@@ -101,7 +107,7 @@ describe('MailIngestMessagesRepository', () => {
     const first = await store(box, 'c1', at('2026-10-31T10:00:00Z'));
     await store(box, 'c2', DAY1);
     expect(await messages.countForAddressSince(box.addressId, at('2026-11-01T00:00:00Z'))).toBe(1);
-    await messages.finish(first!, DONE);
+    await messages.finish(first, DONE);
     expect(await messages.countAiReadSince(box.userId, at('2026-10-31T00:00:00Z'))).toBe(1);
     expect(await messages.countAiReadSince(box.userId, at('2026-11-01T00:00:00Z'))).toBe(0);
   });
@@ -118,14 +124,14 @@ describe('MailIngestMessagesRepository', () => {
 
     const later = at('2026-11-01T11:20:00Z');
     expect(await messages.claimDue(later, at('2026-11-01T11:30:00Z'), 3)).toEqual([id]);
-    expect(await messages.findById(id!)).toMatchObject({ status: 'processing', attempts: 2 });
+    expect(await messages.findById(id)).toMatchObject({ status: 'processing', attempts: 2 });
 
-    await messages.retryLater(id!, at('2026-11-01T12:00:00Z'));
+    await messages.retryLater(id, at('2026-11-01T12:00:00Z'));
     expect(await messages.claimDue(later, lease, 3)).toEqual([]);
     expect(await messages.claimDue(at('2026-11-01T12:00:00Z'), lease, 3)).toEqual([id]);
 
-    await messages.finish(id!, DONE);
-    expect(await messages.findById(id!)).toMatchObject({
+    await messages.finish(id, DONE);
+    expect(await messages.findById(id)).toMatchObject({
       status: 'processed',
       ai_used: 1,
       from_verified: 1,
@@ -138,10 +144,10 @@ describe('MailIngestMessagesRepository', () => {
     const waiting = await store(box, 'p1');
     const settled = await store(box, 'p2');
     const old = await store(box, 'p3', at('2026-09-01T10:00:00Z'));
-    await messages.finish(waiting!, DONE);
-    await messages.finish(settled!, DONE);
+    await messages.finish(waiting, DONE);
+    await messages.finish(settled, DONE);
     await candidates.insertCandidate({
-      messageId: waiting!,
+      messageId: waiting,
       userId: box.userId,
       position: 0,
       itemJson: null,
@@ -159,9 +165,9 @@ describe('MailIngestMessagesRepository', () => {
 
     const purgedAt = at('2026-11-20T10:00:00Z');
     expect(await messages.purgeRaw(at('2026-11-10T10:00:00Z'), at('2026-10-01T10:00:00Z'), purgedAt)).toBe(2);
-    expect(await messages.findById(waiting!)).toMatchObject({ raw_eml_enc: 'enc', raw_purged_at: null });
-    expect(await messages.findById(settled!)).toMatchObject({ raw_eml_enc: null, raw_purged_at: purgedAt });
-    expect(await messages.findById(old!)).toMatchObject({ raw_eml_enc: null });
+    expect(await messages.findById(waiting)).toMatchObject({ raw_eml_enc: 'enc', raw_purged_at: null });
+    expect(await messages.findById(settled)).toMatchObject({ raw_eml_enc: null, raw_purged_at: purgedAt });
+    expect(await messages.findById(old)).toMatchObject({ raw_eml_enc: null });
   });
 
   it('deletes settled mails without entries, and keeps queued ones and those with entries', async () => {
@@ -169,10 +175,10 @@ describe('MailIngestMessagesRepository', () => {
     const queued = await store(box, 'x1', at('2026-08-01T10:00:00Z'));
     const bare = await store(box, 'x2', at('2026-08-01T10:00:00Z'));
     const withEntry = await store(box, 'x3', at('2026-08-01T10:00:00Z'));
-    await messages.finish(bare!, { ...DONE, status: 'discarded' });
-    await messages.finish(withEntry!, DONE);
+    await messages.finish(bare, { ...DONE, status: 'discarded' });
+    await messages.finish(withEntry, DONE);
     await candidates.insertCandidate({
-      messageId: withEntry!,
+      messageId: withEntry,
       userId: box.userId,
       position: 0,
       itemJson: null,
@@ -189,8 +195,8 @@ describe('MailIngestMessagesRepository', () => {
     });
 
     expect(await messages.deleteSettledBefore(at('2026-09-01T00:00:00Z'))).toBe(1);
-    expect(await messages.findById(bare!)).toBeNull();
-    expect(await messages.findById(queued!)).not.toBeNull();
-    expect(await messages.findById(withEntry!)).not.toBeNull();
+    expect(await messages.findById(bare)).toBeNull();
+    expect(await messages.findById(queued)).not.toBeNull();
+    expect(await messages.findById(withEntry)).not.toBeNull();
   });
 });

@@ -113,7 +113,10 @@ export const MAIL_INGEST_REASON_BY_LLM_OUTCOME: Readonly<Record<LlmParseOutcome,
   too_large: 'too_large',
 };
 
-/** The server's checks on a booking read from a mail, as the inbox lists them (plan G1 to G8). */
+/**
+ * The server's checks on a booking read from a mail, as the inbox lists them:
+ * plan G1 to G8, and G9, the trip holding the booking already.
+ */
 export const mailIngestCheckSchema = z.enum([
   'schema',
   'trip',
@@ -123,6 +126,7 @@ export const mailIngestCheckSchema = z.enum([
   'in_text',
   'assignment',
   'cancellation',
+  'duplicate',
 ]);
 export type MailIngestCheck = z.infer<typeof mailIngestCheckSchema>;
 

@@ -53,7 +53,10 @@ export function normalizeNode(node: Record<string, unknown>): Record<string, unk
  * is dropped: an empty currency lets the cost form pick one, a made up one
  * (`EURials`, #2477) is saved and cannot be converted.
  */
-export function normalizeCurrency(node: Record<string, unknown>, documentText: string | undefined): Record<string, unknown> {
+export function normalizeCurrency(
+  node: Record<string, unknown>,
+  documentText: string | undefined,
+): Record<string, unknown> {
   const hasPrice = node.price != null && node.price !== '';
   if (node.priceCurrency == null && !hasPrice) return node;
   const code =

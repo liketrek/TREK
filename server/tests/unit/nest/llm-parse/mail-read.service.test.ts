@@ -122,11 +122,17 @@ describe('MailReadService.read', () => {
   });
 
   it('reports a spent allowance as its outcome and logs no content', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const lines: string[] = [];
+    for (const method of ['log', 'info', 'warn', 'error'] as const) {
+      vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+    }
     extract.mockRejectedValue(new LlmRequestError('gate', 429, 'QUOTA_SPENT'));
     const reading = await service.read(input(), 1, '2026-11-13');
     expect(reading.outcome).toBe('quota_exhausted');
-    expect(String(error.mock.calls[0][0])).not.toContain('ABC123');
+    expect(lines.join(' | ')).toContain('Mail read failed');
+    expect(lines.join(' | ')).not.toContain('ABC123');
   });
 
   it('reads through the local router without a trip choice', async () => {

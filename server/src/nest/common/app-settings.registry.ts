@@ -1,6 +1,6 @@
 import { readEnv } from '../../app-config';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { aiPolicySchema } from '@trek/shared';
+import { aiPolicySchema, mailIngestTransportSettingSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -161,6 +161,15 @@ export const APP_SETTINGS = {
   synology_capture_repair_3019: { schema: text, default: null },
   /** How many starts have tried that so far, while some photo could not be confirmed. */
   synology_capture_repair_3019_tries: { schema: intText, default: null },
+  // The booking mail import (mail-ingest). Off until switched on: on a self-hosted install by its
+  // admin, on a managed one by the operator, for the plans that include it and never for Start.
+  mail_ingest_enabled: { schema: flag, default: 'false' },
+  /** How mail reaches the install: not at all (uploads only), IMAP, a signed webhook, or the TREK Cloud relay. */
+  mail_ingest_transport: { schema: mailIngestTransportSettingSchema, default: 'off' },
+  /** The forwarding address, `{token}` standing where a person's token goes: `trek+{token}@example.com`. */
+  mail_ingest_address_template: { schema: text, default: null },
+  /** How many forwarded mails a day an AI reads for one person. */
+  mail_ingest_ai_per_user_daily: { schema: intText, default: '10' },
 } as const satisfies Record<string, AppSettingDef>;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;

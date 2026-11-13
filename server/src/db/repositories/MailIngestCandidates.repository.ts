@@ -49,6 +49,11 @@ export interface MailIngestCandidateInsert {
   resolution: string;
   reason: string | null;
   createdAt: DbTimestamp;
+  /** For an entry decided as it is written: the trip it went to, what it created, until when it can be undone. */
+  resolvedTripId?: number | null;
+  createdIdsJson?: string | null;
+  resolvedAt?: DbTimestamp | null;
+  undoUntil?: DbTimestamp | null;
 }
 
 /** What deciding an entry writes. */
@@ -107,6 +112,8 @@ type CandidatesKyselyDB = Pick<
   | 'places'
   | 'users'
   | 'reservations'
+  | 'day_assignments'
+  | 'day_accommodations'
   | 'budget_item_payers'
 >;
 
@@ -144,6 +151,10 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
         resolution: row.resolution,
         reason: row.reason,
         created_at: row.createdAt,
+        resolved_trip_id: row.resolvedTripId ?? null,
+        created_ids_json: row.createdIdsJson ?? null,
+        resolved_at: row.resolvedAt ?? null,
+        undo_until: row.undoUntil ?? null,
       })
       .returning('id')
       .executeTakeFirstOrThrow();
@@ -265,18 +276,41 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
       .execute();
   }
 
-  /** The dated days of these trips. */
-  async listDayDates(tripIds: readonly number[]): Promise<Array<{ trip_id: number; date: string }>> {
+  /** One trip the person owns or is a member of and that is not archived, whatever its dates; null otherwise. */
+  async findOpenTrip(userId: number, tripId: number): Promise<MailIngestTripRow | null> {
+    const row = await this.db()
+      .selectFrom('trips as t')
+      .select(['t.id', 't.title', 't.start_date', 't.end_date', 't.user_id', 't.currency'])
+      .where('t.id', '=', tripId)
+      .where((eb) =>
+        eb.or([
+          eb('t.user_id', '=', userId),
+          eb.exists(
+            eb
+              .selectFrom('trip_members as m')
+              .select('m.id')
+              .whereRef('m.trip_id', '=', 't.id')
+              .where('m.user_id', '=', userId),
+          ),
+        ]),
+      )
+      .where((eb) => eb.or([eb('t.is_archived', 'is', null), eb('t.is_archived', '=', 0)]))
+      .executeTakeFirst();
+    return row ?? null;
+  }
+
+  /** The dated days of these trips, by date. */
+  async listDatedDays(tripIds: readonly number[]): Promise<Array<{ id: number; trip_id: number; date: string }>> {
     if (tripIds.length === 0) return [];
     const rows = await this.db()
       .selectFrom('days')
-      .select(['trip_id', 'date'])
+      .select(['id', 'trip_id', 'date'])
       .where('trip_id', 'in', [...tripIds])
       .where('date', 'is not', null)
       .orderBy('trip_id', 'asc')
       .orderBy('date', 'asc')
       .execute();
-    return rows.flatMap((row) => (row.date === null ? [] : [{ trip_id: row.trip_id, date: row.date }]));
+    return rows.flatMap((row) => (row.date === null ? [] : [{ id: row.id, trip_id: row.trip_id, date: row.date }]));
   }
 
   /** The places of these trips that have a position, oldest first. */
@@ -344,6 +378,16 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
       })
       .executeTakeFirst();
     return row !== undefined;
+  }
+
+  /** Whether a booking, a day plan entry or a stay still names the place. */
+  async placeInUse(placeId: number): Promise<boolean> {
+    const [booking, planned, stay] = await Promise.all([
+      this.db().selectFrom('reservations').select('id').where('place_id', '=', placeId).executeTakeFirst(),
+      this.db().selectFrom('day_assignments').select('id').where('place_id', '=', placeId).executeTakeFirst(),
+      this.db().selectFrom('day_accommodations').select('id').where('place_id', '=', placeId).executeTakeFirst(),
+    ]);
+    return booking !== undefined || planned !== undefined || stay !== undefined;
   }
 
   /** How many payers the costs name: a cost someone settled with moves balances. */

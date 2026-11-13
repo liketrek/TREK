@@ -1,3 +1,4 @@
+import { logError } from '../audit/audit-log.logger';
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { capImage, renderPdfPages } from './image-input';
 import { createLlmClient } from './llm-client.factory';
@@ -96,7 +97,7 @@ export class MailReadService {
     } catch (err) {
       // The provider and the error only: the mail's content stays out of the log.
       const reason = err instanceof Error ? err.message : String(err);
-      console.error(`[llm-parse] Mail read failed (provider=${config.provider}): ${reason}`);
+      logError(`[llm-parse] Mail read failed (provider=${config.provider}): ${reason}`);
       return nothing(failureOutcome(err));
     }
   }
