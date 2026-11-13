@@ -89,6 +89,17 @@ const th: NotificationLocale = {
             ? `"${p.tour}" ใน "${p.trip}" ตรวจใน wanderer ไม่ได้อีกต่อไป ทัวร์ในทริปของคุณยังคงเหมือนเดิม`
             : `"${p.tour}" ใน "${p.trip}" อาจเปลี่ยนแปลงใน wanderer เปิดทัวร์และตรวจแหล่งที่มา ไม่มีสิ่งใดในทริปเปลี่ยนเอง`,
     }),
+    mail_booking_added: (p) => ({
+      title: `เพิ่มจากอีเมล: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} เพิ่ม "${p.booking}" ลงใน "${p.trip}" จากอีเมลที่ส่งต่อ`
+          : `เพิ่ม "${p.booking}" จากอีเมลที่คุณส่งต่อลงใน "${p.trip}" แล้ว คุณเลิกทำได้ใน TREK ภายใน 7 วัน`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'การจองที่ส่งต่อซึ่งรอตรวจสอบ',
+      body: `การจองที่ส่งต่อซึ่งรอคุณอยู่ใน TREK: ${p.count} แต่ละรายการบอกเหตุผลที่ไม่ได้เพิ่มเองโดยอัตโนมัติ`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

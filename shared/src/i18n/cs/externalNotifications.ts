@@ -102,6 +102,17 @@ const cs: NotificationLocale = {
             ? `„${p.tour}“ v „${p.trip}“ už nelze ve wanderer ověřit. Túra ve vaší cestě zůstává, jak je.`
             : `„${p.tour}“ v „${p.trip}“ se ve wanderer možná změnila. Otevřete túru a zkontrolujte její zdroj. V cestě se nic nezmění samo.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Přidáno z e-mailu: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} přidal(a) „${p.booking}“ do „${p.trip}“ z přeposlaného e-mailu.`
+          : `„${p.booking}“ z vašeho přeposlaného e-mailu byla přidána do „${p.trip}“. V TREK to můžete 7 dní vrátit zpět.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Přeposlané rezervace ke kontrole',
+      body: `Přeposlané rezervace čekající na vás v TREK: ${p.count}. U každé je uvedeno, proč nebyla přidána sama.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

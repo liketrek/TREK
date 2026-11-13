@@ -96,6 +96,17 @@ const hu: NotificationLocale = {
             ? `„${p.tour}” („${p.trip}”) már nem ellenőrizhető a wandererben. A túra az utazásodban változatlan marad.`
             : `„${p.tour}” („${p.trip}”) megváltozhatott a wandererben. Nyisd meg a túrát, és ellenőrizd a forrását. Az utazásban semmi sem változik magától.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Levélből hozzáadva: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} egy továbbított levélből hozzáadta a(z) „${p.booking}” foglalást ehhez: „${p.trip}”.`
+          : `A továbbított leveledből származó „${p.booking}” foglalás bekerült ide: „${p.trip}”. A TREK-ben 7 napig visszavonhatod.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Ellenőrizendő továbbított foglalások',
+      body: `Rád váró továbbított foglalások a TREK-ben: ${p.count}. Mindegyiknél ott áll, miért nem került be magától.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

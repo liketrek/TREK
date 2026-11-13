@@ -96,6 +96,17 @@ const az: NotificationLocale = {
             ? `"${p.trip}" içində "${p.tour}" artıq wanderer-də yoxlanıla bilmir. Səfərindəki tur olduğu kimi qalır.`
             : `"${p.trip}" içində "${p.tour}" wanderer-də dəyişmiş ola bilər. Turu aç və mənbəyini yoxla. Səfərdə heç nə özbaşına dəyişmir.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Məktubdan əlavə edildi: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} yönləndirilmiş məktubdakı "${p.booking}" rezervasiyasını "${p.trip}" səyahətinə əlavə etdi.`
+          : `Yönləndirdiyiniz məktubdakı "${p.booking}" rezervasiyası "${p.trip}" səyahətinə əlavə edildi. Bunu TREK-də 7 gün ərzində geri ala bilərsiniz.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Yoxlanılacaq yönləndirilmiş rezervasiyalar',
+      body: `TREK-də sizi gözləyən yönləndirilmiş rezervasiyalar: ${p.count}. Hər birində niyə avtomatik əlavə edilmədiyi yazılıb.`,
+    }),
     plugin_notification: (p) => ({
       title: p.title ?? '',
       body: p.body ?? '',

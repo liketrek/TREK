@@ -96,6 +96,17 @@ const ca: NotificationLocale = {
             ? `«${p.tour}» a «${p.trip}» ja no es pot comprovar a wanderer. El recorregut del teu viatge es queda com està.`
             : `«${p.tour}» a «${p.trip}» pot haver canviat a wanderer. Obre el recorregut i comprova'n la font per saber-ho. Res del viatge canvia sol.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Afegit des d’un correu: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} ha afegit «${p.booking}» a «${p.trip}» des d’un correu reenviat.`
+          : `«${p.booking}» del teu correu reenviat s’ha afegit a «${p.trip}». Pots desfer-ho a TREK durant 7 dies.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Reserves reenviades per revisar',
+      body: `Reserves reenviades pendents a TREK: ${p.count}. Cadascuna diu per què no s’ha afegit sola.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

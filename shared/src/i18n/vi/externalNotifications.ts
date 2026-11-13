@@ -89,6 +89,17 @@ const en: NotificationLocale = {
             ? `“${p.tour}” trong “${p.trip}” không còn kiểm tra được trên wanderer. Chuyến đi trong chuyến du lịch của bạn vẫn giữ nguyên.`
             : `“${p.tour}” trong “${p.trip}” có thể đã thay đổi trên wanderer. Hãy mở chuyến đi và kiểm tra nguồn của nó. Không có gì trong chuyến du lịch tự thay đổi.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Đã thêm từ email: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} đã thêm "${p.booking}" vào "${p.trip}" từ một email được chuyển tiếp.`
+          : `"${p.booking}" từ email bạn chuyển tiếp đã được thêm vào "${p.trip}". Bạn có thể hoàn tác trong TREK trong 7 ngày.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Đặt chỗ chuyển tiếp cần xem lại',
+      body: `Đặt chỗ chuyển tiếp đang chờ bạn trong TREK: ${p.count}. Mỗi mục cho biết vì sao nó không được tự động thêm.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

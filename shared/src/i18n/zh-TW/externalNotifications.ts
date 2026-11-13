@@ -90,6 +90,17 @@ const zhTW: NotificationLocale = {
             ? `「${p.trip}」中的「${p.tour}」已無法在 wanderer 中檢查。你旅行中的行程保持不變。`
             : `「${p.trip}」中的「${p.tour}」可能已在 wanderer 中變更。請開啟行程並檢查其來源。旅行中的內容不會自行改變。`,
     }),
+    mail_booking_added: (p) => ({
+      title: `從郵件新增：${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} 從轉寄的郵件將「${p.booking}」新增到「${p.trip}」。`
+          : `你轉寄的郵件中的「${p.booking}」已新增到「${p.trip}」。7 天內可以在 TREK 中復原。`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: '待檢查的轉寄預訂',
+      body: `TREK 中等待你處理的轉寄預訂：${p.count}。每一筆都說明了為什麼沒有自動新增。`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

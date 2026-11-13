@@ -135,6 +135,9 @@ export class NotificationPreferencesService {
       case 'flight_delayed':
       case 'flight_landed':
         return (await resolveAppSetting(this.appSettings, 'flight_live_enabled')) !== 'false';
+      case 'mail_booking_added':
+      case 'mail_booking_pending':
+        return (await resolveAppSetting(this.appSettings, 'mail_ingest_enabled')) === 'true';
       default:
         return true;
     }

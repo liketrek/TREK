@@ -99,6 +99,17 @@ const br: NotificationLocale = {
             ? `“${p.tour}” em “${p.trip}” não pode mais ser verificada no wanderer. O passeio da sua viagem continua como está.`
             : `“${p.tour}” em “${p.trip}” pode ter mudado no wanderer. Abra o passeio e verifique a fonte para saber. Nada na viagem muda sozinho.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Adicionada de um e-mail: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} adicionou "${p.booking}" a "${p.trip}" a partir de um e-mail encaminhado.`
+          : `"${p.booking}" do seu e-mail encaminhado foi adicionada a "${p.trip}". Você pode desfazer isso no TREK por 7 dias.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Reservas encaminhadas para revisar',
+      body: `Reservas encaminhadas aguardando você no TREK: ${p.count}. Cada uma diz por que não foi adicionada sozinha.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

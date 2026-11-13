@@ -96,6 +96,17 @@ const en: NotificationLocale = {
             ? `"${p.tour}" in "${p.trip}" can no longer be checked in wanderer. The tour in your trip stays as it is.`
             : `"${p.tour}" in "${p.trip}" may have changed in wanderer. Open the tour and check its source to see whether it did. Nothing in the trip changes by itself.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Added from a mail: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} added "${p.booking}" to "${p.trip}" from a forwarded mail.`
+          : `"${p.booking}" from your forwarded mail was added to "${p.trip}". You can undo it in TREK for 7 days.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Forwarded bookings to review',
+      body: `Forwarded bookings waiting for you in TREK: ${p.count}. Each one says why it was not added on its own.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

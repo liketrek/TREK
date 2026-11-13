@@ -102,6 +102,17 @@ const he: NotificationLocale = {
             ? `כבר אי אפשר לבדוק את "${p.tour}" ב-"${p.trip}" ב-wanderer. המסלול בטיול שלכם נשאר כמו שהוא.`
             : `ייתכן ש-"${p.tour}" ב-"${p.trip}" השתנה ב-wanderer. פתחו את המסלול ובדקו את המקור שלו כדי לראות אם כן. שום דבר בטיול לא משתנה מעצמו.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `נוספה מדוא״ל: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} הוסיף/ה את "${p.booking}" אל "${p.trip}" מדוא״ל שהועבר.`
+          : `"${p.booking}" מהדוא״ל שהעברתם נוספה אל "${p.trip}". אפשר לבטל זאת ב-TREK במשך 7 ימים.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'הזמנות שהועברו לבדיקה',
+      body: `הזמנות שהועברו וממתינות לכם ב-TREK: ${p.count}. ליד כל אחת כתוב מדוע לא נוספה אוטומטית.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

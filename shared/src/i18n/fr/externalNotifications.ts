@@ -96,6 +96,17 @@ const fr: NotificationLocale = {
             ? `« ${p.tour} » dans « ${p.trip} » ne peut plus être vérifié dans wanderer. Le parcours de votre voyage reste tel quel.`
             : `« ${p.tour} » dans « ${p.trip} » a peut-être changé dans wanderer. Ouvrez le parcours et vérifiez sa source pour le savoir. Rien ne change de lui-même dans le voyage.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Ajouté depuis un e-mail : ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} a ajouté « ${p.booking} » à « ${p.trip} » depuis un e-mail transféré.`
+          : `« ${p.booking} » de votre e-mail transféré a été ajouté à « ${p.trip} ». Vous pouvez l’annuler dans TREK pendant 7 jours.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Réservations transférées à vérifier',
+      body: `Réservations transférées en attente dans TREK : ${p.count}. Chacune indique pourquoi elle n’a pas été ajoutée automatiquement.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

@@ -96,6 +96,17 @@ const de: NotificationLocale = {
             ? `„${p.tour}“ in „${p.trip}“ lässt sich in wanderer nicht mehr prüfen. Die Tour in deiner Reise bleibt, wie sie ist.`
             : `„${p.tour}“ in „${p.trip}“ hat sich in wanderer möglicherweise geändert. Öffne die Tour und prüfe ihre Quelle, um es zu sehen. In der Reise ändert sich nichts von selbst.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Aus einer Mail eingetragen: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} hat „${p.booking}“ aus einer weitergeleiteten Mail in „${p.trip}“ eingetragen.`
+          : `„${p.booking}“ aus deiner weitergeleiteten Mail wurde in „${p.trip}“ eingetragen. Du kannst das 7 Tage lang in TREK rückgängig machen.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Weitergeleitete Buchungen prüfen',
+      body: `In TREK warten weitergeleitete Buchungen auf dich: ${p.count}. Bei jeder steht, warum sie nicht von selbst eingetragen wurde.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

@@ -96,6 +96,17 @@ const en: NotificationLocale = {
             ? `”${p.tour}” i ”${p.trip}” kan inte längre kontrolleras i wanderer. Turen i din resa förblir som den är.`
             : `”${p.tour}” i ”${p.trip}” kan ha ändrats i wanderer. Öppna turen och kontrollera dess källa. Inget i resan ändras av sig självt.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Tillagd från ett mejl: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} lade till "${p.booking}" i "${p.trip}" från ett vidarebefordrat mejl.`
+          : `"${p.booking}" från ditt vidarebefordrade mejl lades till i "${p.trip}". Du kan ångra det i TREK i 7 dagar.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Vidarebefordrade bokningar att granska',
+      body: `Vidarebefordrade bokningar som väntar på dig i TREK: ${p.count}. Vid varje står varför den inte lades till av sig själv.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

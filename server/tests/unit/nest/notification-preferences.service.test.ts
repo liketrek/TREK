@@ -492,3 +492,14 @@ describe('listed events follow the features that are on', () => {
     for (const hidden of flights) expect(event_types).not.toContain(hidden);
   });
 });
+
+describe('the mail import’s events follow its switch', () => {
+  it('NPREF-LIST-002: lists the mail booking events only while the import is on', async () => {
+    const { user } = createUser(testDb);
+    expect((await svc.getPreferencesMatrix(user.id, 'user')).event_types).not.toContain('mail_booking_added');
+    setAppSetting(testDb, 'mail_ingest_enabled', 'true');
+    const { event_types } = await svc.getPreferencesMatrix(user.id, 'user');
+    expect(event_types).toContain('mail_booking_added');
+    expect(event_types).toContain('mail_booking_pending');
+  });
+});

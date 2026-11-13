@@ -99,6 +99,17 @@ const gr: NotificationLocale = {
             ? `«${p.tour}» στο «${p.trip}» δεν ελέγχεται πια στο wanderer. Η διαδρομή στο ταξίδι σου μένει ως έχει.`
             : `«${p.tour}» στο «${p.trip}» ίσως άλλαξε στο wanderer. Άνοιξε τη διαδρομή και έλεγξε την πηγή της. Στο ταξίδι τίποτα δεν αλλάζει από μόνο του.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Προστέθηκε από email: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `Ο/Η ${p.actor} πρόσθεσε την κράτηση «${p.booking}» στο «${p.trip}» από προωθημένο email.`
+          : `Η κράτηση «${p.booking}» από το προωθημένο email σας προστέθηκε στο «${p.trip}». Μπορείτε να την αναιρέσετε στο TREK για 7 ημέρες.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Προωθημένες κρατήσεις για έλεγχο',
+      body: `Προωθημένες κρατήσεις σε αναμονή στο TREK: ${p.count}. Σε καθεμία αναφέρεται γιατί δεν προστέθηκε αυτόματα.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

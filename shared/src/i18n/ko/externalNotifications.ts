@@ -87,6 +87,17 @@ const ko: NotificationLocale = {
             ? `"${p.trip}"의 "${p.tour}"은(는) 더 이상 wanderer에서 확인할 수 없습니다. 여행의 투어는 그대로 유지됩니다.`
             : `"${p.trip}"의 "${p.tour}"이(가) wanderer에서 바뀌었을 수 있습니다. 투어를 열고 소스를 확인하세요. 여행의 내용은 저절로 바뀌지 않습니다.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `메일에서 추가됨: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} 님이 전달된 메일에서 "${p.booking}"을(를) "${p.trip}"에 추가했습니다.`
+          : `전달한 메일의 "${p.booking}"이(가) "${p.trip}"에 추가되었습니다. TREK에서 7일 동안 실행 취소할 수 있습니다.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: '검토할 전달된 예약',
+      body: `TREK에서 검토를 기다리는 전달된 예약: ${p.count}개. 각 예약에 자동으로 추가되지 않은 이유가 표시됩니다.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

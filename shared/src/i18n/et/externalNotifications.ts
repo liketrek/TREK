@@ -97,6 +97,17 @@ const et: NotificationLocale = {
             ? `„${p.tour}“ reisil „${p.trip}“ ei saa wandereris enam kontrollida. Matk sinu reisis jääb samaks.`
             : `„${p.tour}“ reisil „${p.trip}“ võib olla wandereris muutunud. Ava matk ja kontrolli selle allikat. Reisis ei muutu midagi iseenesest.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Lisatud kirjast: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} lisas edastatud kirjast „${p.booking}“ reisile „${p.trip}“.`
+          : `„${p.booking}“ sinu edastatud kirjast lisati reisile „${p.trip}“. Saad selle TREKis 7 päeva jooksul tagasi võtta.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Ülevaatamist ootavad edastatud broneeringud',
+      body: `TREKis ootavad sind edastatud broneeringud: ${p.count}. Igaühe juures on kirjas, miks seda ise ei lisatud.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

@@ -39,6 +39,8 @@ const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 
   paddle_region_requested: { priority: 3, tags: ['canoe'] },
   synology_session_cleared: { priority: 3, tags: ['warning'] },
   wanderer_source_hint: { priority: 2, tags: ['hiking_boot'] },
+  mail_booking_added: { priority: 3, tags: ['envelope'] },
+  mail_booking_pending: { priority: 2, tags: ['envelope'] },
 };
 const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };
 

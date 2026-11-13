@@ -96,6 +96,17 @@ const nl: NotificationLocale = {
             ? `‘${p.tour}’ in ‘${p.trip}’ kan niet meer worden gecontroleerd in wanderer. De tocht in je reis blijft zoals hij is.`
             : `‘${p.tour}’ in ‘${p.trip}’ is mogelijk gewijzigd in wanderer. Open de tocht en controleer de bron om het te zien. In de reis verandert niets vanzelf.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Toegevoegd uit een mail: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} heeft "${p.booking}" uit een doorgestuurde mail aan "${p.trip}" toegevoegd.`
+          : `"${p.booking}" uit je doorgestuurde mail is toegevoegd aan "${p.trip}". Je kunt dit 7 dagen lang in TREK ongedaan maken.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Doorgestuurde boekingen om te controleren',
+      body: `In TREK wachten doorgestuurde boekingen op je: ${p.count}. Bij elke staat waarom hij niet vanzelf is toegevoegd.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

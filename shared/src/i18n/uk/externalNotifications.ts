@@ -100,6 +100,17 @@ const uk: NotificationLocale = {
             ? `«${p.tour}» у «${p.trip}» більше не можна перевірити в wanderer. Тур у вашій подорожі залишається як є.`
             : `«${p.tour}» у «${p.trip}», можливо, змінено в wanderer. Відкрийте тур і перевірте його джерело. У подорожі нічого не змінюється само.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `Додано з листа: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} додав(ла) «${p.booking}» до «${p.trip}» з пересланого листа.`
+          : `«${p.booking}» з вашого пересланого листа додано до «${p.trip}». У TREK це можна скасувати протягом 7 днів.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Переслані бронювання для перевірки',
+      body: `Пересланих бронювань чекає на вас у TREK: ${p.count}. Біля кожного вказано, чому його не додано автоматично.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

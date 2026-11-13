@@ -87,6 +87,17 @@ const ja: NotificationLocale = {
             ? `「${p.trip}」の「${p.tour}」は wanderer で確認できなくなりました。旅行内のツアーはそのまま残ります。`
             : `「${p.trip}」の「${p.tour}」が wanderer で変更された可能性があります。ツアーを開いてソースを確認してください。旅行の内容が勝手に変わることはありません。`,
     }),
+    mail_booking_added: (p) => ({
+      title: `メールから追加: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} が転送メールから「${p.booking}」を「${p.trip}」に追加しました。`
+          : `転送したメールの「${p.booking}」を「${p.trip}」に追加しました。TREK で 7 日間は元に戻せます。`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: '確認待ちの転送予約',
+      body: `TREK に確認待ちの転送予約があります: ${p.count} 件。それぞれに自動で追加されなかった理由が表示されます。`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

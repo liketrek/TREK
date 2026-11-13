@@ -111,6 +111,17 @@ const ar: NotificationLocale = {
             ? `لم يعد بالإمكان التحقق من «${p.tour}» في «${p.trip}» على wanderer. تبقى الجولة في رحلتك كما هي.`
             : `ربما تغيّر «${p.tour}» في «${p.trip}» على wanderer. افتح الجولة وتحقق من مصدرها. لا يتغير شيء في الرحلة من تلقاء نفسه.`,
     }),
+    mail_booking_added: (p) => ({
+      title: `أُضيف من بريد: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `أضاف ${p.actor} الحجز "${p.booking}" إلى "${p.trip}" من بريد مُعاد توجيهه.`
+          : `تمت إضافة "${p.booking}" من بريدك المُعاد توجيهه إلى "${p.trip}". يمكنك التراجع عن ذلك في TREK لمدة 7 أيام.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'حجوزات مُعاد توجيهها للمراجعة',
+      body: `حجوزات مُعاد توجيهها بانتظارك في TREK: ${p.count}. يذكر كل منها سبب عدم إضافته تلقائيًا.`,
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

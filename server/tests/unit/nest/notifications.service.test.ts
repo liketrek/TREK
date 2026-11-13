@@ -632,6 +632,36 @@ describe('send() — in-app notification content', () => {
       ]),
     );
   });
+
+  it('NOTIF-MAIL-001 a mail booking tells the forwarder from a co-traveller; pending ones lead to the inbox', async () => {
+    const { user } = createUser(testDb);
+    setNotificationChannels(testDb, 'none');
+    const params = { booking: 'LH 716', trip: 'Japan', tripId: '7', actor: 'mia', type: 'flight' };
+    await send({ event: 'mail_booking_added', actorId: null, scope: 'user', targetId: user.id, params });
+    await send({
+      event: 'mail_booking_added',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { ...params, role: 'traveller' },
+    });
+    await send({
+      event: 'mail_booking_pending',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { count: '2' },
+    });
+
+    const notifs = await getInAppNotifications(user.id);
+    expect(notifs.map((n) => [n.text_key, n.navigate_target])).toEqual(
+      expect.arrayContaining([
+        ['notif.mail_booking_added.text', '/trips/7?tab=bookings'],
+        ['notif.mail_booking_added.shared', '/trips/7?tab=bookings'],
+        ['notif.mail_booking_pending.text', '/dashboard?inbox=mail'],
+      ]),
+    );
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
