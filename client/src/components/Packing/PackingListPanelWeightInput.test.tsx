@@ -1,5 +1,5 @@
 // FE-COMP-PACKING-095 to FE-COMP-PACKING-098
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { WeightInput } from './PackingListPanelWeightInput';
@@ -7,16 +7,25 @@ import { WeightInput } from './PackingListPanelWeightInput';
 /** A row whose stored weight changes only once a save answers, as the store does. */
 function SlowRow({ onSave, onStored }: { onSave: (grams: number | null) => void; onStored: () => void }) {
   const [stored, setStored] = useState<number | null>(null);
+  const [pending, setPending] = useState<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (pending) clearTimeout(pending);
+    },
+    [pending]
+  );
   return (
     <WeightInput
       value={stored}
       width={36}
       onSave={(grams) => {
         onSave(grams);
-        setTimeout(() => {
-          setStored(grams);
-          onStored();
-        }, 300);
+        setPending(
+          setTimeout(() => {
+            setStored(grams);
+            onStored();
+          }, 300)
+        );
       }}
     />
   );

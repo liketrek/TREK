@@ -5,5 +5,5 @@
   "tests/unit/nest/journey-domain.service.test.ts": 3876,
   "tests/unit/nest/maps.service.test.ts": 3680,
   "tests/unit/nest/places.service.test.ts": 2545,
-  "tests/unit/nest/trips.service.test.ts": 2363
+  "tests/unit/nest/trips.service.test.ts": 2349
 }

@@ -148,5 +148,15 @@ const vacay: TranslationStrings = {
   'vacay.hideFromCalendar': 'Im Kalender ausblenden',
   'vacay.sharedEmpty': 'Zeigt euch gegenseitig eure Kalender, ohne sie zu fusionieren.',
   'vacay.sharedLegend': 'Geteilt (nur ansehen)',
+  'vacay.subscribeHolidays': 'Feiertage abonnieren',
+  'vacay.icsCalendarsHint': 'Importiere ganztägige Feiertage über eine öffentliche ICS-URL',
+  'vacay.noIcsCalendars': 'Noch keine Kalender abonniert',
+  'vacay.icsUrl': 'ICS-Adresse eingeben',
+  'vacay.icsLabel': 'Kalenderbezeichnung',
+  'vacay.removeIcsCalendar': 'Kalender entfernen',
+  'vacay.icsInitialFetchHint': 'Kalender wird abgerufen und geprüft…',
+  'vacay.icsRefreshFailed':
+    'Aktualisierung fehlgeschlagen; die zuletzt erfolgreich abgerufenen Ereignisse werden angezeigt',
+  'vacay.loadingCalendars': 'Wird geladen…',
 };
 export default vacay;

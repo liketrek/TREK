@@ -1,5 +1,6 @@
 import { VacayCompanyHolidays } from '../../src/db/entities/VacayCompanyHolidays.entity';
 import { VacayEntries } from '../../src/db/entities/VacayEntries.entity';
+import { VacayIcsCalendars } from '../../src/db/entities/VacayIcsCalendars.entity';
 import { VacayPlanMembers } from '../../src/db/entities/VacayPlanMembers.entity';
 import { VacayPlans } from '../../src/db/entities/VacayPlans.entity';
 import { VacayShares } from '../../src/db/entities/VacayShares.entity';
@@ -9,6 +10,7 @@ import { VacayUserYears } from '../../src/db/entities/VacayUserYears.entity';
 import { VacayYears } from '../../src/db/entities/VacayYears.entity';
 import type { VacayCompanyHolidaysRepository } from '../../src/db/repositories/VacayCompanyHolidays.repository';
 import type { VacayEntriesRepository } from '../../src/db/repositories/VacayEntries.repository';
+import type { VacayIcsCalendarsRepository } from '../../src/db/repositories/VacayIcsCalendars.repository';
 import type { VacayPlanMembersRepository } from '../../src/db/repositories/VacayPlanMembers.repository';
 import type { VacayPlansRepository } from '../../src/db/repositories/VacayPlans.repository';
 import type { VacaySharesRepository } from '../../src/db/repositories/VacayShares.repository';
@@ -58,6 +60,10 @@ export function createTestVacayUserColorsRepo(db: Database.Database): Promise<Va
 
 export function createTestVacayEntriesRepo(db: Database.Database): Promise<VacayEntriesRepository> {
   return sharedTestOrm(db).then((t) => t.repo(VacayEntries));
+}
+
+export function createTestVacayIcsCalendarsRepo(db: Database.Database): Promise<VacayIcsCalendarsRepository> {
+  return sharedTestOrm(db).then((t) => t.repo(VacayIcsCalendars));
 }
 
 export function createTestVacayCompanyHolidaysRepo(db: Database.Database): Promise<VacayCompanyHolidaysRepository> {

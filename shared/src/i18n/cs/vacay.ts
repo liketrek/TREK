@@ -148,5 +148,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Sdílené (pouze pro čtení)',
   'vacay.publicHolidaysHint': 'Označit státní svátky v kalendáři',
   'vacay.noCalendars': 'Zatím nebyly přidány žádné kalendáře svátků',
+  'vacay.subscribeHolidays': 'Odebírat svátky',
+  'vacay.icsCalendarsHint': 'Importuj celodenní události svátků z veřejné adresy ICS',
+  'vacay.noIcsCalendars': 'Zatím neodebíráš žádné kalendáře',
+  'vacay.icsUrl': 'Zadej adresu ICS',
+  'vacay.icsLabel': 'Popisek kalendáře',
+  'vacay.removeIcsCalendar': 'Odebrat kalendář',
+  'vacay.icsInitialFetchHint': 'Načítání a ověřování kalendáře…',
+  'vacay.icsRefreshFailed': 'Aktualizace se nezdařila; zobrazují se naposledy úspěšně načtené události',
+  'vacay.loadingCalendars': 'Načítání…',
 };
 export default vacay;

@@ -146,5 +146,14 @@ const vacay: TranslationStrings = {
   'vacay.hideFromCalendar': 'Hide from calendar',
   'vacay.sharedEmpty': 'Show each other your calendars without merging them.',
   'vacay.sharedLegend': 'Shared (view only)',
+  'vacay.subscribeHolidays': 'Subscribe holidays',
+  'vacay.icsCalendarsHint': 'Import all-day holiday events from a public ICS URL',
+  'vacay.noIcsCalendars': 'No subscribed calendars yet',
+  'vacay.icsUrl': 'Enter an ICS URL',
+  'vacay.icsLabel': 'Calendar label',
+  'vacay.removeIcsCalendar': 'Remove calendar',
+  'vacay.icsInitialFetchHint': 'Fetching and validating the calendar…',
+  'vacay.icsRefreshFailed': 'Refresh failed; showing the last successful events',
+  'vacay.loadingCalendars': 'Loading…',
 };
 export default vacay;

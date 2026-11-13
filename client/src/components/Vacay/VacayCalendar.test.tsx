@@ -49,6 +49,24 @@ describe('VacayCalendar', () => {
     expect(screen.getAllByTestId(/^month-card-/)).toHaveLength(12)
   })
 
+  it('leaves subscribed calendar legends to the page sidebar', () => {
+    seedStore(useVacayStore, {
+      selectedYear: 2025,
+      entries: [],
+      companyHolidays: [],
+      holidays: {},
+      icsCalendarSettings: [{ id: 12, label: 'Team holidays', color: '#ef4444', event_count: 0, last_fetched_at: null, last_error: null }],
+      plan: basePlan,
+      users: [],
+      selectedUserId: null,
+    })
+
+    render(<VacayCalendar />)
+
+    expect(screen.queryByTestId('ics-calendar-legend')).not.toBeInTheDocument()
+    expect(screen.queryByText('Team holidays')).not.toBeInTheDocument()
+  })
+
   it('FE-COMP-VACAYCALENDAR-001a: renders January to December of the selected year by default', () => {
     seedStore(useVacayStore, {
       selectedYear: 2025,

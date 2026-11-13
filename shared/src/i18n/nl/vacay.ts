@@ -148,5 +148,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': 'Label',
   'vacay.noCalendars': 'Nog geen feestdagenkalenders toegevoegd',
   'vacay.noSchoolCalendars': 'Nog geen schoolvakantiekalenders toegevoegd',
+  'vacay.subscribeHolidays': 'Abonneren op feestdagen',
+  'vacay.icsCalendarsHint': 'Importeer feestdagen die de hele dag duren via een openbare ICS-URL',
+  'vacay.noIcsCalendars': 'Nog geen agenda-abonnementen',
+  'vacay.icsUrl': 'Voer de ICS-URL in',
+  'vacay.icsLabel': 'Kalenderlabel',
+  'vacay.removeIcsCalendar': 'Kalender verwijderen',
+  'vacay.icsInitialFetchHint': 'Kalender ophalen en controleren…',
+  'vacay.icsRefreshFailed': 'Vernieuwen mislukt; de laatst succesvol opgehaalde gebeurtenissen worden getoond',
+  'vacay.loadingCalendars': 'Laden…',
 };
 export default vacay;

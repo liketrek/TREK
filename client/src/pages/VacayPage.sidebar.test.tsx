@@ -117,6 +117,35 @@ describe('VacayPage sidebar', () => {
     expect(screen.getAllByText('Weekend')[0]).toBeInTheDocument()
   })
 
+  it('shows subscribed calendar labels and colors in the existing sidebar legend even without other layers', () => {
+    seedStore(useVacayStore, baseState({
+      plan: buildPlan({ ics_holidays_enabled: true }),
+      icsCalendarSettings: [
+        { id: 12, label: 'Team holidays', color: '#ef4444', event_count: 0, last_fetched_at: null, last_error: null },
+      ],
+    }))
+    render(<VacayPage />)
+
+    const legend = screen.getByText('Legend').closest('.vg-card') as HTMLElement
+    const label = within(legend).getByText('Team holidays')
+    expect(label.previousElementSibling).toHaveStyle({ background: '#ef4444' })
+    expect(screen.queryByTestId('ics-calendar-legend')).not.toBeInTheDocument()
+  })
+
+  it('hides subscribed calendar legend entries when subscription is disabled', () => {
+    seedStore(useVacayStore, baseState({
+      plan: buildPlan({ ics_holidays_enabled: false, holidays_enabled: true }),
+      icsCalendarSettings: [
+        { id: 12, label: 'Team holidays', color: '#ef4444', event_count: 0, last_fetched_at: null, last_error: null },
+      ],
+    }))
+    render(<VacayPage />)
+
+    const legend = screen.getByText('Legend').closest('.vg-card') as HTMLElement
+    expect(within(legend).getByText('Public Holiday')).toBeInTheDocument()
+    expect(within(legend).queryByText('Team holidays')).not.toBeInTheDocument()
+  })
+
   it('FE-PAGE-VCY-005: hidden shared calendars leave the legend out entirely', () => {
     const sharedCalendars: SharedVacayCalendar[] = [
       { share_id: 1, owner_id: 3, owner_name: 'carol', color: '#f59e0b', hidden: true, entries: [], companyHolidays: [] },

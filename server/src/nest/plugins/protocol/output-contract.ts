@@ -555,6 +555,7 @@ export const PLUGIN_ENTITY_CONTRACT = {
       'owner_id',
       'block_weekends',
       'holidays_enabled',
+      'ics_holidays_enabled',
       'holidays_region',
       'school_holidays_enabled',
       'company_holidays_enabled',

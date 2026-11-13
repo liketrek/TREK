@@ -9,6 +9,7 @@ export const vacayHandlers = [
       plan: {
         id: 1,
         holidays_enabled: false,
+        ics_holidays_enabled: true,
         holidays_region: null,
         holiday_calendars: [],
         block_weekends: true,
@@ -22,13 +23,15 @@ export const vacayHandlers = [
       isFused: false,
     });
   }),
+  http.get('/api/addons/vacay/plan/ics-calendars', () => HttpResponse.json({ calendars: [] })),
 
   // Only the request has a schema: the plan answer is open in @trek/shared.
-  contractHandler('put', '/api/addons/vacay/plan', { request: vacayUpdatePlanRequestSchema }, () => {
+  contractHandler('put', '/api/addons/vacay/plan', { request: vacayUpdatePlanRequestSchema }, ({ body }) => {
     return HttpResponse.json({
       plan: {
         id: 1,
         holidays_enabled: true,
+        ics_holidays_enabled: body?.ics_holidays_enabled ?? true,
         holidays_region: null,
         holiday_calendars: [],
         block_weekends: true,

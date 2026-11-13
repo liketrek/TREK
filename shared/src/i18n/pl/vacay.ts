@@ -151,5 +151,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Udostępnione (tylko podgląd)',
   'vacay.publicHolidaysHint': 'Oznacz święta państwowe w kalendarzu',
   'vacay.noCalendars': 'Nie dodano jeszcze kalendarzy świąt',
+  'vacay.subscribeHolidays': 'Subskrybuj święta',
+  'vacay.icsCalendarsHint': 'Importuj całodniowe wydarzenia świąteczne z publicznego adresu ICS',
+  'vacay.noIcsCalendars': 'Nie subskrybujesz jeszcze żadnych kalendarzy',
+  'vacay.icsUrl': 'Wpisz adres ICS',
+  'vacay.icsLabel': 'Etykieta kalendarza',
+  'vacay.removeIcsCalendar': 'Usuń kalendarz',
+  'vacay.icsInitialFetchHint': 'Pobieranie i sprawdzanie kalendarza…',
+  'vacay.icsRefreshFailed': 'Odświeżanie nie powiodło się; wyświetlane są ostatnio poprawnie pobrane wydarzenia',
+  'vacay.loadingCalendars': 'Ładowanie…',
 };
 export default vacay;

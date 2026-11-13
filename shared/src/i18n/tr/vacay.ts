@@ -148,5 +148,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Paylaşılan (yalnızca görüntüleme)',
   'vacay.publicHolidaysHint': 'Resmi tatil günlerini takvimde işaretleyin',
   'vacay.noCalendars': 'Henüz tatil takvimi eklenmedi',
+  'vacay.subscribeHolidays': 'Tatillere abone ol',
+  'vacay.icsCalendarsHint': 'Herkese açık bir ICS adresinden tüm gün süren tatil etkinliklerini içe aktar',
+  'vacay.noIcsCalendars': 'Henüz abone olunan takvim yok',
+  'vacay.icsUrl': 'ICS adresini gir',
+  'vacay.icsLabel': 'Takvim etiketi',
+  'vacay.removeIcsCalendar': 'Takvimi kaldır',
+  'vacay.icsInitialFetchHint': 'Takvim alınıyor ve doğrulanıyor…',
+  'vacay.icsRefreshFailed': 'Yenileme başarısız; son başarıyla alınan etkinlikler gösteriliyor',
+  'vacay.loadingCalendars': 'Yükleniyor…',
 };
 export default vacay;

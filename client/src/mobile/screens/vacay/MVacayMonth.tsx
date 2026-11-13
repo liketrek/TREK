@@ -36,11 +36,15 @@ export default function MVacayMonth({
         const dateStr = localDateStr(year, month, day)
         const dayOfWeek = new Date(year, month, day).getDay()
         const visual = dayVisual(dateStr, dayOfWeek, ctx)
+        const holiday = ctx.holidays[dateStr]
+        const ics = (Array.isArray(holiday) ? holiday : holiday ? [holiday] : []).filter(h => h.type === 'ics')
+        const title = ics.map(h => h.label ? `${h.label}: ${h.localName}` : h.localName).join('\n') || undefined
         return (
           <button
             key={day}
             type="button"
-            aria-label={dateStr}
+            aria-label={title ? `${dateStr}: ${title.replace(/\n/g, ', ')}` : dateStr}
+            title={title}
             onClick={() => onDayTap(dateStr)}
             className={`relative flex aspect-square items-center justify-center font-geist font-bold ${
               mini ? 'rounded-[6px] text-[0.53125rem]' : 'rounded-lg text-[0.75rem]'

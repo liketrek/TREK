@@ -147,6 +147,15 @@ const vacay: TranslationStrings = {
   'vacay.hideFromCalendar': 'הסתרה מלוח השנה',
   'vacay.sharedEmpty': 'הראו זה לזה את לוחות השנה בלי לאחד אותם.',
   'vacay.sharedLegend': 'משותף (צפייה בלבד)',
+  'vacay.subscribeHolidays': 'הרשמה לחגים',
+  'vacay.icsCalendarsHint': 'ייבוא אירועי חגים ליום שלם מכתובת ICS ציבורית',
+  'vacay.noIcsCalendars': 'עדיין אין הרשמות ללוחות שנה',
+  'vacay.icsUrl': 'יש להזין כתובת ICS',
+  'vacay.icsLabel': 'תווית לוח השנה',
+  'vacay.removeIcsCalendar': 'הסרת לוח שנה',
+  'vacay.icsInitialFetchHint': 'לוח השנה נטען ונבדק…',
+  'vacay.icsRefreshFailed': 'העדכון נכשל; מוצגים האירועים האחרונים שנטענו בהצלחה',
+  'vacay.loadingCalendars': 'בטעינה…',
 };
 
 export default vacay;

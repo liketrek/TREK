@@ -5,6 +5,7 @@
 import { buildApp } from '../../src/bootstrap';
 import { db as testDb } from '../../src/db/database';
 import { VacayHolidayCalendars } from '../../src/db/entities/VacayHolidayCalendars.entity';
+import * as vacayIcs from '../../src/nest/vacay/vacay-ics';
 import { VacayService } from '../../src/nest/vacay/vacay.service';
 import { authCookie } from '../helpers/auth';
 import { createUser } from '../helpers/factories';
@@ -76,6 +77,59 @@ afterAll(async () => {
   await nestApp.close();
   testDb.close();
   vi.unstubAllGlobals();
+});
+
+describe('Vacay team ICS subscriptions', () => {
+  it('lets an accepted member manage the team calendar through the HTTP API', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const path = '/api/addons/vacay/plan/ics-calendars';
+    const memberCookie = authCookie(member.id);
+    const ownerCookie = authCookie(owner.id);
+    const plan = await request(app).get('/api/addons/vacay/plan').set('Cookie', ownerCookie);
+    await request(app)
+      .post('/api/addons/vacay/invite')
+      .set('Cookie', ownerCookie)
+      .send({ user_id: member.id })
+      .expect(200);
+    await request(app)
+      .post('/api/addons/vacay/invite/accept')
+      .set('Cookie', memberCookie)
+      .send({ plan_id: plan.body.plan.id })
+      .expect(200);
+    const events = [{ start: '2026-12-25', end: '2026-12-26', title: 'Team holiday' }];
+    const fetch = vi.spyOn(vacayIcs, 'fetchIcs').mockResolvedValueOnce(events);
+    try {
+      const added = await request(app)
+        .post(path)
+        .set('Cookie', memberCookie)
+        .send({ url: 'https://example.com/team.ics', label: 'Team', color: '#a5f3fc' });
+      expect(added.status).toBe(200);
+      const id = added.body.calendar.id;
+      const listed = await request(app).get(path).set('Cookie', memberCookie);
+      expect(listed.status).toBe(200);
+      expect(listed.body.calendars).toEqual([
+        expect.objectContaining({ id, url: 'https://example.com/team.ics', label: 'Team' }),
+      ]);
+
+      const updated = await request(app)
+        .put(`${path}/${id}`)
+        .set('Cookie', memberCookie)
+        .send({ label: 'Renamed', color: '#fecaca' });
+      expect(updated.status).toBe(200);
+      const ownerList = await request(app).get(path).set('Cookie', ownerCookie);
+      expect(ownerList.body.calendars[0]).toMatchObject({ id, label: 'Renamed', color: '#fecaca' });
+      const grid = await request(app).get('/api/addons/vacay/entries/2026').set('Cookie', memberCookie);
+      expect(grid.status).toBe(200);
+      expect(grid.body.icsCalendars).toEqual([{ id, label: 'Renamed', color: '#fecaca', events }]);
+
+      const removed = await request(app).delete(`${path}/${id}`).set('Cookie', memberCookie);
+      expect(removed.status).toBe(200);
+      expect((await request(app).get(path).set('Cookie', ownerCookie)).body.calendars).toEqual([]);
+    } finally {
+      fetch.mockRestore();
+    }
+  });
 });
 
 describe('Vacay plan', () => {

@@ -16,6 +16,8 @@ import {
   VacayUpdatePlanDto,
   VacayUpdateStatsDto,
   VacayYearSettingsDto,
+  VacayIcsCalendarDto,
+  VacayIcsCalendarUpdateDto,
 } from './vacay.dto';
 import { VacayService } from './vacay.service';
 import {
@@ -47,6 +49,8 @@ import {
   vacayToggleEntryResponseSchema,
   vacayYearSettingsResponseSchema,
   vacayYearsResponseSchema,
+  vacayIcsCalendarsResponseSchema,
+  vacayIcsCalendarResponseSchema,
 } from '@trek/shared';
 
 /**
@@ -137,6 +141,52 @@ export class VacayController {
     if (!(await this.vacay.deleteHolidayCalendar(id, planId, socketId))) {
       throw new HttpException({ error: 'Calendar not found' }, 404);
     }
+    return { success: true };
+  }
+
+  @Get('plan/ics-calendars')
+  @ResponseContract(vacayIcsCalendarsResponseSchema)
+  async listIcsCalendars(@CurrentUser() user: User) {
+    const planId = await this.vacay.getActivePlanId(user.id);
+    return { calendars: await this.vacay.listIcsCalendars(planId, user.id) };
+  }
+
+  @Post('plan/ics-calendars')
+  @HttpCode(200)
+  @ResponseContract(vacayIcsCalendarResponseSchema)
+  async addIcsCalendar(
+    @CurrentUser() user: User,
+    @Body() body: VacayIcsCalendarDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const planId = await this.vacay.getActivePlanId(user.id);
+    return { calendar: await this.vacay.addIcsCalendar(planId, user.id, body.url, body.label, body.color, socketId) };
+  }
+
+  @Put('plan/ics-calendars/:id')
+  @ResponseContract(vacayIcsCalendarResponseSchema)
+  async updateIcsCalendar(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: VacayIcsCalendarUpdateDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const planId = await this.vacay.getActivePlanId(user.id);
+    const calendar = await this.vacay.updateIcsCalendar(planId, user.id, Number(id), body, socketId);
+    if (!calendar) throw new HttpException({ error: 'Calendar not found' }, 404);
+    return { calendar };
+  }
+
+  @Delete('plan/ics-calendars/:id')
+  @ResponseContract(successResponseSchema)
+  async deleteIcsCalendar(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const planId = await this.vacay.getActivePlanId(user.id);
+    if (!(await this.vacay.deleteIcsCalendar(planId, user.id, Number(id), socketId)))
+      throw new HttpException({ error: 'Calendar not found' }, 404);
     return { success: true };
   }
 

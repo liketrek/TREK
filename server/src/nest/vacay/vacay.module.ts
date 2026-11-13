@@ -2,6 +2,7 @@ import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.ent
 import { VacayCompanyHolidays } from '../../db/entities/VacayCompanyHolidays.entity';
 import { VacayEntries } from '../../db/entities/VacayEntries.entity';
 import { VacayHolidayCalendars } from '../../db/entities/VacayHolidayCalendars.entity';
+import { VacayIcsCalendars } from '../../db/entities/VacayIcsCalendars.entity';
 import { VacayPlanMembers } from '../../db/entities/VacayPlanMembers.entity';
 import { VacayPlans } from '../../db/entities/VacayPlans.entity';
 import { VacayShares } from '../../db/entities/VacayShares.entity';
@@ -13,6 +14,8 @@ import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AddonsModule } from '../addons/addons.module';
 import { UserLookupModule } from '../auth-core/user-lookup.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { VacayIcsRefreshJob } from './vacay-ics-refresh.job';
 import { VacayController } from './vacay.controller';
 import { VacayMcp } from './vacay.mcp';
 import { VacayRpc } from './vacay.rpc';
@@ -37,6 +40,7 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [
     NotificationsModule,
+    SchedulingModule,
     // VacayMcp's invite and share tools read the caller's username/email.
     UserLookupModule,
     PluginGuardsModule,
@@ -50,13 +54,14 @@ import { Module } from '@nestjs/common';
       VacayEntries,
       VacayCompanyHolidays,
       VacayHolidayCalendars,
+      VacayIcsCalendars,
       VacayShares,
       VacayUserSettings,
       SchoolHolidayRegions,
     ]),
   ],
   controllers: [VacayController],
-  providers: [VacayService, VacayMcp, VacayRpc],
+  providers: [VacayService, VacayMcp, VacayRpc, VacayIcsRefreshJob],
   exports: [VacayService],
 })
 export class VacayModule {}

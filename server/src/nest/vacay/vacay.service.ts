@@ -27,6 +27,10 @@ import type { VacaySharesRepository } from '../../db/repositories/VacayShares.re
 import { VacayUserSettings as VacayUserSettingsEntity } from '../../db/entities/VacayUserSettings.entity';
 import type { VacayUserSettingsRepository } from '../../db/repositories/VacayUserSettings.repository';
 import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.entity';
+import { VacayIcsCalendars } from '../../db/entities/VacayIcsCalendars.entity';
+import type { VacayIcsCalendarsRepository } from '../../db/repositories/VacayIcsCalendars.repository';
+import { VacayIcsSubscriptions } from './vacay-ics-subscriptions';
+import type { VacayPlan, VacayUser, VacayHolidayCalendar, VacayUserSettings, UpdatePlanBody } from './vacay.types';
 import type { SchoolHolidayRegionsRepository } from '../../db/repositories/SchoolHolidayRegions.repository';
 import { normalizeNagerHolidays, type Holiday } from './vacay.holidays';
 import {
@@ -35,89 +39,7 @@ import {
 } from './vacay.helpers';
 export type { Holiday } from './vacay.holidays';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface VacayPlan {
-  id: number;
-  owner_id: number;
-  block_weekends: number | null;
-  holidays_enabled: number | null;
-  holidays_region: string | null;
-  school_holidays_enabled: number | null;
-  company_holidays_enabled: number | null;
-  carry_over_enabled: number | null;
-  weekend_days: string | null;
-  week_start: number;
-}
-
-export interface VacayUserYear {
-  user_id: number;
-  plan_id: number;
-  year: number;
-  vacation_days: number;
-  carried_over: number;
-}
-
-export interface VacayUser {
-  id: number;
-  username: string;
-  email: string;
-}
-
-export interface VacayPlanMember {
-  id: number;
-  plan_id: number;
-  user_id: number;
-  status: string;
-  created_at?: string;
-}
-
-export interface SchoolHoliday {
-  startDate?: string;
-  endDate?: string;
-  name?: Array<{ language?: string; text?: string }> | string;
-}
-
-export interface VacayHolidayCalendar {
-  id: number;
-  plan_id: number;
-  type: 'public_holiday' | 'school_holiday';
-  region: string;
-  label: string | null;
-  color: string;
-  sort_order: number;
-}
-
-export interface VacayUserSettings {
-  user_id: number;
-  year_type: 'calendar' | 'fiscal' | 'anniversary';
-  year_start_month: number;
-  year_start_day: number;
-  hire_date: string | null;
-}
-
-export interface UpdatePlanBody {
-  block_weekends?: boolean;
-  holidays_enabled?: boolean;
-  // null clears the legacy single-region field (the MCP tool and the shared
-  // request schema both pass null through; SQLite stores NULL).
-  holidays_region?: string | null;
-  school_holidays_enabled?: boolean;
-  company_holidays_enabled?: boolean;
-  carry_over_enabled?: boolean;
-  weekend_days?: string;
-  week_start?: number;
-}
-
-export interface VacayShare {
-  id: number;
-  owner_id: number;
-  user_id: number;
-  hidden: number;
-  created_at?: string;
-}
+export type { VacayPlan, VacayUser, VacayHolidayCalendar, VacayUserSettings, UpdatePlanBody } from './vacay.types';
 
 /**
  * Vacay domain service — owns the vacay SQL, now through the ten vacay
@@ -149,10 +71,19 @@ export class VacayService {
     @InjectRepository(VacayShares) private readonly shares: VacaySharesRepository,
     @InjectRepository(VacayUserSettingsEntity) private readonly userSettings: VacayUserSettingsRepository,
     @InjectRepository(SchoolHolidayRegions) private readonly schoolHolidayRegions: SchoolHolidayRegionsRepository,
+    @InjectRepository(VacayIcsCalendars) icsCalendars: VacayIcsCalendarsRepository,
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
     private readonly uow: UnitOfWork,
-  ) {}
+  ) {
+    this.icsSubscriptions = new VacayIcsSubscriptions(
+      icsCalendars, uow,
+      (planId, userId) => this.assertPlanParticipant(planId, userId),
+      (planId, socketId, event) => this.notifyPlanUsers(planId, socketId, event),
+    );
+  }
+
+  private readonly icsSubscriptions: VacayIcsSubscriptions;
 
   private readonly holidayCache = new Map<string, { data: unknown; time: number }>();
 
@@ -385,7 +316,10 @@ export class VacayService {
       // the moving row that held it when the next one arrives: (user, plan, date)
       // is unique.
       if (offset > 0) moves.reverse();
-      for (const move of moves) await this.entries.moveEntry(move.id, move.date, move.fraction);
+      await moves.reduce(
+        (pending, move) => pending.then(() => this.entries.moveEntry(move.id, move.date, move.fraction)),
+        Promise.resolve(),
+      );
       return plan.id;
     });
   }
@@ -473,15 +407,18 @@ export class VacayService {
     // With everyone on 'calendar' this is the same set as before.
     const members = await this.getPlanUsers(planId);
     const calendarYears = new Set<number>();
-    for (const year of years) {
-      calendarYears.add(year);
-      for (const m of members) calendarYears.add(windowEndYear((await this.resolveYearWindow(m.id, year)).end));
-    }
+    const memberWindowYears = await Promise.all(
+      years.flatMap((year) => members.map(async (m) => windowEndYear((await this.resolveYearWindow(m.id, year)).end))),
+    );
+    for (const year of years) calendarYears.add(year);
+    for (const year of memberWindowYears) calendarYears.add(year);
     for (const cal of calendars) {
       const country = cal.region.split('-')[0];
       const region = cal.region.includes('-') ? cal.region : null;
-      for (const year of calendarYears) {
-        const holidays = await this.fetchPublicHolidays(year, country);
+      const holidaysByYear = await Promise.all(
+        [...calendarYears].map((year) => this.fetchPublicHolidays(year, country)),
+      );
+      for (const holidays of holidaysByYear) {
         if (!holidays) continue;
         const hasRegions = holidays.some((h: Holiday) => h.counties && h.counties.length > 0);
         if (hasRegions && !region) continue;
@@ -495,10 +432,13 @@ export class VacayService {
 
   /** Outside the fetch's catch: a failing delete is a real error, not an unanswered API. */
   private async clearHolidayDates(planId: number, dates: string[]): Promise<void> {
-    for (const date of dates) {
-      await this.entries.deleteForPlanAndDate(planId, date);
-      await this.companyHolidays.deleteForPlanAndDate(planId, date);
-    }
+    await dates.reduce(
+      (pending, date) => pending.then(async () => {
+        await this.entries.deleteForPlanAndDate(planId, date);
+        await this.companyHolidays.deleteForPlanAndDate(planId, date);
+      }),
+      Promise.resolve(),
+    );
   }
 
   async migrateHolidayCalendars(planId: number, plan: VacayPlan): Promise<void> {
@@ -514,11 +454,12 @@ export class VacayService {
   // -------------------------------------------------------------------------
 
   async updatePlan(planId: number, body: UpdatePlanBody, socketId: string | undefined) {
-    const { block_weekends, holidays_enabled, holidays_region, school_holidays_enabled, company_holidays_enabled, carry_over_enabled, weekend_days, week_start } = body;
+    const { block_weekends, holidays_enabled, ics_holidays_enabled, holidays_region, school_holidays_enabled, company_holidays_enabled, carry_over_enabled, weekend_days, week_start } = body;
 
-    const patch: { block_weekends?: number; holidays_enabled?: number; holidays_region?: string | null; school_holidays_enabled?: number; company_holidays_enabled?: number; carry_over_enabled?: number; weekend_days?: string; week_start?: number } = {};
+    const patch: { block_weekends?: number; holidays_enabled?: number; ics_holidays_enabled?: number; holidays_region?: string | null; school_holidays_enabled?: number; company_holidays_enabled?: number; carry_over_enabled?: number; weekend_days?: string; week_start?: number } = {};
     if (block_weekends !== undefined) patch.block_weekends = block_weekends ? 1 : 0;
     if (holidays_enabled !== undefined) patch.holidays_enabled = holidays_enabled ? 1 : 0;
+    if (ics_holidays_enabled !== undefined) patch.ics_holidays_enabled = ics_holidays_enabled ? 1 : 0;
     if (holidays_region !== undefined) patch.holidays_region = holidays_region;
     if (school_holidays_enabled !== undefined) patch.school_holidays_enabled = school_holidays_enabled ? 1 : 0;
     if (company_holidays_enabled !== undefined) patch.company_holidays_enabled = company_holidays_enabled ? 1 : 0;
@@ -569,6 +510,7 @@ export class VacayService {
         ...updated,
         block_weekends: !!updated.block_weekends,
         holidays_enabled: !!updated.holidays_enabled,
+        ics_holidays_enabled: !!updated.ics_holidays_enabled,
         school_holidays_enabled: !!updated.school_holidays_enabled,
         company_holidays_enabled: !!updated.company_holidays_enabled,
         carry_over_enabled: !!updated.carry_over_enabled,
@@ -1102,7 +1044,35 @@ export class VacayService {
     const { start, end } = await this.viewerGridWindow(year, viewerId);
     const entries = await this.entries.listForRangeWithPerson(planId, start, end);
     const companyHolidayList = await this.companyHolidays.listForRange(planId, start, end);
-    return { entries, companyHolidays: companyHolidayList };
+    const icsCalendars = await this.icsSubscriptions.eventsForWindow(planId, start, end);
+    return { entries, companyHolidays: companyHolidayList, icsCalendars };
+  }
+
+  private async assertPlanParticipant(planId: number, userId: number): Promise<void> {
+    const plan = await this.plans.findById(planId);
+    if (plan?.owner_id === userId) return;
+    if (plan && (await this.members.findMembership(planId, userId))?.status === 'accepted') return;
+    throw new DomainError(403, 'Only plan participants can manage calendar subscriptions');
+  }
+
+  async listIcsCalendars(planId: number, userId: number) {
+    return this.icsSubscriptions.listIcsCalendars(planId, userId);
+  }
+
+  async addIcsCalendar(planId: number, userId: number, url: string, label: string, color: string, socketId?: string) {
+    return this.icsSubscriptions.addIcsCalendar(planId, userId, url, label, color, socketId);
+  }
+
+  async updateIcsCalendar(planId: number, userId: number, id: number, values: { label?: string; color?: string }, socketId?: string) {
+    return this.icsSubscriptions.updateIcsCalendar(planId, userId, id, values, socketId);
+  }
+
+  async deleteIcsCalendar(planId: number, userId: number, id: number, socketId?: string) {
+    return this.icsSubscriptions.deleteIcsCalendar(planId, userId, id, socketId);
+  }
+
+  async refreshIcsCalendars(): Promise<void> {
+    await this.icsSubscriptions.refreshIcsCalendars();
   }
 
   async toggleEntry(userId: number, planId: number, date: string, fraction?: unknown, kind?: unknown, socketId?: string): Promise<{ action?: string; fraction?: number; kind?: string; error?: string }> {
@@ -1265,6 +1235,7 @@ export class VacayService {
         ...plan,
         block_weekends: !!plan.block_weekends,
         holidays_enabled: !!plan.holidays_enabled,
+        ics_holidays_enabled: !!plan.ics_holidays_enabled,
         school_holidays_enabled: !!plan.school_holidays_enabled,
         company_holidays_enabled: !!plan.company_holidays_enabled,
         carry_over_enabled: !!plan.carry_over_enabled,

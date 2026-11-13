@@ -147,5 +147,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Megosztott (csak megtekintés)',
   'vacay.publicHolidaysHint': 'Munkaszüneti napok jelölése a naptárban',
   'vacay.noCalendars': 'Még nincs hozzáadott ünnepnaptár',
+  'vacay.subscribeHolidays': 'Feliratkozás ünnepnapokra',
+  'vacay.icsCalendarsHint': 'Egész napos ünnepnapi események importálása nyilvános ICS URL-ről',
+  'vacay.noIcsCalendars': 'Még nincs feliratkozott naptár',
+  'vacay.icsUrl': 'Add meg az ICS-címet',
+  'vacay.icsLabel': 'Naptár címkéje',
+  'vacay.removeIcsCalendar': 'Naptár eltávolítása',
+  'vacay.icsInitialFetchHint': 'Naptár letöltése és ellenőrzése…',
+  'vacay.icsRefreshFailed': 'A frissítés sikertelen; az utoljára sikeresen letöltött események láthatók',
+  'vacay.loadingCalendars': 'Betöltés…',
 };
 export default vacay;

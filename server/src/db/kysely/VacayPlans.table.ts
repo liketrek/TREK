@@ -14,4 +14,5 @@ export interface VacayPlansTable {
   created_at: InsertOptional<string | null>;
   weekend_days: InsertOptional<string | null>;
   week_start: InsertOptional<number>;
+  ics_holidays_enabled: InsertOptional<number>;
 }
