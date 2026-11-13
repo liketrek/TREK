@@ -437,8 +437,16 @@ export function buildCostsCsv(items: BudgetItem[], opts: CsvBuildOptions): { fil
 /**
  * The currency picker of every Costs form (expense and payment, desktop and
  * phone): the supported currencies plus the one already chosen, each labelled
- * with its code and, when it has one, its symbol.
+ * with its code and, when it has one, its symbol. `pinned` ones lead the list
+ * in the order given, so the few a trip really uses are not buried in the
+ * alphabet (#2807).
  */
-export function currencyOptions(current?: string | null): { value: string; label: string }[] {
-  return currenciesWith(current).map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }));
+export function currencyOptions(
+  current?: string | null,
+  pinned: readonly string[] = []
+): { value: string; label: string }[] {
+  const all = currenciesWith(current);
+  const lead = [...new Set(pinned.map((c) => c.toUpperCase()))].filter((c) => all.includes(c));
+  const ordered = [...lead, ...all.filter((c) => !lead.includes(c))];
+  return ordered.map((c) => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }));
 }

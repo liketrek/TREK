@@ -21,7 +21,7 @@ vi.mock('./receiptUploads', () => ({
   ),
 }));
 
-// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-023
+// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-025
 
 const PEOPLE: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -104,7 +104,7 @@ afterEach(() => {
 });
 
 describe('useExpenseForm: where it starts', () => {
-  it('FE-BUDGET-EXPFORM-001: a new expense is food, in the display currency, today, split equally by everyone, paid by me', () => {
+  it('FE-BUDGET-EXPFORM-001: a new expense is food, in the trip currency, today, split equally by everyone, paid by me', () => {
     const { result } = setup();
     const f = result.current;
     expect(f.name).toBe('');
@@ -148,6 +148,19 @@ describe('useExpenseForm: where it starts', () => {
     // The lines wait in the Ticket split; the split itself stays Equally.
     expect(f.splitMode).toBe('equally');
     expect(f.pendingReceiptFiles).toEqual([photo]);
+  });
+
+  it('FE-BUDGET-EXPFORM-025: a new expense starts in the trip currency, which leads the picker with the display one (#2807)', () => {
+    localStorage.setItem('trek_fx_JPY', JSON.stringify({ rates: { JPY: 1, EUR: 0.006 }, ts: Date.now() }));
+    useTripStore.setState({ trip: buildTrip({ id: 7, currency: 'JPY' }) } as unknown as Partial<TripStoreState>);
+    const fresh = setup().result.current;
+    expect(fresh.currency).toBe('JPY');
+    expect(fresh.currencyChoices.slice(0, 2).map((o) => o.value)).toEqual(['JPY', 'EUR']);
+    expect(fresh.currencyChoices.filter((o) => o.value === 'EUR')).toHaveLength(1);
+    // A scanned receipt knows its own currency, and an edit keeps the saved one.
+    expect(setup({ prefill: { currency: 'usd' } }).result.current.currency).toBe('USD');
+    const editing = buildBudgetItem({ total_price: 20, currency: 'EUR', payers: [], members: [] });
+    expect(setup({ editing }).result.current.currency).toBe('EUR');
   });
 
   it('FE-BUDGET-EXPFORM-003: an edited expense reopens with its payer, its custom split, its note and receipts', () => {

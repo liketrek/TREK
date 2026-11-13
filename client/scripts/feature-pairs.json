@@ -279,7 +279,7 @@
       "feature": "Costs/budget ledger: costsModel",
       "hooks": ["src/components/Budget/costsModel.ts"],
       "desktop": ["src/components/Budget/CostsPanel.tsx"],
-      "mobile": ["src/mobile/screens/trip/sheets/MCostSheet.tsx", "src/mobile/screens/trip/tabs/MCostsTab.tsx"]
+      "mobile": ["src/mobile/screens/trip/tabs/MCostsTab.tsx"]
     },
     {
       "feature": "Costs/budget ledger: useCostsLedger, useExpenseLinks",

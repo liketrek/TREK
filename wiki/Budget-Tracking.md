@@ -67,7 +67,7 @@ The filters work together: pick a day and a banner above the list names the day 
 
 ![The Add expense dialog: the name typed into the head band beside the category pill, then amount, currency and day, Who paid?, Split, and Note beside Receipts & Invoices](assets/ExpenseDialog.png)
 
-1. Click **Add expense**. The dialog opens dated today, in your display currency (the trip's own unless you picked another in Settings), paid by you and split equally between everyone.
+1. Click **Add expense**. The dialog opens dated today, in the trip's own currency, paid by you and split equally between everyone. In the **Currency** list the trip currency and your display currency come first, since most bills are in one of the two.
 2. Type what it was for into the head band, where it reads *e.g. Dinner, souvenirs, gas…*. The name is required. The pill beside it is the category, **Food & drink** until you pick another; the head band takes on its colour.
 3. Enter the **Total amount**, and change **Currency** and **Day** if they differ. The **±** beside the amount turns the expense into a refund: a negative total gives money back instead of taking it, and the split runs the other way.
 4. Set **Who paid?** and **Split** (both below).

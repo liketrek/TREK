@@ -11,7 +11,6 @@ import { amountToInputString, formatMoney, localizeAmountInput, zeroAmountInput 
 import { openFile } from '../../../../utils/fileDownload'
 import { splitShareLabel } from '../../../../components/Budget/expenseFx'
 import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
-import { currencyOptions } from '../../../../components/Budget/costsModel'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
 import { NOTE_MAX } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
@@ -60,7 +59,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   // The same editor as the desktop modal, a saved expense without a currency
   // opening in the trip's own (#2525).
   const {
-    sym, nameOf, tripCur, name, setName, cat, setCat, currency, setCurrency, day, setDay, note, setNote, total, onTotalChange,
+    sym, nameOf, tripCur, name, setName, cat, setCat, currency, setCurrency, currencyChoices, day, setDay, note, setNote, total, onTotalChange,
     totalNum, fx, participants, toggleParticipant, payerId, setPayerId, multiPayer, enableMultiPayer, disableMultiPayer,
     payerIds, payerAmounts, togglePayer, onPayerAmountChange, payersOk, splitMode, setSplitMode, isTicketMode, ticketItems,
     ticketInfo, handleAddEmptyItem, handleUpdateItemName, handleUpdateItemPrice, handleRemoveItem, handleToggleItemParticipant,
@@ -169,7 +168,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
               onChange={v => setCurrency(String(v))}
               searchable
               size="sm"
-              options={currencyOptions(currency)}
+              options={currencyChoices}
               style={{ width: '100%' }}
             />
           </div>

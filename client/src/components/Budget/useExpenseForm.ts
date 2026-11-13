@@ -26,6 +26,7 @@ import {
   type TicketItem,
 } from './CostsPanel.helpers';
 import { catMeta } from './costsCategories';
+import { currencyOptions } from './costsModel';
 import { useExpenseFx } from './expenseFx';
 import { saveWithReceipts } from './receiptUploads';
 
@@ -76,15 +77,20 @@ export function useExpenseForm({
 
   const [name, setName] = useState(editing?.name || prefill?.name || '');
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : prefill?.category || 'food');
+  // A new expense starts in the trip's own currency, the one most bills on the
+  // road come in (#2807); a prefill that knows its currency keeps it.
   const [seed] = useState(() =>
     newExpenseSeed(
       prefill,
-      base,
+      tripCur,
       people.map((p) => p.id),
       localToday()
     )
   );
   const [currency, setCurrencyState] = useState(editing ? editingCurrency : seed.currency);
+  // The trip and display currencies lead the picker: an expense not in the one
+  // is most likely in the other (#2807).
+  const currencyChoices = currencyOptions(currency, [tripCur, base]);
   const [day, setDay] = useState(editing ? editing.expense_date || localToday() : seed.day);
   const [note, setNote] = useState(() => readUserNote(editing));
   // Edit and prefill seeds are padded to the currency's decimals (#2175): the DB
@@ -430,6 +436,7 @@ export function useExpenseForm({
     setCat,
     currency,
     setCurrency,
+    currencyChoices,
     day,
     setDay,
     note,

@@ -1132,7 +1132,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     handleRemoveReceipt, handleToggleItemParticipant, handleUpdateItemName, handleUpdateItemPrice, isTicketMode,
     multiPayer, name, nameOf, note, onPayerAmountChange, onTotalChange, participants, payerAmounts, payerId, payerIds,
     payersOk, pendingReceiptFiles, placeholderShares, previewReceipts: modalPreviewReceipts, receipts, save, saving,
-    setCat, setCurrency, setCustomAmounts, setDay, setName, setNote, setPayerId,
+    currencyChoices, setCat, setCurrency, setCustomAmounts, setDay, setName, setNote, setPayerId,
     setPreviewReceipts: setModalPreviewReceipts, setSplitMode, splitMode, splitShortfall, splitSum, sym, ticketInfo,
     ticketItems, toggleParticipant, togglePayer, total, totalNum, tripCur, uploadingReceipt, valid,
   } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved })
@@ -1515,7 +1515,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
           </EditorField>
           <EditorField label={t('costs.currency')}>
             <CustomSelect value={currency} onChange={v => setCurrency(String(v))} searchable
-              options={currencyOptions(currency)}
+              options={currencyChoices}
               style={{ width: '100%' }} />
           </EditorField>
           <EditorField label={t('costs.day')}>

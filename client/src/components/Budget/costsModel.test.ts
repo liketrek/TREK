@@ -16,7 +16,7 @@ import {
   type CostsSettlement,
 } from './costsModel';
 
-// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-010
+// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-011
 // The pieces both ledgers share since the desktop panel runs on this model too;
 // the rest of the model is pinned in tests/unit/mobile/trip/costsModel.test.ts.
 
@@ -134,5 +134,14 @@ describe('costsModel: the currency picker options', () => {
     const opts = currencyOptions('bgn');
     expect(opts[opts.length - 1]).toEqual({ value: 'BGN', label: 'BGN' });
     expect(currencyOptions(null).some((o) => o.value === 'BGN')).toBe(false);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-011: pinned currencies lead in the order given, each listed once (#2807)', () => {
+    const values = currencyOptions('EUR', ['jpy', 'EUR', 'JPY']).map((o) => o.value);
+    expect(values.slice(0, 2)).toEqual(['JPY', 'EUR']);
+    expect(values.filter((v) => v === 'JPY')).toHaveLength(1);
+    expect(values).toHaveLength(currencyOptions('EUR').length);
+    // A pin the picker cannot offer is left out rather than invented.
+    expect(currencyOptions(null, ['ZZZ']).some((o) => o.value === 'ZZZ')).toBe(false);
   });
 });
