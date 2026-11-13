@@ -9,7 +9,7 @@ import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { hidesOnMiddleDay, getTransportForDay, getMergedItems, getSpanPhase, getDisplayTimeForDay } from '../../utils/dayMerge'
 import { safeHexColor } from '../../utils/safeColor'
 import { pdfSwitchOn } from '../../utils/pdfSwitch'
-import { openPdfPreview, PAGE_BREAK_KEY, TRANSPORT_NOTES_KEY } from './pdfPreview'
+import { openPdfPreview, LARGE_TEXT_KEY, PAGE_BREAK_KEY, TRANSPORT_NOTES_KEY } from './pdfPreview'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -192,6 +192,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   const assignments = planAssignments(stored, showServiceStops)
   const breaksPerDay = pdfSwitchOn(PAGE_BREAK_KEY)
   const showTransportNotes = pdfSwitchOn(TRANSPORT_NOTES_KEY)
+  const largeText = pdfSwitchOn(LARGE_TEXT_KEY, false)
   // Set while the days render: the switch only shows when there is a note to hide.
   let hasTransportNotes = false
   const loc = _locale || undefined
@@ -461,10 +462,10 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
                 <div class="note-line" style="background: ${color};"></div>
                 <span class="note-icon">${icon}</span>
                 <div class="note-body">
-                  <div class="note-text" style="font-weight: 600;">${titleHtml}${time ? ` <span style="color:#6b7280;font-weight:400;font-size:10px;">${time}</span>` : ''}</div>
+                  <div class="note-text" style="font-weight: 600;">${titleHtml}${time ? ` <span class="note-clock">${time}</span>` : ''}</div>
                   ${subtitleLines.filter(Boolean).map(s => `<div class="note-time">${escHtml(s)}</div>`).join('')}
                   ${locationLine ? `<div class="note-time">${escHtml(locationLine)}</div>` : ''}
-                  ${r.confirmation_number ? `<div class="note-time" style="font-size:9px;">Code: ${escHtml(r.confirmation_number)}</div>` : ''}
+                  ${r.confirmation_number ? `<div class="note-time note-code">Code: ${escHtml(r.confirmation_number)}</div>` : ''}
                   ${transportNote ? `<div class="note-time transport-note">${escHtml(transportNote)}</div>` : ''}
                 </div>
               </div>`
@@ -619,6 +620,21 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600 700; font-display: swap; src: url('/fonts/Poppins-Bold.ttf') format('truetype'); }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Poppins', sans-serif; background: #fff; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* The day content's type scale and its three greys, so the large-text switch in the
+     preview (#2817) is one class on <body>: bigger type, and greys dark enough to
+     read on an inkjet. The cover and the map keep their own sizes. */
+  body {
+    --pdf-text: 1;
+    --pdf-ink: #334155;
+    --pdf-ink-soft: #64748b;
+    --pdf-ink-faint: #94a3b8;
+  }
+  body.pdf-large-text {
+    --pdf-text: 1.35;
+    --pdf-ink: #1e293b;
+    --pdf-ink-soft: #334155;
+    --pdf-ink-faint: #475569;
+  }
   svg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   /* Footer on every printed page */
@@ -715,10 +731,10 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
     background: #0f172a; padding: 11px 28px;
     display: flex; align-items: center; gap: 8px;
   }
-  .day-tag { font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0.8px; background: rgba(255,255,255,0.12); border-radius: 4px; padding: 3px 8px; flex-shrink: 0; }
-  .day-title { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
-  .day-date  { font-size: 9px; color: rgba(255,255,255,0.45); }
-  .day-cost  { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.65); }
+  .day-tag { font-size: calc(8px * var(--pdf-text)); font-weight: 700; color: #fff; letter-spacing: 0.8px; background: rgba(255,255,255,0.12); border-radius: 4px; padding: 3px 8px; flex-shrink: 0; }
+  .day-title { font-size: calc(13px * var(--pdf-text)); font-weight: 600; color: #fff; flex: 1; }
+  .day-date  { font-size: calc(9px * var(--pdf-text)); color: rgba(255,255,255,0.45); }
+  .day-cost  { font-size: calc(9px * var(--pdf-text)); font-weight: 600; color: rgba(255,255,255,0.65); }
   /* The gap under the header bar must sit inside the repeated <thead> cell: a block-start
      padding on .day-body is only painted on the box's first fragment, so overflow pages
      would render their first card flush against the bar (#1531). */
@@ -726,7 +742,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   .day-body  { padding: 0 28px 6px; }
 
   /* accommodation info */
-  .day-accommodations-overview { font-size: 12px; }
+  .day-accommodations-overview { font-size: calc(12px * var(--pdf-text)); }
   .day-accommodations { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
   .day-accommodations.single { justify-content: center; }
   .day-accommodation {
@@ -739,7 +755,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
     break-inside: avoid; page-break-inside: avoid;
   }
   .day-accommodation-title {
-    font-size: 16px; font-weight: 600; text-align: center;
+    font-size: calc(16px * var(--pdf-text)); font-weight: 600; text-align: center;
     margin-bottom: 4px; align-self: center;
   }
   .accommodation-center-icon { display: flex; align-items: center; gap: 4px; }
@@ -766,22 +782,22 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
 
   .place-name-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
   .place-num {
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #1e293b; color: #fff; font-size: 8px; font-weight: 700;
+    width: calc(16px * var(--pdf-text)); height: calc(16px * var(--pdf-text)); border-radius: 50%;
+    background: #1e293b; color: #fff; font-size: calc(8px * var(--pdf-text)); font-weight: 700;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .place-name { font-size: 11.5px; font-weight: 600; color: #1e293b; flex: 1; }
-  .cat-badge { font-size: 7.5px; font-weight: 600; color: #fff; border-radius: 99px; padding: 2px 7px; flex-shrink: 0; white-space: nowrap; }
+  .place-name { font-size: calc(11.5px * var(--pdf-text)); font-weight: 600; color: #1e293b; flex: 1; }
+  .cat-badge { font-size: calc(7.5px * var(--pdf-text)); font-weight: 600; color: #fff; border-radius: 99px; padding: 2px 7px; flex-shrink: 0; white-space: nowrap; }
 
   .info-row { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 2px; padding-left: 21px; }
   .info-row svg { flex-shrink: 0; margin-top: 1px; }
   .info-spacer { width: 13px; flex-shrink: 0; }
-  .info-text { font-size: 9px; color: #64748b; line-height: 1.5; }
-  .info-text.muted { color: #94a3b8; }
+  .info-text { font-size: calc(9px * var(--pdf-text)); color: var(--pdf-ink-soft); line-height: 1.5; }
+  .info-text.muted { color: var(--pdf-ink-faint); }
   ${PDF_MARKDOWN_CSS}
 
   .chips { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 21px; margin-top: 4px; }
-  .chip { display: inline-flex; align-items: center; gap: 3px; font-size: 8px; font-weight: 600; background: #f1f5f9; color: #374151; border-radius: 99px; padding: 2px 7px; white-space: nowrap; }
+  .chip { display: inline-flex; align-items: center; gap: 3px; font-size: calc(8px * var(--pdf-text)); font-weight: 600; background: #f1f5f9; color: #374151; border-radius: 99px; padding: 2px 7px; white-space: nowrap; }
   .chip svg { flex-shrink: 0; }
   .chip-green { background: #ecfdf5; color: #059669; }
   .chip-amber { background: #fffbeb; color: #d97706; }
@@ -795,19 +811,21 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   .note-line { width: 3px; border-radius: 99px; background: #94a3b8; align-self: stretch; flex-shrink: 0; }
   .note-icon { flex-shrink: 0; }
   .note-body { flex: 1; min-width: 0; }
-  .note-text { font-size: 9.5px; color: #334155; line-height: 1.55; }
-  .note-time { font-size: 8px; color: #94a3b8; margin-top: 2px; }
+  .note-text { font-size: calc(9.5px * var(--pdf-text)); color: var(--pdf-ink); line-height: 1.55; }
+  .note-time { font-size: calc(8px * var(--pdf-text)); color: var(--pdf-ink-faint); margin-top: 2px; }
+  .note-code { font-size: calc(9px * var(--pdf-text)); }
+  .note-clock { font-size: calc(10px * var(--pdf-text)); font-weight: 400; color: var(--pdf-ink-soft); }
 
-  .empty-day { font-size: 9.5px; color: #cbd5e1; font-style: italic; text-align: center; padding: 14px 0; }
+  .empty-day { font-size: calc(9.5px * var(--pdf-text)); color: #cbd5e1; font-style: italic; text-align: center; padding: 14px 0; }
 
   /* ── Plugin sections ───────────────────────────── */
   .plugin-sections { padding: 16px 28px 6px; }
   .plugin-section { margin-bottom: 16px; page-break-inside: avoid; }
-  .plugin-section-title { font-size: 12px; font-weight: 600; color: #1e293b; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
-  .plugin-section-text { font-size: 9.5px; color: #334155; line-height: 1.55; margin-bottom: 5px; }
+  .plugin-section-title { font-size: calc(12px * var(--pdf-text)); font-weight: 600; color: #1e293b; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
+  .plugin-section-text { font-size: calc(9.5px * var(--pdf-text)); color: var(--pdf-ink); line-height: 1.55; margin-bottom: 5px; }
   .plugin-section-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  .plugin-section-table th { font-size: 8px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }
-  .plugin-section-table td { font-size: 9px; color: #334155; padding: 4px 8px; border-bottom: 1px solid #f1f5f9; }
+  .plugin-section-table th { font-size: calc(8px * var(--pdf-text)); font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 4px 8px; border-bottom: 1px solid #e2e8f0; }
+  .plugin-section-table td { font-size: calc(9px * var(--pdf-text)); color: var(--pdf-ink); padding: 4px 8px; border-bottom: 1px solid #f1f5f9; }
 
   /* ── Print ─────────────────────────────────────── */
   @media print {
@@ -817,7 +835,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   }
 </style>
 </head>
-<body${bodyClassAttr(breaksPerDay, showTransportNotes)}>
+<body${bodyClassAttr(breaksPerDay, showTransportNotes, largeText)}>
 
 <!-- Footer on every page -->
 <div class="pdf-footer">
@@ -875,10 +893,10 @@ ${pluginSectionsHtml}
   markdown.dispose()
   if (signal?.aborted) return
 
-  openPdfPreview({ html, title: trip?.title || tr('pdf.travelPlan'), tripId: trip?.id, tr, breaksPerDay, showTransportNotes, hasTransportNotes })
+  openPdfPreview({ html, title: trip?.title || tr('pdf.travelPlan'), tripId: trip?.id, tr, breaksPerDay, showTransportNotes, hasTransportNotes, largeText })
 }
 
-function bodyClassAttr(breaksPerDay: boolean, showTransportNotes: boolean): string {
-  const classes = [!breaksPerDay && 'pdf-flow', !showTransportNotes && 'pdf-no-transport-notes'].filter(Boolean)
+function bodyClassAttr(breaksPerDay: boolean, showTransportNotes: boolean, largeText: boolean): string {
+  const classes = [!breaksPerDay && 'pdf-flow', !showTransportNotes && 'pdf-no-transport-notes', largeText && 'pdf-large-text'].filter(Boolean)
   return classes.length ? ` class="${classes.join(' ')}"` : ''
 }

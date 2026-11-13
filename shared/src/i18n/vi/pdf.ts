@@ -11,6 +11,7 @@ const pdf: TranslationStrings = {
     'iOS không thể in từ ứng dụng trên Màn hình chính. Safari sẽ mở chuyến đi này với bản xuất sẵn sàng, tại đó bạn có thể lưu PDF.',
   'pdf.pageBreakPerDay': 'Ngắt trang cho mỗi ngày',
   'pdf.transportNotes': 'Ghi chú phương tiện',
+  'pdf.largeText': 'Chữ lớn',
   'pdf.mapTitle': 'Tổng quan lộ trình',
   'pdf.distanceLabel': 'Quãng đường',
   'pdf.mapCredit': 'Đường viền quốc gia: geoBoundaries (CC BY 4.0)',

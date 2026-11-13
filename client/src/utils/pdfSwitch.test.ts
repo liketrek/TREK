@@ -1,4 +1,4 @@
-// FE-UTIL-PDFSWITCH-001 to FE-UTIL-PDFSWITCH-002
+// FE-UTIL-PDFSWITCH-001 to FE-UTIL-PDFSWITCH-003
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { pdfSwitchOn, rememberPdfSwitch } from './pdfSwitch';
 
@@ -28,6 +28,15 @@ describe('pdfSwitch', () => {
       throw new Error('blocked');
     });
     expect(pdfSwitchOn(KEY)).toBe(true);
+    expect(pdfSwitchOn(KEY, false)).toBe(false);
     expect(() => rememberPdfSwitch(KEY, false)).not.toThrow();
+  });
+
+  it('FE-UTIL-PDFSWITCH-003: a switch that defaults to off stays off until it is turned on', () => {
+    expect(pdfSwitchOn(KEY, false)).toBe(false);
+    rememberPdfSwitch(KEY, true);
+    expect(pdfSwitchOn(KEY, false)).toBe(true);
+    rememberPdfSwitch(KEY, false);
+    expect(pdfSwitchOn(KEY, false)).toBe(false);
   });
 });

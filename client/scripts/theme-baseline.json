@@ -72,7 +72,7 @@
   "components/Map/ratingBadge.ts": 2,
   "components/Map/reservationsMapbox.ts": 1,
   "components/Map/switcherRow.ts": 1,
-  "components/PDF/TripPDF.tsx": 51,
+  "components/PDF/TripPDF.tsx": 44,
   "components/Packing/PackingListPanelBagModal.tsx": 2,
   "components/Packing/PackingListPanelCategoryGroup.tsx": 5,
   "components/Packing/PackingListPanelHeader.tsx": 5,

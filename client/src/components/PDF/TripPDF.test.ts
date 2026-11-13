@@ -1426,3 +1426,63 @@ describe('downloadTripPDF — transport notes', () => {
     localStorage.removeItem('trek_pdf_page_break_per_day')
   })
 })
+
+// ── Large text (#2817) ──────────────────────────────────────────────────────
+
+describe('downloadTripPDF — large text', () => {
+  beforeEach(() => {
+    localStorage.removeItem('trek_pdf_large_text')
+  })
+
+  const largeToggle = () => document.querySelector<HTMLButtonElement>('#pdf-large-text-toggle')
+
+  it('FE-PDF-LARGE-001: the document keeps its compact type by default and offers the switch off', async () => {
+    await downloadTripPDF(richArgs)
+    const html = getIframe()!.srcdoc
+
+    expect(html).not.toContain('pdf-large-text"')
+    expect(largeToggle()!.getAttribute('aria-checked')).toBe('false')
+    // One scale and one set of greys, at today's values unless the class is on.
+    expect(html).toContain('--pdf-text: 1;')
+    expect(html).toContain('body.pdf-large-text {')
+    expect(html).toContain('.place-name { font-size: calc(11.5px * var(--pdf-text));')
+    expect(html).toContain('.note-text { font-size: calc(9.5px * var(--pdf-text)); color: var(--pdf-ink);')
+  })
+
+  it('FE-PDF-LARGE-002: the clock and the booking code of a transport scale with the rest', async () => {
+    await downloadTripPDF(richArgs)
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain('<span class="note-clock">')
+    expect(html).toContain('<div class="note-time note-code">Code: ABC123</div>')
+    expect(html).not.toContain('font-size:10px;')
+  })
+
+  it('FE-PDF-LARGE-003: turning it on enlarges the open preview at once and is remembered', async () => {
+    await downloadTripPDF(richArgs)
+    largeToggle()!.click()
+
+    expect(largeToggle()!.getAttribute('aria-checked')).toBe('true')
+    expect(localStorage.getItem('trek_pdf_large_text')).toBe('1')
+    const body = getIframe()!.contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-large-text')).toBe(true)
+  })
+
+  it('FE-PDF-LARGE-004: the remembered choice comes back next to the other switches', async () => {
+    localStorage.setItem('trek_pdf_large_text', '1')
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(richArgs)
+
+    expect(getIframe()!.srcdoc).toContain('<body class="pdf-flow pdf-large-text">')
+    expect(largeToggle()!.getAttribute('aria-checked')).toBe('true')
+    localStorage.removeItem('trek_pdf_page_break_per_day')
+  })
+
+  it('FE-PDF-LARGE-005: a blocked storage prints the compact document', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+
+    await downloadTripPDF(richArgs)
+    expect(getIframe()!.srcdoc).not.toContain('pdf-large-text"')
+    expect(largeToggle()!.getAttribute('aria-checked')).toBe('false')
+  })
+})

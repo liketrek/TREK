@@ -52,6 +52,8 @@ Each day starts on a new page, unless you turn off **Page break per day**, with 
 
 **Transport notes** sits next to it when a flight, train, rental or other transport of the trip has notes. On by default, it prints those notes under the transport in the day plan; turn it off to leave them out. This choice is remembered in the browser too.
 
+**Large text** is the last switch in the header. Off by default, it prints the day pages in larger type and turns their grey text darker, which reads better on paper and on an inkjet printer. The cover and the route map keep their size. This choice is remembered in the browser too.
+
 Under the header:
 
 - **The stay**, when an accommodation covers that day: *Check-in* on the first day, *Check-out* on the last, *Accommodation* on the nights in between, with the time, the place name, the address, the notes, and the booking code on the check-in day only
