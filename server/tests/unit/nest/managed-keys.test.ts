@@ -65,6 +65,7 @@ describe('managed key assignment', () => {
       'llm_provider',
       'mapbox_access_token',
       'maps_api_key',
+      'oidc_auto_redirect',
       'oidc_login',
       'oidc_registration',
       'openweather_api_key',

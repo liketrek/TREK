@@ -1,5 +1,5 @@
 import { QueryFlag } from '@mikro-orm/core';
-import type { Trips } from '../entities/Trips.entity';
+import type { TTripsCostsMode, Trips } from '../entities/Trips.entity';
 import { coalesceParam, currentTimestamp, nowDateOffset } from '../dialect/sql-functions';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -36,7 +36,7 @@ export interface TripRawRow {
   created_at: string | null;
   updated_at: string | null;
   reminder_sent_for: string | null;
-  costs_mode: string;
+  costs_mode: TTripsCostsMode;
 }
 
 const _tripRawRowKeys: AssertRowKeys<TripRawRow, Trips> = true;
@@ -564,7 +564,7 @@ export class TripsRepository extends TrekRepository<Trips> {
     currency: string | null;
     cover_image: string | null;
     reminder_days: number;
-    costs_mode: string;
+    costs_mode: TTripsCostsMode;
   }): Promise<number> {
     return await this.insert({
       user: input.user_id,

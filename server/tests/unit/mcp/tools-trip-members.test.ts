@@ -13,7 +13,7 @@ import { Users } from '../../../src/db/entities/Users.entity';
 import { GUEST_HAS_PAYMENTS } from '../../../src/nest/budget/budget-departure.helpers';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import { createUser, createAdmin, createTrip, addTripMember, createDay, createDayNote } from '../../helpers/factories';
+import { createUser, createAdmin, createTrip, addTripMember, createDayNote } from '../../helpers/factories';
 import { addBudgetItemMember, addBudgetItemPayer, makeBudgetItem } from '../../helpers/factories/budget';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
@@ -495,7 +495,10 @@ describe('Tool: export_trip_ics', () => {
   it('leaves the per-day summaries out with dayEvents false, like days=0 on the route (#2602)', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
-    const day = createDay(testDb, trip.id, { date: '2025-06-01', day_number: 1 });
+    // A dated trip comes with its days; the first one is the 1st of June.
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND day_number = 1').get(trip.id) as {
+      id: number;
+    };
     createDayNote(testDb, day.id, trip.id, { text: 'Pick up the museum pass' });
     await withHarness(user.id, async (h) => {
       const call = async (args: Record<string, unknown>) =>

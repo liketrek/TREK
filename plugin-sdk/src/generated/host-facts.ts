@@ -434,6 +434,7 @@ export const PLUGIN_ENTITY_FIELDS = {
     'created_at',
     'updated_at',
     'reminder_sent_for',
+    'costs_mode',
     'day_count',
     'place_count',
     'is_owner',

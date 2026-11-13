@@ -16,7 +16,12 @@ import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollabService } from './collab.service';
-import { collabLinkCreateRequestSchema, collabLinkUpdateRequestSchema, idSchema } from '@trek/shared';
+import {
+  collabLinkCreateRequestSchema,
+  collabLinkPinnedSchema,
+  collabLinkUpdateRequestSchema,
+  idSchema,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -262,7 +267,7 @@ export class CollabMcp {
       tripId: idSchema,
       title: collabLinkCreateRequestSchema.shape.title.describe('What the link is, as the list shows it'),
       url: collabLinkCreateRequestSchema.shape.url.describe('An http(s) URL'),
-      pinned: z.boolean().optional().describe('Pin the link to the top of the list'),
+      pinned: collabLinkPinnedSchema.optional().describe('Pin the link to the top of the list'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabLinksOn,
@@ -287,7 +292,7 @@ export class CollabMcp {
       linkId: idSchema,
       title: collabLinkUpdateRequestSchema.shape.title.describe('What the link is, as the list shows it'),
       url: collabLinkUpdateRequestSchema.shape.url.describe('An http(s) URL'),
-      pinned: z.boolean().optional().describe('Pin the link to the top of the list, or false to unpin it'),
+      pinned: collabLinkPinnedSchema.optional().describe('Pin the link to the top of the list, or false to unpin it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collabLinksOn,

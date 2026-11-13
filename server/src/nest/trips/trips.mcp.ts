@@ -29,7 +29,13 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { idSchema, MAX_TRIP_DAYS, tripUpdateRequestSchema, type TripCostsMode } from '@trek/shared';
+import {
+  idSchema,
+  MAX_TRIP_DAYS,
+  tripCalendarDayEventsSchema,
+  tripUpdateRequestSchema,
+  type TripCostsMode,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -691,8 +697,7 @@ export class TripsMcp {
       "Export a trip's itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.",
     inputSchema: {
       tripId: idSchema,
-      dayEvents: z
-        .boolean()
+      dayEvents: tripCalendarDayEventsSchema
         .optional()
         .describe(
           'false leaves out the all-day summary each day with untimed places or notes gets ("Day 1", ...), the same as days=0 on the download; the trip itself, timed stops and bookings stay. Default true.',

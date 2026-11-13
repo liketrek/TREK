@@ -1017,9 +1017,11 @@ describe('Tool: list_collection_places', () => {
   }
 
   async function seedPlaces(colId: number, ownerId: number, count: number): Promise<number[]> {
-    const ids: number[] = [];
-    for (let i = 1; i <= count; i++) ids.push(await seedPlace(colId, ownerId, `Spot ${i}`));
-    return ids;
+    // One after the other, so the ids follow the names.
+    return Array.from({ length: count }, (_, i) => i + 1).reduce<Promise<number[]>>(
+      async (done, n) => [...(await done), await seedPlace(colId, ownerId, `Spot ${n}`)],
+      Promise.resolve([]),
+    );
   }
 
   it('MCP-COLL-PAGE-001: pages through a list in its order, compact rows leaving out what a place lacks', async () => {
@@ -1067,8 +1069,8 @@ describe('Tool: list_collection_places', () => {
     await withHarness(user.id, async (h) => {
       const seen: unknown[] = [];
       const totals: number[] = [];
-      let cursor: string | null = null;
-      do {
+      // Page by page, each one labelled before the next is asked for.
+      const walk = async (cursor: string | null): Promise<void> => {
         const page = await listPage(h, { collectionId: col, limit: 2, unlabeled: true, ...(cursor ? { cursor } : {}) });
         totals.push(page.total);
         seen.push(...page.places.map((p) => p.id));
@@ -1077,8 +1079,9 @@ describe('Tool: list_collection_places', () => {
           arguments: { label_ids: [done], place_ids: page.places.map((p) => p.id) },
         });
         expect(labelled.isError).toBeFalsy();
-        cursor = page.next_cursor;
-      } while (cursor);
+        if (page.next_cursor) await walk(page.next_cursor);
+      };
+      await walk(null);
       // An offset would have jumped from the second place straight to the fifth.
       expect(seen).toEqual(ids);
       expect(totals).toEqual([6, 4, 2]);

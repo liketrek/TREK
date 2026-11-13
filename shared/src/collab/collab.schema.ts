@@ -228,3 +228,9 @@ export const collabLinkPreviewResponseSchema = z.object({
   url: z.string(),
 });
 export type CollabLinkPreviewResponse = z.infer<typeof collabLinkPreviewResponseSchema>;
+
+/**
+ * Pinning a link from an MCP tool: a plain boolean. The REST bodies also take
+ * the stored 1 or 0 (`pinned` above); a tool's caller says true or false.
+ */
+export const collabLinkPinnedSchema = z.boolean();

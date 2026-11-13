@@ -43,6 +43,7 @@ import { VacayPlans } from '../../src/db/entities/VacayPlans.entity';
 import { GUEST_HAS_PAYMENTS } from '../../src/nest/budget/budget-departure.helpers';
 import { BudgetService } from '../../src/nest/budget/budget.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { withRequestContext } from '../../src/nest/database/request-context';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
@@ -108,6 +109,8 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
+    // The contracts are checked at the pipe, as in the app (APP_PIPE).
+    nest.useGlobalPipes(new ZodValidationPipe());
     await nest.init();
     return nest;
   }
@@ -253,14 +256,14 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(res.status).toBe(200);
     expect(res.body.trip).toMatchObject({ title: 'Lisbon', costs_mode: 'totals' });
     const audit = await findRow(orm, AuditLog, { action: 'trip.update' });
-    expect(JSON.parse(audit!.details!)).toMatchObject({ costs_mode: 'totals' });
+    expect(JSON.parse(audit?.details ?? '{}')).toMatchObject({ costs_mode: 'totals' });
 
     const bogus = await request(server)
       .put(`/api/trips/${trip.body.trip.id}`)
       .set('Cookie', sessionCookie(1))
       .send({ costs_mode: 'shares' });
     expect(bogus.status).toBe(400);
-    expect((await findRow(orm, Trips, { id: trip.body.trip.id }))!.costs_mode).toBe('totals');
+    expect((await findRow(orm, Trips, { id: trip.body.trip.id }))?.costs_mode).toBe('totals');
   });
 
   it('200 update with a later start moves the leave days of the owner along, off the blocked weekend, and tells the plan (#2604)', async () => {

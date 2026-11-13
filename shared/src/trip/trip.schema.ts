@@ -206,3 +206,9 @@ export const tripCalendarQuerySchema = z.object({
   days: z.enum(['0', '1']).optional(),
 });
 export type TripCalendarQuery = z.infer<typeof tripCalendarQuerySchema>;
+
+/**
+ * The MCP export's switch for the per-day summary events (#2602): what the
+ * routes' `days` query says as 0 or 1, as a boolean for a tool's caller.
+ */
+export const tripCalendarDayEventsSchema = z.boolean();

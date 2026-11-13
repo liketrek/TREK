@@ -62,6 +62,13 @@ let orm: TestOrm;
 
 const BASE = 'https://trek.example.test';
 
+/** The token at the end of a feed url, failing the case when the url has none. */
+function feedToken(url: string, kind: 'trip' | 'user'): string {
+  const token = new RegExp(`${kind}/([0-9a-f-]+)[.]ics$`).exec(url)?.[1];
+  if (!token) throw new Error(`no ${kind} feed token in ${url}`);
+  return token;
+}
+
 describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
@@ -153,7 +160,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const { user: owner } = createUser(db);
     const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
     const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'trip');
     expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(200);
 
     const del = await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
@@ -232,7 +239,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const { user: member } = createUser(db);
     const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
     const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'trip');
     addTripMember(db, trip.id, member.id);
 
     // The member may no longer manage it, but existing subscriptions must not break.
@@ -248,7 +255,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const { user: owner } = createUser(db);
     const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
     const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'trip');
 
     const res = await request(server).get(`/api/feed/trip/${token}.ics`);
     expect(res.status).toBe(200);
@@ -265,7 +272,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const { user: owner } = createUser(db);
     const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
     const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'trip');
 
     // ASCII parity first: the default sample calendar keeps the exact legacy header.
     const plain = await request(server).get(`/api/feed/trip/${token}.ics`);
@@ -283,7 +290,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const { user: owner } = createUser(db);
     const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
     const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'trip');
 
     const res = await request(server).get(`/api/feed/trip/${token}.ics?days=0`);
     expect(res.status).toBe(200);
@@ -313,7 +320,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     createTrip(db, owner.id, { title: 'Old', start_date: '2000-01-01', end_date: '2000-01-10' });
 
     const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'user');
 
     const res = await request(server).get(`/api/feed/user/${token}.ics`);
     expect(res.status).toBe(200);
@@ -333,7 +340,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     addTripMember(db, shared.id, owner.id);
 
     const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'user');
 
     const res = await request(server).get(`/api/feed/user/${token}.ics`);
     expect(res.status).toBe(200);
@@ -348,7 +355,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     const second = createTrip(db, owner.id, { start_date: '2026-02-01', end_date: '2099-01-01' });
 
     const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'user');
 
     const res = await request(server).get(`/api/feed/user/${token}.ics?days=0`);
     expect(res.status).toBe(200);
@@ -380,7 +387,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     }));
 
     const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
-    const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
+    const token = feedToken(gen.body.feed_url, 'user');
 
     const res = await request(server).get(`/api/feed/user/${token}.ics`);
     expect(res.status).toBe(200);

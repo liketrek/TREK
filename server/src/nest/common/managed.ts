@@ -88,6 +88,9 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'llm_provider',
   'mapbox_access_token',
   'maps_api_key',
+  // Whether the login page waits or goes straight to the provider is part of the
+  // operator's single sign-on, like oidc_login itself (#2925).
+  'oidc_auto_redirect',
   'oidc_login',
   'oidc_registration',
   'openweather_api_key',
