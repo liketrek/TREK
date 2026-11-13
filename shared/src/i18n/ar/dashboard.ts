@@ -304,5 +304,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'أضف إلى تقويم Apple / Outlook',
   'dashboard.ics.copyManually': 'أو انسخ الرابط يدويًا',
   'dashboard.ics.pasteFromUrl': 'الصقه في «من عنوان URL»',
+  'dashboard.ics.dayEvents': 'أحداث ملخص اليوم',
+  'dashboard.ics.dayEventsHint':
+    'حدث يستمر طوال اليوم لكل يوم يضم الأماكن والملاحظات التي ليس لها وقت. تغيير هذا الخيار يغيّر الرابط، لذا اشترك مجددًا بالرابط الجديد.',
 };
 export default dashboard;

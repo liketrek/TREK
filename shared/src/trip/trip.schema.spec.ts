@@ -5,6 +5,7 @@ import {
   tripUpdateRequestSchema,
   tripAddMemberRequestSchema,
   activeTripResponseSchema,
+  tripCalendarQuerySchema,
   tripSchema,
 } from './trip.schema';
 
@@ -94,5 +95,23 @@ describe('activeTripResponseSchema', () => {
   it('rejects a missing trip key — "no trip" is null, not absent', () => {
     expect(activeTripResponseSchema.safeParse({}).success).toBe(false);
     expect(activeTripResponseSchema.safeParse({ trip: { title: 'Japan' } }).success).toBe(false);
+  });
+});
+
+describe('tripCalendarQuerySchema', () => {
+  it('takes days=0 or days=1, or nothing (#2602)', () => {
+    expect(tripCalendarQuerySchema.parse({})).toEqual({});
+    expect(tripCalendarQuerySchema.parse({ days: '0' })).toEqual({ days: '0' });
+    expect(tripCalendarQuerySchema.parse({ days: '1' })).toEqual({ days: '1' });
+  });
+
+  it('refuses any other days value', () => {
+    for (const days of ['false', '2', '', 0]) {
+      expect(tripCalendarQuerySchema.safeParse({ days }).success).toBe(false);
+    }
+  });
+
+  it('drops keys a calendar app adds of its own', () => {
+    expect(tripCalendarQuerySchema.parse({ days: '0', client: 'ios' })).toEqual({ days: '0' });
   });
 });

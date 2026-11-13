@@ -273,5 +273,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Dodaj do Kalendarza Apple / Outlook',
   'dashboard.ics.copyManually': 'Lub skopiuj link ręcznie',
   'dashboard.ics.pasteFromUrl': 'wklej w „Z adresu URL”',
+  'dashboard.ics.dayEvents': 'Wydarzenia z podsumowaniem dnia',
+  'dashboard.ics.dayEventsHint':
+    'Całodniowe wydarzenie na każdy dzień z miejscami i notatkami bez godziny. Zmiana tego ustawienia zmienia link, więc zasubskrybuj ponownie nowy link.',
 };
 export default dashboard;

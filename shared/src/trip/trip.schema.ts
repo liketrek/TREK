@@ -193,3 +193,16 @@ export const tripSearchResponseSchema = z.object({
   ),
 });
 export type TripSearchResponse = z.infer<typeof tripSearchResponseSchema>;
+
+/**
+ * Query of the trip calendars: the one-time download (GET
+ * /api/trips/:id/export.ics) and both subscribable feeds (GET
+ * /api/feed/{trip,user}/:token.ics). `days=0` leaves out the all-day summary
+ * each day with untimed stops or notes gets (#2602); `days=1` or no value keeps
+ * it. Other keys are dropped rather than refused, so a calendar app that adds
+ * its own still gets the feed.
+ */
+export const tripCalendarQuerySchema = z.object({
+  days: z.enum(['0', '1']).optional(),
+});
+export type TripCalendarQuery = z.infer<typeof tripCalendarQuerySchema>;

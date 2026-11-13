@@ -235,5 +235,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Lägg till i Apple Kalender / Outlook',
   'dashboard.ics.copyManually': 'Eller kopiera en länk manuellt',
   'dashboard.ics.pasteFromUrl': 'klistra in i “Från URL”',
+  'dashboard.ics.dayEvents': 'Dagsöversikt som händelser',
+  'dashboard.ics.dayEventsHint':
+    'En heldagshändelse per dag med platserna och anteckningarna utan tid. Om du ändrar detta ändras länken, så prenumerera igen med den nya länken.',
 };
 export default dashboard;

@@ -45,7 +45,7 @@ Requires `trips:read` or `trips:write` scope.
 | `rename_trip_guest` | Rename a guest on a trip. Owner only. |
 | `delete_trip_guest` | Delete a guest and hand their share of each expense to the others in its split. Refused while the guest paid for an expense or is part of a recorded payment. Owner only. |
 | `copy_trip` | Duplicate a trip (days, places, itinerary, packing, budget, reservations). Packing items reset to unchecked. |
-| `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. |
+| `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. `dayEvents: false` leaves out the all-day summary per day. |
 | `get_share_link` | Get the current public share link for a trip and its permission flags. Requires `trips:share`. |
 | `create_share_link` | Create or update the public share link with configurable visibility flags, including the travel-only and without-photos options. Requires `trips:share`. |
 | `delete_share_link` | Revoke the public share link for a trip. Requires `trips:share`. |
@@ -249,6 +249,8 @@ Requires `trips:share`, the same scope that manages public share links.
 | `enable_all_trips_calendar_feed` | |
 | `rotate_all_trips_calendar_feed` | |
 | `disable_all_trips_calendar_feed` | |
+
+A feed URL with `?days=0` appended leaves out the all-day summary per day; the tools hand back the plain URL and say so in their descriptions.
 
 ### Invite links
 

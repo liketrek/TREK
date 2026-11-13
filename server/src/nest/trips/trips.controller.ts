@@ -5,7 +5,8 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CalendarService } from '../calendar/calendar.service';
+import { TripCalendarQueryDto } from '../calendar/calendar.dto';
+import { CalendarService, calendarOptionsFromQuery } from '../calendar/calendar.service';
 import { contentDisposition } from '../common/content-disposition';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageReleaseService } from '../storage/storage-release.service';
@@ -340,12 +341,17 @@ export class TripsController {
   }
 
   @Get(':id/export.ics')
-  async exportIcs(@CurrentUser() user: User, @Param('id') id: string, @Res() res: Response) {
+  async exportIcs(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query() query: TripCalendarQueryDto,
+    @Res() res: Response,
+  ) {
     if (!(await this.trips.canAccessTrip(id, user.id))) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
     try {
-      const { ics, filename } = await this.calendar.exportICS(id);
+      const { ics, filename } = await this.calendar.exportICS(id, calendarOptionsFromQuery(query));
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
       res.setHeader('Content-Disposition', contentDisposition(filename, 'attachment'));
       res.send(ics);

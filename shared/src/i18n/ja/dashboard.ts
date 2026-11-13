@@ -217,5 +217,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple カレンダー / Outlook に追加',
   'dashboard.ics.copyManually': 'またはリンクを手動でコピー',
   'dashboard.ics.pasteFromUrl': '「URL から」に貼り付け',
+  'dashboard.ics.dayEvents': '日ごとの概要イベント',
+  'dashboard.ics.dayEventsHint':
+    '時刻のない場所とメモをまとめた終日イベントを1日ごとに追加します。切り替えるとリンクが変わるため、新しいリンクで登録し直してください。',
 };
 export default dashboard;

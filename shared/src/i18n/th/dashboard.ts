@@ -214,5 +214,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'เพิ่มใน Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'หรือคัดลอกลิงก์ด้วยตนเอง',
   'dashboard.ics.pasteFromUrl': 'วางใน “จาก URL”',
+  'dashboard.ics.dayEvents': 'กิจกรรมสรุปรายวัน',
+  'dashboard.ics.dayEventsHint':
+    'กิจกรรมทั้งวันสำหรับแต่ละวัน พร้อมสถานที่และบันทึกที่ไม่มีเวลา การเปลี่ยนตัวเลือกนี้จะเปลี่ยนลิงก์ จึงต้องสมัครรับใหม่ด้วยลิงก์ใหม่',
 };
 export default dashboard;

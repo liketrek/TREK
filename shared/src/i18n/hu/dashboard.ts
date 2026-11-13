@@ -239,5 +239,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Hozzáadás az Apple Naptárhoz / Outlookhoz',
   'dashboard.ics.copyManually': 'Vagy másold ki kézzel a hivatkozást',
   'dashboard.ics.pasteFromUrl': 'illeszd be a „URL-ből” mezőbe',
+  'dashboard.ics.dayEvents': 'Napi összefoglaló események',
+  'dashboard.ics.dayEventsHint':
+    'Egész napos esemény minden naphoz az időpont nélküli helyekkel és jegyzetekkel. A beállítás módosítása megváltoztatja a linket, ezért iratkozz fel újra az új linkkel.',
 };
 export default dashboard;

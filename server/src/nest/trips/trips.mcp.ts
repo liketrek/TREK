@@ -691,14 +691,20 @@ export class TripsMcp {
       "Export a trip's itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.",
     inputSchema: {
       tripId: idSchema,
+      dayEvents: z
+        .boolean()
+        .optional()
+        .describe(
+          'false leaves out the all-day summary each day with untimed places or notes gets ("Day 1", ...), the same as days=0 on the download; the trip itself, timed stops and bookings stay. Default true.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canReadTrips(ctx.scopes),
   })
-  async exportTripIcs({ tripId }: { tripId: number }, ctx: McpContext) {
+  async exportTripIcs({ tripId, dayEvents }: { tripId: number; dayEvents?: boolean }, ctx: McpContext) {
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     try {
-      const { ics, filename } = await this.calendar.exportICS(tripId);
+      const { ics, filename } = await this.calendar.exportICS(tripId, { dayEvents });
       return ok({ ics, filename });
     } catch {
       return { content: [{ type: 'text' as const, text: 'Trip not found.' }], isError: true };
