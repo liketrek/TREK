@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping, Minus,
   Download, FileSpreadsheet, FileText, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw, Save as SaveIcon,
-  Share2, Trash2, UserPlus, UserRound,
+  Share2, Trash2, UserPlus, UserRound, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
@@ -257,7 +257,9 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
            Same dashed-pill style as before, just relocated. ── */}
       {canEdit && (editMode || trueEmpty) && (
         addingCategory ? (
-          <div className="mt-[10px] flex gap-2">
+          // One card like the lists below it: the name typed in place, the way
+          // out and the add on its end, so the row reads as the list it becomes.
+          <div className="mt-[10px] flex items-center gap-1.5 rounded-[16px] border border-[color:var(--m-rowbr)] bg-m-card py-[5px] pe-[5px] ps-[14px]">
             <input
               type="text"
               autoFocus
@@ -268,16 +270,25 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                 if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
               }}
               placeholder={t('packing.newCategoryPlaceholder')}
-              className={`${FIELD_CLS} flex-1`}
+              aria-label={t('packing.newCategoryPlaceholder')}
+              className="min-w-0 flex-1 bg-transparent py-2 text-body text-m-ink outline-none placeholder:text-m-faint"
             />
+            <button
+              type="button"
+              onClick={() => { setAddingCategory(false); setNewCategoryName('') }}
+              aria-label={t('common.cancel')}
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-m-muted"
+            >
+              <X size={16} strokeWidth={2.2} />
+            </button>
             <button
               type="button"
               onClick={addNewCategory}
               disabled={!newCategoryName.trim()}
               aria-label={t('common.add')}
-              className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-30"
             >
-              <Check size={15} strokeWidth={2.4} />
+              <Plus size={17} strokeWidth={2.4} />
             </button>
           </div>
         ) : (

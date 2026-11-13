@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router'
 import {
   Bookmark, Check, CheckCheck, CheckSquare, ChevronDown, Copy, CopyPlus,
   FolderInput, Layers, List, Map as MapIcon, Pencil, Search, Settings2, Shapes, Share2,
-  Tag, Tags, Trash2, X,
+  Tag, Tags, Trash2,
 } from 'lucide-react'
 import type { CollectionStatus } from '@trek/shared'
 import MDancingTrek, { type TrekScene } from '../../components/MDancingTrek'
@@ -211,6 +211,7 @@ export default function MCollections() {
     />
   )
 
+  const none = c.selectedIds.length === 0
   const selectChip = (disabled: boolean) =>
     `flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-2 text-[0.75rem] font-semibold text-m-ink ${disabled ? 'opacity-40' : ''}`
 
@@ -466,44 +467,45 @@ export default function MCollections() {
               </div>
             )}
 
+            {/* Selecting: what is picked and the way out on one line, the actions as icons on
+                the next, so nothing scrolls sideways or hides the way back. */}
             {c.view === 'list' && c.selectMode && (
-              <div className="mt-2 flex items-center gap-[6px] overflow-x-auto pb-[2px]">
-                <button type="button" onClick={c.handleSelectAll} className={selectChip(false)}>
-                  <CheckCheck size={13} strokeWidth={2.2} />
-                  {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
-                </button>
-                <span className="flex-none whitespace-nowrap px-1 font-geist text-[0.6875rem] font-bold text-m-muted">
-                  {t('collections.selectedCount', { count: c.selectedIds.length })}
-                </span>
-                {canManageLabels && (
-                  <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                    <Tags size={13} strokeWidth={2.2} /> {t('collections.labels.assign')}
+              <div className="mt-2">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={c.handleSelectAll} className={selectChip(false)}>
+                    <CheckCheck size={13} strokeWidth={2.2} />
+                    {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
                   </button>
-                )}
-                <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                  <Copy size={13} strokeWidth={2.2} /> {t('collections.copyToTrip')}
-                </button>
-                {c.canDelete && (
-                  <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                    <FolderInput size={13} strokeWidth={2.2} /> {t('collections.moveToList')}
+                  <span className="min-w-0 flex-1 truncate text-center font-geist text-[0.6875rem] font-bold text-m-muted">
+                    {t('collections.selectedCount', { count: c.selectedIds.length })}
+                  </span>
+                  <button type="button" onClick={() => c.setSelectMode(false)} className="flex-none rounded-full bg-m-act px-[14px] py-2 text-caption font-semibold text-m-actfg">
+                    {t('packing.editDone')}
                   </button>
-                )}
-                <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                  <CopyPlus size={13} strokeWidth={2.2} /> {t('collections.duplicateToList')}
-                </button>
-                {c.canDelete && (
-                  <button
-                    type="button"
-                    onClick={c.handleDeleteSelected}
-                    disabled={c.selectedIds.length === 0}
-                    className={`${selectChip(c.selectedIds.length === 0)} !text-[color:var(--m-st-danger)]`}
-                  >
-                    <Trash2 size={13} strokeWidth={2.2} /> {t('common.delete')}
-                  </button>
-                )}
-                <button type="button" onClick={() => c.setSelectMode(false)} aria-label={t('common.cancel')} className={selectChip(false)}>
-                  <X size={14} strokeWidth={2.2} />
-                </button>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-[6px]">
+                  {canManageLabels && (
+                    <SelectionAction label={t('collections.labels.assign')} onClick={() => c.setLabelPickerOpen(true)} disabled={none}>
+                      <Tags size={16} strokeWidth={2} />
+                    </SelectionAction>
+                  )}
+                  <SelectionAction label={t('collections.copyToTrip')} onClick={c.openCopyForSelection} disabled={none}>
+                    <Copy size={16} strokeWidth={2} />
+                  </SelectionAction>
+                  {c.canDelete && (
+                    <SelectionAction label={t('collections.moveToList')} onClick={() => c.setListPickerMode('move')} disabled={none}>
+                      <FolderInput size={16} strokeWidth={2} />
+                    </SelectionAction>
+                  )}
+                  <SelectionAction label={t('collections.duplicateToList')} onClick={() => c.setListPickerMode('copy')} disabled={none}>
+                    <CopyPlus size={16} strokeWidth={2} />
+                  </SelectionAction>
+                  {c.canDelete && (
+                    <SelectionAction label={t('common.delete')} onClick={c.handleDeleteSelected} disabled={none} danger>
+                      <Trash2 size={16} strokeWidth={2} />
+                    </SelectionAction>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -649,5 +651,27 @@ export default function MCollections() {
         onConfirm={c.handleDeleteList}
       />
     </div>
+  )
+}
+
+/** One action on the picked places: an icon, named by its label, as wide as its share of the row. */
+function SelectionAction({ label, onClick, disabled, danger = false, children }: {
+  label: string
+  onClick: () => void
+  disabled: boolean
+  danger?: boolean
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`flex h-10 min-w-0 flex-1 items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop disabled:opacity-40 ${danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'}`}
+    >
+      {children}
+    </button>
   )
 }

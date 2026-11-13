@@ -165,7 +165,7 @@ function makeHook(over: Record<string, unknown> = {}): Record<string, unknown> {
     incomingInvites: [],
     orderedInvites: [],
     routeInvite: null,
-    counts: { all: 1, idea: 1, want: 0, visited: 0 },
+    counts: { all: 1, idea: 1, want: 0, visited: 0, revisit: 0 },
     view: 'list',
     statusFilter: 'all',
     categoryFilter: 'all',
@@ -306,7 +306,7 @@ describe('MCollections', () => {
     // The union has no label chip, so the status chip is the only "all" chip.
     mocks.coll = makeHook({
       isAllSaved: true, activeId: ALL_SAVED, activeCollection: null, canShare: false,
-      counts: { all: 5, idea: 2, want: 2, visited: 1 },
+      counts: { all: 5, idea: 2, want: 2, visited: 1, revisit: 0 },
     })
     render(<MCollections />)
 
@@ -409,7 +409,7 @@ describe('MCollections', () => {
     fireEvent.click(screen.getByRole('button', { name: /collections.selectAll/ }))
     expect(fn('handleSelectAll')).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'packing.editDone' }))
     expect(fn('setSelectMode')).toHaveBeenCalledWith(false)
   })
 
@@ -617,7 +617,7 @@ describe('MCollections', () => {
     expect(screen.getByRole('dialog', { name: 'collections.deleteList' })).toBeInTheDocument()
     expect(screen.getByText('collections.deleteListConfirm')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+    fireEvent.click(screen.getByRole('button', { name: 'packing.editDone' }))
     expect(fn('setConfirmDeleteList')).toHaveBeenCalledWith(null)
 
     fireEvent.click(screen.getByRole('button', { name: /common.delete/ }))
@@ -708,6 +708,7 @@ describe('MCollections: category filter (#2618)', () => {
   })
 
   it('FE-MOB-COLSCR-037: without categories the chip stays away, unless a category is still set from another list', () => {
+    mocks.coll = makeHook()
     const { unmount } = render(<MCollections />)
     expect(screen.queryByRole('button', { name: /^categories.title/ })).not.toBeInTheDocument()
     unmount()
@@ -728,7 +729,8 @@ describe('MCollections: category filter (#2618)', () => {
     // The status chip is the first chip reading "all".
     fireEvent.click(screen.getAllByRole('button', { name: 'collections.status.filterAll' })[0])
     expect(screen.queryByRole('button', { name: /^Museum\s*1$/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /collections.status.idea/ })).toBeInTheDocument()
+    // The status panel is open in its place (its rows name each status).
+    expect(screen.getAllByRole('button', { name: /collections.status.idea/ }).length).toBeGreaterThan(0)
   })
 })
 

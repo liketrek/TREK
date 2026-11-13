@@ -26,6 +26,11 @@ interface Props extends MapProps {
   hideLayerControl?: boolean;
   /** How far from the map's top the switches sit, clear of a bar laid over the map. */
   controlsTop?: number | string;
+  /**
+   * The base layer, when the page keeps the satellite switch in its own bar (the
+   * phone); left out, the map carries the switch in its top corner.
+   */
+  baseLayer?: BaseLayer;
   /** Leads from a picked place or stay to its entry. */
   onOpenEntry?: (entryId: string) => void;
   entryTitleOf?: (entryId: number) => string | null;
@@ -39,6 +44,36 @@ const CORNER_GAP = 8;
 /** A card action, only where the screen offers one. */
 function offeredIf<T>(offered: unknown, action: T): T | undefined {
   return offered ? action : undefined;
+}
+
+/**
+ * The base layer the map shows: the page's, where it keeps the switch in its own
+ * bar, otherwise the map's own, switched from its corner.
+ */
+function useBaseLayer(page: BaseLayer | undefined) {
+  const [own, setOwn] = useState<BaseLayer>('default');
+  const toggleBaseLayer = useCallback(() => setOwn((was) => (was === 'satellite' ? 'default' : 'satellite')), []);
+  return { baseLayer: page ?? own, toggleBaseLayer, switchOnMap: page === undefined };
+}
+
+/** The satellite switch in the map's top corner, unless the page keeps it in its own bar. */
+function CornerSwitcher({
+  hidden,
+  top,
+  active,
+  onToggle,
+}: {
+  hidden: boolean;
+  top: number | string;
+  active: BaseLayer;
+  onToggle: () => void;
+}) {
+  if (hidden) return null;
+  return (
+    <div className="pointer-events-auto absolute end-3 z-10" style={{ top }}>
+      <MapLayerSwitcher active={active} onToggle={onToggle} tooltipPlacement="bottom" />
+    </div>
+  );
 }
 
 /**
@@ -59,6 +94,7 @@ export default function JourneyLayeredMap({
   engine = 'auto',
   hideLayerControl = false,
   controlsTop = 12,
+  baseLayer: pageBaseLayer,
   onOpenEntry,
   entryTitleOf,
   onWriteAboutPlace,
@@ -68,8 +104,7 @@ export default function JourneyLayeredMap({
   ...rest
 }: Props) {
   const [picked, setPicked] = useState<{ marks: JourneyMapMark[]; key: string } | null>(null);
-  const [baseLayer, setBaseLayer] = useState<BaseLayer>('default');
-  const toggleBaseLayer = useCallback(() => setBaseLayer((was) => (was === 'satellite' ? 'default' : 'satellite')), []);
+  const { baseLayer, toggleBaseLayer, switchOnMap } = useBaseLayer(pageBaseLayer);
   const visibility = layers?.visibility;
   const onMarksPick = useCallback((marks: JourneyMapMark[]) => {
     setPicked({ marks, key: marks.map((m) => m.key).join(',') });
@@ -111,9 +146,7 @@ export default function JourneyLayeredMap({
       <div className="isolate h-full w-full">
         {engine === 'leaflet' ? <JourneyMap ref={ref} {...mapProps} /> : <JourneyMapAuto ref={ref} {...mapProps} />}
       </div>
-      <div className="pointer-events-auto absolute end-3 z-10" style={{ top: controlsTop }}>
-        <MapLayerSwitcher active={baseLayer} onToggle={toggleBaseLayer} tooltipPlacement="bottom" />
-      </div>
+      <CornerSwitcher hidden={!switchOnMap} top={controlsTop} active={baseLayer} onToggle={toggleBaseLayer} />
       {layers && (
         <div
           className="pointer-events-none absolute inset-x-3 z-10 flex flex-col items-start gap-2"
