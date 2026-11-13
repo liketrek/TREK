@@ -42,7 +42,7 @@ An entry also shows whether its sender is confirmed: the mail came from your own
 
 ## AI reading
 
-With **Read with AI** on, the mail's text and attachments, and the title, dates and destinations of your trips, go to the AI provider set up for your instance, so it can read the booking and name its trip; the sender, recipient and forwarding headers are removed first. The AI only fills in the booking; TREK's own checks decide whether it is added. Without AI, only mails with machine-readable booking data are read, and everything else waits under Pending bookings. An admin sets how many mails a day the AI reads for one person (default 10); above it, only machine-readable data is read.
+With **Read with AI** on, the mail's text and attachments, and the title, dates and destinations of your trips, go to the AI provider set up for your instance, so it can read the booking and name its trip; the sender, recipient and forwarding headers are removed first. The AI only fills in the booking; TREK's own checks decide whether it is added. **Read with AI** needs the **AI Parsing** addon and an AI connection, both set up by an admin ([AI Booking Import](AI-Booking-Import)); until then the switch stays off and says so. Without AI, only mails with machine-readable booking data are read, and everything else waits under Pending bookings. An admin sets how many mails a day the AI reads for one person (default 10); above it, only machine-readable data is read.
 
 On TREK Cloud, reading a mail with AI counts as one document of your plan's AI allowance. The Start plan has no booking mail import.
 

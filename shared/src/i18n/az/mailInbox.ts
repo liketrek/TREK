@@ -80,7 +80,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'İstənilən rezervasiya məktubunu oxuyur və səyahətini tapır. Məktub, səyahətlərinin tarixləri və təyinat məntəqələri süni intellekt provayderinə göndərilir.',
   'mailInbox.settings.aiUnavailable':
-    'Burada əlçatan deyil: yalnız maşın tərəfindən oxuna bilən rezervasiya məlumatı olan məktublar oxunur.',
+    '{addon} əlavəsi və administratorun qurduğu süni intellekt bağlantısı lazımdır. O vaxta qədər yalnız maşınla oxuna bilən rezervasiya məlumatları olan məktublar oxunur.',
   'mailInbox.settings.autoAdd': 'Özbaşına əlavə et',
   'mailInbox.settings.autoAddHint':
     'TREK-in əmin olduğu rezervasiya birbaşa səyahətinə düşür və 7 gün ərzində geri ala bilərsən. Deaktiv olduqda hər biri təsdiqini gözləyir.',

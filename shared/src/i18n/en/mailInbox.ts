@@ -78,7 +78,8 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.ai': 'Read with AI',
   'mailInbox.settings.aiHint':
     'Reads any booking mail and finds its trip. The mail and the dates and destinations of your trips go to the AI provider.',
-  'mailInbox.settings.aiUnavailable': 'Not available here: only mails with machine-readable booking data are read.',
+  'mailInbox.settings.aiUnavailable':
+    'Needs the {addon} addon and an AI connection, which an admin sets up. Until then only mails with machine-readable booking data are read.',
   'mailInbox.settings.autoAdd': 'Add on its own',
   'mailInbox.settings.autoAddHint':
     'A booking TREK is sure about goes straight into its trip, and you can undo it for 7 days. Off, each one waits for your OK.',

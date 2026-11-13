@@ -79,7 +79,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Her rezervasyon e-postasını okur ve seyahatini bulur. E-posta ile seyahatlerinin tarihleri ve varış yerleri yapay zeka sağlayıcısına gider.',
   'mailInbox.settings.aiUnavailable':
-    'Burada kullanılamıyor: yalnızca makine tarafından okunabilir rezervasyon verisi içeren e-postalar okunur.',
+    '{addon} eklentisi ve bir yöneticinin kurduğu yapay zekâ bağlantısı gerekir. O zamana kadar yalnızca makinece okunabilir rezervasyon verisi içeren e-postalar okunur.',
   'mailInbox.settings.autoAdd': 'Kendiliğinden ekle',
   'mailInbox.settings.autoAddHint':
     'TREK’in emin olduğu bir rezervasyon doğrudan seyahatine girer ve 7 gün içinde geri alabilirsin. Kapalıyken her biri onayını bekler.',

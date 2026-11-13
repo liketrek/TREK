@@ -79,7 +79,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Leest elke boekingsmail en zoekt de bijbehorende reis. De mail en de data en bestemmingen van je reizen gaan naar de AI-provider.',
   'mailInbox.settings.aiUnavailable':
-    'Hier niet beschikbaar: alleen mails met machineleesbare boekingsgegevens worden gelezen.',
+    'Vereist de add-on {addon} en een AI-verbinding, die een beheerder instelt. Tot die tijd worden alleen mails met machineleesbare boekingsgegevens gelezen.',
   'mailInbox.settings.autoAdd': 'Zelf toevoegen',
   'mailInbox.settings.autoAddHint':
     'Een boeking waar TREK zeker van is, komt direct in de reis en je kunt dit 7 dagen ongedaan maken. Uit: elke boeking wacht op jouw akkoord.',

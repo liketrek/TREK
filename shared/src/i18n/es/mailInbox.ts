@@ -80,7 +80,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Lee cualquier correo de reserva y encuentra su viaje. El correo y las fechas y destinos de tus viajes se envían al proveedor de IA.',
   'mailInbox.settings.aiUnavailable':
-    'No disponible aquí: solo se leen correos con datos de reserva legibles por máquina.',
+    'Necesita el complemento {addon} y una conexión de IA, que configura un administrador. Hasta entonces solo se leen correos con datos de reserva legibles por máquina.',
   'mailInbox.settings.autoAdd': 'Añadir automáticamente',
   'mailInbox.settings.autoAddHint':
     'Una reserva de la que TREK está seguro va directa a su viaje, y puedes deshacerlo durante 7 días. Desactivado, cada una espera tu visto bueno.',

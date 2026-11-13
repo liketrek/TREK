@@ -75,7 +75,8 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.enabledHint': '关闭后，发到你地址的邮件不会被读取。',
   'mailInbox.settings.ai': '用 AI 读取',
   'mailInbox.settings.aiHint': '读取任何预订邮件并找到对应的旅行。邮件以及你旅行的日期和目的地会发送给 AI 服务商。',
-  'mailInbox.settings.aiUnavailable': '此处不可用：只会读取包含机器可读预订数据的邮件。',
+  'mailInbox.settings.aiUnavailable':
+    '需要 {addon} 插件和由管理员设置的 AI 连接。在此之前，只会读取包含机器可读预订数据的邮件。',
   'mailInbox.settings.autoAdd': '自动添加',
   'mailInbox.settings.autoAddHint': 'TREK 有把握的预订会直接加入旅行，7 天内可以撤销。关闭后，每个预订都会等你确认。',
   'mailInbox.settings.upload': '上传邮件文件',

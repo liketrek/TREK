@@ -71,7 +71,9 @@ export class MailIngestInboxService {
       available: true,
       address: await this.addresses.ownAddress(userId),
       prefs,
-      ai_available: prefs.ai_enabled && (await this.reader.isAvailable(userId)),
+      // Whether AI reading can work here at all (the AI Parsing addon and a connection), not the person's own
+      // switch: with it folded in, switching AI off greyed the switch out and it could never come back on.
+      ai_available: await this.reader.isAvailable(userId),
       pending: await this.candidates.countPending(userId),
     };
   }

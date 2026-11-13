@@ -82,7 +82,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Odczytuje każdą wiadomość z rezerwacją i znajduje dla niej podróż. Wiadomość oraz daty i cele Twoich podróży trafiają do dostawcy AI.',
   'mailInbox.settings.aiUnavailable':
-    'Niedostępne tutaj: odczytywane są tylko wiadomości z danymi rezerwacji w formie czytelnej dla maszyn.',
+    'Wymaga dodatku {addon} i połączenia z AI, które konfiguruje administrator. Do tego czasu odczytywane są tylko maile z danymi rezerwacji czytelnymi maszynowo.',
   'mailInbox.settings.autoAdd': 'Dodawaj samodzielnie',
   'mailInbox.settings.autoAddHint':
     'Rezerwacja, której TREK jest pewien, trafia od razu do podróży i przez 7 dni możesz ją cofnąć. Po wyłączeniu każda czeka na Twoje potwierdzenie.',

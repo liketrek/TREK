@@ -79,7 +79,8 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.ai': 'Läs med AI',
   'mailInbox.settings.aiHint':
     'Läser alla bokningsmejl och hittar rätt resa. Mejlet samt datum och destinationer för dina resor skickas till AI-leverantören.',
-  'mailInbox.settings.aiUnavailable': 'Inte tillgängligt här: endast mejl med maskinläsbara bokningsdata läses.',
+  'mailInbox.settings.aiUnavailable':
+    'Kräver tillägget {addon} och en AI-anslutning, som en administratör konfigurerar. Tills dess läses bara mejl med maskinläsbara bokningsuppgifter.',
   'mailInbox.settings.autoAdd': 'Lägg till automatiskt',
   'mailInbox.settings.autoAddHint':
     'En bokning som TREK är säker på hamnar direkt i sin resa, och du kan ångra det i 7 dagar. När det är av väntar varje bokning på ditt OK.',

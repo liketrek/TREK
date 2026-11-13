@@ -79,7 +79,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Membaca email pemesanan apa pun dan menemukan perjalanannya. Email serta tanggal dan tujuan perjalanan Anda dikirim ke penyedia AI.',
   'mailInbox.settings.aiUnavailable':
-    'Tidak tersedia di sini: hanya email dengan data pemesanan yang dapat dibaca mesin yang dibaca.',
+    'Memerlukan add-on {addon} dan koneksi AI yang diatur oleh admin. Hingga saat itu, hanya email dengan data pemesanan yang dapat dibaca mesin yang dibaca.',
   'mailInbox.settings.autoAdd': 'Tambahkan otomatis',
   'mailInbox.settings.autoAddHint':
     'Pemesanan yang diyakini TREK langsung masuk ke perjalanannya, dan Anda bisa membatalkannya selama 7 hari. Jika nonaktif, setiap pemesanan menunggu persetujuan Anda.',

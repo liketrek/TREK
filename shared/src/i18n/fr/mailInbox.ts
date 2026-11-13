@@ -81,7 +81,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Lit n’importe quel e-mail de réservation et trouve son voyage. L’e-mail ainsi que les dates et destinations de vos voyages sont transmis au fournisseur d’IA.',
   'mailInbox.settings.aiUnavailable':
-    'Indisponible ici : seuls les e-mails contenant des données de réservation lisibles par machine sont lus.',
+    'Nécessite le module {addon} et une connexion IA, configurés par un administrateur. D’ici là, seuls les e-mails contenant des données de réservation lisibles par machine sont lus.',
   'mailInbox.settings.autoAdd': 'Ajouter automatiquement',
   'mailInbox.settings.autoAddHint':
     'Une réservation dont TREK est sûr va directement dans son voyage, et vous pouvez l’annuler pendant 7 jours. Désactivé, chacune attend votre accord.',

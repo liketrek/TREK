@@ -79,7 +79,8 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.ai': 'Číst pomocí AI',
   'mailInbox.settings.aiHint':
     'Přečte jakýkoli e-mail s rezervací a najde k němu výlet. E-mail a data a cíle tvých výletů se odesílají poskytovateli AI.',
-  'mailInbox.settings.aiUnavailable': 'Zde není dostupné: čtou se jen e-maily se strojově čitelnými údaji o rezervaci.',
+  'mailInbox.settings.aiUnavailable':
+    'Vyžaduje doplněk {addon} a připojení k AI, které nastaví správce. Do té doby se čtou jen e-maily se strojově čitelnými údaji o rezervaci.',
   'mailInbox.settings.autoAdd': 'Přidávat automaticky',
   'mailInbox.settings.autoAddHint':
     'Rezervace, ve které si je TREK jistý, se rovnou přidá do výletu a 7 dní ji můžeš vrátit zpět. Při vypnutí každá čeká na tvé potvrzení.',

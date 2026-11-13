@@ -73,7 +73,11 @@ export default function MMailImportSection(): ReactElement | null {
         />
         <MSetRow
           label={t('mailInbox.settings.ai')}
-          sub={aiAvailable ? t('mailInbox.settings.aiHint') : t('mailInbox.settings.aiUnavailable')}
+          sub={
+            aiAvailable
+              ? t('mailInbox.settings.aiHint')
+              : t('mailInbox.settings.aiUnavailable', { addon: t('admin.addons.catalog.llm_parsing.name') })
+          }
           trailing={
             <MToggle
               checked={prefs.ai_enabled && aiAvailable}

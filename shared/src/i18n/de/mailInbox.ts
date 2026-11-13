@@ -80,7 +80,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Liest jede Buchungsmail und findet die Reise. Die Mail sowie Daten und Ziele deiner Reisen gehen an den AI-Anbieter.',
   'mailInbox.settings.aiUnavailable':
-    'Hier nicht verfügbar: Gelesen werden nur Mails mit maschinenlesbaren Buchungsdaten.',
+    'Braucht das Addon {addon} und eine AI-Verbindung, die ein Admin einrichtet. Bis dahin werden nur Mails mit maschinenlesbaren Buchungsdaten gelesen.',
   'mailInbox.settings.autoAdd': 'Selbst eintragen',
   'mailInbox.settings.autoAddHint':
     'Eine sichere Buchung landet direkt in der Reise und lässt sich 7 Tage lang rückgängig machen. Aus, wartet jede auf dein OK.',

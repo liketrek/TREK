@@ -78,7 +78,8 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.ai': 'קריאה בבינה מלאכותית',
   'mailInbox.settings.aiHint':
     'קוראת כל דוא״ל של הזמנה ומוצאת את הטיול שלו. הדוא״ל ותאריכי הטיולים והיעדים שלכם נשלחים לספק הבינה המלאכותית.',
-  'mailInbox.settings.aiUnavailable': 'לא זמין כאן: נקרא רק דוא״ל עם נתוני הזמנה שניתנים לקריאה אוטומטית.',
+  'mailInbox.settings.aiUnavailable':
+    'נדרשים התוסף {addon} וחיבור בינה מלאכותית שמנהל מגדיר. עד אז נקראים רק מיילים עם נתוני הזמנה קריאים למכונה.',
   'mailInbox.settings.autoAdd': 'הוספה אוטומטית',
   'mailInbox.settings.autoAddHint':
     'הזמנה ש-TREK בטוח בה נכנסת ישירות לטיול שלה, ואפשר לבטל אותה במשך 7 ימים. כשהאפשרות כבויה, כל הזמנה ממתינה לאישור שלכם.',

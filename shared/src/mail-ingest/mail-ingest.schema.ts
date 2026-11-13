@@ -102,7 +102,7 @@ export const mailIngestSettingsResponseSchema = z.object({
   available: z.boolean(),
   address: mailIngestAddressSchema.nullable(),
   prefs: mailIngestPrefsSchema,
-  /** Whether a mail could be read by AI for this person right now. */
+  /** Whether AI reading works on this instance for this person (AI Parsing addon and a connection), whatever their own switch says. */
   ai_available: z.boolean(),
   /** Open entries in the inbox. */
   pending: z.number().int().nonnegative(),

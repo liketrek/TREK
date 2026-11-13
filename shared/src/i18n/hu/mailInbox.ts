@@ -80,7 +80,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Bármilyen foglalási e-mailt elolvas, és megtalálja hozzá az utazást. Az e-mail, valamint az utazásaid dátumai és úti céljai az AI-szolgáltatóhoz kerülnek.',
   'mailInbox.settings.aiUnavailable':
-    'Itt nem érhető el: csak a géppel olvasható foglalási adatokat tartalmazó e-maileket olvassa el.',
+    'Szükséges hozzá a(z) {addon} bővítmény és egy MI-kapcsolat, amelyet egy rendszergazda állít be. Addig csak a géppel olvasható foglalási adatokat tartalmazó levelek olvashatók.',
   'mailInbox.settings.autoAdd': 'Hozzáadás magától',
   'mailInbox.settings.autoAddHint':
     'Az a foglalás, amelyben a TREK biztos, rögtön bekerül az utazásába, és 7 napig visszavonhatod. Kikapcsolva mindegyik a te jóváhagyásodra vár.',

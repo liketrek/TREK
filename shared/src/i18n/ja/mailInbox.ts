@@ -78,7 +78,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'あらゆる予約メールを読み取り、該当する旅行を見つけます。メールと、旅行の日付や目的地がAIプロバイダに送信されます。',
   'mailInbox.settings.aiUnavailable':
-    'ここでは利用できません。機械で読み取れる予約データを含むメールのみ読み取られます。',
+    '{addon} アドオンと、管理者が設定する AI 接続が必要です。それまでは、機械で読み取れる予約データを含むメールのみ読み取られます。',
   'mailInbox.settings.autoAdd': '自動で追加',
   'mailInbox.settings.autoAddHint':
     'TREKが確信できる予約はそのまま旅行に追加され、7日間は取り消せます。オフにすると、すべて確認を待ちます。',

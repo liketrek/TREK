@@ -79,7 +79,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     '모든 예약 메일을 읽고 해당하는 여행을 찾습니다. 메일과 여행의 날짜 및 목적지가 AI 제공업체로 전송됩니다.',
   'mailInbox.settings.aiUnavailable':
-    '여기서는 사용할 수 없습니다. 기계가 읽을 수 있는 예약 데이터가 담긴 메일만 읽습니다.',
+    '{addon} 애드온과 관리자가 설정하는 AI 연결이 필요합니다. 그때까지는 기계가 읽을 수 있는 예약 데이터가 담긴 메일만 읽습니다.',
   'mailInbox.settings.autoAdd': '자동으로 추가',
   'mailInbox.settings.autoAddHint':
     'TREK이 확신하는 예약은 바로 여행에 추가되며, 7일 동안 되돌릴 수 있습니다. 끄면 모든 예약이 내 확인을 기다립니다.',

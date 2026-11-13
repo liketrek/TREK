@@ -80,7 +80,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiHint':
     'Loeb mis tahes broneeringukirja ja leiab selle reisi. Kiri ning sinu reiside kuupäevad ja sihtkohad lähevad tehisintellekti pakkujale.',
   'mailInbox.settings.aiUnavailable':
-    'Siin pole saadaval: loetakse ainult kirju, mis sisaldavad masinloetavaid broneeringuandmeid.',
+    'Vajab lisandmoodulit {addon} ja tehisintellekti ühendust, mille seadistab administraator. Seni loetakse ainult kirju, mis sisaldavad masinloetavaid broneeringuandmeid.',
   'mailInbox.settings.autoAdd': 'Lisa ise',
   'mailInbox.settings.autoAddHint':
     'Broneering, milles TREK on kindel, läheb otse oma reisile ja seda saab 7 päeva jooksul tagasi võtta. Väljalülitatuna ootab iga broneering sinu kinnitust.',

@@ -78,7 +78,8 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.ai': 'Đọc bằng AI',
   'mailInbox.settings.aiHint':
     'Đọc mọi email đặt chỗ và tìm chuyến đi tương ứng. Email cùng ngày và điểm đến của các chuyến đi của bạn sẽ được gửi đến nhà cung cấp AI.',
-  'mailInbox.settings.aiUnavailable': 'Không khả dụng ở đây: chỉ đọc những email có dữ liệu đặt chỗ máy đọc được.',
+  'mailInbox.settings.aiUnavailable':
+    'Cần tiện ích bổ sung {addon} và kết nối AI do quản trị viên thiết lập. Trước đó, chỉ những email có dữ liệu đặt chỗ máy đọc được mới được đọc.',
   'mailInbox.settings.autoAdd': 'Tự động thêm',
   'mailInbox.settings.autoAddHint':
     'Đặt chỗ mà TREK chắc chắn sẽ vào thẳng chuyến đi, và bạn có thể hoàn tác trong 7 ngày. Khi tắt, mỗi đặt chỗ sẽ chờ bạn đồng ý.',

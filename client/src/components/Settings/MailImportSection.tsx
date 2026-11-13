@@ -109,7 +109,12 @@ export default function MailImportSection(): ReactElement | null {
         />
         <SettingRow
           label={t('mailInbox.settings.ai')}
-          hint={aiAvailable ? t('mailInbox.settings.aiHint') : t('mailInbox.settings.aiUnavailable')}
+          // Off without the AI Parsing addon and a connection: the hint names the addon, so the person knows what to ask for.
+          hint={
+            aiAvailable
+              ? t('mailInbox.settings.aiHint')
+              : t('mailInbox.settings.aiUnavailable', { addon: t('admin.addons.catalog.llm_parsing.name') })
+          }
           dimmed={!prefs.enabled}
           control={
             <ToggleSwitch
