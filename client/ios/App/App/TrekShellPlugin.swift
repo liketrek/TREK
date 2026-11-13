@@ -69,7 +69,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// builds a snapshot for nothing; "wallet" only where Wallet can take a pass (an
     /// iPhone: an iPad has no Wallet app), so the UI offers no button that does nothing.
     static var features: [String] {
-        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "clientCertificate", "filePreview"]
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "appLinks", "clientCertificate", "filePreview"]
         if canAddWalletPasses { names.append("wallet") }
         if TrekWatchLink.isAvailable { names.append("watch") }
         return names
@@ -94,8 +94,9 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         TrekKeyCommands.onPress = { [weak self] id in
             self?.notifyListeners("keyCommand", data: ["id": id])
         }
+        // Kept until a listener takes it: a tap while the page reloads reaches the new page.
         TrekQuickActions.onOpen = { [weak self] path in
-            DispatchQueue.main.async { self?.notifyListeners("quickAction", data: ["path": path]) }
+            DispatchQueue.main.async { self?.notifyListeners("quickAction", data: ["path": path], retainUntilConsumed: true) }
         }
     }
 
