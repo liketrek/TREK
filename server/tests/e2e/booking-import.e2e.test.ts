@@ -217,7 +217,9 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
     expect(res.body.warnings[0]).toMatch(
       /^Incomplete LodgingReservation in Bestätigung_1234567890\.PDF\[0\] \(no reservationFor\)/,
     );
-    expect(res.body.files).toEqual([{ fileName: 'Bestätigung_1234567890.PDF', aiAvailable: true, aiUsed: true }]);
+    expect(res.body.files).toEqual([
+      { fileName: 'Bestätigung_1234567890.PDF', aiAvailable: true, aiUsed: true, outcome: 'ok' },
+    ]);
   });
 
   it('once Gemini fills the venue: one hotel in EUR, attached to the uploaded file', async () => {

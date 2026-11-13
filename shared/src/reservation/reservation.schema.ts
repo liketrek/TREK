@@ -381,11 +381,36 @@ export type BookingImportPreviewItem = z.infer<typeof bookingImportPreviewItemSc
 export const bookingImportModeSchema = z.enum(['no-ai', 'fallback-on-empty', 'force-ai']);
 export type BookingImportMode = z.infer<typeof bookingImportModeSchema>;
 
+/**
+ * How the AI reading of one document ended:
+ *  - `ok`              it found at least one booking
+ *  - `empty`           it read the document and found none
+ *  - `no_text`         nothing to read: a scan, and no model that reads images
+ *  - `quota_exhausted` the TREK Cloud allowance for the period is used up (`QUOTA_SPENT`, `HARD_CAP`)
+ *  - `ai_disabled`     no AI reading is set up for this person
+ *  - `user_cap`        the person's own daily limit is reached
+ *  - `provider_error`  the provider refused or failed, or could not take this input
+ *  - `too_large`       the document is more than the model or the gate takes
+ */
+export const llmParseOutcomeSchema = z.enum([
+  'ok',
+  'empty',
+  'no_text',
+  'quota_exhausted',
+  'ai_disabled',
+  'user_cap',
+  'provider_error',
+  'too_large',
+]);
+export type LlmParseOutcome = z.infer<typeof llmParseOutcomeSchema>;
+
 /** Per-file AI report so the preview UI can offer "Try AI parsing" only where it applies. */
 export const bookingImportFileReportSchema = z.object({
   fileName: z.string(),
   aiAvailable: z.boolean(),
   aiUsed: z.boolean(),
+  /** How the AI reading ended; only where it ran. */
+  outcome: llmParseOutcomeSchema.optional(),
 });
 export type BookingImportFileReport = z.infer<typeof bookingImportFileReportSchema>;
 

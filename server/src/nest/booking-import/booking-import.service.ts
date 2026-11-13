@@ -32,6 +32,7 @@ import type {
   BookingImportFailureReason,
   BookingImportMode,
   BookingImportFileReport,
+  LlmParseOutcome,
   Reservation,
 } from '@trek/shared';
 
@@ -209,6 +210,7 @@ export class BookingImportService {
     for (const file of files) {
       let kiItems: KiReservation[] = [];
       let aiUsed = false;
+      let outcome: LlmParseOutcome | undefined;
 
       // Stage 1: kitinerary (skipped entirely when forcing AI, and for a photo,
       // which only a model can read).
@@ -229,10 +231,11 @@ export class BookingImportService {
         aiUsed = true;
         const llm = await this.llmParse.parse({ buffer: file.buffer, originalName: file.originalname }, userId);
         kiItems = llm.kiItems;
+        outcome = llm.outcome;
         allWarnings.push(...llm.warnings);
       }
 
-      fileReports.push({ fileName: file.originalname, aiAvailable, aiUsed });
+      fileReports.push({ fileName: file.originalname, aiAvailable, aiUsed, ...(outcome && { outcome }) });
 
       if (kiItems.length === 0) {
         allWarnings.push(`${file.originalname}: no reservations found`);

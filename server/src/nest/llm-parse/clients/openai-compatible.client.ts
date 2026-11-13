@@ -3,6 +3,7 @@ import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { parseLenientJson, toReservationList } from '../lenient-json';
 import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { isContextOverflow, LlmContextOverflowError } from './context-overflow';
+import { llmRequestError } from './llm-request-error';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
 
 /** The answer cap when LLM_MAX_OUTPUT_TOKENS is unset. */
@@ -187,7 +188,7 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
     }
 
     if (!res.ok) {
-      throw new Error(`LLM request failed (${res.status}): ${detail.slice(0, 300)}`);
+      throw llmRequestError('LLM request failed', res.status, detail);
     }
     // Which rung answered. A report could not tell whether the schema reached the
     // model at all or the ladder had fallen back to the prompt alone (#2477).

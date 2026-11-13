@@ -117,6 +117,16 @@ describe('BookingImportService.preview', () => {
     expect(res.files![0]).toEqual({ fileName: 'a.pdf', aiAvailable: true, aiUsed: true });
   });
 
+  it('reports how the AI reading of a file ended, where it ran', async () => {
+    const { svc } = make({
+      kit: true,
+      ai: true,
+      parse: async () => ({ kiItems: [], warnings: ['a.pdf: AI parsing failed — 429'], outcome: 'quota_exhausted' }),
+    });
+    const res = await svc.preview([file()], 'fallback-on-empty', 1);
+    expect(res.files).toEqual([{ fileName: 'a.pdf', aiAvailable: true, aiUsed: true, outcome: 'quota_exhausted' }]);
+  });
+
   it('fallback-on-empty: skips the LLM when kitinerary already found items', async () => {
     const { svc, llmParse } = make({ kit: true, ai: true, extract: async () => [HOTEL_KI] });
     const res = await svc.preview([file()], 'fallback-on-empty', 1);

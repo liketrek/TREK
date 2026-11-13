@@ -15,7 +15,7 @@ import { DomainError } from '../../../../src/nest/common/domain-error';
 import { McpToolGuardsService } from '../../../../src/nest/mcp-shared/mcp-tool-guards.service';
 import { TripAccessService } from '../../../../src/nest/trip-membership/trip-access.service';
 import { Test } from '@nestjs/testing';
-import type { BookingImportPreviewItem } from '@trek/shared';
+import type { BookingImportPreviewItem, LlmParseOutcome } from '@trek/shared';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -115,15 +115,21 @@ describe('AssistantBookingImportService', () => {
     expect(read.found).toEqual({ bookings: expect.any(Array) });
   });
 
-  it('ASTBKI-006: reads the reason from the warnings of the preview, for each way it comes back empty', () => {
-    const preview = (...warnings: string[]) => ({ items: [], warnings });
-    expect(emptyReason(preview('a.pdf: no reservations found'), false)).toBe('ai_not_configured');
-    const scan = preview('a.pdf: no readable text found (a scanned PDF needs a model that reads images)');
-    expect(emptyReason(scan, true)).toBe('no_text');
-    expect(emptyReason(preview('a.pdf: AI parsing failed — 401'), true)).toBe('ai_failed');
-    expect(emptyReason(preview('a.pdf: could not read file — bad xref'), true)).toBe('ai_failed');
-    expect(emptyReason(preview('a.jpg: the configured model does not read images'), true)).toBe('ai_failed');
-    expect(emptyReason(preview('a.pdf: no reservations found'), true)).toBe('nothing_found');
+  it('ASTBKI-006: reads the reason from the outcome of the AI reading, for each way it comes back empty', () => {
+    const preview = (outcome?: LlmParseOutcome) => ({
+      items: [],
+      warnings: ['a.pdf: some text the reason is no longer read from'],
+      files: [{ fileName: 'a.pdf', aiAvailable: true, aiUsed: outcome !== undefined, ...(outcome && { outcome }) }],
+    });
+    expect(emptyReason(preview('provider_error'), false)).toBe('ai_not_configured');
+    expect(emptyReason(preview('no_text'), true)).toBe('no_text');
+    for (const failed of ['provider_error', 'quota_exhausted', 'too_large', 'ai_disabled', 'user_cap'] as const) {
+      expect(emptyReason(preview(failed), true)).toBe('ai_failed');
+    }
+    expect(emptyReason(preview('empty'), true)).toBe('nothing_found');
+    // The extractor read it alone: no AI outcome, nothing found.
+    expect(emptyReason(preview(), true)).toBe('nothing_found');
+    expect(emptyReason({ items: [], warnings: [] }, true)).toBe('nothing_found');
   });
 
   it('ASTBKI-003: an applied booking is created through the import, on the trip, without a socket', async () => {

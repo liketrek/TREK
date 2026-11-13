@@ -1,8 +1,10 @@
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { LlmContextOverflowError } from '../../../../src/nest/llm-parse/clients/context-overflow';
+import { LlmRequestError } from '../../../../src/nest/llm-parse/clients/llm-request-error';
+import { ImageTooLargeError } from '../../../../src/nest/llm-parse/image-input';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
 import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
-import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
+import { failureOutcome, LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -697,5 +699,55 @@ describe('LlmParseService: a server that runs out of context, and a shared booki
     const [first, second] = res.kiItems as unknown as Record<string, unknown>[];
     expect(first).toHaveProperty('price', 200);
     expect(second).not.toHaveProperty('price');
+  });
+});
+
+describe('LlmParseService.parse outcome', () => {
+  it('LLM-OUTCOME-001: names a reading that found bookings, and one that found none', async () => {
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('ok');
+    extract.mockResolvedValueOnce([]);
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('empty');
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('ok');
+    routeExtraction.mockResolvedValueOnce({ kiItems: [], warnings: [] });
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('empty');
+  });
+
+  it('LLM-OUTCOME-002: no AI set up, a scan nothing can read, and a photo the model cannot see', async () => {
+    resolveLlmConfig.mockReturnValueOnce(null);
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('ai_disabled');
+    extractText.mockResolvedValueOnce('');
+    expect((await svc().parse(file('scan.pdf', '%PDF'), 1)).outcome).toBe('no_text');
+    expect((await svc().parse(file('ticket.jpg'), 1)).outcome).toBe('provider_error');
+  });
+
+  it('LLM-OUTCOME-003: a spent Cloud allowance, a refusal for size and any other failure', async () => {
+    extract.mockRejectedValueOnce(new LlmRequestError('Anthropic request failed (429): {}', 429, 'QUOTA_SPENT'));
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('quota_exhausted');
+    extract.mockRejectedValueOnce(new LlmRequestError('Anthropic request failed (413): {}', 413, undefined));
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('too_large');
+    extract.mockRejectedValueOnce(new Error('LLM request failed (401): bad key'));
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('provider_error');
+    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
+    routeExtraction.mockRejectedValueOnce(new Error('ollama down'));
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('provider_error');
+  });
+
+  it('LLM-OUTCOME-004: a photo too large to decode is too large, a file that cannot be read a provider error', async () => {
+    resolveLlmConfig.mockReturnValue(cfg({ vision: 'on' }));
+    const huge = await svc().parse({ buffer: pngClaiming(20000, 20000), originalName: 'big.png' }, 1);
+    expect(huge.outcome).toBe('too_large');
+    extractText.mockRejectedValueOnce(new Error('bad xref'));
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('provider_error');
+  });
+
+  it('LLM-OUTCOME-005: failureOutcome reads the status and the code, not the message', () => {
+    expect(failureOutcome(new LlmRequestError('x', 429, 'HARD_CAP'))).toBe('quota_exhausted');
+    // A provider's own rate limit is not the Cloud allowance.
+    expect(failureOutcome(new LlmRequestError('x', 429, 'rate_limit_error'))).toBe('provider_error');
+    expect(failureOutcome(new LlmRequestError('x', 429, undefined))).toBe('provider_error');
+    expect(failureOutcome(new LlmContextOverflowError('prompt is too long'))).toBe('too_large');
+    expect(failureOutcome(new ImageTooLargeError('too many pixels'))).toBe('too_large');
+    expect(failureOutcome('boom')).toBe('provider_error');
   });
 });

@@ -2,8 +2,9 @@ import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { collapseRepeatedBookingTotal } from './booking-total';
 import { LlmContextOverflowError } from './clients/context-overflow';
+import { LlmRequestError } from './clients/llm-request-error';
 import { toIsoCurrency } from './currency-code';
-import { capImage, imageMimeType, renderPdfPages } from './image-input';
+import { capImage, ImageTooLargeError, imageMimeType, renderPdfPages } from './image-input';
 import { createLlmClient } from './llm-client.factory';
 import type { ResolvedLlmConfig } from './llm-config';
 import { LlmConfigResolver } from './llm-config.resolver';
@@ -34,7 +35,7 @@ import {
   LOCAL_TEXT_WINDOW,
 } from './text-window';
 import { Injectable } from '@nestjs/common';
-import { kiReservationSchema, type ReceiptScanResult } from '@trek/shared';
+import { kiReservationSchema, type LlmParseOutcome, type ReceiptScanResult } from '@trek/shared';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -42,7 +43,30 @@ const MIME_BY_EXT: Record<string, string> = {
 
 export interface LlmParseResult {
   kiItems: KiReservation[];
+  /** For the person to read; `outcome` is what a caller decides on. */
   warnings: string[];
+  outcome: LlmParseOutcome;
+}
+
+/** The codes the TREK Cloud gate answers a spent allowance with, on a 429. */
+const QUOTA_CODES = new Set(['QUOTA_SPENT', 'HARD_CAP']);
+
+/**
+ * How a failed reading ended, from the error alone: a spent Cloud allowance,
+ * a document too large for the model or the gate, or a provider that failed.
+ */
+export function failureOutcome(err: unknown): LlmParseOutcome {
+  if (err instanceof LlmRequestError) {
+    if (err.status === 429 && err.code !== undefined && QUOTA_CODES.has(err.code)) return 'quota_exhausted';
+    if (err.status === 413) return 'too_large';
+  }
+  if (err instanceof LlmContextOverflowError || err instanceof ImageTooLargeError) return 'too_large';
+  return 'provider_error';
+}
+
+/** A reading that found bookings or did not. */
+function foundOutcome(items: readonly unknown[]): LlmParseOutcome {
+  return items.length > 0 ? 'ok' : 'empty';
 }
 
 /**
@@ -181,7 +205,7 @@ export class LlmParseService {
 
   async parse(file: { buffer: Buffer; originalName: string }, userId: number): Promise<LlmParseResult> {
     const config = await this.llmConfig.resolve(userId);
-    if (!config) return { kiItems: [], warnings: ['AI parsing is not configured'] };
+    if (!config) return { kiItems: [], warnings: ['AI parsing is not configured'], outcome: 'ai_disabled' };
 
     const warnings: string[] = [];
     const input: LlmExtractionInput = {
@@ -197,7 +221,11 @@ export class LlmParseService {
 
     const imageType = imageMimeType(file.originalName);
     if (imageType && !(await this.visionFor(config))) {
-      return { kiItems: [], warnings: [`${file.originalName}: the configured model does not read images`] };
+      return {
+        kiItems: [],
+        warnings: [`${file.originalName}: the configured model does not read images`],
+        outcome: 'provider_error',
+      };
     }
 
     // A photo goes as an image to every provider. Native PDF only for Anthropic
@@ -249,6 +277,7 @@ export class LlmParseService {
               warnings: [
                 `${file.originalName}: no readable text found (a scanned PDF needs a model that reads images)`,
               ],
+              outcome: 'no_text',
             };
           }
           input.text = undefined;
@@ -264,6 +293,7 @@ export class LlmParseService {
       return {
         kiItems: [],
         warnings: [`${file.originalName}: could not read file — ${err instanceof Error ? err.message : String(err)}`],
+        outcome: err instanceof ImageTooLargeError ? 'too_large' : 'provider_error',
       };
     }
 
@@ -284,7 +314,11 @@ export class LlmParseService {
               ctx,
             )
           : await routeExtraction(input.text ?? '', ctx);
-        return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
+        return {
+          kiItems: routed.kiItems,
+          warnings: [...warnings, ...routed.warnings],
+          outcome: foundOutcome(routed.kiItems),
+        };
       } catch (err) {
         console.error(
           `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
@@ -293,6 +327,7 @@ export class LlmParseService {
         return {
           kiItems: [],
           warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+          outcome: failureOutcome(err),
         };
       }
     }
@@ -316,6 +351,7 @@ export class LlmParseService {
       return {
         kiItems: [],
         warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+        outcome: failureOutcome(err),
       };
     }
 
@@ -339,7 +375,7 @@ export class LlmParseService {
 
     // The whole document, not the window the model read: a total sits at its end.
     const priced = collapseRepeatedBookingTotal(kiItems as unknown as Record<string, unknown>[], fullText);
-    return { kiItems: priced as unknown as KiReservation[], warnings };
+    return { kiItems: priced as unknown as KiReservation[], warnings, outcome: foundOutcome(priced) };
   }
 
   /**
