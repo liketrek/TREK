@@ -48,12 +48,12 @@ export const MailIngestMessagesSchema = defineEntity({
       properties: ['address_id', 'received_at'],
     },
     {
-      name: 'idx_mail_ingest_messages_due',
-      properties: ['status', 'next_attempt_at'],
-    },
-    {
       name: 'idx_mail_ingest_messages_user',
       properties: ['user_id', 'received_at'],
+    },
+    {
+      name: 'idx_mail_ingest_messages_due',
+      properties: ['status', 'next_attempt_at'],
     },
   ],
   uniques: [{ properties: ['dedupe_hash'] }],

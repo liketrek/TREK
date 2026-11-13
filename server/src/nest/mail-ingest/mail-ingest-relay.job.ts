@@ -102,7 +102,11 @@ export class MailIngestRelayJob implements OnApplicationBootstrap {
     }
   }
 
-  /** The pages from `after` on, as many as are left to the run; answers the mails taken in. */
+  /**
+   * The pages from `after` on, as many as are left to the run; answers the mails taken in.
+   *
+   * @txIndependent relay pages and acknowledgements are network round trips between the writes; each mail stands on its own.
+   */
   private async drain(relay: MailInboxRelay, after: string | null, pagesLeft: number): Promise<number> {
     const answer = await relay.list(PAGE, after);
     if (answer === null) return 0;

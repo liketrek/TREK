@@ -39,16 +39,16 @@ export const MailIngestCandidatesSchema = defineEntity({
   repository: () => MailIngestCandidatesRepository,
   indexes: [
     {
-      name: 'idx_mail_ingest_candidates_message',
-      properties: ['message_id', 'position'],
-    },
-    {
       name: 'idx_mail_ingest_candidates_resolved',
       properties: ['resolved_trip_id', 'content_hash'],
     },
     {
       name: 'idx_mail_ingest_candidates_user',
       properties: ['user_id', 'resolution'],
+    },
+    {
+      name: 'idx_mail_ingest_candidates_message',
+      properties: ['message_id', 'position'],
     },
   ],
   properties: {

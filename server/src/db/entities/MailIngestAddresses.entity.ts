@@ -24,10 +24,7 @@ export const MailIngestAddressesSchema = defineEntity({
   class: MailIngestAddresses,
   repository: () => MailIngestAddressesRepository,
   indexes: [
-    {
-      name: 'idx_mail_ingest_addresses_user',
-      properties: ['user_id', 'trip_id'],
-    },
+    { name: 'idx_mail_ingest_addresses_user', properties: ['user_id', 'trip_id'] },
   ],
   uniques: [{ properties: ['token_hash'] }],
   properties: {

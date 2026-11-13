@@ -29,6 +29,9 @@ import { useMailIngestAdmin, type MailIngestAdmin } from './useMailIngestAdmin';
 
 type T = TranslationFn;
 
+/** The card's buttons sit inside the form, one size below the page's: caption type, tighter padding. */
+const SMALL = 'px-3 py-1.5 text-caption';
+
 /** The address a mail service posts to, shown so the admin can paste it into the sender's settings. */
 function InboundUrl({ t }: { t: T }) {
   const toast = useToast();
@@ -39,7 +42,7 @@ function InboundUrl({ t }: { t: T }) {
         <span className={READONLY_BOX}>{url}</span>
         <button
           type="button"
-          className={SETTINGS_BUTTON}
+          className={`${SETTINGS_BUTTON} ${SMALL}`}
           aria-label={t('mailAdmin.copyUrl')}
           onClick={() => void copyText(url).then((ok) => (ok ? toast.success(t('common.copied')) : undefined))}
         >
@@ -249,7 +252,7 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={SETTINGS_BUTTON_PRIMARY}
+          className={`${SETTINGS_BUTTON_PRIMARY} ${SMALL}`}
           disabled={!admin.dirty || admin.problems.length > 0 || admin.saving}
           onClick={admin.save}
         >
@@ -258,7 +261,7 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
         </button>
         <button
           type="button"
-          className={SETTINGS_BUTTON}
+          className={`${SETTINGS_BUTTON} ${SMALL}`}
           disabled={admin.testing || admin.dirty || form.transport === 'off'}
           onClick={admin.runTest}
         >

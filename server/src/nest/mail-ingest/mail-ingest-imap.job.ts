@@ -87,6 +87,7 @@ export class MailIngestImapJob implements OnApplicationBootstrap {
     }
   }
 
+  /** @txIndependent IMAP round trips sit between the writes; each mail and the cursor are complete on their own. */
   private async poll(
     config: MailIngestImapConfig,
     now: Date,
@@ -144,6 +145,7 @@ export class MailIngestImapJob implements OnApplicationBootstrap {
     return outcomes.filter((outcome) => outcome === 'taken').length;
   }
 
+  /** @txIndependent each mail is fetched from the box and stored by itself, with network I/O between them. */
   private takeAll(session: ImapSession, due: readonly ImapMailRef[]): Promise<ImapOutcome[]> {
     return due.reduce<Promise<ImapOutcome[]>>(async (previous, mail) => {
       const done = await previous;

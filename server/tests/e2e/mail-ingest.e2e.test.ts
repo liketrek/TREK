@@ -7,7 +7,6 @@
  * read by the real pipeline, and is added, undone and refused through the
  * routes the client and the admin dialog use.
  */
-import { db } from '../../src/db/database';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { BookingImportService } from '../../src/nest/booking-import/booking-import.service';
 import { importExternalId } from '../../src/nest/booking-import/booking-origin';
@@ -22,6 +21,7 @@ import { signWebhookMail } from '../../src/nest/mail-ingest/mail-ingest-webhook.
 import { MailIngestModule } from '../../src/nest/mail-ingest/mail-ingest.module';
 import { MapsService } from '../../src/nest/maps/maps.service';
 import { NotificationsService } from '../../src/nest/notifications/notifications.service';
+import { createSnapshotTestDb } from '../helpers/db-mock';
 import { countRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
@@ -37,10 +37,8 @@ import type { Server } from 'http';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+// A snapshot database of its own, handed to the ORM, the unit of work and the factories.
+const db = createSnapshotTestDb();
 
 const USER = 1;
 const OTHER = 2;

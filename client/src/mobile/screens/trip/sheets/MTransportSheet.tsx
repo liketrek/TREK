@@ -233,10 +233,10 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
       <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {/* ── An import could not read every detail for sure ── */}
-        {!!res.needs_review && (
+        {!!liveRes?.needs_review && (
           <MReviewNotice
             onConfirm={canEdit ? () => {
-              planner.tripActions.updateReservation(planner.tripId, res.id, { needs_review: 0 })
+              planner.tripActions.updateReservation(planner.tripId, liveRes.id, { needs_review: 0 })
                 .then(() => planner.toast.success(t('reservations.reviewConfirmed')))
                 .catch(() => planner.toast.error(t('reservations.toast.updateError')))
             } : undefined}

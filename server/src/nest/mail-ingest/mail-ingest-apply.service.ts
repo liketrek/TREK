@@ -229,7 +229,11 @@ export class MailIngestApplyService {
     return removed;
   }
 
-  /** What an undo tells the trip once it committed, and the documents it moves to the trash. */
+  /**
+   * What an undo tells the trip once it committed, and the documents it moves to the trash.
+   *
+   * @txIndependent runs after the undo committed: each document goes to the trash on its own, and one that fails stays where it was.
+   */
   async announceRemoved(removed: RemovedBooking, fileIds: readonly number[]): Promise<void> {
     const { tripId } = removed;
     for (const accommodationId of removed.accommodationIds) {

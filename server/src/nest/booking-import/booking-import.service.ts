@@ -1,10 +1,8 @@
 import { ADDON_IDS } from '../../addons';
 import { Days } from '../../db/entities/Days.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
-import { Users } from '../../db/entities/Users.entity';
 import { DaysRepository } from '../../db/repositories/Days.repository';
 import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { AddonsService } from '../addons/addons.service';
 import { BudgetService } from '../budget/budget.service';
 import { DomainError } from '../common/domain-error';
@@ -12,7 +10,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { imageMimeType } from '../llm-parse/image-input';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
 import { MapsService } from '../maps/maps.service';
-import { PermissionsService } from '../permissions/permissions.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PlaceOriginsService } from '../places/place-origins.service';
 import { PlacesService } from '../places/places.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -44,7 +42,7 @@ export class BookingImportService {
     @InjectRepository(Days) private readonly daysRepo: DaysRepository,
     @InjectRepository(Reservations) private readonly reservationsRepo: ReservationsRepository,
     private readonly reservations: ReservationsService,
-    private readonly permissions: PermissionsService,
+    private readonly guards: McpToolGuardsService,
     private readonly budget: BudgetService,
     private readonly addons: AddonsService,
     private readonly realtime: RealtimeService,
@@ -52,7 +50,6 @@ export class BookingImportService {
     private readonly places: PlacesService,
     private readonly uow: UnitOfWork,
     private readonly origins: PlaceOriginsService,
-    @InjectRepository(Users) private readonly usersRepo: UsersRepository,
   ) {}
 
   /**
@@ -400,9 +397,8 @@ export class BookingImportService {
   private async requireBookingEdit(tripId: string, userId: number): Promise<void> {
     const trip = await this.reservations.verifyTripAccess(tripId, userId);
     if (!trip) throw new DomainError(404, 'Trip not found');
-    const role = (await this.usersRepo.getRole(userId)) ?? 'user';
-    const isMember = trip.user_id !== userId;
-    if (!(await this.permissions.checkPermission('reservation_edit', role, trip.user_id, userId, isMember))) {
+    // The role is the auth domain's; the shared guard asks for it rather than reading its table here.
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, userId))) {
       throw new DomainError(403, 'No permission');
     }
   }

@@ -15,9 +15,31 @@ vi.mock('../../../../src/db/database', () => ({
   isOwner: () => false,
   getPlaceWithTags: () => null,
 }));
-const permissionsStub = { checkPermission: vi.fn(async () => true) };
+const guardsStub = { hasTripPermission: vi.fn(async () => true) };
+
+/** The service under test with the named collaborators given, every other one left out. */
+function buildService(deps: Partial<Record<(typeof DEP_ORDER)[number], unknown>>): BookingImportService {
+  const args = DEP_ORDER.map((name) => deps[name]);
+  return new BookingImportService(...(args as ConstructorParameters<typeof BookingImportService>));
+}
+
+// The constructor's order, so a test names what it hands in instead of counting positions.
+const DEP_ORDER = [
+  'extractor',
+  'llmParse',
+  'daysRepo',
+  'reservationsRepo',
+  'reservations',
+  'guards',
+  'budget',
+  'addons',
+  'realtime',
+  'maps',
+  'places',
+  'uow',
+  'origins',
+] as const;
 // confirm() checks the trip and the person's right itself: the trip is reachable, the role a plain user's.
-const usersStub = { getRole: vi.fn(async () => 'user') };
 const tripAccess = vi.fn(async (): Promise<{ id: number; user_id: number } | undefined> => ({ id: 5, user_id: 1 }));
 // No earlier import holds any key unless a test says so.
 const findIdByExternal = vi.fn(async (): Promise<number | undefined> => undefined);
@@ -53,22 +75,16 @@ function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any })
   // services/placeService); only confirm() reaches it, so a bare create stub does.
   const places = { create: vi.fn() };
   return {
-    svc: new BookingImportService(
-      extractor as any,
-      llmParse as any,
-      undefined as never,
-      undefined as never,
-      reservations as never,
-      permissionsStub as never,
-      undefined as never,
-      undefined as never,
-      undefined as never,
-      maps as never,
-      places as never,
-      uowStub as never,
-      origins as never,
-      usersStub as never,
-    ),
+    svc: buildService({
+      extractor,
+      llmParse,
+      reservations,
+      guards: guardsStub,
+      maps,
+      places,
+      uow: uowStub,
+      origins,
+    }),
     extractor,
     llmParse,
     reservations,
@@ -272,22 +288,19 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
     };
     const places = { create: vi.fn((_tripId: string, _input: { website?: string }) => ({ id: 7 })) };
     // No dates on a restaurant, so the day repositories are never reached.
-    const svc = new BookingImportService(
-      {} as never,
-      {} as never,
-      undefined as never,
-      reservationsRepoStub as never,
-      reservations as never,
-      permissionsStub as never,
-      undefined as never,
-      { isAddonEnabled: () => false } as never,
-      { broadcast: vi.fn() } as never,
-      { geocodeQuery: vi.fn() } as never,
-      places as never,
-      uowStub as never,
-      origins as never,
-      usersStub as never,
-    );
+    const svc = buildService({
+      extractor: {},
+      llmParse: {},
+      reservationsRepo: reservationsRepoStub,
+      reservations,
+      guards: guardsStub,
+      addons: { isAddonEnabled: () => false },
+      realtime: { broadcast: vi.fn() },
+      maps: { geocodeQuery: vi.fn() },
+      places,
+      uow: uowStub,
+      origins,
+    });
     const item = (website?: string) => ({
       type: 'restaurant',
       title: 'Dîner',
@@ -369,22 +382,20 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
         order.push(event);
       }),
     };
-    const svc = new BookingImportService(
-      {} as never,
-      {} as never,
-      undefined as never,
-      reservationsRepoStub as never,
-      reservations as never,
-      permissionsStub as never,
-      budget as never,
-      { isAddonEnabled: async () => opts.budget ?? true } as never,
-      realtime as never,
-      { geocodeQuery: vi.fn() } as never,
-      places as never,
-      uow as never,
-      origins as never,
-      usersStub as never,
-    );
+    const svc = buildService({
+      extractor: {},
+      llmParse: {},
+      reservationsRepo: reservationsRepoStub,
+      reservations,
+      guards: guardsStub,
+      budget,
+      addons: { isAddonEnabled: async () => opts.budget ?? true },
+      realtime,
+      maps: { geocodeQuery: vi.fn() },
+      places,
+      uow,
+      origins,
+    });
     return { svc, reservations, budget, places, realtime, order, costEvents };
   }
   const priced = {
@@ -546,22 +557,19 @@ describe('BookingImportService.confirm reports every item it did not create', ()
       announceCost: vi.fn(),
       verifyTripAccess: tripAccess,
     };
-    const svc = new BookingImportService(
-      {} as never,
-      {} as never,
-      undefined as never,
-      reservationsRepoStub as never,
-      reservations as never,
-      permissionsStub as never,
-      undefined as never,
-      { isAddonEnabled: async () => false } as never,
-      { broadcast: vi.fn() } as never,
-      { geocodeQuery: vi.fn() } as never,
-      { create: vi.fn() } as never,
-      uowStub as never,
-      origins as never,
-      usersStub as never,
-    );
+    const svc = buildService({
+      extractor: {},
+      llmParse: {},
+      reservationsRepo: reservationsRepoStub,
+      reservations,
+      guards: guardsStub,
+      addons: { isAddonEnabled: async () => false },
+      realtime: { broadcast: vi.fn() },
+      maps: { geocodeQuery: vi.fn() },
+      places: { create: vi.fn() },
+      uow: uowStub,
+      origins,
+    });
     return { svc, reservations };
   }
   const NO_LOCAL_TIME = { timezone: null, local_time: null, local_date: null };
@@ -657,10 +665,10 @@ describe('BookingImportService.confirm reports every item it did not create', ()
     tripAccess.mockResolvedValueOnce(undefined);
     await expect(svc.confirm('5', 1, [flight as never], undefined)).rejects.toMatchObject({ status: 404 });
 
-    permissionsStub.checkPermission.mockResolvedValueOnce(false);
+    guardsStub.hasTripPermission.mockResolvedValueOnce(false);
     await expect(svc.confirm('5', 2, [flight as never], undefined)).rejects.toMatchObject({ status: 403 });
-    // A member (not the owner) is checked as one, with the role read for them.
-    expect(permissionsStub.checkPermission).toHaveBeenLastCalledWith('reservation_edit', 'user', 1, 2, true);
+    // The right is asked of the shared guard for that person and trip, which reads their role.
+    expect(guardsStub.hasTripPermission).toHaveBeenLastCalledWith('reservation_edit', '5', 2);
     expect(reservations.createWithCostInTx).not.toHaveBeenCalled();
   });
 });

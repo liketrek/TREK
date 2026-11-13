@@ -65,6 +65,8 @@ export class MailIngestIntakeService {
    * When one of its addresses refuses it for now, the whole mail answers that
    * refusal: the transport offers it again, and the copies stored already
    * come back as duplicates.
+   *
+   * @txIndependent one copy per recipient address, each stored by itself; a refused copy leaves the others.
    */
   async receive(
     raw: Buffer,
@@ -85,7 +87,11 @@ export class MailIngestIntakeService {
     return combined(results);
   }
 
-  /** An .eml the person uploaded, read as if they had forwarded it to their own address. */
+  /**
+   * An .eml the person uploaded, read as if they had forwarded it to their own address.
+   *
+   * @txIndependent the person's own address is provisioned idempotently, then the mail is stored by itself.
+   */
   async upload(raw: Buffer, userId: number): Promise<MailIntakeResult> {
     const refused = await this.precheck(raw);
     if (refused) return { status: 'refused', reason: refused };

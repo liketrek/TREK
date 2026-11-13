@@ -14,9 +14,8 @@ import AssistantLauncher from '../Assistant/AssistantLauncher'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 import { useCollapseOnOverflow } from '../../hooks/useCollapseOnOverflow'
-import { useMailIngestStore, watchMailInbox } from '../../store/mailIngestStore'
 import { openMailInbox } from '../MailIngest/mailInboxOpener'
-import { useMailInboxLink } from '../MailIngest/useMailInboxLink'
+import { useMailInboxShell } from '../MailIngest/useMailInboxShell'
 import MailInboxDialog from '../MailIngest/MailInboxDialog'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass, Bookmark }
@@ -48,16 +47,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
   // The booking mail import's inbox: its menu entry shows only where the import is on for this person.
-  const mailImport = useMailIngestStore(s => s.settings)
-  const mailPending = useMailIngestStore(s => s.pending)
-  const mailImportOn = !!mailImport?.available && mailImport.prefs.enabled
-  useMailInboxLink(mailImportOn)
-  const userId = user?.id
-  useEffect(() => {
-    if (!userId) return
-    void useMailIngestStore.getState().loadSettings()
-    return watchMailInbox()
-  }, [userId])
+  const { on: mailImportOn, pending: mailPending } = useMailInboxShell(user?.id)
   const darkMode = settings.dark_mode
   const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 

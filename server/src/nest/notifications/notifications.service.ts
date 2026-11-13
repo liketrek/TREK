@@ -730,11 +730,6 @@ export class NotificationsService {
   }
 
   /**
-   * Run a notification's action for the recipient's answer.
-   * @txIndependent the claim commits on its own before the action runs, so a second
-   * submit sees it; a failing action releases it again.
-   */
-  /**
    * Names what a tap on a yes/no notification does: a domain that sends one
    * registers its action here from its module's init, so this module never
    * imports the domain. The handler gets the payload the notification
@@ -748,6 +743,11 @@ export class NotificationsService {
     registerAction(action, handler);
   }
 
+  /**
+   * Run a notification's action for the recipient's answer.
+   * @txIndependent the claim commits on its own before the action runs, so a second
+   * submit sees it; a failing action releases it again.
+   */
   async respond(notificationId: number, userId: number, response: NotificationResponse): Promise<RespondResult> {
     const notification = await this.notificationsRepo.findByIdForRecipient(notificationId, userId);
 

@@ -528,10 +528,13 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * import is reported instead of failing on the unique index.
    */
   async findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
-    const row = await this.qb('r')
-      .select(['r.id'])
-      .where({ trip: trip_id, external_source, external_id })
-      .execute<{ id: number } | undefined>('get', false);
+    const row = await this.kysely<DB>()
+      .selectFrom('reservations')
+      .select(['id'])
+      .where('trip_id', '=', trip_id)
+      .where('external_source', '=', external_source)
+      .where('external_id', '=', external_id)
+      .executeTakeFirst();
     return row?.id;
   }
 
