@@ -175,8 +175,11 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'Danh sách TREK',
   'collections.file.formatTrekHint': 'Cho một TREK khác, kèm nhãn và trạng thái',
   'collections.file.formatGpxHint': 'Điểm tham chiếu cho OsmAnd, Organic Maps, Garmin và các ứng dụng bản đồ khác',
+  'collections.file.formatKmlHint': 'Ghim cho Google My Maps để xem các địa điểm trong Google Maps',
   'collections.file.gpxOmitted': '{count} địa điểm không có tọa độ nên không được đưa vào tệp GPX',
   'collections.file.gpxNothing': 'Không địa điểm nào có tọa độ, nên không có gì để đưa vào tệp GPX.',
+  'collections.file.kmlOmitted': '{count} địa điểm không có tọa độ nên không được đưa vào tệp KML',
+  'collections.file.kmlNothing': 'Không địa điểm nào có tọa độ, nên không có gì để đưa vào tệp KML.',
   'collections.file.reading': 'Đang đọc tệp…',
   'collections.file.gpxSkipped': '{count} điểm tham chiếu không có tọa độ dùng được sẽ bị bỏ qua.',
   'collections.file.gpxTrack':

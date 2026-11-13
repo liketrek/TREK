@@ -8,7 +8,7 @@ TREK turns a trip into a printable **Trip Plan PDF**: a cover, a map of the whol
 
 ### How to generate
 
-1. In the trip planner, click **Export** at the top of the days column. The Export dialog opens with three groups: **Document**, **Calendar** and **Maps & GPS**.
+1. In the trip planner, click **Export** at the top of the days column. The Export dialog opens with four groups: **Document**, **Calendar**, **Maps & GPS** and **Google Maps**.
 2. Under **Document**, click **PDF** (*Export day plan as PDF*). The row shows a spinner while the document is put together, then the dialog closes and a preview opens.
 3. In the preview, click **Save as PDF**. Your browser's print dialog opens; pick *Save as PDF* as the destination, or send it to a printer.
 
@@ -20,7 +20,7 @@ TREK turns a trip into a printable **Trip Plan PDF**: a cover, a map of the whol
 
 When some activities or bookings of the trip name who takes part (participants on a day plan entry, travelers on a booking), the **Document** group also offers **My plan as PDF** (*Only the activities and bookings you take part in*). It builds the same document with only your part of the plan: an entry or booking that names its people stays only when it names you, and one that names nobody belongs to everyone and stays. The row is offered on the phone's export sheet as well.
 
-The other groups of the same dialog are covered elsewhere: **Calendar** in [Calendar-Feeds](Calendar-Feeds), and the GPX downloads under **Maps & GPS** (*Whole trip*, *Places only*, *Days as routes*) in [Map-Features](Map-Features#exporting-a-trip-as-gpx).
+The other groups of the same dialog are covered elsewhere: **Calendar** in [Calendar-Feeds](Calendar-Feeds), the GPX downloads under **Maps & GPS** (*Whole trip*, *Places only*, *Days as routes*) in [Map-Features](Map-Features#exporting-a-trip-as-gpx), and the KML for Google My Maps under **Google Maps** in [Map-Features](Map-Features#taking-the-places-to-google-maps).
 
 ### Cover page
 

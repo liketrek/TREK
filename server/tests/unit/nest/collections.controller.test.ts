@@ -407,6 +407,15 @@ describe('CollectionsController', () => {
       expect(svc.exportCollectionGpx).toHaveBeenCalledWith(1, 3);
     });
 
+    it('exports the list as KML for Google My Maps the same way (#1866)', async () => {
+      const exported = { name: 'Lisbon', kml: '<kml/>', pins: 0, omitted: 0 };
+      const svc = makeService({ exportCollectionKml: vi.fn().mockResolvedValue(exported) });
+      const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
+
+      expect(await c.exportCollectionKml(user, '3')).toBe(exported);
+      expect(svc.exportCollectionKml).toHaveBeenCalledWith(1, 3);
+    });
+
     it('hands back the file a GPX was read into', () => {
       const read = { file: { name: 'Lisbon' }, skipped: 1, track_points: 4 };
       const svc = makeService({ readCollectionGpx: vi.fn().mockReturnValue(read) });

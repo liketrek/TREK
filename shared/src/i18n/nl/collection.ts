@@ -198,10 +198,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'TREK-lijst',
   'collections.file.formatTrekHint': 'Voor een andere TREK, met labels en status',
   'collections.file.formatGpxHint': 'Waypoints voor OsmAnd, Organic Maps, Garmin en andere kaart-apps',
+  'collections.file.formatKmlHint': 'Spelden voor Google My Maps, om de plekken in Google Maps te zien',
   'collections.file.gpxOmitted': '{count} plekken zonder coördinaten zijn niet in het GPX-bestand opgenomen',
   'collections.file.gpxOmitted.one': '{count} plek zonder coördinaten is niet in het GPX-bestand opgenomen',
   'collections.file.gpxNothing':
     'Geen van deze plekken heeft coördinaten, dus er is niets om in een GPX-bestand te zetten.',
+  'collections.file.kmlOmitted': '{count} plekken zonder coördinaten zijn niet in het KML-bestand opgenomen',
+  'collections.file.kmlOmitted.one': '{count} plek zonder coördinaten is niet in het KML-bestand opgenomen',
+  'collections.file.kmlNothing':
+    'Geen van deze plekken heeft coördinaten, dus er is niets om in een KML-bestand te zetten.',
   'collections.file.reading': 'Bestand wordt gelezen…',
   'collections.file.gpxSkipped': '{count} waypoints zonder bruikbare coördinaten worden overgeslagen.',
   'collections.file.gpxSkipped.one': '{count} waypoint zonder bruikbare coördinaten wordt overgeslagen.',

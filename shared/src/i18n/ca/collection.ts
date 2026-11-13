@@ -189,10 +189,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'Llista del TREK',
   'collections.file.formatTrekHint': 'Per a un altre TREK, amb etiquetes i estat',
   'collections.file.formatGpxHint': 'Punts de pas per a OsmAnd, Organic Maps, Garmin i altres aplicacions de mapes',
+  'collections.file.formatKmlHint': 'Marcadors per a Google My Maps, per veure els llocs a Google Maps',
   'collections.file.gpxOmitted': '{count} llocs no tenen coordenades i han quedat fora del fitxer GPX',
   'collections.file.gpxOmitted.one': '{count} lloc no té coordenades i ha quedat fora del fitxer GPX',
   'collections.file.gpxNothing':
     'Cap d’aquests llocs té coordenades, així que no hi ha res per posar en un fitxer GPX.',
+  'collections.file.kmlOmitted': '{count} llocs no tenen coordenades i han quedat fora del fitxer KML',
+  'collections.file.kmlOmitted.one': '{count} lloc no té coordenades i ha quedat fora del fitxer KML',
+  'collections.file.kmlNothing':
+    'Cap d’aquests llocs té coordenades, així que no hi ha res per posar en un fitxer KML.',
   'collections.file.reading': 'S’està llegint el fitxer…',
   'collections.file.gpxSkipped': 'Es deixen fora {count} punts de pas sense coordenades vàlides.',
   'collections.file.gpxSkipped.one': 'Es deixa fora {count} punt de pas sense coordenades vàlides.',

@@ -173,8 +173,11 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'TREK 목록',
   'collections.file.formatTrekHint': '다른 TREK용, 라벨과 상태 포함',
   'collections.file.formatGpxHint': 'OsmAnd, Organic Maps, Garmin 등 지도 앱용 웨이포인트',
+  'collections.file.formatKmlHint': 'Google Maps에서 장소를 보기 위한 Google My Maps용 핀',
   'collections.file.gpxOmitted': '좌표가 없는 장소 {count}개는 GPX 파일에서 빠졌습니다',
   'collections.file.gpxNothing': '좌표가 있는 장소가 없어 GPX 파일에 넣을 것이 없습니다.',
+  'collections.file.kmlOmitted': '좌표가 없는 장소 {count}개는 KML 파일에서 빠졌습니다',
+  'collections.file.kmlNothing': '좌표가 있는 장소가 없어 KML 파일에 넣을 것이 없습니다.',
   'collections.file.reading': '파일을 읽는 중…',
   'collections.file.gpxSkipped': '쓸 수 있는 좌표가 없는 웨이포인트 {count}개는 제외됩니다.',
   'collections.file.gpxTrack':

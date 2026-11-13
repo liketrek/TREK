@@ -10,7 +10,7 @@ import { Module } from '@nestjs/common';
 
 /**
  * Place import (leaf module): reads places out of GPX, KML/KMZ, Google lists,
- * Google directions links and Naver lists, and writes GPX. No controller, no
+ * Google directions links and Naver lists, and writes GPX and KML. No controller, no
  * table of its own: PlacesModule, CollectionsModule and ToursModule import it
  * and persist what it reads. It imports no other
  * domain: the stops of a directions link that carry only a name are geocoded

@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { CalendarDays, CalendarPlus, ChevronRight, Download, FileText, Loader2, MapPin, Route as RouteIcon, UserRound } from 'lucide-react'
+import { CalendarDays, CalendarPlus, ChevronRight, Download, FileText, Loader2, MapPin, MapPinned, Route as RouteIcon, UserRound } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { DialogHeader, DialogSection, DialogShell, DialogTile, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { IcsSubscribeModal } from './IcsSubscribeModal'
@@ -49,8 +49,9 @@ interface TripExportModalProps {
 
 /**
  * Every way a trip leaves TREK, in one dialog: the day plan as a PDF, the
- * bookings as a calendar (a one-off .ics or a live subscription) and the map
- * data as GPX in the three scopes a device actually wants.
+ * bookings as a calendar (a one-off .ics or a live subscription), the map
+ * data as GPX in the three scopes a device actually wants, and the places as
+ * KML for Google My Maps.
  *
  * It replaces three separate toolbar buttons, two of which opened hover menus of
  * their own. On a narrow sidebar that row simply ran out of width and the
@@ -64,6 +65,7 @@ export function TripExportModal({
   const titleId = useId()
   const {
     fileBase, offerMine, isRunning, anyRunning, exportPdf, pdfRouting, pdfRoutingLabel, skipPdfRouting, downloadIcs, downloadGpx,
+    downloadKml,
   } = useTripExport({
     tripId,
     open: isOpen,
@@ -166,6 +168,19 @@ export function TripExportModal({
               />
             ))}
           </div>
+        </DialogSection>
+
+        {/* Google Maps keeps no list from outside, but My Maps takes the places
+            as a KML layer (#1866); the format pill as for GPX above. */}
+        <DialogSection label={<span className="inline-flex items-center gap-1.5">{t('dayplan.exportGoogleMaps')}<SoftPill caps>KML</SoftPill></span>}>
+          <ExportRow
+            icon={MapPinned}
+            title={t('dayplan.kmlPlaces')}
+            sub={t('dayplan.kmlHint')}
+            busy={isRunning('kml')}
+            disabled={anyRunning}
+            onClick={() => void downloadKml()}
+          />
         </DialogSection>
       </DialogShell>
 

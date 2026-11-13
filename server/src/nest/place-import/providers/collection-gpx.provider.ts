@@ -1,5 +1,6 @@
 import { coord, gpxTextParser, writeGpx } from '../gpx.codec';
 import { CollectionGpxError } from '../place-import.types';
+import { textOf, xmlText } from '../xml-text';
 import { Injectable } from '@nestjs/common';
 import {
   COLLECTION_FILE_FORMAT,
@@ -58,21 +59,6 @@ const SCALAR_EXTENSIONS = (Object.keys(COLLECTION_GPX_PLACE_FIELDS) as (keyof Co
 // ---------------------------------------------------------------------------
 // Writing
 // ---------------------------------------------------------------------------
-
-/**
- * Text XML 1.0 can hold. The builder escapes markup but passes through the
- * control characters the spec forbids outright, and one of those in a place
- * name is enough for a strict reader to refuse the whole file.
- */
-function xmlText(value: string): string {
-  return value.replace(/[\p{Cc}\p{Cs}\uFFFE\uFFFF]/gu, (ch) => (ch === '\t' || ch === '\n' || ch === '\r' ? ch : ''));
-}
-
-/** A value as element text, or nothing, since an empty element is noise to every reader. */
-function textOf(value: string | number | null | undefined): string | undefined {
-  if (value === null || value === undefined) return undefined;
-  return xmlText(String(value)).trim() || undefined;
-}
 
 /**
  * `<desc>` is what other apps show under the name, so it gets the place's

@@ -1353,6 +1353,42 @@ describe('Tool: export_trip_gpx', () => {
 });
 
 // ---------------------------------------------------------------------------
+// export_trip_kml (#1866): the places as pins for Google My Maps
+// ---------------------------------------------------------------------------
+
+describe('Tool: export_trip_kml', () => {
+  it('writes the places as pins and names the file after the trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Weekend' });
+    createPlace(testDb, trip.id, { name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945 });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'export_trip_kml', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as { kml: string; filename: string };
+      expect(data.filename).toBe('Paris-Weekend.kml');
+      expect(data.kml).toContain('<name>Eiffel Tower</name>');
+      expect(data.kml).toContain('<coordinates>2.2945,48.8584</coordinates>');
+    });
+  });
+
+  it('errors when no place has coordinates, and for a non-member', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const empty = createTrip(testDb, user.id, { title: 'Empty' });
+    const theirs = createTrip(testDb, other.id);
+    createPlace(testDb, theirs.id, { name: 'Theirs', lat: 1, lng: 1 });
+
+    await withHarness(user.id, async (h) => {
+      const nothing = await h.client.callTool({ name: 'export_trip_kml', arguments: { tripId: empty.id } });
+      expect(nothing.isError).toBe(true);
+      expect((nothing.content as { text: string }[])[0].text).toBe('Nothing to export.');
+      const denied = await h.client.callTool({ name: 'export_trip_kml', arguments: { tripId: theirs.id } });
+      expect(denied.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // create_and_assign_place failure path
 // ---------------------------------------------------------------------------
 

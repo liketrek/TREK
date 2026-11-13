@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Download, FileJson, Loader2, Route, type LucideIcon } from 'lucide-react'
+import { Download, FileJson, Loader2, MapPinned, Route, type LucideIcon } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
-import { COLLECTION_FILE_EXTENSION, COLLECTION_GPX_EXTENSION, type CollectionExportFormat } from './collectionFile'
+import {
+  COLLECTION_FILE_EXTENSION, COLLECTION_GPX_EXTENSION, COLLECTION_KML_EXTENSION, type CollectionExportFormat,
+} from './collectionFile'
 
 interface CollectionExportMenuProps {
   onExport: (format: CollectionExportFormat) => void
@@ -23,11 +25,12 @@ interface FormatOption {
 const MENU_WIDTH = 300
 
 /**
- * Export in the list hero: a menu of the two formats a list can leave in (#2301).
+ * Export in the list hero: a menu of the formats a list can leave in (#2301).
  *
  * The TREK file carries everything and is for another TREK; GPX carries the
- * places as waypoints and is for every other map app. Choosing is the whole
- * interaction, so it is a menu rather than a dialog.
+ * places as waypoints and is for every other map app; KML carries them as pins
+ * for Google My Maps (#1866). Choosing is the whole interaction, so it is a
+ * menu rather than a dialog.
  *
  * Portalled, because the hero clips its overflow, and placed against the
  * trigger's right edge, where the button sits. A menu in the WAI-ARIA sense:
@@ -39,7 +42,7 @@ export default function CollectionExportMenu({ onExport, exporting, t }: Collect
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
-  const anchored = useAnchoredPosition(triggerRef, open, { estimatedHeight: 150, offset: 6 })
+  const anchored = useAnchoredPosition(triggerRef, open, { estimatedHeight: 220, offset: 6 })
   // Focusable only once positioned: until then the menu is hidden, and a hidden
   // element refuses focus.
   const placed = open && anchored !== null
@@ -52,6 +55,10 @@ export default function CollectionExportMenu({ onExport, exporting, t }: Collect
     {
       format: 'gpx', icon: Route, label: 'GPX',
       extension: COLLECTION_GPX_EXTENSION, hint: t('collections.file.formatGpxHint'),
+    },
+    {
+      format: 'kml', icon: MapPinned, label: 'KML',
+      extension: COLLECTION_KML_EXTENSION, hint: t('collections.file.formatKmlHint'),
     },
   ]
 

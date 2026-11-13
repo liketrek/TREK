@@ -198,10 +198,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'Lista do TREK',
   'collections.file.formatTrekHint': 'Para outro TREK, com etiquetas e status',
   'collections.file.formatGpxHint': 'Pontos de referência para OsmAnd, Organic Maps, Garmin e outros apps de mapa',
+  'collections.file.formatKmlHint': 'Marcadores para o Google My Maps, para ver os lugares no Google Maps',
   'collections.file.gpxOmitted': '{count} lugares não têm coordenadas e ficaram fora do arquivo GPX',
   'collections.file.gpxOmitted.one': '{count} lugar não tem coordenadas e ficou fora do arquivo GPX',
   'collections.file.gpxNothing':
     'Nenhum desses lugares tem coordenadas, então não há nada para colocar em um arquivo GPX.',
+  'collections.file.kmlOmitted': '{count} lugares não têm coordenadas e ficaram fora do arquivo KML',
+  'collections.file.kmlOmitted.one': '{count} lugar não tem coordenadas e ficou fora do arquivo KML',
+  'collections.file.kmlNothing':
+    'Nenhum desses lugares tem coordenadas, então não há nada para colocar em um arquivo KML.',
   'collections.file.reading': 'Lendo o arquivo…',
   'collections.file.gpxSkipped': '{count} pontos de referência sem coordenadas utilizáveis ficam de fora.',
   'collections.file.gpxSkipped.one': '{count} ponto de referência sem coordenadas utilizáveis fica de fora.',

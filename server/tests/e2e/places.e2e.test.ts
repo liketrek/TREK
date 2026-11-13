@@ -555,6 +555,45 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     });
   });
 
+  // ── KML export (#1866): the places as pins for Google My Maps ─────────────
+  describe('GET export.kml (#1866)', () => {
+    it('serves every place with coordinates as a pin, named after the trip', async () => {
+      await upsertRow(orm, Trips, { id: 5, title: 'Alpine week', user: 1 });
+      await insertRow(orm, Places, { id: 1, trip: 5, name: 'Trailhead', lat: 47.1, lng: 11.2, address: 'Hut road 1' });
+      await insertRow(orm, Places, { id: 2, trip: 5, name: 'Somewhere', lat: null, lng: null });
+
+      const res = await request(server).get('/api/trips/5/places/export.kml').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/vnd.google-earth.kml+xml');
+      expect(res.headers['content-disposition']).toBe('attachment; filename="Alpine-week.kml"');
+      expect(res.text).toContain('<name>Trailhead</name>');
+      expect(res.text).toContain('<address>Hut road 1</address>');
+      expect(res.text).toContain('<coordinates>11.2,47.1</coordinates>');
+      expect(res.text).not.toContain('Somewhere');
+    });
+
+    it('404s a trip without a place to pin, and one the caller cannot reach', async () => {
+      await upsertRow(orm, Trips, { id: 5, title: 'Nothing here', user: 1 });
+      const empty = await request(server).get('/api/trips/5/places/export.kml').set('Cookie', sessionCookie(1));
+      expect(empty.status).toBe(404);
+      expect(empty.body).toEqual({ error: 'Nothing to export' });
+
+      await deleteRows(orm, Trips, { id: 5 });
+      const gone = await request(server).get('/api/trips/5/places/export.kml').set('Cookie', sessionCookie(1));
+      expect(gone.status).toBe(404);
+      expect(gone.body).toEqual({ error: 'Trip not found' });
+      expect((await request(server).get('/api/trips/5/places/export.kml')).status).toBe(401);
+    });
+
+    it('is a read: no place_edit permission required', async () => {
+      await upsertRow(orm, Trips, { id: 5, title: 'Alpine week', user: 1 });
+      await insertRow(orm, Places, { id: 1, trip: 5, name: 'Trailhead', lat: 47.1, lng: 11.2 });
+      checkPermission.mockReturnValue(false);
+      const res = await request(server).get('/api/trips/5/places/export.kml').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+    });
+  });
+
   // The reason places keeps its inline checks on the write routes: a guard runs
   // before the pipe, so guarding create would answer 404 where the suite above
   // pins a 400. This is the non-regression pin for that decision.

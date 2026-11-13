@@ -1,5 +1,5 @@
-import type { CollectionPlacePosition } from '../../db/repositories/Collections.repository';
-import type { CollectionLink, CollectionPlaceUpdateRequest } from '@trek/shared';
+import type { CollectionPlacePosition, CollectionPlaceRow } from '../../db/repositories/Collections.repository';
+import type { CollectionFilePlace, CollectionLink, CollectionPlaceUpdateRequest, CollectionStatus } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -22,6 +22,36 @@ export function parseLinks(raw: unknown): CollectionLink[] | undefined {
 
 export function serializeLinks(links: CollectionLink[] | undefined): string | null {
   return links && links.length ? JSON.stringify(links) : null;
+}
+
+/**
+ * A saved place as the list file carries it (#2198), and with it every export
+ * written from that file (GPX, KML): no ids, the category by name, the labels
+ * by the names given.
+ */
+export function filePlaceOf(row: CollectionPlaceRow, labels: string[]): CollectionFilePlace {
+  return {
+    name: row.name,
+    description: row.description ?? null,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
+    address: row.address ?? null,
+    notes: row.notes ?? null,
+    price: row.price ?? null,
+    currency: row.currency ?? null,
+    website: row.website ?? null,
+    phone: row.phone ?? null,
+    // Only an absolute https URL survives: a /uploads path resolves on this
+    // server, not the reader's. See the note in the file contract.
+    image_url: typeof row.image_url === 'string' && /^https:\/\//i.test(row.image_url) ? row.image_url : null,
+    google_place_id: row.google_place_id ?? null,
+    google_ftid: row.google_ftid ?? null,
+    osm_id: row.osm_id ?? null,
+    status: row.status as CollectionStatus,
+    links: parseLinks((row as { links?: unknown }).links),
+    category: row.category_name ?? null,
+    labels,
+  };
 }
 
 /** The provider ids, contact and price columns of a saved place, as an update writes them. */

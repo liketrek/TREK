@@ -41,7 +41,7 @@ Swipe sideways to go from day to day, or tap a day chip. A button switches betwe
 
 **The More sheet** of a trip starts with **Ask TREK** when the assistant is available, showing how many things in your plan are worth a check. Below come tiles for the sections that did not get a dock seat (such as Files, Collab and plugin tabs), then **Trip settings** ([Trip-Settings](Trip-Settings)), **Export** and, if you may edit the trip, **Edit Trip**.
 
-**Export** on a phone offers the trip as a **PDF**, **My plan as PDF**, the GPX tracks of the **Whole trip**, **Download .ics**, and **Subscribe to calendar**, which keeps your calendar app up to date. See [PDF-Export](PDF-Export) and [Calendar-Feeds](Calendar-Feeds).
+**Export** on a phone offers the trip as a **PDF**, **My plan as PDF**, the GPX tracks of the **Whole trip**, the **Places for Google My Maps** as KML, **Download .ics**, and **Subscribe to calendar**, which keeps your calendar app up to date. See [PDF-Export](PDF-Export) and [Calendar-Feeds](Calendar-Feeds).
 
 ## The other screens
 

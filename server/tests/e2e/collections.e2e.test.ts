@@ -708,6 +708,37 @@ describe('Collections e2e (real auth guard + real service + temp SQLite)', () =>
     expect((await request(server).post('/api/addons/collections/gpx/read').send({ gpx: '<gpx/>' })).status).toBe(401);
   });
 
+  // ── KML for Google My Maps (#1866) ───────────────────────────────────────
+  it('COLLECTIONS-E2E-092: a list goes out as KML pins, the places without coordinates counted', async () => {
+    const as = (userId: number) => ({ Cookie: sessionCookie(userId) });
+    const col = (await request(server).post('/api/addons/collections').set(as(ownerId)).send({ name: 'Rome' })).body;
+    await request(server).post('/api/addons/collections/places').set(as(ownerId)).send({
+      collection_id: col.id,
+      name: 'Pinned',
+      lat: 41.9,
+      lng: 12.48,
+      address: 'Via Nuova 1',
+      status: 'revisit',
+    });
+    await request(server)
+      .post('/api/addons/collections/places')
+      .set(as(ownerId))
+      .send({ collection_id: col.id, name: 'Vague' });
+
+    const exported = await request(server).get(`/api/addons/collections/${col.id}/export/kml`).set(as(ownerId));
+    expect(exported.status).toBe(200);
+    expect(exported.body).toMatchObject({ name: 'Rome', pins: 1, omitted: 1 });
+    expect(exported.body.kml).toContain('<name>Pinned</name>');
+    expect(exported.body.kml).toContain('<address>Via Nuova 1</address>');
+    expect(exported.body.kml).toContain('<coordinates>12.48,41.9</coordinates>');
+    expect(exported.body.kml).not.toContain('Vague');
+
+    // The same read as the list file: a list the caller cannot see has none.
+    expect((await request(server).get(`/api/addons/collections/${col.id}/export/kml`).set(as(otherId))).status).toBe(
+      404,
+    );
+  });
+
   it('COLLECTIONS-E2E-082: a list the caller cannot see has no GPX either', async () => {
     const col = (
       await request(server).post('/api/addons/collections').set('Cookie', sessionCookie(ownerId)).send({ name: 'Mine' })

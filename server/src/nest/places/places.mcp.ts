@@ -25,6 +25,7 @@ import { JourneyDomainService } from '../journey/journey-domain.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { UnitOfWork } from '../database/unit-of-work';
 import { MapsService } from '../maps/maps.service';
+import { PlacesKmlService } from './places-kml.service';
 import { PlacesService } from './places.service';
 import { PlaceOriginsService } from './place-origins.service';
 import type { OriginWriter } from './place-origins.helpers';
@@ -72,6 +73,7 @@ export class PlacesMcp {
     private readonly guards: McpToolGuardsService,
     private readonly uow: UnitOfWork,
     private readonly origins: PlaceOriginsService,
+    private readonly kml: PlacesKmlService,
   ) {}
 
   @Tool({
@@ -464,6 +466,21 @@ export class PlacesMcp {
     const result = await this.places.exportGpx(String(tripId), { waypoints, tracks, dayRoutes });
     if (!result) return errorResult('Nothing to export.');
     return ok({ gpx: result.gpx, filename: result.filename });
+  }
+
+  @Tool({
+    name: 'export_trip_kml',
+    description: 'Export the places of a trip as KML text for Google My Maps: every place with coordinates as a pin with its name, address, description and category. Google Maps cannot take a list of places from outside, but a My Maps map imports this file as a layer. Places without coordinates are left out. Prefer export_trip_gpx for GPS devices and offline map apps.',
+    inputSchema: { tripId: idSchema },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    access: { group: 'places', mode: 'read' },
+  })
+  async exportTripKml({ tripId }: { tripId: number }, ctx: McpContext) {
+    // A read, like the REST route and export_trip_gpx: seeing the trip is enough.
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    const result = await this.kml.exportKml(String(tripId));
+    if (!result) return errorResult('Nothing to export.');
+    return ok({ kml: result.kml, filename: result.filename });
   }
 
   @Tool({
