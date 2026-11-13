@@ -365,6 +365,18 @@ When left at the default, using the transit feature makes the TREK **server** se
 
 ---
 
+## Live Flight Status
+
+Booked flights are followed live through the keyless open ADS-B networks adsb.lol and, on a self-hosted install, adsb.fi. See [Transport: Flights, Trains, Cars](Transport-Flights-Trains-Cars#live-flight-status).
+
+| Variable              | Description                                                                                                                                                                  | Default |
+|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `FLIGHT_LIVE_ENABLED` | `false` switches live flight status off, `true` keeps it on; either way it wins over **Admin → Settings → Live flight status**, which then shows the value locked. Unset leaves the choice to the admin switch. | unset   |
+
+While on, the TREK **server** asks `api.adsb.lol` (and `opendata.adsb.fi` on a self-hosted install) for the callsign of each booked flight in its watch window, at most once a second and 200 times an hour. Nothing else about the trip or its travellers is sent.
+
+---
+
 ## Image Search (Unsplash)
 
 TREK can search [Unsplash](https://unsplash.com/) for **trip cover images** and **place images**. By default the server queries Unsplash's public web endpoint **without an API key**, so no configuration is needed on most installs.
