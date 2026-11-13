@@ -10,8 +10,9 @@ const item = (fields: Partial<BookingImportPreviewItem>): BookingImportPreviewIt
   ...fields,
 });
 
-const endpoint = (role: string, name: string, code: string | null) => ({
+const endpoint = (role: 'from' | 'to', name: string, code: string | null) => ({
   role,
+  sequence: role === 'from' ? 0 : 1,
   name,
   code,
   lat: 0,

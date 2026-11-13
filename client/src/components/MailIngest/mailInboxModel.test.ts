@@ -69,10 +69,7 @@ describe('mailInboxModel', () => {
 
   it('FE-MAILINBOX-MODEL-004: a forwarding confirmation or a newsletter only informs', () => {
     expect(
-      actionsOf(
-        entry({ item: null, reason: null }, { reason: 'forwarding_confirmation', forwarding_code: '123456' }),
-        true
-      )
+      actionsOf(entry({ item: null, reason: null }, { reason: 'forwarding_confirmation', forwarding_code: '123456' }))
     ).toEqual(['discard']);
   });
 

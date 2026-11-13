@@ -47,7 +47,7 @@
     "tests/unit/nest/auth.controller.test.ts": 1,
     "tests/unit/nest/auth.service.test.ts": 9,
     "tests/unit/nest/backup.controller.test.ts": 1,
-    "tests/unit/nest/booking-import/booking-import.service.test.ts": 3,
+    "tests/unit/nest/booking-import/booking-import.service.test.ts": 1,
     "tests/unit/nest/booking-import/import-jobs.service.test.ts": 1,
     "tests/unit/nest/booking-import/kitinerary-extractor.service.test.ts": 1,
     "tests/unit/nest/budget.service.calc.test.ts": 1,
