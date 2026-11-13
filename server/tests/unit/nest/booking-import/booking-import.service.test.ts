@@ -633,7 +633,11 @@ describe('BookingImportService.confirm reports every item it did not create', ()
         () => Promise.reject(new UniqueConstraintViolationException(new Error('UNIQUE constraint failed'))),
         () => Promise.reject(new Error('disk full')),
       ];
-      const { svc } = makeReport(async () => writes.shift()!());
+      const { svc } = makeReport(async () => {
+        const write = writes.shift();
+        if (!write) throw new Error('the case planned no further write');
+        return write();
+      });
       findIdByExternal.mockResolvedValueOnce(9);
 
       const res = await svc.confirm(

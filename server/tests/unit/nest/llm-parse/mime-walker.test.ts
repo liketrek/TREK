@@ -52,6 +52,13 @@ const mixed = (text: string, ...parts: string[][]) =>
 
 afterEach(() => vi.restoreAllMocks());
 
+/** The walk of a mail the case expects to read: one the walker refuses fails here, by name. */
+function walk(raw: Buffer): WalkedMail {
+  const walked = walkMail(raw);
+  if (!walked) throw new Error('the walker read no mail');
+  return walked;
+}
+
 describe('walkMail: the envelope and the body', () => {
   it('MIME-WALK-001: refuses bytes that are not a mail', () => {
     expect(walkMail(Buffer.from('<html><body>Flight AB123</body></html>'))).toBeNull();
@@ -59,7 +66,7 @@ describe('walkMail: the envelope and the body', () => {
   });
 
   it('MIME-WALK-002: keeps the envelope apart, decoded, and the body free of it', () => {
-    const walked: WalkedMail = walkMail(
+    const walked: WalkedMail = walk(
       mail(
         'Authentication-Results: mx.trek.example; dkim=pass header.d=example.org',
         'Authentication-Results: relay.example; dkim=fail',
@@ -79,7 +86,7 @@ describe('walkMail: the envelope and the body', () => {
         'Flight LH 716, booking ABC123',
         '',
       ),
-    )!;
+    );
     expect(walked.envelope).toEqual({
       from: 'Ana Müller <ana@example.org>',
       to: 'in+token@trek.example',
@@ -102,7 +109,7 @@ describe('walkMail: the envelope and the body', () => {
   });
 
   it('MIME-WALK-003: a missing header is null and a mail without a subject has none', () => {
-    const walked = walkMail(mail('From: a@example.org', 'Content-Type: text/plain', '', 'Hotel', ''))!;
+    const walked = walk(mail('From: a@example.org', 'Content-Type: text/plain', '', 'Hotel', ''));
     expect(walked.subject).toBeNull();
     expect(walked.envelope.to).toBeNull();
     expect(walked.envelope.authenticationResults).toBeNull();
@@ -111,7 +118,7 @@ describe('walkMail: the envelope and the body', () => {
 
 describe('walkMail: forwarded and quoted messages', () => {
   it('MIME-WALK-010: a Gmail forward loses its marker and the header block under it', () => {
-    const walked = walkMail(
+    const walked = walk(
       mail(
         'From: ana@example.org',
         'Subject: Fwd: Booking',
@@ -128,7 +135,7 @@ describe('walkMail: forwarded and quoted messages', () => {
         'Flight LH 716 Frankfurt to Tokyo, booking ABC123',
         '',
       ),
-    )!;
+    );
     expect(walked.body).toBe('See below\n\nFlight LH 716 Frankfurt to Tokyo, booking ABC123');
     expect(walked.body).not.toContain('airline.example');
     expect(walked.forwardLayers).toBe(1);
@@ -142,16 +149,16 @@ describe('walkMail: forwarded and quoted messages', () => {
       '<p>Check-in 2 September, reservation H-77</p>',
       '<img src="https://tracker.example/open.png">',
     ].join('');
-    const walked = walkMail(
+    const walked = walk(
       mail('From: ana@example.org', 'Subject: WG: Reservation', 'Content-Type: text/html; charset=utf-8', '', html, ''),
-    )!;
+    );
     expect(walked.body).toContain('Check-in 2 September, reservation H-77');
     expect(walked.body).not.toContain('hotel.example');
     expect(walked.body).not.toContain('Subject:');
   });
 
   it('MIME-WALK-012: a bare Outlook block goes, a French ticket that reads like one stays', () => {
-    const walked = walkMail(
+    const walked = walk(
       mail(
         'From: ana@example.org',
         // The fixture is written byte for byte in latin1, so the "À" is declared as such.
@@ -167,12 +174,12 @@ describe('walkMail: forwarded and quoted messages', () => {
         'Date : 12/05/2026',
         '',
       ),
-    )!;
+    );
     expect(walked.body).toBe('De : Paris\nÀ : Lyon\nDate : 12/05/2026');
   });
 
   it('MIME-WALK-013: quoted lines are unquoted level by level, the attribution goes', () => {
-    const walked = walkMail(
+    const walked = walk(
       mail(
         'From: ana@example.org',
         'Content-Type: text/plain; charset=utf-8',
@@ -186,7 +193,7 @@ describe('walkMail: forwarded and quoted messages', () => {
         '>> Ferry Piraeus to Naxos, ticket F-12',
         '',
       ),
-    )!;
+    );
     expect(walked.body).toBe('Ferry Piraeus to Naxos, ticket F-12');
     expect(walked.body).not.toMatch(/example\.org|ferry\.example/);
     expect(walked.forwardLayers).toBeGreaterThanOrEqual(2);
@@ -200,7 +207,7 @@ describe('walkMail: forwarded and quoted messages', () => {
       '',
       'Flight LH 716, booking ABC123',
     ].join('\r\n');
-    const walked = walkMail(
+    const walked = walk(
       mail(
         'From: ana@example.org',
         'Subject: Fwd: Your booking',
@@ -218,7 +225,7 @@ describe('walkMail: forwarded and quoted messages', () => {
         '--mix--',
         '',
       ),
-    )!;
+    );
     expect(walked.body).toBe('Forwarding this\n\nFlight LH 716, booking ABC123');
     expect(walked.body).not.toContain('airline.example');
     expect(walked.forwardLayers).toBe(1);
@@ -229,7 +236,7 @@ describe('walkMail: forwarded and quoted messages', () => {
     for (let level = 0; level < 15; level++) {
       message = ['From: x@example.org', 'Content-Type: message/rfc822', '', message].join('\r\n');
     }
-    const walked = walkMail(Buffer.from(message, 'latin1'))!;
+    const walked = walk(Buffer.from(message, 'latin1'));
     expect(walked.body).toBe('');
     expect(walked.forwardLayers).toBe(10);
   });
@@ -237,7 +244,7 @@ describe('walkMail: forwarded and quoted messages', () => {
 
 describe('walkMail: attachments', () => {
   it('MIME-WALK-020: keeps a PDF, a pass, a calendar and the three photo types, by type or by name', () => {
-    const walked = walkMail(
+    const walked = walk(
       mixed(
         'Booking ABC123',
         part('application/pdf', 'ticket.pdf', PDF),
@@ -246,7 +253,7 @@ describe('walkMail: attachments', () => {
         part('image/jpeg', 'scan.JPG', JPEG),
         part('image/png', 'pass.png', PNG),
       ),
-    )!;
+    );
     expect(walked.attachments.map(({ fileName, kind, mimeType }) => ({ fileName, kind, mimeType }))).toEqual([
       { fileName: 'ticket.pdf', kind: 'pdf', mimeType: 'application/pdf' },
       { fileName: 'boarding.pkpass', kind: 'pkpass', mimeType: 'application/vnd.apple.pkpass' },
@@ -262,19 +269,19 @@ describe('walkMail: attachments', () => {
   });
 
   it('MIME-WALK-021: a layout image goes, a WebP the person attached stays', () => {
-    const walked = walkMail(
+    const walked = walk(
       mixed(
         'Booking',
         part('image/png', null, PNG, ['Content-ID: <logo@airline>', 'Content-Disposition: inline']),
         part('image/webp', 'photo.webp', WEBP),
       ),
-    )!;
+    );
     expect(walked.attachments.map((a) => a.kind)).toEqual(['webp']);
     expect(walked.skippedAttachments).toBe(0);
   });
 
   it('MIME-WALK-022: a file that is not what it claims is skipped, a type no booking travels in ignored', () => {
-    const walked = walkMail(
+    const walked = walk(
       mixed(
         'Booking',
         part('application/pdf', 'ticket.pdf', Buffer.from('MZ not a pdf')),
@@ -282,35 +289,35 @@ describe('walkMail: attachments', () => {
         part('text/calendar', 'invite.ics', 'just text'),
         part('application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'terms.docx', 'PK'),
       ),
-    )!;
+    );
     expect(walked.attachments).toEqual([]);
     expect(walked.skippedAttachments).toBe(3);
   });
 
   it('MIME-WALK-023: past the count limit the rest are skipped and counted', () => {
     const pdfs = Array.from({ length: MAX_MAIL_ATTACHMENTS + 2 }, (_, i) => part('application/pdf', `t${i}.pdf`, PDF));
-    const walked = walkMail(mixed('Booking', ...pdfs))!;
+    const walked = walk(mixed('Booking', ...pdfs));
     expect(walked.attachments).toHaveLength(MAX_MAIL_ATTACHMENTS);
     expect(walked.skippedAttachments).toBe(2);
   });
 
   it('MIME-WALK-024: an attachment past the size limit is left out', () => {
     const big = Buffer.concat([PDF, Buffer.alloc(MAX_MAIL_ATTACHMENT_BYTES)]);
-    const walked = walkMail(mixed('Booking', part('application/pdf', 'big.pdf', big)))!;
+    const walked = walk(mixed('Booking', part('application/pdf', 'big.pdf', big)));
     expect(walked.attachments).toEqual([]);
     expect(walked.skippedAttachments).toBe(1);
   });
 
   it('MIME-WALK-025: a file name loses its path and control characters, an empty one is made up', () => {
-    const walked = walkMail(
+    const walked = walk(
       mixed('Booking', part('application/pdf', '../../etc/ticket\u0007.pdf', PDF), part('application/pdf', '..', PDF)),
-    )!;
+    );
     expect(walked.attachments.map((a) => a.fileName)).toEqual(['ticket.pdf', 'attachment-2.pdf']);
   });
 
   it('MIME-WALK-026: nothing is fetched, a remote image stays a string in the markup that is dropped', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const walked = walkMail(
+    const walked = walk(
       mail(
         'From: ana@example.org',
         'Content-Type: text/html; charset=utf-8',
@@ -319,7 +326,7 @@ describe('walkMail: attachments', () => {
         '<link rel="stylesheet" href="https://x.example/a.css">',
         '',
       ),
-    )!;
+    );
     expect(walked.body).toBe('Booking ABC123');
     expect(walked.attachments).toEqual([]);
     expect(fetchSpy).not.toHaveBeenCalled();

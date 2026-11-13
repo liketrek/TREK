@@ -180,14 +180,16 @@ describe('the signed webhook', () => {
       ['address_daily_limit', 429],
       ['unavailable', 404],
     ];
-    for (const [reason, status] of cases) {
+    // One after the other: each answer is the intake's next one.
+    await cases.reduce(async (previous, [reason, status]) => {
+      await previous;
       intake.receive.mockResolvedValueOnce({ status: 'refused', reason });
       const err = await service()
         .receive(SECRET, RAW, signed(), NOW)
         .catch((e: unknown) => e);
       expect(err, reason).toBeInstanceOf(DomainError);
       expect((err as DomainError).getStatus(), reason).toBe(status);
-    }
+    }, Promise.resolve());
   });
 });
 
