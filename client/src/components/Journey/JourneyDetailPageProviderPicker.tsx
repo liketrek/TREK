@@ -501,13 +501,13 @@ export function ProviderPicker({
               aria-label={t('journey.picker.takenBetween')}
               className="mt-2 flex min-h-[36px] items-center gap-2"
             >
-              <span className="hidden flex-shrink-0 text-[12px] text-zinc-500 sm:inline">
+              <span className="hidden flex-shrink-0 text-caption text-content-muted sm:inline">
                 {t('journey.picker.takenBetween')}
               </span>
               <div className="min-w-0 flex-1">
                 <DatePicker value={albumFrom} onChange={setAlbumFrom} />
               </div>
-              <ArrowRight size={12} className="flex-shrink-0 text-zinc-400" aria-hidden="true" />
+              <ArrowRight size={12} className="flex-shrink-0 text-content-faint" aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <DatePicker value={albumTo} onChange={setAlbumTo} />
               </div>
@@ -520,7 +520,7 @@ export function ProviderPicker({
                   }}
                   aria-label={t('common.clear')}
                   title={t('common.clear')}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-content-faint hover:bg-surface-hover"
                 >
                   <X size={14} />
                 </button>
