@@ -458,7 +458,10 @@ jobs:
         # tsconfig.strict.json is the same program with strictNullChecks and
         # noImplicitAny; its errors per file may not rise above
         # scripts/strict-baseline.json, and a file without an entry, every new
-        # one included, has to be clean (scripts/strict-lint.mjs).
+        # one included, has to be clean (scripts/strict-lint.mjs). It holds the
+        # whole program with strict checks, past Node's default ~4 GB heap.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: cd client && npm run lint:strict
 
       - name: Page pattern check

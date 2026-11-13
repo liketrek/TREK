@@ -1,4 +1,4 @@
-import { originColumns } from './reservation-origin';
+import { originColumns } from './reservation-origin.contract';
 import type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 export type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 import { BadRequestException, Injectable } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import type { ReservationOrigin } from './reservation-origin';
+import type { ReservationOrigin } from './reservation-origin.contract';
 
 /*
  * The shapes the reservations service takes in: a booking's endpoints, the

@@ -1,4 +1,4 @@
-import apiClient from './client';
+import apiClient, { postMultipart } from './client';
 
 /**
  * The booking mail import (server nest/mail-ingest): the person's settings and
@@ -43,6 +43,7 @@ export const mailIngestApi = {
   upload: (file: File): Promise<unknown> => {
     const form = new FormData();
     form.append('file', file);
-    return apiClient.post('/mail-ingest/upload', form).then(data);
+    // As multipart: under the client's default JSON content type the form went as JSON, without the file.
+    return postMultipart('/mail-ingest/upload', form);
   },
 };

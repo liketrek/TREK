@@ -33,7 +33,7 @@ import { HttpException } from '@nestjs/common';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createBudgetItem, createPlace, createDay, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { withoutOrigin } from '../../../src/nest/reservations/reservation-origin';
+import { withoutOrigin } from '../../../src/nest/reservations/reservation-origin.contract';
 import { ReservationsService, type UpdateReservationData } from '../../../src/nest/reservations/reservations.service';
 import { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';

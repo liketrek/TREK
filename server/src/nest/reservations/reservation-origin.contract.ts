@@ -1,3 +1,9 @@
+/*
+ * The origin an imported booking carries, published by the reservations
+ * domain: the importers (booking import, mail import) set it, and every other
+ * write path strips it from what a client sends.
+ */
+
 /**
  * Where an imported booking came from (`import`, `mail`) and its key there,
  * unique per trip. Both or neither; without them the row is a hand-made

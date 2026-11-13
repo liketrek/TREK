@@ -2,7 +2,7 @@ import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { withoutOrigin } from './reservation-origin';
+import { withoutOrigin } from './reservation-origin.contract';
 import { ReservationWritesService } from './reservation-writes.service';
 import {
   ReservationCreateDto,

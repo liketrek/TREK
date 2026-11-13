@@ -14,7 +14,7 @@ import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PlaceOriginsService } from '../places/place-origins.service';
 import { PlacesService } from '../places/places.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { withoutOrigin } from '../reservations/reservation-origin';
+import { withoutOrigin } from '../reservations/reservation-origin.contract';
 import { ReservationsService, type CreateAccommodation } from '../reservations/reservations.service';
 import { IMPORT_SOURCE, importExternalId } from './booking-origin';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
