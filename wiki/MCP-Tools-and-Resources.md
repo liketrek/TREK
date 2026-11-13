@@ -282,7 +282,7 @@ tool reads or makes a forwarding address, since an address carries its secret to
 |---|---|
 | `list_mail_inbox` | The entries waiting for a decision, each with why it waits, the booking as read, the trip it suggests and the mail's subject; `status: "resolved"` lists the decided ones. |
 | `add_mail_booking` | Add a waiting booking to the trip it suggests, or to another (`trip_id`). Undoable for seven days. |
-| `move_mail_booking` | Move a booking added from a mail into another trip while it can still be undone. |
+| `move_mail_booking` | Move a booking added from a mail into another trip while it can still be undone. Only the person who forwarded the mail can move it. |
 | `file_mail_booking` | Put the mail into a trip as documents, without a booking. Needs the Documents addon. |
 | `discard_mail_booking` | Set a waiting entry aside. |
 | `undo_mail_booking` | Remove a booking added from a mail with its stay, cost and documents, within seven days. |

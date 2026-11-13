@@ -26,7 +26,13 @@ mail at once. Treat the address like a password: whoever knows it can put bookin
 
 TREK reads one mailbox every two minutes. Point a catch-all, or a mailbox with sub-addressing (`trek+anything@`), at
 it and use the matching address template. Read mails move to the folder `TREK/processed` and are never deleted, so
-anyone with access to the mailbox can read them.
+anyone with access to the mailbox can read them. A mail TREK cannot take for now, because its address took its 50 mails
+of the day or its person has 200 bookings waiting, moves to `TREK/deferred` and is offered again on every run for three
+days; after that it moves to `TREK/processed` as well.
+
+TREK files a mail under the address in the topmost `Delivered-To` header, else the topmost `X-Original-To`, which the
+receiving server adds; only without either does it read `To`. A mail addressed to several people's addresses reaches
+each of them.
 
 | Field | Default |
 |---|---|
@@ -49,7 +55,7 @@ Each request carries three headers:
 | Header | Value |
 |---|---|
 | `X-Trek-Timestamp` | The time of sending, in Unix seconds. Requests more than five minutes off are refused. |
-| `X-Trek-Recipient` | The address the mail was sent to (the envelope recipient). Optional; without it TREK reads `Delivered-To`, `X-Original-To` and `To`. |
+| `X-Trek-Recipient` | The address the mail was sent to (the envelope recipient). Optional; without it TREK reads the topmost `Delivered-To`, else `X-Original-To`, else `To`. |
 | `X-Trek-Signature` | `sha256=` followed by the hex HMAC-SHA256 of `<timestamp>\n<recipient>\n<raw mail>`, keyed with the secret. |
 
 A Cloudflare Email Worker that forwards a mail:
@@ -84,6 +90,17 @@ export default {
 
 Postmark and Mailgun forward inbound mail as JSON, not raw; put a small function like the one above between them and
 TREK. The answer is `{"accepted":true,"duplicate":false}`; a mail sent twice is stored once.
+
+A request whose headers cannot carry a valid signature is refused with `401` before its body is read. One address may
+post 120 requests a minute, and TREK reads four mails at once; above either it answers `429`, as it does when an
+address took its mails of the day or its person's open bookings are full, so the sender tries again later.
+
+## The sender hint
+
+An entry shows whether its sender is confirmed: the mail came from the person's own account address, and the
+receiving mail server found a DKIM signature of that address's domain or a DMARC pass for it. Only the IMAP transport
+can show this, since only there the receiving server's `Authentication-Results` header is the topmost one; a mail that
+came by webhook or upload is always shown as not confirmed. The hint never stops a booking.
 
 ## Status
 

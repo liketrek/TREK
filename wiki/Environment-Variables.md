@@ -244,14 +244,14 @@ in the admin dialog; unset, the dialog decides.
 | Variable                       | Description                                                                                                 | Default |
 |--------------------------------|-------------------------------------------------------------------------------------------------------------|---------|
 | `MAIL_INGEST_TRANSPORT`        | `off` (uploads only), `imap` or `webhook`.                                                                  | `off`   |
-| `MAIL_INGEST_IMAP_HOST`        | The mailbox TREK reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   | —       |
+| `MAIL_INGEST_IMAP_HOST`        | The mailbox TREK reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   |         |
 | `MAIL_INGEST_IMAP_PORT`        | `993` for TLS, `143` for STARTTLS.                                                                          | `993`   |
 | `MAIL_INGEST_IMAP_TLS`         | `tls` (encrypted from the first byte) or `starttls`.                                                        | `tls`   |
-| `MAIL_INGEST_IMAP_USER`        | IMAP login.                                                                                                 | —       |
-| `MAIL_INGEST_IMAP_PASS`        | IMAP password.                                                                                              | —       |
+| `MAIL_INGEST_IMAP_USER`        | IMAP login.                                                                                                 |         |
+| `MAIL_INGEST_IMAP_PASS`        | IMAP password.                                                                                              |         |
 | `MAIL_INGEST_IMAP_MAILBOX`     | The folder the mails arrive in. Read mails move on to `TREK/processed`; nothing is deleted.                 | `INBOX` |
-| `MAIL_INGEST_ADDRESS_TEMPLATE` | The forwarding address, each person's token where `{token}` stands, e.g. `trek+{token}@example.com`.        | —       |
-| `MAIL_INGEST_WEBHOOK_SECRET`   | The key the webhook sender signs each mail with (HMAC-SHA256), at least 32 characters.                      | —       |
+| `MAIL_INGEST_ADDRESS_TEMPLATE` | The forwarding address, each person's token where `{token}` stands, e.g. `trek+{token}@example.com`.        |         |
+| `MAIL_INGEST_WEBHOOK_SECRET`   | The key the webhook sender signs each mail with (HMAC-SHA256), at least 32 characters.                      |         |
 
 ---
 
