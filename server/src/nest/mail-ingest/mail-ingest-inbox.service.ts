@@ -69,7 +69,7 @@ export class MailIngestInboxService {
     }
     return {
       available: true,
-      address: await this.addresses.ownAddress(userId),
+      address: await this.addresses.ownAddressForCard(userId, prefs.enabled),
       prefs,
       // Whether AI reading can work here at all (the AI Parsing addon and a connection), not the person's own
       // switch: with it folded in, switching AI off greyed the switch out and it could never come back on.

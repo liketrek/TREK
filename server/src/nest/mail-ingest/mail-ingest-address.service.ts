@@ -43,6 +43,18 @@ export class MailIngestAddressService {
     return this.view(await this.addresses.findLive(userId, null));
   }
 
+  /**
+   * The person's own address as the settings card shows it: made on the first
+   * look once an address template is set and their import is on, so nobody has
+   * to ask for one before forwarding; read as it is otherwise.
+   *
+   * @txStandalone an idempotent lazy provision: one row, made once, then only read.
+   */
+  async ownAddressForCard(userId: number, importOn: boolean): Promise<MailIngestAddress | null> {
+    if (importOn && (await this.settings.addressTemplate())) return this.view(await this.ensureOwn(userId));
+    return this.ownAddress(userId);
+  }
+
   /** A new own address for the person, the old one stops working. */
   async renewOwn(userId: number): Promise<MailIngestAddress | null> {
     await this.requireTemplate();

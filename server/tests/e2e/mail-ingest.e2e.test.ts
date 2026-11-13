@@ -164,7 +164,12 @@ describe('/api/mail-ingest e2e (real guards + snapshot SQLite)', () => {
   it('MAIL-E2E-002: the settings card, its switches and a renewed own address', async () => {
     const card = await request(server).get('/api/mail-ingest/settings').set(as(USER));
     expect(card.status).toBe(200);
-    expect(card.body).toMatchObject({ available: true, address: null, ai_available: false, pending: 0 });
+    expect(card.body).toMatchObject({ available: true, ai_available: false, pending: 0 });
+    // The first look makes the person's own address, so nobody has to ask for one before forwarding.
+    const first = card.body.address.address as string;
+    expect(first).toMatch(/^trek\+[a-z2-7]{24}@mail\.example\.com$/);
+    const again = await request(server).get('/api/mail-ingest/settings').set(as(USER));
+    expect(again.body.address.address).toBe(first);
 
     expect((await request(server).patch('/api/mail-ingest/settings').set(as(USER)).send({})).status).toBe(400);
     const off = await request(server).patch('/api/mail-ingest/settings').set(as(USER)).send({ auto_add: false });
@@ -174,6 +179,7 @@ describe('/api/mail-ingest e2e (real guards + snapshot SQLite)', () => {
     const renewed = await request(server).post('/api/mail-ingest/address/renew').set(as(USER));
     expect(renewed.status).toBe(200);
     expect(renewed.body.address.address).toMatch(/^trek\+[a-z2-7]{24}@mail\.example\.com$/);
+    expect(renewed.body.address.address).not.toBe(first);
   });
 
   it('MAIL-E2E-003: an uploaded mail waits in the inbox, is added by hand and undone, for its person', async () => {
