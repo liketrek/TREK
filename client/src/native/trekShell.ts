@@ -211,9 +211,12 @@ export interface TrekShellPlugin {
   ): Promise<{ remove: () => Promise<void> }>;
   /** Feature quickActions (iOS): the actions a long press on the app icon shows, in the UI's language. */
   setQuickActions(options: { items: NativeQuickAction[] }): Promise<void>;
-  /** Feature quickActions: the action the app was launched with, before the UI ran. */
+  /**
+   * Feature quickActions: the action the app was launched with, before the UI ran.
+   * With the feature appLinks also a widget or Live Activity tap, as its path.
+   */
   takeQuickAction(): Promise<{ path: string | null }>;
-  /** Feature quickActions: an action chosen while the app was running. */
+  /** Feature quickActions: an action chosen (with appLinks: a widget tapped) while the app was running. */
   addListener(
     event: 'quickAction',
     listener: (payload: { path: string }) => void

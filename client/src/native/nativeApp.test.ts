@@ -5,7 +5,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
-import { checkAppUpdate } from './capabilities';
+import { checkAppUpdate, hasNativeFeature } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
 import { prepareKeyboardFields } from './keyboardFields';
 import { scrollToTop, startNativeApp } from './nativeApp';
@@ -28,6 +28,7 @@ vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn() }));
 vi.mock('./capabilities', () => ({
   checkAppUpdate: vi.fn(async () => false),
   loadNativeCapabilities: vi.fn(async () => ({})),
+  hasNativeFeature: vi.fn(() => false),
 }));
 vi.mock('./geolocation', () => ({ installNativeGeolocation: vi.fn() }));
 vi.mock('./sharedFiles', () => ({ startSharedFiles: vi.fn(async () => {}) }));
@@ -51,6 +52,7 @@ beforeEach(() => {
   vi.mocked(isNativeIos).mockReturnValue(false);
   vi.mocked(isEffectivelyOffline).mockReturnValue(false);
   vi.mocked(keepOfflineShellFresh).mockResolvedValue();
+  vi.mocked(hasNativeFeature).mockReturnValue(false);
   document.documentElement.classList.remove('dark');
   document.documentElement.removeAttribute('data-native-app');
   document.documentElement.removeAttribute('data-native-ios');
@@ -207,6 +209,18 @@ describe('startNativeApp', () => {
     startNativeApp();
     await Promise.resolve();
     await Promise.resolve();
+    expect(openPushTarget).not.toHaveBeenCalled();
+  });
+
+  it('leaves widget links to the binary when it hands them over as quick actions', async () => {
+    sessionStorage.clear();
+    vi.mocked(hasNativeFeature).mockImplementation((feature) => feature === 'appLinks');
+    vi.mocked(App.getLaunchUrl).mockResolvedValue({ url: 'com.liketrek.trek://navigate/trips/5?tab=listen' });
+    startNativeApp();
+    await vi.waitFor(() => expect(hasNativeFeature).toHaveBeenCalledWith('appLinks'));
+    await Promise.resolve();
+    expect(App.getLaunchUrl).not.toHaveBeenCalled();
+    expect(vi.mocked(App.addListener).mock.calls.some(([name]) => name === 'appUrlOpen')).toBe(false);
     expect(openPushTarget).not.toHaveBeenCalled();
   });
 

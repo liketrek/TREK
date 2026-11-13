@@ -5,7 +5,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { closeTopOverlay } from '../mobile/overlayStack';
 import { useSettingsStore } from '../store/settingsStore';
 import { isEffectivelyOffline } from '../sync/networkMode';
-import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
+import { checkAppUpdate, hasNativeFeature, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
 import { fadeInImages } from './imageFade';
 import { keepFieldInView } from './keepFieldInView';
@@ -54,13 +54,18 @@ export function startNativeApp(): void {
   // A quick action on the app icon opens its page, also the one the app was launched with.
   void loadNativeCapabilities().then(() => startQuickActions());
 
-  // A widget or Live Activity tap opens com.liketrek.trek://navigate/<path>.
-  void App.addListener('appUrlOpen', ({ url }) => {
-    const prefix = `${APP_URL_SCHEME}://navigate`;
-    if (url.startsWith(prefix)) openPushTarget(url.slice(prefix.length) || '/');
+  // A widget or Live Activity tap opens com.liketrek.trek://navigate/<path>. A
+  // binary with the feature appLinks hands it over as a quick action instead,
+  // held until taken, so it is only followed here for older binaries.
+  void loadNativeCapabilities().then(() => {
+    if (hasNativeFeature('appLinks')) return;
+    void App.addListener('appUrlOpen', ({ url }) => {
+      const prefix = `${APP_URL_SCHEME}://navigate`;
+      if (url.startsWith(prefix)) openPushTarget(url.slice(prefix.length) || '/');
+    });
+    // A tap that launched the app comes as the launch URL, not as appUrlOpen.
+    void openLaunchLink();
   });
-  // A tap that launched the app comes as the launch URL, not as appUrlOpen.
-  void openLaunchLink();
 
   // A tap on the status bar scrolls the list under it back to the top, as in
   // every iOS app (the status-bar plugin fires statusTap on iOS).
