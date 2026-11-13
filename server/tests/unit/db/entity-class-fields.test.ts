@@ -63,7 +63,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // + storage_release_queue: category, key, due_at (a queued release is only ever written whole, by the release queue).
 // + flight_live_states: callsign, service_date, origin, destination (a flight's state is always found and
 //   written by its key).
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 615;
+// + mail_ingest_addresses: id, token_hash, token_enc, user_id; mail_ingest_prefs: id, user_id; mail_ingest_cursor:
+//   id, transport, mailbox; mail_ingest_messages: id, transport, dedupe_hash, user_id, size; mail_ingest_candidates:
+//   id, message_id, user_id (each row is written whole by the mail import, which always knows all of them).
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 632;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {

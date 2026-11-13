@@ -59,6 +59,11 @@ import { JourneyRecordingPrepSchema } from './JourneyRecordingPrep.entity';
 import { JourneyShareTokensSchema } from './JourneyShareTokens.entity';
 import { JourneyTripsSchema } from './JourneyTrips.entity';
 import { JourneysSchema } from './Journeys.entity';
+import { MailIngestAddressesSchema } from './MailIngestAddresses.entity';
+import { MailIngestCandidatesSchema } from './MailIngestCandidates.entity';
+import { MailIngestCursorSchema } from './MailIngestCursor.entity';
+import { MailIngestMessagesSchema } from './MailIngestMessages.entity';
+import { MailIngestPrefsSchema } from './MailIngestPrefs.entity';
 import { McpTokensSchema } from './McpTokens.entity';
 import { MigrationsSchema } from './Migrations.entity';
 import { NotificationChannelPreferencesSchema } from './NotificationChannelPreferences.entity';
@@ -229,6 +234,11 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   JourneyShareTokensSchema,
   JourneyTripsSchema,
   JourneysSchema,
+  MailIngestAddressesSchema,
+  MailIngestCandidatesSchema,
+  MailIngestCursorSchema,
+  MailIngestMessagesSchema,
+  MailIngestPrefsSchema,
   McpTokensSchema,
   MigrationsSchema,
   NotificationChannelPreferencesSchema,
