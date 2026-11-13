@@ -47,8 +47,6 @@ async function loadLayerFactory() {
     import('./engines/maplibre'),
     import('@maplibre/maplibre-gl-leaflet'),
   ])
-  // Optional: a test that mocks the bridge hands over the factory alone.
-  if (bridge.MaplibreGL) guardTransitionEnd(bridge.MaplibreGL.prototype as unknown as GlLayerInternals)
   return bridge.maplibreGL
 }
 
@@ -67,10 +65,12 @@ interface GlLayerInternals {
  * layer taken off before that frame (a dialog closed at once, React mounting a
  * map twice in development) threw "Cannot read properties of null (reading
  * 'getZoom')" from inside the frame. This is the bridge's own method (0.1.4,
- * pinned) with that question added; patched once, on the class.
+ * pinned) with that question added; patched once, on the layer's class, and
+ * only on a class that has the method itself (a test's stand-in layer has not).
  */
-function guardTransitionEnd(proto: GlLayerInternals): void {
-  if (proto._trekGuarded) return
+function guardTransitionEnd(layer: object): void {
+  const proto = Object.getPrototypeOf(layer) as GlLayerInternals | null
+  if (!proto || proto._trekGuarded || !Object.prototype.hasOwnProperty.call(proto, '_transitionEnd')) return
   proto._transitionEnd = function (this: GlLayerInternals) {
     L.Util.requestAnimFrame(() => {
       const map = this._map
@@ -135,6 +135,7 @@ function disarmGlLayer(layer: GlLeafletLayer): void {
  * map.remove().
  */
 function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolean {
+  guardTransitionEnd(layer)
   try {
     layer.addTo(map)
   } catch (err) {
