@@ -4,7 +4,8 @@ import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorator
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { num, schemaMessage } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { ReservationsService, withoutOrigin } from './reservations.service';
+import { withoutOrigin } from './reservation-origin';
+import { ReservationsService } from './reservations.service';
 import {
   reservationCreateRequestSchema,
   reservationEndpointsInputSchema,

@@ -2,7 +2,7 @@
   "scripts/db-call-graph.mjs": 1036,
   "scripts/generate-entities.ts": 2259,
   "src/db/repositories/Places.repository.ts": 1437,
-  "src/db/repositories/Reservations.repository.ts": 1559,
+  "src/db/repositories/Reservations.repository.ts": 1558,
   "src/db/repositories/Trips.repository.ts": 1120,
   "src/db/repositories/Users.repository.ts": 1445,
   "src/nest/atlas/atlas.service.ts": 1174,
@@ -15,6 +15,6 @@
   "src/nest/places/places.service.ts": 1549,
   "src/nest/plugins/plugin-runtime.service.ts": 1460,
   "src/nest/plugins/runtime/plugin-sdk.ts": 1093,
-  "src/nest/reservations/reservations.service.ts": 1228,
+  "src/nest/reservations/reservations.service.ts": 1168,
   "src/nest/vacay/vacay.service.ts": 1393
 }

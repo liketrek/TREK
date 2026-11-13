@@ -198,19 +198,13 @@ export default function MailInboxDialog(): ReactElement | null {
       labelId={titleId}
       onClose={inbox.close}
       title={t('mailInbox.title')}
-      sub={inbox.pending > 0 ? t('mailInbox.pendingCount', { count: inbox.pending }) : t('mailInbox.empty')}
+      // The empty state below says it already; the head only counts what waits.
+      sub={inbox.pending > 0 ? t('mailInbox.pendingCount', { count: inbox.pending }) : undefined}
     />
   );
 
   return (
-    <DialogShell
-      onClose={inbox.close}
-      labelledBy={titleId}
-      width="editor"
-      align="top"
-      header={header}
-      blocked={!!inbox.picking}
-    >
+    <DialogShell onClose={inbox.close} labelledBy={titleId} width="editor" header={header} blocked={!!inbox.picking}>
       {inbox.picking ? (
         <TripPicker trips={inbox.trips} onPick={inbox.pick} onCancel={inbox.cancelPick} />
       ) : inbox.preview ? (

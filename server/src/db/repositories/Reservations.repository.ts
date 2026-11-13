@@ -7,6 +7,8 @@ import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyse
 import type { DayAssignmentRow } from './day-assignment-rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { passContextQuery, type PassContextDB } from './_shared/reservation-pass-context';
+import { originColumnValues, type ReservationOriginColumns } from './_shared/reservation-origin-columns';
+import { idByExternalQuery, joinedReservationQuery, type ReservationJoinDB } from './_shared/reservation-joined-query';
 import type { DB } from '../kysely/db';
 import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
 import type {
@@ -41,7 +43,6 @@ export type {
  * D4's T5 seam) and are cast to the column type only at the bind, so this
  * join keeps the legacy statement's exact raw-bind flexibility.
  */
-type ReservationJoinKyselyDB = Pick<DB, 'reservations' | 'days' | 'places' | 'day_accommodations'>;
 
 /**
  * `reservations` as the two aliases below bind it: `accommodation_id` is a
@@ -363,24 +364,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   findPassContext(id: number, tripId: number) { return passContextQuery(this.kysely<PassContextDB>(), id, tripId); }
 
   private joinedQuery() {
-    return this.kysely<ReservationJoinKyselyDB>()
-      .selectFrom('reservations as r')
-      .leftJoin('days as d', 'd.id', 'r.day_id')
-      .leftJoin('places as p', 'p.id', 'r.place_id')
-      .leftJoin('day_accommodations as ap', 'ap.id', 'r.accommodation_id')
-      .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
-      .selectAll('r')
-      .select([
-        'd.day_number as day_number',
-        'p.name as place_name',
-        'ap.place_id as accommodation_place_id',
-        'acc_p.name as accommodation_name',
-        'ap.start_day_id as accommodation_start_day_id',
-        'ap.end_day_id as accommodation_end_day_id',
-        'ap.check_in as accommodation_check_in',
-        'ap.check_in_end as accommodation_check_in_end',
-        'ap.check_out as accommodation_check_out',
-      ]);
+    return joinedReservationQuery(this.kysely<ReservationJoinDB>());
   }
 
   /**
@@ -493,10 +477,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     accommodation_id: string | null;
     metadata: string | null;
     needs_review: number;
-    external_source?: string;
-    external_id?: string;
-    sync_enabled?: number;
-  }): Promise<number> {
+  } & ReservationOriginColumns): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
       day: input.day_id,
@@ -515,27 +496,13 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       accommodation_id: input.accommodation_id,
       metadata: input.metadata,
       needs_review: input.needs_review,
-      ...(input.external_source !== undefined && { external_source: input.external_source }),
-      ...(input.external_id !== undefined && { external_id: input.external_id }),
-      ...(input.sync_enabled !== undefined && { sync_enabled: input.sync_enabled }),
+      ...originColumnValues(input),
     });
   }
 
-  /**
-   * The booking an import already wrote into this trip under the same origin,
-   * or undefined: what `idx_reservations_external (external_source,
-   * external_id, trip_id)` would refuse, read before the write so a repeat
-   * import is reported instead of failing on the unique index.
-   */
-  async findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
-    const row = await this.kysely<DB>()
-      .selectFrom('reservations')
-      .select(['id'])
-      .where('trip_id', '=', trip_id)
-      .where('external_source', '=', external_source)
-      .where('external_id', '=', external_id)
-      .executeTakeFirst();
-    return row?.id;
+  /** The booking an import already wrote into this trip under the same origin (_shared/reservation-joined-query.ts). */
+  findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
+    return idByExternalQuery(this.kysely<DB>(), trip_id, external_source, external_id);
   }
 
   /**

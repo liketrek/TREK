@@ -1,5 +1,7 @@
 import { readEnv } from '../../app-config';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { encrypt_api_key, maybe_encrypt_api_key } from './crypto/apiKeyCrypto';
+import { DomainError } from './domain-error';
 import { aiPolicySchema, mailIngestImapTlsSchema, mailIngestTransportSettingSchema } from '@trek/shared';
 
 import { z } from 'zod';
@@ -217,6 +219,30 @@ const keysWhere = (pick: (def: AppSettingDef) => unknown): AppSettingKey[] =>
 export const ADMIN_FORM_SETTING_KEYS: readonly AppSettingKey[] = keysWhere((d) => d.adminForm);
 /** The form's keys answered as `••••••••` rather than their value. */
 export const MASKED_ADMIN_SETTING_KEYS: ReadonlySet<AppSettingKey> = new Set(keysWhere((d) => d.masked));
+
+/** What the admin form shows for a stored secret, and takes back as "unchanged". */
+export const ADMIN_SETTING_MASK = '••••••••';
+
+/** True when the admin form sent a masked key back as its mask: the stored value stays. */
+export function isMaskEcho(key: AppSettingKey, value: unknown): boolean {
+  return MASKED_ADMIN_SETTING_KEYS.has(key) && String(value) === ADMIN_SETTING_MASK;
+}
+
+/**
+ * The value an admin form key is stored as: checked against its schema where
+ * the registry asks for it (`validated`, a 400 naming what is wrong), and
+ * encrypted where it says so.
+ */
+export function storedAdminValue(key: AppSettingKey, value: string): string {
+  const def = APP_SETTINGS[key] as AppSettingDef;
+  if (def.validated) {
+    const checked = def.schema.safeParse(value);
+    if (!checked.success) throw new DomainError(400, checked.error.issues[0]?.message ?? `${key} is not valid`);
+  }
+  if (def.encrypted === 'always') return encrypt_api_key(value);
+  if (def.encrypted === 'if-plain' && value) return maybe_encrypt_api_key(value) ?? value;
+  return value;
+}
 /** The keys stored encrypted. */
 export const ENCRYPTED_APP_SETTING_KEYS: ReadonlySet<AppSettingKey> = new Set(keysWhere((d) => d.encrypted));
 /** The registered keys a managed install withholds from its admin (the rest of that list is user settings and profile columns). */

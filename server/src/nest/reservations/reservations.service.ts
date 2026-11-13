@@ -1,3 +1,6 @@
+import { originColumns } from './reservation-origin';
+import type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
+export type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { TripAccess, TripsRepository } from '../../db/repositories/Trips.repository';
@@ -52,22 +55,6 @@ export type CostEvent =
   | { event: 'budget:updated'; payload: TrekWsPayload<'budget:updated'> }
   | { event: 'budget:deleted'; payload: TrekWsPayload<'budget:deleted'> };
 
-export interface ReservationEndpoint {
-  id?: number;
-  reservation_id?: number;
-  role: 'from' | 'to' | 'stop';
-  sequence: number;
-  name: string;
-  code: string | null;
-  lat: number;
-  lng: number;
-  timezone: string | null;
-  local_time: string | null;
-  local_date: string | null;
-}
-
-export type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
-
 // --- Travelers (#1517): trip members / named guests assigned to a booking -----
 
 export interface ReservationTraveler {
@@ -93,89 +80,6 @@ export type ReservationRow = Record<string, unknown> & {
   endpoints?: ReservationEndpoint[];
   travelers?: ReservationTraveler[];
 };
-
-export interface CreateAccommodation {
-  place_id?: number;
-  start_day_id?: number;
-  end_day_id?: number;
-  check_in?: string;
-  check_out?: string;
-  confirmation?: string;
-}
-
-export interface CreateReservationData {
-  title: string;
-  reservation_time?: string;
-  reservation_end_time?: string;
-  location?: string;
-  confirmation_number?: string;
-  notes?: string;
-  url?: string;
-  day_id?: number;
-  end_day_id?: number;
-  place_id?: number;
-  assignment_id?: number;
-  status?: string;
-  type?: string;
-  accommodation_id?: number;
-  metadata?: unknown;
-  create_accommodation?: CreateAccommodation;
-  endpoints?: EndpointInput[];
-  needs_review?: boolean;
-  /**
-   * Where an imported booking came from (`import`, `mail`) and its key there,
-   * unique per trip. Both or neither; without them the row is a hand-made
-   * booking, as every write was before imports recorded their origin.
-   */
-  external_source?: string;
-  external_id?: string;
-  /** False keeps an imported booking out of any sync back to its source; the column defaults to on. */
-  sync_enabled?: boolean;
-}
-
-/** The origin fields of {@link CreateReservationData}, which only a server-side import may set. */
-type ReservationOrigin = Pick<CreateReservationData, 'external_source' | 'external_id' | 'sync_enabled'>;
-
-/**
- * A create body from a client without the origin fields. The REST and plugin
- * bodies are open objects, and an origin a caller could name would let it pose
- * as an AirTrail link or an import, so only the importers set one.
- */
-export function withoutOrigin(body: Record<string, unknown>): Record<string, unknown> {
-  const { external_source: _source, external_id: _id, sync_enabled: _sync, ...rest } = body;
-  return rest;
-}
-
-/** The origin columns an insert names, none for a booking without an origin. */
-function originColumns(data: ReservationOrigin): { external_source?: string; external_id?: string; sync_enabled?: number } {
-  if (!data.external_source || !data.external_id) return {};
-  return {
-    external_source: data.external_source,
-    external_id: data.external_id,
-    ...(data.sync_enabled !== undefined && { sync_enabled: data.sync_enabled ? 1 : 0 }),
-  };
-}
-
-export interface UpdateReservationData {
-  title?: string;
-  reservation_time?: string;
-  reservation_end_time?: string;
-  location?: string;
-  confirmation_number?: string;
-  notes?: string;
-  url?: string;
-  day_id?: number | null;
-  end_day_id?: number | null;
-  place_id?: number;
-  assignment_id?: number;
-  status?: string;
-  type?: string;
-  accommodation_id?: number;
-  metadata?: unknown;
-  create_accommodation?: CreateAccommodation;
-  endpoints?: EndpointInput[];
-  needs_review?: boolean;
-}
 
 type AccommodationTimesMeta = {
   check_in_time?: string | null;

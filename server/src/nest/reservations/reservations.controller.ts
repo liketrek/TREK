@@ -2,6 +2,7 @@ import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { withoutOrigin } from './reservation-origin';
 import { ReservationWritesService } from './reservation-writes.service';
 import {
   ReservationCreateDto,
@@ -9,7 +10,7 @@ import {
   ReservationPositionsDto,
   ReservationTravelersDto,
 } from './reservations.dto';
-import { ReservationsService, withoutOrigin } from './reservations.service';
+import { ReservationsService } from './reservations.service';
 import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 type ReservationBody = Record<string, unknown> & {

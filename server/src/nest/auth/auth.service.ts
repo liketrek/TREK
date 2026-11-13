@@ -15,7 +15,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
-import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { resolveApiKey } from '../settings/instance-api-keys';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
@@ -71,13 +71,14 @@ import {
 } from './auth.helpers';
 import {
   ADMIN_FORM_SETTING_KEYS,
-  APP_SETTINGS,
   MASKED_ADMIN_SETTING_KEYS,
+  ADMIN_SETTING_MASK,
+  isMaskEcho,
+  storedAdminValue,
   PUBLIC_CONFIG_SETTING_KEYS,
   isOidcConfigured,
   isOidcConfiguredIn,
   readAppSetting,
-  type AppSettingDef,
   type AppSettingKey,
 } from '../common/app-settings.registry';
 
@@ -709,7 +710,7 @@ export class AuthService {
     const result: Record<string, string> = {};
     for (const key of ADMIN_FORM_SETTING_KEYS) {
       const value = await readAppSetting(this.appSettings, key);
-      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? '••••••••' : value;
+      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? ADMIN_SETTING_MASK : value;
     }
     return { data: withEnvLocks(result) };
   }
@@ -769,22 +770,14 @@ export class AuthService {
           // admin a saved setting that quietly does nothing.
           if (key === 'places_provider' && !isPlacesProviderChoice(val)) continue;
           // A masked key sent back unchanged keeps its stored value.
-          if (MASKED_ADMIN_SETTING_KEYS.has(key) && val === '••••••••') continue;
-          const def = APP_SETTINGS[key] as AppSettingDef;
-          if (def.validated) {
-            const checked = def.schema.safeParse(val);
-            if (!checked.success) throw new DomainError(400, checked.error.issues[0]?.message ?? `${key} is not valid`);
-          }
-          const encrypted: AppSettingDef['encrypted'] = def.encrypted;
-          if (encrypted === 'always') val = encrypt_api_key(val);
-          else if (encrypted === 'if-plain' && val) val = maybe_encrypt_api_key(val) ?? val;
-          await this.appSettings.setValue(key, val);
+          if (isMaskEcho(key, val)) continue;
+          await this.appSettings.setValue(key, storedAdminValue(key, val));
         }
       }
     });
 
     // A masked key sent back as its mask was not changed, and a secret's value never reaches the audit row.
-    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(MASKED_ADMIN_SETTING_KEYS.has(k) && String(body[k]) === '••••••••'));
+    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !isMaskEcho(k, body[k]));
 
     const summary: Record<string, unknown> = {};
     const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));

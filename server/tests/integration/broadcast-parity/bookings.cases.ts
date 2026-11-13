@@ -243,6 +243,7 @@ async function mailEntryFor(s: Scene, app: INestApplication, added: boolean): Pr
     const trip = person ? await trips.editableTrip(person, s.trip.id) : null;
     if (!trip) throw new Error(`the owner of scene ${s.n} cannot add bookings to its trip`);
     const apply = app.get(MailIngestApplyService);
+    // test-sql-allow: MailIngestApplyService.prepare builds the booking to write, it is no SQL statement.
     const prepared = await apply.prepare(item, trip, s.owner.id, []);
     const written = await app.get(UnitOfWork).transactional(() => apply.writeInTx(prepared));
     return em.getRepository(MailIngestCandidates).insertCandidate({
