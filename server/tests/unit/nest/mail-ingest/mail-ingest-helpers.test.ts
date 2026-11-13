@@ -62,17 +62,35 @@ describe('classifyMail', () => {
 });
 
 describe('senderVerified', () => {
-  const signed = { 'Authentication-Results': 'mx.example.net; dkim=pass header.d=example.com; spf=pass' };
+  const verdict = (results: string) => ({ 'Authentication-Results': `mx.example.net; ${results}` });
+  const signed = verdict('dkim=pass header.d=example.com; spf=pass');
 
-  it('holds for the person’s own address, signed by its domain', () => {
-    expect(senderVerified(mail(signed, BOOKING_BODY), 'Mia@Example.com')).toBe(true);
+  it('holds for the person’s own address, signed by its domain, as the IMAP box’s server judged', () => {
+    expect(senderVerified(mail(signed, BOOKING_BODY), 'Mia@Example.com', 'imap')).toBe(true);
+    const dmarc = verdict('dkim=fail; dmarc=pass (p=reject) header.from=example.com');
+    expect(senderVerified(mail(dmarc, BOOKING_BODY), 'mia@example.com', 'imap')).toBe(true);
   });
 
   it('does not hold for another sender or without a signature', () => {
-    expect(senderVerified(mail(signed, BOOKING_BODY), 'other@example.com')).toBe(false);
-    expect(senderVerified(mail({}, BOOKING_BODY), 'mia@example.com')).toBe(false);
-    const forged = { 'Authentication-Results': 'mx.example.net; dkim=pass header.d=evil.test' };
-    expect(senderVerified(mail(forged, BOOKING_BODY), 'mia@example.com')).toBe(false);
+    expect(senderVerified(mail(signed, BOOKING_BODY), 'other@example.com', 'imap')).toBe(false);
+    expect(senderVerified(mail({}, BOOKING_BODY), 'mia@example.com', 'imap')).toBe(false);
+    const forged = verdict('dkim=pass header.d=evil.test');
+    expect(senderVerified(mail(forged, BOOKING_BODY), 'mia@example.com', 'imap')).toBe(false);
+  });
+
+  it('does not hold for a pass that names another domain than the From one', () => {
+    const lookalike = verdict('dkim=pass header.d=example.com.evil.test');
+    expect(senderVerified(mail(lookalike, BOOKING_BODY), 'mia@example.com', 'imap')).toBe(false);
+    const unaligned = verdict('dmarc=pass header.from=evil.test');
+    expect(senderVerified(mail(unaligned, BOOKING_BODY), 'mia@example.com', 'imap')).toBe(false);
+    const bare = verdict('dmarc=pass');
+    expect(senderVerified(mail(bare, BOOKING_BODY), 'mia@example.com', 'imap')).toBe(false);
+  });
+
+  it('never holds where the sender could have written the verdict itself', () => {
+    for (const transport of ['cloud', 'webhook', 'upload']) {
+      expect(senderVerified(mail(signed, BOOKING_BODY), 'mia@example.com', transport), transport).toBe(false);
+    }
   });
 
   it('reads a bare address out of a From header', () => {

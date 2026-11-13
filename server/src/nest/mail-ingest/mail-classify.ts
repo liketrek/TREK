@@ -51,25 +51,37 @@ export function classifyMail(mail: WalkedMail): MailClass {
 
 /**
  * Whether the mail came from the person themselves, signed: the From address
- * is their account's and the receiving server saw a DKIM or DMARC pass for
- * its domain. Only ever a hint shown with the mail (owner decision
- * 13.11.2026), never a reason to stop.
+ * is their account's, and the receiving server's verdict holds a DKIM pass
+ * signed by its domain or a DMARC pass for it as the From domain. Only a mail
+ * read from the admin's own IMAP box carries such a verdict, as the topmost
+ * Authentication-Results, added above whatever the mail brought along. The
+ * TREK Cloud relay hands a mail on without its server's verdict, and a
+ * webhook sender or an uploaded file can write any header, so those never
+ * count. Only ever a hint shown with the mail (owner decision 13.11.2026),
+ * never a reason to stop.
  */
-export function senderVerified(mail: WalkedMail, accountEmail: string): boolean {
+export function senderVerified(mail: WalkedMail, accountEmail: string, transport: string): boolean {
+  if (transport !== 'imap') return false;
   const from = addressOf(mail.envelope.from);
   if (!from || from !== accountEmail.trim().toLowerCase()) return false;
   const domain = from.split('@')[1] ?? '';
-  const results = (mail.envelope.authenticationResults ?? '').toLowerCase();
-  const dkim = new RegExp(`dkim=pass[^;]*header\\.(d|i)=@?${escapeRegExp(domain)}\\b`);
-  return dkim.test(results) || /dmarc=pass/.test(results);
+  // The part before the first `;` names the server that judged; each part after it is one method's result.
+  const results = (mail.envelope.authenticationResults ?? '').toLowerCase().split(';').slice(1);
+  return results.some((result) => passesFor(result.trim(), domain));
+}
+
+/** Whether one method's result is a pass that names the From domain itself. */
+function passesFor(result: string, domain: string): boolean {
+  const property = (name: string) => new RegExp(`(?:^|\\s)${name}=@?([^\\s;]+)`).exec(result)?.[1] ?? null;
+  if (/^dkim=pass\b/.test(result)) {
+    return property('header\\.d') === domain || property('header\\.i')?.split('@').pop() === domain;
+  }
+  if (/^dmarc=pass\b/.test(result)) return property('header\\.from') === domain;
+  return false;
 }
 
 /** The bare address of a From header: `Mia <mia@example.com>` is `mia@example.com`. */
 export function addressOf(header: string | null): string | null {
   const match = /<([^>]+)>/.exec(header ?? '') ?? /([^\s<>"]+@[^\s<>"]+)/.exec(header ?? '');
   return match ? match[1].trim().toLowerCase() : null;
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

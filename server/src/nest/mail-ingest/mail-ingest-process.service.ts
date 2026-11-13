@@ -129,7 +129,7 @@ export class MailIngestProcessService {
       await this.keepForInbox(message, null, 'mail_unreadable', now);
       return;
     }
-    const outcome = this.outcomeBase(mail, person, now);
+    const outcome = this.outcomeBase(mail, person, message.transport, now);
     const address = message.address_id === null ? null : await this.addresses.findById(message.address_id);
     if (!address || !(await this.addresses.isLive(address))) {
       await this.messages.finish(message.id, { ...outcome, status: 'discarded', reason: 'address_invalid' });
@@ -410,10 +410,15 @@ export class MailIngestProcessService {
     });
   }
 
-  /** What the mail says about itself, before any booking in it is read. */
-  private outcomeBase(mail: WalkedMail, person: MailIngestPersonRow, now: Date): MailIngestMessageOutcome {
+  /** What the mail says about itself, before any booking in it is read; `transport` is the one it came by. */
+  private outcomeBase(
+    mail: WalkedMail,
+    person: MailIngestPersonRow,
+    transport: string,
+    now: Date,
+  ): MailIngestMessageOutcome {
     const hints: MailIngestHint[] = [];
-    if (!senderVerified(mail, person.email)) hints.push('sender_unverified');
+    if (!senderVerified(mail, person.email, transport)) hints.push('sender_unverified');
     if (mail.skippedAttachments > 0) hints.push('attachments_skipped');
     return {
       status: 'processed',
