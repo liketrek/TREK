@@ -4,7 +4,8 @@ import { LlmRequestError } from '../../../../src/nest/llm-parse/clients/llm-requ
 import { ImageTooLargeError } from '../../../../src/nest/llm-parse/image-input';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
 import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
-import { failureOutcome, LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
+import { failureOutcome } from '../../../../src/nest/llm-parse/llm-outcome';
+import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -77,8 +78,8 @@ beforeEach(() => {
   extract.mockResolvedValue([{ '@type': 'FlightReservation' }]);
   extractText.mockResolvedValue('Flight AB123');
   detectFlightNumbers.mockReturnValue([]);
-  routeExtraction.mockResolvedValue({ kiItems: [{ '@type': 'LodgingReservation' }], warnings: [] });
-  routeImageExtraction.mockResolvedValue({ kiItems: [{ '@type': 'TrainReservation' }], warnings: [] });
+  routeExtraction.mockResolvedValue({ kiItems: [{ '@type': 'LodgingReservation' }], warnings: [], outcome: 'ok' });
+  routeImageExtraction.mockResolvedValue({ kiItems: [{ '@type': 'TrainReservation' }], warnings: [], outcome: 'ok' });
   modelCapabilities.mockResolvedValue(null);
   renderPdfPages.mockResolvedValue([]);
 });
@@ -709,8 +710,11 @@ describe('LlmParseService.parse outcome', () => {
     expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('empty');
     resolveLlmConfig.mockReturnValue(cfg({ provider: 'local' }));
     expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('ok');
-    routeExtraction.mockResolvedValueOnce({ kiItems: [], warnings: [] });
+    // The router's own outcome is passed on, a failed model call inside it included.
+    routeExtraction.mockResolvedValueOnce({ kiItems: [], warnings: [], outcome: 'empty' });
     expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('empty');
+    routeExtraction.mockResolvedValueOnce({ kiItems: [], warnings: ['failed'], outcome: 'provider_error' });
+    expect((await svc().parse(file('a.txt'), 1)).outcome).toBe('provider_error');
   });
 
   it('LLM-OUTCOME-002: no AI set up, a scan nothing can read, and a photo the model cannot see', async () => {

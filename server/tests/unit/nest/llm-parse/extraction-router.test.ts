@@ -217,6 +217,7 @@ describe('routeExtraction', () => {
     expect(res.kiItems).toEqual([]);
     expect(res.warnings[0]).toContain('AI parsing failed');
     expect(res.warnings[0]).toContain('connection refused');
+    expect(res.outcome).toBe('provider_error');
   });
 
   // #2076 — the lodging keywords used to be tested second and included
@@ -330,7 +331,7 @@ describe('routeImageExtraction', () => {
       currency: 'EUR',
     });
     const out = await routeImageExtraction([Buffer.from('photo')], CTX);
-    expect(out).toEqual({ kiItems: [{ '@type': 'Mock' }], warnings: [] });
+    expect(out).toEqual({ kiItems: [{ '@type': 'Mock' }], warnings: [], outcome: 'ok' });
     expect(extractEnforced).toHaveBeenCalledTimes(1);
     const call = extractEnforced.mock.calls[0][0];
     expect(call.images).toEqual([Buffer.from('photo').toString('base64')]);

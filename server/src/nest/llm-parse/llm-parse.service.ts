@@ -2,13 +2,13 @@ import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { collapseRepeatedBookingTotal } from './booking-total';
 import { LlmContextOverflowError } from './clients/context-overflow';
-import { LlmRequestError } from './clients/llm-request-error';
 import { toIsoCurrency } from './currency-code';
-import { capImage, ImageTooLargeError, imageMimeType, renderPdfPages } from './image-input';
+import { capImage, imageMimeType, renderPdfPages } from './image-input';
 import { createLlmClient } from './llm-client.factory';
 import type { ResolvedLlmConfig } from './llm-config';
 import { LlmConfigResolver } from './llm-config.resolver';
 import { LlmLocalService } from './llm-local.service';
+import { failureOutcome, foundOutcome } from './llm-outcome';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionFile, LlmExtractionInput } from './llm-provider.interface';
 import {
@@ -48,26 +48,6 @@ export interface LlmParseResult {
   outcome: LlmParseOutcome;
 }
 
-/** The codes the TREK Cloud gate answers a spent allowance with, on a 429. */
-const QUOTA_CODES = new Set(['QUOTA_SPENT', 'HARD_CAP']);
-
-/**
- * How a failed reading ended, from the error alone: a spent Cloud allowance,
- * a document too large for the model or the gate, or a provider that failed.
- */
-export function failureOutcome(err: unknown): LlmParseOutcome {
-  if (err instanceof LlmRequestError) {
-    if (err.status === 429 && err.code !== undefined && QUOTA_CODES.has(err.code)) return 'quota_exhausted';
-    if (err.status === 413) return 'too_large';
-  }
-  if (err instanceof LlmContextOverflowError || err instanceof ImageTooLargeError) return 'too_large';
-  return 'provider_error';
-}
-
-/** A reading that found bookings or did not. */
-function foundOutcome(items: readonly unknown[]): LlmParseOutcome {
-  return items.length > 0 ? 'ok' : 'empty';
-}
 
 /**
  * Orchestrates the LLM fallback: resolve config → pick client → build input
@@ -293,7 +273,7 @@ export class LlmParseService {
       return {
         kiItems: [],
         warnings: [`${file.originalName}: could not read file — ${err instanceof Error ? err.message : String(err)}`],
-        outcome: err instanceof ImageTooLargeError ? 'too_large' : 'provider_error',
+        outcome: failureOutcome(err),
       };
     }
 
@@ -314,11 +294,7 @@ export class LlmParseService {
               ctx,
             )
           : await routeExtraction(input.text ?? '', ctx);
-        return {
-          kiItems: routed.kiItems,
-          warnings: [...warnings, ...routed.warnings],
-          outcome: foundOutcome(routed.kiItems),
-        };
+        return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings], outcome: routed.outcome };
       } catch (err) {
         console.error(
           `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
