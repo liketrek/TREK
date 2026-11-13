@@ -22,6 +22,8 @@ interface MenuState {
   y: number
   items: MenuItem[]
   alignEnd?: boolean
+  /** The top of the button it hangs from: with no room below, the menu opens above it, not over it. */
+  anchorTop?: number
 }
 
 export function useContextMenu() {
@@ -30,14 +32,18 @@ export function useContextMenu() {
   const open = (e: React.MouseEvent, items: MenuItem[], alignEnd = false) => {
     e.preventDefault()
     e.stopPropagation()
-    const anchor = alignEnd ? e.currentTarget.getBoundingClientRect() : { right: e.clientX, bottom: e.clientY }
-    setMenu({ x: alignEnd ? anchor.right : e.clientX, y: alignEnd ? anchor.bottom + 6 : e.clientY, items, alignEnd })
+    if (!alignEnd) {
+      setMenu({ x: e.clientX, y: e.clientY, items, alignEnd })
+      return
+    }
+    const anchor = e.currentTarget.getBoundingClientRect()
+    setMenu({ x: anchor.right, y: anchor.bottom + 6, items, alignEnd, anchorTop: anchor.top })
   }
 
   /** Opens the menu under an element, its end on the element's end: the next step of a menu opened there. */
   const openAt = (anchor: Element, items: MenuItem[]) => {
     const rect = anchor.getBoundingClientRect()
-    setMenu({ x: rect.right, y: rect.bottom + 6, items, alignEnd: true })
+    setMenu({ x: rect.right, y: rect.bottom + 6, items, alignEnd: true, anchorTop: rect.top })
   }
 
   const close = () => setMenu(null)
@@ -119,6 +125,8 @@ function ContextMenuFrame({ menu, onClose, closing }: { menu: MenuState; onClose
     const height = Math.min(el.offsetHeight, viewH - 16)
     let { x, y } = menu
     if (menu.alignEnd) x = x - width
+    // A menu hanging from a button near the foot of the screen opens above it.
+    if (menu.anchorTop !== undefined && y + height > viewH - 8 && menu.anchorTop - 6 - height >= 8) y = menu.anchorTop - 6 - height
     // Kept inside all four edges with 8px to spare.
     x = Math.min(Math.max(8, x), viewW - width - 8)
     y = Math.min(Math.max(8, y), viewH - height - 8)

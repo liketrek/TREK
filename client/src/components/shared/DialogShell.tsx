@@ -346,16 +346,29 @@ export function DialogButton({ variant = 'secondary', active = false, icon, chil
   )
 }
 
-/** The square delete button of the footer, named by its tooltip. */
-export function DeleteButton({ onClick, label, disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
-  const { t } = useTranslation()
-  const name = label ?? t('common.delete')
+const ICON_BUTTON = 'grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-card shadow-sm ring-1 ring-edge-faint disabled:cursor-default disabled:opacity-50'
+
+/**
+ * A square footer button with an icon only, named by its tooltip: what a footer
+ * offers besides its one or two worded actions, so the row never wraps.
+ */
+export function DialogIconButton({ label, icon, danger = false, ...rest }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style' | 'children'> & {
+  label: string
+  icon: ReactNode
+  danger?: boolean
+}) {
   return (
-    <Tooltip label={name} placement="top">
-      <button type="button" onClick={onClick} disabled={disabled} aria-label={name}
-        className="grid h-9 w-9 place-items-center rounded-[10px] bg-surface-card text-danger shadow-sm ring-1 ring-edge-faint hover:bg-danger-soft disabled:cursor-default disabled:opacity-50">
-        <Trash2 size={15} strokeWidth={2} />
+    <Tooltip label={label} placement="top">
+      <button type="button" {...rest} aria-label={label}
+        className={`${ICON_BUTTON} ${danger ? 'text-danger hover:bg-danger-soft' : 'text-content hover:bg-surface-secondary'}`}>
+        {icon}
       </button>
     </Tooltip>
   )
+}
+
+/** The square delete button of the footer, named by its tooltip. */
+export function DeleteButton({ onClick, label, disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
+  const { t } = useTranslation()
+  return <DialogIconButton label={label ?? t('common.delete')} onClick={onClick} disabled={disabled} danger icon={<Trash2 size={15} strokeWidth={2} />} />
 }
