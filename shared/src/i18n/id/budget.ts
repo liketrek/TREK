@@ -171,6 +171,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit':
     'Siapa yang membayar dan siapa yang ikut menanggung tiap pengeluaran, lalu pelunasan di akhir.',
   'costs.mode.hintTotals': 'Hanya total: tanpa pembayar, bagian, atau pelunasan. Yang sudah dibagi tetap tersimpan.',
+  'costs.breakdown.hint': 'Pilih kategori untuk mengecualikannya dari total.',
+  'costs.breakdown.leaveOut': 'Kecualikan {category} dari total',
+  'costs.breakdown.countIn': 'Hitung {category} lagi dalam total',
+  'costs.breakdown.leftOut': 'Dikecualikan dari total: {categories}',
+  'costs.breakdown.countAll': 'Hitung semua',
   'costs.splitHint.ticket': 'Tuliskan isi kuitansi dan centang siapa yang mengambil tiap item.',
   'costs.filter.allCategories': 'Semua kategori',
   'costs.filter.allDays': 'Semua hari',

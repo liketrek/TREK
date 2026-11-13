@@ -1,9 +1,11 @@
+import type { CostCategory } from '@trek/shared';
 import { describe, expect, it } from 'vitest';
 
 import { buildBudgetItem } from '../../../tests/helpers/factories';
 import type { BudgetItem } from '../../types';
 import {
   buildCostsCsv,
+  categoryBreakdown,
   computeTotals,
   currencyOptions,
   filterBudgetItems,
@@ -18,7 +20,7 @@ import {
   type CostsSettlement,
 } from './costsModel';
 
-// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-014
+// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-015
 // The pieces both ledgers share since the desktop panel runs on this model too;
 // the rest of the model is pinned in tests/unit/mobile/trip/costsModel.test.ts.
 
@@ -178,5 +180,27 @@ describe('costsModel: when Costs shows who paid and the shares (#2689, #1714)', 
     const flow = { from: { user_id: 2, username: 'u2' }, to: { user_id: 1, username: 'u1' }, amount: 10 };
     expect(showsSplitting('totals', 3, [shared], { flows: [flow], balances: [] }, 1)).toBe(false);
     expect(showsSplitting('split', 3, [shared], { flows: [flow], balances: [] }, 1)).toBe(true);
+  });
+});
+
+describe('costsModel: categories left out of the totals (#2819)', () => {
+  it('FE-BUDGET-COSTSMODEL-015: they leave what was spent, paid and shared, not what is owed or open, and keep their row', () => {
+    const food = expense({
+      category: 'food',
+      total_price: 40,
+      payers: [payer(1, 40)],
+      members: [member(1), member(2)],
+    });
+    const hotel = expense({ category: 'accommodation', total_price: 100, payers: [], members: [member(1)] });
+    const flow = { from: { user_id: 2, username: 'u2' }, to: { user_id: 1, username: 'u1' }, amount: 20 };
+    const without = computeTotals([food, hotel], [flow], ctx, myShareOf, new Set<CostCategory>(['food']));
+    expect(without).toMatchObject({ totalSpend: 100, myPaid: 0, myShare: 100, owed: 20, outstanding: 100 });
+    expect(computeTotals([food, hotel], [flow], ctx).totalSpend).toBe(140);
+
+    const bars = categoryBreakdown([food, hotel], ctx, new Set<CostCategory>(['accommodation']));
+    expect(bars.map((b) => [b.key, b.leftOut, b.widthPct])).toEqual([
+      ['accommodation', true, 0],
+      ['food', false, 100],
+    ]);
   });
 });

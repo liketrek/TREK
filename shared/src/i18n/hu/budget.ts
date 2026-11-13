@@ -180,6 +180,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Ki fizetett és kik osztoznak az egyes kiadásokon, a végén pedig az elszámolás.',
   'costs.mode.hintTotals':
     'Csak összesítés: nincs fizető, részesedés vagy elszámolás. Ami már fel volt osztva, megmarad.',
+  'costs.breakdown.hint': 'Válassz egy kategóriát, hogy kimaradjon az összesítésből.',
+  'costs.breakdown.leaveOut': '{category} kihagyása az összesítésből',
+  'costs.breakdown.countIn': '{category} visszavétele az összesítésbe',
+  'costs.breakdown.leftOut': 'Kimarad az összesítésből: {categories}',
+  'costs.breakdown.countAll': 'Minden beszámítása',
   'costs.splitHint.ticket': 'Sorold fel, mi szerepelt a nyugtán, és minden tételnél jelöld be, kié volt.',
   'costs.filter.allCategories': 'Összes kategória',
   'costs.filter.allDays': 'Összes nap',

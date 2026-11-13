@@ -191,6 +191,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Кто заплатил и кто делит каждый расход, а в конце взаиморасчёт.',
   'costs.mode.hintTotals':
     'Только итоги: без плательщиков, долей и взаиморасчётов. Уже разделённое остаётся сохранённым.',
+  'costs.breakdown.hint': 'Выберите категорию, чтобы не учитывать её в итогах.',
+  'costs.breakdown.leaveOut': 'Не учитывать {category} в итогах',
+  'costs.breakdown.countIn': 'Снова учитывать {category} в итогах',
+  'costs.breakdown.leftOut': 'Не учтено в итогах: {categories}',
+  'costs.breakdown.countAll': 'Учитывать всё',
   'costs.splitHint.ticket': 'Перечислите, что было в чеке, и отметьте, кто что брал.',
   'costs.filter.allCategories': 'Все категории',
   'costs.filter.allDays': 'Все дни',

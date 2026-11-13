@@ -49,7 +49,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const {
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, splitting, knownNames,
     search, setSearch, segment, setSegment, catFilter, setCatFilter, dayFilter, setDayFilter,
-    totals, filtered, filteredSettlements, catBreakdown, exportCsv: handleExportCsv,
+    totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
     deleteExpense, undoSettlement: handleUndoSettlement,
   } = useCostsLedger({ tripId, trip, budgetItems, memberCount: tripMembers.length, actions: planner.tripActions, canEdit, t, toast })
 
@@ -142,6 +142,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         <div className="mt-1 font-geist text-[1.875rem] font-extrabold tabular-nums tracking-[-0.02em]">
           {formatMoney(totals.totalSpend, base, locale)}
         </div>
+        {/* Categories left out below (#2819) leave this total too, which it says. */}
+        {leftOutLabel && <div className="mt-[2px] text-caption opacity-70">{leftOutLabel}</div>}
         {/* Each figure under its own label, so the two pairs never read as one run.
             Only with something to split (#2689), like everything owed below. */}
         {splitting && <div className="mt-[8px] flex flex-wrap gap-x-[22px] gap-y-[6px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
@@ -309,25 +311,49 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 
       </>}
 
-      {/* By category (spec §3.5) */}
+      {/* By category (spec §3.5). A tap leaves a category out of the totals
+          for a look without it (#2819); the row stays, dimmed. */}
       <div className="mt-2 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
-        <div className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('costs.byCategory')}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('costs.byCategory')}</div>
+          {leftOutLabel && (
+            <button
+              type="button"
+              onClick={countAllCats}
+              className="ms-auto flex flex-none items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[9px] py-[3px] text-caption font-semibold text-m-muted"
+            >
+              <RotateCcw size={11} strokeWidth={2.2} />
+              {t('costs.breakdown.countAll')}
+            </button>
+          )}
+        </div>
+        {leftOutLabel
+          ? <p className="mt-1 text-caption text-m-muted">{leftOutLabel}</p>
+          : catBreakdown.length > 1 && <p className="mt-1 text-caption text-m-faint">{t('costs.breakdown.hint')}</p>}
         {catBreakdown.length === 0 ? (
           <p className="mt-2 font-geist text-[0.71875rem] text-m-faint">{t('costs.noCategories')}</p>
         ) : (
           catBreakdown.map(c => {
             const meta = COST_CAT_META[c.key]
+            const name = t(meta.labelKey)
+            const action = c.leftOut ? t('costs.breakdown.countIn', { category: name }) : t('costs.breakdown.leaveOut', { category: name })
             return (
-              <div key={c.key} className="pb-[2px] pt-[6px]">
-                <div className="flex items-center gap-[7px]">
+              <button
+                key={c.key}
+                type="button"
+                aria-label={action}
+                onClick={() => toggleLeftOutCat(c.key)}
+                className={`block w-full pb-[2px] pt-[6px] text-start ${c.leftOut ? 'opacity-45' : ''}`}
+              >
+                <span className="flex items-center gap-[7px]">
                   <span className="h-2 w-2 flex-none rounded-full" style={{ background: meta.color }} />
-                  <span className="min-w-0 flex-1 truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{t(meta.labelKey)}</span>
-                  <span dir="ltr" className="ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink">{formatMoney(c.amount, base, locale)}</span>
-                </div>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-[color:var(--m-ic)]">
+                  <span className="min-w-0 flex-1 truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{name}</span>
+                  <span dir="ltr" className={`ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink ${c.leftOut ? 'line-through' : ''}`}>{formatMoney(c.amount, base, locale)}</span>
+                </span>
+                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-[color:var(--m-ic)]">
                   <span className="block h-full rounded-full" style={{ width: `${c.widthPct}%`, background: meta.color }} />
-                </div>
-              </div>
+                </span>
+              </button>
             )
           })
         )}

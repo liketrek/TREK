@@ -170,6 +170,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Ai đã trả và ai cùng chia từng khoản chi, rồi thanh toán bù trừ ở cuối.',
   'costs.mode.hintTotals':
     'Chỉ tổng cộng: không có người trả, phần chia hay thanh toán bù trừ. Những gì đã chia vẫn được lưu.',
+  'costs.breakdown.hint': 'Chọn một danh mục để loại nó khỏi tổng.',
+  'costs.breakdown.leaveOut': 'Loại {category} khỏi tổng',
+  'costs.breakdown.countIn': 'Tính lại {category} vào tổng',
+  'costs.breakdown.leftOut': 'Đã loại khỏi tổng: {categories}',
+  'costs.breakdown.countAll': 'Tính tất cả',
   'costs.splitHint.ticket': 'Liệt kê các món trên hóa đơn và đánh dấu ai đã dùng từng món.',
   'costs.filter.allCategories': 'Tất cả danh mục',
   'costs.filter.allDays': 'Tất cả các ngày',

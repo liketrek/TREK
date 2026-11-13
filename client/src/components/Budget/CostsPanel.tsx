@@ -14,7 +14,7 @@ import { useReceiptScan } from './useReceiptScan'
 import { ReceiptScanModal } from './ReceiptScanModal'
 import { SPLIT_COLORS } from './BudgetPanel.constants'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, NOTE_MAX, paidByUser, readUserNote, settlementDate } from './CostsPanel.helpers'
-import { COST_CAT_META, COST_CATEGORY_LIST, catMeta } from './costsCategories'
+import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import {
   baseTotal as baseTotalOf, booked as bookedAmount, isUnfinished as isUnfinishedModel, lineOf as lineOfModel, memberShareOf,
   myPaidOf as myPaidOfModel, paymentAmount, paymentLineOf, settledShareOf,
@@ -31,6 +31,7 @@ import { useExpenseDeleteConfirm } from './useExpenseDeleteConfirm'
 import { FlowPills } from './FlowPills'
 import { CostsSplitChips } from './CostsSplitChips'
 import { CostsModeCard } from './CostsModeCard'
+import { CostsCategoryBreakdown } from './CostsCategoryBreakdown'
 import type { BudgetParticipantFinal, ReceiptLine } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -74,7 +75,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const {
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
-    totals, filtered, filteredSettlements, catBreakdown, exportCsv: handleExportCsv,
+    totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
     deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll,
   } = useCostsLedger({
     tripId, trip, budgetItems, memberCount: tripMembers.length, actions: { loadBudgetItems, deleteBudgetItem }, canEdit, t, toast,
@@ -237,11 +238,16 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const totalCard = (
     <SummaryCard label={t('costs.totalSpend')} sub={t('costs.totalSpendSub')} amount={totals.totalSpend} currency={base} locale={locale}
       icon={<BarChart3 size={18} />} tone="total"
-      foot={splitting ? <>
+      foot={<>{splitting ? <>
         <span className={CHIP}>{t('costs.yourShare')}<b className="text-content">{fmt0(totals.myShare)}</b></span>
         <span className={CHIP}>{t('costs.youPaid')}<b className="text-content">{fmt0(totals.myPaid)}</b></span>
-      </> : <span className={CHIP}>{t('costs.expensesCount', { count: budgetItems.length })}</span>} />
+      </> : <span className={CHIP}>{t('costs.expensesCount', { count: budgetItems.length })}</span>}
+        {leftOutLabel && <span className={`${CHIP} text-warning`}>{leftOutLabel}</span>}</>} />
   )
+
+  // Spend by category; a click leaves one out of the totals for a look without it (#2819).
+  const categoryBars = <CostsCategoryBreakdown rows={catBreakdown} leftOutLabel={leftOutLabel} fmt={v => fmt0(v)}
+    onToggle={toggleLeftOutCat} onCountAll={countAllCats} />
 
   // ── category + day filter controls (shared by both layouts) ──────────────
   // A prominent summary shown when a single day is selected: the day + its total.
@@ -377,7 +383,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           ) : (
             <section aria-label={t('costs.byCategory')} className={SIDE_CARD}>
               {sideHead(t('costs.byCategory'))}
-              <div className="px-4 py-4">{CategoryBreakdown()}</div>
+              <div className="px-4 py-4">{categoryBars}</div>
             </section>
           )}
           <CostsModeCard trip={trip} memberCount={people.length} canEdit={canEdit} className={SIDE_CARD} />
@@ -606,7 +612,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         {/* By category */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.byCategory')}</div>
-          {CategoryBreakdown()}
+          {categoryBars}
         </div>
         <CostsModeCard trip={trip} memberCount={people.length} canEdit={canEdit} className={`${cardCls} rounded-[18px]`} />
       </div>
@@ -975,33 +981,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             </div>
           </div>
         )}
-      </div>
-    )
-  }
-
-  function CategoryBreakdown() {
-    // Categories net refunds against spend (#2176): a negative entry lowers its
-    // category's sum, and a category that nets negative keeps its own row,
-    // just without a bar, since the bars rank positive spend. Bars are scaled
-    // relative to the most expensive category (the top row fills the bar), not
-    // to the trip grand total, which makes the relative ranking readable.
-    if (catBreakdown.length === 0) return <div className="text-content-faint" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))' }}>{t('costs.noCategories')}</div>
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {catBreakdown.map(row => {
-          const c = COST_CAT_META[row.key]
-          const v = row.amount; const pct = row.widthPct
-          return (
-            <div key={row.key} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10, alignItems: 'center' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
-              <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{t(c.labelKey)}</span>
-              <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{fmt0(v)}</span>
-              <div className="bg-surface-secondary" style={{ gridColumn: '1 / -1', height: 5, borderRadius: 3, overflow: 'hidden', marginTop: -2 }}>
-                <span style={{ display: 'block', height: '100%', width: pct + '%', background: c.color, borderRadius: 3 }} />
-              </div>
-            </div>
-          )
-        })}
       </div>
     )
   }

@@ -18,7 +18,7 @@ import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-057
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-058
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -996,5 +996,19 @@ describe('MCostsTab', () => {
     expect(screen.getByText('costs.mode.hintTotals')).toBeInTheDocument()
     fireEvent.click(toggle)
     await waitFor(() => expect(updateTrip).toHaveBeenCalledWith(7, { costs_mode: 'split' }))
+  })
+
+  it('FE-MOB-COSTT-058: a tapped category leaves the total and is named, and Count all brings it back (#2819)', async () => {
+    await renderTab()
+    const total = () => up(screen.getByText('costs.totalSpend'), 1)
+    const before = total().textContent
+    expect(screen.queryByText('costs.breakdown.countAll')).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /^costs\.breakdown\.leaveOut:/ })[0])
+    expect(total().textContent).not.toBe(before)
+    expect(within(total()).getByText(/^costs\.breakdown\.leftOut:/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^costs\.breakdown\.countIn:/ })).toHaveClass('opacity-45')
+    fireEvent.click(screen.getByText('costs.breakdown.countAll'))
+    expect(total().textContent).toBe(before)
+    expect(screen.queryByRole('button', { name: /^costs\.breakdown\.countIn:/ })).not.toBeInTheDocument()
   })
 })

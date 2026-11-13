@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-015
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-016
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -270,6 +270,24 @@ describe('useCostsLedger: a trip that keeps totals only (#1714)', () => {
     expect(result.current.splitting).toBe(false);
     expect(result.current.filteredSettlements).toEqual([]);
     expect(result.current.filtered).toHaveLength(2);
+  });
+});
+
+describe('useCostsLedger: categories left out (#2819)', () => {
+  it('FE-BUDGET-LEDGER-016: a category left out leaves the total and is named, and counting all brings it back', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    const whole = result.current.totals.totalSpend;
+    const [first] = result.current.catBreakdown;
+    act(() => result.current.toggleLeftOutCat(first.key));
+    expect(result.current.totals.totalSpend).toBeCloseTo(whole - first.amount, 6);
+    expect(result.current.catBreakdown.find((r) => r.key === first.key)?.leftOut).toBe(true);
+    expect(result.current.leftOutLabel).toBe('costs.breakdown.leftOut');
+    // What is owed stays whole: the flows are the server's.
+    expect(result.current.totals.owe).toBe(15);
+    act(() => result.current.countAllCats());
+    expect(result.current.totals.totalSpend).toBe(whole);
+    expect(result.current.leftOutLabel).toBe('');
   });
 });
 

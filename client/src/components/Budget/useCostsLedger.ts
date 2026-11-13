@@ -1,3 +1,4 @@
+import type { CostCategory } from '@trek/shared';
 import { liveQuery } from 'dexie';
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
 
@@ -12,6 +13,7 @@ import { useServerPing } from '../../sync/useServerPing';
 import type { BudgetItem, Trip } from '../../types';
 import { downloadBlob } from '../../utils/fileDownload';
 import { localToday } from '../Planner/today';
+import { COST_CAT_META } from './costsCategories';
 import {
   buildCostsCsv,
   categoryBreakdown,
@@ -184,6 +186,18 @@ export function useCostsLedger({
   const [segment, setSegment] = useState<CostsSegment>('all');
   const [catFilter, setCatFilter] = useState(''); // '' = all categories
   const [dayFilter, setDayFilter] = useState(''); // '' = all days, else YYYY-MM-DD
+  // Categories left out of the totals for a look without them (#2819): only this
+  // view, nothing is saved and nothing owed changes.
+  const [leftOutCats, setLeftOutCats] = useState<ReadonlySet<CostCategory>>(() => new Set());
+  const toggleLeftOutCat = useCallback((key: CostCategory) => {
+    setLeftOutCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+  const countAllCats = useCallback(() => setLeftOutCats(new Set()), []);
 
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
   const flows = useMemo(() => settlement?.flows || [], [settlement]);
@@ -197,7 +211,10 @@ export function useCostsLedger({
   const knownNames = useMemo(() => knownPersonNames(budgetItems, settlement), [budgetItems, settlement]);
   // `ctx` carries the rates. They can land after the expenses, and without it in the
   // deps the cards kept the sums they were first added up with while the rows moved on.
-  const totals = useMemo(() => computeTotals(budgetItems, flows, ctx, shareOf), [budgetItems, flows, ctx, shareOf]);
+  const totals = useMemo(
+    () => computeTotals(budgetItems, flows, ctx, shareOf, leftOutCats),
+    [budgetItems, flows, ctx, shareOf, leftOutCats]
+  );
   const filtered = useMemo(
     () =>
       filterBudgetItems(
@@ -219,7 +236,12 @@ export function useCostsLedger({
         : [],
     [splitting, settlement, search, activeSegment, catFilter, dayFilter, me]
   );
-  const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx), [budgetItems, ctx]);
+  const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx, leftOutCats), [budgetItems, ctx, leftOutCats]);
+  // What the totals leave out, named in the breakdown's order, for the line that says so.
+  const leftOutLabel = useMemo(() => {
+    const names = catBreakdown.filter((r) => r.leftOut).map((r) => t(COST_CAT_META[r.key].labelKey));
+    return names.length > 0 ? t('costs.breakdown.leftOut', { categories: names.join(', ') }) : '';
+  }, [catBreakdown, t]);
 
   // CSV export of all expenses, the wiki-documented export that got lost in the
   // Costs rework (#1500). One row per expense, oldest first.
@@ -324,6 +346,9 @@ export function useCostsLedger({
     filtered,
     filteredSettlements,
     catBreakdown,
+    leftOutLabel,
+    toggleLeftOutCat,
+    countAllCats,
     exportCsv,
     deleteExpense,
     undoSettlement,

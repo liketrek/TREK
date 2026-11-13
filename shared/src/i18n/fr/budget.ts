@@ -179,6 +179,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Qui a payé et qui partage chaque dépense, puis le règlement à la fin.',
   'costs.mode.hintTotals':
     'Totaux seulement : ni payeurs, ni parts, ni règlement. Ce qui était partagé reste enregistré.',
+  'costs.breakdown.hint': 'Choisissez une catégorie pour l’exclure des totaux.',
+  'costs.breakdown.leaveOut': 'Exclure {category} des totaux',
+  'costs.breakdown.countIn': 'Compter de nouveau {category} dans les totaux',
+  'costs.breakdown.leftOut': 'Exclu des totaux : {categories}',
+  'costs.breakdown.countAll': 'Tout compter',
   'costs.splitHint.ticket': 'Listez ce qui figurait sur le reçu et cochez qui a pris chaque article.',
   'costs.filter.allCategories': 'Toutes les catégories',
   'costs.filter.allDays': 'Tous les jours',

@@ -179,6 +179,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Wie betaalde en wie elke uitgave deelt, en aan het eind de verrekening.',
   'costs.mode.hintTotals':
     'Alleen totalen: geen betalers, aandelen of verrekening. Wat al verdeeld was, blijft bewaard.',
+  'costs.breakdown.hint': 'Kies een categorie om die buiten de totalen te laten.',
+  'costs.breakdown.leaveOut': '{category} buiten de totalen laten',
+  'costs.breakdown.countIn': '{category} weer meetellen in de totalen',
+  'costs.breakdown.leftOut': 'Buiten de totalen: {categories}',
+  'costs.breakdown.countAll': 'Alles meetellen',
   'costs.splitHint.ticket': 'Zet op een rij wat er op de bon stond en vink aan wie welk item had.',
   'costs.filter.allCategories': 'Alle categorieën',
   'costs.filter.allDays': 'Alle dagen',

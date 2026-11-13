@@ -202,6 +202,8 @@ Four cards sit above the ledger:
 
 The right-hand column ends with **By category**: spending per category as a ranked list of bars in the category colours. Only categories with spend on them appear, sorted by amount, and the bars are scaled against the biggest category rather than the trip total, so the ranking stays readable.
 
+A click on a category in **By category** leaves it out of the totals for a look without it, say to see what the trip cost without food. The row stays where it was, dimmed and struck through, and the other bars rescale. **Total trip spend**, **Your share** and **You paid** drop that category, and a line on the total card and above the bars names what is left out; **Count all**, or a second click on the row, brings it back. Nothing is saved and nothing owed changes: **You owe**, **You're owed**, the outstanding amount, the settle-up and the balances stay whole, and the choice is gone when you leave the tab. On the phone, a tap on the category does the same.
+
 ### Costs in the day plan
 
 With Costs on, the cost pills on the days of the plan and **Total Cost** at its foot (and the same figures in the trip PDF) add up the expenses from Costs, each one once: on the day its booking starts, otherwise the first day its place is planned, otherwise its own date; one without any day still counts in the total. A foreign expense counts at its frozen rate and a refund nets against its day, so **Total Cost** matches **Total trip spend**, and deleting an expense lowers both. With Costs off, a place's own price counts instead, once per place.

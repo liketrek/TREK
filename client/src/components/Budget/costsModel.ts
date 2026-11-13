@@ -225,15 +225,30 @@ export interface CostsTotals {
   outstandingCount: number;
 }
 
+/** No category left out of the totals. */
+const ALL_COUNTED: ReadonlySet<CostCategory> = new Set();
+
+/** Whether an expense counts in the totals while `leftOut` categories are set aside. */
+function counts(e: BudgetItem, leftOut: ReadonlySet<CostCategory>): boolean {
+  return leftOut.size === 0 || !leftOut.has(catMeta(e.category).key);
+}
+
+/**
+ * The hero and tile figures. Categories left out for a look without them
+ * (#2819) leave what was spent, paid and shared; what is owed and still open
+ * stays whole, since leaving a category out of the view settles nothing.
+ */
 export function computeTotals(
   items: BudgetItem[],
   flows: CostsSettlementFlow[],
   ctx: CostsCtx,
-  shareOf: ShareOf = myShareOf
+  shareOf: ShareOf = myShareOf,
+  leftOut: ReadonlySet<CostCategory> = ALL_COUNTED
 ): CostsTotals {
-  const totalSpend = items.reduce((a, e) => a + baseTotal(e, ctx), 0);
-  const myPaid = items.reduce((a, e) => a + myPaidOf(e, ctx), 0);
-  const myShare = items.reduce((a, e) => a + shareOf(e, ctx), 0);
+  const counted = items.filter((e) => counts(e, leftOut));
+  const totalSpend = counted.reduce((a, e) => a + baseTotal(e, ctx), 0);
+  const myPaid = counted.reduce((a, e) => a + myPaidOf(e, ctx), 0);
+  const myShare = counted.reduce((a, e) => a + shareOf(e, ctx), 0);
   const owe = flows.filter((f) => f.from.user_id === ctx.me).reduce((a, f) => a + f.amount, 0);
   const owed = flows.filter((f) => f.to.user_id === ctx.me).reduce((a, f) => a + f.amount, 0);
   const outstandingItems = items.filter((e) => isUnfinished(e, ctx));
@@ -366,11 +381,17 @@ export function dayFilterKeys(items: BudgetItem[]): string[] {
 export interface CostsCategoryBar {
   key: CostCategory;
   amount: number;
-  /** 0-100, relative to the largest category (not the grand total) — spec §3.5. */
+  /** 0-100, relative to the largest category counted (not the grand total) — spec §3.5. */
   widthPct: number;
+  /** Left out of the totals for now (#2819): the row stays, without a bar. */
+  leftOut: boolean;
 }
 
-export function categoryBreakdown(items: BudgetItem[], ctx: CostsCtx): CostsCategoryBar[] {
+export function categoryBreakdown(
+  items: BudgetItem[],
+  ctx: CostsCtx,
+  leftOut: ReadonlySet<CostCategory> = ALL_COUNTED
+): CostsCategoryBar[] {
   // Categories net refunds against spend (#2176): a negative entry lowers its
   // category's sum. A category that nets negative keeps its own row at the
   // bottom, with widthPct 0 — the bars rank positive spend, and a negative
@@ -380,11 +401,16 @@ export function categoryBreakdown(items: BudgetItem[], ctx: CostsCtx): CostsCate
     const key = catMeta(e.category).key;
     totals.set(key, (totals.get(key) || 0) + baseTotal(e, ctx));
   }
-  const rows = COST_CATEGORY_LIST.map((c) => ({ key: c.key, amount: totals.get(c.key) || 0 }))
+  // A row left out keeps its place, so it does not jump while it is toggled.
+  const rows = COST_CATEGORY_LIST.map((c) => ({
+    key: c.key,
+    amount: totals.get(c.key) || 0,
+    leftOut: leftOut.has(c.key),
+  }))
     .filter((r) => r.amount !== 0)
     .sort((a, b) => b.amount - a.amount);
-  const max = Math.max(0, ...rows.map((r) => r.amount));
-  return rows.map((r) => ({ ...r, widthPct: max > 0 && r.amount > 0 ? (r.amount / max) * 100 : 0 }));
+  const max = Math.max(0, ...rows.filter((r) => !r.leftOut).map((r) => r.amount));
+  return rows.map((r) => ({ ...r, widthPct: !r.leftOut && max > 0 && r.amount > 0 ? (r.amount / max) * 100 : 0 }));
 }
 
 // ── presentation helpers ─────────────────────────────────────────────────

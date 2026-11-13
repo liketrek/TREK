@@ -182,6 +182,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Wer bezahlt hat und wer sich jede Ausgabe teilt, und am Ende das Ausgleichen.',
   'costs.mode.hintTotals':
     'Nur Summen: keine Zahler, Anteile oder Ausgleich. Was schon aufgeteilt war, bleibt gespeichert.',
+  'costs.breakdown.hint': 'Wähle eine Kategorie, um sie aus den Summen herauszunehmen.',
+  'costs.breakdown.leaveOut': '{category} aus den Summen herausnehmen',
+  'costs.breakdown.countIn': '{category} wieder in die Summen aufnehmen',
+  'costs.breakdown.leftOut': 'Nicht in den Summen: {categories}',
+  'costs.breakdown.countAll': 'Alle zählen',
   'costs.splitHint.ticket': 'Liste auf, was auf dem Beleg steht, und hak ab, wer was hatte.',
   'costs.ticketItemName': 'Artikelname',
   'costs.ticketSplitting': 'Aufteilen auf:',

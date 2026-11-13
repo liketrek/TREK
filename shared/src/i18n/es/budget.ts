@@ -178,6 +178,11 @@ const budget: TranslationStrings = {
   'costs.mode.hintSplit': 'Quién pagó y quién comparte cada gasto, y el ajuste de cuentas al final.',
   'costs.mode.hintTotals':
     'Solo totales: sin pagadores, partes ni ajuste de cuentas. Lo que ya estaba repartido se conserva.',
+  'costs.breakdown.hint': 'Elige una categoría para dejarla fuera de los totales.',
+  'costs.breakdown.leaveOut': 'Dejar {category} fuera de los totales',
+  'costs.breakdown.countIn': 'Volver a contar {category} en los totales',
+  'costs.breakdown.leftOut': 'Fuera de los totales: {categories}',
+  'costs.breakdown.countAll': 'Contar todo',
   'costs.splitHint.ticket': 'Enumera lo que había en el recibo y marca quién tomó cada artículo.',
   'costs.filter.allCategories': 'Todas las categorías',
   'costs.filter.allDays': 'Todos los días',
