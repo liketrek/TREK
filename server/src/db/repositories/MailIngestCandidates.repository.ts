@@ -63,7 +63,8 @@ interface MailIngestResolutionPatch {
   resolvedTripId: number | null;
   createdIdsJson: string | null;
   resolvedBy: number | null;
-  resolvedAt: DbTimestamp;
+  /** Null puts an entry back into the inbox. */
+  resolvedAt: DbTimestamp | null;
   undoUntil: DbTimestamp | null;
 }
 

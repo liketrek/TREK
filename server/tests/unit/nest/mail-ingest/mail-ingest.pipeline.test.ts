@@ -10,6 +10,7 @@ import { MailIngestMessages } from '../../../../src/db/entities/MailIngestMessag
 import { Reservations } from '../../../../src/db/entities/Reservations.entity';
 import { importExternalId } from '../../../../src/nest/booking-import/booking-origin';
 import { BookingImportService } from '../../../../src/nest/booking-import/booking-import.service';
+import { DemoService } from '../../../../src/nest/common/demo.service';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { FilesService } from '../../../../src/nest/files/files.service';
 import { MailReadService } from '../../../../src/nest/llm-parse/mail-read.service';
@@ -301,6 +302,37 @@ describe('a booking that passes every check', () => {
     await actions().move(entry.id, user.id, second.id, true, NOW);
     expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(1);
   });
+
+  it('is moved by its forwarder alone, and undone by any member who may edit the trip', async () => {
+    const user = await person();
+    const { user: friend } = await makeUser(orm());
+    const shared = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    await addTripMember(orm(), shared.id, friend.id);
+    const friendsOwn = await makeTrip(orm(), friend.id, { start_date: '2030-02-25', end_date: '2030-03-05' });
+    const [entry] = await entriesOf(await forward(user.id, eml('flight')));
+
+    await expect(actions().move(entry.id, friend.id, friendsOwn.id, true, NOW)).rejects.toThrow(
+      'Only the person who forwarded the mail can move it',
+    );
+    expect(await countRows(orm(), Reservations, { trip: friendsOwn.id })).toBe(0);
+    await actions().undo(entry.id, friend.id, true, NOW);
+    expect(await countRows(orm(), Reservations, { trip: shared.id })).toBe(0);
+  });
+
+  it('is not moved by a demo account', async () => {
+    const user = await person();
+    await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    const second = await makeTrip(orm(), user.id, { start_date: '2030-02-25', end_date: '2030-03-05' });
+    const [entry] = await entriesOf(await forward(user.id, eml('flight')));
+    const demo = vi.spyOn(t.get(DemoService), 'isDemoUserId').mockResolvedValue(true);
+    try {
+      await expect(actions().move(entry.id, user.id, second.id, true, NOW)).rejects.toThrow(
+        'Demo accounts cannot add bookings',
+      );
+    } finally {
+      demo.mockRestore();
+    }
+  });
 });
 
 describe('a booking that waits in the inbox', () => {
@@ -334,8 +366,21 @@ describe('a booking that waits in the inbox', () => {
     });
 
     const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    await setAddonEnabled(orm(), 'documents', false);
+    await expect(actions().fileToTrip(entry.id, user.id, trip.id, NOW)).rejects.toThrow('This trip takes no documents');
+    expect(await findRow(orm(), MailIngestCandidates, { id: entry.id })).toMatchObject({
+      resolution: 'pending',
+      resolved_at: null,
+    });
+
+    await setAddonEnabled(orm(), 'documents', true);
     const filed = await actions().fileToTrip(entry.id, user.id, trip.id, NOW);
     expect(filed).toMatchObject({ resolution: 'filed', resolved_trip_id: trip.id });
+    const written = files.createFileFromBytes.mock.calls.length;
+    await expect(actions().fileToTrip(entry.id, user.id, trip.id, NOW)).rejects.toThrow(
+      'This entry was decided already',
+    );
+    expect(files.createFileFromBytes).toHaveBeenCalledTimes(written);
   });
 
   it('is added by hand to the trip the person picks, and can be discarded instead', async () => {

@@ -50,7 +50,9 @@ const TYPE_WORDS: ReadonlyArray<[RegExp, string]> = [
  * file the mail as documents, fill the booking form in themselves, discard
  * it, or undo or move a booking a mail added. Every action checks again that the
  * person may add bookings to the trip it touches, and that every id belongs
- * to that trip.
+ * to that trip. Undo is open to every member who may edit the trip's
+ * bookings; moving is the forwarder's alone, since it carries their mail
+ * into a trip of their choosing.
  */
 @Injectable()
 export class MailIngestActionsService {
@@ -103,8 +105,8 @@ export class MailIngestActionsService {
   }
 
   /**
-   * Moves an added booking into another trip the person may add bookings to,
-   * within the undo window: the booking is written there anew from what the
+   * Moves an added booking into another trip the forwarder may add bookings
+   * to, within the undo window: the booking is written there anew from what the
    * mail said (its venue located and its cost rate frozen for that trip) and
    * what it created in the first trip goes, in one transaction. The checks
    * run again for the new trip: its dates (G3), the booking's values (G5),
@@ -124,6 +126,9 @@ export class MailIngestActionsService {
   ): Promise<MailIngestCandidateRow> {
     await this.requireAvailable();
     const { entry, tripId: fromTripId, created } = await this.addedEntry(candidateId, userId, now);
+    // Another member would carry the forwarder's mail, and a booking in their name, into a trip they never see.
+    if (entry.user_id !== userId) throw new DomainError(403, 'Only the person who forwarded the mail can move it');
+    if (await this.demo.isDemoUserId(userId)) throw new DomainError(403, 'Demo accounts cannot add bookings');
     if (tripId === fromTripId) throw new DomainError(409, 'This booking is in that trip already');
     const item = decodeJson(MAIL_INGEST_ITEM, entry.item_json);
     if (!item) throw new DomainError(409, 'This entry holds no booking to move');
@@ -215,9 +220,11 @@ export class MailIngestActionsService {
   /**
    * "Add as document": the mail's attachments, or its text, as files of the
    * trip, and the entry settled as filed. Without the documents addon there
-   * is nothing to file into.
+   * is nothing to file into. The entry is claimed before the first document
+   * is written, so a second tap or a replayed request files nothing twice;
+   * when nothing could be filed it goes back into the inbox.
    *
-   * @txIndependent each document is storage I/O; the entry is settled once they are in.
+   * @txIndependent each document is storage I/O between the claim and the note of what landed.
    */
   async fileToTrip(
     candidateId: number,
@@ -226,21 +233,35 @@ export class MailIngestActionsService {
     now: Date = new Date(),
   ): Promise<MailIngestCandidateRow> {
     const entry = await this.pendingEntry(candidateId, userId);
+    if (await this.demo.isDemoUserId(userId)) throw new DomainError(403, 'Demo accounts cannot add documents');
     const trip = await this.tripFor(userId, tripId);
     const mail = await this.mailOf(entry);
     if (!mail) throw new DomainError(410, 'The mail is no longer stored');
-    const { fileIds, error } = await this.apply.attachDocuments(trip.id, null, mail, userId);
-    if (fileIds.length === 0) throw new DomainError(409, error ?? 'This trip takes no documents');
-    const created = { reservation_ids: [], place_ids: [], budget_item_ids: [], file_ids: fileIds, fingerprint: null };
-    await this.candidates.resolve(entry.id, ['pending'], {
+    const claimed = await this.candidates.resolve(entry.id, ['pending'], {
       resolution: 'filed',
       reason: null,
       resolvedTripId: trip.id,
-      createdIdsJson: encodeJson(MAIL_INGEST_CREATED, created),
+      createdIdsJson: null,
       resolvedBy: userId,
       resolvedAt: dbNow(now),
       undoUntil: null,
     });
+    if (!claimed) throw new DomainError(409, 'This entry was decided already');
+    let filed: { fileIds: number[]; error: string | null } = { fileIds: [], error: null };
+    try {
+      filed = await this.apply.attachDocuments(trip.id, null, mail, userId);
+    } finally {
+      if (filed.fileIds.length === 0) await this.reopen(entry);
+    }
+    if (filed.fileIds.length === 0) throw new DomainError(409, filed.error ?? 'This trip takes no documents');
+    const created = {
+      reservation_ids: [],
+      place_ids: [],
+      budget_item_ids: [],
+      file_ids: filed.fileIds,
+      fingerprint: null,
+    };
+    await this.candidates.setAttachments(entry.id, encodeJson(MAIL_INGEST_CREATED, created), filed.error);
     return this.reload(entry.id);
   }
 
@@ -333,6 +354,19 @@ export class MailIngestActionsService {
     const { fileIds, error } = await this.apply.attachDocuments(tripId, written.reservation.id, mail, userId);
     const created = { ...written.created, file_ids: fileIds };
     await this.candidates.setAttachments(entry.id, encodeJson(MAIL_INGEST_CREATED, created), error);
+  }
+
+  /** Puts an entry claimed for filing back into the inbox, as it was, when nothing could be filed. */
+  private async reopen(entry: MailIngestCandidateRow): Promise<void> {
+    await this.candidates.resolve(entry.id, ['filed'], {
+      resolution: 'pending',
+      reason: entry.reason,
+      resolvedTripId: null,
+      createdIdsJson: null,
+      resolvedBy: null,
+      resolvedAt: null,
+      undoUntil: null,
+    });
   }
 
   /** The person's own waiting entry, while the import runs; anyone else's answers as missing. */
