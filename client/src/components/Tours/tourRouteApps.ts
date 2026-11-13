@@ -67,8 +67,9 @@ function spreadIndices(line: ReadonlyArray<readonly [number, number]>, max: numb
 
 /**
  * The map apps a tour's route can be opened in, with the tour's mode. Only the
- * apps that take the whole route: one that only gets the start (Waze, a geo:
- * link) is what the tour's Navigation button already offers.
+ * apps that route the whole way: one that only gets the start (Waze, a geo:
+ * link) is what the tour's Navigation button already offers, and CoMaps routes
+ * a start and an end only, so with stops between it would get unrouted pins.
  */
 export function tourRouteTargets(
   type: TourTypeKey,
@@ -77,5 +78,8 @@ export function tourRouteTargets(
 ): DayRouteTarget[] {
   const profile = tourAppProfile(type);
   if (!profile) return [];
-  return dayRouteTargets(tourRouteStops(line, name), profile).filter((target) => !target.firstStopOnly);
+  const stops = tourRouteStops(line, name);
+  return dayRouteTargets(stops, profile).filter(
+    (target) => !target.firstStopOnly && !(target.id === 'comaps' && stops.length > 2)
+  );
 }

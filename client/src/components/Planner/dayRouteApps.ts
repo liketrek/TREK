@@ -72,7 +72,7 @@ export function dayRouteTargets(stops: NamedWaypoint[], profile: RouteProfileKey
   const push = (target: Omit<DayRouteTarget, 'url'>, url: string | null) => {
     if (url) out.push({ ...target, url });
   };
-  push({ id: 'google', label: 'Google Maps' }, generateGoogleMapsUrl(stops));
+  push({ id: 'google', label: 'Google Maps' }, generateGoogleMapsUrl(stops, profile));
   if (showsAppleMaps()) push({ id: 'apple', label: 'Apple Maps' }, generateAppleMapsUrl(stops, profile));
   push({ id: 'comaps', label: 'CoMaps' }, generateCoMapsUrl(stops, profile));
   const located = stops.filter((p) => p.lat != null && p.lng != null).length;

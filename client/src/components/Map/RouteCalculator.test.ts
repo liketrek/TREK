@@ -256,6 +256,19 @@ describe('generateGoogleMapsUrl', () => {
     expect(result).toContain('48.85,2.35')
     expect(result).toContain('48.86,2.36')
   })
+
+  it('FE-COMP-ROUTECALCULATOR-015b: a walk or ride carries its mode, a drive keeps the path link', () => {
+    const stops = [{ lat: 48.85, lng: 2.35 }, { lat: 48.86, lng: 2.36 }, { lat: 48.87, lng: 2.37 }]
+    expect(generateGoogleMapsUrl(stops, 'walking')).toBe(
+      'https://www.google.com/maps/dir/?api=1&origin=48.85,2.35&destination=48.87,2.37&waypoints=48.86%2C2.36&travelmode=walking',
+    )
+    expect(generateGoogleMapsUrl(stops, 'cycling')).toContain('&travelmode=bicycling')
+    expect(generateGoogleMapsUrl(stops, 'driving')).toBe('https://www.google.com/maps/dir/48.85,2.35/48.86,2.36/48.87,2.37')
+  })
+
+  it('FE-COMP-ROUTECALCULATOR-015c: a stop on the equator or the prime meridian is kept', () => {
+    expect(generateGoogleMapsUrl([{ lat: 0, lng: 0 }, { lat: 0, lng: 1 }])).toBe('https://www.google.com/maps/dir/0,0/0,1')
+  })
 })
 
 // ── withHotelBookends (#1275: draw the hotel → first / last → hotel legs) ────────

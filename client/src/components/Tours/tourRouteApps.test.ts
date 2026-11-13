@@ -39,6 +39,16 @@ describe('tourRouteApps (#2812)', () => {
     const targets = tourRouteTargets('bike', line(2), 'Ride');
     expect(targets.map((target) => target.id)).toEqual(['google', 'comaps']);
     expect(targets.find((target) => target.id === 'comaps')?.url).toContain('type=bicycle');
-    expect(targets.find((target) => target.id === 'google')?.url).toBe('https://www.google.com/maps/dir/0,0/0,0.01');
+    expect(targets.find((target) => target.id === 'google')?.url).toBe(
+      'https://www.google.com/maps/dir/?api=1&origin=0,0&destination=0,0.01&travelmode=bicycling'
+    );
+  });
+
+  it('FE-TOUR-ROUTEAPPS-005: a longer tour goes to Google on foot with its stops between, and not to CoMaps', () => {
+    const targets = tourRouteTargets('hike', line(5), 'Ridge');
+    expect(targets.map((target) => target.id)).toEqual(['google']);
+    const url = targets[0].url;
+    expect(url).toContain('&travelmode=walking');
+    expect(url).toContain('&waypoints=0%2C0.01%7C0%2C0.02%7C0%2C0.03');
   });
 });
