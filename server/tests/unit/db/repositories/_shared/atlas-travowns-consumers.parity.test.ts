@@ -41,13 +41,15 @@ const AT6 = (n: number) => `
     WHERE r.trip_id IN (${Array(n).fill('?').join(',')}) AND e.role IN ('from', 'to')
       AND ${TRAVELER_OWNS}`;
 
+// AT45 also names the trip's last day since #2648, the dashboard's order of countries.
 const AT45 = `
     SELECT DISTINCT e.id, e.reservation_id, r.trip_id, e.role, e.code, e.lat, e.lng, e.local_date, e.local_time,
            r.type AS reservation_type, r.status AS reservation_status,
            CASE e.role
              WHEN 'to' THEN COALESCE(r.reservation_end_time, r.reservation_time)
              ELSE COALESCE(r.reservation_time, r.reservation_end_time)
-           END AS fallback_time
+           END AS fallback_time,
+           COALESCE(t.end_date, t.start_date) AS trip_last_date
     FROM reservation_endpoints e
     JOIN reservations r ON e.reservation_id = r.id
     JOIN trips t ON r.trip_id = t.id

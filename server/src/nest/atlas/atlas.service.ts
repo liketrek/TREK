@@ -70,6 +70,19 @@ function daysBetween(today: string, isoDate: string): number {
  */
 type EndpointRow = TravelerOwnedEndpointRow;
 
+/**
+ * The visited countries in the order the dashboard shows them (#2648): most
+ * recently visited first, by the last day of the latest started trip that
+ * reached each one, so the few flags the tile has room for are the ones of the
+ * last journeys rather than the start of the alphabet. A country only marked
+ * by hand carries no date and follows, in the order it was marked.
+ */
+export function countriesByLastVisit(lastVisit: ReadonlyMap<string, string>, manual: Iterable<string>): string[] {
+  // Array.prototype.sort is stable, so countries of the same trip keep the order they were found in.
+  const dated = [...lastVisit].sort(([, a], [, b]) => (a < b ? 1 : a > b ? -1 : 0)).map(([code]) => code);
+  return [...new Set([...dated, ...manual])];
+}
+
 export type CreateBucketData = {
   name: string;
   lat?: number | null;
@@ -1069,18 +1082,26 @@ export class AtlasService {
     });
 
     // Visited countries: the ones the user marked by hand, plus the countries of
-    // their places, resolved the way the Atlas map resolves them (#2875).
-    const countryCodes = new Set<string>();
-    const manualCountries = await this.visitedCountries.listCodesForUser(userId); // AT43
-    manualCountries.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
+    // their places, resolved the way the Atlas map resolves them (#2875). Each
+    // reached country keeps the last day of its latest trip, for the order.
+    const manualCountries = (await this.visitedCountries.listCodesForUser(userId)) // AT43
+      .filter(Boolean)
+      .map(code => code.toUpperCase());
+    const lastVisit = new Map<string, string>();
+    const noteVisit = (code: string | null | undefined, tripLastDate: string | null) => {
+      if (!code) return;
+      const key = code.toUpperCase();
+      const when = tripLastDate ?? '';
+      const known = lastVisit.get(key);
+      if (known === undefined || when > known) lastVisit.set(key, when);
+    };
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
     // any dates even less so (#1048). `today` is UTC, matching tripVisitStatus.
     const countryOf = placeCountryResolver();
     for (const place of await this.placeRegions.listStartedTripPlaceCountriesForUser(userId, today)) { // AT44
-      const code = countryOf(place, place.country_code);
-      if (code) countryCodes.add(code.toUpperCase());
+      noteVisit(countryOf(place, place.country_code), place.trip_last_date);
     }
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
@@ -1091,29 +1112,33 @@ export class AtlasService {
     // connection/layover (e.g. a plane change) the traveler never really visited (#1486),
     // and the same layover split over two bookings is recognised from its ground time
     // instead, because there it is stored as a legitimate 'to'/'from' pair (#1535).
-    const endpointRows: EndpointRow[] = await this.reservationEndpoints.listOwnedEndpointsForUser(userId, today); // AT45, TRAVELER_OWNS (#1966)
+    const endpointRows = await this.reservationEndpoints.listOwnedEndpointsForUser(userId, today); // AT45, TRAVELER_OWNS (#1966)
     const transfers = transferEndpointIds(
       endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
     );
     // The DISTINCT no longer collapses per coordinate now that the endpoint id has to be
     // in the projection, so collapse here instead: getCountryFromCoords is a
-    // point-in-polygon scan and must stay at one run per coordinate.
-    const endpointCoords = new Map<string, { lat: number; lng: number }>();
+    // point-in-polygon scan and must stay at one run per coordinate. The latest
+    // trip through a coordinate is the one its country is dated by.
+    const endpointCoords = new Map<string, { lat: number; lng: number; tripLastDate: string | null }>();
     for (const e of endpointRows) {
       if (transfers.has(e.id)) continue;
-      endpointCoords.set(`${e.lat},${e.lng}`, { lat: e.lat, lng: e.lng });
+      const key = `${e.lat},${e.lng}`;
+      const known = endpointCoords.get(key);
+      if (!known || (e.trip_last_date ?? '') > (known.tripLastDate ?? '')) {
+        endpointCoords.set(key, { lat: e.lat, lng: e.lng, tripLastDate: e.trip_last_date });
+      }
     }
     for (const e of endpointCoords.values()) {
-      const code = getCountryFromCoords(e.lat, e.lng);
-      if (code) countryCodes.add(code.toUpperCase());
+      noteVisit(getCountryFromCoords(e.lat, e.lng), e.tripLastDate);
     }
 
     // Countries the user removed in Atlas stay removed on the dashboard too, so the
     // passport card and the Atlas map agree (#1490).
-    for (const code of await this.getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
+    const hidden = new Set([...(await this.getHiddenCountries(userId))].map(code => code.toUpperCase()));
 
     return {
-      countries: [...countryCodes],
+      countries: countriesByLastVisit(lastVisit, manualCountries).filter(code => !hidden.has(code)),
       cities: [...cities],
       coords,
       totalTrips: tripStats.trips || 0,
