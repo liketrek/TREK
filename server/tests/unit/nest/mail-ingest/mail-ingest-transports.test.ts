@@ -45,7 +45,7 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({
 
 /**
  * The control plane's inbox answer, byte for byte the fixture its own tests
- * hold the collection to (trek-hosted control-plane/src/fixtures/instance-inbox.json).
+ * hold the collection to (trek-hosted control-plane/fixtures/instance-inbox.json).
  */
 const RELAY_FIXTURE = {
   messages: [
