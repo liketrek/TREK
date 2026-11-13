@@ -266,6 +266,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nem található album',
   'journey.picker.selectDate': 'Dátum választása',
   'journey.picker.search': 'Keresés',
+  'journey.picker.takenBetween': 'Készítés időszaka',
   'journey.detail.journeyTab': 'Útinapló',
   'journey.contributors.remove': 'Közreműködő eltávolítása',
   'journey.contributors.removeConfirm': 'Eltávolítod {username} felhasználót ebből az útinaplóból?',

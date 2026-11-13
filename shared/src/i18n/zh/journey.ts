@@ -254,6 +254,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': '未找到相册',
   'journey.picker.selectDate': '选择日期',
   'journey.picker.search': '搜索',
+  'journey.picker.takenBetween': '拍摄日期范围',
   'journey.detail.journeyTab': '旅程',
   'journey.contributors.remove': '移除贡献者',
   'journey.contributors.removeConfirm': '要将 {username} 从此旅程中移除吗？',

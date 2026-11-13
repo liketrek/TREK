@@ -275,6 +275,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Keine Alben gefunden',
   'journey.picker.selectDate': 'Datum wählen',
   'journey.picker.search': 'Suchen',
+  'journey.picker.takenBetween': 'Aufgenommen zwischen',
   'journey.detail.journeyTab': 'Journey',
   'journey.editor.externalPhotos': 'Externe Fotos',
   'journey.editor.externalPhotosFor': 'Fotos vom {date}',

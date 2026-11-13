@@ -272,6 +272,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'ไม่พบอัลบั้ม',
   'journey.picker.selectDate': 'เลือกวันที่',
   'journey.picker.search': 'ค้นหา',
+  'journey.picker.takenBetween': 'ถ่ายระหว่าง',
   'journey.studio.title': 'เทรค สตูดิโอ',
   'journey.studio.open': 'สตูดิโอ',
   'journey.studio.openAria': 'เปิดสตูดิโอสมุดภาพ',

@@ -278,6 +278,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Δεν βρέθηκαν άλμπουμ',
   'journey.picker.selectDate': 'Επιλογή ημερομηνίας',
   'journey.picker.search': 'Αναζήτηση',
+  'journey.picker.takenBetween': 'Τραβήχτηκαν μεταξύ',
   'journey.editor.externalPhotos': 'Εξωτερικές φωτογραφίες',
   'journey.editor.externalPhotosFor': 'Φωτογραφίες για {date}',
   'journey.editor.externalPhotosNearby': 'Πρώτα οι κοντινές φωτογραφίες',

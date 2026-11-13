@@ -271,6 +271,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Žádná alba nenalezena',
   'journey.picker.selectDate': 'Vyberte datum',
   'journey.picker.search': 'Hledat',
+  'journey.picker.takenBetween': 'Pořízeno mezi',
   'journey.detail.journeyTab': 'Cestovní deník',
   'journey.contributors.remove': 'Odebrat přispěvatele',
   'journey.contributors.removeConfirm': 'Odebrat uživatele {username} z tohoto deníku?',

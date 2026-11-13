@@ -275,6 +275,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Inga album hittades',
   'journey.picker.selectDate': 'Välj datum',
   'journey.picker.search': 'Sök',
+  'journey.picker.takenBetween': 'Tagna mellan',
   'journey.editor.externalPhotos': 'Externa foton',
   'journey.editor.externalPhotosFor': 'Foton för {date}',
   'journey.editor.externalPhotosNearby': 'Foton i närheten först',

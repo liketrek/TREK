@@ -269,6 +269,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Albüm bulunamadı',
   'journey.picker.selectDate': 'Tarih seç',
   'journey.picker.search': 'Ara',
+  'journey.picker.takenBetween': 'Çekim tarihi aralığı',
   'journey.editor.uploadingProgress': '{done}/{total} yükleniyor…',
   'journey.editor.uploadFailed': 'Fotoğraf yüklenemedi',
   'journey.editor.uploadPartialFailed': '{total} fotoğraftan {failed} tanesi başarısız — tekrar denemek için kaydedin',
