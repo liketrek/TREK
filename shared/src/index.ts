@@ -45,6 +45,8 @@ export * from './reservation/reservation.schema';
 export * from './reservation/reservation-types';
 export * from './reservation/ki-reservation.schema';
 export * from './reservation/reservation-read.schema';
+export * from './mail-ingest/mail-ingest-reason.schema';
+export * from './mail-ingest/mail-ingest.schema';
 export * from './datetime/datetime-normalize';
 export * from './airtrail/airtrail.schema';
 export * from './dawarich/dawarich.schema';

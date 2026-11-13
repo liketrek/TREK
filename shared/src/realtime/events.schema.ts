@@ -441,6 +441,14 @@ export const TREK_WS_EVENTS = {
     }),
   },
 
+  // ── Mail import (user-scoped) ────────────────────────────────────────────
+  // The person's inbox of forwarded bookings changed: a mail was read, an entry
+  // decided. Carries the open count for the badge; an open inbox reads itself again.
+  'mailInbox:changed': { scope: 'user', payload: z.object({ pending: z.number().int().nonnegative() }) },
+  // The person's address or switches changed on another tab or device: the
+  // settings card reads them again. Content-free, since the address holds a secret.
+  'mailInbox:settings': { scope: 'user', payload: empty },
+
   // ── Booking import (user-scoped; push() injects jobId + tripId) ─────────
   'import:progress': {
     scope: 'user',
