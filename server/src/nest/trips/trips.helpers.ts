@@ -40,9 +40,11 @@ const TRIP_EDIT_FIELDS = ['title', 'description', 'start_date', 'end_date', 'cur
 /**
  * The permissions a trip update needs, in the order PUT /api/trips/:id checks
  * them, each with the refusal that route answers. Archiving and the cover have
- * their own action; any other field present is an edit. update_trip runs the
- * same list, so an MCP caller cannot archive a trip or swap its cover on the
- * strength of trip_edit alone.
+ * their own action, and so does the costs mode (#1714): it decides what Costs
+ * shows, so whoever may edit the costs sets it, as against the trip's own
+ * details. Any other field present is an edit. update_trip runs the same list,
+ * so an MCP caller cannot archive a trip or swap its cover on the strength of
+ * trip_edit alone.
  */
 export function tripUpdatePermissions(body: object): { action: PermissionKey; refusal: string }[] {
   const sent = (field: string) => (body as Record<string, unknown>)[field] !== undefined;
@@ -52,6 +54,9 @@ export function tripUpdatePermissions(body: object): { action: PermissionKey; re
   }
   if (sent('cover_image')) {
     needed.push({ action: 'trip_cover_upload', refusal: 'No permission to change cover image' });
+  }
+  if (sent('costs_mode')) {
+    needed.push({ action: 'budget_edit', refusal: 'No permission to change how this trip keeps its costs' });
   }
   if (TRIP_EDIT_FIELDS.some(sent)) needed.push({ action: 'trip_edit', refusal: 'No permission to edit this trip' });
   return needed;

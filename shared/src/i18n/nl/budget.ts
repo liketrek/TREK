@@ -175,6 +175,10 @@ const budget: TranslationStrings = {
     'Geef iedereen een aantal delen, zoals het aantal overnachtingen; het totaal wordt in die verhouding verdeeld.',
   'costs.splitSharesOf': 'Delen voor {name}',
   'costs.splitSharesNone': 'Geef ten minste één persoon een deel',
+  'costs.mode.label': 'Kosten verdelen tussen de reizigers',
+  'costs.mode.hintSplit': 'Wie betaalde en wie elke uitgave deelt, en aan het eind de verrekening.',
+  'costs.mode.hintTotals':
+    'Alleen totalen: geen betalers, aandelen of verrekening. Wat al verdeeld was, blijft bewaard.',
   'costs.splitHint.ticket': 'Zet op een rij wat er op de bon stond en vink aan wie welk item had.',
   'costs.filter.allCategories': 'Alle categorieën',
   'costs.filter.allDays': 'Alle dagen',

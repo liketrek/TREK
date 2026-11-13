@@ -33,6 +33,16 @@ export function tripSpanDays(startDate: string, endDate: string): number {
 }
 
 /**
+ * How a trip keeps its costs (#1714): `split` tracks who paid and who shares
+ * each expense and settles up between the travellers, `totals` keeps only what
+ * the trip costs. Who paid and the shares stay stored either way; `totals` only
+ * leaves them out of Costs. Trips start out as `split`.
+ */
+export const TRIP_COSTS_MODES = ['split', 'totals'] as const;
+export const tripCostsModeSchema = z.enum(TRIP_COSTS_MODES);
+export type TripCostsMode = z.infer<typeof tripCostsModeSchema>;
+
+/**
  * Trip entity as returned by the trip list / get / create / update endpoints
  * (server/src/services/tripService.ts -> TRIP_SELECT). Columns of the `trips`
  * table plus the computed list fields (day_count, place_count, is_owner as 0/1,
@@ -49,6 +59,8 @@ export const tripSchema = z.object({
   cover_image: z.string().nullable().optional(),
   is_archived: z.number(),
   reminder_days: z.number(),
+  // Optional: a trip cached before the column existed has none, and reads as `split`.
+  costs_mode: tripCostsModeSchema.optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   // computed in TRIP_SELECT (list/get)
@@ -121,6 +133,8 @@ export const tripUpdateRequestSchema = z.object({
   // Bounded like a place's image url: a replaced cover is queued for release,
   // and every upload path the old value spells out is one queued object.
   cover_image: z.string().max(2048).nullable().optional(),
+  /** Costs as totals only or split between the travellers; needs `budget_edit`, not `trip_edit`. */
+  costs_mode: tripCostsModeSchema.optional(),
 });
 export type TripUpdateRequest = z.infer<typeof tripUpdateRequestSchema>;
 

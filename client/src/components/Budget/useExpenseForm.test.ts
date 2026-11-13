@@ -21,7 +21,7 @@ vi.mock('./receiptUploads', () => ({
   ),
 }));
 
-// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-027
+// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-028
 
 const PEOPLE: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -513,6 +513,40 @@ describe('useExpenseForm: saving', () => {
     expect(addBudgetItem).toHaveBeenCalledWith(
       7,
       expect.objectContaining({ receipt_file_ids: [22], reservation_id: 4 })
+    );
+  });
+
+  it('FE-BUDGET-EXPFORM-028: on a totals-only trip a new expense names nobody, an edit keeps who it named (#1714)', async () => {
+    useTripStore.setState({
+      trip: buildTrip({ id: 7, currency: 'EUR', costs_mode: 'totals' }),
+    } as Partial<TripStoreState>);
+    const created = setup();
+    expect(created.result.current.showSplit).toBe(false);
+    fill(created.result, 'Museum', '30');
+    await save(created.result);
+    expect(addBudgetItem).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ payers: [], members: [], member_ids: [], total_price: 30 })
+    );
+
+    const editing = buildBudgetItem({
+      id: 9,
+      name: 'Dinner',
+      total_price: 40,
+      payers: [{ user_id: 2, amount: 40 }],
+      members: [
+        { user_id: 1, paid: 0, username: 'alice', amount: null },
+        { user_id: 2, paid: 0, username: 'bob', amount: null },
+      ],
+    } as Partial<BudgetItem>);
+    const edited = setup({ editing });
+    expect(edited.result.current.showSplit).toBe(false);
+    act(() => edited.result.current.onTotalChange('50'));
+    await save(edited.result);
+    expect(updateBudgetItem).toHaveBeenCalledWith(
+      7,
+      9,
+      expect.objectContaining({ payers: [{ user_id: 2, amount: 50 }], member_ids: [1, 2], total_price: 50 })
     );
   });
 

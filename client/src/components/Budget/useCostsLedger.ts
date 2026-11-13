@@ -53,8 +53,9 @@ interface Toaster {
  * breakdown, the CSV export and the ledger writes. Each surface lays it out
  * and keeps its own dialogs or sheets.
  *
- * `splitting` says whether the ledger has anything to split at all (#2689);
- * without it the owner filter and the recorded payments are left out too.
+ * `splitting` says whether the ledger splits anything at all: not on a trip
+ * that keeps totals only (#1714) or on a trip of one (#2689). Without it the
+ * owner filter and the recorded payments are left out too.
  *
  * Where the two differ today, the surface says which way: the desktop also
  * reads the settlement when the trip changes (`settlementOnTripChange`), leaves
@@ -187,8 +188,8 @@ export function useCostsLedger({
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
   const flows = useMemo(() => settlement?.flows || [], [settlement]);
   const splitting = useMemo(
-    () => showsSplitting(memberCount, budgetItems, settlement, me),
-    [memberCount, budgetItems, settlement, me]
+    () => showsSplitting(trip?.costs_mode, memberCount, budgetItems, settlement, me),
+    [trip?.costs_mode, memberCount, budgetItems, settlement, me]
   );
   // The owner filter is hidden while nothing is split, so it cannot hold the list back.
   const activeSegment = splitting ? segment : 'all';

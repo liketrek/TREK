@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertCircle, ArrowDown, ArrowLeftRight, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp,
   Layers, Pencil, Plus, RotateCcw, StickyNote, Trash2, Receipt,
@@ -12,6 +12,8 @@ import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
 import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
 import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
+import { useCostsMode } from '../../../../components/Budget/useCostsMode'
+import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import MConfirmSheet from '../../settings/MConfirmSheet'
@@ -51,6 +53,9 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
     deleteExpense, undoSettlement: handleUndoSettlement,
   } = useCostsLedger({ tripId, trip, budgetItems, memberCount: tripMembers.length, actions: planner.tripActions, canEdit, t, toast })
 
+  // Split between the travellers or totals only (#1714), switched at the foot of the summary.
+  const costsMode = useCostsMode(trip, tripMembers.length, canEdit)
+  const modeHintId = useId()
   const [catOpen, setCatOpen] = useState(false)
   const [dayOpen, setDayOpen] = useState(false)
   const [settleOpen, setSettleOpen] = useState(true)
@@ -328,6 +333,23 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         )}
       </div>
 
+      {costsMode.offered && (
+        <div className="mt-2 flex items-start gap-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
+          <div className="min-w-0 flex-1">
+            <div className="text-body font-bold text-m-ink">{t('costs.mode.label')}</div>
+            <p id={modeHintId} className="m-0 mt-[2px] text-caption text-m-faint">
+              {costsMode.splitting ? t('costs.mode.hintSplit') : t('costs.mode.hintTotals')}
+            </p>
+          </div>
+          <ToggleSwitch
+            on={costsMode.splitting}
+            onToggle={() => void costsMode.setSplitting(!costsMode.splitting)}
+            label={t('costs.mode.label')}
+            describedBy={modeHintId}
+            disabled={costsMode.saving}
+          />
+        </div>
+      )}
     </>
   )
 

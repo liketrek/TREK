@@ -1,4 +1,4 @@
-import type { BudgetParticipantFinal, BudgetUnconverted, CostCategory } from '@trek/shared';
+import type { BudgetParticipantFinal, BudgetUnconverted, CostCategory, TripCostsMode } from '@trek/shared';
 import { readDateFormat } from '../../hooks/useDateFormat';
 import { convertBooked, convertedLine, inDisplayCurrency, tripAmountOf } from '../../hooks/useExchangeRates';
 import type { BudgetItem } from '../../types';
@@ -174,17 +174,20 @@ export interface CostsSettlementResponse {
 
 /**
  * Whether Costs shows the splitting side: who paid, the shares, the balances
- * and settling up. A trip of one has nothing to split, since every share is the
- * whole amount and nobody can owe anybody (#2689), so it is left out there,
- * unless the ledger still names someone else: a traveller who left the trip
- * with money open, or members that have not loaded yet.
+ * and settling up. A trip that keeps its costs as totals only leaves it out
+ * (#1714), whatever is stored. A trip of one has nothing to split, since every
+ * share is the whole amount and nobody can owe anybody (#2689), so it is left
+ * out there too, unless the ledger still names someone else: a traveller who
+ * left the trip with money open, or members that have not loaded yet.
  */
 export function showsSplitting(
+  costsMode: TripCostsMode | undefined,
   memberCount: number,
   items: BudgetItem[],
   settlement: Pick<CostsSettlementResponse, 'flows' | 'balances'> | null,
   me: number
 ): boolean {
+  if (costsMode === 'totals') return false;
   if (memberCount > 1) return true;
   const namesOthers = items.some((e) => [...(e.payers || []), ...(e.members || [])].some((p) => p.user_id !== me));
   const moneyOpen = (settlement?.balances || []).some((b) => Math.abs(b.balance) >= 0.005);

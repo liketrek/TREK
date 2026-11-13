@@ -1179,4 +1179,35 @@ describe('Trip writes, as REST makes them', () => {
     });
     expect(await tripRow(trip.id)).toMatchObject({ title: 'After', is_archived: 1 });
   });
+
+  it('MCP-TRIPS-005: update_trip sets the costs mode on budget_edit, as the route does (#1714)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    expect((await tripRow(trip.id)).costs_mode).toBe('split');
+    // A member may edit the costs by default, though not the trip's own details.
+    await withHarness(member.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, costs_mode: 'totals' },
+      });
+      expect(result.isError).toBeFalsy();
+      expect((parseToolResult(result) as { trip: { costs_mode: string } }).trip.costs_mode).toBe('totals');
+    });
+    await setPermission('budget_edit', 'trip_owner');
+    await withHarness(member.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, costs_mode: 'split' },
+      });
+      expect(result.isError).toBe(true);
+      const bogus = await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, costs_mode: 'shares' },
+      });
+      expect(bogus.isError).toBe(true);
+    });
+    expect((await tripRow(trip.id)).costs_mode).toBe('totals');
+  });
 });

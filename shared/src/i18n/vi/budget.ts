@@ -166,6 +166,10 @@ const budget: TranslationStrings = {
   'costs.splitHint.shares': 'Đặt cho mỗi người một số phần, ví dụ số đêm đã ở; tổng tiền được chia theo tỷ lệ đó.',
   'costs.splitSharesOf': 'Số phần của {name}',
   'costs.splitSharesNone': 'Hãy đặt phần cho ít nhất một người',
+  'costs.mode.label': 'Chia chi phí giữa các thành viên',
+  'costs.mode.hintSplit': 'Ai đã trả và ai cùng chia từng khoản chi, rồi thanh toán bù trừ ở cuối.',
+  'costs.mode.hintTotals':
+    'Chỉ tổng cộng: không có người trả, phần chia hay thanh toán bù trừ. Những gì đã chia vẫn được lưu.',
   'costs.splitHint.ticket': 'Liệt kê các món trên hóa đơn và đánh dấu ai đã dùng từng món.',
   'costs.filter.allCategories': 'Tất cả danh mục',
   'costs.filter.allDays': 'Tất cả các ngày',

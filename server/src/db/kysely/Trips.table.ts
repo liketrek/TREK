@@ -17,4 +17,5 @@ export interface TripsTable {
   created_at: InsertOptional<string | null>;
   updated_at: InsertOptional<string | null>;
   reminder_sent_for: InsertOptional<string | null>;
+  costs_mode: InsertOptional<string>;
 }

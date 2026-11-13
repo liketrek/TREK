@@ -176,6 +176,10 @@ const budget: TranslationStrings = {
     'Adj mindenkinek egy részszámot, például az eltöltött éjszakák számát; a végösszeg ebben az arányban oszlik meg.',
   'costs.splitSharesOf': '{name} részei',
   'costs.splitSharesNone': 'Adj részt legalább egy személynek',
+  'costs.mode.label': 'Költségek elosztása az utazók között',
+  'costs.mode.hintSplit': 'Ki fizetett és kik osztoznak az egyes kiadásokon, a végén pedig az elszámolás.',
+  'costs.mode.hintTotals':
+    'Csak összesítés: nincs fizető, részesedés vagy elszámolás. Ami már fel volt osztva, megmarad.',
   'costs.splitHint.ticket': 'Sorold fel, mi szerepelt a nyugtán, és minden tételnél jelöld be, kié volt.',
   'costs.filter.allCategories': 'Összes kategória',
   'costs.filter.allDays': 'Összes nap',

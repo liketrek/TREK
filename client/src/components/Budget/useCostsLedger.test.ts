@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-014
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-015
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -260,6 +260,16 @@ describe('useCostsLedger: a trip of one (#2689)', () => {
     // A filter left on "I'm owed" from before cannot hide the expenses either.
     act(() => result.current.setSegment('owed'));
     expect(result.current.filtered.map((e) => e.id)).toEqual([8]);
+  });
+});
+
+describe('useCostsLedger: a trip that keeps totals only (#1714)', () => {
+  it('FE-BUDGET-LEDGER-015: nothing is split, though the trip has several members and money open', async () => {
+    const { result } = setup({ trip: buildTrip({ id: 7, currency: 'EUR', costs_mode: 'totals' }) });
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    expect(result.current.splitting).toBe(false);
+    expect(result.current.filteredSettlements).toEqual([]);
+    expect(result.current.filtered).toHaveLength(2);
   });
 });
 

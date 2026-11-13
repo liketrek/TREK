@@ -34,6 +34,7 @@ import {
   type DayGridRemoval,
   type TrekWsPayload,
   type TrekWsTripEventName,
+  type TripUpdateRequest,
 } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -62,20 +63,9 @@ interface CreateTripData {
   day_count?: number;
 }
 
-// Nullable where the wire contract (tripUpdateRequestSchema) is nullable — the
-// legacy route accepted arbitrary JSON, so null always reached these fields.
-interface UpdateTripData {
-  title?: string;
-  description?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  currency?: string;
-  is_archived?: boolean | number;
-  cover_image?: string | null;
-  reminder_days?: number;
-  day_count?: number;
-  date_shift_mode?: 'keep_bookings' | 'shift_all';
-}
+// The wire contract of PUT /api/trips/:id (tripUpdateRequestSchema), which
+// update_trip hands on as well; nullable where it is, as null always arrived.
+type UpdateTripData = TripUpdateRequest;
 
 export interface UpdateTripResult {
   updatedTrip: any;
@@ -475,7 +465,7 @@ export class TripsService {
     const trip = await this.tripsRepo.findRaw(tripId) as (Trip & { reminder_days?: number }) | null; // TP24
     if (!trip) throw new NotFoundError('Trip not found');
 
-    const { title, description, currency, is_archived, cover_image, reminder_days } = data;
+    const { title, description, currency, is_archived, cover_image, reminder_days, costs_mode } = data;
     const { newStart, newEnd, dayCount, regenerate } = this.resolveRange(trip, data);
 
     const newTitle = title || trip.title;
@@ -483,6 +473,7 @@ export class TripsService {
     const newCurrency = currency || trip.currency;
     const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
     const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
+    const newCostsMode = costs_mode ?? trip.costs_mode;
     const oldReminder = (trip as any).reminder_days ?? 3;
     const newReminder = reminder_days !== undefined
       ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
@@ -510,6 +501,7 @@ export class TripsService {
         is_archived: newArchived,
         cover_image: newCover ?? null,
         reminder_days: newReminder,
+        costs_mode: newCostsMode,
       });
 
       if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
@@ -545,6 +537,7 @@ export class TripsService {
     if (newEnd !== trip.end_date) changes.end_date = newEnd;
     if (newReminder !== oldReminder) changes.reminder_days = newReminder === 0 ? 'none' : `${newReminder} days`;
     if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
+    if (newCostsMode !== trip.costs_mode) changes.costs_mode = newCostsMode;
 
     const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
     let ownerEmail: string | undefined;
@@ -659,6 +652,7 @@ export class TripsService {
         currency: src.currency,
         cover_image: src.cover_image,
         reminder_days: src.reminder_days ?? 3,
+        costs_mode: src.costs_mode,
       });
 
       const oldDays = await this.daysRepo.listByTrip(Number(sourceTripId)); // TP38

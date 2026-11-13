@@ -29,7 +29,7 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
+import { idSchema, MAX_TRIP_DAYS, tripUpdateRequestSchema, type TripCostsMode } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -251,6 +251,9 @@ export class TripsMcp {
         .describe(
           'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
         ),
+      costs_mode: tripUpdateRequestSchema.shape.costs_mode.describe(
+        'How the trip keeps its costs: split (who paid and who shares each expense, with settling up) or totals (what the trip costs, nothing split). Who paid and the shares stay stored either way. Needs the budget_edit permission rather than trip_edit',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
@@ -269,6 +272,7 @@ export class TripsMcp {
       day_count,
       reminder_days,
       date_shift_mode,
+      costs_mode,
     }: {
       tripId: number;
       title?: string;
@@ -282,6 +286,7 @@ export class TripsMcp {
       day_count?: number;
       reminder_days?: number;
       date_shift_mode?: 'keep_bookings' | 'shift_all';
+      costs_mode?: TripCostsMode;
     },
     ctx: McpContext,
   ) {
@@ -293,8 +298,18 @@ export class TripsMcp {
     const dates: { start_date?: string | null; end_date?: string | null } = clear_dates
       ? { start_date: null, end_date: null }
       : { start_date, end_date };
-    const fields = { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days };
-    // The rights PUT /api/trips/:id asks for, field by field: archiving and the cover have their own.
+    const fields = {
+      title,
+      description,
+      ...dates,
+      currency,
+      is_archived,
+      cover_image,
+      day_count,
+      reminder_days,
+      costs_mode,
+    };
+    // The rights PUT /api/trips/:id asks for, field by field: archiving, the cover and the costs mode have their own.
     const granted = await Promise.all(
       tripUpdatePermissions(fields).map(({ action }) => this.guards.hasTripPermission(action, tripId, ctx.userId)),
     );

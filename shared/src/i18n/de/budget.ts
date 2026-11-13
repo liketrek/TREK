@@ -178,6 +178,10 @@ const budget: TranslationStrings = {
     'Gib jeder Person eine Zahl von Anteilen, etwa die Nächte, die sie geblieben ist; der Betrag wird in diesem Verhältnis aufgeteilt.',
   'costs.splitSharesOf': 'Anteile von {name}',
   'costs.splitSharesNone': 'Gib mindestens einer Person einen Anteil',
+  'costs.mode.label': 'Kosten unter den Reisenden aufteilen',
+  'costs.mode.hintSplit': 'Wer bezahlt hat und wer sich jede Ausgabe teilt, und am Ende das Ausgleichen.',
+  'costs.mode.hintTotals':
+    'Nur Summen: keine Zahler, Anteile oder Ausgleich. Was schon aufgeteilt war, bleibt gespeichert.',
   'costs.splitHint.ticket': 'Liste auf, was auf dem Beleg steht, und hak ab, wer was hatte.',
   'costs.ticketItemName': 'Artikelname',
   'costs.ticketSplitting': 'Aufteilen auf:',

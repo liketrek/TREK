@@ -188,6 +188,10 @@ const budget: TranslationStrings = {
     'Przypisz każdej osobie liczbę udziałów, np. liczbę nocy; kwota zostanie podzielona w tej proporcji.',
   'costs.splitSharesOf': 'Udziały: {name}',
   'costs.splitSharesNone': 'Przypisz udział co najmniej jednej osobie',
+  'costs.mode.label': 'Dziel koszty między podróżnych',
+  'costs.mode.hintSplit': 'Kto zapłacił i kto dzieli każdy wydatek, a na koniec rozliczenie.',
+  'costs.mode.hintTotals':
+    'Tylko sumy: bez płacących, udziałów i rozliczeń. To, co już podzielono, pozostaje zapisane.',
   'costs.splitHint.ticket': 'Wypisz, co było na paragonie, i zaznacz, kto miał którą pozycję.',
   'costs.filter.allCategories': 'Wszystkie kategorie',
   'costs.filter.allDays': 'Wszystkie dni',

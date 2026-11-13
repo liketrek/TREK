@@ -288,6 +288,12 @@
       "mobile": ["src/mobile/screens/trip/tabs/MCostsTab.tsx"]
     },
     {
+      "feature": "Costs/budget splitting or totals only: useCostsMode",
+      "hooks": ["src/components/Budget/useCostsMode.ts"],
+      "desktop": ["src/components/Budget/CostsModeCard.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MCostsTab.tsx"]
+    },
+    {
       "feature": "Costs/budget settle-up payment: useSettlementForm",
       "hooks": ["src/components/Budget/useSettlementForm.ts"],
       "desktop": ["src/components/Budget/SettlementModal.tsx"],

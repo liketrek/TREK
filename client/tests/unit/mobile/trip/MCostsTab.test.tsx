@@ -18,7 +18,7 @@ import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-056
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-057
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -981,5 +981,20 @@ describe('MCostsTab', () => {
     }
     // The souvenirs nobody paid for are an expense like any other here.
     expect(screen.getByText('Souvenirs')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-057: a trip that keeps totals only leaves out what is owed, and its switch turns splitting back on (#1714)', async () => {
+    const updateTrip = vi.fn(async () => TRIP)
+    useTripStore.setState({ updateTrip })
+    render(<MCostsTab planner={planner({ trip: { ...TRIP, costs_mode: 'totals' } as Trip })} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    for (const key of ['costs.youOwe', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    const toggle = screen.getByRole('button', { name: 'costs.mode.label' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('costs.mode.hintTotals')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(updateTrip).toHaveBeenCalledWith(7, { costs_mode: 'split' }))
   })
 })

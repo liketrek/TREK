@@ -167,6 +167,10 @@ const budget: TranslationStrings = {
     'Beri setiap orang sejumlah bagian, misalnya jumlah malam menginap; total dibagi menurut perbandingan itu.',
   'costs.splitSharesOf': 'Bagian untuk {name}',
   'costs.splitSharesNone': 'Beri bagian kepada setidaknya satu orang',
+  'costs.mode.label': 'Bagi biaya di antara para pelancong',
+  'costs.mode.hintSplit':
+    'Siapa yang membayar dan siapa yang ikut menanggung tiap pengeluaran, lalu pelunasan di akhir.',
+  'costs.mode.hintTotals': 'Hanya total: tanpa pembayar, bagian, atau pelunasan. Yang sudah dibagi tetap tersimpan.',
   'costs.splitHint.ticket': 'Tuliskan isi kuitansi dan centang siapa yang mengambil tiap item.',
   'costs.filter.allCategories': 'Semua kategori',
   'costs.filter.allDays': 'Semua hari',

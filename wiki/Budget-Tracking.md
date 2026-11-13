@@ -161,6 +161,14 @@ The **Add payment** dialog has **From** and **To** (the head band reads *You →
 
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end, so they stay stable even when the trip mixes currencies. An expense or payment in a foreign currency for which no exchange rate is known yet is left out of the balances and totals rather than counted 1:1; see [Currencies](Currencies#expense-currency).
 
+## Totals only
+
+Not every trip splits its costs: a couple who share everything, or someone who only wants to know what the trip costs, has no use for who paid and who owes whom. **Split costs between travelers**, the switch at the foot of the right-hand column (on the phone, under the summary), turns that side off for the whole trip. It is shown to members who may edit costs (`budget_edit`) on a trip with more than one member.
+
+With the switch off, Costs keeps the totals: **Total trip spend**, the expenses with their categories, days and receipts, **By category**, the table and the CSV export. What is owed, the settle-up suggestions, the balances, the final budget, the payers, the split chips and the **Unfinished** chip are left out, as on a trip of one (see below). A new expense is saved without a payer and without a split, so it does not turn into a debt if the trip splits its costs again later. An expense that already has a payer or a split keeps them, and one whose split holds more than the obvious (several payers, an uneven split, a ticket) still shows them in its dialog. Turning the switch back on brings everything back, with the payments and splits that were recorded before.
+
+The setting belongs to the trip, so every member sees the same Costs. Through MCP it is `update_trip` with `costs_mode` (`split` or `totals`).
+
 ## A trip of one
 
 With only you on the trip there is nothing to split: every share is the whole amount, and nobody can owe anybody. Costs then leaves that side out. The summary is the **Total trip spend** card on its own, with the number of expenses under it, and the right-hand column keeps **By category**. **You owe**, **You're owed**, **Outstanding amount**, **Settle up**, **Balances** and **Final budget** are gone, and so are the travelers in the bar, the **Settle up** button and the **All / Paid by me / I'm owed** switch. Rows show no payers, no split and no **Unfinished** chip, and the expense dialog asks for neither **Who paid?** nor **Split**; a new expense is saved as paid by you. The phone does the same.

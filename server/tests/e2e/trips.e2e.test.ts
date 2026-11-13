@@ -243,6 +243,26 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(await dayIds(week.body.trip.id)).toEqual(kept);
   });
 
+  it('200 update keeps the costs as totals only, the trip as it was otherwise; 400 on another mode (#1714)', async () => {
+    const trip = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Lisbon' });
+    expect(trip.body.trip.costs_mode).toBe('split');
+    const res = await request(server)
+      .put(`/api/trips/${trip.body.trip.id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ costs_mode: 'totals' });
+    expect(res.status).toBe(200);
+    expect(res.body.trip).toMatchObject({ title: 'Lisbon', costs_mode: 'totals' });
+    const audit = await findRow(orm, AuditLog, { action: 'trip.update' });
+    expect(JSON.parse(audit!.details!)).toMatchObject({ costs_mode: 'totals' });
+
+    const bogus = await request(server)
+      .put(`/api/trips/${trip.body.trip.id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ costs_mode: 'shares' });
+    expect(bogus.status).toBe(400);
+    expect((await findRow(orm, Trips, { id: trip.body.trip.id }))!.costs_mode).toBe('totals');
+  });
+
   it('200 update with a later start moves the leave days of the owner along, off the blocked weekend, and tells the plan (#2604)', async () => {
     // 2030-11-25 is a Monday; the plan blocks Saturday and Sunday by default.
     const trip = await request(server)

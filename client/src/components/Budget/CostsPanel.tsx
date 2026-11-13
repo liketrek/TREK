@@ -29,6 +29,8 @@ import { ReceiptPreviewModal } from './ReceiptPreviewModal'
 import { ExpenseReceiptsSection } from './ExpenseReceiptsSection'
 import { useExpenseDeleteConfirm } from './useExpenseDeleteConfirm'
 import { FlowPills } from './FlowPills'
+import { CostsSplitChips } from './CostsSplitChips'
+import { CostsModeCard } from './CostsModeCard'
 import type { BudgetParticipantFinal, ReceiptLine } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -42,9 +44,6 @@ import { CountPill, EYEBROW } from '../Planner/bookings/bookingParts'
 import CostsToolbar, { type CostsView } from './CostsToolbar'
 import CostsTable, { CostsTableSummary } from './CostsTable'
 import SummaryCard from './CostsSummaryCard'
-
-/** Split chips a row shows before the rest fold into "+N" (#1763). */
-const SPLIT_CHIP_MAX = 6
 
 interface CostsPanelProps {
   tripId: number
@@ -381,6 +380,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               <div className="px-4 py-4">{CategoryBreakdown()}</div>
             </section>
           )}
+          <CostsModeCard trip={trip} memberCount={people.length} canEdit={canEdit} className={SIDE_CARD} />
         </div>
       </div>
       </div>)}
@@ -608,6 +608,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.byCategory')}</div>
           {CategoryBreakdown()}
         </div>
+        <CostsModeCard trip={trip} memberCount={people.length} canEdit={canEdit} className={`${cardCls} rounded-[18px]`} />
       </div>
     )
   }
@@ -738,7 +739,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               ))}
             </div>
           )}
-          {splitting && SplitChips({ e })}
+          {splitting && <CostsSplitChips e={e} avatar={(id, size) => <Avatar id={id} size={size} />}
+            personName={personName} shareOf={shareOf} fmt={v => fmt(v)} />}
         </div>
 
         {/* The note, marked by a rule in the category colour instead of a box, so
@@ -758,39 +760,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         </div>
       </div>
       {canEdit && RowActions({ onEdit: () => { setEditing(e); setModalOpen(true) }, onDelete: () => deleteConfirm.ask(e), deleteLabel: t('common.delete'), name: e.name })}
-      </div>
-    )
-  }
-
-  // Who an expense is split between and each one's part (#1763), so checking that
-  // the right people are in no longer means opening every expense. Quieter than
-  // the payer chips above, and capped so a large group cannot crowd the row.
-  function SplitChips({ e }: { e: BudgetItem }) {
-    const members = e.members || []
-    if (members.length === 0) return null
-    const shown = members.length > SPLIT_CHIP_MAX ? members.slice(0, SPLIT_CHIP_MAX - 1) : members
-    const rest = members.slice(shown.length)
-    const chip = 'inline-flex items-center gap-[5px] rounded-full bg-surface-tertiary text-content-secondary'
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 5, marginTop: 6 }}>
-        <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginInlineEnd: 2 }}>{t('costs.split')}</span>
-        {shown.map(m => {
-          const share = fmt(shareOf(e, m.user_id))
-          return (
-            <Tooltip key={m.user_id} label={t('costs.splitChipLabel', { name: personName(m.user_id), amount: share })}>
-            <span className={chip} data-testid="split-chip" style={{ paddingBlock: 2, paddingInline: '2px 8px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
-              <Avatar id={m.user_id} size={16} />
-              <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{share}</span>
-              {m.paid ? <Check size={11} strokeWidth={2.6} className="text-success" aria-label={t('costs.paid')} /> : null}
-            </span>
-            </Tooltip>
-          )
-        })}
-        {rest.length > 0 && (
-          <Tooltip label={rest.map(m => t('costs.splitChipLabel', { name: personName(m.user_id), amount: fmt(shareOf(e, m.user_id)) })).join(', ')}>
-          <span className={chip} style={{ padding: '2px 8px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>+{rest.length}</span>
-          </Tooltip>
-        )}
       </div>
     )
   }

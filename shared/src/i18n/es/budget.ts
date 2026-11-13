@@ -174,6 +174,10 @@ const budget: TranslationStrings = {
     'Da a cada persona un número de partes, como las noches que se alojó; el total se reparte en esa proporción.',
   'costs.splitSharesOf': 'Partes de {name}',
   'costs.splitSharesNone': 'Da una parte al menos a una persona',
+  'costs.mode.label': 'Repartir los gastos entre los viajeros',
+  'costs.mode.hintSplit': 'Quién pagó y quién comparte cada gasto, y el ajuste de cuentas al final.',
+  'costs.mode.hintTotals':
+    'Solo totales: sin pagadores, partes ni ajuste de cuentas. Lo que ya estaba repartido se conserva.',
   'costs.splitHint.ticket': 'Enumera lo que había en el recibo y marca quién tomó cada artículo.',
   'costs.filter.allCategories': 'Todas las categorías',
   'costs.filter.allDays': 'Todos los días',

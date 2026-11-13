@@ -73,6 +73,7 @@ export function useExpenseForm({
   const addBudgetItem = useTripStore((s) => s.addBudgetItem);
   const updateBudgetItem = useTripStore((s) => s.updateBudgetItem);
   const tripFiles = useTripStore((s) => s.files);
+  const totalsOnly = useTripStore((s) => s.trip?.costs_mode) === 'totals';
   const sym = (c: string) => SYMBOLS[c] || c + ' ';
   const nameOf = (p: TripMember) => (p.id === me ? t('costs.you') : p.username);
   // A saved expense without a currency opens in the trip's own (#2525).
@@ -103,8 +104,11 @@ export function useExpenseForm({
     if (editing) return editing.total_price ? amountToInputString(editing.total_price, editingCurrency) : '';
     return seed.total;
   });
+  // A new expense on a totals-only trip (#1714) names nobody: no payer, and no
+  // split that would turn into debts if the trip ever splits its costs again.
+  const unsplit = totalsOnly && !editing;
   const [participants, setParticipants] = useState<Set<number>>(() =>
-    editing ? new Set((editing.members || []).map((m) => m.user_id)) : new Set(people.map((p) => p.id))
+    editing ? new Set((editing.members || []).map((m) => m.user_id)) : new Set(unsplit ? [] : people.map((p) => p.id))
   );
 
   // Payer state. An expense can be fronted by several people, each with their own
@@ -119,7 +123,7 @@ export function useExpenseForm({
   const [payerId, setPayerId] = useState<number>(() => {
     const existingPayer = initialPayers[0];
     if (existingPayer) return existingPayer.user_id;
-    return editing ? 0 : me;
+    return editing || unsplit ? 0 : me;
   });
   const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1);
   const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
@@ -132,15 +136,16 @@ export function useExpenseForm({
   // the others absorb the remainder.
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
 
-  // A trip of one has nothing to split (#2689): who paid and the split stay out of
-  // sight, unless the expense being edited carries more than that one person.
+  // Who paid and the split stay out of sight on a trip that keeps totals only
+  // (#1714) and on a trip of one, which has nothing to split (#2689), unless the
+  // expense being edited carries more than that, so nothing on it is hidden.
   const [plainSplit] = useState(() =>
     isPlainSplit(
       editing,
       people.map((p) => p.id)
     )
   );
-  const showSplit = people.length > 1 || !plainSplit;
+  const showSplit = (!totalsOnly && people.length > 1) || !plainSplit;
 
   const [splitMode, setSplitMode] = useState<ExpenseSplitMode>(() => {
     if (hasTicketSplit(editing)) return 'ticket';

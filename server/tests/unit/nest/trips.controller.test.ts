@@ -385,6 +385,25 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
       });
     });
 
+    it('the costs mode needs budget_edit and nothing else (#1714)', async () => {
+      const noBudget = svc({ can: vi.fn().mockImplementation((a: string) => a !== 'budget_edit') });
+      expect(await thrownAsync(() => tc(noBudget).update(user, '9', { costs_mode: 'totals' }, req))).toEqual({
+        status: 403,
+        body: { error: 'No permission to change how this trip keeps its costs' },
+      });
+      const update = vi.fn().mockReturnValue({
+        updatedTrip: { id: 9, costs_mode: 'totals' },
+        changes: { costs_mode: 'totals' },
+        newTitle: 'b',
+        newReminder: 0,
+        oldReminder: 0,
+      });
+      const onlyBudget = svc({ update, can: vi.fn().mockImplementation((a: string) => a === 'budget_edit') });
+      expect(await tc(onlyBudget).update(user, '9', { costs_mode: 'totals' }, req)).toEqual({
+        trip: { id: 9, costs_mode: 'totals' },
+      });
+    });
+
     it('403 on an edit field without trip_edit', async () => {
       const s = svc({ can: vi.fn().mockImplementation((a: string) => a !== 'trip_edit') });
       expect(await thrownAsync(() => tc(s).update(user, '9', { title: 'b' }, req))).toEqual({

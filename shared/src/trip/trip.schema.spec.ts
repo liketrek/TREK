@@ -5,6 +5,7 @@ import {
   tripUpdateRequestSchema,
   tripAddMemberRequestSchema,
   activeTripResponseSchema,
+  tripSchema,
 } from './trip.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -54,6 +55,23 @@ describe('tripUpdateRequestSchema', () => {
       true,
     );
     expect(tripUpdateRequestSchema.safeParse({ cover_image: 'x'.repeat(2049) }).success).toBe(false);
+  });
+
+  it('takes the costs mode, split or totals and nothing else (#1714)', () => {
+    expect(tripUpdateRequestSchema.safeParse({ costs_mode: 'totals' }).success).toBe(true);
+    expect(tripUpdateRequestSchema.safeParse({ costs_mode: 'split' }).success).toBe(true);
+    expect(tripUpdateRequestSchema.safeParse({ costs_mode: 'none' }).success).toBe(false);
+    expect(tripUpdateRequestSchema.safeParse({ costs_mode: null }).success).toBe(false);
+  });
+});
+
+describe('tripSchema', () => {
+  const trip = { id: 1, user_id: 1, title: 'Japan', currency: 'EUR', is_archived: 0, reminder_days: 3 };
+
+  it('reads the costs mode, and a trip cached without one still parses (#1714)', () => {
+    expect(tripSchema.parse({ ...trip, costs_mode: 'totals' }).costs_mode).toBe('totals');
+    expect(tripSchema.safeParse(trip).success).toBe(true);
+    expect(tripSchema.safeParse({ ...trip, costs_mode: 'shares' }).success).toBe(false);
   });
 });
 

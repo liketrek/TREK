@@ -187,6 +187,10 @@ const budget: TranslationStrings = {
   'costs.splitHint.shares': 'Укажите каждому число долей, например число ночей; сумма делится в этой пропорции.',
   'costs.splitSharesOf': 'Доли: {name}',
   'costs.splitSharesNone': 'Укажите долю хотя бы одному человеку',
+  'costs.mode.label': 'Делить расходы между путешественниками',
+  'costs.mode.hintSplit': 'Кто заплатил и кто делит каждый расход, а в конце взаиморасчёт.',
+  'costs.mode.hintTotals':
+    'Только итоги: без плательщиков, долей и взаиморасчётов. Уже разделённое остаётся сохранённым.',
   'costs.splitHint.ticket': 'Перечислите, что было в чеке, и отметьте, кто что брал.',
   'costs.filter.allCategories': 'Все категории',
   'costs.filter.allDays': 'Все дни',
