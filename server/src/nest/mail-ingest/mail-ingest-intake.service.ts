@@ -5,6 +5,7 @@ import type { MailIngestCandidatesRepository } from '../../db/repositories/MailI
 import type { MailIngestMessagesRepository } from '../../db/repositories/MailIngestMessages.repository';
 import { dbNow } from '../../db/types';
 import { MailReadService } from '../llm-parse/mail-read.service';
+import type { WalkedMail } from '../llm-parse/mail-read.types';
 import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { sealMail } from './mail-seal';
@@ -24,9 +25,23 @@ export type MailIntakeRefusal =
   | 'address_daily_limit'
   | 'inbox_full';
 
+/**
+ * Refusals that pass: the import is switched off for now, the address took
+ * its share for the day, or its person's inbox is full. A transport keeps
+ * such a mail and offers it again later instead of dropping it.
+ */
+const PASSING_REFUSALS: ReadonlySet<MailIntakeRefusal> = new Set(['unavailable', 'address_daily_limit', 'inbox_full']);
+
+export function isPassingRefusal(reason: MailIntakeRefusal): boolean {
+  return PASSING_REFUSALS.has(reason);
+}
+
 type MailIntakeResult =
   | { status: 'accepted' | 'duplicate'; messageId: number }
   | { status: 'refused'; reason: MailIntakeRefusal };
+
+/** A received mail's outcome over every address it reached. */
+type MailReceiveResult = { status: 'accepted' | 'duplicate' } | { status: 'refused'; reason: MailIntakeRefusal };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -48,26 +63,32 @@ export class MailIngestIntakeService {
   ) {}
 
   /**
-   * A mail a transport received. `envelopeRecipients` are the RCPT TO
-   * addresses where the transport knows them; otherwise the headers name the
-   * address, in the order the receiving server adds them.
+   * A mail a transport received, stored once for every live address it was
+   * sent to. `envelopeRecipients` are the RCPT TO addresses where the
+   * transport knows them, and then the only ones read; otherwise the delivery
+   * header the receiving server put on top names the address.
+   *
+   * When one of its addresses refuses it for now, the whole mail answers that
+   * refusal: the transport offers it again, and the copies stored already
+   * come back as duplicates.
    */
   async receive(
     raw: Buffer,
     transport: Exclude<MailIngestTransport, 'upload'>,
     envelopeRecipients: readonly string[] = [],
-  ): Promise<MailIntakeResult> {
+  ): Promise<MailReceiveResult> {
     const refused = await this.precheck(raw);
     if (refused) return { status: 'refused', reason: refused };
     const mail = this.reader.walk(raw);
     if (!mail) return { status: 'refused', reason: 'not_a_mail' };
-    const { deliveredTo, xOriginalTo, to } = mail.envelope;
-    const headerRecipients = [deliveredTo, xOriginalTo, ...(to ?? '').split(',')].filter(
-      (value): value is string => !!value && value.trim() !== '',
-    );
-    const resolved = await this.addresses.resolve([...envelopeRecipients, ...headerRecipients]);
-    if (!resolved) return { status: 'refused', reason: 'unknown_address' };
-    return this.store(raw, transport, resolved.address, mail.envelope.messageId);
+    const recipients = envelopeRecipients.length > 0 ? envelopeRecipients : headerRecipients(mail.envelope);
+    const addresses = await this.addresses.resolveAll(recipients);
+    if (addresses.length === 0) return { status: 'refused', reason: 'unknown_address' };
+    const results = await addresses.reduce<Promise<MailIntakeResult[]>>(async (previous, address) => {
+      const done = await previous;
+      return [...done, await this.store(raw, transport, address, mail.envelope.messageId)];
+    }, Promise.resolve([]));
+    return combined(results);
   }
 
   /** An .eml the person uploaded, read as if they had forwarded it to their own address. */
@@ -125,4 +146,26 @@ export class MailIngestIntakeService {
     await this.addresses.touch(address.id);
     return { status: 'accepted', messageId: id };
   }
+}
+
+/**
+ * The addresses the headers name when the transport knows no envelope: the
+ * topmost Delivered-To, else the topmost X-Original-To, which the receiving
+ * server adds above whatever the mail brought along, and only without either
+ * the To line. A sender who names another token there gains nothing over
+ * sending to that token directly.
+ */
+function headerRecipients(envelope: WalkedMail['envelope']): string[] {
+  const delivered = [envelope.deliveredTo, envelope.xOriginalTo].find((value) => !!value?.trim());
+  if (delivered) return [delivered];
+  return (envelope.to ?? '').split(',').filter((value) => value.trim() !== '');
+}
+
+/** One answer for a mail stored per address: a passing refusal first, then accepted, then duplicate. */
+function combined(results: readonly MailIntakeResult[]): MailReceiveResult {
+  const passing = results.find((result) => result.status === 'refused' && isPassingRefusal(result.reason));
+  if (passing) return passing;
+  if (results.some((result) => result.status === 'accepted')) return { status: 'accepted' };
+  if (results.some((result) => result.status === 'duplicate')) return { status: 'duplicate' };
+  return results[0] ?? { status: 'refused', reason: 'unknown_address' };
 }

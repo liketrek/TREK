@@ -2,8 +2,10 @@
  * How mail reaches the import and how the admin sees it run, over stubs: the
  * signed webhook (its window, its signature over the recipient and the raw
  * mail, its refusals), the IMAP run (cursor, renumbered box, size limit, the
- * move to TREK/processed, a failure the status card reads), the TREK Cloud
- * relay (hash check, acknowledgement, idle without a relay) and the status
+ * move to TREK/processed, a mail deferred for now and offered again, a
+ * failure the status card reads), the TREK Cloud relay (its page format,
+ * paging, hash check, a mail it cannot read, a mail kept for now,
+ * acknowledgement, idle without a relay or an import there) and the status
  * card and connection test.
  */
 import { MailIngestCandidates } from '../../../../src/db/entities/MailIngestCandidates.entity';
@@ -41,6 +43,25 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({
   logWarn: vi.fn(),
 }));
 
+/**
+ * The control plane's inbox answer, byte for byte the fixture its own tests
+ * hold the collection to (trek-hosted control-plane/src/fixtures/instance-inbox.json).
+ */
+const RELAY_FIXTURE = {
+  messages: [
+    {
+      id: '0b9f2c4e-7d1a-4c3b-9e8f-1a2b3c4d5e6f',
+      receivedAt: '2026-11-13T10:00:00.000Z',
+      size: 37,
+      sha256: 'd9f4a3ee48bcaa66f8c8ddd7f348385bb63034211431d0e5f921d7cd131e83e7',
+      recipients: ['k3m7mfrggzdfmztwq2lknnwg23tp@in.liketrek.com'],
+      raw: 'U3ViamVjdDogWW91ciBib29raW5nDQoNClBOUiBBQkMxMjMNCg==',
+    },
+  ],
+  more: false,
+  next: 'MjAyNi0xMS0xM1QxMDowMDowMC4wMDBaCjBiOWYyYzRlLTdkMWEtNGMzYi05ZThmLTFhMmIzYzRkNWU2Zg',
+};
+
 const IMAP = { host: 'imap.example.com', port: 993, tls: 'tls', user: 'u', pass: 'p', mailbox: 'INBOX' } as const;
 
 const settings = {
@@ -64,7 +85,7 @@ const session = {
   open: vi.fn(),
   listAfter: vi.fn(),
   source: vi.fn(),
-  ensureFolder: vi.fn(async () => 'TREK.processed'),
+  ensureFolder: vi.fn(async (parts: readonly string[]) => parts.join('.')),
   move: vi.fn(async () => undefined),
   close: vi.fn(async () => undefined),
 };
@@ -131,10 +152,10 @@ describe('the signed webhook', () => {
   });
 
   it('takes a mail whose signature covers it, its recipient and a fresh timestamp', async () => {
-    intake.receive.mockResolvedValue({ status: 'accepted', messageId: 1 });
+    intake.receive.mockResolvedValue({ status: 'accepted' });
     expect(await service().receive(SECRET, RAW, signed(), NOW)).toEqual({ accepted: true, duplicate: false });
     expect(intake.receive).toHaveBeenCalledWith(RAW, 'webhook', ['trek+tok@example.com']);
-    intake.receive.mockResolvedValue({ status: 'duplicate', messageId: 1 });
+    intake.receive.mockResolvedValue({ status: 'duplicate' });
     const noRecipient = signed({ recipient: '' });
     expect(await service().receive(SECRET, RAW, noRecipient, NOW)).toEqual({ accepted: true, duplicate: true });
     expect(intake.receive).toHaveBeenLastCalledWith(RAW, 'webhook', []);
@@ -172,23 +193,26 @@ describe('the signed webhook', () => {
 
 describe('the IMAP run', () => {
   const job = () => app.get(MailIngestImapJob);
+  const NOW = new Date('2030-01-15T10:00:00Z');
+  const ref = (uid: number, size = 10, receivedAt: Date | null = NOW) => ({ uid, size, receivedAt });
+  /** The box's new mails, then the deferred folder's, as the run opens one after the other. */
+  const boxes = (fresh: ReturnType<typeof ref>[], deferred: ReturnType<typeof ref>[] = []) => {
+    session.listAfter.mockResolvedValueOnce(fresh).mockResolvedValueOnce(deferred);
+  };
 
   beforeEach(() => {
     settings.transport.mockResolvedValue('imap');
     session.open.mockResolvedValue({ uidValidity: 9 });
     session.listAfter.mockResolvedValue([]);
     session.source.mockImplementation(async (uid: number) => Buffer.from(`mail ${uid}`));
-    intake.receive.mockResolvedValue({ status: 'accepted', messageId: 1 });
+    intake.receive.mockResolvedValue({ status: 'accepted' });
   });
 
   it('takes the new mails after the cursor, moves them on, and notes where it got to', async () => {
     cursor.find.mockResolvedValue({ uid_validity: 9, last_uid: 40 });
-    session.listAfter.mockResolvedValue([
-      { uid: 41, size: 10 },
-      { uid: 42, size: 10 },
-    ]);
-    expect(await job().tick()).toBe(2);
-    expect(session.listAfter).toHaveBeenCalledWith(40);
+    boxes([ref(41), ref(42)]);
+    expect(await job().tick(NOW)).toBe(2);
+    expect(session.listAfter).toHaveBeenNthCalledWith(1, 40);
     expect(intake.receive.mock.calls.map(([raw]) => String(raw))).toEqual(['mail 41', 'mail 42']);
     expect(session.ensureFolder).toHaveBeenCalledWith(['TREK', 'processed']);
     expect(session.move).toHaveBeenCalledWith([41, 42], 'TREK.processed');
@@ -199,33 +223,58 @@ describe('the IMAP run', () => {
 
   it('starts over when the server renumbered the box, and leaves a mail over the limit unread', async () => {
     cursor.find.mockResolvedValue({ uid_validity: 3, last_uid: 400 });
-    session.listAfter.mockResolvedValue([
-      { uid: 1, size: 5000 },
-      { uid: 2, size: 10 },
-    ]);
-    expect(await job().tick()).toBe(2);
-    expect(session.listAfter).toHaveBeenCalledWith(0);
+    boxes([ref(1, 5000), ref(2)]);
+    expect(await job().tick(NOW)).toBe(1);
+    expect(session.listAfter).toHaveBeenNthCalledWith(1, 0);
     expect(session.source).toHaveBeenCalledTimes(1);
     expect(session.move).toHaveBeenCalledWith([1, 2], 'TREK.processed');
   });
 
-  it('touches nothing with an empty box, and nothing at all unless IMAP is the transport', async () => {
-    expect(await job().tick()).toBe(0);
-    expect(session.ensureFolder).not.toHaveBeenCalled();
+  it('defers a mail the import cannot take for now, so the mails behind it go on', async () => {
+    boxes([ref(5), ref(6), ref(7)]);
+    intake.receive
+      .mockResolvedValueOnce({ status: 'refused', reason: 'inbox_full' })
+      .mockResolvedValueOnce({ status: 'refused', reason: 'unknown_address' })
+      .mockResolvedValueOnce({ status: 'duplicate' });
+    expect(await job().tick(NOW)).toBe(0);
+    expect(session.move).toHaveBeenCalledWith([6, 7], 'TREK.processed');
+    expect(session.move).toHaveBeenCalledWith([5], 'TREK.deferred');
+    expect(cursor.recordOk).toHaveBeenCalledWith('imap', 'INBOX', expect.any(String), { uidValidity: 9, lastUid: 7 });
+  });
+
+  it('offers deferred mails again, and gives up one that waited too long', async () => {
+    const old = new Date(NOW.getTime() - 4 * 24 * 60 * 60 * 1000);
+    boxes([], [ref(1), ref(2), ref(3, 10, old)]);
+    intake.receive
+      .mockResolvedValueOnce({ status: 'accepted' })
+      .mockResolvedValueOnce({ status: 'refused', reason: 'address_daily_limit' })
+      .mockResolvedValueOnce({ status: 'refused', reason: 'address_daily_limit' });
+    expect(await job().tick(NOW)).toBe(1);
+    expect(session.open).toHaveBeenLastCalledWith('TREK.deferred');
+    expect(session.listAfter).toHaveBeenLastCalledWith(0);
+    // 2 is kept for the next run; 3 waited past its days and goes on with 1.
+    expect(session.move).toHaveBeenCalledTimes(1);
+    expect(session.move).toHaveBeenCalledWith([1, 3], 'TREK.processed');
+  });
+
+  it('moves nothing with an empty box, and touches nothing unless IMAP is the transport', async () => {
+    expect(await job().tick(NOW)).toBe(0);
+    expect(session.move).not.toHaveBeenCalled();
+    expect(intake.receive).not.toHaveBeenCalled();
     expect(cursor.recordOk).toHaveBeenCalledWith('imap', 'INBOX', expect.any(String), { uidValidity: 9, lastUid: 0 });
     settings.transport.mockResolvedValue('webhook');
     vi.clearAllMocks();
-    expect(await job().tick()).toBe(0);
+    expect(await job().tick(NOW)).toBe(0);
     expect(imap.connect).not.toHaveBeenCalled();
     settings.transport.mockResolvedValue('imap');
     cursor.acquireLease.mockResolvedValue(false);
-    expect(await job().tick()).toBe(0);
+    expect(await job().tick(NOW)).toBe(0);
     expect(imap.connect).not.toHaveBeenCalled();
   });
 
   it('records why a run failed for the status card, and keeps the cursor where it was', async () => {
     imap.connect.mockRejectedValueOnce(Object.assign(new Error('Command failed'), { authenticationFailed: true }));
-    expect(await job().tick()).toBe(0);
+    expect(await job().tick(NOW)).toBe(0);
     const refused = 'The IMAP server refused the user name or password';
     expect(cursor.recordError).toHaveBeenCalledWith('imap', 'INBOX', refused);
     expect(cursor.recordOk).not.toHaveBeenCalled();
@@ -248,49 +297,104 @@ describe('the IMAP run', () => {
 describe('the TREK Cloud relay', () => {
   const job = () => app.get(MailIngestRelayJob);
   const relay = { list: vi.fn(), ack: vi.fn(async () => undefined) };
-  const mail = (id: string, body: string, sha = createHash('sha256').update(body).digest('hex')) => ({
-    id,
-    recipients: ['ab12tok@in.example.com'],
+  const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const mail = (n: number, body: string, sha = createHash('sha256').update(body).digest('hex')) => ({
+    id: uuid(n),
+    receivedAt: '2030-01-15T09:58:00.000Z',
+    size: Buffer.byteLength(body),
     sha256: sha,
+    recipients: ['ab12tok@in.example.com'],
     raw: Buffer.from(body).toString('base64'),
   });
+  const page = (messages: unknown[], more = false, next: string | null = null) => ({ messages, more, next });
 
   beforeEach(() => {
     settings.transport.mockResolvedValue('cloud');
     relays.attach(relay);
   });
 
-  it('stays idle without a relay attached', async () => {
+  it('stays idle without a relay attached, and where the control plane runs no import', async () => {
     relays = new MailIngestRelayHost();
     app = await build();
     expect(await job().tick()).toBe(0);
     expect(cursor.acquireLease).not.toHaveBeenCalled();
-  });
 
-  it('takes each whole mail in under the address it was sent to and acknowledges it', async () => {
-    const broken = mail('m2', 'two', 'f'.repeat(64));
-    relay.list.mockResolvedValue({ mails: [mail('m1', 'one'), broken, mail('m3', 'three')] });
-    intake.receive
-      .mockResolvedValueOnce({ status: 'accepted', messageId: 1 })
-      .mockResolvedValueOnce({ status: 'refused', reason: 'unknown_address' });
-    expect(await job().tick()).toBe(1);
-    expect(relay.list).toHaveBeenCalledWith(10);
-    expect(intake.receive).toHaveBeenCalledWith(Buffer.from('one'), 'cloud', ['ab12tok@in.example.com']);
-    // m2 did not arrive whole and stays with the relay; m3 is refused for good and dropped.
-    expect(relay.ack.mock.calls).toEqual([['m1'], ['m3']]);
+    relays.attach(relay);
+    relay.list.mockResolvedValue(null);
+    expect(await job().tick()).toBe(0);
+    expect(cursor.recordError).not.toHaveBeenCalled();
     expect(cursor.recordOk).toHaveBeenCalledWith('cloud', '', expect.any(String));
   });
 
-  it('keeps a mail the import cannot take right now, and refuses an inbox it cannot read', async () => {
-    relay.list.mockResolvedValue({ mails: [mail('m1', 'one')] });
+  it('reads the page the control plane sends, as its own fixture has it', async () => {
+    relay.list.mockResolvedValue(RELAY_FIXTURE);
+    intake.receive.mockResolvedValue({ status: 'accepted' });
+    expect(await job().tick()).toBe(1);
+    const [fixture] = RELAY_FIXTURE.messages;
+    expect(intake.receive).toHaveBeenCalledWith(Buffer.from(fixture.raw, 'base64'), 'cloud', fixture.recipients);
+    expect(relay.ack).toHaveBeenCalledWith(fixture.id);
+  });
+
+  it('takes each whole mail in under the addresses it was sent to and acknowledges it', async () => {
+    const broken = mail(2, 'two', 'f'.repeat(64));
+    relay.list.mockResolvedValue(page([mail(1, 'one'), broken, mail(3, 'three')]));
+    intake.receive
+      .mockResolvedValueOnce({ status: 'accepted' })
+      .mockResolvedValueOnce({ status: 'refused', reason: 'unknown_address' });
+    expect(await job().tick()).toBe(1);
+    expect(relay.list).toHaveBeenCalledWith(10, null);
+    expect(intake.receive).toHaveBeenCalledWith(Buffer.from('one'), 'cloud', ['ab12tok@in.example.com']);
+    // 2 did not arrive whole and stays with the relay; 3 is refused for good and dropped.
+    expect(relay.ack.mock.calls).toEqual([[uuid(1)], [uuid(3)]]);
+    expect(cursor.recordOk).toHaveBeenCalledWith('cloud', '', expect.any(String));
+  });
+
+  it('keeps a mail the import cannot take for now, and reads the mails after it', async () => {
+    relay.list.mockResolvedValue(page([mail(1, 'one'), mail(2, 'two')]));
+    intake.receive
+      .mockResolvedValueOnce({ status: 'refused', reason: 'inbox_full' })
+      .mockResolvedValueOnce({ status: 'accepted' });
+    expect(await job().tick()).toBe(1);
+    expect(relay.ack.mock.calls).toEqual([[uuid(2)]]);
+
+    intake.receive.mockResolvedValue({ status: 'refused', reason: 'address_daily_limit' });
+    await job().tick();
     intake.receive.mockResolvedValue({ status: 'refused', reason: 'unavailable' });
     await job().tick();
-    expect(relay.ack).not.toHaveBeenCalled();
+    expect(relay.ack).toHaveBeenCalledTimes(1);
+  });
 
-    relay.list.mockResolvedValue({ mails: [{ id: '../../etc', raw: 'x' }] });
+  it('drops a mail it can never read without holding up the rest, and refuses a page it cannot read', async () => {
+    const recipients = Array.from({ length: 101 }, (_, i) => `ab12t${i}@in.example.com`);
+    relay.list.mockResolvedValue(page([{ ...mail(1, 'one'), recipients }, { id: '../../etc' }, mail(3, 'three')]));
+    intake.receive.mockResolvedValue({ status: 'accepted' });
+    expect(await job().tick()).toBe(1);
+    expect(relay.ack.mock.calls).toEqual([[uuid(1)], [uuid(3)]]);
+
+    relay.list.mockResolvedValue({ mails: [mail(4, 'four')] });
     expect(await job().tick()).toBe(0);
     const unreadable = 'The relay answered with an inbox this server cannot read';
     expect(cursor.recordError).toHaveBeenCalledWith('cloud', '', unreadable);
+  });
+
+  it('pages on while more wait, from where the last page ended, up to five pages a run', async () => {
+    relay.list
+      .mockResolvedValueOnce(page([mail(1, 'one')], true, 'c1'))
+      .mockResolvedValueOnce(page([mail(2, 'two')], false, 'c2'));
+    intake.receive.mockResolvedValue({ status: 'accepted' });
+    expect(await job().tick()).toBe(2);
+    expect(relay.list.mock.calls).toEqual([
+      [10, null],
+      [10, 'c1'],
+    ]);
+
+    relay.list.mockReset();
+    const position = (after: string | null) => Number(after?.slice(1) ?? 0) + 1;
+    relay.list.mockImplementation(async (_limit: number, after: string | null) =>
+      page([mail(position(after), 'x')], true, `c${position(after)}`),
+    );
+    await job().tick();
+    expect(relay.list).toHaveBeenCalledTimes(5);
   });
 });
 

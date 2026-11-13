@@ -1,10 +1,12 @@
 /**
  * The forwarding addresses inside MailIngestModule over a snapshot test db: a
  * person's own address and a trip's, renewing that retires the old token at
- * once, and a trip address that stops working when its owner can no longer
- * add bookings to the trip.
+ * once, a mail to several addresses that reaches each live one, the delivery
+ * header a mail is filed by without an envelope, and a trip address that
+ * stops working when its owner can no longer add bookings to the trip.
  */
 import { MailIngestAddresses } from '../../../../src/db/entities/MailIngestAddresses.entity';
+import { MailIngestMessages } from '../../../../src/db/entities/MailIngestMessages.entity';
 import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { MailIngestAddressService } from '../../../../src/nest/mail-ingest/mail-ingest-address.service';
@@ -89,10 +91,52 @@ describe('a person’s own address', () => {
     const { user } = await makeUser(orm());
     const own = await addresses().renewOwn(user.id);
     await t.get(MailIngestSettingsService).updatePrefs(user.id, { enabled: false });
-    expect(await addresses().resolve([own?.address ?? ''])).toBeNull();
+    expect(await addresses().resolveAll([own?.address ?? ''])).toEqual([]);
     await t.get(MailIngestSettingsService).updatePrefs(user.id, { enabled: true });
-    expect((await addresses().resolve([`Mia <${own?.address}>`]))?.person.id).toBe(user.id);
+    expect((await addresses().resolveAll([`Mia <${own?.address}>`]))[0]?.user_id).toBe(user.id);
     expect(tokenIn(own?.address ?? '')).toHaveLength(24);
+  });
+});
+
+describe('a mail to several addresses', () => {
+  it('reaches every live one once, and leaves out the rest', async () => {
+    const { user: mia } = await makeUser(orm());
+    const { user: noah } = await makeUser(orm());
+    const { user: off } = await makeUser(orm());
+    const miaOwn = (await addresses().renewOwn(mia.id))?.address ?? '';
+    const noahOwn = (await addresses().renewOwn(noah.id))?.address ?? '';
+    const offOwn = (await addresses().renewOwn(off.id))?.address ?? '';
+    await t.get(MailIngestSettingsService).updatePrefs(off.id, { enabled: false });
+
+    const found = await addresses().resolveAll([miaOwn, noahOwn, offOwn, miaOwn.toUpperCase(), 'nobody@example.com']);
+    expect(found.map((row) => row.user_id).sort()).toEqual([mia.id, noah.id].sort());
+  });
+
+  it('is stored for each of them, and a second delivery is a duplicate for both', async () => {
+    const { user: mia } = await makeUser(orm());
+    const { user: noah } = await makeUser(orm());
+    const miaOwn = (await addresses().renewOwn(mia.id))?.address ?? '';
+    const noahOwn = (await addresses().renewOwn(noah.id))?.address ?? '';
+    const intake = t.get(MailIngestIntakeService);
+    const raw = mailTo('someone@example.com', 'both');
+
+    expect(await intake.receive(raw, 'cloud', [miaOwn, noahOwn])).toEqual({ status: 'accepted' });
+    expect(await findRow(orm(), MailIngestMessages, { user: mia.id })).not.toBeNull();
+    expect(await findRow(orm(), MailIngestMessages, { user: noah.id })).not.toBeNull();
+    expect(await intake.receive(raw, 'cloud', [miaOwn, noahOwn])).toEqual({ status: 'duplicate' });
+  });
+
+  it('without an envelope, goes by the delivery header the receiving server put on top', async () => {
+    const { user: mia } = await makeUser(orm());
+    const { user: noah } = await makeUser(orm());
+    const miaOwn = (await addresses().renewOwn(mia.id))?.address ?? '';
+    const noahOwn = (await addresses().renewOwn(noah.id))?.address ?? '';
+    const headers = [`Delivered-To: ${miaOwn}`, `Delivered-To: ${noahOwn}`, `To: ${noahOwn}`, 'From: x@example.com'];
+    const raw = Buffer.from(`${headers.join('\r\n')}\r\nSubject: Booking\r\nMessage-ID: <top@x>\r\n\r\nBooking ABC123`);
+
+    expect(await t.get(MailIngestIntakeService).receive(raw, 'imap')).toEqual({ status: 'accepted' });
+    expect(await findRow(orm(), MailIngestMessages, { user: mia.id })).not.toBeNull();
+    expect(await findRow(orm(), MailIngestMessages, { user: noah.id })).toBeNull();
   });
 });
 
@@ -107,10 +151,10 @@ describe('a trip address', () => {
     expect(made?.trip_id).toBe(trip.id);
     expect((await addresses().tripAddress(member.id, trip.id))?.address).toBe(made?.address);
     expect(await addresses().tripAddress(owner.id, trip.id)).toBeNull();
-    expect((await addresses().resolve([made?.address ?? '']))?.address.trip_id).toBe(trip.id);
+    expect((await addresses().resolveAll([made?.address ?? '']))[0]?.trip_id).toBe(trip.id);
 
     await deleteRows(orm(), TripMembers, { trip: trip.id, user: member.id });
-    expect(await addresses().resolve([made?.address ?? ''])).toBeNull();
+    expect(await addresses().resolveAll([made?.address ?? ''])).toEqual([]);
     await expect(addresses().tripAddress(member.id, trip.id)).rejects.toThrow('Trip not found');
   });
 
@@ -120,7 +164,7 @@ describe('a trip address', () => {
     const made = await addresses().renewTripAddress(owner.id, trip.id);
     await addresses().revokeTripAddress(owner.id, trip.id);
     expect(await addresses().tripAddress(owner.id, trip.id)).toBeNull();
-    expect(await addresses().resolve([made?.address ?? ''])).toBeNull();
+    expect(await addresses().resolveAll([made?.address ?? ''])).toEqual([]);
 
     permissions.checkPermission.mockResolvedValue(false);
     await expect(addresses().renewTripAddress(owner.id, trip.id)).rejects.toThrow('Trip not found');

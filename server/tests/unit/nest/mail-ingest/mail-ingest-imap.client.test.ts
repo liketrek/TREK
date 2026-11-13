@@ -42,8 +42,10 @@ const CONFIG = {
   mailbox: 'INBOX',
 } as const;
 
+const ARRIVED = new Date('2030-01-15T10:00:00Z');
+
 async function* messages(...uids: number[]) {
-  for (const uid of uids) yield { uid, size: uid * 10 };
+  for (const uid of uids) yield { uid, size: uid * 10, internalDate: uid === 42 ? 'not a date' : ARRIVED };
 }
 
 beforeEach(() => {
@@ -84,10 +86,10 @@ describe('MailIngestImapClient', () => {
     // `41:*` names the newest mail even when it is older than 41.
     flow.fetch.mockReturnValue(messages(40, 42, 41));
     expect(await session.listAfter(40)).toEqual([
-      { uid: 41, size: 410 },
-      { uid: 42, size: 420 },
+      { uid: 41, size: 410, receivedAt: ARRIVED },
+      { uid: 42, size: 420, receivedAt: null },
     ]);
-    expect(flow.fetch).toHaveBeenCalledWith('41:*', { uid: true, size: true }, { uid: true });
+    expect(flow.fetch).toHaveBeenCalledWith('41:*', { uid: true, size: true, internalDate: true }, { uid: true });
 
     flow.fetchOne.mockResolvedValueOnce({ uid: 41, source: Buffer.from('raw') }).mockResolvedValueOnce(false);
     expect(await session.source(41)).toEqual(Buffer.from('raw'));

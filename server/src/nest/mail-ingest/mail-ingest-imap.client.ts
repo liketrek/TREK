@@ -9,10 +9,11 @@ import { isIP } from 'node:net';
 const CONNECT_TIMEOUT_MS = 15_000;
 const SOCKET_TIMEOUT_MS = 60_000;
 
-/** A mail waiting in the box: its uid and its size, before anything of it is downloaded. */
+/** A mail waiting in the box: its uid, its size and when the box got it, before anything of it is downloaded. */
 export interface ImapMailRef {
   uid: number;
   size: number;
+  receivedAt: Date | null;
 }
 
 /** What the import asks of an IMAP box, one connection per run. */
@@ -84,8 +85,11 @@ class ImapFlowSession implements ImapSession {
     if (this.exists === 0) return [];
     const found: ImapMailRef[] = [];
     // `n:*` always names the newest mail, even below n, so the range alone does not filter.
-    for await (const message of this.client.fetch(`${lastUid + 1}:*`, { uid: true, size: true }, { uid: true })) {
-      if (message.uid > lastUid) found.push({ uid: message.uid, size: message.size ?? 0 });
+    const query = { uid: true, size: true, internalDate: true };
+    for await (const message of this.client.fetch(`${lastUid + 1}:*`, query, { uid: true })) {
+      if (message.uid > lastUid) {
+        found.push({ uid: message.uid, size: message.size ?? 0, receivedAt: dateOf(message.internalDate) });
+      }
     }
     return found.sort((a, b) => a.uid - b.uid);
   }
@@ -113,6 +117,13 @@ class ImapFlowSession implements ImapSession {
       this.client.close();
     }
   }
+}
+
+/** The server's arrival time of a mail, which imapflow hands over as a Date or as the server wrote it. */
+function dateOf(value: Date | string | undefined): Date | null {
+  if (value === undefined) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /** What an admin reads when the box cannot be read: the reason, never the password. */

@@ -3,7 +3,6 @@ import type {
   MailIngestAddressesRepository,
   MailIngestAddressRow,
 } from '../../db/repositories/MailIngestAddresses.repository';
-import type { MailIngestPersonRow } from '../../db/repositories/MailIngestCandidates.repository';
 import { dbNow, utcSuffix } from '../../db/types';
 import { decrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { DomainError } from '../common/domain-error';
@@ -19,12 +18,6 @@ import { createHash, randomBytes } from 'node:crypto';
 
 /** RFC 4648 base32, lower case: a mail's local part keeps it as it is. */
 const BASE32 = 'abcdefghijklmnopqrstuvwxyz234567';
-
-/** A live address and the person it belongs to, as a mail that reached it is filed under. */
-interface ResolvedAddress {
-  address: MailIngestAddressRow;
-  person: MailIngestPersonRow;
-}
 
 /**
  * The forwarding addresses. A person has one of their own and may make one
@@ -75,20 +68,20 @@ export class MailIngestAddressService {
   }
 
   /**
-   * The live address a mail was sent to, from the recipients in the order the
-   * receiving server names them (Delivered-To, X-Original-To, To). Null for a
-   * token nobody holds, a revoked one, a person who switched the import off,
-   * and a trip address whose owner may no longer add bookings to the trip.
+   * Every live address a mail was sent to, each once: a confirmation two
+   * co-travellers forward together reaches both. A token nobody holds, a
+   * revoked one, a person who switched the import off, and a trip address
+   * whose owner may no longer add bookings to the trip are left out.
    */
-  async resolve(recipients: readonly string[]): Promise<ResolvedAddress | null> {
+  async resolveAll(recipients: readonly string[]): Promise<MailIngestAddressRow[]> {
     const template = await this.settings.addressTemplate();
-    const tokens = recipients
-      .map((recipient) => tokenOf(recipient, template))
-      .filter((token): token is string => token !== null);
-    const found = await Promise.all(tokens.map((token) => this.addresses.findByTokenHash(hashToken(token))));
-    const address = found.find((row): row is MailIngestAddressRow => row !== null);
-    if (!address || !(await this.isLive(address))) return null;
-    return this.withPerson(address);
+    const tokens = new Set(
+      recipients.map((recipient) => tokenOf(recipient, template)).filter((token): token is string => token !== null),
+    );
+    const found = await Promise.all([...tokens].map((token) => this.addresses.findByTokenHash(hashToken(token))));
+    const rows = found.filter((row): row is MailIngestAddressRow => row !== null);
+    const live = await Promise.all(rows.map((row) => this.isLive(row)));
+    return rows.filter((_, i) => live[i]);
   }
 
   /** The person's own live address, made now when they have none: an uploaded mail goes through it. */
@@ -100,9 +93,9 @@ export class MailIngestAddressService {
   async isLive(address: MailIngestAddressRow): Promise<boolean> {
     if (address.revoked_at) return false;
     if (!(await this.settings.prefsOf(address.user_id)).enabled) return false;
-    if (address.trip_id === null) return true;
     const person = await this.trips.person(address.user_id);
-    return person !== null && (await this.trips.editableTrip(person, address.trip_id)) !== null;
+    if (person === null) return false;
+    return address.trip_id === null || (await this.trips.editableTrip(person, address.trip_id)) !== null;
   }
 
   async findById(id: number): Promise<MailIngestAddressRow | null> {
@@ -112,11 +105,6 @@ export class MailIngestAddressService {
   /** Notes that a mail came in on the address. */
   async touch(addressId: number): Promise<void> {
     await this.addresses.touchUsed(addressId, dbNow());
-  }
-
-  private async withPerson(address: MailIngestAddressRow): Promise<ResolvedAddress | null> {
-    const person = await this.trips.person(address.user_id);
-    return person ? { address, person } : null;
   }
 
   private async rotate(userId: number, tripId: number | null): Promise<MailIngestAddressRow> {

@@ -7,8 +7,13 @@ import { Injectable } from '@nestjs/common';
  * encrypted, and hands it over here; nothing of a person reaches it.
  */
 export interface MailInboxRelay {
-  /** `GET /v1/instance/inbox?limit=n`: the waiting mails, the answer's JSON as parsed, checked by the caller. */
-  list(limit: number): Promise<unknown>;
+  /**
+   * `GET /v1/instance/inbox?limit=n&after=<cursor>`: the waiting mails after
+   * the cursor a previous page named (from the oldest without one), the
+   * answer's JSON as parsed, checked by the caller. Null when the control
+   * plane has no import for this instance (its 404), which is no failure.
+   */
+  list(limit: number, after: string | null): Promise<unknown>;
   /** `POST /v1/instance/inbox/:id/ack`: the mail is taken in (or never will be), and the relay drops it. */
   ack(id: string): Promise<void>;
 }
