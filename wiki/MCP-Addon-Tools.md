@@ -70,7 +70,7 @@ Requires `atlas:read` or `atlas:write` scope.
 
 Requires `collab:read` or `collab:write` scope.
 
-The addon alone is not enough. Collab has five sub-features an admin switches on and off independently in Admin → Addons — Notes, Polls, Chat, Links and What's Next, all on by default — and four of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. What's Next has no MCP tools or resources of its own, so toggling it changes nothing here.
+The addon alone is not enough. Collab has five sub-features an admin switches on and off independently in Admin → Addons (Notes, Polls, Chat, Links and What's Next, all on by default), and four of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. What's Next has no MCP tools or resources of its own, so toggling it changes nothing here.
 
 | Sub-feature | Tools it gates | Resource it gates |
 |---|---|---|
