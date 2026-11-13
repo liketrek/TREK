@@ -6,7 +6,7 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { Clock, MapPin, ExternalLink, Pencil, Plus, Minus, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, File, FileImage, Navigation, Mountain, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
+import { Clock, MapPin, ExternalLink, Pencil, Plus, Minus, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, File, FileImage, Navigation, Mountain, Bookmark, BookmarkCheck, Copy, Trash2 } from 'lucide-react'
 import { hoursLines, periodsFromWeek } from './placeHours'
 import { BlurredCode } from '../shared/BookingCode'
 import PlaceRating from '../shared/StarRating'
@@ -40,10 +40,10 @@ import { resolveOpenNow, resolvePlaceTimeZone, getWeekdayIndex, type OpeningPeri
 import { convertHoursLine } from './placeHoursFormat'
 import type { EndDayControlProps } from '../Roadtrip/EndDayControl'
 import VisitControls, { type RoadtripStayControl } from '../Roadtrip/VisitControls'
-import { DialogButton, DialogSection, DeleteButton, FooterSpacer, fs } from '../shared/DialogShell'
+import { DialogButton, DialogIconButton, DialogSection, DeleteButton, FooterSpacer, fs } from '../shared/DialogShell'
 import { BOX, Field, TypeTile, toneOf, toneTint, useOpenFile } from './bookings/bookingParts'
 import { parseMeta } from './bookings/bookingsModel'
-import { SoftPill } from './planParts'
+import { MoreButton, SoftPill } from './planParts'
 import { InspectorHead } from './PlaceInspectorHead'
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { participantsWith, participantsWithout, splitParticipants, usePlaceFileUpload } from './usePlaceActions'
@@ -252,8 +252,14 @@ export default function PlaceInspector({
   const saveVersion = useSaveToCollectionStore(s => s.version)
   const [savedInCollection, setSavedInCollection] = useState(false)
   const [hoursExpanded, setHoursExpanded] = useState(false)
-  // Folded by place, so the next place selected opens in full.
-  const [collapsedPlaceId, setCollapsedPlaceId] = useState<number | null>(null)
+  // Folded for the place on show only: any other place selected, coming back
+  // included, opens in full.
+  const [collapsed, setCollapsed] = useState(false)
+  const [foldedFor, setFoldedFor] = useState(place.id)
+  if (foldedFor !== place.id) {
+    setFoldedFor(place.id)
+    setCollapsed(false)
+  }
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -362,7 +368,6 @@ export default function PlaceInspector({
   const description = place.description || googleDetails?.summary
   const showRating = (mode === 'trip' && !!onRate) || !!shortReview
   const mapCard = centredMapCard(leftWidth, rightWidth, { clearPill: clearMapPill })
-  const collapsed = collapsedPlaceId === place.id
 
   return (
     <div ref={cardRef}
@@ -384,7 +389,7 @@ export default function PlaceInspector({
           editingName={editingName} nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue}
           commitNameEdit={commitNameEdit} handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit}
           photoCredit={<PhotoCredit imageUrl={place.image_url} />} onUpdatePlace={onUpdatePlace} collapsed={collapsed}
-          onToggleCollapsed={collapsible ? () => setCollapsedPlaceId(collapsed ? null : place.id) : undefined}
+          onToggleCollapsed={collapsible ? () => setCollapsed(c => !c) : undefined}
           onClose={onClose} />
 
         {/* The body scrolls inside the capped card; each block keeps its natural height (#1195). */}
@@ -475,8 +480,10 @@ export default function PlaceInspector({
           )}
         </div>
 
-        {/* Footer: the day action and the ways out on the left, delete and edit on the right. */}
-        <footer className={`${collapsed ? 'hidden' : 'flex'} flex-none flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5`}>
+        {/* Footer: the day action and the ways out on the left, the "…" and edit on the right. */}
+        {/* Measured as a container: squeezed between the sidebars (a tablet) the
+            worded buttons drop their words before the row would wrap. */}
+        <footer className={`${collapsed ? 'hidden' : 'flex'} flex-none flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5 [container-type:inline-size]`}>
           {/* Collection mode — copy to trip + per-place status */}
           {mode === 'collection' && onCopyToTrip && (
             <DialogButton variant="primary" onClick={onCopyToTrip} icon={<Copy size={14} strokeWidth={2} />} aria-label={t('collections.copyToTrip')}>
@@ -486,23 +493,18 @@ export default function PlaceInspector({
           {mode === 'collection' && collectionStatus && onSetStatus && (
             <StatusBadge status={collectionStatus} onChange={onSetStatus} t={t} />
           )}
-          {/* Trip mode — day assignment.
-              A stop a lodging booking put there is not offered either way. Taking it off
-              the day would leave the booking behind with nothing on the drive and no way
-              back short of saving it again, and putting a second one beside it is the
-              duplicate the stop exists to prevent. The booking is removed where it is
-              made: in the day's overnight block, or by turning the night back into a
-              pause in road trip mode. */}
-          {mode === 'trip' && !!selectedDayId && !bookedNight && (
-            assignmentInDay ? (
-              <DialogButton onClick={() => onRemoveAssignment?.(selectedDayId, assignmentInDay.id)} icon={<Minus size={14} strokeWidth={2} />} aria-label={t('inspector.removeFromDay')}>
-                <span className="max-sm:hidden">{t('inspector.removeFromDay')}</span>
-              </DialogButton>
-            ) : (
-              <DialogButton variant="primary" onClick={() => onAssignToDay?.(place.id)} icon={<Plus size={14} strokeWidth={2} />}>
-                {t('inspector.addToDay')}
-              </DialogButton>
-            )
+          {/* Trip mode: adding to the day is a worded action, taking the place off
+              it waits in the "…" below. A stop a lodging booking put there is not
+              offered either way. Taking it off the day would leave the booking
+              behind with nothing on the drive and no way back short of saving it
+              again, and putting a second one beside it is the duplicate the stop
+              exists to prevent. The booking is removed where it is made: in the
+              day's overnight block, or by turning the night back into a pause in
+              road trip mode. */}
+          {mode === 'trip' && !!selectedDayId && !bookedNight && !assignmentInDay && (
+            <DialogButton onClick={() => onAssignToDay?.(place.id)} icon={<Plus size={14} strokeWidth={2} />} aria-label={t('inspector.addToDay')}>
+              <span className="[@container(max-width:600px)]:hidden">{t('inspector.addToDay')}</span>
+            </DialogButton>
           )}
           {navigationTargets.length > 0 && (
             <>
@@ -519,7 +521,7 @@ export default function PlaceInspector({
                   aria-expanded={navigationTargets.length > 1 ? navOpen : undefined}
                   icon={<Navigation size={14} strokeWidth={2} />}
                 >
-                  <span className="max-sm:hidden">{navigationLabel}</span>
+                  <span className="[@container(max-width:460px)]:hidden">{navigationLabel}</span>
                 </DialogButton>
               </span>
               {navOpen && (
@@ -531,26 +533,34 @@ export default function PlaceInspector({
               )}
             </>
           )}
+          {/* The ways out besides navigation: icons, named by their tooltips. */}
           {websiteUrl && (
-            <DialogButton onClick={() => window.open(websiteUrl, '_blank', 'noopener,noreferrer')} icon={<ExternalLink size={14} strokeWidth={2} />} aria-label={t('inspector.website')}>
-              <span className="max-sm:hidden">{t('inspector.website')}</span>
-            </DialogButton>
+            <DialogIconButton label={t('inspector.website')} icon={<ExternalLink size={15} strokeWidth={2} />}
+              onClick={() => window.open(websiteUrl, '_blank', 'noopener,noreferrer')} />
           )}
-          {/* Save to Collection — trip mode, independent of the Google Maps link */}
           {showSaveToCollection && (
-            <DialogButton onClick={handleSaveToCollection}
-              icon={savedInCollection ? <BookmarkCheck size={14} strokeWidth={2} /> : <Bookmark size={14} strokeWidth={2} />}
-              aria-label={savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}>
-              <span className="max-sm:hidden">{savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}</span>
-            </DialogButton>
+            <DialogIconButton label={savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}
+              icon={savedInCollection ? <BookmarkCheck size={15} strokeWidth={2} /> : <Bookmark size={15} strokeWidth={2} />}
+              onClick={handleSaveToCollection} />
           )}
           <FooterSpacer />
           {mode === 'collection'
             ? (onRemoveFromList && <DeleteButton onClick={onRemoveFromList} label={t('collections.removeFromList')} />)
-            : (onDelete && <DeleteButton onClick={onDelete} />)}
+            : (
+              // The rare and the destructive behind one "…", so the row holds what is used.
+              <MoreButton label={t('files.menu')} size={36} alwaysVisible
+                className="!rounded-[10px] bg-surface-card !text-content shadow-sm ring-1 ring-edge-faint hover:!bg-surface-secondary"
+                items={[
+                  mode === 'trip' && !!selectedDayId && !bookedNight && assignmentInDay && {
+                    label: t('inspector.removeFromDay'), icon: Minus,
+                    onClick: () => onRemoveAssignment?.(selectedDayId, assignmentInDay.id),
+                  },
+                  onDelete && { label: t('common.delete'), icon: Trash2, danger: true, onClick: onDelete },
+                ]} />
+            )}
           {mode === 'trip' && onEdit && (
             <DialogButton variant="primary" onClick={onEdit} icon={<Pencil size={14} strokeWidth={2} />} aria-label={t('common.edit')}>
-              <span className="max-sm:hidden">{t('common.edit')}</span>
+              <span className="[@container(max-width:460px)]:hidden">{t('common.edit')}</span>
             </DialogButton>
           )}
         </footer>
