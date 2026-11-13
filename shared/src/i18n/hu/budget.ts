@@ -171,6 +171,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Add meg mindenki részét százalékban; együtt 100 %-ot kell kiadniuk.',
   'costs.splitUnit': 'Részek megadása mint',
   'costs.splitPercentOff': '100 %-ból {sum} % kiosztva',
+  'costs.splitUnitShares': 'Részek',
+  'costs.splitHint.shares':
+    'Adj mindenkinek egy részszámot, például az eltöltött éjszakák számát; a végösszeg ebben az arányban oszlik meg.',
+  'costs.splitSharesOf': '{name} részei',
+  'costs.splitSharesNone': 'Adj részt legalább egy személynek',
   'costs.splitHint.ticket': 'Sorold fel, mi szerepelt a nyugtán, és minden tételnél jelöld be, kié volt.',
   'costs.filter.allCategories': 'Összes kategória',
   'costs.filter.allDays': 'Összes nap',

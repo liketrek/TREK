@@ -171,6 +171,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Πληκτρολογήστε το μερίδιο κάθε ατόμου σε ποσοστό· μαζί πρέπει να κάνουν 100 %.',
   'costs.splitUnit': 'Εισαγωγή μεριδίων ως',
   'costs.splitPercentOff': 'Κατανεμήθηκε {sum} % από 100 %',
+  'costs.splitUnitShares': 'Μερίδια',
+  'costs.splitHint.shares':
+    'Δώστε σε κάθε άτομο έναν αριθμό μεριδίων, όπως τις νύχτες που έμεινε· το σύνολο μοιράζεται με αυτή την αναλογία.',
+  'costs.splitSharesOf': 'Μερίδια για {name}',
+  'costs.splitSharesNone': 'Δώστε μερίδιο σε τουλάχιστον ένα άτομο',
   'costs.splitHint.ticket': 'Καταγράψτε τι είχε η απόδειξη και σημειώστε ποιος πήρε κάθε είδος.',
   'costs.filter.allCategories': 'Όλες οι κατηγορίες',
   'costs.filter.allDays': 'Όλες οι ημέρες',

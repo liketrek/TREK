@@ -183,6 +183,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Введіть частку кожного у відсотках; разом має бути 100 %.',
   'costs.splitUnit': 'Вводити частки як',
   'costs.splitPercentOff': 'Розподілено {sum} % зі 100 %',
+  'costs.splitUnitShares': 'Частки',
+  'costs.splitHint.shares':
+    'Вкажіть кожному кількість часток, наприклад кількість ночей; сума ділиться в цій пропорції.',
+  'costs.splitSharesOf': 'Частки: {name}',
+  'costs.splitSharesNone': 'Вкажіть частку хоча б одній людині',
   'costs.splitHint.ticket': 'Перелічіть, що було в чеку, і позначте, хто брав кожну позицію.',
   'costs.filter.allCategories': 'Усі категорії',
   'costs.filter.allDays': 'Усі дні',

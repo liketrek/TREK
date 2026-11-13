@@ -143,6 +143,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': "Type each person's share in percent; together they have to make 100 %.",
   'costs.splitUnit': 'Enter shares as',
   'costs.splitPercentOff': '{sum} % of 100 % assigned',
+  'costs.splitUnitShares': 'Shares',
+  'costs.splitHint.shares':
+    'Give each person a number of shares, such as the nights they stayed; the total is split in that ratio.',
+  'costs.splitSharesOf': 'Shares for {name}',
+  'costs.splitSharesNone': 'Give at least one person a share',
   'costs.splitHint.ticket': 'List what was on the receipt and tick who had each item.',
   'costs.pickSomeone': 'Pick at least one person to split with.',
   'costs.splitSummary': 'Split {count} ways · {amount} each',

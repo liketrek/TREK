@@ -170,6 +170,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Vul ieders aandeel in procenten in; samen moet het 100 % zijn.',
   'costs.splitUnit': 'Aandelen invoeren als',
   'costs.splitPercentOff': '{sum} % van 100 % verdeeld',
+  'costs.splitUnitShares': 'Delen',
+  'costs.splitHint.shares':
+    'Geef iedereen een aantal delen, zoals het aantal overnachtingen; het totaal wordt in die verhouding verdeeld.',
+  'costs.splitSharesOf': 'Delen voor {name}',
+  'costs.splitSharesNone': 'Geef ten minste één persoon een deel',
   'costs.splitHint.ticket': 'Zet op een rij wat er op de bon stond en vink aan wie welk item had.',
   'costs.filter.allCategories': 'Alle categorieën',
   'costs.filter.allDays': 'Alle dagen',

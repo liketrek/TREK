@@ -134,6 +134,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Escriu la part de cada persona en percentatge; juntes han de sumar el 100 %.',
   'costs.splitUnit': 'Introdueix les parts com a',
   'costs.splitPercentOff': '{sum} % de 100 % repartit',
+  'costs.splitUnitShares': 'Parts',
+  'costs.splitHint.shares':
+    'Dona a cada persona un nombre de parts, com ara les nits que s’hi ha allotjat; el total es reparteix en aquesta proporció.',
+  'costs.splitSharesOf': 'Parts de {name}',
+  'costs.splitSharesNone': 'Dona una part a almenys una persona',
   'costs.splitHint.ticket': 'Llista el que hi havia al rebut i marca qui ha pres cada article.',
   'costs.pickSomeone': 'Tria almenys una persona amb qui dividir-ho.',
   'costs.splitSummary': 'Dividit entre {count} persones · {amount} cadascú',

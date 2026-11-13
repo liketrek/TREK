@@ -176,6 +176,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Zadejte podíl každé osoby v procentech; dohromady musí dát 100 %.',
   'costs.splitUnit': 'Zadávat podíly jako',
   'costs.splitPercentOff': 'Rozděleno {sum} % ze 100 %',
+  'costs.splitUnitShares': 'Podíly',
+  'costs.splitHint.shares':
+    'Dejte každé osobě počet podílů, třeba podle počtu nocí; celková částka se rozdělí v tomto poměru.',
+  'costs.splitSharesOf': 'Podíly pro {name}',
+  'costs.splitSharesNone': 'Dejte podíl alespoň jedné osobě',
   'costs.splitHint.ticket': 'Vypište, co bylo na účtence, a zaškrtněte, kdo měl kterou položku.',
   'costs.filter.allCategories': 'Všechny kategorie',
   'costs.filter.allDays': 'Všechny dny',

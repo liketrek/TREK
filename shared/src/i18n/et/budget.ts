@@ -143,6 +143,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Sisesta iga inimese osa protsentides; kokku peab tulema 100 %.',
   'costs.splitUnit': 'Sisesta osad kui',
   'costs.splitPercentOff': 'Jaotatud {sum} % 100 %-st',
+  'costs.splitUnitShares': 'Osad',
+  'costs.splitHint.shares':
+    'Anna igale inimesele osade arv, näiteks ööbitud ööde arv; summa jagatakse selles vahekorras.',
+  'costs.splitSharesOf': '{name} osad',
+  'costs.splitSharesNone': 'Anna vähemalt ühele inimesele osa',
   'costs.splitHint.ticket': 'Loetle, mis tšekil oli, ja märgi iga kirje juurde, kellele see kuulus.',
   'costs.pickSomeone': 'Vali jagamiseks vähemalt üks inimene.',
   'costs.splitSummary': 'Jaotatud {count} osaks · igaühele {amount}',

@@ -23,7 +23,7 @@ import {
 import { useCostsLedger } from './useCostsLedger'
 import { useExpenseLinks } from './useExpenseLinks'
 import { useSettlementForm } from './useSettlementForm'
-import { usePercentSplit, type CustomSplitUnit } from './usePercentSplit'
+import type { CustomSplitUnit } from './usePercentSplit'
 import { useExpenseForm } from './useExpenseForm'
 import { ReceiptPreviewModal } from './ReceiptPreviewModal'
 import { useExpenseDeleteConfirm } from './useExpenseDeleteConfirm'
@@ -1132,14 +1132,14 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     handleRemoveReceipt, handleToggleItemParticipant, handleUpdateItemName, handleUpdateItemPrice, isTicketMode,
     multiPayer, name, nameOf, note, onPayerAmountChange, onTotalChange, participants, payerAmounts, payerId, payerIds,
     payersOk, pendingReceiptFiles, placeholderShares, previewReceipts: modalPreviewReceipts, receipts, save, saving,
-    currencyChoices, setCat, setCurrency, setCustomAmounts, setDay, setName, setNote, setPayerId,
+    currencyChoices, setCat, setCurrency, setDay, setName, setNote, setPayerId, splitUnits: units,
     setPreviewReceipts: setModalPreviewReceipts, setSplitMode, splitMode, splitShortfall, splitSum, sym, ticketInfo,
     ticketItems, toggleParticipant, togglePayer, total, totalNum, tripCur, uploadingReceipt, valid,
   } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved })
 
-  // The custom split typed as percentages instead of amounts (#1709).
-  const pct = usePercentSplit({ total: totalNum, participants, customAmounts, setCustomAmounts, currency })
-  const inPercent = splitMode === 'custom' && pct.unit === 'percent'
+  // A custom split typed as percentages (#1709) or shares (#1165), each field showing its amount.
+  const inUnits = splitMode === 'custom' && units.unit !== 'amount'
+  const inPercent = inUnits && units.unit === 'percent'
 
   const catInfo = catMeta(cat)
   const money = (v: number) => formatMoney(v, currency, locale)
@@ -1164,7 +1164,6 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const personName = (p: TripMember, on: boolean) => (
     <span className={`truncate font-medium ${on ? 'text-content' : 'text-content-faint'}`} style={fs(13.5, 'body')}>{nameOf(p)}</span>
   )
-  const excludedNote = <span />
   const modeHint = (text: string) => <p className="m-0 mb-2.5 text-content-faint" style={fs(12, 'body')}>{text}</p>
   // Figures sit in badges, so an amount never reads as part of the sentence beside it.
   const BADGE = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-[3px] font-geist font-semibold tabular-nums'
@@ -1234,7 +1233,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                         onValueChange={v => onPayerAmountChange(p.id, v)}
                         className={AMOUNT_INPUT} style={fs(13.5, 'body')} />
                     </div>
-                  ) : excludedNote}
+                  ) : <span />}
                 </div>
               )
             })}
@@ -1266,14 +1265,15 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     >
       {splitMode === 'custom' ? (
         <div className="mb-2.5 flex items-center justify-between gap-3">
-          <p className="m-0 min-w-0 text-content-faint" style={fs(12, 'body')}>{t(inPercent ? 'costs.splitHint.percent' : 'costs.splitHint.custom')}</p>
+          <p className="m-0 min-w-0 text-content-faint" style={fs(12, 'body')}>{t(inPercent ? 'costs.splitHint.percent' : inUnits ? 'costs.splitHint.shares' : 'costs.splitHint.custom')}</p>
           <Segmented<CustomSplitUnit>
             label={t('costs.splitUnit')}
-            value={pct.unit}
-            onChange={pct.setUnit}
+            value={units.unit}
+            onChange={units.setUnit}
             options={[
               { value: 'amount', label: sym(currency) },
               { value: 'percent', label: '%' },
+              { value: 'shares', label: t('costs.splitUnitShares') },
             ]}
           />
         </div>
@@ -1361,15 +1361,16 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                     {personName(p, on)}
                     {p.is_guest && <GuestBadge size="xs" customTooltip />}
                   </button>
-                  {!on ? excludedNote : splitMode === 'equally' ? (
+                  {!on ? <span /> : splitMode === 'equally' ? (
                     <span className="text-end">{badge(money(equalShares[p.id] || 0))}</span>
-                  ) : inPercent ? (
+                  ) : inUnits ? (
                     <div className="flex flex-col items-end gap-0.5">
                       <div className={`${AMOUNT_BOX} w-full`}>
-                        <input type="text" inputMode="decimal" aria-label={`${nameOf(p)} %`} placeholder={pct.placeholderPercent} value={pct.percents[p.id] ?? ''}
-                          onChange={e => pct.onPercentChange(p.id, e.target.value)}
+                        <input type="text" inputMode="decimal" placeholder={units.placeholder}
+                          aria-label={inPercent ? `${nameOf(p)} %` : t('costs.splitSharesOf', { name: nameOf(p) })}
+                          value={units.entries[p.id] ?? ''} onChange={e => units.onEntryChange(p.id, e.target.value)}
                           className={AMOUNT_INPUT} style={fs(13.5, 'body')} />
-                        <span className="text-content-faint" style={fs(13, 'body')}>%</span>
+                        {inPercent && <span className="text-content-faint" style={fs(13, 'body')}>%</span>}
                       </div>
                       {customAmounts[p.id] && <span className="font-geist tabular-nums text-content-faint" style={fs(10.5)}>{money(Number.parseFloat(customAmounts[p.id]) || 0)}</span>}
                     </div>
@@ -1393,8 +1394,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
               </>
             ) : customBalanced ? (
               badge(<><Check size={12} strokeWidth={3} />{t('costs.splitBalanced')}</>, 'success')
-            ) : inPercent ? (
-              badge(<><AlertCircle size={12} strokeWidth={2.4} />{t('costs.splitPercentOff', { sum: String(Math.round(pct.percentSum * 100) / 100) })}</>, 'danger')
+            ) : inUnits ? (
+              badge(<><AlertCircle size={12} strokeWidth={2.4} />{inPercent ? t('costs.splitPercentOff', { sum: String(Math.round(units.percentSum * 100) / 100) }) : t('costs.splitSharesNone')}</>, 'danger')
             ) : (
               badge(<><AlertCircle size={12} strokeWidth={2.4} />{t(splitShortfall > 0 ? 'costs.splitSumUnder' : 'costs.splitSumOver', {
                 sum: money(splitSum),

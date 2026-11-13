@@ -197,6 +197,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'أدخل حصة كل شخص بالنسبة المئوية؛ يجب أن يكون مجموعها 100 %.',
   'costs.splitUnit': 'إدخال الحصص كـ',
   'costs.splitPercentOff': 'تم توزيع {sum} % من 100 %',
+  'costs.splitUnitShares': 'الحصص',
+  'costs.splitHint.shares':
+    'أعطِ كل شخص عددًا من الحصص، مثل عدد الليالي التي أقامها؛ ويُقسَّم المبلغ الإجمالي بهذه النسبة.',
+  'costs.splitSharesOf': 'حصص {name}',
+  'costs.splitSharesNone': 'أعطِ حصة لشخص واحد على الأقل',
   'costs.splitHint.ticket': 'اكتب ما ورد في الإيصال وحدّد من أخذ كل عنصر.',
   'costs.filter.allCategories': 'كل الفئات',
   'costs.filter.allDays': 'كل الأيام',

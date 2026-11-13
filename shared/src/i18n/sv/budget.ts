@@ -169,6 +169,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Skriv varje persons andel i procent; tillsammans ska det bli 100 %.',
   'costs.splitUnit': 'Ange andelar som',
   'costs.splitPercentOff': '{sum} % av 100 % fördelat',
+  'costs.splitUnitShares': 'Andelar',
+  'costs.splitHint.shares':
+    'Ge varje person ett antal andelar, till exempel antal nätter; summan delas i den proportionen.',
+  'costs.splitSharesOf': 'Andelar för {name}',
+  'costs.splitSharesNone': 'Ge minst en person en andel',
   'costs.splitHint.ticket': 'Lista det som stod på kvittot och bocka för vem som hade varje artikel.',
   'costs.filter.allCategories': 'Alla kategorier',
   'costs.filter.allDays': 'Alla dagar',

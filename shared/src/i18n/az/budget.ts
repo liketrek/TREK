@@ -159,6 +159,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Hər kəsin payını faizlə yazın; cəmi 100 % olmalıdır.',
   'costs.splitUnit': 'Payları belə daxil et',
   'costs.splitPercentOff': '100 %-dən {sum} % bölüşdürülüb',
+  'costs.splitUnitShares': 'Paylar',
+  'costs.splitHint.shares':
+    'Hər kəsə pay sayı verin, məsələn qaldığı gecələrin sayı; ümumi məbləğ bu nisbətdə bölünür.',
+  'costs.splitSharesOf': '{name} üçün paylar',
+  'costs.splitSharesNone': 'Ən azı bir nəfərə pay verin',
   'costs.splitHint.ticket': 'Qəbzdə olanları sadalayın və hər elementi kimin götürdüyünü işarələyin.',
   'costs.pickSomeone': 'Bölüşdürmək üçün ən azı bir nəfər seçin.',
   'costs.splitSummary': '{count} nəfər arasında bölünüb · hərəsinə {amount}',

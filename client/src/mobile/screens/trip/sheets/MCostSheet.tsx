@@ -15,6 +15,7 @@ import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costs
 import { NOTE_MAX } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
 import { useExpenseForm } from '../../../../components/Budget/useExpenseForm'
+import type { CustomSplitUnit } from '../../../../components/Budget/usePercentSplit'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import type { TripMember } from '../../../../components/Budget/BudgetPanelMemberChips'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
@@ -63,7 +64,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     totalNum, fx, participants, toggleParticipant, payerId, setPayerId, multiPayer, enableMultiPayer, disableMultiPayer,
     payerIds, payerAmounts, togglePayer, onPayerAmountChange, payersOk, splitMode, setSplitMode, isTicketMode, ticketItems,
     ticketInfo, handleAddEmptyItem, handleUpdateItemName, handleUpdateItemPrice, handleRemoveItem, handleToggleItemParticipant,
-    customAmounts, handleCustomAmountChange, splitSum, customBalanced, each, equalShares, placeholderShares,
+    customAmounts, handleCustomAmountChange, splitUnits, splitSum, customBalanced, each, equalShares, placeholderShares,
     receipts, pendingReceiptFiles, uploadingReceipt, handleReceiptFileSelect, handleRemoveReceipt, handleRemovePendingReceipt,
     previewReceipts, setPreviewReceipts, valid, saving, save,
   } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved, oneSaveAtATime: true, keepSavingOnSuccess: true })
@@ -117,6 +118,14 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
       )
 
   const submitLabel = saving ? t('common.saving') : editing ? t('common.save') : t('common.add')
+  // A custom split typed as amounts, percentages (#1709) or shares (#1165).
+  const inUnits = splitMode === 'custom' && splitUnits.unit !== 'amount'
+  const inPercent = inUnits && splitUnits.unit === 'percent'
+  const unitOptions: { id: CustomSplitUnit; label: string }[] = [
+    { id: 'amount', label: sym(currency).trim() },
+    { id: 'percent', label: '%' },
+    { id: 'shares', label: t('costs.splitUnitShares') },
+  ]
 
   return (
     <MSheet
@@ -315,6 +324,28 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           ))}
         </div>
 
+        {splitMode === 'custom' && (
+          <>
+            <div role="radiogroup" aria-label={t('costs.splitUnit')} className="mt-2 flex rounded-full bg-[color:var(--m-ic)] p-[3px]">
+              {unitOptions.map(u => (
+                <button
+                  key={u.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={splitUnits.unit === u.id}
+                  onClick={() => splitUnits.setUnit(u.id)}
+                  className={`min-w-0 flex-1 truncate rounded-full px-2 py-[6px] text-caption font-semibold ${splitUnits.unit === u.id ? 'bg-m-act text-m-actfg' : 'text-m-muted'}`}
+                >
+                  {u.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-[6px] text-caption text-m-faint">
+              {t(inPercent ? 'costs.splitHint.percent' : inUnits ? 'costs.splitHint.shares' : 'costs.splitHint.custom')}
+            </p>
+          </>
+        )}
+
         {isTicketMode ? (
           <div className="mt-2 flex flex-col gap-2">
             {ticketItems.map(item => (
@@ -403,6 +434,26 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                       ) : (
                         <span className="flex-none pe-1 text-[0.6875rem] text-m-faint">{t('costs.tapToInclude')}</span>
                       )
+                    ) : on && inUnits ? (
+                      <div className="flex w-[120px] flex-none flex-col items-end gap-[2px]">
+                        <div className={`${MINI_INPUT_WRAP} w-full`}>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={inPercent ? `${nameOf(p)} %` : t('costs.splitSharesOf', { name: nameOf(p) })}
+                            placeholder={splitUnits.placeholder}
+                            value={splitUnits.entries[p.id] ?? ''}
+                            onChange={e => splitUnits.onEntryChange(p.id, e.target.value)}
+                            className="w-full border-0 bg-transparent py-[7px] text-end text-body font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
+                          />
+                          {inPercent && <span className="text-caption text-m-faint">%</span>}
+                        </div>
+                        {customAmounts[p.id] && (
+                          <span className="text-caption text-m-faint [font-variant-numeric:tabular-nums]">
+                            {formatMoney(Number.parseFloat(customAmounts[p.id]) || 0, currency, locale)}
+                          </span>
+                        )}
+                      </div>
                     ) : on ? (
                       <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
                         <span className="text-[0.75rem] text-m-faint">{sym(currency)}</span>
@@ -431,8 +482,9 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                 </span>
               ) : (
                 <span className={`font-semibold ${customBalanced ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
+                  {/* An uneven split has no one share to print "each" with. */}
                   {customBalanced
-                    ? t('costs.splitSummary', { count: participants.size, amount: splitShareLabel(each, currency, fx, participants.size, base, locale) })
+                    ? t('costs.splitBalanced')
                     : `${formatMoney(splitSum, currency, locale)} / ${formatMoney(totalNum, currency, locale)}`}
                 </span>
               )}

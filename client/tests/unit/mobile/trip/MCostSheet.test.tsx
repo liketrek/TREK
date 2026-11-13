@@ -10,7 +10,7 @@ import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-038
+// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-040
 // The sheet reads its copy from useTranslation(), so assertions are English.
 // EUR formats de-DE style: displayed amounts and inputs use a comma.
 
@@ -353,7 +353,7 @@ describe('MCostSheet', () => {
 
     // The remaining share now suggests what is left of the total.
     fireEvent.change(screen.getByPlaceholderText('70,00'), { target: { value: '70' } })
-    expect(screen.getByText('Split 2 ways · 50,00 € each')).toBeInTheDocument()
+    expect(screen.getByText('Split matches total')).toBeInTheDocument()
 
     fireEvent.click(submit())
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
@@ -743,5 +743,36 @@ describe('MCostSheet', () => {
     expect(shares[0].className).toContain('placeholder:text-m-faint')
     fireEvent.change(shares[0], { target: { value: '10000' } })
     expect(screen.getByText('₩10,000 / ₩60,000')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTSH-039: a custom split by shares saves the stay split by nights (#1165)', async () => {
+    renderSheet()
+    fillBasics('Apartment', '390')
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Shares' }))
+    // One share each until something is typed: the split already balances.
+    expect(screen.getByRole('textbox', { name: 'Shares for You' })).toHaveAttribute('placeholder', '1')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Shares for You' }), { target: { value: '5' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Shares for bob' }), { target: { value: '4' } })
+    expect(screen.getByText('216,67 €')).toBeInTheDocument()
+    expect(screen.getByText('173,33 €')).toBeInTheDocument()
+
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({
+      members: [{ user_id: 1, amount: 216.67 }, { user_id: 2, amount: 173.33 }],
+    })
+  })
+
+  it('FE-MOB-COSTSH-040: the custom split also takes percentages, the amount shown beside each', () => {
+    renderSheet()
+    fillBasics('Bag storage', '30')
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('radio', { name: '%' }))
+    expect(screen.getByText("Type each person's share in percent; together they have to make 100 %.")).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'You %' }), { target: { value: '60' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'bob %' }), { target: { value: '40' } })
+    expect(screen.getByText('18,00 €')).toBeInTheDocument()
+    expect(submit()).toBeEnabled()
   })
 })

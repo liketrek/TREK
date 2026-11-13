@@ -183,6 +183,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Wpisz udział każdej osoby w procentach; razem musi to dać 100 %.',
   'costs.splitUnit': 'Wpisuj udziały jako',
   'costs.splitPercentOff': 'Przydzielono {sum} % ze 100 %',
+  'costs.splitUnitShares': 'Udziały',
+  'costs.splitHint.shares':
+    'Przypisz każdej osobie liczbę udziałów, np. liczbę nocy; kwota zostanie podzielona w tej proporcji.',
+  'costs.splitSharesOf': 'Udziały: {name}',
+  'costs.splitSharesNone': 'Przypisz udział co najmniej jednej osobie',
   'costs.splitHint.ticket': 'Wypisz, co było na paragonie, i zaznacz, kto miał którą pozycję.',
   'costs.filter.allCategories': 'Wszystkie kategorie',
   'costs.filter.allDays': 'Wszystkie dni',

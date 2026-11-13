@@ -29,6 +29,7 @@ import { catMeta } from './costsCategories';
 import { currencyOptions } from './costsModel';
 import { useExpenseFx } from './expenseFx';
 import { saveWithReceipts } from './receiptUploads';
+import { usePercentSplit } from './usePercentSplit';
 
 export type ExpenseSplitMode = 'equally' | 'custom' | 'ticket';
 
@@ -38,7 +39,7 @@ let ticketItemSeq = 0;
 /**
  * The expense editor behind the desktop ExpenseModal and the phone MCostSheet:
  * name, category, amount and currency, payers, the Equally / Custom / Ticket
- * splits, the note and the receipts, what makes the entry valid, and the save
+ * splits (a custom one typed as amounts, percentages or shares), the note and the receipts, what makes the entry valid, and the save
  * through the trip store. Both surfaces lay it out their own way.
  *
  * Where the two save differently today, the surface says which way:
@@ -182,6 +183,8 @@ export function useExpenseForm({
 
   const totalNum = isTicketMode ? ticketInfo.total : Number.parseFloat(total) || 0;
   const fx = preview(totalNum, currency);
+  // The custom split typed as percentages (#1709) or shares (#1165) instead of amounts.
+  const splitUnits = usePercentSplit({ total: totalNum, participants, customAmounts, setCustomAmounts, currency });
   const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0);
   const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100);
   // How much is still to be handed out, read on the total's own side: on a refund
@@ -468,8 +471,8 @@ export function useExpenseForm({
     handleRemoveItem,
     handleToggleItemParticipant,
     customAmounts,
-    setCustomAmounts,
     handleCustomAmountChange,
+    splitUnits,
     splitSum,
     customBalanced,
     splitShortfall,

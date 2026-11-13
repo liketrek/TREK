@@ -162,6 +162,11 @@ const budget: TranslationStrings = {
   'costs.splitHint.percent': 'Ketik bagian tiap orang dalam persen; jumlahnya harus 100 %.',
   'costs.splitUnit': 'Masukkan bagian sebagai',
   'costs.splitPercentOff': '{sum} % dari 100 % terbagi',
+  'costs.splitUnitShares': 'Bagian',
+  'costs.splitHint.shares':
+    'Beri setiap orang sejumlah bagian, misalnya jumlah malam menginap; total dibagi menurut perbandingan itu.',
+  'costs.splitSharesOf': 'Bagian untuk {name}',
+  'costs.splitSharesNone': 'Beri bagian kepada setidaknya satu orang',
   'costs.splitHint.ticket': 'Tuliskan isi kuitansi dan centang siapa yang mengambil tiap item.',
   'costs.filter.allCategories': 'Semua kategori',
   'costs.filter.allDays': 'Semua hari',
