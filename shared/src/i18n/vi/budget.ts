@@ -175,6 +175,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Tính lại {category} vào tổng',
   'costs.breakdown.leftOut': 'Đã loại khỏi tổng: {categories}',
   'costs.breakdown.countAll': 'Tính tất cả',
+  'costs.showIn': 'Hiển thị số tiền bằng',
   'costs.splitHint.ticket': 'Liệt kê các món trên hóa đơn và đánh dấu ai đã dùng từng món.',
   'costs.filter.allCategories': 'Tất cả danh mục',
   'costs.filter.allDays': 'Tất cả các ngày',

@@ -197,6 +197,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Uwzględnij {category} w sumach ponownie',
   'costs.breakdown.leftOut': 'Pominięte w sumach: {categories}',
   'costs.breakdown.countAll': 'Uwzględnij wszystko',
+  'costs.showIn': 'Pokaż kwoty w',
   'costs.splitHint.ticket': 'Wypisz, co było na paragonie, i zaznacz, kto miał którą pozycję.',
   'costs.filter.allCategories': 'Wszystkie kategorie',
   'costs.filter.allDays': 'Wszystkie dni',

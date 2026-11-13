@@ -156,6 +156,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Count {category} in the totals again',
   'costs.breakdown.leftOut': 'Left out of the totals: {categories}',
   'costs.breakdown.countAll': 'Count all',
+  'costs.showIn': 'Show amounts in',
   'costs.splitHint.ticket': 'List what was on the receipt and tick who had each item.',
   'costs.pickSomeone': 'Pick at least one person to split with.',
   'costs.splitSummary': 'Split {count} ways · {amount} each',

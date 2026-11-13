@@ -189,6 +189,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Znovu započítat {category} do součtů',
   'costs.breakdown.leftOut': 'Vynecháno ze součtů: {categories}',
   'costs.breakdown.countAll': 'Započítat vše',
+  'costs.showIn': 'Zobrazit částky v',
   'costs.splitHint.ticket': 'Vypište, co bylo na účtence, a zaškrtněte, kdo měl kterou položku.',
   'costs.filter.allCategories': 'Všechny kategorie',
   'costs.filter.allDays': 'Všechny dny',

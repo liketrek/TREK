@@ -146,6 +146,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'นับ {category} ในยอดรวมอีกครั้ง',
   'costs.breakdown.leftOut': 'ไม่นับในยอดรวม: {categories}',
   'costs.breakdown.countAll': 'นับทั้งหมด',
+  'costs.showIn': 'แสดงจำนวนเงินเป็น',
   'costs.splitHint.ticket': 'ใส่รายการที่อยู่ในใบเสร็จ แล้วติ๊กว่าใครสั่งรายการไหน',
   'costs.pickSomeone': 'เลือกอย่างน้อยหนึ่งคนที่จะแยกด้วย',
   'costs.splitSummary': '{count} คน · คนละ {amount}',

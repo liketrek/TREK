@@ -32,6 +32,7 @@ import { FlowPills } from './FlowPills'
 import { CostsSplitChips } from './CostsSplitChips'
 import { CostsModeCard } from './CostsModeCard'
 import { CostsCategoryBreakdown } from './CostsCategoryBreakdown'
+import { CostsCurrencyPicker } from './CostsCurrencyPicker'
 import type { BudgetParticipantFinal, ReceiptLine } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -76,7 +77,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
-    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll,
+    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, setBase, baseOptions,
   } = useCostsLedger({
     tripId, trip, budgetItems, memberCount: tripMembers.length, actions: { loadBudgetItems, deleteBudgetItem }, canEdit, t, toast,
     settlementOnTripChange: true, skipUnfinishedShares: true, csvCurrencyAsStored: true,
@@ -273,7 +274,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         canEdit={canEdit} canSettle={(settlement?.flows || []).length > 0}
         onSettleAll={settleAll} onAddExpense={() => { setEditing(null); setModalOpen(true) }}
         onScanReceipt={receiptScan.offered ? receiptScan.open : undefined}
-        view={view} onView={setView}
+        view={view} onView={setView} currency={{ value: base, options: baseOptions, onChange: setBase }}
         filters={{
           query: search, onQuery: setSearch,
           owner: filter, onOwner: setFilter,
@@ -557,7 +558,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         {/* Expenses */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em' }}>{t('costs.expenses')}</div>
+            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em', marginInlineEnd: 'auto' }}>{t('costs.expenses')}</div>
+            <CostsCurrencyPicker value={base} options={baseOptions} onChange={setBase} />
             <Tooltip label={t('budget.exportCsv')}>
             <button type="button" onClick={handleExportCsv} aria-label={t('budget.exportCsv')} disabled={!budgetItems.length}
               className="bg-surface-card border border-edge text-content-muted disabled:opacity-40"
@@ -602,7 +604,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           {BalancesList({ balances: settlement?.balances || [] })}
         </div>
 
-        {/* Final budget */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.finalBudget')}</div>
           {FinalBudgetList()}
@@ -1362,7 +1363,6 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
         )}
         </div>
 
-        {/* Nothing to split on a trip of one (#2689). */}
         {showSplit && payerSection}
         {showSplit && splitSection}
 

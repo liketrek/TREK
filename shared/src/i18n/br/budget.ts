@@ -182,6 +182,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Contar {category} nos totais de novo',
   'costs.breakdown.leftOut': 'Fora dos totais: {categories}',
   'costs.breakdown.countAll': 'Contar tudo',
+  'costs.showIn': 'Mostrar valores em',
   'costs.splitHint.ticket': 'Liste o que estava no comprovante e marque quem consumiu cada item.',
   'costs.filter.allCategories': 'Todas as categorias',
   'costs.filter.allDays': 'Todos os dias',

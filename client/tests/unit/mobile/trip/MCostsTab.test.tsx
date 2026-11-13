@@ -18,7 +18,7 @@ import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-058
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-059
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -1010,5 +1010,19 @@ describe('MCostsTab', () => {
     fireEvent.click(screen.getByText('costs.breakdown.countAll'))
     expect(total().textContent).toBe(before)
     expect(screen.queryByRole('button', { name: /^costs\.breakdown\.countIn:/ })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-059: the heading carries the currency the tab reads in, and a pick reads the balances again in it (#1683)', async () => {
+    localStorage.removeItem('trek:costs-currency:7')
+    try {
+      await renderTab()
+      const picker = screen.getByRole('button', { name: 'Show amounts in' })
+      expect(picker).toHaveTextContent('USD')
+      fireEvent.click(picker)
+      fireEvent.click(await screen.findByText(/^GBP\s/))
+      await waitFor(() => expect(settlementBases).toContain('GBP'))
+    } finally {
+      localStorage.removeItem('trek:costs-currency:7')
+    }
   })
 })

@@ -173,6 +173,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '将{category}重新计入合计',
   'costs.breakdown.leftOut': '未计入合计：{categories}',
   'costs.breakdown.countAll': '全部计入',
+  'costs.showIn': '金额显示币种',
   'costs.splitHint.ticket': '列出收据上的项目，并勾选每一项是谁的。',
   'costs.filter.allCategories': '所有类别',
   'costs.filter.allDays': '所有日期',

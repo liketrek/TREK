@@ -741,7 +741,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
     await user.type(await screen.findByPlaceholderText('0,00'), '25')
     // Bob paid me back in dollars — the server freezes the USD rate on write.
-    await user.click(screen.getByText(/^EUR/))
+    await user.click(within(screen.getByRole('dialog')).getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(addButtons[addButtons.length - 1])
@@ -1451,7 +1451,7 @@ describe('CostsPanel — expense modal', () => {
 
     await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Diner')
     await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
-    await user.click(screen.getByText(/^EUR/))
+    await user.click(within(screen.getByRole('dialog')).getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
 
     expect(screen.getByText('live rate', { exact: false })).toBeInTheDocument()
@@ -2493,7 +2493,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     // Seeding the display currency here would label 100 euro as 100 dollars, and a
     // plain save would then store it that way.
     expect(screen.getByText(/^EUR/)).toBeInTheDocument()
-    expect(screen.queryByText(/^USD/)).toBeNull()
+    expect(within(screen.getByRole('dialog')).queryByText(/^USD/)).toBeNull()
 
     // Saving without touching anything keeps the 100 euro.
     await user.click(screen.getByRole('button', { name: 'Save' }))

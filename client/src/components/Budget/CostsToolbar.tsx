@@ -5,6 +5,7 @@ import type { TripMember } from './BudgetPanelMemberChips'
 import { Tooltip } from '../shared/Tooltip'
 import { POPOVER, POPOVER_CAPTION, POPOVER_DIVIDER, useDismissOnOutside } from '../Packing/packingPopoverStyles'
 import { PopoverItem } from '../Packing/PackingPopover'
+import { CostsCurrencyPicker } from './CostsCurrencyPicker'
 
 export type OwnerFilter = 'all' | 'mine' | 'owed'
 /** The day-by-day list, or the categorized table the old budget had. */
@@ -51,6 +52,8 @@ interface CostsToolbarProps {
   /** The switch between the list and the table; left out, the bar has none. */
   view?: CostsView
   onView?: (view: CostsView) => void
+  /** Which currency the tab shows the trip in (#1683); left out, the bar has no picker. */
+  currency?: Parameters<typeof CostsCurrencyPicker>[0]
 }
 
 const BODY_SIZE = 'calc(13px * var(--fs-scale-body, 1))'
@@ -62,7 +65,7 @@ const BAR_BTN = 'relative grid h-9 w-9 flex-none place-items-center rounded-[10p
  * Bookings, Lists and Files open with: the tab's name and what the numbers
  * cover, then how to narrow the ledger and the actions on the right.
  */
-export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, canSettle, splitting = true, onSettleAll, onAddExpense, onScanReceipt, filters, view, onView }: CostsToolbarProps) {
+export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, canSettle, splitting = true, onSettleAll, onAddExpense, onScanReceipt, filters, view, onView, currency }: CostsToolbarProps) {
   const { t } = useTranslation()
   const searchRef = useRef<HTMLInputElement>(null)
   const chip = 'inline-flex items-center whitespace-nowrap rounded-full bg-surface-card px-3 py-1.5 font-medium text-content-muted shadow-sm'
@@ -129,6 +132,8 @@ export default function CostsToolbar({ dateMeta, people, me, colorFor, canEdit, 
           </Tooltip>
         </>
       )}
+
+      {currency && <CostsCurrencyPicker {...currency} />}
 
       {view && onView && (
         // The same switch the Bookings bar has for its views.

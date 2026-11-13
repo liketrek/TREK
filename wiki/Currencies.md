@@ -77,6 +77,10 @@ An administrator can set an instance-wide default (Admin → User Defaults), and
 
 An expense you enter in your display currency reads back exactly as you typed it on the day you enter it, on its row, in the totals and in the final budget, and paying the amount settle-up offers for it leaves both balances at zero. When the rate has moved since, the row shows the value the totals count, with what was entered and the trip-currency amount it was booked at underneath (`$801.76 → 685,26 €`).
 
+### Reading one trip in another currency
+
+The Costs tab has a currency picker of its own (*Show amounts in*, in the bar). It reads that one trip in another currency, without touching the setting: useful when a trip moves on to another country and you want its totals in the new local currency. The pick is kept per trip in this browser only; your display currency and the trip's own sit at the top of the list, and picking your display currency again goes back to it. Like the display currency, it changes nothing that is stored.
+
 ## How they fit together
 
 An expense flows through all three:

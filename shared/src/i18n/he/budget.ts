@@ -160,6 +160,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'לכלול שוב את {category} בסכומים',
   'costs.breakdown.leftOut': 'לא נכלל בסכומים: {categories}',
   'costs.breakdown.countAll': 'לכלול הכול',
+  'costs.showIn': 'הצגת הסכומים במטבע',
   'costs.splitHint.ticket': 'רשמו מה היה בקבלה וסמנו מי לקח כל פריט.',
   'costs.pickSomeone': 'בחרו לפחות אדם אחד לחלוקה.',
   'costs.splitSummary': 'חלוקה ל-{count} · {amount} לכל אחד',

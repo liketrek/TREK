@@ -210,6 +210,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'احتساب {category} في الإجماليات مجددًا',
   'costs.breakdown.leftOut': 'مستبعد من الإجماليات: {categories}',
   'costs.breakdown.countAll': 'احتساب الكل',
+  'costs.showIn': 'عرض المبالغ بعملة',
   'costs.splitHint.ticket': 'اكتب ما ورد في الإيصال وحدّد من أخذ كل عنصر.',
   'costs.filter.allCategories': 'كل الفئات',
   'costs.filter.allDays': 'كل الأيام',

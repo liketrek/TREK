@@ -183,6 +183,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Volver a contar {category} en los totales',
   'costs.breakdown.leftOut': 'Fuera de los totales: {categories}',
   'costs.breakdown.countAll': 'Contar todo',
+  'costs.showIn': 'Mostrar importes en',
   'costs.splitHint.ticket': 'Enumera lo que había en el recibo y marca quién tomó cada artículo.',
   'costs.filter.allCategories': 'Todas las categorías',
   'costs.filter.allDays': 'Todos los días',

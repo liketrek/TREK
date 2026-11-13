@@ -161,6 +161,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Znova započítať {category} do súčtov',
   'costs.breakdown.leftOut': 'Vynechané zo súčtov: {categories}',
   'costs.breakdown.countAll': 'Započítať všetko',
+  'costs.showIn': 'Zobraziť sumy v',
   'costs.splitHint.ticket': 'Vypíšte, čo bolo na účtenke, a označte, kto mal ktorú položku.',
   'costs.pickSomeone': 'Vyberte aspoň jednu osobu na rozdelenie.',
   'costs.splitSummary': 'Rozdelené na {count} dielov · {amount} na osobu',

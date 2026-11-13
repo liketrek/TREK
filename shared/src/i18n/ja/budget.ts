@@ -174,6 +174,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '{category}を合計に戻す',
   'costs.breakdown.leftOut': '合計から除外中：{categories}',
   'costs.breakdown.countAll': 'すべて含める',
+  'costs.showIn': '金額の表示通貨',
   'costs.splitHint.ticket': 'レシートの品目を書き出し、それぞれ誰の分かにチェックを入れます。',
   'costs.filter.allCategories': 'すべてのカテゴリー',
   'costs.filter.allDays': 'すべての日',

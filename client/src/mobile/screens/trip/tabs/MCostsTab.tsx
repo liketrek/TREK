@@ -13,6 +13,7 @@ import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPrevie
 import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
 import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
 import { useCostsMode } from '../../../../components/Budget/useCostsMode'
+import { CostsCurrencyPicker } from '../../../../components/Budget/CostsCurrencyPicker'
 import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
@@ -50,7 +51,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, splitting, knownNames,
     search, setSearch, segment, setSegment, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
-    deleteExpense, undoSettlement: handleUndoSettlement,
+    deleteExpense, undoSettlement: handleUndoSettlement, setBase, baseOptions,
   } = useCostsLedger({ tripId, trip, budgetItems, memberCount: tripMembers.length, actions: planner.tripActions, canEdit, t, toast })
 
   // Split between the travellers or totals only (#1714), switched at the foot of the summary.
@@ -385,7 +386,11 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
       {/* Expenses — header, search, filters (spec §3.6). One block, so on a wide
           window the search field keeps to the column like the heading above it. */}
       <section aria-label={t('costs.expenses')}>
-      <h2 className="mt-4 text-[1.0625rem] font-extrabold text-m-ink split:mt-0">{t('costs.expenses')}</h2>
+      {/* The currency the tab reads the trip in (#1683) sits by the heading, as on the desktop. */}
+      <div className="mt-4 flex items-center gap-2 split:mt-0">
+        <h2 className="min-w-0 flex-1 text-[1.0625rem] font-extrabold text-m-ink">{t('costs.expenses')}</h2>
+        <CostsCurrencyPicker value={base} options={baseOptions} onChange={setBase} />
+      </div>
       <input
         type="text"
         value={search}

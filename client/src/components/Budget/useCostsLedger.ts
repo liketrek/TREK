@@ -7,7 +7,6 @@ import { useNetworkMode } from '../../hooks/useNetworkMode';
 import { useTranslation } from '../../i18n';
 import { budgetRepo, type SettlementWriteResult } from '../../repo/budgetRepo';
 import { useAuthStore } from '../../store/authStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import type { TripStoreState } from '../../store/tripStore';
 import { useServerPing } from '../../sync/useServerPing';
 import type { BudgetItem, Trip } from '../../types';
@@ -28,6 +27,7 @@ import {
   type CostsSettlementResponse,
 } from './costsModel';
 import { knownPersonNames } from './CostsPanel.helpers';
+import { useCostsCurrency } from './useCostsCurrency';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
 /** The events after which the balances are read again from the server. */
@@ -95,11 +95,11 @@ export function useCostsLedger({
   const me = useAuthStore((s) => s.user?.id ?? -1);
 
   // Display/base currency = the user's preferred currency (Settings), falling back
-  // to the trip's own currency. Everything in Costs is converted to and shown in it.
-  const displayCurrency = useSettingsStore((s) => s.settings.default_currency);
-  const base = (displayCurrency || trip?.currency || 'EUR').toUpperCase();
+  // to the trip's own currency, unless this trip is read in another one (#1683).
+  // Everything in Costs is converted to and shown in it.
+  const { base, usual, setBase, baseOptions } = useCostsCurrency(tripId, trip);
   // Pre-rework rows stored currency = NULL, meaning "the trip's own currency".
-  const tripCurrency = (trip?.currency || base).toUpperCase();
+  const tripCurrency = (trip?.currency || usual).toUpperCase();
   // Anchored on the trip currency's quote, the one the server books with (#2525).
   const { convert, displayPerTrip } = useExchangeRates(base, tripCurrency);
   const ctx: CostsCtx = useMemo(
@@ -326,6 +326,8 @@ export function useCostsLedger({
   return {
     me,
     base,
+    setBase,
+    baseOptions,
     tripCurrency,
     ctx,
     settlement,

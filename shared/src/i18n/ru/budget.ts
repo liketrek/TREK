@@ -196,6 +196,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Снова учитывать {category} в итогах',
   'costs.breakdown.leftOut': 'Не учтено в итогах: {categories}',
   'costs.breakdown.countAll': 'Учитывать всё',
+  'costs.showIn': 'Показывать суммы в',
   'costs.splitHint.ticket': 'Перечислите, что было в чеке, и отметьте, кто что брал.',
   'costs.filter.allCategories': 'Все категории',
   'costs.filter.allDays': 'Все дни',

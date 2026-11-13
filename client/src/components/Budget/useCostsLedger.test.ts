@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-016
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-017
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -288,6 +288,22 @@ describe('useCostsLedger: categories left out (#2819)', () => {
     act(() => result.current.countAllCats());
     expect(result.current.totals.totalSpend).toBe(whole);
     expect(result.current.leftOutLabel).toBe('');
+  });
+});
+
+describe('useCostsLedger: another currency for this trip (#1683)', () => {
+  it('FE-BUDGET-LEDGER-017: the balances are read again in the currency picked, and the settle-ups go out in it', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    const { result } = setup();
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    act(() => result.current.setBase('USD'));
+    expect(result.current.base).toBe('USD');
+    await waitFor(() => expect(settlementMock()).toHaveBeenLastCalledWith(7, 'USD', expect.anything()));
+    await act(async () => {
+      await result.current.settleFlow(1, 2, 15);
+    });
+    expect(createMock()).toHaveBeenCalledWith(7, expect.objectContaining({ amount: 15, currency: 'USD' }));
+    localStorage.removeItem('trek:costs-currency:7');
   });
 });
 

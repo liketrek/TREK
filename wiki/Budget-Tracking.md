@@ -18,6 +18,7 @@ The tab opens with the same bar as Transports, Bookings, Lists and Files. From l
 - **Search expenses…**, which narrows the ledger by name as you type. Esc clears it.
 - The **Filter** button (funnel). Its popover holds the **All / Paid by me / I'm owed** switch, a **Category** list and a **Day** list with the days that have expenses. The button shows how many filters are on, and **Reset filters** at the foot of the popover switches them all off.
 - **Export CSV** (download icon), see [Exporting](#exporting).
+- The **currency** the tab shows the trip in (*Show amounts in*), see [Currency](#currency).
 - **List** and **Table** (two icons), which switch the tab between the expense ledger and the [Table view](#table-view). The list is where Costs opens; the choice is remembered in this browser.
 - For members who may edit costs: **Settle up**, **Scan receipt** (only with the AI Parsing addon and a model that reads images, see [Scanning a receipt](#scanning-a-receipt)) and **Add expense**.
 
@@ -32,6 +33,8 @@ Costs is **multi-currency** (#551). Three settings are involved, and they do dif
 - The **trip currency** (set in the trip's dialog on My Trips: the pencil on the trip card, **Edit Trip**) is the trip's accounting base. Every balance and settle-up is calculated in it.
 - Each **expense** carries **its own currency**. Pick it in the expense dialog and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt does not reopen when the market moves.
 - Your **display currency** (Settings → General → Language & region → **Display currency**) converts what you *read* (totals, balances, the ledger) into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
+
+The tab can also read one trip in another currency than your display currency, without changing Settings: the currency picker in the bar (on the phone and in a narrow window, beside the **Expenses** heading) converts every total, balance and settle-up of this trip into the currency you pick, say the one of the country you travel on to. Your display currency and the trip's own lead the list. The pick is kept per trip in this browser and changes nothing that is stored; picking your display currency again goes back to it. Settle-ups and payments recorded from the tab are made in the picked currency, and the CSV export adds its column in it.
 
 165 currencies are supported, with rates from [Frankfurter](https://frankfurter.dev) (no API key needed). When an expense's currency differs from the one you read in, the dialog shows the original beside the converted amount (`$100.00 ≈ 7 668,71 ₽`, marked *live rate* until the expense is saved and its rate frozen), and the ledger row shows both (`$100.00 → 7 668,71 ₽`).
 

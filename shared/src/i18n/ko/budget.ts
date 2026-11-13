@@ -174,6 +174,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '{category}을(를) 다시 합계에 넣기',
   'costs.breakdown.leftOut': '합계에서 제외됨: {categories}',
   'costs.breakdown.countAll': '모두 포함',
+  'costs.showIn': '금액 표시 통화',
   'costs.splitHint.ticket': '영수증에 있던 항목을 적고, 항목마다 누구 몫인지 체크하세요.',
   'costs.filter.allCategories': '모든 카테고리',
   'costs.filter.allDays': '모든 날짜',

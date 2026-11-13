@@ -182,6 +182,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '{category} yeniden toplamlara katılsın',
   'costs.breakdown.leftOut': 'Toplamların dışında: {categories}',
   'costs.breakdown.countAll': 'Hepsini say',
+  'costs.showIn': 'Tutarları şu para biriminde göster',
   'costs.splitHint.ticket': 'Fişte neler olduğunu listeleyin ve her kalemi kimin aldığını işaretleyin.',
   'costs.filter.allCategories': 'Tüm kategoriler',
   'costs.filter.allDays': 'Tüm günler',

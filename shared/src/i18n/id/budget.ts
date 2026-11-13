@@ -176,6 +176,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Hitung {category} lagi dalam total',
   'costs.breakdown.leftOut': 'Dikecualikan dari total: {categories}',
   'costs.breakdown.countAll': 'Hitung semua',
+  'costs.showIn': 'Tampilkan jumlah dalam',
   'costs.splitHint.ticket': 'Tuliskan isi kuitansi dan centang siapa yang mengambil tiap item.',
   'costs.filter.allCategories': 'Semua kategori',
   'costs.filter.allDays': 'Semua hari',

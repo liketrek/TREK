@@ -182,6 +182,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Conta di nuovo {category} nei totali',
   'costs.breakdown.leftOut': 'Esclusi dai totali: {categories}',
   'costs.breakdown.countAll': 'Conta tutto',
+  'costs.showIn': 'Mostra gli importi in',
   'costs.splitHint.ticket': "Elenca cosa c'era sulla ricevuta e spunta chi ha preso ciascun articolo.",
   'costs.filter.allCategories': 'Tutte le categorie',
   'costs.filter.allDays': 'Tutti i giorni',

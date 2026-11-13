@@ -156,6 +156,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Arvesta {category} jälle summadesse',
   'costs.breakdown.leftOut': 'Summadest välja jäetud: {categories}',
   'costs.breakdown.countAll': 'Arvesta kõik',
+  'costs.showIn': 'Summade valuuta',
   'costs.splitHint.ticket': 'Loetle, mis tšekil oli, ja märgi iga kirje juurde, kellele see kuulus.',
   'costs.pickSomeone': 'Vali jagamiseks vähemalt üks inimene.',
   'costs.splitSummary': 'Jaotatud {count} osaks · igaühele {amount}',

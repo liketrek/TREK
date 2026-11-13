@@ -184,6 +184,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '{category} weer meetellen in de totalen',
   'costs.breakdown.leftOut': 'Buiten de totalen: {categories}',
   'costs.breakdown.countAll': 'Alles meetellen',
+  'costs.showIn': 'Bedragen tonen in',
   'costs.splitHint.ticket': 'Zet op een rij wat er op de bon stond en vink aan wie welk item had.',
   'costs.filter.allCategories': 'Alle categorieën',
   'costs.filter.allDays': 'Alle dagen',

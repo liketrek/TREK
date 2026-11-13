@@ -172,6 +172,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '{category} yenidən yekunlara daxil edilsin',
   'costs.breakdown.leftOut': 'Yekunlardan çıxarılıb: {categories}',
   'costs.breakdown.countAll': 'Hamısını say',
+  'costs.showIn': 'Məbləğlərin valyutası',
   'costs.splitHint.ticket': 'Qəbzdə olanları sadalayın və hər elementi kimin götürdüyünü işarələyin.',
   'costs.pickSomeone': 'Bölüşdürmək üçün ən azı bir nəfər seçin.',
   'costs.splitSummary': '{count} nəfər arasında bölünüb · hərəsinə {amount}',

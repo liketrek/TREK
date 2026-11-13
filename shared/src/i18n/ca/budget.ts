@@ -147,6 +147,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Torna a comptar {category} als totals',
   'costs.breakdown.leftOut': 'Fora dels totals: {categories}',
   'costs.breakdown.countAll': 'Comptar-ho tot',
+  'costs.showIn': 'Mostra els imports en',
   'costs.splitHint.ticket': 'Llista el que hi havia al rebut i marca qui ha pres cada article.',
   'costs.pickSomeone': 'Tria almenys una persona amb qui dividir-ho.',
   'costs.splitSummary': 'Dividit entre {count} persones · {amount} cadascú',

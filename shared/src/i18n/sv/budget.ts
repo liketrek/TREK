@@ -182,6 +182,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Räkna med {category} i summorna igen',
   'costs.breakdown.leftOut': 'Utanför summorna: {categories}',
   'costs.breakdown.countAll': 'Räkna allt',
+  'costs.showIn': 'Visa belopp i',
   'costs.splitHint.ticket': 'Lista det som stod på kvittot och bocka för vem som hade varje artikel.',
   'costs.filter.allCategories': 'Alla kategorier',
   'costs.filter.allDays': 'Alla dagar',

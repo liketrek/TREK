@@ -185,6 +185,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': '{category} visszavétele az összesítésbe',
   'costs.breakdown.leftOut': 'Kimarad az összesítésből: {categories}',
   'costs.breakdown.countAll': 'Minden beszámítása',
+  'costs.showIn': 'Összegek pénzneme',
   'costs.splitHint.ticket': 'Sorold fel, mi szerepelt a nyugtán, és minden tételnél jelöld be, kié volt.',
   'costs.filter.allCategories': 'Összes kategória',
   'costs.filter.allDays': 'Összes nap',

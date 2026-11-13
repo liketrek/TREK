@@ -184,6 +184,7 @@ const budget: TranslationStrings = {
   'costs.breakdown.countIn': 'Επαναφορά του {category} στα σύνολα',
   'costs.breakdown.leftOut': 'Εκτός συνόλων: {categories}',
   'costs.breakdown.countAll': 'Μέτρηση όλων',
+  'costs.showIn': 'Εμφάνιση ποσών σε',
   'costs.splitHint.ticket': 'Καταγράψτε τι είχε η απόδειξη και σημειώστε ποιος πήρε κάθε είδος.',
   'costs.filter.allCategories': 'Όλες οι κατηγορίες',
   'costs.filter.allDays': 'Όλες οι ημέρες',
