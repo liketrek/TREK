@@ -220,7 +220,7 @@ describe('startNativeApp', () => {
     await vi.waitFor(() => expect(hasNativeFeature).toHaveBeenCalledWith('appLinks'));
     await Promise.resolve();
     expect(App.getLaunchUrl).not.toHaveBeenCalled();
-    expect(vi.mocked(App.addListener).mock.calls.some(([name]) => name === 'appUrlOpen')).toBe(false);
+    expect(vi.mocked(App.addListener).mock.calls.map(([name]) => String(name))).not.toContain('appUrlOpen');
     expect(openPushTarget).not.toHaveBeenCalled();
   });
 
