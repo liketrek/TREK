@@ -152,10 +152,17 @@ export type Receivers = 'actor' | 'viewers';
  * - `{ event, user }`: to users' own sockets (`broadcastToUser`). `actor` means
  *   the writer is among the receivers (REST leaves out the requesting socket
  *   unless `all` is set too), `others` that only other users receive it.
+ * - `{ event, room }`: to another trip room than the case's, for a write that
+ *   touches two trips (a booking moved from one trip into another).
  */
 export type Expect =
   | TrekWsTripEventName
-  | { event: TrekWsTripEventName; all?: true; only?: Receivers | { rest: Receivers; mcp: Receivers } }
+  | {
+      event: TrekWsTripEventName;
+      all?: true;
+      only?: Receivers | { rest: Receivers; mcp: Receivers };
+      room?: (s: Scene) => number;
+    }
   | { event: TrekWsUserEventName; user: 'actor' | 'others'; all?: true };
 
 /** The REST twin of a tool, called as the same user with X-Socket-Id 'sock-rest'. */
