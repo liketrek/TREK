@@ -537,10 +537,13 @@ class FlightWidget : TrekWidget() {
     }
 }
 
-/** The origin stands on the right in a right-to-left layout, so the drawn arc is mirrored with it. */
-@Composable
+/**
+ * The origin stands on the right in a right-to-left layout, so the drawn arc is
+ * mirrored with it. Read from the locale the widget speaks, not from the
+ * Configuration, which a composition may not read directly.
+ */
 private fun isRtl(): Boolean =
-    LocalContext.current.resources.configuration.layoutDirection == android.view.View.LAYOUT_DIRECTION_RTL
+    android.text.TextUtils.getLayoutDirectionFromLocale(java.util.Locale.getDefault()) == android.view.View.LAYOUT_DIRECTION_RTL
 
 @Composable
 private fun ColumnScope.FlightBody(f: WidgetSnapshot.Flight, labels: WidgetSnapshot.Labels, wide: Boolean, tall: Boolean) {
