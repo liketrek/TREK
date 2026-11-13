@@ -77,7 +77,7 @@ export default function AccountTab(): React.ReactElement {
       {/* Two columns by length: who you are and the second factor on the left,
           the password and passkeys on the right. */}
       <SettingsColumns
-        left={<>
+        start={<>
       <Section title={t('settings.account')} icon={User}>
         {/* Who is signed in: the picture with its two actions, the role and the SSO link. */}
         <div className="flex items-center gap-4 rounded-[14px] border border-edge-faint bg-surface-card px-4 py-3.5">
@@ -315,7 +315,7 @@ export default function AccountTab(): React.ReactElement {
         </>
       </Section>
         </>}
-        right={<>
+        end={<>
       {/* Change Password */}
       {!oidcOnlyMode && (
         <Section title={t('settings.changePassword')} icon={Lock}>

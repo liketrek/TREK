@@ -52,7 +52,7 @@ export default function OfflineTab(): React.ReactElement {
       {/* Two columns by length: what the mode does and what is cached on the
           left, the per-trip choice of what to keep on the right. */}
       <SettingsColumns
-        left={<>
+        start={<>
       {/* Offline mode + prepare */}
       <Section title={t('settings.offline.mode.title')} icon={CloudOff}>
         <SettingRows>
@@ -235,7 +235,7 @@ export default function OfflineTab(): React.ReactElement {
         )}
       </Section>
         </>}
-        right={<>
+        end={<>
       {/* What to store offline */}
       <Section title={t('settings.offline.storage.title')} icon={MapIcon}>
         <SettingRows>

@@ -160,12 +160,7 @@ function LocalModels({ P }: { P: Parsing }) {
                 </span>
                 {m.recommended && <StatusPill tone="success">{t('assistant.model.recommended')}</StatusPill>}
                 {here ? (
-                  <button
-                    type="button"
-                    onClick={() => P.setModel(m.id)}
-                    disabled={chosen}
-                    className={SETTINGS_BUTTON}
-                  >
+                  <button type="button" onClick={() => P.setModel(m.id)} disabled={chosen} className={SETTINGS_BUTTON}>
                     {chosen ? <Check size={13} strokeWidth={2.4} /> : null}
                     {t(chosen ? 'admin.addons.ai.parsing.selected' : 'admin.addons.ai.parsing.use')}
                   </button>

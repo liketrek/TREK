@@ -1,7 +1,7 @@
 {
   "src": {
     "@typescript-eslint/no-non-null-assertion": 375,
-    "@typescript-eslint/no-misused-promises": 840,
+    "@typescript-eslint/no-misused-promises": 838,
     "no-console": 88,
     "complexity": 218,
     "@typescript-eslint/no-explicit-any": 143,
@@ -14,7 +14,7 @@
     "react-hooks/exhaustive-deps": 114,
     "@typescript-eslint/no-unused-vars": 122,
     "react-hooks/immutability": 28,
-    "max-lines-per-function": 130,
+    "max-lines-per-function": 129,
     "react-hooks/static-components": 50,
     "react-hooks/preserve-manual-memoization": 12,
     "no-useless-assignment": 7,
@@ -35,7 +35,7 @@
   },
   "tests": {
     "@typescript-eslint/no-explicit-any": 489,
-    "@typescript-eslint/no-non-null-assertion": 1907,
+    "@typescript-eslint/no-non-null-assertion": 1905,
     "@typescript-eslint/no-misused-promises": 22,
     "@typescript-eslint/no-unused-vars": 51,
     "@typescript-eslint/no-floating-promises": 33,

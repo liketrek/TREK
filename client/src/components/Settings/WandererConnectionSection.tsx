@@ -43,7 +43,6 @@ export default function WandererConnectionSection(): React.ReactElement {
         </StatusPill>
       }
     >
-
       <div className={GRID_2}>
         <EditorField label={t('wanderer.url')} htmlFor="wanderer-url">
           <input

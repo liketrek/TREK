@@ -79,7 +79,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         relay's fields a section under them; the operator's own targets and the
         admin-only matrix on the right. */}
     <SettingsColumns
-      left={
+      start={
         <SettingsCard icon={Bell} title={t('admin.notifications.channels')}>
           <SettingRows>
             {/* The relay is the operator's on a managed install: their host, their
@@ -166,7 +166,7 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
           )}
         </SettingsCard>
       }
-      right={
+      end={
       // What the operator receives about running the instance: one card, the
       // two targets as its blocks, then which event goes out over which channel.
       <SettingsCard icon={BellRing} title={t('admin.notifications.adminAlerts')} hint={t('admin.notifications.adminNotificationsHint')}>

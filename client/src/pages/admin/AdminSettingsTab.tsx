@@ -3,7 +3,7 @@ import { adminApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import {
   AlertTriangle, CheckCircle, Compass, Eye, EyeOff, FileType, Fingerprint, KeyRound, Loader2, LockKeyhole, LogIn,
-  Plane, RefreshCw, Save, ShieldCheck, XCircle,
+  Plane, RefreshCw, Save, XCircle,
 } from 'lucide-react'
 import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import CustomSelect from '../../components/shared/CustomSelect'
@@ -748,13 +748,13 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
     // Place search and the services on the left, the keys and file types on the right.
     return (
       <SettingsColumns
-        left={<>
+        start={<>
           {/* Inside the place search card elsewhere; that card is the operator's here,
               sharing place details is still the admin's decision. */}
           {managed && <PlaceContribPanel hideWhenSwitchedOff />}
           {servicesCard}
         </>}
-        right={<>
+        end={<>
           {apiKeysCard}
           {fileTypesCard}
         </>}
@@ -767,13 +767,13 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
     // Split by length, not by kind: single sign-on is the one long form, so the
     // right column holds it and the short danger zone under it.
     <SettingsColumns
-      left={
+      start={
         <>
           {authCard}
           {passkeyCard}
         </>
       }
-      right={
+      end={
         <>
           {oidcCard}
           {dangerCard}

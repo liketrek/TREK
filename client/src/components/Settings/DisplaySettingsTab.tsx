@@ -45,7 +45,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
   return (
     <SettingsColumns
-      left={<>
+      start={<>
       <Section title={t('settings.general.startup')} icon={Rocket}>
         <SettingRows>
           {/* Where opening TREK lands */}
@@ -248,7 +248,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
       </Section>
 
       </>}
-      right={
+      end={
       <Section title={t('settings.general.travelMap')} icon={Map}>
         <SettingRows>
           {/* Preferred map app (#2423): opt-in, the picker stays the default */}

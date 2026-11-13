@@ -182,13 +182,14 @@ export function SettingsCard({ icon: Icon, iconFill = false, title, hint, badge,
  * grid over a flat list, which pairs cards row by row and leaves a hole under
  * the shorter of two. A column with nothing to show drops out and the other
  * takes the whole width. The cards carry their own bottom margin, so only the
- * gap between the columns is set.
+ * gap between the columns is set. `start` is the left column, the right one in
+ * a right-to-left language.
  */
-export function SettingsColumns({ left, right }: { left: ReactNode; right: ReactNode }) {
+export function SettingsColumns({ start, end }: { start: ReactNode; end: ReactNode }) {
   return (
     <div className="xl:flex xl:items-start xl:gap-5">
-      <div className="min-w-0 flex-1 empty:hidden">{left}</div>
-      <div className="min-w-0 flex-1 empty:hidden">{right}</div>
+      <div className="min-w-0 flex-1 empty:hidden">{start}</div>
+      <div className="min-w-0 flex-1 empty:hidden">{end}</div>
     </div>
   )
 }

@@ -269,7 +269,7 @@ const admin: TranslationStrings = {
   'admin.tabs.config': 'Personalisierung',
   'admin.tabs.defaults': 'Standards',
   'admin.defaultSettings.title': 'Standard-Benutzereinstellungen',
-  'admin.defaultSettings.routing': 'Routing',
+  'admin.defaultSettings.routing': 'Routing', // same-as-en
   'admin.defaultSettings.description':
     'Instanzweite Standards festlegen. Benutzer, die eine Einstellung nicht geändert haben, sehen diese Werte. Eigene Änderungen haben immer Vorrang.',
   'admin.defaultSettings.saved': 'Standard gespeichert',

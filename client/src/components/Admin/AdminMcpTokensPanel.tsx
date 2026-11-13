@@ -74,7 +74,7 @@ export default function AdminMcpTokensPanel() {
     <div>
       {/* The sessions and the tokens side by side: two lists of the same kind. */}
       <SettingsColumns
-        left={<>
+        start={<>
       {/* OAuth Sessions. The tab's own subtitle sits in its band: the sidebar
           already names the tab, so a bare heading over the cards only repeated it. */}
       <SettingsCard
@@ -120,7 +120,7 @@ export default function AdminMcpTokensPanel() {
         )}
       </SettingsCard>
         </>}
-        right={<>
+        end={<>
       {/* MCP Tokens */}
       <SettingsCard
         icon={KeyRound}

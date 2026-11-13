@@ -45,7 +45,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
   return (
     <>
     <SettingsColumns
-      left={<>
+      start={<>
       {/* ── Theme ───────────────────────────────────────────────── */}
       <Section title={tr('settings.appearance.theme', 'Theme')} icon={Paintbrush}>
         <SettingRows>
@@ -212,7 +212,7 @@ export default function AppearanceSettingsTab(): React.ReactElement {
       </Section>
 
       </>}
-      right={<>
+      end={<>
       {/* ── Dashboard widgets ───────────────────────────────────── */}
       <Section
         title={tr('settings.appearance.dashboardWidgets', 'Dashboard widgets')}

@@ -138,7 +138,7 @@ export default function AdminStoragePanel(): React.ReactElement {
       {/* Two columns by length: the health and the backends on the left, which
           category goes where on the right, its save bar at the card's foot. */}
       <SettingsColumns
-        left={<>
+        start={<>
       <Section title={t('storage.health.title')} icon={Activity}>
         {state.health.replicaFailures.length === 0 ? (
           <p className="m-0 flex items-center gap-2 text-content-muted" style={fs(12.5, 'body')}>
@@ -493,7 +493,7 @@ export default function AdminStoragePanel(): React.ReactElement {
         onDelete={(enabled) => void handleReclaimDelete(enabled)}
       />
         </>}
-        right={<>
+        end={<>
       <Section title={t('storage.categories.title')} icon={FolderTree}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {STORAGE_CATEGORIES.map((category) => {

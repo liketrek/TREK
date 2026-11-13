@@ -92,7 +92,8 @@ function ServiceTile({ allowance }: { allowance: ServiceAllowance }) {
               title={`${t('admin.trekApi.quota.remaining')}: ${number.format(quota.remaining)}`}
             >
               <span className={`font-semibold ${figureTone(quota)}`}>{number.format(quota.used)}</span>
-              {' / '}{number.format(quota.limit)}
+              {' / '}
+              {number.format(quota.limit)}
             </span>
           </>
         )}

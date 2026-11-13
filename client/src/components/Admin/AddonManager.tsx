@@ -204,8 +204,7 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
 
   /* A card per type, the way every other admin tab sets its cards: Trip in the
      left column, Global and Integration in the right one, each card with the
-     dialogs' head band carrying the type, its count and what it means. Above
-     them one card says how many are on and finds an addon by name. */
+     dialogs' head band carrying the type, its count and what it means. */
   const groups = [
     { key: 'trip', addons: tripAddons },
     { key: 'global', addons: globalAddons },
@@ -252,5 +251,5 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     )
   }
 
-  return <SettingsColumns left={cards.start} right={<>{cards.end}{aside}</>} />
+  return <SettingsColumns start={cards.start} end={<>{cards.end}{aside}</>} />
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2, Key, CircleCheck, RotateCcw } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useFormatDate } from '../../../hooks/useDateFormat'
@@ -43,13 +43,12 @@ export default function MSettingsMcp() {
   const { t } = useTranslation()
   const { formatDate } = useFormatDate()
   const demoLocked = useDemoAccountLock()
+  // The desktop page shows the client config open; the phone keeps it folded.
+  const [configOpenOAuth, setConfigOpenOAuth] = useState(false)
+  const [configOpenToken, setConfigOpenToken] = useState(false)
   const {
     activeMcpTab: activeTab,
     setActiveMcpTab: setActiveTab,
-    configOpenOAuth,
-    setConfigOpenOAuth,
-    configOpenToken,
-    setConfigOpenToken,
     copiedKey,
     oauthClients: clients,
     oauthSessions: sessions,

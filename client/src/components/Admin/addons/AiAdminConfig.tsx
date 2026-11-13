@@ -124,11 +124,7 @@ function InstanceConnection({ A }: { A: AiAdmin }) {
         <AiConnectPanel scope="instance" onConnected={onConnected} prefill={connection?.prefill ?? null} />
       )}
       {replacing && (
-        <button
-          type="button"
-          onClick={cancelReplace}
-          className={`${SETTINGS_BUTTON} self-start`}
-        >
+        <button type="button" onClick={cancelReplace} className={`${SETTINGS_BUTTON} self-start`}>
           {t('common.cancel')}
         </button>
       )}

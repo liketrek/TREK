@@ -108,7 +108,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
 
   return (
     <SettingsColumns
-      left={
+      start={
       <>
 
       <Section title={t('admin.defaultSettings.title')} icon={Settings2} hint={t('admin.defaultSettings.description')}>
@@ -223,7 +223,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       )}
       </>
       }
-      right={
+      end={
       <Section title={t('settings.map')} icon={MapIcon}>
       {/* Map Tile URL */}
       <EditorField label={<>{t('settings.mapTemplate')}<ResetButton {...resetOf('map_tile_url')} /></>} hint={t('settings.mapDefaultHint')}>

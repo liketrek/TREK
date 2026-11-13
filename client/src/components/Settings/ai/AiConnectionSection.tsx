@@ -81,32 +81,18 @@ function OwnConnection({ S, own }: { S: AiConnections; own: AiConnectionView }) 
     <SettingRows>
       <ConnectionRow kind={own.kind} title={t('assistant.connect.connected', { provider })} detail={own.hint}>
         {repairMode ? (
-          <button
-            type="button"
-            onClick={() => S.repair(repairMode)}
-            className={SETTINGS_BUTTON_PRIMARY}
-          >
+          <button type="button" onClick={() => S.repair(repairMode)} className={SETTINGS_BUTTON_PRIMARY}>
             {t(repairMode === 'chatgpt' ? 'assistant.errorAction.signIn' : 'assistant.errorAction.replaceKey')}
           </button>
         ) : (
           <OpenAssistantButton S={S} />
         )}
         {own.kind === 'chatgpt' && own.status === 'ok' ? (
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            disabled={busy}
-            className={SETTINGS_BUTTON}
-          >
+          <button type="button" onClick={() => void signOut()} disabled={busy} className={SETTINGS_BUTTON}>
             <LogOut size={14} strokeWidth={2} /> {t('assistant.connect.signOut')}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={askDisconnect}
-            disabled={busy}
-            className={SETTINGS_BUTTON_DANGER}
-          >
+          <button type="button" onClick={askDisconnect} disabled={busy} className={SETTINGS_BUTTON_DANGER}>
             <Unplug size={14} strokeWidth={2} /> {t('assistant.connect.disconnect')}
           </button>
         )}

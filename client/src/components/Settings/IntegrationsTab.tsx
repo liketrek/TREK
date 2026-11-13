@@ -32,7 +32,7 @@ export default function IntegrationsTab(): React.ReactElement {
       {/* What connects your trips with other services on the left, AI and
           developer access on the right, every card open on the page. */}
       <SettingsColumns
-        left={
+        start={
           <>
             {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
             <MailImportSection />
@@ -51,7 +51,7 @@ export default function IntegrationsTab(): React.ReactElement {
             {S.llmEnabled && S.ownParsing && !managed && <LlmConnectionSection />}
           </>
         }
-        right={
+        end={
           <>
             {/* An API key needs no addon, so it leads, ahead of the MCP row. */}
             <DemoLock locked={demoLocked} reason={S.t('demo.lock.apiKeys')}>

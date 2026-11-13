@@ -77,7 +77,7 @@ const admin: TranslationStrings = {
   'admin.invite.deleteError': 'Erreur lors de la suppression du lien',
   'admin.tabs.settings': 'Paramètres',
   'admin.tabs.security': 'Sécurité',
-  'admin.tabs.services': 'Services',
+  'admin.tabs.services': 'Services', // same-as-en
   'admin.allowRegistration': 'Autoriser les inscriptions',
   'admin.allowRegistrationHint': "Les nouveaux utilisateurs peuvent s'inscrire eux-mêmes",
   'admin.authMethods': "Méthodes d'authentification",
