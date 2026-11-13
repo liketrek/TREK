@@ -666,3 +666,40 @@ describe('BookingImportService.confirm reports every item it did not create', ()
     expect(reservations.createWithCostInTx).not.toHaveBeenCalled();
   });
 });
+
+describe('BookingImportService: reading a forwarded mail', () => {
+  it('reads the whole mail first and the attachments only when it gave nothing', async () => {
+    const { svc, extractor } = make({ kit: true, extract: async () => [HOTEL_KI] });
+    const items = await svc.readMailBookings(Buffer.from('mail'), [{ fileName: 'a.pdf', data: Buffer.from('a') }], 1);
+    expect(items).toHaveLength(1);
+    expect(extractor.extract).toHaveBeenCalledTimes(1);
+    expect(extractor.extract.mock.calls[0][1]).toBe('mail.eml');
+  });
+
+  it('falls back to each attachment when the mail as a whole names no booking', async () => {
+    const extract = vi.fn(async (_buffer: Buffer, name: string) => (name === 'a.pdf' ? [HOTEL_KI] : []));
+    const { svc } = make({ kit: true, extract });
+    const items = await svc.readMailBookings(Buffer.from('mail'), [{ fileName: 'a.pdf', data: Buffer.from('a') }], 1);
+    expect(items.map((item) => item.source.fileName)).toEqual(['a.pdf']);
+    expect(await svc.readMailBookings(Buffer.from('mail'), [], 1)).toEqual([]);
+  });
+
+  it('reads nothing where kitinerary is not installed', async () => {
+    const { svc, extractor } = make({ kit: false, ai: true });
+    expect(await svc.readMailBookings(Buffer.from('mail'), [], 1)).toEqual([]);
+    expect(extractor.extract).not.toHaveBeenCalled();
+  });
+
+  it('maps an AI reading of a mail to items flagged for review', async () => {
+    const { svc } = make({});
+    const [item] = await svc.mapAiReservations([HOTEL_KI], 'mail');
+    expect(item).toMatchObject({ type: 'hotel', needs_review: true, confirmation_number: 'ABC' });
+  });
+
+  it('names the key a booking is stored under', () => {
+    const { svc } = make({});
+    const item = { type: 'hotel', title: 'Hotel X', confirmation_number: 'ab c', source: { fileName: 'm', index: 0 } };
+    expect(svc.externalKey({ ...item, _accommodation: { check_in: '2026-06-11' } })).toBe('ABC|hotel|2026-06-11|');
+    expect(svc.externalKey({ ...item, confirmation_number: null })).toBeNull();
+  });
+});

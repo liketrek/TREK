@@ -187,7 +187,7 @@ export class BookingImportService {
   }
 
   async preview(
-    files: Express.Multer.File[],
+    files: ReadonlyArray<Pick<Express.Multer.File, 'buffer' | 'originalname'>>,
     mode: BookingImportMode,
     userId: number,
     onProgress?: (done: number, total: number, fileName: string) => void,
@@ -240,28 +240,7 @@ export class BookingImportService {
       if (kiItems.length === 0) {
         allWarnings.push(`${file.originalname}: no reservations found`);
       } else {
-        const { items, warnings } = mapReservations(kiItems, file.originalname, aiUsed ? 'ai' : 'kitinerary');
-        // LLM extraction is less certain than kitinerary — always flag for review.
-        if (aiUsed) for (const it of items) it.needs_review = true;
-
-        // Locate the endpoints here, on the path the clients take, rather than
-        // in confirm() where the code used to sit and nothing reached it.
-        for (const it of items) {
-          const missed = await this.geocodeEndpoints(
-            (it as { endpoints?: { name?: string | null; lat?: number | null; lng?: number | null }[] }).endpoints,
-            {
-              location: (it as { location?: string | null }).location,
-              address: (it as { _venue?: { address?: string | null } })._venue?.address,
-            },
-            geoCache,
-          );
-          // Kept on the item rather than filtered, so it is still editable in the
-          // review form, and said out loud rather than disappearing on save.
-          for (const name of missed) {
-            allWarnings.push(`${file.originalname}: could not locate "${name}" — set it manually before saving`);
-          }
-        }
-
+        const { items, warnings } = await this.mapAndLocate(kiItems, file.originalname, aiUsed, geoCache);
         allItems.push(...items);
         allWarnings.push(...warnings);
       }
@@ -271,6 +250,67 @@ export class BookingImportService {
     }
 
     return { items: allItems, warnings: allWarnings, files: fileReports };
+  }
+
+  /**
+   * schema.org reservations as booking items, their endpoints located. Locating
+   * happens here, on the path the clients take, rather than in confirm() where
+   * the code used to sit and nothing reached it; an endpoint that cannot be
+   * placed stays on the item, still editable in the review form, and is named
+   * in a warning rather than disappearing on save. An AI reading is less
+   * certain than kitinerary, so its items are always flagged for review.
+   */
+  private async mapAndLocate(
+    kiItems: KiReservation[],
+    fileName: string,
+    byAi: boolean,
+    geoCache: Map<string, { lat: number; lng: number } | null>,
+  ): Promise<{ items: ParsedBookingItem[]; warnings: string[] }> {
+    const { items, warnings } = mapReservations(kiItems, fileName, byAi ? 'ai' : 'kitinerary');
+    if (byAi) for (const it of items) it.needs_review = true;
+    for (const it of items) {
+      const missed = await this.geocodeEndpoints(
+        it.endpoints,
+        { location: it.location, address: it._venue?.address },
+        geoCache,
+      );
+      for (const name of missed) {
+        warnings.push(`${fileName}: could not locate "${name}" — set it manually before saving`);
+      }
+    }
+    return { items, warnings };
+  }
+
+  /**
+   * The bookings the machine-readable parts of a forwarded mail name, no AI
+   * involved: the whole mail as kitinerary reads it (its JSON-LD and every
+   * attachment it knows), then each attachment on its own when the mail as a
+   * whole gave none. Empty where kitinerary is not installed.
+   */
+  async readMailBookings(
+    raw: Buffer,
+    attachments: ReadonlyArray<{ fileName: string; data: Buffer }>,
+    userId: number,
+  ): Promise<BookingImportPreviewItem[]> {
+    if (!this.extractor.isAvailable()) return [];
+    const whole = await this.preview([{ buffer: raw, originalname: 'mail.eml' }], 'no-ai', userId);
+    if (whole.items.length > 0 || attachments.length === 0) return whole.items;
+    const parts = attachments.map((file) => ({ buffer: file.data, originalname: file.fileName }));
+    return (await this.preview(parts, 'no-ai', userId)).items;
+  }
+
+  /** schema.org reservations an AI read from a mail, as booking items with their endpoints located. */
+  async mapAiReservations(kiItems: KiReservation[], fileName: string): Promise<BookingImportPreviewItem[]> {
+    return (await this.mapAndLocate(kiItems, fileName, true, new Map())).items;
+  }
+
+  /**
+   * The key an imported booking is stored under in `external_id`, null without
+   * a booking reference: the same booking read twice, from a file or a mail,
+   * gives the same key.
+   */
+  externalKey(item: BookingImportPreviewItem): string | null {
+    return importExternalId(item);
   }
 
   /**
