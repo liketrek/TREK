@@ -23,6 +23,7 @@ import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../utils/flightLegs'
 import { onlyMyPlan, planAssignments } from './pdfScope'
 import { createPdfMarkdown, PDF_MARKDOWN_CSS } from './pdfMarkdown'
+import { shrinkPdfImages } from './pdfImages'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   return renderIconMarkup(
@@ -95,6 +96,12 @@ function safeImg(url) {
   return /\.(jpe?g|png|gif|webp|bmp|tiff?)(\?.*)?$/i.test(url) ? absUrl(url) : null
 }
 
+// A place card's picture: direct > google photo > fallback icon (null). Both go
+// through safeImg so the proxy path is resolved to an absolute URL the PDF can load.
+function placeImage(place: { id: number; image_url?: string | null }, photoMap: Record<number, string>): string | null {
+  return safeImg(place.image_url) || safeImg(photoMap[place.id])
+}
+
 // Generate SVG string from Lucide icon name (for category thumbnails)
 function categoryIconSvg(iconName, color = '#6366f1', size = 24) {
   const Icon = getCategoryIcon(iconName)
@@ -123,7 +130,7 @@ function longDateRange(days, locale) {
 // app UI uses (google_place_id || osm_id || coords) — otherwise OSM/coords-only
 // places fell back to category icons in the PDF even though they show photos in-app.
 async function fetchPlacePhotos(assignments: AssignmentsMap, places: Place[]) {
-  const photoMap = {} // placeId → photoUrl
+  const photoMap: Record<number, string> = {}
   // The assignment projection drops osm_id, so recover it from the full places pool.
   const osmById = new Map((places || []).map(p => [p.id, p.osm_id]))
   const allPlaces = Object.values(assignments).flatMap(a => a.map(x => x.place)).filter(Boolean)
@@ -260,6 +267,15 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
 
   // Pre-fetch place photos (Google, OSM and coords-only places)
   const photoMap = await fetchPlacePhotos(assignments, places)
+  // Each card's picture at thumbnail size, so the saved PDF does not carry every
+  // photo at full resolution (#1501). A picture missing here prints from its URL.
+  const thumbs = await shrinkPdfImages(
+    Object.values(assignments).flatMap(list => list.flatMap(a => {
+      const url = a.place && placeImage(a.place, photoMap)
+      return url ? [url] : []
+    })),
+    signal,
+  )
 
   const totalAssigned = new Set(
     Object.values(assignments).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)
@@ -494,15 +510,10 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
           const cat = categories.find(c => c.id === place.category_id)
           const color = safeHexColor(cat?.color, '#6366f1')
 
-          // Image: direct > google photo > fallback icon. Both go through safeImg
-          // so the proxy path is resolved to an absolute URL the PDF can load.
-          const directImg = safeImg(place.image_url)
-          const googleImg = safeImg(photoMap[place.id])
-          const img = directImg || googleImg
-
+          const img = placeImage(place, photoMap)
           const iconSvg = categoryIconSvg(cat?.icon, color, 24)
           const thumbHtml = img
-            ? `<img class="place-thumb" src="${escHtml(img)}" />`
+            ? `<img class="place-thumb" src="${escHtml(thumbs.get(img) ?? img)}" />`
             : `<div class="place-thumb-fallback" style="background:${color}">
                  ${iconSvg}
                </div>`

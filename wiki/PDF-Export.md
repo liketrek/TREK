@@ -62,6 +62,8 @@ Under the header:
   - **Notes**: the icon, the text and the time, if set
   - **Bookings**: the type icon, the title, the time, the notes of a transport (unless **Transport notes** is off), the details that fit the type (airline, flight number and route for a flight; train number, platform and seat for a train; party size for a restaurant; the venue for an event; the operator for a tour), the location and the booking code
 
+Place photos go into the document at thumbnail size, so a trip with hundreds of places still saves to a small file. A photo linked from another website keeps its original size, because the browser does not let TREK shrink it.
+
 ![A day page in the PDF preview: the dark day header with date and cost, the check-in at the hotel, the flight with its notes, a day note, and a place whose Markdown description prints with bold text, italics and a list](assets/PDFPreviewDay.png)
 
 ### Footer

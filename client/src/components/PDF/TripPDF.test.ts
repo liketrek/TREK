@@ -1486,3 +1486,55 @@ describe('downloadTripPDF — large text', () => {
     expect(largeToggle()!.getAttribute('aria-checked')).toBe('false')
   })
 })
+
+// ── Thumbnail-sized photos (#1501) ──────────────────────────────────────────
+
+describe('downloadTripPDF — photos at thumbnail size', () => {
+  const JPEG = 'data:image/jpeg;base64,dGh1bWI='
+
+  beforeEach(() => {
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 1600, height: 1200, close: vi.fn() })))
+    // Only the 2d context: a WebGL answer would send the route map down the basemap path.
+    const ctx = { fillStyle: '', fillRect: vi.fn(), drawImage: vi.fn() }
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+      ((type: string) => (type === '2d' ? ctx : null)) as unknown as HTMLCanvasElement['getContext'],
+    )
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(JPEG)
+    server.use(
+      http.get('http://localhost:3000/uploads/colosseum.jpg', () =>
+        new HttpResponse(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/jpeg' } })),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const withImage = (image_url: string) => ({
+    ...richArgs,
+    assignments: { '10': [{ ...assignmentForDay, place: { ...placeWithDetails, image_url } }] } as any,
+  })
+
+  it('FE-PDF-THUMB-001: an uploaded photo is baked in as a small JPEG instead of its full-size URL', async () => {
+    await downloadTripPDF(withImage('/uploads/colosseum.jpg'))
+    const html = getIframe()!.srcdoc
+
+    expect(html).toContain(`<img class="place-thumb" src="${JPEG}" />`)
+    expect(html).not.toContain('colosseum.jpg')
+  })
+
+  it('FE-PDF-THUMB-002: a photo from another origin keeps its URL', async () => {
+    await downloadTripPDF(withImage('https://images.example.com/colosseum.jpg'))
+
+    expect(getIframe()!.srcdoc).toContain('<img class="place-thumb" src="https://images.example.com/colosseum.jpg" />')
+  })
+
+  it('FE-PDF-THUMB-003: a closed export dialog stops the photos and opens nothing', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    await downloadTripPDF({ ...withImage('/uploads/colosseum.jpg'), signal: controller.signal })
+
+    expect(getOverlay()).toBeNull()
+    expect(HTMLCanvasElement.prototype.toDataURL).not.toHaveBeenCalled()
+  })
+})
