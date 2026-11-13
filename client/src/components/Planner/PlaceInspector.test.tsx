@@ -1831,3 +1831,43 @@ describe('PlaceInspector blur booking codes (#2457)', () => {
     expect(isBlurred(screen.getByText(/TABLE-SECRET/))).toBe(false);
   });
 });
+
+// ── Folding the card over the map (#3039) ─────────────────────────────────────
+
+describe('PlaceInspector folded to its head (#3039)', () => {
+  it('FE-PLANNER-INSPECTOR-112: Collapse folds the card to its name and keeps the place open; Expand unfolds it', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const { container } = render(<PlaceInspector {...defaultProps} onClose={onClose} collapsible />);
+
+    await user.click(screen.getByRole('button', { name: 'Collapse' }));
+
+    expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
+    expect(screen.queryByText('Champ de Mars, Paris')).toBeNull();
+    // Hidden, not unmounted: the body and its plugin frames keep their state.
+    expect(screen.getByTestId('inspector-scroll')).toHaveClass('hidden');
+    expect(container.querySelector('footer')).toHaveClass('hidden');
+    expect(screen.getByRole('button', { name: 'Expand' })).toHaveAttribute('aria-expanded', 'false');
+    expect(onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Expand' }));
+
+    expect(screen.getByText('Champ de Mars, Paris')).toBeInTheDocument();
+    expect(screen.getByTestId('inspector-scroll')).toHaveClass('flex');
+    expect(container.querySelector('footer')).toHaveClass('flex');
+  });
+
+  it('FE-PLANNER-INSPECTOR-113: the next place opens in full, and a card that may not fold offers no button', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<PlaceInspector {...defaultProps} collapsible />);
+    await user.click(screen.getByRole('button', { name: 'Collapse' }));
+
+    const louvre = buildPlace({ id: 2, name: 'Louvre', address: 'Rue de Rivoli, Paris', lat: 48.86, lng: 2.34 });
+    rerender(<PlaceInspector {...defaultProps} place={louvre} collapsible />);
+    expect(screen.getByText('Rue de Rivoli, Paris')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-expanded', 'true');
+
+    rerender(<PlaceInspector {...defaultProps} place={louvre} />);
+    expect(screen.queryByRole('button', { name: 'Collapse' })).toBeNull();
+  });
+});

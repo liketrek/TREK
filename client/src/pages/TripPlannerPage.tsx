@@ -547,7 +547,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 onDelete={() => handleDeletePlace(selectedPlace.id)}
                 leftWidth={isMobile ? 0 : leftPanelPx}
                 rightWidth={isMobile ? 0 : rightPanelPx}
-                clearMapPill cardRef={pageState.inspectorCard.measure}
+                clearMapPill collapsible cardRef={pageState.inspectorCard.measure}
               />
             )}
 

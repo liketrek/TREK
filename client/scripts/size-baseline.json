@@ -12,7 +12,7 @@
   "src/components/Planner/DayPlanSidebar.test.tsx": 5349,
   "src/components/Planner/DayPlanSidebar.tsx": 2910,
   "src/components/Planner/PlaceFormModal.test.tsx": 2836,
-  "src/components/Planner/PlaceInspector.tsx": 1287,
+  "src/components/Planner/PlaceInspector.tsx": 1129,
   "src/components/Studio/TravelElements.tsx": 1559,
   "src/components/Studio/countryShapes.ts": 2595,
   "src/index.css": 1636,
