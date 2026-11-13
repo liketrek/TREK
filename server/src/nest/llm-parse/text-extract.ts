@@ -96,7 +96,7 @@ function decodeEntities(s: string): string {
  * an uploaded .eml or .html is free to carry one — makes the engine rescan the
  * tail once per bracket.
  */
-function stripMarkup(s: string): string {
+export function stripMarkup(s: string): string {
   const withoutTags = stripHtmlTags(
     s.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' '),
     ' ',
@@ -110,7 +110,7 @@ function stripMarkup(s: string): string {
 }
 
 /** Whitespace cleanup for text that is already plain — no tags to strip out. */
-function collapseWhitespace(s: string): string {
+export function collapseWhitespace(s: string): string {
   return s
     .replace(/[ \t\u00a0]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
