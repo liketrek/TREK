@@ -518,18 +518,28 @@ describe('what the person sees', () => {
 
   it('reads an uploaded mail at once, knows one it has, and refuses what it cannot take', async () => {
     const user = await person();
-    // The reading the upload starts runs on its own; held here, so it cannot outlive the case.
-    const tick = vi.spyOn(job(), 'tick').mockResolvedValue(0);
+    const soon = vi.spyOn(job(), 'runSoon');
+    const tick = vi.spyOn(job(), 'tick');
     try {
       const first = await inbox().upload(user.id, eml('upload'));
       expect(first).toMatchObject({ duplicate: false, message: { transport: 'upload', status: 'queued' } });
       const again = await inbox().upload(user.id, eml('upload'));
       expect(again).toMatchObject({ duplicate: true, message: { id: first.message.id } });
-      expect(tick).toHaveBeenCalledTimes(1);
+      expect(soon).toHaveBeenCalledTimes(1);
+      // The crons are off in the suites, so the run asked for at once never starts and cannot outlive the case.
+      expect(tick).not.toHaveBeenCalled();
       await expect(inbox().upload(user.id, Buffer.from('nothing to see'))).rejects.toThrow('This file is not a mail');
     } finally {
+      soon.mockRestore();
       tick.mockRestore();
     }
+  });
+
+  it('takes no upload from a person who switched their import off', async () => {
+    const user = await person();
+    await t.get(MailIngestSettingsService).updatePrefs(user.id, { enabled: false });
+    await expect(inbox().upload(user.id, eml('off'))).rejects.toThrow('Your mail import is switched off');
+    expect(await findRow(orm(), MailIngestMessages, { user: user.id })).toBeNull();
   });
 });
 

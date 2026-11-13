@@ -8,9 +8,7 @@ import type {
 import type { MailIngestMessagesRepository } from '../../db/repositories/MailIngestMessages.repository';
 import { utcSuffix } from '../../db/types';
 import { decodeJson } from '../../utils/json-column';
-import { logError } from '../audit/audit-log.logger';
 import { DomainError } from '../common/domain-error';
-import { withRequestContext } from '../database/request-context';
 import { MailReadService } from '../llm-parse/mail-read.service';
 import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestIntakeService, type MailIntakeRefusal } from './mail-ingest-intake.service';
@@ -18,7 +16,6 @@ import { MailIngestProcessJob } from './mail-ingest-process.job';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { candidateView, messageView } from './mail-ingest-views';
 import { openMail } from './mail-seal';
-import { MikroORM } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type {
@@ -60,7 +57,6 @@ export class MailIngestInboxService {
     private readonly intake: MailIngestIntakeService,
     private readonly reader: MailReadService,
     private readonly job: MailIngestProcessJob,
-    private readonly orm: MikroORM,
   ) {}
 
   /** The settings card. Where the import is off or not part of the plan it says so, and nothing else. */
@@ -153,12 +149,17 @@ export class MailIngestInboxService {
 
   /**
    * An .eml the person uploaded, read as if they had forwarded it to their
-   * own address. The pipeline is asked to run at once rather than at its next
-   * tick, so the inbox fills while the person still looks at it.
+   * own address. A person who switched their import off uploads nothing: the
+   * pipeline would only put the mail aside. The pipeline is asked to run at
+   * once rather than at its next tick, so the inbox fills while the person
+   * still looks at it.
    *
    * @txIndependent the mail is stored by itself; its reading runs on its own afterwards.
    */
   async upload(userId: number, raw: Buffer): Promise<MailIngestUploadResponse> {
+    if ((await this.settings.isAvailable()) && !(await this.settings.prefsOf(userId)).enabled) {
+      throw new DomainError(409, 'Your mail import is switched off');
+    }
     const result = await this.intake.upload(raw, userId);
     if (result.status === 'refused') {
       const [status, error] = UPLOAD_REFUSALS[result.reason];
@@ -166,14 +167,8 @@ export class MailIngestInboxService {
     }
     const [head] = await this.messages.listHeads([result.messageId]);
     if (!head) throw new Error(`mail ${result.messageId} vanished after its upload`);
-    if (result.status === 'accepted') this.processSoon();
+    if (result.status === 'accepted') this.job.runSoon();
     return { message: messageView(head), duplicate: result.status === 'duplicate' };
-  }
-
-  private processSoon(): void {
-    withRequestContext(this.orm, () => this.job.tick()).catch((err: unknown) => {
-      logError(`[mail-ingest] Reading an uploaded mail failed: ${err instanceof Error ? err.message : String(err)}`);
-    });
   }
 
   private async requireAvailable(): Promise<void> {

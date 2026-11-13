@@ -174,16 +174,15 @@ describe('/api/mail-ingest e2e (real guards + snapshot SQLite)', () => {
   });
 
   it('MAIL-E2E-003: an uploaded mail waits in the inbox, is added by hand and undone, for its person', async () => {
-    const job = app.get(MailIngestProcessJob);
-    const tick = vi.spyOn(job, 'tick').mockResolvedValueOnce(0);
+    const soon = vi.spyOn(app.get(MailIngestProcessJob), 'runSoon');
     const upload = await request(server)
       .post('/api/mail-ingest/upload')
       .set(as(USER))
       .attach('file', eml('upload-1'), { filename: 'booking.eml', contentType: 'message/rfc822' });
     expect(upload.status).toBe(201);
     expect(upload.body).toMatchObject({ duplicate: false, message: { transport: 'upload', status: 'queued' } });
-    expect(tick).toHaveBeenCalledTimes(1);
-    tick.mockRestore();
+    expect(soon).toHaveBeenCalledTimes(1);
+    soon.mockRestore();
     expect(await readQueued()).toBe(1);
 
     const inbox = await request(server).get('/api/mail-ingest/inbox').set(as(USER));

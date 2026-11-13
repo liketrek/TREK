@@ -68,4 +68,16 @@ export class MailIngestProcessJob implements OnApplicationBootstrap {
       await this.cursor.releaseLease('pipeline', '', LEASE_OWNER);
     }
   }
+
+  /**
+   * Starts a run now instead of at the next tick, without waiting for it.
+   * Where the crons are off (the test suites) nothing starts, as no tick
+   * would either, so a run never outlives the request that asked for it.
+   */
+  runSoon(): void {
+    if (!this.registrar.isEnabled()) return;
+    withRequestContext(this.orm, () => this.tick()).catch((err: unknown) => {
+      logError(`[mail-ingest] A run asked for at once failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  }
 }
