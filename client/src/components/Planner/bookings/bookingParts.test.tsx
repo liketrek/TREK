@@ -1,11 +1,11 @@
-// FE-PLANNER-BKPARTS-001 to FE-PLANNER-BKPARTS-004
+// FE-PLANNER-BKPARTS-001 to FE-PLANNER-BKPARTS-005
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildTripFile } from '../../../../tests/helpers/factories';
 import { downloadFile, openFile } from '../../../utils/fileDownload';
 import type { BookingFacts } from './bookingFacts';
-import { FileRows, WhenFields } from './bookingParts';
+import { FileRows, ReviewPill, WhenFields } from './bookingParts';
 
 vi.mock('../../../utils/fileDownload', () => ({
   openFile: vi.fn(() => Promise.resolve()),
@@ -87,5 +87,14 @@ describe('FileRows', () => {
   it('FE-PLANNER-BKPARTS-004: no files render nothing', () => {
     const { container } = render(<FileRows files={[]} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('FE-PLANNER-BKPARTS-005: the review pill takes its mark off only for someone who may edit', () => {
+    const onConfirm = vi.fn();
+    const { rerender } = render(<ReviewPill pill />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    rerender(<ReviewPill pill onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(onConfirm).toHaveBeenCalledOnce();
   });
 });

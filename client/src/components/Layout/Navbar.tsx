@@ -14,8 +14,9 @@ import AssistantLauncher from '../Assistant/AssistantLauncher'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 import { useCollapseOnOverflow } from '../../hooks/useCollapseOnOverflow'
-import { useMailIngestStore } from '../../store/mailIngestStore'
+import { useMailIngestStore, watchMailInbox } from '../../store/mailIngestStore'
 import { openMailInbox } from '../MailIngest/mailInboxOpener'
+import { useMailInboxLink } from '../MailIngest/useMailInboxLink'
 import MailInboxDialog from '../MailIngest/MailInboxDialog'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass, Bookmark }
@@ -50,9 +51,12 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
   const mailImport = useMailIngestStore(s => s.settings)
   const mailPending = useMailIngestStore(s => s.pending)
   const mailImportOn = !!mailImport?.available && mailImport.prefs.enabled
+  useMailInboxLink(mailImportOn)
   const userId = user?.id
   useEffect(() => {
-    if (userId) void useMailIngestStore.getState().loadSettings()
+    if (!userId) return
+    void useMailIngestStore.getState().loadSettings()
+    return watchMailInbox()
   }, [userId])
   const darkMode = settings.dark_mode
   const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -340,10 +344,10 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
                   {/* Bookings from forwarded mails that wait for a decision; only where the import is on. */}
                   {mailImportOn && (
                   <button type="button" onClick={() => { setUserMenuOpen(false); openMailInbox() }}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary hover:bg-surface-hover">
+                    className="flex w-full items-center gap-2 px-4 py-2 text-body transition-colors text-content-secondary hover:bg-surface-hover">
                     <Inbox className="w-4 h-4" />
                     <span className="min-w-0 flex-1 truncate text-start">{t('mailInbox.title')}</span>
-                    {mailPending > 0 && <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-text">{mailPending}</span>}
+                    {mailPending > 0 && <span className="rounded-full bg-accent px-1.5 text-caption font-semibold text-accent-text">{mailPending}</span>}
                   </button>
                   )}
 

@@ -1,7 +1,7 @@
-import { mailIngestSettingsResponseSchema, mailIngestUploadResponseSchema, type MailIngestPrefs } from '@trek/shared';
+import type { MailIngestPrefs } from '@trek/shared';
 import { useEffect, useRef, useState } from 'react';
-import { mailIngestApi } from '../../api/mailIngest';
 import { useTranslation } from '../../i18n';
+import { mailIngestRepo } from '../../repo/mailIngestRepo';
 import { useMailIngestStore } from '../../store/mailIngestStore';
 import { copyText } from '../../utils/clipboard';
 import { useToast } from '../shared/Toast';
@@ -37,10 +37,7 @@ export function useMailImportSettings() {
     if (!settings || saving) return;
     setSaving(key);
     try {
-      const parsed = mailIngestSettingsResponseSchema.parse(
-        await mailIngestApi.updateSettings({ [key]: !settings.prefs[key] })
-      );
-      setSettings(parsed);
+      setSettings(await mailIngestRepo.updateSettings({ [key]: !settings.prefs[key] }));
     } catch {
       toast.error(t('mailInbox.settings.saveError'));
     } finally {
@@ -64,7 +61,7 @@ export function useMailImportSettings() {
     setRenewArmed(false);
     setRenewing(true);
     try {
-      await mailIngestApi.renewAddress();
+      await mailIngestRepo.renewAddress();
       await loadSettings();
       toast.success(t('mailInbox.settings.renewed'));
     } catch {
@@ -77,7 +74,7 @@ export function useMailImportSettings() {
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const { duplicate } = mailIngestUploadResponseSchema.parse(await mailIngestApi.upload(file));
+      const { duplicate } = await mailIngestRepo.upload(file);
       toast.success(duplicate ? t('mailInbox.settings.uploadDuplicate') : t('mailInbox.settings.uploaded'));
     } catch {
       toast.error(t('mailInbox.settings.uploadError'));

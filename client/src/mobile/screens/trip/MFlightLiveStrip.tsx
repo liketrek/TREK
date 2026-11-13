@@ -1,5 +1,7 @@
 import { useCurrentFlightLegIndex, useFlightLiveCard } from '../../../components/Planner/flightLive/useFlightLiveCard';
+import { useTranslation } from '../../../i18n';
 import type { DelayTone } from '../../../utils/flightLiveModel';
+import { Field } from './tabs/tabChrome';
 
 const DELAY_COLOR: Record<DelayTone, string> = {
   ok: 'var(--m-st-confirmed)',
@@ -18,8 +20,9 @@ interface MFlightLiveStripProps {
 }
 
 /**
- * A flight's live state on the phone's transport cards: what is happening in
- * one line with the delay, and a thin bar across the card while it flies. A
+ * A flight's live state on the phone's transport cards, as one of the card's
+ * fields: what is happening in one line with the delay, and a thin bar along
+ * the field's foot while it flies. A
  * tap opens the transport sheet with the full card. Nothing far ahead of the
  * flight (the card shows its date already), nothing once it is long over.
  */
@@ -32,37 +35,31 @@ export default function MFlightLiveStrip({ tripId, reservationId, onOpen, classN
 }
 
 function Strip({ tripId, reservationId, legIndex, onOpen, className }: MFlightLiveStripProps & { legIndex: number }) {
+  const { t } = useTranslation();
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
   if (!card || card.view.stage === 'upcoming') return null;
   const { view } = card;
+  // One of the card's own fields, full width: the label over the framed value, like the booking code below it.
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`flex min-w-0 flex-col gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px] text-start ${className}`}
-    >
-      <span className="flex w-full min-w-0 items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-caption font-semibold text-m-ink">{card.line}</span>
-        {card.delay && card.delay.tone !== 'ok' && (
-          <span
-            className="flex-none font-geist text-caption font-bold tabular-nums"
-            style={{ color: DELAY_COLOR[card.delay.tone] }}
-          >
-            {card.delay.text}
+    <button type="button" onClick={onOpen} className={`block text-start ${className}`}>
+      <Field label={t('reservations.status')} className="w-full">
+        <span className="inline-flex max-w-full items-center gap-2 align-middle">
+          <span className="min-w-0 truncate">{card.line}</span>
+          {card.delay && card.delay.tone !== 'ok' && (
+            <span className="flex-none tabular-nums" style={{ color: DELAY_COLOR[card.delay.tone] }}>
+              {card.delay.text}
+            </span>
+          )}
+        </span>
+        {view.stage === 'airborne' && (
+          <span className="-mx-[10px] -mb-[7px] mt-[6px] block h-[3px] bg-[color:var(--m-rowbr)]" aria-hidden="true">
+            <span
+              className="block h-full transition-[width] duration-700 motion-reduce:transition-none"
+              style={{ width: `${Math.round(view.progress * 100)}%`, background: LIVE }}
+            />
           </span>
         )}
-      </span>
-      {view.stage === 'airborne' && (
-        <span
-          className="block h-[3px] w-full overflow-hidden rounded-full bg-[color:var(--m-rowbr)]"
-          aria-hidden="true"
-        >
-          <span
-            className="block h-full rounded-full transition-[width] duration-700 motion-reduce:transition-none"
-            style={{ width: `${Math.round(view.progress * 100)}%`, background: LIVE }}
-          />
-        </span>
-      )}
+      </Field>
     </button>
   );
 }

@@ -1,13 +1,11 @@
-import {
-  mailIngestMessagePreviewResponseSchema,
-  type MailIngestInboxEntry,
-  type MailIngestMessagePreviewResponse,
-} from '@trek/shared';
+import type { MailIngestInboxEntry, MailIngestMessagePreviewResponse } from '@trek/shared';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { tripsApi } from '../../api/client';
-import { mailIngestApi, type MailIngestAction } from '../../api/mailIngest';
+import { useShallow } from 'zustand/react/shallow';
+import type { MailIngestAction } from '../../api/mailIngest';
 import { useTranslation } from '../../i18n';
+import { mailIngestRepo } from '../../repo/mailIngestRepo';
+import { tripRepo } from '../../repo/tripRepo';
 import { useMailIngestStore } from '../../store/mailIngestStore';
 import { useToast } from '../shared/Toast';
 import { actionsOf, type InboxAction } from './mailInboxModel';
@@ -32,7 +30,18 @@ export function useMailInbox() {
   const toast = useToast();
   const navigate = useNavigate();
   const open = useMailInboxOpen((s) => s.open);
-  const { entries, pending, nextBefore, loadingInbox, settings, loadInbox, loadSettings, act } = useMailIngestStore();
+  const { entries, pending, nextBefore, loadingInbox, settings, loadInbox, loadSettings, act } = useMailIngestStore(
+    useShallow((s) => ({
+      entries: s.entries,
+      pending: s.pending,
+      nextBefore: s.nextBefore,
+      loadingInbox: s.loadingInbox,
+      settings: s.settings,
+      loadInbox: s.loadInbox,
+      loadSettings: s.loadSettings,
+      act: s.act,
+    }))
+  );
   const [trips, setTrips] = useState<InboxTrip[]>([]);
   const [busy, setBusy] = useState<number | null>(null);
   /** The entry and the action waiting for a trip to be picked. */
@@ -45,10 +54,17 @@ export function useMailInbox() {
     if (!open) return;
     void loadInbox();
     if (!settings) void loadSettings();
-    tripsApi
+    tripRepo
       .list()
-      .then((d: { trips?: InboxTrip[] }) =>
-        setTrips((d.trips ?? []).map(({ id, title, start_date, end_date }) => ({ id, title, start_date, end_date })))
+      .then(({ trips: active }) =>
+        setTrips(
+          active.map(({ id, title, start_date, end_date }) => ({
+            id,
+            title,
+            start_date: start_date ?? null,
+            end_date: end_date ?? null,
+          }))
+        )
       )
       .catch(() => setTrips([]));
   }, [open, loadInbox, loadSettings, settings]);
@@ -81,8 +97,6 @@ export function useMailInbox() {
         return tripId
           ? run(entry, 'file', { trip_id: tripId }, t('mailInbox.filed'))
           : setPicking({ entry, action: 'file' });
-      case 'readAi':
-        return run(entry, 'read-ai', {}, t('mailInbox.readAgain'));
       case 'discard':
         return run(entry, 'discard', {}, t('mailInbox.discarded'));
       case 'manual':
@@ -100,7 +114,7 @@ export function useMailInbox() {
 
   const openForm = (entry: MailIngestInboxEntry, tripId: number) => {
     closeMailInbox();
-    navigate(`/trips/${tripId}?mailPrefill=${entry.id}`);
+    void navigate(`/trips/${tripId}?mailPrefill=${entry.id}`);
   };
 
   const fillIn = (entry: MailIngestInboxEntry) => {
@@ -111,13 +125,12 @@ export function useMailInbox() {
 
   const showMail = async (entry: MailIngestInboxEntry) => {
     try {
-      setPreview(mailIngestMessagePreviewResponseSchema.parse(await mailIngestApi.preview(entry.message_id)));
+      setPreview(await mailIngestRepo.preview(entry.message_id));
     } catch {
       toast.error(t('mailInbox.previewError'));
     }
   };
 
-  const aiAvailable = !!settings?.ai_available && !!settings.prefs.ai_enabled;
   return {
     open,
     close: closeMailInbox,
@@ -128,7 +141,7 @@ export function useMailInbox() {
     loading: loadingInbox,
     trips,
     busy,
-    actionsOf: (entry: MailIngestInboxEntry) => actionsOf(entry, aiAvailable),
+    actionsOf,
     perform: (entry: MailIngestInboxEntry, action: InboxAction) => void perform(entry, action),
     picking,
     pick,

@@ -60,7 +60,9 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} נוספה אל {trip}',
   'notif.mail_booking_added.shared': '{actor} הוסיף/ה את {booking} אל {trip} מדוא״ל שהועבר',
   'notif.mail_booking_pending.title': 'הזמנות שהועברו לבדיקה',
-  'notif.mail_booking_pending.text': 'הזמנות שהועברו וממתינות לכם: {count}',
+  'notif.mail_booking_pending.text': '{count} הזמנות שהועברו ממתינות לכם',
+  'notif.mail_booking_pending.text.one': '{count} הזמנה שהועברה ממתינה לכם',
+  'notif.mail_booking_pending.text.two': '{count} הזמנות שהועברו ממתינות לכם',
   'notif.mail_ingest_paused.title': 'ייבוא הדואר מושהה',
   'notif.mail_ingest_paused.text':
     'הודעות הזמנה שהועברו אינן מתקבלות כרגע. הכתובות שלכם נשמרות ויעבדו שוב כשהייבוא יחזור.',

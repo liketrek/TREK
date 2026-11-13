@@ -119,7 +119,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Escala',
   'reservations.needsReview': 'Revisar',
   'reservations.needsReviewHint':
-    'No se pudo identificar el aeropuerto automáticamente — por favor confirma la ubicación.',
+    'Algunos datos se rellenaron automáticamente y no se pudieron leer con seguridad. Por favor, revísalos.',
+  'reservations.reviewConfirm': 'Es correcto',
+  'reservations.reviewConfirmHint': 'Haz clic para marcarlo como revisado.',
+  'reservations.reviewConfirmed': 'Marcado como revisado',
   'reservations.searchLocation': 'Buscar estación, puerto, dirección...',
   'reservations.meta.trainNumber': 'N° de tren',
   'reservations.meta.platform': 'Andén',

@@ -167,15 +167,33 @@ export function TypeTile({ type, size = 32, raised = false }: { type: string; si
   )
 }
 
-/** The warning icon beside a booking's name on a card or row, or with `pill` a header pill in the detail dialog. */
-export function ReviewPill({ pill = false }: { pill?: boolean }) {
+/**
+ * The warning icon beside a booking's name on a card or row, or with `pill` a
+ * header pill in the detail dialog. With `onConfirm` (the right to edit) the
+ * pill is the "looks right" switch that takes the mark off.
+ */
+export function ReviewPill({ pill = false, onConfirm }: { pill?: boolean; onConfirm?: () => void }) {
   const { t } = useTranslation()
+  const content = (
+    <>
+      <AlertCircle size={13} strokeWidth={2.2} className="text-warning" />
+      {t('reservations.needsReview')}
+    </>
+  )
+  if (pill && onConfirm) {
+    return (
+      <Tooltip label={`${t('reservations.needsReviewHint')} ${t('reservations.reviewConfirmHint')}`}>
+        <button type="button" onClick={onConfirm} aria-label={t('reservations.reviewConfirm')} className={`${PILL} hover:opacity-80`} style={fs(12, 'body')}>
+          {content}
+        </button>
+      </Tooltip>
+    )
+  }
   return (
     <Tooltip label={t('reservations.needsReviewHint')}>
       {pill ? (
         <span className={PILL} style={fs(12, 'body')}>
-          <AlertCircle size={13} strokeWidth={2.2} className="text-warning" />
-          {t('reservations.needsReview')}
+          {content}
         </span>
       ) : (
         <span role="img" aria-label={t('reservations.needsReview')} className="grid flex-none place-items-center text-warning">

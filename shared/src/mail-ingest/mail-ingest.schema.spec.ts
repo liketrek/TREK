@@ -18,7 +18,6 @@ import {
   mailIngestMessageSchema,
   mailIngestMoveRequestSchema,
   mailIngestPrefsUpdateRequestSchema,
-  mailIngestReviewRequestSchema,
   mailIngestSettingsResponseSchema,
   mailIngestUndoConflictSchema,
   mailIngestUndoRequestSchema,
@@ -174,13 +173,6 @@ describe('mail-ingest requests', () => {
     const conflict = { error: 'This cost moved balances', code: 'needs_confirmation', affects: ['balances'] };
     expect(mailIngestUndoConflictSchema.safeParse(conflict).success).toBe(true);
     expect(mailIngestUndoConflictSchema.safeParse({ ...conflict, affects: [] }).success).toBe(false);
-  });
-
-  it('MAILC-023: "Looks right" names known fields or none', () => {
-    expect(mailIngestReviewRequestSchema.safeParse({}).success).toBe(true);
-    expect(mailIngestReviewRequestSchema.safeParse({ fields: ['seat', 'gate'] }).success).toBe(true);
-    expect(mailIngestReviewRequestSchema.safeParse({ fields: [] }).success).toBe(false);
-    expect(mailIngestReviewRequestSchema.safeParse({ fields: ['notes'] }).success).toBe(false);
   });
 
   it('MAILC-024: the inbox query defaults to the open entries, a page of 50, and coerces the cursor', () => {

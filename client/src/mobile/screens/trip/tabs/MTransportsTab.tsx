@@ -158,7 +158,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
 
       {/* A flight TREK follows live: its moment in one line, on the compact card too. */}
       {res.type === 'flight' && (
-        <MFlightLiveStrip tripId={planner.tripId} reservationId={res.id} onOpen={openDetail} className={compact ? 'mx-3 my-2' : 'mx-3 mt-[9px]'} />
+        <MFlightLiveStrip tripId={planner.tripId} reservationId={res.id} onOpen={openDetail} className={compact ? 'mx-3 my-2 w-[calc(100%-24px)]' : 'mx-3 mt-[9px] w-[calc(100%-24px)]'} />
       )}
 
       {/* Body — split around the booking code so the reveal can be its own

@@ -59,7 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} hozzáadva ehhez: {trip}',
   'notif.mail_booking_added.shared': '{actor} hozzáadta: {booking}, ehhez: {trip}, egy továbbított levélből',
   'notif.mail_booking_pending.title': 'Ellenőrizendő továbbított foglalások',
-  'notif.mail_booking_pending.text': 'Rád váró továbbított foglalások: {count}',
+  'notif.mail_booking_pending.text': '{count} továbbított foglalás vár rád',
+  'notif.mail_booking_pending.text.one': '{count} továbbított foglalás vár rád',
   'notif.mail_ingest_paused.title': 'E-mail-importálás szüneteltetve',
   'notif.mail_ingest_paused.text':
     'A továbbított foglalási e-maileket egyelőre nem fogadjuk. A címeid megmaradnak, és újra működnek, amint az importálás visszatér.',

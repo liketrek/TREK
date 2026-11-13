@@ -52,20 +52,19 @@ function entry(
 
 describe('mailInboxModel', () => {
   it('FE-MAILINBOX-MODEL-001: a read booking with a suggested trip is added in one tap, with every way out after it', () => {
-    expect(actionsOf(entry(), false)).toEqual(['add', 'file', 'manual', 'discard']);
+    expect(actionsOf(entry())).toEqual(['add', 'file', 'manual', 'discard']);
   });
 
   it('FE-MAILINBOX-MODEL-002: without a suggestion the person chooses the trip', () => {
-    expect(actionsOf(entry({ suggested_trip: null }), false)[0]).toBe('choose');
+    expect(actionsOf(entry({ suggested_trip: null }))[0]).toBe('choose');
   });
 
-  it('FE-MAILINBOX-MODEL-003: a mail without a booking offers the document, the form, and AI only where it can help', () => {
+  it('FE-MAILINBOX-MODEL-003: a mail without a booking offers the document and the form', () => {
     const none = entry(
       { item: null, reason: 'not_a_booking' },
       { attachments: [{ file_name: 'invoice.pdf', kind: 'pdf', size: 1 }] }
     );
-    expect(actionsOf(none, false)).toEqual(['file', 'manual', 'discard']);
-    expect(actionsOf(none, true)).toEqual(['file', 'manual', 'readAi', 'discard']);
+    expect(actionsOf(none)).toEqual(['file', 'manual', 'discard']);
   });
 
   it('FE-MAILINBOX-MODEL-004: a forwarding confirmation or a newsletter only informs', () => {

@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': '乗り継ぎ便',
   'reservations.layover.layover': '乗り継ぎ',
   'reservations.needsReview': '要確認',
-  'reservations.needsReviewHint': '空港を自動で特定できませんでした。場所を確認してください。',
+  'reservations.needsReviewHint':
+    '一部の項目は自動で入力されたもので、正確に読み取れていない可能性があります。ご確認ください。',
+  'reservations.reviewConfirm': '問題なし',
+  'reservations.reviewConfirmHint': 'クリックして確認済みにします。',
+  'reservations.reviewConfirmed': '確認済みにしました',
   'reservations.searchLocation': '駅・港・住所を検索…',
   'reservations.meta.trainNumber': '列車番号',
   'reservations.meta.platform': 'ホーム',

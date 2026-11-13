@@ -1,13 +1,18 @@
-// FE-STORE-MAILINGEST-001 to FE-STORE-MAILINGEST-004
+// FE-STORE-MAILINGEST-001 to FE-STORE-MAILINGEST-005
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../api/mailIngest', () => ({
   mailIngestApi: { settings: vi.fn(), inbox: vi.fn(), inboxCount: vi.fn(), act: vi.fn() },
 }));
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn(() => false) }));
+const listeners = vi.hoisted(() => new Set<(event: Record<string, unknown>) => void>());
+vi.mock('../api/websocket', () => ({
+  addListener: (fn: (event: Record<string, unknown>) => void) => listeners.add(fn),
+  removeListener: (fn: (event: Record<string, unknown>) => void) => listeners.delete(fn),
+}));
 
 import { mailIngestApi } from '../api/mailIngest';
-import { useMailIngestStore } from './mailIngestStore';
+import { useMailIngestStore, watchMailInbox } from './mailIngestStore';
 
 const candidate = (id: number, resolution = 'pending') => ({
   id,
@@ -79,8 +84,28 @@ describe('mailIngestStore', () => {
   it('FE-STORE-MAILINGEST-004: an entry still open after an action stays, updated', async () => {
     useMailIngestStore.setState({ entries: [entry(1)] as never, pending: 1 });
     vi.mocked(mailIngestApi.act).mockResolvedValue({ candidate: { ...candidate(1), reason: 'ai_provider_error' } });
-    await useMailIngestStore.getState().act(1, 'read-ai');
+    await useMailIngestStore.getState().act(1, 'apply');
     expect(useMailIngestStore.getState().entries[0].reason).toBe('ai_provider_error');
     expect(useMailIngestStore.getState().pending).toBe(1);
+  });
+
+  it('FE-STORE-MAILINGEST-005: the server inbox events move the count, read the list again and reload the settings', async () => {
+    vi.mocked(mailIngestApi.inbox).mockResolvedValue({ entries: [entry(3)], pending: 1, next_before: null });
+    vi.mocked(mailIngestApi.settings).mockResolvedValue({ nope: true });
+    const stop = watchMailInbox();
+    const send = (event: Record<string, unknown>) => listeners.forEach((fn) => fn(event));
+
+    send({ type: 'mailInbox:changed', pending: 1 });
+    expect(useMailIngestStore.getState().pending).toBe(1);
+    await vi.waitFor(() => expect(useMailIngestStore.getState().entries.map((e) => e.id)).toEqual([3]));
+
+    send({ type: 'mailInbox:settings' });
+    expect(mailIngestApi.settings).toHaveBeenCalled();
+
+    // A malformed event changes nothing, and after stopping nothing is heard.
+    send({ type: 'mailInbox:changed', pending: 'many' });
+    expect(useMailIngestStore.getState().pending).toBe(1);
+    stop();
+    expect(listeners.size).toBe(0);
   });
 });

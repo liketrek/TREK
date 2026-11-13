@@ -61,7 +61,10 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} добавлено в {trip}',
   'notif.mail_booking_added.shared': '{actor} добавил(а) {booking} в {trip} из пересланного письма',
   'notif.mail_booking_pending.title': 'Пересланные бронирования для проверки',
-  'notif.mail_booking_pending.text': 'Пересланных бронирований ждёт вас: {count}',
+  'notif.mail_booking_pending.text': '{count} пересланного бронирования ждёт вас',
+  'notif.mail_booking_pending.text.one': '{count} пересланное бронирование ждёт вас',
+  'notif.mail_booking_pending.text.few': '{count} пересланных бронирования ждут вас',
+  'notif.mail_booking_pending.text.many': '{count} пересланных бронирований ждут вас',
   'notif.mail_ingest_paused.title': 'Импорт писем приостановлен',
   'notif.mail_ingest_paused.text':
     'Пересланные письма с бронированиями пока не принимаются. Ваши адреса сохраняются и снова заработают, когда импорт вернётся.',

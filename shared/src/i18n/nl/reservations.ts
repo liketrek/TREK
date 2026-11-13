@@ -36,7 +36,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Aansluiting',
   'reservations.layover.layover': 'Overstap',
   'reservations.needsReview': 'Controleren',
-  'reservations.needsReviewHint': 'Luchthaven kon niet automatisch worden herkend — bevestig de locatie.',
+  'reservations.needsReviewHint':
+    'Sommige gegevens zijn automatisch ingevuld en konden niet met zekerheid worden gelezen. Controleer ze even.',
+  'reservations.reviewConfirm': 'Klopt',
+  'reservations.reviewConfirmHint': 'Klik om als gecontroleerd te markeren.',
+  'reservations.reviewConfirmed': 'Als gecontroleerd gemarkeerd',
   'reservations.searchLocation': 'Station, haven, adres zoeken...',
   'reservations.meta.trainNumber': 'Treinnr.',
   'reservations.meta.platform': 'Perron',

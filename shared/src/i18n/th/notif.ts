@@ -58,7 +58,7 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': 'เพิ่ม {booking} ลงใน {trip} แล้ว',
   'notif.mail_booking_added.shared': '{actor} เพิ่ม {booking} ลงใน {trip} จากอีเมลที่ส่งต่อ',
   'notif.mail_booking_pending.title': 'การจองที่ส่งต่อซึ่งรอตรวจสอบ',
-  'notif.mail_booking_pending.text': 'การจองที่ส่งต่อซึ่งรอคุณอยู่: {count}',
+  'notif.mail_booking_pending.text': 'มี {count} การจองที่ส่งต่อมารอให้คุณตรวจสอบ',
   'notif.mail_ingest_paused.title': 'หยุดการนำเข้าอีเมลชั่วคราว',
   'notif.mail_ingest_paused.text':
     'ขณะนี้ยังไม่รับอีเมลการจองที่ส่งต่อมา ที่อยู่ของคุณยังคงอยู่และจะใช้งานได้อีกครั้งเมื่อการนำเข้ากลับมา',

@@ -59,7 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} wurde in {trip} eingetragen',
   'notif.mail_booking_added.shared': '{actor} hat {booking} aus einer weitergeleiteten Mail in {trip} eingetragen',
   'notif.mail_booking_pending.title': 'Weitergeleitete Buchungen prüfen',
-  'notif.mail_booking_pending.text': 'Weitergeleitete Buchungen warten auf dich: {count}',
+  'notif.mail_booking_pending.text': '{count} weitergeleitete Buchungen warten auf dich',
+  'notif.mail_booking_pending.text.one': '{count} weitergeleitete Buchung wartet auf dich',
   'notif.mail_ingest_paused.title': 'Mail-Import pausiert',
   'notif.mail_ingest_paused.text':
     'Weitergeleitete Buchungsmails werden vorerst nicht angenommen. Deine Adressen bleiben und funktionieren wieder, sobald der Import zurück ist.',

@@ -59,7 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': 'Η κράτηση {booking} προστέθηκε στο {trip}',
   'notif.mail_booking_added.shared': 'Ο/Η {actor} πρόσθεσε την κράτηση {booking} στο {trip} από προωθημένο email',
   'notif.mail_booking_pending.title': 'Προωθημένες κρατήσεις για έλεγχο',
-  'notif.mail_booking_pending.text': 'Προωθημένες κρατήσεις σε αναμονή: {count}',
+  'notif.mail_booking_pending.text': '{count} προωθημένες κρατήσεις σε περιμένουν',
+  'notif.mail_booking_pending.text.one': '{count} προωθημένη κράτηση σε περιμένει',
   'notif.mail_ingest_paused.title': 'Η εισαγωγή email σε παύση',
   'notif.mail_ingest_paused.text':
     'Τα προωθημένα email κρατήσεων δεν γίνονται δεκτά προς το παρόν. Οι διευθύνσεις σου μένουν και θα λειτουργήσουν ξανά όταν επιστρέψει η εισαγωγή.',

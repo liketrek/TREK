@@ -275,22 +275,6 @@ export const mailIngestPrefillResponseSchema = z.object({
 });
 export type MailIngestPrefillResponse = z.infer<typeof mailIngestPrefillResponseSchema>;
 
-/**
- * POST /api/trips/:tripId/reservations/:id/mail-review ("Looks right"): clear
- * the check marks of the named fields, or of all of them.
- */
-export const mailIngestReviewRequestSchema = z.strictObject({
-  fields: z.array(mailIngestFieldSchema).min(1).optional(),
-});
-export type MailIngestReviewRequest = z.infer<typeof mailIngestReviewRequestSchema>;
-
-export const mailIngestReviewResponseSchema = z.object({
-  reservation_id: idSchema,
-  /** The fields still marked. */
-  uncertain_fields: z.array(mailIngestFieldSchema),
-});
-export type MailIngestReviewResponse = z.infer<typeof mailIngestReviewResponseSchema>;
-
 // ── Mail coming in ──────────────────────────────────────────────────────────
 
 /** POST /api/mail-ingest/upload: an .eml file read like a forwarded mail; a mail already in is not read twice. */

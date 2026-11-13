@@ -58,7 +58,7 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} を {trip} に追加しました',
   'notif.mail_booking_added.shared': '{actor} が転送メールから {booking} を {trip} に追加しました',
   'notif.mail_booking_pending.title': '確認待ちの転送予約',
-  'notif.mail_booking_pending.text': '確認待ちの転送予約: {count} 件',
+  'notif.mail_booking_pending.text': '転送された予約が{count}件、確認待ちです',
   'notif.mail_ingest_paused.title': 'メール取り込みを一時停止中',
   'notif.mail_ingest_paused.text':
     '転送された予約メールは現在受け付けていません。アドレスはそのまま残り、取り込みが再開されると再び使えます。',

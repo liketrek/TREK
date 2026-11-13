@@ -63,7 +63,12 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': 'تمت إضافة {booking} إلى {trip}',
   'notif.mail_booking_added.shared': 'أضاف {actor} الحجز {booking} إلى {trip} من بريد مُعاد توجيهه',
   'notif.mail_booking_pending.title': 'حجوزات مُعاد توجيهها للمراجعة',
-  'notif.mail_booking_pending.text': 'حجوزات مُعاد توجيهها بانتظارك: {count}',
+  'notif.mail_booking_pending.text': '{count} حجز مُعاد توجيهه بانتظارك',
+  'notif.mail_booking_pending.text.zero': '{count} حجز مُعاد توجيهه بانتظارك',
+  'notif.mail_booking_pending.text.one': '{count} حجز مُعاد توجيهه بانتظارك',
+  'notif.mail_booking_pending.text.two': '{count} حجزان مُعاد توجيههما بانتظارك',
+  'notif.mail_booking_pending.text.few': '{count} حجوزات مُعاد توجيهها بانتظارك',
+  'notif.mail_booking_pending.text.many': '{count} حجزاً مُعاد توجيهه بانتظارك',
   'notif.mail_ingest_paused.title': 'تم إيقاف استيراد البريد مؤقتًا',
   'notif.mail_ingest_paused.text':
     'لا تُقبل رسائل الحجز المُعاد توجيهها في الوقت الحالي. تبقى عناوينك وستعمل مجددًا عند عودة الاستيراد.',

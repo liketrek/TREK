@@ -59,7 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} a été ajouté à {trip}',
   'notif.mail_booking_added.shared': '{actor} a ajouté {booking} à {trip} depuis un e-mail transféré',
   'notif.mail_booking_pending.title': 'Réservations transférées à vérifier',
-  'notif.mail_booking_pending.text': 'Réservations transférées en attente : {count}',
+  'notif.mail_booking_pending.text': '{count} réservations transférées vous attendent',
+  'notif.mail_booking_pending.text.one': '{count} réservation transférée vous attend',
   'notif.mail_ingest_paused.title': 'Import des e-mails en pause',
   'notif.mail_ingest_paused.text':
     'Les e-mails de réservation transférés ne sont pas acceptés pour le moment. Vos adresses restent et fonctionneront de nouveau au retour de l’import.',

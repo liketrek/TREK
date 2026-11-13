@@ -58,7 +58,7 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': 'Đã thêm {booking} vào {trip}',
   'notif.mail_booking_added.shared': '{actor} đã thêm {booking} vào {trip} từ một email được chuyển tiếp',
   'notif.mail_booking_pending.title': 'Đặt chỗ chuyển tiếp cần xem lại',
-  'notif.mail_booking_pending.text': 'Đặt chỗ chuyển tiếp đang chờ bạn: {count}',
+  'notif.mail_booking_pending.text': '{count} đặt chỗ được chuyển tiếp đang chờ bạn',
   'notif.mail_ingest_paused.title': 'Đã tạm dừng nhập email',
   'notif.mail_ingest_paused.text':
     'Hiện tại email đặt chỗ được chuyển tiếp chưa được nhận. Địa chỉ của bạn vẫn được giữ và sẽ hoạt động lại khi tính năng nhập quay lại.',

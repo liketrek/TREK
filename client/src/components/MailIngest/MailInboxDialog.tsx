@@ -1,5 +1,5 @@
 import type { MailIngestInboxEntry } from '@trek/shared';
-import { Copy, FilePlus2, FileText, Inbox, Loader2, Mail, PencilLine, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Copy, FilePlus2, FileText, Inbox, Loader2, Mail, PencilLine, Plus, Trash2 } from 'lucide-react';
 import { useId, type ReactElement } from 'react';
 import { useTranslation } from '../../i18n';
 import { copyText } from '../../utils/clipboard';
@@ -28,8 +28,6 @@ function actionLook(action: InboxAction, t: (key: string) => string): { icon: Re
       return { icon: <FilePlus2 size={14} strokeWidth={2} />, label: t('mailInbox.action.file') };
     case 'manual':
       return { icon: <PencilLine size={14} strokeWidth={2} />, label: t('mailInbox.action.manual') };
-    case 'readAi':
-      return { icon: <Sparkles size={14} strokeWidth={2} />, label: t('mailInbox.action.readAi') };
     case 'discard':
       return { icon: <Trash2 size={14} strokeWidth={2} />, label: t('mailInbox.action.discard') };
   }
@@ -75,8 +73,8 @@ function Entry({ entry, inbox }: { entry: MailIngestInboxEntry; inbox: ReturnTyp
             <DialogIconButton
               label={t('mailInbox.settings.copy')}
               icon={<Copy size={13} strokeWidth={2} />}
-              onClick={async () => {
-                if (await copyText(code)) toast.success(t('common.copied'));
+              onClick={() => {
+                void copyText(code).then((ok) => ok && toast.success(t('common.copied')));
               }}
             />
           </div>

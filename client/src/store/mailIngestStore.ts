@@ -1,14 +1,8 @@
-import {
-  mailIngestCandidateResponseSchema,
-  mailIngestInboxCountResponseSchema,
-  mailIngestInboxResponseSchema,
-  mailIngestSettingsResponseSchema,
-  type MailIngestCandidate,
-  type MailIngestInboxEntry,
-  type MailIngestSettingsResponse,
-} from '@trek/shared';
+import type { MailIngestCandidate, MailIngestInboxEntry, MailIngestSettingsResponse } from '@trek/shared';
 import { create } from 'zustand';
-import { mailIngestApi, type MailIngestAction } from '../api/mailIngest';
+import type { MailIngestAction } from '../api/mailIngest';
+import { addListener, removeListener } from '../api/websocket';
+import { mailIngestRepo } from '../repo/mailIngestRepo';
 import { isEffectivelyOffline } from '../sync/networkMode';
 
 /**
@@ -43,16 +37,23 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => ({
 
   loadSettings: async () => {
     if (isEffectivelyOffline()) return;
-    const parsed = mailIngestSettingsResponseSchema.safeParse(await mailIngestApi.settings().catch(() => null));
-    if (parsed.success) set({ settings: parsed.data, pending: parsed.data.pending });
+    try {
+      const settings = await mailIngestRepo.settings();
+      set({ settings, pending: settings.pending });
+    } catch {
+      // Without an answer the menus keep what they showed; the next sign-in or event reads it again.
+    }
   },
 
   setSettings: (settings) => set({ settings, pending: settings.pending }),
 
   loadCount: async () => {
     if (isEffectivelyOffline()) return;
-    const parsed = mailIngestInboxCountResponseSchema.safeParse(await mailIngestApi.inboxCount().catch(() => null));
-    if (parsed.success) set({ pending: parsed.data.pending });
+    try {
+      set({ pending: await mailIngestRepo.inboxCount() });
+    } catch {
+      // The badge keeps its last count until the next event brings a new one.
+    }
   },
 
   loadInbox: async (more = false) => {
@@ -60,9 +61,7 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => ({
     set({ loadingInbox: true });
     try {
       const before = more ? (get().nextBefore ?? undefined) : undefined;
-      const parsed = mailIngestInboxResponseSchema.safeParse(await mailIngestApi.inbox({ status: 'open', before }));
-      if (!parsed.success) return;
-      const { entries, pending, next_before } = parsed.data;
+      const { entries, pending, next_before } = await mailIngestRepo.inbox(before);
       set((state) => ({ entries: more ? [...state.entries, ...entries] : entries, pending, nextBefore: next_before }));
     } catch {
       // The inbox stays as it was; the next open reads it again.
@@ -72,7 +71,7 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => ({
   },
 
   act: async (candidateId, action, body = {}) => {
-    const { candidate } = mailIngestCandidateResponseSchema.parse(await mailIngestApi.act(candidateId, action, body));
+    const candidate = await mailIngestRepo.act(candidateId, action, body);
     set((state) => {
       const stillOpen = OPEN.has(candidate.resolution);
       const entries = state.entries.flatMap((entry) =>
@@ -84,3 +83,24 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => ({
     return candidate;
   },
 }));
+
+/**
+ * Keeps the inbox current while the app is open: the server says when the
+ * person's open count changed (a mail read, an entry decided on another
+ * device) and when their import settings did. The count moves at once; a
+ * list already read is read again, so an open inbox shows the new entry
+ * without a reload. Mounted once per signed-in shell (Navbar, MMailInboxHost).
+ */
+export function watchMailInbox(): () => void {
+  const onEvent = (event: Record<string, unknown>) => {
+    const store = useMailIngestStore.getState();
+    if (event?.type === 'mailInbox:changed' && typeof event.pending === 'number') {
+      useMailIngestStore.setState({ pending: event.pending });
+      if (store.entries.length > 0 || event.pending > 0) void store.loadInbox();
+    } else if (event?.type === 'mailInbox:settings') {
+      void store.loadSettings();
+    }
+  };
+  addListener(onEvent);
+  return () => removeListener(onEvent);
+}

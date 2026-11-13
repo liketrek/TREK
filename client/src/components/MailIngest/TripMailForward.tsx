@@ -1,8 +1,8 @@
-import { mailIngestAddressResponseSchema, type MailIngestAddress } from '@trek/shared';
+import type { MailIngestAddress } from '@trek/shared';
 import { Copy, Mail, Plus } from 'lucide-react';
 import { useEffect, useState, type ReactElement } from 'react';
-import { mailIngestApi } from '../../api/mailIngest';
 import { useTranslation } from '../../i18n';
+import { mailIngestRepo } from '../../repo/mailIngestRepo';
 import { useMailIngestStore } from '../../store/mailIngestStore';
 import { copyText } from '../../utils/clipboard';
 import { useToast } from '../shared/Toast';
@@ -30,13 +30,15 @@ export default function TripMailForward({ tripId }: { tripId: number }): ReactEl
   useEffect(() => {
     if (!on) return;
     let live = true;
-    mailIngestApi
+    mailIngestRepo
       .tripAddress(tripId)
-      .then((raw) => {
-        const parsed = mailIngestAddressResponseSchema.safeParse(raw);
-        if (live && parsed.success) setAddress(parsed.data.address);
+      .then((found) => {
+        if (live) setAddress(found);
       })
-      .catch(() => {});
+      .catch(() => {
+        // No address yet, or none readable: the card offers to create one instead.
+        if (live) setAddress(null);
+      });
     return () => {
       live = false;
     };
@@ -47,7 +49,7 @@ export default function TripMailForward({ tripId }: { tripId: number }): ReactEl
   const create = async () => {
     setCreating(true);
     try {
-      setAddress(mailIngestAddressResponseSchema.parse(await mailIngestApi.createTripAddress(tripId)).address);
+      setAddress(await mailIngestRepo.createTripAddress(tripId));
     } catch {
       toast.error(t('mailInbox.settings.saveError'));
     } finally {

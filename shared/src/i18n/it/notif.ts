@@ -59,7 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} è stata aggiunta a {trip}',
   'notif.mail_booking_added.shared': '{actor} ha aggiunto {booking} a {trip} da un’email inoltrata',
   'notif.mail_booking_pending.title': 'Prenotazioni inoltrate da controllare',
-  'notif.mail_booking_pending.text': 'Prenotazioni inoltrate in attesa: {count}',
+  'notif.mail_booking_pending.text': '{count} prenotazioni inoltrate ti aspettano',
+  'notif.mail_booking_pending.text.one': '{count} prenotazione inoltrata ti aspetta',
   'notif.mail_ingest_paused.title': 'Importazione email in pausa',
   'notif.mail_ingest_paused.text':
     'Per ora le email di prenotazione inoltrate non vengono accettate. I tuoi indirizzi restano e funzioneranno di nuovo quando l’importazione tornerà.',

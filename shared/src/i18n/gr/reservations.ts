@@ -37,7 +37,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Ενδιάμεση στάση',
   'reservations.needsReview': 'Έλεγχος',
   'reservations.needsReviewHint':
-    'Δεν ήταν δυνατή η αυτόματη αντιστοίχιση του αεροδρομίου — παρακαλώ επιβεβαιώστε την τοποθεσία.',
+    'Ορισμένα στοιχεία συμπληρώθηκαν αυτόματα και δεν μπόρεσαν να διαβαστούν με βεβαιότητα. Έλεγξέ τα.',
+  'reservations.reviewConfirm': 'Φαίνεται σωστό',
+  'reservations.reviewConfirmHint': 'Κάνε κλικ για να σημειωθεί ως ελεγμένο.',
+  'reservations.reviewConfirmed': 'Σημειώθηκε ως ελεγμένο',
   'reservations.searchLocation': 'Αναζήτηση σταθμού, λιμανιού, διεύθυνσης…',
   'reservations.meta.trainNumber': 'Αρ. Τρένου',
   'reservations.meta.platform': 'Αποβάθρα',

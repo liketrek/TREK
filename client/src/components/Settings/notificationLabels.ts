@@ -32,6 +32,9 @@ export const EVENT_LABEL_KEYS: Record<string, string> = {
   flight_departed: 'settings.notifyFlightDeparted',
   flight_delayed: 'settings.notifyFlightDelayed',
   flight_landed: 'settings.notifyFlightLanded',
+  mail_booking_added: 'settings.notifyMailBookingAdded',
+  mail_booking_pending: 'settings.notifyMailBookingPending',
+  mail_ingest_paused: 'settings.notifyMailIngestPaused',
 }
 
 /** Plugin channels have no i18n; the server sends their display name outright. */

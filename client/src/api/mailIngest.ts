@@ -9,9 +9,17 @@ import apiClient from './client';
  */
 const data = (response: { data: unknown }) => response.data;
 
-export type MailIngestAction = 'apply' | 'move' | 'file' | 'undo' | 'discard' | 'read-ai';
+export type MailIngestAction = 'apply' | 'move' | 'file' | 'undo' | 'discard';
 
 export const mailIngestApi = {
+  // The admin's view: how the import runs, in counts only, and whether the transport reaches its mail now.
+  adminStatus: (): Promise<unknown> => apiClient.get('/admin/mail-ingest/status').then(data),
+  adminTest: (): Promise<unknown> => apiClient.post('/admin/mail-ingest/test', {}).then(data),
+  /** The stored transport fields, passwords masked, from the admin's app settings. */
+  adminSettings: (): Promise<unknown> => apiClient.get('/auth/app-settings').then(data),
+  saveAdminSettings: (patch: Record<string, string | boolean>): Promise<unknown> =>
+    apiClient.put('/auth/app-settings', patch).then(data),
+
   settings: (): Promise<unknown> => apiClient.get('/mail-ingest/settings').then(data),
   updateSettings: (body: { enabled?: boolean; ai_enabled?: boolean; auto_add?: boolean }): Promise<unknown> =>
     apiClient.patch('/mail-ingest/settings', body).then(data),
@@ -31,9 +39,6 @@ export const mailIngestApi = {
 
   act: (candidateId: number, action: MailIngestAction, body: Record<string, unknown> = {}): Promise<unknown> =>
     apiClient.post(`/mail-ingest/candidates/${candidateId}/${action}`, body).then(data),
-
-  review: (tripId: number, reservationId: number, fields?: string[]): Promise<unknown> =>
-    apiClient.post(`/trips/${tripId}/reservations/${reservationId}/mail-review`, fields ? { fields } : {}).then(data),
 
   upload: (file: File): Promise<unknown> => {
     const form = new FormData();

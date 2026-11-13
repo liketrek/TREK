@@ -110,6 +110,15 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
     if (await copyText(r.confirmation_number || '')) toast.success(t('common.copied'))
     else toast.error(t('reservations.copyFailed'))
   }
+  // "Looks right": the person checked what an import could not read for sure.
+  const confirmReview = async () => {
+    try {
+      await updateReservation(p.tripId, r.id, { needs_review: 0 })
+      toast.success(t('reservations.reviewConfirmed'))
+    } catch {
+      toast.error(t('reservations.toast.updateError'))
+    }
+  }
   const rename = async () => {
     const title = name.trim()
     setRenaming(false)
@@ -143,7 +152,7 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
               {facts.day.date && !facts.isHotel && <span className="font-medium text-content-muted">{facts.day.date}</span>}
             </span>
           )}
-          {!!r.needs_review && <ReviewPill pill />}
+          {!!r.needs_review && <ReviewPill pill onConfirm={p.canEdit ? () => void confirmReview() : undefined} />}
           <AirTrailPill r={r} pill />
           <MailPill r={r} pill />
           {r.confirmation_number && (

@@ -1,11 +1,9 @@
-import {
-  isTransportReservationType,
-  mailIngestPrefillResponseSchema,
-  type BookingImportPreviewItem,
-} from '@trek/shared';
+import { isTransportReservationType, type BookingImportPreviewItem } from '@trek/shared';
 import { useEffect, useRef } from 'react';
 import type { SetURLSearchParams } from 'react-router';
-import { mailIngestApi } from '../../api/mailIngest';
+import { useTranslation } from '../../i18n';
+import { mailIngestRepo } from '../../repo/mailIngestRepo';
+import { useToast } from '../shared/Toast';
 
 /**
  * "Fill in yourself" from the mail inbox lands in the trip as ?mailPrefill=<id>:
@@ -25,6 +23,8 @@ export function useMailPrefillLink({
   loaded: boolean;
   startImportReview: (items: BookingImportPreviewItem[], files?: File[], kind?: 'transports' | 'bookings') => void;
 }): void {
+  const { t } = useTranslation();
+  const toast = useToast();
   const requested = searchParams.get('mailPrefill');
   const handled = useRef<string | null>(null);
 
@@ -41,14 +41,14 @@ export function useMailPrefillLink({
     );
     const id = Number(requested);
     if (!Number.isInteger(id) || id <= 0) return;
-    mailIngestApi
+    mailIngestRepo
       .prefill(id)
-      .then((raw) => {
-        const { item } = mailIngestPrefillResponseSchema.parse(raw);
+      .then(({ item }) => {
         startImportReview([item], [], isTransportReservationType(item.type) ? 'transports' : 'bookings');
       })
       .catch(() => {
-        // An entry decided meanwhile has nothing to prefill; the trip simply stays open.
+        // An entry decided meanwhile has nothing to prefill: the trip stays open, and the person hears why.
+        toast.error(t('mailInbox.actionError'));
       });
-  }, [requested, loaded, setSearchParams, startImportReview]);
+  }, [requested, loaded, setSearchParams, startImportReview, t, toast]);
 }

@@ -90,3 +90,14 @@
 .flight-mini-map .leaflet-tooltip.flight-mini-code::before {
   display: none;
 }
+
+/* A map kept to the middle of its pass (the phone): the edges still run out,
+   but the route fills most of it instead of a third. */
+.flight-mini-map.flight-mini-map--narrow {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 16%, #000 84%, transparent),
+    linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  mask-image:
+    linear-gradient(to right, transparent, #000 16%, #000 84%, transparent),
+    linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+}

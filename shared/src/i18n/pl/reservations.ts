@@ -57,7 +57,11 @@ const reservations: TranslationStrings = {
   'reservations.type.train': 'Pociąg',
   'reservations.type.car': 'Samochód',
   'reservations.needsReview': 'Sprawdź',
-  'reservations.needsReviewHint': 'Nie udało się automatycznie dopasować lotniska — potwierdź lokalizację.',
+  'reservations.needsReviewHint':
+    'Niektóre dane zostały uzupełnione automatycznie i nie dało się ich odczytać z pewnością. Sprawdź je proszę.',
+  'reservations.reviewConfirm': 'Wygląda dobrze',
+  'reservations.reviewConfirmHint': 'Kliknij, aby oznaczyć jako sprawdzone.',
+  'reservations.reviewConfirmed': 'Oznaczono jako sprawdzone',
   'reservations.searchLocation': 'Szukaj stacji, portu, adresu...',
   'reservations.type.cruise': 'Rejs',
   'reservations.type.event': 'Wydarzenie',

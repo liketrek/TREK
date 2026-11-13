@@ -36,7 +36,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Anslutning',
   'reservations.layover.layover': 'Mellanlandning',
   'reservations.needsReview': 'Granska',
-  'reservations.needsReviewHint': 'Flygplatsen kunde inte matchas automatiskt – bekräfta platsen.',
+  'reservations.needsReviewHint':
+    'Vissa uppgifter fylldes i automatiskt och kunde inte läsas med säkerhet. Kontrollera dem.',
+  'reservations.reviewConfirm': 'Ser rätt ut',
+  'reservations.reviewConfirmHint': 'Klicka för att markera som kontrollerad.',
+  'reservations.reviewConfirmed': 'Markerad som kontrollerad',
   'reservations.searchLocation': 'Sök efter station, hamn, adress…',
   'reservations.meta.trainNumber': 'Tågnummer',
   'reservations.meta.platform': 'Plattform',

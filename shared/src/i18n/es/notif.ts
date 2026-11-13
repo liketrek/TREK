@@ -59,7 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} se añadió a {trip}',
   'notif.mail_booking_added.shared': '{actor} añadió {booking} a {trip} desde un correo reenviado',
   'notif.mail_booking_pending.title': 'Reservas reenviadas por revisar',
-  'notif.mail_booking_pending.text': 'Reservas reenviadas pendientes: {count}',
+  'notif.mail_booking_pending.text': '{count} reservas reenviadas te esperan',
+  'notif.mail_booking_pending.text.one': '{count} reserva reenviada te espera',
   'notif.mail_ingest_paused.title': 'Importación de correos en pausa',
   'notif.mail_ingest_paused.text':
     'Por ahora no se aceptan los correos de reserva reenviados. Tus direcciones se mantienen y volverán a funcionar cuando vuelva la importación.',

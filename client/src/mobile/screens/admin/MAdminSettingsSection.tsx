@@ -7,6 +7,7 @@ import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MToggle from '../../components/MToggle'
 import { MBlockDisclosure, MProviderBlock, MTrekApiBlock } from './MApiProviderBlocks'
 import MAdminOidcCard from './MAdminOidcCard'
+import MMailIngestAdminCard from './MMailIngestAdminCard'
 import MSetPickerSheet from '../settings/MSetPickerSheet'
 import {
   MAdminButton,
@@ -195,6 +196,9 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
         locked={flightLiveLocked}
         onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
       />
+
+      {/* Booking mail import: self-hosted only, the operator runs the TREK Cloud relay (desktop parity). */}
+      {!managed && <MMailIngestAdminCard />}
 
       {/* Allowed file types */}
       <MAdminCard>

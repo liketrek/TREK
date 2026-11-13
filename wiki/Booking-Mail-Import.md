@@ -23,7 +23,9 @@ A trip can also have its own address: **Import** in the trip's Bookings or Trans
 3. It checks the result: the dates fit the trip, the values are plausible and stand in the mail, the booking is not in the trip already.
 4. With **Add on its own** on and every check passed, it adds the booking and tells you so; **Undo** in that notice takes it back for 7 days. Fellow travellers of a shared trip are told about it too.
 
-Anything TREK is not sure about waits under **Pending bookings**.
+A booking with a detail TREK could not read for sure carries a **Review** mark. Check it in the booking and click the mark (**Looks right** on the phone) to take it off.
+
+Anything TREK is not sure about waits under **Pending bookings**. A mail the AI could not read because of a passing error is read again on its own; once the day's AI allowance is used up, the mail waits with **Fill in yourself** and **Save as a document**.
 
 ## Pending bookings
 
@@ -32,7 +34,6 @@ Open them from the account menu (the number beside the entry counts them) or fro
 - **Add** or **Add to a trip** adds the booking.
 - **Save as a document** keeps the mail's attachments, or the mail itself, in the trip's files.
 - **Fill in yourself** opens the booking form in the trip with what the mail held.
-- **Read with AI** tries again where the AI could not read the mail before (allowance used up, a passing error).
 - **Discard** drops it.
 
 **Show mail** shows the mail's text. A forwarding confirmation from Gmail or Outlook appears here too, with its code in large type.

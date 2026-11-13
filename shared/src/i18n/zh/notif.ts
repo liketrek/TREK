@@ -58,7 +58,7 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} 已添加到 {trip}',
   'notif.mail_booking_added.shared': '{actor} 从转发的邮件中将 {booking} 添加到 {trip}',
   'notif.mail_booking_pending.title': '待查看的转发预订',
-  'notif.mail_booking_pending.text': '等待你处理的转发预订：{count}',
+  'notif.mail_booking_pending.text': '有 {count} 个转发的预订等你处理',
   'notif.mail_ingest_paused.title': '邮件导入已暂停',
   'notif.mail_ingest_paused.text': '暂时不接收转发的预订邮件。你的地址会保留，导入恢复后即可再次使用。',
   'notif.action.undo': '撤销',

@@ -143,6 +143,12 @@
       "mobile": ["src/mobile/screens/settings/MMailImportSection.tsx"]
     },
     {
+      "feature": "Booking mail import: admin card",
+      "hooks": ["src/components/Admin/mailIngest/useMailIngestAdmin.ts", "src/components/Admin/mailIngest/mailIngestAdminModel.ts"],
+      "desktop": ["src/components/Admin/mailIngest/MailIngestAdminCard.tsx"],
+      "mobile": ["src/mobile/screens/admin/MMailIngestAdminCard.tsx"]
+    },
+    {
       "feature": "Booking save follow-up: travellers and files before the editor closes",
       "hooks": ["src/components/Planner/useBookingFollowUp.ts"],
       "desktop": ["src/components/Planner/ReservationModal.tsx", "src/components/Planner/TransportModal.tsx"],
@@ -1039,6 +1045,7 @@
     }
   ],
   "mobileOnly": {
+    "src/mobile/screens/trip/sheets/MReviewNotice.tsx": "The transport sheet's row asking for a look at an imported booking; the desktop dialog folds the same \"looks right\" action into its review pill (ReviewPill in bookingParts.tsx), so there is no separate twin.",
     "src/mobile/screens/mail/MMailInboxHost.tsx": "Mounts the phone shell's one inbox sheet and reads the person's import settings; the desktop mounts its dialog from the Navbar, so there is no twin.",
     "src/mobile/screens/admin/MAdminOidcCard.tsx": "Markup only; the OIDC card of MAdminSettingsSection, with the form state from useAdmin and the save from its useAdminSettingsActions handed in through props.",
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",

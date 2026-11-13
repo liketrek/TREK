@@ -23,6 +23,9 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'tours:visits',
   // store/flightLiveStore (watchFlightLive, mounted by useFlightLiveSync) merges live flight states.
   'flight:live',
+  // store/mailIngestStore (watchMailInbox, mounted by Navbar and MMailInboxHost): the open count and the settings card.
+  'mailInbox:changed',
+  'mailInbox:settings',
   // Collab — Collab/MCollab components + useTripWebSocket's collabFileSync
   'collab:note:created',
   'collab:note:updated',
@@ -161,9 +164,6 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
 export const IGNORED_WS_EVENTS: Partial<Record<TrekWsEventName, string>> = {
   'todo:assignees':
     'No screen shows who looks after a todo category (todoApi.getCategoryAssignees has no caller), so there is nothing to refresh.',
-  // The mail import's inbox and settings card come with its client screens, which move these to their listener.
-  'mailInbox:changed': 'No screen shows the mail inbox or its open count yet, so there is nothing to refresh.',
-  'mailInbox:settings': 'No screen shows the mail import settings card yet, so there is nothing to read again.',
 }
 
 /**

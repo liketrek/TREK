@@ -6,6 +6,7 @@ import { useAssistantHintsStore } from '../../src/store/assistantHintsStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { useFlightLiveStore } from '../../src/store/flightLiveStore';
 import { useInAppNotificationStore } from '../../src/store/inAppNotificationStore';
+import { useMailIngestStore } from '../../src/store/mailIngestStore';
 import { usePaddleObstacleStore } from '../../src/store/paddleObstacleStore';
 import { usePermissionsStore } from '../../src/store/permissionsStore';
 import { useSettingsStore } from '../../src/store/settingsStore';
@@ -51,6 +52,8 @@ export const RESET_STORES: Record<string, ResettableStore> = {
   useAssistantHintsStore,
   // Live flight states are per test: a leg seeded by one test must not show up in the next.
   useFlightLiveStore,
+  // The mail inbox and its pending count, which the menus of every shell read.
+  useMailIngestStore,
 };
 
 /** Not reset so far; moving one into RESET_STORES changes what every file that resets starts from. */

@@ -127,15 +127,12 @@ export default function MFlightLiveCard({ tripId, reservationId, legIndex, legLa
             showPlane={view.stage !== 'upcoming' && view.stage !== 'soon'}
             dimPlane={view.stale}
             credits={card.attribution ? [card.attribution, FLIGHT_MAP_CREDIT] : [FLIGHT_MAP_CREDIT]}
-            inset={0.36}
-            className="!absolute inset-0 [--fm-ahead:var(--m-muted)] [--fm-code:var(--m-muted)] [--fm-end:var(--m-inner)] [--fm-flown:var(--m-st-info)] [--fm-halo:var(--m-inner)] [--fm-plane:var(--m-st-info)]"
+            inset={0.06}
+            className="flight-mini-map--narrow !absolute inset-y-2 end-[25%] start-[25%] [--fm-ahead:var(--m-muted)] [--fm-code:var(--m-muted)] [--fm-end:var(--m-inner)] [--fm-flown:var(--m-st-info)] [--fm-halo:var(--m-inner)] [--fm-plane:var(--m-st-info)]"
           />
           <End label={t('reservations.span.departure')} code={leg.origin.code} city={leg.origin.name} cell={card.dep} />
-          <div className="relative z-[1] flex items-end justify-center">
-            <span className="rounded-full bg-[color:var(--m-inner)] px-[7px] py-px font-geist text-caption font-bold tracking-[.06em] text-m-muted shadow-sm">
-              {leg.flight_number}
-            </span>
-          </div>
+          {/* The middle column keeps the map clear; the flight number is in the sheet's title already. */}
+          <div aria-hidden="true" />
           <End
             label={t('reservations.span.arrival')}
             code={leg.destination.code}

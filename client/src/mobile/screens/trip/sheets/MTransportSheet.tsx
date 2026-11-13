@@ -23,6 +23,7 @@ import { downloadAttachment, openAttachment } from '../../../../components/Plann
 import { flowText } from '../../../../utils/flowText'
 import { useFlightLiveLegs } from '../../../../store/flightLiveStore'
 import MFlightLiveCard from './MFlightLiveCard'
+import MReviewNotice from './MReviewNotice'
 
 interface TransportSheetPayload {
   reservationId?: number
@@ -231,6 +232,17 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
       </div>
 
       <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
+        {/* ── An import could not read every detail for sure ── */}
+        {!!res.needs_review && (
+          <MReviewNotice
+            onConfirm={canEdit ? () => {
+              planner.tripActions.updateReservation(planner.tripId, res.id, { needs_review: 0 })
+                .then(() => planner.toast.success(t('reservations.reviewConfirmed')))
+                .catch(() => planner.toast.error(t('reservations.toast.updateError')))
+            } : undefined}
+          />
+        )}
+
         {/* ── A stay: check-in, check-out, nights ── */}
         {hotelStats.length > 0 && (
           <div className="mt-[14px] flex gap-[6px]">

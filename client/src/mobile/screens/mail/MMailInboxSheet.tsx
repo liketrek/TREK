@@ -1,5 +1,5 @@
 import type { MailIngestInboxEntry } from '@trek/shared';
-import { ChevronLeft, Copy, FilePlus2, FileText, Inbox, Mail, PencilLine, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronLeft, Copy, FilePlus2, FileText, Inbox, Mail, PencilLine, Plus, Trash2 } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { entryDates, entryTitle, reasonText, type InboxAction } from '../../../components/MailIngest/mailInboxModel';
 import { useMailInbox } from '../../../components/MailIngest/useMailInbox';
@@ -23,8 +23,6 @@ function icon(action: InboxAction): ReactElement {
       return <FilePlus2 size={15} strokeWidth={2} />;
     case 'manual':
       return <PencilLine size={15} strokeWidth={2} />;
-    case 'readAi':
-      return <Sparkles size={15} strokeWidth={2} />;
     case 'discard':
       return <Trash2 size={15} strokeWidth={2} />;
   }
@@ -40,8 +38,6 @@ function label(action: InboxAction, t: (key: string) => string): string {
       return t('mailInbox.action.file');
     case 'manual':
       return t('mailInbox.action.manual');
-    case 'readAi':
-      return t('mailInbox.action.readAi');
     case 'discard':
       return t('mailInbox.action.discard');
   }
@@ -97,8 +93,8 @@ function Entry({ entry, inbox }: { entry: MailIngestInboxEntry; inbox: ReturnTyp
             type="button"
             aria-label={t('mailInbox.settings.copy')}
             className={ROUND}
-            onClick={async () => {
-              if (await copyText(code)) toast.success(t('common.copied'));
+            onClick={() => {
+              void copyText(code).then((ok) => ok && toast.success(t('common.copied')));
             }}
           >
             <Copy size={15} strokeWidth={2} />

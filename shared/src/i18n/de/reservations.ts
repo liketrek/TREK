@@ -38,7 +38,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Anschlussflug',
   'reservations.layover.layover': 'Zwischenstopp',
   'reservations.needsReview': 'Prüfen',
-  'reservations.needsReviewHint': 'Flughafen konnte nicht automatisch erkannt werden — bitte Ort bestätigen.',
+  'reservations.needsReviewHint':
+    'Einige Angaben wurden automatisch eingetragen und konnten nicht sicher gelesen werden. Bitte prüfen.',
+  'reservations.reviewConfirm': 'Passt so',
+  'reservations.reviewConfirmHint': 'Klicken, um sie als geprüft zu markieren.',
+  'reservations.reviewConfirmed': 'Als geprüft markiert',
   'reservations.searchLocation': 'Bahnhof, Hafen, Adresse suchen…',
   'reservations.meta.trainNumber': 'Zugnr.',
   'reservations.meta.platform': 'Gleis',

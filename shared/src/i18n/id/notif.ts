@@ -58,7 +58,7 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} ditambahkan ke {trip}',
   'notif.mail_booking_added.shared': '{actor} menambahkan {booking} ke {trip} dari email yang diteruskan',
   'notif.mail_booking_pending.title': 'Pemesanan terusan untuk ditinjau',
-  'notif.mail_booking_pending.text': 'Pemesanan terusan yang menunggumu: {count}',
+  'notif.mail_booking_pending.text': '{count} pemesanan terusan menunggu Anda',
   'notif.mail_ingest_paused.title': 'Impor email dijeda',
   'notif.mail_ingest_paused.text':
     'Email pemesanan yang diteruskan untuk sementara tidak diterima. Alamatmu tetap ada dan akan berfungsi lagi saat impor kembali.',

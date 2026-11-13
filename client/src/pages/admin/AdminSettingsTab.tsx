@@ -16,6 +16,7 @@ import GoogleOptions from './GoogleOptions'
 import GoogleDailyLimitRow from '../../components/Admin/GoogleDailyLimitRow'
 import ProviderBlock from './ProviderBlock'
 import TrekApiCard from './TrekApiCard'
+import MailIngestAdminCard from '../../components/Admin/mailIngest/MailIngestAdminCard'
 import PlaceContribPanel from '../../components/Admin/PlaceContribPanel'
 import { useAdminSettingsActions } from '../../components/Admin/useAdminSettingsActions'
 import { placesGoogleOnlyHint } from '../../utils/placeSource'
@@ -391,6 +392,28 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           )}
 
         {!managed && fileTypesCard}
+
+          {/* Live flight status: open ADS-B data, no key, on by default; the admin may keep it off. */}
+          <SettingsCard icon={Plane} title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}>
+            <SettingRows>
+              <SettingRow
+                label={t('flightLive.adminToggle')}
+                hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
+                control={
+                  <ToggleSwitch
+                    on={flightLive}
+                    label={t('flightLive.adminToggle')}
+                    disabled={flightLiveLocked}
+                    onToggle={() => void handleToggleAuthSetting('flight_live_enabled', !flightLive, setFlightLive)}
+                  />
+                }
+              />
+            </SettingRows>
+          </SettingsCard>
+
+          {/* Booking mail import: how forwarded booking mails reach this install. On a managed
+              install the operator runs the TREK Cloud relay, so the card is not shown there. */}
+          {!managed && <MailIngestAdminCard />}
         </div>
 
         <div className="min-w-0">
@@ -516,24 +539,6 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
 
           </SettingsCard>
           )}
-
-          {/* Live flight status: open ADS-B data, no key, on by default; the admin may keep it off. */}
-          <SettingsCard icon={Plane} title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}>
-            <SettingRows>
-              <SettingRow
-                label={t('flightLive.adminToggle')}
-                hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
-                control={
-                  <ToggleSwitch
-                    on={flightLive}
-                    label={t('flightLive.adminToggle')}
-                    disabled={flightLiveLocked}
-                    onToggle={() => void handleToggleAuthSetting('flight_live_enabled', !flightLive, setFlightLive)}
-                  />
-                }
-              />
-            </SettingRows>
-          </SettingsCard>
 
           {/* API Keys: only the keyed providers, Google, Unsplash and Amap. They are
               the operator's on a managed install, so the card is not shown there

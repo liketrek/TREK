@@ -61,7 +61,10 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.text': '{booking} dodano do {trip}',
   'notif.mail_booking_added.shared': '{actor} dodał(a) {booking} do {trip} z przekazanej wiadomości',
   'notif.mail_booking_pending.title': 'Przekazane rezerwacje do sprawdzenia',
-  'notif.mail_booking_pending.text': 'Przekazane rezerwacje czekające na Ciebie: {count}',
+  'notif.mail_booking_pending.text': '{count} przekazanych rezerwacji czeka na Ciebie',
+  'notif.mail_booking_pending.text.one': '{count} przekazana rezerwacja czeka na Ciebie',
+  'notif.mail_booking_pending.text.few': '{count} przekazane rezerwacje czekają na Ciebie',
+  'notif.mail_booking_pending.text.many': '{count} przekazanych rezerwacji czeka na Ciebie',
   'notif.mail_ingest_paused.title': 'Import e-maili wstrzymany',
   'notif.mail_ingest_paused.text':
     'Przekazane e-maile z rezerwacjami nie są na razie przyjmowane. Twoje adresy zostają i znów zadziałają, gdy import wróci.',

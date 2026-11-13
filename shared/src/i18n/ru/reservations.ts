@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Стыковка',
   'reservations.layover.layover': 'Пересадка',
   'reservations.needsReview': 'Проверить',
-  'reservations.needsReviewHint': 'Аэропорт не удалось определить автоматически — подтвердите местоположение.',
+  'reservations.needsReviewHint':
+    'Часть данных заполнена автоматически и считана не со стопроцентной уверенностью. Пожалуйста, проверьте их.',
+  'reservations.reviewConfirm': 'Всё верно',
+  'reservations.reviewConfirmHint': 'Нажмите, чтобы отметить как проверенное.',
+  'reservations.reviewConfirmed': 'Отмечено как проверенное',
   'reservations.searchLocation': 'Искать станцию, порт, адрес...',
   'reservations.meta.trainNumber': 'Номер поезда',
   'reservations.meta.platform': 'Платформа',

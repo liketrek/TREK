@@ -1,5 +1,7 @@
+import { useTranslation } from '../../../i18n';
 import type { Reservation } from '../../../types';
 import type { DelayTone } from '../../../utils/flightLiveModel';
+import { BOX, Eyebrow } from '../bookings/bookingParts';
 import { useCurrentFlightLegIndex, useFlightLiveCard } from './useFlightLiveCard';
 
 const DELAY_TEXT: Record<DelayTone, string> = { ok: 'text-success', minor: 'text-warning', major: 'text-danger' };
@@ -13,8 +15,9 @@ interface FlightLiveStripProps {
 }
 
 /**
- * A flight's live state on the booking cards: what is happening in one line
- * with the delay, and a thin bar across the card while it flies. The full
+ * A flight's live state on the booking cards, as one of the card's fields:
+ * what is happening in one line with the delay, and a thin bar along the
+ * field's foot while it flies. The full
  * picture is one click away in the booking dialog. Nothing far ahead of the
  * flight (the card shows its date already), nothing once it is long over.
  */
@@ -30,30 +33,30 @@ function Strip({
   legIndex,
   className,
 }: Omit<FlightLiveStripProps, 'type'> & { legIndex: number }) {
+  const { t } = useTranslation();
   const card = useFlightLiveCard(tripId, reservationId, legIndex);
   if (!card || card.view.stage === 'upcoming') return null;
   const { view } = card;
+  // The card's own field: the eyebrow over a framed value, like the booking code and the route under it.
   return (
-    <div className={`flex min-w-0 flex-col gap-1.5 rounded-lg bg-surface-tertiary px-2.5 py-[7px] ${className}`}>
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-caption font-semibold text-content">{card.line}</span>
-        {card.delay && card.delay.tone !== 'ok' && (
-          <span className={`flex-none text-caption font-semibold tabular-nums ${DELAY_TEXT[card.delay.tone]}`}>
-            {card.delay.text}
+    <div className={`min-w-0 ${className}`}>
+      <Eyebrow className="mb-[3px]">{t('reservations.status')}</Eyebrow>
+      <div className={`${BOX} relative overflow-hidden px-[10px] py-[7px]`}>
+        <div className="flex min-w-0 items-center justify-center gap-2 text-body font-semibold text-content">
+          <span className="min-w-0 truncate">{card.line}</span>
+          {card.delay && card.delay.tone !== 'ok' && (
+            <span className={`flex-none tabular-nums ${DELAY_TEXT[card.delay.tone]}`}>{card.delay.text}</span>
+          )}
+        </div>
+        {view.stage === 'airborne' && (
+          <span className="absolute inset-x-0 bottom-0 block h-[3px] bg-surface-tertiary" aria-hidden="true">
+            <span
+              className="block h-full bg-info transition-[width] duration-700 motion-reduce:transition-none"
+              style={{ width: `${Math.round(view.progress * 100)}%` }}
+            />
           </span>
         )}
       </div>
-      {view.stage === 'airborne' && (
-        <span
-          className="block h-1 w-full overflow-hidden rounded-full bg-[color:var(--border-primary)]"
-          aria-hidden="true"
-        >
-          <span
-            className="block h-full rounded-full bg-accent transition-[width] duration-700 motion-reduce:transition-none"
-            style={{ width: `${Math.round(view.progress * 100)}%` }}
-          />
-        </span>
-      )}
     </div>
   );
 }
