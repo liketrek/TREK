@@ -1,11 +1,11 @@
-// FE-PLANNER-BKPARTS-001 to FE-PLANNER-BKPARTS-005
+// FE-PLANNER-BKPARTS-001 to FE-PLANNER-BKPARTS-006
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildTripFile } from '../../../../tests/helpers/factories';
+import { buildReservation, buildTripFile } from '../../../../tests/helpers/factories';
 import { downloadFile, openFile } from '../../../utils/fileDownload';
 import type { BookingFacts } from './bookingFacts';
-import { FileRows, ReviewPill, WhenFields } from './bookingParts';
+import { FileRows, MailPill, ReviewPill, WhenFields } from './bookingParts';
 
 vi.mock('../../../utils/fileDownload', () => ({
   openFile: vi.fn(() => Promise.resolve()),
@@ -96,5 +96,12 @@ describe('FileRows', () => {
     rerender(<ReviewPill pill onConfirm={onConfirm} />);
     fireEvent.click(screen.getByRole('button'));
     expect(onConfirm).toHaveBeenCalledOnce();
+  });
+
+  it('FE-PLANNER-BKPARTS-006: the mail pill names a booking from a forwarded mail, and nothing else', () => {
+    const { rerender } = render(<MailPill r={buildReservation({ external_source: 'mail' })} />);
+    expect(screen.getByText('From mail')).toBeInTheDocument();
+    rerender(<MailPill r={buildReservation({ external_source: 'import' })} />);
+    expect(screen.queryByText('From mail')).toBeNull();
   });
 });

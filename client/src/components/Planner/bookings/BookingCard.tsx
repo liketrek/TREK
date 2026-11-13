@@ -15,7 +15,7 @@ import { formatMoney } from '../../../utils/formatters'
 import { parseMeta, displayTitle, type CostTotal } from './bookingsModel'
 import type { BookingFacts } from './bookingFacts'
 import {
-  AirTrailPill, MailPill, BOX, Block, Field, FileRows, ReviewPill, RoundAction, RouteBox, StatusDot, TravelerChips, TypeChip, WhenFields,
+  AirTrailPill, BOX, Block, Field, FileRows, ReviewPill, RoundAction, RouteBox, StatusDot, TravelerChips, TypeChip, WhenFields,
   fs, toneOf, toneTint,
 } from './bookingParts'
 import { TransitLegs, transitSummary } from './transitParts'
@@ -66,7 +66,6 @@ export default function BookingCard(p: BookingCardProps) {
           {!!r.needs_review && <ReviewPill />}
         </span>
         <AirTrailPill r={r} />
-        <MailPill r={r} />
         {p.canEdit && <RoundAction label={t('common.edit')} onClick={p.onEdit}><Pencil size={12} strokeWidth={2} /></RoundAction>}
         {p.canEdit && <RoundAction label={t('common.delete')} onClick={p.onDelete} danger><Trash2 size={12} strokeWidth={2} /></RoundAction>}
       </div>

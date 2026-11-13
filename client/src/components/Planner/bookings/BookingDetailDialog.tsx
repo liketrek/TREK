@@ -154,7 +154,7 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
           )}
           {!!r.needs_review && <ReviewPill pill onConfirm={p.canEdit ? () => void confirmReview() : undefined} />}
           <AirTrailPill r={r} pill />
-          <MailPill r={r} pill />
+          <MailPill r={r} />
           {r.confirmation_number && (
             // The copy button rides in the pill's padding (-my-1), so this pill is as tall as its neighbours.
             <span className={`${PILL} gap-1 pe-1`}>
