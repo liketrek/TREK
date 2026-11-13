@@ -35,13 +35,13 @@ import type {
 } from '@trek/shared';
 
 /** How an upload the intake refused answers, by why. */
-const UPLOAD_REFUSALS: Record<MailIntakeRefusal, { status: number; error: string }> = {
-  unavailable: { status: 404, error: 'Mail import is not available' },
-  too_large: { status: 413, error: 'This mail is larger than the import takes' },
-  not_a_mail: { status: 422, error: 'This file is not a mail' },
-  unknown_address: { status: 422, error: 'This file is not a mail' },
-  address_daily_limit: { status: 429, error: 'Your address took all the mails it takes today' },
-  inbox_full: { status: 409, error: 'Your inbox is full; decide some of its entries first' },
+const UPLOAD_REFUSALS: Record<MailIntakeRefusal, [status: number, error: string]> = {
+  unavailable: [404, 'Mail import is not available'],
+  too_large: [413, 'This mail is larger than the import takes'],
+  not_a_mail: [422, 'This file is not a mail'],
+  unknown_address: [422, 'This file is not a mail'],
+  address_daily_limit: [429, 'Your address took all the mails it takes today'],
+  inbox_full: [409, 'Your inbox is full; decide some of its entries first'],
 };
 
 /**
@@ -161,7 +161,7 @@ export class MailIngestInboxService {
   async upload(userId: number, raw: Buffer): Promise<MailIngestUploadResponse> {
     const result = await this.intake.upload(raw, userId);
     if (result.status === 'refused') {
-      const { status, error } = UPLOAD_REFUSALS[result.reason];
+      const [status, error] = UPLOAD_REFUSALS[result.reason];
       throw new DomainError(status, error);
     }
     const [head] = await this.messages.listHeads([result.messageId]);

@@ -272,6 +272,25 @@ Accepting an invite has no tool on purpose: joining somebody's trip is a human a
 | `list_airtrail_flights` | List the flights available to import from a connected AirTrail account. Requires the AirTrail addon. |
 | `import_airtrail_flights` | Import chosen flights into a trip as transport bookings. |
 
+### Booking mail import
+
+The bookings read from mails the user forwarded to TREK ([Booking mail import](Booking-Mail-Import)). Requires
+`reservations:read`, or `reservations:write` to act on an entry; the import must be switched on for the instance. No
+tool reads or makes a forwarding address, since an address carries its secret token.
+
+| Tool | Description |
+|---|---|
+| `list_mail_inbox` | The entries waiting for a decision, each with why it waits, the booking as read, the trip it suggests and the mail's subject; `status: "resolved"` lists the decided ones. |
+| `add_mail_booking` | Add a waiting booking to the trip it suggests, or to another (`trip_id`). Undoable for seven days. |
+| `move_mail_booking` | Move a booking added from a mail into another trip while it can still be undone. |
+| `file_mail_booking` | Put the mail into a trip as documents, without a booking. Needs the Documents addon. |
+| `discard_mail_booking` | Set a waiting entry aside. |
+| `undo_mail_booking` | Remove a booking added from a mail with its stay, cost and documents, within seven days. |
+| `update_mail_import_settings` | The user's switches: `enabled`, `ai_enabled`, `auto_add` (add on its own or ask first). |
+
+A move or an undo of a booking whose cost was settled with, or that was edited since, answers `needs_confirmation`
+until it is repeated with `confirm: true`.
+
 ### Photos
 
 Requires `journey:read`, or `journey:write` to attach. Needs a configured Immich or Synology Photos provider.

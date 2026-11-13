@@ -21,6 +21,7 @@ import { MailReadService } from '../llm-parse/mail-read.service';
 import type { WalkedMail } from '../llm-parse/mail-read.types';
 import { MailIngestApplyService, type WrittenBooking } from './mail-ingest-apply.service';
 import { MailIngestNotifyService } from './mail-ingest-notify.service';
+import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { fitsTrip, implausible, type TripOption } from './mail-ingest-checks';
 import { MailIngestTripsService } from './mail-ingest-trips.service';
 import { ADDED_RESOLUTIONS } from './mail-ingest-views';
@@ -62,6 +63,7 @@ export class MailIngestActionsService {
     private readonly reader: MailReadService,
     private readonly airports: AirportsService,
     private readonly demo: DemoService,
+    private readonly settings: MailIngestSettingsService,
     private readonly uow: UnitOfWork,
   ) {}
 
@@ -80,6 +82,7 @@ export class MailIngestActionsService {
     confirm: boolean,
     now: Date = new Date(),
   ): Promise<MailIngestCandidateRow> {
+    await this.requireAvailable();
     const { entry, tripId, created } = await this.addedEntry(candidateId, userId, now);
     await this.requireConfirmed(tripId, created, confirm, 'Undoing this booking changes more than the booking');
     const removed = await this.uow.transactional(async () => {
@@ -119,6 +122,7 @@ export class MailIngestActionsService {
     confirm: boolean,
     now: Date = new Date(),
   ): Promise<MailIngestCandidateRow> {
+    await this.requireAvailable();
     const { entry, tripId: fromTripId, created } = await this.addedEntry(candidateId, userId, now);
     if (tripId === fromTripId) throw new DomainError(409, 'This booking is in that trip already');
     const item = decodeJson(MAIL_INGEST_ITEM, entry.item_json);
@@ -331,12 +335,18 @@ export class MailIngestActionsService {
     await this.candidates.setAttachments(entry.id, encodeJson(MAIL_INGEST_CREATED, created), error);
   }
 
-  /** The person's own waiting entry; anyone else's answers as missing. */
+  /** The person's own waiting entry, while the import runs; anyone else's answers as missing. */
   private async pendingEntry(candidateId: number, userId: number): Promise<MailIngestCandidateRow> {
+    await this.requireAvailable();
     const entry = await this.candidates.findById(candidateId);
     if (!entry || entry.user_id !== userId) throw new DomainError(404, 'Entry not found');
     if (entry.resolution !== 'pending') throw new DomainError(409, 'This entry was decided already');
     return entry;
+  }
+
+  /** Every action stops with the import: on a plan without it, or once an admin switched it off. */
+  private async requireAvailable(): Promise<void> {
+    if (!(await this.settings.isAvailable())) throw new DomainError(404, 'Mail import is not available');
   }
 
   private async tripFor(userId: number, tripId: number | null): Promise<TripOption> {

@@ -20,6 +20,7 @@ import { SchedulingModule } from '../scheduling/scheduling.module';
 import { SettingsModule } from '../settings/settings.module';
 import { MailIngestActionsService } from './mail-ingest-actions.service';
 import { MailIngestAddressService } from './mail-ingest-address.service';
+import { MailIngestAdminController } from './mail-ingest-admin.controller';
 import { MailIngestApplyService } from './mail-ingest-apply.service';
 import { MailIngestImapClient } from './mail-ingest-imap.client';
 import { MailIngestImapJob } from './mail-ingest-imap.job';
@@ -36,8 +37,11 @@ import { MailIngestRelayHost } from './mail-ingest-relay.service';
 import { MailIngestRetentionJob } from './mail-ingest-retention.job';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { MailIngestStatusService } from './mail-ingest-status.service';
+import { MailIngestTripController } from './mail-ingest-trip.controller';
 import { MailIngestTripsService } from './mail-ingest-trips.service';
 import { MailIngestWebhookService } from './mail-ingest-webhook.service';
+import { MailIngestController } from './mail-ingest.controller';
+import { MailIngestMcp } from './mail-ingest.mcp';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
@@ -76,7 +80,12 @@ import { Module } from '@nestjs/common';
       MailIngestCandidates,
     ]),
   ],
-  controllers: [MailIngestInboundController],
+  controllers: [
+    MailIngestController,
+    MailIngestTripController,
+    MailIngestAdminController,
+    MailIngestInboundController,
+  ],
   providers: [
     MailIngestSettingsService,
     MailIngestTripsService,
@@ -92,6 +101,7 @@ import { Module } from '@nestjs/common';
     MailIngestWebhookService,
     MailIngestImapClient,
     MailIngestRelayHost,
+    MailIngestMcp,
     MailIngestNotificationActions,
     MailIngestProcessJob,
     MailIngestRetentionJob,
