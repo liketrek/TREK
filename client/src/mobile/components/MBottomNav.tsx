@@ -2,16 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, matchPath } from 'react-router'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { ChevronRight, MoreHorizontal, Plus, Search, Sparkles, Upload } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ChevronRight, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
 import { normalizeAppearance } from '@trek/shared'
-import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
+import { useDockNavItems, splitMobileNav, ASSISTANT_NAV_ID, type NavItemDef } from '../../components/Layout/navItems'
 import { isNavItemActive, useCreateAction } from '../../components/Layout/useCreateAction'
 import MFab from './MFab'
 import { useAssistantHomeLauncher } from '../../components/Assistant/useAssistantHome'
 import MDockScrim from './MDockScrim'
-
-interface NavItem { to: string; label: string; icon: LucideIcon }
 
 /**
  * Floating glass dock of the mobile shell. Same tab/gating/"+" logic as the
@@ -28,7 +25,8 @@ export default function MBottomNav() {
   // the dock yields the slot instead (see screenFabSlot below, #1811).
   const create = useCreateAction(true)
   const [moreOpen, setMoreOpen] = useState(false)
-  // The home chat leads the More list on every page outside a trip, as the assistant tile leads a trip's.
+  // The home chat, an entry of the dock like the pages (useDockNavItems): sorted
+  // into the bar or under More in the settings, there only while it can run.
   const assistant = useAssistantHomeLauncher()
 
   // Close the popover when the route changes underneath it (browser back etc.).
@@ -37,20 +35,21 @@ export default function MBottomNav() {
   // The dock split + order is user-configurable (Settings → Appearance → Mobile);
   // an un-customised account falls back to the built-in Dashboard + vacay/atlas
   // dock with everything else under "More".
-  const navItems = useNavItems()
+  const navItems = useDockNavItems()
   const appearance = useSettingsStore(s => s.settings.appearance)
   const split = splitMobileNav(navItems, normalizeAppearance(appearance).mobileNav)
 
-  const dockItems: NavItem[] = split.bar
-  const moreItems: NavItem[] = split.more
+  const dockItems = split.bar
+  const moreItems = split.more
 
-  const isActive = (to: string) => isNavItemActive(location.pathname, to)
-  const moreActive = moreItems.some(item => isActive(item.to))
-  const moreRows = [
-    ...(assistant.available ? [{ key: 'assistant', label: t('assistant.launcher.tooltip'), icon: Sparkles, go: assistant.open }] : []),
-    ...moreItems.map(({ to, label, icon }) => ({ key: to, label, icon, go: () => navigate(to) })),
-  ]
-  const hasMore = moreRows.length > 0
+  const isAssistant = (item: NavItemDef) => item.id === ASSISTANT_NAV_ID
+  const isActive = (item: NavItemDef) => !isAssistant(item) && isNavItemActive(location.pathname, item.to)
+  const open = (item: NavItemDef): void => {
+    if (isAssistant(item)) assistant.open()
+    else void navigate(item.to)
+  }
+  const moreActive = moreItems.some(isActive)
+  const hasMore = moreItems.length > 0
 
   // The FAB gives way to a decorative logo slot on screens without an add
   // action (settings/admin, demo Z. 1372/1429).
@@ -82,16 +81,17 @@ export default function MBottomNav() {
   // A map runs to the screen's edge on purpose; everything else fades out under the dock.
   const overMap = location.pathname.startsWith('/atlas') || matchPath('/journey/:id', location.pathname) !== null
 
-  const renderItem = ({ to, label, icon: Icon }: NavItem) => {
-    const active = isActive(to)
+  const renderItem = (item: NavItemDef) => {
+    const { id, label, icon: Icon } = item
+    const active = isActive(item)
     // Fixed sizes per slot (demo): the dashboard grid is 18/2.1, every other
     // slot 21/1.9 — independent of the active state.
-    const dash = to === '/dashboard'
+    const dash = id === 'dashboard'
     return (
       <button
-        key={to}
+        key={id}
         type="button"
-        onClick={() => navigate(to)}
+        onClick={() => open(item)}
         aria-label={label}
         aria-current={active ? 'page' : undefined}
         className={circleCls(active)}
@@ -111,17 +111,17 @@ export default function MBottomNav() {
             role="presentation"
             onClick={e => e.stopPropagation()}
           >
-            {moreRows.map(({ key, label, icon: Icon, go }) => (
+            {moreItems.map((item) => (
               <button
-                key={key}
+                key={item.id}
                 type="button"
-                onClick={() => { setMoreOpen(false); go() }}
+                onClick={() => { setMoreOpen(false); open(item) }}
                 className="flex items-center gap-[13px] rounded-[18px] bg-[color:var(--m-ic)] px-4 py-[14px] text-start"
               >
                 <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-ink">
-                  <Icon size={20} strokeWidth={2} />
+                  <item.icon size={20} strokeWidth={2} />
                 </span>
-                <span className="block min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{label}</span>
+                <span className="block min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{item.label}</span>
                 <ChevronRight size={17} strokeWidth={2} className="flex-none text-m-faint" />
               </button>
             ))}

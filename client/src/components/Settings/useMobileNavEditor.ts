@@ -1,4 +1,4 @@
-import { useNavItems, splitMobileNav, MOBILE_NAV_MAX_BAR, type NavItemDef } from '../Layout/navItems'
+import { useDockNavItems, splitMobileNav, MOBILE_NAV_MAX_BAR, type NavItemDef } from '../Layout/navItems'
 
 export interface MobileNavValue {
   bar: string[]
@@ -36,7 +36,7 @@ export function useMobileNavEditor(
   value: MobileNavValue,
   onChange: (next: MobileNavValue) => void,
 ): MobileNavEditor {
-  const items = useNavItems()
+  const items = useDockNavItems()
   const split = splitMobileNav(items, value)
   const dashboard = split.bar.find((i) => i.id === 'dashboard')
   const barItems = split.bar.filter((i) => i.id !== 'dashboard')

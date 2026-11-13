@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
-import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, type LucideIcon } from 'lucide-react'
+import { LayoutGrid, CalendarDays, Globe, Compass, Bookmark, Sparkles, type LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useAddonStore } from '../../store/addonStore'
+import { useAssistantStore } from '../../store/assistantStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 
@@ -12,15 +13,20 @@ import { resolvePluginIcon } from '../shared/PluginIcon'
  *
  * Stable ids used for persistence: `'dashboard'` (pinned), an enabled global
  * addon's id (vacay|atlas|journey|collections|future), or `'plugin:<id>'` for a
- * page plugin. Dashboard is always first and immovable.
+ * page plugin. Dashboard is always first and immovable. The mobile dock adds
+ * `'assistant'` (see useDockNavItems).
  */
 export interface NavItemDef {
   id: string
+  /** The page it opens; empty for the assistant, which opens the home chat instead. */
   to: string
   label: string
   icon: LucideIcon
   pinned?: boolean
 }
+
+/** The home assistant's entry in the mobile dock: a chat it opens, not a page. */
+export const ASSISTANT_NAV_ID = 'assistant'
 
 // Signature glyphs for the four catalog global addons, keyed by id so the known
 // nav items keep their icon regardless of the (string) icon the addon row ships;
@@ -33,7 +39,7 @@ const ADDON_ICONS: Record<string, LucideIcon> = {
 }
 
 /** The bar holds Dashboard + at most this many custom items; the rest go to More.
- * Two keeps the dock at 3 destinations (Dashboard + 2) so the More slot still fits. */
+ * Two keeps the dock at 3 entries (Dashboard + 2) so the More slot still fits. */
 export const MOBILE_NAV_MAX_BAR = 2
 /**
  * The built-in dock next to Dashboard for an un-customised account, in priority
@@ -44,9 +50,11 @@ export const MOBILE_NAV_MAX_BAR = 2
  * to every day, not the map of countries it already visited. Journey ships
  * disabled though, so an instance that never turned it on keeps the Vacay/Atlas
  * dock it has today. Listing all four known global addons rather than just the
- * top two also keeps the dock filled when one of them is switched off.
+ * top two also keeps the dock filled when one of them is switched off. The
+ * assistant comes last: it takes a slot only one of the addons left free, rather
+ * than sitting alone behind the More button.
  */
-export const DEFAULT_DOCK_IDS = ['vacay', 'journey', 'atlas', 'collections']
+export const DEFAULT_DOCK_IDS = ['vacay', 'journey', 'atlas', 'collections', ASSISTANT_NAV_ID]
 
 export function buildNavItems(
   globalAddons: { id: string; name: string; icon: string }[],
@@ -87,6 +95,26 @@ export function useNavItems(): NavItemDef[] {
         t,
       ),
     [addons, plugins, t],
+  )
+}
+
+/**
+ * The entries the mobile dock arranges: the nav items, and the home assistant
+ * while its addon is on and it can run for this user. The settings customizer
+ * sorts the same list, so the assistant can go into the bar or under More.
+ */
+export function useDockNavItems(): NavItemDef[] {
+  const { t } = useTranslation()
+  const items = useNavItems()
+  const addonOn = useAddonStore((s) => s.isEnabled('ai_assistant'))
+  const available = useAssistantStore((s) => s.status?.available === true)
+  const withAssistant = addonOn && available
+  return useMemo(
+    () =>
+      withAssistant
+        ? [...items, { id: ASSISTANT_NAV_ID, to: '', label: t('assistant.launcher.tooltip'), icon: Sparkles }]
+        : items,
+    [items, withAssistant, t],
   )
 }
 
