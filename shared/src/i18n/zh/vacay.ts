@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': '从 {year} 结转',
   'vacay.blockWeekends': '锁定周末',
   'vacay.blockWeekendsHint': '禁止在周六和周日安排假期',
-  'vacay.weekendDays': '周末',
   'vacay.mon': '周一',
   'vacay.tue': '周二',
   'vacay.wed': '周三',

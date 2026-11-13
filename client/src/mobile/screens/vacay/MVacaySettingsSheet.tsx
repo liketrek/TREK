@@ -78,28 +78,23 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
           <MToggle checked={plan.block_weekends !== false} onChange={() => updatePlan({ block_weekends: !plan.block_weekends })} ariaLabel={t('vacay.blockWeekends')} />
         </div>
         {plan.block_weekends !== false && (
-          <>
-            <div className="mb-[6px] ms-7 mt-[2px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
-              {t('vacay.weekendDays')}
-            </div>
-            <div className="mb-[6px] ms-7 flex gap-1">
-              {weekdayChips.map(({ day, label }) => {
-                const active = weekendDays.includes(day)
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleWeekendDay(day)}
-                    className={`flex-1 rounded-[10px] py-[7px] text-center text-[0.65625rem] font-semibold ${
-                      active ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-          </>
+          <div className="mb-[6px] ms-7 flex gap-1">
+            {weekdayChips.map(({ day, label }) => {
+              const active = weekendDays.includes(day)
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleWeekendDay(day)}
+                  className={`flex-1 rounded-[10px] py-[7px] text-center text-[0.65625rem] font-semibold ${
+                    active ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
         )}
         </section>
         <section className={CARD}>

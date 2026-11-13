@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'from {year}',
   'vacay.blockWeekends': 'Block Weekends',
   'vacay.blockWeekendsHint': 'Prevent vacation entries on weekend days',
-  'vacay.weekendDays': 'Weekend days',
   'vacay.mon': 'Mon',
   'vacay.tue': 'Tue',
   'vacay.wed': 'Wed',

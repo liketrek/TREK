@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'מ-{year}',
   'vacay.blockWeekends': 'חסימת סופי שבוע',
   'vacay.blockWeekendsHint': 'מניעת רישום חופשה בימי סוף שבוע',
-  'vacay.weekendDays': 'ימי סוף שבוע',
   'vacay.mon': 'ב׳',
   'vacay.tue': 'ג׳',
   'vacay.wed': 'ד׳',

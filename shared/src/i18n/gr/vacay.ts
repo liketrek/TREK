@@ -62,7 +62,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'από {year}',
   'vacay.blockWeekends': 'Αποκλεισμός Σαββατοκύριακων',
   'vacay.blockWeekendsHint': 'Αποτρέψτε καταχωρήσεις διακοπών σε ημέρες σαββατοκύριακου',
-  'vacay.weekendDays': 'Ημέρες σαββατοκύριακου',
   'vacay.mon': 'Δευ',
   'vacay.tue': 'Τρι',
   'vacay.wed': 'Τετ',

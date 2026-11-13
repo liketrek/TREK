@@ -64,7 +64,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': '{year} ilindən',
   'vacay.blockWeekends': 'Həftəsonlarını blokla',
   'vacay.blockWeekendsHint': 'Həftəsonu günlərinə məzuniyyət qeydi əlavə edilməsinin qarşısını alın',
-  'vacay.weekendDays': 'Həftəsonu günləri',
   'vacay.mon': 'B.e.',
   'vacay.tue': 'Ç.a.',
   'vacay.wed': 'Ç.',

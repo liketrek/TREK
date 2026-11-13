@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': '{year}年から繰越',
   'vacay.blockWeekends': '週末を除外',
   'vacay.blockWeekendsHint': '週末に休暇を登録できないようにします',
-  'vacay.weekendDays': '週末',
   'vacay.mon': '月',
   'vacay.tue': '火',
   'vacay.wed': '水',

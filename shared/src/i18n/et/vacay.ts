@@ -62,7 +62,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'aastast {year}',
   'vacay.blockWeekends': 'Blokeeri nädalavahetused',
   'vacay.blockWeekendsHint': 'Ära luba nädalavahetustele puhkust märkida',
-  'vacay.weekendDays': 'Nädalavahetuse päevad',
   'vacay.mon': 'E',
   'vacay.tue': 'T',
   'vacay.wed': 'K',

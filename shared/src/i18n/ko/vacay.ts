@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': '{year}에서 이월',
   'vacay.blockWeekends': '주말 차단',
   'vacay.blockWeekendsHint': '주말에 휴가 항목 추가를 방지합니다',
-  'vacay.weekendDays': '주말 요일',
   'vacay.mon': '월',
   'vacay.tue': '화',
   'vacay.wed': '수',

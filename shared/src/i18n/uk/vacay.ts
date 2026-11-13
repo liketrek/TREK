@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'із {year}',
   'vacay.blockWeekends': 'Блокувати вихідні',
   'vacay.blockWeekendsHint': 'Заборонити записи про відпустку в суботу та неділю',
-  'vacay.weekendDays': 'Вихідні дні',
   'vacay.mon': 'Пн',
   'vacay.tue': 'Вт',
   'vacay.wed': 'Ср',

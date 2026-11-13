@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': '{year} yılından devreden',
   'vacay.blockWeekends': 'Hafta Sonlarını Engelle',
   'vacay.blockWeekendsHint': 'Hafta sonu günlerine tatil girişi yapılmasını engeller',
-  'vacay.weekendDays': 'Hafta sonu günleri',
   'vacay.mon': 'Pzt',
   'vacay.tue': 'Sal',
   'vacay.wed': 'Çar',

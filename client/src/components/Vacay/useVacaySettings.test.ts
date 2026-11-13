@@ -110,6 +110,26 @@ describe('useVacaySettings', () => {
     expect(result.current.weekendDays).toEqual([5, 6]);
   });
 
+  it.each([
+    [6, 0],
+    [0, 6],
+  ])('keeps day %i deselected when the last selected day %i is then removed', (first, last) => {
+    const { result } = renderHook(() => useVacaySettings({ language: 'en', loadCountries: false }));
+
+    act(() => result.current.toggleWeekendDay(first));
+    expect(updatePlan).toHaveBeenLastCalledWith({ weekend_days: String(last) });
+    act(() => useVacayStore.setState({ plan: plan({ weekend_days: String(last) }) }));
+    expect(result.current.weekendDays).toEqual([last]);
+
+    act(() => result.current.toggleWeekendDay(last));
+    expect(updatePlan).toHaveBeenLastCalledWith({ weekend_days: String(first) });
+    act(() => useVacayStore.setState({ plan: plan({ weekend_days: String(first) }) }));
+    expect(result.current.weekendDays).toEqual([first]);
+
+    act(() => result.current.toggleWeekendDay(last));
+    expect(updatePlan).toHaveBeenLastCalledWith({ weekend_days: `${first},${last}` });
+  });
+
   it('FE-COMP-VACAYSET-005: dissolving toasts and then hands over', async () => {
     const order: string[] = [];
     toast.success.mockImplementation(() => order.push('toast'));

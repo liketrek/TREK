@@ -61,7 +61,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'từ {year}',
   'vacay.blockWeekends': 'Các ngày cuối tuần',
   'vacay.blockWeekendsHint': 'Ngăn chặn các mục nghỉ vào những ngày cuối tuần',
-  'vacay.weekendDays': 'Những ngày cuối tuần',
   'vacay.mon': 'Thứ hai',
   'vacay.tue': 'thứ ba',
   'vacay.wed': 'Thứ tư',

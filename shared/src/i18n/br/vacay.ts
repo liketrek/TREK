@@ -62,7 +62,6 @@ const vacay: TranslationStrings = {
   'vacay.remaining': 'Restantes',
   'vacay.carriedOver': 'de {year}',
   'vacay.blockWeekends': 'Bloquear fins de semana',
-  'vacay.weekendDays': 'Dias de fim de semana',
   'vacay.mon': 'Seg',
   'vacay.tue': 'Ter',
   'vacay.wed': 'Qua',

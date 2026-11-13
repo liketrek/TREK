@@ -40,7 +40,6 @@ const vacay: TranslationStrings = {
   'vacay.carriedOver': 'จาก {year}',
   'vacay.blockWeekends': 'บล็อกวันหยุดสุดสัปดาห์',
   'vacay.blockWeekendsHint': 'ป้องกันไม่ให้รายการลาพักร้อนในวันสุดสัปดาห์',
-  'vacay.weekendDays': 'วันหยุดสุดสัปดาห์',
   'vacay.mon': 'จันทร์',
   'vacay.tue': 'อ',
   'vacay.wed': 'พ',
