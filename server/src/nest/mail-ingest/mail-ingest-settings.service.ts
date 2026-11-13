@@ -100,8 +100,10 @@ export class MailIngestSettingsService {
     return this.config.webhookSecret ?? (decrypt_api_key(stored) || null);
   }
 
+  /** The AI reads a person gets a day; an unset or blank setting is the default, not zero (`Number('')` is 0). */
   async aiDailyCap(): Promise<number> {
-    const value = Number(await this.settings.getAppSetting('mail_ingest_ai_per_user_daily'));
+    const stored = (await this.settings.getAppSetting('mail_ingest_ai_per_user_daily'))?.trim();
+    const value = stored ? Number(stored) : Number.NaN;
     return Number.isInteger(value) && value >= 0 ? value : DEFAULT_AI_PER_USER_DAILY;
   }
 

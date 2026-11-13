@@ -84,7 +84,10 @@ const files = {
   createFileFromBytes: vi.fn(async () => ({ id: 77 })),
   softDeleteFile: vi.fn(async () => undefined),
 };
-const notifications = { send: vi.fn(async () => ({ attempted: 1, delivered: 1 })), registerResponseAction: vi.fn() };
+const notifications = {
+  send: vi.fn(async (_payload: { event: string; scope: string }) => ({ attempted: 1, delivered: 1 })),
+  registerResponseAction: vi.fn(),
+};
 
 const db = createSnapshotTestDb();
 let t: TestModule;
@@ -322,8 +325,10 @@ describe('a booking that passes every check', () => {
   it('is not moved by a demo account', async () => {
     const user = await person();
     await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
-    const second = await makeTrip(orm(), user.id, { start_date: '2030-02-25', end_date: '2030-03-05' });
+    // The booking is added to the one trip in its dates first; a second one then would leave it waiting.
     const [entry] = await entriesOf(await forward(user.id, eml('flight')));
+    expect(entry).toMatchObject({ resolution: 'auto_applied' });
+    const second = await makeTrip(orm(), user.id, { start_date: '2030-02-25', end_date: '2030-03-05' });
     const demo = vi.spyOn(t.get(DemoService), 'isDemoUserId').mockResolvedValue(true);
     try {
       await expect(actions().move(entry.id, user.id, second.id, true, NOW)).rejects.toThrow(
@@ -509,7 +514,8 @@ describe('what the person sees', () => {
       reason: 'ask_first',
       suggested_trip: { id: trip.id, title: 'Japan', start_date: '2030-03-01', end_date: '2030-03-10' },
       undo_until: null,
-      message: { id: messageId, transport: 'upload', status: 'processed', subject: 'Fwd: Your flight LH 716' },
+      // The subject is kept without the prefixes forwarding stacked onto it.
+      message: { id: messageId, transport: 'upload', status: 'processed', subject: 'Your flight LH 716' },
     });
     expect(page.entries[0].message).not.toHaveProperty('raw_eml_enc');
     expect((await inbox().inbox(other.id, { status: 'open', limit: 50 }, NOW)).entries).toEqual([]);
@@ -538,7 +544,7 @@ describe('what the person sees', () => {
     const messageId = await forward(user.id, eml('nothing'));
 
     const preview = await inbox().preview(user.id, messageId);
-    expect(preview).toMatchObject({ id: messageId, subject: 'Fwd: Your flight LH 716', attachments: [] });
+    expect(preview).toMatchObject({ id: messageId, subject: 'Your flight LH 716', attachments: [] });
     expect(preview.text).toContain('Booking reference ABC123');
     expect(preview.text).not.toContain('mia@example.com');
     await expect(inbox().preview(other.id, messageId)).rejects.toThrow('Mail not found');
@@ -559,6 +565,18 @@ describe('what the person sees', () => {
     expect(await inbox().settingsOf(user.id)).toMatchObject({ available: false, address: null, pending: 0 });
     await expect(inbox().updatePrefs(user.id, { auto_add: false })).rejects.toThrow('Mail import is not available');
     expect(await inbox().count(user.id)).toEqual({ pending: 0 });
+  });
+
+  it('keeps AI reading offered while the person switched it off, so the switch can come back on', async () => {
+    const user = await person();
+    reader.isAvailable.mockResolvedValue(true);
+    const updated = await inbox().updatePrefs(user.id, { ai_enabled: false });
+    expect(updated).toMatchObject({ prefs: { ai_enabled: false }, ai_available: true });
+    expect(await inbox().settingsOf(user.id)).toMatchObject({
+      available: true,
+      prefs: { enabled: true, ai_enabled: false, auto_add: true },
+      ai_available: true,
+    });
   });
 
   it('reads an uploaded mail at once, knows one it has, and refuses what it cannot take', async () => {

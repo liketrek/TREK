@@ -13,6 +13,7 @@ import { importExternalId } from '../../src/nest/booking-import/booking-origin';
 import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { FilesService } from '../../src/nest/files/files.service';
 import { MailReadService } from '../../src/nest/llm-parse/mail-read.service';
 import { walkMail } from '../../src/nest/llm-parse/mime-walker';
@@ -29,6 +30,7 @@ import { makeAdmin, makeUser } from '../helpers/factories/users';
 import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { sessionCookie } from './harness';
+import { MikroORM } from '@mikro-orm/core';
 import { Test } from '@nestjs/testing';
 import type { BookingImportPreviewItem } from '@trek/shared';
 
@@ -128,8 +130,11 @@ describe('/api/mail-ingest e2e (real guards + snapshot SQLite)', () => {
 
   const as = (userId: number) => ({ Cookie: sessionCookie(userId) });
 
-  /** Runs the pipeline over what came in, the way its two-minute job does. */
-  const readQueued = () => app.get(MailIngestProcessJob).tick();
+  /**
+   * Runs the pipeline over what came in, the way its two-minute job does: the
+   * cron registrar runs every tick in a request context of its own.
+   */
+  const readQueued = () => withRequestContext(app.get(MikroORM), () => app.get(MailIngestProcessJob).tick());
 
   beforeAll(async () => {
     orm = await createTestOrm(db);
@@ -150,9 +155,9 @@ describe('/api/mail-ingest e2e (real guards + snapshot SQLite)', () => {
   });
 
   it('MAIL-E2E-001: 401 without a session on every route a person or an admin uses', async () => {
-    for (const path of ['/api/mail-ingest/settings', '/api/mail-ingest/inbox', '/api/admin/mail-ingest/status']) {
-      expect((await request(server).get(path)).status, path).toBe(401);
-    }
+    const paths = ['/api/mail-ingest/settings', '/api/mail-ingest/inbox', '/api/admin/mail-ingest/status'];
+    const answers = await Promise.all(paths.map((path) => request(server).get(path)));
+    answers.forEach((answer, i) => expect(answer.status, paths[i]).toBe(401));
     expect((await request(server).post(`/api/trips/${tripId}/mail-ingest/address`)).status).toBe(401);
   });
 

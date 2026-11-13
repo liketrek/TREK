@@ -284,9 +284,20 @@ function safeFileName(name: string, kind: MailAttachmentKind, position: number):
 /** Line breaks and block ends, so the header lines of a forwarded HTML mail stay lines without their tags. */
 const HTML_LINE_BREAK = /<(?:br|hr)\b[^>]*>|<\/(?:p|div|tr|li|h[1-6]|blockquote|table)\s*>/gi;
 
-/** A section as text: its HTML stripped when it has a readable one, else its plain text. */
+/**
+ * A section as text: its HTML stripped when it has a readable one, else its plain text.
+ * Each line of the HTML is trimmed: a stripped tag leaves a space in front of a
+ * line, which the forward unwrapping would read as a folded header continuation,
+ * dropping the booking under a forwarded header block with it. HTML folds no headers.
+ */
 function sectionText(section: Section): string {
-  const html = section.html === null ? '' : stripMarkup(section.html.replace(HTML_LINE_BREAK, '\n'));
+  const html =
+    section.html === null
+      ? ''
+      : stripMarkup(section.html.replace(HTML_LINE_BREAK, '\n'))
+          .split('\n')
+          .map((line) => line.trim())
+          .join('\n');
   return html || (section.text === null ? '' : collapseWhitespace(section.text));
 }
 
