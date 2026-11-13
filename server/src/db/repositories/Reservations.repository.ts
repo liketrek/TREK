@@ -398,10 +398,15 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
 
   /**
    * RR1 (`ReservationsReadService.getReservationWithJoins`) — the SAME
-   * projection for one reservation, no `ORDER BY` (a single row).
+   * projection for one reservation, no `ORDER BY` (a single row), and only
+   * when it belongs to `trip_id`: every caller holds the trip it checked, so a
+   * booking id from another trip reads as missing rather than leaking its row.
    */
-  async findWithJoins(id: number | string): Promise<ReservationJoinRow | undefined> {
-    const row = await this.joinedQuery().where('r.id', '=', id as number).executeTakeFirst();
+  async findWithJoins(id: number | string, trip_id: number | string): Promise<ReservationJoinRow | undefined> {
+    const row = await this.joinedQuery()
+      .where('r.id', '=', id as number)
+      .where('r.trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row as ReservationJoinRow | undefined;
   }
 
@@ -459,12 +464,16 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * (trip_id, day_id, end_day_id, place_id, assignment_id, title,
    * reservation_time, reservation_end_time, location, confirmation_number,
    * notes, url, status, type, accommodation_id, metadata, needs_review)
-   * VALUES (?×17)`. `sync_enabled`/`ingest_state`/`day_plan_position`
-   * deliberately NOT named, so the column's own DB-level `DEFAULT` applies
-   * (`sync_enabled INTEGER DEFAULT 1`, `Migration20200101021800_…`;
-   * `ingest_state` `.default('live')`) — the caller has already resolved
-   * every value (the `|| null` coercions, `resolvedOrNull`, the numeric
-   * `accommodation_id` stringified for the TEXT column, R2).
+   * VALUES (?×17)`. `ingest_state`/`day_plan_position` deliberately NOT
+   * named, so the column's own DB-level `DEFAULT` applies (`ingest_state`
+   * `.default('live')`) — the caller has already resolved every value (the
+   * `|| null` coercions, `resolvedOrNull`, the numeric `accommodation_id`
+   * stringified for the TEXT column, R2).
+   *
+   * `external_source`/`external_id`/`sync_enabled` are named only when the
+   * caller passes them: an imported booking records where it came from, every
+   * other write leaves them to the column defaults as before (`sync_enabled
+   * INTEGER DEFAULT 1`, `Migration20200101021800_…`).
    */
   async insertReservation(input: {
     trip_id: number;
@@ -484,6 +493,9 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     accommodation_id: string | null;
     metadata: string | null;
     needs_review: number;
+    external_source?: string;
+    external_id?: string;
+    sync_enabled?: number;
   }): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
@@ -503,7 +515,24 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       accommodation_id: input.accommodation_id,
       metadata: input.metadata,
       needs_review: input.needs_review,
+      ...(input.external_source !== undefined && { external_source: input.external_source }),
+      ...(input.external_id !== undefined && { external_id: input.external_id }),
+      ...(input.sync_enabled !== undefined && { sync_enabled: input.sync_enabled }),
     });
+  }
+
+  /**
+   * The booking an import already wrote into this trip under the same origin,
+   * or undefined: what `idx_reservations_external (external_source,
+   * external_id, trip_id)` would refuse, read before the write so a repeat
+   * import is reported instead of failing on the unique index.
+   */
+  async findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
+    const row = await this.qb('r')
+      .select(['r.id'])
+      .where({ trip: trip_id, external_source, external_id })
+      .execute<{ id: number } | undefined>('get', false);
+    return row?.id;
   }
 
   /**

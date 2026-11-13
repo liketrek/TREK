@@ -9,7 +9,7 @@ import {
   ReservationPositionsDto,
   ReservationTravelersDto,
 } from './reservations.dto';
-import { ReservationsService } from './reservations.service';
+import { ReservationsService, withoutOrigin } from './reservations.service';
 import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 type ReservationBody = Record<string, unknown> & {
@@ -63,7 +63,7 @@ export class ReservationsController {
     // The booking and its linked cost are one write.
     return this.writes.createBooking(
       tripId,
-      body as never,
+      withoutOrigin(body) as never,
       budgetEntry,
       this.writes.restWriter(tripId, user, socketId),
     );

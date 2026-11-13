@@ -4,7 +4,7 @@ import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorator
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { num, schemaMessage } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { ReservationsService } from './reservations.service';
+import { ReservationsService, withoutOrigin } from './reservations.service';
 import {
   reservationCreateRequestSchema,
   reservationEndpointsInputSchema,
@@ -44,7 +44,7 @@ export class ReservationsRpc {
     const budgetEntry = await this.reservations.withFrozenRate(tripId, i.create_budget_entry as never);
     const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(
       String(tripId),
-      input as never,
+      withoutOrigin(input) as never,
       budgetEntry,
     );
     if (accommodationCreated) this.realtime.broadcast(tripId, 'accommodation:created', {}, undefined);

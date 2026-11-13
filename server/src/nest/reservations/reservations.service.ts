@@ -122,6 +122,38 @@ export interface CreateReservationData {
   create_accommodation?: CreateAccommodation;
   endpoints?: EndpointInput[];
   needs_review?: boolean;
+  /**
+   * Where an imported booking came from (`import`, `mail`) and its key there,
+   * unique per trip. Both or neither; without them the row is a hand-made
+   * booking, as every write was before imports recorded their origin.
+   */
+  external_source?: string;
+  external_id?: string;
+  /** False keeps an imported booking out of any sync back to its source; the column defaults to on. */
+  sync_enabled?: boolean;
+}
+
+/** The origin fields of {@link CreateReservationData}, which only a server-side import may set. */
+type ReservationOrigin = Pick<CreateReservationData, 'external_source' | 'external_id' | 'sync_enabled'>;
+
+/**
+ * A create body from a client without the origin fields. The REST and plugin
+ * bodies are open objects, and an origin a caller could name would let it pose
+ * as an AirTrail link or an import, so only the importers set one.
+ */
+export function withoutOrigin(body: Record<string, unknown>): Record<string, unknown> {
+  const { external_source: _source, external_id: _id, sync_enabled: _sync, ...rest } = body;
+  return rest;
+}
+
+/** The origin columns an insert names, none for a booking without an origin. */
+function originColumns(data: ReservationOrigin): { external_source?: string; external_id?: string; sync_enabled?: number } {
+  if (!data.external_source || !data.external_id) return {};
+  return {
+    external_source: data.external_source,
+    external_id: data.external_id,
+    ...(data.sync_enabled !== undefined && { sync_enabled: data.sync_enabled ? 1 : 0 }),
+  };
 }
 
 export interface UpdateReservationData {
@@ -305,7 +337,7 @@ export class ReservationsService {
   async setTravelers(id: string, tripId: string, userIds: number[]) {
     if (!(await this.getReservation(id, tripId))) return null;
     await this.setReservationTravelers(id, tripId, userIds);
-    return { travelers: await this.loadTravelers(id), reservation: await this.getReservationWithJoins(Number(id)) };
+    return { travelers: await this.loadTravelers(id), reservation: await this.getReservationWithJoins(Number(id), tripId) };
   }
 
   // Resolve the day row whose date matches the date portion of an ISO-ish
@@ -437,8 +469,8 @@ export class ReservationsService {
     return await this.reservationsRepo.listUpcomingForUser(userId, date, time, limit);
   }
 
-  async getReservationWithJoins(id: string | number) {
-    return this.reads.getReservationWithJoins(id);
+  async getReservationWithJoins(id: string | number, tripId: string | number) {
+    return this.reads.getReservationWithJoins(id, tripId);
   }
 
   /**
@@ -749,6 +781,7 @@ export class ReservationsService {
       accommodation_id: resolvedAccommodationId == null ? null : legacyBoundIntegerText(resolvedAccommodationId),
       metadata: metadata ? JSON.stringify(metadata) : null,
       needs_review: needs_review ? 1 : 0,
+      ...originColumns(data),
     });
 
     if (endpoints && endpoints.length > 0) {
@@ -772,7 +805,7 @@ export class ReservationsService {
     }
 
     // The row was just inserted, so the re-select can't miss (legacy typed this any).
-    const reservation = (await this.getReservationWithJoins(insertedId))!;
+    const reservation = (await this.getReservationWithJoins(insertedId, tripId))!;
     return { reservation, accommodationCreated, stayMirror };
   }
 
@@ -1018,7 +1051,7 @@ export class ReservationsService {
 
     // The caller passed the pre-checked `current` row, so the re-select can't
     // miss (legacy typed this any).
-    const reservation = (await this.getReservationWithJoins(id))!;
+    const reservation = (await this.getReservationWithJoins(id, tripId))!;
     return { reservation, accommodationChanged, accommodationCreated: !hadStay && Boolean(resolvedAccId), stayMirror };
   }
 
