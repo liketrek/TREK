@@ -15,8 +15,13 @@
 /** The short side of a copy: three times the 52 px thumbnail, sharp at print resolution. */
 const THUMB_PX = 156;
 const JPEG_QUALITY = 0.72;
-/** Photos in flight at once: a trip of hundreds should neither queue one by one nor decode all at once. */
-const CONCURRENCY = 6;
+/**
+ * Photos in flight at once: a trip of hundreds should neither queue one by one nor
+ * decode all at once. Kept low for the phone, where each decode costs memory.
+ */
+const CONCURRENCY = 3;
+/** Height a photo is decoded at: twice THUMB_PX, so a portrait one still has room to shrink. */
+const DECODE_PX = THUMB_PX * 2;
 const FETCH_TIMEOUT_MS = 10_000;
 /** Anything larger is not read into memory for a thumbnail; it keeps its URL. */
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -57,13 +62,21 @@ function canShrink(): boolean {
 }
 
 async function shrinkImage(url: string, signal?: AbortSignal): Promise<string | null> {
-  const deadline = AbortSignal.timeout(FETCH_TIMEOUT_MS);
+  // A controller and a timer rather than AbortSignal.timeout/any, which Safari only
+  // has from 16 and 17.4 on; a throw there would cost the whole export.
+  const fetching = new AbortController();
+  const stop = () => fetching.abort();
+  const timer = setTimeout(stop, FETCH_TIMEOUT_MS);
+  signal?.addEventListener('abort', stop);
   try {
-    const res = await fetch(url, { signal: signal ? AbortSignal.any([signal, deadline]) : deadline });
+    const res = await fetch(url, { signal: fetching.signal });
     if (!res.ok || Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) return null;
     const blob = await res.blob();
     if (!blob.type.startsWith('image/') || blob.size > MAX_BYTES) return null;
-    const bitmap = await createImageBitmap(blob);
+    // Decoded near thumbnail size: a 48 MP phone photo decoded in full holds about
+    // 190 MB, which can end the web view on a phone. Browsers without the option
+    // decode in full and toJpeg scales down as before.
+    const bitmap = await createImageBitmap(blob, { resizeHeight: DECODE_PX, resizeQuality: 'medium' });
     try {
       return toJpeg(bitmap);
     } finally {
@@ -72,6 +85,9 @@ async function shrinkImage(url: string, signal?: AbortSignal): Promise<string | 
   } catch {
     // Offline, timed out, aborted or undecodable: the photo prints from its URL.
     return null;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', stop);
   }
 }
 

@@ -275,7 +275,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
       return url ? [url] : []
     })),
     signal,
-  )
+  ).catch(() => new Map<string, string>())
 
   const totalAssigned = new Set(
     Object.values(assignments).flatMap(a => a.map(x => x.place?.id)).filter(Boolean)

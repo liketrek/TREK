@@ -37,7 +37,10 @@ beforeEach(() => {
   drawn = [];
   inFlight = 0;
   mostInFlight = 0;
-  vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ ...bitmapSize, close: vi.fn() })));
+  vi.stubGlobal(
+    'createImageBitmap',
+    vi.fn(async () => ({ ...bitmapSize, close: vi.fn() }))
+  );
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
     fakeContext as unknown as HTMLCanvasElement['getContext']
   );
@@ -70,6 +73,12 @@ describe('shrinkPdfImages', () => {
     expect(HTMLCanvasElement.prototype.toDataURL).toHaveBeenCalledWith('image/jpeg', expect.any(Number));
   });
 
+  it('FE-PDFIMAGES-001b: a photo is decoded near thumbnail size, not in full', async () => {
+    await shrinkPdfImages([`${origin}/uploads/places/a.jpg`]);
+
+    expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), { resizeHeight: 312, resizeQuality: 'medium' });
+  });
+
   it('FE-PDFIMAGES-002: a photo from another origin keeps its URL and is never fetched', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const shrunk = await shrinkPdfImages(['https://images.example.com/a.jpg']);
@@ -96,7 +105,7 @@ describe('shrinkPdfImages', () => {
     expect(shrunk.size).toBe(40);
     expect(drawn).toHaveLength(40);
     expect(mostInFlight).toBeGreaterThan(1);
-    expect(mostInFlight).toBeLessThanOrEqual(6);
+    expect(mostInFlight).toBeLessThanOrEqual(3);
   });
 
   it('FE-PDFIMAGES-005: an aborted export starts no photo at all', async () => {
