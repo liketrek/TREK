@@ -427,8 +427,7 @@ describe('IntegrationsTab', () => {
     expect(screen.getByText(/clid-abc/)).toBeInTheDocument();
   });
 
-  it('FE-COMP-INTEGRATIONS-022: scope expansion toggle shows more/fewer scopes', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-INTEGRATIONS-022: every scope of a client is shown, none folded behind a +N', async () => {
     const scopes = ['trips:read', 'trips:write', 'places:read', 'places:write', 'budget:read', 'budget:write', 'packing:read'];
     server.use(
       http.get('/api/oauth/clients', () =>
@@ -442,11 +441,8 @@ describe('IntegrationsTab', () => {
     enableMcp();
     render(<IntegrationsTab />);
     await screen.findByText('Big App');
-    // "+2 more" button visible (7 scopes, 5 shown)
-    const moreBtn = screen.getByText(/^\+\d+$/);
-    await user.click(moreBtn);
-    // Show less / collapse button now visible
-    expect(screen.getByText('−')).toBeInTheDocument();
+    for (const scope of scopes) expect(screen.getByText(scope)).toBeInTheDocument();
+    expect(screen.queryByText(/^\+\d+$/)).not.toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-023: active OAuth sessions section renders when sessions exist', async () => {

@@ -73,7 +73,7 @@ describe('MAdminMcpTokensPanel', () => {
   it('FE-MOB-MCPTOK-001: renders the section header and both sub-section titles', async () => {
     renderPanel();
 
-    expect(screen.getByText('MCP')).toBeInTheDocument();
+    expect(screen.getByText('MCP Access')).toBeInTheDocument();
     expect(screen.getByText('Manage OAuth sessions and API tokens across all users')).toBeInTheDocument();
     expect(screen.getByText('OAuth Sessions')).toBeInTheDocument();
     expect(screen.getByText('API Tokens')).toBeInTheDocument();

@@ -426,9 +426,10 @@ describe('AddonManager', () => {
     expect(paperlessRow.querySelector('svg')).toBeInTheDocument();
     expect(isOn(subToggle('Paperless-ngx'))).toBe(true);
     expect(isOn(subToggle('Nextcloud'))).toBe(false);
-    // Documents and Journey are the addons; an enabled provider is a shelf row
-    // and must not turn 1/2 into 2/2.
-    expect(screen.getByText('1/2')).toBeInTheDocument();
+    // Documents and Journey are the addons, one per type card; an enabled
+    // provider is a shelf row and must not turn the trip card's 1/1 into 2/2.
+    expect(screen.getByText('1/1')).toBeInTheDocument();
+    expect(screen.getByText('0/1')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-034: document providers stay hidden while Documents itself is off', async () => {

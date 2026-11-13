@@ -1,6 +1,6 @@
 // FE-PLANNER-BKPARTS-001 to FE-PLANNER-BKPARTS-006
-import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '../../../../tests/helpers/render';
 
 import { buildReservation, buildTripFile } from '../../../../tests/helpers/factories';
 import { downloadFile, openFile } from '../../../utils/fileDownload';

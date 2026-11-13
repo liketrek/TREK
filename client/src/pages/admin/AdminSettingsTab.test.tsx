@@ -236,7 +236,7 @@ describe('AdminSettingsTab', () => {
   it('FE-ADMSET-016: require-MFA toggle flips the current value', () => {
     const admin = renderTab({ requireMfa: false });
 
-    fireEvent.click(within(card(/require two-factor/i)).getByRole('button'));
+    fireEvent.click(toggleFor('Require two-factor authentication (2FA)'));
 
     expect(admin.handleToggleRequireMfa).toHaveBeenCalledWith(true);
   });
@@ -494,7 +494,8 @@ describe('AdminSettingsTab', () => {
     // A key alone does not put Google behind the search; the server ignores the
     // switch under another provider, and the row must not promise otherwise.
     renderTab({ placesGoogleOnly: true, hasMapsKey: true, placesProvider: 'openstreetmap' });
-    const hint = toggleFor('Search with Google only').closest<HTMLElement>('.flex-wrap')!.querySelector('p')!;
+    // The hint sits behind the row's info mark, in the page for a screen reader.
+    const hint = toggleFor('Search with Google only').closest<HTMLElement>('.flex-wrap')!.querySelector('.sr-only')!;
     expect(hint.textContent).not.toMatch(/Every search and every suggestion goes to Google Places/);
     expect(hint.textContent).not.toMatch(/Needs a Google Maps API key/);
     expect(hint.textContent).toMatch(/provider/i);
