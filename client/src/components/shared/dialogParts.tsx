@@ -183,3 +183,19 @@ export function AddRowButton({ onClick, disabled, children }: { onClick: () => v
     </button>
   )
 }
+
+/**
+ * The head of a card in a dialog: an icon tile, the card's name and a line on
+ * what it is for. The trip settings' cards all open with it.
+ */
+export function CardHead({ icon, title, hint }: { icon: ReactNode; title: string; hint: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-card text-content-muted shadow-sm">{icon}</span>
+      <div className="min-w-0">
+        <h3 className="m-0 font-semibold text-content" style={fs(13, 'body')}>{title}</h3>
+        <p className="m-0 mt-0.5 leading-normal text-content-faint" style={fs(11.5)}>{hint}</p>
+      </div>
+    </div>
+  )
+}

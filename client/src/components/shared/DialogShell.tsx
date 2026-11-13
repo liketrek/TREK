@@ -296,12 +296,19 @@ export function DialogHeader(p: DialogHeaderProps) {
 export const PILL = 'inline-flex flex-none items-center gap-1.5 rounded-full bg-surface-card px-2.5 py-1 font-semibold text-content shadow-sm'
 
 /** A labelled block of the body, with room for an action on the right of its label. */
-export function DialogSection({ label, action, className, children }: { label: ReactNode; action?: ReactNode; className?: string; children: ReactNode }) {
+export function DialogSection({ label, action, tallAction = false, className, children }: {
+  label: ReactNode
+  action?: ReactNode
+  /** The action is a control as tall as a button (a Segmented): the head grows to hold it instead of letting it overhang the card. */
+  tallAction?: boolean
+  className?: string
+  children: ReactNode
+}) {
   return (
     <section className={className}>
       {/* A fixed height, so a section with an action (an upload pill) starts its content on the
-          same line as its neighbour without one; the action is centred and may overhang. */}
-      <div className="mb-2 flex h-4 items-center gap-2">
+          same line as its neighbour without one; the pill is centred and may overhang. */}
+      <div className={`flex items-center gap-2 ${tallAction ? 'mb-3 min-h-4 flex-wrap gap-y-2' : 'mb-2 h-4'}`}>
         <div className={EYEBROW} style={fs(9.5)}>{label}</div>
         {action && <span className="ms-auto flex items-center">{action}</span>}
       </div>
@@ -323,10 +330,12 @@ const BUTTON_LOOK = {
   secondary: 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 font-medium text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-secondary disabled:cursor-default disabled:opacity-50',
   active: 'inline-flex items-center gap-1.5 rounded-[10px] bg-accent px-3.5 py-2 font-medium text-accent-text disabled:cursor-default disabled:opacity-50',
   primary: 'inline-flex items-center gap-1.5 rounded-[10px] bg-accent px-4 py-2 font-medium text-accent-text hover:opacity-90 disabled:cursor-default disabled:opacity-50',
+  danger: 'inline-flex items-center gap-1.5 rounded-[10px] bg-danger px-4 py-2 font-medium text-[color:var(--danger-text)] hover:opacity-90 disabled:cursor-default disabled:opacity-50',
 } as const
 
 export type DialogButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style'> & {
-  variant?: 'primary' | 'secondary'
+  /** danger: the same filled button in red, for an action that removes or cuts a tie. */
+  variant?: 'primary' | 'secondary' | 'danger'
   /** A secondary button that is switched on (shown on the map) takes the accent fill. */
   active?: boolean
   icon?: ReactNode
@@ -338,7 +347,7 @@ export type DialogButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'c
  */
 export function DialogButton({ variant = 'secondary', active = false, icon, children, type = 'button', ...rest }: DialogButtonProps) {
   const primary = variant === 'primary'
-  const look = primary ? BUTTON_LOOK.primary : active ? BUTTON_LOOK.active : BUTTON_LOOK.secondary
+  const look = primary ? BUTTON_LOOK.primary : variant === 'danger' ? BUTTON_LOOK.danger : active ? BUTTON_LOOK.active : BUTTON_LOOK.secondary
   return (
     <button {...rest} type={type} className={look} style={fs(13, 'body')} data-dialog-primary={primary ? '' : undefined}>
       {icon}{children}

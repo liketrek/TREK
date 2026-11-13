@@ -108,6 +108,12 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Sharing',
   'trip.settings.sharingHint': 'A read-only link for anyone, and an invite link to join.',
   'trip.settings.editTripHint': 'Title, dates, cover, description and currency.',
+  'trip.form.coverTitle': 'Cover image',
+  'trip.form.coverHint': "Shown on the trip's card and at the top of the planner.",
+  'trip.form.aboutTitle': 'Name and description',
+  'trip.form.aboutHint': 'What the trip is called and what it is about.',
+  'trip.form.whenTitle': 'Dates and currency',
+  'trip.form.whenHint': 'When the trip runs, what it is paid in, and when you are reminded.',
   'trip.tabs.journal': 'Journal',
   'trip.journal.title': 'Journal',
   'trip.journal.hint':
@@ -129,6 +135,8 @@ const trip: TranslationStrings = {
   'trip.journal.pickPlaceholder': 'Choose a journal',
   'trip.journal.noMembers': 'Nobody else is on this trip yet.',
   'trip.journal.members': 'Access for trip members',
+  'trip.journal.membersHint':
+    'Who from this trip opens the journal in its Journal tab, and whether they may write in it.',
   'trip.journal.allRead': 'Everyone can read',
   'trip.journal.allNone': 'Nobody',
   'trip.journal.roleNone': 'No access',

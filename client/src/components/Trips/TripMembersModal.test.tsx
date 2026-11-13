@@ -1108,17 +1108,21 @@ describe('TripMembersModal', () => {
     view.unmount();
   });
 
-  it('FE-COMP-MEMBERS-062: Edit Trip in the side column hands over to the trip form (#2811)', async () => {
+  it('FE-COMP-MEMBERS-062: Edit Trip is an area of the dialog that shows the trip form (#2811)', async () => {
     const user = userEvent.setup();
-    const onEditTrip = vi.fn();
-    render(<TripMembersModal {...defaultProps} onEditTrip={onEditTrip} />);
+    const trip = buildTrip({ id: 1, title: 'Lisbon in spring', user_id: ownerUser.id });
+    render(<TripMembersModal {...defaultProps} editTrip={{ trip, onSave: vi.fn() }} />);
 
     // The column stands for it even where People is the only area.
     const nav = await screen.findByRole('navigation', { name: 'Trip settings' });
     await user.click(within(nav).getByRole('button', { name: 'Edit Trip' }));
 
-    expect(onEditTrip).toHaveBeenCalledTimes(1);
-    expect(within(nav).getByText('Title, dates, cover, description and currency.')).toBeInTheDocument();
+    // The trip's own form, in place: its title field holds the trip's title.
+    expect(await screen.findByDisplayValue('Lisbon in spring')).toBeVisible();
+    expect(within(nav).getByRole('button', { name: 'Edit Trip' })).toHaveAttribute('aria-current', 'page');
+    // The area itself says what it is for; the side column carries the names alone.
+    expect(within(nav).queryByText('Title, dates, cover, description and currency.')).toBeNull();
+    expect(screen.getByText('Title, dates, cover, description and currency.')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-063: without the right to edit the trip, the dialog offers no way to its form', async () => {

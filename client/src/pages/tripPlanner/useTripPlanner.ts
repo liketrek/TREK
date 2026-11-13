@@ -68,6 +68,7 @@ import { usePlannerTripView } from './usePlannerTripView'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -698,14 +699,22 @@ export function useTripPlanner() {
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 
-  // Splash screen — show for initial load + a brief moment for photos to start loading
-  const [splashDone, setSplashDone] = useState(false)
+  // The trip's form saves alike from its own dialog and from the trip settings (#2811).
+  const saveTrip = useCallback(async (data: Parameters<typeof tripActions.updateTrip>[1]) => {
+    await tripActions.updateTrip(tripId, data)
+    loadAccommodations()
+    toast.success(t('trip.toast.tripUpdated'))
+  }, [tripActions, tripId, loadAccommodations, toast, t])
+
+  // The splash only for a slow open, as on the phone (MTripOpening): a trip that
+  // loads within TRIP_SPLASH_AFTER_MS opens straight away, with no splash and no
+  // minimum on screen.
+  const [slowOpen, setSlowOpen] = useState(false)
   useEffect(() => {
-    if (!isLoading && trip) {
-      const timer = setTimeout(() => setSplashDone(true), 1500)
-      return () => clearTimeout(timer)
-    }
-  }, [isLoading, trip])
+    if (!isLoading) return
+    const timer = setTimeout(() => setSlowOpen(true), TRIP_SPLASH_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [isLoading])
 
   return {
     tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
@@ -779,7 +788,7 @@ export function useTripPlanner() {
     ...dayClear,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
-    mapTileUrl, fontStyle, splashDone,
+    mapTileUrl, fontStyle, slowOpen, saveTrip,
     // The assistant on the map, handed to MapViewAuto whole by both shells.
     assistantMap,
   }

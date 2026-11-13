@@ -248,14 +248,4 @@ describe('usePlannerDialogs', () => {
     act(() => { result.current.changeTransitRoute(buildReservation({ id: 15, type: 'transit' })) })
     expect(result.current.transitPrefill).toEqual({ from: null, to: null })
   })
-
-  it('FE-TP-DIALOGS-013: editing the trip from its settings swaps the settings for the trip form (#2811)', () => {
-    const { result } = renderDialogs()
-    act(() => { result.current.setShowMembersModal(true) })
-
-    act(() => { result.current.editTripFromSettings() })
-
-    expect(result.current.showMembersModal).toBe(false)
-    expect(result.current.showTripForm).toBe(true)
-  })
 })

@@ -109,6 +109,12 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Partage',
   'trip.settings.sharingHint': "Un lien en lecture seule pour tous, et un lien d'invitation pour rejoindre.",
   'trip.settings.editTripHint': 'Titre, dates, couverture, description et devise.',
+  'trip.form.coverTitle': 'Image de couverture',
+  'trip.form.coverHint': 'Affichée sur la carte du voyage et en haut du planificateur.',
+  'trip.form.aboutTitle': 'Nom et description',
+  'trip.form.aboutHint': 'Le nom du voyage et son sujet.',
+  'trip.form.whenTitle': 'Dates et devise',
+  'trip.form.whenHint': 'Quand le voyage a lieu, dans quelle devise et quand vous êtes rappelé.',
   'trip.tabs.journal': 'Journal', // same-as-en
   'trip.journal.title': 'Journal', // same-as-en
   'trip.journal.hint':
@@ -130,6 +136,7 @@ const trip: TranslationStrings = {
   'trip.journal.pickPlaceholder': 'Choisir un journal',
   'trip.journal.noMembers': "Personne d'autre ne participe encore à ce voyage.",
   'trip.journal.members': 'Accès des membres du voyage',
+  'trip.journal.membersHint': "Qui, parmi ce voyage, ouvre le journal dans son onglet Journal, et s'il peut y écrire.",
   'trip.journal.allRead': 'Tous en lecture',
   'trip.journal.allNone': 'Personne',
   'trip.journal.roleNone': 'Aucun accès',

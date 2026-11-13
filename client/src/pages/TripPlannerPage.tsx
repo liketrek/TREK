@@ -92,7 +92,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,
     dropPoiOnRoute,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, editTripFromSettings,
+    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
     airTrailAvailable, showAirTrailImport, setShowAirTrailImport,
@@ -123,7 +123,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     selectedPlace, dayOrderMap, dayPlaces,
     toursEnabled, toursMode, setToursMode, tours, toursLoading, tourDataReady, tourPlaceIds,
     invalidateTourPlaceIds, selectedTour,
-    mapTileUrl, fontStyle, splashDone, assistantMap,
+    mapTileUrl, fontStyle, slowOpen, saveTrip, assistantMap,
   } = pageState.planner
   const {
     poi,
@@ -183,13 +183,13 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // the day-header tram button and the modal's mode switch — is off without one.
   const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
 
-  if (isLoading || !splashDone) {
+  if (isLoading) {
     return (
-      <div className="bg-surface" style={{
+      <div className="bg-surface" aria-busy="true" style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         ...fontStyle,
       }}>
-        <TripLoadingSplash title={trip?.title} />
+        {slowOpen && <TripLoadingSplash title={trip?.title} />}
       </div>
     )
   }
@@ -826,11 +826,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
       <TripFormModal
         isOpen={showTripForm}
         onClose={() => setShowTripForm(false)}
-        onSave={async (data) => { await tripActions.updateTrip(tripId, data); loadAccommodations(); toast.success(t('trip.toast.tripUpdated')) }}
+        onSave={saveTrip}
         trip={trip}
         onCoverUpdate={applyTripCoverUpdate}
       />
-      <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} onMembersChanged={refreshMembers} onEditTrip={can('trip_edit', trip) ? editTripFromSettings : undefined} />
+      <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} onMembersChanged={refreshMembers} editTrip={trip && can('trip_edit', trip) ? { trip, onSave: saveTrip, onCoverUpdate: applyTripCoverUpdate } : undefined} />
       <ReservationModal isOpen={showReservationModal} onClose={() => { if (importReviewActive) { advanceImportReview() } else { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) } }} onSave={async (data, steps) => { const r = await handleSaveReservation(data, steps); if (importReviewActive && r) advanceImportReview(); return r }} reservation={editingReservation} prefill={reservationPrefill} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} onOpenExpense={openBookingExpense} tripMembers={tripMembers} />
       {showTransportModal && (
         <ErrorBoundary boundaryId="planner-panel:transport" fallback={null}>

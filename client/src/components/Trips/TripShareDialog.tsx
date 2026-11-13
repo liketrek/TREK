@@ -1,12 +1,14 @@
-import { useId, useState, type ReactNode } from 'react'
+import { useId, useState, type ComponentProps, type ReactNode } from 'react'
 import { Check, Copy, Crown, Link2, LogOut, Pencil, Plus, Settings, Trash2, UserMinus, UserPlus, UserRound, Users } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomSelect from '../shared/CustomSelect'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
 import { DialogButton, DialogHeader, DialogSection, DialogShell, DialogTile, NEUTRAL_TINT, PILL, fs } from '../shared/DialogShell'
-import { AddRowButton, INPUT, LABEL, PANEL } from '../shared/dialogParts'
+import { AddRowButton, CardHead, INPUT, LABEL, PANEL } from '../shared/dialogParts'
 import { LinkedJournalIcon } from './LinkedJournalIcon'
+import type { Trip } from '../../types'
+import TripFormModal from './TripFormModal'
 import { TripJournalLinkSection } from './TripJournalLinkSection'
 import { TripMemberAvatar } from './TripMemberAvatar'
 import { useTripJournalSectionVisible } from './useTripJournalLink'
@@ -18,8 +20,18 @@ interface TripShareDialogProps {
   tripId: number
   tripTitle: string
   onMembersChanged?: () => void
-  /** Hands over to the trip's own form; left out for someone who may not edit the trip (#2811). */
-  onEditTrip?: () => void
+  /**
+   * What the trip's own form needs, shown as the dialog's last area (#2811);
+   * left out for someone who may not edit the trip.
+   */
+  editTrip?: TripSettingsForm
+}
+
+/** The trip and how its form saves, for the Edit trip area. */
+export interface TripSettingsForm {
+  trip: Trip
+  onSave: ComponentProps<typeof TripFormModal>['onSave']
+  onCoverUpdate?: ComponentProps<typeof TripFormModal>['onCoverUpdate']
 }
 
 /** A question the dialog asks before it acts, answered in a ConfirmDialog over it. */
@@ -34,12 +46,14 @@ const COUNT = 'rounded-full bg-surface-tertiary px-2 py-[2px] font-geist font-bo
 const ROWS = 'flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5'
 const ROW = 'flex min-h-[48px] items-center gap-3 rounded-[10px] px-2.5 py-1.5 hover:bg-surface-card'
 const BADGE = 'inline-flex flex-none items-center gap-1 rounded-full px-2 py-[2px] font-semibold'
-/** A fixed height on a wide screen, so the dialog does not jump when another area is picked. */
-const BODY = 'flex min-h-0 flex-1 max-md:flex-col md:h-[min(640px,calc(100dvh-240px))]'
+/**
+ * A fixed height on a wide screen, so the dialog does not jump when another area is picked.
+ * Not flex-1 there: its zero basis won over the height and every area sized the dialog anew.
+ */
+const BODY = 'flex min-h-0 flex-1 max-md:flex-col md:h-[min(640px,calc(100dvh-240px))] md:flex-none'
 const NAV = 'flex flex-none gap-1 border-edge-faint bg-surface-secondary p-3 md:w-[236px] md:flex-col md:border-e max-md:overflow-x-auto max-md:border-b'
 const NAV_ENTRY = 'flex flex-none items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start transition-colors'
 const NAV_ENTRY_OFF = 'text-content-muted hover:bg-surface-hover hover:text-content'
-const DANGER_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 font-medium text-danger shadow-sm ring-1 ring-edge-faint hover:bg-danger-soft disabled:cursor-default disabled:opacity-50'
 
 /**
  * The trip's Settings on the desktop: who is on the trip, its guests, the two
@@ -49,28 +63,29 @@ export default function TripShareDialog(props: TripShareDialogProps) {
   return props.isOpen ? <OpenDialog {...props} /> : null
 }
 
-type Area = 'people' | 'sharing' | 'journal'
+type Area = 'people' | 'sharing' | 'journal' | 'trip'
 
 /** The areas of the dialog, each with its icon, its name and the line under the name. */
 const AREAS: { id: Area; icon: (on: boolean) => ReactNode; labelKey: string; hintKey: string }[] = [
   { id: 'people', icon: () => <Users size={16} strokeWidth={2} />, labelKey: 'trip.settings.people', hintKey: 'trip.settings.peopleHint' },
   { id: 'sharing', icon: () => <Link2 size={16} strokeWidth={2} />, labelKey: 'trip.settings.sharing', hintKey: 'trip.settings.sharingHint' },
   { id: 'journal', icon: () => <LinkedJournalIcon size={16} />, labelKey: 'trip.journal.title', hintKey: 'trip.journal.hint' },
+  { id: 'trip', icon: () => <Pencil size={16} strokeWidth={2} />, labelKey: 'dashboard.editTrip', hintKey: 'trip.settings.editTripHint' },
 ]
 
-function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, onEditTrip }: TripShareDialogProps) {
+function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, editTrip }: TripShareDialogProps) {
   const { t } = useTranslation()
   const labelId = useId()
   const m = useTripMembers({ isOpen: true, tripId, onClose, onMembersChanged })
   const [ask, setAsk] = useState<Ask | null>(null)
   const [area, setArea] = useState<Area>('people')
   const journalSection = useTripJournalSectionVisible(tripId)
-  const areas = AREAS.filter(a => a.id === 'people' || (a.id === 'sharing' ? m.canManageShare : journalSection))
+  const shows: Record<Area, boolean> = { people: true, sharing: m.canManageShare, journal: journalSection, trip: !!editTrip }
+  const areas = AREAS.filter(a => shows[a.id])
   const current = areas.find(a => a.id === area) ?? areas[0]
   const panelOf = (id: Area) => areas.find(a => a.id === id)
   const persons = `${m.realMembers.length} ${t('members.persons', { count: m.realMembers.length })}`
-  // The way to the trip's form needs the side nav even where People is the only area.
-  const withNav = areas.length > 1 || !!onEditTrip
+  const withNav = areas.length > 1
 
   return (
     <>
@@ -97,7 +112,7 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, onEditTrip }
           />
         )}
       >
-        {withNav && <AreaNav areas={areas} current={current.id} onPick={setArea} onEditTrip={onEditTrip} />}
+        {withNav && <AreaNav areas={areas} current={current.id} onPick={setArea} />}
         <div className="min-h-0 flex-1 overflow-y-auto px-7 pb-7 pt-6 max-sm:px-5">
           {/* Every area stays mounted, so its links and lists are loaded by the time it is picked. */}
           <AreaPanel area={panelOf('people')} shown={current.id === 'people'} titled={withNav}>
@@ -116,6 +131,11 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, onEditTrip }
               <TripJournalLinkSection tripId={tripId} framed={false} />
             </AreaPanel>
           )}
+          {editTrip && (
+            <AreaPanel area={panelOf('trip')} shown={current.id === 'trip'} titled>
+              <TripFormModal embedded isOpen onClose={onClose} {...editTrip} />
+            </AreaPanel>
+          )}
         </div>
       </DialogShell>
       <ConfirmDialog
@@ -132,9 +152,9 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, onEditTrip }
 
 /**
  * The areas down the side on a wide screen, a row of pills above the content on a narrow one.
- * Edit trip sits at the foot of the column: it opens the trip's form rather than an area of its own.
+ * Edit trip is one of them, after the areas about who is on the trip.
  */
-function AreaNav({ areas, current, onPick, onEditTrip }: { areas: typeof AREAS; current: Area; onPick: (area: Area) => void; onEditTrip?: () => void }) {
+function AreaNav({ areas, current, onPick }: { areas: typeof AREAS; current: Area; onPick: (area: Area) => void }) {
   const { t } = useTranslation()
   return (
     <nav aria-label={t('trip.settings.title')} className={NAV}>
@@ -143,28 +163,20 @@ function AreaNav({ areas, current, onPick, onEditTrip }: { areas: typeof AREAS; 
         return (
           <button key={a.id} type="button" aria-current={on ? 'page' : undefined} aria-label={t(a.labelKey)} onClick={() => onPick(a.id)}
             className={`${NAV_ENTRY} ${on ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint' : NAV_ENTRY_OFF}`}>
-            <NavEntryText icon={a.icon(on)} on={on} label={t(a.labelKey)} hint={t(a.hintKey)} />
+            <NavEntryText icon={a.icon(on)} on={on} label={t(a.labelKey)} />
           </button>
         )
       })}
-      {onEditTrip && (
-        <button type="button" aria-label={t('dashboard.editTrip')} onClick={onEditTrip} className={`${NAV_ENTRY} ${NAV_ENTRY_OFF} md:mt-auto`}>
-          <NavEntryText icon={<Pencil size={16} strokeWidth={2} />} on={false} label={t('dashboard.editTrip')} hint={t('trip.settings.editTripHint')} />
-        </button>
-      )}
     </nav>
   )
 }
 
-/** An entry's tile, its name and, on a wide screen, the line under the name. */
-function NavEntryText({ icon, on, label, hint }: { icon: ReactNode; on: boolean; label: string; hint: string }) {
+/** An entry's tile and its name; what the area is for heads the area itself. */
+function NavEntryText({ icon, on, label }: { icon: ReactNode; on: boolean; label: string }) {
   return (
     <>
       <span className={`grid h-8 w-8 flex-none place-items-center rounded-[9px] ${on ? 'bg-accent text-accent-text' : 'bg-surface-tertiary'}`}>{icon}</span>
-      <span className="min-w-0">
-        <span className="block truncate font-semibold" style={fs(13, 'body')}>{label}</span>
-        <span className="block truncate text-content-faint max-md:hidden" style={fs(11)}>{hint}</span>
-      </span>
+      <span className="min-w-0 truncate font-semibold" style={fs(13, 'body')}>{label}</span>
     </>
   )
 }
@@ -358,7 +370,7 @@ function GuestsList({ m, onAsk }: { m: TripMembersState; onAsk: (ask: Ask) => vo
             maxLength={50}
             className={`${INPUT} flex-1`}
           />
-          <DialogButton onClick={() => void m.addGuest()} disabled={m.addingGuest || !m.newGuestName.trim()} icon={<Plus size={14} strokeWidth={2.2} />}>
+          <DialogButton variant="primary" onClick={() => void m.addGuest()} disabled={m.addingGuest || !m.newGuestName.trim()} icon={<Plus size={14} strokeWidth={2.2} />}>
             {m.addingGuest ? '...' : t('members.addGuest')}
           </DialogButton>
         </div>
@@ -387,13 +399,7 @@ function LinkLine({ url, copied, onCopy }: { url: string; copied: boolean; onCop
 export function LinkCard({ icon, title, hint, children }: { icon: ReactNode; title: string; hint: string; children: ReactNode }) {
   return (
     <section className={PANEL}>
-      <div className="flex items-start gap-2.5">
-        <span className="grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-card text-content-muted shadow-sm">{icon}</span>
-        <div className="min-w-0">
-          <h3 className="m-0 font-semibold text-content" style={fs(13, 'body')}>{title}</h3>
-          <p className="m-0 mt-0.5 leading-normal text-content-faint" style={fs(11.5)}>{hint}</p>
-        </div>
-      </div>
+      <CardHead icon={icon} title={title} hint={hint} />
       {children}
     </section>
   )
@@ -418,15 +424,14 @@ function PublicLink({ tripId }: { tripId: number }) {
   if (link.loading) return null
   return (
     <LinkCard icon={<Link2 size={15} strokeWidth={2.2} />} title={t('share.linkTitle')} hint={t('share.linkHint')}>
-      <div className="flex flex-wrap gap-1.5">
-        {SHARE_SECTIONS.map(opt => (
-          <PermChip key={opt.key} on={link.perms[opt.key]} disabled={opt.always} label={t(opt.label)}
-            onToggle={() => void link.setPerm(opt.key, !link.perms[opt.key])} />
-        ))}
-      </div>
+      {/* What the link shows and how, in one group under one eyebrow. */}
       <div>
         <span className={LABEL}>{t('share.options')}</span>
         <div className="flex flex-wrap gap-1.5">
+          {SHARE_SECTIONS.map(opt => (
+            <PermChip key={opt.key} on={link.perms[opt.key]} disabled={opt.always} label={t(opt.label)}
+              onToggle={() => void link.setPerm(opt.key, !link.perms[opt.key])} />
+          ))}
           {SHARE_OPTIONS.map(opt => (
             <PermChip key={opt.key} on={link.perms[opt.key]} label={t(opt.label)} hint={t(`${opt.label}Hint`)}
               onToggle={() => void link.setPerm(opt.key, !link.perms[opt.key])} />
@@ -437,9 +442,9 @@ function PublicLink({ tripId }: { tripId: number }) {
         <>
           <LinkLine url={link.url} copied={link.copied} onCopy={() => void link.copy()} />
           <div>
-            <button type="button" onClick={() => void link.remove()} className={DANGER_BUTTON} style={fs(12.5, 'body')}>
-              <Trash2 size={13} strokeWidth={2.2} />{t('share.deleteLink')}
-            </button>
+            <DialogButton variant="danger" onClick={() => void link.remove()} icon={<Trash2 size={14} strokeWidth={2.2} />}>
+              {t('share.deleteLink')}
+            </DialogButton>
           </div>
         </>
       ) : (
@@ -460,12 +465,12 @@ function InviteLink({ tripId }: { tripId: number }) {
         <>
           <LinkLine url={link.url} copied={link.copied} onCopy={() => void link.copy()} />
           <div className="flex flex-wrap gap-2">
-            <DialogButton onClick={() => void link.create()} disabled={link.busy} icon={<Link2 size={14} strokeWidth={2.2} />}>
+            <DialogButton variant="primary" onClick={() => void link.create()} disabled={link.busy} icon={<Link2 size={14} strokeWidth={2.2} />}>
               {t('trip.invite.regenerate')}
             </DialogButton>
-            <button type="button" onClick={() => void link.remove()} disabled={link.busy} className={DANGER_BUTTON} style={fs(12.5, 'body')}>
-              <Trash2 size={13} strokeWidth={2.2} />{t('trip.invite.disable')}
-            </button>
+            <DialogButton variant="danger" onClick={() => void link.remove()} disabled={link.busy} icon={<Trash2 size={14} strokeWidth={2.2} />}>
+              {t('trip.invite.disable')}
+            </DialogButton>
           </div>
         </>
       ) : (

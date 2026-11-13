@@ -53,3 +53,11 @@ export function useTripSplashBeats({ liveReducedMotion }: TripSplashBeatsOptions
   const activeIndex = reduceMotion ? SPLASH_STILL_INDEX : index;
   return { reduceMotion, activeIndex, step: SPLASH_STEPS[activeIndex], steps: SPLASH_STEPS };
 }
+
+/**
+ * How long a trip may take to open before the splash comes up, on the phone and
+ * the desktop alike. A trip that loads in that time opens straight away; a
+ * slower one gets the splash right after, so a slow connection never sees the
+ * app stand still.
+ */
+export const TRIP_SPLASH_AFTER_MS = 400
