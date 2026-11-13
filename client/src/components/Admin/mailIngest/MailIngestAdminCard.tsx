@@ -192,13 +192,13 @@ function StatTile({
 }) {
   const look = STAT_TONE[tone];
   return (
-    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-edge-faint bg-surface-card px-3 py-2.5 shadow-sm">
-      <span className={`grid h-8 w-8 flex-none place-items-center rounded-full ${look.icon}`}>
-        <Icon size={15} strokeWidth={2.1} />
+    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-edge-faint bg-surface-card px-2.5 py-1.5 shadow-sm">
+      <span className={`grid h-6 w-6 flex-none place-items-center rounded-full ${look.icon}`}>
+        <Icon size={12} strokeWidth={2.2} />
       </span>
       <div className="min-w-0">
-        <div className={`text-subtitle font-semibold tabular-nums leading-none ${look.value}`}>{value}</div>
-        <div className="mt-1 truncate text-caption text-content-faint">{label}</div>
+        <div className={`text-body font-semibold tabular-nums leading-tight ${look.value}`}>{value}</div>
+        <div className="truncate text-caption leading-tight text-content-faint">{label}</div>
       </div>
     </div>
   );
@@ -218,7 +218,7 @@ function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; local
     : t('mailAdmin.status.never');
   const healthy = !status.last_error && !!status.last_ok_at;
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-edge-faint bg-surface-secondary p-3.5">
+    <div className="flex flex-col gap-2 rounded-xl border border-edge-faint bg-surface-secondary p-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-caption font-semibold uppercase tracking-[0.08em] text-content-faint">
           {t('mailAdmin.status.title')}
@@ -228,7 +228,7 @@ function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; local
           {t('mailAdmin.status.lastRead', { time: lastRead })}
         </span>
       </div>
-      <div className="grid grid-cols-4 gap-2 max-md:grid-cols-2">
+      <div className="grid grid-cols-4 gap-1.5 max-md:grid-cols-2">
         <StatTile icon={Mail} label={t('mailAdmin.status.mails')} value={facts.mails} tone="neutral" />
         <StatTile icon={CheckCircle} label={t('mailAdmin.status.added')} value={facts.added} tone="success" />
         <StatTile icon={Clock} label={t('mailAdmin.status.waiting')} value={facts.waiting} tone="warning" />
