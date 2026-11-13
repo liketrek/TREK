@@ -31,6 +31,8 @@ export default function WandererConnectionSection(): React.ReactElement {
 
   return (
     <Section
+      id="wanderer"
+      collapsible
       title={t('wanderer.title')}
       icon={WandererMark}
       badge={

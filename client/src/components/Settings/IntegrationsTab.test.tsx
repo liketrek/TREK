@@ -10,6 +10,7 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import IntegrationsTab from './IntegrationsTab';
+import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 function enableMcp() {
   seedStore(useAddonStore, {
@@ -50,6 +51,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // The cards start shut; these tests read into them.
+  openSettingsCards();
   clipboardWriteText.mockClear();
   resetAllStores();
   useAssistantStore.setState({ status: null });

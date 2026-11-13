@@ -282,6 +282,8 @@ export default function AiConnectionSection({
 
   return (
     <Section
+      id="ai-connection"
+      collapsible
       title={t(text.titleKey)}
       icon={Sparkles}
       hint={t(text.hintKey)}

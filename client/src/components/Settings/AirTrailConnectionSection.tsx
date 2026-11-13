@@ -40,6 +40,8 @@ export default function AirTrailConnectionSection(): React.ReactElement {
 
   return (
     <Section
+      id="airtrail"
+      collapsible
       title={t('settings.airtrail.title')}
       icon={AirTrailIcon}
       badge={

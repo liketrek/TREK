@@ -4,7 +4,8 @@ import { useTranslation } from '../../i18n'
 import { useLlmConnection, type LlmProvider as Provider } from './useLlmConnection'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import { SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint } from './settingsKit'
+import { SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
+import { useSettingsStore } from '../../store/settingsStore'
 import { EditorField, GRID_2, INPUT, Segmented } from '../shared/dialogParts'
 import { fs } from '../shared/DialogShell'
 
@@ -42,7 +43,13 @@ export default function LlmConnectionSection(): React.ReactElement {
   } = useLlmConnection()
 
   return (
-    <Section title={t('settings.aiParsing.title')} icon={Sparkles}>
+    <Section
+      id="ai-parsing"
+      collapsible
+      title={t('settings.aiParsing.title')}
+      icon={Sparkles}
+      badge={<ParsingState />}
+    >
       <SettingsHint>{t('settings.aiParsing.hint')}</SettingsHint>
 
       {/* Two hosted providers only (#1772), so a segmented pair rather than a list. */}
@@ -102,4 +109,13 @@ export default function LlmConnectionSection(): React.ReactElement {
       </div>
     </Section>
   )
+}
+
+/** The saved model at a glance on the shut card, or that none is set; not the form's unsaved value. */
+function ParsingState() {
+  const { t } = useTranslation()
+  const model = useSettingsStore(s => s.settings.llm_model)
+  return model
+    ? <StatusPill tone="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{model}</StatusPill>
+    : <StatusPill>{t('settings.notSetUp')}</StatusPill>
 }

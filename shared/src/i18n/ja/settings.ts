@@ -79,6 +79,8 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': '天気情報用。openweathermap.org/api で無料取得',
   'settings.keyPlaceholder': 'キーを入力…',
   'settings.configured': '設定済み',
+  'settings.notSetUp': '未設定',
+  'settings.mcp.appsConnected': '{count} 個のアプリが接続済み',
   'settings.saveKeys': 'キーを保存',
   'settings.display': '表示',
   'settings.colorMode': 'カラーモード',

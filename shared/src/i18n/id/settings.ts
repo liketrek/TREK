@@ -80,6 +80,8 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Untuk data cuaca. Gratis di openweathermap.org/api',
   'settings.keyPlaceholder': 'Masukkan key...',
   'settings.configured': 'Sudah dikonfigurasi',
+  'settings.notSetUp': 'Belum diatur',
+  'settings.mcp.appsConnected': '{count} aplikasi terhubung',
   'settings.saveKeys': 'Simpan Keys',
   'settings.display': 'Tampilan',
   'settings.colorMode': 'Mode Warna',

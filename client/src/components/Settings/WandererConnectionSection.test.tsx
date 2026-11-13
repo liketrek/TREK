@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
 import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 import { resetAllStores } from '../../../tests/helpers/store';
 import WandererConnectionSection from './WandererConnectionSection';
 
@@ -31,6 +32,8 @@ function settingsRoute(state: { current: typeof disconnected }) {
 }
 
 beforeEach(() => {
+  // The cards start shut; these tests read into them.
+  openSettingsCards();
   resetAllStores();
   vi.clearAllMocks();
 });

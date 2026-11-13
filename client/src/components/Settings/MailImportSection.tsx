@@ -30,6 +30,8 @@ export default function MailImportSection(): ReactElement | null {
 
   return (
     <Section
+      id="mail-import"
+      collapsible
       title={t('mailInbox.settings.title')}
       icon={Mail}
       badge={

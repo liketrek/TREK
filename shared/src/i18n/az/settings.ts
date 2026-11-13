@@ -101,6 +101,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Hava məlumatları üçün. openweathermap.org/api ünvanında pulsuzdur',
   'settings.keyPlaceholder': 'Açarı daxil edin...',
   'settings.configured': 'Konfiqurasiya edilib',
+  'settings.notSetUp': 'Qurulmayıb',
+  'settings.mcp.appsConnected': '{count} tətbiq qoşulub',
+  'settings.mcp.appsConnected.one': '{count} tətbiq qoşulub',
   'settings.saveKeys': 'Açarları yadda saxla',
 
   'settings.display': 'Görünüş',

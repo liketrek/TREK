@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import type { Settings } from '../../types';
 import { ToastContainer } from '../shared/Toast';
 import LlmConnectionSection from './LlmConnectionSection';
+import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 let loadSettings = vi.fn().mockResolvedValue(undefined);
 
@@ -50,6 +51,8 @@ async function pickProvider(user: ReturnType<typeof userEvent.setup>, current: R
 }
 
 beforeEach(() => {
+  // The cards start shut; these tests read into them.
+  openSettingsCards();
   resetAllStores();
   vi.clearAllMocks();
   seedRole('user');

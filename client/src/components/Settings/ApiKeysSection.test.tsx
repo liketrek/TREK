@@ -9,6 +9,7 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import ApiKeysSection from './ApiKeysSection';
+import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
@@ -21,6 +22,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // The cards start shut; these tests read into them.
+  openSettingsCards();
   clipboardWriteText.mockReset();
   clipboardWriteText.mockResolvedValue(undefined);
   resetAllStores();

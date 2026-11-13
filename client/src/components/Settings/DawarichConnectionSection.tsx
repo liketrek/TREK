@@ -29,6 +29,8 @@ export default function DawarichConnectionSection(): React.ReactElement {
 
   return (
     <Section
+      id="dawarich"
+      collapsible
       title={t('dawarich.title')}
       icon={DawarichIcon}
       badge={

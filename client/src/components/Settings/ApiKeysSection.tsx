@@ -238,6 +238,8 @@ export default function ApiKeysSection(): React.ReactElement {
   return (
     <>
       <Section
+        id="api-keys"
+        collapsible
         title={t('settings.apiKeys.title')}
         icon={KeyRound}
         badge={keys.length > 0 ? <StatusPill>{keys.length}/{MAX_KEYS}</StatusPill> : undefined}

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, type LucideIcon } from 'lucide-react'
 import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
 
 /*
@@ -33,12 +33,55 @@ export function SettingsHeader({ icon: Icon, title, subtitle, actions }: {
   )
 }
 
+/** Where a collapsible card remembers that its reader left it open. */
+export const settingsCardOpenKey = (id: string) => `trek-settings-open-${id}`
+
+/**
+ * Whether a collapsible card is open. Shut by default, so a page lists what it
+ * holds instead of everything at once; open when the address names it (a link
+ * to `#id` lands on it ready to use), or when its reader left it open last time.
+ * The browser remembers that per card as a convenience: without storage (a
+ * private window, blocked site data) every card simply starts shut.
+ */
+export function useCardOpen(id: string | undefined, collapsible: boolean): [boolean, () => void] {
+  const [open, setOpen] = useState(() => {
+    if (!collapsible) return true
+    if (id && window.location.hash === `#${id}`) return true
+    if (!id) return false
+    try {
+      return localStorage.getItem(settingsCardOpenKey(id)) === '1'
+    } catch {
+      // Storage refused: the card starts shut, as it would on a first visit.
+      return false
+    }
+  })
+  const toggle = () => {
+    const next = !open
+    setOpen(next)
+    if (!id) return
+    try {
+      localStorage.setItem(settingsCardOpenKey(id), next ? '1' : '0')
+    } catch {
+      // Storage refused: the card still opens, it is only not remembered.
+    }
+  }
+  return [!collapsible || open, toggle]
+}
+
 /**
  * A group of settings: a card with a head band (icon tile, title, an optional
  * badge and an action on the right) and its body below. `tone` tints the band:
  * neutral for ordinary groups, danger for the destructive ones.
+ *
+ * `collapsible` shuts the body until the head is clicked. The badge is then the
+ * card's state at a glance ("Connected", "Off"), so a shut card still says what
+ * matters. The title holds the button (a heading inside a button is not valid
+ * HTML), stretched over the whole head; the badge and the action sit above it
+ * and stay clickable on their own. The body stays mounted while shut, so
+ * nothing typed into it is lost. A collapsible card needs an `id` to be linked
+ * to and remembered.
  */
-export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'neutral', children, id, bodyClassName, flush = false }: {
+export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'neutral', children, id, bodyClassName, flush = false, collapsible = false }: {
   icon?: IconLike
   title: ReactNode
   /** One line under the title in the band. */
@@ -52,11 +95,24 @@ export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'n
   bodyClassName?: string
   /** Inside another card: no gap below, the parent spaces its children. */
   flush?: boolean
+  /** Shut until its head is clicked; see above. */
+  collapsible?: boolean
 }) {
   const tint = tone === 'danger' ? 'color-mix(in srgb, var(--danger) 9%, transparent)' : NEUTRAL_TINT
+  const [open, toggle] = useCardOpen(id, collapsible)
+  const bodyId = useId()
+  const hasBody = children != null
+  const ref = useRef<HTMLElement>(null)
+  // A link to `#id` opened this card; bring it into view, as the router does not scroll to an anchor.
+  useEffect(() => {
+    if (id && window.location.hash === `#${id}`) ref.current?.scrollIntoView?.({ block: 'start' })
+  }, [id])
   return (
-    <section id={id} className={`${flush ? '' : 'mb-5 '}overflow-hidden rounded-2xl border border-edge-faint bg-surface-secondary`}>
-      <div className="flex items-center gap-3 border-b border-edge-faint px-4 py-3" style={{ background: tint }}>
+    <section ref={ref} id={id} className={`${flush ? '' : 'mb-5 '}overflow-hidden rounded-2xl border border-edge-faint bg-surface-secondary`}>
+      <div
+        className={`relative flex items-center gap-3 px-4 py-3 ${hasBody && open ? 'border-b border-edge-faint' : ''} ${collapsible ? 'transition-colors hover:brightness-[1.03] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-[color:var(--text-primary)]' : ''}`}
+        style={{ background: tint }}
+      >
         {Icon && (
           <span className={`grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-card shadow-sm ${tone === 'danger' ? 'text-danger' : 'text-content-secondary'}`}>
             <Icon size={15} strokeWidth={2} />
@@ -64,14 +120,39 @@ export function SettingsCard({ icon: Icon, title, hint, badge, action, tone = 'n
         )}
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h2 className="m-0 truncate font-bold text-content" style={fs(14, 'body')}>{title}</h2>
-            {badge}
+            <h2 className="m-0 truncate font-bold text-content" style={fs(14, 'body')}>
+              {collapsible ? (
+                <button
+                  type="button"
+                  onClick={toggle}
+                  aria-expanded={open}
+                  aria-controls={hasBody ? bodyId : undefined}
+                  className="cursor-pointer border-0 bg-transparent p-0 text-start font-[inherit] text-inherit outline-none after:absolute after:inset-0 after:content-['']"
+                >
+                  {title}
+                </button>
+              ) : title}
+            </h2>
+            {badge && <span className="relative z-[1] inline-flex">{badge}</span>}
           </div>
           {hint && <p className="m-0 mt-0.5 text-content-faint" style={fs(11.5)}>{hint}</p>}
         </div>
-        {action && <div className="flex flex-none items-center gap-1.5">{action}</div>}
+        {action && <div className="relative z-[1] flex flex-none items-center gap-1.5">{action}</div>}
+        {collapsible && (
+          <ChevronDown
+            size={16}
+            strokeWidth={2}
+            aria-hidden
+            className={`pointer-events-none flex-none text-content-faint transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+          />
+        )}
       </div>
-      {children != null && <div className={bodyClassName ?? 'flex flex-col gap-4 p-4'}>{children}</div>}
+      {/* The hidden wrapper has no classes of its own: a display utility on it would beat the attribute. */}
+      {hasBody && (
+        <div id={bodyId} hidden={!open}>
+          <div className={bodyClassName ?? 'flex flex-col gap-4 p-4'}>{children}</div>
+        </div>
+      )}
     </section>
   )
 }

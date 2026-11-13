@@ -82,6 +82,8 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Đối với dữ liệu thời tiết. Miễn phí tại openweathermap.org/api',
   'settings.keyPlaceholder': 'Nhập khóa...',
   'settings.configured': 'Đã định cấu hình',
+  'settings.notSetUp': 'Chưa thiết lập',
+  'settings.mcp.appsConnected': '{count} ứng dụng đã kết nối',
   'settings.saveKeys': 'Lưu chìa khóa',
   'settings.display': 'Hiển thị',
   'settings.colorMode': 'Chế độ màu',

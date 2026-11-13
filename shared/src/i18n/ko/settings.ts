@@ -80,6 +80,8 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': '날씨 데이터용. openweathermap.org/api에서 무료 발급',
   'settings.keyPlaceholder': '키 입력...',
   'settings.configured': '설정됨',
+  'settings.notSetUp': '설정 안 됨',
+  'settings.mcp.appsConnected': '앱 {count}개 연결됨',
   'settings.saveKeys': '키 저장',
   'settings.display': '화면',
   'settings.colorMode': '색상 모드',

@@ -14,13 +14,17 @@ interface SectionProps {
   hint?: React.ReactNode
   /** A control on the right of the head band. */
   action?: React.ReactNode
+  /** Where a link lands and, for a collapsible card, what it is remembered by. */
+  id?: string
+  /** Shut until its head is clicked, the badge saying its state meanwhile (see settingsKit). */
+  collapsible?: boolean
   children: React.ReactNode
 }
 
 /** A settings group: the planner's card with a head band (see settingsKit). */
-export default function Section({ title, icon, badge, hint, action, children }: SectionProps): React.ReactElement {
+export default function Section({ title, icon, badge, hint, action, id, collapsible, children }: SectionProps): React.ReactElement {
   return (
-    <SettingsCard icon={icon} title={title} badge={badge} hint={hint} action={action}>
+    <SettingsCard icon={icon} title={title} badge={badge} hint={hint} action={action} id={id} collapsible={collapsible}>
       {children}
     </SettingsCard>
   )

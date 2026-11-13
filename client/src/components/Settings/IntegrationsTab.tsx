@@ -346,9 +346,21 @@ function ApiTokensTab({ S }: { S: IntegrationsState }) {
 }
 
 function IntegrationsMcpSection({ S }: { S: IntegrationsState }) {
-  const { t, activeMcpTab, setActiveMcpTab, copiedKey, mcpEndpoint, handleCopy } = S
+  const { t, activeMcpTab, setActiveMcpTab, copiedKey, mcpEndpoint, handleCopy, oauthSessions } = S
+  // Connected means signed in now: an OAuth session, which is what an app holds while it reaches TREK.
+  const connected = oauthSessions.length
   return (
-    <Section title={t('settings.mcp.title')} icon={Terminal}>
+    <Section
+      id="mcp"
+      collapsible
+      title={t('settings.mcp.title')}
+      icon={Terminal}
+      badge={
+        connected > 0
+          ? <StatusPill tone="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{t('settings.mcp.appsConnected', { count: connected })}</StatusPill>
+          : <StatusPill>{t('settings.notSetUp')}</StatusPill>
+      }
+    >
       {/* Endpoint URL */}
       <EditorField label={t('settings.mcp.endpoint')}>
         <CopyValue value={mcpEndpoint} copied={copiedKey === 'endpoint'} label={t('settings.mcp.copy')} onCopy={() => handleCopy(mcpEndpoint, 'endpoint')} />
