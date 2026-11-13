@@ -1,21 +1,38 @@
+import type {
+  VacayAddYearRequest,
+  VacayCompanyHolidayRequest,
+  VacayInviteActionRequest,
+  VacayInviteRequest,
+  VacaySetColorRequest,
+  VacayShareRequest,
+  VacayShareUpdateRequest,
+  VacayToggleEntryRequest,
+  VacayUpdateStatsRequest,
+  VacayYearSettingsRequest
+} from '@trek/shared'
 import { manualSchoolRegionId } from '@trek/shared'
+import type { AxiosResponse } from 'axios'
 import { create } from 'zustand'
 import apiClient from '../api/client'
-import { useAuthStore } from './authStore'
-import type { AxiosResponse } from 'axios'
+import { toggledCompanyHolidays, type CompanyHoliday } from '../components/Vacay/companyHolidays'
 import type {
-  VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayInfo, VacayHolidayCalendar,
-  VacayShareOutgoing, VacayShareIncoming, SharedVacayCalendar, VacayYearSettings,
+  HolidayInfo,
+  HolidaysMap,
+  SharedVacayCalendar,
+  VacayEntry,
+  VacayHolidayCalendar,
+  VacayIcsCalendar,
+  VacayIcsCalendarSettings,
+  VacayPlan,
+  VacayShareIncoming,
+  VacayShareOutgoing,
+  VacayStat,
+  VacayUser,
+  VacayYearSettings
 } from '../types'
 import { isSchoolHolidayCountrySupported } from '../vacay/schoolHolidayCountries'
 import { DEFAULT_YEAR_SETTINGS, defaultPeriodYear, inGridWindow, windowCalendarYears } from '../vacay/yearWindow'
-import type {
-  VacaySetColorRequest, VacayInviteRequest, VacayInviteActionRequest,
-  VacayAddYearRequest, VacayToggleEntryRequest, VacayCompanyHolidayRequest,
-  VacayUpdateStatsRequest, VacayShareRequest, VacayShareUpdateRequest,
-  VacayYearSettingsRequest,
-} from '@trek/shared'
-import { toggledCompanyHolidays, type CompanyHoliday } from '../components/Vacay/companyHolidays'
+import { useAuthStore } from './authStore'
 
 const ax = apiClient
 
@@ -34,7 +51,7 @@ export function normalizeIncomingInvites(rows: unknown): IncomingInvite[] {
   if (!Array.isArray(rows)) return []
   return rows.map((r: { plan_id: number; username?: string; owner_username?: string }) => ({
     plan_id: r.plan_id,
-    owner_username: r.owner_username ?? r.username ?? '',
+    owner_username: r.owner_username ?? r.username ?? ''
   }))
 }
 
@@ -54,6 +71,7 @@ interface VacayYearsResponse {
 interface VacayEntriesResponse {
   entries: VacayEntry[]
   companyHolidays: CompanyHoliday[]
+  icsCalendars?: VacayIcsCalendar[]
 }
 
 interface VacayStatsResponse {
@@ -94,7 +112,10 @@ interface VacayApi {
   getHolidays: (year: number, country: string) => Promise<VacayHolidayRaw[]>
   getSchoolHolidays: (year: number, country: string, subdivision?: string | null, group?: string | null) => Promise<VacaySchoolHolidayRaw[]>
   addHolidayCalendar: (data: { region: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<{ calendar: VacayHolidayCalendar }>
-  updateHolidayCalendar: (id: number, data: { region?: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }) => Promise<{ calendar: VacayHolidayCalendar }>
+  updateHolidayCalendar: (
+    id: number,
+    data: { region?: string; color?: string; label?: string | null; type?: 'public_holiday' | 'school_holiday' }
+  ) => Promise<{ calendar: VacayHolidayCalendar }>
   deleteHolidayCalendar: (id: number) => Promise<unknown>
   getShares: () => Promise<{ outgoing: VacayShareOutgoing[]; incoming: VacayShareIncoming[] }>
   share: (userId: number) => Promise<unknown>
@@ -103,25 +124,49 @@ interface VacayApi {
   getSharedCalendars: (year: number) => Promise<{ calendars: SharedVacayCalendar[] }>
   getYearSettings: () => Promise<{ settings: VacayYearSettings }>
   updateYearSettings: (data: VacayYearSettingsRequest) => Promise<{ settings: VacayYearSettings }>
+  getIcsCalendars: () => Promise<{ calendars: VacayIcsCalendarSettings[] }>
+  addIcsCalendar: (data: { url: string; label: string; color: string }) => Promise<unknown>
+  updateIcsCalendar: (id: number, data: { label?: string; color?: string }) => Promise<unknown>
+  deleteIcsCalendar: (id: number) => Promise<unknown>
 }
 
 const api: VacayApi = {
   getPlan: () => ax.get('/addons/vacay/plan').then((r: AxiosResponse) => r.data),
-  updatePlan: (data) => ax.put('/addons/vacay/plan', data).then((r: AxiosResponse) => r.data),
+  updatePlan: data => ax.put('/addons/vacay/plan', data).then((r: AxiosResponse) => r.data),
   updateColor: (color, targetUserId) => ax.put('/addons/vacay/color', { color, target_user_id: targetUserId } satisfies VacaySetColorRequest).then((r: AxiosResponse) => r.data),
-  invite: (userId) => ax.post('/addons/vacay/invite', { user_id: userId } satisfies VacayInviteRequest).then((r: AxiosResponse) => r.data),
-  acceptInvite: (planId) => ax.post('/addons/vacay/invite/accept', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
-  declineInvite: (planId) => ax.post('/addons/vacay/invite/decline', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
-  cancelInvite: (userId) => ax.post('/addons/vacay/invite/cancel', { user_id: userId }).then((r: AxiosResponse) => r.data),
+  invite: userId => ax.post('/addons/vacay/invite', { user_id: userId } satisfies VacayInviteRequest).then((r: AxiosResponse) => r.data),
+  acceptInvite: planId => ax.post('/addons/vacay/invite/accept', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
+  declineInvite: planId => ax.post('/addons/vacay/invite/decline', { plan_id: planId } satisfies VacayInviteActionRequest).then((r: AxiosResponse) => r.data),
+  cancelInvite: userId => ax.post('/addons/vacay/invite/cancel', { user_id: userId }).then((r: AxiosResponse) => r.data),
   dissolve: () => ax.post('/addons/vacay/dissolve').then((r: AxiosResponse) => r.data),
   getYears: () => ax.get('/addons/vacay/years').then((r: AxiosResponse) => r.data),
-  addYear: (year) => ax.post('/addons/vacay/years', { year } satisfies VacayAddYearRequest).then((r: AxiosResponse) => r.data),
-  removeYear: (year) => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
-  getEntries: (year) => ax.get(`/addons/vacay/entries/${year}`).then((r: AxiosResponse) => r.data),
-  toggleEntry: (date, targetUserId, fraction, kind) => ax.post('/addons/vacay/entries/toggle', { date, target_user_id: targetUserId, fraction, kind } satisfies VacayToggleEntryRequest).then((r: AxiosResponse) => r.data),
-  toggleCompanyHoliday: (date, fraction) => ax.post('/addons/vacay/entries/company-holiday', { date, fraction: fraction === 0.5 ? 0.5 : 1 } satisfies VacayCompanyHolidayRequest).then((r: AxiosResponse) => r.data),
-  getStats: (year) => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
-  updateStats: (year, days, targetUserId) => ax.put(`/addons/vacay/stats/${year}`, { vacation_days: days, target_user_id: targetUserId } satisfies VacayUpdateStatsRequest).then((r: AxiosResponse) => r.data),
+  addYear: year => ax.post('/addons/vacay/years', { year } satisfies VacayAddYearRequest).then((r: AxiosResponse) => r.data),
+  removeYear: year => ax.delete(`/addons/vacay/years/${year}`).then((r: AxiosResponse) => r.data),
+  getEntries: year => ax.get(`/addons/vacay/entries/${year}`).then((r: AxiosResponse) => r.data),
+  toggleEntry: (date, targetUserId, fraction, kind) =>
+    ax
+      .post('/addons/vacay/entries/toggle', {
+        date,
+        target_user_id: targetUserId,
+        fraction,
+        kind
+      } satisfies VacayToggleEntryRequest)
+      .then((r: AxiosResponse) => r.data),
+  toggleCompanyHoliday: (date, fraction) =>
+    ax
+      .post('/addons/vacay/entries/company-holiday', {
+        date,
+        fraction: fraction === 0.5 ? 0.5 : 1
+      } satisfies VacayCompanyHolidayRequest)
+      .then((r: AxiosResponse) => r.data),
+  getStats: year => ax.get(`/addons/vacay/stats/${year}`).then((r: AxiosResponse) => r.data),
+  updateStats: (year, days, targetUserId) =>
+    ax
+      .put(`/addons/vacay/stats/${year}`, {
+        vacation_days: days,
+        target_user_id: targetUserId
+      } satisfies VacayUpdateStatsRequest)
+      .then((r: AxiosResponse) => r.data),
   getHolidays: (year, country) => ax.get(`/addons/vacay/holidays/${year}/${country}`).then((r: AxiosResponse) => r.data),
   getSchoolHolidays: (year, country, subdivision, group) => {
     const manualId = subdivision ? manualSchoolRegionId(subdivision) : null
@@ -131,16 +176,20 @@ const api: VacayApi = {
     const qs = params.toString()
     return ax.get(`/addons/vacay/school-holidays/${year}/${country}${subdivision ? `/${subdivision}` : ''}${qs ? `?${qs}` : ''}`).then((r: AxiosResponse) => r.data)
   },
-  addHolidayCalendar: (data) => ax.post('/addons/vacay/plan/holiday-calendars', data).then((r: AxiosResponse) => r.data),
+  addHolidayCalendar: data => ax.post('/addons/vacay/plan/holiday-calendars', data).then((r: AxiosResponse) => r.data),
   updateHolidayCalendar: (id, data) => ax.put(`/addons/vacay/plan/holiday-calendars/${id}`, data).then((r: AxiosResponse) => r.data),
-  deleteHolidayCalendar: (id) => ax.delete(`/addons/vacay/plan/holiday-calendars/${id}`).then((r: AxiosResponse) => r.data),
+  deleteHolidayCalendar: id => ax.delete(`/addons/vacay/plan/holiday-calendars/${id}`).then((r: AxiosResponse) => r.data),
   getShares: () => ax.get('/addons/vacay/shares').then((r: AxiosResponse) => r.data),
-  share: (userId) => ax.post('/addons/vacay/shares', { user_id: userId } satisfies VacayShareRequest).then((r: AxiosResponse) => r.data),
-  removeShare: (shareId) => ax.delete(`/addons/vacay/shares/${shareId}`).then((r: AxiosResponse) => r.data),
+  share: userId => ax.post('/addons/vacay/shares', { user_id: userId } satisfies VacayShareRequest).then((r: AxiosResponse) => r.data),
+  removeShare: shareId => ax.delete(`/addons/vacay/shares/${shareId}`).then((r: AxiosResponse) => r.data),
   updateShare: (shareId, hidden) => ax.put(`/addons/vacay/shares/${shareId}`, { hidden } satisfies VacayShareUpdateRequest).then((r: AxiosResponse) => r.data),
-  getSharedCalendars: (year) => ax.get(`/addons/vacay/shares/calendars/${year}`).then((r: AxiosResponse) => r.data),
+  getSharedCalendars: year => ax.get(`/addons/vacay/shares/calendars/${year}`).then((r: AxiosResponse) => r.data),
   getYearSettings: () => ax.get('/addons/vacay/year-settings').then((r: AxiosResponse) => r.data),
-  updateYearSettings: (data) => ax.put('/addons/vacay/year-settings', data satisfies VacayYearSettingsRequest).then((r: AxiosResponse) => r.data),
+  updateYearSettings: data => ax.put('/addons/vacay/year-settings', data satisfies VacayYearSettingsRequest).then((r: AxiosResponse) => r.data),
+  getIcsCalendars: () => ax.get('/addons/vacay/plan/ics-calendars').then((r: AxiosResponse) => r.data),
+  addIcsCalendar: data => ax.post('/addons/vacay/plan/ics-calendars', data).then((r: AxiosResponse) => r.data),
+  updateIcsCalendar: (id, data) => ax.put(`/addons/vacay/plan/ics-calendars/${id}`, data).then((r: AxiosResponse) => r.data),
+  deleteIcsCalendar: id => ax.delete(`/addons/vacay/plan/ics-calendars/${id}`).then((r: AxiosResponse) => r.data)
 }
 
 function pushHolidayMarker(map: HolidaysMap, date: string, marker: HolidayInfo) {
@@ -164,7 +213,7 @@ function parseCalendarRegion(region: string): { country: string; subdivision: st
   return {
     country: base.split('-')[0],
     subdivision: group ? null : base.includes('-') ? base : null,
-    group,
+    group
   }
 }
 
@@ -185,6 +234,24 @@ function datesBetween(startStr: string, endStr: string): string[] {
   return dates
 }
 
+function addIcsHolidayMarkers(map: HolidaysMap, calendars: VacayIcsCalendar[], year: number, settings: VacayYearSettings) {
+  calendars.forEach(calendar =>
+    calendar.events.forEach(event => {
+      for (let d = new Date(`${event.start}T00:00:00Z`), end = new Date(`${event.end}T00:00:00Z`); d < end; d.setUTCDate(d.getUTCDate() + 1)) {
+        const date = d.toISOString().slice(0, 10)
+        if (inGridWindow(date, year, settings))
+          pushHolidayMarker(map, date, {
+            name: event.title,
+            localName: event.title,
+            color: calendar.color,
+            label: calendar.label,
+            type: 'ics'
+          })
+      }
+    })
+  )
+}
+
 interface VacayState {
   plan: VacayPlan | null
   users: VacayUser[]
@@ -195,6 +262,8 @@ interface VacayState {
   years: number[]
   entries: VacayEntry[]
   companyHolidays: CompanyHoliday[]
+  icsCalendars: VacayIcsCalendar[]
+  icsCalendarSettings: VacayIcsCalendarSettings[]
   stats: VacayStat[]
   selectedYear: number
   selectedUserId: number | null
@@ -225,6 +294,10 @@ interface VacayState {
   toggleEntry: (date: string, targetUserId?: number, fraction?: 0.5 | 1, kind?: 'vacation' | 'comp') => Promise<void>
   /** Whole (1) or half (0.5) company holiday (#2439); the same size again clears it. */
   toggleCompanyHoliday: (date: string, fraction?: number) => Promise<void>
+  loadIcsCalendarSettings: () => Promise<void>
+  addIcsCalendar: (data: { url: string; label: string; color: string }) => Promise<void>
+  updateIcsCalendar: (id: number, data: { label?: string; color?: string }) => Promise<void>
+  deleteIcsCalendar: (id: number) => Promise<void>
   loadStats: (year?: number) => Promise<void>
   updateVacationDays: (year: number, days: number, targetUserId?: number) => Promise<void>
   loadHolidays: (year?: number) => Promise<void>
@@ -251,6 +324,8 @@ export const useVacayStore = create<VacayState>((set, get) => ({
   years: [],
   entries: [],
   companyHolidays: [],
+  icsCalendars: [],
+  icsCalendarSettings: [],
   stats: [],
   selectedYear: new Date().getFullYear(),
   selectedUserId: null,
@@ -272,7 +347,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
       pendingInvites: data.pendingInvites,
       incomingInvites: normalizeIncomingInvites(data.incomingInvites),
       isOwner: data.isOwner,
-      isFused: data.isFused,
+      isFused: data.isFused
     })
   },
 
@@ -328,7 +403,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     const asked = preferred !== undefined && data.years.includes(preferred) ? preferred : null
     set({
       years: data.years,
-      selectedYear: asked ?? (keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings)),
+      selectedYear: asked ?? (keepSelection ? previous : defaultPeriodYear(data.years, get().yearSettings))
     })
   },
 
@@ -351,7 +426,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
   loadEntries: async (year?: number) => {
     const y = year || get().selectedYear
     const data = await api.getEntries(y)
-    set({ entries: data.entries, companyHolidays: data.companyHolidays })
+    set({ entries: data.entries, companyHolidays: data.companyHolidays, icsCalendars: data.icsCalendars ?? [] })
   },
 
   toggleEntry: async (date: string, targetUserId?: number, fraction: 0.5 | 1 = 1, kind: 'vacation' | 'comp' = 'vacation') => {
@@ -367,10 +442,14 @@ export const useVacayStore = create<VacayState>((set, get) => ({
       if (existing && (existing.fraction ?? 1) === fraction && (existing.kind ?? 'vacation') === kind) {
         set({ entries: prevEntries.filter(e => !(e.date === date && e.user_id === userId)) })
       } else if (existing) {
-        set({ entries: prevEntries.map(e => (e.date === date && e.user_id === userId ? { ...e, fraction, kind } : e)) })
+        set({
+          entries: prevEntries.map(e => (e.date === date && e.user_id === userId ? { ...e, fraction, kind } : e))
+        })
       } else {
         const u = get().users.find(x => x.id === userId)
-        set({ entries: [...prevEntries, { date, user_id: userId, fraction, kind, person_color: u?.color || undefined, person_name: u?.username }] })
+        set({
+          entries: [...prevEntries, { date, user_id: userId, fraction, kind, person_color: u?.color || undefined, person_name: u?.username }]
+        })
       }
     }
     try {
@@ -400,6 +479,29 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     }
   },
 
+  loadIcsCalendarSettings: async () => {
+    const data = await api.getIcsCalendars()
+    set({ icsCalendarSettings: data.calendars })
+  },
+  addIcsCalendar: async data => {
+    await api.addIcsCalendar(data)
+    await get().loadIcsCalendarSettings()
+    await get().loadEntries()
+    await get().loadHolidays()
+  },
+  updateIcsCalendar: async (id, data) => {
+    await api.updateIcsCalendar(id, data)
+    await get().loadIcsCalendarSettings()
+    await get().loadEntries()
+    await get().loadHolidays()
+  },
+  deleteIcsCalendar: async id => {
+    await api.deleteIcsCalendar(id)
+    await get().loadIcsCalendarSettings()
+    await get().loadEntries()
+    await get().loadHolidays()
+  },
+
   loadStats: async (year?: number) => {
     const y = year || get().selectedYear
     const data = await api.getStats(y)
@@ -415,16 +517,17 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     const y = year || get().selectedYear
     const plan = get().plan
     const calendars = plan?.holiday_calendars ?? []
-    const enabledCalendars = calendars.filter(cal =>
-      (cal.type === 'school_holiday' && plan?.school_holidays_enabled) ||
-      ((cal.type ?? 'public_holiday') === 'public_holiday' && plan?.holidays_enabled)
+    const settings = get().yearSettings
+    const enabledCalendars = calendars.filter(
+      cal => (cal.type === 'school_holiday' && plan?.school_holidays_enabled) || ((cal.type ?? 'public_holiday') === 'public_holiday' && plan?.holidays_enabled)
     )
     if (enabledCalendars.length === 0) {
-      set({ holidays: {} })
+      const map: HolidaysMap = {}
+      if (plan?.ics_holidays_enabled !== false) addIcsHolidayMarkers(map, get().icsCalendars, y, settings)
+      set({ holidays: map })
       return
     }
     const map: HolidaysMap = {}
-    const settings = get().yearSettings
     // A shifted leave year (#737) spans two calendar years and the holiday APIs are
     // per calendar year, so each one the window touches is fetched and the result
     // clipped back to what the grid actually renders.
@@ -439,9 +542,17 @@ export const useVacayStore = create<VacayState>((set, get) => ({
             data.forEach((h: VacaySchoolHolidayRaw) => {
               if (!h.startDate) return
               const name = schoolHolidayName(h)
-              datesBetween(h.startDate, h.endDate || h.startDate).filter(date => inGridWindow(date, y, settings)).forEach(date => {
-                pushHolidayMarker(map, date, { name, localName: name, color: cal.color, label: cal.label, type: 'school_holiday' })
-              })
+              datesBetween(h.startDate, h.endDate || h.startDate)
+                .filter(date => inGridWindow(date, y, settings))
+                .forEach(date => {
+                  pushHolidayMarker(map, date, {
+                    name,
+                    localName: name,
+                    color: cal.color,
+                    label: cal.label,
+                    type: 'school_holiday'
+                  })
+                })
             })
           } else {
             const data = await api.getHolidays(cy, country)
@@ -450,17 +561,26 @@ export const useVacayStore = create<VacayState>((set, get) => ({
             data.forEach((h: VacayHolidayRaw) => {
               if (!inGridWindow(h.date, y, settings)) return
               if (h.global || !h.counties || (subdivision && h.counties.includes(subdivision))) {
-                pushHolidayMarker(map, h.date, { name: h.name, localName: h.localName, color: cal.color, label: cal.label, type: 'public_holiday' })
+                pushHolidayMarker(map, h.date, {
+                  name: h.name,
+                  localName: h.localName,
+                  color: cal.color,
+                  label: cal.label,
+                  type: 'public_holiday'
+                })
               }
             })
           }
-        } catch { /* API error, skip */ }
+        } catch {
+          /* API error, skip */
+        }
       }
     }
+    if (plan?.ics_holidays_enabled !== false) addIcsHolidayMarkers(map, get().icsCalendars, y, settings)
     set({ holidays: map })
   },
 
-  addHolidayCalendar: async (data) => {
+  addHolidayCalendar: async data => {
     await api.addHolidayCalendar(data)
     await get().loadPlan()
     await get().loadHolidays()
@@ -472,7 +592,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     await get().loadHolidays()
   },
 
-  deleteHolidayCalendar: async (id) => {
+  deleteHolidayCalendar: async id => {
     await api.deleteHolidayCalendar(id)
     await get().loadPlan()
     await get().loadHolidays()
@@ -506,7 +626,7 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     const prevCalendars = get().sharedCalendars
     set({
       incomingShares: prevIncoming.map(s => (s.id === shareId ? { ...s, hidden } : s)),
-      sharedCalendars: prevCalendars.map(c => (c.share_id === shareId ? { ...c, hidden } : c)),
+      sharedCalendars: prevCalendars.map(c => (c.share_id === shareId ? { ...c, hidden } : c))
     })
     try {
       await api.updateShare(shareId, hidden)
@@ -536,6 +656,9 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     set({ loading: true })
     try {
       await get().loadPlan()
+      await get()
+        .loadIcsCalendarSettings()
+        .catch(() => set({ icsCalendarSettings: [] }))
       // The leave-year window decides which period is current, so it is resolved
       // before the year list picks a default (#737).
       await get().loadYearSettings()
@@ -549,5 +672,5 @@ export const useVacayStore = create<VacayState>((set, get) => ({
     } finally {
       set({ loading: false })
     }
-  },
+  }
 }))

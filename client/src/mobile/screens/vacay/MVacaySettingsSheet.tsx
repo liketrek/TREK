@@ -14,6 +14,8 @@ import {
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
 import type { VacayHolidayCalendar } from '../../../types'
 import { INNER_CLS, TileHeader } from '../trip/sheets/MTripSheetUi'
+import VacayIcsCalendarsSettings from '../../../components/Vacay/VacayIcsCalendarsSettings'
+import { useVacayCalendarColorPicker } from '../../../components/Vacay/calendarColorPickerRegistry'
 
 const CALENDAR_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af']
 
@@ -201,6 +203,7 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             )}
           </>
         )}
+        <div className="mt-3 border-t border-[color:var(--m-rowbr)] pt-3"><VacayIcsCalendarsSettings mobile /></div>
         </section>
         <section className={CARD}>
 
@@ -400,12 +403,12 @@ function SelectRow({ value, placeholder, options, onChange }: {
 /** Color swatch that expands into the pastel preset palette. */
 function ColorSwatch({ color, onPick }: { color: string; onPick: (color: string) => void }) {
   const { t } = useTranslation()
-  const [openPalette, setOpenPalette] = useState(false)
+  const { open: openPalette, toggle, close, pickerAttr } = useVacayCalendarColorPicker()
   return (
-    <span className="relative flex-none">
+    <span data-vacay-color-picker={pickerAttr} className="relative flex-none">
       <button
         type="button"
-        onClick={() => setOpenPalette(o => !o)}
+        onClick={toggle}
         aria-label={t('vacay.calendarColor')}
         className="block h-[26px] w-[26px] rounded-lg"
         style={{ background: color }}
@@ -416,7 +419,7 @@ function ColorSwatch({ color, onPick }: { color: string; onPick: (color: string)
             <button
               key={c}
               type="button"
-              onClick={() => { onPick(c); setOpenPalette(false) }}
+              onClick={() => { onPick(c); close() }}
               className={`h-[22px] w-[22px] rounded-md ${c === color ? 'ring-2 ring-[color:var(--m-ink)]' : ''}`}
               style={{ background: c }}
             />

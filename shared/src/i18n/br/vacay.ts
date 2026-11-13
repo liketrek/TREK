@@ -150,5 +150,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Compartilhado (somente visualização)',
   'vacay.publicHolidaysHint': 'Marcar os feriados no calendário',
   'vacay.noCalendars': 'Nenhum calendário de feriados adicionado ainda',
+  'vacay.subscribeHolidays': 'Assinar feriados',
+  'vacay.icsCalendarsHint': 'Importe eventos de feriados de dia inteiro de uma URL pública ICS',
+  'vacay.noIcsCalendars': 'Nenhum calendário assinado ainda',
+  'vacay.icsUrl': 'Insira uma URL ICS',
+  'vacay.icsLabel': 'Rótulo do calendário',
+  'vacay.removeIcsCalendar': 'Remover calendário',
+  'vacay.icsInitialFetchHint': 'Buscando e validando o calendário…',
+  'vacay.icsRefreshFailed': 'Falha na atualização; exibindo os últimos eventos obtidos com sucesso',
+  'vacay.loadingCalendars': 'Carregando…',
 };
 export default vacay;

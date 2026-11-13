@@ -36,7 +36,7 @@ export function useMVacay() {
     handleAddNextYear, handleAddPrevYear,
   } = useVacay()
   const {
-    stats, users, holidays,
+    stats, users, holidays, icsCalendarSettings,
     selectedUserId, setSelectedUserId, isFused,
     updateVacationDays,
     incomingShares, yearSettings,
@@ -186,7 +186,7 @@ export function useMVacay() {
 
   return {
     loading, plan, selectedYear, years, selectYear, monthsFor, monthNameLongFor,
-    users, isFused, currentUser,
+    users, isFused, currentUser, icsCalendarSettings,
     incomingInvites, acceptInvite, declineInvite,
     incomingShares, toggleShareHidden,
     view, months, monthSlot, activeMonth, isShiftedYear: yearSettings.year_type !== 'calendar',

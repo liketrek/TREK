@@ -17,6 +17,7 @@ export interface VacayPlanRow {
   owner_id: number;
   block_weekends: number | null;
   holidays_enabled: number | null;
+  ics_holidays_enabled: number;
   holidays_region: string | null;
   school_holidays_enabled: number | null;
   company_holidays_enabled: number | null;
@@ -32,6 +33,7 @@ const _vacayPlanRowKeys: AssertRowKeys<VacayPlanRow, VacayPlans> = true;
 export interface VacayPlanPatch {
   block_weekends?: number;
   holidays_enabled?: number;
+  ics_holidays_enabled?: number;
   holidays_region?: string | null;
   school_holidays_enabled?: number;
   company_holidays_enabled?: number;

@@ -48,6 +48,7 @@ import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.se
 import { CollabService } from '../../../src/nest/collab/collab.service';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
+import { VacayModule } from '../../../src/nest/vacay/vacay.module';
 import { TripsService } from '../../../src/nest/trips/trips.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { buildPlaceImportService } from '../../helpers/place-import';
@@ -96,12 +97,6 @@ import {
   createTestPackingTemplateItemsRepo,
 } from '../../helpers/packing-repos';
 import { createTestTodoItemsRepo, createTestTodoCategoryAssigneesRepo } from '../../helpers/todo-repos';
-import {
-  createTestVacayPlansRepo, createTestVacayPlanMembersRepo, createTestVacayYearsRepo, createTestVacayUserYearsRepo,
-  createTestVacayUserColorsRepo, createTestVacayEntriesRepo, createTestVacayCompanyHolidaysRepo,
-  createTestVacaySharesRepo, createTestVacayUserSettingsRepo,
-} from '../../helpers/vacay-repos';
-import { createTestVacayHolidayCalendarsRepo, createTestSchoolHolidayRegionsRepo } from '../../helpers/school-holidays-repos';
 import {
   createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
   createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
@@ -282,21 +277,13 @@ beforeAll(async () => {
 );
   // SettingsService reads the trips a planner view may keep (#2639) through TripMembershipService,
   // which comes out of its own module instead of a constructor call here.
-  membership = await createTestModule({ db: testDb, imports: [TripMembershipModule] });
+  membership = await createTestModule({ db: testDb, imports: [TripMembershipModule, VacayModule], realtime });
   svc = new TripsService(
   new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb)),
   daysSvc,
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   budgetSvc,
-  new VacayService(
-    await createTestVacayPlansRepo(testDb), await createTestVacayPlanMembersRepo(testDb),
-    await createTestVacayYearsRepo(testDb), await createTestVacayUserYearsRepo(testDb),
-    await createTestVacayUserColorsRepo(testDb), await createTestVacayEntriesRepo(testDb),
-    await createTestVacayCompanyHolidaysRepo(testDb), await createTestVacayHolidayCalendarsRepo(testDb),
-    await createTestVacaySharesRepo(testDb), await createTestVacayUserSettingsRepo(testDb),
-    await createTestSchoolHolidayRegionsRepo(testDb),
-    realtime, notificationsStub(), await createTestUnitOfWork(testDb),
-  ),
+  membership.get(VacayService),
   realtime,
   undefined as never, // unsplash — not exercised here
   { releaseValues: async () => [] } as never, // StorageReleaseService: the cover release has its own suite

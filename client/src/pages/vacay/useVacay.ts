@@ -41,7 +41,7 @@ const VACAY_RELOADS: Record<string, readonly VacayReload[]> = {
  * Behaviour is identical to the previous in-component logic.
  */
 export function useVacay() {
-  const { years, selectedYear, setSelectedYear, addYear, removeYear, loadAll, loadPlan, loadEntries, loadStats, loadHolidays, loadShares, loadSharedCalendars, loading, incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars } = useVacayStore()
+  const { years, selectedYear, setSelectedYear, addYear, removeYear, loadAll, loadPlan, loadEntries, loadStats, loadHolidays, loadShares, loadSharedCalendars, loading, incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars, icsCalendarSettings } = useVacayStore()
   const [showSettings, setShowSettings] = useState<boolean>(false)
   const [deleteYear, setDeleteYear] = useState<number | null>(null)
   const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false)
@@ -101,7 +101,15 @@ export function useVacay() {
     }
   }, [])
   useEffect(() => {
-    if (selectedYear) { loadEntries(selectedYear); loadStats(selectedYear); loadHolidays(selectedYear); loadSharedCalendars(selectedYear) }
+    if (!selectedYear) return
+    void (async () => {
+      // Holiday markers include ICS events returned by entries, so read entries
+      // before deriving the year-specific holiday map.
+      await loadEntries(selectedYear)
+      await loadStats(selectedYear)
+      await loadHolidays(selectedYear)
+      await loadSharedCalendars(selectedYear)
+    })()
   }, [selectedYear])
 
   // The confirm closes as it is answered, so a removal that fails says so here.
@@ -126,7 +134,7 @@ export function useVacay() {
 
   return {
     years, selectedYear, setSelectedYear, removeYear: removeYearReported, loading,
-    incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars,
+    incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars, icsCalendarSettings,
     showSettings, setShowSettings, deleteYear, setDeleteYear,
     showMobileSidebar, setShowMobileSidebar,
     handleAddNextYear, handleAddPrevYear,

@@ -127,7 +127,7 @@ export class VacayMcp {
   @Tool({
     name: 'update_vacay_plan',
     description:
-      'Update vacation plan settings (weekend blocking and which weekdays count as weekend, public and school holidays, company holidays, carry-over).',
+      'Update vacation plan settings (weekend blocking and which weekdays count as weekend, public and subscribed holidays, company holidays, carry-over).',
     inputSchema: {
       ...vacayUpdatePlanRequestSchema.shape,
       weekend_days: vacayUpdatePlanRequestSchema.shape.weekend_days.describe(
@@ -145,6 +145,7 @@ export class VacayMcp {
     {
       block_weekends,
       holidays_enabled,
+      ics_holidays_enabled,
       holidays_region,
       school_holidays_enabled,
       company_holidays_enabled,
@@ -162,6 +163,7 @@ export class VacayMcp {
       {
         block_weekends,
         holidays_enabled,
+        ics_holidays_enabled,
         holidays_region,
         school_holidays_enabled,
         company_holidays_enabled,

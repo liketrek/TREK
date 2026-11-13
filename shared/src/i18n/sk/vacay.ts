@@ -149,5 +149,14 @@ const vacay: TranslationStrings = {
   'vacay.hideFromCalendar': 'Skryť z kalendára',
   'vacay.sharedEmpty': 'Ukážte si navzájom svoje kalendáre bez toho, aby ste ich prepojili.',
   'vacay.sharedLegend': 'Zdieľané (iba na čítanie)',
+  'vacay.subscribeHolidays': 'Odoberať sviatky',
+  'vacay.icsCalendarsHint': 'Importuj celodenné udalosti sviatkov z verejnej adresy ICS',
+  'vacay.noIcsCalendars': 'Zatiaľ neodoberáš žiadne kalendáre',
+  'vacay.icsUrl': 'Zadaj adresu ICS',
+  'vacay.icsLabel': 'Popis kalendára',
+  'vacay.removeIcsCalendar': 'Odobrať kalendár',
+  'vacay.icsInitialFetchHint': 'Načítavanie a overovanie kalendára…',
+  'vacay.icsRefreshFailed': 'Aktualizácia zlyhala; zobrazujú sa naposledy úspešne načítané udalosti',
+  'vacay.loadingCalendars': 'Načítavanie…',
 };
 export default vacay;

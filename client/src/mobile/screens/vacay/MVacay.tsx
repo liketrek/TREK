@@ -85,6 +85,7 @@ export default function MVacay() {
   const legendItems = [
     ...(v.companyHolidaysEnabled ? [{ key: 'company', color: COMPANY_COLOR, label: t('mobileVacay.companyLegend') }] : []),
     ...(v.holidaysEnabled ? (v.plan?.holiday_calendars ?? []).map(cal => ({ key: `cal-${cal.id}`, color: cal.color, label: cal.label || cal.region })) : []),
+    ...(v.icsCalendarSettings ?? []).map(cal => ({ key: `ics-${cal.id}`, color: cal.color, label: cal.label })),
   ]
   const yearPages = v.years.map(year => ({ id: year }))
   const monthPages = v.months.map((_, slot) => ({ id: slot }))

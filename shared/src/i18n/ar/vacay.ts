@@ -150,5 +150,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'مشترك (عرض فقط)',
   'vacay.publicHolidaysHint': 'تمييز العطل الرسمية في التقويم',
   'vacay.noCalendars': 'لم تتم إضافة تقاويم عطل بعد',
+  'vacay.subscribeHolidays': 'الاشتراك في العطل',
+  'vacay.icsCalendarsHint': 'استيراد أحداث العطل طوال اليوم من رابط ICS عام',
+  'vacay.noIcsCalendars': 'لم تشترك في أي تقويم بعد',
+  'vacay.icsUrl': 'أدخل عنوان ICS',
+  'vacay.icsLabel': 'تسمية التقويم',
+  'vacay.removeIcsCalendar': 'إزالة التقويم',
+  'vacay.icsInitialFetchHint': 'جارٍ جلب التقويم والتحقق منه…',
+  'vacay.icsRefreshFailed': 'فشل التحديث؛ تُعرض آخر أحداث جرى جلبها بنجاح',
+  'vacay.loadingCalendars': 'جارٍ التحميل…',
 };
 export default vacay;

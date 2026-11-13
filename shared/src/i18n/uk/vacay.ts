@@ -150,5 +150,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': 'Назва',
   'vacay.noCalendars': 'Календарів свят ще не додано',
   'vacay.noSchoolCalendars': 'Календарів шкільних канікул ще не додано',
+  'vacay.subscribeHolidays': 'Підписатися на свята',
+  'vacay.icsCalendarsHint': 'Імпортуйте святкові події на весь день за публічним посиланням ICS',
+  'vacay.noIcsCalendars': 'Підписок на календарі ще немає',
+  'vacay.icsUrl': 'Введіть адресу ICS',
+  'vacay.icsLabel': 'Назва календаря',
+  'vacay.removeIcsCalendar': 'Видалити календар',
+  'vacay.icsInitialFetchHint': 'Завантаження та перевірка календаря…',
+  'vacay.icsRefreshFailed': 'Не вдалося оновити; показано останні успішно завантажені події',
+  'vacay.loadingCalendars': 'Завантаження…',
 };
 export default vacay;

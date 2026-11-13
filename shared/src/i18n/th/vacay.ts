@@ -145,5 +145,14 @@ const vacay: TranslationStrings = {
   'schoolCatalog.offline': 'เชื่อมต่ออินเทอร์เน็ตเพื่อจัดการวันหยุดโรงเรียน',
   'schoolCatalog.loadError': 'ไม่สามารถโหลดภูมิภาควันหยุดโรงเรียนได้ เปิดการตั้งค่าใหม่เพื่อลองอีกครั้ง',
   'schoolCatalog.retry': 'ลองอีกครั้ง',
+  'vacay.subscribeHolidays': 'สมัครรับวันหยุด',
+  'vacay.icsCalendarsHint': 'นำเข้ากิจกรรมวันหยุดแบบเต็มวันจาก URL ของ ICS สาธารณะ',
+  'vacay.noIcsCalendars': 'ยังไม่ได้สมัครรับปฏิทินใด',
+  'vacay.icsUrl': 'กรุณาป้อนที่อยู่ ICS',
+  'vacay.icsLabel': 'ป้ายกำกับปฏิทิน',
+  'vacay.removeIcsCalendar': 'ลบปฏิทิน',
+  'vacay.icsInitialFetchHint': 'กำลังดึงข้อมูลและตรวจสอบปฏิทิน…',
+  'vacay.icsRefreshFailed': 'อัปเดตไม่สำเร็จ กำลังแสดงกิจกรรมที่ดึงข้อมูลสำเร็จครั้งล่าสุด',
+  'vacay.loadingCalendars': 'กำลังโหลด…',
 };
 export default vacay;

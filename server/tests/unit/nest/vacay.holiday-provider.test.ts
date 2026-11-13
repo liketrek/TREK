@@ -140,17 +140,15 @@ describe('Vacay holiday provider', () => {
     vi.stubGlobal('fetch', fetchMock);
     const fresh = svc;
 
-    for (const [year, country] of [
-      ['../../..', 'DE'],
-      ['2026', 'DE/../../x'],
-      ['20xx', 'DE'],
-      ['2026', 'DEU'],
-    ]) {
-      expect(await asLegacyResult(fresh.getHolidays(year, country))).toEqual({
-        error: 'Failed to fetch holidays',
-        status: 502,
-      });
-    }
+    const rejectedInputs = await Promise.all(
+      [
+        ['../../..', 'DE'],
+        ['2026', 'DE/../../x'],
+        ['20xx', 'DE'],
+        ['2026', 'DEU'],
+      ].map(([year, country]) => asLegacyResult(fresh.getHolidays(year, country))),
+    );
+    expect(rejectedInputs).toEqual(Array(4).fill({ error: 'Failed to fetch holidays', status: 502 }));
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

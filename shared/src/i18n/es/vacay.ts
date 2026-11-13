@@ -149,5 +149,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': 'Etiqueta',
   'vacay.noCalendars': 'Aún no se han añadido calendarios de festivos',
   'vacay.noSchoolCalendars': 'Aún no se han añadido calendarios de vacaciones escolares',
+  'vacay.subscribeHolidays': 'Suscribirse a festivos',
+  'vacay.icsCalendarsHint': 'Importa eventos de festivos de todo el día desde una URL pública ICS',
+  'vacay.noIcsCalendars': 'Aún no hay calendarios suscritos',
+  'vacay.icsUrl': 'Introduce la URL ICS',
+  'vacay.icsLabel': 'Etiqueta del calendario',
+  'vacay.removeIcsCalendar': 'Eliminar calendario',
+  'vacay.icsInitialFetchHint': 'Obteniendo y validando el calendario…',
+  'vacay.icsRefreshFailed': 'Error al actualizar; se muestran los últimos eventos obtenidos correctamente',
+  'vacay.loadingCalendars': 'Cargando…',
 };
 export default vacay;

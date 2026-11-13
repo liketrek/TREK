@@ -95,7 +95,7 @@ export function hatchTint(color: string): string {
 function baseDayVisual(dateStr: string, dayOfWeek: number, ctx: DayVisualContext): DayVisual {
   const holidayMarkers = ctx.holidays[dateStr]
   const holidays = Array.isArray(holidayMarkers) ? holidayMarkers : holidayMarkers ? [holidayMarkers] : []
-  const publicHoliday = holidays.find(holiday => (holiday.type ?? 'public_holiday') === 'public_holiday')
+  const publicHoliday = holidays.find(holiday => (holiday.type ?? 'public_holiday') === 'public_holiday' || holiday.type === 'ics')
   const schoolColors = holidays.filter(holiday => holiday.type === 'school_holiday').map(holiday => holiday.color)
   // The school band sits on top of any fill (person / company / public), so tag it
   // onto whatever visual this day resolves to rather than picking a single winner.

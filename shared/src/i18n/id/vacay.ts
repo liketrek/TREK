@@ -146,5 +146,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Dibagikan (hanya lihat)',
   'vacay.publicHolidaysHint': 'Tandai hari libur nasional di kalender',
   'vacay.noCalendars': 'Belum ada kalender hari libur',
+  'vacay.subscribeHolidays': 'Berlangganan hari libur',
+  'vacay.icsCalendarsHint': 'Impor acara hari libur sepanjang hari dari URL ICS publik',
+  'vacay.noIcsCalendars': 'Belum berlangganan kalender apa pun',
+  'vacay.icsUrl': 'Masukkan URL ICS',
+  'vacay.icsLabel': 'Label kalender',
+  'vacay.removeIcsCalendar': 'Hapus kalender',
+  'vacay.icsInitialFetchHint': 'Mengambil dan memvalidasi kalender…',
+  'vacay.icsRefreshFailed': 'Pembaruan gagal; menampilkan acara terakhir yang berhasil diambil',
+  'vacay.loadingCalendars': 'Memuat…',
 };
 export default vacay;

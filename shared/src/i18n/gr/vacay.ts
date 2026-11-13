@@ -150,5 +150,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Κοινόχρηστο (μόνο προβολή)',
   'vacay.publicHolidaysHint': 'Επισήμανση των επίσημων αργιών στο ημερολόγιο',
   'vacay.noCalendars': 'Δεν έχουν προστεθεί ημερολόγια αργιών ακόμη',
+  'vacay.subscribeHolidays': 'Εγγραφή σε αργίες',
+  'vacay.icsCalendarsHint': 'Εισαγωγή ολοήμερων συμβάντων αργιών από δημόσιο URL ICS',
+  'vacay.noIcsCalendars': 'Δεν υπάρχουν ακόμη συνδρομές σε ημερολόγια',
+  'vacay.icsUrl': 'Εισαγάγετε τη διεύθυνση ICS',
+  'vacay.icsLabel': 'Ετικέτα ημερολογίου',
+  'vacay.removeIcsCalendar': 'Αφαίρεση ημερολογίου',
+  'vacay.icsInitialFetchHint': 'Ανάκτηση και έλεγχος ημερολογίου…',
+  'vacay.icsRefreshFailed': 'Η ενημέρωση απέτυχε· εμφανίζονται τα τελευταία συμβάντα που ανακτήθηκαν επιτυχώς',
+  'vacay.loadingCalendars': 'Φόρτωση…',
 };
 export default vacay;

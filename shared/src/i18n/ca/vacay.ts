@@ -148,5 +148,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': 'Etiqueta',
   'vacay.noCalendars': "Encara no s'ha afegit cap calendari de festius",
   'vacay.noSchoolCalendars': "Encara no s'ha afegit cap calendari de vacances escolars",
+  'vacay.subscribeHolidays': 'Subscriu-te als festius',
+  'vacay.icsCalendarsHint': 'Importa esdeveniments de festius de tot el dia des d’un URL ICS públic',
+  'vacay.noIcsCalendars': 'Encara no t’has subscrit a cap calendari',
+  'vacay.icsUrl': 'Introdueix l’URL ICS',
+  'vacay.icsLabel': 'Etiqueta del calendari',
+  'vacay.removeIcsCalendar': 'Elimina el calendari',
+  'vacay.icsInitialFetchHint': 'S’està obtenint i validant el calendari…',
+  'vacay.icsRefreshFailed': 'No s’ha pogut actualitzar; es mostren els darrers esdeveniments obtinguts correctament',
+  'vacay.loadingCalendars': 'S’està carregant…',
 };
 export default vacay;

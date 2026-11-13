@@ -150,5 +150,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': 'Libellé',
   'vacay.noCalendars': "Aucun calendrier de jours fériés ajouté pour l'instant",
   'vacay.noSchoolCalendars': "Aucun calendrier de vacances scolaires ajouté pour l'instant",
+  'vacay.subscribeHolidays': 'S’abonner aux jours fériés',
+  'vacay.icsCalendarsHint': 'Importez les jours fériés sur une journée entière depuis une URL ICS publique',
+  'vacay.noIcsCalendars': 'Aucun abonnement à un calendrier pour l’instant',
+  'vacay.icsUrl': 'Saisissez l’URL ICS',
+  'vacay.icsLabel': 'Libellé du calendrier',
+  'vacay.removeIcsCalendar': 'Supprimer le calendrier',
+  'vacay.icsInitialFetchHint': 'Récupération et validation du calendrier…',
+  'vacay.icsRefreshFailed': 'Échec de l’actualisation ; affichage des derniers événements récupérés avec succès',
+  'vacay.loadingCalendars': 'Chargement…',
 };
 export default vacay;

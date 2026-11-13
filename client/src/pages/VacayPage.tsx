@@ -29,13 +29,14 @@ function VacayPageDesktop(): React.ReactElement {
   // Page = wiring container: vacay store, live sync + UI state live in the hook.
   const {
     years, selectedYear, setSelectedYear, removeYear, loading,
-    incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars,
+    incomingInvites, acceptInvite, declineInvite, plan, sharedCalendars, icsCalendarSettings,
     showSettings, setShowSettings, deleteYear, setDeleteYear,
     showMobileSidebar, setShowMobileSidebar,
     handleAddNextYear, handleAddPrevYear,
   } = useVacay()
 
   const hasVisibleShared = sharedCalendars.some(c => !c.hidden)
+  const visibleIcsCalendars = plan?.ics_holidays_enabled !== false ? icsCalendarSettings : []
 
   if (loading) {
     return (
@@ -102,7 +103,7 @@ function VacayPageDesktop(): React.ReactElement {
       <VacaySharedCalendars />
 
       {/* Legend */}
-      {(plan?.holidays_enabled || plan?.school_holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends || hasVisibleShared) && (
+      {(plan?.holidays_enabled || plan?.school_holidays_enabled || plan?.company_holidays_enabled || plan?.block_weekends || hasVisibleShared || visibleIcsCalendars.length > 0) && (
         <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
           <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.legend')}</span>
           <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-2.5">
@@ -114,6 +115,9 @@ function VacayPageDesktop(): React.ReactElement {
             ))}
             {plan?.school_holidays_enabled && (plan?.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday').map(cal => (
               <LegendItem key={cal.id} color={cal.color} label={cal.label || cal.region} />
+            ))}
+            {visibleIcsCalendars.map(cal => (
+              <LegendItem key={`ics-${cal.id}`} color={cal.color} label={cal.label} />
             ))}
             {plan?.company_holidays_enabled && <LegendItem color="#fde68a" label={t('vacay.companyHoliday')} />}
             {plan?.block_weekends && <LegendItem color="#e5e7eb" label={t('vacay.weekend')} />}

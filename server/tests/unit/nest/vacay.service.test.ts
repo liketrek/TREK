@@ -22,13 +22,14 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 
 import { VacayService } from '../../../src/nest/vacay/vacay.service';
+import * as vacayIcs from '../../../src/nest/vacay/vacay-ics';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { notificationsStub } from '../../helpers/notifications';
 import { createTestUnitOfWork } from '../../helpers/test-uow';
 import {
   createTestVacayPlansRepo, createTestVacayPlanMembersRepo, createTestVacayYearsRepo, createTestVacayUserYearsRepo,
-  createTestVacayUserColorsRepo, createTestVacayEntriesRepo, createTestVacayCompanyHolidaysRepo,
+  createTestVacayUserColorsRepo, createTestVacayEntriesRepo, createTestVacayIcsCalendarsRepo, createTestVacayCompanyHolidaysRepo,
   createTestVacaySharesRepo, createTestVacayUserSettingsRepo,
 } from '../../helpers/vacay-repos';
 import { createTestVacayHolidayCalendarsRepo, createTestSchoolHolidayRegionsRepo } from '../../helpers/school-holidays-repos';
@@ -104,7 +105,7 @@ beforeAll(async () => {
     await createTestVacayUserColorsRepo(testDb), await createTestVacayEntriesRepo(testDb),
     await createTestVacayCompanyHolidaysRepo(testDb), await createTestVacayHolidayCalendarsRepo(testDb),
     await createTestVacaySharesRepo(testDb), await createTestVacayUserSettingsRepo(testDb),
-    await createTestSchoolHolidayRegionsRepo(testDb),
+    await createTestSchoolHolidayRegionsRepo(testDb), await createTestVacayIcsCalendarsRepo(testDb),
     realtime, notificationsStub(), await createTestUnitOfWork(testDb),
   );
 });
@@ -146,6 +147,99 @@ async function setupUserWithPlan() {
 async function allowWeekends(planId: number) {
   await updateRows(await orm(), VacayPlans, { id: planId }, { block_weekends: 0 });
 }
+
+describe('team ICS calendar permissions', () => {
+  const url = 'https://example.com/holidays.ics';
+  const events = [{ start: '2026-12-25', end: '2026-12-26', title: 'Holiday' }];
+
+  it.each(['owner', 'member'] as const)('allows the %s to manage team subscriptions and notifies the team', async (role) => {
+    const { user: owner, plan } = await setupUserWithPlan();
+    const { user: member } = createUser(testDb);
+    await insertMember(plan.id, member.id, 'accepted');
+    const actorId = role === 'owner' ? owner.id : member.id;
+    const fetch = vi.spyOn(vacayIcs, 'fetchIcs').mockResolvedValueOnce(events);
+    try {
+      realtime.broadcastToUserMock.mockClear();
+      const added = await svc.addIcsCalendar(plan.id, actorId, url, 'Team', '#a5f3fc', 'actor-socket');
+      for (const id of [owner.id, member.id]) {
+        expect(realtime.broadcastToUserMock).toHaveBeenCalledWith(id, { type: 'vacay:settings' }, 'actor-socket');
+      }
+      expect(await svc.listIcsCalendars(plan.id, member.id)).toEqual([
+        expect.objectContaining({ id: added.id, url, label: 'Team', event_count: 1 }),
+      ]);
+      const repo = await createTestVacayIcsCalendarsRepo(testDb);
+      await repo.fetchFailed(added.id, 'Calendar unavailable');
+      expect((await svc.listIcsCalendars(plan.id, member.id))[0].last_error).toBe('Calendar unavailable');
+
+      realtime.broadcastToUserMock.mockClear();
+      await svc.updateIcsCalendar(plan.id, actorId, added.id, { label: 'Updated', color: '#fecaca' }, 'actor-socket');
+      expect((await svc.listIcsCalendars(plan.id, owner.id))[0]).toMatchObject({ label: 'Updated', color: '#fecaca', url });
+      expect((await svc.getEntries(plan.id, '2026', member.id)).icsCalendars).toEqual([
+        { id: added.id, label: 'Updated', color: '#fecaca', events },
+      ]);
+      for (const id of [owner.id, member.id]) {
+        expect(realtime.broadcastToUserMock).toHaveBeenCalledWith(id, { type: 'vacay:settings' }, 'actor-socket');
+      }
+
+      realtime.broadcastToUserMock.mockClear();
+      expect(await svc.deleteIcsCalendar(plan.id, actorId, added.id, 'actor-socket')).toBe(true);
+      expect(await svc.listIcsCalendars(plan.id, owner.id)).toEqual([]);
+      for (const id of [owner.id, member.id]) {
+        expect(realtime.broadcastToUserMock).toHaveBeenCalledWith(id, { type: 'vacay:settings' }, 'actor-socket');
+      }
+    } finally {
+      fetch.mockRestore();
+    }
+  });
+
+  it.each(['pending', 'unrelated', 'viewer', 'missing-plan'] as const)('rejects a %s caller for every subscription operation', async (role) => {
+    const { user: owner, plan } = await setupUserWithPlan();
+    const { user } = createUser(testDb);
+    if (role === 'pending') await insertMember(plan.id, user.id, 'pending');
+    if (role === 'viewer') await svc.shareCalendar(owner.id, owner.username, user.id);
+    const planId = role === 'missing-plan' ? 99999 : plan.id;
+    for (const operation of [
+      () => svc.listIcsCalendars(planId, user.id),
+      () => svc.addIcsCalendar(planId, user.id, url, 'Team', '#a5f3fc'),
+      () => svc.updateIcsCalendar(planId, user.id, 1, { label: 'Changed' }),
+      () => svc.deleteIcsCalendar(planId, user.id, 1),
+    ]) {
+      expect(await asLegacyResult<unknown>(operation())).toMatchObject({ status: 403 });
+    }
+  });
+
+  it('keeps subscription IDs scoped to the team plan', async () => {
+    const { plan } = await setupUserWithPlan();
+    const { user: member, plan: personalPlan } = await setupUserWithPlan();
+    await insertMember(plan.id, member.id, 'accepted');
+    const repo = await createTestVacayIcsCalendarsRepo(testDb);
+    const personalId = await repo.add(personalPlan.id, url, 'Personal', '#a5f3fc', JSON.stringify(events));
+
+    expect(await svc.updateIcsCalendar(plan.id, member.id, personalId, { label: 'Changed' })).toBeNull();
+    expect(await svc.deleteIcsCalendar(plan.id, member.id, personalId)).toBe(false);
+    expect((await repo.listForPlan(personalPlan.id))[0].label).toBe('Personal');
+  });
+
+  it.each(['owner', 'member'] as const)('keeps personal subscriptions separate through fusion and dissolution by the %s', async (role) => {
+    const { user: owner, plan } = await setupUserWithPlan();
+    const { user: member, plan: personalPlan } = await setupUserWithPlan();
+    const repo = await createTestVacayIcsCalendarsRepo(testDb);
+    const teamId = await repo.add(plan.id, url, 'Team', '#a5f3fc', JSON.stringify(events));
+    const personalId = await repo.add(personalPlan.id, url, 'Personal', '#fecaca', JSON.stringify(events));
+    await insertMember(plan.id, member.id, 'pending');
+    await svc.acceptInvite(member.id, plan.id, undefined);
+
+    expect(await svc.getActivePlanId(member.id)).toBe(plan.id);
+    expect((await svc.listIcsCalendars(plan.id, member.id)).map((cal) => cal.id)).toEqual([teamId]);
+    expect((await svc.getEntries(plan.id, '2026', member.id)).icsCalendars.map((cal) => cal.id)).toEqual([teamId]);
+
+    await svc.dissolvePlan(role === 'owner' ? owner.id : member.id, undefined);
+    expect(await svc.getActivePlanId(member.id)).toBe(personalPlan.id);
+    expect((await svc.listIcsCalendars(personalPlan.id, member.id)).map((cal) => cal.id)).toEqual([personalId]);
+    expect((await svc.listIcsCalendars(plan.id, owner.id)).map((cal) => cal.id)).toEqual([teamId]);
+    expect(await asLegacyResult(svc.listIcsCalendars(plan.id, member.id))).toMatchObject({ status: 403 });
+  });
+});
 
 // ── getOwnPlan ────────────────────────────────────────────────────────────────
 
@@ -319,6 +413,16 @@ describe('updatePlan', () => {
 
     const updated = await storedFields(VacayPlans, { id: plan.id }, ['holidays_enabled']) as { holidays_enabled: number };
     expect(updated.holidays_enabled).toBe(1);
+  });
+
+  it('VACAY-SVC-016a: persists and returns the ICS holiday switch', async () => {
+    const { plan } = await setupUserWithPlan();
+
+    const result = await svc.updatePlan(plan.id, { ics_holidays_enabled: false }, undefined);
+
+    const updated = await storedFields(VacayPlans, { id: plan.id }, ['ics_holidays_enabled']) as { ics_holidays_enabled: number };
+    expect(updated.ics_holidays_enabled).toBe(0);
+    expect(result.plan.ics_holidays_enabled).toBe(false);
   });
 
   it('VACAY-SVC-017: returns the updated plan object with boolean-coerced flags', async () => {
@@ -1707,10 +1811,12 @@ describe('quirk fixes', () => {
       shares: await createTestVacaySharesRepo(testDb),
       userSettings: await createTestVacayUserSettingsRepo(testDb),
       schoolHolidayRegions: await createTestSchoolHolidayRegionsRepo(testDb),
+      icsCalendars: await createTestVacayIcsCalendarsRepo(testDb),
     };
     const service = new VacayService(
       repos.plans, repos.members, repos.years, repos.userYears, repos.userColors, repos.entries,
       repos.companyHolidays, repos.holidayCalendars, repos.shares, repos.userSettings, repos.schoolHolidayRegions,
+      repos.icsCalendars,
       new RealtimeService(), notificationsStub(), await createTestUnitOfWork(testDb),
     );
     return { repos, service };

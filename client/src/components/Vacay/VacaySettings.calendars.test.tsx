@@ -189,7 +189,7 @@ describe('VacaySettings calendars', () => {
     useVacayStore.setState({ plan: buildPlan({ holidays_enabled: true }), addHolidayCalendar })
     const { container } = render(<VacaySettings onClose={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add calendar' })[0])
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
 
     fireEvent.click(screen.getByTitle('Color'))
@@ -207,7 +207,7 @@ describe('VacaySettings calendars', () => {
     await waitFor(() => expect(addHolidayCalendar).toHaveBeenCalledWith(expect.objectContaining({
       region: 'DE', label: 'Feiertage', type: 'public_holiday',
     })))
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Add calendar' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Add calendar' })[0]).toBeInTheDocument())
   })
 
   it('FE-COMP-VCYSET-008: a regional country blocks the draft until a region is chosen', async () => {
@@ -216,7 +216,7 @@ describe('VacaySettings calendars', () => {
     useVacayStore.setState({ plan: buildPlan({ holidays_enabled: true }), addHolidayCalendar })
     render(<VacaySettings onClose={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add calendar' })[0])
     await pickLoadedOption('Select country', 'Germany')
 
     await screen.findByRole('button', { name: 'Select region (required)' })
@@ -237,11 +237,11 @@ describe('VacaySettings calendars', () => {
     useVacayStore.setState({ plan: buildPlan({ school_holidays_enabled: true }), addHolidayCalendar })
     render(<VacaySettings onClose={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add calendar' })[0])
     fireEvent.click(screen.getByRole('button', { name: '✕' }))
-    expect(screen.getByRole('button', { name: 'Add calendar' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Add calendar' })[0]).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add calendar' })[0])
     // Only countries with OpenHolidays school-holiday coverage are offered.
     fireEvent.click(screen.getByRole('button', { name: 'Select country' }))
     expect(await screen.findByRole('button', { name: 'Netherlands' })).toBeInTheDocument()
@@ -350,7 +350,7 @@ describe('VacaySettings calendars', () => {
     useVacayStore.setState({ plan: buildPlan({ holidays_enabled: true }), addHolidayCalendar: vi.fn(async () => {}) })
     render(<VacaySettings onClose={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add calendar' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add calendar' })[0])
     await pickLoadedOption('Select country', 'Germany')
 
     // An empty list means "no answer yet", not "this country needs no region" (#1813).

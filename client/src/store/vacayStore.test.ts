@@ -222,6 +222,39 @@ describe('vacayStore leave-year window', () => {
 });
 
 describe('vacayStore holiday markers', () => {
+  it('adds subscribed all-day ICS events as colored, labeled day markers (DTEND exclusive)', async () => {
+    useVacayStore.setState({
+      selectedYear: 2026,
+      plan: buildPlan({ holiday_calendars: [] }),
+      icsCalendars: [{
+        id: 9, label: 'Team calendar', color: '#a5f3fc',
+        events: [{ start: '2026-12-24', end: '2026-12-26', title: 'Winter break' }],
+      }],
+    });
+
+    await useVacayStore.getState().loadHolidays(2026);
+
+    expect(markersOn('2026-12-24')).toEqual([expect.objectContaining({ name: 'Winter break', label: 'Team calendar', color: '#a5f3fc', type: 'ics' })]);
+    expect(markersOn('2026-12-25')).toHaveLength(1);
+    expect(markersOn('2026-12-26')).toHaveLength(0);
+  });
+
+  it('hides subscribed ICS markers when the plan subscription switch is off', async () => {
+    useVacayStore.setState({
+      selectedYear: 2026,
+      plan: buildPlan({ holiday_calendars: [], ics_holidays_enabled: false }),
+      icsCalendars: [{
+        id: 9, label: 'Team calendar', color: '#a5f3fc',
+        events: [{ start: '2026-12-24', end: '2026-12-25', title: 'Winter break' }],
+      }],
+    });
+
+    await useVacayStore.getState().loadHolidays(2026);
+
+    expect(markersOn('2026-12-24')).toHaveLength(0);
+    expect(useVacayStore.getState().icsCalendars).toHaveLength(1);
+  });
+
   it('FE-STORE-VCY-012: two calendars on the same day keep both markers', async () => {
     useVacayStore.setState({
       selectedYear: 2026,

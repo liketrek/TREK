@@ -145,5 +145,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': '标签',
   'vacay.noCalendars': '尚未添加假期日历',
   'vacay.noSchoolCalendars': '尚未添加学校假期日历',
+  'vacay.subscribeHolidays': '订阅假日',
+  'vacay.icsCalendarsHint': '从 ICS 地址导入全天假期事件',
+  'vacay.noIcsCalendars': '尚未订阅假期日历',
+  'vacay.icsUrl': '请输入 ICS 地址',
+  'vacay.icsLabel': '标签',
+  'vacay.removeIcsCalendar': '移除日历',
+  'vacay.icsInitialFetchHint': '正在获取并校验日历…',
+  'vacay.icsRefreshFailed': '刷新失败，继续显示上次成功获取的事件',
+  'vacay.loadingCalendars': '加载中…',
 };
 export default vacay;

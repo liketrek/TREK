@@ -151,6 +151,15 @@ const vacay: TranslationStrings = {
   'vacay.hideFromCalendar': 'Təqvimdə gizlət',
   'vacay.sharedEmpty': 'Təqvimləri birləşdirmədən bir-birinizə göstərin.',
   'vacay.sharedLegend': 'Paylaşılan (yalnız baxış)',
+  'vacay.subscribeHolidays': 'Bayramlara abunə ol',
+  'vacay.icsCalendarsHint': 'İctimai ICS ünvanından bütün günlük bayram tədbirlərini idxal et',
+  'vacay.noIcsCalendars': 'Hələ heç bir təqvimə abunə olunmayıb',
+  'vacay.icsUrl': 'ICS ünvanını daxil et',
+  'vacay.icsLabel': 'Təqvim etiketi',
+  'vacay.removeIcsCalendar': 'Təqvimi sil',
+  'vacay.icsInitialFetchHint': 'Təqvim alınır və yoxlanılır…',
+  'vacay.icsRefreshFailed': 'Yeniləmə uğursuz oldu; son uğurla alınmış tədbirlər göstərilir',
+  'vacay.loadingCalendars': 'Yüklənir…',
 };
 
 export default vacay;

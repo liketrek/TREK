@@ -147,5 +147,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Được chia sẻ (chỉ xem)',
   'vacay.publicHolidaysHint': 'Đánh dấu các ngày lễ trên lịch',
   'vacay.noCalendars': 'Chưa thêm lịch ngày lễ nào',
+  'vacay.subscribeHolidays': 'Đăng ký ngày lễ',
+  'vacay.icsCalendarsHint': 'Nhập các sự kiện ngày lễ cả ngày từ URL ICS công khai',
+  'vacay.noIcsCalendars': 'Chưa đăng ký lịch nào',
+  'vacay.icsUrl': 'Nhập địa chỉ ICS',
+  'vacay.icsLabel': 'Nhãn lịch',
+  'vacay.removeIcsCalendar': 'Xóa lịch',
+  'vacay.icsInitialFetchHint': 'Đang tải và kiểm tra lịch…',
+  'vacay.icsRefreshFailed': 'Cập nhật thất bại; đang hiển thị các sự kiện được tải thành công gần nhất',
+  'vacay.loadingCalendars': 'Đang tải…',
 };
 export default vacay;

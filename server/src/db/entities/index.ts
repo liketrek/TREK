@@ -154,6 +154,7 @@ import { UsersSchema } from './Users.entity';
 import { VacayCompanyHolidaysSchema } from './VacayCompanyHolidays.entity';
 import { VacayEntriesSchema } from './VacayEntries.entity';
 import { VacayHolidayCalendarsSchema } from './VacayHolidayCalendars.entity';
+import { VacayIcsCalendarsSchema } from './VacayIcsCalendars.entity';
 import { VacayPlanMembersSchema } from './VacayPlanMembers.entity';
 import { VacayPlansSchema } from './VacayPlans.entity';
 import { VacaySharesSchema } from './VacayShares.entity';
@@ -323,6 +324,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   VacayCompanyHolidaysSchema,
   VacayEntriesSchema,
   VacayHolidayCalendarsSchema,
+  VacayIcsCalendarsSchema,
   VacayPlanMembersSchema,
   VacayPlansSchema,
   VacaySharesSchema,

@@ -5,6 +5,7 @@ import { Users } from './Users.entity';
 import { VacayCompanyHolidays } from './VacayCompanyHolidays.entity';
 import { VacayEntries } from './VacayEntries.entity';
 import { VacayHolidayCalendars } from './VacayHolidayCalendars.entity';
+import { VacayIcsCalendars } from './VacayIcsCalendars.entity';
 import { VacayPlanMembers } from './VacayPlanMembers.entity';
 import { VacayUserColors } from './VacayUserColors.entity';
 import { VacayUserYears } from './VacayUserYears.entity';
@@ -24,9 +25,11 @@ export class VacayPlans {
   created_at?: string | null;
   weekend_days?: string | null = '0,6';
   week_start: number & Opt = 1;
+  ics_holidays_enabled: number & Opt = 1;
   vacay_company_holidays_collection = new Collection<VacayCompanyHolidays>(this);
   vacay_entries_collection = new Collection<VacayEntries>(this);
   vacay_holiday_calendars_collection = new Collection<VacayHolidayCalendars>(this);
+  vacay_ics_calendars_collection = new Collection<VacayIcsCalendars>(this);
   vacay_plan_members_collection = new Collection<VacayPlanMembers>(this);
   vacay_user_colors_collection = new Collection<VacayUserColors>(this);
   vacay_user_years_collection = new Collection<VacayUserYears>(this);
@@ -50,9 +53,11 @@ export const VacayPlansSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     weekend_days: p.text().nullable(),
     week_start: p.integer().default(1),
+    ics_holidays_enabled: p.integer().default(1),
     vacay_company_holidays_collection: () => p.oneToMany(VacayCompanyHolidays).mappedBy('plan').hidden(),
     vacay_entries_collection: () => p.oneToMany(VacayEntries).mappedBy('plan').hidden(),
     vacay_holiday_calendars_collection: () => p.oneToMany(VacayHolidayCalendars).mappedBy('plan').hidden(),
+    vacay_ics_calendars_collection: () => p.oneToMany(VacayIcsCalendars).mappedBy('plan').hidden(),
     vacay_plan_members_collection: () => p.oneToMany(VacayPlanMembers).mappedBy('plan').hidden(),
     vacay_user_colors_collection: () => p.oneToMany(VacayUserColors).mappedBy('plan').hidden(),
     vacay_user_years_collection: () => p.oneToMany(VacayUserYears).mappedBy('plan').hidden(),

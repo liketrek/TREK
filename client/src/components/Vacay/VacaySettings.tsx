@@ -7,6 +7,8 @@ import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { useSchoolHolidayCountries } from './useSchoolHolidayCountries'
 import type { VacayHolidayCalendar } from '../../types'
+import VacayIcsCalendarsSettings from './VacayIcsCalendarsSettings'
+import { useVacayCalendarColorPicker } from './calendarColorPickerRegistry'
 import {
   canAddHolidayCalendar, monthDayCap, parseHolidayRegion, useLeaveYear, useRegionOptions, useVacaySettings,
 } from './useVacaySettings'
@@ -191,6 +193,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           </div>
         )}
       </div>
+
+      <VacayIcsCalendarsSettings />
 
       {/* School holidays — sits on the right, directly under Public holidays */}
       <div>
@@ -423,20 +427,20 @@ function CalendarRow({ cal, countries, calendarType, onUpdate, onDelete }: {
   useEffect(() => { setLocalLabel(cal.label || '') }, [cal.label])
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  const { open: showColorPicker, toggle: toggleColorPicker, close: closeColorPicker, pickerAttr } = useVacayCalendarColorPicker()
 
   return (
     <div className="flex gap-3 items-start p-3 rounded-xl" style={{ background: 'var(--vg-surf)', border: '1px solid var(--vg-line)' }}>
-      <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div data-vacay-color-picker={pickerAttr} style={{ position: 'relative', flexShrink: 0 }}>
         <button type="button"
-          onClick={() => setShowColorPicker(!showColorPicker)}
+          onClick={toggleColorPicker}
           style={{ width: 28, height: 28, borderRadius: 8, background: localColor, border: '2px solid var(--border-primary)', cursor: 'pointer' }}
           title={t('vacay.calendarColor')}
         />
         {showColorPicker && (
           <div style={{ position: 'absolute', top: 34, insetInlineStart: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
             {PRESET_COLORS.map(c => (
-              <button type="button" key={c} onClick={() => { setLocalColor(c); setShowColorPicker(false); if (c !== cal.color) onUpdate({ color: c }) }}
+              <button type="button" key={c} onClick={() => { setLocalColor(c); closeColorPicker(); if (c !== cal.color) onUpdate({ color: c }) }}
                 style={{ width: 24, height: 24, borderRadius: 6, background: c, border: localColor === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
             ))}
           </div>
@@ -506,20 +510,20 @@ function AddCalendarForm({ countries, calendarType, onAdd, onCancel, defaultColo
   const canAdd = canAddHolidayCalendar(selectedCountry, region, regionOptions)
 
   const PRESET_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af', '#6366f1', '#ef4444', '#22c55e', '#3b82f6']
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  const { open: showColorPicker, toggle: toggleColorPicker, close: closeColorPicker, pickerAttr } = useVacayCalendarColorPicker()
 
   return (
     <div className="flex gap-3 items-start p-3 rounded-xl border border-dashed" style={{ borderColor: 'var(--vg-line2)', background: 'var(--vg-surf)' }}>
-      <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div data-vacay-color-picker={pickerAttr} style={{ position: 'relative', flexShrink: 0 }}>
         <button type="button"
-          onClick={() => setShowColorPicker(!showColorPicker)}
+          onClick={toggleColorPicker}
           style={{ width: 28, height: 28, borderRadius: 8, background: color, border: '2px solid var(--border-primary)', cursor: 'pointer' }}
           title={t('vacay.calendarColor')}
         />
         {showColorPicker && (
           <div style={{ position: 'absolute', top: 34, insetInlineStart: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
             {PRESET_COLORS.map(c => (
-              <button type="button" key={c} onClick={() => { setColor(c); setShowColorPicker(false) }}
+              <button type="button" key={c} onClick={() => { setColor(c); closeColorPicker() }}
                 style={{ width: 24, height: 24, borderRadius: 6, background: c, border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
             ))}
           </div>

@@ -148,5 +148,14 @@ const vacay: TranslationStrings = {
   'vacay.hideFromCalendar': 'Peida kalendrist',
   'vacay.sharedEmpty': 'Näidake teineteisele oma kalendreid neid ühendamata.',
   'vacay.sharedLegend': 'Jagatud (ainult vaatamiseks)',
+  'vacay.subscribeHolidays': 'Telli pühad',
+  'vacay.icsCalendarsHint': 'Impordi terve päeva pühadesündmused avalikult ICS-aadressilt',
+  'vacay.noIcsCalendars': 'Ühtegi kalendrit pole veel tellitud',
+  'vacay.icsUrl': 'Sisesta ICS-aadress',
+  'vacay.icsLabel': 'Kalendri nimetus',
+  'vacay.removeIcsCalendar': 'Eemalda kalender',
+  'vacay.icsInitialFetchHint': 'Kalendri laadimine ja kontrollimine…',
+  'vacay.icsRefreshFailed': 'Värskendamine ebaõnnestus; kuvatakse viimati edukalt laaditud sündmused',
+  'vacay.loadingCalendars': 'Laadimine…',
 };
 export default vacay;

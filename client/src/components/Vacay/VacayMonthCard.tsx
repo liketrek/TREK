@@ -105,7 +105,7 @@ export default function VacayMonthCard({
           const weekend = weekendDays.includes(dayOfWeek)
           const rawHolidayMarkers = holidays[dateStr]
           const holidayMarkers = Array.isArray(rawHolidayMarkers) ? rawHolidayMarkers : rawHolidayMarkers ? [rawHolidayMarkers] : []
-          const publicHoliday = holidayMarkers.find(h => (h.type ?? 'public_holiday') === 'public_holiday')
+          const publicHoliday = holidayMarkers.find(h => (h.type ?? 'public_holiday') === 'public_holiday' || h.type === 'ics')
           const schoolHolidayMarkers = holidayMarkers.filter(h => h.type === 'school_holiday')
           const isCompany = companyHolidaysEnabled && companyHolidaySet.has(dateStr)
           const isHalfCompany = companyHolidaysEnabled && !!companyHalfSet?.has(dateStr)

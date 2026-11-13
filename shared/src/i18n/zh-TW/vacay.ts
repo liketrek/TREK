@@ -145,5 +145,14 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': '標籤',
   'vacay.noCalendars': '尚未新增假日日曆',
   'vacay.noSchoolCalendars': '尚未新增學校假期日曆',
+  'vacay.subscribeHolidays': '訂閱假日',
+  'vacay.icsCalendarsHint': '從公開 ICS 網址匯入全天假日活動',
+  'vacay.noIcsCalendars': '尚未訂閱假日日曆',
+  'vacay.icsUrl': '請輸入 ICS 網址',
+  'vacay.icsLabel': '日曆標籤',
+  'vacay.removeIcsCalendar': '移除日曆',
+  'vacay.icsInitialFetchHint': '正在取得並驗證日曆…',
+  'vacay.icsRefreshFailed': '更新失敗，繼續顯示上次成功取得的活動',
+  'vacay.loadingCalendars': '載入中…',
 };
 export default vacay;

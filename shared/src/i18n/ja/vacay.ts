@@ -146,5 +146,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': '共有（閲覧のみ）',
   'vacay.publicHolidaysHint': '祝日をカレンダーに表示します',
   'vacay.noCalendars': '休日カレンダーはまだ追加されていません',
+  'vacay.subscribeHolidays': '休日を購読',
+  'vacay.icsCalendarsHint': '公開 ICS URL から終日の休日イベントを取り込みます',
+  'vacay.noIcsCalendars': '購読中のカレンダーはまだありません',
+  'vacay.icsUrl': 'ICS の URL を入力してください',
+  'vacay.icsLabel': 'カレンダーのラベル',
+  'vacay.removeIcsCalendar': 'カレンダーを削除',
+  'vacay.icsInitialFetchHint': 'カレンダーを取得して検証しています…',
+  'vacay.icsRefreshFailed': '更新に失敗したため、前回正常に取得したイベントを表示しています',
+  'vacay.loadingCalendars': '読み込み中…',
 };
 export default vacay;

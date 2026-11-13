@@ -160,6 +160,7 @@ import type { UsersTable } from './Users.table';
 import type { VacayCompanyHolidaysTable } from './VacayCompanyHolidays.table';
 import type { VacayEntriesTable } from './VacayEntries.table';
 import type { VacayHolidayCalendarsTable } from './VacayHolidayCalendars.table';
+import type { VacayIcsCalendarsTable } from './VacayIcsCalendars.table';
 import type { VacayPlanMembersTable } from './VacayPlanMembers.table';
 import type { VacayPlansTable } from './VacayPlans.table';
 import type { VacaySharesTable } from './VacayShares.table';
@@ -335,6 +336,7 @@ export interface DB {
   vacay_company_holidays: VacayCompanyHolidaysTable;
   vacay_entries: VacayEntriesTable;
   vacay_holiday_calendars: VacayHolidayCalendarsTable;
+  vacay_ics_calendars: VacayIcsCalendarsTable;
   vacay_plan_members: VacayPlanMembersTable;
   vacay_plans: VacayPlansTable;
   vacay_shares: VacaySharesTable;

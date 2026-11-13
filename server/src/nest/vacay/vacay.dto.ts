@@ -17,6 +17,8 @@ import {
   vacayUpdatePlanRequestSchema,
   vacayUpdateStatsRequestSchema,
   vacayYearSettingsRequestSchema,
+  vacayIcsCalendarRequestSchema,
+  vacayIcsCalendarUpdateRequestSchema,
 } from '@trek/shared';
 
 import { createZodDto } from 'nestjs-zod';
@@ -34,3 +36,5 @@ export class VacayUpdateStatsDto extends createZodDto(vacayUpdateStatsRequestSch
 export class VacayShareDto extends createZodDto(vacayShareRequestSchema) {}
 export class VacayYearSettingsDto extends createZodDto(vacayYearSettingsRequestSchema) {}
 export class VacayShareUpdateDto extends createZodDto(vacayShareUpdateRequestSchema) {}
+export class VacayIcsCalendarDto extends createZodDto(vacayIcsCalendarRequestSchema) {}
+export class VacayIcsCalendarUpdateDto extends createZodDto(vacayIcsCalendarUpdateRequestSchema) {}

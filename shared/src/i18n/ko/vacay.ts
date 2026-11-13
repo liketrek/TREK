@@ -146,5 +146,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': '공유됨 (보기 전용)',
   'vacay.publicHolidaysHint': '공휴일을 캘린더에 표시합니다',
   'vacay.noCalendars': '추가된 공휴일 캘린더가 아직 없습니다',
+  'vacay.subscribeHolidays': '휴일 구독',
+  'vacay.icsCalendarsHint': '공개 ICS URL에서 종일 휴일 이벤트를 가져옵니다',
+  'vacay.noIcsCalendars': '아직 구독한 캘린더가 없습니다',
+  'vacay.icsUrl': 'ICS 주소를 입력하세요',
+  'vacay.icsLabel': '캘린더 레이블',
+  'vacay.removeIcsCalendar': '캘린더 제거',
+  'vacay.icsInitialFetchHint': '캘린더를 가져와 확인하는 중…',
+  'vacay.icsRefreshFailed': '갱신에 실패하여 마지막으로 가져온 이벤트를 표시합니다',
+  'vacay.loadingCalendars': '불러오는 중…',
 };
 export default vacay;

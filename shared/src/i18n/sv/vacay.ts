@@ -147,5 +147,14 @@ const vacay: TranslationStrings = {
   'vacay.sharedLegend': 'Delad (endast visning)',
   'vacay.publicHolidaysHint': 'Markera helgdagar i kalendern',
   'vacay.noCalendars': 'Inga helgdagskalendrar har lagts till än',
+  'vacay.subscribeHolidays': 'Prenumerera på helgdagar',
+  'vacay.icsCalendarsHint': 'Importera heldagshändelser för helgdagar från en offentlig ICS-URL',
+  'vacay.noIcsCalendars': 'Inga kalenderprenumerationer än',
+  'vacay.icsUrl': 'Ange ICS-adressen',
+  'vacay.icsLabel': 'Kalenderetikett',
+  'vacay.removeIcsCalendar': 'Ta bort kalender',
+  'vacay.icsInitialFetchHint': 'Hämtar och validerar kalendern…',
+  'vacay.icsRefreshFailed': 'Uppdateringen misslyckades; de senast hämtade händelserna visas',
+  'vacay.loadingCalendars': 'Laddar…',
 };
 export default vacay;

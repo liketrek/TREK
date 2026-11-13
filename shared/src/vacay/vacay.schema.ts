@@ -24,6 +24,7 @@ const open = z.record(z.string(), z.unknown());
 export const vacayUpdatePlanRequestSchema = z.object({
   block_weekends: z.boolean().optional(),
   holidays_enabled: z.boolean().optional(),
+  ics_holidays_enabled: z.boolean().optional(),
   holidays_region: z.string().nullable().optional(),
   school_holidays_enabled: z.boolean().optional(),
   company_holidays_enabled: z.boolean().optional(),
@@ -251,8 +252,57 @@ export const vacayEntriesResponseSchema = z.object({
       fraction: z.number(),
     }),
   ),
+  icsCalendars: z
+    .array(
+      z.object({
+        id: z.number(),
+        label: z.string(),
+        color: z.string(),
+        events: z.array(z.object({ start: z.string(), end: z.string(), title: z.string() })),
+      }),
+    )
+    .default([]),
 });
 export type VacayEntriesResponse = z.infer<typeof vacayEntriesResponseSchema>;
+
+export const vacayIcsCalendarRequestSchema = z.object({
+  url: z.string().url().max(2048),
+  label: z.string().trim().min(1).max(80),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
+export const vacayIcsCalendarUpdateRequestSchema = z
+  .object({
+    label: z.string().trim().min(1).max(80).optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+  })
+  .refine((value) => value.label !== undefined || value.color !== undefined);
+export const vacayIcsCalendarsResponseSchema = z.object({
+  calendars: z.array(
+    z.object({
+      id: z.number(),
+      label: z.string(),
+      color: z.string(),
+      url: z.string().optional(),
+      last_fetched_at: z.union([z.string(), z.date()]).nullable(),
+      last_error: z.string().nullable(),
+      event_count: z.number(),
+    }),
+  ),
+});
+export const vacayIcsCalendarResponseSchema = z.object({
+  calendar: z.object({
+    id: z.number(),
+    label: z.string(),
+    color: z.string(),
+    url: z.string().optional(),
+    last_fetched_at: z.union([z.string(), z.date()]).nullable(),
+    last_error: z.string().nullable(),
+    event_count: z.number(),
+  }),
+});
 
 /** POST entries/toggle: what the click did to the day. */
 export const vacayToggleEntryResponseSchema = z.object({

@@ -478,6 +478,7 @@ export interface VacayHolidayCalendar {
 export interface VacayPlan {
   id: number
   holidays_enabled: boolean
+  ics_holidays_enabled?: boolean
   school_holidays_enabled?: boolean
   holidays_region: string | null
   holiday_calendars: VacayHolidayCalendar[]
@@ -554,8 +555,12 @@ export interface HolidayInfo {
   localName: string
   color: string
   label: string | null
-  type?: 'public_holiday' | 'school_holiday'
+  type?: 'public_holiday' | 'school_holiday' | 'ics'
 }
+
+export interface VacayIcsEvent { start: string; end: string; title: string }
+export interface VacayIcsCalendar { id: number; label: string; color: string; events: VacayIcsEvent[] }
+export interface VacayIcsCalendarSettings { id: number; label: string; color: string; url?: string; last_fetched_at: string | null; last_error: string | null; event_count: number }
 
 export interface HolidaysMap {
   [date: string]: HolidayInfo | HolidayInfo[]

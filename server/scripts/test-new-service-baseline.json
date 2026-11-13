@@ -168,7 +168,7 @@
     "tests/unit/nest/trip-members.service.test.ts": 6,
     "tests/unit/nest/trip-membership/trip-membership.service.test.ts": 1,
     "tests/unit/nest/trip-read-model.service.test.ts": 31,
-    "tests/unit/nest/trips.service.test.ts": 38,
+    "tests/unit/nest/trips.service.test.ts": 37,
     "tests/unit/nest/unified-memories.service.test.ts": 3,
     "tests/unit/nest/unsplash/unsplash.service.test.ts": 1,
     "tests/unit/nest/user-cleanup.service.test.ts": 8,
