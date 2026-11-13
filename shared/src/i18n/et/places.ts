@@ -92,6 +92,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Pikkuskraad (nt 2.3522)',
   'places.formLatLabel': 'Laiuskraad',
   'places.formLngLabel': 'Pikkuskraad',
+  'places.noCoordinates': 'Koordinaadid puuduvad, seega pole kaardil',
+  'places.noCoordinatesHint': 'Muuda kohta ja vali see otsingust või sisesta laius- ja pikkuskraad.',
+  'places.noCoordinatesFormHint':
+    'Sellel aadressil pole veel koordinaate, seega koht kaardile ei ilmu. Vali see ülalt otsingust või sisesta laius- ja pikkuskraad.',
   'places.formCategory': 'Kategooria',
   'places.noCategory': 'Kategooriata',
   'places.newCategory': 'Uus kategooria',

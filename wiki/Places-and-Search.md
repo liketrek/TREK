@@ -21,7 +21,7 @@ The right column of the Plan tab lists every place of the trip. Its head band ha
 
 With a day open and **Planned** chosen, the list shows only that day's places, and a chip says **Showing the open day only**. Its **X** (*Show the whole trip*) closes the day. See [Trip Planner Overview](Trip-Planner-Overview#layout).
 
-Each row shows the place's photo or category tile, a short stroke in the track's colour for an imported track, the category icon, the name, the average member rating, and a line with the description or the address. Click a row to open the [place inspector](#the-place-inspector), or drag it onto a day. While a day is open, a place that is not on it yet shows a **+** (*+ Day*) that puts it on that day.
+Each row shows the place's photo or category tile, a short stroke in the track's colour for an imported track, the category icon, the name, the average member rating, and a line with the description or the address. A place with an address but no coordinates carries a crossed-out pin beside its name (*No coordinates, so not on the map*), on the phone too. Click a row to open the [place inspector](#the-place-inspector), or drag it onto a day. While a day is open, a place that is not on it yet shows a **+** (*+ Day*) that puts it on that day.
 
 The **…** at the end of a row (*More options*) offers what a right-click offers: **Edit**, **+ Day** while a day is open, **Open Website**, **Google Maps**, **Save to Collection** with the [Collections](Collections) addon, and **Delete**.
 
@@ -71,7 +71,7 @@ Click **Select** (the tick next to the search field) to switch the list into sel
 |---|---|
 | Name | Required. Typed into the head band. |
 | Category | Pick one, **No Category**, or create a new one with the **+** (a new category starts with the colour `#6366f1` and the `MapPin` icon). |
-| Address | Free text. |
+| Address | Free text. Typing an address does not place the pin: without a pick from the search, a pasted link, coordinates or a point on the map the place has no coordinates and does not appear on the map. The form says so under the field while that is the case. |
 | Latitude / Longitude | Decimal degrees. See [Entering coordinates manually](#entering-coordinates-manually). |
 | Start / End | Only when you edit the place from a day: the time of this visit. |
 | Notes for this day | Only when you edit the place from a day: a note for this visit alone. It shows under the place in the day plan. |
@@ -275,7 +275,7 @@ Click a place in the places column, in a day, or on the map, and its inspector o
 
 ![The place inspector over the map: the photo, name, address, category and coordinates in its head, then the rating, the notes, the stay booked there under Bookings and the files, with Add to Day, Navigation, Save to Collection, Delete and Edit at its foot](assets/PlaceInspector.png)
 
-- **The head band** shows the photo (a click opens it in a gallery, see [The photo gallery](#the-photo-gallery)), with a green ring while the place is open and a red one while it is closed, the name (double-click it to rename the place), the address on one line with the full address in a tooltip, and pills: **Open** or **Closed**, the category, the time of the visit, the Google rating, the phone number to call, the e-mail address, and the coordinates. The chevron (**Collapse**) folds the inspector to a slim bar with the photo and the name, so the place stays selected and its marker highlighted while you pan the map; **Expand** unfolds it again, and the next place you pick opens in full. **X** closes the inspector and deselects the place.
+- **The head band** shows the photo (a click opens it in a gallery, see [The photo gallery](#the-photo-gallery)), with a green ring while the place is open and a red one while it is closed, the name (double-click it to rename the place), the address on one line with the full address in a tooltip, and pills: **Open** or **Closed**, the category, the time of the visit, the Google rating, the phone number to call, the e-mail address, and the coordinates. A place with an address but no coordinates shows **No coordinates, so not on the map** instead, with a tooltip on how to fix it. The chevron (**Collapse**) folds the inspector to a slim bar with the photo and the name, so the place stays selected and its marker highlighted while you pan the map; **Expand** unfolds it again, and the next place you pick opens in full. **X** closes the inspector and deselects the place.
 - **Rating**: every member's vote, see [Rating a place](#rating-a-place).
 - **Description**, **Notes** and **Notes for this day**, rendered as Markdown.
 - **Bookings** pinned to this stop, as small cards with the status, date, time and booking code. For a hotel, the stays booked there are listed too (see [Accommodations](Accommodations)). Click a card (*Open booking*) to open the booking's detail. Next to them, **Participants** says who joins this stop.

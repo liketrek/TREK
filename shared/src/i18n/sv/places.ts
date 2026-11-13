@@ -91,6 +91,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitud (t.ex. 2.3522)',
   'places.formLatLabel': 'Latitud',
   'places.formLngLabel': 'Longitud',
+  'places.noCoordinates': 'Inga koordinater, så inte på kartan',
+  'places.noCoordinatesHint': 'Redigera platsen och välj den i sökningen, eller ange latitud och longitud.',
+  'places.noCoordinatesFormHint':
+    'Den här adressen har inga koordinater än, så platsen syns inte på kartan. Välj den i sökningen ovan eller ange latitud och longitud.',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Ingen kategori',
   'places.newCategory': 'Ny kategori',

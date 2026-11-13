@@ -93,6 +93,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Boylam (ör. 2,3522)',
   'places.formLatLabel': 'Enlem',
   'places.formLngLabel': 'Boylam',
+  'places.noCoordinates': 'Koordinat yok, bu yüzden haritada değil',
+  'places.noCoordinatesHint': 'Yeri düzenle ve aramadan seç ya da enlem ve boylamını gir.',
+  'places.noCoordinatesFormHint':
+    'Bu adresin henüz koordinatı yok, bu yüzden yer haritada görünmeyecek. Yukarıdaki aramadan seç ya da enlem ve boylamı gir.',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Kategori Yok',
   'places.newCategory': 'Yeni kategori',

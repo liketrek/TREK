@@ -91,6 +91,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitudine (es. 2.3522)',
   'places.formLatLabel': 'Latitudine',
   'places.formLngLabel': 'Longitudine',
+  'places.noCoordinates': 'Nessuna coordinata, quindi non è sulla mappa',
+  'places.noCoordinatesHint': 'Modifica il luogo e sceglilo dalla ricerca, oppure inserisci latitudine e longitudine.',
+  'places.noCoordinatesFormHint':
+    'Questo indirizzo non ha ancora coordinate, quindi il luogo non comparirà sulla mappa. Sceglilo dalla ricerca qui sopra oppure inserisci latitudine e longitudine.',
   'places.formCategory': 'Categoria',
   'places.noCategory': 'Nessuna categoria',
   'places.newCategory': 'Nuova categoria',

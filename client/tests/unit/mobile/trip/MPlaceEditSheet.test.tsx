@@ -11,7 +11,7 @@ import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-048, plus the 009b, 025b and 029b variants
+// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-049, plus the 009b, 025b and 029b variants
 // planner.t echoes the key, so every label/placeholder is asserted as its key.
 
 const CATEGORIES = [
@@ -717,5 +717,17 @@ describe('MPlaceEditSheet', () => {
     await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledTimes(1))
     expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-043' }))
     expect(planner.handleSavePlace).not.toHaveBeenCalledWith(expect.objectContaining({ google_place_id: expect.anything() }))
+  })
+
+  it('FE-MOB-PLEDIT-049: a typed address without coordinates warns that the place will not be on the map (#2837)', () => {
+    setup()
+    expect(screen.queryByText('places.noCoordinatesFormHint')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('places.formAddressPlaceholder'), { target: { value: '1-36-3 Asakusa' } })
+    expect(screen.getByText('places.noCoordinatesFormHint')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('places.formLat'), { target: { value: '35.71' } })
+    fireEvent.change(screen.getByPlaceholderText('places.formLng'), { target: { value: '139.79' } })
+    expect(screen.queryByText('places.noCoordinatesFormHint')).not.toBeInTheDocument()
   })
 })

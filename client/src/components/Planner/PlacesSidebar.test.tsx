@@ -1,4 +1,4 @@
-// FE-COMP-PLACES-001 to FE-COMP-PLACES-015 + FE-PLANNER-SIDEBAR-016 to 067
+// FE-COMP-PLACES-001 to FE-COMP-PLACES-015 + FE-PLANNER-SIDEBAR-016 to 068
 import { render, screen, fireEvent, waitFor, act, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -1166,5 +1166,18 @@ describe('Category filter: places without a category', () => {
     render(<PlacesSidebar {...defaultProps} places={[withCat]} categories={[cat]} />);
     await openCategories(user);
     expect(screen.queryByRole('button', { name: 'No Category' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Places without coordinates', () => {
+  it('FE-PLANNER-SIDEBAR-068: a typed address without coordinates is marked as not on the map (#2837)', () => {
+    const typed = buildPlace({ name: 'Typed Cafe', address: 'Rue de Rivoli 1, Paris', lat: null, lng: null });
+    const picked = buildPlace({ name: 'Picked Cafe', address: 'Rue de Rivoli 2, Paris' });
+    const note = buildPlace({ name: 'Loose Idea', address: null, lat: null, lng: null });
+    render(<PlacesSidebar {...defaultProps} places={[typed, picked, note]} />);
+
+    const marks = screen.getAllByRole('img', { name: 'No coordinates, so not on the map' });
+    expect(marks).toHaveLength(1);
+    expect(marks[0].closest('[data-place-id]')).toHaveAttribute('data-place-id', String(typed.id));
   });
 });

@@ -91,6 +91,11 @@ const places: TranslationStrings = {
   'places.formLng': 'Längengrad (z.B. 2.3522)',
   'places.formLatLabel': 'Breitengrad',
   'places.formLngLabel': 'Längengrad',
+  'places.noCoordinates': 'Keine Koordinaten, daher nicht auf der Karte',
+  'places.noCoordinatesHint':
+    'Bearbeite den Ort und wähle ihn in der Suche aus, oder trage Breiten- und Längengrad ein.',
+  'places.noCoordinatesFormHint':
+    'Diese Adresse hat noch keine Koordinaten, der Ort erscheint also nicht auf der Karte. Wähle ihn oben in der Suche aus oder trage Breiten- und Längengrad ein.',
   'places.formCategory': 'Kategorie',
   'places.noCategory': 'Keine Kategorie',
   'places.newCategory': 'Neue Kategorie',

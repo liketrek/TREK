@@ -82,6 +82,10 @@ const places: TranslationStrings = {
   'places.formLng': '经度（如 2.3522）',
   'places.formLatLabel': '纬度',
   'places.formLngLabel': '经度',
+  'places.noCoordinates': '没有坐标，因此不在地图上',
+  'places.noCoordinatesHint': '编辑该地点并从搜索中选择，或输入纬度和经度。',
+  'places.noCoordinatesFormHint':
+    '此地址还没有坐标，因此该地点不会显示在地图上。请从上方搜索中选择，或输入纬度和经度。',
   'places.formCategory': '分类',
   'places.noCategory': '无分类',
   'places.newCategory': '新建分类',

@@ -1871,3 +1871,16 @@ describe('PlaceInspector folded to its head (#3039)', () => {
     expect(screen.queryByRole('button', { name: 'Collapse' })).toBeNull();
   });
 });
+
+// ── An address without coordinates (#2837) ─────────────────────────────────────
+
+describe('PlaceInspector without coordinates (#2837)', () => {
+  it('FE-PLANNER-INSPECTOR-114: a typed address without coordinates says the place is not on the map', () => {
+    const typed = buildPlace({ id: 3, name: 'Corner Cafe', address: 'Rue de Rivoli 1, Paris', lat: null, lng: null });
+    const { rerender } = render(<PlaceInspector {...defaultProps} place={typed} />);
+    expect(screen.getByText('No coordinates, so not on the map')).toBeInTheDocument();
+
+    rerender(<PlaceInspector {...defaultProps} />);
+    expect(screen.queryByText('No coordinates, so not on the map')).toBeNull();
+  });
+});

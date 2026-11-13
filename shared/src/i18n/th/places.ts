@@ -77,6 +77,10 @@ const places: TranslationStrings = {
   'places.formLng': 'ลองจิจูด (เช่น 2.3522)',
   'places.formLatLabel': 'ละติจูด',
   'places.formLngLabel': 'ลองจิจูด',
+  'places.noCoordinates': 'ไม่มีพิกัด จึงไม่แสดงบนแผนที่',
+  'places.noCoordinatesHint': 'แก้ไขสถานที่แล้วเลือกจากการค้นหา หรือใส่ละติจูดและลองจิจูด',
+  'places.noCoordinatesFormHint':
+    'ที่อยู่นี้ยังไม่มีพิกัด สถานที่จึงจะไม่แสดงบนแผนที่ เลือกจากการค้นหาด้านบน หรือใส่ละติจูดและลองจิจูด',
   'places.formCategory': 'หมวดหมู่',
   'places.noCategory': 'ไม่มีหมวดหมู่',
   'places.newCategory': 'หมวดหมู่ใหม่',

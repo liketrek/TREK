@@ -107,6 +107,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Долгота (напр. 2.3522)',
   'places.formLatLabel': 'Широта',
   'places.formLngLabel': 'Долгота',
+  'places.noCoordinates': 'Нет координат, поэтому не на карте',
+  'places.noCoordinatesHint': 'Измени место и выбери его в поиске или введи широту и долготу.',
+  'places.noCoordinatesFormHint':
+    'У этого адреса пока нет координат, поэтому место не появится на карте. Выбери его в поиске выше или введи широту и долготу.',
   'places.formCategory': 'Категория',
   'places.noCategory': 'Без категории',
   'places.newCategory': 'Новая категория',

@@ -1,4 +1,4 @@
-import { Banknote, ChevronDown, ChevronUp, Mail, MapPin, Phone, Star, X } from 'lucide-react';
+import { Banknote, ChevronDown, ChevronUp, Mail, MapPin, MapPinOff, Phone, Star, X } from 'lucide-react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 
 import { useTranslation } from '../../i18n';
@@ -9,6 +9,7 @@ import { NEUTRAL_TINT, fs } from '../shared/DialogShell';
 import PlaceAvatar from '../shared/PlaceAvatar';
 import { Tooltip } from '../shared/Tooltip';
 import PlacePhotoGallery from './PlacePhotoGallery';
+import { addressWithoutCoordinates } from './placeCoordinates';
 import { SoftPill, TimePill, tintOf } from './planParts';
 
 /** The round buttons at the end of the band. */
@@ -81,6 +82,8 @@ export function InspectorHead({
   const { t, locale, language } = useTranslation();
   const ring = openNow === true ? 'bg-success' : openNow === false ? 'bg-danger' : 'bg-surface-card shadow-sm';
   const hasCoords = !!(place.lat && place.lng);
+  // A typed address that never got coordinates: the place has no marker, and says why (#2837).
+  const offMap = addressWithoutCoordinates(place);
   const hasPills =
     openNow !== null ||
     !!category ||
@@ -90,7 +93,8 @@ export function InspectorHead({
     place.source === 'dawarich' ||
     !!phone ||
     !!email ||
-    hasCoords;
+    hasCoords ||
+    offMap;
   return (
     <header
       className={`flex-none px-4 ${collapsed ? 'py-2.5' : 'border-b border-edge-faint pb-3 pt-3.5'}`}
@@ -144,6 +148,15 @@ export function InspectorHead({
 
           {!collapsed && hasPills && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {offMap && (
+                <Tooltip label={t('places.noCoordinatesHint')}>
+                  <span className="inline-flex min-w-0">
+                    <SoftPill tone="warning" icon={<MapPinOff size={11} strokeWidth={2} className="flex-none" />}>
+                      {t('places.noCoordinates')}
+                    </SoftPill>
+                  </span>
+                </Tooltip>
+              )}
               {openNow !== null && (
                 <SoftPill
                   tone={openNow ? 'success' : 'danger'}
