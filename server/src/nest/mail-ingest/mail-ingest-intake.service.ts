@@ -16,7 +16,7 @@ import type { MailIngestTransport } from '@trek/shared';
 import { createHash } from 'node:crypto';
 
 /** Why a mail was not taken in. A transport answers each the way its protocol does (a 550, a 404, a 413). */
-type MailIntakeRefusal =
+export type MailIntakeRefusal =
   | 'unavailable'
   | 'too_large'
   | 'not_a_mail'

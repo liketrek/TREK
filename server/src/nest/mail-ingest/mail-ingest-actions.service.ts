@@ -11,7 +11,7 @@ import type {
   MailIngestCandidatesRepository,
 } from '../../db/repositories/MailIngestCandidates.repository';
 import type { MailIngestMessagesRepository } from '../../db/repositories/MailIngestMessages.repository';
-import { dbNow, parseDbTimestamp } from '../../db/types';
+import { dbNow, parseDbTimestamp, type DbTimestamp } from '../../db/types';
 import { decodeJson, encodeJson } from '../../utils/json-column';
 import { AirportsService } from '../airports/airports.service';
 import { DemoService } from '../common/demo.service';
@@ -19,10 +19,11 @@ import { DomainError } from '../common/domain-error';
 import { UnitOfWork } from '../database/unit-of-work';
 import { MailReadService } from '../llm-parse/mail-read.service';
 import type { WalkedMail } from '../llm-parse/mail-read.types';
-import { MailIngestApplyService } from './mail-ingest-apply.service';
+import { MailIngestApplyService, type WrittenBooking } from './mail-ingest-apply.service';
 import { MailIngestNotifyService } from './mail-ingest-notify.service';
-import { implausible, type TripOption } from './mail-ingest-checks';
+import { fitsTrip, implausible, type TripOption } from './mail-ingest-checks';
 import { MailIngestTripsService } from './mail-ingest-trips.service';
+import { ADDED_RESOLUTIONS } from './mail-ingest-views';
 import { IMPORT_SOURCES, UNDO_WINDOW_DAYS } from './mail-ingest.constants';
 import { openMail } from './mail-seal';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -30,8 +31,6 @@ import { Injectable } from '@nestjs/common';
 import type { BookingImportPreviewItem } from '@trek/shared';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** The states an added booking is undone from. */
-const ADDED = ['auto_applied', 'applied'] as const;
 const ISO_DATE_RE = /\b(20\d\d-[01]\d-[0-3]\d)\b/;
 /** A booking reference as a mail writes it: after its label, letters and digits. */
 const REFERENCE_RE =
@@ -48,7 +47,7 @@ const TYPE_WORDS: ReadonlyArray<[RegExp, string]> = [
 /**
  * What a person does with an entry of their mail inbox: add it to a trip,
  * file the mail as documents, fill the booking form in themselves, discard
- * it, or undo a booking a mail added. Every action checks again that the
+ * it, or undo or move a booking a mail added. Every action checks again that the
  * person may add bookings to the trip it touches, and that every id belongs
  * to that trip.
  */
@@ -81,26 +80,10 @@ export class MailIngestActionsService {
     confirm: boolean,
     now: Date = new Date(),
   ): Promise<MailIngestCandidateRow> {
-    const entry = await this.candidates.findById(candidateId);
-    const tripId = entry?.resolved_trip_id ?? null;
-    if (!entry || tripId === null || !(await this.editableBy(userId, tripId))) {
-      throw new DomainError(404, 'Booking not found');
-    }
-    if (!(ADDED as readonly string[]).includes(entry.resolution)) {
-      throw new DomainError(409, 'This booking is not added from a mail any more');
-    }
-    const until = parseDbTimestamp(entry.undo_until);
-    if (!until || until < now) throw new DomainError(409, 'The time to undo this booking has passed');
-
-    const created = decodeJson(MAIL_INGEST_CREATED, entry.created_ids_json);
-    const affects = await this.undoAffects(tripId, created);
-    if (affects.length > 0 && !confirm) {
-      throw new DomainError(409, 'Undoing this booking changes more than the booking', {
-        details: { code: 'needs_confirmation', affects },
-      });
-    }
+    const { entry, tripId, created } = await this.addedEntry(candidateId, userId, now);
+    await this.requireConfirmed(tripId, created, confirm, 'Undoing this booking changes more than the booking');
     const removed = await this.uow.transactional(async () => {
-      const claimed = await this.candidates.resolve(entry.id, ADDED, {
+      const claimed = await this.candidates.resolve(entry.id, ADDED_RESOLUTIONS, {
         resolution: 'undone',
         reason: null,
         resolvedTripId: tripId,
@@ -113,6 +96,68 @@ export class MailIngestActionsService {
       return this.apply.removeInTx(tripId, created);
     });
     await this.apply.announceRemoved(removed, created.file_ids);
+    return this.reload(entry.id);
+  }
+
+  /**
+   * Moves an added booking into another trip the person may add bookings to,
+   * within the undo window: the booking is written there anew from what the
+   * mail said (its venue located and its cost rate frozen for that trip) and
+   * what it created in the first trip goes, in one transaction. The checks
+   * run again for the new trip: its dates (G3), the booking's values (G5),
+   * and that it does not hold the booking already. A booking whose cost moved
+   * balances, or that was edited since, moves only with `confirm`, since the
+   * edit would be lost.
+   *
+   * @txIndependent the move is one transaction; the documents follow it, as
+   * storage I/O, and are noted on the entry.
+   */
+  async move(
+    candidateId: number,
+    userId: number,
+    tripId: number,
+    confirm: boolean,
+    now: Date = new Date(),
+  ): Promise<MailIngestCandidateRow> {
+    const { entry, tripId: fromTripId, created } = await this.addedEntry(candidateId, userId, now);
+    if (tripId === fromTripId) throw new DomainError(409, 'This booking is in that trip already');
+    const item = decodeJson(MAIL_INGEST_ITEM, entry.item_json);
+    if (!item) throw new DomainError(409, 'This entry holds no booking to move');
+    const target = await this.tripFor(userId, tripId);
+    if (target.start_date && target.end_date && !fitsTrip(item, target)) {
+      throw new DomainError(422, 'This booking lies outside the dates of that trip');
+    }
+    if (implausible(item, now, (code) => this.airports.findByIata(code) !== null)) {
+      throw new DomainError(422, 'This booking has values that cannot be right; fill it in yourself instead');
+    }
+    if (await this.candidates.tripHasExternal(target.id, IMPORT_SOURCES, this.apply.externalKey(item))) {
+      throw new DomainError(409, 'This booking is already in the trip.');
+    }
+    await this.requireConfirmed(fromTripId, created, confirm, 'Moving this booking changes more than the booking');
+    const uncertain = decodeJson(MAIL_INGEST_UNCERTAIN_FIELDS, entry.uncertain_fields);
+    const prepared = await this.apply.prepare(item, target, entry.user_id, uncertain);
+    const { removed, written } = await this.uow.transactional(async () => {
+      // Read again inside the transaction: of two moves at once, the second sees where the first one went.
+      const current = await this.candidates.findById(entry.id);
+      if (current?.resolved_trip_id !== fromTripId || !ADDED_RESOLUTIONS.includes(current.resolution)) {
+        throw new DomainError(409, 'This booking was moved or undone already');
+      }
+      const gone = await this.apply.removeInTx(fromTripId, created);
+      const done = await this.apply.writeInTx(prepared);
+      await this.candidates.resolve(entry.id, ADDED_RESOLUTIONS, {
+        resolution: entry.resolution,
+        reason: null,
+        resolvedTripId: target.id,
+        createdIdsJson: encodeJson(MAIL_INGEST_CREATED, done.created),
+        resolvedBy: userId,
+        resolvedAt: dbNow(now),
+        undoUntil: entry.undo_until as DbTimestamp | null,
+      });
+      return { removed: gone, written: done };
+    });
+    await this.apply.announceRemoved(removed, created.file_ids);
+    await this.apply.announce(written);
+    await this.attachMail(entry, target.id, written, userId);
     return this.reload(entry.id);
   }
 
@@ -159,12 +204,7 @@ export class MailIngestActionsService {
       return done;
     });
     await this.apply.announce(written);
-    const mail = await this.mailOf(entry);
-    if (mail) {
-      const { fileIds, error } = await this.apply.attachDocuments(trip.id, written.reservation.id, mail, userId);
-      const created = { ...written.created, file_ids: fileIds };
-      await this.candidates.setAttachments(entry.id, encodeJson(MAIL_INGEST_CREATED, created), error);
-    }
+    await this.attachMail(entry, trip.id, written, userId);
     return this.reload(entry.id);
   }
 
@@ -232,12 +272,63 @@ export class MailIngestActionsService {
     return this.reload(entry.id);
   }
 
-  /** What an undo would touch beyond the booking: costs someone settled with, and an edit since. */
-  private async undoAffects(tripId: number, created: MailIngestCreated): Promise<Array<'balances' | 'edited'>> {
+  /**
+   * An added booking within its undo window, with the trip it is in and what
+   * adding it created: the forwarder or any member who may add bookings to
+   * that trip may act on it.
+   */
+  private async addedEntry(
+    candidateId: number,
+    userId: number,
+    now: Date,
+  ): Promise<{ entry: MailIngestCandidateRow; tripId: number; created: MailIngestCreated }> {
+    const entry = await this.candidates.findById(candidateId);
+    const tripId = entry?.resolved_trip_id ?? null;
+    if (!entry || tripId === null || !(await this.editableBy(userId, tripId))) {
+      throw new DomainError(404, 'Booking not found');
+    }
+    if (!ADDED_RESOLUTIONS.includes(entry.resolution)) {
+      throw new DomainError(409, 'This booking is not added from a mail any more');
+    }
+    const until = parseDbTimestamp(entry.undo_until);
+    if (!until || until < now) throw new DomainError(409, 'The time to undo this booking has passed');
+    return { entry, tripId, created: decodeJson(MAIL_INGEST_CREATED, entry.created_ids_json) };
+  }
+
+  /**
+   * Refuses, unless confirmed, a change that touches more than the booking:
+   * costs someone settled with, or an edit made since it was added.
+   */
+  private async requireConfirmed(
+    tripId: number,
+    created: MailIngestCreated,
+    confirm: boolean,
+    error: string,
+  ): Promise<void> {
+    if (confirm) return;
     const affects: Array<'balances' | 'edited'> = [];
     if ((await this.candidates.countPayers(created.budget_item_ids)) > 0) affects.push('balances');
     if (await this.apply.editedSince(tripId, created)) affects.push('edited');
-    return affects;
+    if (affects.length > 0) throw new DomainError(409, error, { details: { code: 'needs_confirmation', affects } });
+  }
+
+  /**
+   * The mail's documents on the booking just written, noted on its entry; a
+   * mail no longer stored leaves none.
+   *
+   * @txIndependent each document is storage I/O; the entry notes what landed.
+   */
+  private async attachMail(
+    entry: MailIngestCandidateRow,
+    tripId: number,
+    written: WrittenBooking,
+    userId: number,
+  ): Promise<void> {
+    const mail = await this.mailOf(entry);
+    if (!mail) return;
+    const { fileIds, error } = await this.apply.attachDocuments(tripId, written.reservation.id, mail, userId);
+    const created = { ...written.created, file_ids: fileIds };
+    await this.candidates.setAttachments(entry.id, encodeJson(MAIL_INGEST_CREATED, created), error);
   }
 
   /** The person's own waiting entry; anyone else's answers as missing. */

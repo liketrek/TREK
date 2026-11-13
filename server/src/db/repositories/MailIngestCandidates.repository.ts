@@ -87,6 +87,14 @@ interface MailIngestTripPlaceRow {
   lng: number;
 }
 
+/** A trip as the inbox names it to a person who can see it. */
+export interface MailIngestTripRefRow {
+  id: number;
+  title: string;
+  start_date: string | null;
+  end_date: string | null;
+}
+
 /** The person a mail is for, as the pipeline needs them. */
 export interface MailIngestPersonRow {
   id: number;
@@ -223,6 +231,47 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
     return Number(row.n);
   }
 
+  /**
+   * The person's entries, waiting (`open`) or decided, newest first; with
+   * `beforeId` only those older than it, so a page follows on from the last.
+   */
+  async listForUser(
+    userId: number,
+    open: boolean,
+    beforeId: number | null,
+    limit: number,
+  ): Promise<MailIngestCandidateRow[]> {
+    let query = this.db()
+      .selectFrom('mail_ingest_candidates')
+      .selectAll()
+      .where('user_id', '=', userId)
+      .where('resolution', open ? '=' : '<>', 'pending');
+    if (beforeId !== null) query = query.where('id', '<', beforeId);
+    return query.orderBy('id', 'desc').limit(limit).execute();
+  }
+
+  /** The entries made since `since`, counted by what became of them. */
+  async tallyResolutionsSince(since: DbTimestamp): Promise<Array<{ resolution: string; n: number }>> {
+    const rows = await this.db()
+      .selectFrom('mail_ingest_candidates')
+      .select((eb) => ['resolution', eb.fn.countAll<number>().as('n')])
+      .where('created_at', '>=', since)
+      .groupBy('resolution')
+      .execute();
+    return rows.map((row) => ({ resolution: row.resolution, n: Number(row.n) }));
+  }
+
+  /** How many entries wait for each person who has any, the most first; who they are is left out. */
+  async pendingPerUser(): Promise<number[]> {
+    const rows = await this.db()
+      .selectFrom('mail_ingest_candidates')
+      .select((eb) => ['user_id', eb.fn.countAll<number>().as('n')])
+      .where('resolution', '=', 'pending')
+      .groupBy('user_id')
+      .execute();
+    return rows.map((row) => Number(row.n)).sort((a, b) => b - a);
+  }
+
   /** Whether a booking of this content went into the trip from a mail and was undone: never added again on its own. */
   async wasUndoneInTrip(tripId: number, contentHash: string): Promise<boolean> {
     const row = await this.db()
@@ -297,6 +346,31 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
       .where((eb) => eb.or([eb('t.is_archived', 'is', null), eb('t.is_archived', '=', 0)]))
       .executeTakeFirst();
     return row ?? null;
+  }
+
+  /**
+   * The trips among `tripIds` the person owns or is a member of, archived or
+   * not: a suggestion names only a trip its reader can see.
+   */
+  async listTripRefs(userId: number, tripIds: readonly number[]): Promise<MailIngestTripRefRow[]> {
+    if (tripIds.length === 0) return [];
+    return this.db()
+      .selectFrom('trips as t')
+      .select(['t.id', 't.title', 't.start_date', 't.end_date'])
+      .where('t.id', 'in', [...tripIds])
+      .where((eb) =>
+        eb.or([
+          eb('t.user_id', '=', userId),
+          eb.exists(
+            eb
+              .selectFrom('trip_members as m')
+              .select('m.id')
+              .whereRef('m.trip_id', '=', 't.id')
+              .where('m.user_id', '=', userId),
+          ),
+        ]),
+      )
+      .execute();
   }
 
   /** The dated days of these trips, by date. */

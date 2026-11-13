@@ -16,6 +16,7 @@ import { MailReadService } from '../../../../src/nest/llm-parse/mail-read.servic
 import type { MailReading as AiReading } from '../../../../src/nest/llm-parse/mail-read.types';
 import { walkMail } from '../../../../src/nest/llm-parse/mime-walker';
 import { MailIngestActionsService } from '../../../../src/nest/mail-ingest/mail-ingest-actions.service';
+import { MailIngestInboxService } from '../../../../src/nest/mail-ingest/mail-ingest-inbox.service';
 import { MailIngestIntakeService } from '../../../../src/nest/mail-ingest/mail-ingest-intake.service';
 import { MailIngestProcessJob } from '../../../../src/nest/mail-ingest/mail-ingest-process.job';
 import { MailIngestRetentionJob } from '../../../../src/nest/mail-ingest/mail-ingest-retention.job';
@@ -257,6 +258,49 @@ describe('a booking that passes every check', () => {
     const [second] = await entriesOf(await forward(user.id, eml('flight-forwarded-again')));
     expect(second).toMatchObject({ resolution: 'duplicate' });
   });
+
+  it('moves into another trip in its dates: written there anew, gone from the first, still undoable', async () => {
+    const user = await person();
+    const first = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    const second = await makeTrip(orm(), user.id, { start_date: '2030-02-25', end_date: '2030-03-05' });
+    const elsewhere = await makeTrip(orm(), user.id, { start_date: '2030-08-01', end_date: '2030-08-05' });
+    await t.get(MailIngestSettingsService).updatePrefs(user.id, { auto_add: false });
+    const [entry] = await entriesOf(await forward(user.id, eml('flight')));
+    await actions().applyToTrip(entry.id, user.id, first.id, NOW);
+
+    await expect(actions().move(entry.id, user.id, elsewhere.id, false, NOW)).rejects.toThrow(
+      'This booking lies outside the dates of that trip',
+    );
+    await expect(actions().move(entry.id, user.id, first.id, false, NOW)).rejects.toThrow(
+      'This booking is in that trip already',
+    );
+    const moved = await actions().move(entry.id, user.id, second.id, false, NOW);
+    expect(moved).toMatchObject({ resolution: 'applied', resolved_trip_id: second.id });
+    expect(await countRows(orm(), Reservations, { trip: first.id })).toBe(0);
+    expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(1);
+    expect(t.realtime.broadcastMock).toHaveBeenCalledWith(first.id, 'reservation:deleted', expect.anything());
+    expect(t.realtime.broadcastMock).toHaveBeenCalledWith(second.id, 'reservation:created', expect.anything());
+
+    await actions().undo(entry.id, user.id, false, NOW);
+    expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(0);
+  });
+
+  it('asks before moving a booking that was edited since, and refuses a stranger', async () => {
+    const user = await person();
+    const { user: stranger } = await makeUser(orm());
+    const first = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    const second = await makeTrip(orm(), user.id);
+    const [entry] = await entriesOf(await forward(user.id, eml('flight')));
+    await updateRows(orm(), Reservations, { trip: first.id }, { notes: 'Aisle seat' });
+
+    const refused = await actions()
+      .move(entry.id, user.id, second.id, false, NOW)
+      .catch((err: unknown) => err);
+    expect((refused as DomainError).getResponse()).toMatchObject({ code: 'needs_confirmation', affects: ['edited'] });
+    await expect(actions().move(entry.id, stranger.id, second.id, true, NOW)).rejects.toThrow('Booking not found');
+    await actions().move(entry.id, user.id, second.id, true, NOW);
+    expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(1);
+  });
 });
 
 describe('a booking that waits in the inbox', () => {
@@ -397,6 +441,95 @@ describe('a mail that keeps failing', () => {
       status: 'failed',
       reason: 'processing_failed',
     });
+  });
+});
+
+describe('what the person sees', () => {
+  const inbox = () => t.get(MailIngestInboxService);
+
+  it('lists the waiting entries with their mail and the trip they suggest, and no one else’s', async () => {
+    const user = await person();
+    const { user: other } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Japan', start_date: '2030-03-01', end_date: '2030-03-10' });
+    await t.get(MailIngestSettingsService).updatePrefs(user.id, { auto_add: false });
+    const messageId = await forward(user.id, eml('flight'));
+
+    const page = await inbox().inbox(user.id, { status: 'open', limit: 50 }, NOW);
+    expect(page.pending).toBe(1);
+    expect(page.next_before).toBeNull();
+    expect(page.entries).toHaveLength(1);
+    expect(page.entries[0]).toMatchObject({
+      message_id: messageId,
+      resolution: 'pending',
+      reason: 'ask_first',
+      suggested_trip: { id: trip.id, title: 'Japan', start_date: '2030-03-01', end_date: '2030-03-10' },
+      undo_until: null,
+      message: { id: messageId, transport: 'upload', status: 'processed', subject: 'Fwd: Your flight LH 716' },
+    });
+    expect(page.entries[0].message).not.toHaveProperty('raw_eml_enc');
+    expect((await inbox().inbox(other.id, { status: 'open', limit: 50 }, NOW)).entries).toEqual([]);
+    expect(await inbox().count(user.id)).toEqual({ pending: 1 });
+  });
+
+  it('pages decided entries, and an added one carries until when it can be undone', async () => {
+    const user = await person();
+    await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    await forward(user.id, eml('first'));
+    await forward(user.id, eml('again'));
+
+    const page = await inbox().inbox(user.id, { status: 'resolved', limit: 1 }, NOW);
+    expect(page.entries).toHaveLength(1);
+    expect(page.entries[0]).toMatchObject({ resolution: 'duplicate', undo_until: null });
+    expect(page.next_before).toBe(page.entries[0].id);
+    const next = await inbox().inbox(user.id, { status: 'resolved', before: page.entries[0].id, limit: 1 }, NOW);
+    expect(next.entries[0]).toMatchObject({ resolution: 'auto_applied', undo_until: '2030-01-22T10:00:00.000Z' });
+    expect(next.entries[0].reservation_ids).toHaveLength(1);
+  });
+
+  it('shows a mail as text without its headers, to its person only, until it is purged', async () => {
+    const user = await person();
+    const { user: other } = await makeUser(orm());
+    machine.mockResolvedValue([]);
+    const messageId = await forward(user.id, eml('nothing'));
+
+    const preview = await inbox().preview(user.id, messageId);
+    expect(preview).toMatchObject({ id: messageId, subject: 'Fwd: Your flight LH 716', attachments: [] });
+    expect(preview.text).toContain('Booking reference ABC123');
+    expect(preview.text).not.toContain('mia@example.com');
+    await expect(inbox().preview(other.id, messageId)).rejects.toThrow('Mail not found');
+    await updateRows(orm(), MailIngestMessages, { id: messageId }, { raw_eml_enc: null });
+    await expect(inbox().preview(user.id, messageId)).rejects.toThrow('The mail is no longer stored');
+  });
+
+  it('answers the settings card, and only that it is unavailable while the import is off', async () => {
+    const user = await person();
+    expect(await inbox().settingsOf(user.id)).toEqual({
+      available: true,
+      address: null,
+      prefs: { enabled: true, ai_enabled: true, auto_add: true },
+      ai_available: false,
+      pending: 0,
+    });
+    await setAppSetting(orm(), 'mail_ingest_enabled', 'false');
+    expect(await inbox().settingsOf(user.id)).toMatchObject({ available: false, address: null, pending: 0 });
+    await expect(inbox().updatePrefs(user.id, { auto_add: false })).rejects.toThrow('Mail import is not available');
+    expect(await inbox().count(user.id)).toEqual({ pending: 0 });
+  });
+
+  it('reads an uploaded mail at once, knows one it has, and refuses what it cannot take', async () => {
+    const user = await person();
+    // The reading the upload starts runs on its own; held here, so it cannot outlive the case.
+    const tick = vi.spyOn(job(), 'tick').mockResolvedValue(0);
+    try {
+      const first = await inbox().upload(user.id, eml('upload'));
+      expect(first).toMatchObject({ duplicate: false, message: { transport: 'upload', status: 'queued' } });
+      const again = await inbox().upload(user.id, eml('upload'));
+      expect(again).toMatchObject({ duplicate: true, message: { id: first.message.id } });
+      expect(tick).toHaveBeenCalledTimes(1);
+      await expect(inbox().upload(user.id, Buffer.from('nothing to see'))).rejects.toThrow('This file is not a mail');
+    } finally {
+      tick.mockRestore();
+    }
   });
 });
 

@@ -305,3 +305,55 @@ describe('MailIngestCandidatesRepository: what it reads of the trips', () => {
     expect(await candidates.countPayers([])).toBe(0);
   });
 });
+
+describe('MailIngestCandidatesRepository: the inbox and its counts', () => {
+  it('pages a person’s open or decided entries, newest first', async () => {
+    const { user } = await makeUser(t);
+    const { user: other } = await makeUser(t);
+    const mail = await mailOf(user.id);
+    const oldest = await entry(mail, user.id);
+    const middle = await entry(mail, user.id, { position: 1 });
+    const newest = await entry(mail, user.id, { position: 2 });
+    const decided = await entry(mail, user.id, { position: 3, resolution: 'discarded', reason: null });
+    await entry(await mailOf(other.id), other.id);
+
+    const open = await candidates.listForUser(user.id, true, null, 2);
+    expect(open.map((row) => row.id)).toEqual([newest, middle]);
+    expect((await candidates.listForUser(user.id, true, middle, 10)).map((row) => row.id)).toEqual([oldest]);
+    expect((await candidates.listForUser(user.id, false, null, 10)).map((row) => row.id)).toEqual([decided]);
+  });
+
+  it('names only the trips the reader owns or joined', async () => {
+    const { user } = await makeUser(t);
+    const { user: other } = await makeUser(t);
+    const owned = await makeTrip(t, user.id, { title: 'Japan', start_date: '2027-03-01', end_date: '2027-03-03' });
+    const joined = await makeTrip(t, other.id, { title: 'Lisbon' });
+    await addTripMember(t, joined.id, user.id);
+    const foreign = await makeTrip(t, other.id, { title: 'Secret' });
+
+    const refs = await candidates.listTripRefs(user.id, [owned.id, joined.id, foreign.id]);
+    expect(refs.sort((a, b) => a.id - b.id)).toEqual([
+      { id: owned.id, title: 'Japan', start_date: '2027-03-01', end_date: '2027-03-03' },
+      { id: joined.id, title: 'Lisbon', start_date: null, end_date: null },
+    ]);
+    expect(await candidates.listTripRefs(user.id, [])).toEqual([]);
+  });
+
+  it('counts the entries made since a time by outcome, and the waiting ones per person', async () => {
+    const { user } = await makeUser(t);
+    const { user: other } = await makeUser(t);
+    const mail = await mailOf(user.id);
+    await entry(mail, user.id);
+    await entry(mail, user.id, { position: 1 });
+    await entry(mail, user.id, { position: 2, resolution: 'auto_applied', reason: null });
+    await entry(mail, user.id, { position: 3, resolution: 'undone', createdAt: at('2026-10-01T10:00:00Z') });
+    await entry(await mailOf(other.id), other.id);
+
+    const tally = await candidates.tallyResolutionsSince(at('2026-10-15T00:00:00Z'));
+    expect(tally.sort((a, b) => a.resolution.localeCompare(b.resolution))).toEqual([
+      { resolution: 'auto_applied', n: 1 },
+      { resolution: 'pending', n: 3 },
+    ]);
+    expect(await candidates.pendingPerUser()).toEqual([2, 1]);
+  });
+});

@@ -112,6 +112,28 @@ describe('MailIngestMessagesRepository', () => {
     expect(await messages.countAiReadSince(box.userId, at('2026-11-01T00:00:00Z'))).toBe(0);
   });
 
+  it('lists mails without their content, and counts everyone’s by status, reason and AI', async () => {
+    const box = await inbox();
+    const read = await store(box, 'h1');
+    const dropped = await store(box, 'h2');
+    await store(box, 'h3', at('2026-10-01T10:00:00Z'));
+    await messages.finish(read, DONE);
+    await messages.finish(dropped, { ...DONE, status: 'discarded', reason: 'newsletter', aiUsed: false });
+
+    const heads = await messages.listHeads([read, dropped]);
+    expect(heads.map((head) => head.id).sort()).toEqual([read, dropped].sort());
+    expect(heads[0]).not.toHaveProperty('raw_eml_enc');
+    expect(heads[0]).not.toHaveProperty('auth_results');
+    expect(await messages.listHeads([])).toEqual([]);
+
+    const tally = await messages.tallySince(at('2026-10-15T00:00:00Z'));
+    expect(tally.sort((a, b) => a.status.localeCompare(b.status))).toEqual([
+      { status: 'discarded', reason: 'newsletter', n: 1 },
+      { status: 'processed', reason: null, n: 1 },
+    ]);
+    expect(await messages.countAllAiReadSince(at('2026-10-15T00:00:00Z'))).toBe(1);
+  });
+
   it('claims a due mail for one run and lets a claim that ran out go to the next', async () => {
     const box = await inbox();
     const id = await store(box, 'd1');

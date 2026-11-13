@@ -21,6 +21,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { MailIngestActionsService } from './mail-ingest-actions.service';
 import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestApplyService } from './mail-ingest-apply.service';
+import { MailIngestInboxService } from './mail-ingest-inbox.service';
 import { MailIngestIntakeService } from './mail-ingest-intake.service';
 import { MailIngestNotificationActions } from './mail-ingest-notification-actions';
 import { MailIngestNotifyService } from './mail-ingest-notify.service';
@@ -76,6 +77,7 @@ import { Module } from '@nestjs/common';
     MailIngestNotifyService,
     MailIngestProcessService,
     MailIngestActionsService,
+    MailIngestInboxService,
     MailIngestNotificationActions,
     MailIngestProcessJob,
     MailIngestRetentionJob,

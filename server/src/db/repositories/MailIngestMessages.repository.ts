@@ -35,6 +35,9 @@ export interface MailIngestMessageRow {
 
 const _mailIngestMessageRowKeys: AssertRowKeys<MailIngestMessageRow, MailIngestMessages> = true;
 
+/** A mail as the inbox lists it: everything but the stored mail and its sender's signature data. */
+export type MailIngestMessageHead = Omit<MailIngestMessageRow, 'raw_eml_enc' | 'auth_results'>;
+
 /** A mail as a transport hands it in, before anything has read it. */
 interface MailIngestMessageInsert {
   transport: string;
@@ -110,6 +113,62 @@ export class MailIngestMessagesRepository extends TrekRepository<MailIngestMessa
   async findById(id: number): Promise<MailIngestMessageRow | null> {
     const row = await this.db().selectFrom('mail_ingest_messages').selectAll().where('id', '=', id).executeTakeFirst();
     return row ?? null;
+  }
+
+  /** These mails without their content, for the inbox rows that name them. */
+  async listHeads(ids: readonly number[]): Promise<MailIngestMessageHead[]> {
+    if (ids.length === 0) return [];
+    return this.db()
+      .selectFrom('mail_ingest_messages')
+      .select([
+        'id',
+        'transport',
+        'message_id_hdr',
+        'dedupe_hash',
+        'address_id',
+        'user_id',
+        'trip_id',
+        'from_addr',
+        'from_verified',
+        'subject',
+        'received_at',
+        'size',
+        'raw_purged_at',
+        'status',
+        'reason',
+        'hints',
+        'attachments',
+        'forwarding_code',
+        'attempts',
+        'next_attempt_at',
+        'lease_until',
+        'ai_used',
+        'processed_at',
+      ])
+      .where('id', 'in', [...ids])
+      .execute();
+  }
+
+  /** The mails that came in since `since`, counted by status and reason, for the admin's status card. */
+  async tallySince(since: DbTimestamp): Promise<Array<{ status: string; reason: string | null; n: number }>> {
+    const rows = await this.db()
+      .selectFrom('mail_ingest_messages')
+      .select((eb) => ['status', 'reason', eb.fn.countAll<number>().as('n')])
+      .where('received_at', '>=', since)
+      .groupBy(['status', 'reason'])
+      .execute();
+    return rows.map((row) => ({ status: row.status, reason: row.reason, n: Number(row.n) }));
+  }
+
+  /** How many mails, of everyone, an AI read since `since`. */
+  async countAllAiReadSince(since: DbTimestamp): Promise<number> {
+    const row = await this.db()
+      .selectFrom('mail_ingest_messages')
+      .select((eb) => eb.fn.countAll<number>().as('n'))
+      .where('ai_used', '=', 1)
+      .where('received_at', '>=', since)
+      .executeTakeFirstOrThrow();
+    return Number(row.n);
   }
 
   /** How many mails came in on the address since `since`, for its daily limit. */
