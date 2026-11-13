@@ -55,6 +55,16 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Tümünü İşaretle',
   'packing.menuUncheckAll': 'Tüm işaretleri kaldır',
   'packing.menuDeleteCat': 'Listeyi sil',
+  'packing.menuShareCat': 'Tüm liste için paylaşım',
+  'packing.shareCat.hint': 'Bu listedeki tüm öğeleriniz seçtiğiniz seviyeye geçer.',
+  'packing.shareCat.othersKept':
+    'Başkalarının eklediği öğeler olduğu gibi kalır. Onları yalnızca kendileri değiştirebilir.',
+  'packing.shareCat.noneOwn':
+    'Bu listedeki tüm öğeleri başka biri ekledi, bu yüzden paylaşımı yalnızca o değiştirebilir.',
+  'packing.shareCat.pickPeople': 'Paylaşmak için en az bir kişi seçin.',
+  'packing.shareCat.apply': 'Listeye uygula',
+  'packing.shareCat.done': '"{name}" için paylaşım değişti',
+  'packing.shareCat.doneOthersKept': '"{name}" için paylaşım değişti. Başkalarının eklediği öğeler olduğu gibi kaldı.',
   'packing.noMembers': 'Seyahat üyesi yok',
   'packing.addItem': 'Öğe ekle',
   'packing.addItemPlaceholder': 'Öğe adı...',

@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { buildPackingItem } from '../../../tests/helpers/factories';
 import {
+  agreedSharing,
+  categorySharingSplit,
   formatWeight,
   groupPackingItems,
   isLastCustomItemInCategory,
   isPackingPlaceholder,
   itemOrderWithCategoryMoved,
+  itemsToReshare,
   packingCategoryOrder,
+  packingItemSharing,
   packingItemWeight,
   packingProgress,
   packingStatusFiltered,
@@ -15,7 +19,7 @@ import {
 } from './packingListModel';
 import { PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants';
 
-// FE-PACK-MODEL-001 to FE-PACK-MODEL-009
+// FE-PACK-MODEL-001 to FE-PACK-MODEL-013
 
 const shared = buildPackingItem({ id: 1, name: 'Tent', category: 'Camp', checked: 1 });
 const mine = buildPackingItem({ id: 2, name: 'Socks', category: 'Clothes', is_private: 1 });
@@ -100,5 +104,48 @@ describe('packingListModel', () => {
     expect(itemOrderWithCategoryMoved(items, items, 'Camp', 'Camp', 'Other')).toBeNull();
     expect(itemOrderWithCategoryMoved(items, items, 'Clothes', 'Camp', 'Other')).toBeNull();
     expect(itemOrderWithCategoryMoved(items, items, 'Other', 'Camp', 'Other')).toEqual([4, 1, 3]);
+  });
+});
+
+describe('packingListModel: sharing a whole list (#2961)', () => {
+  const recipients = (...ids: number[]) => ids.map((user_id) => ({ user_id, username: `u${user_id}` }));
+  const common = buildPackingItem({ id: 10, category: 'Camp', owner_id: 1 });
+  const personal = buildPackingItem({ id: 11, category: 'Camp', is_private: 1, owner_id: 1 });
+  const sharedTwo = buildPackingItem({
+    id: 12,
+    category: 'Camp',
+    is_private: 1,
+    owner_id: 1,
+    recipients: recipients(3, 2),
+  });
+  const legacy = buildPackingItem({ id: 13, category: 'Camp', owner_id: null });
+  const theirs = buildPackingItem({ id: 14, category: 'Camp', owner_id: 2 });
+
+  it('FE-PACK-MODEL-010: an item reads as common, personal or shared with its people in order', () => {
+    expect(packingItemSharing(common)).toEqual({ visibility: 'common', recipientIds: [] });
+    expect(packingItemSharing(personal)).toEqual({ visibility: 'personal', recipientIds: [] });
+    expect(packingItemSharing(sharedTwo)).toEqual({ visibility: 'shared', recipientIds: [2, 3] });
+  });
+
+  it('FE-PACK-MODEL-011: my items and unowned ones can be moved, the ones of others are only counted', () => {
+    const split = categorySharingSplit([common, legacy, theirs, personal], 1);
+    expect(split.own.map((i) => i.id)).toEqual([10, 13, 11]);
+    expect(split.othersCount).toBe(1);
+    expect(categorySharingSplit([theirs], 1)).toEqual({ own: [], othersCount: 1 });
+  });
+
+  it('FE-PACK-MODEL-012: the tier the items agree on, or none when they differ', () => {
+    expect(agreedSharing([common, legacy])).toEqual({ visibility: 'common', recipientIds: [] });
+    const sameTwo = buildPackingItem({ category: 'Camp', is_private: 1, owner_id: 1, recipients: recipients(2, 3) });
+    expect(agreedSharing([sharedTwo, sameTwo])).toEqual({ visibility: 'shared', recipientIds: [2, 3] });
+    expect(agreedSharing([common, personal])).toBeNull();
+    expect(agreedSharing([])).toBeNull();
+  });
+
+  it('FE-PACK-MODEL-013: only the items not yet at the target tier need a write', () => {
+    const items = [common, personal, sharedTwo];
+    expect(itemsToReshare(items, { visibility: 'personal', recipientIds: [] }).map((i) => i.id)).toEqual([10, 12]);
+    expect(itemsToReshare(items, { visibility: 'shared', recipientIds: [3, 2] }).map((i) => i.id)).toEqual([10, 11]);
+    expect(itemsToReshare(items, { visibility: 'common', recipientIds: [] }).map((i) => i.id)).toEqual([11, 12]);
   });
 });

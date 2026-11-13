@@ -51,6 +51,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Centang Semua',
   'packing.menuUncheckAll': 'Hapus Centang Semua',
   'packing.menuDeleteCat': 'Hapus daftar',
+  'packing.menuShareCat': 'Berbagi untuk seluruh daftar',
+  'packing.shareCat.hint': 'Semua item Anda di daftar ini pindah ke tingkat yang Anda pilih.',
+  'packing.shareCat.othersKept':
+    'Item yang ditambahkan orang lain tetap seperti semula. Hanya mereka yang bisa mengubahnya.',
+  'packing.shareCat.noneOwn':
+    'Semua item di daftar ini ditambahkan oleh orang lain, jadi hanya mereka yang bisa mengubah cara berbaginya.',
+  'packing.shareCat.pickPeople': 'Pilih setidaknya satu orang untuk diajak berbagi.',
+  'packing.shareCat.apply': 'Terapkan ke daftar',
+  'packing.shareCat.done': 'Berbagi untuk "{name}" diubah',
+  'packing.shareCat.doneOthersKept':
+    'Berbagi untuk "{name}" diubah. Item yang ditambahkan orang lain tetap seperti semula.',
   'packing.noMembers': 'Tidak ada anggota perjalanan',
   'packing.addItem': 'Tambah item',
   'packing.addItemPlaceholder': 'Nama item...',

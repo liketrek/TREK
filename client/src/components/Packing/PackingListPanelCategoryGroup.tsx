@@ -4,7 +4,7 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
   Trash2, Plus, ChevronDown, ChevronRight,
-  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, UserPlus, GripVertical,
+  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, UserPlus, GripVertical, Share2,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
@@ -54,9 +54,11 @@ interface KategorieGruppeProps {
   onClone?: (id: number) => void
   onJoin?: (id: number) => void
   onLeave?: (id: number, userId: number) => void
+  // Opens the choice of one sharing tier for the whole list (#2961).
+  onShareCategory?: () => void
 }
 
-export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, reorderable = true, categoryDrag, currentUserId, onSetSharing, onClone, onJoin, onLeave }: KategorieGruppeProps) {
+export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, reorderable = true, categoryDrag, currentUserId, onSetSharing, onClone, onJoin, onLeave, onShareCategory }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
@@ -272,6 +274,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                 {canEdit && <PopoverItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
                 <PopoverItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { void handleCheckAll(); setShowMenu(false) }} />
                 <PopoverItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { void handleUncheckAll(); setShowMenu(false) }} />
+                {canEdit && onShareCategory && <PopoverItem icon={<Share2 size={13} />} label={t('packing.menuShareCat')} onClick={() => { onShareCategory(); setShowMenu(false) }} />}
                 {canEdit && <>
                 <div style={POPOVER_DIVIDER} />
                 <PopoverItem icon={<Trash2 size={13} />} label={t('packing.menuDeleteCat')} danger onClick={handleDeleteAll} />

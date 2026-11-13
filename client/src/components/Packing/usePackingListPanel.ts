@@ -12,6 +12,7 @@ import { parseImportLines, sortItemsByName } from './packingListPanel.helpers'
 import { groupPackingItems, itemOrderWithCategoryMoved, packingCategoryOrder, packingProgress, packingViewItems } from './packingListModel'
 import { usePackingBags } from './usePackingBags'
 import { usePackingCategoryAssignees } from './usePackingCategoryAssignees'
+import { usePackingCategorySharing } from './usePackingCategorySharing'
 import { usePackingImport } from './usePackingImport'
 import { usePackingItemActions } from './usePackingItemActions'
 import { usePackingTemplates } from './usePackingTemplates'
@@ -223,10 +224,14 @@ export function usePackingList({ tripId, items, openImportSignal = 0, addCategor
   const handleCloneItem = (id: number) => clonePackingItem(tripId, id)
   const handleJoinItem = (id: number) => addPackingContributor(tripId, id)
   const handleLeaveItem = (id: number, userId: number) => removePackingContributor(tripId, id, userId)
+  // A whole list at once (#2961), through the same per-item write as above.
+  const categorySharing = usePackingCategorySharing({
+    tripId, items, view, defaultCategory: t('packing.defaultCategory'), currentUserId, setPackingItemSharing, t, toast,
+  })
 
   return {
     view, setView, currentUserId,
-    handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem,
+    handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem, categorySharing,
     tripId, items, inlineHeader, t, canEdit, isAdmin, font, reorderPackingItems,
     filter, setFilter, sort, setSort, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt, viewTotal, moveCategory,

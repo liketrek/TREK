@@ -62,6 +62,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Hamısını işarələ',
   'packing.menuUncheckAll': 'Bütün işarələri sil',
   'packing.menuDeleteCat': 'Siyahını sil',
+  'packing.menuShareCat': 'Bütün siyahı üçün paylaşım',
+  'packing.shareCat.hint': 'Bu siyahıdakı bütün elementləriniz seçdiyiniz səviyyəyə keçir.',
+  'packing.shareCat.othersKept':
+    'Başqalarının əlavə etdiyi elementlər olduğu kimi qalır. Onları yalnız özləri dəyişə bilər.',
+  'packing.shareCat.noneOwn':
+    'Bu siyahıdakı bütün elementləri başqası əlavə edib, ona görə paylaşımı yalnız o dəyişə bilər.',
+  'packing.shareCat.pickPeople': 'Paylaşmaq üçün ən azı bir nəfər seçin.',
+  'packing.shareCat.apply': 'Siyahıya tətbiq et',
+  'packing.shareCat.done': '"{name}" üçün paylaşım dəyişdi',
+  'packing.shareCat.doneOthersKept':
+    '"{name}" üçün paylaşım dəyişdi. Başqalarının əlavə etdiyi elementlər olduğu kimi qaldı.',
 
   'packing.noMembers': 'Səyahət üzvü yoxdur',
   'packing.addItem': 'Element əlavə et',

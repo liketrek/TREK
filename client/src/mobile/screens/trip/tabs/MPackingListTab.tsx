@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping, Minus,
   Download, FileSpreadsheet, FileText, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw, Save as SaveIcon,
-  Trash2, UserPlus, UserRound,
+  Share2, Trash2, UserPlus, UserRound,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
@@ -25,9 +25,11 @@ import { usePackingBags } from '../../../../components/Packing/usePackingBags'
 import { usePackingTemplates } from '../../../../components/Packing/usePackingTemplates'
 import { usePackingCategoryAssignees, type CategoryAssignee } from '../../../../components/Packing/usePackingCategoryAssignees'
 import { usePackingItemActions } from '../../../../components/Packing/usePackingItemActions'
+import { usePackingCategorySharing } from '../../../../components/Packing/usePackingCategorySharing'
 import MBagsSheet from './MBagsSheet'
 import MPackItemSheet from './MPackItemSheet'
 import MPackingImportSheet from './MPackingImportSheet'
+import MPackingCategorySharingSheet from './MPackingCategorySharingSheet'
 import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview'
 import { usePackingExport } from '../../../../components/Packing/usePackingExport'
 import { packingBringerNames } from '../../../../components/Packing/packingBringers'
@@ -88,6 +90,12 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   } = usePackingItemActions({
     tripId, items, view, currentUserId, categories: categoryOrder, defaultCategory,
     actions: tripActions, t, toast, placeholderFrom: 'items',
+  })
+
+  // A whole list to one sharing tier (#2961), the same hook as the desktop dialog.
+  const categorySharing = usePackingCategorySharing({
+    tripId, items, view, defaultCategory, currentUserId,
+    setPackingItemSharing: tripActions.setPackingItemSharing, t, toast,
   })
 
   const toggleCategory = (cat: string) => setCollapsed(c => ({ ...c, [cat]: !c[cat] }))
@@ -334,6 +342,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
             onRename={newName => renameCategory(group.category, newName)}
             onCheckAll={() => checkAllInCategory(group.items)}
             onUncheckAll={() => uncheckAllInCategory(group.items)}
+            onShareCategory={() => categorySharing.openFor(group.category)}
             onDeleteCategory={() => setDeleteCategoryTarget({ name: group.category, items: items.filter(i => (i.category || defaultCategory) === group.category) })}
             onAddItem={name => addItemToCategory(group.category, name)}
             onEditItem={id => setEditingItemId(id)}
@@ -374,6 +383,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
       />
 
       <MPackingImportSheet planner={planner} open={showImportSheet} onClose={() => setShowImportSheet(false)} />
+      <MPackingCategorySharingSheet sharing={categorySharing} tripMembers={tripMembers} currentUserId={currentUserId} t={t} />
       <PackingPrintPreview html={packingExport.printHtml} title={packingExport.printTitle} onClose={packingExport.closePrint} />
 
       <MConfirmSheet
@@ -431,7 +441,7 @@ function ActionRow({ icon: Icon, label, onClick, danger = false }: {
 
 function PackingCategoryCard({
   group, categoryOrder, open, onToggle, editMode, canEdit, planner, currentUserId, assignees, tripMembers,
-  onSetAssignees, onRename, onCheckAll, onUncheckAll, onDeleteCategory, onAddItem, onEditItem, onDeleteItem,
+  onSetAssignees, onRename, onCheckAll, onUncheckAll, onShareCategory, onDeleteCategory, onAddItem, onEditItem, onDeleteItem,
   bagTrackingEnabled, bags, onCreateBag,
 }: {
   group: PackingCategoryGroup
@@ -448,6 +458,7 @@ function PackingCategoryCard({
   onRename: (newName: string) => void
   onCheckAll: () => void
   onUncheckAll: () => void
+  onShareCategory: () => void
   onDeleteCategory: () => void
   onAddItem: (name: string) => void
   onEditItem: (itemId: number) => void
@@ -572,6 +583,7 @@ function PackingCategoryCard({
           <ActionRow icon={Pencil} label={t('packing.menuRename')} onClick={() => { setMenuOpen(false); setRenaming(true) }} />
           <ActionRow icon={CheckCheck} label={t('packing.menuCheckAll')} onClick={() => { setMenuOpen(false); onCheckAll() }} />
           <ActionRow icon={RotateCcw} label={t('packing.menuUncheckAll')} onClick={() => { setMenuOpen(false); onUncheckAll() }} />
+          {canEdit && <ActionRow icon={Share2} label={t('packing.menuShareCat')} onClick={() => { setMenuOpen(false); onShareCategory() }} />}
           <ActionRow icon={Trash2} label={t('packing.menuDeleteCat')} danger onClick={() => { setMenuOpen(false); onDeleteCategory() }} />
         </div>
       )}

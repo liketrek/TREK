@@ -43,6 +43,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Marca-ho tot',
   'packing.menuUncheckAll': 'Desmarca-ho tot',
   'packing.menuDeleteCat': 'Elimina la categoria',
+  'packing.menuShareCat': 'Compartició de tota la llista',
+  'packing.shareCat.hint': "Tots els teus elements d'aquesta llista passen al nivell que triïs.",
+  'packing.shareCat.othersKept':
+    'Els elements que han afegit altres persones es queden com estan. Només elles els poden canviar.',
+  'packing.shareCat.noneOwn':
+    "Tots els elements d'aquesta llista els ha afegit una altra persona, així que només ella en pot canviar la compartició.",
+  'packing.shareCat.pickPeople': 'Tria almenys una persona amb qui compartir.',
+  'packing.shareCat.apply': 'Aplica a la llista',
+  'packing.shareCat.done': 'Compartició canviada per a «{name}»',
+  'packing.shareCat.doneOthersKept':
+    'Compartició canviada per a «{name}». Els elements que han afegit altres persones es queden com estaven.',
   'packing.addItem': 'Afegeix un article',
   'packing.addItemPlaceholder': "Nom de l'article...",
   'packing.addCategory': 'Afegeix una categoria',

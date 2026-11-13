@@ -55,6 +55,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Seleziona tutti',
   'packing.menuUncheckAll': 'Deseleziona tutti',
   'packing.menuDeleteCat': 'Elimina lista',
+  'packing.menuShareCat': "Condivisione dell'intera lista",
+  'packing.shareCat.hint': 'Tutti i tuoi elementi di questa lista passano al livello che scegli.',
+  'packing.shareCat.othersKept':
+    'Gli elementi aggiunti da altre persone restano come sono. Solo loro possono modificarli.',
+  'packing.shareCat.noneOwn':
+    "Tutti gli elementi di questa lista sono stati aggiunti da un'altra persona, quindi solo lei può cambiarne la condivisione.",
+  'packing.shareCat.pickPeople': 'Scegli almeno una persona con cui condividere.',
+  'packing.shareCat.apply': 'Applica alla lista',
+  'packing.shareCat.done': 'Condivisione modificata per «{name}»',
+  'packing.shareCat.doneOthersKept':
+    'Condivisione modificata per «{name}». Gli elementi aggiunti da altre persone sono rimasti come erano.',
   'packing.noMembers': 'Nessun membro del viaggio',
   'packing.addItem': 'Aggiungi elemento',
   'packing.addItemPlaceholder': 'Nome elemento...',
