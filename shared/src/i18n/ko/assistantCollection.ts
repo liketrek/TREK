@@ -20,6 +20,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': '{name}(으)로 이동',
   'assistant.card.collection.removed': '목록에서 제거됨',
   'assistant.card.collection.photo': '사진',
+  'assistant.card.collection.mapEntry': '지도 항목',
   'assistant.card.collection.places': '{name}에 저장한 장소',
   'assistant.card.collection.saved': '저장한 장소',
   'assistant.card.collection.statusSet': '저장한 장소 {count}곳 변경됨',

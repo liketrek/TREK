@@ -45,6 +45,10 @@ const FIELD_LOOK: Record<CollectionCardDelta['fields'][number], { labelKey: stri
   category: { labelKey: 'assistant.change.label.category' },
   link: { labelKey: 'assistant.change.label.link' },
   photo: { labelKey: 'assistant.card.collection.photo' },
+  website: { labelKey: 'assistant.change.label.website' },
+  phone: { labelKey: 'assistant.change.label.phone' },
+  price: { labelKey: 'assistant.change.label.price' },
+  mapEntry: { labelKey: 'assistant.card.collection.mapEntry' },
 };
 
 /** The verb's tile, as the row shows it without a place. */

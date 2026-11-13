@@ -75,7 +75,7 @@ import type {
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlaceImportService, type ExportedCollectionFile } from '../place-import/place-import.service';
 import { UnitOfWork } from '../database/unit-of-work';
-import { parseLinks, serializeLinks } from './collections.helpers';
+import { listingWriteOf, parseLinks, serializeLinks } from './collections.helpers';
 
 // Errors: a DomainError carrying a status; TrekExceptionFilter maps it to that code with an `{ error }` body.
 
@@ -872,7 +872,7 @@ export class CollectionsService {
     await this.assertCanEdit(userId, currentCollection);
     const prevImage = body.image_url !== undefined ? (await this.collectionPlaces.imageUrl(placeId)) ?? null : null;
 
-    const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = {};
+    const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = listingWriteOf(body);
     if (body.name !== undefined) write.name = body.name;
     if (body.description !== undefined) write.description = body.description ?? null;
     if (body.notes !== undefined) write.notes = body.notes ?? null;

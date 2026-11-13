@@ -223,6 +223,16 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   label_ids: z.array(z.number()).optional(),
   // Custom thumbnail (#1136): null clears it (falls back to the auto-fetched photo).
   image_url: placeImageUrlSchema.nullable().optional(),
+  // The fields saving accepts but editing did not (#2646), with the same checks, so
+  // a place can be corrected in place instead of re-saved, which loses its labels,
+  // ratings, position and id. Each one is left alone when absent; null clears it.
+  google_place_id: z.string().nullable().optional(),
+  google_ftid: z.string().nullable().optional(),
+  osm_id: z.string().nullable().optional(),
+  website: placeWebsiteSchema.nullable().optional(),
+  phone: z.string().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
 

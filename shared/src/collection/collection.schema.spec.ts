@@ -28,6 +28,36 @@ describe('collectionStatusSchema', () => {
 });
 
 describe('collectionPlaceUpdateRequestSchema', () => {
+  // #2646: the fields saving takes, with the same checks, so a place is corrected in place.
+  it('takes the provider ids, website, phone and price, and null clears each', () => {
+    const set = {
+      google_place_id: 'ChIJseptime',
+      google_ftid: '0x47e6:0x1b2',
+      osm_id: 'node/42',
+      website: 'https://septime-charonne.fr',
+      phone: '+33 1 43 67 38 29',
+      price: 55,
+      currency: 'EUR',
+    };
+    expect(collectionPlaceUpdateRequestSchema.parse(set)).toEqual(set);
+    const cleared = Object.fromEntries(Object.keys(set).map((key) => [key, null]));
+    expect(collectionPlaceUpdateRequestSchema.parse(cleared)).toEqual(cleared);
+  });
+
+  it('normalises a bare domain as website and refuses a script link, as saving does', () => {
+    expect(collectionPlaceUpdateRequestSchema.parse({ website: 'septime-charonne.fr' }).website).toBe(
+      'https://septime-charonne.fr',
+    );
+    expect(collectionPlaceUpdateRequestSchema.safeParse({ website: 'javascript:alert(1)' }).success).toBe(false);
+  });
+
+  it('leaves the new fields absent when an update does not name them', () => {
+    const parsed = collectionPlaceUpdateRequestSchema.parse({ name: 'Septime' });
+    for (const key of ['google_place_id', 'google_ftid', 'osm_id', 'website', 'phone', 'price', 'currency']) {
+      expect(key in parsed, key).toBe(false);
+    }
+  });
+
   // Regression for #1437: an update that omits `status` must NOT inject a default
   // of 'idea', otherwise the server overwrites the stored status on every edit-save.
   it('does not inject a status when the field is absent', () => {

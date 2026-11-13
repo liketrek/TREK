@@ -327,7 +327,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'update_collection_place',
     description:
-      "Update a saved place's name, address, coordinates (lat/lng), description, notes, status, category, links, tags, labels, image, or move it to another collection (set collection_id). Moving a place out of a list needs the same role there as deleting it (owner or admin).",
+      "Update a saved place's name, address, coordinates (lat/lng), description, notes, status, category, links, tags, labels, image, provider ids (google_place_id, google_ftid, osm_id), website, phone, price and currency, or move it to another collection (set collection_id). Only the fields you pass change; null clears one. A bare domain as website gets https://, any other scheme is refused. Moving a place out of a list needs the same role there as deleting it (owner or admin).",
     inputSchema: { placeId: idSchema, ...collectionPlaceUpdateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,

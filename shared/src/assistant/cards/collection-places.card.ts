@@ -32,6 +32,11 @@ export const COLLECTION_CARD_FIELDS = [
   'category',
   'link',
   'photo',
+  'website',
+  'phone',
+  'price',
+  /** The place's Google or OpenStreetMap entry (its provider ids). */
+  'mapEntry',
 ] as const;
 
 /** What a change does to a label of a list; `none` on an answer. */
@@ -75,7 +80,7 @@ export const collectionCardDeltaSchema = z.object({
   rating: z.object({ to: z.number().int().min(1).max(5).nullable() }).nullable(),
   labelsAdded: z.array(idSchema).max(10),
   labelsRemoved: z.array(idSchema).max(10),
-  fields: z.array(z.enum(COLLECTION_CARD_FIELDS)).max(8),
+  fields: z.array(z.enum(COLLECTION_CARD_FIELDS)).max(COLLECTION_CARD_FIELDS.length),
   movedTo: collectionCardListSchema.nullable(),
   removed: z.boolean(),
 });

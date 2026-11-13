@@ -565,6 +565,51 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
     });
     expect((await findRow(orm, CollectionPlaces, { id: pid }))?.collection_id).toBe(shared);
   });
+
+  // #2646: the fields saving takes, through the same contract and checks as REST.
+  it('update_collection_place sets and clears provider ids, website, phone and price, and refuses a script link', async () => {
+    const { user } = createUser(testDb);
+    const col = await seedCollection(user.id, 'Listings');
+    const pid = await seedPlace(col, user.id, 'Septime');
+    const update = (h: McpHarness, args: Record<string, unknown>) =>
+      h.client.callTool({ name: 'update_collection_place', arguments: { placeId: pid, ...args } });
+    await withHarness(user.id, async (h) => {
+      const set = parseToolResult(
+        await update(h, {
+          google_place_id: 'ChIJseptime',
+          osm_id: 'node/42',
+          website: 'septime-charonne.fr',
+          phone: '+33 1 43 67 38 29',
+          price: 55,
+          currency: 'EUR',
+        }),
+      ) as { place: Record<string, unknown> };
+      expect(set.place).toMatchObject({
+        name: 'Septime',
+        google_place_id: 'ChIJseptime',
+        osm_id: 'node/42',
+        website: 'https://septime-charonne.fr',
+        phone: '+33 1 43 67 38 29',
+        price: 55,
+        currency: 'EUR',
+      });
+
+      const refused = await update(h, { website: 'javascript:alert(1)' });
+      expect(refused.isError).toBe(true);
+      expect((refused.content as { text: string }[])[0].text).toContain('Invalid arguments');
+
+      const cleared = parseToolResult(await update(h, { website: null, phone: null, price: null })) as {
+        place: Record<string, unknown>;
+      };
+      expect(cleared.place).toMatchObject({
+        website: null,
+        phone: null,
+        price: null,
+        currency: 'EUR',
+        google_place_id: 'ChIJseptime',
+      });
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
