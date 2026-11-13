@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Footprints, Paperclip, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
+import { ArrowRight, Footprints, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MWalletButton from '../../../components/MWalletButton'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -8,7 +8,6 @@ import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { getFlightLegs, getTrainLegs, usesStationRoute, type FlightLeg, type TrainLeg } from '../../../../utils/flightLegs'
-import { openFile } from '../../../../utils/fileDownload'
 import { runsOnDay } from '../../../../utils/reservationRoutes'
 import { filesFor } from '../../../../utils/reservationFiles'
 import { bookingDayLabel, segmentCodeLabel } from '../../../../components/Planner/transportDetailModel'
@@ -18,7 +17,9 @@ import { isTransportReservationType } from '@trek/shared'
 import { useBookingLink } from '../../../../hooks/useBookingLink'
 import { bookingFacts, stayStats } from '../../../../components/Planner/bookings/bookingFacts'
 import { parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
-import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
+import { ActionCircle, Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
+import { CardFiles } from '../tabs/MReservationCardParts'
+import { downloadAttachment, openAttachment } from '../../../../components/Planner/bookings/openAttachment'
 import { flowText } from '../../../../utils/flowText'
 
 interface TransportSheetPayload {
@@ -342,50 +343,31 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
           </>
         )}
 
-        {/* ── Actions ── */}
-        <div className="mt-3 flex flex-wrap items-center gap-[7px]">
-          <button
-            type="button"
-            onClick={showOnMap}
-            aria-pressed={onMap}
-            className={`flex items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold ${
-              onMap ? 'bg-m-act text-m-actfg' : INNER_CLS
-            }`}
-          >
-            <RouteIcon size={13} strokeWidth={2} />
-            {t('mobileTrip.onMap')}
-          </button>
+        {/* ── Files: their own rows, so a long name never pushes the actions onto a second line ── */}
+        <CardFiles
+          files={resFiles}
+          card={{
+            openFile: openAttachment,
+            downloadFile: f => downloadAttachment(f, () => planner.toast.error(t('files.downloadError'))),
+          }}
+          t={t}
+        />
+
+        {/* ── Actions: icons only, the names are their labels ── */}
+        <div className="mt-[14px] flex items-center gap-[7px]">
+          <ActionCircle onClick={showOnMap} label={t('mobileTrip.onMap')} pressed={onMap}>
+            <RouteIcon size={15} strokeWidth={2} />
+          </ActionCircle>
           <MWalletButton tripId={planner.tripId} reservationId={payload.reservationId} onError={planner.toast.error} />
-          {resFiles.map(f => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => openFile(f.url, f.original_name)}
-              className={`flex max-w-[150px] items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold ${INNER_CLS}`}
-            >
-              <Paperclip size={13} strokeWidth={2} className="flex-none" />
-              <span dir="auto" className="truncate">{f.original_name}</span>
-            </button>
-          ))}
           {canEdit && (
-            <button
-              type="button"
-              onClick={editTransport}
-              className="ms-auto flex items-center gap-[5px] rounded-full bg-m-act px-3 py-[7px] text-[0.75rem] font-semibold text-m-actfg"
-            >
-              <Pencil size={13} strokeWidth={2} />
-              {t('common.edit')}
-            </button>
+            <ActionCircle onClick={editTransport} label={t('common.edit')} primary className="ms-auto">
+              <Pencil size={15} strokeWidth={2} />
+            </ActionCircle>
           )}
           {canEdit && (
-            <button
-              type="button"
-              onClick={deleteTransport}
-              aria-label={t('common.delete')}
-              className={`flex items-center rounded-full px-3 py-[7px] text-[color:var(--m-st-danger)] ${INNER_CLS}`}
-            >
-              <Trash2 size={14} strokeWidth={2} />
-            </button>
+            <ActionCircle onClick={deleteTransport} label={t('common.delete')} danger>
+              <Trash2 size={15} strokeWidth={2} />
+            </ActionCircle>
           )}
         </div>
       </div>

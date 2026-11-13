@@ -276,7 +276,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Exportera de {shown} av {total} visade raderna (CSV)',
   'reservations.wallet.add': 'Lägg till i Apple Wallet',
   'reservations.wallet.addGoogle': 'Lägg till i Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Wallet-kortet kunde inte skapas. Försök igen.',
   'reservations.wallet.undated': 'Ge bokningen ett datum först: Wallet visar kortet runt den tiden.',
 };

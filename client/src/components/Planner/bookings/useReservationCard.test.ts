@@ -85,6 +85,14 @@ describe('useReservationCard', () => {
     expect(openFile).toHaveBeenCalledTimes(1);
   });
 
+  it('FE-PLANNER-RESLISTFILTER-008b: a download that fails says so with a toast', async () => {
+    vi.mocked(downloadFile).mockRejectedValueOnce(new Error('offline'));
+    const opts = host();
+    const { result } = renderHook(() => useReservationCard(ann, opts));
+    result.current.downloadFile(file);
+    await vi.waitFor(() => expect(opts.toast.error).toHaveBeenCalledWith('files.downloadError'));
+  });
+
   it('FE-PLANNER-RESLISTFILTER-009: the card knows whether deleting it takes a linked expense along (#2604)', () => {
     resetAllStores();
     seedStore(useTripStore, { budgetItems: [buildBudgetItem({ id: 1, reservation_id: 10 } as never)] });

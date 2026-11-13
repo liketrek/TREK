@@ -168,7 +168,15 @@ export function CardNotes({ notes }: { notes: string | null | undefined }) {
  * can hold two real buttons: the name opens the file, the icon at the end saves
  * it (a PDF ticket that only opens in a viewer cannot be kept otherwise).
  */
-export function CardFiles({ files, card, t }: { files: ReturnType<typeof filesFor>; card: CardState; t: T }) {
+export function CardFiles({
+  files,
+  card,
+  t,
+}: {
+  files: ReturnType<typeof filesFor>;
+  card: Pick<CardState, 'openFile' | 'downloadFile'>;
+  t: T;
+}) {
   if (files.length === 0) return null;
   return (
     <div className="mt-2">

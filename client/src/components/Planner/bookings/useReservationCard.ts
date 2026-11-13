@@ -19,9 +19,10 @@ export interface ReservationCardHost {
  * opening: its booking code blurred until tapped while the "Blur booking codes"
  * preference is on (off, the code is plain and has no toggle), the delete
  * behind a question with a toast when it fails, and its attached files, which
- * open or download from their own row. A file that cannot be opened or saved
- * stays silent here; the desktop panel toasts it. The delete question names a
- * linked expense, which goes with the booking.
+ * open or download from their own row. A download that fails says so with a
+ * toast, since a save button that does nothing reads as broken; opening stays
+ * silent as it always was. The delete question names a linked expense, which
+ * goes with the booking.
  */
 export function useReservationCard(res: Reservation, host: ReservationCardHost) {
   const blurCodes = host.settings.blur_booking_codes;
@@ -45,6 +46,6 @@ export function useReservationCard(res: Reservation, host: ReservationCardHost) 
       void confirmDelete();
     },
     openFile: (f: Attachment) => openAttachment(f),
-    downloadFile: (f: Attachment) => downloadAttachment(f),
+    downloadFile: (f: Attachment) => downloadAttachment(f, () => host.toast.error(host.t('files.downloadError'))),
   };
 }

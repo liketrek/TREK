@@ -282,7 +282,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Exportovat zobrazené řádky, {shown} z {total} (CSV)',
   'reservations.wallet.add': 'Přidat do Apple Wallet',
   'reservations.wallet.addGoogle': 'Přidat do Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Kartu do Wallet se nepodařilo vytvořit. Zkuste to znovu.',
   'reservations.wallet.undated': 'Nejdřív rezervaci zadejte datum: Wallet kartu zobrazí kolem toho času.',
 };

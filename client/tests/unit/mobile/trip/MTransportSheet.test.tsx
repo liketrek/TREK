@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MTransportSheet from '../../../../src/mobile/screens/trip/sheets/MTransportSheet'
-import { openFile } from '../../../../src/utils/fileDownload'
+import { downloadFile, openFile } from '../../../../src/utils/fileDownload'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
 import type { Reservation, TripFile } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
@@ -9,7 +9,10 @@ import { fireEvent, render, screen } from '../../../helpers/render'
 
 // FE-MOB-TRSH-001 to FE-MOB-TRSH-035
 
-vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
+vi.mock('../../../../src/utils/fileDownload', () => ({
+  openFile: vi.fn(() => Promise.resolve()),
+  downloadFile: vi.fn(() => Promise.resolve()),
+}))
 
 const FLIGHT = {
   id: 7,
@@ -218,6 +221,17 @@ describe('MTransportSheet', () => {
 
     fireEvent.click(screen.getByText('boardingpass.pdf'))
     expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'boardingpass.pdf')
+    fireEvent.click(screen.getByRole('button', { name: 'Download: invoice.pdf' }))
+    expect(downloadFile).toHaveBeenCalledWith('/api/trips/1/files/2/download', 'invoice.pdf')
+  })
+
+  it('FE-MOB-TRSH-016b: the action row holds icons only, named by their labels', () => {
+    render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
+    for (const name of ['Map', 'Edit', 'Delete']) {
+      const btn = screen.getByRole('button', { name })
+      expect(btn).toHaveTextContent('')
+      expect(btn).toHaveAttribute('title', name)
+    }
   })
 
   it('FE-MOB-TRSH-017: opens the transport editor for the booking', () => {

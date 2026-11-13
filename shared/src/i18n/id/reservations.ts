@@ -268,7 +268,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Ekspor {shown} dari {total} baris yang ditampilkan (CSV)',
   'reservations.wallet.add': 'Tambahkan ke Apple Wallet',
   'reservations.wallet.addGoogle': 'Tambahkan ke Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Pass Wallet tidak dapat dibuat. Silakan coba lagi.',
   'reservations.wallet.undated': 'Beri tanggal pada pemesanan dulu: Wallet menampilkan pass di sekitar waktunya.',
 };

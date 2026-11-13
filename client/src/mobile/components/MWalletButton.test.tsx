@@ -66,9 +66,9 @@ describe('MWalletButton', () => {
     wallet.addGoogle.mockResolvedValue('added');
     const onError = vi.fn();
     render(<MWalletButton tripId={42} reservationId={7} onError={onError} />);
-    // The label is short, the accessible name says which wallet.
-    expect(screen.getByRole('button')).toHaveTextContent(/^Wallet$/);
-    expect(screen.getByRole('button', { name: /Google Wallet/ })).toBeInTheDocument();
+    // An icon only: the name and the tooltip say which wallet.
+    expect(screen.getByRole('button')).toHaveTextContent('');
+    expect(screen.getByRole('button', { name: /Google Wallet/ })).toHaveAttribute('title', 'Add to Google Wallet');
     fireEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(wallet.addGoogle).toHaveBeenCalledWith(42, 7, expect.any(String)));
     expect(wallet.add).not.toHaveBeenCalled();
