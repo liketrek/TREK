@@ -328,9 +328,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             </button>
           )}
         </div>
-        {leftOutLabel
-          ? <p className="mt-1 text-caption text-m-muted">{leftOutLabel}</p>
-          : catBreakdown.length > 1 && <p className="mt-1 text-caption text-m-faint">{t('costs.breakdown.hint')}</p>}
+        {/* What is left out is said once, under the total above. */}
+        {!leftOutLabel && catBreakdown.length > 1 && <p className="mt-1 text-caption text-m-faint">{t('costs.breakdown.hint')}</p>}
         {catBreakdown.length === 0 ? (
           <p className="mt-2 font-geist text-[0.71875rem] text-m-faint">{t('costs.noCategories')}</p>
         ) : (

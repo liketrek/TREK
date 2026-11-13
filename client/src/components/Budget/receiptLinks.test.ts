@@ -7,13 +7,14 @@ import { linkableReceiptFiles, receiptOfFile } from './receiptLinks';
 const names = (files: { original_name: string }[]) => files.map((f) => f.original_name);
 
 describe('receipt links (#2839)', () => {
-  const menu = buildTripFile({ id: 1, original_name: 'menu.jpg' });
+  const menu = buildTripFile({ id: 1, original_name: 'menu.jpg', mime_type: 'image/jpeg' });
   const confirmation = buildTripFile({ id: 2, original_name: 'hotel-confirmation.pdf', reservation_id: 7 });
   const linked = buildTripFile({ id: 3, original_name: 'hotel-invoice.pdf', linked_reservation_ids: [9, 7] });
   const binned = buildTripFile({ id: 4, original_name: 'old.pdf', deleted_at: '2026-01-01 10:00:00' });
+  const track = buildTripFile({ id: 5, original_name: 'ridge.gpx', mime_type: 'application/gpx+xml' });
 
-  it('FE-BUDGET-RCPTLINK-001: offers the live files the expense does not carry yet', () => {
-    const files = linkableReceiptFiles([menu, confirmation, linked, binned], [receiptOfFile(linked)], null);
+  it('FE-BUDGET-RCPTLINK-001: offers the live pictures and PDFs the expense does not carry yet', () => {
+    const files = linkableReceiptFiles([menu, confirmation, linked, binned, track], [receiptOfFile(linked)], null);
     expect(names(files)).toEqual(['menu.jpg', 'hotel-confirmation.pdf']);
   });
 

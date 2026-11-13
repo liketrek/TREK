@@ -17,6 +17,7 @@ import {
   buildCostsCsv,
   categoryBreakdown,
   computeTotals,
+  countedExpenses,
   filterBudgetItems,
   filterSettlements,
   myShareOf,
@@ -237,6 +238,8 @@ export function useCostsLedger({
     [splitting, settlement, search, activeSegment, catFilter, dayFilter, me]
   );
   const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx, leftOutCats), [budgetItems, ctx, leftOutCats]);
+  // The count beside the total adds up what the total does.
+  const countedCount = useMemo(() => countedExpenses(budgetItems, leftOutCats), [budgetItems, leftOutCats]);
   // What the totals leave out, named in the breakdown's order, for the line that says so.
   const leftOutLabel = useMemo(() => {
     const names = catBreakdown.filter((r) => r.leftOut).map((r) => t(COST_CAT_META[r.key].labelKey));
@@ -348,6 +351,7 @@ export function useCostsLedger({
     filtered,
     filteredSettlements,
     catBreakdown,
+    countedCount,
     leftOutLabel,
     toggleLeftOutCat,
     countAllCats,

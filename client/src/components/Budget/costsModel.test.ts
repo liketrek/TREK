@@ -7,6 +7,7 @@ import {
   buildCostsCsv,
   categoryBreakdown,
   computeTotals,
+  countedExpenses,
   currencyOptions,
   filterBudgetItems,
   isPlainSplit,
@@ -202,5 +203,12 @@ describe('costsModel: categories left out of the totals (#2819)', () => {
       ['accommodation', true, 0],
       ['food', false, 100],
     ]);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-016: the expense count beside the total counts what the total adds up', () => {
+    const food = expense({ category: 'food', total_price: 40 });
+    const hotel = expense({ category: 'accommodation', total_price: 100 });
+    expect(countedExpenses([food, hotel, food])).toBe(3);
+    expect(countedExpenses([food, hotel, food], new Set<CostCategory>(['food']))).toBe(1);
   });
 });

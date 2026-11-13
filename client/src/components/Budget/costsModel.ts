@@ -233,6 +233,11 @@ function counts(e: BudgetItem, leftOut: ReadonlySet<CostCategory>): boolean {
   return leftOut.size === 0 || !leftOut.has(catMeta(e.category).key);
 }
 
+/** How many expenses the totals add up while `leftOut` categories are set aside (#2819). */
+export function countedExpenses(items: BudgetItem[], leftOut: ReadonlySet<CostCategory> = ALL_COUNTED): number {
+  return items.filter((e) => counts(e, leftOut)).length;
+}
+
 /**
  * The hero and tile figures. Categories left out for a look without them
  * (#2819) leave what was spent, paid and shared; what is owed and still open

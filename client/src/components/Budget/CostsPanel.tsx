@@ -76,7 +76,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const {
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
-    totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
+    totals, filtered, filteredSettlements, catBreakdown, countedCount, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
     deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, setBase, baseOptions,
   } = useCostsLedger({
     tripId, trip, budgetItems, memberCount: tripMembers.length, actions: { loadBudgetItems, deleteBudgetItem }, canEdit, t, toast,
@@ -242,8 +242,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       foot={<>{splitting ? <>
         <span className={CHIP}>{t('costs.yourShare')}<b className="text-content">{fmt0(totals.myShare)}</b></span>
         <span className={CHIP}>{t('costs.youPaid')}<b className="text-content">{fmt0(totals.myPaid)}</b></span>
-      </> : <span className={CHIP}>{t('costs.expensesCount', { count: budgetItems.length })}</span>}
-        {leftOutLabel && <span className={`${CHIP} text-warning`}>{leftOutLabel}</span>}</>} />
+      </> : <span className={CHIP}>{t('costs.expensesCount', { count: countedCount })}</span>}
+        {/* Also the way back where the breakdown is not on show (the table view). */}
+        {leftOutLabel && (
+          <Tooltip label={t('costs.breakdown.countAll')} placement="top">
+            <button type="button" onClick={countAllCats} className={`${CHIP} text-warning hover:underline`}>{leftOutLabel}</button>
+          </Tooltip>
+        )}</>} />
   )
 
   // Spend by category; a click leaves one out of the totals for a look without it (#2819).

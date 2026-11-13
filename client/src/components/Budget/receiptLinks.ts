@@ -5,10 +5,15 @@ function onBooking(file: TripFile, reservationId: number): boolean {
   return Number(file.reservation_id) === reservationId || (file.linked_reservation_ids || []).includes(reservationId);
 }
 
+/** What the receipt picker uploads, so linking offers the same: a picture or a PDF, not a GPX track. */
+function isReceiptFile(file: TripFile): boolean {
+  return (file.mime_type || '').startsWith('image/') || file.mime_type === 'application/pdf';
+}
+
 /**
- * The trip's files an expense could take as a receipt (#2839): the ones not in
- * the bin and not on the expense yet. A booking's confirmation is so often its
- * invoice as well that the files of the booking the expense belongs to lead.
+ * The trip's files an expense could take as a receipt (#2839): pictures and PDFs
+ * not in the bin and not on the expense yet. A booking's confirmation is so often
+ * its invoice as well that the files of the booking the expense belongs to lead.
  */
 export function linkableReceiptFiles(
   files: readonly TripFile[],
@@ -16,7 +21,7 @@ export function linkableReceiptFiles(
   reservationId: number | null | undefined
 ): TripFile[] {
   const taken = new Set(receipts.map((r) => r.id));
-  const live = files.filter((f) => !f.deleted_at && !taken.has(f.id));
+  const live = files.filter((f) => !f.deleted_at && !taken.has(f.id) && isReceiptFile(f));
   if (!reservationId) return live;
   return [...live.filter((f) => onBooking(f, reservationId)), ...live.filter((f) => !onBooking(f, reservationId))];
 }
