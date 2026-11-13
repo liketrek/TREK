@@ -54,6 +54,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': "Mode d'alta qualitat",
   'settings.mapHighQualityHint': 'Antialiàsia + projecció global per a vores més nítides i una vista realista del món.',
   'settings.mapHighQualityWarning': 'Pot afectar el rendiment en dispositius menys potents.',
+  'settings.mapHidePois': "Amaga els punts d'interès",
+  'settings.mapHidePoisHint':
+    "Amaga les botigues, restaurants i llocs d'interès que Mapbox marca pel seu compte, perquè només destaquin els teus llocs. Només als estils Standard.",
   'settings.mapTipLabel': 'Consell:',
   'settings.mapTip':
     'Clic dret i arrossegar per girar/inclinar el mapa. Clic central per afegir un lloc (el clic dret està reservat per a la rotació).',

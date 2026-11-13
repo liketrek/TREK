@@ -132,7 +132,8 @@ export default function MapSettingsTab(): React.ReactElement {
   const {
     managed, presets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
-    mapboxQuality, setMapboxQuality, previewPlaces, glPreview, webgl2Missing, save: saveMapSettings,
+    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, previewPlaces, glPreview, webgl2Missing,
+    save: saveMapSettings,
   } = useMapSettingsForm()
   // One chunk per engine — see components/Map/glLazy.tsx.
   const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
@@ -307,6 +308,11 @@ export default function MapSettingsTab(): React.ReactElement {
                   }
                   control={<ToggleSwitch on={mapboxQuality} onToggle={() => setMapboxQuality(!mapboxQuality)} label={t('settings.mapHighQuality')} />}
                 />
+                <SettingRow
+                  label={t('settings.mapHidePois')}
+                  hint={t('settings.mapHidePoisHint')}
+                  control={<ToggleSwitch on={hideBasemapPois} onToggle={() => setHideBasemapPois(!hideBasemapPois)} label={t('settings.mapHidePois')} />}
+                />
               </SettingRows>
 
               <div className="rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3">
@@ -337,6 +343,7 @@ export default function MapSettingsTab(): React.ReactElement {
               zoom={PREVIEW_ZOOM}
               enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
               quality={provider === 'mapbox-gl' && mapboxQuality}
+              hidePois={provider === 'mapbox-gl' && hideBasemapPois}
             />
           </Suspense>
           </ErrorBoundary>

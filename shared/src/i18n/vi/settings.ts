@@ -68,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Khử răng cưa + chiếu hình ảnh địa cầu cho các cạnh sắc nét hơn và thế giới quan chân thực hơn.',
   'settings.mapHighQualityWarning': 'Có thể ảnh hưởng đến hiệu suất trên các thiết bị cấp thấp hơn.',
+  'settings.mapHidePois': 'Ẩn điểm tham quan',
+  'settings.mapHidePoisHint':
+    'Ẩn các cửa hàng, nhà hàng và điểm tham quan mà Mapbox tự gắn nhãn, để chỉ địa điểm của bạn nổi bật. Chỉ với các kiểu Standard.',
   'settings.mapTipLabel': 'Mẹo:',
   'settings.mapTip':
     'nhấp chuột phải và kéo để xoay/cao độ bản đồ. Nhấp chuột giữa để thêm địa điểm (nhấp chuột phải được dành riêng cho việc xoay).',

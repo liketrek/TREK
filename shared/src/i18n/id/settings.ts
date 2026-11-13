@@ -66,6 +66,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + proyeksi globe untuk tepi yang lebih tajam dan tampilan dunia realistis.',
   'settings.mapHighQualityWarning': 'Dapat memengaruhi performa pada perangkat kelas bawah.',
+  'settings.mapHidePois': 'Sembunyikan tempat menarik',
+  'settings.mapHidePoisHint':
+    'Menyembunyikan toko, restoran, dan objek wisata yang ditandai Mapbox sendiri, agar hanya tempatmu yang menonjol. Hanya untuk gaya Standard.',
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'Klik kanan dan seret untuk memutar/memiringkan peta. Klik tengah untuk menambah tempat (klik kanan untuk rotasi).',

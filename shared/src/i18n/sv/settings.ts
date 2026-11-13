@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Högkvalitetsläge',
   'settings.mapHighQualityHint': 'Antialiasing + globprojektion för skarpare kanter och en realistisk världsbild.',
   'settings.mapHighQualityWarning': 'Kan påverka prestandan på enheter i lägre enheter.',
+  'settings.mapHidePois': 'Dölj intressepunkter',
+  'settings.mapHidePoisHint':
+    'Döljer butiker, restauranger och sevärdheter som Mapbox märker ut på egen hand, så att bara dina platser syns. Bara för Standard-stilarna.',
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'högerklicka och dra för att rotera eller luta kartan. Mittklicka för att lägga till en plats (högerklick är reserverat för rotation).',

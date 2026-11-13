@@ -68,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + földgömb-vetítés az élesebb kontúrokért és egy valósághű világnézethez.',
   'settings.mapHighQualityWarning': 'Gyengébb eszközökön befolyásolhatja a teljesítményt.',
+  'settings.mapHidePois': 'Érdekes helyek elrejtése',
+  'settings.mapHidePoisHint':
+    'Elrejti az üzleteket, éttermeket és látnivalókat, amelyeket a Mapbox magától jelöl, így csak a saját helyeid tűnnek ki. Csak a Standard stílusoknál.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Jobb klikk és húzás a térkép forgatásához/döntéséhez. Középső kattintás hely hozzáadásához (a jobb klikk a forgatáshoz van fenntartva).',

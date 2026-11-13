@@ -65,6 +65,8 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': '高画质模式',
   'settings.mapHighQualityHint': '抗锯齿 + 地球投影，带来更清晰的边缘和更真实的世界视图。',
   'settings.mapHighQualityWarning': '可能影响低端设备的性能。',
+  'settings.mapHidePois': '隐藏兴趣点',
+  'settings.mapHidePoisHint': '隐藏 Mapbox 自带标注的商店、餐厅和景点，只突出你的地点。仅适用于 Standard 样式。',
   'settings.mapTipLabel': '提示：',
   'settings.mapTip': '右键点击并拖动以旋转/倾斜地图。中键点击添加地点（右键用于旋转）。',
   'settings.saveMap': '保存地图',

@@ -26,7 +26,8 @@ import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
-import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
+import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, type GlMapProvider } from './glProviders'
+import { useStandardBasemapConfig } from './useStandardBasemapConfig'
 import { buildGlMap, initialMapStyle } from './glSupport'
 import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import LocationButton from './LocationButton'
@@ -450,7 +451,6 @@ export function MapViewGL({
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
-  const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
   const glStyle = styleOverride ?? styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
@@ -1452,15 +1452,8 @@ export function MapViewGL({
     }
   }, [glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality]) // rebuild on provider/style changes only
 
-  // Pin the basemap label language to the UI language so labels don't fall back to the
-  // browser/OS locale and stack multiple scripts per place (e.g. "India/भारत/India", #1299).
-  // Mapbox Standard exposes this via a basemap config property; classic and MapLibre styles
-  // are left as-is. Runs on load (mapReady) and whenever the UI language changes.
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady || isMapLibre || !isStandardFamily(glStyle)) return
-    try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support the basemap language property */ }
-  }, [mapLang, mapReady, isMapLibre, glStyle])
+  // The label language (#1299) and the basemap's own points of interest (#1761) on Mapbox Standard.
+  useStandardBasemapConfig(mapRef, mapReady, !isMapLibre && isStandardFamily(glStyle))
 
   // Photo loading, shared with the Leaflet MapView.
   const photoUrls = useMarkerThumbs(places)

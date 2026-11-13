@@ -74,6 +74,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Režim vysokej kvality',
   'settings.mapHighQualityHint': 'Antialiasing + zobrazenie glóbusu pre ostrejšie hrany a realistický pohľad na svet.',
   'settings.mapHighQualityWarning': 'Môže ovplyvniť výkon na slabších zariadeniach.',
+  'settings.mapHidePois': 'Skryť body záujmu',
+  'settings.mapHidePoisHint':
+    'Skryje obchody, reštaurácie a pamiatky, ktoré Mapbox označuje sám, aby vynikli len tvoje miesta. Len pre štýly Standard.',
   'settings.mapTipLabel': 'Tip:', // same-as-en
   'settings.mapTip':
     'kliknite pravým tlačidlom a ťahajte pre rotáciu/náklon mapy. Stredné tlačidlo pridá miesto (pravé tlačidlo je vyhradené pre rotáciu).',

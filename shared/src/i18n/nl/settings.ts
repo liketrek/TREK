@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + globeprojectie voor scherpere randen en een realistische wereldweergave.',
   'settings.mapHighQualityWarning': 'Kan de prestaties op minder krachtige apparaten beïnvloeden.',
+  'settings.mapHidePois': 'Interessante plekken verbergen',
+  'settings.mapHidePoisHint':
+    'Verbergt de winkels, restaurants en bezienswaardigheden die Mapbox zelf toont, zodat alleen jouw plekken opvallen. Alleen bij de Standard-stijlen.',
   'settings.mapTipLabel': 'Tip:', // same-as-en
   'settings.mapTip':
     'Rechts-klik en sleep om de kaart te roteren/kantelen. Middenklik om een locatie toe te voegen (rechts-klik is voor rotatie).',

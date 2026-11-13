@@ -66,6 +66,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + projekcja globusa dla ostrzejszych krawędzi i realistycznego widoku świata.',
   'settings.mapHighQualityWarning': 'Może wpływać na wydajność na słabszych urządzeniach.',
+  'settings.mapHidePois': 'Ukryj ciekawe miejsca',
+  'settings.mapHidePoisHint':
+    'Ukrywa sklepy, restauracje i atrakcje, które Mapbox oznacza sam, by wyróżniały się tylko twoje miejsca. Tylko w stylach Standard.',
   'settings.mapTipLabel': 'Wskazówka:',
   'settings.mapTip':
     'Kliknij prawym przyciskiem i przeciągnij, aby obrócić/pochylić mapę. Środkowy przycisk dodaje miejsce (prawy jest zarezerwowany dla obrotu).',

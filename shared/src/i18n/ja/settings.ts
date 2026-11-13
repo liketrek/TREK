@@ -66,6 +66,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': '高品質モード',
   'settings.mapHighQualityHint': 'アンチエイリアス＋地球投影で、より鮮明でリアルに表示。',
   'settings.mapHighQualityWarning': '低性能デバイスではパフォーマンスに影響する場合があります。',
+  'settings.mapHidePois': 'スポットを非表示',
+  'settings.mapHidePoisHint':
+    'Mapbox が独自に表示するお店、レストラン、観光地を隠し、あなたの場所だけを目立たせます。Standard スタイルのみ。',
   'settings.mapTipLabel': 'ヒント:',
   'settings.mapTip': '右クリック＋ドラッグで回転／傾き。中クリックで場所を追加（右クリックは回転用）。',
   'settings.saveMap': '地図を保存',

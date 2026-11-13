@@ -76,6 +76,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Servade silumine ja gloobuse projektsioon selgemate servade ning realistliku maailmavaate jaoks.',
   'settings.mapHighQualityWarning': 'Võib nõrgemates seadmetes jõudlust vähendada.',
+  'settings.mapHidePois': 'Peida huvipunktid',
+  'settings.mapHidePoisHint':
+    'Peidab poed, restoranid ja vaatamisväärsused, mida Mapbox ise märgib, et esile tõuseksid ainult sinu kohad. Ainult Standard-stiilidel.',
   'settings.mapTipLabel': 'Vihje:',
   'settings.mapTip':
     'kaardi pööramiseks või kallutamiseks lohista paremat hiirenuppu all hoides. Koha lisamiseks kasuta keskmist klõpsu (paremklõps on pööramiseks).',

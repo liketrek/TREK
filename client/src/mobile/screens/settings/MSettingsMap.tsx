@@ -22,7 +22,7 @@ export default function MSettingsMap() {
   const {
     managed, presets: tilePresets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
-    mapboxQuality, setMapboxQuality, previewPlaces, glPreview, webgl2Missing, save,
+    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, previewPlaces, glPreview, webgl2Missing, save,
   } = useMapSettingsForm({ mirrorStyleBeforeSave: true })
   const [presetOpen, setPresetOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
@@ -161,6 +161,11 @@ export default function MSettingsMap() {
                 sub={`${t('settings.mapHighQualityHint')} ${t('settings.mapHighQualityWarning')}`}
                 trailing={<MToggle checked={mapboxQuality} onChange={setMapboxQuality} ariaLabel={t('settings.mapHighQuality')} />}
               />
+              <MSetRow
+                label={t('settings.mapHidePois')}
+                sub={t('settings.mapHidePoisHint')}
+                trailing={<MToggle checked={hideBasemapPois} onChange={setHideBasemapPois} ariaLabel={t('settings.mapHidePois')} />}
+              />
               <p className="rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-m-muted">
                 <strong className="text-m-ink">{t('settings.mapTipLabel')}</strong> {t('settings.mapTip')}
               </p>
@@ -183,6 +188,7 @@ export default function MSettingsMap() {
               zoom={PREVIEW_ZOOM}
               enable3d={provider === 'mapbox-gl' && mapbox3d}
               quality={provider === 'mapbox-gl' && mapboxQuality}
+              hidePois={provider === 'mapbox-gl' && hideBasemapPois}
             />
           </Suspense>
           </ErrorBoundary>

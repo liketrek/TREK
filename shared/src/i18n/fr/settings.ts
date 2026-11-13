@@ -69,6 +69,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Anticrénelage + projection globe pour des bords plus nets et une vue réaliste du monde.',
   'settings.mapHighQualityWarning': 'Peut affecter les performances sur les appareils moins puissants.',
+  'settings.mapHidePois': 'Masquer les points d’intérêt',
+  'settings.mapHidePoisHint':
+    'Masque les boutiques, restaurants et sites que Mapbox affiche de lui-même, pour que seuls tes lieux ressortent. Styles Standard uniquement.',
   'settings.mapTipLabel': 'Astuce :',
   'settings.mapTip':
     'Clic droit et glisser pour pivoter/incliner la carte. Clic milieu pour ajouter un lieu (le clic droit est réservé à la rotation).',

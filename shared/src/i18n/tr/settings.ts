@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Yüksek Kalite Modu',
   'settings.mapHighQualityHint': 'Keskin kenarlar ve gerçekçi dünya görünümü için antialiasing + küre projeksiyonu.',
   'settings.mapHighQualityWarning': 'Düşük donanımlı cihazlarda performansı etkileyebilir.',
+  'settings.mapHidePois': 'İlgi noktalarını gizle',
+  'settings.mapHidePoisHint':
+    'Mapbox’ın kendi işaretlediği mağaza, restoran ve gezilecek yerleri gizler, böylece yalnızca senin yerlerin öne çıkar. Yalnızca Standard stillerinde.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'Haritayı döndürmek/eğmek için sağ tıklayıp sürükleyin. Yer eklemek için orta tıklama (sağ tık döndürmeye ayrılmıştır).',

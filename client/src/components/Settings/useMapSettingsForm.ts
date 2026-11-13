@@ -28,7 +28,8 @@ export interface MapSettingsFormOptions {
 /**
  * The user's map settings form behind both settings shells (the desktop tab and the
  * phone section render their own markup over this): the provider, the raster tiles
- * and CARTO key, the Mapbox token, the GL style and the 3D and quality toggles,
+ * and CARTO key, the Mapbox token, the GL style, the 3D and quality toggles and the switch
+ * for the basemap's own points of interest,
  * seeded from the settings store and saved back in one patch.
  */
 export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSettingsFormOptions = {}) {
@@ -48,6 +49,7 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
   );
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false);
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true);
+  const [hideBasemapPois, setHideBasemapPois] = useState<boolean>(settings.map_hide_basemap_pois === true);
 
   useEffect(() => {
     const nextProvider = normalizeProvider(settings.map_provider);
@@ -58,6 +60,7 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
     setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)));
     setMapbox3d(settings.mapbox_3d_enabled !== false);
     setMapboxQuality(settings.mapbox_quality_mode === true);
+    setHideBasemapPois(settings.map_hide_basemap_pois === true);
   }, [settings]);
 
   const previewPlaces = useMemo((): Place[] => [previewPlace()], []);
@@ -82,6 +85,7 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
+        map_hide_basemap_pois: hideBasemapPois,
       });
       // Only mirror the normalized style into the form once it is actually persisted.
       if (!mirrorStyleBeforeSave) setMapboxStyle(glStyle);
@@ -121,6 +125,8 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
     setMapbox3d,
     mapboxQuality,
     setMapboxQuality,
+    hideBasemapPois,
+    setHideBasemapPois,
     previewPlaces,
     glPreview,
     webgl2Missing,

@@ -75,6 +75,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'מצב איכות גבוהה',
   'settings.mapHighQualityHint': 'החלקת קצוות והקרנת גלובוס לקצוות חדים יותר ותצוגת עולם מציאותית.',
   'settings.mapHighQualityWarning': 'עלול להשפיע על הביצועים במכשירים חלשים.',
+  'settings.mapHidePois': 'הסתרת נקודות עניין',
+  'settings.mapHidePoisHint':
+    'מסתיר את החנויות, המסעדות והאטרקציות ש-Mapbox מסמן בעצמו, כך שרק המקומות שלכם בולטים. רק בסגנונות Standard.',
   'settings.mapTipLabel': 'טיפ:',
   'settings.mapTip': 'לחיצה ימנית וגרירה מסובבות/מטות את המפה. לחיצה אמצעית מוסיפה מקום (הלחיצה הימנית שמורה לסיבוב).',
   'settings.saveMap': 'שמירת המפה',

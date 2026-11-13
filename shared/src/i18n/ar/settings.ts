@@ -61,6 +61,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'وضع الجودة العالية',
   'settings.mapHighQualityHint': 'تحسين الحواف + إسقاط كروي لحواف أكثر حدة وعرض واقعي للعالم.',
   'settings.mapHighQualityWarning': 'قد يؤثر على الأداء في الأجهزة الأقل قدرة.',
+  'settings.mapHidePois': 'إخفاء نقاط الاهتمام',
+  'settings.mapHidePoisHint':
+    'يُخفي المتاجر والمطاعم والمعالم التي تضعها Mapbox من تلقاء نفسها، فتبرز أماكنك وحدها. لأنماط Standard فقط.',
   'settings.mapTipLabel': 'نصيحة:',
   'settings.mapTip':
     'انقر بزر الماوس الأيمن واسحب لتدوير/إمالة الخريطة. النقر الأوسط لإضافة مكان (النقر الأيمن مخصص للتدوير).',

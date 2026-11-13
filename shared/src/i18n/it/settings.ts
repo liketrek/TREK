@@ -68,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + proiezione globo per bordi più nitidi e una vista realistica del mondo.',
   'settings.mapHighQualityWarning': 'Può influire sulle prestazioni su dispositivi meno potenti.',
+  'settings.mapHidePois': 'Nascondi punti di interesse',
+  'settings.mapHidePoisHint':
+    'Nasconde negozi, ristoranti e attrazioni che Mapbox segna da sé, così risaltano solo i tuoi luoghi. Solo con gli stili Standard.',
   'settings.mapTipLabel': 'Suggerimento:',
   'settings.mapTip':
     'Click destro e trascina per ruotare/inclinare la mappa. Click centrale per aggiungere un luogo (il click destro è riservato alla rotazione).',

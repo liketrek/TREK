@@ -85,6 +85,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Yüksək keyfiyyət rejimi',
   'settings.mapHighQualityHint': 'Daha kəskin kənarlar və real dünya görünüşü üçün hamarlama və qlobus proyeksiyası.',
   'settings.mapHighQualityWarning': 'Zəif cihazlarda performansa təsir edə bilər.',
+  'settings.mapHidePois': 'Maraqlı məkanları gizlət',
+  'settings.mapHidePoisHint':
+    'Mapbox-un özünün göstərdiyi mağaza, restoran və görməli yerləri gizlədir ki, yalnız sənin məkanların seçilsin. Yalnız Standard üslubları üçün.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'xəritəni fırlatmaq və əymək üçün sağ kliklə sürükləyin. Məkan əlavə etmək üçün orta düymə ilə klikləyin (sağ klik fırlatma üçün ayrılıb).',

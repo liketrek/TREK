@@ -66,6 +66,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': '고품질 모드',
   'settings.mapHighQualityHint': '안티앨리어싱 + 구형 투영으로 선명한 경계와 현실적인 지구 뷰를 제공합니다.',
   'settings.mapHighQualityWarning': '저사양 기기에서 성능에 영향을 줄 수 있습니다.',
+  'settings.mapHidePois': '관심 지점 숨기기',
+  'settings.mapHidePoisHint':
+    'Mapbox가 자체적으로 표시하는 상점, 식당, 명소를 숨겨 내 장소만 돋보이게 합니다. Standard 스타일에서만.',
   'settings.mapTipLabel': '팁:',
   'settings.mapTip':
     '우클릭 후 드래그하여 지도를 회전/기울이세요. 가운데 클릭으로 장소를 추가할 수 있습니다 (우클릭은 회전 전용).',

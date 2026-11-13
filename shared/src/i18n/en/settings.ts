@@ -74,6 +74,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'High Quality Mode',
   'settings.mapHighQualityHint': 'Antialiasing + globe projection for sharper edges and a realistic world view.',
   'settings.mapHighQualityWarning': 'May impact performance on lower-end devices.',
+  'settings.mapHidePois': 'Hide Points of Interest',
+  'settings.mapHidePoisHint':
+    'Leaves out the shops, restaurants and sights Mapbox labels on its own, so only your places stand out. Standard styles only.',
   'settings.mapTipLabel': 'Tip:',
   'settings.mapTip':
     'right-click and drag to rotate/pitch the map. Middle-click to add a place (right-click is reserved for rotation).',

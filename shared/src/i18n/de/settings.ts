@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + Globus-Projektion für schärfere Kanten und eine realistische Weltsicht.',
   'settings.mapHighQualityWarning': 'Kann die Performance auf schwächeren Geräten beeinträchtigen.',
+  'settings.mapHidePois': 'Points of Interest ausblenden',
+  'settings.mapHidePoisHint':
+    'Blendet die Geschäfte, Restaurants und Sehenswürdigkeiten aus, die Mapbox selbst beschriftet, damit nur deine Orte hervortreten. Nur bei den Standard-Stilen.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Rechtsklick und ziehen, um die Karte zu drehen/neigen. Mittelklick, um einen Ort hinzuzufügen (Rechtsklick ist für die Rotation reserviert).',

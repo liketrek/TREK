@@ -62,6 +62,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'โหมดคุณภาพสูง',
   'settings.mapHighQualityHint': 'การลดรอยหยัก + การฉายภาพลูกโลกเพื่อขอบที่คมชัดยิ่งขึ้นและมุมมองโลกที่สมจริง',
   'settings.mapHighQualityWarning': 'อาจส่งผลกระทบต่อประสิทธิภาพการทำงานของอุปกรณ์ระดับล่าง',
+  'settings.mapHidePois': 'ซ่อนจุดที่น่าสนใจ',
+  'settings.mapHidePoisHint':
+    'ซ่อนร้านค้า ร้านอาหาร และสถานที่ท่องเที่ยวที่ Mapbox แสดงเอง เพื่อให้เห็นเฉพาะสถานที่ของคุณ ใช้ได้กับสไตล์ Standard เท่านั้น',
   'settings.mapTipLabel': 'เคล็ดลับ:',
   'settings.mapTip':
     'คลิกขวาค้างแล้วลากเพื่อหมุนหรือเอียงแผนที่ คลิกกลางเพื่อเพิ่มสถานที่ (คลิกขวาสงวนไว้สำหรับการหมุน)',
