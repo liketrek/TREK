@@ -17,6 +17,18 @@ const gr: NotificationLocale = {
       title: `Νέα κράτηση: ${p.booking}`,
       body: `Ο/Η ${p.actor} πρόσθεσε μια νέα κράτηση "${p.booking}" (${p.type}) στο "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `Η πτήση ${p.flight} αναχώρησε`,
+      body: `Η πτήση ${p.flight} από ${p.from} προς ${p.to} είναι στον αέρα.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `Η πτήση ${p.flight} έχει καθυστέρηση`,
+      body: `Η πτήση ${p.flight} από ${p.from} προς ${p.to} έχει καθυστέρηση περίπου ${p.delay} λεπτών.`,
+    }),
+    flight_landed: (p) => ({
+      title: `Η πτήση ${p.flight} προσγειώθηκε`,
+      body: `Η πτήση ${p.flight} από ${p.from} προσγειώθηκε στο ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Υπενθύμιση ταξιδιού: ${p.trip}`,
       body: `Το ταξίδι σας "${p.trip}" πλησιάζει!`,

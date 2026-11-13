@@ -114,6 +114,9 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Notifications', // same-as-en
   'settings.notifyTripInvite': 'Invitations de voyage',
   'settings.notifyBookingChange': 'Modifications de réservation',
+  'settings.notifyFlightDeparted': 'Décollages',
+  'settings.notifyFlightDelayed': 'Retards de vol',
+  'settings.notifyFlightLanded': 'Atterrissages',
   'settings.notifyTripReminder': 'Rappels de voyage',
   'settings.notifyTodoDue': 'Tâche à échéance',
   'settings.notifyVacayInvite': 'Invitations de fusion Vacay',

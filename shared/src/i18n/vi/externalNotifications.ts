@@ -16,6 +16,18 @@ const en: NotificationLocale = {
       title: `Đặt chổ mới: ${p.booking}`,
       body: `${p.actor} đã thêm mới một ${p.type} "${p.booking}" vào "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} đã cất cánh`,
+      body: `Chuyến bay ${p.flight} từ ${p.from} đến ${p.to} đang bay.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} bị trễ`,
+      body: `Chuyến bay ${p.flight} từ ${p.from} đến ${p.to} đang trễ khoảng ${p.delay} phút so với lịch.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} đã hạ cánh`,
+      body: `Chuyến bay ${p.flight} từ ${p.from} đã hạ cánh tại ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Nhắc nhở chuyến đi: ${p.trip}`,
       body: `Hành trình "${p.trip}" sắp bất đầu!`,

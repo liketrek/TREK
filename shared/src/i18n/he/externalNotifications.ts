@@ -17,6 +17,18 @@ const he: NotificationLocale = {
       title: `הזמנה חדשה: ${p.booking}`,
       body: `${p.actor} הוסיף/ה ${p.type} חדש/ה "${p.booking}" אל "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `טיסה ${p.flight} המריאה`,
+      body: `טיסה ${p.flight} מ-${p.from} ל-${p.to} באוויר.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `טיסה ${p.flight} מתעכבת`,
+      body: `טיסה ${p.flight} מ-${p.from} ל-${p.to} מאחרת בכ-${p.delay} דקות.`,
+    }),
+    flight_landed: (p) => ({
+      title: `טיסה ${p.flight} נחתה`,
+      body: `טיסה ${p.flight} מ-${p.from} נחתה ב-${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `תזכורת לטיול: ${p.trip}`,
       body: `הטיול "${p.trip}" מתקרב!`,

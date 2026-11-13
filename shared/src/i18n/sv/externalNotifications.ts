@@ -17,6 +17,18 @@ const en: NotificationLocale = {
       title: `Ny bokning: ${p.booking}`,
       body: `${p.actor} la till en ny ${p.type} "${p.booking}" till "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} har lyft`,
+      body: `${p.flight} från ${p.from} till ${p.to} är i luften.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} är försenat`,
+      body: `${p.flight} från ${p.from} till ${p.to} ligger cirka ${p.delay} minuter efter tidtabellen.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} har landat`,
+      body: `${p.flight} från ${p.from} har landat i ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Resepåminnelse: ${p.trip}`,
       body: `Din resa "${p.trip}" kommer snart!`,

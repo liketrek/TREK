@@ -24,6 +24,9 @@ export interface PasswordResetStrings {
 export type NotificationEventKey =
   | 'trip_invite'
   | 'booking_change'
+  | 'flight_departed'
+  | 'flight_delayed'
+  | 'flight_landed'
   | 'trip_reminder'
   | 'todo_due'
   | 'vacay_invite'

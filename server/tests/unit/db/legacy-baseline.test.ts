@@ -107,6 +107,7 @@ const UNNUMBERED = [
   'Migration20200101046370_a_deleted_chat_message_keeps_no_text',
   'Migration20200101046380_ireland_gained_its_counties',
   'Migration20200101046390_a_trip_can_keep_its_costs_as_totals_only',
+  'Migration20200101046400_a_booked_flight_shows_where_it_is',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

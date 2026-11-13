@@ -234,6 +234,13 @@ describe('derivePlugins', () => {
 });
 
 describe('deriveIntegrations', () => {
+  it('reads FLIGHT_LIVE_ENABLED as the setting spells it, unset or unparseable as no word at all', () => {
+    expect(deriveIntegrations({}).flightLiveEnabled).toBeUndefined();
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: 'off' }).flightLiveEnabled).toBe('false');
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: ' YES ' }).flightLiveEnabled).toBe('true');
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: 'maybe' }).flightLiveEnabled).toBeUndefined();
+  });
+
   it('pins unsplash trim, nominatim trim + default, overpass timeout', () => {
     expect(deriveIntegrations({ UNSPLASH_ACCESS_KEY: ' key ' }).unsplashAccessKey).toBe('key');
     expect(deriveIntegrations({}).nominatimUrl).toBe('https://nominatim.openstreetmap.org');

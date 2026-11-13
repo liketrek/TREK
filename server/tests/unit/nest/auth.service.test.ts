@@ -1063,6 +1063,23 @@ describe('deleteAccount', () => {
 });
 
 describe('updateAppSettings', () => {
+  it('AUTH-DB-070b: FLIGHT_LIVE_ENABLED holds the switch: the form shows it as env_override_*, a save skips it', async () => {
+    const { user } = createAdmin(testDb);
+    vi.stubEnv('FLIGHT_LIVE_ENABLED', 'false');
+    try {
+      await appSetting('flight_live_enabled', 'true');
+      const read = await asLegacyResult(svc.getAppSettings(user.id));
+      expect(read.data).toMatchObject({ flight_live_enabled: 'false', env_override_flight_live_enabled: 'false' });
+
+      await deleteRows(orm, AppSettings, { key: 'flight_live_enabled' });
+      const saved = await asLegacyResult(svc.updateAppSettings(user.id, { flight_live_enabled: 'true' }));
+      expect(saved).toMatchObject({ success: true, managedKeys: ['flight_live_enabled'] });
+      expect(await findRow(orm, AppSettings, { key: 'flight_live_enabled' })).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('AUTH-DB-071: 403 for non-admin', async () => {
     const { user } = createUser(testDb);
     expect((await asLegacyResult(svc.updateAppSettings(user.id, {}))).status).toBe(403);

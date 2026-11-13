@@ -5,7 +5,7 @@ import { NotificationChannelPreferences } from '../../db/entities/NotificationCh
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
 import { AddonsService } from '../addons/addons.service';
-import { readAppSetting } from '../common/app-settings.registry';
+import { readAppSetting, resolveAppSetting } from '../common/app-settings.registry';
 import { UnitOfWork } from '../database/unit-of-work';
 import { listChannels } from './channel-registry';
 import { MailerService } from './mailer/mailer.service';
@@ -131,6 +131,10 @@ export class NotificationPreferencesService {
         return photoProviders.includes('synologyphotos');
       case 'wanderer_source_hint':
         return this.addons.isWandererAvailable();
+      case 'flight_departed':
+      case 'flight_delayed':
+      case 'flight_landed':
+        return (await resolveAppSetting(this.appSettings, 'flight_live_enabled')) !== 'false';
       default:
         return true;
     }

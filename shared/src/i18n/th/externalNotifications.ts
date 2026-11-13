@@ -16,6 +16,18 @@ const th: NotificationLocale = {
       title: `การจองใหม่: ${p.booking}`,
       body: `${p.actor} เพิ่ม${p.type}ใหม่ "${p.booking}" ลงใน "${p.trip}"`,
     }),
+    flight_departed: (p) => ({
+      title: `เที่ยวบิน ${p.flight} ออกเดินทางแล้ว`,
+      body: `เที่ยวบิน ${p.flight} จาก ${p.from} ไป ${p.to} อยู่บนอากาศแล้ว`,
+    }),
+    flight_delayed: (p) => ({
+      title: `เที่ยวบิน ${p.flight} ล่าช้า`,
+      body: `เที่ยวบิน ${p.flight} จาก ${p.from} ไป ${p.to} ล่าช้ากว่ากำหนดประมาณ ${p.delay} นาที`,
+    }),
+    flight_landed: (p) => ({
+      title: `เที่ยวบิน ${p.flight} ลงจอดแล้ว`,
+      body: `เที่ยวบิน ${p.flight} จาก ${p.from} ลงจอดที่ ${p.to} แล้ว`,
+    }),
     trip_reminder: (p) => ({
       title: `แจ้งเตือนทริป: ${p.trip}`,
       body: `ทริป "${p.trip}" ของคุณกำลังจะมาถึงเร็ว ๆ นี้!`,

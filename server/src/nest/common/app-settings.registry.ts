@@ -93,6 +93,8 @@ export const APP_SETTINGS = {
   // 'auto' (what every install had before Amap existed), 'google', 'amap' or
   // 'openstreetmap'; the maps domain validates it (isPlacesProviderChoice).
   places_provider: { schema: text, default: 'auto', adminForm: true, publicConfig: true, managedLocked: true },
+  // Live flight status from the keyless ADS-B feeds (flight-live). On by default; FLIGHT_LIVE_ENABLED wins over it.
+  flight_live_enabled: { schema: flag, default: 'true', env: (e) => e.integrations.flightLiveEnabled, adminForm: true },
 
   // Read by name elsewhere.
   oidc_issuer: { schema: text, default: null, env: (e) => e.oidc.issuer, publicConfig: true },

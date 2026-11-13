@@ -40,6 +40,7 @@ import { DocumentProvidersSchema } from './DocumentProviders.entity';
 import { DocumentSyncItemsSchema } from './DocumentSyncItems.entity';
 import { FerrataTilesSchema } from './FerrataTiles.entity';
 import { FileLinksSchema } from './FileLinks.entity';
+import { FlightLiveStatesSchema } from './FlightLiveStates.entity';
 import { GoogleApiUsageSchema } from './GoogleApiUsage.entity';
 import { GooglePlacePhotoMetaSchema } from './GooglePlacePhotoMeta.entity';
 import { HiddenCountriesSchema } from './HiddenCountries.entity';
@@ -209,6 +210,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   DocumentSyncItemsSchema,
   FerrataTilesSchema,
   FileLinksSchema,
+  FlightLiveStatesSchema,
   GoogleApiUsageSchema,
   GooglePlacePhotoMetaSchema,
   HiddenCountriesSchema,

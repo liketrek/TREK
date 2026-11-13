@@ -16,6 +16,18 @@ const ko: NotificationLocale = {
       title: `새 예약: ${p.booking}`,
       body: `${p.actor}이(가) "${p.trip}"에 "${p.booking}" (${p.type}) 예약을 추가했습니다.`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} 출발`,
+      body: `${p.from}발 ${p.to}행 ${p.flight}편이 비행 중입니다.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} 지연`,
+      body: `${p.from}발 ${p.to}행 ${p.flight}편이 예정보다 약 ${p.delay}분 늦어지고 있습니다.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} 착륙`,
+      body: `${p.from}발 ${p.flight}편이 ${p.to}에 착륙했습니다.`,
+    }),
     trip_reminder: (p) => ({
       title: `여행 알림: ${p.trip}`,
       body: `"${p.trip}" 여행이 곧 시작됩니다!`,

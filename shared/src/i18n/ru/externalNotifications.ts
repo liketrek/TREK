@@ -17,6 +17,18 @@ const ru: NotificationLocale = {
       title: `Новое бронирование: ${p.booking}`,
       body: `${p.actor} добавил бронирование "${p.booking}" (${p.type}) в "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} вылетел`,
+      body: `${p.flight} из ${p.from} в ${p.to} в воздухе.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} задерживается`,
+      body: `${p.flight} из ${p.from} в ${p.to} отстаёт от расписания примерно на ${p.delay} мин.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} приземлился`,
+      body: `${p.flight} из ${p.from} приземлился в ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Напоминание: ${p.trip}`,
       body: `Ваша поездка "${p.trip}" скоро начнётся!`,

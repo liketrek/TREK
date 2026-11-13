@@ -185,6 +185,7 @@ export const envSchema = z.object({
   GOOGLE_LIST_DATA_BASE: url,
   TREK_PLACES_URL: url,
   TREK_PLACES_ENABLED: boolStr,
+  FLIGHT_LIVE_ENABLED: boolStr,
   TREK_PLACES_CONTRIBUTE: oneOf(['off', 'admin']),
   TREK_SERVICES: oneOf(['auto', 'off']),
   TREK_SERVICES_KEY: optionalWith(isServiceKeyShape, 'must be a TREK services key (tk1.<kid>.<payload>.<signature>)'),

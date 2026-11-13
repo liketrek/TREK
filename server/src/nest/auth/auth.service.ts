@@ -44,7 +44,7 @@ import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { UserCleanupService } from './user-cleanup.service';
-import { splitManagedKeys } from '../common/managed';
+import { envLockedKeys, splitManagedKeys, withEnvLocks } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { User } from '../../types';
@@ -711,7 +711,7 @@ export class AuthService {
       const value = await readAppSetting(this.appSettings, key);
       if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? '••••••••' : value;
     }
-    return { data: result };
+    return { data: withEnvLocks(result) };
   }
 
   async updateAppSettings(
@@ -754,7 +754,7 @@ export class AuthService {
     // the admin does own, so a managed install skips those names and keeps the
     // rest of the save working. Reported, never thrown: the settings tab sends
     // the whole form in one request.
-    const { blocked } = splitManagedKeys(body as Record<string, unknown>, readEnv().managed.enabled);
+    const blocked = [...splitManagedKeys(body, readEnv().managed.enabled).blocked, ...envLockedKeys(body)];
 
     await this.uow.transactional(async () => { // the whole form lands, or none of it
       for (const key of ADMIN_FORM_SETTING_KEYS) {

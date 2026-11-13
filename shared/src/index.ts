@@ -22,6 +22,7 @@ export * from './paddle/paddle-regions.schema';
 export * from './paddle/paddle-route.schema';
 export * from './public-api/public-api.schema';
 export * from './airport/airport.schema';
+export * from './flight-live/flight-live.schema';
 export * from './config/config.schema';
 export * from './system-notice/system-notice.schema';
 export * from './maps/maps.schema';

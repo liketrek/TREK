@@ -17,6 +17,18 @@ const br: NotificationLocale = {
       title: `Nova reserva: ${p.booking}`,
       body: `${p.actor} adicionou uma reserva "${p.booking}" (${p.type}) em "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} decolou`,
+      body: `${p.flight} de ${p.from} para ${p.to} está no ar.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} está atrasado`,
+      body: `${p.flight} de ${p.from} para ${p.to} está cerca de ${p.delay} minutos atrasado.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} pousou`,
+      body: `${p.flight} vindo de ${p.from} pousou em ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Lembrete: ${p.trip}`,
       body: `Sua viagem "${p.trip}" está chegando!`,

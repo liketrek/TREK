@@ -608,6 +608,30 @@ describe('send() — in-app notification content', () => {
     );
     expect(notifs.every((n) => n.title_key === 'notif.wanderer_source_hint.title')).toBe(true);
   });
+
+  it('NOTIF-FLT-001 the three live flight notices lead to their trip, and nowhere without one', async () => {
+    const { user } = createUser(testDb);
+    setNotificationChannels(testDb, 'none');
+    const params = { flight: 'LH 716', from: 'FRA', to: 'HND', trip: 'Japan', delay: '25' };
+    const events = ['flight_departed', 'flight_delayed', 'flight_landed'] as const;
+    await events.reduce(async (previous, event) => {
+      await previous;
+      await send({ event, actorId: null, scope: 'user', targetId: user.id, params: { ...params, tripId: '7' } });
+      await send({ event, actorId: null, scope: 'user', targetId: user.id, params });
+    }, Promise.resolve());
+
+    const notifs = await getInAppNotifications(user.id);
+    expect(notifs.map((n) => [n.title_key, n.text_key, n.navigate_target])).toEqual(
+      expect.arrayContaining([
+        ['notif.flight_departed.title', 'notif.flight_departed.text', '/trips/7'],
+        ['notif.flight_delayed.title', 'notif.flight_delayed.text', '/trips/7'],
+        ['notif.flight_landed.title', 'notif.flight_landed.text', '/trips/7'],
+        ['notif.flight_departed.title', 'notif.flight_departed.text', null],
+        ['notif.flight_delayed.title', 'notif.flight_delayed.text', null],
+        ['notif.flight_landed.title', 'notif.flight_landed.text', null],
+      ]),
+    );
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

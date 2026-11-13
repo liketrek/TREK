@@ -17,6 +17,18 @@ const hu: NotificationLocale = {
       title: `Új foglalás: ${p.booking}`,
       body: `${p.actor} hozzáadott egy "${p.booking}" (${p.type}) foglalást a(z) "${p.trip}" utazáshoz.`,
     }),
+    flight_departed: (p) => ({
+      title: `A(z) ${p.flight} felszállt`,
+      body: `A(z) ${p.flight} járat ${p.from} és ${p.to} között a levegőben van.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `A(z) ${p.flight} késik`,
+      body: `A(z) ${p.flight} járat ${p.from} és ${p.to} között körülbelül ${p.delay} percet késik.`,
+    }),
+    flight_landed: (p) => ({
+      title: `A(z) ${p.flight} leszállt`,
+      body: `A(z) ${p.flight} járat ${p.from} felől leszállt itt: ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Utazás emlékeztető: ${p.trip}`,
       body: `A(z) "${p.trip}" utazás hamarosan kezdődik!`,

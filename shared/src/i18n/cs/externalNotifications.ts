@@ -17,6 +17,18 @@ const cs: NotificationLocale = {
       title: `Nová rezervace: ${p.booking}`,
       body: `${p.actor} přidal rezervaci "${p.booking}" (${p.type}) k "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} odletěl`,
+      body: `${p.flight} z ${p.from} do ${p.to} je ve vzduchu.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} má zpoždění`,
+      body: `${p.flight} z ${p.from} do ${p.to} má zhruba ${p.delay} minut zpoždění.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} přistál`,
+      body: `${p.flight} z ${p.from} přistál v ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Připomínka výletu: ${p.trip}`,
       body: `Váš výlet "${p.trip}" se blíží!`,

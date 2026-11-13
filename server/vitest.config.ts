@@ -116,6 +116,8 @@ export default defineConfig({
         // scripts/coverage-thresholds.mjs after the first full run.
         'src/nest/ferratas/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/files/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 98 },
+        // New with live flight status; at the floor until the first full run regenerates it.
+        'src/nest/flight-live/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/geo/**/*.ts': { statements: 99, branches: 95, functions: 99, lines: 99 },
         // google-quota, managed, mcp-shared, mcp-transport, public-api,
         // receipt-scan, route-usage, scheduling, school-holidays, tokens and tours

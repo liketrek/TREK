@@ -1,4 +1,6 @@
+import { readEnv } from '../../app-config';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { APP_SETTINGS, type AppSettingDef, type AppSettingKey } from './app-settings.registry';
 import { byCodeUnit } from './compare';
 import { SetMetadata } from '@nestjs/common';
 
@@ -144,6 +146,7 @@ export const MANAGED_CUSTOMER_KEYS = [
   'dark_mode',
   'default_currency',
   'distance_unit',
+  'flight_live_enabled',
   'map_provider',
   'map_tile_url',
   'mapbox_3d_enabled',
@@ -191,4 +194,38 @@ export function splitManagedKeys<T extends Record<string, unknown>>(
     else (allowed as Record<string, unknown>)[key] = value;
   }
   return { allowed, blocked: blocked.sort(byCodeUnit) };
+}
+
+/**
+ * Admin form switches an environment variable holds once it is set. The
+ * variable wins over the stored value anyway (resolveAppSetting), so the form
+ * shows the variable's value and a save leaves the stored one alone instead of
+ * pretending to change what still applies. SMTP keeps its old behaviour.
+ */
+const ENV_LOCKED_ADMIN_KEYS: readonly AppSettingKey[] = ['flight_live_enabled'];
+
+/** The value the environment pins a switch to, or null while it is unset. */
+function envValue(key: AppSettingKey): string | null {
+  return (APP_SETTINGS[key] as AppSettingDef).env?.(readEnv()) || null;
+}
+
+/** The env-held switches the write body sends, which the save skips and reports like the operator's keys. */
+export function envLockedKeys(body: Record<string, unknown>): string[] {
+  return ENV_LOCKED_ADMIN_KEYS.filter((key) => body[key] !== undefined && envValue(key) !== null);
+}
+
+/**
+ * The admin form's values with every env-held switch set to the value that
+ * applies, and `env_override_<key>` beside it so the form can show the switch
+ * locked (the shape of `env_override_oidc_only` in the app config).
+ */
+export function withEnvLocks(values: Record<string, string>): Record<string, string> {
+  const out = { ...values };
+  for (const key of ENV_LOCKED_ADMIN_KEYS) {
+    const value = envValue(key);
+    if (value === null) continue;
+    out[key] = value;
+    out[`env_override_${key}`] = value;
+  }
+  return out;
 }

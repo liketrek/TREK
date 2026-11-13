@@ -43,6 +43,7 @@ import type { DocumentProvidersTable } from './DocumentProviders.table';
 import type { DocumentSyncItemsTable } from './DocumentSyncItems.table';
 import type { FerrataTilesTable } from './FerrataTiles.table';
 import type { FileLinksTable } from './FileLinks.table';
+import type { FlightLiveStatesTable } from './FlightLiveStates.table';
 import type { GoogleApiUsageTable } from './GoogleApiUsage.table';
 import type { GooglePlacePhotoMetaTable } from './GooglePlacePhotoMeta.table';
 import type { HiddenCountriesTable } from './HiddenCountries.table';
@@ -218,6 +219,7 @@ export interface DB {
   document_sync_items: DocumentSyncItemsTable;
   ferrata_tiles: FerrataTilesTable;
   file_links: FileLinksTable;
+  flight_live_states: FlightLiveStatesTable;
   google_api_usage: GoogleApiUsageTable;
   google_place_photo_meta: GooglePlacePhotoMetaTable;
   hidden_countries: HiddenCountriesTable;

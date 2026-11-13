@@ -1,3 +1,4 @@
+import { flightLiveLegSchema } from '../flight-live/flight-live.schema';
 import { roadtripDayBoundaryListSchema } from '../roadtrip/day-boundary.schema';
 import { roadtripPreferencesSchema } from '../roadtrip/preferences.schema';
 
@@ -215,6 +216,8 @@ export const TREK_WS_EVENTS = {
     scope: 'trip',
     payload: z.object({ reservationId: id, travelers: z.array(z.unknown()) }),
   },
+  // Live flight states of the trip that changed in the last poll (flight-live job).
+  'flight:live': { scope: 'trip', payload: z.object({ flights: z.array(flightLiveLegSchema) }) },
 
   // ── Accommodations ───────────────────────────────────────────────────────
   // DRIFT: `{ accommodation }` vs empty refetch ping `{}` (reservation cascade

@@ -17,6 +17,18 @@ const zhTW: NotificationLocale = {
       title: `新預訂：${p.booking}`,
       body: `${p.actor} 在「${p.trip}」中新增了預訂「${p.booking}」（${p.type}）。`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight}已起飛`,
+      body: `從${p.from}飛往${p.to}的${p.flight}已在空中。`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight}延誤`,
+      body: `從${p.from}飛往${p.to}的${p.flight}比預定晚約${p.delay}分鐘。`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight}已降落`,
+      body: `從${p.from}出發的${p.flight}已降落在${p.to}。`,
+    }),
     trip_reminder: (p) => ({
       title: `行程提醒：${p.trip}`,
       body: `您的行程「${p.trip}」即將開始！`,

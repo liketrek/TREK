@@ -16,6 +16,18 @@ const id: NotificationLocale = {
       title: `Pemesanan baru: ${p.booking}`,
       body: `${p.actor} menambahkan "${p.booking}" (${p.type}) baru ke "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} telah lepas landas`,
+      body: `${p.flight} dari ${p.from} ke ${p.to} sedang mengudara.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} terlambat`,
+      body: `${p.flight} dari ${p.from} ke ${p.to} terlambat sekitar ${p.delay} menit dari jadwal.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} telah mendarat`,
+      body: `${p.flight} dari ${p.from} telah mendarat di ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Pengingat perjalanan: ${p.trip}`,
       body: `Perjalanan Anda "${p.trip}" akan segera tiba!`,

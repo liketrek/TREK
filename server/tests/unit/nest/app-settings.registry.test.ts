@@ -50,6 +50,7 @@ describe('the derived key lists', () => {
       'webauthn_rp_id',
       'webauthn_origins',
       'places_provider',
+      'flight_live_enabled',
     ]);
   });
 
@@ -133,6 +134,7 @@ describe('reading', () => {
       oidc_client_secret: ['OIDC_CLIENT_SECRET', 'oidc-env-secret'],
       oidc_display_name: ['OIDC_DISPLAY_NAME', 'Company SSO'],
       oidc_discovery_url: ['OIDC_DISCOVERY_URL', 'https://idp.env.example/.well-known/openid-configuration'],
+      flight_live_enabled: ['FLIGHT_LIVE_ENABLED', 'false'],
     };
     const withEnv = (Object.entries(APP_SETTINGS) as Array<[string, AppSettingDef]>)
       .filter(([, def]) => def.env)

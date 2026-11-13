@@ -17,6 +17,18 @@ const nl: NotificationLocale = {
       title: `Nieuwe boeking: ${p.booking}`,
       body: `${p.actor} heeft een boeking "${p.booking}" (${p.type}) toegevoegd aan "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} is vertrokken`,
+      body: `${p.flight} van ${p.from} naar ${p.to} is in de lucht.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} heeft vertraging`,
+      body: `${p.flight} van ${p.from} naar ${p.to} loopt ongeveer ${p.delay} minuten achter op schema.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} is geland`,
+      body: `${p.flight} uit ${p.from} is geland in ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Reisherinnering: ${p.trip}`,
       body: `Je reis "${p.trip}" komt eraan!`,

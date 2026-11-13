@@ -173,6 +173,28 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.view_trip',
     navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
+  // Live flight status (flight-live): the poll saw the flight leave, land or run late.
+  flight_departed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_departed.title',
+    textKey: 'notif.flight_departed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  flight_delayed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_delayed.title',
+    textKey: 'notif.flight_delayed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  flight_landed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_landed.title',
+    textKey: 'notif.flight_landed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
   trip_reminder: {
     inAppType: 'navigate',
     titleKey: 'notif.trip_reminder.title',

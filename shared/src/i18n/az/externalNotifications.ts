@@ -17,6 +17,18 @@ const az: NotificationLocale = {
       title: `Yeni rezervasiya: ${p.booking}`,
       body: `${p.actor} “${p.trip}” səyahətinə yeni ${p.type} rezervasiyası — “${p.booking}” əlavə etdi.`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} havaya qalxdı`,
+      body: `${p.from} hava limanından ${p.to} hava limanına ${p.flight} reysi havadadır.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} gecikir`,
+      body: `${p.from} hava limanından ${p.to} hava limanına ${p.flight} reysi təxminən ${p.delay} dəqiqə gecikir.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} endi`,
+      body: `${p.from} hava limanından gələn ${p.flight} reysi ${p.to} hava limanına endi.`,
+    }),
     trip_reminder: (p) => ({
       title: `Səyahət xatırlatması: ${p.trip}`,
       body: `“${p.trip}” səyahətiniz yaxınlaşır!`,

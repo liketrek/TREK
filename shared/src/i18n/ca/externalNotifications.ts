@@ -17,6 +17,18 @@ const ca: NotificationLocale = {
       title: `Reserva nova: ${p.booking}`,
       body: `${p.actor} va afegir una reserva "${p.booking}" (${p.type}) a "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} ha enlairat`,
+      body: `${p.flight} de ${p.from} a ${p.to} és a l'aire.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} va amb retard`,
+      body: `${p.flight} de ${p.from} a ${p.to} porta uns ${p.delay} minuts de retard.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} ha aterrat`,
+      body: `${p.flight} des de ${p.from} ha aterrat a ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Recordatori: ${p.trip}`,
       body: `El teu viatge "${p.trip}" s'apropa!`,

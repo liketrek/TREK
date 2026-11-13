@@ -23,6 +23,9 @@ export interface NtfyConfig {
 const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 | 5; tags: string[] }>> = {
   trip_invite: { priority: 4, tags: ['loudspeaker'] },
   booking_change: { priority: 3, tags: ['calendar'] },
+  flight_departed: { priority: 3, tags: ['airplane'] },
+  flight_delayed: { priority: 4, tags: ['airplane', 'hourglass'] },
+  flight_landed: { priority: 3, tags: ['airplane'] },
   trip_reminder: { priority: 4, tags: ['bell', 'alarm_clock'] },
   vacay_invite: { priority: 4, tags: ['palm_tree'] },
   todo_due: { priority: 4, tags: ['ballot_box_with_check'] },

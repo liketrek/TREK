@@ -18,6 +18,18 @@ const et: NotificationLocale = {
       title: `Uus broneering: ${p.booking}`,
       body: `${p.actor} lisas reisile „${p.trip}” uue broneeringu „${p.booking}” (tüüp: ${reservations[`reservations.type.${p.type}`] ?? (p.type === 'booking' ? 'broneering' : p.type)}).`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} tõusis õhku`,
+      body: `Lend ${p.flight} lennujaamast ${p.from} lennujaama ${p.to} on õhus.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} hilineb`,
+      body: `Lend ${p.flight} lennujaamast ${p.from} lennujaama ${p.to} hilineb umbes ${p.delay} minutit.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} maandus`,
+      body: `Lend ${p.flight} lennujaamast ${p.from} maandus lennujaamas ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Reisi meeldetuletus: ${p.trip}`,
       body: `Sinu reis „${p.trip}” algab peagi!`,
