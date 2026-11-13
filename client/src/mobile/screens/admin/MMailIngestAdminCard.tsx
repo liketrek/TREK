@@ -1,12 +1,14 @@
-import { CheckCircle, Clock, Inbox, Mail, Upload, Webhook, XCircle } from 'lucide-react';
+import { Inbox, Upload, Webhook, type LucideIcon } from 'lucide-react';
 import {
   TRANSPORTS,
   problemText,
+  statTiles,
   statusFacts,
   transportInfo,
   transportLabel,
   type MailAdminForm,
   type MailAdminProblem,
+  type StatTone,
 } from '../../../components/Admin/mailIngest/mailIngestAdminModel';
 import { useMailIngestAdmin, type MailIngestAdmin } from '../../../components/Admin/mailIngest/useMailIngestAdmin';
 import { useTranslation } from '../../../i18n';
@@ -111,8 +113,6 @@ function WebhookFields({ admin, form, t }: PartProps) {
   );
 }
 
-type StatTone = 'neutral' | 'success' | 'warning' | 'danger';
-
 const STAT_COLOR: Record<StatTone, string> = {
   neutral: 'var(--m-muted)',
   success: 'var(--m-st-confirmed)',
@@ -127,7 +127,7 @@ function StatTile({
   value,
   tone,
 }: {
-  icon: typeof Mail;
+  icon: LucideIcon;
   label: string;
   value: number;
   tone: StatTone;
@@ -173,15 +173,9 @@ function Status({ admin, t, locale }: { admin: MailIngestAdmin; t: TranslationFn
         {t('mailAdmin.status.lastRead', { time: lastRead })}
       </p>
       <div className="mt-[7px] grid grid-cols-2 gap-[5px]">
-        <StatTile icon={Mail} label={t('mailAdmin.status.mails')} value={facts.mails} tone="neutral" />
-        <StatTile icon={CheckCircle} label={t('mailAdmin.status.added')} value={facts.added} tone="success" />
-        <StatTile icon={Clock} label={t('mailAdmin.status.waiting')} value={facts.waiting} tone="warning" />
-        <StatTile
-          icon={XCircle}
-          label={t('mailAdmin.status.failed')}
-          value={facts.failed}
-          tone={facts.failed > 0 ? 'danger' : 'neutral'}
-        />
+        {statTiles(facts, t).map(({ key, ...tile }) => (
+          <StatTile key={key} {...tile} />
+        ))}
       </div>
       {status.last_error && (
         <p className="mt-[9px] rounded-[10px] bg-[color-mix(in_srgb,var(--m-st-pending)_14%,transparent)] px-[10px] py-[7px] text-caption leading-snug text-[color:var(--m-st-pending)]">

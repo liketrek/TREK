@@ -1,4 +1,5 @@
 import type { MailIngestAdminStatusResponse, MailIngestImapTls } from '@trek/shared';
+import { CheckCircle, Clock, Mail, XCircle, type LucideIcon } from 'lucide-react';
 import type { TranslationFn } from '../../../types';
 
 /**
@@ -127,6 +128,34 @@ export function statusFacts(status: MailIngestAdminStatusResponse): {
     waiting: status.backlog.reduce((sum, n) => sum + n, 0),
     failed: byStatus.failed ?? 0,
   };
+}
+
+/** How a status tile is coloured; each card maps it onto its own tokens. */
+export type StatTone = 'neutral' | 'success' | 'warning' | 'danger';
+
+/** One number of the status card. */
+export interface StatTile {
+  key: 'mails' | 'added' | 'waiting' | 'failed';
+  icon: LucideIcon;
+  label: string;
+  value: number;
+  tone: StatTone;
+}
+
+/** The day's numbers as the status tiles show them, in order, on desktop and mobile alike. */
+export function statTiles(facts: ReturnType<typeof statusFacts>, t: TranslationFn): StatTile[] {
+  return [
+    { key: 'mails', icon: Mail, label: t('mailAdmin.status.mails'), value: facts.mails, tone: 'neutral' },
+    { key: 'added', icon: CheckCircle, label: t('mailAdmin.status.added'), value: facts.added, tone: 'success' },
+    { key: 'waiting', icon: Clock, label: t('mailAdmin.status.waiting'), value: facts.waiting, tone: 'warning' },
+    {
+      key: 'failed',
+      icon: XCircle,
+      label: t('mailAdmin.status.failed'),
+      value: facts.failed,
+      tone: facts.failed > 0 ? 'danger' : 'neutral',
+    },
+  ];
 }
 
 /** A problem in the admin's words; a switch of literal keys so the i18n check sees each one. */

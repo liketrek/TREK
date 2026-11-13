@@ -1,7 +1,6 @@
 import {
   AlertTriangle,
   CheckCircle,
-  Clock,
   Copy,
   Inbox,
   Loader2,
@@ -11,6 +10,7 @@ import {
   Upload,
   Webhook,
   XCircle,
+  type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
@@ -33,11 +33,13 @@ import { useToast } from '../../shared/Toast';
 import {
   TRANSPORTS,
   problemText,
+  statTiles,
   statusFacts,
   transportInfo,
   transportLabel,
   type MailAdminForm,
   type MailAdminProblem,
+  type StatTone,
 } from './mailIngestAdminModel';
 import { useMailIngestAdmin, type MailIngestAdmin } from './useMailIngestAdmin';
 
@@ -169,8 +171,6 @@ function WebhookFields({ admin, form, t, error }: FieldsProps) {
   );
 }
 
-type StatTone = 'neutral' | 'success' | 'warning' | 'danger';
-
 const STAT_TONE: Record<StatTone, { icon: string; value: string }> = {
   neutral: { icon: 'bg-surface-tertiary text-content-muted', value: 'text-content' },
   success: { icon: 'bg-success-soft text-success', value: 'text-content' },
@@ -185,7 +185,7 @@ function StatTile({
   value,
   tone,
 }: {
-  icon: typeof Mail;
+  icon: LucideIcon;
   label: string;
   value: number;
   tone: StatTone;
@@ -229,15 +229,9 @@ function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; local
         </span>
       </div>
       <div className="grid grid-cols-4 gap-1.5 max-md:grid-cols-2">
-        <StatTile icon={Mail} label={t('mailAdmin.status.mails')} value={facts.mails} tone="neutral" />
-        <StatTile icon={CheckCircle} label={t('mailAdmin.status.added')} value={facts.added} tone="success" />
-        <StatTile icon={Clock} label={t('mailAdmin.status.waiting')} value={facts.waiting} tone="warning" />
-        <StatTile
-          icon={XCircle}
-          label={t('mailAdmin.status.failed')}
-          value={facts.failed}
-          tone={facts.failed > 0 ? 'danger' : 'neutral'}
-        />
+        {statTiles(facts, t).map(({ key, ...tile }) => (
+          <StatTile key={key} {...tile} />
+        ))}
       </div>
       {status.last_error && (
         <p className="m-0 flex items-start gap-1.5 rounded-lg bg-warning-soft px-3 py-2 text-caption leading-snug text-warning">

@@ -31,7 +31,7 @@ export interface ApiLlmConfig {
  * so it has no address or key here and is read through `read`. Never stored in
  * the addon config, only resolved from the shared connection.
  */
-export interface PlanLlmConfig {
+interface PlanLlmConfig {
   provider: 'chatgpt';
   model: string;
   read: StructuredReader;

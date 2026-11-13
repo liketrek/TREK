@@ -7,7 +7,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
-import { copyText } from '../../utils/clipboard'
+import { useCopied } from '../../hooks/useCopied'
 import { refusedOffline } from '../../utils/needsConnection'
 
 // The state behind the share dialog, shared by the desktop dialog and the one the
@@ -36,20 +36,6 @@ export const SHARE_OPTIONS: { key: SharePerm; label: string }[] = [
   { key: 'share_travel_only', label: 'share.optTravelOnly' },
   { key: 'share_hide_images', label: 'share.optHideImages' },
 ]
-
-/** Copy text and show "Copied" for two seconds, the timer restarting on every copy. */
-function useCopied() {
-  const [copied, setCopied] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
-  const copy = async (text: string | null) => {
-    if (!text || !(await copyText(text))) return
-    setCopied(true)
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied(false), 2000)
-  }
-  return { copied, copy }
-}
 
 /** The public read-only link and what it may show. */
 export function useShareLink(tripId: number) {

@@ -1,4 +1,4 @@
-// FE-ADMIN-MAILINGEST-001 to FE-ADMIN-MAILINGEST-007
+// FE-ADMIN-MAILINGEST-001 to FE-ADMIN-MAILINGEST-008
 import type { MailIngestAdminStatusResponse } from '@trek/shared';
 import { describe, expect, it } from 'vitest';
 import {
@@ -10,6 +10,7 @@ import {
   formOf,
   problemText,
   problemsOf,
+  statTiles,
   statusFacts,
   transportInfo,
   transportLabel,
@@ -104,5 +105,17 @@ describe('mailIngestAdminModel', () => {
       'mailAdmin.transport.imapInfo',
       'mailAdmin.transport.webhookInfo',
     ]);
+  });
+
+  it('FE-ADMIN-MAILINGEST-008: the status tiles in order, the failed one red only when something failed', () => {
+    const t = ((key: string) => key) as never;
+    const tiles = statTiles({ mails: 4, added: 2, waiting: 1, failed: 0 }, t);
+    expect(tiles.map(({ key, label, value, tone }) => [key, label, value, tone])).toEqual([
+      ['mails', 'mailAdmin.status.mails', 4, 'neutral'],
+      ['added', 'mailAdmin.status.added', 2, 'success'],
+      ['waiting', 'mailAdmin.status.waiting', 1, 'warning'],
+      ['failed', 'mailAdmin.status.failed', 0, 'neutral'],
+    ]);
+    expect(statTiles({ mails: 1, added: 0, waiting: 0, failed: 1 }, t)[3].tone).toBe('danger');
   });
 });
