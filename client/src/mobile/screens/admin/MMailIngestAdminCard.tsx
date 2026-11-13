@@ -1,4 +1,4 @@
-import { Inbox, Upload, Webhook } from 'lucide-react';
+import { CheckCircle, Clock, Inbox, Mail, Upload, Webhook, XCircle } from 'lucide-react';
 import {
   TRANSPORTS,
   problemText,
@@ -111,7 +111,50 @@ function WebhookFields({ admin, form, t }: PartProps) {
   );
 }
 
-/** How the import runs, in counts only. */
+type StatTone = 'neutral' | 'success' | 'warning' | 'danger';
+
+const STAT_COLOR: Record<StatTone, string> = {
+  neutral: 'var(--m-muted)',
+  success: 'var(--m-st-confirmed)',
+  warning: 'var(--m-st-pending)',
+  danger: 'var(--m-st-danger)',
+};
+
+/** One number of the status, the desktop tile in the phone's tokens. */
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof Mail;
+  label: string;
+  value: number;
+  tone: StatTone;
+}) {
+  const color = STAT_COLOR[tone];
+  return (
+    <div className="flex min-w-0 items-center gap-[9px] rounded-[12px] bg-[color:var(--m-inner)] px-[10px] py-[9px] shadow-sm">
+      <span
+        className="grid h-7 w-7 flex-none place-items-center rounded-full"
+        style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
+      >
+        <Icon size={13} strokeWidth={2.2} />
+      </span>
+      <div className="min-w-0">
+        <div
+          className="font-geist text-subtitle font-bold tabular-nums leading-none"
+          style={{ color: tone === 'danger' ? color : 'var(--m-ink)' }}
+        >
+          {value}
+        </div>
+        <div className="mt-[3px] truncate text-caption text-m-faint">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+/** How the import runs, in counts only: the last read with its health dot, then the day's numbers. */
 function Status({ admin, t, locale }: { admin: MailIngestAdmin; t: TranslationFn; locale: string }) {
   const status = admin.status;
   if (!status) return null;
@@ -119,23 +162,32 @@ function Status({ admin, t, locale }: { admin: MailIngestAdmin; t: TranslationFn
   const lastRead = status.last_ok_at
     ? relativeTime(Date.parse(status.last_ok_at), locale)
     : t('mailAdmin.status.never');
+  const healthy = !status.last_error && !!status.last_ok_at;
   return (
-    <div className="mt-3 rounded-[12px] bg-[color:var(--m-ic)] px-3 py-[10px]">
-      <p className="text-caption font-semibold text-m-ink">{t('mailAdmin.status.lastRead', { time: lastRead })}</p>
-      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-[6px]">
-        {[
-          { label: t('mailAdmin.status.mails'), value: facts.mails },
-          { label: t('mailAdmin.status.added'), value: facts.added },
-          { label: t('mailAdmin.status.waiting'), value: facts.waiting },
-          { label: t('mailAdmin.status.failed'), value: facts.failed },
-        ].map((f) => (
-          <div key={f.label} className="flex items-baseline justify-between gap-2">
-            <span className="truncate text-caption text-m-faint">{f.label}</span>
-            <span className="font-geist text-body font-bold tabular-nums text-m-ink">{f.value}</span>
-          </div>
-        ))}
+    <div className="mt-3 rounded-[14px] bg-[color:var(--m-ic)] p-[10px]">
+      <p className="flex items-center gap-[6px] px-[2px] text-caption font-semibold text-m-ink">
+        <span
+          className="h-[7px] w-[7px] flex-none rounded-full"
+          style={{ background: healthy ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
+        />
+        {t('mailAdmin.status.lastRead', { time: lastRead })}
+      </p>
+      <div className="mt-[9px] grid grid-cols-2 gap-[6px]">
+        <StatTile icon={Mail} label={t('mailAdmin.status.mails')} value={facts.mails} tone="neutral" />
+        <StatTile icon={CheckCircle} label={t('mailAdmin.status.added')} value={facts.added} tone="success" />
+        <StatTile icon={Clock} label={t('mailAdmin.status.waiting')} value={facts.waiting} tone="warning" />
+        <StatTile
+          icon={XCircle}
+          label={t('mailAdmin.status.failed')}
+          value={facts.failed}
+          tone={facts.failed > 0 ? 'danger' : 'neutral'}
+        />
       </div>
-      {status.last_error && <p className="mt-2 text-caption text-[color:var(--m-st-pending)]">{status.last_error}</p>}
+      {status.last_error && (
+        <p className="mt-[9px] rounded-[10px] bg-[color-mix(in_srgb,var(--m-st-pending)_14%,transparent)] px-[10px] py-[7px] text-caption leading-snug text-[color:var(--m-st-pending)]">
+          {status.last_error}
+        </p>
+      )}
     </div>
   );
 }

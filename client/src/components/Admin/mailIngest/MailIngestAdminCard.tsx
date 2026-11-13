@@ -1,4 +1,17 @@
-import { CheckCircle, Copy, Inbox, Loader2, Mail, PlugZap, Save, Upload, Webhook, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Copy,
+  Inbox,
+  Loader2,
+  Mail,
+  PlugZap,
+  Save,
+  Upload,
+  Webhook,
+  XCircle,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import type { TranslationFn } from '../../../types';
@@ -156,7 +169,46 @@ function WebhookFields({ admin, form, t, error }: FieldsProps) {
   );
 }
 
-/** How the import runs, in counts only: no subject, sender or content of a mail is ever shown here. */
+type StatTone = 'neutral' | 'success' | 'warning' | 'danger';
+
+const STAT_TONE: Record<StatTone, { icon: string; value: string }> = {
+  neutral: { icon: 'bg-surface-tertiary text-content-muted', value: 'text-content' },
+  success: { icon: 'bg-success-soft text-success', value: 'text-content' },
+  warning: { icon: 'bg-warning-soft text-warning', value: 'text-content' },
+  danger: { icon: 'bg-danger-soft text-danger', value: 'text-danger' },
+};
+
+/** One number of the status: its icon in the tone's soft colour, the count large, the label under it. */
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof Mail;
+  label: string;
+  value: number;
+  tone: StatTone;
+}) {
+  const look = STAT_TONE[tone];
+  return (
+    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-edge-faint bg-surface-card px-3 py-2.5 shadow-sm">
+      <span className={`grid h-8 w-8 flex-none place-items-center rounded-full ${look.icon}`}>
+        <Icon size={15} strokeWidth={2.1} />
+      </span>
+      <div className="min-w-0">
+        <div className={`text-subtitle font-semibold tabular-nums leading-none ${look.value}`}>{value}</div>
+        <div className="mt-1 truncate text-caption text-content-faint">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * How the import runs, in counts only: no subject, sender or content of a mail
+ * is ever shown here. A head line with the last successful read (green, or
+ * amber while the last run failed), then the day's numbers as tiles.
+ */
 function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; locale: string }) {
   const status = admin.status;
   if (!status) return null;
@@ -164,30 +216,35 @@ function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; local
   const lastRead = status.last_ok_at
     ? relativeTime(Date.parse(status.last_ok_at), locale)
     : t('mailAdmin.status.never');
+  const healthy = !status.last_error && !!status.last_ok_at;
   return (
-    <div className="flex flex-col gap-2 rounded-[12px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-3 rounded-xl border border-edge-faint bg-surface-secondary p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-caption font-semibold uppercase tracking-[0.08em] text-content-faint">
           {t('mailAdmin.status.title')}
         </span>
-        <StatusPill tone={status.last_error ? 'warning' : 'neutral'}>
+        <span className="inline-flex items-center gap-1.5 text-caption font-medium text-content-secondary">
+          <span className={`h-2 w-2 rounded-full ${healthy ? 'bg-success' : 'bg-warning'}`} />
           {t('mailAdmin.status.lastRead', { time: lastRead })}
-        </StatusPill>
+        </span>
       </div>
-      <div className="grid grid-cols-4 gap-2 max-sm:grid-cols-2">
-        {[
-          { label: t('mailAdmin.status.mails'), value: facts.mails },
-          { label: t('mailAdmin.status.added'), value: facts.added },
-          { label: t('mailAdmin.status.waiting'), value: facts.waiting },
-          { label: t('mailAdmin.status.failed'), value: facts.failed },
-        ].map((f) => (
-          <div key={f.label} className="min-w-0">
-            <div className="truncate text-caption text-content-faint">{f.label}</div>
-            <div className="text-body font-semibold tabular-nums text-content">{f.value}</div>
-          </div>
-        ))}
+      <div className="grid grid-cols-4 gap-2 max-md:grid-cols-2">
+        <StatTile icon={Mail} label={t('mailAdmin.status.mails')} value={facts.mails} tone="neutral" />
+        <StatTile icon={CheckCircle} label={t('mailAdmin.status.added')} value={facts.added} tone="success" />
+        <StatTile icon={Clock} label={t('mailAdmin.status.waiting')} value={facts.waiting} tone="warning" />
+        <StatTile
+          icon={XCircle}
+          label={t('mailAdmin.status.failed')}
+          value={facts.failed}
+          tone={facts.failed > 0 ? 'danger' : 'neutral'}
+        />
       </div>
-      {status.last_error && <SettingsHint className="text-warning">{status.last_error}</SettingsHint>}
+      {status.last_error && (
+        <p className="m-0 flex items-start gap-1.5 rounded-lg bg-warning-soft px-3 py-2 text-caption leading-snug text-warning">
+          <AlertTriangle size={13} strokeWidth={2.2} className="mt-px flex-none" />
+          <span className="min-w-0 break-words">{status.last_error}</span>
+        </p>
+      )}
     </div>
   );
 }
