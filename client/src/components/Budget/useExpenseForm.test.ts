@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildBudgetItem, buildTrip } from '../../../tests/helpers/factories';
+import { buildBudgetItem, buildTrip, buildTripFile } from '../../../tests/helpers/factories';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates';
 import { useTripStore, type TripStoreState } from '../../store/tripStore';
@@ -21,7 +21,7 @@ vi.mock('./receiptUploads', () => ({
   ),
 }));
 
-// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-025
+// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-026
 
 const PEOPLE: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -473,6 +473,27 @@ describe('useExpenseForm: saving', () => {
     expect(saveWithReceipts).toHaveBeenCalledWith(7, [photo], 9, expect.any(Function));
     expect(updateBudgetItem).toHaveBeenCalledWith(7, 9, expect.objectContaining({ receipt_file_ids: [3, 41] }));
     expect(result.current.pendingReceiptFiles).toEqual([]);
+  });
+
+  it("FE-BUDGET-EXPFORM-026: a trip file linked as a receipt goes out with the save, the booking's files first (#2839)", async () => {
+    const menu = buildTripFile({ id: 21, original_name: 'menu.jpg' });
+    const confirmation = buildTripFile({ id: 22, original_name: 'confirmation.pdf', reservation_id: 4 });
+    const binned = buildTripFile({ id: 23, original_name: 'old.pdf', deleted_at: '2026-01-01 10:00:00' });
+    useTripStore.setState({ files: [menu, confirmation, binned] } as unknown as Partial<TripStoreState>);
+    const { result } = setup({ prefill: { reservationId: 4 } });
+    expect(result.current.linkableFiles.map((f) => f.id)).toEqual([22, 21]);
+
+    act(() => result.current.handleLinkReceipt(confirmation));
+    act(() => result.current.handleLinkReceipt(confirmation));
+    expect(result.current.receipts.map((r) => r.id)).toEqual([22]);
+    expect(result.current.linkableFiles.map((f) => f.id)).toEqual([21]);
+
+    fill(result, 'Hotel', '200');
+    await save(result);
+    expect(addBudgetItem).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ receipt_file_ids: [22], reservation_id: 4 })
+    );
   });
 
   it('FE-BUDGET-EXPFORM-017: a ticket split sends everyone a line names, ticked or not (#1382)', async () => {

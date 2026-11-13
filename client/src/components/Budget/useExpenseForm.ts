@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useTripStore } from '../../store/tripStore';
 import { isEffectivelyOffline } from '../../sync/networkMode';
-import type { BudgetItem, BudgetItemReceipt } from '../../types';
+import type { BudgetItem, BudgetItemReceipt, TripFile } from '../../types';
 import { amountToInputString } from '../../utils/formatters';
 import { localToday } from '../Planner/today';
 import { useToast } from '../shared/Toast';
@@ -28,6 +28,7 @@ import {
 import { catMeta } from './costsCategories';
 import { currencyOptions } from './costsModel';
 import { useExpenseFx } from './expenseFx';
+import { linkableReceiptFiles, receiptOfFile } from './receiptLinks';
 import { saveWithReceipts } from './receiptUploads';
 import { usePercentSplit } from './usePercentSplit';
 
@@ -71,6 +72,7 @@ export function useExpenseForm({
   const toast = useToast();
   const addBudgetItem = useTripStore((s) => s.addBudgetItem);
   const updateBudgetItem = useTripStore((s) => s.updateBudgetItem);
+  const tripFiles = useTripStore((s) => s.files);
   const sym = (c: string) => SYMBOLS[c] || c + ' ';
   const nameOf = (p: TripMember) => (p.id === me ? t('costs.you') : p.username);
   // A saved expense without a currency opens in the trip's own (#2525).
@@ -166,6 +168,16 @@ export function useExpenseForm({
   const handleReceiptFileSelect = (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
     setPendingReceiptFiles((prev) => [...prev, ...Array.from(files)]);
+  };
+
+  // A file the trip already has, such as the booking's confirmation, taken as a
+  // receipt (#2839). It joins the list and the save links it, uploaded nothing.
+  const linkableFiles = useMemo(
+    () => linkableReceiptFiles(tripFiles, receipts, editing ? editing.reservation_id : prefill?.reservationId),
+    [tripFiles, receipts, editing, prefill]
+  );
+  const handleLinkReceipt = (file: TripFile) => {
+    setReceipts((prev) => (prev.some((r) => r.id === file.id) ? prev : [...prev, receiptOfFile(file)]));
   };
 
   const handleRemoveReceipt = (receiptId: number) => {
@@ -408,11 +420,11 @@ export function useExpenseForm({
     };
     try {
       setUploadingReceipt(pendingReceiptFiles.length > 0);
-      await saveWithReceipts(tripId, pendingReceiptFiles, editing ? editing.id : null, (ids) =>
-        editing
-          ? updateBudgetItem(tripId, editing.id, { ...data, receipt_file_ids: [...receipts.map((r) => r.id), ...ids] })
-          : addBudgetItem(tripId, { ...data, receipt_file_ids: ids })
-      );
+      // The receipts listed (saved or linked from the trip's files) and the new uploads.
+      await saveWithReceipts(tripId, pendingReceiptFiles, editing ? editing.id : null, (ids) => {
+        const withReceipts = { ...data, receipt_file_ids: [...receipts.map((r) => r.id), ...ids] };
+        return editing ? updateBudgetItem(tripId, editing.id, withReceipts) : addBudgetItem(tripId, withReceipts);
+      });
       // Only cleared once the save went through, so a retry after a failure
       // does not upload a second copy of every file.
       setPendingReceiptFiles([]);
@@ -483,6 +495,8 @@ export function useExpenseForm({
     pendingReceiptFiles,
     uploadingReceipt,
     handleReceiptFileSelect,
+    linkableFiles,
+    handleLinkReceipt,
     handleRemoveReceipt,
     handleRemovePendingReceipt,
     previewReceipts,

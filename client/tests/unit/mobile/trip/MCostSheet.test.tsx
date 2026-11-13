@@ -5,12 +5,12 @@ import type { TripMember } from '../../../../src/components/Budget/BudgetPanelMe
 import { clearExchangeRateCache } from '../../../../src/hooks/useExchangeRates'
 import { useTripStore, type TripStoreState } from '../../../../src/store/tripStore'
 import type { BudgetItem, BudgetItemMember } from '../../../../src/types'
-import { buildBudgetItem, buildTrip } from '../../../helpers/factories'
+import { buildBudgetItem, buildTrip, buildTripFile } from '../../../helpers/factories'
 import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-040
+// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-041
 // The sheet reads its copy from useTranslation(), so assertions are English.
 // EUR formats de-DE style: displayed amounts and inputs use a comma.
 
@@ -774,5 +774,20 @@ describe('MCostSheet', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'bob %' }), { target: { value: '40' } })
     expect(screen.getByText('18,00 €')).toBeInTheDocument()
     expect(submit()).toBeEnabled()
+  })
+
+  it('FE-MOB-COSTSH-041: a trip file is linked as a receipt and saved with the expense (#2839)', async () => {
+    useTripStore.setState({ files: [buildTripFile({ id: 51, original_name: 'hotel-confirmation.pdf' })] } as unknown as Partial<TripStoreState>)
+    renderSheet()
+    fillBasics('Hotel', '200')
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'hotel-confirmation.pdf' }))
+    // Listed with the receipts now, and nothing is left to link.
+    expect(screen.getByRole('button', { name: 'hotel-confirmation.pdf' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Link' })).toBeNull()
+
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({ receipt_file_ids: [51] })
   })
 })

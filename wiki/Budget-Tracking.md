@@ -104,6 +104,8 @@ On the phone the booking, transport and place sheets carry the same block. Tap a
 
 An expense can carry the receipt or invoice behind it. **Attach** in the **Receipts & Invoices** block of the expense dialog opens the file picker for images and PDFs, and several files can go on one expense. They are uploaded when the expense is saved, land in the trip's Files with a link to the expense, and are listed in the block from then on; click a name to view it. If the save fails after the upload, the uploaded files are taken back out again. Any that could not be removed are reported (*Save failed, and 1 uploaded receipt is still there. Remove it in the Files tab.*), so you can delete them there.
 
+A file the trip already has can be the receipt too, so a booking confirmation that doubles as the invoice is not uploaded a second time. **Link**, beside **Attach** while the trip has files the expense does not carry yet, lists them: the files of the booking the expense belongs to come first, and a click puts one on the expense. Like an attached file it is linked when you save, and nothing is uploaded. The file keeps its other links, and **Remove receipt** only takes it off the expense again. The phone sheet has the same **Link** pill beside **Attach receipt / invoice**.
+
 Receipts need a connection. If you are offline, the dialog says *Receipts need a connection to upload. Remove the new ones to save the expense offline, or save once you are back online.* An expense without new receipts can be saved offline.
 
 A row with receipts shows a **Receipts** chip beside the name, with the count when there is more than one. Click it to open the viewer: it shows one receipt at a time, pages through them with the **arrow keys**, and offers a download for a PDF.

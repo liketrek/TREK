@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, ChevronDown, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, FileText, Link2, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import { NumericInput } from '../../../../components/shared/NumericInput'
@@ -66,6 +66,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     ticketInfo, handleAddEmptyItem, handleUpdateItemName, handleUpdateItemPrice, handleRemoveItem, handleToggleItemParticipant,
     customAmounts, handleCustomAmountChange, splitUnits, splitSum, customBalanced, each, equalShares, placeholderShares,
     receipts, pendingReceiptFiles, uploadingReceipt, handleReceiptFileSelect, handleRemoveReceipt, handleRemovePendingReceipt,
+    linkableFiles, handleLinkReceipt,
     previewReceipts, setPreviewReceipts, valid, saving, save,
   } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved, oneSaveAtATime: true, keepSavingOnSuccess: true })
 
@@ -80,6 +81,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   }
 
   const [catOpen, setCatOpen] = useState(false)
+  // The trip's files to link as a receipt (#2839), folded open under the receipts header.
+  const [linkingReceipt, setLinkingReceipt] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
 
   const handleDelete = async () => {
@@ -504,25 +507,55 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           className={FIELD_AREA_CLS}
         />
 
-        {/* RECEIPTS */}
-        <div className="mb-[6px] mt-4 flex items-center justify-between">
-          <Eyebrow className="uppercase">{t('costs.receiptsTitle') || t('costs.receipts')}</Eyebrow>
-          <label className="flex cursor-pointer items-center gap-1 text-[0.75rem] font-semibold text-m-ink">
-            <input
-              type="file"
-              multiple
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={e => {
-                handleReceiptFileSelect(e.target.files)
-                e.target.value = ''
-              }}
-            />
-            <span className="flex items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2.5 py-1 text-m-muted">
-              <Plus size={12} /> {t('costs.attachReceipt')}
-            </span>
-          </label>
+        {/* RECEIPTS. Where the header and both pills do not fit on one line, the
+            pills move under it rather than squeezing the title. */}
+        <div className="mb-[6px] mt-4 flex flex-wrap items-center justify-between gap-x-2 gap-y-[6px]">
+          <Eyebrow className="uppercase">{t('costs.receiptsTitle')}</Eyebrow>
+          <div className="ms-auto flex items-center gap-1.5">
+            {linkableFiles.length > 0 && (
+              <button
+                type="button"
+                aria-expanded={linkingReceipt}
+                onClick={() => setLinkingReceipt(v => !v)}
+                className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-caption font-semibold ${linkingReceipt ? 'border-transparent bg-m-act text-m-actfg' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'}`}
+              >
+                <Link2 size={12} strokeWidth={2.2} /> {t('files.link')}
+              </button>
+            )}
+            <label className="flex cursor-pointer items-center gap-1 text-[0.75rem] font-semibold text-m-ink">
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={e => {
+                  handleReceiptFileSelect(e.target.files)
+                  e.target.value = ''
+                }}
+              />
+              <span className="flex items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2.5 py-1 text-m-muted">
+                <Plus size={12} /> {t('costs.attachReceipt')}
+              </span>
+            </label>
+          </div>
         </div>
+
+        {linkingReceipt && linkableFiles.length > 0 && (
+          <div className="mb-2 flex max-h-[200px] flex-col gap-1 overflow-y-auto overscroll-contain">
+            {linkableFiles.map(file => (
+              <button
+                key={file.id}
+                type="button"
+                onClick={() => { handleLinkReceipt(file); setLinkingReceipt(false) }}
+                className={`${ROW_CLS} text-start`}
+              >
+                <FileText size={14} className="flex-none text-m-faint" />
+                <span dir="auto" className="min-w-0 flex-1 truncate text-body font-medium text-m-ink">{file.original_name}</span>
+                <Link2 size={13} strokeWidth={2.2} className="flex-none text-m-faint" />
+              </button>
+            ))}
+          </div>
+        )}
 
         {uploadingReceipt && (
           <div className="mb-2 text-[0.75rem] text-m-faint">

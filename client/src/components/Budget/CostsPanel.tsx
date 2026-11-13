@@ -1,5 +1,5 @@
 import { Fragment, useState, useMemo, useCallback, useId, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown, Receipt, Paperclip, ScanLine, Users } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown, Receipt, ScanLine, Users } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
@@ -26,6 +26,7 @@ import { useSettlementForm } from './useSettlementForm'
 import type { CustomSplitUnit } from './usePercentSplit'
 import { useExpenseForm } from './useExpenseForm'
 import { ReceiptPreviewModal } from './ReceiptPreviewModal'
+import { ExpenseReceiptsSection } from './ExpenseReceiptsSection'
 import { useExpenseDeleteConfirm } from './useExpenseDeleteConfirm'
 import { FlowPills } from './FlowPills'
 import type { BudgetParticipantFinal, ReceiptLine } from '@trek/shared'
@@ -1128,7 +1129,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const titleId = useId()
   const {
     cat, currency, customAmounts, customBalanced, day, disableMultiPayer, each, enableMultiPayer, equalShares, fx,
-    handleAddEmptyItem, handleCustomAmountChange, handleReceiptFileSelect, handleRemoveItem, handleRemovePendingReceipt,
+    handleAddEmptyItem, handleCustomAmountChange, handleLinkReceipt, handleReceiptFileSelect, handleRemoveItem, linkableFiles,
+    handleRemovePendingReceipt,
     handleRemoveReceipt, handleToggleItemParticipant, handleUpdateItemName, handleUpdateItemPrice, isTicketMode,
     multiPayer, name, nameOf, note, onPayerAmountChange, onTotalChange, participants, payerAmounts, payerId, payerIds,
     payersOk, pendingReceiptFiles, placeholderShares, previewReceipts: modalPreviewReceipts, receipts, save, saving,
@@ -1409,66 +1411,6 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     </DialogSection>
   )
 
-  const receiptRow = 'flex items-center justify-between gap-2 rounded-[10px] border border-edge-faint bg-surface-secondary px-3 py-2'
-  const receiptsSection = (
-    <DialogSection
-      label={t('costs.receiptsTitle') || t('costs.receipts')}
-      className={GROUP}
-      action={(
-        <label className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-surface-tertiary px-2.5 py-1 font-semibold text-content-muted hover:text-content" style={fs(11.5)}>
-          <input
-            type="file"
-            multiple
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={e => {
-              handleReceiptFileSelect(e.target.files)
-              e.target.value = ''
-            }}
-          />
-          <Plus size={12} /> {t('costs.attach')}
-        </label>
-      )}
-    >
-      {uploadingReceipt && (
-        <div className="mb-2 text-content-faint" style={fs(12)}>{t('common.saving')}...</div>
-      )}
-      {receipts.length === 0 && pendingReceiptFiles.length === 0 ? (
-        <div className="py-1 text-content-faint" style={fs(12.5, 'body')}>{t('costs.noReceipts')}</div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {receipts.map((r, rIdx) => (
-            <div key={r.id} className={receiptRow}>
-              <button type="button" onClick={() => setModalPreviewReceipts({ receipts, initialIndex: rIdx })}
-                className="inline-flex min-w-0 items-center gap-2 text-start text-content hover:underline" style={fs(13, 'body')}>
-                <Receipt size={14} className="flex-shrink-0 text-content-faint" />
-                <span className="truncate">{r.original_name}</span>
-              </button>
-              <Tooltip label={t('costs.deleteReceipt')}>
-                <button type="button" onClick={() => handleRemoveReceipt(r.id)} aria-label={t('costs.deleteReceipt')} className="flex p-1 text-content-muted hover:text-danger">
-                  <Trash2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-          {pendingReceiptFiles.map((file, idx) => (
-            <div key={idx} className={receiptRow}>
-              <div className="inline-flex min-w-0 items-center gap-2" style={fs(13, 'body')}>
-                <Paperclip size={14} className="flex-shrink-0 text-content-faint" />
-                <span className="truncate text-content">{file.name}</span>
-              </div>
-              <Tooltip label={t('costs.deleteReceipt')}>
-                <button type="button" onClick={() => handleRemovePendingReceipt(idx)} aria-label={t('costs.deleteReceipt')} className="flex p-1 text-content-muted hover:text-danger">
-                  <Trash2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-        </div>
-      )}
-    </DialogSection>
-  )
-
   return (
     <>
       <DialogShell
@@ -1549,7 +1491,10 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
             <textarea id="expense-note" value={note} onChange={e => setNote(e.target.value)} rows={3}
               placeholder={t('costs.notePlaceholder')} maxLength={NOTE_MAX} className={`${TEXTAREA} resize-y`} />
           </EditorField>
-          {receiptsSection}
+          <ExpenseReceiptsSection className={GROUP} receipts={receipts} pendingFiles={pendingReceiptFiles} uploading={uploadingReceipt}
+            linkable={linkableFiles} onPick={handleReceiptFileSelect} onLink={handleLinkReceipt}
+            onPreview={index => setModalPreviewReceipts({ receipts, initialIndex: index })}
+            onRemove={handleRemoveReceipt} onRemovePending={handleRemovePendingReceipt} />
         </div>
       </DialogShell>
 
