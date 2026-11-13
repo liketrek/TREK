@@ -617,7 +617,7 @@ describe('MCollections', () => {
     expect(screen.getByRole('dialog', { name: 'collections.deleteList' })).toBeInTheDocument()
     expect(screen.getByText('collections.deleteListConfirm')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'packing.editDone' }))
+    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
     expect(fn('setConfirmDeleteList')).toHaveBeenCalledWith(null)
 
     fireEvent.click(screen.getByRole('button', { name: /common.delete/ }))

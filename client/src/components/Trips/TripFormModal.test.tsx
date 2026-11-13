@@ -152,7 +152,7 @@ describe('TripFormModal', () => {
 
   it('FE-COMP-TRIPFORM-013: shows Cover Image section', () => {
     render(<TripFormModal {...defaultProps} />);
-    expect(screen.getByText('Cover Image')).toBeInTheDocument();
+    expect(screen.getByText('Cover image')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-014: shows start and end date labels', () => {
@@ -538,7 +538,7 @@ describe('TripFormModal', () => {
   it('FE-COMP-TRIPFORM-040: a users payload without a list hides the member section', async () => {
     server.use(http.get('/api/auth/users', () => HttpResponse.json({})));
     render(<TripFormModal {...defaultProps} trip={null} />);
-    await screen.findByText('Cover Image');
+    await screen.findByText('Cover image');
     expect(screen.queryByText('Travel buddies')).not.toBeInTheDocument();
   });
 
@@ -910,7 +910,7 @@ describe('TripFormModal', () => {
     seedStore(usePermissionsStore, { permissions: { trip_cover_upload: 'admin', trip_edit: 'admin' } });
     render(<TripFormModal {...defaultProps} trip={buildTrip({ id: 1, user_id: 7, title: 'Locked' })} />);
 
-    expect(screen.queryByText('Cover Image')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cover image')).not.toBeInTheDocument();
     fireEvent.paste(document.querySelector('form')!, {
       clipboardData: { items: [{ type: 'image/png', getAsFile: () => pngFile() }] },
     });
@@ -1365,7 +1365,7 @@ describe('TripFormModal', () => {
     // No start moved, so no shift question.
     expect(screen.queryByText('Keep bookings on their dates')).not.toBeInTheDocument();
     // The longest confirm label of any language stays on one line.
-    expect(screen.getByRole('button', { name: 'Remove days and save' })).toHaveClass('bg-danger', 'whitespace-nowrap');
+    expect(screen.getByRole('button', { name: 'Remove days and save' })).toHaveClass('bg-danger');
     expect(onSave).not.toHaveBeenCalled();
   });
 

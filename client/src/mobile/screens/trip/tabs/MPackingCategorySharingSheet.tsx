@@ -48,9 +48,7 @@ export default function MPackingCategorySharingSheet({
     );
   };
 
-  const note = (text: string) => (
-    <p className="mt-3 font-geist text-caption leading-relaxed text-m-muted">{text}</p>
-  );
+  const note = (text: string) => <p className="mt-3 font-geist text-caption leading-relaxed text-m-muted">{text}</p>;
 
   return (
     <MSheet open={category != null} onClose={sharing.close} form ariaLabel={t('packing.menuShareCat')}>
@@ -87,9 +85,7 @@ export default function MPackingCategorySharingSheet({
                     onClick={() => sharing.toggleRecipient(m.id)}
                     className="flex items-center gap-[8px] rounded-[9px] py-[7px] pe-[10px] ps-9 text-start"
                   >
-                    <span className="min-w-0 flex-1 truncate text-body font-semibold text-m-ink">
-                      {m.username}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-body font-semibold text-m-ink">{m.username}</span>
                     {picked && <Check size={14} strokeWidth={2.4} className="flex-none text-m-ink" />}
                   </button>
                 );

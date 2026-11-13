@@ -60,4 +60,4 @@ export function useTripSplashBeats({ liveReducedMotion }: TripSplashBeatsOptions
  * slower one gets the splash right after, so a slow connection never sees the
  * app stand still.
  */
-export const TRIP_SPLASH_AFTER_MS = 400
+export const TRIP_SPLASH_AFTER_MS = 400;

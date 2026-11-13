@@ -361,7 +361,7 @@ export function useTripPlanner() {
   // The dialog state that only passes through to the shells.
   const {
     showPlaceForm, prefillCoords, reservationModalDayId, setReservationModalDayId,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, editTripFromSettings, showReservationModal,
+    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, showReservationModal,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
     airTrailAvailable, showAirTrailImport, setShowAirTrailImport, bookingForAssignmentId, setBookingForAssignmentId,
     showTransportModal, transportModalDayId, transportModalAutomated, setTransportModalAutomated,
@@ -710,6 +710,12 @@ export function useTripPlanner() {
   // loads within TRIP_SPLASH_AFTER_MS opens straight away, with no splash and no
   // minimum on screen.
   const [slowOpen, setSlowOpen] = useState(false)
+  // Every open is timed afresh: a trip opened after a slow one starts without the splash too.
+  const [wasLoading, setWasLoading] = useState(isLoading)
+  if (wasLoading !== isLoading) {
+    setWasLoading(isLoading)
+    if (isLoading) setSlowOpen(false)
+  }
   useEffect(() => {
     if (!isLoading) return
     const timer = setTimeout(() => setSlowOpen(true), TRIP_SPLASH_AFTER_MS)
@@ -758,7 +764,7 @@ export function useTripPlanner() {
     highlightedAlternative, setHighlightedAlternative,
     moveRoadtripStopToDay,
     dropPoiOnRoute,
-    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal, editTripFromSettings,
+    showTripForm, setShowTripForm, showMembersModal, setShowMembersModal,
     showReservationModal, setShowReservationModal, editingReservation, setEditingReservation,
     showBookingImport, setShowBookingImport, bookingImportKind, setBookingImportKind, bookingImportAvailable,
     airTrailAvailable, showAirTrailImport, setShowAirTrailImport,

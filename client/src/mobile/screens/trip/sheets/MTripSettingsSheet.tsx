@@ -19,8 +19,8 @@ import { useState, type ReactNode } from 'react';
 import CustomSelect from '../../../../components/shared/CustomSelect';
 import { LinkedJournalIcon } from '../../../../components/Trips/LinkedJournalIcon';
 import { TripJournalLinkSection } from '../../../../components/Trips/TripJournalLinkSection';
-import { useTripJournalSectionVisible } from '../../../../components/Trips/useTripJournalLink';
 import { TripMemberAvatar } from '../../../../components/Trips/TripMemberAvatar';
+import { useTripJournalSectionVisible } from '../../../../components/Trips/useTripJournalLink';
 import {
   SHARE_OPTIONS,
   SHARE_SECTIONS,
@@ -36,11 +36,11 @@ import MSheet from '../../../components/MSheet';
 import MConfirmSheet from '../../settings/MConfirmSheet';
 import {
   SHEET_FIELD as FIELD,
+  INNER_CLS,
   SHEET_PILL as PILL,
   SHEET_PRIMARY as PRIMARY,
   SHEET_ROUND as ROUND,
   SHEET_ROUND_PRIMARY as ROUND_PRIMARY,
-  INNER_CLS,
   SheetSection as Section,
   TileHeader,
 } from './MTripSheetUi';
@@ -400,10 +400,22 @@ function GuestsSection({ m, ask }: { m: Members; ask: Ask }) {
 type Page = 'people' | 'sharing' | 'journal';
 
 /** One row of the sheet's first page: an icon tile, the area's name, what it holds, a chevron. */
-function AreaRow({ icon, label, value, onOpen }: { icon: ReactNode; label: string; value?: string; onOpen: () => void }) {
+function AreaRow({
+  icon,
+  label,
+  value,
+  onOpen,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  onOpen: () => void;
+}) {
   return (
     <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-2.5 py-[11px] text-start">
-      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[color:var(--m-ic)] text-m-ink">{icon}</span>
+      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[color:var(--m-ic)] text-m-ink">
+        {icon}
+      </span>
       <span className="min-w-0 flex-1 truncate text-body font-semibold text-m-ink">{label}</span>
       {value && <span className="flex-none font-geist text-caption font-semibold text-m-muted">{value}</span>}
       <ChevronRight size={16} strokeWidth={2} className="flex-none text-m-faint rtl:rotate-180" />
@@ -461,7 +473,12 @@ export default function MTripSettingsSheet({
           <TileHeader
             icon={
               page ? (
-                <button type="button" onClick={() => setPage(null)} aria-label={t('common.back')} className="flex h-full w-full items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => setPage(null)}
+                  aria-label={t('common.back')}
+                  className="flex h-full w-full items-center justify-center"
+                >
                   <ChevronLeft size={19} strokeWidth={2} className="rtl:rotate-180" />
                 </button>
               ) : (
@@ -477,7 +494,10 @@ export default function MTripSettingsSheet({
 
         <div className="m-scroll-fade mt-2 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
           {page === null && (
-            <nav aria-label={t('trip.settings.title')} className={`flex flex-col divide-y divide-[color:var(--m-rowbr)] rounded-[18px] px-1.5 ${INNER_CLS}`}>
+            <nav
+              aria-label={t('trip.settings.title')}
+              className={`flex flex-col divide-y divide-[color:var(--m-rowbr)] rounded-[18px] px-1.5 ${INNER_CLS}`}
+            >
               <AreaRow
                 icon={<Users size={16} strokeWidth={2} />}
                 label={pageTitle.people}
@@ -485,10 +505,18 @@ export default function MTripSettingsSheet({
                 onOpen={() => setPage('people')}
               />
               {m.canManageShare && (
-                <AreaRow icon={<Link2 size={16} strokeWidth={2} />} label={pageTitle.sharing} onOpen={() => setPage('sharing')} />
+                <AreaRow
+                  icon={<Link2 size={16} strokeWidth={2} />}
+                  label={pageTitle.sharing}
+                  onOpen={() => setPage('sharing')}
+                />
               )}
               {journalVisible && (
-                <AreaRow icon={<LinkedJournalIcon size={16} />} label={pageTitle.journal} onOpen={() => setPage('journal')} />
+                <AreaRow
+                  icon={<LinkedJournalIcon size={16} />}
+                  label={pageTitle.journal}
+                  onOpen={() => setPage('journal')}
+                />
               )}
             </nav>
           )}

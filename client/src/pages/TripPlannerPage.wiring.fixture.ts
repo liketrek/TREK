@@ -206,7 +206,6 @@ function dialogState(): HookState {
     setShowTripForm: vi.fn(),
     showMembersModal: false,
     setShowMembersModal: vi.fn(),
-    editTripFromSettings: vi.fn(),
     showReservationModal: false,
     setShowReservationModal: vi.fn(),
     editingReservation: null,

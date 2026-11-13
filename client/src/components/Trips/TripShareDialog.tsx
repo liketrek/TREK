@@ -79,6 +79,7 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, editTrip }: 
   const m = useTripMembers({ isOpen: true, tripId, onClose, onMembersChanged })
   const [ask, setAsk] = useState<Ask | null>(null)
   const [area, setArea] = useState<Area>('people')
+  const [tripReviewing, setTripReviewing] = useState(false)
   const journalSection = useTripJournalSectionVisible(tripId)
   const shows: Record<Area, boolean> = { people: true, sharing: m.canManageShare, journal: journalSection, trip: !!editTrip }
   const areas = AREAS.filter(a => shows[a.id])
@@ -93,7 +94,7 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, editTrip }: 
         onClose={onClose}
         labelledBy={labelId}
         width={withNav ? 'wide' : 'detail'}
-        blocked={!!ask}
+        blocked={!!ask || tripReviewing}
         bodyClassName={BODY}
         header={(
           <DialogHeader
@@ -133,7 +134,7 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, editTrip }: 
           )}
           {editTrip && (
             <AreaPanel area={panelOf('trip')} shown={current.id === 'trip'} titled>
-              <TripFormModal embedded isOpen onClose={onClose} {...editTrip} />
+              <TripFormModal embedded isOpen onClose={onClose} onReviewChange={setTripReviewing} {...editTrip} />
             </AreaPanel>
           )}
         </div>

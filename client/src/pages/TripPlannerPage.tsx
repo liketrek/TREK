@@ -63,7 +63,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // selection, CRUD handlers with undo, map filters, splash) lives in the hook.
   const pageState = useTripPlannerPage()
   const {
-    tripId, navigate, toast, t, language, placesPhotosEnabled,
+    tripId, navigate, t, language, placesPhotosEnabled,
     trip, days, places, assignments, packingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
