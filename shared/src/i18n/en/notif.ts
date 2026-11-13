@@ -61,7 +61,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'Forwarded bookings to review',
   'notif.mail_booking_pending.text': 'Forwarded bookings waiting for you: {count}',
   'notif.mail_ingest_paused.title': 'Mail import paused',
-  'notif.mail_ingest_paused.text': 'Forwarded booking mails are not taken in for now. Your addresses stay and work again once the import is back.',
+  'notif.mail_ingest_paused.text':
+    'Forwarded booking mails are not taken in for now. Your addresses stay and work again once the import is back.',
   'notif.action.undo': 'Undo',
   'notif.action.keep': 'Keep',
   'notif.action.review': 'Review',

@@ -8,8 +8,8 @@ import { MailReadService } from '../llm-parse/mail-read.service';
 import type { WalkedMail } from '../llm-parse/mail-read.types';
 import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
-import { sealMail } from './mail-seal';
 import { MAIL_INGEST_LIMITS } from './mail-ingest.constants';
+import { sealMail } from './mail-seal';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type { MailIngestTransport } from '@trek/shared';
@@ -18,12 +18,7 @@ import { createHash } from 'node:crypto';
 
 /** Why a mail was not taken in. A transport answers each the way its protocol does (a 550, a 404, a 413). */
 export type MailIntakeRefusal =
-  | 'unavailable'
-  | 'too_large'
-  | 'not_a_mail'
-  | 'unknown_address'
-  | 'address_daily_limit'
-  | 'inbox_full';
+  'unavailable' | 'too_large' | 'not_a_mail' | 'unknown_address' | 'address_daily_limit' | 'inbox_full';
 
 /**
  * Refusals that pass: the import is switched off for now, the address took
@@ -37,8 +32,7 @@ export function isPassingRefusal(reason: MailIntakeRefusal): boolean {
 }
 
 type MailIntakeResult =
-  | { status: 'accepted' | 'duplicate'; messageId: number }
-  | { status: 'refused'; reason: MailIntakeRefusal };
+  { status: 'accepted' | 'duplicate'; messageId: number } | { status: 'refused'; reason: MailIntakeRefusal };
 
 /** A received mail's outcome over every address it reached. */
 type MailReceiveResult = { status: 'accepted' | 'duplicate' } | { status: 'refused'; reason: MailIntakeRefusal };

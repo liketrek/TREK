@@ -1,4 +1,8 @@
-import { isTransportReservationType, mailIngestPrefillResponseSchema, type BookingImportPreviewItem } from '@trek/shared';
+import {
+  isTransportReservationType,
+  mailIngestPrefillResponseSchema,
+  type BookingImportPreviewItem,
+} from '@trek/shared';
 import { useEffect, useRef } from 'react';
 import type { SetURLSearchParams } from 'react-router';
 import { mailIngestApi } from '../../api/mailIngest';
@@ -33,7 +37,7 @@ export function useMailPrefillLink({
         next.delete('mailPrefill');
         return next;
       },
-      { replace: true },
+      { replace: true }
     );
     const id = Number(requested);
     if (!Number.isInteger(id) || id <= 0) return;

@@ -113,5 +113,8 @@ function verifyWebhook(secret: string, signed: WebhookSignedParts, recipient: st
 
 /** The hex signature as sent, with or without its `sha256=` prefix. */
 function signatureOf(signed: WebhookSignedParts): string {
-  return (signed.signature ?? '').trim().replace(/^sha256=/i, '').toLowerCase();
+  return (signed.signature ?? '')
+    .trim()
+    .replace(/^sha256=/i, '')
+    .toLowerCase();
 }

@@ -42,25 +42,25 @@ describe('MailIngestCursorRepository', () => {
     expect(await cursor.acquireLease('pipeline', '', 'b', T2, dbNow(new Date('2026-11-01T10:11:00Z')))).toBe(true);
 
     await cursor.releaseLease('pipeline', '', 'a');
-    expect(await cursor.find('pipeline', '')).toMatchObject({ lease_owner: 'b' });
+    expect(await cursor.findCursor('pipeline', '')).toMatchObject({ lease_owner: 'b' });
     await cursor.releaseLease('pipeline', '', 'b');
-    expect(await cursor.find('pipeline', '')).toMatchObject({ lease_owner: null, lease_until: null });
+    expect(await cursor.findCursor('pipeline', '')).toMatchObject({ lease_owner: null, lease_until: null });
   });
 
   it('keeps the position of a good run and the error of a bad one', async () => {
     await cursor.acquireLease('imap', 'INBOX', 'a', T1, T0);
     await cursor.recordOk('imap', 'INBOX', T0, { uidValidity: 7, lastUid: 42 });
     await cursor.recordError('imap', 'INBOX', 'x'.repeat(600));
-    let row = await cursor.find('imap', 'INBOX');
+    let row = await cursor.findCursor('imap', 'INBOX');
     expect(row).toMatchObject({ uid_validity: 7, last_uid: 42, last_ok_at: T0 });
     expect(row?.last_error).toHaveLength(500);
 
     await cursor.recordOk('imap', 'INBOX', T1);
-    row = await cursor.find('imap', 'INBOX');
+    row = await cursor.findCursor('imap', 'INBOX');
     expect(row).toMatchObject({ uid_validity: 7, last_uid: 42, last_ok_at: T1, last_error: null });
 
     await cursor.forgetOk('imap', 'INBOX');
-    expect(await cursor.find('imap', 'INBOX')).toMatchObject({ uid_validity: 7, last_ok_at: null });
-    expect(await cursor.find('cloud', '')).toBeNull();
+    expect(await cursor.findCursor('imap', 'INBOX')).toMatchObject({ uid_validity: 7, last_ok_at: null });
+    expect(await cursor.findCursor('cloud', '')).toBeNull();
   });
 });

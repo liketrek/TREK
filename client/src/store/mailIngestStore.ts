@@ -76,7 +76,7 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => ({
     set((state) => {
       const stillOpen = OPEN.has(candidate.resolution);
       const entries = state.entries.flatMap((entry) =>
-        entry.id !== candidate.id ? [entry] : stillOpen ? [{ ...entry, ...candidate }] : [],
+        entry.id !== candidate.id ? [entry] : stillOpen ? [{ ...entry, ...candidate }] : []
       );
       const removed = state.entries.length - entries.length;
       return { entries, pending: Math.max(0, state.pending - removed) };

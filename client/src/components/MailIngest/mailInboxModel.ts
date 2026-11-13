@@ -11,7 +11,14 @@ import type { MailIngestInboxEntry, MailIngestReason } from '@trek/shared';
 export type InboxAction = 'add' | 'choose' | 'file' | 'manual' | 'readAi' | 'discard';
 
 /** Reasons where reading the mail again with AI is worth a try. */
-const AI_RETRY: ReadonlySet<MailIngestReason> = new Set(['ai_quota_exhausted', 'ai_user_cap', 'ai_provider_error', 'ai_disabled', 'not_a_booking', 'mail_unreadable']);
+const AI_RETRY: ReadonlySet<MailIngestReason> = new Set([
+  'ai_quota_exhausted',
+  'ai_user_cap',
+  'ai_provider_error',
+  'ai_disabled',
+  'not_a_booking',
+  'mail_unreadable',
+]);
 
 /** Reasons that need no booking decision at all: the entry only informs. */
 const INFO_ONLY: ReadonlySet<MailIngestReason> = new Set(['forwarding_confirmation', 'newsletter', 'auto_reply']);
@@ -119,5 +126,9 @@ export function entryDates(entry: MailIngestInboxEntry): { start: string; end: s
 
 /** True while an added booking can still be taken back in one tap. */
 export function canUndo(entry: { undo_until: string | null; resolution: string }, now: number): boolean {
-  return (entry.resolution === 'applied' || entry.resolution === 'auto_applied') && !!entry.undo_until && Date.parse(entry.undo_until) > now;
+  return (
+    (entry.resolution === 'applied' || entry.resolution === 'auto_applied') &&
+    !!entry.undo_until &&
+    Date.parse(entry.undo_until) > now
+  );
 }

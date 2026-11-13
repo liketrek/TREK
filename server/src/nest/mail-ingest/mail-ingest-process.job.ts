@@ -37,7 +37,9 @@ export class MailIngestProcessJob implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
-    this.registrar.register('mail-ingest-process', '*/2 * * * *', () => this.tick());
+    this.registrar.register('mail-ingest-process', '*/2 * * * *', async () => {
+      await this.tick();
+    });
   }
 
   /**

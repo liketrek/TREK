@@ -24,7 +24,8 @@ export const mailIngestApi = {
   inbox: (params: { status?: 'open' | 'resolved'; before?: number; limit?: number }): Promise<unknown> =>
     apiClient.get('/mail-ingest/inbox', { params }).then(data),
   inboxCount: (): Promise<unknown> => apiClient.get('/mail-ingest/inbox/count').then(data),
-  preview: (messageId: number): Promise<unknown> => apiClient.get(`/mail-ingest/messages/${messageId}/preview`).then(data),
+  preview: (messageId: number): Promise<unknown> =>
+    apiClient.get(`/mail-ingest/messages/${messageId}/preview`).then(data),
   prefill: (candidateId: number): Promise<unknown> =>
     apiClient.get(`/mail-ingest/candidates/${candidateId}/prefill`).then(data),
 

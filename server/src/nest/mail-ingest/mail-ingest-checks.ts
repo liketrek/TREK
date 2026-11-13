@@ -8,6 +8,7 @@ import {
   type MailIngestField,
   type MailIngestReason,
   type MailIngestSource,
+  type MailIngestSuggestedTrip,
 } from '@trek/shared';
 
 import { createHash } from 'node:crypto';
@@ -40,7 +41,7 @@ export interface MailDraft {
   /** The trip the AI picked, already mapped from its reference to an id of the list; null when it picked none. */
   aiTripId: number | null;
   uncertainFields: MailIngestField[];
-  suggestedNewTrip: { destination: string; start_date: string | null; end_date: string | null } | null;
+  suggestedNewTrip: MailIngestSuggestedTrip | null;
   /** Read from page images alone: nothing can be checked against text. */
   imageOnly: boolean;
   /** The AI read a critical field differently from the machine-readable data (G4). */
@@ -89,7 +90,8 @@ const CURRENCY_RE = /^[A-Z]{3}$/;
  * Words that mark a cancellation in the subject. Only the subject: every
  * hotel confirmation speaks of its free cancellation in the body.
  */
-const CANCEL_RE = /\b(cancel+ed|cancel+ation|storniert|stornierung|annul[ée]e?|annulation|cancelad[ao]|annullat[ao]|geannuleerd|anulowan[ay]|отмен)/i;
+const CANCEL_RE =
+  /\b(cancel+ed|cancel+ation|storniert|stornierung|annul[ée]e?|annulation|cancelad[ao]|annullat[ao]|geannuleerd|anulowan[ay]|отмен)/i;
 
 /** The date part of an ISO date or date-time, null for anything else. */
 export function dateOf(value: string | null | undefined): string | null {

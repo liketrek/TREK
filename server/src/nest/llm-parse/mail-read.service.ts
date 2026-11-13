@@ -15,13 +15,7 @@ import {
   mailReadText,
   readMailAnswer,
 } from './mail-read';
-import type {
-  MailReadAttachment,
-  MailReadBooking,
-  MailReading,
-  MailReadInput,
-  WalkedMail,
-} from './mail-read.types';
+import type { MailReadAttachment, MailReadBooking, MailReading, MailReadInput, WalkedMail } from './mail-read.types';
 import { walkMail } from './mime-walker';
 import { normalizeCurrency, normalizeNode } from './reservation-normalize';
 import { routeExtraction, routeImageExtraction } from './router/extraction-router';

@@ -1,4 +1,8 @@
-import { mailIngestMessagePreviewResponseSchema, type MailIngestInboxEntry, type MailIngestMessagePreviewResponse } from '@trek/shared';
+import {
+  mailIngestMessagePreviewResponseSchema,
+  type MailIngestInboxEntry,
+  type MailIngestMessagePreviewResponse,
+} from '@trek/shared';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { tripsApi } from '../../api/client';
@@ -6,8 +10,8 @@ import { mailIngestApi, type MailIngestAction } from '../../api/mailIngest';
 import { useTranslation } from '../../i18n';
 import { useMailIngestStore } from '../../store/mailIngestStore';
 import { useToast } from '../shared/Toast';
-import { closeMailInbox, useMailInboxOpen } from './mailInboxOpener';
 import { actionsOf, type InboxAction } from './mailInboxModel';
+import { closeMailInbox, useMailInboxOpen } from './mailInboxOpener';
 
 export interface InboxTrip {
   id: number;
@@ -32,7 +36,9 @@ export function useMailInbox() {
   const [trips, setTrips] = useState<InboxTrip[]>([]);
   const [busy, setBusy] = useState<number | null>(null);
   /** The entry and the action waiting for a trip to be picked. */
-  const [picking, setPicking] = useState<{ entry: MailIngestInboxEntry; action: 'apply' | 'file' | 'manual' } | null>(null);
+  const [picking, setPicking] = useState<{ entry: MailIngestInboxEntry; action: 'apply' | 'file' | 'manual' } | null>(
+    null
+  );
   const [preview, setPreview] = useState<MailIngestMessagePreviewResponse | null>(null);
 
   useEffect(() => {
@@ -41,11 +47,18 @@ export function useMailInbox() {
     if (!settings) void loadSettings();
     tripsApi
       .list()
-      .then((d: { trips?: InboxTrip[] }) => setTrips((d.trips ?? []).map(({ id, title, start_date, end_date }) => ({ id, title, start_date, end_date }))))
+      .then((d: { trips?: InboxTrip[] }) =>
+        setTrips((d.trips ?? []).map(({ id, title, start_date, end_date }) => ({ id, title, start_date, end_date })))
+      )
       .catch(() => setTrips([]));
   }, [open, loadInbox, loadSettings, settings]);
 
-  const run = async (entry: MailIngestInboxEntry, action: MailIngestAction, body: Record<string, unknown>, done: string) => {
+  const run = async (
+    entry: MailIngestInboxEntry,
+    action: MailIngestAction,
+    body: Record<string, unknown>,
+    done: string
+  ) => {
     setBusy(entry.id);
     try {
       await act(entry.id, action, body);
@@ -65,7 +78,9 @@ export function useMailInbox() {
       case 'choose':
         return setPicking({ entry, action: 'apply' });
       case 'file':
-        return tripId ? run(entry, 'file', { trip_id: tripId }, t('mailInbox.filed')) : setPicking({ entry, action: 'file' });
+        return tripId
+          ? run(entry, 'file', { trip_id: tripId }, t('mailInbox.filed'))
+          : setPicking({ entry, action: 'file' });
       case 'readAi':
         return run(entry, 'read-ai', {}, t('mailInbox.readAgain'));
       case 'discard':

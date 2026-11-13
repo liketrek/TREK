@@ -18,8 +18,8 @@ import {
   RECEIPT_USER_TEXT,
   toReceiptRead,
 } from './receipt-read';
-import { routeExtraction, routeImageExtraction, detectFlightNumbers } from './router/extraction-router';
 import { normalizeCurrency, normalizeNode } from './reservation-normalize';
+import { routeExtraction, routeImageExtraction, detectFlightNumbers } from './router/extraction-router';
 import { extractEnforced } from './router/ollama-format.client';
 import { isPdf, extractText } from './text-extract';
 import {
@@ -42,7 +42,6 @@ export interface LlmParseResult {
   warnings: string[];
   outcome: LlmParseOutcome;
 }
-
 
 /**
  * Orchestrates the LLM fallback: resolve config → pick client → build input

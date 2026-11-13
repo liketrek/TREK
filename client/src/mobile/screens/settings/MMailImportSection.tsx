@@ -1,8 +1,8 @@
-import { useRef, type ReactElement } from 'react';
 import { Copy, FileUp, Inbox, Mail, RefreshCw } from 'lucide-react';
-import { useTranslation } from '../../../i18n';
-import { useMailImportSettings } from '../../../components/MailIngest/useMailImportSettings';
+import { useRef, type ReactElement } from 'react';
 import { openMailInbox } from '../../../components/MailIngest/mailInboxOpener';
+import { useMailImportSettings } from '../../../components/MailIngest/useMailImportSettings';
+import { useTranslation } from '../../../i18n';
 import MToggle from '../../components/MToggle';
 import { MSetButton, MSetCard, MSetEyebrow, MSetHint, MSetRow } from './MSettingsUi';
 
@@ -27,10 +27,18 @@ export default function MMailImportSection(): ReactElement | null {
         <>
           <MSetEyebrow className="mb-[6px]">{t('mailInbox.settings.yourAddress')}</MSetEyebrow>
           <div className="flex min-w-0 items-center gap-2">
-            <code dir="ltr" className="min-w-0 flex-1 truncate rounded-[12px] bg-[color:var(--m-ic)] px-3 py-[9px] font-geist text-caption text-m-ink">
+            <code
+              dir="ltr"
+              className="min-w-0 flex-1 truncate rounded-[12px] bg-[color:var(--m-ic)] px-3 py-[9px] font-geist text-caption text-m-ink"
+            >
               {address.address}
             </code>
-            <button type="button" onClick={() => void s.copyAddress()} aria-label={t('mailInbox.settings.copy')} className={round}>
+            <button
+              type="button"
+              onClick={() => void s.copyAddress()}
+              aria-label={t('mailInbox.settings.copy')}
+              className={round}
+            >
               <Copy size={15} strokeWidth={2} />
             </button>
             <button
@@ -54,7 +62,14 @@ export default function MMailImportSection(): ReactElement | null {
           first
           label={t('mailInbox.settings.enabled')}
           sub={t('mailInbox.settings.enabledHint')}
-          trailing={<MToggle checked={prefs.enabled} disabled={s.saving !== null} onChange={() => void s.toggle('enabled')} ariaLabel={t('mailInbox.settings.enabled')} />}
+          trailing={
+            <MToggle
+              checked={prefs.enabled}
+              disabled={s.saving !== null}
+              onChange={() => void s.toggle('enabled')}
+              ariaLabel={t('mailInbox.settings.enabled')}
+            />
+          }
         />
         <MSetRow
           label={t('mailInbox.settings.ai')}
@@ -86,7 +101,11 @@ export default function MMailImportSection(): ReactElement | null {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <MSetButton variant="ghost" onClick={openMailInbox}>
             <Inbox size={14} /> {t('mailInbox.title')}
-            {pending > 0 && <span className="rounded-full bg-[color:var(--m-act)] px-[6px] font-geist text-caption font-bold text-[color:var(--m-actfg)]">{pending}</span>}
+            {pending > 0 && (
+              <span className="rounded-full bg-[color:var(--m-act)] px-[6px] font-geist text-caption font-bold text-[color:var(--m-actfg)]">
+                {pending}
+              </span>
+            )}
           </MSetButton>
           <MSetButton variant="ghost" onClick={() => file.current?.click()} disabled={s.uploading}>
             <FileUp size={14} /> {t('mailInbox.settings.upload')}

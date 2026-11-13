@@ -18,9 +18,7 @@ vi.mock('../../../../src/db/database', () => ({
 const permissionsStub = { checkPermission: vi.fn(async () => true) };
 // confirm() checks the trip and the person's right itself: the trip is reachable, the role a plain user's.
 const usersStub = { getRole: vi.fn(async () => 'user') };
-const tripAccess = vi.fn(
-  async (): Promise<{ id: number; user_id: number } | undefined> => ({ id: 5, user_id: 1 }),
-);
+const tripAccess = vi.fn(async (): Promise<{ id: number; user_id: number } | undefined> => ({ id: 5, user_id: 1 }));
 // No earlier import holds any key unless a test says so.
 const findIdByExternal = vi.fn(async (): Promise<number | undefined> => undefined);
 const reservationsRepoStub = { findIdByExternal };

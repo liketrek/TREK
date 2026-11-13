@@ -108,8 +108,8 @@ export class MailIngestStatusService {
   private async readerCursor(transport: MailIngestTransportSetting) {
     if (transport === 'imap') {
       const config = await this.settings.imapConfig();
-      return config ? this.cursor.find('imap', config.mailbox) : null;
+      return config ? this.cursor.findCursor('imap', config.mailbox) : null;
     }
-    return this.cursor.find(transport === 'cloud' ? 'cloud' : 'pipeline', '');
+    return this.cursor.findCursor(transport === 'cloud' ? 'cloud' : 'pipeline', '');
   }
 }

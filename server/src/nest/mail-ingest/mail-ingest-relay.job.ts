@@ -73,7 +73,9 @@ export class MailIngestRelayJob implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
-    this.registrar.register('mail-ingest-relay', '*/2 * * * *', () => this.tick());
+    this.registrar.register('mail-ingest-relay', '*/2 * * * *', async () => {
+      await this.tick();
+    });
   }
 
   /**
@@ -106,7 +108,7 @@ export class MailIngestRelayJob implements OnApplicationBootstrap {
     if (answer === null) return 0;
     const page = relayPageSchema.safeParse(answer);
     if (!page.success) throw new Error('The relay answered with an inbox this server cannot read');
-    const taken = await page.data.messages.reduce(async (previous, item) => {
+    const taken = await page.data.messages.reduce<Promise<number>>(async (previous, item) => {
       const count = await previous;
       return count + ((await this.takeIn(relay, item)) ? 1 : 0);
     }, Promise.resolve(0));

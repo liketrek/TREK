@@ -1,6 +1,6 @@
 import { mailIngestAddressResponseSchema, type MailIngestAddress } from '@trek/shared';
-import { useEffect, useState, type ReactElement } from 'react';
 import { Copy, Mail, Plus } from 'lucide-react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { mailIngestApi } from '../../api/mailIngest';
 import { useTranslation } from '../../i18n';
 import { useMailIngestStore } from '../../store/mailIngestStore';
@@ -68,7 +68,10 @@ export default function TripMailForward({ tripId }: { tripId: number }): ReactEl
       <div className="text-caption text-content-muted">{t('mailInbox.trip.hint')}</div>
       {address ? (
         <div className="flex min-w-0 items-center gap-2">
-          <code dir="ltr" className="min-w-0 flex-1 truncate rounded-lg bg-surface-card px-2.5 py-1.5 font-geist text-caption text-content">
+          <code
+            dir="ltr"
+            className="min-w-0 flex-1 truncate rounded-lg bg-surface-card px-2.5 py-1.5 font-geist text-caption text-content"
+          >
             {address.address}
           </code>
           <button

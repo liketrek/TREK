@@ -30,7 +30,7 @@ const settings = {
   prefsOf: vi.fn(async (userId: number) => ({ enabled: userId !== 3, ai_enabled: true, auto_add: true })),
 };
 const cursor = {
-  find: vi.fn(),
+  findCursor: vi.fn(),
   acquireLease: vi.fn(async () => true),
   releaseLease: vi.fn(async () => undefined),
   recordOk: vi.fn(async () => undefined),
@@ -44,7 +44,7 @@ let job: MailIngestPauseJob;
 beforeEach(async () => {
   vi.clearAllMocks();
   settings.isAvailable.mockResolvedValue(false);
-  cursor.find.mockResolvedValue(null);
+  cursor.findCursor.mockResolvedValue(null);
   cursor.acquireLease.mockResolvedValue(true);
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -67,7 +67,7 @@ describe('the pause notice', () => {
     expect(cursor.recordOk.mock.invocationCallOrder[0]).toBeLessThan(notify.importPaused.mock.invocationCallOrder[0]);
     expect(cursor.releaseLease).toHaveBeenCalled();
 
-    cursor.find.mockResolvedValue({ last_ok_at: '2030-01-15 10:00:00' });
+    cursor.findCursor.mockResolvedValue({ last_ok_at: '2030-01-15 10:00:00' });
     expect(await job.tick(NOW)).toBe(0);
     expect(notify.importPaused).toHaveBeenCalledTimes(2);
   });
@@ -82,7 +82,7 @@ describe('the pause notice', () => {
     settings.isAvailable.mockResolvedValue(true);
     expect(await job.tick(NOW)).toBe(0);
     expect(cursor.forgetOk).not.toHaveBeenCalled();
-    cursor.find.mockResolvedValue({ last_ok_at: '2030-01-15 10:00:00' });
+    cursor.findCursor.mockResolvedValue({ last_ok_at: '2030-01-15 10:00:00' });
     expect(await job.tick(NOW)).toBe(0);
     expect(cursor.forgetOk).toHaveBeenCalledWith('notice', 'paused');
     expect(notify.importPaused).not.toHaveBeenCalled();

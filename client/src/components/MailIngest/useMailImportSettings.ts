@@ -38,7 +38,7 @@ export function useMailImportSettings() {
     setSaving(key);
     try {
       const parsed = mailIngestSettingsResponseSchema.parse(
-        await mailIngestApi.updateSettings({ [key]: !settings.prefs[key] }),
+        await mailIngestApi.updateSettings({ [key]: !settings.prefs[key] })
       );
       setSettings(parsed);
     } catch {

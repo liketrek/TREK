@@ -63,7 +63,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'Пересланные бронирования для проверки',
   'notif.mail_booking_pending.text': 'Пересланных бронирований ждёт вас: {count}',
   'notif.mail_ingest_paused.title': 'Импорт писем приостановлен',
-  'notif.mail_ingest_paused.text': 'Пересланные письма с бронированиями пока не принимаются. Ваши адреса сохраняются и снова заработают, когда импорт вернётся.',
+  'notif.mail_ingest_paused.text':
+    'Пересланные письма с бронированиями пока не принимаются. Ваши адреса сохраняются и снова заработают, когда импорт вернётся.',
   'notif.action.undo': 'Отменить',
   'notif.action.keep': 'Оставить',
   'notif.action.review': 'Проверить',

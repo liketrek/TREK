@@ -61,7 +61,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'Reservas encaminhadas para revisar',
   'notif.mail_booking_pending.text': 'Reservas encaminhadas aguardando você: {count}',
   'notif.mail_ingest_paused.title': 'Importação de e-mails pausada',
-  'notif.mail_ingest_paused.text': 'Por enquanto, os e-mails de reserva encaminhados não são aceitos. Seus endereços continuam e voltam a funcionar quando a importação voltar.',
+  'notif.mail_ingest_paused.text':
+    'Por enquanto, os e-mails de reserva encaminhados não são aceitos. Seus endereços continuam e voltam a funcionar quando a importação voltar.',
   'notif.action.undo': 'Desfazer',
   'notif.action.keep': 'Manter',
   'notif.action.review': 'Revisar',

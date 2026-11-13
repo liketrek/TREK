@@ -1105,7 +1105,9 @@ describe('ReservationsRepository — the origin of an imported booking', () => {
     const trip = createTrip(testDb, user.id);
     const id = await reservationsRepo.insertReservation(baseRow(trip.id));
     // test-sql-allow: reads back the raw columns the insert left to their defaults.
-    const row = testDb.prepare('SELECT external_source, external_id, sync_enabled FROM reservations WHERE id = ?').get(id);
+    const row = testDb
+      .prepare('SELECT external_source, external_id, sync_enabled FROM reservations WHERE id = ?')
+      .get(id);
     expect(row).toEqual({ external_source: null, external_id: null, sync_enabled: 1 });
   });
 
@@ -1120,11 +1122,21 @@ describe('ReservationsRepository — the origin of an imported booking', () => {
       sync_enabled: 0,
     });
     // test-sql-allow: reads back the raw origin columns the insert named.
-    const row = testDb.prepare('SELECT external_source, external_id, sync_enabled FROM reservations WHERE id = ?').get(id);
-    expect(row).toEqual({ external_source: 'import', external_id: 'ABC123|flight|2026-09-01|FRA-NRT', sync_enabled: 0 });
+    const row = testDb
+      .prepare('SELECT external_source, external_id, sync_enabled FROM reservations WHERE id = ?')
+      .get(id);
+    expect(row).toEqual({
+      external_source: 'import',
+      external_id: 'ABC123|flight|2026-09-01|FRA-NRT',
+      sync_enabled: 0,
+    });
 
     expect(await reservationsRepo.findIdByExternal(trip.id, 'import', 'ABC123|flight|2026-09-01|FRA-NRT')).toBe(id);
-    expect(await reservationsRepo.findIdByExternal(other.id, 'import', 'ABC123|flight|2026-09-01|FRA-NRT')).toBeUndefined();
-    expect(await reservationsRepo.findIdByExternal(trip.id, 'mail', 'ABC123|flight|2026-09-01|FRA-NRT')).toBeUndefined();
+    expect(
+      await reservationsRepo.findIdByExternal(other.id, 'import', 'ABC123|flight|2026-09-01|FRA-NRT'),
+    ).toBeUndefined();
+    expect(
+      await reservationsRepo.findIdByExternal(trip.id, 'mail', 'ABC123|flight|2026-09-01|FRA-NRT'),
+    ).toBeUndefined();
   });
 });

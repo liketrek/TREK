@@ -35,7 +35,9 @@ export class MailIngestPauseJob implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
-    this.registrar.register('mail-ingest-pause-notice', '25 * * * *', () => this.tick());
+    this.registrar.register('mail-ingest-pause-notice', '25 * * * *', async () => {
+      await this.tick();
+    });
   }
 
   /**
@@ -46,13 +48,13 @@ export class MailIngestPauseJob implements OnApplicationBootstrap {
    */
   async tick(now: Date = new Date()): Promise<number> {
     if (await this.settings.isAvailable()) {
-      if ((await this.cursor.find('notice', PAUSED))?.last_ok_at) await this.cursor.forgetOk('notice', PAUSED);
+      if ((await this.cursor.findCursor('notice', PAUSED))?.last_ok_at) await this.cursor.forgetOk('notice', PAUSED);
       return 0;
     }
     const until = dbNow(new Date(now.getTime() + LEASE_MS));
     if (!(await this.cursor.acquireLease('notice', PAUSED, LEASE_OWNER, until, dbNow(now)))) return 0;
     try {
-      if ((await this.cursor.find('notice', PAUSED))?.last_ok_at) return 0;
+      if ((await this.cursor.findCursor('notice', PAUSED))?.last_ok_at) return 0;
       const people = await this.peopleToTell();
       await this.cursor.recordOk('notice', PAUSED, dbNow(now));
       await Promise.all(people.map((userId) => this.notify.importPaused(userId)));

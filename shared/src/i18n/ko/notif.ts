@@ -60,7 +60,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': '검토할 전달된 예약',
   'notif.mail_booking_pending.text': '검토를 기다리는 전달된 예약: {count}개',
   'notif.mail_ingest_paused.title': '메일 가져오기 일시 중지됨',
-  'notif.mail_ingest_paused.text': '전달된 예약 메일은 당분간 받지 않습니다. 주소는 그대로 유지되며 가져오기가 다시 시작되면 다시 작동합니다.',
+  'notif.mail_ingest_paused.text':
+    '전달된 예약 메일은 당분간 받지 않습니다. 주소는 그대로 유지되며 가져오기가 다시 시작되면 다시 작동합니다.',
   'notif.action.undo': '실행 취소',
   'notif.action.keep': '유지',
   'notif.action.review': '검토',

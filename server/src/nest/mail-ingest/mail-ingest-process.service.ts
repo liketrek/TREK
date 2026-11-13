@@ -27,6 +27,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { MailReadService } from '../llm-parse/mail-read.service';
 import type { WalkedMail } from '../llm-parse/mail-read.types';
 import { classifyMail, senderVerified } from './mail-classify';
+import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestApplyService, type PreparedBooking, type WrittenBooking } from './mail-ingest-apply.service';
 import {
   bookingStart,
@@ -38,7 +39,6 @@ import {
   type MailDraft,
   type TripOption,
 } from './mail-ingest-checks';
-import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestNotifyService } from './mail-ingest-notify.service';
 import { MailIngestReadingService } from './mail-ingest-reading.service';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';

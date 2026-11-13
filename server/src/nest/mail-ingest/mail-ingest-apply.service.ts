@@ -260,7 +260,19 @@ export class MailIngestApplyService {
   ): CreateReservationData {
     const { _venue, _accommodation, source: _source, type_guessed: _guessed, needs_review: _review, ...fields } = item;
     const endpoints = (fields.endpoints ?? []).flatMap((endpoint) =>
-      endpoint.lat != null && endpoint.lng != null ? [{ ...endpoint, lat: endpoint.lat, lng: endpoint.lng }] : [],
+      endpoint.lat != null && endpoint.lng != null
+        ? [
+            {
+              ...endpoint,
+              lat: endpoint.lat,
+              lng: endpoint.lng,
+              code: endpoint.code ?? null,
+              timezone: endpoint.timezone ?? null,
+              local_time: endpoint.local_time ?? null,
+              local_date: endpoint.local_date ?? null,
+            },
+          ]
+        : [],
     );
     if (endpoints.length < (fields.endpoints ?? []).length) marked.add('endpoints');
     return {

@@ -68,9 +68,7 @@ export class MailIngestCursorRepository extends TrekRepository<MailIngestCursor>
       .set({ lease_owner: owner, lease_until: until })
       .where('transport', '=', transport)
       .where('mailbox', '=', mailbox)
-      .where((eb) =>
-        eb.or([eb('lease_until', 'is', null), eb('lease_until', '<', now), eb('lease_owner', '=', owner)]),
-      )
+      .where((eb) => eb.or([eb('lease_until', 'is', null), eb('lease_until', '<', now), eb('lease_owner', '=', owner)]))
       .executeTakeFirst();
     return Number(result.numUpdatedRows) > 0;
   }
@@ -126,7 +124,7 @@ export class MailIngestCursorRepository extends TrekRepository<MailIngestCursor>
       .execute();
   }
 
-  async find(transport: MailIngestCursorTransport, mailbox: string): Promise<MailIngestCursorRow | null> {
+  async findCursor(transport: MailIngestCursorTransport, mailbox: string): Promise<MailIngestCursorRow | null> {
     const row = await this.db()
       .selectFrom('mail_ingest_cursor')
       .selectAll()

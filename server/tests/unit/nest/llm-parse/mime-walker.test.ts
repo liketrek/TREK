@@ -303,11 +303,7 @@ describe('walkMail: attachments', () => {
 
   it('MIME-WALK-025: a file name loses its path and control characters, an empty one is made up', () => {
     const walked = walkMail(
-      mixed(
-        'Booking',
-        part('application/pdf', '../../etc/ticket\u0007.pdf', PDF),
-        part('application/pdf', '..', PDF),
-      ),
+      mixed('Booking', part('application/pdf', '../../etc/ticket\u0007.pdf', PDF), part('application/pdf', '..', PDF)),
     )!;
     expect(walked.attachments.map((a) => a.fileName)).toEqual(['ticket.pdf', 'attachment-2.pdf']);
   });

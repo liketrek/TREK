@@ -87,11 +87,7 @@ describe('MailReadService.read', () => {
 
   it('reads a mail in one request with the trip list and the bookings root', async () => {
     extract.mockResolvedValue([{ kind: 'new_booking', reservations: [flight], trip_ref: 't1', trip_confidence: 0.8 }]);
-    const reading = await service.read(
-      input({ attachments: [pdf], hints: [{ type: 'flight' }] }),
-      1,
-      '2026-11-13',
-    );
+    const reading = await service.read(input({ attachments: [pdf], hints: [{ type: 'flight' }] }), 1, '2026-11-13');
 
     expect(extract).toHaveBeenCalledTimes(1);
     const sent = extract.mock.calls[0][0];
@@ -178,4 +174,3 @@ describe('MailReadService helpers', () => {
     expect(isAvailable).toHaveBeenCalledWith(4);
   });
 });
-

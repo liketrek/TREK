@@ -66,7 +66,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'Reserves reenviades per revisar',
   'notif.mail_booking_pending.text': 'Reserves reenviades pendents: {count}',
   'notif.mail_ingest_paused.title': 'Importació de correus en pausa',
-  'notif.mail_ingest_paused.text': 'De moment no s’accepten els correus de reserva reenviats. Les teves adreces es mantenen i tornaran a funcionar quan torni la importació.',
+  'notif.mail_ingest_paused.text':
+    'De moment no s’accepten els correus de reserva reenviats. Les teves adreces es mantenen i tornaran a funcionar quan torni la importació.',
   'notif.action.undo': 'Desfés',
   'notif.action.keep': 'Conserva',
   'notif.action.review': 'Revisa',

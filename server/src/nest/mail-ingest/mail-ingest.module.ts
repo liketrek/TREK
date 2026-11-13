@@ -83,12 +83,7 @@ import { Module } from '@nestjs/common';
       MailIngestCandidates,
     ]),
   ],
-  controllers: [
-    MailIngestController,
-    MailIngestTripController,
-    MailIngestAdminController,
-    MailIngestInboundController,
-  ],
+  controllers: [MailIngestController, MailIngestTripController, MailIngestAdminController, MailIngestInboundController],
   providers: [
     MailIngestSettingsService,
     MailIngestTripsService,

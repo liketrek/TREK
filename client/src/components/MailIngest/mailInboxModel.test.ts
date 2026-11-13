@@ -5,7 +5,10 @@ import { describe, expect, it } from 'vitest';
 
 import { actionsOf, canUndo, entryDates, entryTitle, reasonText } from './mailInboxModel';
 
-function entry(over: Partial<MailIngestInboxEntry> = {}, message: Partial<MailIngestInboxEntry['message']> = {}): MailIngestInboxEntry {
+function entry(
+  over: Partial<MailIngestInboxEntry> = {},
+  message: Partial<MailIngestInboxEntry['message']> = {}
+): MailIngestInboxEntry {
   return {
     id: 1,
     message_id: 10,
@@ -57,13 +60,21 @@ describe('mailInboxModel', () => {
   });
 
   it('FE-MAILINBOX-MODEL-003: a mail without a booking offers the document, the form, and AI only where it can help', () => {
-    const none = entry({ item: null, reason: 'not_a_booking' }, { attachments: [{ file_name: 'invoice.pdf', kind: 'pdf', size: 1 }] });
+    const none = entry(
+      { item: null, reason: 'not_a_booking' },
+      { attachments: [{ file_name: 'invoice.pdf', kind: 'pdf', size: 1 }] }
+    );
     expect(actionsOf(none, false)).toEqual(['file', 'manual', 'discard']);
     expect(actionsOf(none, true)).toEqual(['file', 'manual', 'readAi', 'discard']);
   });
 
   it('FE-MAILINBOX-MODEL-004: a forwarding confirmation or a newsletter only informs', () => {
-    expect(actionsOf(entry({ item: null, reason: null }, { reason: 'forwarding_confirmation', forwarding_code: '123456' }), true)).toEqual(['discard']);
+    expect(
+      actionsOf(
+        entry({ item: null, reason: null }, { reason: 'forwarding_confirmation', forwarding_code: '123456' }),
+        true
+      )
+    ).toEqual(['discard']);
   });
 
   it('FE-MAILINBOX-MODEL-005: every reason has its words, and title and dates come from the booking', () => {

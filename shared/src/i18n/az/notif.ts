@@ -62,7 +62,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'Yoxlanılacaq yönləndirilmiş rezervasiyalar',
   'notif.mail_booking_pending.text': 'Sizi gözləyən yönləndirilmiş rezervasiyalar: {count}',
   'notif.mail_ingest_paused.title': 'Poçt idxalı dayandırılıb',
-  'notif.mail_ingest_paused.text': 'Yönləndirilmiş rezervasiya məktubları hələlik qəbul edilmir. Ünvanlarınız qalır və idxal geri qayıdanda yenidən işləyəcək.',
+  'notif.mail_ingest_paused.text':
+    'Yönləndirilmiş rezervasiya məktubları hələlik qəbul edilmir. Ünvanlarınız qalır və idxal geri qayıdanda yenidən işləyəcək.',
   'notif.action.undo': 'Geri al',
   'notif.action.keep': 'Saxla',
   'notif.action.review': 'Yoxla',

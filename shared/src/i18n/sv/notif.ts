@@ -61,7 +61,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'Vidarebefordrade bokningar att granska',
   'notif.mail_booking_pending.text': 'Vidarebefordrade bokningar som väntar på dig: {count}',
   'notif.mail_ingest_paused.title': 'Mejlimport pausad',
-  'notif.mail_ingest_paused.text': 'Vidarebefordrade bokningsmejl tas inte emot just nu. Dina adresser finns kvar och fungerar igen när importen är tillbaka.',
+  'notif.mail_ingest_paused.text':
+    'Vidarebefordrade bokningsmejl tas inte emot just nu. Dina adresser finns kvar och fungerar igen när importen är tillbaka.',
   'notif.action.undo': 'Ångra',
   'notif.action.keep': 'Behåll',
   'notif.action.review': 'Granska',

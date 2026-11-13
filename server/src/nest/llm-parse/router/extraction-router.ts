@@ -331,10 +331,7 @@ interface RoutedExtraction {
  * Run the router on extracted document text and return schema.org KiReservation nodes.
  * Returns `[]` (never throws for content reasons) so the caller degrades gracefully.
  */
-export async function routeExtraction(
-  text: string,
-  ctx: RouterContext,
-): Promise<RoutedExtraction> {
+export async function routeExtraction(text: string, ctx: RouterContext): Promise<RoutedExtraction> {
   const warnings: string[] = [];
 
   // Schicht 1 — exactly one model call.
@@ -371,10 +368,7 @@ export async function routeExtraction(
  * spot a flight number or a vendor in, so the model picks the type, and the
  * booking-wide fields come from its answer alone.
  */
-export async function routeImageExtraction(
-  images: Buffer[],
-  ctx: RouterContext,
-): Promise<RoutedExtraction> {
+export async function routeImageExtraction(images: Buffer[], ctx: RouterContext): Promise<RoutedExtraction> {
   let flat: FlatLike;
   try {
     flat = unwrapPrice(await extractSingle('', ctx, images));

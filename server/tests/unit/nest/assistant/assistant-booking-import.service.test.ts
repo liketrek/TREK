@@ -48,12 +48,10 @@ async function make(opts: Opts = {}) {
       items: Array.from({ length: MAX_WRITES_PER_STEP + 2 }, (_, index) => ({ ...ITEM, title: `Leg ${index}` })),
       warnings: [],
     })),
-    confirm: vi.fn(
-      async (): Promise<{ created: unknown[]; failed: { index: number; reason: string }[] }> => ({
-        created: [{ id: 81, title: 'ICE 123', type: 'train', day_id: 31 }],
-        failed: [],
-      }),
-    ),
+    confirm: vi.fn(async (): Promise<{ created: unknown[]; failed: { index: number; reason: string }[] }> => ({
+      created: [{ id: 81, title: 'ICE 123', type: 'train', day_id: 31 }],
+      failed: [],
+    })),
   };
   const trips = { findAccessible: vi.fn(async () => (opts.trip === false ? undefined : { id: 5, user_id: 7 })) };
   const guards = { hasTripPermission: vi.fn(async () => opts.right !== false) };

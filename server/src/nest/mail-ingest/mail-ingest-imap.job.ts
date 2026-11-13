@@ -55,7 +55,9 @@ export class MailIngestImapJob implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!this.registrar.isEnabled()) return;
-    this.registrar.register('mail-ingest-imap', '*/2 * * * *', () => this.tick());
+    this.registrar.register('mail-ingest-imap', '*/2 * * * *', async () => {
+      await this.tick();
+    });
   }
 
   /**
@@ -92,7 +94,7 @@ export class MailIngestImapJob implements OnApplicationBootstrap {
     const session = await this.imap.connect(config);
     try {
       const { uidValidity } = await session.open(config.mailbox);
-      const position = await this.cursor.find('imap', config.mailbox);
+      const position = await this.cursor.findCursor('imap', config.mailbox);
       // A changed uid validity means the server renumbered the box: start over, the dedupe keeps each mail once.
       const after = position?.uid_validity === uidValidity ? (position.last_uid ?? 0) : 0;
       const due = (await session.listAfter(after)).slice(0, MAILS_PER_RUN);

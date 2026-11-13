@@ -140,10 +140,14 @@ describe('mail-ingest rows', () => {
   });
 
   it('MAILC-016: the connection test names its transport and what failed', () => {
-    expect(mailIngestAdminTestResponseSchema.safeParse({ transport: 'imap', ok: true, error: null }).success).toBe(true);
+    expect(mailIngestAdminTestResponseSchema.safeParse({ transport: 'imap', ok: true, error: null }).success).toBe(
+      true,
+    );
     const failed = { transport: 'webhook', ok: false, error: 'No webhook secret is set' };
     expect(mailIngestAdminTestResponseSchema.safeParse(failed).success).toBe(true);
-    expect(mailIngestAdminTestResponseSchema.safeParse({ transport: 'smtp', ok: true, error: null }).success).toBe(false);
+    expect(mailIngestAdminTestResponseSchema.safeParse({ transport: 'smtp', ok: true, error: null }).success).toBe(
+      false,
+    );
   });
 });
 

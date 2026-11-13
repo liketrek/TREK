@@ -62,7 +62,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_pending.title': 'הזמנות שהועברו לבדיקה',
   'notif.mail_booking_pending.text': 'הזמנות שהועברו וממתינות לכם: {count}',
   'notif.mail_ingest_paused.title': 'ייבוא הדואר מושהה',
-  'notif.mail_ingest_paused.text': 'הודעות הזמנה שהועברו אינן מתקבלות כרגע. הכתובות שלכם נשמרות ויעבדו שוב כשהייבוא יחזור.',
+  'notif.mail_ingest_paused.text':
+    'הודעות הזמנה שהועברו אינן מתקבלות כרגע. הכתובות שלכם נשמרות ויעבדו שוב כשהייבוא יחזור.',
   'notif.action.undo': 'ביטול',
   'notif.action.keep': 'השארה',
   'notif.action.review': 'בדיקה',

@@ -77,7 +77,7 @@ const cursor = {
   releaseLease: vi.fn(async () => undefined),
   recordOk: vi.fn(async () => undefined),
   recordError: vi.fn(async () => undefined),
-  find: vi.fn(),
+  findCursor: vi.fn(),
 };
 const messages = { tallySince: vi.fn(), countAllAiReadSince: vi.fn() };
 const candidates = { tallyResolutionsSince: vi.fn(), pendingPerUser: vi.fn() };
@@ -120,7 +120,7 @@ beforeEach(async () => {
   settings.webhookSecret.mockResolvedValue('a'.repeat(32));
   settings.imapConfig.mockResolvedValue(IMAP);
   cursor.acquireLease.mockResolvedValue(true);
-  cursor.find.mockResolvedValue(null);
+  cursor.findCursor.mockResolvedValue(null);
   relays = new MailIngestRelayHost();
   app = await build();
 });
@@ -209,7 +209,7 @@ describe('the IMAP run', () => {
   });
 
   it('takes the new mails after the cursor, moves them on, and notes where it got to', async () => {
-    cursor.find.mockResolvedValue({ uid_validity: 9, last_uid: 40 });
+    cursor.findCursor.mockResolvedValue({ uid_validity: 9, last_uid: 40 });
     boxes([ref(41), ref(42)]);
     expect(await job().tick(NOW)).toBe(2);
     expect(session.listAfter).toHaveBeenNthCalledWith(1, 40);
@@ -222,7 +222,7 @@ describe('the IMAP run', () => {
   });
 
   it('starts over when the server renumbered the box, and leaves a mail over the limit unread', async () => {
-    cursor.find.mockResolvedValue({ uid_validity: 3, last_uid: 400 });
+    cursor.findCursor.mockResolvedValue({ uid_validity: 3, last_uid: 400 });
     boxes([ref(1, 5000), ref(2)]);
     expect(await job().tick(NOW)).toBe(1);
     expect(session.listAfter).toHaveBeenNthCalledWith(1, 0);
@@ -403,7 +403,7 @@ describe('the status card and the connection test', () => {
 
   it('counts the last day by status and reason, and names no mail and no person', async () => {
     settings.transport.mockResolvedValue('cloud');
-    cursor.find.mockResolvedValue({ last_ok_at: '2030-01-15 09:58:00', last_error: null, lease_until: null });
+    cursor.findCursor.mockResolvedValue({ last_ok_at: '2030-01-15 09:58:00', last_error: null, lease_until: null });
     messages.tallySince.mockResolvedValue([
       { status: 'processed', reason: null, n: 4 },
       { status: 'discarded', reason: 'newsletter', n: 2 },
@@ -430,7 +430,7 @@ describe('the status card and the connection test', () => {
       ai_calls_today: 3,
       backlog: [4, 1],
     });
-    expect(cursor.find).toHaveBeenCalledWith('cloud', '');
+    expect(cursor.findCursor).toHaveBeenCalledWith('cloud', '');
     expect(messages.countAllAiReadSince).toHaveBeenCalledWith('2030-01-15 00:00:00');
   });
 
