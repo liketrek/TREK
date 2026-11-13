@@ -70,6 +70,7 @@ import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
 import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats'
 import { useFlightLiveSync } from '../../components/Planner/flightLive/useFlightLiveSync'
+import { useMailPrefillLink } from '../../components/MailIngest/useMailPrefillLink'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -651,6 +652,7 @@ export function useTripPlanner() {
     editingReservation, setEditingReservation, setShowReservationModal,
     editingTransport, setEditingTransport, setShowTransportModal, setTransportModalDayId,
   })
+  useMailPrefillLink({ searchParams, setSearchParams, loaded: !isLoading && trip?.id === tripId, startImportReview })
 
   // ── The plan's booking detail ───────────────────────────────────────────────
   // A click on a booking in the plan shows it first; the editor is one Edit away.

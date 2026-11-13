@@ -7,7 +7,7 @@ import { formatMoney } from '../../../utils/formatters'
 import { TransitLegChips } from '../transitDisplay'
 import { displayTitle, parseMeta, type BookingGroup, type CostTotal } from './bookingsModel'
 import type { BookingFacts } from './bookingFacts'
-import { AirTrailPill, CountPill, EYEBROW, ReviewPill, RoundAction, StatusDot, TravelerStack, TypeTile, fs } from './bookingParts'
+import { AirTrailPill, CountPill, MailPill, EYEBROW, ReviewPill, RoundAction, StatusDot, TravelerStack, TypeTile, fs } from './bookingParts'
 
 export interface BookingsListProps {
   groups: BookingGroup[]
@@ -102,6 +102,7 @@ function Row({ r, p, facts, files, costs, t, locale }: {
           <span className="truncate font-semibold text-content" style={fs(13.5, 'body')}>{displayTitle(r)}</span>
           {!!r.needs_review && <ReviewPill />}
           <AirTrailPill r={r} />
+          <MailPill r={r} />
         </div>
         {transit ? (
           <div className="mt-1"><TransitLegChips legs={Array.isArray(meta.transit?.legs) ? meta.transit.legs : []} size="sm" t={t} /></div>

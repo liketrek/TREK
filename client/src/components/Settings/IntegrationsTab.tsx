@@ -6,6 +6,7 @@ import { useToast } from '../shared/Toast'
 import { Trash2, Copy, Terminal, Plus, Check, Key, KeyRound, ChevronRight, RefreshCw, AlertTriangle, Link2 } from 'lucide-react'
 import PhotoProvidersSection from './PhotoProvidersSection'
 import AirTrailConnectionSection from './AirTrailConnectionSection'
+import MailImportSection from './MailImportSection'
 import DawarichConnectionSection from './DawarichConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
 import AiConnectionSection from './ai/AiConnectionSection'
@@ -28,6 +29,8 @@ export default function IntegrationsTab(): React.ReactElement {
   const demoLocked = useDemoAccountLock()
   return (
     <>
+      {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
+      <MailImportSection />
       {/* Immich, Synology Photos and AirTrail all connect to a server the reader
           runs themselves. On a managed install there is none, and every one of
           these would ask for an address that cannot be reached from here. */}

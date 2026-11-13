@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { AlertCircle, ChevronDown, ChevronUp, Download, FileText, Plane } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, Download, FileText, Mail, Plane } from 'lucide-react'
 import type { Reservation, TripFile } from '../../../types'
 import type { ReservationTraveler } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
@@ -190,6 +190,27 @@ export function ReviewPill({ pill = false }: { pill?: boolean }) {
  * The AirTrail link of a booking. A multi-leg import is detached from sync by
  * design (#1535), which is not the same as a flight removed upstream (#1646).
  */
+/** Added from a forwarded booking mail (mail-ingest): said quietly, so the person knows where it came from. */
+export function MailPill({ r, pill = false }: { r: Reservation; pill?: boolean }) {
+  const { t } = useTranslation()
+  if (r.external_source !== 'mail') return null
+  return (
+    <Tooltip label={t('mailInbox.fromMailHint')}>
+      {pill ? (
+        <span className={PILL} style={fs(12, 'body')}>
+          <Mail size={13} strokeWidth={2.2} className="text-content-faint" />
+          {t('mailInbox.fromMail')}
+        </span>
+      ) : (
+        <span className="inline-flex flex-none items-center gap-1 rounded-full bg-surface-tertiary px-2 py-[2px] font-geist font-bold uppercase tracking-[.03em] text-content-faint" style={fs(9)}>
+          <Mail size={10} />
+          {t('mailInbox.fromMail')}
+        </span>
+      )}
+    </Tooltip>
+  )
+}
+
 export function AirTrailPill({ r, pill = false }: { r: Reservation; pill?: boolean }) {
   const { t } = useTranslation()
   if (r.external_source !== 'airtrail') return null

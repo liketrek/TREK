@@ -9,6 +9,7 @@ import MKeyboardHost from './keyboard/MKeyboardHost'
 import MShellShortcuts from './keyboard/MShellShortcuts'
 import MToastHost from './components/MToastHost'
 import MEdgeBack from './components/MEdgeBack'
+import MMailInboxHost from './screens/mail/MMailInboxHost'
 import { useNativeCapabilities } from '../native/capabilities'
 import { isNativeIos } from '../native/platform'
 import { useWindowFold } from '../native/windowFold'
@@ -94,6 +95,7 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
         <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>
       )}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
+      <ErrorBoundary boundaryId="chrome:m-mail-inbox" fallback={null}><MMailInboxHost /></ErrorBoundary>
       {/* A hardware keyboard (an iPad's, mostly) gets the shortcuts an iPad app has. */}
       <ErrorBoundary boundaryId="chrome:m-keyboard" fallback={null}>
         <MKeyboardHost />

@@ -1,5 +1,6 @@
 import MPhotoProvidersSection from './MPhotoProvidersSection'
 import MAirTrailConnectionSection from './MAirTrailConnectionSection'
+import MMailImportSection from './MMailImportSection'
 import MDawarichConnectionSection from './MDawarichConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MAiConnectionSection from './MAiConnectionSection'
@@ -17,6 +18,8 @@ export default function MSettingsIntegrations() {
 
   return (
     <>
+      {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
+      <MMailImportSection />
       {/* Immich, Synology Photos, AirTrail and Dawarich all reach a server the reader
           runs themselves, which a managed install has no route to: the same gate the
           desktop shell puts on them. */}

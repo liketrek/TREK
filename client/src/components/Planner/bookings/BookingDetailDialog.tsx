@@ -21,7 +21,7 @@ import { copyText } from '../../../utils/clipboard'
 import { fmtTransitDuration } from '../transitDisplay'
 import { parseMeta, displayTitle } from './bookingsModel'
 import { stayStats, type BookingFacts } from './bookingFacts'
-import { AirTrailPill, BOX, Eyebrow, Field, FileRows, ReviewPill, TravelerChips, fs, toneOf } from './bookingParts'
+import { AirTrailPill, MailPill, BOX, Eyebrow, Field, FileRows, ReviewPill, TravelerChips, fs, toneOf } from './bookingParts'
 import { TransitLegs, transitSummary } from './transitParts'
 import { BookingDialogHeader, StatusPill, TypePill } from './BookingDialogShell'
 import { DeleteButton, DialogButton, DialogFooter, DialogSection as Section, DialogShell, FooterSpacer, PILL } from '../../shared/DialogShell'
@@ -145,6 +145,7 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
           )}
           {!!r.needs_review && <ReviewPill pill />}
           <AirTrailPill r={r} pill />
+          <MailPill r={r} pill />
           {r.confirmation_number && (
             // The copy button rides in the pill's padding (-my-1), so this pill is as tall as its neighbours.
             <span className={`${PILL} gap-1 pe-1`}>

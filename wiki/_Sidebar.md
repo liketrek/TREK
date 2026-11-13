@@ -57,6 +57,7 @@
 
 ## Travel Management
 - [[Reservations and Bookings|Reservations-and-Bookings]]
+- [[Booking Mail Import|Booking-Mail-Import]]
 - [[Transport: Flights, Trains, Cars|Transport-Flights-Trains-Cars]]
 - [[Accommodations]]
 - [[Costs|Budget-Tracking]]
@@ -90,7 +91,6 @@
 - [[AI Assistant|AI-Assistant]]
 - [[AI Connections|AI-Connections]]
 - [[AI Booking Import|AI-Booking-Import]]
-- [[Booking Mail Import|Booking-Mail-Import]]
 - [[MCP Overview|MCP-Overview]]
 - [[MCP Setup|MCP-Setup]]
 - [[MCP Scopes|MCP-Scopes]]

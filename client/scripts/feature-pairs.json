@@ -131,6 +131,18 @@
       ]
     },
     {
+      "feature": "Booking mail import: pending bookings",
+      "hooks": ["src/components/MailIngest/useMailInbox.ts", "src/components/MailIngest/mailInboxModel.ts"],
+      "desktop": ["src/components/MailIngest/MailInboxDialog.tsx"],
+      "mobile": ["src/mobile/screens/mail/MMailInboxSheet.tsx"]
+    },
+    {
+      "feature": "Booking mail import: settings card",
+      "hooks": ["src/components/MailIngest/useMailImportSettings.ts"],
+      "desktop": ["src/components/Settings/MailImportSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MMailImportSection.tsx"]
+    },
+    {
       "feature": "Booking save follow-up: travellers and files before the editor closes",
       "hooks": ["src/components/Planner/useBookingFollowUp.ts"],
       "desktop": ["src/components/Planner/ReservationModal.tsx", "src/components/Planner/TransportModal.tsx"],
@@ -1027,6 +1039,7 @@
     }
   ],
   "mobileOnly": {
+    "src/mobile/screens/mail/MMailInboxHost.tsx": "Mounts the phone shell's one inbox sheet and reads the person's import settings; the desktop mounts its dialog from the Navbar, so there is no twin.",
     "src/mobile/screens/admin/MAdminOidcCard.tsx": "Markup only; the OIDC card of MAdminSettingsSection, with the form state from useAdmin and the save from its useAdminSettingsActions handed in through props.",
     "src/mobile/screens/admin/MAdminResetMfaSheet.tsx": "Markup only; the 2FA reset confirm that MAdminSheets opens, with the reset handed in through props from its useAdminUserActions.",
     "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
