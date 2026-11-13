@@ -21,6 +21,8 @@ import { ActionCircle, Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } fr
 import { CardFiles } from '../tabs/MReservationCardParts'
 import { downloadAttachment, openAttachment } from '../../../../components/Planner/bookings/openAttachment'
 import { flowText } from '../../../../utils/flowText'
+import { useFlightLiveLegs } from '../../../../store/flightLiveStore'
+import MFlightLiveCard from './MFlightLiveCard'
 
 interface TransportSheetPayload {
   reservationId?: number
@@ -108,6 +110,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
   const [codeRevealed, setCodeRevealed] = useState(false)
+  const liveLegs = useFlightLiveLegs(planner.tripId, payload.reservationId ?? -1)
   useEffect(() => { if (!open) setCodeRevealed(false) }, [open])
 
   // Hold the last reservation so the card content survives the exit animation.
@@ -162,6 +165,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const seat = leg && !isFlight ? legDetail.seat : meta.seat
   const platform = leg && !isFlight ? legDetail.platform : meta.platform
   const transitLegs: TransitLeg[] = Array.isArray(meta.transit?.legs) ? meta.transit.legs : []
+
+  // Opened from one leg's row, only that leg's live card; from the booking, every followed leg.
+  const shownLive = leg ? liveLegs.filter(l => l.leg_index === payload.legIndex) : liveLegs
 
   const resFiles = filesFor(res, planner.files || [])
 
@@ -232,13 +238,24 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
           </div>
         )}
 
-        {/* ── Times / seat stats ── */}
-        {hotelStats.length === 0 && (depTime || arrTime || seat || platform) && (
+        {/* ── Live flight: the leg opened from, or every followed leg of the booking ── */}
+        {shownLive.map(l => (
+          <MFlightLiveCard
+            key={l.leg_index}
+            tripId={planner.tripId}
+            reservationId={res.id}
+            legIndex={l.leg_index}
+            legLabel={shownLive.length > 1 ? t('flightLive.legOf', { n: l.leg_index + 1, total: routeLegs.length }) : undefined}
+          />
+        ))}
+
+        {/* ── Times / seat stats (the live card already shows the times) ── */}
+        {hotelStats.length === 0 && ((shownLive.length === 0 && (depTime || arrTime)) || seat || platform) && (
           <div className="mt-[14px] flex gap-[6px]">
-            {depTime && (
+            {shownLive.length === 0 && depTime && (
               <StatBox value={displayTime(depTime, locale, timeFormat)} label={depLabel} />
             )}
-            {arrTime && (
+            {shownLive.length === 0 && arrTime && (
               <StatBox value={displayTime(arrTime, locale, timeFormat)} label={arrLabel} />
             )}
             {platform && <StatBox value={platform} label={t('reservations.meta.platform')} />}

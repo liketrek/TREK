@@ -146,6 +146,10 @@ export function useAdmin() {
   const [oidcLogin, setOidcLogin] = useState<boolean>(true)
   const [oidcRegistration, setOidcRegistration] = useState<boolean>(true)
   const [oidcAutoRedirect, setOidcAutoRedirect] = useState<boolean>(true)
+  // Live flight status (flight_live_enabled): on until an admin stores 'false'; the server leaves a never-set key out.
+  const [flightLive, setFlightLive] = useState<boolean>(true)
+  // FLIGHT_LIVE_ENABLED set on the server holds the switch; the form shows its value, locked.
+  const [flightLiveLocked, setFlightLiveLocked] = useState<boolean>(false)
   const [envOverrideOidcOnly, setEnvOverrideOidcOnly] = useState<boolean>(false)
   const [oidcConfigured, setOidcConfigured] = useState<boolean>(false)
   const [requireMfa, setRequireMfa] = useState<boolean>(false)
@@ -177,6 +181,8 @@ export function useAdmin() {
       setSmtpValues(r.data || {})
       if (r.data?.webauthn_rp_id) setWebauthnRpId(r.data.webauthn_rp_id)
       if (r.data?.webauthn_origins) setWebauthnOrigins(r.data.webauthn_origins)
+      setFlightLive(String(r.data?.flight_live_enabled ?? 'true') !== 'false')
+      setFlightLiveLocked(r.data?.env_override_flight_live_enabled != null)
       setSmtpLoaded(true)
     }).catch(() => setSmtpLoaded(true))
   }, [])
@@ -603,6 +609,7 @@ export function useAdmin() {
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
+    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, setEnvOverrideOidcOnly, oidcConfigured, setOidcConfigured,
     requireMfa, setRequireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,

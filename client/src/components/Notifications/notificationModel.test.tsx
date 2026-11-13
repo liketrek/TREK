@@ -40,6 +40,7 @@ describe('notificationModel', () => {
   it('FE-NOTIF-MODEL-001: every known title has its kind, anything else is the plain bell', () => {
     expect(kindOf('notif.collab_message.title')).toBe('message');
     expect(kindOf('notif.replica_failure.title')).toBe('alert');
+    expect(kindOf('notif.flight_delayed.title')).toBe('flight');
     expect(kindOf('plugin.something.title')).toBe('other');
     for (const look of Object.values(KIND_LOOK)) expect(look.tone).toMatch(/^bg-/);
   });

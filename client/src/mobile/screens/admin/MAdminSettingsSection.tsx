@@ -34,6 +34,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     placeShadowEnabled,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
+    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
@@ -182,6 +183,26 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
           hint={t('admin.requireMfaHint')}
           trailing={
             <MToggle checked={requireMfa} ariaLabel={t('admin.requireMfa')} onChange={handleToggleRequireMfa} />
+          }
+        />
+      </MAdminCard>
+
+      {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
+      <MAdminCard>
+        <MAdminCardHead
+          title={t('flightLive.adminTitle')}
+          hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}
+        />
+        <MAdminRow
+          title={t('flightLive.adminToggle')}
+          hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
+          trailing={
+            <MToggle
+              checked={flightLive}
+              ariaLabel={t('flightLive.adminToggle')}
+              disabled={flightLiveLocked}
+              onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
+            />
           }
         />
       </MAdminCard>

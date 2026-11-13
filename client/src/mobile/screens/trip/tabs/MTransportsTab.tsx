@@ -12,6 +12,7 @@ import { useReservationListFilter } from '../../../../components/Planner/booking
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
 import { orderedEndpoints } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
+import MFlightLiveStrip from '../MFlightLiveStrip'
 
 /**
  * Tab 1 — Transporte. Real `planner.reservations` filtered to the 10 transport
@@ -154,6 +155,11 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
         <CardTitleButton res={res} TypeIcon={TypeIcon} typeColor={typeColor} onOpen={openDetail} t={t} />
         {canEdit && <CardActions onEdit={editTransport} onDelete={card.askDelete} t={t} />}
       </div>
+
+      {/* A flight TREK follows live: its moment in one line, on the compact card too. */}
+      {res.type === 'flight' && (
+        <MFlightLiveStrip tripId={planner.tripId} reservationId={res.id} onOpen={openDetail} className={compact ? 'mx-3 my-2' : 'mx-3 mt-[9px]'} />
+      )}
 
       {/* Body — split around the booking code so the reveal can be its own
           control instead of a click handler buried inside the card button. */}

@@ -1,0 +1,50 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} d {h} h',
+  'flightLive.durHoursMinutes': '{h} h {m} min',
+  'flightLive.durMinutes': '{m} min',
+  'flightLive.late': '+{m} min',
+  'flightLive.early': 'o {m} min skôr',
+  'flightLive.onTime': 'Načas',
+  'flightLive.departsIn': 'Odlet o {time}',
+  'flightLive.scheduled': 'Plánovaný',
+  'flightLive.watching': 'TREK vyzerá lietadlo',
+  'flightLive.taxiing': 'Pripravené na odlet',
+  'flightLive.atAirport': 'Na zemi v {code}',
+  'flightLive.airborne': 'Vo vzduchu',
+  'flightLive.landsIn': 'Pristane o {time}',
+  'flightLive.landed': 'Pristálo',
+  'flightLive.landedAt': 'Pristálo o {time} v {code}',
+  'flightLive.over': 'Let sa skončil',
+  'flightLive.noSignal': 'Žiadne živé údaje',
+  'flightLive.noSignalHint': 'Otvorená sieť letových údajov tento let pod jeho číslom nepozná.',
+  'flightLive.estimated': 'odhad',
+  'flightLive.actual': 'skutočnosť',
+  'flightLive.altitude': 'Výška',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Rýchlosť',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/h',
+  'flightLive.remaining': 'Zostáva',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Lietadlo',
+  'flightLive.lastSignal': 'Posledný signál pred {time}',
+  'flightLive.updated': 'Aktualizované pred {time}',
+  'flightLive.noGateHint':
+    'Brána, terminál a pás batožiny nie sú súčasťou otvorených letových údajov. Ak ich potrebuješ, doplň ich do rezervácie sám.',
+  'flightLive.legOf': 'Let {n} z {total}',
+  'flightLive.adminTitle': 'Živý stav letov',
+  'flightLive.adminHint':
+    'Zobrazuje polohu, meškanie a odhadovaný prílet rezervovaných letov z otvorených údajov ADS-B (adsb.lol, adsb.fi). Server opúšťa len volací znak letu.',
+  'flightLive.adminToggle': 'Sledovať rezervované lety naživo',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Zobrazuje polohu, meškanie a odhadovaný prílet rezervovaných letov z otvorených údajov ADS-B (adsb.lol). Inštanciu opúšťa len volací znak letu.',
+  'flightLive.noFlight': 'Žiadny naplánovaný let',
+  'flightLive.envLocked': 'Nastavené cez FLIGHT_LIVE_ENABLED na serveri, tu sa to nedá zmeniť.',
+};
+
+export default flightLive;

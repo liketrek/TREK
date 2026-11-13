@@ -3,7 +3,7 @@ import { adminApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import {
   AlertTriangle, CheckCircle, Compass, Eye, EyeOff, FileType, Fingerprint, KeyRound, Loader2, LockKeyhole, LogIn,
-  RefreshCw, Save, ShieldCheck, XCircle,
+  Plane, RefreshCw, Save, ShieldCheck, XCircle,
 } from 'lucide-react'
 import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import CustomSelect from '../../components/shared/CustomSelect'
@@ -122,6 +122,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
     oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
+    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
@@ -398,6 +399,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             sharing place details is still the admin's decision. */}
         {managed && <PlaceContribPanel hideWhenSwitchedOff />}
 
+
           {/* Place search and routing: TREK's own services first, then which provider
               answers search and transit, and the search log. Apart from the keys, so a
               keyless install reads its whole setup in one card. Everything here saves
@@ -514,6 +516,24 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
 
           </SettingsCard>
           )}
+
+          {/* Live flight status: open ADS-B data, no key, on by default; the admin may keep it off. */}
+          <SettingsCard icon={Plane} title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}>
+            <SettingRows>
+              <SettingRow
+                label={t('flightLive.adminToggle')}
+                hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
+                control={
+                  <ToggleSwitch
+                    on={flightLive}
+                    label={t('flightLive.adminToggle')}
+                    disabled={flightLiveLocked}
+                    onToggle={() => void handleToggleAuthSetting('flight_live_enabled', !flightLive, setFlightLive)}
+                  />
+                }
+              />
+            </SettingRows>
+          </SettingsCard>
 
           {/* API Keys: only the keyed providers, Google, Unsplash and Amap. They are
               the operator's on a managed install, so the card is not shown there

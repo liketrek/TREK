@@ -31,6 +31,7 @@ import demo from './demo';
 import docsync from './docsync';
 import ferratas from './ferratas';
 import files from './files';
+import flightLive from './flightLive';
 import help from './help';
 import inspector from './inspector';
 import journey from './journey';
@@ -152,6 +153,7 @@ const locale = {
   ...dawarich,
   ...docsync,
   ...ferratas,
+  ...flightLive,
   ...assistant,
   ...assistantCard,
   ...assistantTour,

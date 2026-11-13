@@ -23,6 +23,7 @@ import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
+import { useFlightAircraftGL } from './useFlightAircraftGL'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
@@ -1838,21 +1839,18 @@ export function MapViewGL({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
-    if (!reservationOverlayRef.current) {
-      reservationOverlayRef.current = new ReservationMapboxOverlay(map, {
-        showConnections: true,
-        showStats: showReservationStats,
-        showEndpointLabels,
-        onEndpointClick: (id) => onReservationClickRef.current?.(id),
-      }, gl.Marker as any)
-    }
-    reservationOverlayRef.current.update(visibleReservations, {
+    const options = {
       showConnections: true,
       showStats: showReservationStats,
       showEndpointLabels,
-      onEndpointClick: (id) => onReservationClickRef.current?.(id),
-    }, transportRoutes)
+      onEndpointClick: (id: number) => onReservationClickRef.current?.(id),
+    }
+    reservationOverlayRef.current ??= new ReservationMapboxOverlay(map, options, gl.Marker as any)
+    reservationOverlayRef.current.update(visibleReservations, options, transportRoutes)
   }, [visibleReservations, transportRoutes, showReservationStats, showEndpointLabels, mapReady, glProvider])
+
+  // The trip's flights in the air, as on the Leaflet map.
+  useFlightAircraftGL(mapRef, mapReady, gl?.Marker, id => onReservationClickRef.current?.(id), reservations)
 
   // Fit bounds on fitKey change — matches the Leaflet BoundsController
   const paddingOpts = useMemo(() => {

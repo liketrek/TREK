@@ -407,7 +407,7 @@ function TrackCasingPane({ onReady }: { onReady: (ready: boolean) => void }) {
 
 import { useMarkerThumbs } from './useMarkerThumbs'
 import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
-import { useGeolocation } from '../../hooks/useGeolocation'
+import { useGeolocation, type GeoPosition, type TrackingMode } from '../../hooks/useGeolocation'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useIsWide } from '../../hooks/sizeClass'
@@ -415,7 +415,6 @@ import { useIsWide } from '../../hooks/sizeClass'
 // Live-location rendering inside the Leaflet map. Subscribes via the
 // shared useGeolocation hook so the Leaflet and Mapbox variants behave
 // identically. Heading is shown as a rotated conic SVG when available.
-import type { GeoPosition, TrackingMode } from '../../hooks/useGeolocation'
 import { SelectionController } from './SelectionController'
 import { LngFrameProvider, useLngFrame, useTripLngFrame } from './lngFrameContext'
 import { frameLine, frameLng } from '../../utils/lngFrame'
@@ -1078,6 +1077,7 @@ export const MapView = memo(function MapView({
         showStats={showReservationStats}
         onEndpointClick={onReservationClick}
         roadRoutes={transportRoutes}
+        aircraftOf={reservations}
       />
 
       {hazards?.length > 0 && <HazardLayers hazards={hazards} />}

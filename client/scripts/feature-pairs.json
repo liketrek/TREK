@@ -417,6 +417,12 @@
       "mobile": ["src/mobile/screens/trip/sheets/ImpListStep.tsx"]
     },
     {
+      "feature": "Live flight status",
+      "hooks": ["src/components/Planner/flightLive/useFlightLiveCard.ts"],
+      "desktop": ["src/components/Planner/flightLive/FlightLiveCard.tsx", "src/components/Planner/flightLive/FlightLiveStrip.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MFlightLiveCard.tsx", "src/mobile/screens/trip/MFlightLiveStrip.tsx"]
+    },
+    {
       "feature": "Places column file routing between the Tours and places imports",
       "hooks": ["src/components/Planner/usePlacesColumnFileImport.ts"],
       "desktop": ["src/components/Planner/usePlacesSidebar.ts"],

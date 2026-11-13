@@ -1,0 +1,50 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} g {h} s',
+  'flightLive.durHoursMinutes': '{h} s {m} dəq',
+  'flightLive.durMinutes': '{m} dəq',
+  'flightLive.late': '+{m} dəq',
+  'flightLive.early': '{m} dəq tez',
+  'flightLive.onTime': 'Vaxtında',
+  'flightLive.departsIn': '{time} sonra uçuş',
+  'flightLive.scheduled': 'Planlaşdırılıb',
+  'flightLive.watching': 'TREK təyyarəni gözləyir',
+  'flightLive.taxiing': 'Uçuşa hazırdır',
+  'flightLive.atAirport': '{code} yerdədir',
+  'flightLive.airborne': 'Havada',
+  'flightLive.landsIn': '{time} sonra eniş',
+  'flightLive.landed': 'Endi',
+  'flightLive.landedAt': '{time} {code} endi',
+  'flightLive.over': 'Uçuş bitdi',
+  'flightLive.noSignal': 'Canlı məlumat yoxdur',
+  'flightLive.noSignalHint': 'Açıq uçuş məlumat şəbəkəsi bu uçuşu nömrəsinə görə tanımır.',
+  'flightLive.estimated': 'gözlənilən',
+  'flightLive.actual': 'faktiki',
+  'flightLive.altitude': 'Hündürlük',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Sürət',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/s',
+  'flightLive.remaining': 'Qalıb',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Təyyarə',
+  'flightLive.lastSignal': 'Son siqnal {time} əvvəl',
+  'flightLive.updated': '{time} əvvəl yeniləndi',
+  'flightLive.noGateHint':
+    'Qapı, terminal və baqaj lenti açıq uçuş məlumatlarına daxil deyil. Lazım olsa, onları bronlamaya özün əlavə et.',
+  'flightLive.legOf': 'Uçuş {n} / {total}',
+  'flightLive.adminTitle': 'Canlı uçuş statusu',
+  'flightLive.adminHint':
+    'Açıq ADS-B məlumatlarından (adsb.lol, adsb.fi) sifariş edilmiş uçuşların mövqeyini, gecikməsini və təxmini gəlişini göstərir. Bu serverdən yalnız uçuşun çağırış işarəsi çıxır.',
+  'flightLive.adminToggle': 'Sifariş edilmiş uçuşları canlı izlə',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Açıq ADS-B məlumatlarından (adsb.lol) sifariş edilmiş uçuşların mövqeyini, gecikməsini və təxmini gəlişini göstərir. Nümunədən yalnız uçuşun çağırış işarəsi çıxır.',
+  'flightLive.noFlight': 'Qarşıda uçuş yoxdur',
+  'flightLive.envLocked': 'Serverdə FLIGHT_LIVE_ENABLED ilə təyin olunub, burada dəyişdirilə bilməz.',
+};
+
+export default flightLive;

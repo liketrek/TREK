@@ -1,0 +1,50 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} d {h} h',
+  'flightLive.durHoursMinutes': '{h} h {m} min',
+  'flightLive.durMinutes': '{m} min',
+  'flightLive.late': '+{m} min',
+  'flightLive.early': '{m} min tidigt',
+  'flightLive.onTime': 'I tid',
+  'flightLive.departsIn': 'Avgår om {time}',
+  'flightLive.scheduled': 'Planerad',
+  'flightLive.watching': 'TREK håller utkik efter planet',
+  'flightLive.taxiing': 'Redo för avgång',
+  'flightLive.atAirport': 'På marken i {code}',
+  'flightLive.airborne': 'I luften',
+  'flightLive.landsIn': 'Landar om {time}',
+  'flightLive.landed': 'Landat',
+  'flightLive.landedAt': 'Landade {time} i {code}',
+  'flightLive.over': 'Flygningen är över',
+  'flightLive.noSignal': 'Ingen livedata',
+  'flightLive.noSignalHint': 'Det öppna flygdatanätet känner inte till den här flygningen under dess nummer.',
+  'flightLive.estimated': 'beräknad',
+  'flightLive.actual': 'faktisk',
+  'flightLive.altitude': 'Höjd',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Hastighet',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/h',
+  'flightLive.remaining': 'Kvar',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Flygplan',
+  'flightLive.lastSignal': 'Senaste signal för {time} sedan',
+  'flightLive.updated': 'Uppdaterad för {time} sedan',
+  'flightLive.noGateHint':
+    'Gate, terminal och bagageband ingår inte i öppna flygdata. Lägg till dem i bokningen själv om du behöver dem.',
+  'flightLive.legOf': 'Flyg {n} av {total}',
+  'flightLive.adminTitle': 'Flygstatus live',
+  'flightLive.adminHint':
+    'Visar position, försening och beräknad ankomst för bokade flyg från öppna ADS-B-data (adsb.lol, adsb.fi). Endast flygets anropssignal lämnar den här servern.',
+  'flightLive.adminToggle': 'Följ bokade flyg live',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Visar position, försening och beräknad ankomst för bokade flyg från öppna ADS-B-data (adsb.lol). Endast flygets anropssignal lämnar instansen.',
+  'flightLive.noFlight': 'Inget flyg planerat',
+  'flightLive.envLocked': 'Inställt med FLIGHT_LIVE_ENABLED på servern och kan inte ändras här.',
+};
+
+export default flightLive;

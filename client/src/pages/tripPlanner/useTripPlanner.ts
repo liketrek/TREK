@@ -69,6 +69,7 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
 import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats'
+import { useFlightLiveSync } from '../../components/Planner/flightLive/useFlightLiveSync'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -120,6 +121,8 @@ export function useTripPlanner() {
   const todoItems = useTripStore(s => s.todoItems)
   const categories = useTripStore(s => s.categories)
   const reservations = useTripStore(s => s.reservations)
+  // Live flight states (status, position, delay) for the trip's flights, desktop and phone alike.
+  useFlightLiveSync(tripId, reservations.some(r => r.type === 'flight'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const files = useTripStore(s => s.files)
   const selectedDayId = useTripStore(s => s.selectedDayId)

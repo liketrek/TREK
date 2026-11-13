@@ -1,0 +1,50 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} d {h} h',
+  'flightLive.durHoursMinutes': '{h} h {m} min',
+  'flightLive.durMinutes': '{m} min',
+  'flightLive.late': '+{m} min',
+  'flightLive.early': '{m} min early',
+  'flightLive.onTime': 'On time',
+  'flightLive.departsIn': 'Departs in {time}',
+  'flightLive.scheduled': 'Scheduled',
+  'flightLive.watching': 'TREK is watching for the aircraft',
+  'flightLive.taxiing': 'Ready for departure',
+  'flightLive.atAirport': 'On the ground at {code}',
+  'flightLive.airborne': 'In the air',
+  'flightLive.landsIn': 'Lands in {time}',
+  'flightLive.landed': 'Landed',
+  'flightLive.landedAt': 'Landed at {time} in {code}',
+  'flightLive.over': 'Flight over',
+  'flightLive.noSignal': 'No live data',
+  'flightLive.noSignalHint': 'The open flight data network does not know this flight under its number.',
+  'flightLive.estimated': 'estimated',
+  'flightLive.actual': 'actual',
+  'flightLive.altitude': 'Altitude',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Speed',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/h',
+  'flightLive.remaining': 'Remaining',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Aircraft',
+  'flightLive.lastSignal': 'Last signal {time} ago',
+  'flightLive.updated': 'Updated {time} ago',
+  'flightLive.noGateHint':
+    'Gate, terminal and baggage belt are not part of open flight data. Add them to the booking yourself if you need them.',
+  'flightLive.legOf': 'Flight {n} of {total}',
+  'flightLive.adminTitle': 'Live flight status',
+  'flightLive.adminHint':
+    'Shows position, delay and estimated arrival of booked flights from open ADS-B data (adsb.lol, adsb.fi). Only the callsign of the flight leaves this server.',
+  'flightLive.adminToggle': 'Follow booked flights live',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Shows position, delay and estimated arrival of booked flights from open ADS-B data (adsb.lol). Only the callsign of the flight leaves the instance.',
+  'flightLive.noFlight': 'No flight ahead',
+  'flightLive.envLocked': 'Set by FLIGHT_LIVE_ENABLED on the server and cannot be changed here.',
+};
+
+export default flightLive;
