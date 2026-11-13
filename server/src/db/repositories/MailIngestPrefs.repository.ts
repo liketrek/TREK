@@ -4,7 +4,7 @@ import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** One `mail_ingest_prefs` row as stored: 0/1 flags. */
-export interface MailIngestPrefsRow {
+interface MailIngestPrefsRow {
   id: number;
   user_id: number;
   enabled: number;

@@ -21,7 +21,7 @@ import { createHash, randomBytes } from 'node:crypto';
 const BASE32 = 'abcdefghijklmnopqrstuvwxyz234567';
 
 /** A live address and the person it belongs to, as a mail that reached it is filed under. */
-export interface ResolvedAddress {
+interface ResolvedAddress {
   address: MailIngestAddressRow;
   person: MailIngestPersonRow;
 }

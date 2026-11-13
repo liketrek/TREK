@@ -5,7 +5,7 @@ import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** What reads mail: an IMAP box, the TREK Cloud relay, or the processing pipeline itself. */
-export type MailIngestCursorTransport = 'imap' | 'cloud' | 'pipeline';
+type MailIngestCursorTransport = 'imap' | 'cloud' | 'pipeline';
 
 /** One `mail_ingest_cursor` row as stored. */
 interface MailIngestCursorRow {

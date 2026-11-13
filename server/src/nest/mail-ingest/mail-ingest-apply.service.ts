@@ -329,7 +329,7 @@ export class MailIngestApplyService {
 }
 
 /** What an undo removed, for the announcement after it committed. */
-export interface RemovedBooking {
+interface RemovedBooking {
   tripId: number;
   reservationIds: number[];
   accommodationIds: string[];

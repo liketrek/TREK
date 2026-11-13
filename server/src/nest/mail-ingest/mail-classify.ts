@@ -6,7 +6,7 @@ import type { WalkedMail } from '../llm-parse/mail-read.types';
  * mail that is no booking (a newsletter, an automatic reply, an empty mail),
  * or a mail to read.
  */
-export type MailClass =
+type MailClass =
   | { kind: 'read' }
   | { kind: 'forwarding_confirmation'; code: string | null }
   | { kind: 'drop'; reason: 'newsletter' | 'auto_reply' | 'empty_mail' };

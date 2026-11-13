@@ -574,7 +574,7 @@ const mailIngestMatchSchema = z.object({
   /** The trip the AI proposed to create when none fits; never created on its own. */
   suggested_new_trip: mailIngestSuggestedTripSchema.nullable(),
 });
-export type MailIngestMatch = z.infer<typeof mailIngestMatchSchema>;
+type MailIngestMatch = z.infer<typeof mailIngestMatchSchema>;
 
 /** How the booking was matched to a trip, past the suggested trip's own column. */
 export const MAIL_INGEST_MATCH: JsonColumn<MailIngestMatch> = {

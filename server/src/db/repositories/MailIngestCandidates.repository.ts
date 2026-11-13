@@ -57,7 +57,7 @@ export interface MailIngestCandidateInsert {
 }
 
 /** What deciding an entry writes. */
-export interface MailIngestResolutionPatch {
+interface MailIngestResolutionPatch {
   resolution: string;
   reason: string | null;
   resolvedTripId: number | null;
@@ -79,7 +79,7 @@ export interface MailIngestTripRow {
 }
 
 /** A place of a trip with a position, for naming its destinations and checking a booking lies near them. */
-export interface MailIngestTripPlaceRow {
+interface MailIngestTripPlaceRow {
   trip_id: number;
   name: string;
   address: string | null;
@@ -96,7 +96,7 @@ export interface MailIngestPersonRow {
 }
 
 /** What tells one booking from another already in a trip: its type, its start window and its reference. */
-export interface MailIngestSimilarProbe {
+interface MailIngestSimilarProbe {
   type: string;
   startFrom: string | null;
   startTo: string | null;

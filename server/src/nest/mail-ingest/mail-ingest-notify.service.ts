@@ -5,7 +5,7 @@ import { KEEP_ACTION, UNDO_ACTION } from './mail-ingest.constants';
 import { Injectable } from '@nestjs/common';
 
 /** A booking a mail added, as its notifications name it. */
-export interface AddedBooking {
+interface AddedBooking {
   candidateId: number;
   tripId: number;
   tripTitle: string;

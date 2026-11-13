@@ -59,7 +59,7 @@ export interface CheckContext {
   knownAirport: (code: string) => boolean;
 }
 
-export interface TripChoice {
+interface TripChoice {
   /** The trip the booking goes to; null when none is certain. */
   tripId: number | null;
   /** The trip to offer in the inbox. */
@@ -103,7 +103,7 @@ export function bookingStart(item: BookingImportPreviewItem): string | null {
 }
 
 /** When the booking ends: its end time, or a stay's check-out. */
-export function bookingEnd(item: BookingImportPreviewItem): string | null {
+function bookingEnd(item: BookingImportPreviewItem): string | null {
   return item.reservation_end_time || item._accommodation?.check_out || null;
 }
 
