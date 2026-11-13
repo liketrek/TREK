@@ -46,7 +46,6 @@ import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores } from '../../../tests/helpers/store';
 import DawarichConnectionSection from './DawarichConnectionSection';
-import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() };
 vi.mock('../shared/Toast', () => ({
@@ -157,8 +156,6 @@ function testButton(): HTMLElement {
 }
 
 beforeEach(() => {
-  // The cards start shut; these tests read into them.
-  openSettingsCards();
   resetAllStores();
   vi.clearAllMocks();
   stubSettings();

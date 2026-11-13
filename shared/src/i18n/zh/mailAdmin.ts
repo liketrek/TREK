@@ -37,7 +37,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': '请输入 1 到 65535 之间的端口。',
   'mailAdmin.problem.templateToken': '地址中需要在每个人的验证码所在位置使用 {token}。',
   'mailAdmin.problem.dailyInvalid': '请输入 0 到 1000 之间的整数。',
-  'mailAdmin.status.title': '状态',
   'mailAdmin.status.lastRead': '上次读取 {time}',
   'mailAdmin.status.never': '从未',
   'mailAdmin.status.mails': '邮件，24 小时',

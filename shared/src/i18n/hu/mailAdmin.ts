@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Adj meg egy portot 1 és 65535 között.',
   'mailAdmin.problem.templateToken': 'A címben szerepelnie kell a {token} helyőrzőnek az egyes személyek kódjához.',
   'mailAdmin.problem.dailyInvalid': 'Adj meg egy egész számot 0 és 1000 között.',
-  'mailAdmin.status.title': 'Állapot',
   'mailAdmin.status.lastRead': 'Utolsó olvasás: {time}',
   'mailAdmin.status.never': 'soha',
   'mailAdmin.status.mails': 'E-mailek, 24 óra',

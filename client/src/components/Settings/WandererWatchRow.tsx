@@ -48,7 +48,6 @@ function HintsButton({ W }: { W: WandererWatchController }) {
           onClick={W.openHints}
           disabled={count === 0}
           className={`${SETTINGS_BUTTON} relative`}
-          style={fs(12.5, 'body')}
         >
           <BellRing size={13} strokeWidth={2.2} />
           {t('wanderer.watch.hints')}

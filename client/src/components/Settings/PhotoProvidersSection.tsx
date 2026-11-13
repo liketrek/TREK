@@ -36,7 +36,6 @@ export default function PhotoProvidersSection(): React.ReactElement {
     return (
       <Section
         id={`photos-${provider.id}`}
-        collapsible
         key={provider.id}
         title={provider.name || provider.id}
         icon={Camera}

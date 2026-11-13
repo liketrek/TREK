@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Sisesta port vahemikus 1 kuni 65535.',
   'mailAdmin.problem.templateToken': 'Aadressis peab iga inimese koodi jaoks olema {token}.',
   'mailAdmin.problem.dailyInvalid': 'Sisesta täisarv vahemikus 0 kuni 1000.',
-  'mailAdmin.status.title': 'Olek',
   'mailAdmin.status.lastRead': 'Viimati loetud {time}',
   'mailAdmin.status.never': 'mitte kunagi',
   'mailAdmin.status.mails': 'Kirjad, 24 t',

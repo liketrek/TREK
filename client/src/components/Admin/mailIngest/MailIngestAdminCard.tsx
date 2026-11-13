@@ -1,29 +1,16 @@
-import {
-  AlertTriangle,
-  CheckCircle,
-  Copy,
-  Inbox,
-  Loader2,
-  Mail,
-  PlugZap,
-  Save,
-  Upload,
-  Webhook,
-  XCircle,
-  type LucideIcon,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle, Copy, Loader2, Mail, PlugZap, Save, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import type { TranslationFn } from '../../../types';
 import { copyText } from '../../../utils/clipboard';
 import { relativeTime } from '../../../utils/relativeTime';
 import {
+  HintMark,
   SETTINGS_BUTTON,
   SETTINGS_BUTTON_PRIMARY,
   SettingRow,
   SettingRows,
   SettingsCard,
-  SettingsHint,
   StatusPill,
 } from '../../Settings/settingsKit';
 import ToggleSwitch from '../../Settings/ToggleSwitch';
@@ -45,9 +32,6 @@ import { useMailIngestAdmin, type MailIngestAdmin } from './useMailIngestAdmin';
 
 type T = TranslationFn;
 
-/** The card's buttons sit inside the form, one size below the page's: caption type, tighter padding. */
-const SMALL = 'px-3 py-1.5 text-caption';
-
 /** The address a mail service posts to, shown so the admin can paste it into the sender's settings. */
 function InboundUrl({ t }: { t: T }) {
   const toast = useToast();
@@ -58,7 +42,7 @@ function InboundUrl({ t }: { t: T }) {
         <span className={READONLY_BOX}>{url}</span>
         <button
           type="button"
-          className={`${SETTINGS_BUTTON} ${SMALL}`}
+          className={SETTINGS_BUTTON}
           aria-label={t('mailAdmin.copyUrl')}
           onClick={() => void copyText(url).then((ok) => (ok ? toast.success(t('common.copied')) : undefined))}
         >
@@ -171,43 +155,18 @@ function WebhookFields({ admin, form, t, error }: FieldsProps) {
   );
 }
 
-const STAT_TONE: Record<StatTone, { icon: string; value: string }> = {
-  neutral: { icon: 'bg-surface-tertiary text-content-muted', value: 'text-content' },
-  success: { icon: 'bg-success-soft text-success', value: 'text-content' },
-  warning: { icon: 'bg-warning-soft text-warning', value: 'text-content' },
-  danger: { icon: 'bg-danger-soft text-danger', value: 'text-danger' },
+/** The colour a count takes once it is not zero. */
+const STAT_COLOUR: Record<StatTone, string> = {
+  neutral: 'text-content',
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
 };
-
-/** One number of the status: its icon in the tone's soft colour, the count large, the label under it. */
-function StatTile({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  tone: StatTone;
-}) {
-  const look = STAT_TONE[tone];
-  return (
-    <div className="flex min-w-0 items-center gap-2 rounded-lg border border-edge-faint bg-surface-card px-2.5 py-1.5 shadow-sm">
-      <span className={`grid h-6 w-6 flex-none place-items-center rounded-full ${look.icon}`}>
-        <Icon size={12} strokeWidth={2.2} />
-      </span>
-      <div className="min-w-0">
-        <div className={`text-body font-semibold tabular-nums leading-tight ${look.value}`}>{value}</div>
-        <div className="truncate text-caption leading-tight text-content-faint">{label}</div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * How the import runs, in counts only: no subject, sender or content of a mail
- * is ever shown here. A head line with the last successful read (green, or
- * amber while the last run failed), then the day's numbers as tiles.
+ * is ever shown here. One line: the last successful read (green, or amber while
+ * the last run failed), then the day's numbers as badges.
  */
 function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; locale: string }) {
   const status = admin.status;
@@ -218,21 +177,25 @@ function StatusBlock({ admin, t, locale }: { admin: MailIngestAdmin; t: T; local
     : t('mailAdmin.status.never');
   const healthy = !status.last_error && !!status.last_ok_at;
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-edge-faint bg-surface-secondary p-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-caption font-semibold uppercase tracking-[0.08em] text-content-faint">
-          {t('mailAdmin.status.title')}
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-caption font-medium text-content-secondary">
-          <span className={`h-2 w-2 rounded-full ${healthy ? 'bg-success' : 'bg-warning'}`} />
-          {t('mailAdmin.status.lastRead', { time: lastRead })}
-        </span>
-      </div>
-      <div className="grid grid-cols-4 gap-1.5 max-md:grid-cols-2">
-        {statTiles(facts, t).map(({ key, ...tile }) => (
-          <StatTile key={key} {...tile} />
+    <div className="flex flex-col gap-2">
+      {/* When it last read, as a plain line with a dot: green while it runs, amber after a failed run. */}
+      <p className="m-0 flex items-center gap-1.5 text-caption text-content-muted">
+        <span className={`h-1.5 w-1.5 flex-none rounded-full ${healthy ? 'bg-success' : 'bg-warning'}`} />
+        {t('mailAdmin.status.lastRead', { time: lastRead })}
+      </p>
+      {/* The day's counts as one quiet strip: the number over its name, coloured only when it is not zero. */}
+      <dl className="m-0 grid grid-cols-2 divide-edge-faint overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card sm:grid-cols-4 sm:divide-x">
+        {statTiles(facts, t).map(({ key, label, value, tone }) => (
+          <div key={key} className="flex min-w-0 flex-col-reverse px-3 py-2">
+            <dt className="truncate text-caption text-content-faint">{label}</dt>
+            <dd
+              className={`m-0 text-body font-semibold tabular-nums ${value > 0 ? STAT_COLOUR[tone] : 'text-content'}`}
+            >
+              {value}
+            </dd>
+          </div>
         ))}
-      </div>
+      </dl>
       {status.last_error && (
         <p className="m-0 flex items-start gap-1.5 rounded-lg bg-warning-soft px-3 py-2 text-caption leading-snug text-warning">
           <AlertTriangle size={13} strokeWidth={2.2} className="mt-px flex-none" />
@@ -256,31 +219,20 @@ function TestResult({ admin, t }: { admin: MailIngestAdmin; t: T }) {
   );
 }
 
-const TRANSPORT_ICON = { off: Upload, imap: Inbox, webhook: Webhook } as const;
-
-/** What the chosen way of taking mail in means, as a calm blue note under the choice. */
-function TransportInfo({ transport, t }: { transport: MailAdminForm['transport']; t: T }) {
-  const Icon = TRANSPORT_ICON[transport];
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--info)_22%,transparent)] bg-info-soft px-3.5 py-3">
-      <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[color-mix(in_srgb,var(--info)_16%,transparent)] text-info">
-        <Icon size={15} strokeWidth={2.1} />
-      </span>
-      <div className="min-w-0">
-        <p className="m-0 text-caption font-semibold text-info">{transportLabel(transport, t)}</p>
-        <p className="m-0 mt-0.5 text-caption leading-snug text-content-secondary">{transportInfo(transport, t)}</p>
-      </div>
-    </div>
-  );
-}
-
 /** Everything under the switch: how mail arrives, its fields, then save, test and the status. */
 function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailAdminForm; t: T; locale: string }) {
   const error = (problem: MailAdminProblem) => (admin.problems.includes(problem) ? problemText(problem, t) : undefined);
   return (
     <div className="flex flex-col gap-4">
       <div className={GRID_2}>
-        <EditorField label={t('mailAdmin.transport.label')}>
+        <EditorField
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              {t('mailAdmin.transport.label')}
+              <HintMark hint={`${transportLabel(form.transport, t)}: ${transportInfo(form.transport, t)}`} />
+            </span>
+          }
+        >
           <CustomSelect
             value={form.transport}
             onChange={(value) => admin.set('transport', TRANSPORTS.find((x) => x === value) ?? 'off')}
@@ -288,9 +240,13 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
           />
         </EditorField>
         <EditorField
-          label={t('mailAdmin.aiDaily')}
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              {t('mailAdmin.aiDaily')}
+              <HintMark hint={t('mailAdmin.aiDailyHint')} />
+            </span>
+          }
           htmlFor="mail-ai-daily"
-          hint={t('mailAdmin.aiDailyHint')}
           error={error('dailyInvalid')}
         >
           <input
@@ -302,11 +258,14 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
           />
         </EditorField>
       </div>
-      <TransportInfo transport={form.transport} t={t} />
       <EditorField
-        label={t('mailAdmin.template')}
+        label={
+          <span className="inline-flex items-center gap-1.5">
+            {t('mailAdmin.template')}
+            <HintMark hint={t('mailAdmin.templateHint', { token: '{token}' })} />
+          </span>
+        }
         htmlFor="mail-template"
-        hint={t('mailAdmin.templateHint', { token: '{token}' })}
         error={error('templateToken')}
       >
         <input
@@ -319,11 +278,10 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
       </EditorField>
       {form.transport === 'imap' && <ImapFields admin={admin} form={form} t={t} error={error} />}
       {form.transport === 'webhook' && <WebhookFields admin={admin} form={form} t={t} error={error} />}
-      <SettingsHint>{t('mailAdmin.envHint')}</SettingsHint>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={`${SETTINGS_BUTTON_PRIMARY} ${SMALL}`}
+          className={SETTINGS_BUTTON_PRIMARY}
           disabled={!admin.dirty || admin.problems.length > 0 || admin.saving}
           onClick={admin.save}
         >
@@ -332,7 +290,7 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
         </button>
         <button
           type="button"
-          className={`${SETTINGS_BUTTON} ${SMALL}`}
+          className={SETTINGS_BUTTON}
           disabled={admin.testing || admin.dirty || form.transport === 'off'}
           onClick={admin.runTest}
         >
@@ -340,6 +298,7 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
           {t('mailAdmin.test.run')}
         </button>
         <TestResult admin={admin} t={t} />
+        <HintMark hint={t('mailAdmin.envHint')} />
       </div>
       <StatusBlock admin={admin} t={t} locale={locale} />
     </div>

@@ -13,9 +13,20 @@ import AdminSettingsTab from './AdminSettingsTab';
 type Spy = ReturnType<typeof vi.fn>;
 type Spies = Record<string, Spy> & { toast: Record<string, Spy> };
 
+/** The three tabs the settings are split into (security, services, features), on one page. */
+function AllParts({ admin, t }: { admin: AdminHook; t: ReturnType<typeof useTranslation>['t'] }) {
+  return (
+    <>
+      <AdminSettingsTab admin={admin} t={t} part="security" />
+      <AdminSettingsTab admin={admin} t={t} part="services" />
+      <AdminSettingsTab admin={admin} t={t} part="features" />
+    </>
+  );
+}
+
 function Harness({ admin }: { admin: AdminHook }) {
   const { t } = useTranslation();
-  return <AdminSettingsTab admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
 }
 
 function renderTab(overrides: Record<string, unknown> = {}) {
@@ -71,7 +82,7 @@ function OidcHarness() {
   const { t } = useTranslation();
   const [oidcConfig, setOidcConfig] = React.useState<OidcConfig>(EMPTY_OIDC);
   const admin = buildAdminHook({ oidcConfig, setOidcConfig });
-  return <AdminSettingsTab admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
 }
 
 beforeEach(() => {
@@ -88,7 +99,8 @@ describe('AdminSettingsTab', () => {
 
     expect(screen.getByRole('heading', { name: 'Authentication Methods' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Passkey login' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /require two-factor/i })).toBeInTheDocument();
+    // Requiring two-factor is a switch of the sign-in card now, not a card of its own.
+    expect(screen.getByText(/require two-factor/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Allowed File Types' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'API Keys' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /single sign-on/i })).toBeInTheDocument();
@@ -340,13 +352,11 @@ describe('AdminSettingsTab', () => {
     expect(screen.queryByRole('button', { name: 'Automatic' })).not.toBeInTheDocument();
   });
 
-  it('FE-ADMSET-022f: a managed install moves file types to the right column', () => {
-    // With place search and the keys gone the right column would stand empty.
+  it('FE-ADMSET-022f: a managed install keeps the file types card on the services tab', () => {
+    // Place search and the keys are the operator's there; the file types stay the admin's.
     renderTab({ managed: true });
 
-    const right = screen.getByRole('heading', { name: 'Allowed File Types' }).closest('.min-w-0');
-    expect(right).not.toBeNull();
-    expect(within(right as HTMLElement).queryByRole('heading', { name: /two-factor/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Allowed File Types' })).toBeInTheDocument();
   });
 
   it('FE-ADMSET-023: the maps Test button is disabled without a key', () => {

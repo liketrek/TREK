@@ -37,7 +37,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'הזינו פורט בין 1 ל-65535.',
   'mailAdmin.problem.templateToken': 'הכתובת צריכה {token} במקום הקוד של כל אדם.',
   'mailAdmin.problem.dailyInvalid': 'הזינו מספר שלם בין 0 ל-1000.',
-  'mailAdmin.status.title': 'סטטוס',
   'mailAdmin.status.lastRead': 'נקרא לאחרונה {time}',
   'mailAdmin.status.never': 'אף פעם',
   'mailAdmin.status.mails': 'דוא״ל, 24 שעות',

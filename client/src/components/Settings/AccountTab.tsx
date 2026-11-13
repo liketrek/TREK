@@ -9,9 +9,7 @@ import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
 import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { EditorField, GRID_2, INPUT, PANEL } from '../shared/dialogParts'
-import {
-  SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill,
-} from './settingsKit'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill, SettingsColumns } from './settingsKit'
 import { stripTrailingSlashes, useAccountSettings } from './useAccountSettings'
 import AccountDemoLock from './AccountDemoLock'
 
@@ -76,6 +74,10 @@ export default function AccountTab(): React.ReactElement {
       <NativeServerSection />
       {/* The shared demo account: everything here is shown, nothing can be changed. */}
       <AccountDemoLock>
+      {/* Two columns by length: who you are and the second factor on the left,
+          the password and passkeys on the right. */}
+      <SettingsColumns
+        left={<>
       <Section title={t('settings.account')} icon={User}>
         {/* Who is signed in: the picture with its two actions, the role and the SSO link. */}
         <div className="flex items-center gap-4 rounded-[14px] border border-edge-faint bg-surface-card px-4 py-3.5">
@@ -169,54 +171,6 @@ export default function AccountTab(): React.ReactElement {
         </div>
       </Section>
 
-      {/* Change Password */}
-      {!oidcOnlyMode && (
-        <Section title={t('settings.changePassword')} icon={Lock}>
-          <EditorField label={t('settings.currentPassword')} htmlFor="account-current-password">
-            <input
-              id="account-current-password"
-              type="password"
-              value={currentPassword}
-              onChange={e => setCurrentPassword(e.target.value)}
-              placeholder={t('settings.currentPassword')}
-              className={INPUT}
-            />
-          </EditorField>
-          <div className={GRID_2}>
-            <EditorField label={t('settings.newPassword')} htmlFor="account-new-password">
-              <input
-                id="account-new-password"
-                type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder={t('settings.newPassword')}
-                className={INPUT}
-              />
-            </EditorField>
-            <EditorField label={t('settings.confirmPassword')} htmlFor="account-confirm-password">
-              <input
-                id="account-confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder={t('settings.confirmPassword')}
-                className={INPUT}
-              />
-            </EditorField>
-          </div>
-          <PasswordChecklist password={newPassword} />
-          <div className="flex justify-end" style={fs(13, 'body')}>
-            <button type="button"
-              onClick={changePassword}
-              className={SETTINGS_BUTTON}
-            >
-              <Lock size={14} />
-              {t('settings.updatePassword')}
-            </button>
-          </div>
-        </Section>
-      )}
-
       {/* MFA */}
       <Section title={t('settings.mfa.title')} icon={KeyRound}>
         {mfaRequiredByPolicy && (
@@ -236,7 +190,6 @@ export default function AccountTab(): React.ReactElement {
                     disabled={mfaLoading}
                     onClick={startMfaSetup}
                     className={SETTINGS_BUTTON}
-                    style={fs(13, 'body')}
                   >
                     {mfaLoading ? <span className={SPINNER} /> : <KeyRound size={14} />}
                     {t('settings.mfa.setup')}
@@ -296,7 +249,7 @@ export default function AccountTab(): React.ReactElement {
             {user?.mfa_enabled && (
               <div className={PANEL}>
                 <div>
-                  <p className={EYEBROW} style={fs(10)}>{t('settings.mfa.disableTitle')}</p>
+                  <p className={EYEBROW}>{t('settings.mfa.disableTitle')}</p>
                   <SettingsHint className="mt-1">{t('settings.mfa.disableHint')}</SettingsHint>
                 </div>
                 <div className={GRID_2}>
@@ -319,7 +272,7 @@ export default function AccountTab(): React.ReactElement {
                     className={`${INPUT} font-geist tabular-nums`}
                   />
                 </div>
-                <div className="flex justify-end" style={fs(13, 'body')}>
+                <div className="flex justify-end">
                   <button
                     type="button"
                     disabled={mfaLoading || !mfaDisablePwd || mfaDisableCode.length < 6}
@@ -335,14 +288,14 @@ export default function AccountTab(): React.ReactElement {
             {backupCodes && backupCodes.length > 0 && (
               <div className={PANEL}>
                 <div>
-                  <p className="m-0 font-semibold text-content" style={fs(13, 'body')}>{t('settings.mfa.backupTitle')}</p>
+                  <p className="m-0 font-semibold text-content">{t('settings.mfa.backupTitle')}</p>
                   <SettingsHint className="mt-0.5">{t('settings.mfa.backupDescription')}</SettingsHint>
                 </div>
-                <pre className="m-0 max-h-[220px] overflow-auto rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3 font-geist tabular-nums leading-relaxed tracking-wide text-content" style={fs(12.5, 'body')}>{backupCodesText}</pre>
-                <p className="m-0 flex items-center gap-1.5 font-medium text-warning" style={fs(11.5)}>
+                <pre className="m-0 max-h-[220px] overflow-auto rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3 font-geist tabular-nums leading-relaxed tracking-wide text-content">{backupCodesText}</pre>
+                <p className="m-0 flex items-center gap-1.5 font-medium text-warning">
                   <AlertTriangle size={13} className="flex-none" />{t('settings.mfa.backupWarning')}
                 </p>
-                <div className="flex flex-wrap items-center gap-2" style={fs(12.5, 'body')}>
+                <div className="flex flex-wrap items-center gap-2">
                   <button type="button" onClick={copyBackupCodes} className={SETTINGS_BUTTON}>
                     <Copy size={13} /> {t('settings.mfa.backupCopy')}
                   </button>
@@ -361,9 +314,60 @@ export default function AccountTab(): React.ReactElement {
             )}
         </>
       </Section>
+        </>}
+        right={<>
+      {/* Change Password */}
+      {!oidcOnlyMode && (
+        <Section title={t('settings.changePassword')} icon={Lock}>
+          <EditorField label={t('settings.currentPassword')} htmlFor="account-current-password">
+            <input
+              id="account-current-password"
+              type="password"
+              value={currentPassword}
+              onChange={e => setCurrentPassword(e.target.value)}
+              placeholder={t('settings.currentPassword')}
+              className={INPUT}
+            />
+          </EditorField>
+          <div className={GRID_2}>
+            <EditorField label={t('settings.newPassword')} htmlFor="account-new-password">
+              <input
+                id="account-new-password"
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder={t('settings.newPassword')}
+                className={INPUT}
+              />
+            </EditorField>
+            <EditorField label={t('settings.confirmPassword')} htmlFor="account-confirm-password">
+              <input
+                id="account-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder={t('settings.confirmPassword')}
+                className={INPUT}
+              />
+            </EditorField>
+          </div>
+          <PasswordChecklist password={newPassword} />
+          <div className="flex justify-end" style={fs(13, 'body')}>
+            <button type="button"
+              onClick={changePassword}
+              className={SETTINGS_BUTTON}
+            >
+              <Lock size={14} />
+              {t('settings.updatePassword')}
+            </button>
+          </div>
+        </Section>
+      )}
 
       {/* Passkeys */}
       <PasskeysSection demoMode={demoMode} />
+        </>}
+      />
       </AccountDemoLock>
 
       {/* Delete Account Blocked */}

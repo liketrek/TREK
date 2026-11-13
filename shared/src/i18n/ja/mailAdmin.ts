@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': '1から65535までのポート番号を入力してください。',
   'mailAdmin.problem.templateToken': 'アドレスには、各ユーザーのコードの位置に{token}が必要です。',
   'mailAdmin.problem.dailyInvalid': '0から1000までの整数を入力してください。',
-  'mailAdmin.status.title': 'ステータス',
   'mailAdmin.status.lastRead': '最終読み取り：{time}',
   'mailAdmin.status.never': 'なし',
   'mailAdmin.status.mails': 'メール、24時間',

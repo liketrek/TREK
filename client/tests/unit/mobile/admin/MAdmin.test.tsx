@@ -145,7 +145,7 @@ describe('MAdmin', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
 
     // All standard sections are listed
-    expect(screen.getByRole('button', { name: 'User Defaults' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Defaults' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Backup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Audit' })).toBeInTheDocument();
 
@@ -154,6 +154,14 @@ describe('MAdmin', () => {
     // Settings section renders the auth methods card, user list is gone
     await waitFor(() => expect(screen.getByText('Authentication Methods')).toBeInTheDocument());
     expect(screen.queryByText('alice')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ADMIN-002b: a link to the desktop Security or Services tab opens the Settings section', async () => {
+    for (const tab of ['security', 'services', 'settings']) {
+      const { unmount } = render(<MAdmin />, { initialEntries: [`/admin?tab=${tab}`] });
+      await waitFor(() => expect(screen.getByText('Authentication Methods')).toBeInTheDocument());
+      unmount();
+    }
   });
 
   it('FE-MOB-ADMIN-003: the back button leaves for the dashboard', async () => {
@@ -180,7 +188,7 @@ describe('MAdmin', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
 
-    expect(screen.queryByRole('button', { name: 'MCP Access' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'MCP' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Dev: Notifications' })).not.toBeInTheDocument();
   });
 
@@ -193,7 +201,7 @@ describe('MAdmin', () => {
     renderAdmin();
     await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
 
-    await openSection('MCP Access');
+    await openSection('MCP');
 
     expect(screen.getByTestId('mcp-tokens-panel')).toBeInTheDocument();
   });
@@ -212,7 +220,7 @@ describe('MAdmin', () => {
     renderAdmin();
     await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
 
-    await openSection('User Defaults');
+    await openSection('Defaults');
     expect(screen.getByTestId('default-user-settings')).toBeInTheDocument();
 
     await openSection('Personalization');

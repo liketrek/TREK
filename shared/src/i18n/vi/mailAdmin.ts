@@ -38,7 +38,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Nhập một cổng từ 1 đến 65535.',
   'mailAdmin.problem.templateToken': 'Địa chỉ cần có {token} ở vị trí mã của từng người.',
   'mailAdmin.problem.dailyInvalid': 'Nhập một số nguyên từ 0 đến 1000.',
-  'mailAdmin.status.title': 'Trạng thái',
   'mailAdmin.status.lastRead': 'Đọc lần cuối {time}',
   'mailAdmin.status.never': 'chưa bao giờ',
   'mailAdmin.status.mails': 'Email, 24 giờ',

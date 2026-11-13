@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': '1 ile 65535 arasında bir port gir.',
   'mailAdmin.problem.templateToken': 'Adreste her kişinin kodu için {token} bulunmalı.',
   'mailAdmin.problem.dailyInvalid': '0 ile 1000 arasında bir tam sayı gir.',
-  'mailAdmin.status.title': 'Durum',
   'mailAdmin.status.lastRead': 'Son okuma {time}',
   'mailAdmin.status.never': 'hiç',
   'mailAdmin.status.mails': 'E-postalar, 24 sa',

@@ -50,7 +50,6 @@ export default function StorageReclaimSection({
         <button
           type="button"
           className={SETTINGS_BUTTON}
-          style={fs(12.5, 'body')}
           onClick={onCheck}
           disabled={checking}
         >
@@ -132,7 +131,6 @@ export default function StorageReclaimSection({
                       <button
                         type="button"
                         className={SETTINGS_BUTTON}
-                        style={fs(12, 'body')}
                         onClick={() => onConfirm({ category: line.category, unreferenced: line.unreferenced })}
                         disabled={confirming === line.category}
                       >

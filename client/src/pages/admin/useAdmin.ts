@@ -21,9 +21,16 @@ import { passwordErrorKey } from '../../utils/passwordError'
  * sidebar. Labels and icons stay in AdminPage; this is only the vocabulary.
  */
 const ADMIN_TAB_IDS = [
-  'users', 'defaults', 'config', 'settings', 'addons', 'plugins', 'storage',
+  'users', 'defaults', 'config', 'security', 'services', 'addons', 'plugins', 'storage',
   'notifications', 'mcp-tokens', 'github', 'backup', 'audit', 'dev-notifications',
 ]
+
+/**
+ * Tab ids that were renamed, so a bookmark, a wiki page or a mail that names the
+ * old one still lands. "Settings" was one tab for sign-in, services and the
+ * danger zone; it opens on security, where the danger zone went too.
+ */
+const ADMIN_TAB_ALIASES: Record<string, string> = { settings: 'security' }
 
 /**
  * The ones a managed install deliberately does not offer.
@@ -64,7 +71,8 @@ export function useAdmin() {
   // on every change, so the address bar keeps saying where the reader is.
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTabState] = useState<string>(() => {
-    const asked = searchParams.get('tab')
+    const raw = searchParams.get('tab')
+    const asked = raw ? (ADMIN_TAB_ALIASES[raw] ?? raw) : null
     const known = [...ADMIN_TAB_IDS, ...managedAdminTabs.map(tab => tab.id)]
     return asked && known.includes(asked) ? asked : 'users'
   })

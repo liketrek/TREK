@@ -53,12 +53,6 @@ function isOn(toggle: HTMLElement): boolean {
   return toggle.getAttribute('aria-pressed') === 'true';
 }
 
-/** A shelf of more than one row starts folded; open every one so its rows can be read. */
-async function unfoldShelves(): Promise<void> {
-  const bars = await screen.findAllByRole('button', { name: /\d+ options?/, expanded: false });
-  for (const bar of bars) await userEvent.click(bar);
-}
-
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -236,7 +230,6 @@ describe('AddonManager', () => {
       )
     );
     render(<AddonManager />);
-    await unfoldShelves();
 
     // Provider sub-rows are visible under Journey addon
     await screen.findByText('Unsplash');
@@ -272,15 +265,6 @@ describe('AddonManager', () => {
     expect(screen.getByText('No addons available')).toBeInTheDocument();
   });
 
-  it('FE-ADMIN-ADDON-013: dark mode swaps the wordmark in the header', async () => {
-    // The wordmark reads the .dark class, the same source applyAppearance() writes.
-    document.documentElement.classList.add('dark');
-    render(<AddonManager />);
-
-    await screen.findByText('No addons available');
-    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-  });
-
   it('FE-ADMIN-ADDON-014: photo-flavoured trip addons are hidden from the trip section', async () => {
     server.use(addonsRoute([
       buildAddon({ id: 'photos', name: 'Memories', icon: 'Image' }),
@@ -302,7 +286,6 @@ describe('AddonManager', () => {
       buildAddon({ id: 'unsplash', name: 'Unsplash', description: 'Stock photos', type: 'photo_provider', enabled: false }),
     ]));
     render(<AddonManager />);
-    await unfoldShelves();
 
     await screen.findByText('Immich');
     // immich and synologyphotos ship a vendor glyph, unsplash does not
@@ -437,7 +420,6 @@ describe('AddonManager', () => {
     ]));
     render(<AddonManager />);
 
-    await unfoldShelves();
 
     await screen.findByText('Paperless-ngx');
     const paperlessRow = screen.getByText('Paperless-ngx').closest('li') as HTMLElement;
@@ -536,7 +518,6 @@ describe('AddonManager', () => {
       />,
     );
 
-    await unfoldShelves();
 
     await screen.findByText('Chat');
     expect(screen.getByText('Notes')).toBeInTheDocument();
@@ -567,7 +548,6 @@ describe('AddonManager', () => {
         onToggleCollabFeature={vi.fn()}
       />
     );
-    await unfoldShelves();
 
     const links = await screen.findByText('Links');
     expect(links).toHaveAttribute('title');
@@ -623,7 +603,7 @@ describe('AddonManager', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('FE-ADMIN-ADDON-040: a shelf of several options starts folded and says how many there are and how many are on', async () => {
+  it('FE-ADMIN-ADDON-040: the options of an addon are listed under it at once, nothing to unfold', async () => {
     server.use(addonsRoute([buildAddon({ id: 'collab', name: 'Collab', enabled: true })]));
     render(
       <AddonManager
@@ -632,16 +612,9 @@ describe('AddonManager', () => {
       />
     );
 
-    const bar = await screen.findByRole('button', { name: /5 options/, expanded: false });
-    expect(bar).toHaveTextContent('2 on');
-    expect(screen.queryByText('Chat')).not.toBeInTheDocument();
-
-    await userEvent.click(bar);
-    expect(bar).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Chat')).toBeInTheDocument();
-
-    await userEvent.click(bar);
-    expect(screen.queryByText('Chat')).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Polls' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /\d+ options?/ })).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-041: a shelf of one option shows it at once, without a fold', async () => {
@@ -668,10 +641,6 @@ describe('AddonManager', () => {
       </>
     );
 
-    // Folded like Collab's and Documents' options until the bar is opened.
-    await screen.findByRole('button', { name: /\d+ options?/, expanded: false });
-    expect(screen.queryByRole('button', { name: 'wanderer' })).not.toBeInTheDocument();
-    await unfoldShelves();
     const toggle = await screen.findByRole('button', { name: 'wanderer' });
     expect(isOn(toggle)).toBe(false);
     await userEvent.click(toggle);
@@ -685,8 +654,7 @@ describe('AddonManager', () => {
     server.use(addonsRoute([buildAddon({ id: 'tours', name: 'Tours', icon: 'Mountain', enabled: true })]));
     render(<AddonManager />);
 
-    await screen.findByRole('button', { name: /\d+ options?/, expanded: false });
-    await unfoldShelves();
+    await screen.findByText('Tours');
     expect(screen.queryByRole('button', { name: 'wanderer' })).not.toBeInTheDocument();
   });
 
@@ -702,7 +670,6 @@ describe('AddonManager', () => {
       </>
     );
 
-    await unfoldShelves();
     await userEvent.click(await screen.findByRole('button', { name: 'wanderer' }));
 
     await waitFor(() => expect(isOn(screen.getByRole('button', { name: 'wanderer' }))).toBe(false));
@@ -723,33 +690,4 @@ describe('AddonManager', () => {
     expect(roadtrip.querySelector('svg.lucide-car-front')).toBeInTheDocument();
     expect(tours.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
   });
-
-  it('FE-ADMIN-ADDON-045: finds an addon by name or description and shows the ones on or off', async () => {
-    const user = userEvent.setup();
-    server.use(
-      addonsRoute([
-        buildAddon({ id: 'x-lists', name: 'Todo List', description: 'Track tasks', type: 'trip', enabled: true }),
-        buildAddon({ id: 'x-costs', name: 'Budget', description: 'Split costs', type: 'trip', enabled: false }),
-        buildAddon({ id: 'x-holiday', name: 'Vacay', description: 'Holiday planner', type: 'global', enabled: true }),
-      ])
-    );
-    render(<AddonManager />);
-    await screen.findByText('Todo List');
-
-    await user.type(screen.getByRole('searchbox', { name: 'Search addons' }), 'costs');
-    expect(screen.getByText('Budget')).toBeInTheDocument();
-    expect(screen.queryByText('Todo List')).toBeNull();
-    expect(screen.queryByText('Vacay')).toBeNull();
-
-    await user.clear(screen.getByRole('searchbox', { name: 'Search addons' }));
-    await user.click(screen.getByRole('button', { name: 'On' }));
-    expect(screen.getByText('Todo List')).toBeInTheDocument();
-    expect(screen.getByText('Vacay')).toBeInTheDocument();
-    expect(screen.queryByText('Budget')).toBeNull();
-
-    await user.click(screen.getByRole('button', { name: 'Off' }));
-    await user.type(screen.getByRole('searchbox', { name: 'Search addons' }), 'nothing like this');
-    expect(screen.getByText('No addon matches the search or the filter.')).toBeInTheDocument();
-  });
 });
-

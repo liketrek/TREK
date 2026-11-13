@@ -61,7 +61,6 @@ function ParsingSource({ A, P, onOpenConnection }: { A: AiAdmin; P: Parsing; onO
           onClick={() => void P.switchToShared()}
           disabled={P.saving}
           className={`${SETTINGS_BUTTON} self-start`}
-          style={fs(12.5, 'body')}
         >
           {t('admin.addons.ai.parsing.useShared')}
         </button>
@@ -166,7 +165,6 @@ function LocalModels({ P }: { P: Parsing }) {
                     onClick={() => P.setModel(m.id)}
                     disabled={chosen}
                     className={SETTINGS_BUTTON}
-                    style={fs(12, 'body')}
                   >
                     {chosen ? <Check size={13} strokeWidth={2.4} /> : null}
                     {t(chosen ? 'admin.addons.ai.parsing.selected' : 'admin.addons.ai.parsing.use')}
@@ -177,7 +175,6 @@ function LocalModels({ P }: { P: Parsing }) {
                     onClick={() => void P.pull(m.id)}
                     disabled={!!P.pulling}
                     className={SETTINGS_BUTTON_PRIMARY}
-                    style={fs(12, 'body')}
                   >
                     {t(P.pulling === m.id ? 'admin.addons.ai.parsing.pulling' : 'admin.addons.ai.parsing.pull')}
                   </button>

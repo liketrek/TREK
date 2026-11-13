@@ -5,7 +5,7 @@ import { useAirTrailSettings } from './useAirTrailSettings'
 import AirTrailIcon from '../shared/AirTrailIcon'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, StatusPill } from './settingsKit'
 import { EditorField, GRID_2, INPUT } from '../shared/dialogParts'
 import { fs } from '../shared/DialogShell'
 
@@ -41,9 +41,10 @@ export default function AirTrailConnectionSection(): React.ReactElement {
   return (
     <Section
       id="airtrail"
-      collapsible
       title={t('settings.airtrail.title')}
+      hint={t('settings.airtrail.hint')}
       icon={AirTrailIcon}
+      iconFill
       badge={
         <StatusPill tone={connected ? 'success' : 'neutral'} icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>
           {connected ? t('settings.airtrail.connected') : t('settings.airtrail.notConnected')}
@@ -107,7 +108,6 @@ export default function AirTrailConnectionSection(): React.ReactElement {
         </button>
       </div>
 
-      <SettingsHint>{t('settings.airtrail.hint')}</SettingsHint>
     </Section>
   )
 }

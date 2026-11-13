@@ -1,4 +1,4 @@
-import { ChevronRight, Copy, FileUp, Inbox, Loader2, Mail, RefreshCw } from 'lucide-react';
+import { Copy, FileUp, Inbox, Loader2, Mail, RefreshCw } from 'lucide-react';
 import { useRef, type ReactElement } from 'react';
 import { useTranslation } from '../../i18n';
 import { openMailInbox } from '../MailIngest/mailInboxOpener';
@@ -31,7 +31,6 @@ export default function MailImportSection(): ReactElement | null {
   return (
     <Section
       id="mail-import"
-      collapsible
       title={t('mailInbox.settings.title')}
       icon={Mail}
       badge={
@@ -78,21 +77,14 @@ export default function MailImportSection(): ReactElement | null {
             </Tooltip>
           </div>
           <SettingsHint>{t('mailInbox.settings.addressHint')}</SettingsHint>
-          <details className="group rounded-lg bg-surface-tertiary px-3 py-2 text-body text-content-secondary">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 font-medium text-content">
-              <ChevronRight
-                size={14}
-                strokeWidth={2}
-                className="transition-transform group-open:rotate-90 rtl:-scale-x-100"
-              />
-              {t('mailInbox.settings.howTo')}
-            </summary>
+          <div className="rounded-lg bg-surface-tertiary px-3 py-2 text-body text-content-secondary">
+            <div className="font-medium text-content">{t('mailInbox.settings.howTo')}</div>
             <ul className="mt-2 flex list-disc flex-col gap-1.5 ps-5 text-caption">
               <li>{t('mailInbox.settings.howToGmail')}</li>
               <li>{t('mailInbox.settings.howToOutlook')}</li>
               <li>{t('mailInbox.settings.howToManual')}</li>
             </ul>
-          </details>
+          </div>
         </div>
       )}
 

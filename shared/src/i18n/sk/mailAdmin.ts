@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Zadaj port medzi 1 a 65535.',
   'mailAdmin.problem.templateToken': 'Adresa musí obsahovať {token} pre kód každého používateľa.',
   'mailAdmin.problem.dailyInvalid': 'Zadaj celé číslo od 0 do 1000.',
-  'mailAdmin.status.title': 'Stav',
   'mailAdmin.status.lastRead': 'Naposledy prečítané {time}',
   'mailAdmin.status.never': 'nikdy',
   'mailAdmin.status.mails': 'E-maily, 24 h',

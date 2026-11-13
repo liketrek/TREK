@@ -11,7 +11,6 @@ import {
   SETTINGS_BUTTON_PRIMARY,
   SettingRow,
   SettingRows,
-  SettingsHint,
   StatusPill,
 } from './settingsKit';
 import ToggleSwitch from './ToggleSwitch';
@@ -32,8 +31,8 @@ export default function WandererConnectionSection(): React.ReactElement {
   return (
     <Section
       id="wanderer"
-      collapsible
       title={t('wanderer.title')}
+      hint={t('wanderer.intro')}
       icon={WandererMark}
       badge={
         <StatusPill
@@ -44,7 +43,6 @@ export default function WandererConnectionSection(): React.ReactElement {
         </StatusPill>
       }
     >
-      <SettingsHint>{t('wanderer.intro')}</SettingsHint>
 
       <div className={GRID_2}>
         <EditorField label={t('wanderer.url')} htmlFor="wanderer-url">

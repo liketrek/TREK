@@ -64,44 +64,39 @@ function ServiceTile({ allowance }: { allowance: ServiceAllowance }) {
   const Icon = SERVICE_ICON[allowance.service] ?? MapPin;
   const share = quota && quota.limit > 0 ? Math.min(100, (quota.used / quota.limit) * 100) : 100;
 
+  // One row per service: its name, the day's use as a bar, used of the limit.
   return (
-    <li
-      className={`flex min-w-0 flex-col gap-2.5 rounded-xl border border-edge-faint bg-surface-card p-3 shadow-sm ${allowance.inUse ? '' : 'opacity-60'}`}
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="grid h-7 w-7 flex-none place-items-center rounded-lg bg-surface-tertiary text-content-muted">
-          <Icon size={14} strokeWidth={2} aria-hidden="true" />
+    <li className={`flex min-w-0 flex-col gap-1 px-3 py-2.5 ${allowance.inUse ? '' : 'opacity-60'}`}>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex w-[34%] min-w-0 flex-none items-center gap-2">
+          <Icon size={14} strokeWidth={2} aria-hidden="true" className="flex-none text-content-muted" />
+          <span className="truncate text-caption font-medium text-content-secondary">{name}</span>
         </span>
-        <p className="m-0 truncate text-caption font-medium text-content-secondary">{name}</p>
-      </div>
-
-      {quota && (
-        <>
-          <div className="min-w-0">
-            <p className={`m-0 truncate text-title font-semibold tabular-nums leading-tight ${figureTone(quota)}`}>
-              {number.format(quota.remaining)}
-            </p>
-            <p className="m-0 text-caption text-content-muted">{t('admin.trekApi.quota.remaining')}</p>
-          </div>
-          <div
-            role="progressbar"
-            aria-label={name}
-            aria-valuemin={0}
-            aria-valuemax={quota.limit}
-            aria-valuenow={quota.used}
-            className="h-1.5 overflow-hidden rounded-full bg-surface-tertiary"
-          >
+        {quota && (
+          <>
             <div
-              className={`h-full rounded-full transition-[width] duration-500 ${barTone(quota)}`}
-              style={{ width: `${share}%` }}
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <FigureBadge label={t('admin.trekApi.quota.used')} value={number.format(quota.used)} />
-            <FigureBadge label={t('admin.trekApi.quota.limit')} value={number.format(quota.limit)} />
-          </div>
-        </>
-      )}
+              role="progressbar"
+              aria-label={name}
+              aria-valuemin={0}
+              aria-valuemax={quota.limit}
+              aria-valuenow={quota.used}
+              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-tertiary"
+            >
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${barTone(quota)}`}
+                style={{ width: `${share}%` }}
+              />
+            </div>
+            <span
+              className="flex-none text-caption tabular-nums text-content-faint"
+              title={`${t('admin.trekApi.quota.remaining')}: ${number.format(quota.remaining)}`}
+            >
+              <span className={`font-semibold ${figureTone(quota)}`}>{number.format(quota.used)}</span>
+              {' / '}{number.format(quota.limit)}
+            </span>
+          </>
+        )}
+      </div>
       {note && <p className="m-0 text-caption leading-snug text-content-muted">{note}</p>}
     </li>
   );
@@ -172,7 +167,7 @@ export default function ServiceIdentityPanel({ managed = false }: { managed?: bo
         {status && status.services.length > 0 && (
           <ul
             aria-label={t('admin.trekApi.quota.title')}
-            className="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-3"
+            className="m-0 flex list-none flex-col divide-y divide-edge-faint overflow-hidden rounded-xl border border-edge-faint bg-surface-card p-0"
           >
             {status.services.map((allowance) => (
               <ServiceTile key={allowance.service} allowance={allowance} />

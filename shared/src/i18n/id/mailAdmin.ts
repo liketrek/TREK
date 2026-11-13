@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Masukkan port antara 1 dan 65535.',
   'mailAdmin.problem.templateToken': 'Alamat memerlukan {token} untuk kode setiap orang.',
   'mailAdmin.problem.dailyInvalid': 'Masukkan bilangan bulat dari 0 sampai 1000.',
-  'mailAdmin.status.title': 'Status', // same-as-en
   'mailAdmin.status.lastRead': 'Terakhir dibaca {time}',
   'mailAdmin.status.never': 'belum pernah',
   'mailAdmin.status.mails': 'Email, 24 j',

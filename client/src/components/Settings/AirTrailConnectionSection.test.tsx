@@ -6,7 +6,6 @@ import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { ToastContainer } from '../shared/Toast';
 import AirTrailConnectionSection from './AirTrailConnectionSection';
-import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 interface SavedBody {
   url: string;
@@ -38,8 +37,6 @@ function toggleNextTo(label: string): HTMLElement {
 }
 
 beforeEach(() => {
-  // The cards start shut; these tests read into them.
-  openSettingsCards();
   resetAllStores();
   vi.clearAllMocks();
   stubSettings();

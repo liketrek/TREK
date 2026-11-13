@@ -16,7 +16,7 @@ import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import AdminPluginsPanel from '../components/Admin/AdminPluginsPanel'
 import AdminStoragePanel from '../components/Admin/storage/AdminStoragePanel'
-import { Users, Map, Briefcase, Shield, FileText, RotateCcw, Save, SlidersHorizontal, UserCog, Puzzle, Blocks, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug, HardDrive } from 'lucide-react'
+import { Users, Map, Briefcase, Shield, FileText, RotateCcw, Save, SlidersHorizontal, UserCog, Puzzle, Blocks, ShieldCheck, Compass, Bell, Database, ScrollText, KeyRound, GitBranch, Bug, HardDrive } from 'lucide-react'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import { useAdmin } from './admin/useAdmin'
 import AdminUpdateBanner from './admin/AdminUpdateBanner'
@@ -51,28 +51,30 @@ function AdminPageDesktop(): React.ReactElement {
 
   const gUsers = t('admin.group.users')
   const gConfig = t('admin.group.config')
-  const gIntegration = t('admin.group.integration')
   const gMaintenance = t('admin.group.maintenance')
-  const GROUP_LABELS = { users: gUsers, config: gConfig, integration: gIntegration, maintenance: gMaintenance }
+  const GROUP_LABELS = { users: gUsers, config: gConfig, maintenance: gMaintenance }
   const TABS: PageSidebarTab[] = [
     { id: 'users', label: t('admin.tabs.users'), icon: Users, group: gUsers },
     { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog, group: gUsers },
-    { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal, group: gConfig },
-    { id: 'settings', label: t('admin.tabs.settings'), icon: SettingsIcon, group: gConfig },
+    // By what an admin comes for, not by how it is built: who may sign in, what
+    // the install talks to, which features it offers and what they show.
+    { id: 'security', label: t('admin.tabs.security'), icon: ShieldCheck, group: gConfig },
+    { id: 'services', label: t('admin.tabs.services'), icon: Compass, group: gConfig },
     { id: 'addons', label: t('admin.tabs.addons'), icon: Puzzle, group: gConfig },
+    { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal, group: gConfig },
+    { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell, group: gConfig },
+    ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound, group: gConfig }] : []),
     // Plugins run third-party code that can send data anywhere; a hosted instance
     // offers none, so there is nothing to manage here (TREK_PLUGINS_ENABLED is off).
     ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Blocks, group: gConfig }]),
     // Storage backends and their credentials are hoster-level configuration —
     // the server refuses the whole surface in managed mode (MANAGED_FORBIDDEN).
-    ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive, group: gConfig }]),
-    { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell, group: gIntegration },
-    ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound, group: gIntegration }] : []),
-    // Releases and update cadence belong to whoever operates the install.
-    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: GitBranch, group: gIntegration }]),
+    ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive, group: gMaintenance }]),
     // Backups run off-volume on a managed install; the tab would offer a
     // schedule that competes with the real one.
     ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database, group: gMaintenance }]),
+    // Releases and update cadence belong to whoever operates the install.
+    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: GitBranch, group: gMaintenance }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText, group: gMaintenance },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug, group: gMaintenance }] : []),
     // Empty in this repository — see client/src/managed. Appended per group
@@ -128,7 +130,6 @@ function AdminPageDesktop(): React.ReactElement {
               <button type="button"
                 onClick={saveDemoBaseline}
                 className={`${SETTINGS_BUTTON_PRIMARY} flex-none`}
-                style={fs(13, 'body')}
               >
                 <Save size={14} strokeWidth={2.1} />
                 {t('admin.demoBaseline.button')}
@@ -144,7 +145,6 @@ function AdminPageDesktop(): React.ReactElement {
             onTabChange={setActiveTab}
             footer=""
           >
-            {/* Tab content */}
           {activeTab === 'users' && (
             <AdminUsersTab admin={admin} t={t} locale={locale} />
           )}
@@ -159,14 +159,21 @@ function AdminPageDesktop(): React.ReactElement {
 
           {activeTab === 'addons' && (
             <div className="space-y-6">
-              <AddonManager bagTrackingEnabled={bagTrackingEnabled} onToggleBagTracking={toggleBagTracking} collabFeatures={collabFeatures} onToggleCollabFeature={toggleCollabFeature} />
+              <AddonManager
+                bagTrackingEnabled={bagTrackingEnabled}
+                onToggleBagTracking={toggleBagTracking}
+                collabFeatures={collabFeatures}
+                onToggleCollabFeature={toggleCollabFeature}
+                // How the integrations reach the world: live flight status, booking mails.
+                aside={<AdminSettingsTab admin={admin} t={t} part="features" />}
+              />
               <PaddleRegionsPanel />
             </div>
           )}
 
-          {activeTab === 'settings' && (
-            <AdminSettingsTab admin={admin} t={t} />
-          )}
+          {activeTab === 'security' && <AdminSettingsTab admin={admin} t={t} part="security" />}
+
+          {activeTab === 'services' && <AdminSettingsTab admin={admin} t={t} part="services" />}
 
           {activeTab === 'notifications' && (
             <AdminNotificationsTab admin={admin} t={t} />

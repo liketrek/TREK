@@ -239,12 +239,11 @@ export default function ApiKeysSection(): React.ReactElement {
     <>
       <Section
         id="api-keys"
-        collapsible
         title={t('settings.apiKeys.title')}
         icon={KeyRound}
         badge={keys.length > 0 ? <StatusPill>{keys.length}/{MAX_KEYS}</StatusPill> : undefined}
         action={(
-          <button type="button" onClick={openModal} disabled={atLimit} className={SETTINGS_BUTTON_PRIMARY} style={fs(12.5, 'body')}>
+          <button type="button" onClick={openModal} disabled={atLimit} className={SETTINGS_BUTTON_PRIMARY}>
             <Plus size={14} /> {t('settings.apiKeys.create')}
           </button>
         )}

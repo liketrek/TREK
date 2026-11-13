@@ -4,7 +4,6 @@ import type { AiStatusResponse } from '@trek/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildUser } from '../../../../tests/helpers/factories';
 import { render, screen } from '../../../../tests/helpers/render';
-import { openSettingsCards } from '../../../../tests/helpers/settingsCards';
 import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
 import { useAddonStore } from '../../../store/addonStore';
 import { useAssistantStore } from '../../../store/assistantStore';
@@ -31,8 +30,6 @@ const INSTANCE: AiStatusResponse = {
 };
 
 beforeEach(() => {
-  // The cards start shut; these tests read into them.
-  openSettingsCards();
   resetAllStores();
   vi.clearAllMocks();
   useAssistantStore.setState({ status: null });

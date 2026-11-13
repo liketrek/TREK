@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Introdueix un port entre 1 i 65535.',
   'mailAdmin.problem.templateToken': 'L’adreça necessita {token} per al codi de cada persona.',
   'mailAdmin.problem.dailyInvalid': 'Introdueix un nombre enter de 0 a 1000.',
-  'mailAdmin.status.title': 'Estat',
   'mailAdmin.status.lastRead': 'Darrera lectura {time}',
   'mailAdmin.status.never': 'mai',
   'mailAdmin.status.mails': 'Correus, 24 h',

@@ -9,7 +9,6 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import PhotoProvidersSection from './PhotoProvidersSection';
-import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 const fakeProvider = {
   id: 'immich',
@@ -46,8 +45,6 @@ function seedMemoriesEnabled(providers = [fakeProvider]) {
 }
 
 beforeEach(() => {
-  // The cards start shut; these tests read into them.
-  openSettingsCards();
   resetAllStores();
   vi.clearAllMocks();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });

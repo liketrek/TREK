@@ -38,7 +38,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'กรอกพอร์ตระหว่าง 1 ถึง 65535',
   'mailAdmin.problem.templateToken': 'ที่อยู่ต้องมี {token} ตรงตำแหน่งรหัสของแต่ละคน',
   'mailAdmin.problem.dailyInvalid': 'กรอกจำนวนเต็มตั้งแต่ 0 ถึง 1000',
-  'mailAdmin.status.title': 'สถานะ',
   'mailAdmin.status.lastRead': 'อ่านล่าสุด {time}',
   'mailAdmin.status.never': 'ไม่เคย',
   'mailAdmin.status.mails': 'อีเมล 24 ชม.',

@@ -37,7 +37,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'أدخل منفذاً بين 1 و65535.',
   'mailAdmin.problem.templateToken': 'يحتاج العنوان إلى {token} في موضع رمز كل شخص.',
   'mailAdmin.problem.dailyInvalid': 'أدخل عدداً صحيحاً من 0 إلى 1000.',
-  'mailAdmin.status.title': 'الحالة',
   'mailAdmin.status.lastRead': 'آخر قراءة {time}',
   'mailAdmin.status.never': 'أبداً',
   'mailAdmin.status.mails': 'الرسائل، 24 ساعة',

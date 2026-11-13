@@ -10,7 +10,6 @@ import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { ToastContainer } from '../shared/Toast';
 import IntegrationsTab from './IntegrationsTab';
-import { openSettingsCards } from '../../../tests/helpers/settingsCards';
 
 function enableMcp() {
   seedStore(useAddonStore, {
@@ -32,6 +31,11 @@ function mcpEndpointRow() {
   return { code: row.querySelector('code')!, copy: row.querySelector('button')! };
 }
 
+/** Waits for the MCP card: its endpoint, clients and tokens are on the page, nothing to open. */
+async function openMcp() {
+  await screen.findByText('MCP Endpoint');
+}
+
 const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
 function enableAddons(ids: string[]) {
@@ -51,8 +55,6 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  // The cards start shut; these tests read into them.
-  openSettingsCards();
   clipboardWriteText.mockClear();
   resetAllStores();
   useAssistantStore.setState({ status: null });
@@ -91,21 +93,18 @@ describe('IntegrationsTab', () => {
   it('FE-COMP-INTEGRATIONS-004: MCP endpoint URL is displayed', async () => {
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     const { code } = mcpEndpointRow();
     expect(code).not.toBeNull();
     expect(code.textContent).toContain('/mcp');
   });
 
-  it('FE-COMP-INTEGRATIONS-005: JSON config block is rendered when expanded', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-INTEGRATIONS-005: JSON config block is always rendered', async () => {
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
-    // Config is collapsed by default — no <pre> yet
-    expect(document.querySelector('pre')).toBeNull();
-    // Expand by clicking the "Client Configuration" toggle
-    await user.click(screen.getByRole('button', { name: /Client Configuration/i }));
+    await openMcp();
+    // The client config is always shown: nothing folds away in the settings.
+    expect(screen.getByText('Client Configuration')).toBeInTheDocument();
     const preEl = document.querySelector('pre');
     expect(preEl).not.toBeNull();
     expect(preEl!.textContent).toContain('mcpServers');
@@ -115,7 +114,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     expect(await screen.findByText('No tokens yet. Create one to connect MCP clients.')).toBeInTheDocument();
   });
@@ -134,7 +133,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('My Token');
     expect(await screen.findByText('Other Token')).toBeInTheDocument();
@@ -144,7 +143,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     const createBtn = screen.getByRole('button', { name: /Create New Token/i });
     await user.click(createBtn);
@@ -155,7 +154,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await user.click(screen.getByRole('button', { name: /Create New Token/i }));
     await screen.findByText('Create API Token');
@@ -167,7 +166,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await user.click(screen.getByRole('button', { name: /Create New Token/i }));
     await screen.findByText('Create API Token');
@@ -194,7 +193,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await user.click(screen.getByRole('button', { name: /Create New Token/i }));
     await screen.findByText('Create API Token');
@@ -224,7 +223,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await user.click(screen.getByRole('button', { name: /Create New Token/i }));
     await screen.findByText('Create API Token');
@@ -250,7 +249,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Delete Me');
     await user.click(screen.getByLabelText('Delete Token'));
@@ -276,7 +275,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Delete Me');
     await user.click(screen.getByLabelText('Delete Token'));
@@ -294,7 +293,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     // Spy after userEvent.setup() may have replaced navigator.clipboard
     const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     await user.click(mcpEndpointRow().copy);
@@ -305,7 +304,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     const { copy } = mcpEndpointRow();
     await user.click(copy);
@@ -334,7 +333,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Cancel Token');
     await user.click(screen.getByLabelText('Delete Token'));
@@ -365,7 +364,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await user.click(screen.getByRole('button', { name: /Create New Token/i }));
     await screen.findByText('Create API Token');
@@ -380,7 +379,7 @@ describe('IntegrationsTab', () => {
   it('FE-COMP-INTEGRATIONS-019: default tab is OAuth 2.1 Clients — OAuth hint visible, token list hidden', async () => {
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     // OAuth hint is visible on the default tab
     expect(screen.getByText(/Register OAuth 2\.1 clients/i)).toBeInTheDocument();
     // API Tokens "no tokens" message is not rendered
@@ -391,7 +390,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     // Default: OAuth hint visible, token list absent
     expect(screen.getByText(/Register OAuth 2\.1 clients/i)).toBeInTheDocument();
     expect(screen.queryByText('No tokens yet. Create one to connect MCP clients.')).toBeNull();
@@ -475,7 +474,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     expect(screen.getByText('Claude.ai')).toBeInTheDocument();
@@ -486,7 +485,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     // Presets render as buttons — click "Claude.ai" preset
@@ -516,7 +515,7 @@ describe('IntegrationsTab', () => {
     );
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
 
@@ -550,7 +549,7 @@ describe('IntegrationsTab', () => {
     );
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'TC2');
@@ -646,7 +645,7 @@ describe('IntegrationsTab', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     const createBtn = screen.getByRole('button', { name: /Register Client/i });
@@ -665,7 +664,7 @@ describe('IntegrationsTab', () => {
     );
     enableMcp();
     render(<><ToastContainer /><IntegrationsTab /></>);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Fail Client');
@@ -680,7 +679,7 @@ describe('IntegrationsTab', () => {
     server.use(http.post('/api/oauth/clients', () => HttpResponse.error()));
     enableMcp();
     render(<><ToastContainer /><IntegrationsTab /></>);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
     await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Fail Client');
@@ -710,7 +709,7 @@ const oneToken = [
 ];
 
 async function openTokensTab(user: ReturnType<typeof userEvent.setup>) {
-  await screen.findByText('MCP Configuration');
+  await openMcp();
   await user.click(screen.getByRole('button', { name: /API Tokens/i }));
 }
 
@@ -725,10 +724,9 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
 
-    await user.click(screen.getByRole('button', { name: /Client Configuration/i }));
     await user.click(labelledCopyButton());
 
     expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('mcp'));
@@ -742,7 +740,6 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     await openTokensTab(user);
     const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
 
-    await user.click(screen.getByRole('button', { name: /Client Configuration/i }));
     await user.click(labelledCopyButton());
 
     expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('mcp'));
@@ -790,7 +787,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
 
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
@@ -803,7 +800,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     const user = userEvent.setup();
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await screen.findByText('Register OAuth Client');
 
@@ -834,7 +831,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     );
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    await openMcp();
     await user.click(screen.getByRole('button', { name: /New Client/i }));
     await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Copyable');
     await user.type(screen.getByPlaceholderText(/https:\/\/your-app/i), 'http://localhost');
@@ -1015,6 +1012,7 @@ describe('IntegrationsTab – failure toasts', () => {
 
     enableAddons(['ai_assistant']);
     const { unmount } = render(<IntegrationsTab />);
+    // Its own card on the page, the connection form open in it.
     expect(await screen.findByText('What would you like to chat with?')).toBeInTheDocument();
     unmount();
 

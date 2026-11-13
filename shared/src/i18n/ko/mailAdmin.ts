@@ -37,7 +37,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': '1에서 65535 사이의 포트를 입력하세요.',
   'mailAdmin.problem.templateToken': '주소에는 사용자별 코드가 들어갈 자리에 {token}이 필요합니다.',
   'mailAdmin.problem.dailyInvalid': '0에서 1000 사이의 정수를 입력하세요.',
-  'mailAdmin.status.title': '상태',
   'mailAdmin.status.lastRead': '마지막으로 읽음: {time}',
   'mailAdmin.status.never': '없음',
   'mailAdmin.status.mails': '메일, 24시간',

@@ -45,7 +45,6 @@ export default function LlmConnectionSection(): React.ReactElement {
   return (
     <Section
       id="ai-parsing"
-      collapsible
       title={t('settings.aiParsing.title')}
       icon={Sparkles}
       badge={<ParsingState />}
@@ -117,5 +116,5 @@ function ParsingState() {
   const model = useSettingsStore(s => s.settings.llm_model)
   return model
     ? <StatusPill tone="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{model}</StatusPill>
-    : <StatusPill>{t('settings.notSetUp')}</StatusPill>
+    : <StatusPill icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{t('settings.notSetUp')}</StatusPill>
 }

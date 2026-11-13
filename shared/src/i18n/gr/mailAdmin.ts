@@ -39,7 +39,6 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.problem.portInvalid': 'Εισήγαγε θύρα από 1 έως 65535.',
   'mailAdmin.problem.templateToken': 'Η διεύθυνση χρειάζεται {token} για τον κωδικό κάθε ατόμου.',
   'mailAdmin.problem.dailyInvalid': 'Εισήγαγε έναν ακέραιο αριθμό από 0 έως 1000.',
-  'mailAdmin.status.title': 'Κατάσταση',
   'mailAdmin.status.lastRead': 'Τελευταία ανάγνωση {time}',
   'mailAdmin.status.never': 'ποτέ',
   'mailAdmin.status.mails': 'Email, 24 ώ',

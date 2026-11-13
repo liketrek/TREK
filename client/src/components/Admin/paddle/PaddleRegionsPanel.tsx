@@ -66,7 +66,7 @@ function Panel() {
           style={fs(12.5, 'body')}
         >
           <span className="min-w-0 flex-1 basis-48">{admin.error}</span>
-          <button type="button" onClick={admin.retry} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+          <button type="button" onClick={admin.retry} className={SETTINGS_BUTTON}>
             {t('admin.paddleRegions.retry')}
           </button>
         </div>
@@ -159,7 +159,6 @@ function CatalogSearch({ admin }: { admin: Admin }) {
                   disabled={admin.busyId !== null}
                   onClick={() => void admin.add(hit.id)}
                   className={SETTINGS_BUTTON}
-                  style={fs(12.5, 'body')}
                 >
                   {admin.busyId === hit.id ? (
                     <Loader2 size={13} className="animate-spin" />

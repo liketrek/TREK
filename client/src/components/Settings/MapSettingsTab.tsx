@@ -379,7 +379,6 @@ export default function MapSettingsTab(): React.ReactElement {
           onClick={saveMapSettings}
           disabled={saving}
           className={SETTINGS_BUTTON_PRIMARY}
-          style={fs(13, 'body')}
         >
           {saving ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Save size={14} strokeWidth={2} />}
           {t('settings.saveMap')}

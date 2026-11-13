@@ -128,7 +128,6 @@ function InstanceConnection({ A }: { A: AiAdmin }) {
           type="button"
           onClick={cancelReplace}
           className={`${SETTINGS_BUTTON} self-start`}
-          style={fs(12.5, 'body')}
         >
           {t('common.cancel')}
         </button>

@@ -75,7 +75,7 @@ export default function MAdmin() {
   const admin = useAdmin()
   const {
     demoMode, mcpEnabled, devMode, managed, navigate,
-    activeTab, setActiveTab, stats, serverTimezone,
+    activeTab: deskTab, setActiveTab, stats, serverTimezone,
     bagTrackingEnabled, collabFeatures,
     setShowCreateUser,
     updateInfo, setShowUpdateModal,
@@ -107,6 +107,9 @@ export default function MAdmin() {
     // The install's own tabs (managed/index.tsx), after the built-in ones as on the desktop.
     ...managedAdminTabs.map(tab => ({ id: tab.id, label: tab.label, icon: tab.Icon })),
   ]
+  // The desktop splits the settings into Security and Services; the phone keeps
+  // them in its one Settings section, so either desktop tab (and a link to it) opens that.
+  const activeTab = deskTab === 'security' || deskTab === 'services' ? 'settings' : deskTab
   const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0]
 
   return (

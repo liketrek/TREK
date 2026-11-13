@@ -1,5 +1,5 @@
 // FE-COMP-DISPLAY-001 to FE-COMP-DISPLAY-057
-import { render, screen, within, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -57,20 +57,20 @@ describe('DisplaySettingsTab', () => {
     expect(screen.getByText(/12h/i)).toBeInTheDocument();
   });
 
-  it('FE-COMP-DISPLAY-015: clicking a language button calls updateSetting with that language code', async () => {
+  it('FE-COMP-DISPLAY-015: picking a language in the select calls updateSetting with its code', async () => {
     const user = userEvent.setup();
     const updateSetting = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }), updateSetting });
     render(<DisplaySettingsTab />);
-    await user.click(screen.getByText('Deutsch'));
+    await user.click(screen.getByRole('button', { name: 'Language' }));
+    await user.click(await screen.findByText('Deutsch'));
     expect(updateSetting).toHaveBeenCalledWith('language', 'de');
   });
 
-  it('FE-COMP-DISPLAY-016: active language button is visually highlighted', () => {
+  it('FE-COMP-DISPLAY-016: the language select shows the current language', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }) });
     render(<DisplaySettingsTab />);
-    // "English" is on the chip and on the compact trigger; only the chip is a pressed choice.
-    expect(screen.getByRole('button', { name: 'English', pressed: true })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Language' })).toHaveTextContent('English');
   });
 
   it('FE-COMP-DISPLAY-017: shows Temperature section label', () => {
@@ -199,7 +199,7 @@ describe('DisplaySettingsTab – Display currency', () => {
     render(<DisplaySettingsTab />);
 
     await user.click(screen.getByRole('button', { name: 'Same as the app' }));
-    // The language grid shows the same name, so the option is the last one on screen.
+    // The app language is German here, so the only English on screen is the place option.
     const options = await screen.findAllByText('English');
     await user.click(options[options.length - 1]);
 
@@ -232,84 +232,18 @@ describe('DisplaySettingsTab – Display currency', () => {
   });
 });
 
-// ── Compact language dropdown (035–039) ───────────────────────────────────────
+// ── Language errors (037) ─────────────────────────────────────────────────────
 
-function mobileLangWrap(): HTMLElement {
-  return optionBlock('Language').querySelector('.sm\\:hidden') as HTMLElement;
-}
-
-describe('DisplaySettingsTab – Compact language picker', () => {
-  it('FE-COMP-DISPLAY-035: the compact trigger shows the active language and opens the list', async () => {
-    const user = userEvent.setup();
-    render(<DisplaySettingsTab />);
-    const wrap = mobileLangWrap();
-
-    expect(within(wrap).getAllByRole('button')).toHaveLength(1);
-    expect(within(wrap).getByText('English')).toBeInTheDocument();
-
-    await user.click(within(wrap).getByRole('button'));
-
-    expect(within(wrap).getAllByRole('button').length).toBeGreaterThan(1);
-  });
-
-  it('FE-COMP-DISPLAY-036: picking a language from the list saves it and closes the list', async () => {
-    const user = userEvent.setup();
-    const updateSetting = vi.fn().mockResolvedValue(undefined);
-    seedStore(useSettingsStore, { settings: buildSettings({ language: 'en' }), updateSetting });
-    render(<DisplaySettingsTab />);
-    const wrap = mobileLangWrap();
-
-    await user.click(within(wrap).getByRole('button'));
-    await user.click(within(wrap).getByText('Deutsch').closest('button')!);
-
-    expect(updateSetting).toHaveBeenCalledWith('language', 'de');
-    expect(within(wrap).getAllByRole('button')).toHaveLength(1);
-  });
-
-  it('FE-COMP-DISPLAY-037: a rejected pick from the list surfaces the error', async () => {
-    const user = userEvent.setup();
-    seedFailing('Language locked');
-    render(<><ToastContainer /><DisplaySettingsTab /></>);
-    const wrap = mobileLangWrap();
-
-    await user.click(within(wrap).getByRole('button'));
-    await user.click(within(wrap).getByText('Deutsch').closest('button')!);
-
-    expect(await screen.findByText('Language locked')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-DISPLAY-048: a rejected pick from the desktop grid surfaces the error', async () => {
+describe('DisplaySettingsTab – Language select', () => {
+  it('FE-COMP-DISPLAY-037: a rejected language pick surfaces the error', async () => {
     const user = userEvent.setup();
     seedFailing('Language locked');
     render(<><ToastContainer /><DisplaySettingsTab /></>);
 
-    await user.click(screen.getByText('Deutsch'));
+    await user.click(screen.getByRole('button', { name: 'Language' }));
+    await user.click(await screen.findByText('Deutsch'));
 
     expect(await screen.findByText('Language locked')).toBeInTheDocument();
-  });
-
-  it('FE-COMP-DISPLAY-038: a mousedown outside the picker closes it', async () => {
-    const user = userEvent.setup();
-    render(<DisplaySettingsTab />);
-    const wrap = mobileLangWrap();
-
-    await user.click(within(wrap).getByRole('button'));
-    expect(within(wrap).getAllByRole('button').length).toBeGreaterThan(1);
-
-    fireEvent.mouseDown(document.body);
-
-    expect(within(wrap).getAllByRole('button')).toHaveLength(1);
-  });
-
-  it('FE-COMP-DISPLAY-039: a mousedown inside the picker keeps it open', async () => {
-    const user = userEvent.setup();
-    render(<DisplaySettingsTab />);
-    const wrap = mobileLangWrap();
-
-    await user.click(within(wrap).getByRole('button'));
-    fireEvent.mouseDown(within(wrap).getByText('Deutsch'));
-
-    expect(within(wrap).getAllByRole('button').length).toBeGreaterThan(1);
   });
 });
 

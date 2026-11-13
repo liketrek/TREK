@@ -1,6 +1,5 @@
 import React, { useId } from 'react'
-import { Bell, BellRing, CalendarClock, Mail, Save, Send, Smartphone, Webhook } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { Bell, BellRing, Mail, Save, Send, Webhook } from 'lucide-react'
 import type { TranslationFn } from '../../types'
 import type { useAdmin } from './useAdmin'
 import AdminNotificationsPanel from './AdminNotificationsPanel'
@@ -9,7 +8,7 @@ import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../components/
 import { MASK, useAdminNotificationSettings } from '../../components/Admin/useAdminNotificationSettings'
 import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import {
-  SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsCard,
+  SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsCard, SettingsColumns,
 } from '../../components/Settings/settingsKit'
 import { EditorField, GRID_2, INPUT } from '../../components/shared/dialogParts'
 import { fs } from '../../components/shared/DialogShell'
@@ -18,9 +17,6 @@ interface AdminNotificationsTabProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
 }
-
-/** The glyph on each switch-only channel's card; anything else is the push channel. */
-const CHANNEL_ICONS: Record<string, LucideIcon> = { webhook: Webhook, ntfy: BellRing }
 
 /** The save and test buttons under a card's fields, on a hairline of their own. */
 function CardActions({ children }: { children: React.ReactNode }): React.ReactElement {
@@ -78,115 +74,102 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
     </EditorField>
   )
 
-  const tripRemindersCard = (
-    <SettingsCard
-      icon={CalendarClock}
-      title={t('admin.notifications.tripReminders.title')}
-      hint={t('admin.notifications.tripReminders.hint')}
-      action={
-        <ToggleSwitch
-          on={tripRemindersActive}
-          label={t('admin.notifications.tripReminders.title')}
-          onToggle={toggleTripReminders}
-        />
-      }
-    />
-  )
-
   return (<>
-    {/* Two columns from xl up, the same shape as the Settings tab. Most of these
-        cards are a title with a switch on the far right, so on a wide screen the
-        middle stayed empty while the page still scrolled past the three tall ones.
-        Two explicit columns rather than a grid over the flat list: a plain grid
-        pairs cards row by row and leaves a hole under the shorter one, and the SMTP
-        card is taller than all the toggle rows together. Grouped by audience, not by
-        height — the channels a user can receive on the left, everything the operator
-        sends or receives themselves on the right. The channel switches stay
-        together because they all write the same notification_channels list.
-        On a managed install the two admin-target cards are gone and the right column
-        is the matrix alone — still a column, so the grid keeps working. Each card
-        brings its own bottom margin, so the columns only need the gap between them. */}
-    <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-2 xl:items-start">
-      <div className="min-w-0">
-        {/* The relay is the operator's: their host, their credential, their sending
-            reputation. An instance that could point it elsewhere would send under a
-            domain it does not own. */}
-        {!managed && (
-          <SettingsCard
-            icon={Mail}
-            title={t('admin.notifications.emailPanel.title')}
-            hint={t('admin.smtp.hint')}
-            action={<ToggleSwitch on={emailActive} label={t('admin.notifications.emailPanel.title')} onToggle={() => channels.toggle('email')} />}
-          >
-            {/* Greyed and out of reach while the channel is off, never hidden. */}
-            <div data-testid="smtp-fields" className={`flex flex-col gap-4 transition-opacity ${!emailActive ? 'opacity-50 pointer-events-none' : ''}`}>
-              {smtpLoaded && (<>
-                <div className={GRID_2}>
-                  {smtpField(SMTP_FIELDS[0])}
-                  {smtpField(SMTP_FIELDS[1])}
-                </div>
-                <div className={GRID_2}>
-                  {smtpField(SMTP_FIELDS[2])}
-                  {smtpField(SMTP_FIELDS[3])}
-                </div>
-                {smtpField(SMTP_FIELDS[4])}
-              </>)}
-              <SettingRows>
-                <SettingRow
-                  label={t('admin.smtp.skipTls')}
-                  hint={t('admin.smtp.skipTlsHint')}
-                  control={
-                    <ToggleSwitch
-                      on={smtpValues.smtp_skip_tls_verify === 'true'}
-                      label={t('admin.smtp.skipTls')}
-                      onToggle={() => {
-                        const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
-                        setSmtpValues(prev => ({ ...prev, smtp_skip_tls_verify: newVal }))
-                      }}
-                    />
-                  }
+    {/* Every channel users can receive on is one switch in one card, the SMTP
+        relay's fields a section under them; the operator's own targets and the
+        admin-only matrix on the right. */}
+    <SettingsColumns
+      left={
+        <SettingsCard icon={Bell} title={t('admin.notifications.channels')}>
+          <SettingRows>
+            {/* The relay is the operator's on a managed install: their host, their
+                credential, their sending reputation. */}
+            {!managed && (
+              <SettingRow
+                label={t('admin.notifications.emailPanel.title')}
+                hint={t('admin.smtp.hint')}
+                control={<ToggleSwitch on={emailActive} label={t('admin.notifications.emailPanel.title')} onToggle={() => channels.toggle('email')} />}
+              />
+            )}
+            {SWITCH_ONLY_CHANNELS.map(ch => (
+              <SettingRow
+                key={ch.id}
+                label={t(ch.titleKey)}
+                hint={t(ch.hintKey)}
+                control={<ToggleSwitch on={channels.isActive(ch.id)} label={t(ch.titleKey)} onToggle={() => channels.toggle(ch.id)} />}
+              />
+            ))}
+            <SettingRow
+              label={t('admin.notifications.inappPanel.title')}
+              hint={t('admin.notifications.inappPanel.hint')}
+              control={<LockedSwitch />}
+            />
+            <SettingRow
+              label={t('admin.notifications.tripReminders.title')}
+              hint={t('admin.notifications.tripReminders.hint')}
+              control={
+                <ToggleSwitch
+                  on={tripRemindersActive}
+                  label={t('admin.notifications.tripReminders.title')}
+                  onToggle={toggleTripReminders}
                 />
-              </SettingRows>
-            </div>
-            <CardActions>
-              <button type="button" onClick={saveNotifications} className={SETTINGS_BUTTON_PRIMARY}>
-                <Save size={14} strokeWidth={2.2} />{t('common.save')}
-              </button>
-              <button type="button"
-                onClick={testSmtp}
-                disabled={!smtpConfigured}
-                className={SETTINGS_BUTTON}
-              >
-                <Send size={14} strokeWidth={2.2} />{t('admin.smtp.testButton')}
-              </button>
-            </CardActions>
-          </SettingsCard>
-        )}
+              }
+            />
+          </SettingRows>
 
-        {/* Webhook, Ntfy and Web Push: a title, a hint and the switch each. Nothing
-            to set below them, so the card is its head band alone. */}
-        {SWITCH_ONLY_CHANNELS.map(ch => (
-          <SettingsCard
-            key={ch.id}
-            icon={CHANNEL_ICONS[ch.id] ?? Smartphone}
-            title={t(ch.titleKey)}
-            hint={t(ch.hintKey)}
-            action={<ToggleSwitch on={channels.isActive(ch.id)} label={t(ch.titleKey)} onToggle={() => channels.toggle(ch.id)} />}
-          />
-        ))}
-
-        {/* In-App Panel */}
-        <SettingsCard
-          icon={Bell}
-          title={t('admin.notifications.inappPanel.title')}
-          hint={t('admin.notifications.inappPanel.hint')}
-          action={<LockedSwitch />}
-        />
-
-        {!managed && tripRemindersCard}
-      </div>
-
-      <div className="min-w-0">
+          {/* The SMTP relay, a section of this card: greyed and out of reach while
+              the email channel is off, never hidden. */}
+          {!managed && (
+            <SettingsCard icon={Mail} title={t('admin.notifications.emailPanel.title')}>
+              <div data-testid="smtp-fields" className={`flex flex-col gap-4 transition-opacity ${!emailActive ? 'opacity-50 pointer-events-none' : ''}`}>
+                {smtpLoaded && (<>
+                  <div className={GRID_2}>
+                    {smtpField(SMTP_FIELDS[0])}
+                    {smtpField(SMTP_FIELDS[1])}
+                  </div>
+                  <div className={GRID_2}>
+                    {smtpField(SMTP_FIELDS[2])}
+                    {smtpField(SMTP_FIELDS[3])}
+                  </div>
+                  {smtpField(SMTP_FIELDS[4])}
+                </>)}
+                <SettingRows>
+                  <SettingRow
+                    label={t('admin.smtp.skipTls')}
+                    hint={t('admin.smtp.skipTlsHint')}
+                    control={
+                      <ToggleSwitch
+                        on={smtpValues.smtp_skip_tls_verify === 'true'}
+                        label={t('admin.smtp.skipTls')}
+                        onToggle={() => {
+                          const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
+                          setSmtpValues(prev => ({ ...prev, smtp_skip_tls_verify: newVal }))
+                        }}
+                      />
+                    }
+                  />
+                </SettingRows>
+              </div>
+              <CardActions>
+                <button type="button" onClick={saveNotifications} className={SETTINGS_BUTTON_PRIMARY}>
+                  <Save size={14} strokeWidth={2.2} />{t('common.save')}
+                </button>
+                <button type="button"
+                  onClick={testSmtp}
+                  disabled={!smtpConfigured}
+                  className={SETTINGS_BUTTON}
+                >
+                  <Send size={14} strokeWidth={2.2} />{t('admin.smtp.testButton')}
+                </button>
+              </CardActions>
+            </SettingsCard>
+          )}
+        </SettingsCard>
+      }
+      right={
+      // What the operator receives about running the instance: one card, the
+      // two targets as its blocks, then which event goes out over which channel.
+      <SettingsCard icon={BellRing} title={t('admin.notifications.adminAlerts')} hint={t('admin.notifications.adminNotificationsHint')}>
         {/* Admin alerts are about running the instance (version notices, and what else
             lands there later). On a managed install those go to whoever runs it. */}
         {!managed && (<>
@@ -258,7 +241,6 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
                     <button type="button"
                       onClick={clearNtfyToken}
                       className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-                      style={fs(13, 'body')}
                     >
                       {t('common.clear')}
                     </button>
@@ -286,12 +268,10 @@ export default function AdminNotificationsTab({ admin, t }: AdminNotificationsTa
         {/* The matrix decides which of those channels each admin-only event goes out
             over, so it belongs under the targets it routes to rather than across the
             full width below both columns. */}
-        <AdminNotificationsPanel t={t} toast={toast} />
-        {/* Without the admin alert cards the right column is short, so the
-            reminder switch moves over on a managed install. */}
-        {managed && tripRemindersCard}
-      </div>
-    </div>
+        <AdminNotificationsPanel t={t} toast={toast} bare />
+      </SettingsCard>
+      }
+    />
 
     {/* What users' own notifications start as, across the full width: one row per
         user event, one column per channel users can pick (#1536). */}

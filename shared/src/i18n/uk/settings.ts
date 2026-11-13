@@ -18,7 +18,7 @@ const settings: TranslationStrings = {
   'settings.plugins.empty': 'Немає активних плагінів.',
   'settings.plugins.saved': 'Налаштування збережено',
   'settings.plugins.requiredMissing': '«{field}» обов’язкове',
-  'settings.tabs.account': 'Обліковий запис',
+  'settings.tabs.account': 'Акаунт',
   'settings.tabs.offline': 'Офлайн',
   'settings.tabs.device': 'Застосунок',
   'settings.groups.account': 'Ваш обліковий запис',

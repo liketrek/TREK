@@ -1,8 +1,8 @@
 import React from 'react'
-import { Loader2, Map as MapIcon, Settings2 } from 'lucide-react'
+import { Loader2, Map as MapIcon, Settings2, Route } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import Section from '../Settings/Section'
-import { SettingRows, SettingsHint } from '../Settings/settingsKit'
+import { SettingRow, SettingRows, SettingsColumns } from '../Settings/settingsKit'
 import { fs } from '../shared/DialogShell'
 import { EditorField, INPUT, Segmented } from '../shared/dialogParts'
 import CustomSelect from '../shared/CustomSelect'
@@ -34,15 +34,8 @@ function ChoiceRow({
   stacked?: boolean
   children: React.ReactNode
 }) {
-  return (
-    <div className={stacked ? 'flex flex-col gap-2.5 px-3.5 py-3' : 'flex flex-wrap items-center gap-x-4 gap-y-2 px-3.5 py-3'}>
-      <label className={`block font-medium text-content ${stacked ? '' : 'min-w-0 flex-1 basis-40'}`} style={fs(13, 'body')}>
-        {label}
-      </label>
-      {hint && <p className="-mt-2 m-0 leading-snug text-content-faint" style={fs(11.5)}>{hint}</p>}
-      <div className={stacked ? 'min-w-0' : 'flex min-w-0 flex-none items-center'}>{children}</div>
-    </div>
-  )
+  // The settings row every page uses, so a default reads like the setting it presets.
+  return <SettingRow label={label} hint={hint} control={children} stacked={stacked} />
 }
 
 /** A wide field box inside the white rows, for the map card's token and style. */
@@ -114,23 +107,11 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   const darkMode = defaults.dark_mode
 
   return (
-    <div>
-      <SettingsHint className="mb-4">
-        {t('admin.defaultSettings.description')}
-      </SettingsHint>
+    <SettingsColumns
+      left={
+      <>
 
-      {/* Two columns from xl up, the same idea as the Settings tab: as one flat list
-          the map fields sat a screen below the units while the right half of the page
-          stayed empty. Grouped by subject rather than by height — what a user ends up
-          seeing on the left, everything that configures the map on the right.
-          The columns are deliberately uneven: the left one never needs more than the
-          widest option row, while the right one holds four text fields whose values
-          are 60-character tile URLs. Only the column gap is set, because Section
-          carries its own bottom margin and a row gap would double it once the grid
-          collapses. Two cards can sit straight in the grid; a third would need the
-          explicit per-column stacks the Settings tab uses, or it leaves a hole. */}
-      <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] xl:items-start">
-      <Section title={t('admin.defaultSettings.title')} icon={Settings2}>
+      <Section title={t('admin.defaultSettings.title')} icon={Settings2} hint={t('admin.defaultSettings.description')}>
       <SettingRows>
       {/* Color Mode */}
       <ChoiceRow label={<>{t('settings.colorMode')} <ResetButton {...resetOf('dark_mode')} /></>}>
@@ -207,7 +188,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       </ChoiceRow>
 
       {/* Default Currency */}
-      <ChoiceRow label={<>{t('settings.currency')} <ResetButton {...resetOf('default_currency')} /></>}>
+      <ChoiceRow label={<>{t('settings.currency')} <ResetButton {...resetOf('default_currency')} /></>} hint={t('settings.currencyHint')}>
         <div className="w-[220px] max-w-full">
           <CustomSelect
             value={defaults.default_currency || ''}
@@ -232,9 +213,17 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
         />
       </ChoiceRow>
       </SettingRows>
-      <SettingsHint className="-mt-2">{t('settings.currencyHint')}</SettingsHint>
       </Section>
-
+      {/* Which engines answer routes, under the defaults: on its own card it keeps
+          the two columns about as long as each other. */}
+      {!managed && (
+        <Section title={t('admin.defaultSettings.routing')} icon={Route}>
+          <RoutingInstanceFields defaults={defaults} onSave={save} onReset={reset} />
+        </Section>
+      )}
+      </>
+      }
+      right={
       <Section title={t('settings.map')} icon={MapIcon}>
       {/* Map Tile URL */}
       <EditorField label={<>{t('settings.mapTemplate')}<ResetButton {...resetOf('map_tile_url')} /></>} hint={t('settings.mapDefaultHint')}>
@@ -270,7 +259,6 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           />
         </EditorField>
       )}
-      {!managed && <RoutingInstanceFields defaults={defaults} onSave={save} onReset={reset} />}
       <div className="relative h-[200px] w-full overflow-hidden rounded-[12px] border border-edge-faint">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {React.createElement(MapView as any, {
@@ -386,7 +374,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
         )}
       </SettingRows>
       </Section>
-      </div>
-    </div>
+      }
+    />
   )
 }

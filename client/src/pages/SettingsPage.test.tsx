@@ -6,7 +6,6 @@ import { buildUser } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useAddonStore } from '../store/addonStore';
 import SettingsPage from './SettingsPage';
-import { openSettingsCards } from '../../tests/helpers/settingsCards';
 
 // Mock heavy settings sub-tabs to focus on page-level concerns
 vi.mock('../components/Settings/DisplaySettingsTab', () => ({
@@ -36,8 +35,6 @@ vi.mock('../components/Settings/AboutTab', () => ({
 }));
 
 beforeEach(() => {
-  // The cards start shut; these tests read into them.
-  openSettingsCards();
   resetAllStores();
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
 });
