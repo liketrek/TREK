@@ -70,13 +70,14 @@ Requires `atlas:read` or `atlas:write` scope.
 
 Requires `collab:read` or `collab:write` scope.
 
-The addon alone is not enough. Collab has five sub-features an admin switches on and off independently in Admin → Addons — Notes, Polls, Chat, Links and What's Next, all on by default — and three of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. Links and What's Next have no MCP tools or resources of their own, so toggling them changes nothing here.
+The addon alone is not enough. Collab has five sub-features an admin switches on and off independently in Admin → Addons — Notes, Polls, Chat, Links and What's Next, all on by default — and four of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. What's Next has no MCP tools or resources of its own, so toggling it changes nothing here.
 
 | Sub-feature | Tools it gates | Resource it gates |
 |---|---|---|
 | Notes | `list_collab_notes`, `create_collab_note`, `update_collab_note`, `delete_collab_note` | `trek://trips/{tripId}/collab-notes` |
 | Polls | `list_collab_polls`, `create_collab_poll`, `vote_collab_poll`, `close_collab_poll`, `delete_collab_poll` | `trek://trips/{tripId}/collab/polls` |
 | Chat | `list_collab_messages`, `send_collab_message`, `delete_collab_message`, `react_collab_message` | `trek://trips/{tripId}/collab/messages` |
+| Links | `list_collab_links`, `create_collab_link`, `update_collab_link`, `delete_collab_link` | none |
 
 | Tool | Description |
 |---|---|
@@ -93,6 +94,10 @@ The addon alone is not enough. Collab has five sub-features an admin switches on
 | `send_collab_message` | Send a chat message to a trip's collab channel, with optional reply threading. |
 | `delete_collab_message` | Delete a chat message (own messages only). |
 | `react_collab_message` | Toggle a reaction emoji on a chat message. |
+| `list_collab_links` | List the shared links of a trip (Collab → Links), pinned first and then newest first. |
+| `create_collab_link` | Save a link with a title on a trip, optionally pinned. The URL must be http(s). |
+| `update_collab_link` | Change a shared link's title or URL, or pin or unpin it. |
+| `delete_collab_link` | Remove a shared link. |
 
 ### Collections _(Collections addon required)_
 

@@ -36,6 +36,7 @@ export type Need =
   | 'collabNote'
   | 'collabMessage'
   | 'poll'
+  | 'collabLink'
   | 'file'
   | 'guest'
   | 'member'
@@ -100,6 +101,8 @@ export interface Scene {
   collabMessage: CollabMessageRow;
   /** Two options, open. */
   poll: IdRow;
+  /** A shared link on the trip's Links panel, saved by the owner. */
+  collabLink: IdRow;
   file: TripFileRow;
   /** A guest (no account) on the trip. */
   guest: UserRow;

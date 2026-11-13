@@ -359,7 +359,10 @@ const CORE_TOOL_GROUPS: ToolGroups = {
     about: 'Collections: saved places across trips, their labels and ratings.',
     controllers: ['CollectionsMcp'],
   },
-  collab: { about: 'Trip chat: notes, polls and messages to the people on the trip.', controllers: ['CollabMcp'] },
+  collab: {
+    about: 'Trip chat: notes, polls, shared links and messages to the people on the trip.',
+    controllers: ['CollabMcp'],
+  },
   files: {
     about: 'Files and imports: the trip files, document sync, flights from AirTrail.',
     controllers: ['FilesMcp', 'DocSyncMcp', 'ReservationImportMcp', 'AirtrailMcp'],

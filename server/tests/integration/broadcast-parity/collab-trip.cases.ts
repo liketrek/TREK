@@ -223,6 +223,34 @@ export const collabTrip: CaseGroup = {
       },
       expect: ['collab:message:reacted'],
     },
+    {
+      tool: 'create_collab_link',
+      args: (s) => ({ tripId: s.trip.id, title: 'Ferry', url: 'https://example.com/ferry' }),
+      rest: {
+        method: 'post',
+        path: (s) => tripPath(s, '/collab/links'),
+        body: () => ({ title: 'Ferry', url: 'https://example.com/ferry' }),
+      },
+      expect: ['collab:link:created'],
+    },
+    {
+      tool: 'update_collab_link',
+      needs: ['collabLink'],
+      args: (s) => ({ tripId: s.trip.id, linkId: s.collabLink.id, pinned: true }),
+      rest: {
+        method: 'put',
+        path: (s) => tripPath(s, `/collab/links/${s.collabLink.id}`),
+        body: () => ({ pinned: true }),
+      },
+      expect: ['collab:link:updated'],
+    },
+    {
+      tool: 'delete_collab_link',
+      needs: ['collabLink'],
+      args: (s) => ({ tripId: s.trip.id, linkId: s.collabLink.id }),
+      rest: { method: 'delete', path: (s) => tripPath(s, `/collab/links/${s.collabLink.id}`) },
+      expect: ['collab:link:deleted'],
+    },
 
     // ── Files and the document store ──────────────────────────────────────
     {
