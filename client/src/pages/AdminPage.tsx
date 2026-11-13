@@ -52,7 +52,9 @@ function AdminPageDesktop(): React.ReactElement {
   const gUsers = t('admin.group.users')
   const gConfig = t('admin.group.config')
   const gMaintenance = t('admin.group.maintenance')
-  const GROUP_LABELS = { users: gUsers, config: gConfig, maintenance: gMaintenance }
+  // The integration group was folded into config; a managed tab that still
+  // names it lands there too instead of under a missing heading.
+  const GROUP_LABELS = { users: gUsers, config: gConfig, integration: gConfig, maintenance: gMaintenance }
   const TABS: PageSidebarTab[] = [
     { id: 'users', label: t('admin.tabs.users'), icon: Users, group: gUsers },
     { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog, group: gUsers },
