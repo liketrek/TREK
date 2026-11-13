@@ -1,4 +1,4 @@
-// FE-MOB-COLSCR-001 to FE-MOB-COLSCR-034
+// FE-MOB-COLSCR-001 to FE-MOB-COLSCR-038
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render'
@@ -169,6 +169,7 @@ function makeHook(over: Record<string, unknown> = {}): Record<string, unknown> {
     view: 'list',
     statusFilter: 'all',
     categoryFilter: 'all',
+    categoryOptions: [],
     ratingFilter: 'all',
     search: '',
     selectedPlaceId: null,
@@ -366,7 +367,7 @@ describe('MCollections', () => {
     expect(fn('setLabelFilter')).toHaveBeenCalledWith([2, 1])
   })
 
-  it('FE-MOB-COLSCR-013: a list without labels says so, and the manage chip opens the manager', () => {
+  it('FE-MOB-COLSCR-013: a list without labels says so, and the label panel opens the manager', () => {
     render(<MCollections />)
 
     // Status chip and label chip both read "all" while nothing is filtered.
@@ -375,8 +376,10 @@ describe('MCollections', () => {
     fireEvent.click(chips[1])
     expect(screen.getByText('collections.labels.empty')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /collections.labels.title/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'collections.labels.add' }))
     expect(fn('setShowLabelManager')).toHaveBeenCalledWith(true)
+    // Opening the manager closes the panel.
+    expect(screen.queryByText('collections.labels.empty')).not.toBeInTheDocument()
   })
 
   it('FE-MOB-COLSCR-014: the backdrop under an open dropdown closes it again', () => {
@@ -653,12 +656,12 @@ describe('MCollections', () => {
     expect(fn('setShowAddPlace')).not.toHaveBeenCalled()
   })
 
-  it('FE-MOB-COLSCR-029: desktop-only category and rating filters are cleared on phone (#1435)', async () => {
+  it('FE-MOB-COLSCR-029: the desktop-only rating filter is cleared on phone, the category filter is kept (#1435, #2618)', async () => {
     mocks.coll = makeHook({ categoryFilter: 3, ratingFilter: 4 })
     render(<MCollections />)
 
-    await waitFor(() => expect(fn('setCategoryFilter')).toHaveBeenCalledWith('all'))
-    expect(fn('setRatingFilter')).toHaveBeenCalledWith('all')
+    await waitFor(() => expect(fn('setRatingFilter')).toHaveBeenCalledWith('all'))
+    expect(fn('setCategoryFilter')).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-COLSCR-030: the add sheet has no fixed target while the union is active', () => {
@@ -668,6 +671,64 @@ describe('MCollections', () => {
     render(<MCollections />)
 
     expect(screen.getByText('add-target:null::1')).toBeInTheDocument()
+  })
+})
+
+// #2618: the phone could filter by status and label, but not by category.
+describe('MCollections: category filter (#2618)', () => {
+  const categoryOptions = [
+    { id: 3, name: 'Restaurant', color: '#E8843D', icon: 'utensils', count: 2 },
+    { id: 5, name: 'Museum', color: null, icon: null, count: 1 },
+  ]
+
+  it('FE-MOB-COLSCR-035: the chip lists the categories present with their counts and picks one', () => {
+    mocks.coll = makeHook({ categoryOptions })
+    render(<MCollections />)
+
+    const chip = screen.getByRole('button', { name: 'categories.title: collections.status.filterAll' })
+    expect(chip).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(chip)
+    expect(chip).toHaveAttribute('aria-expanded', 'true')
+    // The "all" row counts every categorised place.
+    expect(screen.getByRole('button', { name: /^collections.status.filterAll\s*3$/ })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Restaurant\s*2$/ }))
+    expect(fn('setCategoryFilter')).toHaveBeenCalledWith(3)
+    // Picking closes the panel.
+    expect(screen.queryByRole('button', { name: /^Museum\s*1$/ })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-COLSCR-036: an active category names itself and the "all" row clears it', () => {
+    mocks.coll = makeHook({ categoryOptions, categoryFilter: 5 })
+    render(<MCollections />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'categories.title: Museum' }))
+    fireEvent.click(screen.getByRole('button', { name: /^collections.status.filterAll\s*3$/ }))
+    expect(fn('setCategoryFilter')).toHaveBeenCalledWith('all')
+  })
+
+  it('FE-MOB-COLSCR-037: without categories the chip stays away, unless a category is still set from another list', () => {
+    const { unmount } = render(<MCollections />)
+    expect(screen.queryByRole('button', { name: /^categories.title/ })).not.toBeInTheDocument()
+    unmount()
+
+    mocks.coll = makeHook({ categoryFilter: 7, categories: [{ id: 7, name: 'Beach' }] })
+    render(<MCollections />)
+    fireEvent.click(screen.getByRole('button', { name: 'categories.title: Beach' }))
+    fireEvent.click(screen.getByRole('button', { name: /^collections.status.filterAll\s*0$/ }))
+    expect(fn('setCategoryFilter')).toHaveBeenCalledWith('all')
+  })
+
+  it('FE-MOB-COLSCR-038: opening one filter panel closes the other', () => {
+    mocks.coll = makeHook({ categoryOptions })
+    render(<MCollections />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'categories.title: collections.status.filterAll' }))
+    expect(screen.getByRole('button', { name: /^Museum\s*1$/ })).toBeInTheDocument()
+    // The status chip is the first chip reading "all".
+    fireEvent.click(screen.getAllByRole('button', { name: 'collections.status.filterAll' })[0])
+    expect(screen.queryByRole('button', { name: /^Museum\s*1$/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /collections.status.idea/ })).toBeInTheDocument()
   })
 })
 

@@ -182,7 +182,7 @@
   "mobile/screens/collections/MCollShareSheet.tsx": 14,
   "mobile/screens/collections/MCollSheetKit.tsx": 5,
   "mobile/screens/collections/MCollTripPickerSheet.tsx": 4,
-  "mobile/screens/collections/MCollections.tsx": 14,
+  "mobile/screens/collections/MCollections.tsx": 13,
   "mobile/screens/dashboard/MDashWidgets.tsx": 22,
   "mobile/screens/dashboard/MDashboard.tsx": 30,
   "mobile/screens/dashboard/MNewTripSheet.tsx": 12,
