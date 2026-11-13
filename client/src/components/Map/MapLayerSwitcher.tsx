@@ -1,7 +1,7 @@
 import { Anchor, Bike, Footprints, Loader2, Map as MapIcon, MapPinPlus, Mountain, MountainSnow, Rotate3d, Satellite } from 'lucide-react'
 import type { PaddleMapLayer } from '../Tours/paddle/paddleMapLayer'
 import { PisteKeyButton } from '../Tours/winter/PisteKey'
-import type { ComponentType, CSSProperties } from 'react'
+import type { ComponentProps, ComponentType, CSSProperties } from 'react'
 import { useTranslation } from '../../i18n'
 import { FerrataLineIcon } from '../Ferratas/FerrataGlyph'
 import type { FerrataMapLayer } from '../Ferratas/useFerrataMapLayer'
@@ -42,8 +42,17 @@ export const MAP_ROUND_CONTROL_SIZE = 42
 
 // Round base-layer switcher for both planner maps, Leaflet and GL (default street
 // tiles ↔ satellite). Same frosted shell as MapCompassPill so it lines up with the
-// other map controls; the icon shows the layer it switches to.
-export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onToggle: () => void }) {
+// other map controls; the icon shows the layer it switches to. The journey map
+// wears it too, in its top corner, so its tooltip can open below instead.
+export function MapLayerSwitcher({
+  active,
+  onToggle,
+  tooltipPlacement = 'right',
+}: {
+  active: BaseLayer
+  onToggle: () => void
+  tooltipPlacement?: ComponentProps<typeof Tooltip>['placement']
+}) {
   const { t } = useTranslation()
   const isSatellite = active === 'satellite'
   const Icon = isSatellite ? MapIcon : Satellite
@@ -55,7 +64,7 @@ export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onTo
           TripRouteOverviewPill. To the right, though: this one sits at the
           bottom left of the map, where a tooltip to the left would land on the
           day sidebar and one below would land off the screen. */}
-      <Tooltip label={label} placement="right">
+      <Tooltip label={label} placement={tooltipPlacement}>
         <button
           type="button"
           onClick={onToggle}

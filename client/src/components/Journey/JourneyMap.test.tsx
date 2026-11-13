@@ -1,4 +1,4 @@
-// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-063
+// FE-COMP-JOURNEYMAP-001 to FE-COMP-JOURNEYMAP-066
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -78,7 +78,7 @@ vi.mock('leaflet', () => {
   return {
     default: {
       map: vi.fn(() => mockMap),
-      tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
+      tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn(), remove: vi.fn() })),
       marker: vi.fn(() => mockMarker),
       polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line), remove: vi.fn() }; return line }),
       divIcon: vi.fn(() => ({})),
@@ -91,7 +91,7 @@ vi.mock('leaflet', () => {
       DomEvent: domEvent,
     },
     map: vi.fn(() => mockMap),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn(), remove: vi.fn() })),
     marker: vi.fn(() => mockMarker),
     polyline: vi.fn(() => { const line: any = { addTo: vi.fn(() => line), bindTooltip: vi.fn(() => line), remove: vi.fn() }; return line }),
     divIcon: vi.fn(() => ({})),
@@ -107,7 +107,7 @@ import { render, act, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
 import { buildSettings } from '../../../tests/helpers/factories';
-import { AMAP_ROAD } from '../../constants/mapDefaults';
+import { AMAP_ROAD, AMAP_SATELLITE, SATELLITE_TILE_URL } from '../../constants/mapDefaults';
 import type { Mock } from 'vitest';
 import L from 'leaflet';
 import JourneyMap from './JourneyMap';
@@ -663,6 +663,55 @@ describe('JourneyMap', () => {
     expect(vi.mocked(L.map).mock.calls.length).toBe(mapsBefore);
     expect(mockedMap().remove).not.toHaveBeenCalled();
     expect(layer.getMaplibreMap().setStyle).not.toHaveBeenCalledWith(expect.stringContaining('tiles.test'));
+  });
+
+  describe('satellite base layer (#2594)', () => {
+    const lastGlLayer = () => {
+      const results = vi.mocked(maplibreGL).mock.results;
+      return results[results.length - 1]?.value as { remove: Mock } | undefined;
+    };
+
+    it('FE-COMP-JOURNEYMAP-064: a map opened on satellite draws the imagery and never loads the vector style', async () => {
+      render(<JourneyMap checkins={[]} entries={entriesWithCoords} baseLayer="satellite" />);
+      expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toBe(SATELLITE_TILE_URL);
+      // The style arrives after a dynamic import, so give it the chance to.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(maplibreGL).not.toHaveBeenCalled();
+    });
+
+    it('FE-COMP-JOURNEYMAP-065: the switch swaps the base in place, and back to the vector style', async () => {
+      const { rerender } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+      const vector = await waitFor(() => {
+        const layer = lastGlLayer();
+        expect(layer).toBeTruthy();
+        return layer!;
+      });
+
+      rerender(<JourneyMap checkins={[]} entries={entriesWithCoords} baseLayer="satellite" />);
+      // Not a rebuild: the markers and tracks stay where they were drawn.
+      expect(L.map).toHaveBeenCalledTimes(1);
+      expect(mockedMap().remove).not.toHaveBeenCalled();
+      // The GL canvas comes off rather than drawing on under the imagery.
+      expect(vector.remove).toHaveBeenCalled();
+      const imagery = vi.mocked(L.tileLayer).mock.results[0].value as { remove: Mock };
+      expect(vi.mocked(L.tileLayer).mock.calls[0][0]).toBe(SATELLITE_TILE_URL);
+
+      const stylesBefore = vi.mocked(maplibreGL).mock.calls.length;
+      rerender(<JourneyMap checkins={[]} entries={entriesWithCoords} baseLayer="default" />);
+      expect(imagery.remove).toHaveBeenCalled();
+      await waitFor(() => expect(vi.mocked(maplibreGL).mock.calls.length).toBe(stylesBefore + 1));
+      expect(L.map).toHaveBeenCalledTimes(1);
+    });
+
+    it("FE-COMP-JOURNEYMAP-066: on an Amap basemap the imagery is Amap's own, on the same datum", () => {
+      seedStore(useSettingsStore, { settings: buildSettings({ map_tile_url: AMAP_ROAD }) });
+      const { rerender } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
+      const road = vi.mocked(L.tileLayer).mock.results[0].value as { remove: Mock };
+
+      rerender(<JourneyMap checkins={[]} entries={entriesWithCoords} baseLayer="satellite" />);
+      expect(road.remove).toHaveBeenCalled();
+      expect(vi.mocked(L.tileLayer).mock.calls[1][0]).toBe(AMAP_SATELLITE);
+    });
   });
 
   it('FE-COMP-JOURNEYMAP-028: the activeMarkerId prop pans to that marker after the settle delay', () => {

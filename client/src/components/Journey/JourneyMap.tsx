@@ -4,9 +4,10 @@ import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
 import { isGcj02Basemap, isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
-import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
+import { AMAP_SATELLITE, OFM_DARK, OFM_POSITRON, SATELLITE_TILE_MAXZOOM, SATELLITE_TILE_URL, attributionForTile } from '../../constants/mapDefaults'
 import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap'
 import { crsForBasemap } from '../Map/gcj02Crs'
+import type { BaseLayer } from '../Map/MapLayerSwitcher'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
 import { ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 import { PLANNED_BADGE_SVG, type JourneyMapMark } from './journeyMapMarks'
@@ -94,6 +95,8 @@ interface Props {
   onMarksPick?: (marks: JourneyMapMark[]) => void
   /** Entry pins whose place the plan had too, marked with a check. */
   plannedEntryIds?: ReadonlySet<string>
+  /** The reader's base layer (#2594): the basemap, or the satellite imagery in its place. */
+  baseLayer?: BaseLayer
 }
 
 /** The map's own zoom buttons, frosted so they hold on any tile. */
@@ -296,8 +299,29 @@ function fitOptions(paddingBottom: number | undefined, paddingStart = 0): L.FitB
   }
 }
 
+/**
+ * The tile layer that draws a raster base: the user's own template, or the
+ * satellite imagery. The imagery follows the basemap's datum, as on the planner
+ * map: Esri's is WGS-84 and Amap's GCJ-02, and the other one on this map's
+ * projection would sit a few hundred metres off.
+ */
+function rasterBase(url: string, satellite: boolean, gcj: boolean): L.TileLayer {
+  const tileUrl = satellite ? (gcj ? AMAP_SATELLITE : SATELLITE_TILE_URL) : url
+  return L.tileLayer(tileUrl, {
+    maxZoom: satellite ? SATELLITE_TILE_MAXZOOM : 18,
+    attribution: attributionForTile(tileUrl),
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    // Leaflet defaults updateWhenIdle:true on mobile (waits for pan to settle
+    // before loading tiles). On the journey mobile combined view we flyTo
+    // constantly when switching cards, so tiles lag visibly — force eager
+    // updates and keep a larger ring of off-screen tiles ready.
+    updateWhenIdle: false,
+    keepBuffer: 4,
+  } as any)
+}
+
 function JourneyMap(
-  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, paddingStart = 0, cartoApiKey, onMarkerCardClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
+  { entries, photos, onPhotoClick, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, paddingStart = 0, cartoApiKey, onMarkerCardClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, baseLayer = 'default', ref }: Props,
 ) {
   // The leading inset is read when the map frames, not a reason to rebuild it.
   const paddingStartRef = useRef(paddingStart)
@@ -326,6 +350,16 @@ function JourneyMap(
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
   const glLayerRef = useRef<BasemapLayer | null>(null)
+  // Read by the map effect like the tile url, and switched in place by its own
+  // effect below: a rebuild would drop every marker and track for a new backdrop.
+  const satellite = baseLayer === 'satellite'
+  const satelliteRef = useRef(satellite)
+  satelliteRef.current = satellite
+  // Bumped by every base drawn, so a vector style still loading for a base the
+  // reader has already switched away from never lands on the map.
+  const baseDrawRef = useRef(0)
+  // Which base the map carries now, so the switch effect redraws only on a change.
+  const drawnSatelliteRef = useRef(satellite)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
@@ -357,6 +391,30 @@ function JourneyMap(
     visibilityRef.current = layerVisibility
     plannedRef.current = plannedEntryIds
   })
+
+  /**
+   * Draws the base: the satellite imagery while the reader asked for it,
+   * otherwise the basemap, which is a vector style unless the user brought their
+   * own raster template. Whatever drew it before is taken off first. A vector
+   * style is a GL canvas of its own, so leaving it under the imagery would keep
+   * a WebGL context busy drawing what nobody can see.
+   */
+  const drawBase = useCallback((map: L.Map, torn: () => boolean) => {
+    const draw = ++baseDrawRef.current
+    drawnSatelliteRef.current = satelliteRef.current
+    tileLayerRef.current?.remove()
+    tileLayerRef.current = null
+    detachBasemapLayer(glLayerRef.current)
+    glLayerRef.current = null
+    const url = tileUrlRef.current
+    if (!satelliteRef.current && isVectorStyle(url)) {
+      void attachVectorBasemap(map, url, glLayerRef, () => torn() || draw !== baseDrawRef.current)
+      return
+    }
+    const tiles = rasterBase(url, satelliteRef.current, !isVectorStyle(url) && isGcj02Basemap(url))
+    tiles.addTo(map)
+    tileLayerRef.current = tiles
+  }, [])
 
   const syncEntryCard = useEntryCardSync({ onCardClickRef: onMarkerCardClickRef, mapRef, markersRef, itemsRef, highlightedRef })
 
@@ -421,25 +479,9 @@ function JourneyMap(
     map.on('dragstart', readerMoved)
     containerRef.current.addEventListener('wheel', readerMoved, { passive: true })
 
-    // The basemap is a vector style unless the user brought their own raster
-    // template, so which layer draws it is decided per template rather than once.
-    if (isVectorStyle(tileUrlRef.current)) {
-      void attachVectorBasemap(map, tileUrlRef.current, glLayerRef, () => cancelled)
-    } else {
-      const tiles = L.tileLayer(tileUrlRef.current, {
-        maxZoom: 18,
-        attribution: attributionForTile(tileUrlRef.current),
-        referrerPolicy: 'strict-origin-when-cross-origin',
-        // Leaflet defaults updateWhenIdle:true on mobile (waits for pan to settle
-        // before loading tiles). On the journey mobile combined view we flyTo
-        // constantly when switching cards, so tiles lag visibly — force eager
-        // updates and keep a larger ring of off-screen tiles ready.
-        updateWhenIdle: false,
-        keepBuffer: 4,
-      } as any)
-      tiles.addTo(map)
-      tileLayerRef.current = tiles
-    }
+    // Which layer draws the base is decided per template and per the reader's
+    // switch rather than once; see drawBase.
+    drawBase(map, () => cancelled)
 
     const items = buildMarkerItems(entries)
     itemsRef.current = items
@@ -573,7 +615,7 @@ function JourneyMap(
       markersRef.current.clear()
       drawnRef.current = NOTHING_DRAWN()
     }
-  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom, isGcjBasemap])
+  }, [entries, stableTrail, stableTracks, dark, fullScreen, paddingBottom, isGcjBasemap, drawBase])
 
   // A switch puts its layer back on the map or takes it off, exactly as drawn.
   useEffect(() => {
@@ -595,10 +637,21 @@ function JourneyMap(
   // Retile in place rather than through the effect above, which would drop every
   // marker and track it just drew. A vector basemap restyles instead, which also
   // avoids spending a WebGL context on every theme toggle.
+  // Under the imagery the basemap is not drawn at all, and the switch back draws
+  // it from the current template.
   useEffect(() => {
+    if (satelliteRef.current) return
     if (isVectorStyle(tileUrl)) restyleBasemap(glLayerRef.current, tileUrl)
     else tileLayerRef.current?.setUrl(tileUrl)
   }, [tileUrl])
+
+  // The reader's base layer switch (#2594). Nothing to do when the map effect
+  // has just drawn the base the switch asks for.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || drawnSatelliteRef.current === satellite) return
+    drawBase(map, () => mapRef.current !== map)
+  }, [satellite, drawBase])
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
   // down and rebuild the map the way the entry effect does. Redrawn after every

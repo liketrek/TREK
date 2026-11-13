@@ -4,6 +4,8 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
 import { buildGlMap, initialMapStyle } from '../Map/glSupport'
+import { applySatellite } from '../Map/glRasterLayers'
+import type { BaseLayer } from '../Map/MapLayerSwitcher'
 import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
@@ -68,6 +70,8 @@ interface Props {
   marks?: JourneyMapMark[]
   onMarksPick?: (marks: JourneyMapMark[]) => void
   plannedEntryIds?: ReadonlySet<string>
+  /** See the Leaflet twin (#2594): the imagery goes on under the journey's own layers. */
+  baseLayer?: BaseLayer
   glProvider?: GlMapProvider
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
@@ -202,7 +206,7 @@ function fitOptions(paddingBottom: number | undefined, tilted: boolean | undefin
 }
 
 function JourneyMapGL(
-  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, paddingStart = 0, glProvider = 'mapbox-gl', gl, onMarkerCardClick, onMarkerPhotoClick, photos, onPhotoClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, paddingStart = 0, glProvider = 'mapbox-gl', gl, onMarkerCardClick, onMarkerPhotoClick, photos, onPhotoClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, baseLayer = 'default', ref }: Props,
 ) {
   // The leading inset is read when the map frames, not a reason to rebuild it.
   const paddingStartRef = useRef(paddingStart)
@@ -261,6 +265,10 @@ function JourneyMapGL(
   })
   const darkRef = useRef(dark)
   darkRef.current = dark
+  // Read when a rebuilt map loads, and switched in place by its own effect below.
+  const satellite = baseLayer === 'satellite'
+  const satelliteRef = useRef(satellite)
+  satelliteRef.current = satellite
   const mapLangRef = useRef(mapLang)
   mapLangRef.current = mapLang
 
@@ -516,6 +524,9 @@ function JourneyMapGL(
         }
       }
 
+      // After the journey's own layers, so the imagery can be slipped in under them.
+      if (satelliteRef.current) applySatellite(map, true)
+
       // markers
       items.forEach((item) => {
         const el = markerHtml(item.dayColor, item.dayLabel, false, plannedRef.current.has(item.id))
@@ -616,6 +627,14 @@ function JourneyMapGL(
     }
     shownRef.current = layerVisibility
   }, [layerVisibility])
+
+  // The reader's base layer switch (#2594), in place: a rebuild would drop every
+  // marker and track for a new backdrop. A map whose style is not in yet refuses
+  // the layer quietly and gets it from its load handler instead.
+  useEffect(() => {
+    const map = mapRef.current
+    if (map) applySatellite(map, satellite)
+  }, [satellite])
 
   // The plan's check on an entry pin follows the plan layer in place.
   useEffect(() => {
