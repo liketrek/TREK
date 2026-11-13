@@ -90,6 +90,7 @@
 - [[AI Assistant|AI-Assistant]]
 - [[AI Connections|AI-Connections]]
 - [[AI Booking Import|AI-Booking-Import]]
+- [[Booking Mail Import|Booking-Mail-Import]]
 - [[MCP Overview|MCP-Overview]]
 - [[MCP Setup|MCP-Setup]]
 - [[MCP Scopes|MCP-Scopes]]

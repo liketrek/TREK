@@ -88,7 +88,7 @@ interface MailIngestTripPlaceRow {
 }
 
 /** A trip as the inbox names it to a person who can see it. */
-export interface MailIngestTripRefRow {
+interface MailIngestTripRefRow {
   id: number;
   title: string;
   start_date: string | null;

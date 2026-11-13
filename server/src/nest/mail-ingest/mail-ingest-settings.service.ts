@@ -79,7 +79,9 @@ export class MailIngestSettingsService {
     const user = await this.pick(this.config.imapUser, 'mail_ingest_imap_user');
     const pass = this.config.imapPass ?? decrypt_api_key(await this.settings.getAppSetting('mail_ingest_imap_pass'));
     if (!host || !user || !pass) return null;
-    const tls = mailIngestImapTlsSchema.catch('tls').parse(await this.pick(this.config.imapTls, 'mail_ingest_imap_tls'));
+    const tls = mailIngestImapTlsSchema
+      .catch('tls')
+      .parse(await this.pick(this.config.imapTls, 'mail_ingest_imap_tls'));
     const port = Number(await this.pick(this.config.imapPort, 'mail_ingest_imap_port'));
     const mailbox = await this.pick(this.config.imapMailbox, 'mail_ingest_imap_mailbox');
     return {
