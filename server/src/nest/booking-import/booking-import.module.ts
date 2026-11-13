@@ -1,5 +1,6 @@
 import { Days } from '../../db/entities/Days.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { AddonsModule } from '../addons/addons.module';
 import { BudgetModule } from '../budget/budget.module';
 import { LlmParseModule } from '../llm-parse/llm-parse.module';
@@ -14,9 +15,11 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
 /**
- * `MikroOrmModule.forFeature([Days, Reservations])` (Plan 3h Task 4, BI1/BI2):
+ * `MikroOrmModule.forFeature([Days, Reservations, Users])` (Plan 3h Task 4, BI1/BI2):
  * `BookingImportService.resolveDayId` reaches `DaysRepository.findByTripAndDate`
- * and `ReservationsRepository.findNearestDayId`.
+ * and `ReservationsRepository.findNearestDayId`; confirm() reads the duplicate
+ * key through `ReservationsRepository` and the importing person's role through
+ * `UsersRepository` for its own permission check.
  */
 @Module({
   imports: [
@@ -28,7 +31,7 @@ import { Module } from '@nestjs/common';
     AddonsModule,
     MapsModule,
     PlacesModule,
-    MikroOrmModule.forFeature([Days, Reservations]),
+    MikroOrmModule.forFeature([Days, Reservations, Users]),
   ],
   providers: [BookingImportService, ImportJobsService],
   // The HTTP surface lives in reservation-import/, which shares the prefix with

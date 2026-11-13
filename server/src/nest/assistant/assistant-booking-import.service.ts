@@ -20,6 +20,7 @@ const PHOTO_EXTENSIONS: ReadonlySet<string> = new Set(LLM_PHOTO_EXTENSIONS);
 
 const NOT_ALLOWED = 'You are not allowed to add bookings to this trip.';
 const NOT_ADDED = 'The booking could not be added.';
+const ALREADY_THERE = 'This booking is already in the trip.';
 const BROKEN = 'This booking can no longer be read.';
 
 /**
@@ -129,9 +130,9 @@ export class AssistantBookingImportService implements AttachedFileReader {
     }
     // No socket to spare from the echo: the user's own planner learns of the
     // booking like every other member's.
-    const { created } = await this.bookingImport.confirm(String(tripId), [parsed.data], undefined);
+    const { created, failed } = await this.bookingImport.confirm(String(tripId), userId, [parsed.data], undefined);
     const reservation = created[0];
-    if (!reservation) return { ok: false, value: NOT_ADDED };
+    if (!reservation) return { ok: false, value: failed[0]?.reason === 'duplicate' ? ALREADY_THERE : NOT_ADDED };
     return {
       ok: true,
       value: {

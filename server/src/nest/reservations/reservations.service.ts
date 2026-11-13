@@ -94,7 +94,7 @@ export type ReservationRow = Record<string, unknown> & {
   travelers?: ReservationTraveler[];
 };
 
-interface CreateAccommodation {
+export interface CreateAccommodation {
   place_id?: number;
   start_day_id?: number;
   end_day_id?: number;

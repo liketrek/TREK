@@ -15,7 +15,15 @@ vi.mock('../../../../src/db/database', () => ({
   isOwner: () => false,
   getPlaceWithTags: () => null,
 }));
-const permissionsStub = { checkPermission: vi.fn(() => true) };
+const permissionsStub = { checkPermission: vi.fn(async () => true) };
+// confirm() checks the trip and the person's right itself: the trip is reachable, the role a plain user's.
+const usersStub = { getRole: vi.fn(async () => 'user') };
+const tripAccess = vi.fn(
+  async (): Promise<{ id: number; user_id: number } | undefined> => ({ id: 5, user_id: 1 }),
+);
+// No earlier import holds any key unless a test says so.
+const findIdByExternal = vi.fn(async (): Promise<number | undefined> => undefined);
+const reservationsRepoStub = { findIdByExternal };
 // The origin bookkeeping of the venues a confirm creates; its own suite is place-origins.service.test.ts.
 const origins = { recordImported: vi.fn(async () => undefined) };
 // Runs the callback in place; the tests that care about the boundary wrap it to record it.
@@ -61,6 +69,7 @@ function make(opts: { kit?: boolean; ai?: boolean; extract?: any; parse?: any })
       places as never,
       uowStub as never,
       origins as never,
+      usersStub as never,
     ),
     extractor,
     llmParse,
@@ -251,6 +260,7 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
       })),
       announceStayMirror: vi.fn(),
       announceCost: vi.fn(),
+      verifyTripAccess: tripAccess,
     };
     const places = { create: vi.fn((_tripId: string, _input: { website?: string }) => ({ id: 7 })) };
     // No dates on a restaurant, so the day repositories are never reached.
@@ -258,7 +268,7 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
       {} as never,
       {} as never,
       undefined as never,
-      undefined as never,
+      reservationsRepoStub as never,
       reservations as never,
       permissionsStub as never,
       undefined as never,
@@ -268,6 +278,7 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
       places as never,
       uowStub as never,
       origins as never,
+      usersStub as never,
     );
     const item = (website?: string) => ({
       type: 'restaurant',
@@ -278,6 +289,7 @@ describe('BookingImportService.confirm venue website (#2483)', () => {
 
     const res = await svc.confirm(
       '5',
+      1,
       [item('www.creperie.example/carte'), item('javascript:alert(1)'), item()],
       undefined,
     );
@@ -317,6 +329,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
       announceCost: vi.fn(() => {
         order.push('announceCost');
       }),
+      verifyTripAccess: tripAccess,
     };
     const places = {
       create: vi.fn(async () => {
@@ -352,7 +365,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
       {} as never,
       {} as never,
       undefined as never,
-      undefined as never,
+      reservationsRepoStub as never,
       reservations as never,
       permissionsStub as never,
       budget as never,
@@ -362,6 +375,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
       places as never,
       uow as never,
       origins as never,
+      usersStub as never,
     );
     return { svc, reservations, budget, places, realtime, order, costEvents };
   }
@@ -375,7 +389,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
   it('BOOKING-IMPORT-TX-001: freezes the rate first, writes booking and cost in one call, announces the cost after the booking', async () => {
     const { svc, reservations, order, costEvents } = makeConfirm();
 
-    const res = await svc.confirm('5', [priced as never], 'sock');
+    const res = await svc.confirm('5', 1, [priced as never], 'sock');
 
     expect(res.created).toEqual([{ id: 1 }]);
     expect(reservations.createWithCostInTx).toHaveBeenCalledWith(
@@ -428,7 +442,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
     expect(preview.items).toHaveLength(1);
 
     const { svc, reservations } = makeConfirm({ freeze: async () => {} });
-    await svc.confirm('5', preview.items as never, undefined);
+    await svc.confirm('5', 1, preview.items as never, undefined);
 
     expect(reservations.createWithCostInTx).toHaveBeenCalledTimes(1);
     expect(reservations.createWithCostInTx).toHaveBeenCalledWith(
@@ -440,12 +454,12 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
 
   it('BOOKING-IMPORT-TX-002: no cost without the Costs addon or without a price', async () => {
     const off = makeConfirm({ budget: false });
-    await off.svc.confirm('5', [priced as never], undefined);
+    await off.svc.confirm('5', 1, [priced as never], undefined);
     expect(off.budget.freezeForeignRate).not.toHaveBeenCalled();
     expect(off.reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.anything(), undefined);
 
     const free = makeConfirm();
-    await free.svc.confirm('5', [{ ...priced, metadata: { price: '0' } } as never], undefined);
+    await free.svc.confirm('5', 1, [{ ...priced, metadata: { price: '0' } } as never], undefined);
     expect(free.budget.freezeForeignRate).not.toHaveBeenCalled();
     expect(free.reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.anything(), undefined);
   });
@@ -460,7 +474,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
   it('BOOKING-IMPORT-TX-004: writes the venue in the booking transaction and announces it after the commit', async () => {
     const { svc, places, reservations, order } = makeConfirm({ budget: false });
 
-    await svc.confirm('5', [atVenue as never], 'sock');
+    await svc.confirm('5', 1, [atVenue as never], 'sock');
 
     expect(order).toEqual([
       'begin',
@@ -488,7 +502,7 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
     try {
       const { svc, realtime, order } = makeConfirm({ budget: false, failWrite: true });
 
-      const res = await svc.confirm('5', [atVenue as never], 'sock');
+      const res = await svc.confirm('5', 1, [atVenue as never], 'sock');
 
       expect(res.created).toEqual([]);
       // The place insert ran inside the transaction the failure rolls back, never on its own.
@@ -507,11 +521,138 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
           throw new Error('rates down');
         },
       });
-      const res = await svc.confirm('5', [priced as never], undefined);
+      const res = await svc.confirm('5', 1, [priced as never], undefined);
       expect(res.created).toEqual([{ id: 1 }]);
       expect(reservations.createWithCostInTx).toHaveBeenCalledWith('5', expect.anything(), undefined);
     } finally {
       quiet.mockRestore();
     }
+  });
+});
+
+describe('BookingImportService.confirm reports every item it did not create', () => {
+  function makeReport(write: () => Promise<unknown>) {
+    const reservations = {
+      createWithCostInTx: vi.fn(write),
+      announceStayMirror: vi.fn(),
+      announceCost: vi.fn(),
+      verifyTripAccess: tripAccess,
+    };
+    const svc = new BookingImportService(
+      {} as never,
+      {} as never,
+      undefined as never,
+      reservationsRepoStub as never,
+      reservations as never,
+      permissionsStub as never,
+      undefined as never,
+      { isAddonEnabled: async () => false } as never,
+      { broadcast: vi.fn() } as never,
+      { geocodeQuery: vi.fn() } as never,
+      { create: vi.fn() } as never,
+      uowStub as never,
+      origins as never,
+      usersStub as never,
+    );
+    return { svc, reservations };
+  }
+  const NO_LOCAL_TIME = { timezone: null, local_time: null, local_date: null };
+  const flight = {
+    type: 'flight',
+    title: 'LH 716',
+    confirmation_number: ' abc 123 ',
+    reservation_time: '2026-09-01T10:00',
+    endpoints: [
+      { role: 'from', name: 'Frankfurt', code: 'FRA', lat: 50, lng: 8.5, ...NO_LOCAL_TIME },
+      { role: 'to', name: 'Tokyo Narita', code: 'NRT', lat: 35.7, lng: 140.4, ...NO_LOCAL_TIME },
+    ],
+    source: { fileName: 'ticket.pdf', index: 0 },
+  };
+
+  it('BOOKING-IMPORT-REPORT-001: a referenced booking is written with its origin, sync off', async () => {
+    const { svc, reservations } = makeReport(async () => ({
+      reservation: { id: 1 },
+      accommodationCreated: false,
+      costEvents: [],
+      stayMirror: {},
+    }));
+
+    const res = await svc.confirm('5', 1, [flight as never], undefined);
+
+    expect(res).toEqual({ created: [{ id: 1 }], failed: [] });
+    expect(findIdByExternal).toHaveBeenCalledWith(5, 'import', 'ABC123|flight|2026-09-01|fra-nrt');
+    expect(reservations.createWithCostInTx).toHaveBeenCalledWith(
+      '5',
+      expect.objectContaining({
+        external_source: 'import',
+        external_id: 'ABC123|flight|2026-09-01|fra-nrt',
+        sync_enabled: false,
+      }),
+      undefined,
+    );
+  });
+
+  it('BOOKING-IMPORT-REPORT-002: the origin an item names itself is ignored, and an item without a reference has none', async () => {
+    const { svc, reservations } = makeReport(async () => ({
+      reservation: { id: 2 },
+      accommodationCreated: false,
+      costEvents: [],
+      stayMirror: {},
+    }));
+    const posing = { ...flight, confirmation_number: null, external_source: 'airtrail', external_id: '42' };
+
+    await svc.confirm('5', 1, [posing as never], undefined);
+
+    expect(findIdByExternal).not.toHaveBeenCalled();
+    const written = (reservations.createWithCostInTx.mock.calls[0] as unknown[])[1] as Record<string, unknown>;
+    expect(written).not.toHaveProperty('external_source');
+    expect(written).not.toHaveProperty('external_id');
+  });
+
+  it('BOOKING-IMPORT-REPORT-003: a booking already imported, one the index refuses and one that fails are each named', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { UniqueConstraintViolationException } = await import('@mikro-orm/core');
+      const writes = [
+        () => Promise.reject(new UniqueConstraintViolationException(new Error('UNIQUE constraint failed'))),
+        () => Promise.reject(new Error('disk full')),
+      ];
+      const { svc } = makeReport(async () => writes.shift()!());
+      findIdByExternal.mockResolvedValueOnce(9);
+
+      const res = await svc.confirm(
+        '5',
+        1,
+        [
+          flight,
+          { ...flight, reservation_time: '2026-09-02T10:00' },
+          { ...flight, confirmation_number: null },
+        ] as never,
+        undefined,
+      );
+
+      expect(res).toEqual({
+        created: [],
+        failed: [
+          { index: 0, reason: 'duplicate' },
+          { index: 1, reason: 'duplicate' },
+          { index: 2, reason: 'write_failed' },
+        ],
+      });
+    } finally {
+      quiet.mockRestore();
+    }
+  });
+
+  it('BOOKING-IMPORT-REPORT-004: refuses a trip the person cannot reach, and one whose bookings they may not edit', async () => {
+    const { svc, reservations } = makeReport(async () => ({}));
+    tripAccess.mockResolvedValueOnce(undefined);
+    await expect(svc.confirm('5', 1, [flight as never], undefined)).rejects.toMatchObject({ status: 404 });
+
+    permissionsStub.checkPermission.mockResolvedValueOnce(false);
+    await expect(svc.confirm('5', 2, [flight as never], undefined)).rejects.toMatchObject({ status: 403 });
+    // A member (not the owner) is checked as one, with the role read for them.
+    expect(permissionsStub.checkPermission).toHaveBeenLastCalledWith('reservation_edit', 'user', 1, 2, true);
+    expect(reservations.createWithCostInTx).not.toHaveBeenCalled();
   });
 });

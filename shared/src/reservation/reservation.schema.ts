@@ -402,8 +402,17 @@ export const bookingImportConfirmRequestSchema = z.object({
 });
 export type BookingImportConfirmRequest = z.infer<typeof bookingImportConfirmRequestSchema>;
 
+/**
+ * Why one confirmed item was not created: the trip already holds the booking
+ * an earlier import wrote under the same reference, or writing it failed.
+ */
+export const bookingImportFailureReasonSchema = z.enum(['duplicate', 'write_failed']);
+export type BookingImportFailureReason = z.infer<typeof bookingImportFailureReasonSchema>;
+
 export const bookingImportConfirmResponseSchema = z.object({
   created: z.array(reservationSchema),
+  /** The items that were not created, by their position in the request, each with its reason. */
+  failed: z.array(z.object({ index: z.number().int().nonnegative(), reason: bookingImportFailureReasonSchema })),
 });
 export type BookingImportConfirmResponse = z.infer<typeof bookingImportConfirmResponseSchema>;
 

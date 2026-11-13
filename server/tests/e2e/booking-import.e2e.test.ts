@@ -250,4 +250,34 @@ describe('Booking import e2e (#2477): a schema-bound provider on the upload rout
     expect(res.body.items[0].metadata.priceCurrency).toBe('EUR');
     expect(res.body.items[0].source.fileName).toBe('Bestätigung_2.pdf');
   });
+
+  it('confirm writes a referenced booking once: a second copy, in the same request or a later one, is a duplicate', async () => {
+    const train = {
+      type: 'train',
+      title: 'ICE 123',
+      confirmation_number: 'ab 12c',
+      reservation_time: '2026-09-06T10:00',
+      source: { fileName: 'ticket.pdf', index: 0 },
+    };
+    const confirm = (items: unknown[]) =>
+      request(server)
+        .post(`/api/trips/${tripId}/reservations/import/booking/confirm`)
+        .set('Cookie', sessionCookie(1))
+        .send({ items });
+
+    const first = await confirm([train, { ...train, confirmation_number: 'AB12C' }]);
+    expect(first.status).toBe(201);
+    expect(first.body.created).toHaveLength(1);
+    expect(first.body.created[0]).toMatchObject({
+      title: 'ICE 123',
+      external_source: 'import',
+      external_id: 'AB12C|train|2026-09-06|',
+      sync_enabled: 0,
+    });
+    expect(first.body.failed).toEqual([{ index: 1, reason: 'duplicate' }]);
+
+    const again = await confirm([train]);
+    expect(again.status).toBe(201);
+    expect(again.body).toEqual({ created: [], failed: [{ index: 0, reason: 'duplicate' }] });
+  });
 });

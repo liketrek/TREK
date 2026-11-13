@@ -48,7 +48,12 @@ async function make(opts: Opts = {}) {
       items: Array.from({ length: MAX_WRITES_PER_STEP + 2 }, (_, index) => ({ ...ITEM, title: `Leg ${index}` })),
       warnings: [],
     })),
-    confirm: vi.fn(async () => ({ created: [{ id: 81, title: 'ICE 123', type: 'train', day_id: 31 }] })),
+    confirm: vi.fn(
+      async (): Promise<{ created: unknown[]; failed: { index: number; reason: string }[] }> => ({
+        created: [{ id: 81, title: 'ICE 123', type: 'train', day_id: 31 }],
+        failed: [],
+      }),
+    ),
   };
   const trips = { findAccessible: vi.fn(async () => (opts.trip === false ? undefined : { id: 5, user_id: 7 })) };
   const guards = { hasTripPermission: vi.fn(async () => opts.right !== false) };
@@ -126,7 +131,7 @@ describe('AssistantBookingImportService', () => {
     const run = await t.service.apply(7, 5, { ...ITEM });
     const reservation = { id: 81, title: 'ICE 123', type: 'train', day_id: 31 };
     expect(run).toEqual({ ok: true, value: { reservation } });
-    expect(t.bookingImport.confirm).toHaveBeenCalledWith('5', [ITEM], undefined);
+    expect(t.bookingImport.confirm).toHaveBeenCalledWith('5', 7, [ITEM], undefined);
     expect(t.trips.findAccessible).toHaveBeenCalledWith(5, 7);
     expect(t.guards.hasTripPermission).toHaveBeenCalledWith('reservation_edit', 5, 7);
   });
@@ -147,8 +152,14 @@ describe('AssistantBookingImportService', () => {
       value: 'This booking can no longer be read.',
     });
     const none = await make();
-    none.bookingImport.confirm.mockResolvedValueOnce({ created: [] });
+    none.bookingImport.confirm.mockResolvedValueOnce({ created: [], failed: [{ index: 0, reason: 'write_failed' }] });
     const notAdded = await none.service.apply(7, 5, { ...ITEM });
     expect(notAdded).toEqual({ ok: false, value: 'The booking could not be added.' });
+    // A booking an earlier import already wrote is named as such, not as a failure.
+    none.bookingImport.confirm.mockResolvedValueOnce({ created: [], failed: [{ index: 0, reason: 'duplicate' }] });
+    expect(await none.service.apply(7, 5, { ...ITEM })).toEqual({
+      ok: false,
+      value: 'This booking is already in the trip.',
+    });
   });
 });

@@ -1,4 +1,5 @@
 import {
+  bookingImportConfirmResponseSchema,
   reservationCreateRequestSchema,
   reservationUpdateRequestSchema,
   reservationPositionsRequestSchema,
@@ -151,5 +152,24 @@ describe('transportLegInputSchema', () => {
     ]);
     expect(parsed.success).toBe(true);
     expect(transportLegsInputSchema.safeParse([{ dep_day_id: -1 }]).success).toBe(false);
+  });
+});
+
+describe('bookingImportConfirmResponseSchema', () => {
+  it('names every item that was not created by its index and a known reason', () => {
+    expect(
+      bookingImportConfirmResponseSchema.safeParse({
+        created: [],
+        failed: [
+          { index: 0, reason: 'duplicate' },
+          { index: 2, reason: 'write_failed' },
+        ],
+      }).success,
+    ).toBe(true);
+    const failed = (index: number, reason: string) =>
+      bookingImportConfirmResponseSchema.safeParse({ created: [], failed: [{ index, reason }] }).success;
+    expect(failed(-1, 'duplicate')).toBe(false);
+    expect(failed(0, 'other')).toBe(false);
+    expect(bookingImportConfirmResponseSchema.safeParse({ created: [] }).success).toBe(false);
   });
 });
