@@ -12,6 +12,7 @@ import { DomainError } from '../common/domain-error';
 import { MailReadService } from '../llm-parse/mail-read.service';
 import { MailIngestAddressService } from './mail-ingest-address.service';
 import { MailIngestIntakeService, type MailIntakeRefusal } from './mail-ingest-intake.service';
+import { MailIngestNotifyService } from './mail-ingest-notify.service';
 import { MailIngestProcessJob } from './mail-ingest-process.job';
 import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import { candidateView, messageView } from './mail-ingest-views';
@@ -57,6 +58,7 @@ export class MailIngestInboxService {
     private readonly intake: MailIngestIntakeService,
     private readonly reader: MailReadService,
     private readonly job: MailIngestProcessJob,
+    private readonly notify: MailIngestNotifyService,
   ) {}
 
   /** The settings card. Where the import is off or not part of the plan it says so, and nothing else. */
@@ -77,13 +79,16 @@ export class MailIngestInboxService {
   async updatePrefs(userId: number, update: MailIngestPrefsUpdateRequest): Promise<MailIngestSettingsResponse> {
     await this.requireAvailable();
     await this.settings.updatePrefs(userId, update);
+    this.notify.settingsChanged(userId);
     return this.settingsOf(userId);
   }
 
   /** A new own address; the old one stops taking mail at once. */
   async renewOwnAddress(userId: number): Promise<MailIngestAddressResponse> {
     await this.requireAvailable();
-    return { address: await this.addresses.renewOwn(userId) };
+    const address = await this.addresses.renewOwn(userId);
+    this.notify.settingsChanged(userId);
+    return { address };
   }
 
   async tripAddress(userId: number, tripId: number): Promise<MailIngestAddressResponse> {
@@ -94,12 +99,15 @@ export class MailIngestInboxService {
   /** The person's address for the trip, made now or renewed. */
   async renewTripAddress(userId: number, tripId: number): Promise<MailIngestAddressResponse> {
     await this.requireAvailable();
-    return { address: await this.addresses.renewTripAddress(userId, tripId) };
+    const address = await this.addresses.renewTripAddress(userId, tripId);
+    this.notify.settingsChanged(userId);
+    return { address };
   }
 
   async revokeTripAddress(userId: number, tripId: number): Promise<void> {
     await this.requireAvailable();
     await this.addresses.revokeTripAddress(userId, tripId);
+    this.notify.settingsChanged(userId);
   }
 
   /** One page of the inbox, newest first, each entry with the mail it came from. */

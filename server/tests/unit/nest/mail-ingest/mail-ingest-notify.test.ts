@@ -64,13 +64,15 @@ describe('MailIngestNotifyService', () => {
     expect(trip).toMatchObject({ scope: 'trip', targetId: 7, actorId: 3, params: { role: 'traveller', actor: 'mia' } });
   });
 
-  it('sends one note for waiting bookings, and survives a failed send', async () => {
+  it('sends one note for waiting bookings, survives a failed send, and tells clients of new settings', async () => {
     notifications.send.mockRejectedValue(new Error('smtp down'));
     await expect(notify.bookingsPending(3, 2)).resolves.toBeUndefined();
     expect(notifications.send).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'mail_booking_pending', params: { count: '2' } }),
     );
     expect(realtime.broadcastToUser).toHaveBeenCalledWith(3, { type: 'mailInbox:changed', pending: 2 });
+    notify.settingsChanged(3);
+    expect(realtime.broadcastToUser).toHaveBeenCalledWith(3, { type: 'mailInbox:settings' });
   });
 });
 

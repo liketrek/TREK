@@ -33,6 +33,11 @@ export class MailIngestNotifyService {
     this.realtime.broadcastToUser(userId, { type: 'mailInbox:changed', pending });
   }
 
+  /** Tells the person's open clients that their address or switches changed, so the settings card reads them again. */
+  settingsChanged(userId: number): void {
+    this.realtime.broadcastToUser(userId, { type: 'mailInbox:settings' });
+  }
+
   /** @txStandalone a notice reports a write that committed; a failed one undoes nothing. */
   async bookingAdded(forwarder: MailIngestPersonRow, booking: AddedBooking): Promise<void> {
     const params = {
