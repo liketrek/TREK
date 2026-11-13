@@ -21,6 +21,7 @@ import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service'
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
@@ -1125,6 +1126,28 @@ describe('updateAppSettings', () => {
     expect(value).toBe('stored'); // sentinel never overwrites the secret
     expect(result.auditDebugDetails).not.toHaveProperty('smtp_pass', 'stored');
     await deleteRows(orm, AppSettings, { key: { $in: ['smtp_pass', 'notification_channels'] } });
+  });
+
+  it('AUTH-DB-075b: the mail import secrets are stored encrypted and never reach the audit row', async () => {
+    const { user } = createAdmin(testDb);
+    const result = await asLegacyResult(
+      svc.updateAppSettings(user.id, {
+        mail_ingest_imap_host: 'imap.example.com',
+        mail_ingest_imap_pass: 'box-secret',
+        mail_ingest_webhook_secret: 'hook-secret',
+      }),
+    );
+    expect(result.success).toBe(true);
+    expect(vi.mocked(encrypt_api_key)).toHaveBeenCalledWith('box-secret');
+    expect(vi.mocked(encrypt_api_key)).toHaveBeenCalledWith('hook-secret');
+    expect(result.auditDebugDetails).toEqual({
+      mail_ingest_imap_host: 'imap.example.com',
+      mail_ingest_imap_pass: '***',
+      mail_ingest_webhook_secret: '***',
+    });
+    expect(result.auditSummary).toMatchObject({ mail_ingest_settings_updated: true });
+    const keys = ['mail_ingest_imap_host', 'mail_ingest_imap_pass', 'mail_ingest_webhook_secret'];
+    await deleteRows(orm, AppSettings, { key: { $in: keys } });
   });
 });
 

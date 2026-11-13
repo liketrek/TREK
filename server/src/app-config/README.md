@@ -105,8 +105,10 @@ Every variable has exactly one owner, and the owner decides how it is read:
   `app.get(httpConfig.KEY)` for the pre-init Express layer). Today:
   `httpConfig` (TRUST_PROXY, HSTS_INCLUDE_SUBDOMAINS, HTTP_KEEP_ALIVE_TIMEOUT_MS),
   `storageConfig` (TREK_PLACE_PHOTO_DIR), `transitConfig` (TRANSIT_API_URL,
-  for TransitService) and `kitineraryConfig` (KITINERARY_EXTRACTOR_PATH and
-  PATH, for KitineraryExtractorService's binary probe). A module whose provider
+  for TransitService), `kitineraryConfig` (KITINERARY_EXTRACTOR_PATH and
+  PATH, for KitineraryExtractorService's binary probe), `servicesConfig`
+  (TREK_SERVICES and its hosts) and `mailIngestConfig` (MAIL_INGEST_*, for
+  MailIngestSettingsService, each over its stored setting). A module whose provider
   injects one imports `AppConfigModule`, so it also builds on its own in a test.
 - **`readEnv()` / `RuntimeEnvService`** (`derive.ts`): everything else, both
   the runtime-toggled values and the boot-stable ones that code outside a Nest

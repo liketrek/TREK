@@ -317,6 +317,9 @@ async function main() {
     // service_key is the installation's key towards the liketrek services.
     // Missed here it reads back as unusable, the installation registers anew and
     // loses its id, and a revoked key would come back as a fresh one.
+    //
+    // The mail import's IMAP password and webhook secret: missed, the box stops
+    // being read and every signed mail is refused until an admin types them again.
     for (const key of [
       'oidc_client_secret',
       'smtp_pass',
@@ -327,6 +330,8 @@ async function main() {
       'amap_api_key',
       'web_push_vapid_private_key',
       'service_key',
+      'mail_ingest_imap_pass',
+      'mail_ingest_webhook_secret',
     ]) {
       const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
       if (!row?.value) continue;
@@ -563,6 +568,28 @@ async function main() {
               row.user_id,
             );
           }
+        }
+      }
+    }
+
+    // --- mail_ingest: forwarding address tokens and the stored mails ---
+    // A person sees their address again through its token_enc; a forwarded mail
+    // waits for its reading, and for the inbox's ways out, as raw_eml_enc. Missed,
+    // the addresses still take mail (they are found by hash) but show as unset,
+    // and every stored mail reads as unreadable.
+    for (const [table, column] of [
+      ['mail_ingest_addresses', 'token_enc'],
+      ['mail_ingest_messages', 'raw_eml_enc'],
+    ] as const) {
+      if (!tableExists(table)) continue;
+      const rows = db.prepare(`SELECT id, ${column} AS value FROM ${table} WHERE ${column} IS NOT NULL`).all() as {
+        id: number;
+        value: string;
+      }[];
+      for (const row of rows) {
+        const newVal = migrateApiKeyValue(row.value, `${table}[${row.id}].${column}`);
+        if (newVal !== null) {
+          db.prepare(`UPDATE ${table} SET ${column} = ? WHERE id = ?`).run(newVal, row.id);
         }
       }
     }

@@ -1,6 +1,6 @@
 import { readEnv } from '../../app-config';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { aiPolicySchema, mailIngestTransportSettingSchema } from '@trek/shared';
+import { aiPolicySchema, mailIngestImapTlsSchema, mailIngestTransportSettingSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -161,15 +161,46 @@ export const APP_SETTINGS = {
   synology_capture_repair_3019: { schema: text, default: null },
   /** How many starts have tried that so far, while some photo could not be confirmed. */
   synology_capture_repair_3019_tries: { schema: intText, default: null },
-  // The booking mail import (mail-ingest). Off until switched on: on a self-hosted install by its
-  // admin, on a managed one by the operator, for the plans that include it and never for Start.
-  mail_ingest_enabled: { schema: flag, default: 'false' },
+  // The booking mail import (mail-ingest), set in its own admin dialog. Off until switched on: on a
+  // self-hosted install by its admin, on a managed one by the operator, for the plans that include
+  // it and never for Start, so every key is the operator's there. The MAIL_INGEST_* environment
+  // variables win over the stored transport keys; they belong to the mailIngestConfig token, so
+  // MailIngestSettingsService applies them rather than the `env` of an entry here.
+  mail_ingest_enabled: { schema: flag, default: 'false', adminForm: true, managedLocked: true },
   /** How mail reaches the install: not at all (uploads only), IMAP, a signed webhook, or the TREK Cloud relay. */
-  mail_ingest_transport: { schema: mailIngestTransportSettingSchema, default: 'off' },
+  mail_ingest_transport: {
+    schema: mailIngestTransportSettingSchema,
+    default: 'off',
+    adminForm: true,
+    managedLocked: true,
+  },
+  mail_ingest_imap_host: { schema: text, default: null, adminForm: true, managedLocked: true },
+  mail_ingest_imap_port: { schema: intText, default: '993', adminForm: true, managedLocked: true },
+  mail_ingest_imap_tls: { schema: mailIngestImapTlsSchema, default: 'tls', adminForm: true, managedLocked: true },
+  mail_ingest_imap_user: { schema: text, default: null, adminForm: true, managedLocked: true },
+  mail_ingest_imap_pass: {
+    schema: text,
+    default: null,
+    adminForm: true,
+    masked: true,
+    encrypted: 'always',
+    managedLocked: true,
+  },
+  /** The folder the forwarded mails arrive in; read mails move on to TREK/processed. */
+  mail_ingest_imap_mailbox: { schema: text, default: 'INBOX', adminForm: true, managedLocked: true },
   /** The forwarding address, `{token}` standing where a person's token goes: `trek+{token}@example.com`. */
-  mail_ingest_address_template: { schema: text, default: null },
+  mail_ingest_address_template: { schema: text, default: null, adminForm: true, managedLocked: true },
+  /** The key the webhook's sender signs every mail with (HMAC-SHA256). */
+  mail_ingest_webhook_secret: {
+    schema: text,
+    default: null,
+    adminForm: true,
+    masked: true,
+    encrypted: 'always',
+    managedLocked: true,
+  },
   /** How many forwarded mails a day an AI reads for one person. */
-  mail_ingest_ai_per_user_daily: { schema: intText, default: '10' },
+  mail_ingest_ai_per_user_daily: { schema: intText, default: '10', adminForm: true, managedLocked: true },
 } as const satisfies Record<string, AppSettingDef>;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;

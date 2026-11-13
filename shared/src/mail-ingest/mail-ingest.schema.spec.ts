@@ -8,6 +8,7 @@ import {
 import {
   mailIngestAddressSchema,
   mailIngestAdminStatusResponseSchema,
+  mailIngestAdminTestResponseSchema,
   mailIngestApplyRequestSchema,
   mailIngestCandidateSchema,
   mailIngestFileRequestSchema,
@@ -137,6 +138,13 @@ describe('mail-ingest rows', () => {
     expect(mailIngestAdminStatusResponseSchema.safeParse(status).success).toBe(true);
     expect(mailIngestInboundResponseSchema.safeParse({ accepted: true, duplicate: false }).success).toBe(true);
   });
+
+  it('MAILC-016: the connection test names its transport and what failed', () => {
+    expect(mailIngestAdminTestResponseSchema.safeParse({ transport: 'imap', ok: true, error: null }).success).toBe(true);
+    const failed = { transport: 'webhook', ok: false, error: 'No webhook secret is set' };
+    expect(mailIngestAdminTestResponseSchema.safeParse(failed).success).toBe(true);
+    expect(mailIngestAdminTestResponseSchema.safeParse({ transport: 'smtp', ok: true, error: null }).success).toBe(false);
+  });
 });
 
 describe('mail-ingest requests', () => {
@@ -152,6 +160,7 @@ describe('mail-ingest requests', () => {
     expect(mailIngestApplyRequestSchema.safeParse({ trip_id: 3 }).success).toBe(true);
     expect(mailIngestApplyRequestSchema.safeParse({ trip_id: 0 }).success).toBe(false);
     expect(mailIngestMoveRequestSchema.safeParse({}).success).toBe(false);
+    expect(mailIngestMoveRequestSchema.safeParse({ trip_id: 3, confirm: true }).success).toBe(true);
     expect(mailIngestFileRequestSchema.safeParse({ trip_id: 3, reservation_id: 4 }).success).toBe(false);
   });
 

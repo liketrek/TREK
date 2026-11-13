@@ -778,7 +778,8 @@ export class AuthService {
       }
     });
 
-    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
+    // A masked key sent back as its mask was not changed, and a secret's value never reaches the audit row.
+    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(MASKED_ADMIN_SETTING_KEYS.has(k) && String(body[k]) === '••••••••'));
 
     const summary: Record<string, unknown> = {};
     const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
@@ -789,10 +790,11 @@ export class AuthService {
     if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
     if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
     if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
+    if (changedKeys.some(k => k.startsWith('mail_ingest_'))) summary.mail_ingest_settings_updated = true;
 
     const debugDetails: Record<string, unknown> = {};
     for (const k of changedKeys) {
-      debugDetails[k] = k === 'smtp_pass' ? '***' : body[k];
+      debugDetails[k] = MASKED_ADMIN_SETTING_KEYS.has(k) ? '***' : body[k];
     }
 
     // The reminder crons read their enable gates and channels per tick, so a

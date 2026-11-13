@@ -229,8 +229,13 @@ export type MailIngestMessagePreviewResponse = z.infer<typeof mailIngestMessageP
 export const mailIngestApplyRequestSchema = z.strictObject({ trip_id: idSchema.optional() });
 export type MailIngestApplyRequest = z.infer<typeof mailIngestApplyRequestSchema>;
 
-/** POST /api/mail-ingest/candidates/:id/move: the added booking into another trip. */
-export const mailIngestMoveRequestSchema = z.strictObject({ trip_id: idSchema });
+/**
+ * POST /api/mail-ingest/candidates/:id/move: the added booking into another
+ * trip, written there anew. One whose cost has moved balances, or that was
+ * edited since, moves only with `confirm`, as an undo does (409
+ * {@link mailIngestUndoConflictSchema}).
+ */
+export const mailIngestMoveRequestSchema = z.strictObject({ trip_id: idSchema, confirm: z.boolean().optional() });
 export type MailIngestMoveRequest = z.infer<typeof mailIngestMoveRequestSchema>;
 
 /** POST /api/mail-ingest/candidates/:id/file: the mail's attachments, or its text, as documents of a trip. */
@@ -331,3 +336,19 @@ export const mailIngestAdminStatusResponseSchema = z.object({
   backlog: z.array(countSchema),
 });
 export type MailIngestAdminStatusResponse = z.infer<typeof mailIngestAdminStatusResponseSchema>;
+
+/**
+ * POST /api/admin/mail-ingest/test: whether the configured transport can
+ * reach its mail now (the IMAP box opens, the webhook has its secret, the
+ * TREK Cloud relay is attached). `error` says what failed, never a password.
+ */
+export const mailIngestAdminTestResponseSchema = z.object({
+  transport: mailIngestTransportSettingSchema,
+  ok: z.boolean(),
+  error: z.string().nullable(),
+});
+export type MailIngestAdminTestResponse = z.infer<typeof mailIngestAdminTestResponseSchema>;
+
+/** The IMAP box's encryption: TLS from the first byte (port 993), or STARTTLS on a plain port (143). */
+export const mailIngestImapTlsSchema = z.enum(['tls', 'starttls']);
+export type MailIngestImapTls = z.infer<typeof mailIngestImapTlsSchema>;

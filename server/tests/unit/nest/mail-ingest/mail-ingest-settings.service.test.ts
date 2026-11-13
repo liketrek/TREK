@@ -1,10 +1,13 @@
 /**
  * Whether the mail import runs and how: off until switched on, the TREK Cloud
  * relay as the only transport of a managed install, the address template only
- * with its placeholder, and a person's switches all on until they change one.
+ * with its placeholder, the MAIL_INGEST_* environment over the stored values,
+ * and a person's switches all on until they change one.
  */
 import { MailIngestPrefs } from '../../../../src/db/entities/MailIngestPrefs.entity';
 import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { mailIngestConfig } from '../../../../src/nest/app-config/tokens';
+import { encrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
 import { MailIngestSettingsService } from '../../../../src/nest/mail-ingest/mail-ingest-settings.service';
 import { SettingsService } from '../../../../src/nest/settings/settings.service';
 import { getRepositoryToken } from '@mikro-orm/nestjs';
@@ -16,6 +19,18 @@ const stored = new Map<string, string>();
 const settings = { getAppSetting: vi.fn(async (key: string) => stored.get(key) ?? null) };
 const env = { isManaged: vi.fn(() => false) };
 const prefs = { findForUser: vi.fn(), upsertForUser: vi.fn(async () => undefined) };
+const UNSET = {
+  transport: null,
+  imapHost: null,
+  imapPort: null,
+  imapTls: null,
+  imapUser: null,
+  imapPass: null,
+  imapMailbox: null,
+  addressTemplate: null,
+  webhookSecret: null,
+};
+const config: Record<keyof typeof UNSET, string | null> = { ...UNSET };
 let service: MailIngestSettingsService;
 
 beforeEach(async () => {
@@ -23,11 +38,13 @@ beforeEach(async () => {
   stored.clear();
   env.isManaged.mockReturnValue(false);
   prefs.findForUser.mockResolvedValue(null);
+  Object.assign(config, UNSET);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MailIngestSettingsService,
       { provide: SettingsService, useValue: settings },
       { provide: RuntimeEnvService, useValue: env },
+      { provide: mailIngestConfig.KEY, useValue: config },
       { provide: getRepositoryToken(MailIngestPrefs), useValue: prefs },
     ],
   }).compile();
@@ -74,6 +91,46 @@ describe('MailIngestSettingsService', () => {
     expect(await service.allowedFileTypes()).toContain('pdf');
     stored.set('allowed_file_types', 'pdf');
     expect(await service.allowedFileTypes()).toBe('pdf');
+  });
+
+  it('takes the environment over every stored transport value', async () => {
+    stored.set('mail_ingest_transport', 'imap');
+    stored.set('mail_ingest_address_template', 'trek+{token}@stored.example');
+    config.transport = 'webhook';
+    config.addressTemplate = 'in+{token}@env.example';
+    expect(await service.transport()).toBe('webhook');
+    expect(await service.addressTemplate()).toBe('in+{token}@env.example');
+  });
+
+  it('reads the IMAP box only when complete, with its password decrypted and sound defaults', async () => {
+    stored.set('mail_ingest_imap_host', 'imap.example.com');
+    stored.set('mail_ingest_imap_user', 'trips');
+    expect(await service.imapConfig()).toBeNull();
+    stored.set('mail_ingest_imap_pass', encrypt_api_key('box-secret'));
+    expect(await service.imapConfig()).toEqual({
+      host: 'imap.example.com',
+      port: 993,
+      tls: 'tls',
+      user: 'trips',
+      pass: 'box-secret',
+      mailbox: 'INBOX',
+    });
+    stored.set('mail_ingest_imap_tls', 'starttls');
+    stored.set('mail_ingest_imap_port', 'nonsense');
+    stored.set('mail_ingest_imap_mailbox', ' Bookings ');
+    expect(await service.imapConfig()).toMatchObject({ port: 143, tls: 'starttls', mailbox: 'Bookings' });
+    config.imapHost = 'mail.lan';
+    config.imapPort = '1143';
+    config.imapPass = 'env-secret';
+    expect(await service.imapConfig()).toMatchObject({ host: 'mail.lan', port: 1143, pass: 'env-secret' });
+  });
+
+  it('reads the webhook secret decrypted, the environment first, none while unset', async () => {
+    expect(await service.webhookSecret()).toBeNull();
+    stored.set('mail_ingest_webhook_secret', encrypt_api_key('stored-secret'));
+    expect(await service.webhookSecret()).toBe('stored-secret');
+    config.webhookSecret = 'env-secret';
+    expect(await service.webhookSecret()).toBe('env-secret');
   });
 
   it('has every switch on for a person who never changed one, and writes only what changes', async () => {
