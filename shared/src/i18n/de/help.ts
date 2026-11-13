@@ -3612,7 +3612,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.step.2':
     'Das Dokument erscheint mit seinem Namen, einem Button zum Öffnen und einem X daneben.',
   'help.guide.booking-files.step.3':
-    '„Vorhandene verknüpfen“ bietet die Dokumente der Reise an, die noch nicht an dieser Buchung hängen. Wähle eines aus, und es wird angehängt, ohne erneut hochgeladen zu werden.',
+    '„Datei verknüpfen“ bietet die Dokumente der Reise an, die noch nicht an dieser Buchung hängen. Wähle eines aus, und es wird angehängt, ohne erneut hochgeladen zu werden.',
   'help.guide.booking-files.step.4': 'Klick auf „Aktualisieren“.',
   'help.guide.booking-files.result':
     'Karte und Details listen die Dokumente unter „Dateien“ auf; ein Klick auf eins öffnet es. „In Dateien zeigen“ über der Liste in den Details bringt dich zum Tab „Dateien“.',

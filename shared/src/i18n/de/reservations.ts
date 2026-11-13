@@ -104,7 +104,7 @@ const reservations: TranslationStrings = {
   'reservations.pendingSave': 'wird gespeichert…',
   'reservations.uploading': 'Wird hochgeladen...',
   'reservations.attachFile': 'Datei anhängen',
-  'reservations.linkExisting': 'Vorhandene verknüpfen',
+  'reservations.linkExisting': 'Datei verknüpfen',
   'reservations.linkAssignment': 'Mit Tagesplanung verknüpfen',
   'reservations.linkedTo': 'Verknüpft mit',
   'reservations.pickAssignment': 'Zuordnung aus dem Plan wählen...',
