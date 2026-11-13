@@ -58,7 +58,10 @@ describe('collection answer cards', () => {
   });
 
   it('FE-AI-COLL-040: the places to revisit have a pill of their own in the head, in the visited tone (#2567)', () => {
-    draw([placesCard({ list: { ...placesCard().list, counts: { idea: 3, want: 5, visited: 4, revisit: 7 } } })]);
+    const list = { ...placesCard().list, counts: { idea: 3, want: 5, visited: 4, revisit: 7 } } as NonNullable<
+      ReturnType<typeof placesCard>['list']
+    >;
+    draw([placesCard({ list })]);
     const card = screen.getByRole('region', { name: 'Saved places in Paris food' });
     const pill = within(card).getByText('Want to revisit').parentElement as HTMLElement;
     expect(within(pill).getByText('7')).toBeInTheDocument();

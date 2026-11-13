@@ -4,7 +4,7 @@ import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { Public } from '../auth-core/public.decorator';
-import { TripCalendarQueryDto } from '../calendar/calendar.dto';
+import { TripCalendarQueryDto } from '../calendar/calendar.contract';
 import { calendarOptionsFromQuery } from '../calendar/calendar.service';
 import { contentDisposition } from '../common/content-disposition';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';

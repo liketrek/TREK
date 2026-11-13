@@ -5,7 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { TripCalendarQueryDto } from '../calendar/calendar.dto';
+import { TripCalendarQueryDto } from '../calendar/calendar.contract';
 import { CalendarService, calendarOptionsFromQuery } from '../calendar/calendar.service';
 import { contentDisposition } from '../common/content-disposition';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';

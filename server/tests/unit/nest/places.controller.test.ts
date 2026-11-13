@@ -109,6 +109,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ canEdit: vi.fn().mockReturnValue(false) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).create(user, '5', { name: 'Spot' }),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
@@ -164,6 +165,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ importGpx: vi.fn().mockReturnValue(null) } as Partial<PlacesService>),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).importGpx(user, '5', file, {}),
         ),
       ).toEqual({
@@ -469,6 +471,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ removeMany } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).bulkDelete(user, '5', { ids: [] }),
       ).toEqual({ deleted: [], count: 0, tourPlaceIds: [] });
       expect(removeMany).not.toHaveBeenCalled();
@@ -599,6 +602,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).bulkUpdate(user, '5', { ids: [1], category_id: 3 }),
         ),
       ).toEqual({ status: 404, body: { error: 'Trip not found' } });
@@ -608,6 +612,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ canEdit: vi.fn().mockReturnValue(false) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).bulkUpdate(user, '5', { ids: [1], category_id: 3 }),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
@@ -631,6 +636,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ updateMany } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).bulkUpdate(user, '5', { ids: [] }),
       ).toEqual({ updated: [], count: 0 });
       expect(updateMany).not.toHaveBeenCalled();
@@ -672,6 +678,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ get: vi.fn().mockReturnValue(undefined) } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).get(user, '5', '9'),
       ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -688,6 +695,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ update: vi.fn().mockReturnValue(null) } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).update(user, '5', '9', { name: 'X' }),
       ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -769,6 +777,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         svc({ update } as Partial<PlacesService>),
         new RuntimeEnvService(),
         storageStub,
+        kmlStub,
       ).update(user, '5', '9', { route_color: null });
       expect(update).toHaveBeenLastCalledWith('5', '9', expect.objectContaining({ route_color: null }), undefined);
     });
@@ -780,6 +789,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ update } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).update(user, '5', '9', { route_color: '#abc' }),
       ).toEqual({ place: { id: 9 } });
     });
@@ -906,6 +916,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ remove, onDeleted } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).remove(user, '5', '9'),
       ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -1025,6 +1036,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).uploadImage(user, '5', '9', file),
         ),
       ).toEqual({ status: 404, body: { error: 'Trip not found' } });
@@ -1034,6 +1046,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ canEdit: vi.fn().mockReturnValue(false) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).uploadImage(user, '5', '9', file),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
@@ -1059,6 +1072,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ update: vi.fn().mockReturnValue(null) } as Partial<PlacesService>),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).uploadImage(user, '5', '9', file),
         ),
       ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -1116,6 +1130,7 @@ describe('PUT /:id/image/from-file (#1242)', () => {
         svc({ setImageFromFile: vi.fn().mockResolvedValue(result), ...extra } as Partial<PlacesService>),
         new RuntimeEnvService(),
         storageStub,
+        kmlStub,
       );
     expect(await thrownAsync(() => make('not_found').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({
       status: 404,
@@ -1155,6 +1170,7 @@ describe('PUT /:id/image/from-file (#1242)', () => {
           svc({ canEdit: vi.fn().mockReturnValue(false) }),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).imageFromFile(user, '5', '9', { file_id: 3 }),
       ),
     ).toEqual({ status: 403, body: { error: 'No permission' } });
