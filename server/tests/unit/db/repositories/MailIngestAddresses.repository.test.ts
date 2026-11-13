@@ -62,7 +62,13 @@ describe('MailIngestAddressesRepository', () => {
   it('revokes the live address of one scope only, and still finds a revoked token', async () => {
     const { user } = await makeUser(t);
     const trip = await makeTrip(t, user.id);
-    const own = await addresses.insertAddress({ userId: user.id, tripId: null, tokenHash: 'a', tokenEnc: 'x', createdAt: AT });
+    const own = await addresses.insertAddress({
+      userId: user.id,
+      tripId: null,
+      tokenHash: 'a',
+      tokenEnc: 'x',
+      createdAt: AT,
+    });
     await addresses.insertAddress({ userId: user.id, tripId: trip.id, tokenHash: 'b', tokenEnc: 'y', createdAt: AT });
 
     expect(await addresses.revokeLive(user.id, null, LATER)).toBe(1);
@@ -77,7 +83,13 @@ describe('MailIngestAddressesRepository', () => {
 
   it('notes when a mail came in', async () => {
     const { user } = await makeUser(t);
-    const id = await addresses.insertAddress({ userId: user.id, tripId: null, tokenHash: 'c', tokenEnc: 'z', createdAt: AT });
+    const id = await addresses.insertAddress({
+      userId: user.id,
+      tripId: null,
+      tokenHash: 'c',
+      tokenEnc: 'z',
+      createdAt: AT,
+    });
     await addresses.touchUsed(id, LATER);
     expect((await addresses.findById(id))?.last_used_at).toBe(LATER);
   });

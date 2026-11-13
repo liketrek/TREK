@@ -125,7 +125,12 @@ describe('MailIngestMessagesRepository', () => {
     expect(await messages.claimDue(at('2026-11-01T12:00:00Z'), lease, 3)).toEqual([id]);
 
     await messages.finish(id!, DONE);
-    expect(await messages.findById(id!)).toMatchObject({ status: 'processed', ai_used: 1, from_verified: 1, lease_until: null });
+    expect(await messages.findById(id!)).toMatchObject({
+      status: 'processed',
+      ai_used: 1,
+      from_verified: 1,
+      lease_until: null,
+    });
   });
 
   it('purges a mail once it is done and nothing waits on it, and always after the hard limit', async () => {

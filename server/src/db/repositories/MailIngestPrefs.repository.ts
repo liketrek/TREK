@@ -30,7 +30,11 @@ export class MailIngestPrefsRepository extends TrekRepository<MailIngestPrefs> {
   }
 
   async findForUser(userId: number): Promise<MailIngestPrefsRow | null> {
-    const row = await this.db().selectFrom('mail_ingest_prefs').selectAll().where('user_id', '=', userId).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('mail_ingest_prefs')
+      .selectAll()
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
     return row ?? null;
   }
 

@@ -151,7 +151,11 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
   }
 
   async findById(id: number): Promise<MailIngestCandidateRow | null> {
-    const row = await this.db().selectFrom('mail_ingest_candidates').selectAll().where('id', '=', id).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('mail_ingest_candidates')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
     return row ?? null;
   }
 
@@ -208,7 +212,7 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
     return Number(row.n);
   }
 
-  /** Whether a booking of this content was added to the trip from a mail and undone: it is not added on its own again. */
+  /** Whether a booking of this content went into the trip from a mail and was undone: never added again on its own. */
   async wasUndoneInTrip(tripId: number, contentHash: string): Promise<boolean> {
     const row = await this.db()
       .selectFrom('mail_ingest_candidates')
@@ -328,7 +332,11 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
         if (confirmation) either.push(eb('confirmation_number', '=', confirmation));
         if (startFrom && startTo) {
           either.push(
-            eb.and([eb('type', '=', type), eb('reservation_time', '>=', startFrom), eb('reservation_time', '<=', startTo)]),
+            eb.and([
+              eb('type', '=', type),
+              eb('reservation_time', '>=', startFrom),
+              eb('reservation_time', '<=', startTo),
+            ]),
           );
         }
         // An empty list reads as false: a probe with neither names nothing.

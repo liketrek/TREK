@@ -203,7 +203,12 @@ describe('MailIngestCandidatesRepository: what it reads of the trips', () => {
 
   it('reads the person a mail is for', async () => {
     const { user } = await makeUser(t, { username: 'mia', email: 'mia@example.com' });
-    expect(await candidates.findPerson(user.id)).toEqual({ id: user.id, username: 'mia', email: 'mia@example.com', role: 'user' });
+    expect(await candidates.findPerson(user.id)).toEqual({
+      id: user.id,
+      username: 'mia',
+      email: 'mia@example.com',
+      role: 'user',
+    });
     expect(await candidates.findPerson(user.id + 100)).toBeNull();
   });
 
@@ -218,8 +223,9 @@ describe('MailIngestCandidatesRepository: what it reads of the trips', () => {
       external_id: 'ABC123|flight|2027-03-01|hnd-itm',
     });
 
-    expect(await candidates.tripHasExternal(trip.id, ['import', 'mail'], 'ABC123|flight|2027-03-01|hnd-itm')).toBe(true);
-    expect(await candidates.tripHasExternal(trip.id, ['import'], 'ABC123|flight|2027-03-01|hnd-itm')).toBe(false);
+    const key = 'ABC123|flight|2027-03-01|hnd-itm';
+    expect(await candidates.tripHasExternal(trip.id, ['import', 'mail'], key)).toBe(true);
+    expect(await candidates.tripHasExternal(trip.id, ['import'], key)).toBe(false);
 
     const none = { type: 'flight', startFrom: null, startTo: null, confirmation: null };
     expect(await candidates.tripHasSimilar(trip.id, none)).toBe(false);
