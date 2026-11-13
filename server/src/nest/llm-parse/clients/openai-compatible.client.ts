@@ -236,7 +236,8 @@ function parseNuExtract(content: string | undefined | null): Record<string, unkn
   return nuExtractToKiReservations(readAnswer(content));
 }
 
-const USER_TEXT = 'Extract every travel reservation from the following document as schema.org JSON-LD.';
+/** The user-turn instruction when the caller names none: the booking import's. */
+export const USER_TEXT = 'Extract every travel reservation from the following document as schema.org JSON-LD.';
 
 /** Tolerant parse: strip code fences, JSON(5).parse, pull the `rootKey` array. */
 function parseReservations(content: string | undefined | null, rootKey: string): Record<string, unknown>[] {

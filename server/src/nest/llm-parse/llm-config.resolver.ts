@@ -3,7 +3,13 @@ import { Addons } from '../../db/entities/Addons.entity';
 import type { AddonsRepository } from '../../db/repositories/Addons.repository';
 import { AddonsService } from '../addons/addons.service';
 import { SettingsService } from '../settings/settings.service';
-import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
+import {
+  decryptLlmApiKey,
+  LLM_PROVIDERS,
+  type ApiLlmConfig,
+  type LlmProvider,
+  type ResolvedLlmConfig,
+} from './llm-config';
 import { SHARED_AI_CONNECTION, type SharedAiConnectionPort } from './shared-ai-connection.interface';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -69,7 +75,7 @@ export class LlmConfigResolver {
     return { ...shared, vision: asLlmVision(row?.config?.vision) };
   }
 
-  private async readInstanceConfig(): Promise<ResolvedLlmConfig | null> {
+  private async readInstanceConfig(): Promise<ApiLlmConfig | null> {
     const row = await this.addonsRepo.findById(ADDON_IDS.LLM_PARSING);
     const cfg = row?.config;
     if (!cfg) return null;
@@ -90,7 +96,7 @@ export class LlmConfigResolver {
    * address, for the AI assistant's admin form to start from while it has no
    * connection of its own. Read only; nothing here changes AI parsing.
    */
-  async readInstanceEndpoint(): Promise<Pick<ResolvedLlmConfig, 'provider' | 'model' | 'baseUrl'> | null> {
+  async readInstanceEndpoint(): Promise<Pick<ApiLlmConfig, 'provider' | 'model' | 'baseUrl'> | null> {
     const config = await this.readInstanceConfig();
     return config ? { provider: config.provider, model: config.model, baseUrl: config.baseUrl } : null;
   }
