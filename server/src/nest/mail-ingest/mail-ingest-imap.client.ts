@@ -69,14 +69,19 @@ async function vettedAddress(host: string): Promise<string> {
 }
 
 class ImapFlowSession implements ImapSession {
+  /** How many mails the open folder holds; an empty one is not asked for a range, which some servers refuse. */
+  private exists = 0;
+
   constructor(private readonly client: ImapFlow) {}
 
   async open(mailbox: string): Promise<{ uidValidity: number }> {
     const box = await this.client.mailboxOpen(mailbox);
+    this.exists = box.exists;
     return { uidValidity: Number(box.uidValidity) };
   }
 
   async listAfter(lastUid: number): Promise<ImapMailRef[]> {
+    if (this.exists === 0) return [];
     const found: ImapMailRef[] = [];
     // `n:*` always names the newest mail, even below n, so the range alone does not filter.
     for await (const message of this.client.fetch(`${lastUid + 1}:*`, { uid: true, size: true }, { uid: true })) {

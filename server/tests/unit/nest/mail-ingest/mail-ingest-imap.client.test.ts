@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { checkSsrf, flow, ImapFlow } = vi.hoisted(() => {
   const flow = {
     connect: vi.fn(async () => undefined),
-    mailboxOpen: vi.fn(async () => ({ uidValidity: 77n })),
+    mailboxOpen: vi.fn(async () => ({ uidValidity: 77n, exists: 3 })),
     fetch: vi.fn(),
     fetchOne: vi.fn(),
     mailboxCreate: vi.fn(async () => ({ path: 'TREK.processed', created: false })),
@@ -99,6 +99,14 @@ describe('MailIngestImapClient', () => {
     expect(flow.messageMove).toHaveBeenCalledWith('41,42', 'TREK.processed', { uid: true });
     await session.move([], 'TREK.processed');
     expect(flow.messageMove).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not ask an empty folder for a range', async () => {
+    flow.mailboxOpen.mockResolvedValueOnce({ uidValidity: 5n, exists: 0 });
+    const session = await new MailIngestImapClient().connect(CONFIG);
+    await session.open('INBOX');
+    expect(await session.listAfter(0)).toEqual([]);
+    expect(flow.fetch).not.toHaveBeenCalled();
   });
 
   it('logs out, and closes a connection that broke on its own', async () => {
