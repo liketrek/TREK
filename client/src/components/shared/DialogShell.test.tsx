@@ -1,7 +1,7 @@
-// FE-COMP-DIALOGSHELL-001 to FE-COMP-DIALOGSHELL-013
+// FE-COMP-DIALOGSHELL-001 to FE-COMP-DIALOGSHELL-020
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useState } from 'react';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { resetBodyScrollLock } from '../../utils/bodyScrollLock';
 import {
@@ -221,5 +221,129 @@ describe('body and footer parts', () => {
 
   it('FE-COMP-DIALOGSHELL-013: the neutral tint is a faint wash of the accent', () => {
     expect(NEUTRAL_TINT).toContain('var(--accent)');
+  });
+});
+
+// #1303: Ctrl/Cmd+Enter saves a dialog from the keyboard.
+describe('DialogShell Ctrl/Cmd+Enter', () => {
+  /** Lets the deferred press run, so an assertion that nothing was pressed means it. */
+  const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+
+  /** A note field that takes its value on blur, like a typed time, and a save that reads it. */
+  function Editor({ onSave, onTitleKey, primaries = 1, saveDisabled = false, blocked = false, keepsCtrlEnter = false }: {
+    onSave: (note: string) => void;
+    onTitleKey?: () => void;
+    primaries?: number;
+    saveDisabled?: boolean;
+    blocked?: boolean;
+    keepsCtrlEnter?: boolean;
+  }) {
+    const [note, setNote] = useState('');
+    const [draft, setDraft] = useState('');
+    const [title, setTitle] = useState('');
+    return (
+      <DialogShell onClose={onClose} labelledBy="e-title" blocked={blocked}
+        header={<DialogHeader tile={null} tint={NEUTRAL_TINT} labelId="e-title" onClose={onClose}
+          titleInput={{ value: title, onChange: setTitle, label: 'Title', onKeyDown: e => { if (e.key === 'Enter') onTitleKey?.(); } }} />}
+        footer={
+          <DialogFooter>
+            <DialogButton onClick={onClose}>Cancel</DialogButton>
+            {Array.from({ length: primaries }, (_, i) => (
+              <DialogButton key={i} variant="primary" disabled={saveDisabled} onClick={() => onSave(note)}>Save {i}</DialogButton>
+            ))}
+          </DialogFooter>
+        }>
+        <textarea aria-label="Note" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => setNote(draft)}
+          data-keeps-ctrl-enter={keepsCtrlEnter || undefined} />
+      </DialogShell>
+    );
+  }
+
+  it('FE-COMP-DIALOGSHELL-014: the primary button is marked, the others are not', () => {
+    render(
+      <DialogFooter>
+        <DialogButton>Cancel</DialogButton>
+        <DialogButton variant="primary">Save</DialogButton>
+      </DialogFooter>,
+    );
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveAttribute('data-dialog-primary');
+    expect(screen.getByRole('button', { name: 'Cancel' })).not.toHaveAttribute('data-dialog-primary');
+  });
+
+  it('FE-COMP-DIALOGSHELL-015: Ctrl+Enter in a field saves once, with the value the field commits on blur', async () => {
+    const onSave = vi.fn();
+    render(<Editor onSave={onSave} />);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Note' }), 'Bring the passports');
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('Bring the passports'));
+    await settle();
+    expect(onSave).toHaveBeenCalledTimes(1);
+    // Spent on the save: the textarea did not get a line break.
+    expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('Bring the passports');
+  });
+
+  it('FE-COMP-DIALOGSHELL-016: Cmd+Enter does the same, Enter alone and with Shift or Alt do not', async () => {
+    const onSave = vi.fn();
+    render(<Editor onSave={onSave} />);
+    const note = screen.getByRole('textbox', { name: 'Note' });
+    await userEvent.click(note);
+    await userEvent.keyboard('{Enter}{Shift>}{Control>}{Enter}{/Control}{/Shift}{Alt>}{Control>}{Enter}{/Control}{/Alt}');
+    await settle();
+    expect(onSave).not.toHaveBeenCalled();
+
+    await userEvent.click(note);
+    await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+  });
+
+  it('FE-COMP-DIALOGSHELL-017: a title that saves on Enter does not save a second time', async () => {
+    const onSave = vi.fn();
+    const onTitleKey = vi.fn();
+    render(<Editor onSave={onSave} onTitleKey={onTitleKey} />);
+    await userEvent.click(screen.getByRole('textbox', { name: 'Title' }));
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onTitleKey).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DIALOGSHELL-018: a disabled primary saves nothing, and the field does not save in its place', async () => {
+    const onSave = vi.fn();
+    const onTitleKey = vi.fn();
+    render(<Editor onSave={onSave} onTitleKey={onTitleKey} saveDisabled />);
+    await userEvent.click(screen.getByRole('textbox', { name: 'Title' }));
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    await settle();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onTitleKey).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-DIALOGSHELL-019: with no primary or two of them, the keys stay with the field', async () => {
+    const onSave = vi.fn();
+    const onTitleKey = vi.fn();
+    const { rerender } = render(<Editor onSave={onSave} onTitleKey={onTitleKey} primaries={0} />);
+    await userEvent.click(screen.getByRole('textbox', { name: 'Title' }));
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    rerender(<Editor onSave={onSave} onTitleKey={onTitleKey} primaries={2} />);
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    await settle();
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onTitleKey).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-COMP-DIALOGSHELL-020: a field that keeps Ctrl+Enter, or a question open over the dialog, saves nothing', async () => {
+    const onSave = vi.fn();
+    const { rerender } = render(<Editor onSave={onSave} keepsCtrlEnter />);
+    await userEvent.click(screen.getByRole('textbox', { name: 'Note' }));
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    rerender(<Editor onSave={onSave} blocked />);
+    await userEvent.click(screen.getByRole('textbox', { name: 'Note' }));
+    await userEvent.keyboard('{Control>}{Enter}{/Control}');
+    await settle();
+
+    expect(onSave).not.toHaveBeenCalled();
   });
 });

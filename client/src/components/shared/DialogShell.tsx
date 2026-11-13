@@ -50,6 +50,32 @@ export interface DialogShellProps {
   discardGuard?: unknown
 }
 
+/**
+ * Ctrl/Cmd+Enter finishes the dialog from any field (#1303), so a form filled in
+ * with the keyboard can be saved without reaching for the mouse. It presses the
+ * footer's one primary button the way a hand would: the focus moves onto it
+ * first, so a field that takes its value on blur (a typed time) has it, and the
+ * press follows once that has rendered. It saves exactly what the button saves
+ * and nothing while the button is disabled. A footer with no primary, or two to
+ * choose between, leaves the keys to the field, and so does a field marked
+ * `data-keeps-ctrl-enter` (the journal's story, written like a long text).
+ */
+function pressPrimaryOnCtrlEnter(e: ReactKeyboardEvent<HTMLDivElement>, panel: HTMLDivElement) {
+  if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.repeat || e.nativeEvent.isComposing) return
+  // A dialog opened from this one sits in its own portal: its keys are its own.
+  const target = e.target
+  if (!(target instanceof Element) || !panel.contains(target) || target.closest('[data-keeps-ctrl-enter]')) return
+  const primaries = panel.querySelectorAll<HTMLButtonElement>(':scope > footer [data-dialog-primary]')
+  if (primaries.length !== 1) return
+  const primary = primaries[0]
+  // Spent here, so a field's own Enter (a title that saves on Enter) does not save a second time.
+  e.preventDefault()
+  e.stopPropagation()
+  if (primary.disabled) return
+  primary.focus()
+  setTimeout(() => { if (primary.isConnected && !primary.disabled) primary.click() })
+}
+
 const DISCARD_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-danger px-4 py-2 font-medium text-white hover:opacity-90' // theme-lint-disable: white on the danger fill, as ConfirmDialog draws it
 
 /**
@@ -125,7 +151,10 @@ function DialogFrame({ onClose, labelledBy, width = 'detail', align = 'center', 
         aria-labelledby={labelledBy}
         tabIndex={-1}
         onPaste={onPaste}
-        onKeyDownCapture={markStart}
+        onKeyDownCapture={e => {
+          markStart()
+          if (!held && panelRef.current) pressPrimaryOnCtrlEnter(e, panelRef.current)
+        }}
         onPointerDownCapture={markStart}
         onKeyDown={e => { if (panelRef.current) trapTab(e, panelRef.current) }}
         className={`trek-modal-enter relative flex max-h-full w-full ${PANEL_WIDTH[width]} flex-col overflow-hidden rounded-[22px] bg-surface-card shadow-2xl outline-none`}
@@ -303,11 +332,15 @@ export type DialogButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'c
   icon?: ReactNode
 }
 
-/** A footer button: white on a hairline, or the accent fill for the one that finishes the dialog. */
+/**
+ * A footer button: white on a hairline, or the accent fill for the one that finishes the dialog.
+ * The primary one is marked, for the dialog's Ctrl/Cmd+Enter.
+ */
 export function DialogButton({ variant = 'secondary', active = false, icon, children, type = 'button', ...rest }: DialogButtonProps) {
-  const look = variant === 'primary' ? BUTTON_LOOK.primary : active ? BUTTON_LOOK.active : BUTTON_LOOK.secondary
+  const primary = variant === 'primary'
+  const look = primary ? BUTTON_LOOK.primary : active ? BUTTON_LOOK.active : BUTTON_LOOK.secondary
   return (
-    <button {...rest} type={type} className={look} style={fs(13, 'body')}>
+    <button {...rest} type={type} className={look} style={fs(13, 'body')} data-dialog-primary={primary ? '' : undefined}>
       {icon}{children}
     </button>
   )
