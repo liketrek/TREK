@@ -190,6 +190,17 @@ persistence:
     size: 1Gi     # uploaded files — increase if you expect large media uploads
 ```
 
+Both claims are `ReadWriteOnce` by default. Set `persistence.data.accessModes` or `persistence.uploads.accessModes` to change that, for example so a backup container in another pod can mount the volume:
+
+```yaml
+persistence:
+  data:
+    accessModes:
+      - ReadWriteMany
+```
+
+> **Warning:** A `ReadWriteMany` data volume is only safe for pods that read it. SQLite needs every process that writes `travel.db` on the same host, so a second writer over a network filesystem corrupts the database. Keep `updateStrategy: Recreate` either way.
+
 ### Security Context
 
 ```yaml

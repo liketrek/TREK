@@ -1277,6 +1277,10 @@ jobs:
             --set 'httpRoute.parentRefs[0].name=gateway' \
             > "$out/http-route.yaml"
           helm template trek charts/trek \
+            --set 'persistence.data.accessModes[0]=ReadWriteMany' \
+            --set 'persistence.uploads.accessModes[0]=ReadWriteMany' \
+            > "$out/access-modes.yaml"
+          helm template trek charts/trek \
             --set podSecurityContext.runAsUser=1000 \
             --set podSecurityContext.runAsGroup=1000 \
             --set podSecurityContext.runAsNonRoot=true \
