@@ -34,7 +34,7 @@ describe('flightRoute', () => {
   it('FE-UTIL-FLIGHTROUTE-004: cuts the route where the aircraft is, clamped to its ends', () => {
     const route = greatCircle(FRA, YYZ, 10);
     const half = splitRoute(route, 0.5);
-    expect(half.flown.at(-1)).toEqual(half.at);
+    expect(half.flown[half.flown.length - 1]).toEqual(half.at);
     expect(half.ahead[0]).toEqual(half.at);
     expect(half.flown.length + half.ahead.length).toBe(route.length + 2);
     expect(splitRoute(route, -1).at).toEqual(route[0]);

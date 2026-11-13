@@ -69,50 +69,6 @@ function FitRoute({ route, inset, onReady }: { route: LatLng[]; inset: number; o
   return null;
 }
 
-/** The slice of a MapLibre map this file touches. */
-interface GlMap {
-  getStyle(): { layers?: { id: string; type: string }[] } | undefined;
-  setLayoutProperty(id: string, key: string, value: string): void;
-  on(event: string, fn: () => void): void;
-  off(event: string, fn: () => void): void;
-}
-
-/**
- * Hides the basemap's place names. Under a faded route at world scale they are
- * clutter ("Italy" beside a Frankfurt dot), and the two airport codes on the
- * route say all there is. The GL map only exists once its layer attached, so
- * this waits for it, and hides again on each restyle (dark mode).
- */
-function HideLabels() {
-  const map = useMap();
-  useEffect(() => {
-    let gl: GlMap | null = null;
-    const hide = () => {
-      for (const layer of gl?.getStyle()?.layers ?? []) {
-        if (layer.type === 'symbol') gl?.setLayoutProperty(layer.id, 'visibility', 'none');
-      }
-    };
-    const find = () => {
-      if (gl) return;
-      map.eachLayer((layer) => {
-        const found = (layer as unknown as { getMaplibreMap?: () => GlMap }).getMaplibreMap?.();
-        if (found && !gl) {
-          gl = found;
-          gl.on('styledata', hide);
-          hide();
-        }
-      });
-    };
-    find();
-    map.on('layeradd', find);
-    return () => {
-      map.off('layeradd', find);
-      gl?.off('styledata', hide);
-    };
-  }, [map]);
-  return null;
-}
-
 /** One end of the route: a ring with the airport code under it. */
 function RouteEnd({ at, code }: { at: LatLng; code: string }) {
   return (
@@ -146,7 +102,7 @@ interface FlightMiniMapProps {
  * The flight on a real map, small and quiet: the great circle between the two
  * airports, solid where it is flown and dotted where it is left, the aircraft
  * on the line as far as the feed last saw it, turned along the route. Nothing on it reacts to a
- * touch, it is a picture. The edges fade into the surface on all four sides
+ * touch, it is a picture, without place names. The edges fade into the surface on all four sides
  * (flightMiniMap.css), and the map fades in once it is framed, so it never
  * shows a jump from the world view to the route. Colours come in as the custom
  * properties --fm-flown, --fm-ahead, --fm-end, --fm-plane and --fm-code.
@@ -206,8 +162,7 @@ export default function FlightMiniMap({
         trackResize={false}
         className="h-full w-full bg-transparent"
       >
-        <VectorBasemap style={style} />
-        <HideLabels />
+        <VectorBasemap style={style} hideLabels />
         <FitRoute route={route} inset={inset} onReady={onReady} />
         <Polyline
           positions={split.ahead.map((p) => [p.lat, p.lng])}

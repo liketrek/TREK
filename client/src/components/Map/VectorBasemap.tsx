@@ -47,7 +47,8 @@ async function loadLayerFactory() {
     import('./engines/maplibre'),
     import('@maplibre/maplibre-gl-leaflet'),
   ])
-  guardTransitionEnd(bridge.MaplibreGL.prototype as unknown as GlLayerInternals)
+  // Optional: a test that mocks the bridge hands over the factory alone.
+  if (bridge.MaplibreGL) guardTransitionEnd(bridge.MaplibreGL.prototype as unknown as GlLayerInternals)
   return bridge.maplibreGL
 }
 
@@ -236,7 +237,7 @@ export function restyleBasemap(layer: BasemapLayer | null | undefined, style: st
  * is no (#2288). Asking is also what keeps the maplibre chunk off the wire for a
  * browser that could never have used it.
  */
-export function VectorBasemap({ style }: { style: string }) {
+export function VectorBasemap({ style, hideLabels = false }: { style: string; hideLabels?: boolean }) {
   const map = useMap()
   const layerRef = useRef<GlLeafletLayer | null>(null)
   const styleRef = useRef(style)
@@ -271,6 +272,8 @@ export function VectorBasemap({ style }: { style: string }) {
         return
       }
       layerRef.current = layer
+      // Fixed per map (a small route map wants no place names), so it never rebuilds the layer.
+      if (hideLabels) hideLabelLayers(layer)
       // A style that never loads (its server, or the iOS app's offline protocol
       // failing) would leave the map white under its markers: raster instead.
       onStyleFailure(layer, () => {
@@ -286,7 +289,7 @@ export function VectorBasemap({ style }: { style: string }) {
       detachBasemapLayer(layerRef.current)
       layerRef.current = null
     }
-  }, [map, glUsable])
+  }, [map, glUsable, hideLabels])
 
   useEffect(() => {
     restyleBasemap(layerRef.current, style)
