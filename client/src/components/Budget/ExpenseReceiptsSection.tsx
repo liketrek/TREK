@@ -50,16 +50,20 @@ export function ExpenseReceiptsSection({
       className={className}
       action={
         <span className="flex items-center gap-1.5">
+          {/* An icon beside the worded Attach, so the section title keeps its one line. */}
           {canLink && (
-            <button
-              type="button"
-              aria-expanded={linking}
-              onClick={() => setLinking((v) => !v)}
-              className={`${PILL} ${linking ? 'bg-surface-card shadow-sm' : 'bg-surface-tertiary'}`}
-              style={fs(11.5)}
-            >
-              <Link2 size={12} /> {t('files.link')}
-            </button>
+            <Tooltip label={t('files.link')}>
+              <button
+                type="button"
+                aria-label={t('files.link')}
+                aria-expanded={linking}
+                onClick={() => setLinking((v) => !v)}
+                className={`${PILL} ${linking ? 'bg-surface-card shadow-sm' : 'bg-surface-tertiary'}`}
+                style={fs(11.5)}
+              >
+                <Link2 size={12} />
+              </button>
+            </Tooltip>
           )}
           <label className={`${PILL} bg-surface-tertiary`} style={fs(11.5)}>
             <input
