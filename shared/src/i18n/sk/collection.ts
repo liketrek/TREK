@@ -118,6 +118,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Nápad',
   'collections.status.want': 'Chcem navštíviť',
   'collections.status.visited': 'Navštívené',
+  'collections.status.revisit': 'Chcem sa vrátiť',
   'collections.status.filterAll': 'Všetko',
   'collections.status.cycleHint': 'klepnutím zmeníte',
 

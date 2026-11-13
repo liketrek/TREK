@@ -45,8 +45,15 @@ export const collectionCardListSchema = z.object({
   placeCount: cardCountSchema.nullable(),
   /** Accepted members besides the owner. */
   memberCount: cardCountSchema,
-  /** Places per status, only where the whole list was read. */
-  counts: z.object({ idea: cardCountSchema, want: cardCountSchema, visited: cardCountSchema }).nullable(),
+  /** Places per status, only where the whole list was read. A card saved before 'revisit' existed reads 0 there. */
+  counts: z
+    .object({
+      idea: cardCountSchema,
+      want: cardCountSchema,
+      visited: cardCountSchema,
+      revisit: cardCountSchema.default(0),
+    })
+    .nullable(),
 });
 export type CollectionCardList = z.infer<typeof collectionCardListSchema>;
 

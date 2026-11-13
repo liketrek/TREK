@@ -93,6 +93,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': '아이디어',
   'collections.status.want': '가고 싶은 곳',
   'collections.status.visited': '방문함',
+  'collections.status.revisit': '다시 가고 싶은 곳',
   'collections.status.filterAll': '전체',
   'collections.status.cycleHint': '탭하여 변경',
 

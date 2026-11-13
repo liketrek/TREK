@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Idea', // same-as-en
   'collections.status.want': 'Da visitare',
   'collections.status.visited': 'Visitato',
+  'collections.status.revisit': 'Da rivisitare',
   'collections.status.filterAll': 'Tutti',
   'collections.status.cycleHint': 'tocca per cambiare',
 

@@ -112,7 +112,7 @@ Requires `collections:read` or `collections:write` scope.
 | `save_place_to_collection` | Save a place into a collection from a raw payload. Returns a duplicate marker instead of saving when a similar place already exists, unless `force` is true. |
 | `save_trip_places_to_collection` | Copy one or more existing trip places into a collection. Duplicates are skipped unless `force` is true. |
 | `update_collection_place` | Update a saved place's name, address, coordinates, description, notes, status, category, links, tags, labels, image, or move it to another collection (moving out of a list needs the owner or admin role there). |
-| `set_collection_place_status` | Set a saved place's status: `idea`, `want`, or `visited`. |
+| `set_collection_place_status` | Set a saved place's status: `idea`, `want`, `visited`, or `revisit` (been there and wants to go back; counts as visited). |
 | `set_collection_place_status_from_trip` | Set a status on every saved copy of the given trip places, in every list they are on, for marking places visited after a day out. Ids are trip place ids. Lists you may only read are skipped. Returns how many saved places changed and how many of the trip places were found in at least one list. |
 | `rate_collection_place` | Set or clear the current user's 1-5 star rating on a saved place. Every member rates independently; pass `null` to remove the vote. |
 | `delete_collection_place` | Remove a saved place from its collection. Requires delete permission on the list. |

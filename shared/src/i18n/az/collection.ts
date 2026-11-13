@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'İdeya',
   'collections.status.want': 'Getmək istəyirəm',
   'collections.status.visited': 'Ziyarət edilib',
+  'collections.status.revisit': 'Yenidən getmək istəyirəm',
   'collections.status.filterAll': 'Hamısı',
   'collections.status.cycleHint': 'dəyişmək üçün toxunun',
 

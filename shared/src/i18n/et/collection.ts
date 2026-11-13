@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Idee',
   'collections.status.want': 'Tahan minna',
   'collections.status.visited': 'Külastatud',
+  'collections.status.revisit': 'Tahan tagasi minna',
   'collections.status.filterAll': 'Kõik',
   'collections.status.cycleHint': 'muutmiseks puuduta',
 

@@ -138,7 +138,7 @@ describe('collection change cards', () => {
         color: null,
         placeCount: null,
         memberCount: 0,
-        counts: { idea: 0, want: 0, visited: 0 },
+        counts: { idea: 0, want: 0, visited: 0, revisit: 0 },
       },
       removed: false,
     });

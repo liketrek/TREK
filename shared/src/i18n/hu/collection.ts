@@ -107,6 +107,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Ötlet',
   'collections.status.want': 'Szeretnék odamenni',
   'collections.status.visited': 'Meglátogatva',
+  'collections.status.revisit': 'Szeretnék visszamenni',
   'collections.status.filterAll': 'Összes',
   'collections.status.cycleHint': 'koppints a módosításhoz',
 

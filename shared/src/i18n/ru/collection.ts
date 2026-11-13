@@ -129,6 +129,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Идея',
   'collections.status.want': 'Хочу посетить',
   'collections.status.visited': 'Посещено',
+  'collections.status.revisit': 'Хочу вернуться',
   'collections.status.filterAll': 'Все',
   'collections.status.cycleHint': 'нажмите, чтобы изменить',
 

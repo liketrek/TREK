@@ -113,6 +113,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'רעיון',
   'collections.status.want': 'רוצה ללכת',
   'collections.status.visited': 'ביקרתי',
+  'collections.status.revisit': 'רוצה לחזור',
   'collections.status.filterAll': 'הכל',
   'collections.status.cycleHint': 'הקישו לשינוי',
   'collections.markVisited': 'סימון כביקרתי',

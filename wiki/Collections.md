@@ -1,6 +1,6 @@
 # Collections
 
-Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered (a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday"), each place carrying an idea, want-to-go or visited status, and share a list with other users.
+Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered (a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday"), each place carrying an idea, want-to-go, visited or want-to-revisit status, and share a list with other users.
 
 > **Admin:** enable Collections in [Admin-Addons](Admin-Addons).
 
@@ -33,6 +33,7 @@ Every saved place carries a status you can cycle with one tap:
 - **Idea**: something you noted but haven't committed to.
 - **Want to go**: on the shortlist.
 - **Visited**: been there.
+- **Want to revisit**: been there and want to go back. It still counts as visited, so **Visited everywhere** leaves it as it is.
 
 Status is a Collections concept and is not carried into a trip when you copy a place.
 

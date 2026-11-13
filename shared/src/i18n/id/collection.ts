@@ -94,6 +94,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Ide',
   'collections.status.want': 'Ingin ke sana',
   'collections.status.visited': 'Dikunjungi',
+  'collections.status.revisit': 'Ingin kembali',
   'collections.status.filterAll': 'Semua',
   'collections.status.cycleHint': 'ketuk untuk mengubah',
 

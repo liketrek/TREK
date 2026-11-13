@@ -93,6 +93,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'アイデア',
   'collections.status.want': '行きたい',
   'collections.status.visited': '訪問済み',
+  'collections.status.revisit': 'また行きたい',
   'collections.status.filterAll': 'すべて',
   'collections.status.cycleHint': 'タップで変更',
 

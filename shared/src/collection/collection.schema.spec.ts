@@ -5,9 +5,27 @@ import {
   collectionPlaceUpdateRequestSchema,
   collectionReorderRequestSchema,
   collectionSavePlaceRequestSchema,
+  collectionStatusSchema,
+  isVisitedCollectionStatus,
 } from './collection.schema';
 
 import { describe, expect, it } from 'vitest';
+
+describe('collectionStatusSchema', () => {
+  // #2567: "want to revisit" is a status of its own, stored as it is.
+  it('accepts revisit next to the first three', () => {
+    for (const status of ['idea', 'want', 'visited', 'revisit'] as const) {
+      expect(collectionStatusSchema.parse(status)).toBe(status);
+    }
+  });
+
+  it('counts revisit as visited, and nothing before it', () => {
+    expect(isVisitedCollectionStatus('visited')).toBe(true);
+    expect(isVisitedCollectionStatus('revisit')).toBe(true);
+    expect(isVisitedCollectionStatus('want')).toBe(false);
+    expect(isVisitedCollectionStatus('idea')).toBe(false);
+  });
+});
 
 describe('collectionPlaceUpdateRequestSchema', () => {
   // Regression for #1437: an update that omits `status` must NOT inject a default

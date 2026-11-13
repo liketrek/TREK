@@ -524,6 +524,15 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
       ) as { place: { status: string } };
       expect(status.place.status).toBe('want');
 
+      // #2567: "want to revisit" is stored as a status of its own.
+      const revisit = parseToolResult(
+        await h.client.callTool({
+          name: 'set_collection_place_status',
+          arguments: { placeId: pid, status: 'revisit' },
+        }),
+      ) as { place: { status: string } };
+      expect(revisit.place.status).toBe('revisit');
+
       const rated = parseToolResult(
         await h.client.callTool({ name: 'rate_collection_place', arguments: { placeId: pid, rating: 5 } }),
       ) as { place: { rating_avg: number | null; rating_count: number } };

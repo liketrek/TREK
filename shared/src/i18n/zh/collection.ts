@@ -93,6 +93,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': '想法',
   'collections.status.want': '想去',
   'collections.status.visited': '已去过',
+  'collections.status.revisit': '想再去',
   'collections.status.filterAll': '全部',
   'collections.status.cycleHint': '点按切换',
 

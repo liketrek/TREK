@@ -94,6 +94,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Ý tưởng',
   'collections.status.want': 'Muốn đến',
   'collections.status.visited': 'Đã đến',
+  'collections.status.revisit': 'Muốn quay lại',
   'collections.status.filterAll': 'Tất cả',
   'collections.status.cycleHint': 'chạm để thay đổi',
 

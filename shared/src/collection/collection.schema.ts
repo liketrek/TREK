@@ -9,9 +9,19 @@ import { tagSchema } from '../tag/tag.schema';
 
 import { z } from 'zod';
 
-export const COLLECTION_STATUSES = ['idea', 'want', 'visited'] as const;
+/**
+ * A saved place's status, in the order the one-tap cycle walks. 'revisit' (#2567)
+ * is a place already visited that the user wants to go back to; it sits last so
+ * the stored values and the order of the first three stay as they were.
+ */
+export const COLLECTION_STATUSES = ['idea', 'want', 'visited', 'revisit'] as const;
 export const collectionStatusSchema = z.enum(COLLECTION_STATUSES).catch('idea').default('idea');
 export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
+
+/** Whether the status means "been there": a place to revisit counts as visited wherever visits are counted. */
+export function isVisitedCollectionStatus(status: CollectionStatus): boolean {
+  return status === 'visited' || status === 'revisit';
+}
 
 /** Per-member permission on a shared list. viewer = read + copy-to-trip only;
  *  editor (default) = add + edit places; admin = full incl. delete. The owner

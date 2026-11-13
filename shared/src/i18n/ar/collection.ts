@@ -154,6 +154,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'فكرة',
   'collections.status.want': 'أريد الذهاب',
   'collections.status.visited': 'تمت الزيارة',
+  'collections.status.revisit': 'أريد العودة',
   'collections.status.filterAll': 'الكل',
   'collections.status.cycleHint': 'انقر للتغيير',
 

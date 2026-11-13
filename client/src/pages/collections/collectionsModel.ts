@@ -50,7 +50,7 @@ export function filterPlaces(
 
 /** Count places per status for the filter chips. */
 export function statusCounts(places: CollectionPlace[]): Record<StatusFilter, number> {
-  const counts: Record<StatusFilter, number> = { all: 0, idea: 0, want: 0, visited: 0 }
+  const counts: Record<StatusFilter, number> = { all: 0, idea: 0, want: 0, visited: 0, revisit: 0 }
   for (const p of places) { if (!p) continue; counts.all += 1; counts[p.status] += 1 }
   return counts
 }

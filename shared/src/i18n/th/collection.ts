@@ -94,6 +94,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'ไอเดีย',
   'collections.status.want': 'อยากไป',
   'collections.status.visited': 'เยี่ยมชมแล้ว',
+  'collections.status.revisit': 'อยากกลับไปอีก',
   'collections.status.filterAll': 'ทั้งหมด',
   'collections.status.cycleHint': 'แตะเพื่อเปลี่ยน',
 

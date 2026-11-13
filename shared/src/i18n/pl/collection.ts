@@ -130,6 +130,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Pomysł',
   'collections.status.want': 'Chcę odwiedzić',
   'collections.status.visited': 'Odwiedzone',
+  'collections.status.revisit': 'Chcę wrócić',
   'collections.status.filterAll': 'Wszystkie',
   'collections.status.cycleHint': 'dotknij, aby zmienić',
 

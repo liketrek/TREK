@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Fikir',
   'collections.status.want': 'Gitmek istiyorum',
   'collections.status.visited': 'Gidildi',
+  'collections.status.revisit': 'Tekrar gitmek istiyorum',
   'collections.status.filterAll': 'Tümü',
   'collections.status.cycleHint': 'değiştirmek için dokun',
 

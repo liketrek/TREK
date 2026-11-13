@@ -346,7 +346,8 @@ export class CollectionsMcp {
 
   @Tool({
     name: 'set_collection_place_status',
-    description: "Set a saved place's status: idea, want, or visited.",
+    description:
+      "Set a saved place's status: idea, want, visited, or revisit (been there and wants to go back; it counts as visited).",
     inputSchema: { placeId: idSchema, status: z.enum(COLLECTION_STATUSES) },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
