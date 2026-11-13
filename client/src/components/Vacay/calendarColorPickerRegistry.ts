@@ -3,13 +3,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 let activePickerId: symbol | null = null;
 let closeActivePicker: (() => void) | null = null;
 
-export function openVacayCalendarColorPicker(id: symbol, close: () => void): void {
+function openVacayCalendarColorPicker(id: symbol, close: () => void): void {
   if (activePickerId !== id) closeActivePicker?.();
   activePickerId = id;
   closeActivePicker = close;
 }
 
-export function closeVacayCalendarColorPicker(id: symbol): void {
+function closeVacayCalendarColorPicker(id: symbol): void {
   if (activePickerId !== id) return;
   activePickerId = null;
   closeActivePicker = null;

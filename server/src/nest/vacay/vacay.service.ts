@@ -39,7 +39,7 @@ import {
 } from './vacay.helpers';
 export type { Holiday } from './vacay.holidays';
 
-export type { VacayPlan, VacayUserYear, VacayUser, VacayPlanMember, SchoolHoliday, VacayHolidayCalendar, VacayUserSettings, UpdatePlanBody, VacayShare } from './vacay.types';
+export type { VacayPlan, VacayUser, VacayHolidayCalendar, VacayUserSettings, UpdatePlanBody } from './vacay.types';
 
 /**
  * Vacay domain service — owns the vacay SQL, now through the ten vacay

@@ -212,7 +212,6 @@
     "server/src/nest/tours/tours.helpers.ts": 1,
     "server/src/nest/trips/trips.service.ts": 3,
     "server/src/nest/unsplash/unsplash.service.ts": 1,
-    "server/src/nest/vacay/vacay.service.ts": 4,
     "server/src/nest/weather/weather.impl.ts": 1,
     "server/src/shutdown.ts": 1,
     "server/src/systemNotices/types.ts": 7

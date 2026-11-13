@@ -558,7 +558,7 @@ export interface HolidayInfo {
   type?: 'public_holiday' | 'school_holiday' | 'ics'
 }
 
-export interface VacayIcsEvent { start: string; end: string; title: string }
+interface VacayIcsEvent { start: string; end: string; title: string }
 export interface VacayIcsCalendar { id: number; label: string; color: string; events: VacayIcsEvent[] }
 export interface VacayIcsCalendarSettings { id: number; label: string; color: string; url?: string; last_fetched_at: string | null; last_error: string | null; event_count: number }
 

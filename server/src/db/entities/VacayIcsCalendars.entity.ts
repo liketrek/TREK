@@ -1,13 +1,13 @@
+import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 import { VacayIcsCalendarsRepository } from '../repositories/VacayIcsCalendars.repository';
 import { DbTimestampType } from '../types';
 import { VacayPlans } from './VacayPlans.entity';
-import { EntityRepositoryType, type Opt, type Ref, defineEntity, p } from '@mikro-orm/core';
 
 export class VacayIcsCalendars {
   [EntityRepositoryType]?: VacayIcsCalendarsRepository;
   id!: number;
   plan!: Ref<VacayPlans>;
-  plan_id!: number & Opt;
+  plan_id!: number;
   url!: string;
   label!: string;
   color: string & Opt = '#a5f3fc';
@@ -21,14 +21,7 @@ export const VacayIcsCalendarsSchema = defineEntity({
   repository: () => VacayIcsCalendarsRepository,
   properties: {
     id: p.integer().primary(),
-    plan: () =>
-      p
-        .manyToOne(VacayPlans)
-        .ref()
-        .updateRule('cascade')
-        .deleteRule('cascade')
-        .hidden()
-        .index('idx_vacay_ics_calendars_plan_id'),
+    plan: () => p.manyToOne(VacayPlans).ref().updateRule('cascade').deleteRule('cascade').hidden().index('idx_vacay_ics_calendars_plan_id'),
     plan_id: p.integer().persist(false).index('idx_vacay_ics_calendars_plan_id'),
     url: p.text(),
     label: p.text(),

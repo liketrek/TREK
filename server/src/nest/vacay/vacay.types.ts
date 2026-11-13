@@ -12,32 +12,10 @@ export interface VacayPlan {
   week_start: number;
 }
 
-export interface VacayUserYear {
-  user_id: number;
-  plan_id: number;
-  year: number;
-  vacation_days: number;
-  carried_over: number;
-}
-
 export interface VacayUser {
   id: number;
   username: string;
   email: string;
-}
-
-export interface VacayPlanMember {
-  id: number;
-  plan_id: number;
-  user_id: number;
-  status: string;
-  created_at?: string;
-}
-
-export interface SchoolHoliday {
-  startDate?: string;
-  endDate?: string;
-  name?: Array<{ language?: string; text?: string }> | string;
 }
 
 export interface VacayHolidayCalendar {
@@ -70,12 +48,4 @@ export interface UpdatePlanBody {
   carry_over_enabled?: boolean;
   weekend_days?: string;
   week_start?: number;
-}
-
-export interface VacayShare {
-  id: number;
-  owner_id: number;
-  user_id: number;
-  hidden: number;
-  created_at?: string;
 }
