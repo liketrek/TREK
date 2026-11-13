@@ -86,7 +86,7 @@ export const APP_SETTINGS = {
   oidc_registration: { schema: flag, default: 'true', adminForm: true, managedLocked: true },
   // Whether an instance without password login sends a visitor straight to the
   // identity provider. Off shows the login page with its SSO button first (#2925).
-  oidc_auto_redirect: { schema: flag, default: 'true', adminForm: true, publicConfig: true },
+  oidc_auto_redirect: { schema: flag, default: 'true', adminForm: true, publicConfig: true, managedLocked: true },
   passkey_login: { schema: flag, default: 'false', adminForm: true },
   webauthn_rp_id: { schema: text, default: null, adminForm: true, managedLocked: true },
   webauthn_origins: { schema: text, default: null, adminForm: true, managedLocked: true },

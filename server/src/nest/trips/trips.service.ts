@@ -34,6 +34,7 @@ import {
   type DayGridRemoval,
   type TrekWsPayload,
   type TrekWsTripEventName,
+  type TripCostsMode,
   type TripUpdateRequest,
 } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -473,7 +474,8 @@ export class TripsService {
     const newCurrency = currency || trip.currency;
     const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
     const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
-    const newCostsMode = costs_mode ?? trip.costs_mode;
+    // The column's CHECK holds a stored trip to the two modes.
+    const newCostsMode = costs_mode ?? (trip.costs_mode as TripCostsMode);
     const oldReminder = (trip as any).reminder_days ?? 3;
     const newReminder = reminder_days !== undefined
       ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)

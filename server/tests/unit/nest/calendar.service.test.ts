@@ -1687,7 +1687,7 @@ describe('per-day summaries (#2602)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Lisbon', start_date: '2025-06-02', end_date: '2025-06-03' });
     // A dated trip comes with its days; the first one is the 2nd of June.
-    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND day_number = 1').get(trip.id) as { id: number };
+    const [day] = await findRows(orm, Days, { trip: trip.id }, { id: 'asc' });
     const untimed = createPlace(testDb, trip.id, { name: 'Untimed Spot' });
     createDayAssignment(testDb, day.id, untimed.id);
     createDayNote(testDb, day.id, trip.id, { text: 'Buy tram tickets' });

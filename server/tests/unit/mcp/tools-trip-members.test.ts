@@ -6,6 +6,7 @@
  */
 import { db as testDb } from '../../../src/db/database';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
@@ -15,7 +16,7 @@ import { NotificationsService } from '../../../src/nest/notifications/notificati
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { createUser, createAdmin, createTrip, addTripMember, createDayNote } from '../../helpers/factories';
 import { addBudgetItemMember, addBudgetItemPayer, makeBudgetItem } from '../../helpers/factories/budget';
-import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { countRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
 import { makeShareToken } from '../../helpers/factories/trips';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
@@ -496,9 +497,7 @@ describe('Tool: export_trip_ics', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
     // A dated trip comes with its days; the first one is the 1st of June.
-    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND day_number = 1').get(trip.id) as {
-      id: number;
-    };
+    const [day] = await findRows(orm, Days, { trip: trip.id }, { id: 'asc' });
     createDayNote(testDb, day.id, trip.id, { text: 'Pick up the museum pass' });
     await withHarness(user.id, async (h) => {
       const call = async (args: Record<string, unknown>) =>

@@ -308,8 +308,7 @@ export class AuthService {
     const userCount = await this.usersRepo.countNonGuest();
     const isDemo = readEnv().demo.enabled;
     const toggles = await this.resolveAuthToggles();
-    // One directory deeper than the legacy src/services location — the extra
-    // '../' keeps resolving to the workspace package.json.
+    // One directory deeper than the old src/services, so the extra '../' still reaches the package.json.
     const version: string = readEnv().app.appVersion ?? require('../../../package.json').version;
     // Asked through the same resolver the search itself uses, so the client can
     // never show Google features that rest on a key this caller does not get —
@@ -359,9 +358,7 @@ export class AuthService {
       password_registration: isDemo ? false : toggles.password_registration,
       oidc_login: toggles.oidc_login,
       oidc_registration: isDemo ? false : toggles.oidc_registration,
-      // Read by the login page only where password login is off: anything but
-      // 'false' keeps the redirect every such instance had before (#2925).
-      oidc_auto_redirect: settings.get('oidc_auto_redirect') !== 'false',
+      oidc_auto_redirect: settings.get('oidc_auto_redirect') !== 'false', // read only without password login (#2925)
       // Passkey login: the instance toggle + whether a usable RP ID resolves for
       // this deployment. The login page shows the passkey button only when both
       // are true. `passkey_configured` stays a pure boolean — it never leaks the

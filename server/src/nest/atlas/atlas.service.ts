@@ -40,6 +40,7 @@ import { transferEndpointIds } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
 import { placeCountryResolver } from './place-countries';
 import { haversineKm } from '../common/geo';
+import { CountryVisits, latestPerCoordinate } from './atlas-visit-order';
 
 /** The part of a place that its cached region is derived from. */
 type LocatedPlace = Pick<PlaceRow, 'id' | 'lat' | 'lng' | 'address'>;
@@ -69,19 +70,6 @@ function daysBetween(today: string, isoDate: string): number {
  * `EndpointRow` references stay unchanged.
  */
 type EndpointRow = TravelerOwnedEndpointRow;
-
-/**
- * The visited countries in the order the dashboard shows them (#2648): most
- * recently visited first, by the last day of the latest started trip that
- * reached each one, so the few flags the tile has room for are the ones of the
- * last journeys rather than the start of the alphabet. A country only marked
- * by hand carries no date and follows, in the order it was marked.
- */
-export function countriesByLastVisit(lastVisit: ReadonlyMap<string, string>, manual: Iterable<string>): string[] {
-  // Array.prototype.sort is stable, so countries of the same trip keep the order they were found in.
-  const dated = [...lastVisit].sort(([, a], [, b]) => (a < b ? 1 : a > b ? -1 : 0)).map(([code]) => code);
-  return [...new Set([...dated, ...manual])];
-}
 
 export type CreateBucketData = {
   name: string;
@@ -1087,21 +1075,14 @@ export class AtlasService {
     const manualCountries = (await this.visitedCountries.listCodesForUser(userId)) // AT43
       .filter(Boolean)
       .map(code => code.toUpperCase());
-    const lastVisit = new Map<string, string>();
-    const noteVisit = (code: string | null | undefined, tripLastDate: string | null) => {
-      if (!code) return;
-      const key = code.toUpperCase();
-      const when = tripLastDate ?? '';
-      const known = lastVisit.get(key);
-      if (known === undefined || when > known) lastVisit.set(key, when);
-    };
+    const visits = new CountryVisits();
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
     // any dates even less so (#1048). `today` is UTC, matching tripVisitStatus.
     const countryOf = placeCountryResolver();
     for (const place of await this.placeRegions.listStartedTripPlaceCountriesForUser(userId, today)) { // AT44
-      noteVisit(countryOf(place, place.country_code), place.trip_last_date);
+      visits.note(countryOf(place, place.country_code), place.trip_last_date);
     }
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
@@ -1120,17 +1101,8 @@ export class AtlasService {
     // in the projection, so collapse here instead: getCountryFromCoords is a
     // point-in-polygon scan and must stay at one run per coordinate. The latest
     // trip through a coordinate is the one its country is dated by.
-    const endpointCoords = new Map<string, { lat: number; lng: number; tripLastDate: string | null }>();
-    for (const e of endpointRows) {
-      if (transfers.has(e.id)) continue;
-      const key = `${e.lat},${e.lng}`;
-      const known = endpointCoords.get(key);
-      if (!known || (e.trip_last_date ?? '') > (known.tripLastDate ?? '')) {
-        endpointCoords.set(key, { lat: e.lat, lng: e.lng, tripLastDate: e.trip_last_date });
-      }
-    }
-    for (const e of endpointCoords.values()) {
-      noteVisit(getCountryFromCoords(e.lat, e.lng), e.tripLastDate);
+    for (const e of latestPerCoordinate(endpointRows.filter(e => !transfers.has(e.id)))) {
+      visits.note(getCountryFromCoords(e.lat, e.lng), e.trip_last_date);
     }
 
     // Countries the user removed in Atlas stay removed on the dashboard too, so the
@@ -1138,7 +1110,7 @@ export class AtlasService {
     const hidden = new Set([...(await this.getHiddenCountries(userId))].map(code => code.toUpperCase()));
 
     return {
-      countries: countriesByLastVisit(lastVisit, manualCountries).filter(code => !hidden.has(code)),
+      countries: visits.ordered(manualCountries).filter(code => !hidden.has(code)),
       cities: [...cities],
       coords,
       totalTrips: tripStats.trips || 0,
