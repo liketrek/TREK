@@ -3,6 +3,20 @@ import { useNavigate } from 'react-router';
 
 import { type InAppNotification, useInAppNotificationStore } from '../../store/inAppNotificationStore';
 
+/** Resolve old inbox rows too: their stored links predate the current destinations. */
+function notificationTarget(notification: InAppNotification): string | null {
+  if (notification.title_key === 'notif.vacay_invite.title' || notification.title_key === 'notif.vacay_share.title') {
+    return '/vacay';
+  }
+  if (notification.title_key === 'notif.collab_message.title') {
+    const tripId =
+      /^\/trips\/([1-9]\d*)(?:[/?#]|$)/.exec(notification.navigate_target ?? '')?.[1] ??
+      (notification.scope === 'trip' && notification.target > 0 ? String(notification.target) : null);
+    return tripId ? `/trips/${tripId}?tab=collab` : '/dashboard';
+  }
+  return notification.navigate_target;
+}
+
 /** Compact relative timestamp ("5m" / "3h" / "2d"); under a minute it reads `justNow`. */
 export function compactTime(dateStr: string, justNow: string): string {
   const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
@@ -32,8 +46,9 @@ export function useNotificationItemActions(notification: InAppNotification, onCl
 
   const handleNavigate = async () => {
     if (!notification.is_read) await markRead(notification.id);
-    if (notification.navigate_target) {
-      navigate(notification.navigate_target);
+    const target = notificationTarget(notification);
+    if (target) {
+      navigate(target);
       onClose?.();
     }
   };

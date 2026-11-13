@@ -60,6 +60,42 @@ describe('compactTime', () => {
 });
 
 describe('useNotificationItemActions', () => {
+  it.each(['notif.vacay_invite.title', 'notif.vacay_share.title'])(
+    'opens the Vacay list for %s, including stored detail links',
+    async (title_key) => {
+      const { result } = renderHook(() => useNotificationItemActions(notification({
+        title_key, navigate_target: '/vacay/42',
+      })));
+      await act(() => result.current.handleNavigate());
+      expect(navigate).toHaveBeenCalledWith('/vacay');
+    }
+  );
+
+  it.each(['/trips/42', '/trips/42?tab=collab'])(
+    'opens Collab for both old and new message links: %s',
+    async (navigate_target) => {
+      const { result } = renderHook(() => useNotificationItemActions(notification({
+        title_key: 'notif.collab_message.title', navigate_target,
+      })));
+      await act(() => result.current.handleNavigate());
+      expect(navigate).toHaveBeenCalledWith('/trips/42?tab=collab');
+    }
+  );
+
+  it('uses a trip-scoped message target when its link is missing, otherwise falls back to Dashboard', async () => {
+    const scoped = renderHook(() => useNotificationItemActions(notification({
+      title_key: 'notif.collab_message.title', scope: 'trip', target: 42, navigate_target: null,
+    })));
+    await act(() => scoped.result.current.handleNavigate());
+    expect(navigate).toHaveBeenLastCalledWith('/trips/42?tab=collab');
+
+    const missing = renderHook(() => useNotificationItemActions(notification({
+      title_key: 'notif.collab_message.title', navigate_target: '/dashboard',
+    })));
+    await act(() => missing.result.current.handleNavigate());
+    expect(navigate).toHaveBeenLastCalledWith('/dashboard');
+  });
+
   it('FE-COMP-NOTIFITEM-ACTIONS-002: navigating marks an unread item read first, then follows and closes', async () => {
     const onClose = vi.fn();
     const { result } = renderHook(() => useNotificationItemActions(notification(), onClose));
