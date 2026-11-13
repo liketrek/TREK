@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'アップロードのみ',
   'mailAdmin.transport.imap': 'IMAPメールボックス',
   'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    'メールボックスは不要です。保存したメールを設定画面で .eml ファイルとしてアップロードすると、TREK が同じように読み取ります。お試しに最適です。',
+  'mailAdmin.transport.imapInfo':
+    'TREK は2分ごとにメールボックスを確認し、新しいメールを取り込みます。個人用ではなく、プラスアドレス(trek+…@your-domain)を受け取れる専用のメールボックスを使ってください。読み取ったメールは TREK/processed に移動します。',
+  'mailAdmin.transport.webhookInfo':
+    'Cloudflare Email Worker などのメールサービスが各メールを直接 TREK に渡し、下のキーで署名します。そのため他の誰もメールを紛れ込ませることはできません。メールボックスのない環境向けです。',
   'mailAdmin.aiDaily': '1人1日あたりのAI読み取りメール数',
   'mailAdmin.aiDailyHint': 'この数を超えると、機械で読み取れる予約データのみ読み取ります。',
   'mailAdmin.template': 'アドレスのテンプレート',

@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Yalnızca yükleme',
   'mailAdmin.transport.imap': 'IMAP posta kutusu',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Posta kutusu gerekmez: kaydedilmiş bir e-posta ayarlarda .eml dosyası olarak yüklenir ve TREK onu aynı şekilde okur. Denemek için ideal.',
+  'mailAdmin.transport.imapInfo':
+    'TREK her iki dakikada bir posta kutusuna bakar ve yeni e-postaları alır. Kişisel değil, artı adreslerini kabul eden ayrı bir kutu kullan (trek+…@alan-adin): okunan e-postalar TREK/processed klasörüne taşınır.',
+  'mailAdmin.transport.webhookInfo':
+    "Cloudflare Email Worker gibi bir e-posta hizmeti her e-postayı doğrudan TREK'e iletir ve aşağıdaki anahtarla imzalar, böylece kimse dışarıdan e-posta sokamaz. Posta kutusu olmayan kurulumlar için.",
   'mailAdmin.aiDaily': 'Kişi başı günlük yapay zeka e-postası',
   'mailAdmin.aiDailyHint': 'Bunun üstünde yalnızca makine tarafından okunabilir rezervasyon verisi okunur.',
   'mailAdmin.template': 'Adres şablonu',

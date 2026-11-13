@@ -9,6 +9,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': '僅上傳',
   'mailAdmin.transport.imap': 'IMAP 信箱',
   'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    '不需要信箱：在設定中把儲存的郵件以 .eml 檔案上傳，TREK 會以同樣方式讀取。適合先試用。',
+  'mailAdmin.transport.imapInfo':
+    'TREK 每兩分鐘查看一次信箱並取回新郵件。請使用能接收加號地址(trek+…@your-domain)的專用信箱，而不是個人信箱：已讀郵件會移到 TREK/processed。',
+  'mailAdmin.transport.webhookInfo':
+    '郵件服務(例如 Cloudflare Email Worker)會把每封郵件直接交給 TREK，並用下方的金鑰簽署，讓其他人無法混入郵件。適用於沒有信箱的部署。',
   'mailAdmin.aiDaily': '每人每天的 AI 郵件數',
   'mailAdmin.aiDailyHint': '超過後，只讀取機器可讀的預訂資料。',
   'mailAdmin.template': '地址範本',

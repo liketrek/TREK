@@ -9,6 +9,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'อัปโหลดเท่านั้น',
   'mailAdmin.transport.imap': 'กล่องจดหมาย IMAP',
   'mailAdmin.transport.webhook': 'เว็บฮุก',
+  'mailAdmin.transport.offInfo':
+    'ไม่ต้องใช้กล่องจดหมาย: อัปโหลดอีเมลที่บันทึกไว้เป็นไฟล์ .eml ในการตั้งค่า แล้ว TREK จะอ่านแบบเดียวกัน เหมาะสำหรับทดลองใช้',
+  'mailAdmin.transport.imapInfo':
+    'TREK จะเข้าไปดูกล่องจดหมายทุกสองนาทีและดึงอีเมลใหม่ ใช้กล่องจดหมายแยกที่รับที่อยู่แบบมีเครื่องหมายบวก (trek+…@your-domain) ไม่ใช่กล่องส่วนตัว เพราะอีเมลที่อ่านแล้วจะถูกย้ายไปที่ TREK/processed',
+  'mailAdmin.transport.webhookInfo':
+    'บริการอีเมล เช่น Cloudflare Email Worker จะส่งอีเมลแต่ละฉบับให้ TREK โดยตรงและลงนามด้วยคีย์ด้านล่าง จึงไม่มีใครอื่นแอบส่งอีเมลเข้ามาได้ เหมาะกับการติดตั้งที่ไม่มีกล่องจดหมาย',
   'mailAdmin.aiDaily': 'จำนวนอีเมล AI ต่อคนต่อวัน',
   'mailAdmin.aiDailyHint': 'เมื่อเกินจำนวนนี้ ระบบจะอ่านเฉพาะข้อมูลการจองที่เครื่องอ่านได้',
   'mailAdmin.template': 'รูปแบบที่อยู่',

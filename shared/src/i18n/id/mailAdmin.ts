@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Hanya unggah',
   'mailAdmin.transport.imap': 'Kotak surat IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Tanpa kotak surat: email yang disimpan diunggah sebagai file .eml di pengaturan, dan TREK membacanya dengan cara yang sama. Cocok untuk mencoba.',
+  'mailAdmin.transport.imapInfo':
+    'TREK memeriksa kotak surat setiap dua menit dan mengambil email baru. Gunakan kotak surat tersendiri yang menerima alamat plus (trek+…@domain-anda), bukan kotak pribadi: email yang sudah dibaca dipindahkan ke TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Layanan email, seperti Cloudflare Email Worker, menyerahkan setiap email langsung ke TREK dan menandatanganinya dengan kunci di bawah, sehingga tidak ada orang lain yang bisa menyelipkan email. Untuk pemasangan tanpa kotak surat.',
   'mailAdmin.aiDaily': 'Email AI per orang per hari',
   'mailAdmin.aiDailyHint': 'Di atas batas ini, hanya data pemesanan yang dapat dibaca mesin yang dibaca.',
   'mailAdmin.template': 'Templat alamat',

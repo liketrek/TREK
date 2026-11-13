@@ -9,6 +9,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': '업로드만',
   'mailAdmin.transport.imap': 'IMAP 메일함',
   'mailAdmin.transport.webhook': '웹훅',
+  'mailAdmin.transport.offInfo':
+    '메일함이 필요 없습니다. 저장한 메일을 설정에서 .eml 파일로 올리면 TREK이 똑같이 읽습니다. 시험해 보기에 좋습니다.',
+  'mailAdmin.transport.imapInfo':
+    'TREK이 2분마다 메일함을 확인하고 새 메일을 가져옵니다. 개인 메일함이 아니라 플러스 주소(trek+…@your-domain)를 받는 전용 메일함을 사용하세요. 읽은 메일은 TREK/processed로 이동합니다.',
+  'mailAdmin.transport.webhookInfo':
+    'Cloudflare Email Worker 같은 메일 서비스가 각 메일을 TREK에 바로 전달하고 아래 키로 서명하므로, 다른 누구도 메일을 끼워 넣을 수 없습니다. 메일함이 없는 환경용입니다.',
   'mailAdmin.aiDaily': '1인당 하루 AI 메일 수',
   'mailAdmin.aiDailyHint': '이 수를 넘으면 기계가 읽을 수 있는 예약 데이터만 읽습니다.',
   'mailAdmin.template': '주소 템플릿',

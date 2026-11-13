@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Somente envio de arquivo',
   'mailAdmin.transport.imap': 'Caixa de correio IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Sem caixa de e-mail: a pessoa envia um e-mail salvo como arquivo .eml nas configurações, e o TREK o lê da mesma forma. Bom para experimentar.',
+  'mailAdmin.transport.imapInfo':
+    'O TREK verifica uma caixa de e-mail a cada dois minutos e busca os e-mails novos. Use uma caixa própria que aceite endereços com + (trek+…@seu-dominio), não uma pessoal: os e-mails lidos vão para TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Um serviço de e-mail, como um Cloudflare Email Worker, entrega cada e-mail direto ao TREK e o assina com a chave abaixo, para que ninguém mais consiga inserir e-mails. Para instalações sem caixa de e-mail.',
   'mailAdmin.aiDaily': 'E-mails por IA por pessoa e dia',
   'mailAdmin.aiDailyHint': 'Acima disso, só dados de reserva legíveis por máquina são lidos.',
   'mailAdmin.template': 'Modelo de endereço',

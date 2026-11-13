@@ -9,6 +9,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'העלאה בלבד',
   'mailAdmin.transport.imap': 'תיבת דואר IMAP',
   'mailAdmin.transport.webhook': 'וובהוק',
+  'mailAdmin.transport.offInfo':
+    'לא נדרשת תיבת דואר: מעלים מייל שמור כקובץ ‎.eml‎ בהגדרות, ו־TREK קורא אותו באותה דרך. מתאים לניסיון.',
+  'mailAdmin.transport.imapInfo':
+    'TREK בודק תיבת דואר כל שתי דקות ואוסף מיילים חדשים. השתמש בתיבה נפרדת שמקבלת כתובות עם + (trek+…@your-domain), לא בתיבה אישית: מיילים שנקראו עוברים אל TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'שירות דואר, כמו Cloudflare Email Worker, מעביר כל מייל ישירות ל־TREK וחותם עליו במפתח שלמטה, כך שאף אחד אחר לא יוכל להכניס מיילים. להתקנות ללא תיבת דואר.',
   'mailAdmin.aiDaily': 'דוא״ל בבינה מלאכותית לאדם ליום',
   'mailAdmin.aiDailyHint': 'מעבר לכך, נקראים רק נתוני הזמנה שניתנים לקריאה אוטומטית.',
   'mailAdmin.template': 'תבנית כתובת',

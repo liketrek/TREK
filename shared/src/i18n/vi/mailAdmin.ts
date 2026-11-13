@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Chỉ tải lên',
   'mailAdmin.transport.imap': 'Hộp thư IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Không cần hộp thư: tải email đã lưu lên dưới dạng tệp .eml trong phần cài đặt, và TREK sẽ đọc theo cùng cách. Phù hợp để dùng thử.',
+  'mailAdmin.transport.imapInfo':
+    'TREK kiểm tra hộp thư mỗi hai phút và lấy email mới. Hãy dùng một hộp thư riêng nhận địa chỉ có dấu cộng (trek+…@your-domain), không dùng hộp thư cá nhân: email đã đọc sẽ được chuyển sang TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Một dịch vụ email, chẳng hạn Cloudflare Email Worker, chuyển thẳng từng email cho TREK và ký bằng khóa bên dưới, để không ai khác có thể chen email vào. Dành cho cách cài đặt không có hộp thư.',
   'mailAdmin.aiDaily': 'Số email AI mỗi người mỗi ngày',
   'mailAdmin.aiDailyHint': 'Vượt mức này, chỉ đọc dữ liệu đặt chỗ máy đọc được.',
   'mailAdmin.template': 'Mẫu địa chỉ',

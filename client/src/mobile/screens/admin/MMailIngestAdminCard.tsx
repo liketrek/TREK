@@ -1,7 +1,9 @@
+import { Inbox, Upload, Webhook } from 'lucide-react';
 import {
   TRANSPORTS,
   problemText,
   statusFacts,
+  transportInfo,
   transportLabel,
   type MailAdminForm,
   type MailAdminProblem,
@@ -26,6 +28,12 @@ interface PartProps {
   admin: MailIngestAdmin;
   form: MailAdminForm;
   t: TranslationFn;
+}
+
+/** The symbol of each way of taking mail in, as on the desktop card. */
+function TransportIcon({ transport }: { transport: MailAdminForm['transport'] }) {
+  const Icon = transport === 'imap' ? Inbox : transport === 'webhook' ? Webhook : Upload;
+  return <Icon size={14} strokeWidth={2.1} />;
 }
 
 /** The problem under a field, in the danger colour, or nothing. */
@@ -141,6 +149,15 @@ function Setup({ admin, form, t, locale }: PartProps & { locale: string }) {
           onChange={(value) => admin.set('transport', value)}
           options={TRANSPORTS.map((x) => ({ value: x, label: transportLabel(x, t) }))}
         />
+        <div className="mt-2 flex items-center gap-[10px] rounded-[14px] border border-[color-mix(in_srgb,var(--m-st-info)_22%,transparent)] bg-[color-mix(in_srgb,var(--m-st-info)_10%,transparent)] px-3 py-[10px]">
+          <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-[color-mix(in_srgb,var(--m-st-info)_16%,transparent)] text-[color:var(--m-st-info)]">
+            <TransportIcon transport={form.transport} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-caption font-bold text-[color:var(--m-st-info)]">{transportLabel(form.transport, t)}</p>
+            <p className="mt-px text-caption leading-snug text-m-muted">{transportInfo(form.transport, t)}</p>
+          </div>
+        </div>
       </MAdminField>
       <MAdminField label={t('mailAdmin.template')} hint={t('mailAdmin.templateHint', { token: '{token}' })}>
         <MAdminInput

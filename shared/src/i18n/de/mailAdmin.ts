@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Nur Hochladen',
   'mailAdmin.transport.imap': 'IMAP-Postfach',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Kein Postfach nötig: Eine gespeicherte Mail wird in den eigenen Einstellungen als .eml-Datei hochgeladen und genauso gelesen. Gut zum Ausprobieren.',
+  'mailAdmin.transport.imapInfo':
+    'TREK schaut alle zwei Minuten in ein Postfach und holt neue Mails ab. Nimm ein eigenes Postfach, das Plus-Adressen annimmt (trek+…@deine-domain), kein persönliches: Gelesene Mails wandern nach TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Ein Mail-Dienst, etwa ein Cloudflare Email Worker, gibt jede Mail direkt an TREK weiter und signiert sie mit dem Schlüssel unten, damit niemand fremde Mails einschleust. Für Setups ohne Postfach.',
   'mailAdmin.aiDaily': 'AI-Mails pro Person und Tag',
   'mailAdmin.aiDailyHint': 'Darüber werden nur maschinenlesbare Buchungsdaten gelesen.',
   'mailAdmin.template': 'Adressvorlage',

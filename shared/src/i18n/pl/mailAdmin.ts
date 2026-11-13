@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Tylko wgrywanie',
   'mailAdmin.transport.imap': 'Skrzynka IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Bez skrzynki: zapisany mail przesyła się w ustawieniach jako plik .eml, a TREK czyta go tak samo. Dobre na początek.',
+  'mailAdmin.transport.imapInfo':
+    'TREK co dwie minuty zagląda do skrzynki i pobiera nowe maile. Użyj osobnej skrzynki, która przyjmuje adresy z plusem (trek+…@twoja-domena), a nie prywatnej: przeczytane maile trafiają do TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Usługa pocztowa, np. Cloudflare Email Worker, przekazuje każdy mail prosto do TREK i podpisuje go kluczem poniżej, więc nikt inny nie podrzuci maili. Dla instalacji bez skrzynki.',
   'mailAdmin.aiDaily': 'Wiadomości z AI na osobę dziennie',
   'mailAdmin.aiDailyHint': 'Powyżej tego limitu odczytywane są tylko dane rezerwacji czytelne dla maszyn.',
   'mailAdmin.template': 'Szablon adresu',

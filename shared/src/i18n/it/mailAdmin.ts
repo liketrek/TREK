@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Solo caricamento di file',
   'mailAdmin.transport.imap': 'Casella IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Nessuna casella di posta: si carica una mail salvata come file .eml nelle impostazioni, e TREK la legge allo stesso modo. Ideale per provare.',
+  'mailAdmin.transport.imapInfo':
+    'TREK controlla una casella di posta ogni due minuti e preleva le nuove mail. Usa una casella dedicata che accetti indirizzi con + (trek+…@tuo-dominio), non una personale: le mail lette passano in TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Un servizio di posta, come un Cloudflare Email Worker, consegna ogni mail direttamente a TREK e la firma con la chiave qui sotto, così nessun altro può infilare delle mail. Per installazioni senza casella di posta.',
   'mailAdmin.aiDaily': 'E-mail con IA per persona al giorno',
   'mailAdmin.aiDailyHint':
     'Oltre questo numero, vengono lette solo le e-mail con dati di prenotazione leggibili da una macchina.',

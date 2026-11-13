@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Yalnız yükləmə',
   'mailAdmin.transport.imap': 'IMAP poçt qutusu',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Poçt qutusu lazım deyil: yadda saxlanmış məktub ayarlarda .eml faylı kimi yüklənir və TREK onu eyni şəkildə oxuyur. Sınamaq üçün yaxşıdır.',
+  'mailAdmin.transport.imapInfo':
+    'TREK hər iki dəqiqədən bir poçt qutusuna baxır və yeni məktubları götürür. Şəxsi deyil, plus ünvanları qəbul edən ayrıca qutudan istifadə edin (trek+…@your-domain): oxunmuş məktublar TREK/processed qovluğuna keçir.',
+  'mailAdmin.transport.webhookInfo':
+    'Cloudflare Email Worker kimi poçt xidməti hər məktubu birbaşa TREK-ə ötürür və aşağıdakı açarla imzalayır, beləliklə heç kim kənar məktub yerləşdirə bilməz. Poçt qutusu olmayan qurulumlar üçün.',
   'mailAdmin.aiDaily': 'Adambaşı gündəlik süni intellekt məktubu',
   'mailAdmin.aiDailyHint': 'Bundan yuxarıda yalnız maşın tərəfindən oxuna bilən rezervasiya məlumatı oxunur.',
   'mailAdmin.template': 'Ünvan şablonu',

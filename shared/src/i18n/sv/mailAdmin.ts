@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Endast uppladdning',
   'mailAdmin.transport.imap': 'IMAP-brevlåda',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Ingen brevlåda behövs: ett sparat mejl laddas upp som .eml-fil i inställningarna, och TREK läser det på samma sätt. Bra för att prova.',
+  'mailAdmin.transport.imapInfo':
+    'TREK tittar i en brevlåda varannan minut och hämtar nya mejl. Använd en egen brevlåda som tar emot plusadresser (trek+…@din-doman), inte en personlig: lästa mejl flyttas till TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'En e-posttjänst, till exempel en Cloudflare Email Worker, lämnar varje mejl direkt till TREK och signerar det med nyckeln nedan, så att ingen annan kan smyga in mejl. För installationer utan brevlåda.',
   'mailAdmin.aiDaily': 'AI-mejl per person och dag',
   'mailAdmin.aiDailyHint': 'Över gränsen läses endast maskinläsbara bokningsdata.',
   'mailAdmin.template': 'Adressmall',

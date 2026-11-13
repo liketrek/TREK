@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Pouze nahrávání',
   'mailAdmin.transport.imap': 'Schránka IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Bez schránky: uložený e-mail se nahraje v nastavení jako soubor .eml a TREK ho přečte stejně. Vhodné na vyzkoušení.',
+  'mailAdmin.transport.imapInfo':
+    'TREK každé dvě minuty nahlédne do schránky a vyzvedne nové e-maily. Použij vlastní schránku, která přijímá adresy s + (trek+…@tvoje-domena), ne osobní: přečtené e-maily se přesunou do TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Poštovní služba, třeba Cloudflare Email Worker, předá každý e-mail přímo TREKu a podepíše ho klíčem níže, aby nikdo jiný nemohl podstrčit cizí e-maily. Pro nasazení bez schránky.',
   'mailAdmin.aiDaily': 'E-maily s AI na osobu a den',
   'mailAdmin.aiDailyHint': 'Nad tento limit se čtou jen strojově čitelné údaje o rezervaci.',
   'mailAdmin.template': 'Šablona adresy',

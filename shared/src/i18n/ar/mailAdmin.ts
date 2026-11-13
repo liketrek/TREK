@@ -9,6 +9,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'الرفع فقط',
   'mailAdmin.transport.imap': 'صندوق بريد IMAP',
   'mailAdmin.transport.webhook': 'ويب هوك',
+  'mailAdmin.transport.offInfo':
+    'لا حاجة إلى صندوق بريد: يرفع الشخص رسالة محفوظة كملف ‎.eml‎ في إعداداته، ويقرؤها TREK بالطريقة نفسها. مناسب للتجربة.',
+  'mailAdmin.transport.imapInfo':
+    'يفحص TREK صندوق بريد كل دقيقتين ويجلب الرسائل الجديدة. استخدم صندوقاً مخصصاً يقبل العناوين الفرعية (trek+…@your-domain)، لا صندوقاً شخصياً: تُنقل الرسائل المقروءة إلى TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'خدمة بريد، مثل Cloudflare Email Worker، تسلّم كل رسالة مباشرة إلى TREK وتوقّعها بالمفتاح أدناه، فلا يستطيع أحد غيرها إدخال رسائل. للإعدادات التي لا تملك صندوق بريد.',
   'mailAdmin.aiDaily': 'رسائل الذكاء الاصطناعي لكل شخص في اليوم',
   'mailAdmin.aiDailyHint': 'فوق هذا الحد، تُقرأ بيانات الحجز القابلة للقراءة آلياً فقط.',
   'mailAdmin.template': 'قالب العنوان',

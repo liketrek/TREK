@@ -155,3 +155,15 @@ export function transportLabel(transport: MailAdminTransport, t: TranslationFn):
       return t('mailAdmin.transport.webhook');
   }
 }
+
+/** What each way of taking mail in means, in a sentence or two, shown under the choice. */
+export function transportInfo(transport: MailAdminTransport, t: TranslationFn): string {
+  switch (transport) {
+    case 'off':
+      return t('mailAdmin.transport.offInfo');
+    case 'imap':
+      return t('mailAdmin.transport.imapInfo');
+    case 'webhook':
+      return t('mailAdmin.transport.webhookInfo');
+  }
+}

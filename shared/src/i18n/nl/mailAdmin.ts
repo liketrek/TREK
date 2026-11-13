@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Alleen uploaden',
   'mailAdmin.transport.imap': 'IMAP-mailbox',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Geen mailbox nodig: een opgeslagen mail wordt in de eigen instellingen als .eml-bestand geüpload, en TREK leest hem op dezelfde manier. Handig om het uit te proberen.',
+  'mailAdmin.transport.imapInfo':
+    'TREK kijkt elke twee minuten in een mailbox en haalt nieuwe mails op. Gebruik een eigen mailbox die plusadressen accepteert (trek+…@jouw-domein), geen persoonlijke: gelezen mails gaan naar TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Een maildienst, zoals een Cloudflare Email Worker, geeft elke mail direct aan TREK door en ondertekent hem met de sleutel hieronder, zodat niemand anders mails kan binnensmokkelen. Voor opstellingen zonder mailbox.',
   'mailAdmin.aiDaily': 'AI-mails per persoon per dag',
   'mailAdmin.aiDailyHint': 'Daarboven worden alleen machineleesbare boekingsgegevens gelezen.',
   'mailAdmin.template': 'Adressjabloon',

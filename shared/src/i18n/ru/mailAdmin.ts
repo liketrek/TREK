@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Только загрузка',
   'mailAdmin.transport.imap': 'Почтовый ящик IMAP',
   'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    'Почтовый ящик не нужен: сохранённое письмо загружают в настройках как файл .eml, и TREK читает его так же. Подходит, чтобы попробовать.',
+  'mailAdmin.transport.imapInfo':
+    'TREK каждые две минуты заглядывает в почтовый ящик и забирает новые письма. Используй отдельный ящик, который принимает адреса с плюсом (trek+…@your-domain), а не личный: прочитанные письма переносятся в TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Почтовый сервис, например Cloudflare Email Worker, передаёт каждое письмо прямо в TREK и подписывает его ключом ниже, чтобы никто другой не подбросил письма. Для установок без почтового ящика.',
   'mailAdmin.aiDaily': 'Писем с ИИ на человека в день',
   'mailAdmin.aiDailyHint': 'Сверх этого лимита читаются только машиночитаемые данные о бронировании.',
   'mailAdmin.template': 'Шаблон адреса',

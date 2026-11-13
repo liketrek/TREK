@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Ainult üleslaadimine',
   'mailAdmin.transport.imap': 'IMAP-postkast',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Postkasti pole vaja: salvestatud kiri laaditakse seadetes üles .eml-failina ja TREK loeb seda samamoodi. Hea proovimiseks.',
+  'mailAdmin.transport.imapInfo':
+    'TREK vaatab iga kahe minuti järel postkasti ja võtab uued kirjad. Kasuta eraldi postkasti, mis võtab vastu plussaadresse (trek+…@sinu-domeen), mitte isiklikku: loetud kirjad liiguvad kausta TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Meiliteenus, näiteks Cloudflare Email Worker, annab iga kirja otse TREKile ja allkirjastab selle allpool oleva võtmega, et keegi teine ei saaks kirju sisse sokutada. Postkastita seadistuste jaoks.',
   'mailAdmin.aiDaily': 'Tehisintellekti kirju inimese kohta päevas',
   'mailAdmin.aiDailyHint': 'Sellest üle loetakse ainult masinloetavaid broneeringuandmeid.',
   'mailAdmin.template': 'Aadressi mall',

@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Només pujada de fitxers',
   'mailAdmin.transport.imap': 'Bústia IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Sense bústia: es puja un correu desat com a fitxer .eml a la configuració, i TREK el llegeix igual. Ideal per provar-ho.',
+  'mailAdmin.transport.imapInfo':
+    'TREK revisa una bústia cada dos minuts i recull els correus nous. Fes servir una bústia pròpia que accepti adreces amb + (trek+…@el-teu-domini), no una de personal: els correus llegits passen a TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Un servei de correu, com un Cloudflare Email Worker, lliura cada correu directament a TREK i el signa amb la clau de sota, perquè ningú més hi pugui colar correus. Per a instal·lacions sense bústia.',
   'mailAdmin.aiDaily': 'Correus amb IA per persona i dia',
   'mailAdmin.aiDailyHint': 'Per sobre d’aquest nombre, només es llegeixen dades de reserva llegibles per màquina.',
   'mailAdmin.template': 'Plantilla d’adreça',

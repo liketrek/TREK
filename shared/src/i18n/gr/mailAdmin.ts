@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Μόνο μεταφόρτωση',
   'mailAdmin.transport.imap': 'Γραμματοκιβώτιο IMAP',
   'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    'Χωρίς γραμματοκιβώτιο: ένα αποθηκευμένο μήνυμα ανεβαίνει στις ρυθμίσεις ως αρχείο .eml και το TREK το διαβάζει με τον ίδιο τρόπο. Ιδανικό για δοκιμή.',
+  'mailAdmin.transport.imapInfo':
+    'Το TREK ελέγχει ένα γραμματοκιβώτιο κάθε δύο λεπτά και παραλαμβάνει τα νέα μηνύματα. Χρησιμοποίησε ξεχωριστό γραμματοκιβώτιο που δέχεται διευθύνσεις με + (trek+…@your-domain), όχι προσωπικό: τα αναγνωσμένα μηνύματα μεταφέρονται στο TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Μια υπηρεσία email, όπως ένα Cloudflare Email Worker, παραδίδει κάθε μήνυμα απευθείας στο TREK και το υπογράφει με το κλειδί παρακάτω, ώστε κανείς άλλος να μην μπορεί να εισάγει μηνύματα. Για εγκαταστάσεις χωρίς γραμματοκιβώτιο.',
   'mailAdmin.aiDaily': 'Email AI ανά άτομο και ημέρα',
   'mailAdmin.aiDailyHint': 'Πάνω από αυτό διαβάζονται μόνο δεδομένα κράτησης αναγνώσιμα από μηχανή.',
   'mailAdmin.template': 'Πρότυπο διεύθυνσης',

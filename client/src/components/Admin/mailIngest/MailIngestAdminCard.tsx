@@ -1,4 +1,4 @@
-import { CheckCircle, Copy, Loader2, Mail, PlugZap, Save, XCircle } from 'lucide-react';
+import { CheckCircle, Copy, Inbox, Loader2, Mail, PlugZap, Save, Upload, Webhook, XCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import type { TranslationFn } from '../../../types';
@@ -21,6 +21,7 @@ import {
   TRANSPORTS,
   problemText,
   statusFacts,
+  transportInfo,
   transportLabel,
   type MailAdminForm,
   type MailAdminProblem,
@@ -204,6 +205,24 @@ function TestResult({ admin, t }: { admin: MailIngestAdmin; t: T }) {
   );
 }
 
+const TRANSPORT_ICON = { off: Upload, imap: Inbox, webhook: Webhook } as const;
+
+/** What the chosen way of taking mail in means, as a calm blue note under the choice. */
+function TransportInfo({ transport, t }: { transport: MailAdminForm['transport']; t: T }) {
+  const Icon = TRANSPORT_ICON[transport];
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--info)_22%,transparent)] bg-info-soft px-3.5 py-3">
+      <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-[color-mix(in_srgb,var(--info)_16%,transparent)] text-info">
+        <Icon size={15} strokeWidth={2.1} />
+      </span>
+      <div className="min-w-0">
+        <p className="m-0 text-caption font-semibold text-info">{transportLabel(transport, t)}</p>
+        <p className="m-0 mt-0.5 text-caption leading-snug text-content-secondary">{transportInfo(transport, t)}</p>
+      </div>
+    </div>
+  );
+}
+
 /** Everything under the switch: how mail arrives, its fields, then save, test and the status. */
 function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailAdminForm; t: T; locale: string }) {
   const error = (problem: MailAdminProblem) => (admin.problems.includes(problem) ? problemText(problem, t) : undefined);
@@ -232,6 +251,7 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
           />
         </EditorField>
       </div>
+      <TransportInfo transport={form.transport} t={t} />
       <EditorField
         label={t('mailAdmin.template')}
         htmlFor="mail-template"

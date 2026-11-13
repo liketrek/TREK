@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Csak feltöltés',
   'mailAdmin.transport.imap': 'IMAP-postafiók',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Nem kell postafiók: a mentett levelet .eml fájlként lehet feltölteni a beállításokban, és a TREK ugyanúgy beolvassa. Kipróbáláshoz ideális.',
+  'mailAdmin.transport.imapInfo':
+    'A TREK kétpercenként belenéz egy postafiókba, és begyűjti az új leveleket. Használj külön postafiókot, amely fogadja a pluszos címeket (trek+…@sajat-domain), ne személyeset: az elolvasott levelek a TREK/processed mappába kerülnek.',
+  'mailAdmin.transport.webhookInfo':
+    'Egy levelezőszolgáltatás, például egy Cloudflare Email Worker, minden levelet közvetlenül a TREK-nek ad át, és az alábbi kulccsal aláírja, így senki más nem csempészhet be leveleket. Postafiók nélküli telepítésekhez.',
   'mailAdmin.aiDaily': 'AI-e-mailek személyenként és naponta',
   'mailAdmin.aiDailyHint': 'Efölött csak a géppel olvasható foglalási adatokat olvassa el.',
   'mailAdmin.template': 'Címsablon',

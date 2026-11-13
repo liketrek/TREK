@@ -1,4 +1,4 @@
-// FE-ADMIN-MAILINGEST-001 to FE-ADMIN-MAILINGEST-006
+// FE-ADMIN-MAILINGEST-001 to FE-ADMIN-MAILINGEST-007
 import type { MailIngestAdminStatusResponse } from '@trek/shared';
 import { describe, expect, it } from 'vitest';
 import {
@@ -11,6 +11,7 @@ import {
   problemText,
   problemsOf,
   statusFacts,
+  transportInfo,
   transportLabel,
 } from './mailIngestAdminModel';
 
@@ -95,5 +96,13 @@ describe('mailIngestAdminModel', () => {
     ]);
     expect(problemText('templateToken', t)).toContain('"token":"{token}"');
     expect(problemText('secretShort', t)).toBe('mailAdmin.problem.secretShort');
+  });
+
+  it('FE-ADMIN-MAILINGEST-007: every way of taking mail in explains itself', () => {
+    expect(TRANSPORTS.map((x) => transportInfo(x, t))).toEqual([
+      'mailAdmin.transport.offInfo',
+      'mailAdmin.transport.imapInfo',
+      'mailAdmin.transport.webhookInfo',
+    ]);
   });
 });

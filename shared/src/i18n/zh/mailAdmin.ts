@@ -9,6 +9,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': '仅上传',
   'mailAdmin.transport.imap': 'IMAP 邮箱',
   'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    '无需邮箱：在设置中把保存的邮件作为 .eml 文件上传，TREK 会以同样方式读取。适合先试用。',
+  'mailAdmin.transport.imapInfo':
+    'TREK 每两分钟查看一次邮箱并取回新邮件。请使用一个能接收加号地址(trek+…@your-domain)的专用邮箱，而不是个人邮箱：已读邮件会移到 TREK/processed。',
+  'mailAdmin.transport.webhookInfo':
+    '邮件服务(例如 Cloudflare Email Worker)会把每封邮件直接交给 TREK，并用下方的密钥签名，这样别人无法混入邮件。适用于没有邮箱的部署。',
   'mailAdmin.aiDaily': '每人每天的 AI 邮件数',
   'mailAdmin.aiDailyHint': '超过后，只读取机器可读的预订数据。',
   'mailAdmin.template': '地址模板',

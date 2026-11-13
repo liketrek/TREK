@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Solo subida de archivos',
   'mailAdmin.transport.imap': 'Buzón IMAP',
   'mailAdmin.transport.webhook': 'Webhook', // same-as-en
+  'mailAdmin.transport.offInfo':
+    'Sin buzón: se sube un correo guardado como archivo .eml en los ajustes, y TREK lo lee igual. Ideal para probarlo.',
+  'mailAdmin.transport.imapInfo':
+    'TREK revisa un buzón cada dos minutos y recoge los correos nuevos. Usa un buzón propio que acepte direcciones con + (trek+…@tu-dominio), no uno personal: los correos leídos pasan a TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Un servicio de correo, como un Cloudflare Email Worker, entrega cada correo directamente a TREK y lo firma con la clave de abajo, para que nadie más pueda colar correos. Para instalaciones sin buzón.',
   'mailAdmin.aiDaily': 'Correos con IA por persona y día',
   'mailAdmin.aiDailyHint': 'Por encima de ese número, solo se leen datos de reserva legibles por máquina.',
   'mailAdmin.template': 'Plantilla de dirección',

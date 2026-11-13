@@ -10,6 +10,12 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.transport.off': 'Лише завантаження',
   'mailAdmin.transport.imap': 'Поштова скринька IMAP',
   'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    'Поштова скринька не потрібна: збережений лист завантажують у налаштуваннях як файл .eml, і TREK читає його так само. Підходить, щоб спробувати.',
+  'mailAdmin.transport.imapInfo':
+    'TREK кожні дві хвилини зазирає до поштової скриньки й забирає нові листи. Використовуй окрему скриньку, що приймає адреси з плюсом (trek+…@your-domain), а не особисту: прочитані листи переносяться до TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Поштовий сервіс, наприклад Cloudflare Email Worker, передає кожен лист прямо в TREK і підписує його ключем нижче, щоб ніхто інший не підкинув листи. Для встановлень без поштової скриньки.',
   'mailAdmin.aiDaily': 'Листів із ШІ на особу за день',
   'mailAdmin.aiDailyHint': 'Понад цей ліміт читаються лише машинозчитувані дані про бронювання.',
   'mailAdmin.template': 'Шаблон адреси',
