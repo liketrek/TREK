@@ -29,35 +29,47 @@ export default function IntegrationsTab(): React.ReactElement {
   const demoLocked = useDemoAccountLock()
   return (
     <>
-      {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
-      <MailImportSection />
-      {/* Immich, Synology Photos and AirTrail all connect to a server the reader
-          runs themselves. On a managed install there is none, and every one of
-          these would ask for an address that cannot be reached from here. */}
-      {!managed && <PhotoProvidersSection />}
-      {S.airtrailEnabled && !managed && <AirTrailConnectionSection />}
-      {S.dawarichEnabled && !managed && <DawarichConnectionSection />}
-      {S.wandererEnabled && !managed && <WandererConnectionSection />}
-      {/* Which model reads a booking, and what that costs, comes with the instance on
-       a managed install. The per-user fallback exists for people who supply their
-       own key, and there nobody does. */}
-      {/* The assistant in TREK, with the same managed rule as AI parsing: there the
-          operator decides which model the install talks to. */}
-      {S.aiConnectionEnabled && !managed && (
-        <AiConnectionSection assistant={S.aiAssistantEnabled} parsing={S.llmEnabled} />
-      )}
-      {S.llmEnabled && S.ownParsing && !managed && <LlmConnectionSection />}
-      {/* Above MCP on purpose: an API key needs no addon, and someone looking for
-          one should not have to read past a section about AI assistants. */}
-      <DemoLock locked={demoLocked} reason={S.t('demo.lock.apiKeys')}>
-        <ApiKeysSection />
-      </DemoLock>
-      {/* TREK inside Claude rides on the MCP server, so it follows that addon. */}
-      {S.mcpEnabled && (
-        <DemoLock locked={demoLocked} reason={S.t('demo.lock.mcp')}>
-          <IntegrationsMcpSection S={S} />
-        </DemoLock>
-      )}
+      {/* Two columns from xl up, as on the admin settings: what connects your
+          trips with other services on the left, AI and developer access on the
+          right. Flex, not a grid: a column with nothing to show (a managed
+          install without the mail import) is empty and drops out, and the other
+          takes the whole width instead of leaving a hole. The cards carry their
+          own bottom margin, so only the gap between the columns is set. */}
+      <div className="xl:flex xl:items-start xl:gap-5">
+        <div className="min-w-0 flex-1 empty:hidden">
+          {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
+          <MailImportSection />
+          {/* Immich, Synology Photos and AirTrail all connect to a server the reader
+              runs themselves. On a managed install there is none, and every one of
+              these would ask for an address that cannot be reached from here. */}
+          {!managed && <PhotoProvidersSection />}
+          {S.airtrailEnabled && !managed && <AirTrailConnectionSection />}
+          {S.dawarichEnabled && !managed && <DawarichConnectionSection />}
+          {S.wandererEnabled && !managed && <WandererConnectionSection />}
+        </div>
+        <div className="min-w-0 flex-1 empty:hidden">
+          {/* Which model reads a booking, and what that costs, comes with the instance on
+           a managed install. The per-user fallback exists for people who supply their
+           own key, and there nobody does. */}
+          {/* The assistant in TREK, with the same managed rule as AI parsing: there the
+              operator decides which model the install talks to. */}
+          {S.aiConnectionEnabled && !managed && (
+            <AiConnectionSection assistant={S.aiAssistantEnabled} parsing={S.llmEnabled} />
+          )}
+          {S.llmEnabled && S.ownParsing && !managed && <LlmConnectionSection />}
+          {/* Above MCP on purpose: an API key needs no addon, and someone looking for
+              one should not have to read past a section about AI assistants. */}
+          <DemoLock locked={demoLocked} reason={S.t('demo.lock.apiKeys')}>
+            <ApiKeysSection />
+          </DemoLock>
+          {/* TREK inside Claude rides on the MCP server, so it follows that addon. */}
+          {S.mcpEnabled && (
+            <DemoLock locked={demoLocked} reason={S.t('demo.lock.mcp')}>
+              <IntegrationsMcpSection S={S} />
+            </DemoLock>
+          )}
+        </div>
+      </div>
       <McpTokenModals S={S} />
       <OAuthClientModals S={S} />
     </>
