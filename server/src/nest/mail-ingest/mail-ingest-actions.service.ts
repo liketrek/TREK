@@ -20,6 +20,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { MailReadService } from '../llm-parse/mail-read.service';
 import type { WalkedMail } from '../llm-parse/mail-read.types';
 import { MailIngestApplyService } from './mail-ingest-apply.service';
+import { MailIngestNotifyService } from './mail-ingest-notify.service';
 import { implausible, type TripOption } from './mail-ingest-checks';
 import { MailIngestTripsService } from './mail-ingest-trips.service';
 import { IMPORT_SOURCES, UNDO_WINDOW_DAYS } from './mail-ingest.constants';
@@ -57,6 +58,7 @@ export class MailIngestActionsService {
     @InjectRepository(MailIngestCandidates) private readonly candidates: MailIngestCandidatesRepository,
     @InjectRepository(MailIngestMessages) private readonly messages: MailIngestMessagesRepository,
     private readonly apply: MailIngestApplyService,
+    private readonly notify: MailIngestNotifyService,
     private readonly trips: MailIngestTripsService,
     private readonly reader: MailReadService,
     private readonly airports: AirportsService,
@@ -265,9 +267,11 @@ export class MailIngestActionsService {
     return raw ? this.reader.walk(raw) : null;
   }
 
+  /** The entry as it is now; its person's clients hear the inbox changed. */
   private async reload(id: number): Promise<MailIngestCandidateRow> {
     const row = await this.candidates.findById(id);
     if (!row) throw new DomainError(404, 'Entry not found');
+    this.notify.inboxChanged(row.user_id, await this.candidates.countPending(row.user_id));
     return row;
   }
 }

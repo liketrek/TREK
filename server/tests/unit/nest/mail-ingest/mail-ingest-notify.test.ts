@@ -8,6 +8,7 @@ import { MailIngestActionsService } from '../../../../src/nest/mail-ingest/mail-
 import { MailIngestNotificationActions } from '../../../../src/nest/mail-ingest/mail-ingest-notification-actions';
 import { MailIngestNotifyService } from '../../../../src/nest/mail-ingest/mail-ingest-notify.service';
 import { NotificationsService } from '../../../../src/nest/notifications/notifications.service';
+import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
 import { Test } from '@nestjs/testing';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +23,7 @@ vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({
 
 const notifications = { send: vi.fn(), registerResponseAction: vi.fn() };
 const actions = { undo: vi.fn(async () => ({})) };
+const realtime = { broadcastToUser: vi.fn() };
 let notify: MailIngestNotifyService;
 let buttons: MailIngestNotificationActions;
 
@@ -34,6 +36,7 @@ beforeEach(async () => {
       MailIngestNotificationActions,
       { provide: NotificationsService, useValue: notifications },
       { provide: MailIngestActionsService, useValue: actions },
+      { provide: RealtimeService, useValue: realtime },
     ],
   }).compile();
   notify = moduleRef.get(MailIngestNotifyService);
@@ -67,6 +70,7 @@ describe('MailIngestNotifyService', () => {
     expect(notifications.send).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'mail_booking_pending', params: { count: '2' } }),
     );
+    expect(realtime.broadcastToUser).toHaveBeenCalledWith(3, { type: 'mailInbox:changed', pending: 2 });
   });
 });
 

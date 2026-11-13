@@ -1,6 +1,7 @@
 import type { MailIngestPersonRow } from '../../db/repositories/MailIngestCandidates.repository';
 import { logError } from '../audit/audit-log.logger';
 import { NotificationsService } from '../notifications/notifications.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { KEEP_ACTION, UNDO_ACTION } from './mail-ingest.constants';
 import { Injectable } from '@nestjs/common';
 
@@ -22,7 +23,15 @@ interface AddedBooking {
  */
 @Injectable()
 export class MailIngestNotifyService {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeService,
+  ) {}
+
+  /** Tells the person's open clients how many entries wait in their inbox now. */
+  inboxChanged(userId: number, pending: number): void {
+    this.realtime.broadcastToUser(userId, { type: 'mailInbox:changed', pending });
+  }
 
   /** @txStandalone a notice reports a write that committed; a failed one undoes nothing. */
   async bookingAdded(forwarder: MailIngestPersonRow, booking: AddedBooking): Promise<void> {
@@ -63,6 +72,7 @@ export class MailIngestNotifyService {
 
   /** @txStandalone one note for the bookings of a mail that wait in the inbox. */
   async bookingsPending(userId: number, pending: number): Promise<void> {
+    this.inboxChanged(userId, pending);
     await this.quietly(
       this.notifications.send({
         event: 'mail_booking_pending',
