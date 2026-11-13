@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{trip} için {count} dosya',
   'files.download': 'İndir',
   'files.openError': 'Dosya açılamadı',
+  'files.downloadError': 'Dosya indirilemedi',
   'files.downloadPdf': 'PDF İndir',
   'files.count': '{count} dosya',
   'files.count.one': '{count} dosya',

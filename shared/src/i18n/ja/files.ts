@@ -12,6 +12,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{trip} のファイル {count} 件',
   'files.download': 'ダウンロード',
   'files.openError': 'ファイルを開けませんでした',
+  'files.downloadError': 'ファイルをダウンロードできませんでした',
   'files.downloadPdf': 'PDFをダウンロード',
   'files.count': '{count}件のファイル',
   'files.uploaded': '{count}件アップロードしました',

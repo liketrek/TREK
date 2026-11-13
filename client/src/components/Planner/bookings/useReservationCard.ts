@@ -1,9 +1,9 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { useState } from 'react';
 
 import { useTripStore } from '../../../store/tripStore';
 import type { Reservation } from '../../../types';
 import { deleteBodyKey } from './bookingsModel';
-import { openAttachment } from './openAttachment';
+import { type Attachment, downloadAttachment, openAttachment } from './openAttachment';
 import { useReservationDelete } from './useReservationDelete';
 
 /** What a phone card needs from the planner it sits in. */
@@ -19,10 +19,9 @@ export interface ReservationCardHost {
  * opening: its booking code blurred until tapped while the "Blur booking codes"
  * preference is on (off, the code is plain and has no toggle), the delete
  * behind a question with a toast when it fails, and its attached files, which
- * open from a chip inside the card's own button (so a click or Enter/Space on
- * the chip stops there). A file that cannot be opened stays silent here; the
- * desktop panel toasts it. The delete question names a linked expense, which
- * goes with the booking.
+ * open or download from their own row. A file that cannot be opened or saved
+ * stays silent here; the desktop panel toasts it. The delete question names a
+ * linked expense, which goes with the booking.
  */
 export function useReservationCard(res: Reservation, host: ReservationCardHost) {
   const blurCodes = host.settings.blur_booking_codes;
@@ -45,18 +44,7 @@ export function useReservationCard(res: Reservation, host: ReservationCardHost) 
     confirmDelete: () => {
       void confirmDelete();
     },
-    fileChip: (f: { url: string; original_name: string }) => ({
-      onClick: (e: MouseEvent) => {
-        e.stopPropagation();
-        openAttachment(f);
-      },
-      onKeyDown: (e: KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          openAttachment(f);
-        }
-      },
-    }),
+    openFile: (f: Attachment) => openAttachment(f),
+    downloadFile: (f: Attachment) => downloadAttachment(f),
   };
 }

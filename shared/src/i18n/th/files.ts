@@ -12,6 +12,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{count} ไฟล์สำหรับ {trip}',
   'files.download': 'ดาวน์โหลด',
   'files.openError': 'ไม่สามารถเปิดไฟล์ได้',
+  'files.downloadError': 'ไม่สามารถดาวน์โหลดไฟล์ได้',
   'files.downloadPdf': 'ดาวน์โหลดไฟล์ PDF',
   'files.count': '{count} ไฟล์',
   'files.uploaded': 'อัปโหลดแล้ว {count} ไฟล์',

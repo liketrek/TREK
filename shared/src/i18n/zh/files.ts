@@ -12,6 +12,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{trip} 的 {count} 个文件',
   'files.download': '下载',
   'files.openError': '无法打开文件',
+  'files.downloadError': '无法下载文件',
   'files.downloadPdf': '下载 PDF',
   'files.count': '{count} 个文件',
   'files.uploaded': '已上传 {count} 个文件',

@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} fájl a következőhöz: {trip}',
   'files.download': 'Letöltés',
   'files.openError': 'A fájl megnyitása sikertelen',
+  'files.downloadError': 'A fájl letöltése sikertelen',
   'files.downloadPdf': 'PDF letöltése',
   'files.count': '{count} fájl',
   'files.count.one': '{count} fájl',

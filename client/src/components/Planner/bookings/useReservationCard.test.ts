@@ -1,17 +1,19 @@
 // FE-PLANNER-RESLISTFILTER-005 to -009: what one card of the phone's bookings
 // and transports tabs does.
 import { act, renderHook } from '@testing-library/react';
-import type { KeyboardEvent, MouseEvent } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildBudgetItem, buildReservation } from '../../../../tests/helpers/factories';
 import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
 import { useTripStore } from '../../../store/tripStore';
 import type { Reservation } from '../../../types';
-import { openFile } from '../../../utils/fileDownload';
+import { downloadFile, openFile } from '../../../utils/fileDownload';
 import { useReservationCard } from './useReservationCard';
 
-vi.mock('../../../utils/fileDownload', () => ({ openFile: vi.fn(() => Promise.resolve()) }));
+vi.mock('../../../utils/fileDownload', () => ({
+  openFile: vi.fn(() => Promise.resolve()),
+  downloadFile: vi.fn(() => Promise.resolve()),
+}));
 
 const traveler = (user_id: number) => ({ user_id, username: `u${user_id}` });
 const ann = buildReservation({
@@ -36,7 +38,10 @@ describe('useReservationCard', () => {
     t: (key: string) => key,
   });
 
-  beforeEach(() => vi.mocked(openFile).mockClear());
+  beforeEach(() => {
+    vi.mocked(openFile).mockClear();
+    vi.mocked(downloadFile).mockClear();
+  });
 
   it('FE-PLANNER-RESLISTFILTER-005: with the blur preference on the code is blurred until toggled', () => {
     const { result } = renderHook(() => useReservationCard(ann, host(true)));
@@ -70,25 +75,14 @@ describe('useReservationCard', () => {
     await vi.waitFor(() => expect(opts.toast.error).toHaveBeenCalledWith('reservations.toast.deleteError'));
   });
 
-  it('FE-PLANNER-RESLISTFILTER-008: a file chip opens its file on click, Enter or Space and stops there', () => {
+  it('FE-PLANNER-RESLISTFILTER-008: a file opens or downloads under its own name (#2585)', () => {
     const { result } = renderHook(() => useReservationCard(ann, host()));
-    const chip = result.current.fileChip(file);
-    const click = { stopPropagation: vi.fn() } as unknown as MouseEvent;
-    chip.onClick(click);
-    expect(click.stopPropagation).toHaveBeenCalled();
-    const key = (k: string) =>
-      ({ key: k, preventDefault: vi.fn(), stopPropagation: vi.fn() }) as unknown as KeyboardEvent;
-    const enter = key('Enter');
-    chip.onKeyDown(enter);
-    chip.onKeyDown(key(' '));
-    const tab = key('Tab');
-    chip.onKeyDown(tab);
-    expect(enter.preventDefault).toHaveBeenCalled();
-    expect(enter.stopPropagation).toHaveBeenCalled();
-    expect(tab.preventDefault).not.toHaveBeenCalled();
-    expect(tab.stopPropagation).not.toHaveBeenCalled();
-    expect(openFile).toHaveBeenCalledTimes(3);
+    result.current.openFile(file);
     expect(openFile).toHaveBeenCalledWith('/uploads/f/1', 'voucher.pdf');
+    expect(downloadFile).not.toHaveBeenCalled();
+    result.current.downloadFile(file);
+    expect(downloadFile).toHaveBeenCalledWith('/uploads/f/1', 'voucher.pdf');
+    expect(openFile).toHaveBeenCalledTimes(1);
   });
 
   it('FE-PLANNER-RESLISTFILTER-009: the card knows whether deleting it takes a linked expense along (#2604)', () => {

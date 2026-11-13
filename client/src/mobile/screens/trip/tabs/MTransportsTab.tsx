@@ -194,9 +194,9 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
 
             <CardNotes notes={res.notes} />
-
-            <CardFiles files={files} card={card} t={t} />
           </button>
+
+          <CardFiles files={files} card={card} t={t} />
         </div>
       )}
       {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}

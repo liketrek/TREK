@@ -15,6 +15,7 @@ const files: TranslationStrings = {
   'files.subtitle.many': '{count} файлов для {trip}',
   'files.download': 'Скачать',
   'files.openError': 'Не удалось открыть файл',
+  'files.downloadError': 'Не удалось скачать файл',
   'files.downloadPdf': 'Скачать PDF',
   'files.count': '{count} файла',
   'files.count.one': '{count} файл',

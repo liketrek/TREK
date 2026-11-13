@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { AlertCircle, ChevronDown, ChevronUp, FileText, Plane } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, Download, FileText, Plane } from 'lucide-react'
 import type { Reservation, TripFile } from '../../../types'
 import type { ReservationTraveler } from '@trek/shared'
 import { useTranslation } from '../../../i18n'
@@ -10,7 +10,7 @@ import { PILL } from '../../shared/DialogShell'
 import { useToast } from '../../shared/Toast'
 import { parseMeta, typeInfo } from './bookingsModel'
 import type { BookingFacts } from './bookingFacts'
-import { openAttachment } from './openAttachment'
+import { downloadAttachment, openAttachment } from './openAttachment'
 
 // The phone's card language on the desktop: small Geist eyebrows, framed value
 // boxes, count pills. Sizes scale with the user's text size setting.
@@ -289,22 +289,46 @@ export function useOpenFile() {
   return (f: TripFile) => openAttachment(f, () => toast.error(t('files.openError')))
 }
 
-/** The attached files, one framed row each, opening the file. */
+/** Saves an attached file, and says so when it cannot. */
+function useDownloadFile() {
+  const { t } = useTranslation()
+  const toast = useToast()
+  return (f: TripFile) => downloadAttachment(f, () => toast.error(t('files.downloadError')))
+}
+
+/**
+ * The attached files, one framed row each: the name opens the file, the icon at
+ * the end saves it. Two sibling buttons rather than one row button, since
+ * buttons cannot nest; both stop the click so the card around them stays put.
+ */
 export function FileRows({ files }: { files: TripFile[] }) {
+  const { t } = useTranslation()
   const open = useOpenFile()
+  const download = useDownloadFile()
   if (files.length === 0) return null
   return (
     <div className="flex flex-col gap-1">
       {files.map(f => (
-        <button
-          key={f.id}
-          type="button"
-          onClick={e => { e.stopPropagation(); open(f) }}
-          className={`${BOX} flex items-center gap-1.5 px-[10px] py-[7px] text-start hover:bg-surface-hover`}
-        >
-          <FileText size={12} strokeWidth={2} className="flex-none text-content-muted" />
-          <span className="truncate font-geist font-semibold text-content-muted" style={fs(11.5)}>{f.original_name}</span>
-        </button>
+        <div key={f.id} className={`${BOX} flex items-stretch overflow-hidden`}>
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); open(f) }}
+            className="flex min-w-0 flex-1 items-center gap-1.5 py-[7px] pe-1 ps-[10px] text-start hover:bg-surface-hover"
+          >
+            <FileText size={12} strokeWidth={2} className="flex-none text-content-muted" />
+            <span className="truncate font-geist font-semibold text-content-muted" style={fs(11.5)}>{f.original_name}</span>
+          </button>
+          <Tooltip label={t('files.download')}>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); download(f) }}
+              aria-label={`${t('files.download')}: ${f.original_name}`}
+              className="grid flex-none place-items-center px-[9px] text-content-faint hover:bg-surface-hover hover:text-content"
+            >
+              <Download size={12} strokeWidth={2} />
+            </button>
+          </Tooltip>
+        </div>
       ))}
     </div>
   )

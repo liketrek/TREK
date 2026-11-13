@@ -15,6 +15,7 @@ const files: TranslationStrings = {
   'files.subtitle.many': '{count} plików z podróży {trip}',
   'files.download': 'Pobierz',
   'files.openError': 'Nie można otworzyć pliku',
+  'files.downloadError': 'Nie można pobrać pliku',
   'files.downloadPdf': 'Pobierz PDF',
   'files.count': '{count} pliku',
   'files.count.one': '{count} plik',

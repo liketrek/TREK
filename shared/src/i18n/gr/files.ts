@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} αρχείο για {trip}',
   'files.download': 'Λήψη',
   'files.openError': 'Δεν ήταν δυνατό το άνοιγμα του αρχείου',
+  'files.downloadError': 'Δεν ήταν δυνατή η λήψη του αρχείου',
   'files.downloadPdf': 'Λήψη PDF',
   'files.count': '{count} αρχεία',
   'files.count.one': '{count} αρχείο',
