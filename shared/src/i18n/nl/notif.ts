@@ -60,6 +60,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.shared': '{actor} heeft {booking} uit een doorgestuurde mail aan {trip} toegevoegd',
   'notif.mail_booking_pending.title': 'Doorgestuurde boekingen om te controleren',
   'notif.mail_booking_pending.text': 'Doorgestuurde boekingen wachten op je: {count}',
+  'notif.mail_ingest_paused.title': 'Mailimport gepauzeerd',
+  'notif.mail_ingest_paused.text': 'Doorgestuurde boekingsmails worden voorlopig niet aangenomen. Je adressen blijven en werken weer zodra de import terug is.',
   'notif.action.undo': 'Ongedaan maken',
   'notif.action.keep': 'Behouden',
   'notif.action.review': 'Controleren',

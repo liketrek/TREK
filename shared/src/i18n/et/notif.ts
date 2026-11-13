@@ -60,6 +60,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.shared': '{actor} lisas edastatud kirjast {booking} reisile {trip}',
   'notif.mail_booking_pending.title': 'Ülevaatamist ootavad edastatud broneeringud',
   'notif.mail_booking_pending.text': 'Sind ootavad edastatud broneeringud: {count}',
+  'notif.mail_ingest_paused.title': 'Kirjade import on peatatud',
+  'notif.mail_ingest_paused.text': 'Edastatud broneeringukirju praegu vastu ei võeta. Sinu aadressid jäävad alles ja töötavad uuesti, kui import tagasi on.',
   'notif.action.undo': 'Võta tagasi',
   'notif.action.keep': 'Jäta alles',
   'notif.action.review': 'Vaata üle',

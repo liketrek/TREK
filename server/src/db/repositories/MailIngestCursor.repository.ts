@@ -4,8 +4,12 @@ import type { DbTimestamp } from '../types';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
-/** What reads mail: an IMAP box, the TREK Cloud relay, or the processing pipeline itself. */
-type MailIngestCursorTransport = 'imap' | 'cloud' | 'pipeline';
+/**
+ * What reads mail: an IMAP box, the TREK Cloud relay, or the processing
+ * pipeline itself; and the pause notice, whose good run is the pause it
+ * announced.
+ */
+type MailIngestCursorTransport = 'imap' | 'cloud' | 'pipeline' | 'notice';
 
 /** One `mail_ingest_cursor` row as stored. */
 interface MailIngestCursorRow {
@@ -97,6 +101,16 @@ export class MailIngestCursorRepository extends TrekRepository<MailIngestCursor>
         ...(position.uidValidity !== undefined && { uid_validity: position.uidValidity }),
         ...(position.lastUid !== undefined && { last_uid: position.lastUid }),
       })
+      .where('transport', '=', transport)
+      .where('mailbox', '=', mailbox)
+      .execute();
+  }
+
+  /** Forgets the last good run, as if the reader had never run. */
+  async forgetOk(transport: MailIngestCursorTransport, mailbox: string): Promise<void> {
+    await this.db()
+      .updateTable('mail_ingest_cursor')
+      .set({ last_ok_at: null })
       .where('transport', '=', transport)
       .where('mailbox', '=', mailbox)
       .execute();

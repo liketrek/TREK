@@ -58,6 +58,9 @@ describe('MailIngestCursorRepository', () => {
     await cursor.recordOk('imap', 'INBOX', T1);
     row = await cursor.find('imap', 'INBOX');
     expect(row).toMatchObject({ uid_validity: 7, last_uid: 42, last_ok_at: T1, last_error: null });
+
+    await cursor.forgetOk('imap', 'INBOX');
+    expect(await cursor.find('imap', 'INBOX')).toMatchObject({ uid_validity: 7, last_ok_at: null });
     expect(await cursor.find('cloud', '')).toBeNull();
   });
 });

@@ -100,6 +100,10 @@ const en: NotificationLocale = {
       title: 'Đặt chỗ chuyển tiếp cần xem lại',
       body: `Đặt chỗ chuyển tiếp đang chờ bạn trong TREK: ${p.count}. Mỗi mục cho biết vì sao nó không được tự động thêm.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Đã tạm dừng nhập email',
+      body: 'Hiện tại TREK chưa nhận email đặt chỗ được chuyển tiếp, vì vậy hãy tạm chưa chuyển tiếp. Địa chỉ của bạn vẫn được giữ và sẽ hoạt động lại khi tính năng nhập quay lại, còn các đặt chỗ đã thêm vẫn nằm trong chuyến đi của bạn.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

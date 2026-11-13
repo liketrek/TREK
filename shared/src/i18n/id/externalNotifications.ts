@@ -98,6 +98,10 @@ const id: NotificationLocale = {
       title: 'Pemesanan terusan untuk ditinjau',
       body: `Pemesanan terusan yang menunggumu di TREK: ${p.count}. Masing-masing menyebutkan mengapa tidak ditambahkan otomatis.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Impor email dijeda',
+      body: 'TREK untuk sementara tidak menerima email pemesanan yang diteruskan, jadi tunda dulu meneruskannya. Alamatmu tetap ada dan akan berfungsi lagi saat impor kembali, dan pemesanan yang sudah ditambahkan tetap ada di perjalananmu.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

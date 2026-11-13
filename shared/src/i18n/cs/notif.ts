@@ -61,6 +61,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.shared': '{actor} přidal(a) {booking} do {trip} z přeposlaného e-mailu',
   'notif.mail_booking_pending.title': 'Přeposlané rezervace ke kontrole',
   'notif.mail_booking_pending.text': 'Přeposlané rezervace čekající na vás: {count}',
+  'notif.mail_ingest_paused.title': 'Import e-mailů pozastaven',
+  'notif.mail_ingest_paused.text': 'Přeposlané e-maily s rezervacemi se zatím nepřijímají. Vaše adresy zůstávají a znovu budou fungovat, až se import vrátí.',
   'notif.action.undo': 'Vrátit zpět',
   'notif.action.keep': 'Ponechat',
   'notif.action.review': 'Zkontrolovat',

@@ -652,6 +652,7 @@ describe('send() — in-app notification content', () => {
       targetId: user.id,
       params: { count: '2' },
     });
+    await send({ event: 'mail_ingest_paused', actorId: null, scope: 'user', targetId: user.id, params: {} });
 
     const notifs = await getInAppNotifications(user.id);
     expect(notifs.map((n) => [n.text_key, n.navigate_target])).toEqual(
@@ -659,6 +660,7 @@ describe('send() — in-app notification content', () => {
         ['notif.mail_booking_added.text', '/trips/7?tab=bookings'],
         ['notif.mail_booking_added.shared', '/trips/7?tab=bookings'],
         ['notif.mail_booking_pending.text', '/dashboard?inbox=mail'],
+        ['notif.mail_ingest_paused.text', null],
       ]),
     );
   });

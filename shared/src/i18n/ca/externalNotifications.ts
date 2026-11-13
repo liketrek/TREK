@@ -107,6 +107,10 @@ const ca: NotificationLocale = {
       title: 'Reserves reenviades per revisar',
       body: `Reserves reenviades pendents a TREK: ${p.count}. Cadascuna diu per què no s’ha afegit sola.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Importació de correus en pausa',
+      body: 'De moment TREK no accepta correus de reserva reenviats, així que espera abans de reenviar-ne. Les teves adreces es mantenen i tornaran a funcionar quan torni la importació, i les reserves ja afegides continuen als teus viatges.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

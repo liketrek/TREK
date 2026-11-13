@@ -107,6 +107,10 @@ const hu: NotificationLocale = {
       title: 'Ellenőrizendő továbbított foglalások',
       body: `Rád váró továbbított foglalások a TREK-ben: ${p.count}. Mindegyiknél ott áll, miért nem került be magától.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'E-mail-importálás szüneteltetve',
+      body: 'A TREK egyelőre nem fogad továbbított foglalási e-maileket, ezért most ne továbbíts ilyet. A címeid megmaradnak, és újra működnek, amint az importálás visszatér, a már hozzáadott foglalások pedig az utazásaidban maradnak.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

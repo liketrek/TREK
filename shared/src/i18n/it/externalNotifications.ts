@@ -104,6 +104,10 @@ const it: NotificationLocale = {
       title: 'Prenotazioni inoltrate da controllare',
       body: `Prenotazioni inoltrate in attesa in TREK: ${p.count}. Ognuna indica perché non è stata aggiunta da sola.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Importazione email in pausa',
+      body: 'Per ora TREK non accetta le email di prenotazione inoltrate, quindi aspetta prima di inoltrarle. I tuoi indirizzi restano e funzioneranno di nuovo quando l’importazione tornerà, e le prenotazioni già aggiunte restano nei tuoi viaggi.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

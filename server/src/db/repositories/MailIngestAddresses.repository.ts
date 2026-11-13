@@ -94,6 +94,18 @@ export class MailIngestAddressesRepository extends TrekRepository<MailIngestAddr
     return Number(result.numUpdatedRows);
   }
 
+  /** The people who hold at least one address that is not revoked. */
+  async listHolders(): Promise<number[]> {
+    const rows = await this.db()
+      .selectFrom('mail_ingest_addresses')
+      .select('user_id')
+      .distinct()
+      .where('revoked_at', 'is', null)
+      .orderBy('user_id')
+      .execute();
+    return rows.map((row) => row.user_id);
+  }
+
   /** Notes that a mail came in on the address. */
   async touchUsed(id: number, at: DbTimestamp): Promise<void> {
     await this.db().updateTable('mail_ingest_addresses').set({ last_used_at: at }).where('id', '=', id).execute();

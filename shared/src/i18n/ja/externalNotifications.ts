@@ -98,6 +98,10 @@ const ja: NotificationLocale = {
       title: '確認待ちの転送予約',
       body: `TREK に確認待ちの転送予約があります: ${p.count} 件。それぞれに自動で追加されなかった理由が表示されます。`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'メール取り込みを一時停止中',
+      body: 'TREK は現在、転送された予約メールを受け付けていないため、転送はしばらくお待ちください。アドレスはそのまま残り、取り込みが再開されると再び使えます。すでに追加された予約は旅行に残ります。',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

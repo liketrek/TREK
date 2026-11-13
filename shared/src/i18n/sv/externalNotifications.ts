@@ -107,6 +107,10 @@ const en: NotificationLocale = {
       title: 'Vidarebefordrade bokningar att granska',
       body: `Vidarebefordrade bokningar som väntar på dig i TREK: ${p.count}. Vid varje står varför den inte lades till av sig själv.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Mejlimport pausad',
+      body: 'TREK tar inte emot vidarebefordrade bokningsmejl just nu, så vänta med att vidarebefordra dem. Dina adresser finns kvar och fungerar igen när importen är tillbaka, och bokningar som redan lagts till finns kvar i dina resor.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

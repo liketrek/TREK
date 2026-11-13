@@ -75,6 +75,19 @@ export class MailIngestNotifyService {
     );
   }
 
+  /** @txStandalone the import stopped; the person's address takes no mail until it is back. */
+  async importPaused(userId: number): Promise<void> {
+    await this.quietly(
+      this.notifications.send({
+        event: 'mail_ingest_paused',
+        actorId: null,
+        scope: 'user',
+        targetId: userId,
+        params: {},
+      }),
+    );
+  }
+
   /** @txStandalone one note for the bookings of a mail that wait in the inbox. */
   async bookingsPending(userId: number, pending: number): Promise<void> {
     this.inboxChanged(userId, pending);

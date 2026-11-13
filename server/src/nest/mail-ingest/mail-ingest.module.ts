@@ -30,6 +30,7 @@ import { MailIngestInboxService } from './mail-ingest-inbox.service';
 import { MailIngestIntakeService } from './mail-ingest-intake.service';
 import { MailIngestNotificationActions } from './mail-ingest-notification-actions';
 import { MailIngestNotifyService } from './mail-ingest-notify.service';
+import { MailIngestPauseJob } from './mail-ingest-pause.job';
 import { MailIngestProcessJob } from './mail-ingest-process.job';
 import { MailIngestProcessService } from './mail-ingest-process.service';
 import { MailIngestReadingService } from './mail-ingest-reading.service';
@@ -109,6 +110,7 @@ import { Module } from '@nestjs/common';
     MailIngestRetentionJob,
     MailIngestImapJob,
     MailIngestRelayJob,
+    MailIngestPauseJob,
   ],
   exports: [
     MailIngestSettingsService,

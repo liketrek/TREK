@@ -101,6 +101,10 @@ const zhTW: NotificationLocale = {
       title: '待檢查的轉寄預訂',
       body: `TREK 中等待你處理的轉寄預訂：${p.count}。每一筆都說明了為什麼沒有自動新增。`,
     }),
+    mail_ingest_paused: () => ({
+      title: '郵件匯入已暫停',
+      body: 'TREK 暫時不接收轉寄的預訂郵件，請先不要轉寄。你的地址會保留，匯入恢復後即可再次使用，已新增的預訂仍保留在你的行程中。',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

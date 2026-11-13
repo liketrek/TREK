@@ -48,6 +48,7 @@ export type NotifEventType =
   | 'wanderer_source_hint'
   | 'mail_booking_added'
   | 'mail_booking_pending'
+  | 'mail_ingest_paused'
   | 'plugin_notification';
 
 /** Every event, in the order the preferences UI lists them. */
@@ -72,6 +73,7 @@ export const ALL_EVENT_TYPES: NotifEventType[] = [
   'wanderer_source_hint',
   'mail_booking_added',
   'mail_booking_pending',
+  'mail_ingest_paused',
   'plugin_notification',
 ];
 

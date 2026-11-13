@@ -1,7 +1,8 @@
 /**
  * The forwarding addresses through their repository: a person's own address
  * and a trip's are told apart, renewing revokes instead of deleting so the old
- * token is still recognised, and a mail notes the address it came in on.
+ * token is still recognised, a mail notes the address it came in on, and the
+ * people who hold a live address are named for the pause notice.
  */
 import { MailIngestAddresses } from '../../../../src/db/entities/MailIngestAddresses.entity';
 import type { MailIngestAddressesRepository } from '../../../../src/db/repositories/MailIngestAddresses.repository';
@@ -92,5 +93,18 @@ describe('MailIngestAddressesRepository', () => {
     });
     await addresses.touchUsed(id, LATER);
     expect((await addresses.findById(id))?.last_used_at).toBe(LATER);
+  });
+
+  it('names each person who holds an address that is not revoked, once', async () => {
+    const { user: mia } = await makeUser(t);
+    const { user: noah } = await makeUser(t);
+    const trip = await makeTrip(t, mia.id);
+    await addresses.insertAddress({ userId: mia.id, tripId: null, tokenHash: 'm1', tokenEnc: 'e', createdAt: AT });
+    await addresses.insertAddress({ userId: mia.id, tripId: trip.id, tokenHash: 'm2', tokenEnc: 'e', createdAt: AT });
+    await addresses.insertAddress({ userId: noah.id, tripId: null, tokenHash: 'n1', tokenEnc: 'e', createdAt: AT });
+    expect(await addresses.listHolders()).toEqual([mia.id, noah.id].sort((a, b) => a - b));
+
+    await addresses.revokeLive(noah.id, null, LATER);
+    expect(await addresses.listHolders()).toEqual([mia.id]);
   });
 });

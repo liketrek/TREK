@@ -101,6 +101,10 @@ const zh: NotificationLocale = {
       title: '待查看的转发预订',
       body: `TREK 中等待你处理的转发预订：${p.count}。每一条都说明了为什么没有自动添加。`,
     }),
+    mail_ingest_paused: () => ({
+      title: '邮件导入已暂停',
+      body: 'TREK 暂时不接收转发的预订邮件，请先不要转发。你的地址会保留，导入恢复后即可再次使用，已添加的预订仍保留在你的行程中。',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

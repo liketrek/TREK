@@ -107,6 +107,10 @@ const en: NotificationLocale = {
       title: 'Forwarded bookings to review',
       body: `Forwarded bookings waiting for you in TREK: ${p.count}. Each one says why it was not added on its own.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Mail import paused',
+      body: 'TREK does not take in forwarded booking mails for now, so hold off forwarding them. Your addresses stay and work again once the import is back, and bookings already added stay in your trips.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

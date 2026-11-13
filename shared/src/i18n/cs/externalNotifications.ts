@@ -113,6 +113,10 @@ const cs: NotificationLocale = {
       title: 'Přeposlané rezervace ke kontrole',
       body: `Přeposlané rezervace čekající na vás v TREK: ${p.count}. U každé je uvedeno, proč nebyla přidána sama.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Import e-mailů pozastaven',
+      body: 'TREK zatím nepřijímá přeposlané e-maily s rezervacemi, proto je zatím nepřeposílejte. Vaše adresy zůstávají a znovu budou fungovat, až se import vrátí, a již přidané rezervace zůstávají ve vašich cestách.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

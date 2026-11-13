@@ -107,6 +107,10 @@ const nl: NotificationLocale = {
       title: 'Doorgestuurde boekingen om te controleren',
       body: `In TREK wachten doorgestuurde boekingen op je: ${p.count}. Bij elke staat waarom hij niet vanzelf is toegevoegd.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Mailimport gepauzeerd',
+      body: 'TREK neemt doorgestuurde boekingsmails voorlopig niet aan, stuur er dus even geen door. Je adressen blijven en werken weer zodra de import terug is, en boekingen die al zijn toegevoegd blijven in je reizen.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

@@ -74,6 +74,18 @@ describe('MailIngestNotifyService', () => {
     notify.settingsChanged(3);
     expect(realtime.broadcastToUser).toHaveBeenCalledWith(3, { type: 'mailInbox:settings' });
   });
+
+  it('tells a person the import paused, and survives a failed send', async () => {
+    notifications.send.mockRejectedValue(new Error('smtp down'));
+    await expect(notify.importPaused(4)).resolves.toBeUndefined();
+    expect(notifications.send).toHaveBeenCalledWith({
+      event: 'mail_ingest_paused',
+      actorId: null,
+      scope: 'user',
+      targetId: 4,
+      params: {},
+    });
+  });
 });
 
 describe('MailIngestNotificationActions', () => {

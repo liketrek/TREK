@@ -61,6 +61,8 @@ const notif: TranslationStrings = {
     '{actor}, iletilen bir e-postadan {booking} rezervasyonunu {trip} seyahatine ekledi',
   'notif.mail_booking_pending.title': 'İncelenecek iletilen rezervasyonlar',
   'notif.mail_booking_pending.text': 'Seni bekleyen iletilen rezervasyonlar: {count}',
+  'notif.mail_ingest_paused.title': 'E-posta içe aktarımı duraklatıldı',
+  'notif.mail_ingest_paused.text': 'İletilen rezervasyon e-postaları şimdilik kabul edilmiyor. Adreslerin kalıyor ve içe aktarım geri geldiğinde yeniden çalışacak.',
   'notif.action.undo': 'Geri al',
   'notif.action.keep': 'Tut',
   'notif.action.review': 'İncele',

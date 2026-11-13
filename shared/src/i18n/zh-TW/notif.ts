@@ -59,6 +59,8 @@ const notif: TranslationStrings = {
   'notif.mail_booking_added.shared': '{actor} 從轉寄的郵件將 {booking} 新增到 {trip}',
   'notif.mail_booking_pending.title': '待檢查的轉寄預訂',
   'notif.mail_booking_pending.text': '等待你處理的轉寄預訂：{count}',
+  'notif.mail_ingest_paused.title': '郵件匯入已暫停',
+  'notif.mail_ingest_paused.text': '暫時不接收轉寄的預訂郵件。你的地址會保留，匯入恢復後即可再次使用。',
   'notif.action.undo': '復原',
   'notif.action.keep': '保留',
   'notif.action.review': '檢查',

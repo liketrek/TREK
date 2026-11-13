@@ -98,6 +98,10 @@ const ko: NotificationLocale = {
       title: '검토할 전달된 예약',
       body: `TREK에서 검토를 기다리는 전달된 예약: ${p.count}개. 각 예약에 자동으로 추가되지 않은 이유가 표시됩니다.`,
     }),
+    mail_ingest_paused: () => ({
+      title: '메일 가져오기 일시 중지됨',
+      body: 'TREK은 당분간 전달된 예약 메일을 받지 않으니 전달을 잠시 미뤄 주세요. 주소는 그대로 유지되며 가져오기가 다시 시작되면 다시 작동하고, 이미 추가된 예약은 여행에 그대로 남습니다.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

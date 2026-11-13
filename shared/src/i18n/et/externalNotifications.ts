@@ -108,6 +108,10 @@ const et: NotificationLocale = {
       title: 'Ülevaatamist ootavad edastatud broneeringud',
       body: `TREKis ootavad sind edastatud broneeringud: ${p.count}. Igaühe juures on kirjas, miks seda ise ei lisatud.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Kirjade import on peatatud',
+      body: 'TREK ei võta edastatud broneeringukirju praegu vastu, seega oota nende edastamisega. Sinu aadressid jäävad alles ja töötavad uuesti, kui import tagasi on, ning juba lisatud broneeringud jäävad sinu reisidesse.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

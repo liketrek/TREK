@@ -306,6 +306,14 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.review',
     navigateTarget: () => '/dashboard?inbox=mail',
   },
+  // The import stopped (a plan without it, or an admin switched it off): every
+  // person with an address hears it once, with nothing to open.
+  mail_ingest_paused: {
+    inAppType: 'simple',
+    titleKey: 'notif.mail_ingest_paused.title',
+    textKey: 'notif.mail_ingest_paused.text',
+    navigateTarget: () => null,
+  },
   synology_session_cleared: {
     inAppType: 'simple',
     titleKey: 'notifications.synologySessionCleared.title',

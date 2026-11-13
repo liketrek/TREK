@@ -110,6 +110,10 @@ const br: NotificationLocale = {
       title: 'Reservas encaminhadas para revisar',
       body: `Reservas encaminhadas aguardando você no TREK: ${p.count}. Cada uma diz por que não foi adicionada sozinha.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Importação de e-mails pausada',
+      body: 'Por enquanto, o TREK não aceita e-mails de reserva encaminhados, então espere antes de encaminhá-los. Seus endereços continuam e voltam a funcionar quando a importação voltar, e as reservas já adicionadas continuam nas suas viagens.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

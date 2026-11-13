@@ -107,6 +107,10 @@ const az: NotificationLocale = {
       title: 'Yoxlanılacaq yönləndirilmiş rezervasiyalar',
       body: `TREK-də sizi gözləyən yönləndirilmiş rezervasiyalar: ${p.count}. Hər birində niyə avtomatik əlavə edilmədiyi yazılıb.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Poçt idxalı dayandırılıb',
+      body: 'TREK hələlik yönləndirilmiş rezervasiya məktublarını qəbul etmir, ona görə də onları hələ yönləndirməyin. Ünvanlarınız qalır və idxal geri qayıdanda yenidən işləyəcək, artıq əlavə edilmiş rezervasiyalar isə səfərlərinizdə qalır.',
+    }),
     plugin_notification: (p) => ({
       title: p.title ?? '',
       body: p.body ?? '',

@@ -41,6 +41,7 @@ const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 
   wanderer_source_hint: { priority: 2, tags: ['hiking_boot'] },
   mail_booking_added: { priority: 3, tags: ['envelope'] },
   mail_booking_pending: { priority: 2, tags: ['envelope'] },
+  mail_ingest_paused: { priority: 3, tags: ['pause_button'] },
 };
 const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };
 

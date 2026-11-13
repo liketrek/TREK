@@ -110,6 +110,10 @@ const tr: NotificationLocale = {
       title: 'İncelenecek iletilen rezervasyonlar',
       body: `TREK içinde seni bekleyen iletilen rezervasyonlar: ${p.count}. Her birinde neden kendiliğinden eklenmediği yazıyor.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'E-posta içe aktarımı duraklatıldı',
+      body: 'TREK şimdilik iletilen rezervasyon e-postalarını kabul etmiyor, bu yüzden şimdilik iletme. Adreslerin kalıyor ve içe aktarım geri geldiğinde yeniden çalışacak, zaten eklenmiş rezervasyonlar da seyahatlerinde kalıyor.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

@@ -113,6 +113,10 @@ const sk: NotificationLocale = {
       title: 'Preposlané rezervácie na kontrolu',
       body: `Preposlané rezervácie čakajúce na vás v TREK: ${p.count}. Pri každej je uvedené, prečo nebola pridaná sama.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Import e-mailov pozastavený',
+      body: 'TREK zatiaľ neprijíma preposlané e-maily s rezerváciami, preto ich zatiaľ nepreposielajte. Vaše adresy zostávajú a znova budú fungovať, keď sa import vráti, a už pridané rezervácie zostávajú vo vašich cestách.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

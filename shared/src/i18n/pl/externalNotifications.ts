@@ -116,6 +116,10 @@ const pl: NotificationLocale = {
       title: 'Przekazane rezerwacje do sprawdzenia',
       body: `Przekazane rezerwacje czekające na Ciebie w TREK: ${p.count}. Przy każdej podano, dlaczego nie została dodana automatycznie.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Import e-maili wstrzymany',
+      body: 'TREK na razie nie przyjmuje przekazanych e-maili z rezerwacjami, więc wstrzymaj się z ich przekazywaniem. Twoje adresy zostają i znów zadziałają, gdy import wróci, a dodane już rezerwacje zostają w Twoich podróżach.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

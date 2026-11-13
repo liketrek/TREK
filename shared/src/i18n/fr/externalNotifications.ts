@@ -107,6 +107,10 @@ const fr: NotificationLocale = {
       title: 'Réservations transférées à vérifier',
       body: `Réservations transférées en attente dans TREK : ${p.count}. Chacune indique pourquoi elle n’a pas été ajoutée automatiquement.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Import des e-mails en pause',
+      body: 'TREK n’accepte pas les e-mails de réservation transférés pour le moment, attendez donc avant d’en transférer. Vos adresses restent et fonctionneront de nouveau au retour de l’import, et les réservations déjà ajoutées restent dans vos voyages.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

@@ -501,5 +501,6 @@ describe('the mail import’s events follow its switch', () => {
     const { event_types } = await svc.getPreferencesMatrix(user.id, 'user');
     expect(event_types).toContain('mail_booking_added');
     expect(event_types).toContain('mail_booking_pending');
+    expect(event_types).toContain('mail_ingest_paused');
   });
 });

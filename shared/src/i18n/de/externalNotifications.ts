@@ -107,6 +107,10 @@ const de: NotificationLocale = {
       title: 'Weitergeleitete Buchungen prüfen',
       body: `In TREK warten weitergeleitete Buchungen auf dich: ${p.count}. Bei jeder steht, warum sie nicht von selbst eingetragen wurde.`,
     }),
+    mail_ingest_paused: () => ({
+      title: 'Mail-Import pausiert',
+      body: 'TREK nimmt weitergeleitete Buchungsmails vorerst nicht an, leite also gerade keine weiter. Deine Adressen bleiben und funktionieren wieder, sobald der Import zurück ist, und bereits eingetragene Buchungen bleiben in deinen Reisen.',
+    }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {

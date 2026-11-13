@@ -42,6 +42,7 @@ export type NotificationEventKey =
   | 'wanderer_source_hint'
   | 'mail_booking_added'
   | 'mail_booking_pending'
+  | 'mail_ingest_paused'
   | 'plugin_notification';
 
 export interface NotificationLocale {
