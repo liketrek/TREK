@@ -254,7 +254,8 @@ describe('MCostsTab', () => {
 
   it('FE-MOB-COSTT-011: breaks the spend down by category, largest bar first', async () => {
     await renderTab()
-    const block = up(screen.getByText('costs.byCategory'), 1)
+    // The heading sits in its own row now, beside the way to count everything again (#2819).
+    const block = up(screen.getByText('costs.byCategory'), 2)
     const labels = within(block).getAllByText(/^costs\.cat\./).map(n => n.textContent)
     expect(labels).toEqual(['costs.cat.food', 'costs.cat.activities', 'costs.cat.shopping', 'costs.cat.transport'])
     expect(within(block).getByText('$60.00')).toBeInTheDocument()

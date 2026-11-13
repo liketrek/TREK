@@ -127,6 +127,12 @@ export function useMapSettingsForm({ mirrorStyleBeforeSave = false }: MapSetting
     setMapboxQuality,
     hideBasemapPois,
     setHideBasemapPois,
+    // What the GL preview draws: the Mapbox-only switches count only on Mapbox.
+    mapboxPreview: {
+      enable3d: provider === 'mapbox-gl' && mapbox3d,
+      quality: provider === 'mapbox-gl' && mapboxQuality,
+      hidePois: provider === 'mapbox-gl' && hideBasemapPois,
+    },
     previewPlaces,
     glPreview,
     webgl2Missing,

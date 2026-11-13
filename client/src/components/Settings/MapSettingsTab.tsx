@@ -132,8 +132,8 @@ export default function MapSettingsTab(): React.ReactElement {
   const {
     managed, presets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
-    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, previewPlaces, glPreview, webgl2Missing,
-    save: saveMapSettings,
+    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, mapboxPreview, previewPlaces, glPreview,
+    webgl2Missing, save: saveMapSettings,
   } = useMapSettingsForm()
   // One chunk per engine — see components/Map/glLazy.tsx.
   const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
@@ -341,9 +341,9 @@ export default function MapSettingsTab(): React.ReactElement {
               // Zoom in close so the style's character (3D buildings,
               // satellite texture, label density) is immediately visible.
               zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
-              hidePois={provider === 'mapbox-gl' && hideBasemapPois}
+              enable3d={mapboxPreview.enable3d && supports3d}
+              quality={mapboxPreview.quality}
+              hidePois={mapboxPreview.hidePois}
             />
           </Suspense>
           </ErrorBoundary>

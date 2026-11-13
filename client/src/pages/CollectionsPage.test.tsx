@@ -81,7 +81,7 @@ function makeHook(overrides: Record<string, unknown> = {}) {
     incomingInvites: [],
     orderedInvites: [],
     routeInvite: null,
-    counts: { all: 1, idea: 0, want: 1, visited: 0 },
+    counts: { all: 1, idea: 0, want: 1, visited: 0, revisit: 0 },
     view: 'list',
     statusFilter: 'all',
     categoryFilter: 'all',

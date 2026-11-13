@@ -15,7 +15,6 @@ import {
   FileImage,
   FileText,
   Loader2,
-  MapPinned,
   Minus,
   Navigation,
   Pencil,
@@ -49,6 +48,7 @@ import TrackColorPicker from '../shared/TrackColorPicker';
 import { markdownLinkComponents } from '../shared/markdownLink';
 import { TourDayRowAvatar } from './TourDayRowFacts';
 import { TourGpxExportButton } from './TourGpxExportButton';
+import { TourRouteAppsButton } from './TourRouteAppsButton';
 import { TourTypeSections } from './TourTypeSections';
 import TourActivitySection from './activity/TourActivitySection';
 import type { PlanValues } from './activity/planComparison';
@@ -74,7 +74,6 @@ import {
   tourWebsitePresentation,
   type TourPlannedTimes,
 } from './tourPresentation';
-import { tourRouteTargets } from './tourRouteApps';
 import { tourShareFactsOf } from './tourShareText';
 import { useTourDayAssignment } from './useTourDayAssignment';
 import { useTourPermissions, type TourPermissionProps } from './useTourPermissions';
@@ -542,8 +541,6 @@ export default function TourDetailDialog({
   const [colorOpen, setColorOpen] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const navigationAnchorRef = useRef<HTMLSpanElement>(null);
-  const [routeAppsOpen, setRouteAppsOpen] = useState(false);
-  const routeAppsAnchorRef = useRef<HTMLSpanElement>(null);
   useDesktopEscape(desktopNonModal, onClose, desktopFocusReturnTarget);
 
   const heightsHidden = heightsUnknown(tour);
@@ -559,11 +556,6 @@ export default function TourDetailDialog({
   const navigationTargets = getNavigationTargets(place);
   const navigationLabel =
     navigationTargets.length === 1 ? navigationTargetLabel(navigationTargets[0], t) : t('inspector.navigation');
-  // #2812: the whole route, not only the way to its start, in the apps that follow one.
-  const routeTargets = useMemo(
-    () => (analysis ? tourRouteTargets(tour.tour_type, analysis.routeCoordinates, place.name) : []),
-    [analysis, tour.tour_type, place.name]
-  );
   const description = tour.description !== undefined ? tour.description : place.description;
   const website = tourWebsitePresentation(tour.website !== undefined ? tour.website : place.website);
   const times = tourPlannedTimes(tour);
@@ -672,31 +664,7 @@ export default function TourDetailDialog({
           )}
         </>
       )}
-      {routeTargets.length > 0 && (
-        <>
-          <Tooltip label={t('tours.detail.openRoute')}>
-            <span ref={routeAppsAnchorRef} className="inline-flex">
-              <DialogButton
-                onClick={() => setRouteAppsOpen((open) => !open)}
-                aria-label={t('tours.detail.openRoute')}
-                aria-haspopup="menu"
-                aria-expanded={routeAppsOpen}
-                data-testid="tour-route-apps"
-                icon={<MapPinned size={14} strokeWidth={2} />}
-              >
-                <span className="max-sm:hidden">{t('tours.detail.mapsShort')}</span>
-              </DialogButton>
-            </span>
-          </Tooltip>
-          {routeAppsOpen && (
-            <NavigationMenu
-              targets={routeTargets}
-              anchor={routeAppsAnchorRef.current}
-              onClose={() => setRouteAppsOpen(false)}
-            />
-          )}
-        </>
-      )}
+      <TourRouteAppsButton type={tour.tour_type} line={analysis?.routeCoordinates} name={place.name} />
       {website && (
         <Tooltip label={website.domain}>
           <span className="inline-flex">

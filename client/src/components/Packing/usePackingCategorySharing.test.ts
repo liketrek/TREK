@@ -18,14 +18,18 @@ const theirs = buildPackingItem({ id: 3, name: 'Lamp', category: 'Camp', owner_i
 const socks = buildPackingItem({ id: 4, name: 'Socks', category: 'Clothes', owner_id: ME });
 const diary = buildPackingItem({ id: 5, name: 'Diary', category: 'Camp', owner_id: ME, is_private: 1 });
 
-function setup(items: PackingItem[], setPackingItemSharing: Mock<Share> = vi.fn<Share>(() => Promise.resolve())) {
+function setup(
+  items: PackingItem[],
+  setPackingItemSharing: Mock<Share> = vi.fn<Share>(() => Promise.resolve()),
+  view: 'common' | 'personal' = 'common'
+) {
   const toast = { success: vi.fn() };
   const t = vi.fn((key: string) => key);
   const hook = renderHook(() =>
     usePackingCategorySharing({
       tripId: 7,
       items,
-      view: 'common',
+      view,
       defaultCategory: 'Other',
       currentUserId: ME,
       setPackingItemSharing,
@@ -99,7 +103,8 @@ describe('usePackingCategorySharing', () => {
       is_private: 1,
       recipients: recipients(2, 3),
     });
-    const { result, setPackingItemSharing, toast } = setup([kettle, pans]);
+    // Shared items are private ones with people added, so they live in the personal view.
+    const { result, setPackingItemSharing, toast } = setup([kettle, pans], undefined, 'personal');
     act(() => result.current.openFor('Food'));
     expect(result.current.visibility).toBe('shared');
     expect(result.current.recipientIds).toEqual([2, 3]);

@@ -99,3 +99,26 @@ export function CostsCategoryBreakdown({
     </div>
   );
 }
+
+/**
+ * What the totals leave out, beside the total (#2819), and the way back: a click
+ * counts every category again. The table view has no breakdown to undo it in.
+ */
+export function LeftOutChip({
+  label,
+  onCountAll,
+  className,
+}: {
+  label: string;
+  onCountAll: () => void;
+  className: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Tooltip label={t('costs.breakdown.countAll')} placement="top">
+      <button type="button" onClick={onCountAll} className={`${className} text-warning hover:underline`}>
+        {label}
+      </button>
+    </Tooltip>
+  );
+}

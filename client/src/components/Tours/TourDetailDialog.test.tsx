@@ -418,12 +418,16 @@ describe('TourDetailDialog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open the route in a map app' }))
     const menu = screen.getByRole('menu')
-    // Only the apps that take a route: Waze and geo: lead to the start, which Navigation already does.
-    expect(Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)).toEqual(['Google Maps', 'CoMaps'])
+    // Only the apps that follow a whole route: Waze and geo: lead to the start, which Navigation
+    // already does, and CoMaps would get the stops between as unrouted pins.
+    const names = Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)
+    expect(names).toContain('Google Maps')
+    expect(names).not.toContain('CoMaps')
+    expect(names).not.toContain('Waze')
 
-    fireEvent.click(screen.getByRole('menuitem', { name: 'CoMaps' }))
-    // Three points along the line go as pins; the start carries the tour's name.
-    expect(open).toHaveBeenCalledWith(expect.stringContaining('https://comaps.at/map?v=1&ll=48,11&n=Ridge%20walk'), '_blank', 'noopener,noreferrer')
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Google Maps' }))
+    // The ride goes by bike, with the stops along the line between its ends.
+    expect(open).toHaveBeenCalledWith(expect.stringContaining('&travelmode=bicycling'), '_blank', 'noopener,noreferrer')
   })
 
   it('#2812: a paddle tour is not handed to a map app, which would route it by road', () => {

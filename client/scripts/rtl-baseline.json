@@ -63,7 +63,7 @@
   "components/Vacay/VacayCalendar.tsx": 3,
   "components/Vacay/VacayMonthCard.tsx": 7,
   "components/Vacay/VacaySettings.tsx": 1,
-  "components/shared/ContextMenu.tsx": 3,
+  "components/shared/ContextMenu.tsx": 1,
   "components/shared/CustomDateTimePicker.tsx": 2,
   "components/shared/CustomSelect.tsx": 4,
   "components/shared/CustomTimePicker.tsx": 3,

@@ -105,7 +105,7 @@ export function SettlementModal({
         <DialogFooter>
           <FooterSpacer />
           <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
-          <DialogButton variant="primary" onClick={save} disabled={!valid || saving}>
+          <DialogButton variant="primary" onClick={() => void save()} disabled={!valid || saving}>
             {editing ? t('common.save') : t('costs.addPayment')}
           </DialogButton>
         </DialogFooter>

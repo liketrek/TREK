@@ -381,7 +381,7 @@ describe('useCollections — derived place lists', () => {
   it('FE-PAGE-COLL-020: visiblePlaces keeps the saved order by default', async () => {
     const { result } = await setup()
     expect(result.current.visiblePlaces.map(p => p.id)).toEqual([2, 1, 3])
-    expect(result.current.counts).toEqual({ all: 3, idea: 1, want: 1, visited: 1 })
+    expect(result.current.counts).toEqual({ all: 3, idea: 1, want: 1, visited: 1, revisit: 0 })
     expect(result.current.mappable.map(p => p.id)).toEqual([1, 3])
   })
 

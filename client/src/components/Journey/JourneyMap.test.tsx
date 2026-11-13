@@ -683,8 +683,8 @@ describe('JourneyMap', () => {
       const { rerender } = render(<JourneyMap checkins={[]} entries={entriesWithCoords} />);
       const vector = await waitFor(() => {
         const layer = lastGlLayer();
-        expect(layer).toBeTruthy();
-        return layer!;
+        if (!layer) throw new Error('no GL layer yet');
+        return layer;
       });
 
       rerender(<JourneyMap checkins={[]} entries={entriesWithCoords} baseLayer="satellite" />);

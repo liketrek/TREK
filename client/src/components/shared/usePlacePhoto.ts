@@ -24,14 +24,23 @@ interface PhotoPlace {
  * near those coordinates, the same street for every stop along it. Null while it
  * loads, when there is none and while photos are switched off.
  */
-export function usePlacePhoto(place: PhotoPlace | null): string | null {
-  const enabled = useAuthStore((s) => s.placesPhotosEnabled);
+/** How the picture is asked for: the place's own, or its provider's through the cache key. */
+function photoQuery(place: PhotoPlace | null) {
   const own = place?.image_url || null;
   const providerId = place?.google_place_id || place?.osm_id || null;
-  const key = place && !own && providerId ? photoCacheKey(place) : '';
-  const lat = place?.lat ?? undefined;
-  const lng = place?.lng ?? undefined;
-  const name = place?.name;
+  return {
+    own,
+    providerId,
+    key: place && !own && providerId ? photoCacheKey(place) : '',
+    lat: place?.lat ?? undefined,
+    lng: place?.lng ?? undefined,
+    name: place?.name,
+  };
+}
+
+export function usePlacePhoto(place: PhotoPlace | null): string | null {
+  const enabled = useAuthStore((s) => s.placesPhotosEnabled);
+  const { own, providerId, key, lat, lng, name } = photoQuery(place);
   // Names the place it belongs to, so the previous place's picture never shows for the next.
   const [loaded, setLoaded] = useState<{ key: string; url: string | null } | null>(null);
 

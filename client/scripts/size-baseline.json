@@ -3,7 +3,7 @@
   "src/api/client.ts": 1873,
   "src/components/Admin/AdminPluginsPanel.test.tsx": 2704,
   "src/components/Admin/AdminPluginsPanel.tsx": 1266,
-  "src/components/Budget/CostsPanel.test.tsx": 2730,
+  "src/components/Budget/CostsPanel.test.tsx": 2725,
   "src/components/Budget/CostsPanel.tsx": 1607,
   "src/components/Map/MapView.tsx": 1200,
   "src/components/Map/MapViewGL.test.tsx": 2919,
@@ -12,7 +12,7 @@
   "src/components/Planner/DayPlanSidebar.test.tsx": 5349,
   "src/components/Planner/DayPlanSidebar.tsx": 2910,
   "src/components/Planner/PlaceFormModal.test.tsx": 2836,
-  "src/components/Planner/PlaceInspector.tsx": 1129,
+  "src/components/Planner/PlaceInspector.tsx": 1128,
   "src/components/Studio/TravelElements.tsx": 1559,
   "src/components/Studio/countryShapes.ts": 2595,
   "src/index.css": 1636,
@@ -22,6 +22,6 @@
   "src/pages/TripPlannerPage.tsx": 1128,
   "src/pages/atlas/useAtlas.ts": 1207,
   "src/pages/tripPlanner/useTripPlanner.roadtrip.test.tsx": 3518,
-  "src/pages/tripPlanner/useTripPlanner.test.tsx": 3270,
+  "src/pages/tripPlanner/useTripPlanner.test.tsx": 3269,
   "src/styles/studio.css": 1918
 }

@@ -22,7 +22,8 @@ export default function MSettingsMap() {
   const {
     managed, presets: tilePresets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
-    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, previewPlaces, glPreview, webgl2Missing, save,
+    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, mapboxPreview, previewPlaces, glPreview,
+    webgl2Missing, save,
   } = useMapSettingsForm({ mirrorStyleBeforeSave: true })
   const [presetOpen, setPresetOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
@@ -186,9 +187,9 @@ export default function MSettingsMap() {
               lat={PREVIEW_CENTER[0]}
               lng={PREVIEW_CENTER[1]}
               zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
-              hidePois={provider === 'mapbox-gl' && hideBasemapPois}
+              enable3d={mapboxPreview.enable3d}
+              quality={mapboxPreview.quality}
+              hidePois={mapboxPreview.hidePois}
             />
           </Suspense>
           </ErrorBoundary>

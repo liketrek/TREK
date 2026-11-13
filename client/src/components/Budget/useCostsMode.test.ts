@@ -1,14 +1,16 @@
 // FE-BUDGET-COSTSMODE-001 to FE-BUDGET-COSTSMODE-003
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildTrip } from '../../../tests/helpers/factories';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTripStore, type TripStoreState } from '../../store/tripStore';
 import { useCostsMode } from './useCostsMode';
 
+const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() }));
+vi.mock('../shared/Toast', () => ({ useToast: () => toast }));
+
 let updateTrip: ReturnType<typeof vi.fn>;
-let addToast: ReturnType<typeof vi.fn>;
 
 const trip = (costsMode?: 'split' | 'totals') => buildTrip({ id: 7, ...(costsMode ? { costs_mode: costsMode } : {}) });
 
@@ -16,12 +18,7 @@ beforeEach(() => {
   resetAllStores();
   updateTrip = vi.fn(async () => buildTrip({ id: 7 }));
   useTripStore.setState({ updateTrip } as unknown as Partial<TripStoreState>);
-  addToast = vi.fn();
-  (window as unknown as { __addToast: unknown }).__addToast = addToast;
-});
-
-afterEach(() => {
-  delete (window as unknown as { __addToast?: unknown }).__addToast;
+  toast.error.mockClear();
 });
 
 describe('useCostsMode (#1714)', () => {
@@ -50,7 +47,7 @@ describe('useCostsMode (#1714)', () => {
       await result.current.setSplitting(true);
     });
     expect(updateTrip).toHaveBeenLastCalledWith(7, { costs_mode: 'split' });
-    expect(addToast.mock.calls.map((c) => c[1])).toContain('error');
+    expect(toast.error).toHaveBeenCalled();
     expect(result.current.saving).toBe(false);
   });
 });

@@ -37,7 +37,9 @@ describe('tourRouteApps (#2812)', () => {
 
   it('FE-TOUR-ROUTEAPPS-004: only the apps that take the whole route, with the mode the tour is routed in', () => {
     const targets = tourRouteTargets('bike', line(2), 'Ride');
-    expect(targets.map((target) => target.id)).toEqual(['google', 'comaps']);
+    // Apple Maps joins them where the device has it (the test browser counts as one).
+    expect(targets.map((target) => target.id)).toEqual(expect.arrayContaining(['google', 'comaps']));
+    expect(targets.some((target) => target.id === 'waze' || target.id === 'geo')).toBe(false);
     expect(targets.find((target) => target.id === 'comaps')?.url).toContain('type=bicycle');
     expect(targets.find((target) => target.id === 'google')?.url).toBe(
       'https://www.google.com/maps/dir/?api=1&origin=0,0&destination=0,0.01&travelmode=bicycling'
@@ -46,8 +48,9 @@ describe('tourRouteApps (#2812)', () => {
 
   it('FE-TOUR-ROUTEAPPS-005: a longer tour goes to Google on foot with its stops between, and not to CoMaps', () => {
     const targets = tourRouteTargets('hike', line(5), 'Ridge');
-    expect(targets.map((target) => target.id)).toEqual(['google']);
-    const url = targets[0].url;
+    expect(targets.map((target) => target.id)).toContain('google');
+    expect(targets.map((target) => target.id)).not.toContain('comaps');
+    const url = targets.find((target) => target.id === 'google')?.url ?? '';
     expect(url).toContain('&travelmode=walking');
     expect(url).toContain('&waypoints=0%2C0.01%7C0%2C0.02%7C0%2C0.03');
   });

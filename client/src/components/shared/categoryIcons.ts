@@ -1,7 +1,6 @@
 import {
   MapPin, Building2, BedDouble, UtensilsCrossed, Landmark, ShoppingBag,
   Bus, Train, Car, Plane, Ship, Bike,
-  BusFront, TrainFront, PlaneTakeoff, ParkingSquare, Fuel,
   Activity, Dumbbell, Mountain, Tent, Anchor,
   Coffee, Beer, Wine, Utensils,
   Camera, Music, Theater, Ticket,
@@ -10,6 +9,7 @@ import {
   Church, Library, Store, Home, Cross,
   Heart, Star, CreditCard, Wifi,
   Luggage, Backpack, Zap, Croissant, ShoppingBasket,
+  BusFront, TrainFront, PlaneTakeoff, ParkingSquare, Fuel,
   LucideIcon,
 } from 'lucide-react'
 

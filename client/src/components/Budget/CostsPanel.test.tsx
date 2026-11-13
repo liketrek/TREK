@@ -1780,20 +1780,15 @@ describe('CostsPanel — remaining paths', () => {
     expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('FE-W5COSTS-049: a solo trip defaults the payment counterpart to myself', async () => {
-    const user = userEvent.setup()
+  it('FE-W5COSTS-049: a solo trip offers no payment, there is nobody to pay (#2689)', async () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
     )
     render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: null }]} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '10')
-
-    // From and To both resolve to me, so the transfer stays unsavable.
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    expect(submits[submits.length - 1]).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Add expense' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add payment' })).not.toBeInTheDocument()
   })
 
   it('FE-W5COSTS-050: the expense modal shows uploaded avatars and rejects over-precise input', async () => {

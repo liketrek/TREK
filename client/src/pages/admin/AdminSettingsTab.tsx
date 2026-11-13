@@ -244,7 +244,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                   <ToggleSwitch
                     on={oidcAutoRedirect}
                     label={t('admin.oidcAutoRedirect')}
-                    onToggle={() => handleToggleAuthSetting('oidc_auto_redirect', !oidcAutoRedirect, setOidcAutoRedirect)}
+                    onToggle={() => void handleToggleAuthSetting('oidc_auto_redirect', !oidcAutoRedirect, setOidcAutoRedirect)}
                   />
                 }
               />

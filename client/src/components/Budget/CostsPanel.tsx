@@ -1,5 +1,5 @@
 import { Fragment, useState, useMemo, useCallback, useId, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, StickyNote, ChevronDown, Receipt, ScanLine, Users } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, ChevronDown, Receipt, ScanLine, Users } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
@@ -31,7 +31,7 @@ import { useExpenseDeleteConfirm } from './useExpenseDeleteConfirm'
 import { FlowPills } from './FlowPills'
 import { CostsSplitChips } from './CostsSplitChips'
 import { CostsModeCard } from './CostsModeCard'
-import { CostsCategoryBreakdown } from './CostsCategoryBreakdown'
+import { CostsCategoryBreakdown, LeftOutChip } from './CostsCategoryBreakdown'
 import { CostsCurrencyPicker } from './CostsCurrencyPicker'
 import type { BudgetParticipantFinal, ReceiptLine } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt } from '../../types'
@@ -243,12 +243,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <span className={CHIP}>{t('costs.yourShare')}<b className="text-content">{fmt0(totals.myShare)}</b></span>
         <span className={CHIP}>{t('costs.youPaid')}<b className="text-content">{fmt0(totals.myPaid)}</b></span>
       </> : <span className={CHIP}>{t('costs.expensesCount', { count: countedCount })}</span>}
-        {/* Also the way back where the breakdown is not on show (the table view). */}
-        {leftOutLabel && (
-          <Tooltip label={t('costs.breakdown.countAll')} placement="top">
-            <button type="button" onClick={countAllCats} className={`${CHIP} text-warning hover:underline`}>{leftOutLabel}</button>
-          </Tooltip>
-        )}</>} />
+        {leftOutLabel && <LeftOutChip label={leftOutLabel} onCountAll={countAllCats} className={CHIP} />}</>} />
   )
 
   // Spend by category; a click leaves one out of the totals for a look without it (#2819).
@@ -1063,7 +1058,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const payerSection = (
     <DialogSection
       label={t('costs.whoPaid')}
-      className={GROUP}
+      className={GROUP} tallAction
       action={(
         <Segmented<'one' | 'several'>
           label={t('costs.whoPaid')}
@@ -1137,7 +1132,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const splitSection = (
     <DialogSection
       label={t('costs.split') || 'Split'}
-      className={GROUP}
+      className={GROUP} tallAction
       action={(
         <Segmented<'equally' | 'custom' | 'ticket'>
           label={t('costs.split') || 'Split'}

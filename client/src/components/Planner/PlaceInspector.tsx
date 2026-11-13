@@ -252,14 +252,10 @@ export default function PlaceInspector({
   const saveVersion = useSaveToCollectionStore(s => s.version)
   const [savedInCollection, setSavedInCollection] = useState(false)
   const [hoursExpanded, setHoursExpanded] = useState(false)
-  // Folded for the place on show only: any other place selected, coming back
-  // included, opens in full.
-  const [collapsed, setCollapsed] = useState(false)
-  const [foldedFor, setFoldedFor] = useState(place.id)
-  if (foldedFor !== place.id) {
-    setFoldedFor(place.id)
-    setCollapsed(false)
-  }
+  // Folded for the place on show only; any other selected, coming back included, opens in full.
+  const [foldedId, setFoldedId] = useState<number | null>(null)
+  if (foldedId !== null && foldedId !== place?.id) setFoldedId(null)
+  const collapsed = foldedId === place?.id
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -389,7 +385,7 @@ export default function PlaceInspector({
           editingName={editingName} nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue}
           commitNameEdit={commitNameEdit} handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit}
           photoCredit={<PhotoCredit imageUrl={place.image_url} />} onUpdatePlace={onUpdatePlace} collapsed={collapsed}
-          onToggleCollapsed={collapsible ? () => setCollapsed(c => !c) : undefined}
+          onToggleCollapsed={collapsible ? () => setFoldedId(collapsed ? null : place.id) : undefined}
           onClose={onClose} />
 
         {/* The body scrolls inside the capped card; each block keeps its natural height (#1195). */}
@@ -481,8 +477,7 @@ export default function PlaceInspector({
         </div>
 
         {/* Footer: the day action and the ways out on the left, the "…" and edit on the right. */}
-        {/* Measured as a container: squeezed between the sidebars (a tablet) the
-            worded buttons drop their words before the row would wrap. */}
+        {/* A container: squeezed between the sidebars, the buttons drop their words before wrapping. */}
         <footer className={`${collapsed ? 'hidden' : 'flex'} flex-none flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5 [container-type:inline-size]`}>
           {/* Collection mode — copy to trip + per-place status */}
           {mode === 'collection' && onCopyToTrip && (
@@ -493,14 +488,9 @@ export default function PlaceInspector({
           {mode === 'collection' && collectionStatus && onSetStatus && (
             <StatusBadge status={collectionStatus} onChange={onSetStatus} t={t} />
           )}
-          {/* Trip mode: adding to the day is a worded action, taking the place off
-              it waits in the "…" below. A stop a lodging booking put there is not
-              offered either way. Taking it off the day would leave the booking
-              behind with nothing on the drive and no way back short of saving it
-              again, and putting a second one beside it is the duplicate the stop
-              exists to prevent. The booking is removed where it is made: in the
-              day's overnight block, or by turning the night back into a pause in
-              road trip mode. */}
+          {/* Adding to the day is worded, taking it off waits in the "…". Neither is offered for a
+              stop a lodging booking wrote: removing it would strand the booking, adding would double
+              it. That stop goes where it is made, in the overnight block or as a pause again. */}
           {mode === 'trip' && !!selectedDayId && !bookedNight && !assignmentInDay && (
             <DialogButton onClick={() => onAssignToDay?.(place.id)} icon={<Plus size={14} strokeWidth={2} />} aria-label={t('inspector.addToDay')}>
               <span className="[@container(max-width:600px)]:hidden">{t('inspector.addToDay')}</span>

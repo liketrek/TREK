@@ -24,7 +24,7 @@ export default function MPackingCategorySharingSheet({
   currentUserId: number | null;
   t: TripPlanner['t'];
 }) {
-  const { category, visibility, recipientIds, ownCount, othersCount, busy, ready } = sharing;
+  const { category, visibility, recipientIds, ownCount, othersCount, ready } = sharing;
   const others = tripMembers.filter((m) => m.id !== currentUserId);
   const needsPeople = visibility === 'shared' && others.length > 0 && recipientIds.length === 0;
 
@@ -40,8 +40,8 @@ export default function MPackingCategorySharingSheet({
       >
         <Icon size={15} strokeWidth={2} className={`flex-none ${on ? 'text-m-ink' : 'text-m-muted'}`} />
         <span className="min-w-0 flex-1">
-          <span className="block text-[0.8125rem] font-semibold text-m-ink">{label}</span>
-          {hint && <span className="block font-geist text-[0.6875rem] text-m-faint">{hint}</span>}
+          <span className="block text-body font-semibold text-m-ink">{label}</span>
+          {hint && <span className="block font-geist text-caption text-m-faint">{hint}</span>}
         </span>
         {on && <Check size={14} strokeWidth={2.4} className="flex-none text-m-ink" />}
       </button>
@@ -49,7 +49,7 @@ export default function MPackingCategorySharingSheet({
   };
 
   const note = (text: string) => (
-    <p className="mt-3 font-geist text-[0.6875rem] leading-relaxed text-m-muted">{text}</p>
+    <p className="mt-3 font-geist text-caption leading-relaxed text-m-muted">{text}</p>
   );
 
   return (
@@ -63,7 +63,7 @@ export default function MPackingCategorySharingSheet({
       />
 
       <FormSheetBody>
-        <p className="mb-3 font-geist text-[0.71875rem] leading-relaxed text-m-muted">
+        <p className="mb-3 font-geist text-caption leading-relaxed text-m-muted">
           {ownCount === 0 ? t('packing.shareCat.noneOwn') : t('packing.shareCat.hint')}
         </p>
 
@@ -73,7 +73,7 @@ export default function MPackingCategorySharingSheet({
           {tier('shared', Share2, t('packing.tierShared'))}
           {visibility === 'shared' &&
             (others.length === 0 ? (
-              <div className="px-[10px] py-1 ps-9 font-geist text-[0.6875rem] text-m-faint">
+              <div className="px-[10px] py-1 ps-9 font-geist text-caption text-m-faint">
                 {t('packing.noOneToShare')}
               </div>
             ) : (
@@ -87,7 +87,7 @@ export default function MPackingCategorySharingSheet({
                     onClick={() => sharing.toggleRecipient(m.id)}
                     className="flex items-center gap-[8px] rounded-[9px] py-[7px] pe-[10px] ps-9 text-start"
                   >
-                    <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">
+                    <span className="min-w-0 flex-1 truncate text-body font-semibold text-m-ink">
                       {m.username}
                     </span>
                     {picked && <Check size={14} strokeWidth={2.4} className="flex-none text-m-ink" />}

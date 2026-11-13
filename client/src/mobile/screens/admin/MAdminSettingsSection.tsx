@@ -120,7 +120,7 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
               <MToggle
                 checked={oidcAutoRedirect}
                 ariaLabel={t('admin.oidcAutoRedirect')}
-                onChange={(v) => handleToggleAuthSetting('oidc_auto_redirect', v, setOidcAutoRedirect)}
+                onChange={(v) => void handleToggleAuthSetting('oidc_auto_redirect', v, setOidcAutoRedirect)}
               />
             }
           />

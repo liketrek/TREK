@@ -307,7 +307,7 @@ function fitOptions(paddingBottom: number | undefined, paddingStart = 0): L.FitB
  */
 function rasterBase(url: string, satellite: boolean, gcj: boolean): L.TileLayer {
   const tileUrl = satellite ? (gcj ? AMAP_SATELLITE : SATELLITE_TILE_URL) : url
-  return L.tileLayer(tileUrl, {
+  const options: L.TileLayerOptions & { referrerPolicy: ReferrerPolicy } = {
     maxZoom: satellite ? SATELLITE_TILE_MAXZOOM : 18,
     attribution: attributionForTile(tileUrl),
     referrerPolicy: 'strict-origin-when-cross-origin',
@@ -317,7 +317,65 @@ function rasterBase(url: string, satellite: boolean, gcj: boolean): L.TileLayer 
     // updates and keep a larger ring of off-screen tiles ready.
     updateWhenIdle: false,
     keepBuffer: 4,
-  } as any)
+  }
+  return L.tileLayer(tileUrl, options)
+}
+
+interface BaseRefs {
+  mapRef: RefObject<L.Map | null>
+  tileUrlRef: RefObject<string>
+  tileLayerRef: RefObject<L.TileLayer | null>
+  glLayerRef: RefObject<BasemapLayer | null>
+}
+
+/**
+ * The map's base and the reader's switch between it and the satellite imagery
+ * (#2594). The map effect draws it through drawBase; the switch redraws it in
+ * place, since a rebuild would drop every marker and track for a new backdrop.
+ */
+function useJourneyBase(satellite: boolean, { mapRef, tileUrlRef, tileLayerRef, glLayerRef }: BaseRefs) {
+  const satelliteRef = useRef(satellite)
+  useLayoutEffect(() => {
+    satelliteRef.current = satellite
+  })
+  // Bumped by every base drawn, so a vector style still loading for a base the
+  // reader has already switched away from never lands on the map.
+  const baseDrawRef = useRef(0)
+  // Which base the map carries now, so the switch redraws only on a change.
+  const drawnSatelliteRef = useRef(satellite)
+
+  /**
+   * Draws the base: the satellite imagery while the reader asked for it,
+   * otherwise the basemap, which is a vector style unless the user brought their
+   * own raster template. Whatever drew it before is taken off first. A vector
+   * style is a GL canvas of its own, so leaving it under the imagery would keep
+   * a WebGL context busy drawing what nobody can see.
+   */
+  const drawBase = useCallback((map: L.Map, torn: () => boolean) => {
+    const draw = ++baseDrawRef.current
+    drawnSatelliteRef.current = satelliteRef.current
+    tileLayerRef.current?.remove()
+    tileLayerRef.current = null
+    detachBasemapLayer(glLayerRef.current)
+    glLayerRef.current = null
+    const url = tileUrlRef.current
+    if (!satelliteRef.current && isVectorStyle(url)) {
+      void attachVectorBasemap(map, url, glLayerRef, () => torn() || draw !== baseDrawRef.current)
+      return
+    }
+    const tiles = rasterBase(url, satelliteRef.current, !isVectorStyle(url) && isGcj02Basemap(url))
+    tiles.addTo(map)
+    tileLayerRef.current = tiles
+  }, [tileUrlRef, tileLayerRef, glLayerRef])
+
+  // Nothing to do when the map effect has just drawn the base the switch asks for.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || drawnSatelliteRef.current === satellite) return
+    drawBase(map, () => mapRef.current !== map)
+  }, [satellite, drawBase, mapRef])
+
+  return { drawBase, satelliteRef }
 }
 
 function JourneyMap(
@@ -350,18 +408,9 @@ function JourneyMap(
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   // GL layer or the raster stand-in a browser without WebGL gets instead (#2288).
   const glLayerRef = useRef<BasemapLayer | null>(null)
-  // Read by the map effect like the tile url, and switched in place by its own
-  // effect below: a rebuild would drop every marker and track for a new backdrop.
-  const satellite = baseLayer === 'satellite'
-  const satelliteRef = useRef(satellite)
-  satelliteRef.current = satellite
-  // Bumped by every base drawn, so a vector style still loading for a base the
-  // reader has already switched away from never lands on the map.
-  const baseDrawRef = useRef(0)
-  // Which base the map carries now, so the switch effect redraws only on a change.
-  const drawnSatelliteRef = useRef(satellite)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const { drawBase, satelliteRef } = useJourneyBase(baseLayer === 'satellite', { mapRef, tileUrlRef, tileLayerRef, glLayerRef })
   const markersRef = useRef<Map<string, L.Marker>>(new Map())
   const itemsRef = useRef<MapMarkerItem[]>([])
   const highlightedRef = useRef<string | null>(null)
@@ -392,29 +441,6 @@ function JourneyMap(
     plannedRef.current = plannedEntryIds
   })
 
-  /**
-   * Draws the base: the satellite imagery while the reader asked for it,
-   * otherwise the basemap, which is a vector style unless the user brought their
-   * own raster template. Whatever drew it before is taken off first. A vector
-   * style is a GL canvas of its own, so leaving it under the imagery would keep
-   * a WebGL context busy drawing what nobody can see.
-   */
-  const drawBase = useCallback((map: L.Map, torn: () => boolean) => {
-    const draw = ++baseDrawRef.current
-    drawnSatelliteRef.current = satelliteRef.current
-    tileLayerRef.current?.remove()
-    tileLayerRef.current = null
-    detachBasemapLayer(glLayerRef.current)
-    glLayerRef.current = null
-    const url = tileUrlRef.current
-    if (!satelliteRef.current && isVectorStyle(url)) {
-      void attachVectorBasemap(map, url, glLayerRef, () => torn() || draw !== baseDrawRef.current)
-      return
-    }
-    const tiles = rasterBase(url, satelliteRef.current, !isVectorStyle(url) && isGcj02Basemap(url))
-    tiles.addTo(map)
-    tileLayerRef.current = tiles
-  }, [])
 
   const syncEntryCard = useEntryCardSync({ onCardClickRef: onMarkerCardClickRef, mapRef, markersRef, itemsRef, highlightedRef })
 
@@ -643,15 +669,7 @@ function JourneyMap(
     if (satelliteRef.current) return
     if (isVectorStyle(tileUrl)) restyleBasemap(glLayerRef.current, tileUrl)
     else tileLayerRef.current?.setUrl(tileUrl)
-  }, [tileUrl])
-
-  // The reader's base layer switch (#2594). Nothing to do when the map effect
-  // has just drawn the base the switch asks for.
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || drawnSatelliteRef.current === satellite) return
-    drawBase(map, () => mapRef.current !== map)
-  }, [satellite, drawBase])
+  }, [tileUrl, satelliteRef])
 
   // Photo layer (#1614). Its own effect on purpose: photos arriving must not tear
   // down and rebuild the map the way the entry effect does. Redrawn after every

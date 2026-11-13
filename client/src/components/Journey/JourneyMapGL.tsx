@@ -268,7 +268,10 @@ function JourneyMapGL(
   // Read when a rebuilt map loads, and switched in place by its own effect below.
   const satellite = baseLayer === 'satellite'
   const satelliteRef = useRef(satellite)
-  satelliteRef.current = satellite
+  // Before the map effects below, like the refs above.
+  useEffect(() => {
+    satelliteRef.current = satellite
+  })
   const mapLangRef = useRef(mapLang)
   mapLangRef.current = mapLang
 
