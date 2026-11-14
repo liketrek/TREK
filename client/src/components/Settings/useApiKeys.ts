@@ -48,6 +48,29 @@ export function formatApiKeyStamp(ts: string, locale: string, dateFormat: string
   return Number.isNaN(d.getTime()) ? ts : formatDisplayDate(d, locale, {}, dateFormat);
 }
 
+/**
+ * What was just copied (the key or the endpoint), for two seconds, so its
+ * button can say so. A clipboard the origin lacks (plain http, where a server
+ * at home tends to live) calls `onFail`.
+ */
+function useCopiedFlag(onFail: () => void) {
+  const [copied, setCopied] = useState<'key' | 'endpoint' | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = async (text: string, what: 'key' | 'endpoint') => {
+    try {
+      if (!navigator.clipboard) throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(null), 2000);
+    } catch {
+      onFail();
+    }
+  };
+  return { copied, setCopied, copy };
+}
+
 export function useApiKeys() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -60,8 +83,7 @@ export function useApiKeys() {
   /** The raw key, held only until the dialog closes: the server keeps a hash. */
   const [created, setCreated] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [copied, setCopied] = useState<'key' | 'endpoint' | null>(null);
-  const copiedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const { copied, setCopied, copy: handleCopy } = useCopiedFlag(() => toast.error(t('settings.apiKeys.copyFailed')));
   /**
    * What the new key may read. Starts as everything, because that is what a key
    * did before this existed and what most integrations want: narrowing is a
@@ -88,7 +110,6 @@ export function useApiKeys() {
       });
     return () => {
       cancelled = true;
-      clearTimeout(copiedTimer.current);
     };
   }, []);
 
@@ -133,20 +154,6 @@ export function useApiKeys() {
       toast.success(t('settings.apiKeys.deleted'));
     } catch {
       toast.error(t('settings.apiKeys.deleteFailed'));
-    }
-  };
-
-  const handleCopy = async (text: string, what: 'key' | 'endpoint') => {
-    try {
-      // Absent on a plain-http origin, which is exactly where a self-run
-      // instance on the LAN tends to live.
-      if (!navigator.clipboard) throw new Error('clipboard unavailable');
-      await navigator.clipboard.writeText(text);
-      setCopied(what);
-      clearTimeout(copiedTimer.current);
-      copiedTimer.current = setTimeout(() => setCopied(null), 2000);
-    } catch {
-      toast.error(t('settings.apiKeys.copyFailed'));
     }
   };
 
