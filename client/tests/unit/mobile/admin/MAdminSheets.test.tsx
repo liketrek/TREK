@@ -430,7 +430,7 @@ describe('MAdminSheets', () => {
     );
   });
 
-  it('FE-MOB-ASHEET-024: confirming the passkey reset without an edited user does nothing', async () => {
+  it('FE-MOB-ASHEET-024: the passkey confirm closes with the edit sheet and resets nobody', async () => {
     const user = userEvent.setup();
     let called = false;
     server.use(
@@ -443,13 +443,12 @@ describe('MAdminSheets', () => {
     const { rerender } = render(<Harness admin={admin} />);
 
     await user.click(screen.getByRole('button', { name: 'Reset passkeys' }));
-    // The edit sheet closes underneath while the confirm stays open
+    expect(screen.getByRole('dialog', { name: 'Reset passkeys' })).toBeInTheDocument();
+    // The confirm belongs to the user being edited: the edit sheet closing takes it along.
     rerender(<Harness admin={buildAdminHook({ editingUser: null })} />);
 
-    await user.click(screen.getByRole('button', { name: 'Reset passkeys' }));
-
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Reset passkeys' })).not.toBeInTheDocument());
     expect(called).toBe(false);
-    expect(screen.getByRole('dialog', { name: 'Reset passkeys' })).toBeInTheDocument();
   });
 
   it('FE-MOB-ASHEET-025: resetting 2FA confirms, calls the API and reports it', async () => {
