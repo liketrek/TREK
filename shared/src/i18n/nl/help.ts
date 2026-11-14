@@ -1189,8 +1189,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': 'Kaart',
   'help.ctx.settings-map.summary':
     'Welke engine de kaarten van de reisplanner en het reisverslag tekent, en in welke stijl. Leaflet is de klassieke rasterkaart, Mapbox GL voegt met je eigen token 3D-gebouwen en terrein toe, MapLibre GL tekent zonder token vectortegels van OpenFreeMap. Atlas gebruikt altijd Leaflet.',
-  'help.ctx.settings-map.bullet.1':
-    'Kaartprovider: Leaflet, Mapbox GL of MapLibre GL, elk met een korte beschrijving.',
+  'help.ctx.settings-map.bullet.1': 'Kaartprovider: Leaflet, Mapbox GL of MapLibre GL, elk met een korte beschrijving.',
   'help.ctx.settings-map.bullet.2':
     '‘Kaartsjabloon’ en ‘CARTO API-sleutel’ voor Leaflet; ‘Kaartstijl’ voor de twee GL-engines, plus het Mapbox Access Token voor Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

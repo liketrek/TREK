@@ -989,8 +989,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': '地圖',
   'help.ctx.settings-map.summary':
     '旅行規劃器和日誌地圖由哪個引擎繪製，以及使用什麼樣式。Leaflet 是傳統的點陣地圖，Mapbox GL 搭配你自己的權杖可加入 3D 建築和地形，MapLibre GL 則無需權杖就能繪製 OpenFreeMap 向量圖磚。Atlas 一律使用 Leaflet。',
-  'help.ctx.settings-map.bullet.1':
-    '「地圖提供商」：Leaflet、Mapbox GL或 MapLibre GL，每個選項都有一行說明它是什麼。',
+  'help.ctx.settings-map.bullet.1': '「地圖提供商」：Leaflet、Mapbox GL或 MapLibre GL，每個選項都有一行說明它是什麼。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet 使用「地圖模板」和「CARTO API 金鑰」；兩種 GL 引擎使用「地圖樣式」，Mapbox GL 另外需要「Mapbox 存取權杖」。',
   'help.ctx.settings-map.bullet.3':
