@@ -22,12 +22,17 @@ import {
 interface MAdminSettingsSectionProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
+  /**
+   * Which section this renders, cut the way the desktop tabs are: who may sign
+   * in and what it takes (security), what the install talks to outside
+   * (services), and the setup of the features the addons switch on (features).
+   */
+  part: 'security' | 'services' | 'features'
 }
 
-// Settings section: auth methods, passkey login, require-MFA, allowed file
-// types, API keys, OIDC and the danger zone — the full desktop settings tab
-// relaid as mobile cards. All state and mutations come from useAdmin.
-export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectionProps) {
+// The admin's security, services and feature setup sections as phone cards.
+// All state and mutations come from useAdmin.
+export default function MAdminSettingsSection({ admin, t, part }: MAdminSettingsSectionProps) {
   const [providerPickerOpen, setProviderPickerOpen] = useState(false)
   const {
     placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
@@ -53,9 +58,26 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
     togglePlaceShadow,
   } = useAdminSettingsActions(admin, t)
 
-  return (
+  if (part === 'features') {
+    return (
+      <div className="space-y-3">
+        {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
+        <FlightLiveCard
+          t={t}
+          managed={!!managed}
+          on={flightLive}
+          locked={flightLiveLocked}
+          onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
+        />
+        {/* Booking mail import: self-hosted only, the operator runs the TREK Cloud relay (desktop parity). */}
+        {!managed && <MMailIngestAdminCard />}
+      </div>
+    )
+  }
+
+  if (part === 'security') return (
     <div className="space-y-3">
-      {/* Authentication methods */}
+      {/* Authentication methods, with the passkey switch and the 2FA rule: they are ways in too. */}
       <MAdminCard>
         <MAdminCardHead title={t('admin.authMethods')} />
         {envOverrideOidcOnly && (
@@ -127,11 +149,6 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             }
           />
         )}
-      </MAdminCard>
-
-      {/* Passkey login */}
-      <MAdminCard>
-        <MAdminCardHead title={t('admin.passkey.title')} hint={t('admin.passkey.cardHint')} />
         <MAdminRow
           title={t('admin.passkey.login')}
           hint={t('admin.passkey.loginHint')}
@@ -143,15 +160,26 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             />
           }
         />
+        <MAdminRow
+          title={t('admin.requireMfa')}
+          hint={t('admin.requireMfaHint')}
+          trailing={
+            <MToggle checked={requireMfa} ariaLabel={t('admin.requireMfa')} onChange={handleToggleRequireMfa} />
+          }
+        />
+      </MAdminCard>
+
+      {/* The passkey domain: the instance's address, which the operator owns on a
+          managed install (server managed.ts), same as the desktop tab. */}
+      {!managed && (
+      <MAdminCard>
+        <MAdminCardHead title={t('admin.passkey.title')} hint={t('admin.passkey.cardHint')} />
         {passkeyLogin && !passkeyConfigured && (
           <p className="mb-3 flex items-start gap-2 rounded-xl border border-[color:color-mix(in_srgb,var(--m-st-pending)_28%,transparent)] bg-[color:color-mix(in_srgb,var(--m-st-pending)_10%,transparent)] px-3 py-2 font-geist text-[0.625rem] leading-relaxed text-m-ink">
             <AlertTriangle size={14} className="mt-[1px] flex-none text-[color:var(--m-st-pending)]" />
             {t('admin.passkey.notConfigured')}
           </p>
         )}
-        {/* The relying party is the instance's address, which the operator owns on a
-            managed install (server managed.ts), same as the desktop tab. */}
-        {!managed && (
         <div className="space-y-3">
           <MAdminField label={t('admin.passkey.rpId')} hint={t('admin.passkey.rpIdHint')}>
             <MAdminInput
@@ -173,51 +201,39 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
             {t('common.save')}
           </MAdminButton>
         </div>
-        )}
       </MAdminCard>
+      )}
 
-      {/* Require 2FA */}
-      <MAdminCard>
+      {/* OIDC / SSO: the operator's on a managed install, as on the desktop tab. */}
+      {!managed && <MAdminOidcCard admin={admin} t={t} onSave={saveOidc} />}
+
+      {/* Last and on its own, not beside a harmless switch. Rotating the secret fixes
+          nothing an instance admin of a managed install can reach. */}
+      {!managed && (
+      <MAdminCard className="border-[color:color-mix(in_srgb,var(--m-st-danger)_28%,transparent)]">
+        <div className="mb-1 flex items-center gap-2 text-[color:var(--m-st-danger)]">
+          <AlertTriangle size={14} strokeWidth={2.2} />
+          <span className="text-[length:calc(14px*var(--fs-scale-body,1))] font-extrabold">{t('admin.danger.title')}</span>
+        </div>
         <MAdminRow
           first
-          title={t('admin.requireMfa')}
-          hint={t('admin.requireMfaHint')}
+          title={t('admin.rotateJwt.title')}
+          hint={t('admin.rotateJwt.hint')}
           trailing={
-            <MToggle checked={requireMfa} ariaLabel={t('admin.requireMfa')} onChange={handleToggleRequireMfa} />
+            <MAdminButton variant="danger" onClick={() => setShowRotateJwtModal(true)}>
+              <RefreshCw size={12} strokeWidth={2.2} />
+              {t('admin.rotateJwt.button')}
+            </MAdminButton>
           }
         />
       </MAdminCard>
+      )}
+    </div>
+  )
 
-      {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
-      <FlightLiveCard
-        t={t}
-        managed={!!managed}
-        on={flightLive}
-        locked={flightLiveLocked}
-        onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
-      />
-
-      {/* Booking mail import: self-hosted only, the operator runs the TREK Cloud relay (desktop parity). */}
-      {!managed && <MMailIngestAdminCard />}
-
-      {/* Allowed file types */}
-      <MAdminCard>
-        <MAdminCardHead title={t('admin.fileTypes')} hint={t('admin.fileTypesHint')} />
-        <div className="space-y-3">
-          <MAdminField label={t('admin.fileTypes')} hint={t('admin.fileTypesFormat')}>
-            <MAdminInput
-              type="text"
-              value={allowedFileTypes}
-              onChange={(e) => setAllowedFileTypes(e.target.value)}
-              placeholder="jpg,png,pdf,doc,docx,xls,xlsx,txt,csv"
-            />
-          </MAdminField>
-          <MAdminButton busy={savingFileTypes} onClick={saveFileTypes}>
-            {t('common.save')}
-          </MAdminButton>
-        </div>
-      </MAdminCard>
-
+  // Services: what the install talks to outside, and the file types it takes.
+  return (
+    <div className="space-y-3">
       {/* API keys, place search and routing: the operator's on a managed install,
           same as the desktop tab, so the whole card is left out. Unlike the desktop
           tab, the phone has no share place details section for a managed install. */}
@@ -409,26 +425,22 @@ export default function MAdminSettingsSection({ admin, t }: MAdminSettingsSectio
       </MAdminCard>
       )}
 
-      {/* OIDC / SSO: the operator's on a managed install, as on the desktop tab. */}
-      {!managed && <MAdminOidcCard admin={admin} t={t} onSave={saveOidc} />}
-
-      {/* Danger zone */}
-      <MAdminCard className="border-[color:color-mix(in_srgb,var(--m-st-danger)_28%,transparent)]">
-        <div className="mb-1 flex items-center gap-2 text-[color:var(--m-st-danger)]">
-          <AlertTriangle size={14} strokeWidth={2.2} />
-          <span className="text-[0.875rem] font-extrabold">{t('admin.danger.title')}</span>
+      {/* Allowed file types */}
+      <MAdminCard>
+        <MAdminCardHead title={t('admin.fileTypes')} hint={t('admin.fileTypesHint')} />
+        <div className="space-y-3">
+          <MAdminField label={t('admin.fileTypes')} hint={t('admin.fileTypesFormat')}>
+            <MAdminInput
+              type="text"
+              value={allowedFileTypes}
+              onChange={(e) => setAllowedFileTypes(e.target.value)}
+              placeholder="jpg,png,pdf,doc,docx,xls,xlsx,txt,csv"
+            />
+          </MAdminField>
+          <MAdminButton busy={savingFileTypes} onClick={saveFileTypes}>
+            {t('common.save')}
+          </MAdminButton>
         </div>
-        <MAdminRow
-          first
-          title={t('admin.rotateJwt.title')}
-          hint={t('admin.rotateJwt.hint')}
-          trailing={
-            <MAdminButton variant="danger" onClick={() => setShowRotateJwtModal(true)}>
-              <RefreshCw size={12} strokeWidth={2.2} />
-              {t('admin.rotateJwt.button')}
-            </MAdminButton>
-          }
-        />
       </MAdminCard>
     </div>
   )

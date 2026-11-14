@@ -72,7 +72,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Link zaproszenia został usunięty',
   'admin.invite.createError': 'Nie udało się utworzyć linku zaproszenia',
   'admin.invite.deleteError': 'Nie udało się usunąć linku zaproszenia',
-  'admin.tabs.settings': 'Ustawienia',
   'admin.tabs.security': 'Bezpieczeństwo',
   'admin.tabs.services': 'Usługi',
   'admin.allowRegistration': 'Zezwól na rejestrację',
@@ -92,7 +91,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Ustawienia logowania hasłem są kontrolowane przez zmienną środowiskową OIDC_ONLY i nie można ich tu zmienić.',
   'admin.lockoutWarning': 'Co najmniej jedna metoda logowania musi pozostać włączona',
-  'admin.requireMfa': 'Wymagaj uwierzytelniania dwuskładnikowego (2FA)',
+  'admin.requireMfa': 'Wymagaj 2FA',
   'admin.requireMfaHint':
     'Użytkownicy bez 2FA muszą ukończyć konfigurację w Ustawieniach zanim zaczną korzystać z aplikacji.',
   'admin.apiKeys': 'Klucze API',

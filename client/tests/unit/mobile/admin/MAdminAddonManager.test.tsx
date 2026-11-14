@@ -106,7 +106,7 @@ describe('MAdminAddonManager', () => {
     expect(await screen.findByText('No addons available')).toBeInTheDocument();
   });
 
-  it('FE-MOB-AADD-005: trip addons render with the section band, catalog label and type badge', async () => {
+  it('FE-MOB-AADD-005: trip addons render under the section band with their catalog label, no type badge of their own', async () => {
     server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Packing', enabled: true })]));
     render(<MAdminAddonManager />);
 
@@ -114,7 +114,8 @@ describe('MAdminAddonManager', () => {
     // The band names the type and says what it means on a line of its own, no dash between them.
     expect(screen.getByText('Available as a tab within each trip')).toBeInTheDocument();
     expect(screen.getByText('Packing lists and to-do tasks for your trips')).toBeInTheDocument();
-    expect(screen.getAllByText('Trip')).toHaveLength(2);
+    // Only the band names the type: every row under it is of that type.
+    expect(screen.getAllByText('Trip')).toHaveLength(1);
     expect(screen.getByRole('switch', { name: 'Lists' })).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -275,8 +276,8 @@ describe('MAdminAddonManager', () => {
     expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'true');
     // Journey + three providers, and providers are not shown as top-level rows.
     expect(screen.getAllByRole('switch')).toHaveLength(4);
-    // The band and the addon's type badge both say Global.
-    expect(screen.getAllByText('Global')).toHaveLength(2);
+    // Only the band says Global.
+    expect(screen.getAllByText('Global')).toHaveLength(1);
   });
 
   it('FE-MOB-AADD-015: toggling a provider persists it and rolls back on failure', async () => {
@@ -413,8 +414,8 @@ describe('MAdminAddonManager', () => {
       expect(screen.getByRole('switch', { name: 'Nextcloud' })).toHaveAttribute('aria-checked', 'true');
       // Documents plus two providers, and neither provider carries a type badge of its own.
       expect(screen.getAllByRole('switch')).toHaveLength(3);
-      // The band and the addon's type badge.
-      expect(screen.getAllByText('Trip')).toHaveLength(2);
+      // The band alone names the type.
+      expect(screen.getAllByText('Trip')).toHaveLength(1);
     });
 
     it('FE-MOB-AADD-029: the shelf stays hidden while Documents is off', async () => {

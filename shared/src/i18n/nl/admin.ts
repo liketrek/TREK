@@ -76,7 +76,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Uitnodigingslink verwijderd',
   'admin.invite.createError': 'Fout bij aanmaken van link',
   'admin.invite.deleteError': 'Fout bij verwijderen van link',
-  'admin.tabs.settings': 'Instellingen',
   'admin.tabs.security': 'Beveiliging',
   'admin.tabs.services': 'Diensten',
   'admin.allowRegistration': 'Registratie toestaan',
@@ -96,7 +95,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'De instellingen voor inloggen met wachtwoord worden beheerd via de omgevingsvariabele OIDC_ONLY en kunnen hier niet worden gewijzigd.',
   'admin.lockoutWarning': 'Er moet minstens één inlogmethode ingeschakeld blijven',
-  'admin.requireMfa': 'Tweestapsverificatie (2FA) verplichten',
+  'admin.requireMfa': '2FA verplichten',
   'admin.requireMfaHint':
     'Gebruikers zonder 2FA moeten de installatie in Instellingen voltooien voordat ze de app kunnen gebruiken.',
   'admin.apiKeys': 'API-sleutels',

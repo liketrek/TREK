@@ -124,7 +124,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Đã xóa liên kết mời',
   'admin.invite.createError': 'Không tạo được liên kết mời',
   'admin.invite.deleteError': 'Không xóa được liên kết mời',
-  'admin.tabs.settings': 'Cài đặt',
   'admin.tabs.security': 'Bảo mật',
   'admin.tabs.services': 'Dịch vụ',
   'admin.allowRegistration': 'Cho phép đăng ký',
@@ -144,7 +143,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Cài đặt đăng nhập mật khẩu được kiểm soát bởi biến môi trường OIDC_ONLY và không thể thay đổi tại đây.',
   'admin.lockoutWarning': 'Ít nhất một phương thức đăng nhập phải được bật',
-  'admin.requireMfa': 'Yêu cầu xác thực hai yếu tố (2FA)',
+  'admin.requireMfa': 'Yêu cầu 2FA',
   'admin.requireMfaHint': 'Người dùng không có 2FA phải hoàn tất thiết lập trong Cài đặt trước khi sử dụng ứng dụng.',
   'admin.apiKeys': 'API Key',
   'admin.apiKeysHint':

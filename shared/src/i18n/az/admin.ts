@@ -131,7 +131,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Dəvət keçidi silindi',
   'admin.invite.createError': 'Dəvət keçidi yaratmaq mümkün olmadı',
   'admin.invite.deleteError': 'Dəvət keçidini silmək mümkün olmadı',
-  'admin.tabs.settings': 'Tənzimləmələr',
   'admin.tabs.security': 'Təhlükəsizlik',
   'admin.tabs.services': 'Xidmətlər',
   'admin.allowRegistration': 'Qeydiyyata icazə ver',
@@ -151,7 +150,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Parolla giriş tənzimləmələri OIDC_ONLY mühit dəyişəni ilə idarə olunur və burada dəyişdirilə bilməz.',
   'admin.lockoutWarning': 'Ən azı bir giriş üsulu aktiv qalmalıdır',
-  'admin.requireMfa': 'İki faktorlu doğrulamanı (2FA) tələb et',
+  'admin.requireMfa': '2FA tələb et',
   'admin.requireMfaHint':
     '2FA-sı olmayan istifadəçilər tətbiqdən istifadə etməzdən əvvəl Tənzimləmələr bölməsində quraşdırmanı tamamlamalıdırlar.',
   'admin.apiKeys': 'API açarları',

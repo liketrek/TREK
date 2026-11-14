@@ -152,7 +152,7 @@ function MAssistantBehaviour() {
     <div className="mt-3 border-t border-[color:var(--m-rowbr)]">
       <MSetRow
         label={t('assistant.settings.followMap')}
-        sub={t('assistant.settings.followMapHint')}
+        hint={t('assistant.settings.followMapHint')}
         trailing={
           <MToggle
             checked={follow.on}
@@ -163,7 +163,7 @@ function MAssistantBehaviour() {
       />
       <MSetRow
         label={t('assistant.settings.costEstimates')}
-        sub={t('assistant.settings.costEstimatesHint')}
+        hint={t('assistant.settings.costEstimatesHint')}
         trailing={
           <MToggle
             checked={costs.on}

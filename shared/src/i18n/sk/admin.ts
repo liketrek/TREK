@@ -131,7 +131,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Pozývací odkaz odstránený',
   'admin.invite.createError': 'Nepodarilo sa vytvoriť pozývací odkaz',
   'admin.invite.deleteError': 'Nepodarilo sa odstrániť pozývací odkaz',
-  'admin.tabs.settings': 'Nastavenia',
   'admin.tabs.security': 'Zabezpečenie',
   'admin.tabs.services': 'Služby',
   'admin.allowRegistration': 'Povoliť registráciu',
@@ -150,7 +149,7 @@ const admin: TranslationStrings = {
     'Keď je prihlásenie heslom vypnuté, návštevníci sú hneď presmerovaní k poskytovateľovi identity. Vypnite to, aby sa najprv zobrazila prihlasovacia stránka s tlačidlom SSO.',
   'admin.envOverrideHint': 'Nastavenia prihlásenia heslom riadi premenná prostredia OIDC_ONLY a nedajú sa tu zmeniť.',
   'admin.lockoutWarning': 'Aspoň jedna metóda prihlásenia musí zostať zapnutá',
-  'admin.requireMfa': 'Vyžadovať dvojfaktorové overenie (2FA)',
+  'admin.requireMfa': 'Vyžadovať 2FA',
   'admin.requireMfaHint': 'Používatelia bez 2FA musia pred použitím aplikácie dokončiť nastavenie v Nastaveniach.',
   'admin.apiKeys': 'API kľúče',
   'admin.apiKeysHint':

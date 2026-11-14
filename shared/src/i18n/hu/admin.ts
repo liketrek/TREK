@@ -75,7 +75,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Meghívó link törölve',
   'admin.invite.createError': 'Nem sikerült létrehozni a meghívó linket',
   'admin.invite.deleteError': 'Nem sikerült törölni a meghívó linket',
-  'admin.tabs.settings': 'Beállítások',
   'admin.tabs.security': 'Biztonság',
   'admin.tabs.services': 'Szolgáltatások',
   'admin.allowRegistration': 'Regisztráció engedélyezése',
@@ -95,7 +94,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'A jelszavas bejelentkezés beállításait az OIDC_ONLY környezeti változó vezérli, itt nem módosíthatók.',
   'admin.lockoutWarning': 'Legalább egy bejelentkezési módnak engedélyezve kell maradnia',
-  'admin.requireMfa': 'Kétlépcsős hitelesítés (2FA) kötelezővé tétele',
+  'admin.requireMfa': '2FA kötelezővé tétele',
   'admin.requireMfaHint':
     'A 2FA nélküli felhasználóknak a Beállításokban kell befejezniük a beállítást az alkalmazás használata előtt.',
   'admin.apiKeys': 'API kulcsok',

@@ -9,16 +9,17 @@ import {
   Bug,
   ChevronDown,
   ChevronLeft,
+  Compass,
   Database,
   FileText,
-  Github,
+  GitBranch,
   HardDrive,
+  KeyRound,
   Map,
-  Plug,
   Puzzle,
   ScrollText,
-  Settings as SettingsIcon,
   Shield,
+  ShieldCheck,
   SlidersHorizontal,
   UserCog,
   UserPlus,
@@ -46,7 +47,7 @@ import MAdminUsersSection from './MAdminUsersSection'
 import { MAdminButton } from './MAdminUi'
 import { managedAdminTabs } from '../../../managed'
 import { useIsSplit } from '../../../hooks/sizeClass'
-import MSectionNav, { MSectionRow, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
+import MSectionNav, { MSectionList, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
 
 // Stat card of the 2×2 grid (design §6.3): 34px icon tile, 19px/800 number,
 // small tracking label. Count-up animation matches the desktop stat cards.
@@ -66,16 +67,16 @@ function MAdminStat({ label, value, icon: Icon }: { label: string; value: number
 }
 
 /**
- * Mobile admin screen (design §6): section switcher pill with the 11-entry
- * dropdown, update banner, stats grid and the users section; every other
- * desktop admin section stays reachable through the dropdown.
+ * Mobile admin screen (design §6): section switcher pill with the grouped
+ * dropdown of the desktop sidebar's sections, update banner, stats grid and
+ * the active section.
  */
 export default function MAdmin() {
   const { t, locale } = useTranslation()
   const admin = useAdmin()
   const {
     demoMode, mcpEnabled, devMode, managed, navigate,
-    activeTab: deskTab, setActiveTab, stats, serverTimezone,
+    activeTab, setActiveTab, stats, serverTimezone,
     bagTrackingEnabled, collabFeatures,
     setShowCreateUser,
     updateInfo, setShowUpdateModal,
@@ -86,30 +87,32 @@ export default function MAdmin() {
   // settings, instead of behind the header's dropdown.
   const split = useIsSplit()
 
-  // Same sections and gating as the desktop sidebar, ordered and iconed like
-  // the design's dropdown (§6.1).
+  // The desktop sidebar's sections, groups, order, icons and gating, so a link
+  // to a tab and a habit from the laptop land on the same place here.
+  const gUsers = t('admin.group.users')
+  const gConfig = t('admin.group.config')
+  const gMaintenance = t('admin.group.maintenance')
+  const groupOf = { users: gUsers, config: gConfig, integration: gConfig, maintenance: gMaintenance }
   const sections: MSection[] = [
-    { id: 'users', label: t('admin.tabs.users'), icon: Users },
-    { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog },
-    { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal },
-    { id: 'settings', label: t('admin.tabs.settings'), icon: SettingsIcon },
-    { id: 'addons', label: t('admin.tabs.addons'), icon: Blocks },
-    ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Puzzle }]),
-    ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive }]),
-    { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell },
-    ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: Plug }] : []),
-    // Same two the desktop list drops: releases and backup schedule belong to
-    // whoever operates the install.
-    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: Github }]),
-    ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database }]),
-    { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
-    ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
+    { id: 'users', label: t('admin.tabs.users'), icon: Users, group: gUsers },
+    { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog, group: gUsers },
+    { id: 'security', label: t('admin.tabs.security'), icon: ShieldCheck, group: gConfig },
+    { id: 'services', label: t('admin.tabs.services'), icon: Compass, group: gConfig },
+    { id: 'addons', label: t('admin.tabs.addons'), icon: Puzzle, group: gConfig },
+    { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal, group: gConfig },
+    { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell, group: gConfig },
+    ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound, group: gConfig }] : []),
+    // A hosted instance offers no plugins, storage backends, backup schedule or
+    // releases: they belong to whoever operates the install.
+    ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Blocks, group: gConfig }]),
+    ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive, group: gMaintenance }]),
+    ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database, group: gMaintenance }]),
+    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: GitBranch, group: gMaintenance }]),
+    { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText, group: gMaintenance },
+    ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug, group: gMaintenance }] : []),
     // The install's own tabs (managed/index.tsx), after the built-in ones as on the desktop.
-    ...managedAdminTabs.map(tab => ({ id: tab.id, label: tab.label, icon: tab.Icon })),
+    ...managedAdminTabs.map(tab => ({ id: tab.id, label: tab.label, icon: tab.Icon, group: groupOf[tab.group ?? 'config'] })),
   ]
-  // The desktop splits the settings into Security and Services; the phone keeps
-  // them in its one Settings section, so either desktop tab (and a link to it) opens that.
-  const activeTab = deskTab === 'security' || deskTab === 'services' ? 'settings' : deskTab
   const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0]
 
   return (
@@ -173,17 +176,14 @@ export default function MAdmin() {
       {/* Section dropdown */}
       {sectionsOpen && !split && (
         <div className="-mt-[6px] mb-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
-          {sections.map((section) => (
-            <MSectionRow
-              key={section.id}
-              section={section}
-              active={section.id === activeSection.id}
-              onPick={() => {
-                setActiveTab(section.id)
-                setSectionsOpen(false)
-              }}
-            />
-          ))}
+          <MSectionList
+            sections={sections}
+            activeId={activeSection.id}
+            onPick={(id) => {
+              setActiveTab(id)
+              setSectionsOpen(false)
+            }}
+          />
         </div>
       )}
 
@@ -228,7 +228,8 @@ export default function MAdmin() {
 
       {/* Active section */}
       {activeTab === 'users' && <MAdminUsersSection admin={admin} t={t} locale={locale} />}
-      {activeTab === 'settings' && <MAdminSettingsSection admin={admin} t={t} />}
+      {activeTab === 'security' && <MAdminSettingsSection admin={admin} t={t} part="security" />}
+      {activeTab === 'services' && <MAdminSettingsSection admin={admin} t={t} part="services" />}
       {activeTab === 'notifications' && <MAdminNotificationsSection admin={admin} t={t} />}
       {activeTab === 'defaults' && <MAdminDefaultUserSettings />}
       {activeTab === 'config' && (
@@ -246,6 +247,8 @@ export default function MAdmin() {
             collabFeatures={collabFeatures}
             onToggleCollabFeature={toggleCollabFeature}
           />
+          {/* How the integrations reach the world (live flights, booking mails), beside the addons they serve. */}
+          <MAdminSettingsSection admin={admin} t={t} part="features" />
           <MAdminPaddleRegionsPanel />
         </div>
       )}

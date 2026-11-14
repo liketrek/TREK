@@ -154,17 +154,17 @@ export default function MSettingsMap() {
             <div className="mt-1">
               <MSetRow
                 label={t('settings.map3dBuildings')}
-                sub={t('settings.map3dHint')}
+                hint={t('settings.map3dHint')}
                 trailing={<MToggle checked={mapbox3d} onChange={setMapbox3d} ariaLabel={t('settings.map3dBuildings')} />}
               />
               <MSetRow
                 label={t('settings.mapHighQuality')}
-                sub={`${t('settings.mapHighQualityHint')} ${t('settings.mapHighQualityWarning')}`}
+                hint={`${t('settings.mapHighQualityHint')} ${t('settings.mapHighQualityWarning')}`}
                 trailing={<MToggle checked={mapboxQuality} onChange={setMapboxQuality} ariaLabel={t('settings.mapHighQuality')} />}
               />
               <MSetRow
                 label={t('settings.mapHidePois')}
-                sub={t('settings.mapHidePoisHint')}
+                hint={t('settings.mapHidePoisHint')}
                 trailing={<MToggle checked={hideBasemapPois} onChange={setHideBasemapPois} ariaLabel={t('settings.mapHidePois')} />}
               />
               <p className="rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-m-muted">

@@ -516,7 +516,7 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       // The 2FA rule is a row of the sign-in card: its label left, its switch right.
-      const mfaLabel = await screen.findByText('Require two-factor authentication (2FA)', { selector: 'label' });
+      const mfaLabel = await screen.findByText('Require 2FA', { selector: 'label' });
       const mfaRow = mfaLabel.closest<HTMLElement>('.flex-wrap');
       fireEvent.click(within(mfaRow!).getByRole('button'));
 

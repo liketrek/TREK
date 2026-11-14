@@ -236,7 +236,7 @@ describe('AdminSettingsTab', () => {
   it('FE-ADMSET-016: require-MFA toggle flips the current value', () => {
     const admin = renderTab({ requireMfa: false });
 
-    fireEvent.click(toggleFor('Require two-factor authentication (2FA)'));
+    fireEvent.click(toggleFor('Require 2FA'));
 
     expect(admin.handleToggleRequireMfa).toHaveBeenCalledWith(true);
   });

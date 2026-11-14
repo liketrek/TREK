@@ -61,7 +61,7 @@ export default function MMailImportSection(): ReactElement | null {
         <MSetRow
           first
           label={t('mailInbox.settings.enabled')}
-          sub={t('mailInbox.settings.enabledHint')}
+          hint={t('mailInbox.settings.enabledHint')}
           trailing={
             <MToggle
               checked={prefs.enabled}
@@ -89,7 +89,7 @@ export default function MMailImportSection(): ReactElement | null {
         />
         <MSetRow
           label={t('mailInbox.settings.autoAdd')}
-          sub={t('mailInbox.settings.autoAddHint')}
+          hint={t('mailInbox.settings.autoAddHint')}
           trailing={
             <MToggle
               checked={prefs.auto_add}

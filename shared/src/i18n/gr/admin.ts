@@ -131,7 +131,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Ο σύνδεσμος πρόσκλησης διαγράφηκε',
   'admin.invite.createError': 'Αποτυχία δημιουργίας συνδέσμου πρόσκλησης',
   'admin.invite.deleteError': 'Αποτυχία διαγραφής συνδέσμου πρόσκλησης',
-  'admin.tabs.settings': 'Ρυθμίσεις',
   'admin.tabs.security': 'Ασφάλεια',
   'admin.tabs.services': 'Υπηρεσίες',
   'admin.allowRegistration': 'Να επιτρέπονται οι εγγραφές',
@@ -151,7 +150,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Οι ρυθμίσεις σύνδεσης με κωδικό ελέγχονται από τη μεταβλητή περιβάλλοντος OIDC_ONLY και δεν μπορούν να αλλάξουν εδώ.',
   'admin.lockoutWarning': 'Πρέπει να παραμείνει ενεργοποιημένη τουλάχιστον μία μέθοδος σύνδεσης',
-  'admin.requireMfa': 'Απαίτηση ελέγχου ταυτότητας δύο παραγόντων (2FA)',
+  'admin.requireMfa': 'Απαίτηση 2FA',
   'admin.requireMfaHint':
     'Οι χρήστες χωρίς 2FA πρέπει να ολοκληρώσουν τη ρύθμιση στις Ρυθμίσεις πριν χρησιμοποιήσουν την εφαρμογή.',
   'admin.apiKeys': 'Κλειδιά API',

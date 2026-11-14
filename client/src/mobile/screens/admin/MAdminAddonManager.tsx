@@ -21,7 +21,8 @@ import AiSettingsDialog from '../../../components/Admin/addons/AiAdminConfig'
 import { AI_ADDON_ICONS, type AiAddonId } from '../../../components/Admin/addons/aiAddons'
 import { useAiAddonTile } from '../../../components/Admin/addons/useAiAddonTile'
 import { ImmichIcon, SynologyIcon } from '../../../components/Admin/addons/PhotoProviderIcons'
-import { MAdminCard, MAdminClampedText } from './MAdminUi'
+import { MAdminCard } from './MAdminUi'
+import MHintLabel from '../../components/MHintLabel'
 import WandererMark from '../../../components/Tours/wanderer/WandererMark'
 import MSkeleton from '../../components/MSkeleton'
 
@@ -189,11 +190,14 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
 function MGroupHead({ icon: Icon, label, hint }: { icon: typeof Briefcase; label: string; hint: string }) {
   return (
     <div className="mb-1">
-      <div className="flex items-center gap-2">
-        <Icon size={13} className="flex-none text-m-muted" />
-        <span className="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[0.06em] text-m-muted">{label}</span>
+      <div className="flex items-start gap-2">
+        <Icon size={13} className="mt-[2px] flex-none text-m-muted" />
+        <MHintLabel
+          label={label}
+          hint={hint}
+          labelClassName="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[0.06em] text-m-muted"
+        />
       </div>
-      <p className="mt-[2px] ps-[21px] font-geist text-[length:calc(9.5px*var(--fs-scale-caption,1))] leading-snug text-m-faint">{hint}</p>
     </div>
   )
 }
@@ -205,11 +209,12 @@ interface MAddonRowProps {
   first?: boolean
 }
 
-/** Addon row: icon tile, name + type badge, description, MToggle. */
+/**
+ * Addon row: icon tile, name with its description behind the info mark, MToggle.
+ * No type badge: every row stands under its type's heading already.
+ */
 function MAddonRow({ addon, onToggle, t, first }: MAddonRowProps) {
   const label = getAddonLabel(t, addon)
-  const typeLabel =
-    addon.type === 'global' ? t('admin.addons.type.global') : addon.type === 'integration' ? t('admin.addons.type.integration') : t('admin.addons.type.trip')
   return (
     <div className={`flex items-center gap-3 py-[11px] ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
       {/* overflow-hidden so a brand mark that fills the slot keeps its rounded corners. */}
@@ -217,13 +222,7 @@ function MAddonRow({ addon, onToggle, t, first }: MAddonRowProps) {
         <AddonIcon name={addon.icon} size={18} enabled={addon.enabled} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="min-w-0 truncate text-[0.8125rem] font-bold text-m-ink">{label.name}</span>
-          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">
-            {typeLabel}
-          </span>
-        </div>
-        <MAdminClampedText className="mt-[1px] text-[length:calc(10px*var(--fs-scale-caption,1))]">{label.description}</MAdminClampedText>
+        <MHintLabel label={label.name} hint={label.description} />
       </div>
       <MToggle checked={addon.enabled} ariaLabel={label.name} onChange={() => onToggle(addon)} />
     </div>
@@ -265,8 +264,7 @@ function MSubRow({ icon: Icon, providerIcon: ProviderIcon, title, subtitle, enab
         {Icon ? <Icon size={14} /> : ProviderIcon ? <ProviderIcon size={14} /> : null}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-[0.75rem] font-bold text-m-ink">{title}</div>
-        <MAdminClampedText className="mt-[1px] text-[length:calc(9.5px*var(--fs-scale-caption,1))]">{subtitle}</MAdminClampedText>
+        <MHintLabel label={title} hint={subtitle} labelClassName="text-[length:calc(12px*var(--fs-scale-body,1))] font-bold text-m-ink" />
       </div>
       <MToggle checked={enabled} ariaLabel={title} onChange={onToggle} />
     </div>
@@ -284,8 +282,7 @@ function MAiAddons({ addons, onToggle }: { addons: Addon[]; onToggle: (addon: Ad
           <Sparkles size={18} />
         </span>
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-[0.8125rem] font-bold text-m-ink">{t('admin.addons.ai.name')}</span>
-          <p className="mt-[1px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{t('admin.addons.ai.description')}</p>
+          <MHintLabel label={t('admin.addons.ai.name')} hint={t('admin.addons.ai.description')} />
         </div>
         <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold text-m-muted">
           {tile.enabledCount}/{addons.length}

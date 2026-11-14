@@ -75,7 +75,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': "Lien d'invitation supprimé",
   'admin.invite.createError': 'Erreur lors de la création du lien',
   'admin.invite.deleteError': 'Erreur lors de la suppression du lien',
-  'admin.tabs.settings': 'Paramètres',
   'admin.tabs.security': 'Sécurité',
   'admin.tabs.services': 'Services', // same-as-en
   'admin.allowRegistration': 'Autoriser les inscriptions',
@@ -96,7 +95,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     "Les réglages de connexion par mot de passe sont contrôlés par la variable d'environnement OIDC_ONLY et ne peuvent pas être modifiés ici.",
   'admin.lockoutWarning': 'Au moins une méthode de connexion doit rester activée',
-  'admin.requireMfa': "Exiger l'authentification à deux facteurs (2FA)",
+  'admin.requireMfa': 'Exiger la 2FA',
   'admin.requireMfaHint':
     "Les utilisateurs sans 2FA doivent terminer la configuration dans Paramètres avant d'utiliser l'application.",
   'admin.apiKeys': 'Clés API',

@@ -329,7 +329,7 @@ export default function MSettingsMcp() {
 
               <MSetRow
                 label={t('settings.oauth.modal.machineClient')}
-                sub={t('settings.oauth.modal.machineClientHint')}
+                hint={t('settings.oauth.modal.machineClientHint')}
                 trailing={<MToggle checked={isMachine} onChange={setIsMachine} ariaLabel={t('settings.oauth.modal.machineClient')} />}
               />
 

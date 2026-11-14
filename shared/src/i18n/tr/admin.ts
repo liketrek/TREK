@@ -128,7 +128,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Davet bağlantısı silindi',
   'admin.invite.createError': 'Davet bağlantısı oluşturulamadı',
   'admin.invite.deleteError': 'Davet bağlantısı silinemedi',
-  'admin.tabs.settings': 'Ayarlar',
   'admin.tabs.security': 'Güvenlik',
   'admin.tabs.services': 'Hizmetler',
   'admin.allowRegistration': 'Kayda İzin Ver',
@@ -148,7 +147,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Şifre oturum açma ayarları OIDC_ONLY ortam değişkeni tarafından kontrol edilir ve burada değiştirilemez.',
   'admin.lockoutWarning': 'En az bir oturum açma yöntemi etkin kalmalıdır',
-  'admin.requireMfa': 'İki faktörlü kimlik doğrulama (2FA) gerektir',
+  'admin.requireMfa': '2FA gerektir',
   'admin.requireMfaHint':
     "2FA'sı olmayan kullanıcıların uygulamayı kullanmadan önce Ayarlar'da kurulumu tamamlaması gerekir.",
   'admin.apiKeys': 'API Anahtarları',

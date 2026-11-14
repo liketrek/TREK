@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import MHintLabel from '../../components/MHintLabel'
 
 /**
  * Shared building blocks of the mobile settings screen, all straight from the
@@ -125,17 +126,20 @@ export function MSetOnOff({ on, onChange, onLabel, offLabel, ariaLabel }: MSetOn
 
 interface MSetRowProps {
   label: ReactNode
+  /** A value under the label (a host, a size, a date): always shown. */
   sub?: ReactNode
+  /** What the setting does: behind the label's info mark, as on the desktop. */
+  hint?: ReactNode
   trailing?: ReactNode
   first?: boolean
 }
 
-/** Setting row with label + Geist sub line and a trailing control. */
-export function MSetRow({ label, sub, trailing, first = false }: MSetRowProps) {
+/** Setting row with label (and its hint behind the info mark), an optional value line and a trailing control. */
+export function MSetRow({ label, sub, hint, trailing, first = false }: MSetRowProps) {
   return (
     <div className={`flex items-center gap-[10px] py-[10px] ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
       <div className="min-w-0 flex-1">
-        <div className="text-[0.78125rem] font-bold text-m-ink">{label}</div>
+        <MHintLabel label={label} hint={hint} labelClassName="text-[length:calc(12.5px*var(--fs-scale-body,1))] font-bold text-m-ink" />
         {sub && <div className="mt-[1px] font-geist text-[0.625rem] text-m-muted">{sub}</div>}
       </div>
       {trailing}
@@ -188,7 +192,7 @@ export function MSetButton({ onClick, disabled = false, variant = 'primary', cla
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center gap-[6px] rounded-full px-4 py-[9px] text-[0.78125rem] font-bold disabled:opacity-50 ${look} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-[6px] whitespace-nowrap rounded-full px-4 py-[9px] text-[0.78125rem] font-bold disabled:opacity-50 ${look} ${className}`}
     >
       {children}
     </button>

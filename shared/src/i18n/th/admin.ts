@@ -123,7 +123,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'ลบลิงก์คำเชิญแล้ว',
   'admin.invite.createError': 'ไม่สามารถสร้างลิงก์คำเชิญได้',
   'admin.invite.deleteError': 'ลบลิงก์คำเชิญไม่สำเร็จ',
-  'admin.tabs.settings': 'การตั้งค่า',
   'admin.tabs.security': 'ความปลอดภัย',
   'admin.tabs.services': 'บริการ',
   'admin.allowRegistration': 'อนุญาตให้ลงทะเบียน',
@@ -143,7 +142,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'การตั้งค่าการเข้าสู่ระบบด้วยรหัสผ่านได้รับการควบคุมโดยตัวแปรสภาพแวดล้อม OIDC_ONLY และไม่สามารถเปลี่ยนแปลงได้ที่นี่',
   'admin.lockoutWarning': 'ต้องเปิดใช้งานวิธีการเข้าสู่ระบบอย่างน้อยหนึ่งวิธี',
-  'admin.requireMfa': 'ต้องมีการรับรองความถูกต้องด้วยสองปัจจัย (2FA)',
+  'admin.requireMfa': 'บังคับใช้ 2FA',
   'admin.requireMfaHint': 'ผู้ใช้ที่ไม่มี 2FA ต้องตั้งค่าในการตั้งค่าให้เสร็จสิ้นก่อนจึงจะใช้แอปได้',
   'admin.apiKeys': 'คีย์ API',
   'admin.apiKeysHint': 'ไม่จำเป็น เปิดใช้งานข้อมูลสถานที่แบบขยาย เช่น รูปภาพและสภาพอากาศ',

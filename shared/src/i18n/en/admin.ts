@@ -127,7 +127,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Invite link deleted',
   'admin.invite.createError': 'Failed to create invite link',
   'admin.invite.deleteError': 'Failed to delete invite link',
-  'admin.tabs.settings': 'Settings',
   'admin.tabs.security': 'Security',
   'admin.tabs.services': 'Services',
   'admin.allowRegistration': 'Allow Registration',
@@ -147,7 +146,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Password login settings are controlled by the OIDC_ONLY environment variable and cannot be changed here.',
   'admin.lockoutWarning': 'At least one login method must remain enabled',
-  'admin.requireMfa': 'Require two-factor authentication (2FA)',
+  'admin.requireMfa': 'Require 2FA',
   'admin.requireMfaHint': 'Users without 2FA must complete setup in Settings before using the app.',
   'admin.apiKeys': 'API Keys',
   'admin.apiKeysHint':

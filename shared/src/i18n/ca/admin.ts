@@ -81,7 +81,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Enllaç de convidada eliminat',
   'admin.invite.createError': "Error en crear l'enllaç",
   'admin.invite.deleteError': "Error en eliminar l'enllaç",
-  'admin.tabs.settings': 'Configuració',
   'admin.tabs.security': 'Seguretat',
   'admin.tabs.services': 'Serveis',
   'admin.allowRegistration': 'Permetre el registre',
@@ -101,7 +100,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     "La configuració d'inici de sessió amb contrasenya està controlada per la variable d'entorn OIDC_ONLY i no es pot canviar aquí.",
   'admin.lockoutWarning': "Almenys un mètode d'inici de sessió ha de romandre activat",
-  'admin.requireMfa': 'Exigir autenticació de dos factors (2FA)',
+  'admin.requireMfa': 'Exigir 2FA',
   'admin.requireMfaHint':
     "Els usuaris sense 2FA han de completar la configuració a Ajustos abans d'utilitzar l'aplicació.",
   'admin.apiKeys': 'Claus API',

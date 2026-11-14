@@ -194,7 +194,7 @@ export default function MSettingsGeneral() {
             <MSetRow
               key={row.key as string}
               label={row.label}
-              sub={row.sub}
+              hint={row.sub}
               trailing={
                 <MToggle
                   checked={row.on}

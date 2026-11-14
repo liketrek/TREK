@@ -59,7 +59,7 @@ export default function MSettingsOffline() {
           <MSetRow
             first
             label={t('settings.offline.mode.force')}
-            sub={t('settings.offline.mode.forceHint')}
+            hint={t('settings.offline.mode.forceHint')}
             trailing={<MToggle checked={forced} onChange={handleToggleForce} ariaLabel={t('settings.offline.mode.force')} />}
           />
         </div>
@@ -157,7 +157,7 @@ export default function MSettingsOffline() {
           <MSetRow
             first
             label={t('settings.offline.storage.tiles')}
-            sub={t('settings.offline.storage.tilesHint')}
+            hint={t('settings.offline.storage.tilesHint')}
             trailing={<MToggle checked={prefs.cacheTiles} onChange={handleToggleTiles} ariaLabel={t('settings.offline.storage.tiles')} />}
           />
           {/* The iOS app's own store of the map tiles looked at, beside the trip regions above. */}

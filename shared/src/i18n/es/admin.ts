@@ -76,7 +76,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Enlace de invitación eliminado',
   'admin.invite.createError': 'Error al crear el enlace',
   'admin.invite.deleteError': 'Error al eliminar el enlace',
-  'admin.tabs.settings': 'Ajustes',
   'admin.tabs.security': 'Seguridad',
   'admin.tabs.services': 'Servicios',
   'admin.allowRegistration': 'Permitir el registro',
@@ -96,7 +95,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Los ajustes del inicio de sesión con contraseña se controlan con la variable de entorno OIDC_ONLY y no se pueden cambiar aquí.',
   'admin.lockoutWarning': 'Debe quedar activado al menos un método de inicio de sesión',
-  'admin.requireMfa': 'Exigir autenticación en dos factores (2FA)',
+  'admin.requireMfa': 'Exigir 2FA',
   'admin.requireMfaHint':
     'Los usuarios sin 2FA deben completar la configuración en Ajustes antes de usar la aplicación.',
   'admin.apiKeys': 'Claves API',

@@ -128,7 +128,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Inbjudningslänken har tagits bort',
   'admin.invite.createError': 'Det gick inte att skapa en inbjudningslänk',
   'admin.invite.deleteError': 'Det gick inte att ta bort inbjudningslänken',
-  'admin.tabs.settings': 'Inställningar',
   'admin.tabs.security': 'Säkerhet',
   'admin.tabs.services': 'Tjänster',
   'admin.allowRegistration': 'Tillåt registrering',
@@ -148,7 +147,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Inställningarna för inloggning med lösenord styrs av miljövariabeln OIDC_ONLY och kan inte ändras här.',
   'admin.lockoutWarning': 'Minst en inloggningsmetod måste vara aktiverad',
-  'admin.requireMfa': 'Kräv tvåfaktorsautentisering (2FA)',
+  'admin.requireMfa': 'Kräv 2FA',
   'admin.requireMfaHint':
     'Användare som inte har tvåfaktorsautentisering måste slutföra inställningarna under inställningar innan de använder appen.',
   'admin.apiKeys': 'API Nycklar',

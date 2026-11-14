@@ -123,7 +123,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Tautan undangan dihapus',
   'admin.invite.createError': 'Gagal membuat tautan undangan',
   'admin.invite.deleteError': 'Gagal menghapus tautan undangan',
-  'admin.tabs.settings': 'Pengaturan',
   'admin.tabs.security': 'Keamanan',
   'admin.tabs.services': 'Layanan',
   'admin.allowRegistration': 'Izinkan Pendaftaran',
@@ -143,7 +142,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Pengaturan login kata sandi dikendalikan oleh variabel lingkungan OIDC_ONLY dan tidak dapat diubah di sini.',
   'admin.lockoutWarning': 'Minimal satu metode login harus tetap aktif',
-  'admin.requireMfa': 'Wajibkan autentikasi dua faktor (2FA)',
+  'admin.requireMfa': 'Wajibkan 2FA',
   'admin.requireMfaHint':
     'Pengguna tanpa 2FA harus menyelesaikan pengaturan di Pengaturan sebelum menggunakan aplikasi.',
   'admin.apiKeys': 'Kunci API',

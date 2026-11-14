@@ -129,7 +129,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Kutselink kustutatud',
   'admin.invite.createError': 'Kutselingi loomine ebaõnnestus',
   'admin.invite.deleteError': 'Kutselingi kustutamine ebaõnnestus',
-  'admin.tabs.settings': 'Seaded',
   'admin.tabs.security': 'Turvalisus',
   'admin.tabs.services': 'Teenused',
   'admin.allowRegistration': 'Luba registreerumine',
@@ -149,7 +148,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Parooliga sisselogimise seadeid juhib keskkonnamuutuja OIDC_ONLY ja neid ei saa siin muuta.',
   'admin.lockoutWarning': 'Vähemalt üks sisselogimisviis peab jääma lubatuks',
-  'admin.requireMfa': 'Nõua kaheastmelist autentimist (2FA)',
+  'admin.requireMfa': 'Nõua 2FA-d',
   'admin.requireMfaHint': 'Ilma 2FA-ta kasutajad peavad enne rakenduse kasutamist selle seadetes seadistama.',
   'admin.apiKeys': 'API-võtmed',
   'admin.apiKeysHint':

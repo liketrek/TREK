@@ -84,7 +84,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Ссылка-приглашение удалена',
   'admin.invite.createError': 'Ошибка при создании ссылки',
   'admin.invite.deleteError': 'Ошибка при удалении ссылки',
-  'admin.tabs.settings': 'Настройки',
   'admin.tabs.security': 'Безопасность',
   'admin.tabs.services': 'Сервисы',
   'admin.allowRegistration': 'Разрешить регистрацию',
@@ -104,7 +103,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Настройки входа по паролю управляются переменной окружения OIDC_ONLY и не могут быть изменены здесь.',
   'admin.lockoutWarning': 'Должен оставаться включённым хотя бы один способ входа',
-  'admin.requireMfa': 'Требовать двухфакторную аутентификацию (2FA)',
+  'admin.requireMfa': 'Требовать 2FA',
   'admin.requireMfaHint':
     'Пользователи без 2FA должны завершить настройку в разделе «Настройки» перед использованием приложения.',
   'admin.apiKeys': 'API-ключи',

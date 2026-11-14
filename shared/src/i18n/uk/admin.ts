@@ -84,7 +84,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Посилання-запрошення видалено',
   'admin.invite.createError': 'Помилка створення посилання',
   'admin.invite.deleteError': 'Помилка видалення посилання',
-  'admin.tabs.settings': 'Налаштування',
   'admin.tabs.security': 'Безпека',
   'admin.tabs.services': 'Сервіси',
   'admin.allowRegistration': 'Дозволити реєстрацію',
@@ -104,7 +103,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'Налаштування входу за паролем контролюються змінною середовища OIDC_ONLY і не можуть бути змінені тут.',
   'admin.lockoutWarning': 'Потрібно залишити увімкненим принаймні один метод входу',
-  'admin.requireMfa': 'Вимагати двофакторну автентифікацію (2FA)',
+  'admin.requireMfa': 'Вимагати 2FA',
   'admin.requireMfaHint':
     'Користувачі без 2FA повинні завершити налаштування в розділі «Налаштування» перед використанням програми.',
   'admin.apiKeys': 'API-ключі',

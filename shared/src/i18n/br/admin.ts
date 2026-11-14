@@ -75,7 +75,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Link de convite excluído',
   'admin.invite.createError': 'Falha ao criar link de convite',
   'admin.invite.deleteError': 'Falha ao excluir link de convite',
-  'admin.tabs.settings': 'Configurações',
   'admin.tabs.security': 'Segurança',
   'admin.tabs.services': 'Serviços',
   'admin.allowRegistration': 'Permitir cadastro',
@@ -95,7 +94,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     'As configurações de login com senha são controladas pela variável de ambiente OIDC_ONLY e não podem ser alteradas aqui.',
   'admin.lockoutWarning': 'Pelo menos um método de login deve permanecer ativado',
-  'admin.requireMfa': 'Exigir autenticação em dois fatores (2FA)',
+  'admin.requireMfa': 'Exigir 2FA',
   'admin.requireMfaHint': 'Usuários sem 2FA precisam concluir a configuração em Configurações antes de usar o app.',
   'admin.apiKeys': 'Chaves de API',
   'admin.apiKeysHint':

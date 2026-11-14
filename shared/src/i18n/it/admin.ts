@@ -75,7 +75,6 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Link di invito eliminato',
   'admin.invite.createError': 'Impossibile creare il link di invito',
   'admin.invite.deleteError': 'Impossibile eliminare il link di invito',
-  'admin.tabs.settings': 'Impostazioni',
   'admin.tabs.security': 'Sicurezza',
   'admin.tabs.services': 'Servizi',
   'admin.allowRegistration': 'Consenti Registrazione',
@@ -95,7 +94,7 @@ const admin: TranslationStrings = {
   'admin.envOverrideHint':
     "Le impostazioni di accesso con password sono controllate dalla variabile d'ambiente OIDC_ONLY e non possono essere modificate qui.",
   'admin.lockoutWarning': 'Deve restare attivo almeno un metodo di accesso',
-  'admin.requireMfa': 'Richiedi autenticazione a due fattori (2FA)',
+  'admin.requireMfa': 'Richiedi 2FA',
   'admin.requireMfaHint':
     "Gli utenti senza 2FA devono completare la configurazione in Impostazioni prima di usare l'app.",
   'admin.apiKeys': 'Chiavi API',

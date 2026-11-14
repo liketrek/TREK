@@ -10,9 +10,27 @@ import { buildAdminHook, type AdminHook } from '../../../helpers/mobileAdmin';
 import { useTranslation } from '../../../../src/i18n';
 import MAdminSettingsSection from '../../../../src/mobile/screens/admin/MAdminSettingsSection';
 
+const PARTS = ['security', 'services', 'features'] as const;
+
+/** All three sections at once, so each card's behaviour is tested wherever it now lives. */
+function AllParts({ admin, t }: { admin: AdminHook; t: ReturnType<typeof useTranslation>['t'] }) {
+  return (
+    <>
+      {PARTS.map((part) => (
+        <MAdminSettingsSection key={part} admin={admin} t={t} part={part} />
+      ))}
+    </>
+  );
+}
+
 function Harness({ admin }: { admin: AdminHook }) {
   const { t } = useTranslation();
-  return <MAdminSettingsSection admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
+}
+
+function PartHarness({ admin, part }: { admin: AdminHook; part: (typeof PARTS)[number] }) {
+  const { t } = useTranslation();
+  return <MAdminSettingsSection admin={admin} t={t} part={part} />;
 }
 
 type Spy = ReturnType<typeof vi.fn>;
@@ -52,7 +70,7 @@ function OidcHarness() {
     discovery_url: '',
   });
   const admin = buildAdminHook({ oidcConfig, setOidcConfig });
-  return <MAdminSettingsSection admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
 }
 
 beforeEach(() => {
@@ -69,12 +87,39 @@ describe('MAdminSettingsSection', () => {
 
     expect(screen.getByText('Authentication Methods')).toBeInTheDocument();
     expect(screen.getByText('Passkey login')).toBeInTheDocument();
-    expect(screen.getByText('Require two-factor authentication (2FA)')).toBeInTheDocument();
+    expect(screen.getByText('Require 2FA')).toBeInTheDocument();
     // Card head and field label share the copy
     expect(screen.getAllByText('Allowed File Types')).toHaveLength(2);
     expect(screen.getByText('API Keys')).toBeInTheDocument();
     expect(screen.getByText('Single Sign-On (OIDC)')).toBeInTheDocument();
     expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-ASET-025: each section holds the cards of its desktop tab', () => {
+    const admin = buildAdminHook();
+    const { unmount } = render(<PartHarness admin={admin} part="security" />);
+    expect(screen.getByText('Authentication Methods')).toBeInTheDocument();
+    expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+    expect(screen.queryByText('API Keys')).not.toBeInTheDocument();
+    expect(screen.queryByText('Live flight status')).not.toBeInTheDocument();
+    unmount();
+
+    const services = render(<PartHarness admin={admin} part="services" />);
+    expect(screen.getByText('API Keys')).toBeInTheDocument();
+    expect(screen.getAllByText('Allowed File Types').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Authentication Methods')).not.toBeInTheDocument();
+    services.unmount();
+
+    render(<PartHarness admin={admin} part="features" />);
+    expect(screen.getByText('Live flight status')).toBeInTheDocument();
+    expect(screen.queryByText('API Keys')).not.toBeInTheDocument();
+    expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ASET-026: a managed install keeps the danger zone and the passkey domain to its operator', () => {
+    renderSettings({ managed: true });
+    expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Require 2FA' })).toBeInTheDocument();
   });
 
   it('FE-MOB-ASET-002: the OIDC toggles only appear once OIDC is configured', () => {
@@ -140,7 +185,7 @@ describe('MAdminSettingsSection', () => {
     const user = userEvent.setup();
     const admin = renderSettings({ requireMfa: false });
 
-    await user.click(toggle('Require two-factor authentication (2FA)'));
+    await user.click(toggle('Require 2FA'));
 
     expect(admin.handleToggleRequireMfa).toHaveBeenCalledWith(true);
   });
