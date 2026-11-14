@@ -524,6 +524,21 @@ describe('useTripPlanner — tabs', () => {
     expect(result.current.activeTab).toBe('collab')
   })
 
+  it('a message link switches an already mounted planner to Collab and remembers the tab', async () => {
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'collab' }] })
+    seedTrip()
+    const { result, rerender } = await renderPlanner()
+    await waitFor(() => expect(result.current.TRIP_TABS.map(t => t.id)).toContain('collab'))
+    expect(result.current.activeTab).toBe('plan')
+
+    searchParams = new URLSearchParams('tab=collab')
+    rerender()
+
+    await waitFor(() => expect(result.current.activeTab).toBe('collab'))
+    expect(searchParams.has('tab')).toBe(false)
+    expect(sessionStorage.getItem('trip-tab-42')).toBe('collab')
+  })
+
   it('FE-TP-HOOK-110: but a tab whose addon really is off still falls back to plan', async () => {
     vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [] })
     searchParams = new URLSearchParams('tab=finanzplan')

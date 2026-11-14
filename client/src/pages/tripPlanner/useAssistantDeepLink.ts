@@ -62,11 +62,10 @@ interface AssistantTabLinkOptions {
 }
 
 /**
- * `?tab=<id>` while the planner is already open: what a card in the chat
- * opens in another tab of this trip (`?tab=finanzplan&expense=7`). The
- * planner reads the tab once when it opens; this takes a later one live,
- * once, and then drops it from the URL. What the tab reads beside it stays
- * for that tab to take.
+ * `?tab=<id>` from a notification or a card in the chat, including while the
+ * planner is already open. Both desktop and mobile take the requested tab
+ * once and then drop it from the URL. What the tab reads beside it stays
+ * for that tab to take (`?tab=finanzplan&expense=7`, for example).
  */
 export function useAssistantTabLink({
   searchParams,

@@ -136,13 +136,12 @@ describe('usePlannerDialogs', () => {
     expect(url.get('create')).toBe('expense')
   })
 
-  it('FE-TP-DIALOGS-006: ?tab= is dropped from the URL once the planner has read it', () => {
+  it('FE-TP-DIALOGS-006: leaves ?tab= for the shared planner to handle', () => {
     url = new URLSearchParams('tab=dateien&keep=1')
     const { result } = renderDialogs({ searchParams: url })
 
-    expect(setSearchParams).toHaveBeenCalledTimes(1)
-    expect(setSearchParams.mock.calls[0][1]).toEqual({ replace: true })
-    expect(url.toString()).toBe('keep=1')
+    expect(setSearchParams).not.toHaveBeenCalled()
+    expect(url.toString()).toBe('tab=dateien&keep=1')
     expect(result.current.showPlaceForm).toBe(false)
   })
 

@@ -50,7 +50,7 @@ import { useTripRosterSync } from './useTripRosterSync'
 import { useDayAdd } from './useDayAdd'
 import { usePlannerDialogs } from './usePlannerDialogs'
 import { usePlaceDeepLink } from './usePlaceDeepLink'
-import { useAssistantDeepLink } from './useAssistantDeepLink'
+import { useAssistantDeepLink, useAssistantTabLink } from './useAssistantDeepLink'
 import { useAssistantCompareView, useAssistantMapLink } from './useAssistantMapLink'
 import { useAssistantPlaceDraft } from './useAssistantPlaceDraft'
 import { usePlannerMapView } from './usePlannerMapView'
@@ -288,6 +288,9 @@ export function useTripPlanner() {
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
     if (tabId === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }
+
+  // Notifications can open a tab while this trip is already mounted, on either layout.
+  useAssistantTabLink({ searchParams, setSearchParams, activeTab, selectTab: handleTabChange })
 
   // handleTabChange is where a tab's lazy load and its session memory happen, and
   // the tab we *start* on never goes through it — neither a ?tab= deep link nor a

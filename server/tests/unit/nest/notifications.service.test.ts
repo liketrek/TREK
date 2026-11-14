@@ -511,14 +511,39 @@ describe('send() — in-app notification content', () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'none');
 
-    // vacay_invite without planId → no navigate target → simple type
-    await send({ event: 'vacay_invite', actorId: null, scope: 'user', targetId: user.id, params: { actor: 'Alice' } });
+    // trip_invite without tripId has no destination.
+    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { actor: 'Alice' } });
 
     const notifs = await getInAppNotifications(user.id);
     expect(notifs.length).toBe(1);
     expect(notifs[0].type).toBe('simple');
     expect(notifs[0].navigate_target).toBeNull();
   });
+
+  it.each([
+    { event: 'vacay_invite', params: { planId: '42' }, expected: '/vacay' },
+    { event: 'vacay_invite', params: {}, expected: '/vacay' },
+    { event: 'vacay_share', params: {}, expected: '/vacay' },
+    { event: 'collab_message', params: { tripId: '42' }, expected: '/trips/42?tab=collab' },
+    { event: 'collab_message', params: {}, expected: '/dashboard' },
+  ] as const)(
+    'routes $event with $params to $expected on in-app and external channels',
+    async ({ event, params, expected }) => {
+      const { user } = createUser(testDb);
+      await setUserWebhookUrl(user.id);
+      setNotificationChannels(testDb, 'webhook');
+
+      await send({ event, actorId: null, scope: 'user', targetId: user.id, params: { actor: 'Alice', ...params } });
+
+      const [notif] = await getInAppNotifications(user.id);
+      expect(notif.type).toBe('navigate');
+      expect(notif.navigate_target).toBe(expected);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const link = new URL(body.link);
+      expect(link.pathname + link.search).toBe(expected);
+    }
+  );
 
   it('NSVC-014 — navigate_target uses /admin for version_available event', async () => {
     const { user: admin } = createAdmin(testDb);

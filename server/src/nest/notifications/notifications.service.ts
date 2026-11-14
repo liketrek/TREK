@@ -221,7 +221,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.vacay_invite.title',
     textKey: 'notif.vacay_invite.text',
     navigateTextKey: 'notif.action.view_vacay',
-    navigateTarget: (p) => (p.planId ? `/vacay/${p.planId}` : null),
+    navigateTarget: () => '/vacay',
   },
   vacay_share: {
     inAppType: 'navigate',
@@ -249,7 +249,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.collab_message.title',
     textKey: 'notif.collab_message.text',
     navigateTextKey: 'notif.action.view_collab',
-    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}?tab=collab` : '/dashboard'),
   },
   packing_tagged: {
     inAppType: 'navigate',
