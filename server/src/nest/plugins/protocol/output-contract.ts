@@ -275,6 +275,7 @@ export const PLUGIN_ENTITY_CONTRACT = {
       'accommodation_id',
       'tour_stage_key',
       'created_at',
+      'stay_minutes',
     ],
     withheld: [],
     // The assignment read model names its fields one by one, its `place` included.

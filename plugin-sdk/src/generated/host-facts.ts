@@ -619,6 +619,7 @@ export const PLUGIN_ENTITY_FIELDS = {
     'accommodation_id',
     'tour_stage_key',
     'created_at',
+    'stay_minutes',
     'participants',
     'tour_place_id',
     'tour_route_geometry',
