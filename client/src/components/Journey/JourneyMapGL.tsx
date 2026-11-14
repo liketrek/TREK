@@ -13,6 +13,8 @@ import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLay
 import { MARK_CLUSTER_PX, PLANNED_BADGE_SVG, clusterPoints, glWorldPx, markHitSvg, type JourneyMapMark } from './journeyMapMarks'
 import { isPlannedTrack, type JourneyMapLayerVisibility } from './journeyMapLayers'
 import { coveredConnectionsShown, entryConnections } from './journeyMapConnections'
+import { journeyLines } from './journeyMapLines'
+import { alongShortestArc } from '../../utils/mapViewport'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -137,7 +139,12 @@ function addConnectionLayer(map: mapboxgl.Map, id: string, lines: [number, numbe
     data: {
       type: 'Feature',
       properties: {},
-      geometry: { type: 'MultiLineString', coordinates: lines.map(line => line.map(([lat, lng]) => [lng, lat])) },
+      // The short way across the antimeridian: the map repeats the world, so a
+      // continuous line is enough (#3080).
+      geometry: {
+        type: 'MultiLineString',
+        coordinates: lines.flatMap(line => journeyLines(null, line, false)).map(line => line.map(([lat, lng]) => [lng, lat])),
+      },
     },
   })
   map.addLayer({
@@ -188,10 +195,18 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 /** Fallback when a track carries no colour of its own, matching the planner's default. */
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
+/**
+ * The box around `[lng, lat]` points and the marks, the short way across the
+ * antimeridian: a journey from Samoa to Fiji frames the few degrees between
+ * them, not the rest of the world (#3080).
+ */
 function markBounds(gl: Props['gl'], marks: JourneyMapMark[], points: [number, number][] = []) {
   const bounds = new gl.LngLatBounds()
-  points.forEach(point => bounds.extend(point))
-  marks.forEach(mark => bounds.extend([mark.lng, mark.lat]))
+  const latLngs = [
+    ...points.map(([lng, lat]) => [lat, lng] as [number, number]),
+    ...marks.map(mark => [mark.lat, mark.lng] as [number, number]),
+  ]
+  alongShortestArc(latLngs).forEach(([lat, lng]) => bounds.extend([lng, lat]))
   return bounds
 }
 
@@ -401,9 +416,8 @@ function JourneyMapGL(
     const items = buildItems(entries)
     itemsRef.current = items
 
-    const bounds = new gl.LngLatBounds()
-    items.forEach(i => bounds.extend([i.lng, i.lat]))
-    stableTrail.forEach(p => bounds.extend([p.lng, p.lat]))
+    const entryPoints = [...items.map(i => [i.lng, i.lat] as [number, number]), ...stableTrail.map(p => [p.lng, p.lat] as [number, number])]
+    const bounds = markBounds(gl, [], entryPoints)
     const hasPoints = items.length > 0 || stableTrail.length > 0
 
     const mapOptions: Record<string, unknown> = {
@@ -431,7 +445,7 @@ function JourneyMapGL(
     if (!map) return
     mapRef.current = map
     marksFramedRef.current = false
-    entryPointsRef.current = [...items.map(i => [i.lng, i.lat] as [number, number]), ...stableTrail.map(p => [p.lng, p.lat] as [number, number])]
+    entryPointsRef.current = entryPoints
     readerMovedRef.current = false
     map.on('movestart', (ev: { originalEvent?: unknown }) => {
       if (ev.originalEvent) readerMovedRef.current = true
@@ -482,7 +496,11 @@ function JourneyMapGL(
                 name: track.name,
                 planned: isPlannedTrack(track),
               },
-              geometry: { type: 'LineString' as const, coordinates: track.points.map(([lat, lng]) => [lng, lat]) },
+              // Continuous across the antimeridian, so a crossing is a short hop (#3080).
+              geometry: {
+                type: 'LineString' as const,
+                coordinates: journeyLines(null, track.points as [number, number][], false)[0].map(([lat, lng]) => [lng, lat]),
+              },
             })),
         }
         if (featureCollection.features.length > 0) {
@@ -549,10 +567,9 @@ function JourneyMapGL(
       // fit bounds to all points
       const known = marksRef.current ?? []
       marksFramedRef.current = known.length > 0
-      known.forEach(mark => bounds.extend([mark.lng, mark.lat]))
       if (hasPoints || known.length > 0) {
         try {
-          map.fitBounds(bounds, fitOptions(paddingBottom, enableMapbox3d && fullScreen, paddingStartRef.current))
+          map.fitBounds(known.length > 0 ? markBounds(gl, known, entryPoints) : bounds, fitOptions(paddingBottom, enableMapbox3d && fullScreen, paddingStartRef.current))
         } catch { /* empty bounds */ }
       }
     })

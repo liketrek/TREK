@@ -14,6 +14,8 @@ import { PLANNED_BADGE_SVG, type JourneyMapMark } from './journeyMapMarks'
 import { isPlannedTrack, type JourneyMapLayerVisibility } from './journeyMapLayers'
 import { NOTHING_DRAWN, drawLeafletMarks, isLeafletLayerShown, leafletWorldPx, switchLeafletLayers, type DrawnLayers, type LeafletLayerKind } from './journeyLeafletLayers'
 import { entryConnections } from './journeyMapConnections'
+import { framePoint, journeyLines, journeyLngFrame } from './journeyMapLines'
+import type { LngFrame } from '../../utils/lngFrame'
 
 export interface MapMarkerItem {
   id: string
@@ -286,8 +288,8 @@ const TRACK_FALLBACK_COLOR = '#4f46e5'
 /** The dash of a planned track; wide enough not to pass for the faint line between entries. */
 const PLANNED_DASH = '8 7'
 
-function markCoords(marks: JourneyMapMark[] | undefined): L.LatLngTuple[] {
-  return (marks ?? []).map(mark => [mark.lat, mark.lng] as L.LatLngTuple)
+function markCoords(marks: JourneyMapMark[] | undefined, frame: LngFrame | null): L.LatLngTuple[] {
+  return (marks ?? []).map(mark => framePoint(frame, mark.lat, mark.lng))
 }
 
 function fitOptions(paddingBottom: number | undefined, paddingStart = 0): L.FitBoundsOptions {
@@ -422,6 +424,9 @@ function JourneyMap(
   const markLayerRef = useRef<L.LayerGroup | null>(null)
   const onMarksPickRef = useRef(onMarksPick)
   const marksRef = useRef(marks)
+  // The longitude frame of a journey across the antimeridian (#3080), set on each
+  // build and read by the photo and mark layers so they land on the same world copy.
+  const frameRef = useRef<LngFrame | null>(null)
   // The plan and the stays load after the entries, so the first view is framed
   // again once they arrive, around both, unless the reader has moved it by then.
   const entryCoordsRef = useRef<L.LatLngTuple[]>([])
@@ -511,6 +516,11 @@ function JourneyMap(
 
     const items = buildMarkerItems(entries)
     itemsRef.current = items
+    // Leaflet draws each layer at its literal longitude, so a journey across the
+    // antimeridian is drawn in one frame: pins and lines on one copy, every line
+    // the short way across the date line (#3080). Every other journey has none.
+    const frame = journeyLngFrame([...items, ...stableTrail], stableTracks, frameRef.current)
+    frameRef.current = frame
 
     // Each switchable layer is drawn whatever its switch says and only put on
     // the map while it is shown, so switching it later needs no rebuild.
@@ -544,12 +554,14 @@ function JourneyMap(
     const trackCoords: L.LatLngTuple[] = []
 
     if (stableTrail.length > 1) {
-      const coords = stableTrail.map(p => [p.lat, p.lng] as L.LatLngTuple)
-      place('recorded', L.polyline(coords, {
-        color: '#6366f1', weight: 3, opacity: 0.4,
-        dashArray: '6 4', lineCap: 'round',
-      }))
-      coords.forEach(c => allCoords.push(c))
+      const coords = stableTrail.map(p => [p.lat, p.lng] as [number, number])
+      for (const line of journeyLines(frame, coords, true)) {
+        place('recorded', L.polyline(line, {
+          color: '#6366f1', weight: 3, opacity: 0.4,
+          dashArray: '6 4', lineCap: 'round',
+        }))
+      }
+      coords.forEach(([lat, lng]) => allCoords.push(framePoint(frame, lat, lng)))
     }
 
     // Tracks, in their own colour over a white casing that keeps them legible on
@@ -558,22 +570,23 @@ function JourneyMap(
     // and drawn dashed, so the two never read as the same thing (JRN-01).
     for (const track of stableTracks) {
       if (track.points.length < 2) continue
-      const coords = track.points.map(([lat, lng]) => [lat, lng] as L.LatLngTuple)
       const color = track.color || TRACK_FALLBACK_COLOR
       const planned = isPlannedTrack(track)
       const kind: LeafletLayerKind = planned ? 'plan' : 'recorded'
-      place(kind, L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }))
-      const line = L.polyline(coords, {
-        color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round',
-        ...(planned ? { dashArray: PLANNED_DASH } : {}),
-      })
-      // Same tooltip the markers on this map use, rather than Leaflet's default box:
-      // it follows the appearance tokens, so it lands right in dark mode and with
-      // transparency switched off. Escaped because a string handed to bindTooltip
-      // becomes innerHTML, and a track name is a place name off a shared trip.
-      if (track.name) line.bindTooltip(escapeHtml(track.name), { sticky: true, direction: 'top', className: 'map-tooltip' })
-      place(kind, line)
-      coords.forEach(c => trackCoords.push(c))
+      for (const coords of journeyLines(frame, track.points as [number, number][], true)) {
+        place(kind, L.polyline(coords, { color: '#ffffff', weight: 6, opacity: 0.75, lineCap: 'round', lineJoin: 'round' }))
+        const line = L.polyline(coords, {
+          color, weight: 3.5, opacity: 0.95, lineCap: 'round', lineJoin: 'round',
+          ...(planned ? { dashArray: PLANNED_DASH } : {}),
+        })
+        // Same tooltip the markers on this map use, rather than Leaflet's default box:
+        // it follows the appearance tokens, so it lands right in dark mode and with
+        // transparency switched off. Escaped because a string handed to bindTooltip
+        // becomes innerHTML, and a track name is a place name off a shared trip.
+        if (track.name) line.bindTooltip(escapeHtml(track.name), { sticky: true, direction: 'top', className: 'map-tooltip' })
+        place(kind, line)
+      }
+      track.points.forEach(([lat, lng]) => trackCoords.push(framePoint(frame, lat, lng)))
     }
 
     // The faint line between the entries in their order, same as JourneyMapGL, left
@@ -586,12 +599,16 @@ function JourneyMap(
       dashArray: '4 6',
       lineCap: 'round', lineJoin: 'round',
     }
-    for (const line of connections.open) place('entries', L.polyline(line, connectionStyle))
-    for (const line of connections.covered) place('coveredConnections', L.polyline(line, connectionStyle))
+    for (const open of connections.open) {
+      for (const line of journeyLines(frame, open, true)) place('entries', L.polyline(line, connectionStyle))
+    }
+    for (const covered of connections.covered) {
+      for (const line of journeyLines(frame, covered, true)) place('coveredConnections', L.polyline(line, connectionStyle))
+    }
 
     // place markers
     items.forEach((item, i) => {
-      const pos: L.LatLngTuple = [item.lat, item.lng]
+      const pos: L.LatLngTuple = framePoint(frame, item.lat, item.lng)
       allCoords.push(pos)
 
       const marker = place('entries', L.marker(pos, { icon: entryIcon(item, false, plannedRef.current.has(item.id)) }))
@@ -617,7 +634,7 @@ function JourneyMap(
         // Tracks only get a say when the journey has nothing located of its own —
         // a world view would be worse than framing the one thing on the map.
         entryCoordsRef.current = allCoords
-        const pointCoords = [...allCoords, ...markCoords(marksRef.current)]
+        const pointCoords = [...allCoords, ...markCoords(marksRef.current, frame)]
         const fitCoords = pointCoords.length > 0 ? pointCoords : trackCoords
         marksFramedRef.current = (marksRef.current?.length ?? 0) > 0
         if (fitCoords.length > 0) map.fitBounds(L.latLngBounds(fitCoords), fitOptions(paddingBottom, paddingStartRef.current))
@@ -695,7 +712,7 @@ function JourneyMap(
 
       const group = L.layerGroup()
       for (const cluster of clusterPhotos(photos, leafletWorldPx(map))) {
-        const marker = L.marker([cluster.lat, cluster.lng], {
+        const marker = L.marker(framePoint(frameRef.current, cluster.lat, cluster.lng), {
           icon: L.divIcon({
             className: '',
             iconSize: [48, 48],
@@ -733,10 +750,10 @@ function JourneyMap(
 
     const draw = () => {
       markLayerRef.current?.remove()
-      markLayerRef.current = drawLeafletMarks(map, marks, members => onMarksPickRef.current?.(members))
+      markLayerRef.current = drawLeafletMarks(map, marks, members => onMarksPickRef.current?.(members), frameRef.current)
     }
 
-    const coords = markCoords(marks)
+    const coords = markCoords(marks, frameRef.current)
     if (!marksFramedRef.current && coords.length > 0) {
       marksFramedRef.current = true
       if (!readerMovedRef.current) map.fitBounds(L.latLngBounds([...entryCoordsRef.current, ...coords]), fitOptions(paddingBottom, paddingStartRef.current))
