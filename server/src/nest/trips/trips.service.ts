@@ -753,6 +753,7 @@ export class TripsService {
             reservation_status: a.reservation_status, reservation_notes: a.reservation_notes,
             reservation_datetime: a.reservation_datetime, assignment_time: a.assignment_time,
             assignment_end_time: a.assignment_end_time, end_day: a.end_day ?? 0, tour_stage_key: a.tour_stage_key,
+            stay_minutes: a.stay_minutes ?? null,
           });
           assignmentMap.set(a.id, newAssignmentId);
         }

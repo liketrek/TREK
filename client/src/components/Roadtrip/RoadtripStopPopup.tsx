@@ -29,7 +29,8 @@ import type { RoadtripStopType } from '@trek/shared'
 // from the one table in stopKinds.ts.
 
 export interface RoadtripStopDraft {
-  editing?: { placeId: number; dwellMinutes: number; stopType: RoadtripStopType | null; accommodationId?: number; checkIn?: string; checkOut?: string }
+  /** `assignmentId` is the visit being edited: its stay is its own, not every visit's of the place (#3092). */
+  editing?: { placeId: number; assignmentId?: number; dwellMinutes: number; stopType: RoadtripStopType | null; accommodationId?: number; checkIn?: string; checkOut?: string }
   arrivalTime?: string | null
   poi: CorridorPoi
   dayId: number

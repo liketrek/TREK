@@ -110,7 +110,31 @@ describe('Tool: assign_place_to_day', () => {
     });
   });
 
-  it('MDT-MCP-001: puts one stage of a multi-day tour on a day, refusing as REST does', async () => {
+  it('set_assignment_stay: changes the stay of one visit and leaves the other visit of the place alone (#3092)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const first = createDayAssignment(testDb, day.id, place.id);
+    const second = createDayAssignment(testDb, day.id, place.id);
+    await withHarness(user.id, async (h) => {
+      const changed = await h.client.callTool({
+        name: 'set_assignment_stay',
+        arguments: { tripId: trip.id, assignmentId: second.id, stay_minutes: 5 },
+      });
+      expect(parseToolResult(changed)).toMatchObject({ assignment: { id: second.id, stay_minutes: 5 } });
+      const other = createTrip(testDb, user.id);
+      const refused = await h.client.callTool({
+        name: 'set_assignment_stay',
+        arguments: { tripId: other.id, assignmentId: second.id, stay_minutes: 5 },
+      });
+      expect(refused.isError).toBe(true);
+    });
+    const rows = await findRows(orm, DayAssignments, { id: { $in: [first.id, second.id] } }, { id: 'asc' });
+    expect(rows.map((r) => r.stay_minutes)).toEqual([null, 5]);
+  });
+
+  it('MDT-MCP-001:puts one stage of a multi-day tour on a day, refusing as REST does', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);

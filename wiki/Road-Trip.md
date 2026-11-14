@@ -91,7 +91,7 @@ Every stop has a **Stay** badge. Click it to open **Time at this stop**:
 - Below it, **Arrive** and **Leave** show what the stay does to the day while you change it.
 - **No stay** clears it.
 
-**The stay belongs to the place, not to one visit.** A place planned on two days has the same stay on both.
+**The stay belongs to the visit.** A place planned twice, say once to stop and once only to lead the route past it, keeps a stay for each visit: changing one leaves the other alone. A visit you never gave a stay takes the place's own, so trips planned before this keep the stays they had.
 
 A stay may run past midnight. The clock carries into the next morning together with the drive from there, and the next stop moves to the card of the day it is actually reached on. With daily travel times set, the hours between one day's end time and the next day's start time count towards the stay, so a twelve hour night that begins at 20:00 is over at 08:00 the next morning.
 
@@ -106,7 +106,7 @@ A visit's **End** is the time the drive leaves it. Set it in the place form, whe
 - If the daily travel times close the day before the End comes, the stop is where that day ends: *The travel day ends before 14:00, so the drive goes on the next morning.*
 - Clicking the **Stay** badge of such a stop opens the End instead of the slider, with **Remove end time**. After that the stay is yours to choose again. The button is missing when you may not edit the stop, and when the End is stored on the place itself and another visit of the same place relies on it: removing it there would change that visit too.
 
-The End belongs to one visit; the stay belongs to the place. Older trips can carry an End on the place, which then applies to its visits that have none of their own.
+The End and the stay both belong to one visit. Older trips can carry an End or a stay on the place, which then applies to its visits that have none of their own.
 
 ## Pinned times and the schedule
 

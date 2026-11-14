@@ -105,7 +105,7 @@ describe('RoadtripStayModal', () => {
     fireEvent.change(slider(), { target: { value: '45' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(9, 45))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(9, 45, undefined))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 
@@ -116,7 +116,7 @@ describe('RoadtripStayModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /no stay|none/i }))
 
-    await waitFor(() => expect(onSave).toHaveBeenCalledWith(9, 0))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(9, 0, undefined))
     expect(onSave.mock.calls[0][1]).not.toBeNull()
   })
 

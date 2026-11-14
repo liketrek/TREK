@@ -42,6 +42,10 @@ export const assignmentSchema = z.object({
   assignment_time: z.string().nullable().optional(),
   assignment_end_time: z.string().nullable().optional(),
   end_day: z.boolean().optional(),
+  // How long the drive stands at this visit, in minutes (#3092). Null, or absent on an
+  // older server, reads the place's own duration_minutes, so a place planned twice can
+  // be stopped at on one visit and only driven past on the other.
+  stay_minutes: z.number().nullable().optional(),
   // Per-segment travel mode (#1281): the transport mode of the leg LEAVING this
   // stop for the next one. null = inherit the day's default_transport_mode.
   leg_transport_mode: z.string().nullable().optional(),
@@ -104,6 +108,23 @@ export const assignmentEndDayRequestSchema = z.object({
   end_day: z.boolean(),
 });
 export type AssignmentEndDayRequest = z.infer<typeof assignmentEndDayRequestSchema>;
+
+/**
+ * PUT /:id/stay (#3092) — how long the drive stands at this one visit, in whole
+ * minutes, a week at most like the road trip's own stay bounds. Zero is a visit
+ * driven past without stopping; null hands the visit back to the stay its place
+ * carries (`places.duration_minutes`).
+ */
+export const assignmentStayRequestSchema = z.object({
+  stay_minutes: z.number().int().min(0).max(10_080).nullable(),
+});
+export type AssignmentStayRequest = z.infer<typeof assignmentStayRequestSchema>;
+
+/** What a write to one assignment answers with: the assignment as the day list reads it. */
+export const assignmentResponseSchema = z.object({
+  assignment: assignmentSchema,
+});
+export type AssignmentResponse = z.infer<typeof assignmentResponseSchema>;
 
 /**
  * PUT /:id/notes (#2163) — edit the per-assignment note after creation.

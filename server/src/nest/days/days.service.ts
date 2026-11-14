@@ -198,6 +198,7 @@ export class DaysService {
         day_id: a.day_id,
         order_index: a.order_index,
         end_day: a.end_day === 1,
+        stay_minutes: a.stay_minutes ?? null,
         route_excluded: a.route_excluded === 1,
         notes: a.notes,
         // Repeated here for the same reason stop_type is: the day list hides the stop

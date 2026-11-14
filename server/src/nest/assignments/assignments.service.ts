@@ -567,6 +567,18 @@ export class AssignmentsService {
   }
 
   /**
+   * How long the drive stands at one visit (#3092). The stay used to be the place's
+   * alone, so the same place planned twice on a day could not be stopped at once and
+   * only driven past the other time. Null hands the visit back to the place's own
+   * `duration_minutes`. No auto-sort and no journey reconcile: a stay moves neither
+   * the day's order nor the skeleton mirror.
+   */
+  async setStay(id: number, stayMinutes: number | null) {
+    await this.dayAssignmentsRepo.setStayMinutes(id, stayMinutes);
+    return await this.getAssignmentWithPlace(id);
+  }
+
+  /**
    * Edit the per-assignment note after creation (#2163) — until now the note
    * was write-once via the create paths (REST body, MCP tools, plugin RPC) and
    * invisible in the app. Falsy notes ('' or null) clear the column, the same

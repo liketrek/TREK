@@ -228,6 +228,13 @@ export const plan: CaseGroup = {
       expect: ['assignment:updated'],
     },
     {
+      tool: 'set_assignment_stay',
+      needs: ['assignment'],
+      args: (s) => ({ ...onAssignment(s), stay_minutes: 15 }),
+      rest: { method: 'put', path: (s) => `${assignmentPath(s)}/stay`, body: () => ({ stay_minutes: 15 }) },
+      expect: ['assignment:updated'],
+    },
+    {
       tool: 'unassign_place',
       needs: ['assignment'],
       args: (s) => ({ ...onAssignment(s), dayId: s.days[0].id }),

@@ -1,5 +1,6 @@
 import { assignmentSchema } from '@trek/shared'
 import { saveAssignmentEndDay } from '../api/assignmentEndDay'
+import { saveAssignmentStay } from '../api/assignmentStay'
 import { assignmentsApi } from '../api/client'
 import { offlineDb } from '../db/offlineDb'
 import { cacheAssignment } from '../db/cacheAssignment'
@@ -32,6 +33,34 @@ async function cacheVisitFields(tripId: number, id: number, fields: Partial<Assi
 }
 
 /** The day's visits in the order given; the ones not named keep their place behind them. */
+/**
+ * One field of a saved visit, written through its own route: sent straight away when
+ * nothing older to the visit waits in the queue, otherwise queued behind it with the
+ * cached row patched, so the planner shows the change offline as well.
+ */
+async function writeVisitField(
+  tripId: number | string,
+  assignment: Assignment,
+  write: { suffix: string; body: Record<string, unknown>; fields: Partial<Assignment>; send: () => Promise<Assignment> },
+): Promise<Assignment> {
+  if (!(await mutationQueue.mustQueue('assignments', assignment.id))) {
+    const saved = await write.send()
+    await cacheAssignment(saved)
+    return saved
+  }
+  const updated = { ...assignment, ...write.fields }
+  await offlineDb.transaction('rw', offlineDb.days, offlineDb.mutationQueue, async () => {
+    await mutationQueue.enqueue({
+      id: generateUUID(), tripId: Number(tripId), method: 'PUT',
+      url: `/trips/${tripId}/assignments/${assignment.id}/${write.suffix}`,
+      body: write.body, resource: 'assignments', entityId: assignment.id,
+    })
+    await cacheAssignment(updated)
+  })
+  mutationQueue.sendSoon()
+  return updated
+}
+
 function inOrder(items: Assignment[], orderedIds: number[]): Assignment[] {
   const rank = new Map(orderedIds.map((id, index) => [id, index]))
   return items
@@ -237,42 +266,29 @@ export const assignmentRepo = {
   },
 
   async setEndDay(tripId: number | string, assignment: Assignment, endDay: boolean): Promise<Assignment> {
-    if (!(await mutationQueue.mustQueue('assignments', assignment.id))) {
-      const saved = await saveAssignmentEndDay(tripId, assignment.id, { end_day: endDay })
-      await cacheAssignment(saved)
-      return saved
-    }
-    const updated = { ...assignment, end_day: endDay }
-    await offlineDb.transaction('rw', offlineDb.days, offlineDb.mutationQueue, async () => {
-      await mutationQueue.enqueue({
-        id: generateUUID(), tripId: Number(tripId), method: 'PUT',
-        url: `/trips/${tripId}/assignments/${assignment.id}/end-day`,
-        body: { end_day: endDay }, resource: 'assignments', entityId: assignment.id,
-      })
-      await cacheAssignment(updated)
+    return await writeVisitField(tripId, assignment, {
+      suffix: 'end-day', body: { end_day: endDay }, fields: { end_day: endDay },
+      send: () => saveAssignmentEndDay(tripId, assignment.id, { end_day: endDay }),
     })
-    mutationQueue.sendSoon()
-    return updated
+  },
+
+  /**
+   * How long the drive stands at this one visit (#3092), offline too. Null hands the
+   * visit back to the stay its place carries.
+   */
+  async setStay(tripId: number | string, assignment: Assignment, stayMinutes: number | null): Promise<Assignment> {
+    return await writeVisitField(tripId, assignment, {
+      suffix: 'stay', body: { stay_minutes: stayMinutes }, fields: { stay_minutes: stayMinutes },
+      send: () => saveAssignmentStay(tripId, assignment.id, { stay_minutes: stayMinutes }),
+    })
   },
 
   /** Takes a stop out of the day's route or puts it back (#2532), offline too. */
   async setRouteExcluded(tripId: number | string, assignment: Assignment, excluded: boolean): Promise<Assignment> {
-    if (!(await mutationQueue.mustQueue('assignments', assignment.id))) {
-      const saved = assignmentSchema.parse((await assignmentsApi.setRouteExcluded(tripId, assignment.id, excluded)).assignment)
-      await cacheAssignment(saved)
-      return saved
-    }
-    const updated = { ...assignment, route_excluded: excluded }
-    await offlineDb.transaction('rw', offlineDb.days, offlineDb.mutationQueue, async () => {
-      await mutationQueue.enqueue({
-        id: generateUUID(), tripId: Number(tripId), method: 'PUT',
-        url: `/trips/${tripId}/assignments/${assignment.id}/route`,
-        body: { excluded }, resource: 'assignments', entityId: assignment.id,
-      })
-      await cacheAssignment(updated)
+    return await writeVisitField(tripId, assignment, {
+      suffix: 'route', body: { excluded }, fields: { route_excluded: excluded },
+      send: async () => assignmentSchema.parse((await assignmentsApi.setRouteExcluded(tripId, assignment.id, excluded)).assignment),
     })
-    mutationQueue.sendSoon()
-    return updated
   },
 
   /**

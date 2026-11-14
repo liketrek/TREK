@@ -4,6 +4,7 @@ import {
   assignmentMoveRequestSchema,
   assignmentParticipantsRequestSchema,
   assignmentSchema,
+  assignmentStayRequestSchema,
   assignmentTransportRequestSchema,
 } from './assignment.schema';
 
@@ -49,6 +50,15 @@ it('requires a boolean for an explicit day end', () => {
   expect(assignmentEndDayRequestSchema.parse({ end_day: false })).toEqual({ end_day: false });
   for (const end_day of [1, 'true', null, undefined]) {
     expect(assignmentEndDayRequestSchema.safeParse({ end_day }).success).toBe(false);
+  }
+});
+
+it('takes the stay of one visit as whole minutes up to a week, or null for the place stay (#3092)', () => {
+  for (const stay_minutes of [0, 45, 10_080, null]) {
+    expect(assignmentStayRequestSchema.parse({ stay_minutes })).toEqual({ stay_minutes });
+  }
+  for (const stay_minutes of [-1, 1.5, 10_081, '30', undefined]) {
+    expect(assignmentStayRequestSchema.safeParse({ stay_minutes }).success).toBe(false);
   }
 });
 
