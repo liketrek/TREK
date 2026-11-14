@@ -58,6 +58,15 @@ const NOT_APPLIED = JSON.stringify({ applied: false, reason: 'The user did not a
 const NOT_RUN = 'This call did not run: the answer was stopped before it.';
 
 /**
+ * What stands between two steps of one answer where the first called nothing:
+ * the turn pushed the model on there (an answer that only announced its
+ * lookups, one cut off), and the push is never stored. Without it the replay
+ * has one model message follow another, which Gemini refuses for a step that
+ * makes calls, and with it every later message of the thread (#3094).
+ */
+const WENT_ON = 'Go on.';
+
+/**
  * The calls a provider's own record of a step holds, which it replays as they
  * came and wants answered: Anthropic's tool uses, the Responses API's function
  * calls. A step stopped while its calls ran (the user left the page) keeps the
@@ -330,8 +339,13 @@ export function toChatHistory(
       name: part.toolName,
       args: part.args,
     }));
-    const text = textOf(parts);
+    // A step that wrote only blank lines wrote nothing: the turn sent it on as empty, and Anthropic refuses
+    // a text block of whitespace, so replaying it as text broke every later message of the thread (#3094).
+    const written = textOf(parts);
+    const text = written.trim() ? written : '';
     if (!text && toolCalls.length === 0) return;
+    const before = history.at(-1);
+    if (before?.role === 'assistant' && before.toolCalls.length === 0) history.push({ role: 'user', text: WENT_ON });
     const providerState = decodeJson(ASSISTANT_PROVIDER_STATE, row.provider_state, `message ${row.id}`);
     // The recorded calls that never ran go into the step's calls as well: an adapter that does not
     // replay this record rebuilds the step from them, and would otherwise find answers to calls it never made.

@@ -17,7 +17,7 @@ import {
   toChatHistory,
   toThreadMessages,
 } from '../../../../src/nest/assistant/assistant-history';
-import type { AssistantMessagePart, AssistantToolApproval } from '@trek/shared';
+import { ASSISTANT_FOLLOW_UPS_TOOL, type AssistantMessagePart, type AssistantToolApproval } from '@trek/shared';
 
 import { describe, expect, it } from 'vitest';
 
@@ -737,6 +737,68 @@ describe('toChatHistory: calls the model made of the server tools (#2845)', () =
       { role: 'tool', toolCallId: 'n1', name: 'remember_for_trip', output: '{"notes":"Ferry at 7"}' },
       { role: 'assistant', text: 'Noted.', toolCalls: [], providerState: null },
     ]);
+  });
+});
+
+describe('toChatHistory: the next message after an answer (#3094)', () => {
+  /**
+   * The first answer of #3094 as its rows hold it: a step that only announced
+   * its lookups (the turn pushed it on, and the push is not stored), the
+   * lookups, a step that came back blank with only its follow-ups (asked
+   * again for the answer), and the answer. Then the user writes again.
+   */
+  function secondMessage(): AiChatMessage[] {
+    return toChatHistory(
+      [
+        row('user', [{ type: 'text', text: 'Hello' }]),
+        row('assistant', [{ type: 'text', text: 'Let me look at your trip:' }]),
+        row('assistant', [
+          { type: 'tool-call', toolCallId: 'call_a', toolName: 'get_trip_summary', args: {}, result: { days: [] } },
+          { type: 'tool-call', toolCallId: 'call_b', toolName: 'list_places', args: {}, result: { places: [] } },
+        ]),
+        row('assistant', [
+          { type: 'text', text: '\n\n' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_c',
+            toolName: ASSISTANT_FOLLOW_UPS_TOOL,
+            args: { questions: ['What is on day 2?'] },
+            result: 'Write your answer now.',
+          },
+        ]),
+        row('assistant', [{ type: 'text', text: 'Your trip has no days yet.' }]),
+        row('user', [{ type: 'text', text: 'Add a day' }]),
+      ],
+      new Map(),
+    );
+  }
+
+  it('ASTHIS-022: the second message gives Anthropic every tool_use answered and no blank text block', () => {
+    const messages = toAnthropicMessages(secondMessage());
+    messages.forEach((message, index) => {
+      expect(message.role).toBe(index % 2 === 0 ? 'user' : 'assistant');
+    });
+    expect(messages.at(-1)?.content.at(-1)).toEqual({ type: 'text', text: 'Add a day' });
+    messages.forEach((message, index) => {
+      const ids = message.content.filter((block) => block.type === 'tool_use').map((block) => block.id);
+      if (ids.length === 0) return;
+      const results = messages[index + 1].content
+        .filter((block) => block.type === 'tool_result')
+        .map((block) => block.tool_use_id);
+      expect(results).toEqual(ids);
+    });
+    const texts = messages.flatMap((message) => message.content).filter((block) => block.type === 'text');
+    expect(texts.every((block) => typeof block.text === 'string' && block.text.trim() !== '')).toBe(true);
+  });
+
+  it('ASTHIS-023: the second message never has one model message follow another on Chat Completions', () => {
+    const chat = toChatMessages({ system: 'sys', messages: secondMessage(), tools: [] });
+    chat.forEach((message, index) => {
+      if (message.role !== 'assistant') return;
+      expect(['user', 'tool']).toContain(chat[index - 1]?.role);
+      if (typeof message.content === 'string') expect(message.content.trim()).not.toBe('');
+    });
+    expect(chat.at(-1)).toEqual({ role: 'user', content: 'Add a day' });
   });
 });
 
