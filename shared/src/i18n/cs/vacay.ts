@@ -68,7 +68,6 @@ const vacay: TranslationStrings = {
   'vacay.fri': 'Pá',
   'vacay.sat': 'So',
   'vacay.sun': 'Ne',
-  'vacay.weekendDays': 'Víkendové dny',
   'vacay.publicHolidays': 'Státní svátky',
   'vacay.schoolHolidays': 'Školní prázdniny',
   'vacay.schoolHolidaysHint': 'Označit školní prázdniny jako vizuální vrstvu kalendáře',

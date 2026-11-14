@@ -70,7 +70,6 @@ const vacay: TranslationStrings = {
   'vacay.calendarLabel': 'Címke (opcionális)',
   'vacay.calendarColor': 'Szín',
   'vacay.noSchoolCalendars': 'Még nincs hozzáadott iskolaiszünet-naptár',
-  'vacay.weekendDays': 'Hétvégi napok',
   'vacay.mon': 'Hé',
   'vacay.tue': 'Ke',
   'vacay.wed': 'Sze',
