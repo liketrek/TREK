@@ -1126,6 +1126,7 @@
     "src/mobile/screens/trip/MTripRail.tsx": "Phone shell only; the trip's sections on the leading edge of a wide window in place of the dock, with the tabs and handlers MTripShell hands in.",
     "src/mobile/screens/trip/MTripShellParts.tsx": "Markup only; small pieces of MTripShell's top controls (segment pill, compact toggle, document sync button), with the state and handlers MTripShell hands in.",
     "src/mobile/screens/trip/dockTabs.ts": "Phone only helper that picks which trip tabs get a seat in the mobile dock.",
+    "src/mobile/screens/trip/useTripTabSwitch.ts": "Phone shell only; switches the section the dock and a notification link open, and the collab part a message link means. The desktop switches through useTripPlanner alone.",
     "src/mobile/screens/trip/lib/dayNotes.ts": "Phone only helper that splits a leading time off a day note for the plan timeline.",
     "src/mobile/screens/trip/map/MMapArea.tsx": "Phone map stage framing; already shares usePoiExplore and useMergedMapPois with the desktop trip planner.",
     "src/mobile/screens/trip/places/MPlacesBulkCategorySheet.tsx": "Markup only; categories and the pick handler come through props from MPlacesBrowser.",

@@ -36,6 +36,7 @@ import { useShortcuts } from '../../keyboard/useShortcuts'
 import { tripCreateIntent } from '../../../components/Layout/useCreateAction'
 import MDockScrim from '../../components/MDockScrim'
 import { setTabHeadSlot } from './tabHeadSlot'
+import { useTripTabSwitch } from './useTripTabSwitch'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -335,17 +336,7 @@ export default function MTripShell({
     if (trTab === 'tour-planner' && !wide) planner.handleTabChange('plan')
   }, [trTab, wide, planner.handleTabChange])
 
-  const setTrTab = (tabId: string) => {
-    planner.handleTabChange(tabId)
-    if (mode === 'browse') setMode('go')
-  }
-
-  // A notification link opens its tab the way the dock does, and a message one the chat.
-  useEffect(() => {
-    if (!planner.tabLink) return
-    setMode(m => (m === 'browse' ? 'go' : m))
-    if (planner.tabLink.tab === 'collab') setCollabTab('chat')
-  }, [planner.tabLink])
+  const setTrTab = useTripTabSwitch(planner, mode, setMode, setCollabTab)
 
   const setTravelMode = (next: MTripMode) => {
     setBrowseFromEdit(next === 'browse' && mode === 'edit')
