@@ -138,7 +138,9 @@ export class FlightLiveService {
 
   /** The credit line for what the answer shows: the sources its legs were read from, else the first source. */
   private attributionFor(flights: readonly FlightLiveLeg[]): string {
-    const sources = [...new Set(flights.flatMap((f) => (f.source ? [f.source] : [])))].sort();
+    const sources = [...new Set(flights.flatMap((f) => (f.source ? [f.source] : [])))].sort((a, b) =>
+      a.localeCompare(b),
+    );
     if (sources.length === 0) return this.feeds.attribution();
     return sources.map((source) => FEED_ATTRIBUTION[source]).join('; ');
   }
