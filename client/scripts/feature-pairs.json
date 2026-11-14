@@ -58,6 +58,12 @@
       "mobile": ["src/mobile/screens/admin/MAdminSettingsSection.tsx"]
     },
     {
+      "feature": "API keys",
+      "hooks": ["src/components/Settings/useApiKeys.ts"],
+      "desktop": ["src/components/Settings/ApiKeysSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MApiKeysSection.tsx"]
+    },
+    {
       "feature": "Wanderer connection",
       "hooks": ["src/components/Settings/useWandererConnection.ts"],
       "desktop": ["src/components/Settings/WandererConnectionSection.tsx"],

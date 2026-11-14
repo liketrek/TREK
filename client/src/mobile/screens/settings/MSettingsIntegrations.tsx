@@ -6,6 +6,10 @@ import MWandererConnectionSection from './MWandererConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MAiConnectionSection from './MAiConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
+import MApiKeysSection from './MApiKeysSection'
+import DemoLock from '../../../components/Demo/DemoLock'
+import { useDemoAccountLock } from '../../../components/Demo/useDemoLock'
+import { useTranslation } from '../../../i18n'
 import { useIntegrationGates } from '../../../components/Settings/useIntegrationGates'
 
 /**
@@ -16,6 +20,9 @@ import { useIntegrationGates } from '../../../components/Settings/useIntegration
  */
 export default function MSettingsIntegrations() {
   const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, wandererEnabled, managed } = useIntegrationGates({ reloadAddons: true })
+
+  const { t } = useTranslation()
+  const demoLocked = useDemoAccountLock()
 
   return (
     <>
@@ -33,6 +40,10 @@ export default function MSettingsIntegrations() {
        a managed install. The per-user fallback exists for people who supply their
        own key, and there nobody does. */}
       {llmEnabled && ownParsing && !managed && <MLlmConnectionSection />}
+      {/* An API key needs no addon, so it comes ahead of MCP, as on the desktop. */}
+      <DemoLock locked={demoLocked} reason={t('demo.lock.apiKeys')}>
+        <MApiKeysSection />
+      </DemoLock>
       {mcpEnabled && <MSettingsMcp />}
     </>
   )

@@ -6,8 +6,8 @@ import { useSettingsStore } from '../../store/settingsStore';
 /**
  * Which integrations the settings shells offer: the addon flags behind each
  * integration section, whether any of them is on, and whether this is a managed
- * install. The desktop Integrations tab shows regardless, since its API keys need
- * no addon; the mobile one has no API keys and only shows when `hasIntegrations`.
+ * install. The Integrations tab shows regardless on both shells, since the API
+ * keys in it need no addon; `hasIntegrations` says whether any addon section is on.
  * With `reloadAddons` the addon list is fetched again on mount, as the
  * integrations tab on both shells does.
  */

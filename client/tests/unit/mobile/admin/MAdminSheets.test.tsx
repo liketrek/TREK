@@ -217,7 +217,7 @@ describe('MAdminSheets', () => {
     expect(hitId).toBe('2');
   });
 
-  it('FE-MOB-ASHEET-027: unlinking single sign-on confirms first, then forgets that user's SSO identity', async () => {
+  it('FE-MOB-ASHEET-027: unlinking single sign-on confirms first, then forgets the SSO identity of that user', async () => {
     const user = userEvent.setup();
     let hitId = '';
     server.use(
