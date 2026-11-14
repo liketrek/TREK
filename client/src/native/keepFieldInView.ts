@@ -82,8 +82,45 @@ export function releaseRoom(): void {
   padded = null;
 }
 
+/**
+ * While the keyboard is up, a field can still move under it without a new
+ * keyboard event: a list that keeps its entry field open after Enter grows the
+ * new row above the field and pushes it down. Any change to the page while the
+ * keyboard is up asks again, at most once a frame, and a field still in view
+ * stays where it is.
+ */
+let watching: { observer: MutationObserver; view: Window; frame: number } | null = null;
+
+function watchWhileTyping(keyboardHeight: number, doc: Document): void {
+  stopWatching();
+  const view = doc.defaultView;
+  if (!view || typeof view.MutationObserver !== 'function') return;
+  const observer = new view.MutationObserver(() => {
+    if (!watching || watching.frame) return;
+    watching.frame = view.requestAnimationFrame(() => {
+      if (watching) watching.frame = 0;
+      revealFocusedField(keyboardHeight, doc);
+    });
+  });
+  watching = { observer, view, frame: 0 };
+  observer.observe(doc.body, { childList: true, subtree: true });
+}
+
+function stopWatching(): void {
+  if (!watching) return;
+  watching.observer.disconnect();
+  if (watching.frame) watching.view.cancelAnimationFrame(watching.frame);
+  watching = null;
+}
+
 /** Wires it to the keyboard of the app. */
-export function keepFieldInView(keyboard: KeyboardEvents): void {
-  void keyboard.addListener('keyboardDidShow', ({ keyboardHeight }) => revealFocusedField(keyboardHeight));
-  void keyboard.addListener('keyboardWillHide', () => releaseRoom());
+export function keepFieldInView(keyboard: KeyboardEvents, doc: Document = document): void {
+  void keyboard.addListener('keyboardDidShow', ({ keyboardHeight }) => {
+    revealFocusedField(keyboardHeight, doc);
+    watchWhileTyping(keyboardHeight, doc);
+  });
+  void keyboard.addListener('keyboardWillHide', () => {
+    stopWatching();
+    releaseRoom();
+  });
 }
