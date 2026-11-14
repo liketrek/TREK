@@ -9,7 +9,6 @@ import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import com.getcapacitor.Bridge;
-import com.getcapacitor.JSInjector;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -64,7 +63,9 @@ final class TrekOfflineShell {
 
     /** The UI comes from the copy in this run: the server did not answer when the app started. */
     private static volatile boolean active;
-    private static volatile JSInjector injector;
+    /** Capacitor's JSInjector (package-private there) and its getInjectedStream, found once. */
+    private static volatile Object injector;
+    private static volatile Method injectMethod;
     private static volatile boolean injectorLooked;
 
     private TrekOfflineShell() {}
@@ -173,7 +174,7 @@ final class TrekOfflineShell {
     /**
      * Capacitor injects its bridge into the server's page as it passes through;
      * the copy gets the same script. Its builder is internal to Capacitor, hence
-     * the reflection (kept in proguard-rules.pro). Without it the UI still runs,
+     * the reflection on both (kept in proguard-rules.pro). Without it the UI still runs,
      * as it would in a browser, just without the app's native parts.
      */
     private static InputStream withBridge(Bridge bridge, InputStream html) {
@@ -183,13 +184,26 @@ final class TrekOfflineShell {
                 Method method = Bridge.class.getDeclaredMethod("getJSInjector");
                 method.setAccessible(true);
                 Object built = method.invoke(bridge);
-                if (built instanceof JSInjector) injector = (JSInjector) built;
+                if (built != null) {
+                    Method inject = built.getClass().getDeclaredMethod("getInjectedStream", InputStream.class);
+                    inject.setAccessible(true);
+                    injectMethod = inject;
+                    injector = built;
+                }
             } catch (ReflectiveOperationException | RuntimeException e) {
                 Log.w("TrekShell", "No bridge for the offline copy", e);
             }
         }
-        JSInjector current = injector;
-        return current == null ? html : current.getInjectedStream(html);
+        Object current = injector;
+        Method inject = injectMethod;
+        if (current == null || inject == null) return html;
+        try {
+            Object injected = inject.invoke(current, html);
+            return injected instanceof InputStream ? (InputStream) injected : html;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            Log.w("TrekShell", "Bridge not injected into the offline copy", e);
+            return html;
+        }
     }
 
     private static boolean sameOrigin(Uri a, Uri b) {

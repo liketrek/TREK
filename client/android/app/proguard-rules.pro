@@ -42,4 +42,6 @@
 -keepclassmembers class com.getcapacitor.Bridge {
     private com.getcapacitor.JSInjector getJSInjector();
 }
--keep class com.getcapacitor.JSInjector { public *; }
+-keep class com.getcapacitor.JSInjector {
+    public java.io.InputStream getInjectedStream(java.io.InputStream);
+}
