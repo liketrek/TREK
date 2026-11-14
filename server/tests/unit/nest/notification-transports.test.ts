@@ -260,6 +260,13 @@ describe('buildEmailHtml', () => {
     expect(html).toContain('Hello world, this is the body!');
   });
 
+  it('keeps the email shell fluid on narrow screens', () => {
+    const html = buildEmailHtml('Subject', 'Body', 'en');
+    expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    expect(html).toContain('width="100%"');
+    expect(html).toContain('max-width: 480px');
+  });
+
   it('uses English i18n strings for lang=en', () => {
     const html = buildEmailHtml('Subject', 'Body', 'en');
     expect(html).toContain('notifications enabled in TREK');
@@ -269,6 +276,13 @@ describe('buildEmailHtml', () => {
     const html = buildEmailHtml('Subject', 'Body', 'en');
     expect(html).toMatch(
       /<a href="https?:\/\/[^"]+\/settings\?tab=notifications"[^>]*>Manage preferences in Settings<\/a>/,
+    );
+  });
+
+  it('links admin-scoped notification preferences to the admin notifications tab', () => {
+    const html = buildEmailHtml('Subject', 'Body', 'en', undefined, false, '/admin?tab=notifications');
+    expect(html).toMatch(
+      /<a href="https?:\/\/[^"]+\/admin\?tab=notifications"[^>]*>Manage preferences in Settings<\/a>/,
     );
   });
 
@@ -290,6 +304,44 @@ describe('buildEmailHtml', () => {
     // in the header of every mail.
     expect(html).not.toContain('data:');
     expect(html).toMatch(/<img src="cid:[^"]+" alt="TREK" width="48" height="48"/);
+  });
+});
+
+describe('built-in email manage link scope', () => {
+  it('uses the admin tab for admin-scoped events and the user tab otherwise', async () => {
+    const mailer = {
+      getUserEmail: vi.fn(async () => 'person@example.com'),
+      sendEmail: vi.fn(async () => true),
+    };
+    const emailChannel = buildBuiltinChannels({
+      mailer: mailer as never,
+      webhook: {} as never,
+      ntfy: {} as never,
+      push: {} as never,
+    }).find((channel) => channel.id === 'email');
+    if (!emailChannel) throw new Error('Expected the built-in email channel to be registered');
+
+    await emailChannel.sendToUser(1, { event: 'version_available', title: 'Update', body: 'New version' });
+    await emailChannel.sendToUser(1, { event: 'trip_invite', title: 'Invite', body: 'Join trip' });
+
+    expect(mailer.sendEmail).toHaveBeenNthCalledWith(
+      1,
+      'person@example.com',
+      'Update',
+      'New version',
+      1,
+      undefined,
+      '/admin?tab=notifications',
+    );
+    expect(mailer.sendEmail).toHaveBeenNthCalledWith(
+      2,
+      'person@example.com',
+      'Invite',
+      'Join trip',
+      1,
+      undefined,
+      undefined,
+    );
   });
 });
 
