@@ -85,6 +85,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Yüksək keyfiyyət rejimi',
   'settings.mapHighQualityHint': 'Daha kəskin kənarlar və real dünya görünüşü üçün hamarlama və qlobus proyeksiyası.',
   'settings.mapHighQualityWarning': 'Zəif cihazlarda performansa təsir edə bilər.',
+  'settings.mapHidePois': 'Maraqlı məkanları gizlət',
+  'settings.mapHidePoisHint':
+    'Mapbox-un özünün göstərdiyi mağaza, restoran və görməli yerləri gizlədir ki, yalnız sənin məkanların seçilsin. Yalnız Standard üslubları üçün.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'xəritəni fırlatmaq və əymək üçün sağ kliklə sürükləyin. Məkan əlavə etmək üçün orta düymə ilə klikləyin (sağ klik fırlatma üçün ayrılıb).',
@@ -98,6 +101,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Hava məlumatları üçün. openweathermap.org/api ünvanında pulsuzdur',
   'settings.keyPlaceholder': 'Açarı daxil edin...',
   'settings.configured': 'Konfiqurasiya edilib',
+  'settings.notSetUp': 'Qurulmayıb',
+  'settings.mcp.appsConnected': '{count} tətbiq qoşulub',
+  'settings.mcp.appsConnected.one': '{count} tətbiq qoşulub',
   'settings.saveKeys': 'Açarları yadda saxla',
 
   'settings.display': 'Görünüş',
@@ -138,7 +144,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Bildirişlər',
   'settings.notifyTripInvite': 'Səyahət dəvətləri',
   'settings.notifyBookingChange': 'Rezervasiya dəyişiklikləri',
+  'settings.notifyFlightDeparted': 'Reyslərin uçuşu',
+  'settings.notifyFlightDelayed': 'Reyslərin gecikməsi',
+  'settings.notifyFlightLanded': 'Reyslərin enişi',
   'settings.notifyTripReminder': 'Səyahət xatırlatmaları',
+  'settings.notifyMailBookingAdded': 'Məktublardan əlavə edilən rezervasiyalar',
+  'settings.notifyMailBookingPending': 'Yoxlanılacaq yönləndirilmiş rezervasiyalar',
+  'settings.notifyMailIngestPaused': 'Məktub idxalı dayandırıldı',
   'settings.notifyTodoDue': 'Son tarixi yaxınlaşan tapşırıqlar',
   'settings.notifyVacayInvite': 'Vacay birləşdirmə dəvətləri',
   'settings.notifyVacayShare': 'Vacay təqvim paylaşımları',

@@ -9,6 +9,7 @@ import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import MAdminBackupPanel from '../../../../src/mobile/screens/admin/MAdminBackupPanel';
+import { mobileOptionLabels, pickMobileOption } from '../../../helpers/mobileSelect';
 
 const manualBackup = { filename: 'backup-2025-01-15.zip', created_at: '2025-01-15T10:00:00Z', size: 2_048_000 };
 const autoBackup = { filename: 'auto-backup-2025-02-01.zip', created_at: '2025-02-01T02:00:00Z', size: 512_000 };
@@ -349,14 +350,16 @@ describe('MAdminBackupPanel', () => {
   });
 
   it('FE-MOB-MBKP-021: the hour picker renders 24h labels and names the server timezone', async () => {
+    const user = userEvent.setup();
     server.use(autoSettingsHandler({ ...DEFAULT_AUTO, enabled: true }, 'Europe/Berlin'));
     render(<MAdminBackupPanel />);
 
     expect(await screen.findByText('Run at hour')).toBeInTheDocument();
     expect(screen.getByText('Server local time (24h format), timezone Europe/Berlin')).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toHaveValue('2');
-    expect(screen.getByRole('option', { name: '00:00' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '23:00' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Run at hour' })).toHaveTextContent('02:00');
+    const labels = await mobileOptionLabels(user, 'Run at hour');
+    expect(labels).toContain('00:00');
+    expect(labels).toContain('23:00');
   });
 
   it('FE-MOB-MBKP-022: with a 12h user preference the hours are labelled AM/PM', async () => {
@@ -365,9 +368,10 @@ describe('MAdminBackupPanel', () => {
     render(<MAdminBackupPanel />);
 
     expect(await screen.findByText('Server local time (12h format)')).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '12:00 AM' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '11:00 AM' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '1:00 PM' })).toBeInTheDocument();
+    const labels = await mobileOptionLabels(userEvent.setup(), 'Run at hour');
+    expect(labels).toContain('12:00 AM');
+    expect(labels).toContain('11:00 AM');
+    expect(labels).toContain('1:00 PM');
   });
 
   it('FE-MOB-MBKP-023: hourly hides the hour picker, weekly shows weekdays, monthly a day select', async () => {
@@ -388,12 +392,10 @@ describe('MAdminBackupPanel', () => {
     expect(screen.queryByText('Day of week')).not.toBeInTheDocument();
     expect(screen.getByText('Day of month')).toBeInTheDocument();
     // Hour picker plus the 1–28 day picker
-    const selects = screen.getAllByRole('combobox');
-    expect(selects).toHaveLength(2);
-    expect(within(selects[1]).getAllByRole('option')).toHaveLength(28);
-
-    fireEvent.change(selects[1], { target: { value: '15' } });
-    expect(selects[1]).toHaveValue('15');
+    expect(screen.getAllByRole('combobox')).toHaveLength(2);
+    expect(await mobileOptionLabels(user, 'Day of month')).toHaveLength(28);
+    await user.click(within(screen.getByRole('dialog', { name: 'Day of month' })).getByRole('button', { name: '15' }));
+    expect(screen.getByRole('combobox', { name: 'Day of month' })).toHaveTextContent('15');
   });
 
   it('FE-MOB-MBKP-024: saving sends the edited schedule and confirms with a toast', async () => {
@@ -412,7 +414,7 @@ describe('MAdminBackupPanel', () => {
     await user.click(screen.getByText('Weekly'));
     await user.click(screen.getByText('Fri'));
     await user.click(screen.getByText('30 days'));
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '5' } });
+    await pickMobileOption(user, 'Run at hour', '05:00');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText('Auto-backup settings saved')).toBeInTheDocument();

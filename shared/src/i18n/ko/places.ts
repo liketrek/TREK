@@ -82,6 +82,10 @@ const places: TranslationStrings = {
   'places.formLng': '경도 (예: 2.3522)',
   'places.formLatLabel': '위도',
   'places.formLngLabel': '경도',
+  'places.noCoordinates': '좌표가 없어 지도에 표시되지 않음',
+  'places.noCoordinatesHint': '장소를 편집해 검색에서 고르거나 위도와 경도를 입력하세요.',
+  'places.noCoordinatesFormHint':
+    '이 주소에는 아직 좌표가 없어 지도에 표시되지 않습니다. 위 검색에서 고르거나 위도와 경도를 입력하세요.',
   'places.formCategory': '카테고리',
   'places.noCategory': '카테고리 없음',
   'places.newCategory': '새 카테고리',

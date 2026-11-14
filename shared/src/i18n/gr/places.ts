@@ -92,6 +92,11 @@ const places: TranslationStrings = {
   'places.formLng': 'Γεωγραφικό Μήκος (π.χ. 2.3522)',
   'places.formLatLabel': 'Γεωγραφικό Πλάτος',
   'places.formLngLabel': 'Γεωγραφικό Μήκος',
+  'places.noCoordinates': 'Χωρίς συντεταγμένες, άρα όχι στον χάρτη',
+  'places.noCoordinatesHint':
+    'Επεξεργάσου το μέρος και διάλεξέ το από την αναζήτηση ή γράψε γεωγραφικό πλάτος και μήκος.',
+  'places.noCoordinatesFormHint':
+    'Αυτή η διεύθυνση δεν έχει ακόμη συντεταγμένες, οπότε το μέρος δεν θα εμφανιστεί στον χάρτη. Διάλεξέ το από την αναζήτηση παραπάνω ή γράψε γεωγραφικό πλάτος και μήκος.',
   'places.formCategory': 'Κατηγορία',
   'places.noCategory': 'Χωρίς Κατηγορία',
   'places.newCategory': 'Νέα κατηγορία',

@@ -289,6 +289,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nenašli sa žiadne albumy',
   'journey.picker.selectDate': 'Vyberte dátum',
   'journey.picker.search': 'Hľadať',
+  'journey.picker.takenBetween': 'Odfotené medzi',
   'journey.studio.title': 'TREK Studio', // same-as-en
   'journey.studio.open': 'Studio', // same-as-en
   'journey.studio.openAria': 'Otvoriť štúdio fotoknihy',

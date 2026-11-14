@@ -15,6 +15,7 @@ import androidx.glance.appwidget.GlanceRemoteViews
 import com.liketrek.trek.tripday.TripDayNotification
 import com.liketrek.trek.widget.AtlasWidget
 import com.liketrek.trek.widget.BookingsWidget
+import com.liketrek.trek.widget.FlightWidget
 import com.liketrek.trek.widget.CollabWidget
 import com.liketrek.trek.widget.PackingWidget
 import com.liketrek.trek.widget.TodayWidget
@@ -74,6 +75,7 @@ class WidgetGalleryActivity : Activity() {
             "trip" to TripWidget(),
             "today" to TodayWidget(),
             "bookings" to BookingsWidget(),
+            "flight" to FlightWidget(),
             "todos" to TodosWidget(),
             "packing" to PackingWidget(),
             "atlas" to AtlasWidget(),

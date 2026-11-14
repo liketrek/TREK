@@ -5,6 +5,8 @@
 "widget.today.description" = "תוכנית היום כציר זמן, עם מזג האוויר והעצירה הבאה.";
 "widget.bookings.name" = "הזמנות";
 "widget.bookings.description" = "הטיסות, הרכבות, המלונות והשולחנות הבאים שלך, ומתי הם.";
+"widget.flight.name" = "טיסה";
+"widget.flight.description" = "הטיסה הבאה שלך בזמן אמת: ספירה לאחור עד ההמראה, המטוס בדרך, עיכוב והגעה.";
 "widget.todos.name" = "משימות";
 "widget.todos.description" = "מה עוד פתוח לטיול וכמה התקדמה האריזה.";
 "widget.packing.name" = "אריזה";

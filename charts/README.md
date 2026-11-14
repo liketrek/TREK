@@ -43,7 +43,8 @@ See `values.yaml` for more options.
 ## Notes
 - Ingress is off by default. Enable and configure hosts for your domain.
 - PVCs use the cluster's default StorageClass. Set `persistence.data.storageClassName` and/or `persistence.uploads.storageClassName` to bind a specific class.
-- To use your own PVCs, set `persistence.data.existingClaim` and/or `persistence.uploads.existingClaim`. The other values for that volume (size, storageClassName, annotations) are then ignored.
+- Both PVCs are `ReadWriteOnce`. Set `persistence.data.accessModes` and/or `persistence.uploads.accessModes` to override, for example `[ReadWriteMany]` so a backup pod can mount the volume. On the data volume such a pod may only read: SQLite corrupts `travel.db` when a second process writes it over a network filesystem.
+- To use your own PVCs, set `persistence.data.existingClaim` and/or `persistence.uploads.existingClaim`. The other values for that volume (size, storageClassName, accessModes, annotations) are then ignored.
 - With `persistence.enabled: false`, the data and uploads volumes use an `emptyDir` — storage is ephemeral and lost on pod restart. Intended for testing only.
 - `JWT_SECRET` is managed entirely by the server — auto-generated into the data PVC on first start and rotatable via the admin panel (Settings → Danger Zone). No Helm configuration needed.
 - `ENCRYPTION_KEY` encrypts stored secrets (API keys, MFA, SMTP, OIDC) at rest. Recommended: set via `secretEnv.ENCRYPTION_KEY` or `existingSecret`. If left empty, the server falls back automatically: existing installs use `data/.jwt_secret` (no action needed on upgrade); fresh installs auto-generate a key persisted to the data PVC.

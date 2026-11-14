@@ -93,6 +93,10 @@ const places: TranslationStrings = {
   'places.formLatLabel': 'Latitude', // same-as-en
   'places.formLngLabel': 'Longitude', // same-as-en
   'places.formCategory': 'Catégorie',
+  'places.noCoordinates': 'Pas de coordonnées, donc absent de la carte',
+  'places.noCoordinatesHint': 'Modifie le lieu et choisis-le dans la recherche, ou saisis sa latitude et sa longitude.',
+  'places.noCoordinatesFormHint':
+    'Cette adresse n’a pas encore de coordonnées, le lieu n’apparaîtra donc pas sur la carte. Choisis-le dans la recherche ci-dessus ou saisis la latitude et la longitude.',
   'places.noCategory': 'Sans catégorie',
   'places.newCategory': 'Nouvelle catégorie',
   'places.openInMaps': 'Ouvrir dans une app de cartes',

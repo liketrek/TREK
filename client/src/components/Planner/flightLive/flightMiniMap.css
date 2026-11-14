@@ -1,0 +1,103 @@
+/* The flight mini map (FlightMiniMap.tsx). Leaflet draws its lines and markers
+   as SVG and HTML it builds itself, so their colours come from custom
+   properties the card sets on the box: --fm-flown, --fm-ahead, --fm-plane. */
+
+/* Fades the map into the surface on all four sides: two crossed linear masks,
+   intersected, so the middle with the route is fully there, the map stays
+   faint under the airports and times laid over it, and every edge runs out. */
+.flight-mini-map {
+  -webkit-mask-image:
+    linear-gradient(
+      to right,
+      transparent 4%,
+      rgb(0 0 0 / 0.35) 24%,
+      #000 38%,
+      #000 62%,
+      rgb(0 0 0 / 0.35) 76%,
+      transparent 96%
+    ),
+    linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(
+      to right,
+      transparent 4%,
+      rgb(0 0 0 / 0.35) 24%,
+      #000 38%,
+      #000 62%,
+      rgb(0 0 0 / 0.35) 76%,
+      transparent 96%
+    ),
+    linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  mask-composite: intersect;
+}
+
+.flight-mini-map .leaflet-container {
+  background: transparent;
+  cursor: default;
+}
+
+.flight-mini-map .flight-mini-flown {
+  stroke: var(--fm-flown);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.flight-mini-map .flight-mini-ahead {
+  stroke: var(--fm-ahead);
+  stroke-width: 1.75;
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.flight-mini-map .flight-mini-end {
+  stroke: var(--fm-flown);
+  stroke-width: 2;
+  fill: var(--fm-end);
+  fill-opacity: 1;
+}
+
+.flight-mini-map .flight-mini-plane {
+  background: none;
+  border: 0;
+}
+
+.flight-mini-map .flight-mini-plane svg {
+  fill: var(--fm-plane);
+  /* A light outline lifts the aircraft off the line and the map under it. */
+  stroke: var(--fm-halo, #fff);
+  stroke-width: 1.6;
+  paint-order: stroke;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.3));
+}
+
+/* The airport codes at the two ends of the route, quiet text without Leaflet's tooltip box. */
+.flight-mini-map .leaflet-tooltip.flight-mini-code {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--fm-code);
+  font-family: var(--font-geist, inherit);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.flight-mini-map .leaflet-tooltip.flight-mini-code::before {
+  display: none;
+}
+
+/* A map kept to the middle of its pass (the phone): the edges still run out,
+   but the route fills most of it instead of a third. */
+.flight-mini-map.flight-mini-map--narrow {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 16%, #000 84%, transparent),
+    linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+  mask-image:
+    linear-gradient(to right, transparent, #000 16%, #000 84%, transparent),
+    linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+}

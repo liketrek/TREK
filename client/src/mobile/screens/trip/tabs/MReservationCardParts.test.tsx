@@ -29,7 +29,8 @@ function cardState(overrides: Partial<ReturnType<typeof useReservationCard>> = {
     askDelete: vi.fn(),
     cancelDelete: vi.fn(),
     confirmDelete: vi.fn(),
-    fileChip: () => ({ onClick: vi.fn(), onKeyDown: vi.fn() }),
+    openFile: vi.fn(),
+    downloadFile: vi.fn(),
     ...overrides,
   } as unknown as ReturnType<typeof useReservationCard>;
 }
@@ -130,18 +131,30 @@ describe('MReservationCardParts', () => {
     expect(toggleCode).toHaveBeenCalledOnce();
   });
 
-  it('FE-COMP-MRESCARD-006: files render as button-role chips, and no files render nothing', () => {
+  it('FE-COMP-MRESCARD-006: each file row opens the file by its name and downloads it by the icon (#2585)', () => {
     const { container, rerender } = render(<CardFiles files={[]} card={cardState()} t={t} />);
     expect(container).toBeEmptyDOMElement();
 
     const files = [{ id: 5, original_name: 'ticket.pdf', url: '/uploads/f/5' }] as Parameters<
       typeof CardFiles
     >[0]['files'];
-    rerender(<CardFiles files={files} card={cardState()} t={t} />);
+    const card = cardState();
+    rerender(<CardFiles files={files} card={card} t={t} />);
     expect(screen.getByText('files.title')).toBeInTheDocument();
-    const chip = screen.getByRole('button', { name: 'ticket.pdf' });
-    expect(chip.tagName).toBe('SPAN');
-    expect(chip).toHaveAttribute('tabindex', '0');
+
+    const open = screen.getByRole('button', { name: 'ticket.pdf' });
+    const download = screen.getByRole('button', { name: 'files.download: ticket.pdf' });
+    // Two sibling buttons, never one inside the other.
+    expect(open.tagName).toBe('BUTTON');
+    expect(open.contains(download)).toBe(false);
+    expect(download.closest('button')).toBe(download);
+
+    fireEvent.click(open);
+    expect(card.openFile).toHaveBeenCalledWith(files[0]);
+    expect(card.downloadFile).not.toHaveBeenCalled();
+    fireEvent.click(download);
+    expect(card.downloadFile).toHaveBeenCalledWith(files[0]);
+    expect(card.openFile).toHaveBeenCalledOnce();
   });
 
   it('FE-COMP-MRESCARD-007: the delete sheet names the reservation and confirms through the card', () => {

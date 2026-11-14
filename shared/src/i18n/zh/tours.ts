@@ -81,6 +81,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': '累计爬升',
   'tours.detail.descent': '累计下降',
   'tours.detail.navigationHint': '导航打开的是步道起点，不会沿游览路线提供导航。',
+  'tours.detail.openRoute': '在地图应用中打开路线',
+  'tours.detail.mapsShort': '地图',
   'tours.planner.title': '规划游览路线',
   'tours.planner.newTour': '规划新游览路线',
   'tours.planner.addTour': '添加行程',

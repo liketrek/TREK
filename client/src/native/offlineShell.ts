@@ -1,13 +1,16 @@
 import { TrekShell } from './trekShell';
 
 /**
- * iOS only. WKWebView runs no service worker for a domain the app does not
- * list at build time, so the app stands in for it: the native side keeps a
- * copy of the start page (TrekShellPlugin.refreshOfflineCopy), and this pulls
- * every chunk of the current build into WebKit's HTTP cache. The server marks
- * them immutable, so a cold start without network can load the stored start
- * page under the server's origin and find all its scripts, including the lazy
- * routes nobody has opened yet.
+ * The app's stand-in for a service worker, so it starts without its server (a
+ * trip without reception, a server at home out of reach). WKWebView runs none
+ * for a domain the app does not list at build time, and Android's web view
+ * none on a plain-http server, the usual address of a server at home. So the
+ * native side keeps a copy of the start page (TrekShellPlugin.refreshOfflineCopy)
+ * and every chunk of the current build: iOS in WebKit's HTTP cache, which this
+ * fills (the server marks the files immutable), Android in the app's own store,
+ * which the native side fills from the list this hands it. A cold start without
+ * the server then loads the stored start page under the server's origin and
+ * finds all its scripts, including the lazy routes nobody has opened yet.
  */
 
 const MANIFEST_URL = '/asset-manifest.json';
@@ -82,13 +85,23 @@ function rememberWarmed(build: string): void {
   }
 }
 
-export async function keepOfflineShellFresh(fetchImpl: typeof fetch = fetch, language?: string): Promise<void> {
-  await TrekShell.refreshOfflineCopy();
+export async function keepOfflineShellFresh(
+  fetchImpl: typeof fetch = fetch,
+  language?: string,
+  nativeStore = false
+): Promise<void> {
+  if (!nativeStore) await TrekShell.refreshOfflineCopy();
   const response = await fetchImpl(MANIFEST_URL, { cache: 'no-store' });
   if (!response.ok) return;
   const files = manifestFiles(await response.json(), language);
   // The build and the language together: a new language needs its own chunk.
   const build = `${[...files].sort((a, b) => a.localeCompare(b)).find((f) => /index-[^/]+\.js$/.test(f)) ?? files.length}:${language ?? 'en'}`;
+  if (nativeStore) {
+    // The native side fetches only what its store lacks, and keeps the start page fresh each time.
+    const { complete } = await TrekShell.refreshOfflineCopy({ files });
+    if (complete) rememberWarmed(build);
+    return;
+  }
   if (warmedBuild() === build) return;
   const complete = await warmCache(files, (path) =>
     fetchImpl(path, { priority: 'low' } as RequestInit).then((r) => r.blob())

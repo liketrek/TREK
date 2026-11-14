@@ -5,6 +5,8 @@
 "widget.today.description" = "今日の予定をタイムラインで、天気と次の予定とともに表示します。";
 "widget.bookings.name" = "予約";
 "widget.bookings.description" = "次のフライト、列車、ホテル、レストランとその日時。";
+"widget.flight.name" = "フライト";
+"widget.flight.description" = "次のフライトをライブで：出発までのカウントダウン、飛行中の機体、遅延と到着。";
 "widget.todos.name" = "やること";
 "widget.todos.description" = "旅行のために残っていることと、荷造りの進み具合。";
 "widget.packing.name" = "持ち物";

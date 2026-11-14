@@ -101,6 +101,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Набір висоти',
   'tours.detail.descent': 'Втрата висоти',
   'tours.detail.navigationHint': 'Навігація відкриває початкову точку стежки, але не веде вздовж маршруту.',
+  'tours.detail.openRoute': 'Відкрити маршрут у застосунку карт',
+  'tours.detail.mapsShort': 'Карти',
   'tours.planner.title': 'Спланувати тур',
   'tours.planner.newTour': 'Спланувати новий тур',
   'tours.planner.addTour': 'Додати маршрут',

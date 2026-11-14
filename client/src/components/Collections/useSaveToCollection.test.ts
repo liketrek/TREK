@@ -108,17 +108,19 @@ describe('useSaveToCollection', () => {
     expect(result.current.unvisited).toEqual([]);
   });
 
-  it('FE-COMP-SAVETOCOLHOOK-004: unvisited leaves out visited and read-only lists', async () => {
+  it('FE-COMP-SAVETOCOLHOOK-004: unvisited leaves out visited, to-revisit and read-only lists', async () => {
     vi.spyOn(collectionsApi, 'membership').mockResolvedValue({
       saved: true,
       lists: [
         { collection_id: 1, name: 'Favorites', place_id: 900, status: 'visited', can_edit: true },
         { collection_id: 2, name: 'Wishlist', place_id: 901, status: 'idea', can_edit: false },
         { collection_id: 3, name: 'Team', place_id: 902, status: 'want', can_edit: true },
+        // #2567: a place to revisit was visited already, "visited everywhere" keeps the wish.
+        { collection_id: 4, name: 'Again', place_id: 903, status: 'revisit', can_edit: true },
       ],
     });
     const { result } = await loaded();
-    await waitFor(() => expect(result.current.savedByCollection.size).toBe(3));
+    await waitFor(() => expect(result.current.savedByCollection.size).toBe(4));
     expect(result.current.unvisited.map((l) => l.place_id)).toEqual([902]);
   });
 

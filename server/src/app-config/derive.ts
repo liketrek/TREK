@@ -111,6 +111,12 @@ export function deriveSession(raw: RawEnv) {
   };
 }
 
+/** A boolean variable as the stored settings spell it, or undefined when unset or not a boolean. */
+function flagText(raw: string | undefined): 'true' | 'false' | undefined {
+  const value = parseBool(raw);
+  return value === undefined ? undefined : value ? 'true' : 'false';
+}
+
 /**
  * Whether this instance is centrally administered: somebody other than its
  * admin user owns the configuration, the credentials and the upgrade schedule.
@@ -312,6 +318,12 @@ export function deriveIntegrations(raw: RawEnv) {
      * request whose prompt plus cap overruns its context (#2677).
      */
     llmMaxOutputTokens: positiveIntOr(raw.LLM_MAX_OUTPUT_TOKENS, 0) || undefined,
+    /**
+     * The operator's word on live flight status, as the admin setting spells it
+     * ('true'/'false'), or undefined when unset or not a boolean: then the admin
+     * switch (`flight_live_enabled`) decides.
+     */
+    flightLiveEnabled: flagText(raw.FLIGHT_LIVE_ENABLED),
     // TRANSIT_API_URL, KITINERARY_EXTRACTOR_PATH and PATH are boot-stable and
     // read only by Nest providers, so the transitConfig and kitineraryConfig
     // tokens own them (boot-derive.ts).

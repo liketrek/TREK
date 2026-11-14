@@ -279,6 +279,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nie znaleziono albumów',
   'journey.picker.selectDate': 'Wybierz datę',
   'journey.picker.search': 'Szukaj',
+  'journey.picker.takenBetween': 'Zrobione między',
   'journey.detail.journeyTab': 'Podróż',
   'journey.contributors.remove': 'Usuń współautora',
   'journey.contributors.removeConfirm': 'Usunąć {username} z tej podróży?',

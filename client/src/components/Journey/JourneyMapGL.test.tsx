@@ -1,4 +1,4 @@
-// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-048, FE-COMP-JMAPGL-2453, FE-COMP-JMAPGL-2910
+// FE-COMP-JMAPGL-001 to FE-COMP-JMAPGL-050, FE-COMP-JMAPGL-2453, FE-COMP-JMAPGL-2910
 
 type Spy = ReturnType<typeof vi.fn>
 
@@ -47,6 +47,9 @@ const gl = vi.hoisted(() => {
     addSource: vi.fn(),
     addLayer: vi.fn(),
     getSource: vi.fn((): unknown => null),
+    // The satellite imagery (#2594) asks for its layer and for the style's layers to slide under.
+    getLayer: vi.fn((): unknown => undefined),
+    getStyle: vi.fn((): unknown => ({ layers: [] })),
     setTerrain: vi.fn(),
     setConfigProperty: vi.fn(),
     setLayoutProperty: vi.fn(),
@@ -185,6 +188,8 @@ beforeEach(() => {
   gl.map.getZoom.mockReturnValue(10)
   gl.map.project.mockImplementation(([lng, lat]: [number, number]) => ({ x: lng * 10, y: lat * 10 }))
   gl.map.getSource.mockReturnValue(null)
+  gl.map.getLayer.mockReturnValue(undefined)
+  gl.map.getStyle.mockReturnValue({ layers: [] })
   vi.mocked(isStandardFamily).mockReturnValue(false)
   vi.mocked(supportsCustom3d).mockReturnValue(false)
   vi.mocked(wantsTerrain).mockReturnValue(false)
@@ -899,5 +904,29 @@ describe('JourneyMapGL', () => {
 
     rerender(<JourneyMapGL checkins={[]} entries={days} tracks={tracks} layerVisibility={{ ...shown, recorded: false, entries: false }} />)
     expect(gl.map.setLayoutProperty).toHaveBeenLastCalledWith('journey-route-covered-line', 'visibility', 'none')
+  })
+
+  it("FE-COMP-JMAPGL-049: a map opened on satellite slides the imagery under the journey's own layers (#2594)", () => {
+    withToken()
+    gl.map.getStyle.mockReturnValue({ layers: [{ id: 'water' }, { id: 'journey-route-line' }] })
+    render(<JourneyMapGL checkins={[]} entries={entries} baseLayer="satellite" />)
+
+    expect(gl.map.addSource).toHaveBeenCalledWith('trip-satellite', expect.objectContaining({ type: 'raster' }))
+    // Over the basemap's water, under the line between the entries.
+    expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-satellite-raster' }), 'journey-route-line')
+  })
+
+  it('FE-COMP-JMAPGL-050: the switch flips the imagery in place, without rebuilding the map', () => {
+    withToken()
+    const { rerender } = render(<JourneyMapGL checkins={[]} entries={entries} />)
+    expect(gl.map.addLayer).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-satellite-raster' }), expect.anything())
+
+    rerender(<JourneyMapGL checkins={[]} entries={entries} baseLayer="satellite" />)
+    expect(gl.map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: 'trip-satellite-raster' }), undefined)
+
+    gl.map.getLayer.mockReturnValue({ id: 'trip-satellite-raster' })
+    rerender(<JourneyMapGL checkins={[]} entries={entries} baseLayer="default" />)
+    expect(gl.map.setLayoutProperty).toHaveBeenLastCalledWith('trip-satellite-raster', 'visibility', 'none')
+    expect(mapboxgl.Map).toHaveBeenCalledTimes(1)
   })
 })

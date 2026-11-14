@@ -119,6 +119,13 @@ describe('migrate-encryption.ts app_settings parity', () => {
     }
   });
 
+  // A forwarding address shows its token through token_enc; a stored mail is sealed in raw_eml_enc.
+  it('ROTPAR-016: rotates the address tokens and stored mails of the mail import', () => {
+    const section = script.slice(script.indexOf('--- mail_ingest:'), script.indexOf('--- addons:'));
+    expect(section).toContain("['mail_ingest_addresses', 'token_enc']");
+    expect(section).toContain("['mail_ingest_messages', 'raw_eml_enc']");
+  });
+
   it('ROTPAR-004: rotates every storage.backends secret field for s3', () => {
     const fields = storageSecretFields('s3');
     expect(fields.length).toBeGreaterThan(0);

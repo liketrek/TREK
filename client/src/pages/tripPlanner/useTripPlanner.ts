@@ -68,6 +68,9 @@ import { usePlannerTripView } from './usePlannerTripView'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats'
+import { useFlightLiveSync } from '../../components/Planner/flightLive/useFlightLiveSync'
+import { useMailPrefillLink } from '../../components/MailIngest/useMailPrefillLink'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -119,6 +122,8 @@ export function useTripPlanner() {
   const todoItems = useTripStore(s => s.todoItems)
   const categories = useTripStore(s => s.categories)
   const reservations = useTripStore(s => s.reservations)
+  // Live flight states (status, position, delay) for the trip's flights, desktop and phone alike.
+  useFlightLiveSync(tripId, reservations.some(r => r.type === 'flight'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const files = useTripStore(s => s.files)
   const selectedDayId = useTripStore(s => s.selectedDayId)
@@ -647,6 +652,7 @@ export function useTripPlanner() {
     editingReservation, setEditingReservation, setShowReservationModal,
     editingTransport, setEditingTransport, setShowTransportModal, setTransportModalDayId,
   })
+  useMailPrefillLink({ searchParams, setSearchParams, loaded: !isLoading && trip?.id === tripId, startImportReview })
 
   // ── The plan's booking detail ───────────────────────────────────────────────
   // A click on a booking in the plan shows it first; the editor is one Edit away.
@@ -698,14 +704,28 @@ export function useTripPlanner() {
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 
-  // Splash screen — show for initial load + a brief moment for photos to start loading
-  const [splashDone, setSplashDone] = useState(false)
+  // The trip's form saves alike from its own dialog and from the trip settings (#2811).
+  const saveTrip = useCallback(async (data: Parameters<typeof tripActions.updateTrip>[1]) => {
+    await tripActions.updateTrip(tripId, data)
+    loadAccommodations()
+    toast.success(t('trip.toast.tripUpdated'))
+  }, [tripActions, tripId, loadAccommodations, toast, t])
+
+  // The splash only for a slow open, as on the phone (MTripOpening): a trip that
+  // loads within TRIP_SPLASH_AFTER_MS opens straight away, with no splash and no
+  // minimum on screen.
+  const [slowOpen, setSlowOpen] = useState(false)
+  // Every open is timed afresh: a trip opened after a slow one starts without the splash too.
+  const [wasLoading, setWasLoading] = useState(isLoading)
+  if (wasLoading !== isLoading) {
+    setWasLoading(isLoading)
+    if (isLoading) setSlowOpen(false)
+  }
   useEffect(() => {
-    if (!isLoading && trip) {
-      const timer = setTimeout(() => setSplashDone(true), 1500)
-      return () => clearTimeout(timer)
-    }
-  }, [isLoading, trip])
+    if (!isLoading) return
+    const timer = setTimeout(() => setSlowOpen(true), TRIP_SPLASH_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [isLoading])
 
   return {
     tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
@@ -779,7 +799,7 @@ export function useTripPlanner() {
     ...dayClear,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
-    mapTileUrl, fontStyle, splashDone,
+    mapTileUrl, fontStyle, slowOpen, saveTrip,
     // The assistant on the map, handed to MapViewAuto whole by both shells.
     assistantMap,
   }

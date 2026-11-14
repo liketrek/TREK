@@ -137,7 +137,7 @@ describe('MAdmin', () => {
     expect(screen.getByText('8')).toBeInTheDocument();
   });
 
-  it('FE-MOB-ADMIN-002: the section dropdown switches to the settings section', async () => {
+  it('FE-MOB-ADMIN-002: the section dropdown switches to the security section', async () => {
     render(<MAdmin />);
     await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
 
@@ -145,15 +145,27 @@ describe('MAdmin', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
 
     // All standard sections are listed
-    expect(screen.getByRole('button', { name: 'User Defaults' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Defaults' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Backup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Audit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Services' })).toBeInTheDocument();
+    // Under the desktop sidebar's group headings
+    expect(screen.getByText('Configuration')).toBeInTheDocument();
+    expect(screen.getByText('Maintenance')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Security' }));
 
-    // Settings section renders the auth methods card, user list is gone
+    // Security renders the auth methods card, user list is gone
     await waitFor(() => expect(screen.getByText('Authentication Methods')).toBeInTheDocument());
     expect(screen.queryByText('alice')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ADMIN-002b: a link to a desktop tab opens the same section, an old Settings link Security', async () => {
+    for (const [tab, card] of [['security', 'Authentication Methods'], ['settings', 'Authentication Methods'], ['services', 'API Keys']]) {
+      const { unmount } = render(<MAdmin />, { initialEntries: [`/admin?tab=${tab}`] });
+      await waitFor(() => expect(screen.getByText(card)).toBeInTheDocument());
+      unmount();
+    }
   });
 
   it('FE-MOB-ADMIN-003: the back button leaves for the dashboard', async () => {
@@ -180,7 +192,7 @@ describe('MAdmin', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Administration' }));
 
-    expect(screen.queryByRole('button', { name: 'MCP Access' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'MCP' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Dev: Notifications' })).not.toBeInTheDocument();
   });
 
@@ -193,7 +205,7 @@ describe('MAdmin', () => {
     renderAdmin();
     await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
 
-    await openSection('MCP Access');
+    await openSection('MCP');
 
     expect(screen.getByTestId('mcp-tokens-panel')).toBeInTheDocument();
   });
@@ -212,7 +224,7 @@ describe('MAdmin', () => {
     renderAdmin();
     await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument());
 
-    await openSection('User Defaults');
+    await openSection('Defaults');
     expect(screen.getByTestId('default-user-settings')).toBeInTheDocument();
 
     await openSection('Personalization');
@@ -441,9 +453,9 @@ describe('MAdmin', () => {
     // No dropdown pill on top of the page: the list beside it is the switcher.
     expect(screen.queryByRole('button', { name: 'Administration', expanded: false })).not.toBeInTheDocument();
 
-    fireEvent.click(within(sections).getByRole('button', { name: 'Settings' }));
+    fireEvent.click(within(sections).getByRole('button', { name: 'Security' }));
     await waitFor(() => expect(screen.getByText('Authentication Methods')).toBeInTheDocument());
-    expect(within(sections).getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    expect(within(sections).getByRole('button', { name: 'Security' })).toHaveAttribute('aria-current', 'page');
 
     fireEvent.click(within(sections).getByRole('button', { name: 'Create User' }));
     expect(screen.getByRole('dialog', { name: 'Create User' })).toBeInTheDocument();

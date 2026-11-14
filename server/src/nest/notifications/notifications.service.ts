@@ -7,7 +7,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { RealtimeService } from '../realtime/realtime.service';
 import { getChannel, listChannels } from './channel-registry';
 import { registerBuiltinChannels } from './channels/builtins';
-import { getAction } from './in-app-actions';
+import { getAction, registerAction } from './in-app-actions';
 import { getEventText } from './mailer/email-html';
 import { MailerService } from './mailer/mailer.service';
 import {
@@ -127,6 +127,13 @@ const WANDERER_HINT_TEXT: Record<string, { textKey: string }> = {
   possible_change: { textKey: 'notif.wanderer_source_hint.possible_change' },
 };
 
+// The two texts of a booking added from a mail: the forwarder's and a co-traveller's,
+// each in a textKey of its own for the client's key check, as above.
+const MAIL_BOOKING_TEXT: Record<'forwarder' | 'traveller', { textKey: string }> = {
+  forwarder: { textKey: 'notif.mail_booking_added.text' },
+  traveller: { textKey: 'notif.mail_booking_added.shared' },
+};
+
 const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
   // ── Dev-only test events ──────────────────────────────────────────────────
   test_simple: {
@@ -170,6 +177,28 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     inAppType: 'navigate',
     titleKey: 'notif.booking_change.title',
     textKey: 'notif.booking_change.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  // Live flight status (flight-live): the poll saw the flight leave, land or run late.
+  flight_departed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_departed.title',
+    textKey: 'notif.flight_departed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  flight_delayed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_delayed.title',
+    textKey: 'notif.flight_delayed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  flight_landed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_landed.title',
+    textKey: 'notif.flight_landed.text',
     navigateTextKey: 'notif.action.view_trip',
     navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
@@ -259,6 +288,31 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     textKey: (p) => (WANDERER_HINT_TEXT[p.state] ?? WANDERER_HINT_TEXT.possible_change).textKey,
     navigateTextKey: 'notif.action.view_tour',
     navigateTarget: (p) => (p.tripId && p.placeId ? `/trips/${p.tripId}?tab=plan&place=${p.placeId}` : null),
+  },
+  // A booking from a forwarded mail went into a trip. The forwarder's copy is a
+  // keep/undo question (the call site makes it boolean); a co-traveller's opens the trip.
+  mail_booking_added: {
+    inAppType: 'navigate',
+    titleKey: 'notif.mail_booking_added.title',
+    textKey: (p) => (p.role === 'traveller' ? MAIL_BOOKING_TEXT.traveller : MAIL_BOOKING_TEXT.forwarder).textKey,
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}?tab=bookings` : null),
+  },
+  // Bookings from forwarded mails wait in the person's inbox for a decision.
+  mail_booking_pending: {
+    inAppType: 'navigate',
+    titleKey: 'notif.mail_booking_pending.title',
+    textKey: 'notif.mail_booking_pending.text',
+    navigateTextKey: 'notif.action.review',
+    navigateTarget: () => '/dashboard?inbox=mail',
+  },
+  // The import stopped (a plan without it, or an admin switched it off): every
+  // person with an address hears it once, with nothing to open.
+  mail_ingest_paused: {
+    inAppType: 'simple',
+    titleKey: 'notif.mail_ingest_paused.title',
+    textKey: 'notif.mail_ingest_paused.text',
+    navigateTarget: () => null,
   },
   synology_session_cleared: {
     inAppType: 'simple',
@@ -673,6 +727,20 @@ export class NotificationsService {
 
   async deleteAll(userId: number): Promise<number> {
     return await this.notificationsRepo.deleteAllForRecipient(userId);
+  }
+
+  /**
+   * Names what a tap on a yes/no notification does: a domain that sends one
+   * registers its action here from its module's init, so this module never
+   * imports the domain. The handler gets the payload the notification
+   * carried and the person who answered; a handler that throws leaves the
+   * notification unanswered, with its message as the error.
+   */
+  registerResponseAction(
+    action: string,
+    handler: (payload: Record<string, unknown>, respondingUserId: number) => Promise<void>,
+  ): void {
+    registerAction(action, handler);
   }
 
   /**

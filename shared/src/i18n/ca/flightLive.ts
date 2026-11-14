@@ -1,0 +1,43 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} d {h} h',
+  'flightLive.durHoursMinutes': '{h} h {m} min',
+  'flightLive.durMinutes': '{m} min',
+  'flightLive.late': '+{m} min',
+  'flightLive.early': '{m} min abans',
+  'flightLive.onTime': 'Puntual',
+  'flightLive.departsIn': 'Surt d’aquí a {time}',
+  'flightLive.scheduled': 'Programat',
+  'flightLive.taxiing': 'A punt per sortir',
+  'flightLive.atAirport': 'A terra a {code}',
+  'flightLive.airborne': 'En vol',
+  'flightLive.landsIn': 'Aterra d’aquí a {time}',
+  'flightLive.landed': 'Aterrat',
+  'flightLive.landedAt': 'Ha aterrat a les {time} a {code}',
+  'flightLive.estimated': 'estimada',
+  'flightLive.altitude': 'Altitud',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Velocitat',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/h',
+  'flightLive.remaining': 'Restant',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Avió',
+  'flightLive.noGateHint':
+    'La porta, la terminal i la cinta d’equipatge no formen part de les dades de vol obertes. Afegeix-les tu a la reserva si les necessites.',
+  'flightLive.legOf': 'Vol {n} de {total}',
+  'flightLive.adminTitle': 'Estat dels vols en directe',
+  'flightLive.adminHint':
+    'Mostra la posició, el retard i l’arribada estimada dels vols reservats a partir de dades ADS-B obertes (adsb.lol, adsb.fi). Només l’indicatiu del vol surt d’aquest servidor.',
+  'flightLive.adminToggle': 'Segueix en directe els vols reservats',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Mostra la posició, el retard i l’arribada estimada dels vols reservats a partir de dades ADS-B obertes (adsb.lol). Només l’indicatiu del vol surt de la instància.',
+  'flightLive.noFlight': 'Cap vol previst',
+  'flightLive.envLocked': 'Definit per FLIGHT_LIVE_ENABLED al servidor i no es pot canviar aquí.',
+};
+
+export default flightLive;

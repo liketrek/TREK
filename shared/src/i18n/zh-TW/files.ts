@@ -12,6 +12,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{trip} 的 {count} 個檔案',
   'files.download': '下載',
   'files.openError': '無法開啟檔案',
+  'files.downloadError': '無法下載檔案',
   'files.downloadPdf': '下載 PDF',
   'files.count': '{count} 個檔案',
   'files.uploaded': '已上傳 {count} 個檔案',

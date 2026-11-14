@@ -5,13 +5,13 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { closeTopOverlay } from '../mobile/overlayStack';
 import { useSettingsStore } from '../store/settingsStore';
 import { isEffectivelyOffline } from '../sync/networkMode';
-import { checkAppUpdate, loadNativeCapabilities } from './capabilities';
+import { checkAppUpdate, hasNativeFeature, loadNativeCapabilities } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
 import { fadeInImages } from './imageFade';
 import { keepFieldInView } from './keepFieldInView';
 import { prepareKeyboardFields } from './keyboardFields';
 import { keepOfflineShellFresh } from './offlineShell';
-import { isNativeApp, isNativeIos } from './platform';
+import { isNativeAndroid, isNativeApp, isNativeIos } from './platform';
 import { openPushTarget, startNativePush } from './push';
 import { startQuickActions } from './quickActions';
 import { reportNativeFailure } from './reportFailure';
@@ -54,13 +54,18 @@ export function startNativeApp(): void {
   // A quick action on the app icon opens its page, also the one the app was launched with.
   void loadNativeCapabilities().then(() => startQuickActions());
 
-  // A widget or Live Activity tap opens com.liketrek.trek://navigate/<path>.
-  void App.addListener('appUrlOpen', ({ url }) => {
-    const prefix = `${APP_URL_SCHEME}://navigate`;
-    if (url.startsWith(prefix)) openPushTarget(url.slice(prefix.length) || '/');
+  // A widget or Live Activity tap opens com.liketrek.trek://navigate/<path>. A
+  // binary with the feature appLinks hands it over as a quick action instead,
+  // held until taken, so it is only followed here for older binaries.
+  void loadNativeCapabilities().then(() => {
+    if (hasNativeFeature('appLinks')) return;
+    void App.addListener('appUrlOpen', ({ url }) => {
+      const prefix = `${APP_URL_SCHEME}://navigate`;
+      if (url.startsWith(prefix)) openPushTarget(url.slice(prefix.length) || '/');
+    });
+    // A tap that launched the app comes as the launch URL, not as appUrlOpen.
+    void openLaunchLink();
   });
-  // A tap that launched the app comes as the launch URL, not as appUrlOpen.
-  void openLaunchLink();
 
   // A tap on the status bar scrolls the list under it back to the top, as in
   // every iOS app (the status-bar plugin fires statusTap on iOS).
@@ -83,15 +88,20 @@ export function startNativeApp(): void {
     // The "‹ › Done" strip above the keyboard is a web form's, not an app's.
     void Keyboard.setAccessoryBarVisible({ isVisible: false });
     keepFieldInView(Keyboard);
-    window.setTimeout(() => {
-      if (isEffectivelyOffline()) return;
-      // Not refreshed this time is no harm: the next launch tries again. An app
-      // older than the offline copy has no such method, which is no failure.
-      keepOfflineShellFresh(fetch, useSettingsStore.getState().settings.language).catch((err: unknown) => {
-        if (!isUnimplemented(err)) reportNativeFailure(err);
-      });
-    }, OFFLINE_SHELL_DELAY_MS);
   }
+
+  // The copy of the UI the app starts from without its server (offlineShell.ts):
+  // iOS in WebKit's cache, Android in the app's own store.
+  window.setTimeout(() => {
+    if (isEffectivelyOffline()) return;
+    // Not refreshed this time is no harm: the next launch tries again. An app
+    // older than the offline copy has no such method, which is no failure.
+    keepOfflineShellFresh(fetch, useSettingsStore.getState().settings.language, isNativeAndroid()).catch(
+      (err: unknown) => {
+        if (!isUnimplemented(err)) reportNativeFailure(err);
+      }
+    );
+  }, OFFLINE_SHELL_DELAY_MS);
 }
 
 /**

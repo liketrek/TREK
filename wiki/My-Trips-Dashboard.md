@@ -48,7 +48,7 @@ Under the spotlight card on desktop, a row of four tiles sums up all your trips:
 
 | Tile | What it shows |
 |---|---|
-| **Atlas · Countries visited** | The number of countries found in the places and transports of your trips, of 195, with the first flags. A country you removed in [Atlas](Atlas) stays removed here. |
+| **Atlas · Countries visited** | The number of countries found in the places and transports of your trips, of 195, with the flags of the countries you visited most recently first; a country you only marked by hand in Atlas comes after those. A country you removed in [Atlas](Atlas) stays removed here. |
 | **Trips total** | How many trips you have, and how many places are mapped on them. |
 | **Days traveled** | The days across all trips. |
 | **Distance flown** | The distance of your flights, and what that comes to in trips around the equator. |

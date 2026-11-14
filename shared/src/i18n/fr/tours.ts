@@ -97,6 +97,8 @@ const tours: TranslationStrings = {
   'tours.detail.descent': 'Dénivelé négatif',
   'tours.detail.navigationHint':
     "La navigation ouvre le point de départ du sentier ; elle ne vous guide pas le long de l'itinéraire.",
+  'tours.detail.openRoute': "Ouvrir l'itinéraire dans une app de cartes",
+  'tours.detail.mapsShort': 'Cartes',
   'tours.planner.title': 'Planifier une sortie',
   'tours.planner.newTour': 'Planifier une nouvelle sortie',
   'tours.planner.addTour': 'Ajouter une sortie',

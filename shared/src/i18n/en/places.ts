@@ -98,6 +98,10 @@ const places: TranslationStrings = {
   /** The small labels over the two coordinate fields of the desktop place dialog. */
   'places.formLatLabel': 'Latitude',
   'places.formLngLabel': 'Longitude',
+  'places.noCoordinates': 'No coordinates, so not on the map',
+  'places.noCoordinatesHint': 'Edit the place and pick it from the search, or enter its latitude and longitude.',
+  'places.noCoordinatesFormHint':
+    'This address has no coordinates yet, so the place will not show on the map. Pick it from the search above or enter latitude and longitude.',
   'places.formCategory': 'Category',
   'places.noCategory': 'No Category',
   'places.newCategory': 'New category',

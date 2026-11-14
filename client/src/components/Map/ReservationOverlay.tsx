@@ -11,6 +11,7 @@ import { TRANSPORT_COLOR, TRANSPORT_META, transportHop, type TransportHop, type 
 import type { Reservation } from '../../types'
 import { frameLine } from '../../utils/lngFrame'
 import { useLngFrame } from './lngFrameContext'
+import FlightAircraftLayer from './FlightAircraftLayer'
 
 const ENDPOINT_PANE = 'reservation-endpoints'
 
@@ -69,9 +70,11 @@ interface Props {
   // Real road-network geometry for car/bus/taxi/bicycle bookings, keyed by
   // reservation id. When present it is drawn instead of the straight arc.
   roadRoutes?: Map<number, [number, number][]>
+  // Every booking of the map, drawn or not: the live aircraft of its flights show regardless of the route switch.
+  aircraftOf?: readonly { id: number }[]
 }
 
-export default function ReservationOverlay({ reservations, showConnections, onEndpointClick, roadRoutes }: Props) {
+export default function ReservationOverlay({ reservations, showConnections, onEndpointClick, roadRoutes, aircraftOf }: Props) {
   useEndpointPane()
   const map = useMap()
   const [zoom, setZoom] = useState(() => map.getZoom())
@@ -117,10 +120,12 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
     return set
   }, [visibleItems, zoom, map])
 
-  if (!showConnections) return null
+  const aircraft = <FlightAircraftLayer reservations={aircraftOf} onOpen={onEndpointClick} />
+  if (!showConnections) return aircraft
 
   return (
     <>
+      {aircraft}
       {visibleItems.map(item => {
         if (item.transitSegs.length > 0) {
           return item.transitSegs.map((seg, segIdx) => (

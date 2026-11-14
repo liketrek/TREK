@@ -741,7 +741,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
     await user.type(await screen.findByPlaceholderText('0,00'), '25')
     // Bob paid me back in dollars — the server freezes the USD rate on write.
-    await user.click(screen.getByText(/^EUR/))
+    await user.click(within(screen.getByRole('dialog')).getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(addButtons[addButtons.length - 1])
@@ -1451,7 +1451,7 @@ describe('CostsPanel — expense modal', () => {
 
     await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Diner')
     await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
-    await user.click(screen.getByText(/^EUR/))
+    await user.click(within(screen.getByRole('dialog')).getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
 
     expect(screen.getByText('live rate', { exact: false })).toBeInTheDocument()
@@ -1780,20 +1780,15 @@ describe('CostsPanel — remaining paths', () => {
     expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('FE-W5COSTS-049: a solo trip defaults the payment counterpart to myself', async () => {
-    const user = userEvent.setup()
+  it('FE-W5COSTS-049: a solo trip offers no payment, there is nobody to pay (#2689)', async () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
     )
     render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: null }]} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '10')
-
-    // From and To both resolve to me, so the transfer stays unsavable.
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    expect(submits[submits.length - 1]).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Add expense' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add payment' })).not.toBeInTheDocument()
   })
 
   it('FE-W5COSTS-050: the expense modal shows uploaded avatars and rejects over-precise input', async () => {
@@ -2493,7 +2488,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     // Seeding the display currency here would label 100 euro as 100 dollars, and a
     // plain save would then store it that way.
     expect(screen.getByText(/^EUR/)).toBeInTheDocument()
-    expect(screen.queryByText(/^USD/)).toBeNull()
+    expect(within(screen.getByRole('dialog')).queryByText(/^USD/)).toBeNull()
 
     // Saving without touching anything keeps the 100 euro.
     await user.click(screen.getByRole('button', { name: 'Save' }))

@@ -1,4 +1,4 @@
-// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-020
+// FE-PLANNER-EXPORTMODAL-001 to FE-PLANNER-EXPORTMODAL-021
 import { act, render, screen, waitFor } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { downloadTripPDF } from '../PDF/TripPDF'
@@ -244,6 +244,22 @@ describe('TripExportModal', () => {
       fetchMock.mockClear()
       view.unmount()
     }
+  })
+
+  // ── KML for Google My Maps (#1866) ───────────────────────────────────────
+  it('FE-PLANNER-EXPORTMODAL-021: the places go out as KML in a section of their own, named after the trip', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn(async () => okResponse('<kml/>'))
+    vi.stubGlobal('fetch', fetchMock)
+    const onClose = vi.fn()
+    render(<TripExportModal {...makeProps({ onClose })} />)
+    expect(screen.getByText('dayplan.exportGoogleMaps')).toBeInTheDocument()
+    expect(screen.getByText('KML')).toBeInTheDocument()
+    expect(screen.getByText('dayplan.kmlHint')).toBeInTheDocument()
+
+    await user.click(screen.getByText('dayplan.kmlPlaces'))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/trips/1/places/export.kml', { credentials: 'include' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 
   it('FE-PLANNER-EXPORTMODAL-012: a download names the file after the trip', async () => {

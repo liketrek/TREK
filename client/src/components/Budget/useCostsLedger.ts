@@ -1,3 +1,4 @@
+import type { CostCategory } from '@trek/shared';
 import { liveQuery } from 'dexie';
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
 
@@ -6,25 +7,28 @@ import { useNetworkMode } from '../../hooks/useNetworkMode';
 import { useTranslation } from '../../i18n';
 import { budgetRepo, type SettlementWriteResult } from '../../repo/budgetRepo';
 import { useAuthStore } from '../../store/authStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import type { TripStoreState } from '../../store/tripStore';
 import { useServerPing } from '../../sync/useServerPing';
 import type { BudgetItem, Trip } from '../../types';
 import { downloadBlob } from '../../utils/fileDownload';
 import { localToday } from '../Planner/today';
+import { COST_CAT_META } from './costsCategories';
 import {
   buildCostsCsv,
   categoryBreakdown,
   computeTotals,
+  countedExpenses,
   filterBudgetItems,
   filterSettlements,
   myShareOf,
   settledShareOf,
+  showsSplitting,
   type CostsCtx,
   type CostsSegment,
   type CostsSettlementResponse,
 } from './costsModel';
 import { knownPersonNames } from './CostsPanel.helpers';
+import { useCostsCurrency } from './useCostsCurrency';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
 /** The events after which the balances are read again from the server. */
@@ -52,6 +56,10 @@ interface Toaster {
  * breakdown, the CSV export and the ledger writes. Each surface lays it out
  * and keeps its own dialogs or sheets.
  *
+ * `splitting` says whether the ledger splits anything at all: not on a trip
+ * that keeps totals only (#1714) or on a trip of one (#2689). Without it the
+ * owner filter and the recorded payments are left out too.
+ *
  * Where the two differ today, the surface says which way: the desktop also
  * reads the settlement when the trip changes (`settlementOnTripChange`), leaves
  * an expense nobody paid out of my share (`skipUnfinishedShares`, #2225) and
@@ -61,6 +69,7 @@ export function useCostsLedger({
   tripId,
   trip,
   budgetItems,
+  memberCount,
   actions,
   canEdit,
   t,
@@ -72,6 +81,8 @@ export function useCostsLedger({
   tripId: number;
   trip: Trip | null | undefined;
   budgetItems: BudgetItem[];
+  /** The trip's current members; with one, there is nothing to split. */
+  memberCount: number;
   actions: Pick<TripStoreState, 'loadBudgetItems' | 'deleteBudgetItem'>;
   canEdit: boolean;
   t: Translate;
@@ -85,11 +96,11 @@ export function useCostsLedger({
   const me = useAuthStore((s) => s.user?.id ?? -1);
 
   // Display/base currency = the user's preferred currency (Settings), falling back
-  // to the trip's own currency. Everything in Costs is converted to and shown in it.
-  const displayCurrency = useSettingsStore((s) => s.settings.default_currency);
-  const base = (displayCurrency || trip?.currency || 'EUR').toUpperCase();
+  // to the trip's own currency, unless this trip is read in another one (#1683).
+  // Everything in Costs is converted to and shown in it.
+  const { base, usual, setBase, baseOptions } = useCostsCurrency(tripId, trip);
   // Pre-rework rows stored currency = NULL, meaning "the trip's own currency".
-  const tripCurrency = (trip?.currency || base).toUpperCase();
+  const tripCurrency = (trip?.currency || usual).toUpperCase();
   // Anchored on the trip currency's quote, the one the server books with (#2525).
   const { convert, displayPerTrip } = useExchangeRates(base, tripCurrency);
   const ctx: CostsCtx = useMemo(
@@ -176,28 +187,64 @@ export function useCostsLedger({
   const [segment, setSegment] = useState<CostsSegment>('all');
   const [catFilter, setCatFilter] = useState(''); // '' = all categories
   const [dayFilter, setDayFilter] = useState(''); // '' = all days, else YYYY-MM-DD
+  // Categories left out of the totals for a look without them (#2819): only this
+  // view, nothing is saved and nothing owed changes.
+  const [leftOutCats, setLeftOutCats] = useState<ReadonlySet<CostCategory>>(() => new Set());
+  const toggleLeftOutCat = useCallback((key: CostCategory) => {
+    setLeftOutCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+  const countAllCats = useCallback(() => setLeftOutCats(new Set()), []);
 
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
   const flows = useMemo(() => settlement?.flows || [], [settlement]);
+  const splitting = useMemo(
+    () => showsSplitting(trip?.costs_mode, memberCount, budgetItems, settlement, me),
+    [trip?.costs_mode, memberCount, budgetItems, settlement, me]
+  );
+  // The owner filter is hidden while nothing is split, so it cannot hold the list back.
+  const activeSegment = splitting ? segment : 'all';
   // Names for people the expenses still name after they left the trip (#2604).
   const knownNames = useMemo(() => knownPersonNames(budgetItems, settlement), [budgetItems, settlement]);
   // `ctx` carries the rates. They can land after the expenses, and without it in the
   // deps the cards kept the sums they were first added up with while the rows moved on.
-  const totals = useMemo(() => computeTotals(budgetItems, flows, ctx, shareOf), [budgetItems, flows, ctx, shareOf]);
+  const totals = useMemo(
+    () => computeTotals(budgetItems, flows, ctx, shareOf, leftOutCats),
+    [budgetItems, flows, ctx, shareOf, leftOutCats]
+  );
   const filtered = useMemo(
-    () => filterBudgetItems(budgetItems, { search, segment, categoryKey: catFilter, dayKey: dayFilter }, ctx, shareOf),
-    [budgetItems, search, segment, catFilter, dayFilter, ctx, shareOf]
+    () =>
+      filterBudgetItems(
+        budgetItems,
+        { search, segment: activeSegment, categoryKey: catFilter, dayKey: dayFilter },
+        ctx,
+        shareOf
+      ),
+    [budgetItems, search, activeSegment, catFilter, dayFilter, ctx, shareOf]
   );
   const filteredSettlements = useMemo(
     () =>
-      filterSettlements(
-        settlement?.settlements || [],
-        { search, segment, categoryKey: catFilter, dayKey: dayFilter },
-        me
-      ),
-    [settlement, search, segment, catFilter, dayFilter, me]
+      splitting
+        ? filterSettlements(
+            settlement?.settlements || [],
+            { search, segment: activeSegment, categoryKey: catFilter, dayKey: dayFilter },
+            me
+          )
+        : [],
+    [splitting, settlement, search, activeSegment, catFilter, dayFilter, me]
   );
-  const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx), [budgetItems, ctx]);
+  const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx, leftOutCats), [budgetItems, ctx, leftOutCats]);
+  // The count beside the total adds up what the total does.
+  const countedCount = useMemo(() => countedExpenses(budgetItems, leftOutCats), [budgetItems, leftOutCats]);
+  // What the totals leave out, named in the breakdown's order, for the line that says so.
+  const leftOutLabel = useMemo(() => {
+    const names = catBreakdown.filter((r) => r.leftOut).map((r) => t(COST_CAT_META[r.key].labelKey));
+    return names.length > 0 ? t('costs.breakdown.leftOut', { categories: names.join(', ') }) : '';
+  }, [catBreakdown, t]);
 
   // CSV export of all expenses, the wiki-documented export that got lost in the
   // Costs rework (#1500). One row per expense, oldest first.
@@ -282,12 +329,15 @@ export function useCostsLedger({
   return {
     me,
     base,
+    setBase,
+    baseOptions,
     tripCurrency,
     ctx,
     settlement,
     settlementError,
     loadSettlement,
     flows,
+    splitting,
     knownNames,
     search,
     setSearch,
@@ -301,6 +351,10 @@ export function useCostsLedger({
     filtered,
     filteredSettlements,
     catBreakdown,
+    countedCount,
+    leftOutLabel,
+    toggleLeftOutCat,
+    countAllCats,
     exportCsv,
     deleteExpense,
     undoSettlement,

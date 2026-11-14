@@ -12,7 +12,7 @@ The short version: **the trip currency is the accounting base, the expense curre
 
 ## Trip currency
 
-Every trip has exactly one currency. It is set when you create the trip and can be changed later in the same dialog: on **My Trips**, click the pencil on the trip card (**Edit Trip**). This needs the `trip_edit` permission. The **Trip settings** pill beside the trip name in the planner does not hold the currency; it only holds People, Sharing and Journal. The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
+Every trip has exactly one currency. It is set when you create the trip and can be changed later in the same dialog: on **My Trips**, click the pencil on the trip card (**Edit Trip**), or in the planner open **Trip settings** and pick **Edit Trip** at the foot of its list. This needs the `trip_edit` permission. The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
 
 This is the trip's **accounting base**. It is not a cosmetic label:
 
@@ -76,6 +76,10 @@ An administrator can set an instance-wide default (Admin → User Defaults), and
 > Display conversion uses **live** rates, not the frozen ones: it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
 
 An expense you enter in your display currency reads back exactly as you typed it on the day you enter it, on its row, in the totals and in the final budget, and paying the amount settle-up offers for it leaves both balances at zero. When the rate has moved since, the row shows the value the totals count, with what was entered and the trip-currency amount it was booked at underneath (`$801.76 → 685,26 €`).
+
+### Reading one trip in another currency
+
+The Costs tab has a currency picker of its own (*Show amounts in*, in the bar). It reads that one trip in another currency, without touching the setting: useful when a trip moves on to another country and you want its totals in the new local currency. The pick is kept per trip in this browser only; your display currency and the trip's own sit at the top of the list, and picking your display currency again goes back to it. Like the display currency, it changes nothing that is stored.
 
 ## How they fit together
 

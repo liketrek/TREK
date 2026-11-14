@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': '乗り継ぎ便',
   'reservations.layover.layover': '乗り継ぎ',
   'reservations.needsReview': '要確認',
-  'reservations.needsReviewHint': '空港を自動で特定できませんでした。場所を確認してください。',
+  'reservations.needsReviewHint':
+    '一部の項目は自動で入力されたもので、正確に読み取れていない可能性があります。ご確認ください。',
+  'reservations.reviewConfirm': '問題なし',
+  'reservations.reviewConfirmHint': 'クリックして確認済みにします。',
+  'reservations.reviewConfirmed': '確認済みにしました',
   'reservations.searchLocation': '駅・港・住所を検索…',
   'reservations.meta.trainNumber': '列車番号',
   'reservations.meta.platform': 'ホーム',
@@ -268,7 +272,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': '表示中の {shown}/{total} 行をエクスポート (CSV)',
   'reservations.wallet.add': 'Apple Walletに追加',
   'reservations.wallet.addGoogle': 'Google Walletに追加',
-  'reservations.wallet.short': 'ウォレット',
   'reservations.wallet.failed': 'Walletパスを作成できませんでした。もう一度お試しください。',
   'reservations.wallet.undated': '先に予約に日付を入れてください。Walletはその時刻の前後にパスを表示します。',
 };

@@ -99,6 +99,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Zeměpisná délka',
   'places.formLatLabel': 'Zeměpisná šířka',
   'places.formLngLabel': 'Zeměpisná délka',
+  'places.noCoordinates': 'Bez souřadnic, proto není na mapě',
+  'places.noCoordinatesHint': 'Uprav místo a vyber ho ve vyhledávání, nebo zadej zeměpisnou šířku a délku.',
+  'places.noCoordinatesFormHint':
+    'Tato adresa zatím nemá souřadnice, takže se místo na mapě nezobrazí. Vyber ho ve vyhledávání výše, nebo zadej zeměpisnou šířku a délku.',
   'places.formCategory': 'Kategorie',
   'places.noCategory': 'Bez kategorie',
   'places.newCategory': 'Nová kategorie',

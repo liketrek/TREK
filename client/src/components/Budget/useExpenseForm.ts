@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useTripStore } from '../../store/tripStore';
 import { isEffectivelyOffline } from '../../sync/networkMode';
-import type { BudgetItem, BudgetItemReceipt } from '../../types';
+import type { BudgetItem, BudgetItemReceipt, TripFile } from '../../types';
 import { amountToInputString } from '../../utils/formatters';
 import { localToday } from '../Planner/today';
 import { useToast } from '../shared/Toast';
@@ -26,8 +26,11 @@ import {
   type TicketItem,
 } from './CostsPanel.helpers';
 import { catMeta } from './costsCategories';
+import { currencyOptions, isPlainSplit } from './costsModel';
 import { useExpenseFx } from './expenseFx';
+import { linkableReceiptFiles, receiptOfFile } from './receiptLinks';
 import { saveWithReceipts } from './receiptUploads';
+import { usePercentSplit } from './usePercentSplit';
 
 export type ExpenseSplitMode = 'equally' | 'custom' | 'ticket';
 
@@ -37,7 +40,7 @@ let ticketItemSeq = 0;
 /**
  * The expense editor behind the desktop ExpenseModal and the phone MCostSheet:
  * name, category, amount and currency, payers, the Equally / Custom / Ticket
- * splits, the note and the receipts, what makes the entry valid, and the save
+ * splits (a custom one typed as amounts, percentages or shares), the note and the receipts, what makes the entry valid, and the save
  * through the trip store. Both surfaces lay it out their own way.
  *
  * Where the two save differently today, the surface says which way:
@@ -69,6 +72,8 @@ export function useExpenseForm({
   const toast = useToast();
   const addBudgetItem = useTripStore((s) => s.addBudgetItem);
   const updateBudgetItem = useTripStore((s) => s.updateBudgetItem);
+  const tripFiles = useTripStore((s) => s.files);
+  const totalsOnly = useTripStore((s) => s.trip?.costs_mode) === 'totals';
   const sym = (c: string) => SYMBOLS[c] || c + ' ';
   const nameOf = (p: TripMember) => (p.id === me ? t('costs.you') : p.username);
   // A saved expense without a currency opens in the trip's own (#2525).
@@ -76,15 +81,20 @@ export function useExpenseForm({
 
   const [name, setName] = useState(editing?.name || prefill?.name || '');
   const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : prefill?.category || 'food');
+  // A new expense starts in the trip's own currency, the one most bills on the
+  // road come in (#2807); a prefill that knows its currency keeps it.
   const [seed] = useState(() =>
     newExpenseSeed(
       prefill,
-      base,
+      tripCur,
       people.map((p) => p.id),
       localToday()
     )
   );
   const [currency, setCurrencyState] = useState(editing ? editingCurrency : seed.currency);
+  // The trip and display currencies lead the picker: an expense not in the one
+  // is most likely in the other (#2807).
+  const currencyChoices = currencyOptions(currency, [tripCur, base]);
   const [day, setDay] = useState(editing ? editing.expense_date || localToday() : seed.day);
   const [note, setNote] = useState(() => readUserNote(editing));
   // Edit and prefill seeds are padded to the currency's decimals (#2175): the DB
@@ -94,8 +104,11 @@ export function useExpenseForm({
     if (editing) return editing.total_price ? amountToInputString(editing.total_price, editingCurrency) : '';
     return seed.total;
   });
+  // A new expense on a totals-only trip (#1714) names nobody: no payer, and no
+  // split that would turn into debts if the trip ever splits its costs again.
+  const unsplit = totalsOnly && !editing;
   const [participants, setParticipants] = useState<Set<number>>(() =>
-    editing ? new Set((editing.members || []).map((m) => m.user_id)) : new Set(people.map((p) => p.id))
+    editing ? new Set((editing.members || []).map((m) => m.user_id)) : new Set(unsplit ? [] : people.map((p) => p.id))
   );
 
   // Payer state. An expense can be fronted by several people, each with their own
@@ -110,7 +123,7 @@ export function useExpenseForm({
   const [payerId, setPayerId] = useState<number>(() => {
     const existingPayer = initialPayers[0];
     if (existingPayer) return existingPayer.user_id;
-    return editing ? 0 : me;
+    return editing || unsplit ? 0 : me;
   });
   const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1);
   const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
@@ -122,6 +135,17 @@ export function useExpenseForm({
   // Payers the user typed an amount for: rebalance leaves these alone and makes
   // the others absorb the remainder.
   const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map((p) => p.user_id)));
+
+  // Who paid and the split stay out of sight on a trip that keeps totals only
+  // (#1714) and on a trip of one, which has nothing to split (#2689), unless the
+  // expense being edited carries more than that, so nothing on it is hidden.
+  const [plainSplit] = useState(() =>
+    isPlainSplit(
+      editing,
+      people.map((p) => p.id)
+    )
+  );
+  const showSplit = (!totalsOnly && people.length > 1) || !plainSplit;
 
   const [splitMode, setSplitMode] = useState<ExpenseSplitMode>(() => {
     if (hasTicketSplit(editing)) return 'ticket';
@@ -161,6 +185,16 @@ export function useExpenseForm({
     setPendingReceiptFiles((prev) => [...prev, ...Array.from(files)]);
   };
 
+  // A file the trip already has, such as the booking's confirmation, taken as a
+  // receipt (#2839). It joins the list and the save links it, uploaded nothing.
+  const linkableFiles = useMemo(
+    () => linkableReceiptFiles(tripFiles, receipts, editing ? editing.reservation_id : prefill?.reservationId),
+    [tripFiles, receipts, editing, prefill]
+  );
+  const handleLinkReceipt = (file: TripFile) => {
+    setReceipts((prev) => (prev.some((r) => r.id === file.id) ? prev : [...prev, receiptOfFile(file)]));
+  };
+
   const handleRemoveReceipt = (receiptId: number) => {
     setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
   };
@@ -176,6 +210,8 @@ export function useExpenseForm({
 
   const totalNum = isTicketMode ? ticketInfo.total : Number.parseFloat(total) || 0;
   const fx = preview(totalNum, currency);
+  // The custom split typed as percentages (#1709) or shares (#1165) instead of amounts.
+  const splitUnits = usePercentSplit({ total: totalNum, participants, customAmounts, setCustomAmounts, currency });
   const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0);
   const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100);
   // How much is still to be handed out, read on the total's own side: on a refund
@@ -399,11 +435,11 @@ export function useExpenseForm({
     };
     try {
       setUploadingReceipt(pendingReceiptFiles.length > 0);
-      await saveWithReceipts(tripId, pendingReceiptFiles, editing ? editing.id : null, (ids) =>
-        editing
-          ? updateBudgetItem(tripId, editing.id, { ...data, receipt_file_ids: [...receipts.map((r) => r.id), ...ids] })
-          : addBudgetItem(tripId, { ...data, receipt_file_ids: ids })
-      );
+      // The receipts listed (saved or linked from the trip's files) and the new uploads.
+      await saveWithReceipts(tripId, pendingReceiptFiles, editing ? editing.id : null, (ids) => {
+        const withReceipts = { ...data, receipt_file_ids: [...receipts.map((r) => r.id), ...ids] };
+        return editing ? updateBudgetItem(tripId, editing.id, withReceipts) : addBudgetItem(tripId, withReceipts);
+      });
       // Only cleared once the save went through, so a retry after a failure
       // does not upload a second copy of every file.
       setPendingReceiptFiles([]);
@@ -430,6 +466,7 @@ export function useExpenseForm({
     setCat,
     currency,
     setCurrency,
+    currencyChoices,
     day,
     setDay,
     note,
@@ -450,6 +487,7 @@ export function useExpenseForm({
     togglePayer,
     onPayerAmountChange,
     payersOk,
+    showSplit,
     splitMode,
     setSplitMode,
     isTicketMode,
@@ -461,8 +499,8 @@ export function useExpenseForm({
     handleRemoveItem,
     handleToggleItemParticipant,
     customAmounts,
-    setCustomAmounts,
     handleCustomAmountChange,
+    splitUnits,
     splitSum,
     customBalanced,
     splitShortfall,
@@ -473,6 +511,8 @@ export function useExpenseForm({
     pendingReceiptFiles,
     uploadingReceipt,
     handleReceiptFileSelect,
+    linkableFiles,
+    handleLinkReceipt,
     handleRemoveReceipt,
     handleRemovePendingReceipt,
     previewReceipts,

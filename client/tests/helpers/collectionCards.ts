@@ -30,7 +30,7 @@ export function savedPlace(over: Partial<CollectionCardPlace> = {}): CollectionC
 export function placesCard(over: Partial<CollectionPlacesCard> = {}): CollectionPlacesCard {
   return {
     kind: 'collectionPlaces',
-    list: { ...LIST, counts: { idea: 3, want: 5, visited: 4 } },
+    list: { ...LIST, counts: { idea: 3, want: 5, visited: 4, revisit: 0 } },
     places: [savedPlace()],
     more: 0,
     labels: [

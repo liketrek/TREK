@@ -2,6 +2,8 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Notifications', // same-as-en
+  'admin.notifications.channels': 'Canaux',
+  'admin.notifications.adminAlerts': 'Alertes admin',
   'admin.notifications.hint': 'Choisissez un canal de notification. Un seul peut être actif à la fois.',
   'admin.notifications.none': 'Désactivé',
   'admin.notifications.email': 'E-mail (SMTP)',
@@ -73,7 +75,8 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': "Lien d'invitation supprimé",
   'admin.invite.createError': 'Erreur lors de la création du lien',
   'admin.invite.deleteError': 'Erreur lors de la suppression du lien',
-  'admin.tabs.settings': 'Paramètres',
+  'admin.tabs.security': 'Sécurité',
+  'admin.tabs.services': 'Services', // same-as-en
   'admin.allowRegistration': 'Autoriser les inscriptions',
   'admin.allowRegistrationHint': "Les nouveaux utilisateurs peuvent s'inscrire eux-mêmes",
   'admin.authMethods': "Méthodes d'authentification",
@@ -86,10 +89,13 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Autoriser les utilisateurs à se connecter via SSO',
   'admin.oidcRegistration': 'SSO Auto-Provisioning',
   'admin.oidcRegistrationHint': 'Créer automatiquement des comptes pour les nouveaux utilisateurs SSO',
+  'admin.oidcAutoRedirect': 'Aller directement au SSO',
+  'admin.oidcAutoRedirectHint':
+    'Quand la connexion par mot de passe est désactivée, les visiteurs sont envoyés directement au fournisseur d’identité. Désactivez cette option pour afficher d’abord la page de connexion avec le bouton SSO.',
   'admin.envOverrideHint':
     "Les réglages de connexion par mot de passe sont contrôlés par la variable d'environnement OIDC_ONLY et ne peuvent pas être modifiés ici.",
   'admin.lockoutWarning': 'Au moins une méthode de connexion doit rester activée',
-  'admin.requireMfa': "Exiger l'authentification à deux facteurs (2FA)",
+  'admin.requireMfa': 'Exiger la 2FA',
   'admin.requireMfaHint':
     "Les utilisateurs sans 2FA doivent terminer la configuration dans Paramètres avant d'utiliser l'application.",
   'admin.apiKeys': 'Clés API',
@@ -134,10 +140,8 @@ const admin: TranslationStrings = {
   'admin.trekApi.included': 'Inclus',
   'admin.trekApi.notIncluded': 'Non inclus',
   'admin.trekApi.quota.title': 'Quota du jour',
-  'admin.trekApi.quota.used': 'Utilisé',
   'admin.trekApi.quota.remaining': 'Restant',
   'admin.trekApi.quota.resets': 'Remise à zéro à',
-  'admin.trekApi.quota.limit': 'Limite',
   'admin.trekApi.quota.key': 'Clé',
   'admin.trekApi.quota.state.connected': 'Connecté',
   'admin.trekApi.quota.state.registering': 'Configuration en cours',
@@ -263,8 +267,9 @@ const admin: TranslationStrings = {
   'admin.collab.whatsnext.title': 'Et ensuite',
   'admin.collab.whatsnext.subtitle': "Suggestions d'activités et prochaines étapes",
   'admin.tabs.config': 'Personnalisation',
-  'admin.tabs.defaults': 'Valeurs par défaut',
+  'admin.tabs.defaults': 'Préréglages',
   'admin.defaultSettings.title': 'Paramètres utilisateur par défaut',
+  'admin.defaultSettings.routing': 'Itinéraires',
   'admin.defaultSettings.description':
     "Définissez des valeurs par défaut pour toute l'instance. Les utilisateurs n'ayant pas modifié un paramètre verront ces valeurs. Leurs propres modifications ont toujours la priorité.",
   'admin.defaultSettings.saved': 'Valeur par défaut enregistrée',
@@ -729,16 +734,6 @@ const admin: TranslationStrings = {
   'admin.addons.toast.updated': 'Extension mise à jour',
   'admin.addons.toast.error': "Échec de la mise à jour de l'extension",
   'admin.addons.group.count': '{enabled} sur {total} activés',
-  'admin.addons.search': 'Rechercher des modules',
-  'admin.addons.filter': 'Afficher',
-  'admin.addons.filter.all': 'Tous',
-  'admin.addons.filter.on': 'Activés',
-  'admin.addons.filter.off': 'Désactivés',
-  'admin.addons.noMatch': 'Aucun module ne correspond à la recherche ou au filtre.',
-  'admin.addons.subOptions': '{count} options', // same-as-en
-  'admin.addons.subOptions.one': '{count} option', // same-as-en
-  'admin.addons.subOptionsOn': '{count} activées',
-  'admin.addons.subOptionsOn.one': '{count} activée',
   'admin.toursWanderer.title': 'wanderer',
   'admin.toursWanderer.subtitle':
     'Les utilisateurs peuvent connecter leur propre instance wanderer et importer ses sentiers comme sorties',
@@ -778,7 +773,7 @@ const admin: TranslationStrings = {
   'admin.audit.col.resource': 'Ressource',
   'admin.audit.col.ip': 'IP',
   'admin.audit.col.details': 'Détails',
-  'admin.tabs.mcpTokens': 'Accès MCP',
+  'admin.tabs.mcpTokens': 'MCP',
   'admin.mcpTokens.title': 'Accès MCP',
   'admin.mcpTokens.subtitle': 'Gérer les sessions OAuth et les tokens API de tous les utilisateurs',
   'admin.mcpTokens.sectionTitle': 'Tokens API',
@@ -937,7 +932,6 @@ const admin: TranslationStrings = {
     "Utilisée pour chaque utilisateur n'ayant pas saisi sa propre clé, ainsi toute l'instance reçoit les tuiles CARTO sans filigrane. Stockée de façon chiffrée.",
   'admin.group.users': 'Utilisateurs',
   'admin.group.config': 'Configuration', // same-as-en
-  'admin.group.integration': 'Intégrations',
   'admin.group.maintenance': 'Maintenance', // same-as-en
   'admin.invite.tripLabel': 'Ajouter à un voyage (facultatif)',
   'admin.invite.tripNone': 'Aucun voyage',

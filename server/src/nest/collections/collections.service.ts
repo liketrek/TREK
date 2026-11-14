@@ -52,6 +52,7 @@ import {
   type CollectionImportIntoRequest,
   type CollectionImportResult,
   type CollectionGpxExport,
+  type CollectionKmlExport,
   type CollectionGpxReadRequest,
   type CollectionGpxReadResult,
 } from '@trek/shared';
@@ -75,7 +76,7 @@ import type {
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlaceImportService, type ExportedCollectionFile } from '../place-import/place-import.service';
 import { UnitOfWork } from '../database/unit-of-work';
-import { parseLinks, serializeLinks } from './collections.helpers';
+import { filePlaceOf, listingWriteOf, parseLinks, serializeLinks } from './collections.helpers';
 
 // Errors: a DomainError carrying a status; TrekExceptionFilter maps it to that code with an `{ error }` body.
 
@@ -331,28 +332,9 @@ export class CollectionsService {
     const rows = await this.collectionsRepo.listPlaceRows(id);
     const labelIdsByPlace = await this.loadLabelIdsByPlaceIds(rows.map(r => r.id));
 
-    const places: CollectionFilePlace[] = rows.map(row => ({
-      name: row.name,
-      description: row.description ?? null,
-      lat: row.lat ?? null,
-      lng: row.lng ?? null,
-      address: row.address ?? null,
-      notes: row.notes ?? null,
-      price: row.price ?? null,
-      currency: row.currency ?? null,
-      website: row.website ?? null,
-      phone: row.phone ?? null,
-      // Only an absolute https URL survives: a /uploads path resolves on this
-      // server, not the reader's. See the note in the file contract.
-      image_url: typeof row.image_url === 'string' && /^https:\/\//i.test(row.image_url) ? row.image_url : null,
-      google_place_id: row.google_place_id ?? null,
-      google_ftid: row.google_ftid ?? null,
-      osm_id: row.osm_id ?? null,
-      status: row.status as CollectionStatus,
-      links: parseLinks((row as { links?: unknown }).links),
-      category: row.category_name ?? null,
-      labels: (labelIdsByPlace[row.id] || []).map(lid => labelNameById.get(lid)).filter((n): n is string => !!n),
-    }));
+    const places: CollectionFilePlace[] = rows.map(row =>
+      filePlaceOf(row, (labelIdsByPlace[row.id] || []).map(lid => labelNameById.get(lid)).filter((n): n is string => !!n)),
+    );
 
     return {
       format: COLLECTION_FILE_FORMAT,
@@ -374,6 +356,11 @@ export class CollectionsService {
    */
   async exportCollectionGpx(userId: number, id: number): Promise<CollectionGpxExport> {
     return this.placeImport.writeCollectionGpx(await this.exportCollection(userId, id));
+  }
+
+  /** The list as KML for Google My Maps (#1866), written from that same file for the same reasons. */
+  async exportCollectionKml(userId: number, id: number): Promise<CollectionKmlExport> {
+    return this.placeImport.writeCollectionKml(await this.exportCollection(userId, id));
   }
 
   /**
@@ -872,7 +859,7 @@ export class CollectionsService {
     await this.assertCanEdit(userId, currentCollection);
     const prevImage = body.image_url !== undefined ? (await this.collectionPlaces.imageUrl(placeId)) ?? null : null;
 
-    const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = {};
+    const write: Parameters<CollectionPlacesRepository['updateFields']>[1] = listingWriteOf(body);
     if (body.name !== undefined) write.name = body.name;
     if (body.description !== undefined) write.description = body.description ?? null;
     if (body.notes !== undefined) write.notes = body.notes ?? null;

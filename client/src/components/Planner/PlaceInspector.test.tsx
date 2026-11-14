@@ -108,6 +108,14 @@ beforeEach(() => {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+
+/** Opens the footer's "…" and returns the menu with the rare and destructive actions. */
+async function openMoreMenu() {
+  const footer = document.querySelector('footer') as HTMLElement;
+  fireEvent.click(within(footer).getByRole('button', { name: 'More options' }));
+  return await screen.findByRole('menu');
+}
+
 describe('PlaceInspector', () => {
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -211,11 +219,9 @@ describe('PlaceInspector', () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(<PlaceInspector {...defaultProps} onDelete={onDelete} />);
-    const allButtons = screen.getAllByRole('button');
-    // The square delete button sits just before Edit, named by its tooltip.
-    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
-    expect(allButtons[allButtons.length - 2]).toBe(deleteBtn);
-    await user.click(deleteBtn);
+    // Delete waits in the footer's "…", beside Edit.
+    const menu = await openMoreMenu();
+    await user.click(within(menu).getByRole('button', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalled();
   });
 
@@ -270,9 +276,9 @@ describe('PlaceInspector', () => {
         onRemoveAssignment={onRemoveAssignment}
       />
     );
-    // Find the remove button — it carries the "Remove from Day" label
-    const removeBtn = screen.getByText('Remove from Day').closest('button')!;
-    await user.click(removeBtn);
+    // Taking it off the day waits in the footer's "…".
+    const menu = await openMoreMenu();
+    await user.click(within(menu).getByRole('button', { name: 'Remove from Day' }));
     // Component calls onRemoveAssignment(selectedDayId, assignmentInDay.id)
     expect(onRemoveAssignment).toHaveBeenCalledWith(1, 99);
   });
@@ -1205,18 +1211,20 @@ describe('PlaceInspector', () => {
     await user.click(screen.getAllByRole('button').find(b => b.textContent?.includes('Navigation'))!);
     await user.click(await screen.findByRole('menuitem', { name: 'OpenStreetMap' }));
 
-    fireEvent.click(screen.getByText('Open Website').closest('button')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Open Website' }));
     expect(open).toHaveBeenCalledTimes(2);
     expect(open.mock.calls[1]).toEqual(['https://example.org', '_blank', 'noopener,noreferrer']);
     vi.unstubAllGlobals();
   });
 
-  it('FE-PLANNER-INSPECTOR-070: the footer keeps the ways out on the left and delete + edit on the right', () => {
+  it('FE-PLANNER-INSPECTOR-070: the footer keeps the ways out on the left and the "…" + edit on the right', () => {
     const p = buildPlace({ id: 712, name: 'Footer Place', lat: 48.1, lng: 2.1, website: 'https://example.org' });
     render(<PlaceInspector {...defaultProps} place={p} selectedDayId={1} assignments={{ '1': [] }} />);
     const footer = document.querySelector('footer') as HTMLElement;
     const names = within(footer).getAllByRole('button').map(b => b.getAttribute('aria-label') || b.textContent);
-    expect(names).toEqual(['Add to Day', 'Navigation', 'Open Website', 'Delete', 'Edit']);
+    expect(names).toEqual(['Add to Day', 'Navigation', 'Open Website', 'More options', 'Edit']);
+    // Only the day action, navigation and edit carry words; the website is an icon named by its tooltip.
+    expect(within(footer).getByRole('button', { name: 'Open Website' })).toHaveTextContent('');
     // Hover looks are classes on the tokens now, not inline styles swapped by handlers.
     const edit = within(footer).getByRole('button', { name: 'Edit' });
     expect(edit.getAttribute('style') ?? '').not.toMatch(/background/);
@@ -1349,7 +1357,7 @@ describe('PlaceInspector', () => {
       http.get('/api/addons/collections/membership', () => HttpResponse.json({ saved: true, collections: [] })),
     );
     render(<PlaceInspector {...defaultProps} />);
-    expect(await screen.findByText('Saved')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Saved' })).toBeTruthy();
   });
 
   it('FE-PLANNER-INSPECTOR-082: clicking save hands the whole place to the collection picker', async () => {
@@ -1358,7 +1366,7 @@ describe('PlaceInspector', () => {
       http.get('/api/addons/collections/membership', () => HttpResponse.json({ saved: false, collections: [] })),
     );
     render(<PlaceInspector {...defaultProps} />);
-    fireEvent.click((await screen.findByText('Save to Collection')).closest('button')!);
+    fireEvent.click(await screen.findByRole('button', { name: 'Save to Collection' }));
     expect(useSaveToCollectionStore.getState().target).toMatchObject({
       name: 'Eiffel Tower', source_place_id: place.id, lat: 48.8584, lng: 2.2945,
     });
@@ -1370,7 +1378,7 @@ describe('PlaceInspector', () => {
       http.get('/api/addons/collections/membership', () => new HttpResponse(null, { status: 500 })),
     );
     render(<PlaceInspector {...defaultProps} />);
-    expect(await screen.findByText('Save to Collection')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Save to Collection' })).toBeTruthy();
   });
 
   // ── Plugin contributions (#1429) ─────────────────────────────────────────────
@@ -1647,7 +1655,7 @@ describe('PlaceInspector', () => {
     expect(screen.getByText('Museum Ticket').closest('[role="button"]')).toHaveAttribute('data-no-press');
   });
 
-  it('FE-PLANNER-INSPECTOR-102: a member without place_edit gets neither Edit nor Delete nor the inline rename (#2446)', () => {
+  it('FE-PLANNER-INSPECTOR-102: a member without place_edit gets neither Edit nor Delete nor the inline rename (#2446)', async () => {
     // buildUser() is a plain member and buildTrip({ id: 1 }) belongs to somebody else.
     usePermissionsStore.setState({ permissions: { place_edit: 'trip_owner' } });
     const onEdit = vi.fn();
@@ -1655,7 +1663,8 @@ describe('PlaceInspector', () => {
     const onUpdatePlace = vi.fn();
     const member = render(<PlaceInspector {...defaultProps} onEdit={onEdit} onDelete={onDelete} onUpdatePlace={onUpdatePlace} />);
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    // With nothing to offer, the "…" is not there either.
+    expect(screen.queryByRole('button', { name: 'More options' })).not.toBeInTheDocument();
     fireEvent.doubleClick(screen.getByText(place.name));
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     member.unmount();
@@ -1663,11 +1672,11 @@ describe('PlaceInspector', () => {
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: useAuthStore.getState().user!.id }) });
     render(<PlaceInspector {...defaultProps} onEdit={onEdit} onDelete={onDelete} onUpdatePlace={onUpdatePlace} />);
     expect(screen.getByText('Edit')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(within(await openMoreMenu()).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
   });
 
 
-  it('FE-PLANNER-INSPECTOR-017b: a stop a booked night wrote is neither removed nor doubled here', () => {
+  it('FE-PLANNER-INSPECTOR-017b: a stop a booked night wrote is neither removed nor doubled here', async () => {
     // Taking it off the day would leave the booking behind with nothing on the drive and
     // no way back short of saving it again; offering to add it would put a second copy
     // of the same hotel beside it. The night is removed where it is made: the day's
@@ -1683,7 +1692,7 @@ describe('PlaceInspector', () => {
       />
     );
 
-    expect(screen.queryByRole('button', { name: /remove from day/i })).toBeNull();
+    expect(within(await openMoreMenu()).queryByRole('button', { name: /remove from day/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /add to day/i })).toBeNull();
   });
 
@@ -1699,7 +1708,7 @@ describe('PlaceInspector', () => {
     expect(screen.queryByText('Remove from Day')).toBeNull();
   });
 
-  it('FE-PLANNER-INSPECTOR-017d: a stop the traveller placed at the booked hotel can still be removed', () => {
+  it('FE-PLANNER-INSPECTOR-017d: a stop the traveller placed at the booked hotel can still be removed', async () => {
     // A second copy that did get onto the day is the traveller's own row and shows
     // in the list. That one keeps its "Remove from day", which is the way back.
     const onRemoveAssignment = vi.fn();
@@ -1715,12 +1724,12 @@ describe('PlaceInspector', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Remove from Day').closest('button')!);
+    fireEvent.click(within(await openMoreMenu()).getByRole('button', { name: 'Remove from Day' }));
     expect(onRemoveAssignment).toHaveBeenCalledWith(1, 100);
     expect(screen.queryByText('Add to Day')).toBeNull();
   });
 
-  it('FE-PLANNER-INSPECTOR-017e: any booked stop at the place keeps the buttons off, whichever row the store lists first', () => {
+  it('FE-PLANNER-INSPECTOR-017e: any booked stop at the place keeps the buttons off, whichever row the store lists first', async () => {
     // With the service stops switched off the day list can hide a hotel the traveller
     // placed as well, so the store may list that row ahead of the booked one. The
     // question is whether a booking holds this place on this day, not which row comes first.
@@ -1730,7 +1739,7 @@ describe('PlaceInspector', () => {
     render(<PlaceInspector {...defaultProps} selectedDayId={1} assignments={{ '1': [] }} />);
 
     expect(screen.queryByText('Add to Day')).toBeNull();
-    expect(screen.queryByText('Remove from Day')).toBeNull();
+    expect(within(await openMoreMenu()).queryByRole('button', { name: 'Remove from Day' })).toBeNull();
   });
 
   // ── Head band (booking-detail language) ──────────────────────────────────────
@@ -1829,5 +1838,62 @@ describe('PlaceInspector blur booking codes (#2457)', () => {
   it('FE-PLANNER-INSPECTOR-104: with the setting off the strip shows the code plainly', () => {
     renderWithBooking(false);
     expect(isBlurred(screen.getByText(/TABLE-SECRET/))).toBe(false);
+  });
+});
+
+// ── Folding the card over the map (#3039) ─────────────────────────────────────
+
+describe('PlaceInspector folded to its head (#3039)', () => {
+  it('FE-PLANNER-INSPECTOR-112: Collapse folds the card to its name and keeps the place open; Expand unfolds it', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const { container } = render(<PlaceInspector {...defaultProps} onClose={onClose} collapsible />);
+
+    await user.click(screen.getByRole('button', { name: 'Collapse' }));
+
+    expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
+    expect(screen.queryByText('Champ de Mars, Paris')).toBeNull();
+    // Hidden, not unmounted: the body and its plugin frames keep their state.
+    expect(screen.getByTestId('inspector-scroll')).toHaveClass('hidden');
+    expect(container.querySelector('footer')).toHaveClass('hidden');
+    expect(screen.getByRole('button', { name: 'Expand' })).toHaveAttribute('aria-expanded', 'false');
+    expect(onClose).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Expand' }));
+
+    expect(screen.getByText('Champ de Mars, Paris')).toBeInTheDocument();
+    expect(screen.getByTestId('inspector-scroll')).toHaveClass('flex');
+    expect(container.querySelector('footer')).toHaveClass('flex');
+  });
+
+  it('FE-PLANNER-INSPECTOR-113: the next place opens in full, and a card that may not fold offers no button', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<PlaceInspector {...defaultProps} collapsible />);
+    await user.click(screen.getByRole('button', { name: 'Collapse' }));
+
+    const louvre = buildPlace({ id: 2, name: 'Louvre', address: 'Rue de Rivoli, Paris', lat: 48.86, lng: 2.34 });
+    rerender(<PlaceInspector {...defaultProps} place={louvre} collapsible />);
+    expect(screen.getByText('Rue de Rivoli, Paris')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-expanded', 'true');
+
+    // Back on the first place it is open in full too: the fold went with the selection.
+    rerender(<PlaceInspector {...defaultProps} collapsible />);
+    expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-expanded', 'true');
+
+    rerender(<PlaceInspector {...defaultProps} place={louvre} />);
+    expect(screen.queryByRole('button', { name: 'Collapse' })).toBeNull();
+  });
+});
+
+// ── An address without coordinates (#2837) ─────────────────────────────────────
+
+describe('PlaceInspector without coordinates (#2837)', () => {
+  it('FE-PLANNER-INSPECTOR-114: a typed address without coordinates says the place is not on the map', () => {
+    const typed = buildPlace({ id: 3, name: 'Corner Cafe', address: 'Rue de Rivoli 1, Paris', lat: null, lng: null });
+    const { rerender } = render(<PlaceInspector {...defaultProps} place={typed} />);
+    expect(screen.getByText('No coordinates, so not on the map')).toBeInTheDocument();
+
+    rerender(<PlaceInspector {...defaultProps} />);
+    expect(screen.queryByText('No coordinates, so not on the map')).toBeNull();
   });
 });

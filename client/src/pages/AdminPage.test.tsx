@@ -169,7 +169,8 @@ describe('AdminPage', () => {
       // Other tabs
       expect(screen.getByRole('button', { name: /personalization/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /addons/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^security$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^services$/i })).toBeInTheDocument();
     });
   });
 
@@ -359,7 +360,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
 
-      expect(screen.queryByRole('button', { name: /mcp access/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^mcp$/i })).not.toBeInTheDocument();
     });
 
     it('shows MCP Tokens tab button when MCP addon is enabled', async () => {
@@ -375,7 +376,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /mcp access/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^mcp$/i })).toBeInTheDocument();
       });
     });
   });
@@ -395,7 +396,7 @@ describe('AdminPage', () => {
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
 
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       const heading = await screen.findByRole('heading', { name: /authentication methods/i });
       const card = heading.closest<HTMLElement>('section');
@@ -512,12 +513,12 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
-      const mfaHeading = await screen.findByRole('heading', { name: /require two-factor/i });
-      const mfaCard = mfaHeading.closest<HTMLElement>('section');
-      const mfaToggle = within(mfaCard!).getByRole('button');
-      fireEvent.click(mfaToggle);
+      // The 2FA rule is a row of the sign-in card: its label left, its switch right.
+      const mfaLabel = await screen.findByText('Require 2FA', { selector: 'label' });
+      const mfaRow = mfaLabel.closest<HTMLElement>('.flex-wrap');
+      fireEvent.click(within(mfaRow!).getByRole('button'));
 
       await waitFor(() => {
         expect(capturedBody).toEqual(expect.objectContaining({ require_mfa: true }));
@@ -551,7 +552,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       await screen.findByText('Transit Provider');
       await waitFor(() => expect(transitTrigger()).toHaveTextContent('Transitous'));
@@ -577,7 +578,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
       await screen.findByText('Transit Provider');
 
       // A real change first, so the counter is proven to move at all.
@@ -606,7 +607,7 @@ describe('AdminPage', () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
       render(<AdminPage />);
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
       await screen.findByText('Transit Provider');
       await waitFor(() => expect(transitTrigger()).toHaveTextContent('Google'));
     }
@@ -634,7 +635,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       const rotateBtn = await screen.findByRole('button', { name: /^rotate$/i });
       fireEvent.click(rotateBtn);
@@ -805,9 +806,9 @@ describe('AdminPage', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
       fireEvent.click(screen.getByRole('button', { name: /^notifications$/i }));
 
-      // AdminNotificationsPanel heading for admin notifications
+      // The admin matrix sits in the admin alerts card, under its targets
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /^notifications$/i })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /^admin alerts$/i })).toBeInTheDocument();
       });
     });
   });
@@ -826,9 +827,9 @@ describe('AdminPage', () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
       render(<AdminPage />);
 
-      await waitFor(() => expect(screen.getByRole('button', { name: /mcp access/i })).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('button', { name: /^mcp$/i })).toBeInTheDocument());
 
-      fireEvent.click(screen.getByRole('button', { name: /mcp access/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^mcp$/i }));
 
       expect(screen.getByTestId('mcp-tokens-panel')).toBeInTheDocument();
     });
@@ -881,7 +882,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       // Maps is the first 'Enter key...' input (Unsplash is the second).
       const keyInput = (await screen.findAllByPlaceholderText('Enter key...'))[0];
@@ -912,7 +913,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       // Find the file types input by placeholder
       const fileTypesInput = await screen.findByPlaceholderText(/jpg,png,pdf/i);
@@ -942,7 +943,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       // Wait for OIDC section to appear
       const oidcHeading = await screen.findByRole('heading', { name: /single sign-on/i });
@@ -1089,7 +1090,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       const rotateBtn = await screen.findByRole('button', { name: /^rotate$/i });
       fireEvent.click(rotateBtn);
@@ -1143,7 +1144,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       // Wait for the API Keys section to appear
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
@@ -1175,7 +1176,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
       const apiKeysCard = apiKeysHeading.closest<HTMLElement>('section');
@@ -1209,7 +1210,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
       const apiKeysCard = apiKeysHeading.closest<HTMLElement>('section');
@@ -1241,7 +1242,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^services$/i }));
 
       // Wait for the API Keys section
       const apiKeysHeading = await screen.findByRole('heading', { name: /^api keys$/i });
@@ -1334,7 +1335,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       const rotateBtn = await screen.findByRole('button', { name: /^rotate$/i });
       fireEvent.click(rotateBtn);
@@ -1453,13 +1454,9 @@ describe('AdminPage', () => {
       // Wait for notifications tab to load
       await screen.findByPlaceholderText('mail.example.com');
 
-      // Find the webhook panel heading ('Webhook') — exact match to avoid 'Admin Webhook'
-      const webhookHeading = screen.getByRole('heading', { name: /^webhook$/i });
-      // Each channel is a settings card, found as the section around its heading.
-      const webhookCard = webhookHeading.closest<HTMLElement>('section');
-      // Find the toggle button in webhook card
-      const webhookToggle = within(webhookCard!).getByRole('button');
-      fireEvent.click(webhookToggle);
+      // Each channel is a row of the channels card, its switch named after it;
+      // the exact name keeps it apart from the Admin Webhook target.
+      fireEvent.click(screen.getByRole('button', { name: /^webhook$/i }));
 
       await waitFor(() => {
         expect(appSettingsCalled).toBe(true);
@@ -1536,18 +1533,15 @@ describe('AdminPage', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
       fireEvent.click(screen.getByRole('button', { name: /^notifications$/i }));
 
-      // Wait for the AdminNotificationsPanel matrix to appear
-      // The panel heading is t('admin.tabs.notifications') = 'Notifications'
-      // The channel column header is t('settings.notificationPreferences.email') = 'Email' (CSS uppercases it)
-      // Find the AdminNotificationsPanel by its h2 heading role='heading'
-      const matrixHeading = await screen.findByRole('heading', { name: /^notifications$/i });
+      // Wait for the AdminNotificationsPanel matrix to appear. It sits bare in the
+      // admin alerts card (t('admin.notifications.adminAlerts') = 'Admin alerts'),
+      // whose h2 heading finds it.
+      const matrixHeading = await screen.findByRole('heading', { name: /^admin alerts$/i });
       const matrixCard = matrixHeading.closest<HTMLElement>('section');
 
-      // The matrix toggle button is inside the card (not a checkbox — it's a button toggle)
-      const matrixToggle = matrixCard?.querySelector('button');
-      if (matrixToggle) {
-        fireEvent.click(matrixToggle);
-      }
+      // The matrix switch is named after its event and channel; the card's first
+      // buttons belong to the webhook and ntfy targets above the matrix.
+      fireEvent.click(within(matrixCard!).getByRole('button', { name: /, email$/i }));
 
       await waitFor(() => {
         expect(prefUpdateCalled).toBe(true);
@@ -1561,7 +1555,7 @@ describe('AdminPage', () => {
       render(<AdminPage />);
 
       await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-      fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^security$/i }));
 
       // Wait for the OIDC section — heading is 'Single Sign-On (OIDC)'
       const oidcHeading = await screen.findByRole('heading', { name: /single sign-on/i });
@@ -1792,7 +1786,7 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /^plugins$/i }));
       expect(screen.getByTestId('plugins-panel')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /user defaults/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^defaults$/i }));
       expect(screen.getByTestId('default-user-settings')).toBeInTheDocument();
     });
   });

@@ -40,6 +40,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
     private boolean retriedMainFrame;
     /** The page loaded again after a network error, until that load starts: its error page counts for nothing. */
     private String retryUrl;
+    private final Bridge bridge;
 
     TrekWebViewClient(
         Bridge bridge,
@@ -49,6 +50,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
         Set<String> signInHosts
     ) {
         super(bridge);
+        this.bridge = bridge;
         this.onUnreachable = onUnreachable;
         this.onSignInPage = onSignInPage;
         this.onErrorPage = onErrorPage;
@@ -115,9 +117,15 @@ class TrekWebViewClient extends BridgeWebViewClient {
         return signInHosts.contains(key) || (url.getPort() != -1 && signInHosts.contains(key + ":" + url.getPort()));
     }
 
-    /** Mapbox's map resources go through the app's own store (tiles/TrekTileStore.kt). */
+    /**
+     * Mapbox's map resources go through the app's own store (tiles/TrekTileStore.kt),
+     * and while the server is out of reach the UI comes from its stored copy
+     * (TrekOfflineShell).
+     */
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        WebResourceResponse copy = TrekOfflineShell.serve(view.getContext(), bridge, TrekServerStore.getUrl(view.getContext()), request);
+        if (copy != null) return copy;
         if (com.liketrek.trek.tiles.TrekTileStore.INSTANCE.handles(request)) {
             WebResourceResponse stored = com.liketrek.trek.tiles.TrekTileStore.INSTANCE.serve(request);
             if (stored != null) return stored;
@@ -169,6 +177,15 @@ class TrekWebViewClient extends BridgeWebViewClient {
                     retryUrl = null;
                     view.loadUrl(url);
                 }, 1500);
+                return;
+            }
+            // Out of reach for good (a trip without reception, a server at home):
+            // the stored copy of the UI takes over, with the app's own offline data.
+            String server = TrekServerStore.getUrl(view.getContext());
+            if (isNetworkError(error.getErrorCode()) && !TrekOfflineShell.isActive() && TrekOfflineShell.hasCopy(view.getContext(), server)) {
+                TrekOfflineShell.activate();
+                String url = request.getUrl().toString();
+                view.post(() -> view.loadUrl(url));
                 return;
             }
             TrekServerStore.setFailure(view.getContext(), error.getDescription() + " (" + error.getErrorCode() + ")");

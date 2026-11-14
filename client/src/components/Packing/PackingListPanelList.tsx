@@ -8,7 +8,7 @@ export function PackingList(S: PackingState) {
     items, gruppiert, t, tripId, allCategories, handleRenameCategory, handleDeleteCategory, handleDeleteItem,
     handleAddItemToCategory, categoryAssignees, tripMembers, handleSetAssignees,
     bagTrackingEnabled, bags, handleCreateBagByName, canEdit, reorderPackingItems,
-    currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem, sort, moveCategory,
+    currentUserId, handleSetSharing, handleCloneItem, handleJoinItem, handleLeaveItem, categorySharing, sort, moveCategory,
   } = S
   // Which category is being dragged and which card it is over. Held here, above
   // the cards, because the drag starts in one card and ends in another.
@@ -59,6 +59,7 @@ export function PackingList(S: PackingState) {
               onClone={handleCloneItem}
               onJoin={handleJoinItem}
               onLeave={handleLeaveItem}
+              onShareCategory={() => categorySharing.openFor(kat)}
             />
           ))}
         </div>

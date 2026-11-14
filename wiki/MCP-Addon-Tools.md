@@ -70,13 +70,14 @@ Requires `atlas:read` or `atlas:write` scope.
 
 Requires `collab:read` or `collab:write` scope.
 
-The addon alone is not enough. Collab has five sub-features an admin switches on and off independently in Admin → Addons — Notes, Polls, Chat, Links and What's Next, all on by default — and three of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. Links and What's Next have no MCP tools or resources of their own, so toggling them changes nothing here.
+The addon alone is not enough. Collab has five sub-features an admin switches on and off independently in Admin → Addons (Notes, Polls, Chat, Links and What's Next, all on by default), and four of them gate MCP entries. A tool or resource is only registered when its own sub-feature is enabled on top of the addon, so switching one off makes its entries vanish from the tool list rather than return an error. What's Next has no MCP tools or resources of its own, so toggling it changes nothing here.
 
 | Sub-feature | Tools it gates | Resource it gates |
 |---|---|---|
 | Notes | `list_collab_notes`, `create_collab_note`, `update_collab_note`, `delete_collab_note` | `trek://trips/{tripId}/collab-notes` |
 | Polls | `list_collab_polls`, `create_collab_poll`, `vote_collab_poll`, `close_collab_poll`, `delete_collab_poll` | `trek://trips/{tripId}/collab/polls` |
 | Chat | `list_collab_messages`, `send_collab_message`, `delete_collab_message`, `react_collab_message` | `trek://trips/{tripId}/collab/messages` |
+| Links | `list_collab_links`, `create_collab_link`, `update_collab_link`, `delete_collab_link` | none |
 
 | Tool | Description |
 |---|---|
@@ -93,6 +94,10 @@ The addon alone is not enough. Collab has five sub-features an admin switches on
 | `send_collab_message` | Send a chat message to a trip's collab channel, with optional reply threading. |
 | `delete_collab_message` | Delete a chat message (own messages only). |
 | `react_collab_message` | Toggle a reaction emoji on a chat message. |
+| `list_collab_links` | List the shared links of a trip (Collab → Links), pinned first and then newest first. |
+| `create_collab_link` | Save a link with a title on a trip, optionally pinned. The URL must be http(s). |
+| `update_collab_link` | Change a shared link's title or URL, or pin or unpin it. |
+| `delete_collab_link` | Remove a shared link. |
 
 ### Collections _(Collections addon required)_
 
@@ -102,6 +107,7 @@ Requires `collections:read` or `collections:write` scope.
 |---|---|
 | `list_collections` | List the saved-place collections the user owns or has accepted a share for, plus any pending incoming invites. |
 | `get_collection` | Get one collection with its members, labels, and all saved places, including the average rating and each member's vote. |
+| `list_collection_places` | Page through one list's saved places in the list's own order, up to 500 at a time (100 by default), as compact rows: id, name, status and label ids, plus address, coordinates, Google place id, website and phone where set. Filter by `status`, by `labelId` or with `unlabeled: true`. Each page names the list's labels, the total the filter matches and a `next_cursor` to continue with, so labelling the places of a page while paging through the unlabelled ones skips none. |
 | `available_collection_users` | List users who can still be invited to a collection (excludes current members and guests). |
 | `find_place_in_collections` | Answer whether a place is already on one of your lists, across the whole library in one call, naming each list and the status the place has there. Identify the place by `google_place_id` / `google_ftid` from `search_place` or by `lat` + `lng`; a name alone is never matched. |
 | `get_collection_items` | Read saved places and labels by their own ids across every list you can see, without loading whole lists: each place with its status, labels, rating and notes, and the lists they sit in with their colour, size, labels, members (names and roles only) and whether you may delete places from them. Saved place ids are not trip place ids. Ids you cannot see are left out. |
@@ -111,8 +117,8 @@ Requires `collections:read` or `collections:write` scope.
 | `reorder_collections` | Reorder the user's collections — pass every collection id in the desired order. |
 | `save_place_to_collection` | Save a place into a collection from a raw payload. Returns a duplicate marker instead of saving when a similar place already exists, unless `force` is true. |
 | `save_trip_places_to_collection` | Copy one or more existing trip places into a collection. Duplicates are skipped unless `force` is true. |
-| `update_collection_place` | Update a saved place's name, address, coordinates, description, notes, status, category, links, tags, labels, image, or move it to another collection (moving out of a list needs the owner or admin role there). |
-| `set_collection_place_status` | Set a saved place's status: `idea`, `want`, or `visited`. |
+| `update_collection_place` | Update a saved place's name, address, coordinates, description, notes, status, category, links, tags, labels, image, provider ids, website, phone, price and currency, or move it to another collection (moving out of a list needs the owner or admin role there). Only the fields passed change; `null` clears one. |
+| `set_collection_place_status` | Set a saved place's status: `idea`, `want`, `visited`, or `revisit` (been there and wants to go back; counts as visited). |
 | `set_collection_place_status_from_trip` | Set a status on every saved copy of the given trip places, in every list they are on, for marking places visited after a day out. Ids are trip place ids. Lists you may only read are skipped. Returns how many saved places changed and how many of the trip places were found in at least one list. |
 | `rate_collection_place` | Set or clear the current user's 1-5 star rating on a saved place. Every member rates independently; pass `null` to remove the vote. |
 | `delete_collection_place` | Remove a saved place from its collection. Requires delete permission on the list. |

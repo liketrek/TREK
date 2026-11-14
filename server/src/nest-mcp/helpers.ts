@@ -15,6 +15,11 @@ export function ok(data: unknown): McpTextResult {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
 }
 
+/** Success result: `data` as one line of JSON, for an answer whose size matters more than how it reads (a page of a long list). */
+export function okCompact(data: unknown): McpTextResult {
+  return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
+}
+
 /** Error result with a verbatim message (no formatting, no prefix). */
 export function errorResult(text: string): McpTextResult {
   return { content: [{ type: 'text' as const, text }], isError: true };

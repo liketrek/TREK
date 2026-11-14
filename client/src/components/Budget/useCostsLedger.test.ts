@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-013
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-017
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -82,6 +82,7 @@ let toastInfo: Mock<(message: string) => void>;
 interface Options {
   trip?: Trip;
   items?: BudgetItem[];
+  memberCount?: number;
   settlementOnTripChange?: boolean;
   skipUnfinishedShares?: boolean;
   csvCurrencyAsStored?: boolean;
@@ -95,6 +96,7 @@ function setup(options: Options = {}) {
         tripId,
         trip: options.trip ?? buildTrip({ id: 7, currency: 'EUR', title: 'Rome' }),
         budgetItems: items,
+        memberCount: options.memberCount ?? 3,
         actions: { loadBudgetItems, deleteBudgetItem },
         canEdit: true,
         t: (key: string) => key,
@@ -237,6 +239,71 @@ describe('useCostsLedger: totals and filters', () => {
     });
     expect(result.current.segment).toBe('owed');
     expect(result.current.filteredSettlements).toEqual([]);
+  });
+});
+
+describe('useCostsLedger: a trip of one (#2689)', () => {
+  it('FE-BUDGET-LEDGER-014: nothing to split leaves out the payments and the owner filter', async () => {
+    const mine = buildBudgetItem({
+      id: 8,
+      name: 'Museum',
+      total_price: 20,
+      members: [member(1)],
+      payers: [payer(1, 20)],
+    });
+    settlementMock().mockResolvedValue({ ...SETTLEMENT, flows: [], balances: [] });
+    const { result } = setup({ items: [mine], memberCount: 1 });
+    await waitFor(() => expect(settlementMock()).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.settlement?.flows).toEqual([]));
+    expect(result.current.splitting).toBe(false);
+    expect(result.current.filteredSettlements).toEqual([]);
+    // A filter left on "I'm owed" from before cannot hide the expenses either.
+    act(() => result.current.setSegment('owed'));
+    expect(result.current.filtered.map((e) => e.id)).toEqual([8]);
+  });
+});
+
+describe('useCostsLedger: a trip that keeps totals only (#1714)', () => {
+  it('FE-BUDGET-LEDGER-015: nothing is split, though the trip has several members and money open', async () => {
+    const { result } = setup({ trip: buildTrip({ id: 7, currency: 'EUR', costs_mode: 'totals' }) });
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    expect(result.current.splitting).toBe(false);
+    expect(result.current.filteredSettlements).toEqual([]);
+    expect(result.current.filtered).toHaveLength(2);
+  });
+});
+
+describe('useCostsLedger: categories left out (#2819)', () => {
+  it('FE-BUDGET-LEDGER-016: a category left out leaves the total and is named, and counting all brings it back', async () => {
+    const { result } = setup();
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    const whole = result.current.totals.totalSpend;
+    const [first] = result.current.catBreakdown;
+    act(() => result.current.toggleLeftOutCat(first.key));
+    expect(result.current.totals.totalSpend).toBeCloseTo(whole - first.amount, 6);
+    expect(result.current.catBreakdown.find((r) => r.key === first.key)?.leftOut).toBe(true);
+    expect(result.current.leftOutLabel).toBe('costs.breakdown.leftOut');
+    // What is owed stays whole: the flows are the server's.
+    expect(result.current.totals.owe).toBe(15);
+    act(() => result.current.countAllCats());
+    expect(result.current.totals.totalSpend).toBe(whole);
+    expect(result.current.leftOutLabel).toBe('');
+  });
+});
+
+describe('useCostsLedger: another currency for this trip (#1683)', () => {
+  it('FE-BUDGET-LEDGER-017: the balances are read again in the currency picked, and the settle-ups go out in it', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    const { result } = setup();
+    await waitFor(() => expect(result.current.settlement).toEqual(SETTLEMENT));
+    act(() => result.current.setBase('USD'));
+    expect(result.current.base).toBe('USD');
+    await waitFor(() => expect(settlementMock()).toHaveBeenLastCalledWith(7, 'USD', expect.anything()));
+    await act(async () => {
+      await result.current.settleFlow(1, 2, 15);
+    });
+    expect(createMock()).toHaveBeenCalledWith(7, expect.objectContaining({ amount: 15, currency: 'USD' }));
+    localStorage.removeItem('trek:costs-currency:7');
   });
 });
 

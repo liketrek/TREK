@@ -18,6 +18,18 @@ const et: NotificationLocale = {
       title: `Uus broneering: ${p.booking}`,
       body: `${p.actor} lisas reisile „${p.trip}” uue broneeringu „${p.booking}” (tüüp: ${reservations[`reservations.type.${p.type}`] ?? (p.type === 'booking' ? 'broneering' : p.type)}).`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} tõusis õhku`,
+      body: `Lend ${p.flight} lennujaamast ${p.from} lennujaama ${p.to} on õhus.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} hilineb`,
+      body: `Lend ${p.flight} lennujaamast ${p.from} lennujaama ${p.to} hilineb umbes ${p.delay} minutit.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} maandus`,
+      body: `Lend ${p.flight} lennujaamast ${p.from} maandus lennujaamas ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Reisi meeldetuletus: ${p.trip}`,
       body: `Sinu reis „${p.trip}” algab peagi!`,
@@ -84,6 +96,21 @@ const et: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `„${p.tour}“ reisil „${p.trip}“ ei saa wandereris enam kontrollida. Matk sinu reisis jääb samaks.`
             : `„${p.tour}“ reisil „${p.trip}“ võib olla wandereris muutunud. Ava matk ja kontrolli selle allikat. Reisis ei muutu midagi iseenesest.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Lisatud kirjast: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} lisas edastatud kirjast „${p.booking}“ reisile „${p.trip}“.`
+          : `„${p.booking}“ sinu edastatud kirjast lisati reisile „${p.trip}“. Saad selle TREKis 7 päeva jooksul tagasi võtta.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Ülevaatamist ootavad edastatud broneeringud',
+      body: `TREKis ootavad sind edastatud broneeringud: ${p.count}. Igaühe juures on kirjas, miks seda ise ei lisatud.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Kirjade import on peatatud',
+      body: 'TREK ei võta edastatud broneeringukirju praegu vastu, seega oota nende edastamisega. Sinu aadressid jäävad alles ja töötavad uuesti, kui import tagasi on, ning juba lisatud broneeringud jäävad sinu reisidesse.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

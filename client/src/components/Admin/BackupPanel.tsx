@@ -56,7 +56,6 @@ export default function BackupPanel() {
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
         className={SETTINGS_BUTTON}
-        style={fs(12.5, 'body')}
         title={isUploading ? t('backup.uploading') : t('backup.upload')}
       >
         {isUploading
@@ -69,7 +68,6 @@ export default function BackupPanel() {
         onClick={handleCreate}
         disabled={isCreating}
         className={SETTINGS_BUTTON_PRIMARY}
-        style={fs(12.5, 'body')}
         title={isCreating ? t('backup.creating') : t('backup.create')}
       >
         {isCreating
@@ -97,7 +95,7 @@ export default function BackupPanel() {
         surface="var(--bg-secondary)"
         className="!py-6"
         action={
-          <button type="button" onClick={handleCreate} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+          <button type="button" onClick={handleCreate} className={SETTINGS_BUTTON}>
             <Plus size={14} strokeWidth={2.2} />
             {t('backup.createFirst')}
           </button>
@@ -295,7 +293,6 @@ export default function BackupPanel() {
             onClick={handleSaveAutoSettings}
             disabled={autoSettingsSaving || !autoSettingsDirty}
             className={SETTINGS_BUTTON_PRIMARY}
-            style={fs(13, 'body')}
           >
             {autoSettingsSaving
               ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />

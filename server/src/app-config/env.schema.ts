@@ -110,6 +110,20 @@ export const envSchema = z.object({
   SMTP_FROM: anyString,
   SMTP_SKIP_TLS_VERIFY: boolStr,
 
+  // Booking mail import: each wins over its field in the admin dialog
+  MAIL_INGEST_TRANSPORT: oneOf(['off', 'imap', 'webhook', 'cloud']),
+  MAIL_INGEST_IMAP_HOST: anyString,
+  MAIL_INGEST_IMAP_PORT: integer(1, 65535, 'must be a port number (1-65535)'),
+  MAIL_INGEST_IMAP_TLS: oneOf(['tls', 'starttls']),
+  MAIL_INGEST_IMAP_USER: anyString,
+  MAIL_INGEST_IMAP_PASS: anyString,
+  MAIL_INGEST_IMAP_MAILBOX: anyString,
+  MAIL_INGEST_ADDRESS_TEMPLATE: optionalWith(
+    (v) => v.includes('{token}') && v.includes('@'),
+    'must hold {token} and an @, like trek+{token}@example.com',
+  ),
+  MAIL_INGEST_WEBHOOK_SECRET: optionalWith((v) => v.length >= 32, 'must be at least 32 characters'),
+
   // WebAuthn
   WEBAUTHN_RP_ID: anyString,
   WEBAUTHN_ORIGINS: anyString,
@@ -185,6 +199,7 @@ export const envSchema = z.object({
   GOOGLE_LIST_DATA_BASE: url,
   TREK_PLACES_URL: url,
   TREK_PLACES_ENABLED: boolStr,
+  FLIGHT_LIVE_ENABLED: boolStr,
   TREK_PLACES_CONTRIBUTE: oneOf(['off', 'admin']),
   TREK_SERVICES: oneOf(['auto', 'off']),
   TREK_SERVICES_KEY: optionalWith(isServiceKeyShape, 'must be a TREK services key (tk1.<kid>.<payload>.<signature>)'),

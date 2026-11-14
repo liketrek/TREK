@@ -236,5 +236,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Add to Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'Or copy a link manually',
   'dashboard.ics.pasteFromUrl': 'paste into “From URL”',
+  'dashboard.ics.dayEvents': 'Day overview events',
+  'dashboard.ics.dayEventsHint':
+    'An all-day event per day with its places and notes that have no time. Switching this changes the link, so subscribe again with the new one.',
 };
 export default dashboard;

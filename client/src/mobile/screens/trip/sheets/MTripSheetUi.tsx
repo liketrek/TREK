@@ -160,23 +160,29 @@ interface ActionCircleProps {
   label: string
   primary?: boolean
   danger?: boolean
+  /** A toggle (shown on the map): announced as pressed and filled while on. */
+  pressed?: boolean
   className?: string
   children: ReactNode
   /** For callers that anchor a popup to the button. React 19 passes it through. */
   ref?: Ref<HTMLButtonElement>
 }
 
-/** 38px round action button of the inspector footer rows. */
-export function ActionCircle({ onClick, label, primary = false, danger = false, className = '', children, ref }: ActionCircleProps) {
+/**
+ * 40px round action button of the sheets' action rows. The rows hold icons
+ * only, so a phone never wraps them; the name is the label and the tooltip.
+ */
+export function ActionCircle({ onClick, label, primary = false, danger = false, pressed, className = '', children, ref }: ActionCircleProps) {
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={pressed}
       title={label}
-      className={`flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full ${
-        primary
+      className={`flex h-10 w-10 flex-none items-center justify-center rounded-full ${
+        primary || pressed
           ? 'bg-m-act text-m-actfg'
           : `border border-[color:var(--m-gbr)] bg-[color:var(--m-ic)] ${danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'}`
       } ${className}`}

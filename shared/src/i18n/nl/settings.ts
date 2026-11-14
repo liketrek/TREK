@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + globeprojectie voor scherpere randen en een realistische wereldweergave.',
   'settings.mapHighQualityWarning': 'Kan de prestaties op minder krachtige apparaten beïnvloeden.',
+  'settings.mapHidePois': 'Interessante plekken verbergen',
+  'settings.mapHidePoisHint':
+    'Verbergt de winkels, restaurants en bezienswaardigheden die Mapbox zelf toont, zodat alleen jouw plekken opvallen. Alleen bij de Standard-stijlen.',
   'settings.mapTipLabel': 'Tip:', // same-as-en
   'settings.mapTip':
     'Rechts-klik en sleep om de kaart te roteren/kantelen. Middenklik om een locatie toe te voegen (rechts-klik is voor rotatie).',
@@ -78,6 +81,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Voor weergegevens. Gratis op openweathermap.org/api',
   'settings.keyPlaceholder': 'Sleutel invoeren...',
   'settings.configured': 'Geconfigureerd',
+  'settings.notSetUp': 'Niet ingesteld',
+  'settings.mcp.appsConnected': '{count} apps verbonden',
+  'settings.mcp.appsConnected.one': '{count} app verbonden',
   'settings.saveKeys': 'Sleutels opslaan',
   'settings.display': 'Weergave',
   'settings.colorMode': 'Kleurmodus',
@@ -108,7 +114,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Meldingen',
   'settings.notifyTripInvite': 'Reisuitnodigingen',
   'settings.notifyBookingChange': 'Boekingswijzigingen',
+  'settings.notifyFlightDeparted': 'Vertrekken',
+  'settings.notifyFlightDelayed': 'Vluchtvertragingen',
+  'settings.notifyFlightLanded': 'Landingen',
   'settings.notifyTripReminder': 'Reisherinneringen',
+  'settings.notifyMailBookingAdded': 'Boekingen toegevoegd uit mails',
+  'settings.notifyMailBookingPending': 'Doorgestuurde boekingen om te controleren',
+  'settings.notifyMailIngestPaused': 'Mailimport gepauzeerd',
   'settings.notifyTodoDue': 'Taak verloopt',
   'settings.notifyVacayInvite': 'Vacay-fusieuitnodigingen',
   'settings.notifyVacayShare': 'Gedeelde Vacay-kalenders',

@@ -57,6 +57,7 @@
 
 ## Travel Management
 - [[Reservations and Bookings|Reservations-and-Bookings]]
+- [[Booking Mail Import|Booking-Mail-Import]]
 - [[Transport: Flights, Trains, Cars|Transport-Flights-Trains-Cars]]
 - [[Accommodations]]
 - [[Costs|Budget-Tracking]]

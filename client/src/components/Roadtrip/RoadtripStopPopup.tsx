@@ -5,7 +5,9 @@ import { PANEL, Segmented } from '../shared/dialogParts'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import StayPortals from './StayPortals'
 import ChargingInfo from './ChargingInfo'
+import StopPhoto from './StopPhoto'
 import { useTranslation } from '../../i18n/TranslationContext'
+import { useTripStore } from '../../store/tripStore'
 import { safeExternalHref } from '../../utils/safeUrl'
 import { StopKindChips, StopStayChips } from './StopChips'
 import type { CorridorPoi } from './useCorridorPois'
@@ -94,6 +96,10 @@ export default function RoadtripStopPopup({
   const [night, setNight] = useState<boolean>(() => nightByDefault(draft))
   const [checkIn, setCheckIn] = useState(() => checkInByDefault(draft))
   const labelId = useId()
+  // A stop already on the trip shows its picture in place of the kind's tile (#2629); a
+  // hit from the search is not a place yet and keeps the tile.
+  const editedPlaceId = draft?.editing?.placeId
+  const place = useTripStore(s => (editedPlaceId == null ? null : s.places.find(p => p.id === editedPlaceId) ?? null))
 
   // The popup stays mounted while the draft is swapped for another one, so every
   // answer is seeded again from the new draft, the way the phone sheet does it.
@@ -137,12 +143,18 @@ export default function RoadtripStopPopup({
       header={(
         <DialogHeader
           tile={(
-            <DialogTile>
-              {/* The road-trip palette, the same one the map pin and the result row use. */}
-              <span style={{ color: tone }}>
-                {kind ? <kind.Icon size={20} strokeWidth={1.9} aria-hidden /> : <ParkingSquare size={20} strokeWidth={1.9} aria-hidden />}
-              </span>
-            </DialogTile>
+            <StopPhoto
+              place={place}
+              className="h-[46px] w-[46px] flex-none rounded-[14px] bg-surface-card shadow-sm"
+              fallback={(
+                <DialogTile>
+                  {/* The road-trip palette, the same one the map pin and the result row use. */}
+                  <span style={{ color: tone }}>
+                    {kind ? <kind.Icon size={20} strokeWidth={1.9} aria-hidden /> : <ParkingSquare size={20} strokeWidth={1.9} aria-hidden />}
+                  </span>
+                </DialogTile>
+              )}
+            />
           )}
           tint={NEUTRAL_TINT}
           labelId={labelId}

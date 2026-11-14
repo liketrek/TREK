@@ -57,9 +57,14 @@ export interface TrekShellPlugin {
    * only for two minutes, as long as the server keeps its code. Not in iOS builds, nor in Android builds before 5.1.4.
    */
   takeAuthCallback(): Promise<{ url: string | null }>;
-  /** iOS: stores the server's start page for a cold start without network. */
-  refreshOfflineCopy(): Promise<{ saved: boolean }>;
-  /** iOS: loads that copy under the server's origin. False when there is none. */
+  /**
+   * Stores the server's start page for a start without the server. Android
+   * also downloads the build's `files` the copy does not hold yet (an Android
+   * build before the offline copy resolves `saved: false`); iOS keeps those in
+   * WebKit's HTTP cache instead and ignores them.
+   */
+  refreshOfflineCopy(options?: { files?: string[] }): Promise<{ saved: boolean; complete?: boolean }>;
+  /** Starts on that copy under the server's origin. False when there is none. */
   openOfflineCopy(): Promise<{ opened: boolean }>;
   /** What this binary offers the UI (native/capabilities.ts). Missing before shell API 2. */
   getCapabilities(): Promise<NativeCapabilities>;
@@ -106,6 +111,18 @@ export interface TrekShellPlugin {
     nextMinutes?: number;
     /** Android: each stop's colour (#rrggbb) for the Live Update's segments. */
     colors?: (string | null)[];
+    /** iOS: the day's flight near or in the air, drawn as a boarding pass; older binaries ignore it. */
+    flight?: {
+      number: string;
+      from: string;
+      to: string;
+      dep: number;
+      arr: number;
+      depTime: string;
+      arrTime: string;
+      delay?: number;
+      airborne?: boolean;
+    };
   }): Promise<{ running: boolean }>;
   endTripDay(): Promise<void>;
   /** Feature storeKit (iOS) or playBilling (Android): the store's price strings for the products it knows. */
@@ -211,9 +228,12 @@ export interface TrekShellPlugin {
   ): Promise<{ remove: () => Promise<void> }>;
   /** Feature quickActions (iOS): the actions a long press on the app icon shows, in the UI's language. */
   setQuickActions(options: { items: NativeQuickAction[] }): Promise<void>;
-  /** Feature quickActions: the action the app was launched with, before the UI ran. */
+  /**
+   * Feature quickActions: the action the app was launched with, before the UI ran.
+   * With the feature appLinks also a widget or Live Activity tap, as its path.
+   */
   takeQuickAction(): Promise<{ path: string | null }>;
-  /** Feature quickActions: an action chosen while the app was running. */
+  /** Feature quickActions: an action chosen (with appLinks: a widget tapped) while the app was running. */
   addListener(
     event: 'quickAction',
     listener: (payload: { path: string }) => void

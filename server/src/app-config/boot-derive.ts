@@ -90,6 +90,27 @@ export function deriveServices(raw: RawEnv) {
   };
 }
 
+/**
+ * How the booking mail import takes mail in, set in the environment rather
+ * than in the admin dialog: each value wins over its stored setting when it is
+ * non-empty (MailIngestSettingsService applies them). Unset leaves the dialog
+ * in charge, so an install that sets none of them behaves as before.
+ */
+export function deriveMailIngest(raw: RawEnv) {
+  const read = (value: string | undefined) => value?.trim() || null;
+  return {
+    transport: read(raw.MAIL_INGEST_TRANSPORT)?.toLowerCase() ?? null,
+    imapHost: read(raw.MAIL_INGEST_IMAP_HOST),
+    imapPort: read(raw.MAIL_INGEST_IMAP_PORT),
+    imapTls: read(raw.MAIL_INGEST_IMAP_TLS)?.toLowerCase() ?? null,
+    imapUser: read(raw.MAIL_INGEST_IMAP_USER),
+    imapPass: read(raw.MAIL_INGEST_IMAP_PASS),
+    imapMailbox: read(raw.MAIL_INGEST_IMAP_MAILBOX),
+    addressTemplate: read(raw.MAIL_INGEST_ADDRESS_TEMPLATE),
+    webhookSecret: read(raw.MAIL_INGEST_WEBHOOK_SECRET),
+  };
+}
+
 /** One entry per token: the namespace it registers under and the function it derives with. */
 export const BOOT_DERIVERS = {
   http: deriveHttpBoot,
@@ -97,6 +118,7 @@ export const BOOT_DERIVERS = {
   transit: deriveTransit,
   kitinerary: deriveKitinerary,
   services: deriveServices,
+  mailIngest: deriveMailIngest,
 } as const;
 
 export type BootNamespace = keyof typeof BOOT_DERIVERS;

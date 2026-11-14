@@ -8,6 +8,8 @@
     <string name="widget_today_description">Today\'s plan as a timeline, with the weather and what is next.</string>
     <string name="widget_bookings_name">Bookings</string>
     <string name="widget_bookings_description">Your next flights, trains, hotels and tables, and when they are due.</string>
+    <string name="widget_flight_name">Flight</string>
+    <string name="widget_flight_description">Your next flight live: departure countdown, the aircraft on its way, delay and arrival.</string>
     <string name="widget_todos_name">To-dos</string>
     <string name="widget_todos_description">What is still open for the trip, and how far the packing has come.</string>
     <string name="widget_packing_name">Packing</string>

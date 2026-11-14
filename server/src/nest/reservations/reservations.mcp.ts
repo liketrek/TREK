@@ -824,7 +824,7 @@ export class ReservationsMcp {
         type: resolvedType,
         // Endpoints the caller did not replace stay the geometry the legs run
         // over, so read them back (the row carries them) instead of guessing.
-        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId))?.endpoints ?? []).map(e => ({
+        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId, tripId))?.endpoints ?? []).map(e => ({
           role: e.role, sequence: e.sequence, name: e.name, code: e.code,
           lat: e.lat, lng: e.lng, timezone: e.timezone,
           local_time: e.local_time, local_date: e.local_date,

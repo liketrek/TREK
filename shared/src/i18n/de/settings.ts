@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + Globus-Projektion für schärfere Kanten und eine realistische Weltsicht.',
   'settings.mapHighQualityWarning': 'Kann die Performance auf schwächeren Geräten beeinträchtigen.',
+  'settings.mapHidePois': 'Points of Interest ausblenden',
+  'settings.mapHidePoisHint':
+    'Blendet die Geschäfte, Restaurants und Sehenswürdigkeiten aus, die Mapbox selbst beschriftet, damit nur deine Orte hervortreten. Nur bei den Standard-Stilen.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Rechtsklick und ziehen, um die Karte zu drehen/neigen. Mittelklick, um einen Ort hinzuzufügen (Rechtsklick ist für die Rotation reserviert).',
@@ -78,6 +81,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Für Wetterdaten. Kostenlos unter openweathermap.org/api',
   'settings.keyPlaceholder': 'Schlüssel eingeben...',
   'settings.configured': 'Konfiguriert',
+  'settings.notSetUp': 'Nicht eingerichtet',
+  'settings.mcp.appsConnected': '{count} Apps verbunden',
+  'settings.mcp.appsConnected.one': '{count} App verbunden',
   'settings.saveKeys': 'Schlüssel speichern',
   'settings.display': 'Darstellung',
   'settings.colorMode': 'Farbmodus',
@@ -110,7 +116,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Mitteilungen',
   'settings.notifyTripInvite': 'Trip-Einladungen',
   'settings.notifyBookingChange': 'Buchungsänderungen',
+  'settings.notifyFlightDeparted': 'Abflüge',
+  'settings.notifyFlightDelayed': 'Flugverspätungen',
+  'settings.notifyFlightLanded': 'Landungen',
   'settings.notifyTripReminder': 'Trip-Erinnerungen',
+  'settings.notifyMailBookingAdded': 'Buchungen aus Mails',
+  'settings.notifyMailBookingPending': 'Weitergeleitete Buchungen zum Prüfen',
+  'settings.notifyMailIngestPaused': 'Mail-Import pausiert',
   'settings.notifyTodoDue': 'Aufgabe bald fällig',
   'settings.notifyVacayInvite': 'Vacay Fusion-Einladungen',
   'settings.notifyVacayShare': 'Vacay Kalender-Freigaben',

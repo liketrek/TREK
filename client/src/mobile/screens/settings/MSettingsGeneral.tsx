@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ChevronDown, Languages, Map, Rocket } from 'lucide-react'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../../../i18n'
 import { useSettingSaver } from '../../../components/Settings/useSettingSaver'
@@ -12,6 +12,7 @@ import { dateFormatOptions } from '../../../utils/dateFormat'
 import { MSetCard, MSetEyebrow, MSetHint, MSetSelectRow, MSetSegments, MSetRow } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
 import MSetPickerSheet from './MSetPickerSheet'
+import MHintLabel from '../../components/MHintLabel'
 import { preferredNavAppOptions } from '../../../components/Planner/placeNavigation'
 import DemoLock from '../../../components/Demo/DemoLock'
 import { useDemoAccountLock } from '../../../components/Demo/useDemoLock'
@@ -133,6 +134,8 @@ export default function MSettingsGeneral() {
           <MSetSelectRow label={language.label} trailing={chevron} onClick={() => setLangOpen(true)} />
         </DemoLock>
 
+        <MPlaceLanguage value={settings.place_language || ''} onSave={(v) => save('place_language', v)} trailing={chevron} />
+
         <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.temperature')}</MSetEyebrow>
         <MSetSegments
           value={settings.temperature_unit || 'celsius'}
@@ -194,7 +197,7 @@ export default function MSettingsGeneral() {
             <MSetRow
               key={row.key as string}
               label={row.label}
-              sub={row.sub}
+              hint={row.sub}
               trailing={
                 <MToggle
                   checked={row.on}
@@ -255,6 +258,39 @@ export default function MSettingsGeneral() {
         value={startTripTab}
         onSelect={(v) => save('start_trip_tab', v)}
         options={TRIP_TAB_IDS.filter(id => id !== 'tour-planner').map((id) => ({ value: id, label: t(TRIP_TAB_LABEL_KEYS[id]) }))}
+      />
+    </>
+  )
+}
+
+/** Place names (#1799): searches can answer in another language than the app. */
+function MPlaceLanguage({ value, onSave, trailing }: { value: string; onSave: (value: string) => void; trailing: ReactNode }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <div className="mb-[5px] mt-[14px]">
+        <MHintLabel
+          label={t('settings.placeLanguage')}
+          hint={t('settings.placeLanguageHint')}
+          labelClassName="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.09em] text-m-faint"
+        />
+      </div>
+      <MSetSelectRow
+        label={SUPPORTED_LANGUAGES.find((l) => l.value === value)?.label ?? t('settings.placeLanguageApp')}
+        trailing={trailing}
+        onClick={() => setOpen(true)}
+      />
+      <MSetPickerSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t('settings.placeLanguage')}
+        value={value}
+        onSelect={onSave}
+        options={[
+          { value: '', label: t('settings.placeLanguageApp') },
+          ...SUPPORTED_LANGUAGES.map((l) => ({ value: l.value, label: l.label })),
+        ]}
       />
     </>
   )

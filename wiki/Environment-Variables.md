@@ -236,6 +236,25 @@ optional (for unauthenticated relays).
 
 ---
 
+## Booking mail import
+
+How forwarded booking mails reach TREK ([Booking mail import](Booking-Mail-Import)). Every variable overrides its field
+in the admin dialog; unset, the dialog decides.
+
+| Variable                       | Description                                                                                                 | Default |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------|---------|
+| `MAIL_INGEST_TRANSPORT`        | `off` (uploads only), `imap` or `webhook`.                                                                  | `off`   |
+| `MAIL_INGEST_IMAP_HOST`        | The mailbox TREK reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   |         |
+| `MAIL_INGEST_IMAP_PORT`        | `993` for TLS, `143` for STARTTLS.                                                                          | `993`   |
+| `MAIL_INGEST_IMAP_TLS`         | `tls` (encrypted from the first byte) or `starttls`.                                                        | `tls`   |
+| `MAIL_INGEST_IMAP_USER`        | IMAP login.                                                                                                 |         |
+| `MAIL_INGEST_IMAP_PASS`        | IMAP password.                                                                                              |         |
+| `MAIL_INGEST_IMAP_MAILBOX`     | The folder the mails arrive in. Read mails move on to `TREK/processed`; nothing is deleted.                 | `INBOX` |
+| `MAIL_INGEST_ADDRESS_TEMPLATE` | The forwarding address, each person's token where `{token}` stands, e.g. `trek+{token}@example.com`.        |         |
+| `MAIL_INGEST_WEBHOOK_SECRET`   | The key the webhook sender signs each mail with (HMAC-SHA256), at least 32 characters.                      |         |
+
+---
+
 ## Web Push
 
 [Web Push](Notifications#web-push) signs every message with a VAPID key pair. None of these variables is needed:
@@ -362,6 +381,18 @@ An admin can switch the backend under **Admin → Settings → API Keys → Tran
 | `TRANSIT_API_URL` | Base URL of the transit routing API. TREK's server proxies requests to it. Point this at your own self-hosted [MOTIS](https://github.com/motis-project/motis) instance if you want zero third-party egress. A trailing slash is stripped. | `https://api.transitous.org` |
 
 When left at the default, using the transit feature makes the TREK **server** send outbound HTTPS requests to `api.transitous.org` (with an identifying User-Agent, as the Transitous usage policy asks). No transit request is made until a user actually searches for a journey.
+
+---
+
+## Live Flight Status
+
+Booked flights are followed live through the keyless open ADS-B networks adsb.lol and, on a self-hosted install, adsb.fi. See [Transport: Flights, Trains, Cars](Transport-Flights-Trains-Cars#live-flight-status).
+
+| Variable              | Description                                                                                                                                                                  | Default |
+|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `FLIGHT_LIVE_ENABLED` | `false` switches live flight status off, `true` keeps it on; either way it wins over **Admin → Settings → Live flight status**, which then shows the value locked. Unset leaves the choice to the admin switch. | unset   |
+
+While on, the TREK **server** asks `api.adsb.lol` (and `opendata.adsb.fi` on a self-hosted install) for the callsign of each booked flight in its watch window, at most once a second and 200 times an hour. Nothing else about the trip or its travellers is sent.
 
 ---
 

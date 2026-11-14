@@ -19,6 +19,9 @@ import { DocumentSyncItems } from './DocumentSyncItems.entity';
 import { InviteTokens } from './InviteTokens.entity';
 import { JourneyEntries } from './JourneyEntries.entity';
 import { JourneyTrips } from './JourneyTrips.entity';
+import { MailIngestAddresses } from './MailIngestAddresses.entity';
+import { MailIngestCandidates } from './MailIngestCandidates.entity';
+import { MailIngestMessages } from './MailIngestMessages.entity';
 import { PackingBags } from './PackingBags.entity';
 import { PackingCategoryAssignees } from './PackingCategoryAssignees.entity';
 import { PackingItems } from './PackingItems.entity';
@@ -58,6 +61,7 @@ export class Trips {
   created_at?: string | null;
   updated_at?: string | null;
   reminder_sent_for?: string | null;
+  costs_mode: TTripsCostsMode & Opt = TripsCostsMode.SPLIT;
   assistant_attachments_collection = new Collection<AssistantAttachments>(this);
   assistant_threads_collection = new Collection<AssistantThreads>(this);
   budget_category_order_collection = new Collection<BudgetCategoryOrder>(this);
@@ -76,6 +80,10 @@ export class Trips {
   invite_tokens_collection = new Collection<InviteTokens>(this);
   journey_entries_collection = new Collection<JourneyEntries>(this);
   journey_trips_collection = new Collection<JourneyTrips>(this);
+  mail_ingest_addresses_collection = new Collection<MailIngestAddresses>(this);
+  mail_ingest_candidates_collection = new Collection<MailIngestCandidates>(this);
+  mail_ingest_candidates_collection1 = new Collection<MailIngestCandidates>(this);
+  mail_ingest_messages_collection = new Collection<MailIngestMessages>(this);
   packing_bags_collection = new Collection<PackingBags>(this);
   packing_category_assignees_collection = new Collection<PackingCategoryAssignees>(this);
   packing_items_collection = new Collection<PackingItems>(this);
@@ -97,6 +105,13 @@ export class Trips {
   trip_members_collection = new Collection<TripMembers>(this);
   trip_photos_collection = new Collection<TripPhotos>(this);
 }
+
+export const TripsCostsMode = {
+  SPLIT: 'split',
+  TOTALS: 'totals',
+} as const;
+
+export type TTripsCostsMode = (typeof TripsCostsMode)[keyof typeof TripsCostsMode];
 
 export const TripsSchema = defineEntity({
   class: Trips,
@@ -124,6 +139,7 @@ export const TripsSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`).index('idx_trips_created_at'),
     updated_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     reminder_sent_for: p.text().nullable(),
+    costs_mode: p.enum(() => TripsCostsMode).default('split'),
     assistant_attachments_collection: () => p.oneToMany(AssistantAttachments).mappedBy('trip').hidden(),
     assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('trip').hidden(),
     budget_category_order_collection: () => p.oneToMany(BudgetCategoryOrder).mappedBy('trip').hidden(),
@@ -142,6 +158,10 @@ export const TripsSchema = defineEntity({
     invite_tokens_collection: () => p.oneToMany(InviteTokens).mappedBy('trip').hidden(),
     journey_entries_collection: () => p.oneToMany(JourneyEntries).mappedBy('sourceTrip').hidden(),
     journey_trips_collection: () => p.oneToMany(JourneyTrips).mappedBy('trip').hidden(),
+    mail_ingest_addresses_collection: () => p.oneToMany(MailIngestAddresses).mappedBy('trip').hidden(),
+    mail_ingest_candidates_collection: () => p.oneToMany(MailIngestCandidates).mappedBy('suggestedTrip').hidden(),
+    mail_ingest_candidates_collection1: () => p.oneToMany(MailIngestCandidates).mappedBy('resolvedTrip').hidden(),
+    mail_ingest_messages_collection: () => p.oneToMany(MailIngestMessages).mappedBy('trip').hidden(),
     packing_bags_collection: () => p.oneToMany(PackingBags).mappedBy('trip').hidden(),
     packing_category_assignees_collection: () => p.oneToMany(PackingCategoryAssignees).mappedBy('trip').hidden(),
     packing_items_collection: () => p.oneToMany(PackingItems).mappedBy('trip').hidden(),

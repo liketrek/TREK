@@ -2,6 +2,7 @@ import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { withoutOrigin } from './reservation-origin.contract';
 import { ReservationWritesService } from './reservation-writes.service';
 import {
   ReservationCreateDto,
@@ -63,7 +64,7 @@ export class ReservationsController {
     // The booking and its linked cost are one write.
     return this.writes.createBooking(
       tripId,
-      body as never,
+      withoutOrigin(body) as never,
       budgetEntry,
       this.writes.restWriter(tripId, user, socketId),
     );

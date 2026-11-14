@@ -159,7 +159,6 @@
     "client/src/mobile/components/MSheet.tsx": 2,
     "client/src/mobile/screens/collections/MCollLabelsSheet.tsx": 1,
     "client/src/mobile/screens/journey/MJourneyCreateSheet.tsx": 1,
-    "client/src/mobile/screens/settings/MSetPickerSheet.tsx": 1,
     "client/src/mobile/screens/settings/MSettingsUi.tsx": 1,
     "client/src/mobile/screens/trip/MTripShell.tsx": 1,
     "client/src/mobile/screens/trip/plan/planTimelineModel.ts": 1,

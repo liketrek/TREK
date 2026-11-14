@@ -160,6 +160,38 @@ struct WidgetSnapshot: Codable {
         }
     }
 
+    /// The trip's next flight or the one in the air, for the flight widget.
+    /// Times are epoch seconds, so the widget moves its countdown and its
+    /// aircraft on with the clock between two snapshots; the clock times at
+    /// either airport come formatted, the widget has no zone data.
+    struct Flight: Codable {
+        var number: String
+        var from: String
+        var to: String
+        var fromCity: String?
+        var toCity: String?
+        var dep: Double
+        var arr: Double
+        /// Observed take-off.
+        var depActual: Double?
+        /// Before take-off: the planned departure plus the delay seen so far.
+        var depExpected: Double?
+        /// The feed saw the aircraft in the air when the app last looked.
+        var airborne: Bool?
+        /// Touchdown once landed, else the estimate while in the air.
+        var arrExpected: Double?
+        var landed: Bool?
+        var depTime: String
+        var arrTime: String
+        var arrTimeExpected: String?
+        /// Minutes late against the schedule, negative when early.
+        var delay: Int?
+        var aircraft: String?
+        /// When the feed last heard the aircraft.
+        var seen: Double?
+        var path: String
+    }
+
     struct Labels: Codable {
         var nextTrip: String
         var today: String
@@ -193,6 +225,22 @@ struct WidgetSnapshot: Codable {
         var votes: String?
         var noMessages: String?
         var departure: String?
+        var flight: String?
+        /// Contains "{time}", where the widget puts its running countdown.
+        var flightDeparts: String?
+        var flightInAir: String?
+        /// Contains "{time}".
+        var flightLands: String?
+        var flightLanded: String?
+        var flightOnTime: String?
+        /// Contains "{m}".
+        var flightLate: String?
+        /// Contains "{m}".
+        var flightEarly: String?
+        var flightEstimated: String?
+        /// Past the departure time with the aircraft not yet in the air.
+        var flightReady: String?
+        var noFlight: String?
     }
 
     var trip: Trip?
@@ -203,6 +251,7 @@ struct WidgetSnapshot: Codable {
     var packing: Packing?
     var atlas: Atlas?
     var collab: Collab?
+    var flight: Flight?
     var labels: Labels
 
     /// The dashboard's snapshot.

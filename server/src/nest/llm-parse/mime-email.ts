@@ -11,16 +11,21 @@
  */
 
 /** Guards against a hand-crafted mail nesting multiparts without end. */
-const MAX_DEPTH = 10;
+export const MAX_DEPTH = 10;
 
-type Headers = Map<string, string>;
+/*
+ * The part-level readers below are exported for mime-walker.ts, which walks
+ * the same tree for the mail import and keeps the attachments this reader skips.
+ */
 
-interface MessagePart {
+export type Headers = Map<string, string>;
+
+export interface MessagePart {
   headers: Headers;
   body: string;
 }
 
-interface ContentType {
+export interface ContentType {
   type: string;
   params: Record<string, string>;
 }
@@ -82,7 +87,7 @@ export function parseEmail(buffer: Buffer): ParsedMail | null {
  * envelope headers; a bare HTML or text file saved as `.eml` does neither and
  * is better served by the caller's raw handling.
  */
-function looksLikeMail(raw: string, headers: Headers): boolean {
+export function looksLikeMail(raw: string, headers: Headers): boolean {
   return /^[!-9;-~]+:/.test(raw) && MAIL_HEADERS.some((name) => headers.has(name));
 }
 
@@ -124,12 +129,12 @@ function walkPart(part: MessagePart, bodies: { html: string | null; text: string
   }
 }
 
-function isAttachment(headers: Headers): boolean {
+export function isAttachment(headers: Headers): boolean {
   return parseContentType(headers.get('content-disposition')).type === 'attachment';
 }
 
 /** Split a message (or a part) into its unfolded headers and its still-encoded body. */
-function splitMessage(raw: string): MessagePart {
+export function splitMessage(raw: string): MessagePart {
   const separator = /\r?\n\r?\n/.exec(raw);
   const headerBlock = separator ? raw.slice(0, separator.index) : raw;
   const body = separator ? raw.slice(separator.index + separator[0].length) : '';
@@ -160,7 +165,7 @@ function parseHeaders(block: string): Headers {
   return headers;
 }
 
-function parseContentType(value: string | undefined): ContentType {
+export function parseContentType(value: string | undefined): ContentType {
   const params: Record<string, string> = {};
   if (!value) return { type: '', params };
   const semicolon = value.indexOf(';');
@@ -178,7 +183,7 @@ function parseContentType(value: string | undefined): ContentType {
  * delimiter belongs to it, so it is matched (not captured) and stripped from
  * the part that follows.
  */
-function splitParts(body: string, boundary: string): string[] {
+export function splitParts(body: string, boundary: string): string[] {
   const delimiter = new RegExp(`(?:\\r?\\n|^)--${escapeRegExp(boundary)}(--)?[ \\t]*(?=\\r?\\n|$)`, 'g');
   const parts: string[] = [];
   let start = -1;
@@ -196,14 +201,14 @@ function escapeRegExp(s: string): string {
 }
 
 /** Undo the transfer encoding of a part, yielding its raw bytes. */
-function decodeToBuffer(part: MessagePart): Buffer {
+export function decodeToBuffer(part: MessagePart): Buffer {
   const encoding = (part.headers.get('content-transfer-encoding') ?? '').trim().toLowerCase();
   if (encoding === 'base64') return decodeBase64(part.body);
   if (encoding === 'quoted-printable') return decodeQuotedPrintable(part.body);
   return Buffer.from(part.body, 'latin1');
 }
 
-function decodePartText(part: MessagePart, contentType: ContentType): string {
+export function decodePartText(part: MessagePart, contentType: ContentType): string {
   return decodeCharset(decodeToBuffer(part), contentType.params.charset).replace(/\r\n?/g, '\n');
 }
 
@@ -244,7 +249,7 @@ function decodeCharset(bytes: Buffer, charset: string | undefined): string {
 }
 
 /** Resolve RFC 2047 encoded-words (`=?utf-8?B?…?=`), as used in subject lines. */
-function decodeEncodedWords(value: string): string {
+export function decodeEncodedWords(value: string): string {
   return value
     .replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (whole, charset: string, encoding: string, payload: string) => {
       const bytes =

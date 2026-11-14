@@ -12,6 +12,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{count} file untuk {trip}',
   'files.download': 'Unduh',
   'files.openError': 'Tidak dapat membuka file',
+  'files.downloadError': 'Tidak dapat mengunduh file',
   'files.downloadPdf': 'Unduh PDF',
   'files.count': '{count} file',
   'files.uploaded': '{count} diunggah',

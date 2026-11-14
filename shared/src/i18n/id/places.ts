@@ -82,6 +82,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Bujur (mis. 2.3522)',
   'places.formLatLabel': 'Lintang',
   'places.formLngLabel': 'Bujur',
+  'places.noCoordinates': 'Tanpa koordinat, jadi tidak ada di peta',
+  'places.noCoordinatesHint': 'Edit tempat ini dan pilih dari pencarian, atau masukkan lintang dan bujurnya.',
+  'places.noCoordinatesFormHint':
+    'Alamat ini belum punya koordinat, jadi tempat ini tidak akan muncul di peta. Pilih dari pencarian di atas atau masukkan lintang dan bujur.',
   'places.formCategory': 'Kategori',
   'places.noCategory': 'Tanpa Kategori',
   'places.newCategory': 'Kategori baru',

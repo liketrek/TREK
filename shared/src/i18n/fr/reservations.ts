@@ -37,7 +37,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Escale',
   'reservations.needsReview': 'Vérifier',
   'reservations.needsReviewHint':
-    "L'aéroport n'a pas pu être identifié automatiquement — veuillez confirmer l'emplacement.",
+    'Certaines informations ont été remplies automatiquement et n’ont pas pu être lues avec certitude. Merci de les vérifier.',
+  'reservations.reviewConfirm': 'C’est correct',
+  'reservations.reviewConfirmHint': 'Cliquez pour marquer comme vérifié.',
+  'reservations.reviewConfirmed': 'Marqué comme vérifié',
   'reservations.searchLocation': 'Rechercher une gare, un port, une adresse…',
   'reservations.meta.trainNumber': 'N° de train',
   'reservations.meta.platform': 'Quai',
@@ -281,7 +284,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Exporter les {shown} lignes affichées sur {total} (CSV)',
   'reservations.wallet.add': 'Ajouter à Apple Wallet',
   'reservations.wallet.addGoogle': 'Ajouter à Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Impossible de créer la carte Wallet. Réessayez.',
   'reservations.wallet.undated':
     'Donnez d’abord une date à la réservation : Wallet affiche la carte autour de ce moment.',

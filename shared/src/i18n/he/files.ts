@@ -14,6 +14,7 @@ const files: TranslationStrings = {
   'files.subtitle.two': 'שני קבצים עבור {trip}',
   'files.download': 'הורדה',
   'files.openError': 'לא ניתן לפתוח את הקובץ',
+  'files.downloadError': 'לא ניתן להוריד את הקובץ',
   'files.downloadPdf': 'הורדת PDF',
   'files.count': '{count} קבצים',
   'files.count.one': 'קובץ אחד',

@@ -10,6 +10,9 @@ import { useTranslation } from '../../../../src/i18n';
 import type { useAdmin } from '../../../../src/pages/admin/useAdmin';
 import MAdminNotificationsSection from '../../../../src/mobile/screens/admin/MAdminNotificationsSection';
 
+// The defaults grid loads its own data and has its own suite (MAdminNotificationDefaults.test.tsx).
+vi.mock('../../../../src/mobile/screens/admin/MAdminNotificationDefaults', () => ({ default: () => <div data-testid="notification-defaults" /> }));
+
 // The per-event matrix loads its own data and has its own spec — stub it so the
 // assertions here only see the section's own cards.
 vi.mock('../../../../src/mobile/screens/admin/MAdminNotifyMatrix', () => ({

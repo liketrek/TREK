@@ -3,11 +3,13 @@
  * called through a real MCP session on the whole app (buildApp, the real
  * registry with its addon and sub-feature gates, scopes and error mapper,
  * the real CollabService and a migrated temp SQLite), the way the
- * assistant's note cards read them.
+ * assistant's note cards read them. The shared links (#3076) ride the same
+ * path: saved over MCP, read back over MCP and over the REST route.
  */
 import { buildApp } from '../../src/bootstrap';
 import { createLocalMcpServer, McpRegistryService } from '../../src/nest-mcp';
 import { withRequestContext } from '../../src/nest/database/request-context';
+import { authCookie } from '../helpers/auth';
 import { makeCollabNote } from '../helpers/factories/collab';
 import { setAddonEnabled, setCollabFeature } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
@@ -17,6 +19,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory';
 import type { INestApplication } from '@nestjs/common';
 
+import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 let app: INestApplication;
@@ -105,5 +108,41 @@ describe('the shared notes over MCP', () => {
       await setCollabFeature(orm, 'notes', true);
     }
     expect((await session(user.id, 'list_collab_notes', { tripId: trip.id })).answer).toEqual({ notes: [] });
+  });
+});
+
+describe('the shared links over MCP', () => {
+  it('COLLAB-MCP-E2E-004: saves a link the Links panel then lists, and reads it back', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Lisbon' });
+    const created = await session(user.id, 'create_collab_link', {
+      tripId: trip.id,
+      title: 'Tram 28 timetable',
+      url: 'https://example.com/tram-28',
+    });
+    const link = (created.answer as { link: Record<string, unknown> }).link;
+    expect(link).toMatchObject({ title: 'Tram 28 timetable', url: 'https://example.com/tram-28', pinned: 0 });
+
+    const { answer } = await session(user.id, 'list_collab_links', { tripId: trip.id });
+    expect(answer).toEqual({ links: [expect.objectContaining({ id: link.id, username: user.username })] });
+    const rest = await request(app.getHttpServer())
+      .get(`/api/trips/${trip.id}/collab/links`)
+      .set('Cookie', authCookie(user.id));
+    expect(rest.status).toBe(200);
+    expect(rest.body.links.map((row: { id: number }) => row.id)).toEqual([link.id]);
+  });
+
+  it('COLLAB-MCP-E2E-005: is gone while the links are switched off', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setCollabFeature(orm, 'links', false);
+    try {
+      const { offered } = await session(user.id, 'list_collab_links', { tripId: trip.id });
+      expect(offered).not.toContain('list_collab_links');
+      expect(offered).not.toContain('create_collab_link');
+      expect(offered).toContain('list_collab_notes');
+    } finally {
+      await setCollabFeature(orm, 'links', true);
+    }
   });
 });

@@ -1,7 +1,7 @@
 // FE-MOB-SET-001 onwards
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from '../../../helpers/render';
+import { render, screen, within } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
@@ -51,6 +51,21 @@ describe('MSettingsGeneral', () => {
     await user.click(screen.getByRole('button', { name: /English/ }));
     await user.click(await screen.findByRole('button', { name: 'Deutsch' }));
     expect(updateSetting).toHaveBeenCalledWith('language', 'de');
+  });
+
+  it('FE-MOB-SET-003b: place names follow the app until another language is picked for them', async () => {
+    const user = userEvent.setup();
+    const updateSetting = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, {
+      settings: buildSettings({ language: 'en' }),
+      updateSetting,
+    });
+    render(<MSettingsGeneral />);
+
+    await user.click(screen.getByRole('button', { name: 'Same as the app' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Place names' });
+    await user.click(within(sheet).getByRole('button', { name: 'Deutsch' }));
+    expect(updateSetting).toHaveBeenCalledWith('place_language', 'de');
   });
 
   it('FE-MOB-SET-004: a chosen display currency is shown with its symbol', () => {

@@ -69,6 +69,44 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'reservation:deleted': { reservationId: 6 },
   'reservation:positions': { positions: [{ id: 6, position: 0 }], day_id: 2 },
   'reservation:travelers-updated': { reservationId: 6, travelers: [{ user_id: 1 }] },
+  'flight:live': {
+    flights: [
+      {
+        reservation_id: 6,
+        leg_index: 0,
+        callsign: 'DLH400',
+        flight_number: 'LH 400',
+        service_date: '2026-06-11',
+        origin: { code: 'FRA', name: 'Frankfurt', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin' },
+        destination: { code: 'JFK', name: 'New York JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York' },
+        phase: 'airborne',
+        scheduled_departure: '2026-06-11T11:50:00.000Z',
+        scheduled_arrival: '2026-06-11T20:35:00.000Z',
+        departed_at: '2026-06-11T12:14:00.000Z',
+        landed_at: null,
+        estimated_arrival: '2026-06-11T20:51:00.000Z',
+        departure_delay_min: 24,
+        arrival_delay_min: 16,
+        progress: 0.42,
+        distance_total_km: 6200,
+        distance_remaining_km: 3596,
+        position: {
+          lat: 55.1,
+          lng: -20.4,
+          altitude_ft: 37000,
+          ground_speed_kt: 470,
+          track_deg: 285,
+          vertical_rate_fpm: 0,
+          on_ground: false,
+        },
+        aircraft: { registration: 'D-AIXA', type: 'A359' },
+        last_seen_at: '2026-06-11T15:40:00.000Z',
+        fetched_at: '2026-06-11T15:40:10.000Z',
+        stale: false,
+        source: 'adsb.lol',
+      },
+    ],
+  },
   'accommodation:created': { accommodation: { id: 8 } },
   'accommodation:updated': { accommodation: { id: 8 } },
   'accommodation:deleted': { accommodationId: 8 },
@@ -137,6 +175,8 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'journey:contributor:changed': { journeyId: 3, targetUserId: 2, role: 'editor' },
   'journey:photos:updated': { journeyId: 3 },
   'journey:recording:updated': { journeyId: 3, date: '2026-05-14' },
+  'mailInbox:changed': { pending: 3 },
+  'mailInbox:settings': {},
   'import:progress': { jobId: 'j1', tripId: 1, status: 'running', done: 1, total: 3, fileName: 'a.pdf' },
   'import:done': { jobId: 'j1', tripId: 1, result: { items: [] } },
   'import:error': { jobId: 'j1', tripId: 1, message: 'boom' },
@@ -159,7 +199,7 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (79 trip + 41 user = 120)', () => {
+  it('WSEVT-REG-001: pins the authoritative inventory counts (79 trip + 43 user = 122)', () => {
     // 67th to 69th trip event: the three collab:link:* a shared link emits.
     // 70th and 71st: the road trip's vias and tracks, which used to be written silently.
     // 74th: docsync:changed, so a sync run that moved documents refreshes the
@@ -177,9 +217,11 @@ describe('@trek/shared realtime event registry', () => {
     // notification:read-all, trips:changed, settings:updated, tags:changed,
     // atlas:changed, journey:updated, journey:deleted). Registered first, the
     // writes that send them follow.
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(79);
-    expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(41);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(120);
+    // 42nd and 43rd user event: mailInbox:changed and mailInbox:settings, the
+    // inbox of forwarded booking mails and its settings card.
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(80);
+    expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(43);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(123);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {
@@ -231,5 +273,13 @@ describe('@trek/shared realtime event registry', () => {
     expect(member.safeParse({ member: { id: 2, username: 'Guest Ana', email: 'ana@example.org' } }).success).toBe(
       false,
     );
+  });
+
+  it('WSEVT-REG-009: mailInbox:changed carries a count and nothing negative', () => {
+    const changed = TREK_WS_EVENTS['mailInbox:changed'].payload;
+    expect(changed.safeParse({ pending: 0 }).success).toBe(true);
+    expect(changed.safeParse({ pending: -1 }).success).toBe(false);
+    expect(changed.safeParse({ pending: 1.5 }).success).toBe(false);
+    expect(changed.safeParse({}).success).toBe(false);
   });
 });

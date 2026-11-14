@@ -385,6 +385,25 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
       });
     });
 
+    it('the costs mode needs budget_edit and nothing else (#1714)', async () => {
+      const noBudget = svc({ can: vi.fn().mockImplementation((a: string) => a !== 'budget_edit') });
+      expect(await thrownAsync(() => tc(noBudget).update(user, '9', { costs_mode: 'totals' }, req))).toEqual({
+        status: 403,
+        body: { error: 'No permission to change how this trip keeps its costs' },
+      });
+      const update = vi.fn().mockReturnValue({
+        updatedTrip: { id: 9, costs_mode: 'totals' },
+        changes: { costs_mode: 'totals' },
+        newTitle: 'b',
+        newReminder: 0,
+        oldReminder: 0,
+      });
+      const onlyBudget = svc({ update, can: vi.fn().mockImplementation((a: string) => a === 'budget_edit') });
+      expect(await tc(onlyBudget).update(user, '9', { costs_mode: 'totals' }, req)).toEqual({
+        trip: { id: 9, costs_mode: 'totals' },
+      });
+    });
+
     it('403 on an edit field without trip_edit', async () => {
       const s = svc({ can: vi.fn().mockImplementation((a: string) => a !== 'trip_edit') });
       expect(await thrownAsync(() => tc(s).update(user, '9', { title: 'b' }, req))).toEqual({
@@ -660,21 +679,28 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
     it('404 without access, else sends the calendar with headers', async () => {
       expect(
         await thrownAsync(() =>
-          tc(svc({ canAccessTrip: vi.fn().mockResolvedValue(undefined) })).exportIcs(user, '9', makeRes()),
+          tc(svc({ canAccessTrip: vi.fn().mockResolvedValue(undefined) })).exportIcs(user, '9', {}, makeRes()),
         ),
       ).toEqual({ status: 404, body: { error: 'Trip not found' } });
       const res = { setHeader: vi.fn(), send: vi.fn() };
       const cal = { exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: 'trip.ics' }) };
-      await tc(svc(), cal).exportIcs(user, '9', res as never);
+      await tc(svc(), cal).exportIcs(user, '9', {}, res as never);
       expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/calendar; charset=utf-8');
       expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="trip.ics"');
       expect(res.send).toHaveBeenCalledWith('BEGIN:VCALENDAR');
+      expect(cal.exportICS).toHaveBeenCalledWith('9', { dayEvents: true });
+    });
+
+    it('leaves the per-day summaries out for days=0 (#2602)', async () => {
+      const cal = { exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: 'trip.ics' }) };
+      await tc(svc(), cal).exportIcs(user, '9', { days: '0' }, makeRes());
+      expect(cal.exportICS).toHaveBeenCalledWith('9', { dayEvents: false });
     });
 
     it('folds a non-ASCII filename into an ASCII header with filename* instead of crashing setHeader (#2165)', async () => {
       const res = { setHeader: vi.fn(), send: vi.fn() };
       const cal = { exportICS: vi.fn().mockReturnValue({ ics: 'BEGIN:VCALENDAR', filename: '沖縄.ics' }) };
-      await tc(svc(), cal).exportIcs(user, '9', res as never);
+      await tc(svc(), cal).exportIcs(user, '9', {}, res as never);
       expect(res.setHeader).toHaveBeenCalledWith(
         'Content-Disposition',
         'attachment; filename="download.ics"; filename*=UTF-8\'\'%E6%B2%96%E7%B8%84.ics',
@@ -687,7 +713,7 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
           throw new NotFoundError('gone');
         }),
       };
-      expect(await thrownAsync(() => tc(svc(), nf).exportIcs(user, '9', makeRes()))).toEqual({
+      expect(await thrownAsync(() => tc(svc(), nf).exportIcs(user, '9', {}, makeRes()))).toEqual({
         status: 404,
         body: { error: 'gone' },
       });
@@ -696,7 +722,7 @@ describe('TripsController (parity with the legacy /api/trips route)', async () =
           throw new Error('boom');
         }),
       };
-      await expect(tc(svc(), other).exportIcs(user, '9', makeRes())).rejects.toThrow('boom');
+      await expect(tc(svc(), other).exportIcs(user, '9', {}, makeRes())).rejects.toThrow('boom');
     });
   });
 

@@ -1,6 +1,7 @@
 import { ADDON_IDS } from '../../../src/addons';
 import { buildApp } from '../../../src/bootstrap';
 import { BudgetSettlements } from '../../../src/db/entities/BudgetSettlements.entity';
+import { CollabLinks } from '../../../src/db/entities/CollabLinks.entity';
 import { CollabPolls } from '../../../src/db/entities/CollabPolls.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { PackingTemplateCategories } from '../../../src/db/entities/PackingTemplateCategories.entity';
@@ -220,7 +221,9 @@ export async function openHarness(): Promise<ParityHarness> {
   await app.init();
   const orm = app.get(MikroORM);
   await oneByOne(Object.values(ADDON_IDS), (addon) => setAddonEnabled(orm, addon, true));
-  await oneByOne(['chat', 'notes', 'polls', 'whatsnext'] as const, (feature) => setCollabFeature(orm, feature, true));
+  await oneByOne(['chat', 'notes', 'polls', 'links', 'whatsnext'] as const, (feature) =>
+    setCollabFeature(orm, feature, true),
+  );
   // The wanderer tools show only while wanderer is allowed under Tours.
   await setAppSetting(orm, 'tours_wanderer_enabled', 'true');
   // The photo search tools show only while a provider is on.
@@ -319,6 +322,7 @@ export const NEED_KEYS: Record<Need, readonly (keyof Scene)[]> = {
   collabNote: ['collabNote'],
   collabMessage: ['collabMessage'],
   poll: ['poll'],
+  collabLink: ['collabLink'],
   file: ['file'],
   collection: ['collection', 'collectionPlace'],
   journey: ['journey', 'journeyEntry'],
@@ -442,6 +446,15 @@ const BUILDERS: Record<Need, Builder> = {
       options: JSON.stringify(['Pasta', 'Sushi']),
     });
     s.poll = { id: row.id };
+  },
+  async collabLink(s, _app, orm) {
+    const id = await insertRow(orm, CollabLinks, {
+      trip: s.trip.id,
+      user: s.owner.id,
+      title: `Ferry ${s.n}`,
+      url: 'https://example.com/ferry',
+    });
+    s.collabLink = { id };
   },
   async file(s, _app, orm) {
     s.file = await makeTripFile(orm, s.trip.id);

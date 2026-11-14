@@ -158,6 +158,30 @@ private struct BookingsFamilyView: View {
     var body: some View { BookingsContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
 }
 
+// MARK: - Flight
+
+struct FlightWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "TripFlight", intent: SelectTripIntent.self, provider: TrekTripProvider()) { entry in
+            TrekContainer(link: entry.snapshot?.flight.flatMap { WidgetSnapshot.link($0.path) }) {
+                FlightFamilyView(entry: entry)
+            } background: {
+                TrekPaper()
+            }
+        }
+        .configurationDisplayName("widget.flight.name")
+        .description("widget.flight.description")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline])
+    }
+}
+
+private struct FlightFamilyView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: TrekEntry
+
+    var body: some View { FlightContent(snapshot: entry.snapshot, family: TrekFamily(family), now: entry.date) }
+}
+
 // MARK: - To-dos
 
 struct TodosWidget: Widget {

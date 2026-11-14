@@ -1,4 +1,4 @@
-// FE-W5CAT-001 to FE-W5CAT-040
+// FE-W5CAT-001 to FE-W5CAT-042
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { ComponentProps } from 'react'
 import { http, HttpResponse } from 'msw'
@@ -644,5 +644,25 @@ describe('KategorieGruppe — plugin contributions', () => {
 
     expect(await screen.findByText('Sunny')).toBeInTheDocument()
     expect(screen.getByText('Forecast')).toBeInTheDocument()
+  })
+})
+
+describe('KategorieGruppe — sharing the whole list (#2961)', () => {
+  it('FE-W5CAT-041: the list menu offers the sharing of the whole list and closes on it', () => {
+    const onShareCategory = vi.fn()
+    const { container } = setup({ onShareCategory })
+    openCategoryMenu(container)
+
+    fireEvent.click(screen.getByText('Sharing for Whole List'))
+    expect(onShareCategory).toHaveBeenCalledOnce()
+    expect(screen.queryByText('Sharing for Whole List')).toBeNull()
+  })
+
+  it('FE-W5CAT-042: a read-only member gets no such entry', () => {
+    const { container } = setup({ onShareCategory: vi.fn(), canEdit: false })
+    openCategoryMenu(container)
+
+    expect(screen.getByText('Uncheck All')).toBeInTheDocument()
+    expect(screen.queryByText('Sharing for Whole List')).toBeNull()
   })
 })

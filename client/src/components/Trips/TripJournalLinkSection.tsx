@@ -5,8 +5,7 @@ import { useTranslation } from '../../i18n';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import CustomSelect from '../shared/CustomSelect';
 import { DialogButton, fs } from '../shared/DialogShell';
-import { AddRowButton } from '../shared/dialogParts';
-import { LinkedJournalIcon } from './LinkedJournalIcon';
+import { AddRowButton, PANEL } from '../shared/dialogParts';
 import { TripMemberAvatar } from './TripMemberAvatar';
 import { LinkCard } from './TripShareDialog';
 import { useTripJournalLink, type JournalMemberChoice } from './useTripJournalLink';
@@ -14,6 +13,9 @@ import { useTripJournalLink, type JournalMemberChoice } from './useTripJournalLi
 const ROWS = 'flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5';
 const ROW = 'flex min-h-[48px] items-center gap-3 rounded-[10px] px-2.5 py-1.5';
 const SEGMENT = 'rounded-full px-2.5 py-1 font-semibold';
+/** The phone sheet's buttons, the round 38px ones its other areas use. */
+const SHEET_BUTTON =
+  'flex h-[38px] min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 [&>svg]:flex-none text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold disabled:opacity-40';
 
 const ROLES: { value: TripJournalLinkRole | null; labelKey: string }[] = [
   { value: null, labelKey: 'trip.journal.roleNone' },
@@ -38,36 +40,7 @@ export function TripJournalLinkSection({ tripId, framed = true }: { tripId: numb
   return (
     <>
       <Frame>
-        {j.mode === 'view' && j.link && <LinkedJournal j={j} />}
-        {j.mode === 'view' && !j.link && j.canLink && (
-          <AddRowButton onClick={j.startPick}>{t('trip.journal.link')}</AddRowButton>
-        )}
-        {j.mode === 'view' && j.link && (
-          <div className="flex flex-wrap gap-2">
-            {j.canEditMembers && (
-              <DialogButton onClick={j.editMembers} icon={<Users size={14} strokeWidth={2.2} />}>
-                {t('trip.journal.editMembers')}
-              </DialogButton>
-            )}
-            {j.canLink && (
-              <DialogButton onClick={j.startPick} icon={<BookOpen size={14} strokeWidth={2.2} />}>
-                {t('trip.journal.change')}
-              </DialogButton>
-            )}
-            {j.canUnlink && (
-              <button
-                type="button"
-                onClick={() => setAskUnlink(true)}
-                disabled={j.busy}
-                className="inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 font-medium text-danger shadow-sm ring-1 ring-edge-faint hover:bg-danger-soft disabled:opacity-50"
-                style={fs(12.5, 'body')}
-              >
-                <Unlink size={13} strokeWidth={2.2} />
-                {t('trip.journal.unlink')}
-              </button>
-            )}
-          </div>
-        )}
+        {j.mode === 'view' && <JournalView j={j} framed={framed} onUnlink={() => setAskUnlink(true)} />}
         {j.mode === 'pick' && <JournalPicker j={j} />}
         {(j.mode === 'members' || (j.mode === 'pick' && j.pickedId != null)) && <MemberChooser j={j} />}
         {j.mode !== 'view' && (
@@ -101,16 +74,70 @@ export function TripJournalLinkSection({ tripId, framed = true }: { tripId: numb
   );
 }
 
+/**
+ * The journal as it stands: the linked one, in the dialog's cards or the phone
+ * card with its buttons, or the way to link one.
+ */
+function JournalView({ j, framed, onUnlink }: { j: JournalLink; framed: boolean; onUnlink: () => void }) {
+  const { t } = useTranslation();
+  if (!j.link) return j.canLink ? <AddRowButton onClick={j.startPick}>{t('trip.journal.link')}</AddRowButton> : null;
+  if (!framed) return <LinkedJournalCards j={j} onUnlink={onUnlink} />;
+  return (
+    <>
+      <LinkedJournal j={j} />
+      <SheetActions j={j} onUnlink={onUnlink} />
+    </>
+  );
+}
+
+/** The phone's ways to change who may open the journal, pick another or unlink it. */
+function SheetActions({ j, onUnlink }: { j: JournalLink; onUnlink: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-2">
+      {j.canEditMembers && (
+        <button type="button" onClick={j.editMembers} className={`${SHEET_BUTTON} bg-m-act text-m-actfg`}>
+          <Users size={14} strokeWidth={2.2} />
+          {t('trip.journal.editMembers')}
+        </button>
+      )}
+      {(j.canLink || j.canUnlink) && (
+        <div className="flex gap-2">
+          {j.canLink && (
+            <button
+              type="button"
+              onClick={j.startPick}
+              className={`${SHEET_BUTTON} flex-1 bg-[color:var(--m-ic)] text-m-ink`}
+            >
+              <BookOpen size={14} strokeWidth={2.2} />
+              {t('trip.journal.change')}
+            </button>
+          )}
+          {j.canUnlink && (
+            <button
+              type="button"
+              onClick={onUnlink}
+              disabled={j.busy}
+              className={`${SHEET_BUTTON} flex-1 bg-[color:var(--m-ic)] text-[color:var(--m-st-danger)]`}
+            >
+              <Unlink size={14} strokeWidth={2.2} />
+              {t('trip.journal.unlink')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The phone sheet's card: what a linked journal does, then the journal and its people. */
 function JournalCard({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <LinkCard
-      icon={<LinkedJournalIcon size={15} strokeWidth={2.2} />}
-      title={t('trip.journal.title')}
-      hint={t('trip.journal.hint')}
-    >
+    <section className="flex flex-col gap-3 rounded-[18px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] p-3">
+      <p className="m-0 font-geist text-caption leading-snug text-m-muted">{t('trip.journal.hint')}</p>
       {children}
-    </LinkCard>
+    </section>
   );
 }
 
@@ -120,15 +147,114 @@ function Bare({ children }: { children: ReactNode }) {
 
 type JournalLink = ReturnType<typeof useTripJournalLink>;
 
-/** The linked journal: cover, title, what the reader may do in it, and who it is open to. */
+/**
+ * The linked journal in the desktop settings, in cards like the Sharing area's:
+ * the journal itself with the ways to change or unlink it, then who of the trip
+ * may open it, as rows like the People area's.
+ */
+function LinkedJournalCards({ j, onUnlink }: { j: JournalLink; onUnlink: () => void }) {
+  const { t } = useTranslation();
+  const link = j.link;
+  if (!link) return null;
+  const members = link.members ?? [];
+  return (
+    <>
+      <section className={PANEL}>
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-[10px] bg-surface-card text-content-muted shadow-sm">
+            {link.cover_image ? (
+              <img src={`/uploads/${link.cover_image}`} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <BookOpen size={18} strokeWidth={2} />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="m-0 truncate font-semibold text-content" style={fs(13.5, 'body')}>
+              {link.title}
+            </h3>
+            {link.my_role && (
+              <p className="m-0 mt-0.5 truncate text-content-faint" style={fs(11.5)}>
+                {t(`trip.journal.yourRole.${link.my_role}`)}
+              </p>
+            )}
+          </div>
+          <span
+            className="inline-flex flex-none items-center gap-1 rounded-full bg-success-soft px-2 py-[2px] font-semibold text-success"
+            style={fs(10.5)}
+          >
+            <Link2 size={10} strokeWidth={2.6} />
+            {t('trip.journal.linkedBadge')}
+          </span>
+        </div>
+        {(j.canLink || j.canUnlink) && (
+          <div className="flex flex-wrap gap-2">
+            {j.canLink && (
+              <DialogButton variant="primary" onClick={j.startPick} icon={<BookOpen size={14} strokeWidth={2.2} />}>
+                {t('trip.journal.change')}
+              </DialogButton>
+            )}
+            {j.canUnlink && (
+              <DialogButton
+                variant="danger"
+                onClick={onUnlink}
+                disabled={j.busy}
+                icon={<Unlink size={14} strokeWidth={2.2} />}
+              >
+                {t('trip.journal.unlink')}
+              </DialogButton>
+            )}
+          </div>
+        )}
+      </section>
+      <LinkCard
+        icon={<Users size={15} strokeWidth={2.2} />}
+        title={t('trip.journal.members')}
+        hint={t('trip.journal.membersHint')}
+      >
+        {members.length > 0 ? (
+          <div className={ROWS}>
+            {members.map((m) => (
+              <div key={m.user_id} className={ROW}>
+                <TripMemberAvatar username={m.username} avatarUrl={m.avatar_url} />
+                <span className="min-w-0 flex-1 truncate font-semibold text-content" style={fs(13, 'body')}>
+                  {m.username}
+                </span>
+                <span
+                  className="flex-none rounded-full bg-surface-tertiary px-2 py-[2px] font-semibold text-content-muted"
+                  style={fs(10.5)}
+                >
+                  {t(m.role === 'editor' ? 'trip.journal.roleEditor' : 'trip.journal.roleViewer')}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="m-0 text-content-faint" style={fs(12)}>
+            {t('trip.journal.onlyYou')}
+          </p>
+        )}
+        {j.canEditMembers && (
+          <div>
+            <DialogButton variant="primary" onClick={j.editMembers} icon={<Users size={14} strokeWidth={2.2} />}>
+              {t('trip.journal.editMembers')}
+            </DialogButton>
+          </div>
+        )}
+      </LinkCard>
+    </>
+  );
+}
+
+/** The linked journal on the phone: cover, title and role, then who of the trip may open it, as rows. */
 function LinkedJournal({ j }: { j: JournalLink }) {
   const { t } = useTranslation();
   const link = j.link;
   if (!link) return null;
+  const members = link.members ?? [];
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex items-center gap-3 rounded-[14px] border border-edge-faint bg-surface-card p-2.5">
-        <span className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-[10px] bg-surface-tertiary text-content-muted">
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-3 rounded-[14px] bg-[color:var(--m-ic)] p-2">
+        <span className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-[11px] bg-m-card text-m-muted">
           {link.cover_image ? (
             <img src={`/uploads/${link.cover_image}`} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -136,44 +262,32 @@ function LinkedJournal({ j }: { j: JournalLink }) {
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold text-content" style={fs(13.5, 'body')}>
-            {link.title}
-          </div>
+          <div className="truncate text-body font-semibold text-m-ink">{link.title}</div>
           {link.my_role && (
-            <div className="truncate text-content-faint" style={fs(11.5)}>
+            <div className="truncate font-geist text-caption text-m-muted">
               {t(`trip.journal.yourRole.${link.my_role}`)}
             </div>
           )}
         </div>
-        <span
-          className="inline-flex flex-none items-center gap-1 rounded-full bg-success-soft px-2 py-[2px] font-semibold text-success"
-          style={fs(10.5)}
-        >
-          <Link2 size={10} strokeWidth={2.6} />
+        <span className="flex flex-none items-center gap-1 rounded-full bg-[color:color-mix(in_srgb,var(--m-st-confirmed)_14%,transparent)] px-2 py-[2px] font-geist text-caption font-semibold text-[color:var(--m-st-confirmed)]">
+          <Link2 size={11} strokeWidth={2.6} />
           {t('trip.journal.linkedBadge')}
         </span>
       </div>
-      {link.members && link.members.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {link.members.map((m) => (
-            <span
-              key={m.user_id}
-              className="inline-flex items-center gap-1.5 rounded-full bg-surface-card py-[3px] pe-2.5 ps-[3px] shadow-sm ring-1 ring-edge-faint"
-              style={fs(11.5)}
-            >
-              <TripMemberAvatar username={m.username} avatarUrl={m.avatar_url} size={20} />
-              <span className="font-medium text-content">{m.username}</span>
-              <span className="text-content-faint">
+      {members.length > 0 ? (
+        <div className="flex flex-col">
+          {members.map((m) => (
+            <div key={m.user_id} className="flex items-center gap-2.5 py-1.5">
+              <TripMemberAvatar username={m.username} avatarUrl={m.avatar_url} size={30} />
+              <span className="min-w-0 flex-1 truncate text-body font-semibold text-m-ink">{m.username}</span>
+              <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-caption font-semibold text-m-muted">
                 {t(m.role === 'editor' ? 'trip.journal.roleEditor' : 'trip.journal.roleViewer')}
               </span>
-            </span>
+            </div>
           ))}
         </div>
-      )}
-      {link.members && link.members.length === 0 && (
-        <p className="m-0 text-content-faint" style={fs(11.5)}>
-          {t('trip.journal.onlyYou')}
-        </p>
+      ) : (
+        <p className="m-0 font-geist text-caption text-m-muted">{t('trip.journal.onlyYou')}</p>
       )}
     </div>
   );

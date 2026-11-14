@@ -266,6 +266,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': "No s'han trobat àlbums",
   'journey.picker.selectDate': 'Selecciona una data',
   'journey.picker.search': 'Cerca',
+  'journey.picker.takenBetween': 'Fetes entre',
   'journey.detail.journeyTab': 'Travesia',
   'journey.contributors.remove': 'Elimina el col·laborador',
   'journey.contributors.removeConfirm': "Vols eliminar {username} d'aquesta travesia?",

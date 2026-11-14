@@ -1,5 +1,6 @@
 import type { JourneyMapPlace } from '@trek/shared';
 import { useCallback, useState, type ComponentProps, type Ref } from 'react';
+import { MAP_ROUND_CONTROL_SIZE, MapLayerSwitcher, type BaseLayer } from '../Map/MapLayerSwitcher';
 import JourneyMap, { type JourneyMapHandle } from './JourneyMap';
 import JourneyMapAuto from './JourneyMapAuto';
 import JourneyMapLayerControl from './JourneyMapLayerControl';
@@ -9,7 +10,7 @@ import type { JourneyMapLayersView } from './useJourneyMapLayers';
 
 type MapProps = Omit<
   ComponentProps<typeof JourneyMapAuto>,
-  'ref' | 'layerVisibility' | 'marks' | 'onMarksPick' | 'plannedEntryIds'
+  'ref' | 'layerVisibility' | 'marks' | 'onMarksPick' | 'plannedEntryIds' | 'baseLayer'
 > & {
   /** CARTO key of a shared page, which the Leaflet renderer reads; see JourneyMap. */
   cartoApiKey?: string;
@@ -25,6 +26,11 @@ interface Props extends MapProps {
   hideLayerControl?: boolean;
   /** How far from the map's top the switches sit, clear of a bar laid over the map. */
   controlsTop?: number | string;
+  /**
+   * The base layer, when the page keeps the satellite switch in its own bar (the
+   * phone); left out, the map carries the switch in its top corner.
+   */
+  baseLayer?: BaseLayer;
   /** Leads from a picked place or stay to its entry. */
   onOpenEntry?: (entryId: string) => void;
   entryTitleOf?: (entryId: number) => string | null;
@@ -32,9 +38,42 @@ interface Props extends MapProps {
   onWriteAboutPlace?: (place: JourneyMapPlace) => void;
 }
 
+/** The gap between the switcher in the top corner and the column of controls beside it. */
+const CORNER_GAP = 8;
+
 /** A card action, only where the screen offers one. */
 function offeredIf<T>(offered: unknown, action: T): T | undefined {
   return offered ? action : undefined;
+}
+
+/**
+ * The base layer the map shows: the page's, where it keeps the switch in its own
+ * bar, otherwise the map's own, switched from its corner.
+ */
+function useBaseLayer(page: BaseLayer | undefined) {
+  const [own, setOwn] = useState<BaseLayer>('default');
+  const toggleBaseLayer = useCallback(() => setOwn((was) => (was === 'satellite' ? 'default' : 'satellite')), []);
+  return { baseLayer: page ?? own, toggleBaseLayer, switchOnMap: page === undefined };
+}
+
+/** The satellite switch in the map's top corner, unless the page keeps it in its own bar. */
+function CornerSwitcher({
+  hidden,
+  top,
+  active,
+  onToggle,
+}: {
+  hidden: boolean;
+  top: number | string;
+  active: BaseLayer;
+  onToggle: () => void;
+}) {
+  if (hidden) return null;
+  return (
+    <div className="pointer-events-auto absolute end-3 z-10" style={{ top }}>
+      <MapLayerSwitcher active={active} onToggle={onToggle} tooltipPlacement="bottom" />
+    </div>
+  );
 }
 
 /**
@@ -43,6 +82,11 @@ function offeredIf<T>(offered: unknown, action: T): T | undefined {
  * surface draws through here, the desktop aside, the phone screens and the
  * shared page, so the layers mean the same everywhere. A switched-off layer
  * is hidden in place: the map is not rebuilt and keeps its view.
+ *
+ * The satellite switch sits in the top corner on every one of them, the phone
+ * included (#2594): it is what a visitor of a shared hike reads the route by.
+ * It belongs to this view alone and opens on the map, so nobody's own setting
+ * is read or written, which a shared page could not do anyway.
  */
 export default function JourneyLayeredMap({
   ref,
@@ -50,6 +94,7 @@ export default function JourneyLayeredMap({
   engine = 'auto',
   hideLayerControl = false,
   controlsTop = 12,
+  baseLayer: pageBaseLayer,
   onOpenEntry,
   entryTitleOf,
   onWriteAboutPlace,
@@ -59,6 +104,7 @@ export default function JourneyLayeredMap({
   ...rest
 }: Props) {
   const [picked, setPicked] = useState<{ marks: JourneyMapMark[]; key: string } | null>(null);
+  const { baseLayer, toggleBaseLayer, switchOnMap } = useBaseLayer(pageBaseLayer);
   const visibility = layers?.visibility;
   const onMarksPick = useCallback((marks: JourneyMapMark[]) => {
     setPicked({ marks, key: marks.map((m) => m.key).join(',') });
@@ -92,6 +138,7 @@ export default function JourneyLayeredMap({
     marks: layers?.marks,
     onMarksPick,
     plannedEntryIds: layers?.plannedEntryIds,
+    baseLayer,
   };
 
   return (
@@ -99,10 +146,13 @@ export default function JourneyLayeredMap({
       <div className="isolate h-full w-full">
         {engine === 'leaflet' ? <JourneyMap ref={ref} {...mapProps} /> : <JourneyMapAuto ref={ref} {...mapProps} />}
       </div>
+      <CornerSwitcher hidden={!switchOnMap} top={controlsTop} active={baseLayer} onToggle={toggleBaseLayer} />
       {layers && (
         <div
           className="pointer-events-none absolute inset-x-3 z-10 flex flex-col items-start gap-2"
-          style={{ top: controlsTop }}
+          // Ends before the corner switcher, so a wide row of switches scrolls
+          // rather than running under it.
+          style={{ top: controlsTop, paddingInlineEnd: MAP_ROUND_CONTROL_SIZE + CORNER_GAP }}
         >
           {!hideLayerControl && (
             <div className="pointer-events-auto max-w-full">

@@ -9,6 +9,7 @@ import { LLM_PHOTO_EXTENSIONS } from '@trek/shared'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import { saveImportFiles } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
+import TripMailForward from '../MailIngest/TripMailForward'
 
 interface BookingImportModalProps {
   isOpen: boolean
@@ -209,6 +210,9 @@ export default function BookingImportModal({ isOpen, onClose, tripId, kind }: Bo
               {error}
             </div>
           )}
+
+          {/* The other way in: forward the booking mail to the trip's own address. */}
+          <TripMailForward tripId={tripId} />
         </div>
 
         {/* Footer */}

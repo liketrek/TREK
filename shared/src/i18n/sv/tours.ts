@@ -92,6 +92,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Höjdmeter uppför',
   'tours.detail.descent': 'Höjdmeter nedför',
   'tours.detail.navigationHint': 'Navigeringen öppnar ledens startpunkt; den vägleder inte längs rutten.',
+  'tours.detail.openRoute': 'Öppna rutten i en kartapp',
+  'tours.detail.mapsShort': 'Kartor',
   'tours.planner.title': 'Planera en tur',
   'tours.planner.newTour': 'Planera ny tur',
   'tours.planner.addTour': 'Lägg till tur',

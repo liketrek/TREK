@@ -7,7 +7,7 @@ import { usePermissionsStore } from '../../../../src/store/permissionsStore';
 import { useTripStore } from '../../../../src/store/tripStore';
 import { buildTrip, buildUser } from '../../../helpers/factories';
 import { server } from '../../../helpers/msw/server';
-import { render, screen, waitFor, within } from '../../../helpers/render';
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 
 // FE-MOB-TSET-001 to FE-MOB-TSET-008: the phone's trip settings, on useTripShare.
@@ -32,6 +32,11 @@ function roster(members: Row[]) {
       })
     )
   );
+}
+
+/** The sheet opens on its list of areas; a case about one opens it first. */
+async function openArea(name: 'People' | 'Sharing') {
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${name}`) }));
 }
 
 function renderSheet(props: Partial<Parameters<typeof MTripSettingsSheet>[0]> = {}) {
@@ -69,6 +74,7 @@ afterEach(() => {
 describe('MTripSettingsSheet', () => {
   it('FE-MOB-TSET-001: names the trip in its header and the owner with their badges', async () => {
     renderSheet();
+    await openArea('People');
     const sheet = screen.getByRole('dialog', { name: 'Trip settings' });
     expect(within(sheet).getByText('Japan 2026')).toBeInTheDocument();
     expect(await within(sheet).findByText('owner')).toBeInTheDocument();
@@ -87,6 +93,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     const { onMembersChanged } = renderSheet();
+    await openArea('People');
 
     await user.click(await screen.findByRole('button', { name: 'Remove access' }));
     const question = await screen.findByRole('dialog', { name: 'Remove access' });
@@ -109,6 +116,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('People');
 
     await user.click(await screen.findByRole('button', { name: 'Make owner' }));
     const question = await screen.findByRole('dialog', { name: 'Make owner' });
@@ -137,6 +145,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('People');
 
     expect(await screen.findByText('Grandma')).toBeInTheDocument();
     await user.type(screen.getByPlaceholderText('Guest name'), 'Grandpa');
@@ -174,6 +183,7 @@ describe('MTripSettingsSheet', () => {
       )
     );
     renderSheet();
+    await openArea('Sharing');
 
     expect(await screen.findByRole('button', { name: 'Bookings' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Costs' })).toHaveAttribute('aria-pressed', 'false');
@@ -191,6 +201,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('Sharing');
 
     await user.click(await screen.findByRole('button', { name: 'Packing' }));
     await user.click(screen.getByRole('button', { name: 'Create link' }));
@@ -210,11 +221,21 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('Sharing');
 
     await user.click(await screen.findByRole('button', { name: 'Create invite link' }));
     expect(await screen.findByDisplayValue(/\/join\/join1$/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Disable' }));
     await waitFor(() => expect(removed).toBe(true));
+  });
+
+  it('FE-MOB-TSET-007b: opens on the list of areas and goes back to it from one', async () => {
+    renderSheet();
+    expect(screen.getByRole('navigation', { name: 'Trip settings' })).toBeInTheDocument();
+    await openArea('People');
+    expect(screen.queryByRole('navigation', { name: 'Trip settings' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('navigation', { name: 'Trip settings' })).toBeInTheDocument();
   });
 
   it('FE-MOB-TSET-008: closes through its close button', async () => {

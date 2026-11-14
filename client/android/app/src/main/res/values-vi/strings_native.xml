@@ -8,6 +8,8 @@
     <string name="widget_today_description">Kế hoạch hôm nay dạng dòng thời gian, kèm thời tiết và điểm dừng tiếp theo.</string>
     <string name="widget_bookings_name">Đặt chỗ</string>
     <string name="widget_bookings_description">Các chuyến bay, tàu, khách sạn và bàn sắp tới của bạn, cùng thời gian.</string>
+    <string name="widget_flight_name">Chuyến bay</string>
+    <string name="widget_flight_description">Chuyến bay tiếp theo trực tiếp: đếm ngược giờ khởi hành, máy bay đang bay, độ trễ và giờ đến.</string>
     <string name="widget_todos_name">Việc cần làm</string>
     <string name="widget_todos_description">Những gì còn lại cho chuyến đi và việc soạn hành lý đã tới đâu.</string>
     <string name="widget_packing_name">Hành lý</string>

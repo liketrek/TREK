@@ -66,8 +66,8 @@ function PluginOAuthSection({ id, state, setState }: {
           ? <span className="inline-flex items-center gap-1.5"><CheckCircle size={14} className="flex-none text-success" />{t('settings.plugins.oauth.connected')}</span>
           : t('settings.plugins.oauth.notConnected')}
         control={state.connected
-          ? <button type="button" onClick={disconnect} disabled={busy} className={SETTINGS_BUTTON} style={fs(13, 'body')}><Unlink size={14} />{t('settings.plugins.oauth.disconnect')}</button>
-          : <button type="button" onClick={connect} disabled={busy} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}{t('settings.plugins.oauth.connect')}</button>}
+          ? <button type="button" onClick={disconnect} disabled={busy} className={SETTINGS_BUTTON}><Unlink size={14} />{t('settings.plugins.oauth.disconnect')}</button>
+          : <button type="button" onClick={connect} disabled={busy} className={SETTINGS_BUTTON_PRIMARY}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}{t('settings.plugins.oauth.connect')}</button>}
       />
     </SettingRows>
   )
@@ -158,7 +158,7 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
             </Fragment>
           ))}
           <div className="flex justify-end">
-            <button type="button" onClick={save} disabled={saving} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+            <button type="button" onClick={save} disabled={saving} className={SETTINGS_BUTTON_PRIMARY}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {t('common.save')}
             </button>
@@ -180,7 +180,6 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
                     onClick={() => runAction(a)}
                     disabled={running !== null}
                     className={a.danger ? SETTINGS_BUTTON_DANGER : SETTINGS_BUTTON}
-                    style={fs(13, 'body')}
                   >
                     {running === a.key && <Loader2 size={14} className="animate-spin" />}
                     {a.label}

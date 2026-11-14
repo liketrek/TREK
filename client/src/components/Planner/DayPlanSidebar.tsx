@@ -49,8 +49,8 @@ import { dayHeadStays } from './dayHeadStays'
 import { getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
-  getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay,
-  getAssignmentReservations, timedSlot, storedRideSlot, seatTimedDrop, stopDayIds, chronoKeyOf,
+  getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport,
+  getAssignmentReservations, timedSlot, storedRideSlot, seatTimedDrop, stopDayIds, chronoKeyOf, hasCarrierEndpointOnDay,
   type MergedItem,
 } from '../../utils/dayMerge'
 import { withinDriveRange } from '@trek/shared/roadtrip'
@@ -90,6 +90,7 @@ import type { TourListItem } from '@trek/shared'
 import { TourDayRowAvatar } from '../Tours/TourDayRowFacts'
 import { DayPlanPlaceSubline } from './DayPlanPlaceSubline'
 import { DAY_HEAD_DROP, DAY_HEAD_HOVER, DAY_HEAD_SELECTED, LOCK_OVERLAY, LOCK_OVERLAY_HOVER, LOCKED_ROW, ROUTE_TOOL, ROW_ROUND } from './dayPlanSurfaces'
+import { PlanFlightLiveLine } from './flightLive/FlightLiveStrip'
 
 export interface DayPlanSidebarProps {
   tripId: number
@@ -1032,7 +1033,6 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
       await tripActions.reorderAssignments(tripId, capturedDayId, prevIds)
     }, [capturedDayId], placeIds)
   }
-
 
   const handleDropOnDay = (e, dayId) => {
     e.preventDefault()
@@ -2297,6 +2297,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   </div>
                                 )
                               })()}
+                              <PlanFlightLiveLine tripId={tripId} res={res} />
                               <WalkLateLine late={transitLegs.lateBefore(day, res, merged.slice(idx + 1))} />
                             </div>
                             {transitMeta && (() => {

@@ -1094,7 +1094,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'เลือกเอนจินที่ใช้วาดแผนที่ในตัววางแผนทริปและบันทึกการเดินทาง รวมถึงสไตล์ Leaflet คือแผนที่แรสเตอร์แบบคลาสสิก Mapbox GL เพิ่มอาคาร 3 มิติและภูมิประเทศ โดยใช้โทเค็นของคุณเอง ส่วน MapLibre GL วาดแผนที่เวกเตอร์ของ OpenFreeMap โดยไม่ต้องใช้โทเค็น แผนที่โลกใช้ Leaflet เสมอ',
   'help.ctx.settings-map.bullet.1':
-    'ผู้ให้บริการแผนที่: Leaflet, Mapbox GL (การทดลอง) หรือ MapLibre GL แต่ละตัวเลือกมีคำอธิบายสั้นๆ กำกับ',
+    'ผู้ให้บริการแผนที่: Leaflet, Mapbox GL หรือ MapLibre GL แต่ละตัวเลือกมีคำอธิบายสั้นๆ กำกับ',
   'help.ctx.settings-map.bullet.2':
     '“แม่แบบแผนที่” และ “คีย์ CARTO API” สำหรับ Leaflet “รูปแบบแผนที่” สำหรับเอนจิน GL ทั้งสองแบบ และ “โทเค็นการเข้าถึง Mapbox” สำหรับ Mapbox GL',
   'help.ctx.settings-map.bullet.3':

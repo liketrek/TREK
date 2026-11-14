@@ -1,7 +1,5 @@
 import React from 'react'
-import { fs } from '../../components/shared/DialogShell'
-import { StatusPill } from '../../components/Settings/settingsKit'
-import FoldSummary from './FoldSummary'
+import { SettingsBlock, StatusPill } from '../../components/Settings/settingsKit'
 
 interface GoogleOptionsProps {
   /** "Google options" — the heading of the fold. */
@@ -19,19 +17,14 @@ interface GoogleOptionsProps {
  * an admin opens this card at all. The switches are the opposite — set once,
  * then never touched, and there are five of them.
  *
- * A native <details> rather than a state hook: keyboard operable and announced
- * to screen readers without writing any of that, and it survives a re-render
- * without state. Drawn as a box of rows (settingsKit's SettingRows), the
- * summary being its first row.
+ * Shown open: the settings pages fold nothing away.
  */
 export default function GoogleOptions({ title, summary, children }: GoogleOptionsProps): React.ReactElement {
   return (
-    <details className="group overflow-hidden rounded-[12px] border border-edge-faint bg-surface-secondary">
-      <FoldSummary>
-        <span className="min-w-0 flex-1 truncate font-medium text-content" style={fs(13, 'body')}>{title}</span>
-        <StatusPill>{summary}</StatusPill>
-      </FoldSummary>
-      <div className="divide-y divide-edge-faint border-t border-edge-faint bg-surface-card">{children}</div>
-    </details>
+    // A block of the card: its title and the count of switches on as the block's
+    // head, its rows inside.
+    <SettingsBlock title={title} badge={<StatusPill>{summary}</StatusPill>} flush>
+      {children}
+    </SettingsBlock>
   )
 }

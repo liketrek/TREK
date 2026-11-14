@@ -1176,7 +1176,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Seyahat planlayıcının ve günlüğün haritalarını hangi motorun, hangi stilde çizeceği. Leaflet klasik raster haritadır. Mapbox GL, kendi belirtecinizle 3B binalar ve arazi ekler. MapLibre GL ise belirteç gerektirmeden OpenFreeMap vektör karolarını çizer. Atlas her zaman Leaflet kullanır.',
   'help.ctx.settings-map.bullet.1':
-    'Harita Sağlayıcısı: Leaflet, Mapbox GL (Deneysel) ya da MapLibre GL; her seçeneğin altında kısa bir açıklama bulunur.',
+    'Harita Sağlayıcısı: Leaflet, Mapbox GL ya da MapLibre GL; her seçeneğin altında kısa bir açıklama bulunur.',
   'help.ctx.settings-map.bullet.2':
     'Leaflet için Harita Şablonu ve CARTO API anahtarı, iki GL motoru için Harita Stili, Mapbox GL için ayrıca Mapbox Erişim Anahtarı.',
   'help.ctx.settings-map.bullet.3':

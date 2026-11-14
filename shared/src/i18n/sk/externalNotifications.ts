@@ -17,6 +17,18 @@ const sk: NotificationLocale = {
       title: `Nová rezervácia: ${p.booking}`,
       body: `${p.actor} pridal(a) novú rezerváciu ${p.type} "${p.booking}" do "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} odletel`,
+      body: `${p.flight} z ${p.from} do ${p.to} je vo vzduchu.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} mešká`,
+      body: `${p.flight} z ${p.from} do ${p.to} mešká približne ${p.delay} minút.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} pristál`,
+      body: `${p.flight} z ${p.from} pristál v ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Pripomienka cesty: ${p.trip}`,
       body: `Vaša cesta "${p.trip}" sa čoskoro blíži!`,
@@ -89,6 +101,21 @@ const sk: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `„${p.tour}“ v „${p.trip}“ sa už vo wanderer nedá overiť. Túra vo vašej ceste zostáva, ako je.`
             : `„${p.tour}“ v „${p.trip}“ sa vo wanderer možno zmenila. Otvorte túru a skontrolujte jej zdroj. V ceste sa nič nezmení samo.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Pridané z e-mailu: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} pridal(a) „${p.booking}“ do „${p.trip}“ z preposlaného e-mailu.`
+          : `„${p.booking}“ z vášho preposlaného e-mailu bola pridaná do „${p.trip}“. V TREK to môžete 7 dní vrátiť späť.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Preposlané rezervácie na kontrolu',
+      body: `Preposlané rezervácie čakajúce na vás v TREK: ${p.count}. Pri každej je uvedené, prečo nebola pridaná sama.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Import e-mailov pozastavený',
+      body: 'TREK zatiaľ neprijíma preposlané e-maily s rezerváciami, preto ich zatiaľ nepreposielajte. Vaše adresy zostávajú a znova budú fungovať, keď sa import vráti, a už pridané rezervácie zostávajú vo vašich cestách.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

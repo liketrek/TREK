@@ -24,6 +24,8 @@ import { TourDayTimeText, TourOverrunLine } from '../../../../components/Tours/T
 import { tourDayEntryOf, type TourOverrun } from '../../../../components/Tours/tourDayTime'
 import type { WalkLate } from '../../../../components/Tours/walk/walkTransit'
 import { flowText } from '../../../../utils/flowText'
+import { useTripStore } from '../../../../store/tripStore'
+import { MPlanFlightLine } from '../MFlightLiveStrip'
 
 /**
  * The five row types of the mobile day timeline (place / manual transport /
@@ -267,6 +269,7 @@ export function TransportRow({ res, dayId, chrome, reorder, drag, onOpen }: {
     ? `${fmtTime(start, chrome)}${phase === 'single' && end ? ` – ${fmtTime(end, chrome)}` : ''}`
     : ''
   const sub = transportSubtitle(res, chrome.t)
+  const tripId = useTripStore(st => st.trip?.id)
 
   return (
     <div
@@ -289,6 +292,7 @@ export function TransportRow({ res, dayId, chrome, reorder, drag, onOpen }: {
             {time && <span className={TIME_CHIP}>{time}</span>}
           </div>
           {sub && <div className="mt-px truncate font-geist text-[0.71875rem] text-m-muted">{sub}</div>}
+          {res.type === 'flight' && tripId != null && <MPlanFlightLine tripId={tripId} reservationId={res.id} legIndex={res.__leg?.index ?? 0} />}
         </div>
         <Route size={15} strokeWidth={2} className="flex-none text-m-faint" />
       </div>

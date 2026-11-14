@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} Datei für {trip}',
   'files.download': 'Herunterladen',
   'files.openError': 'Datei konnte nicht geöffnet werden',
+  'files.downloadError': 'Datei konnte nicht heruntergeladen werden',
   'files.downloadPdf': 'PDF herunterladen',
   'files.count': '{count} Dateien',
   'files.count.one': '{count} Datei',

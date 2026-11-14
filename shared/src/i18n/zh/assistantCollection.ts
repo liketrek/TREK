@@ -20,6 +20,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': '移动到 {name}',
   'assistant.card.collection.removed': '已从列表中移除',
   'assistant.card.collection.photo': '照片',
+  'assistant.card.collection.mapEntry': '地图条目',
   'assistant.card.collection.places': '{name} 中保存的地点',
   'assistant.card.collection.saved': '保存的地点',
   'assistant.card.collection.statusSet': '已更改 {count} 个保存的地点',

@@ -50,6 +50,45 @@ async function loadLayerFactory() {
   return bridge.maplibreGL
 }
 
+interface GlLayerInternals {
+  _map: L.Map | null
+  _glMap: { _actualCanvas: HTMLElement; once(event: string, fn: () => void): void; jumpTo(view: { center: L.LatLng; zoom: number }): void }
+  _resizeContainer(): void
+  _zoomEnd(): void
+  _transitionEnd: (e?: unknown) => void
+  _trekGuarded?: boolean
+}
+
+/**
+ * The bridge answers a map resize by scheduling a frame that reads
+ * `this._map.getZoom()` without asking whether the layer is still on a map. A
+ * layer taken off before that frame (a dialog closed at once, React mounting a
+ * map twice in development) threw "Cannot read properties of null (reading
+ * 'getZoom')" from inside the frame. This is the bridge's own method (0.1.4,
+ * pinned) with that question added; patched once, on the layer's class, and
+ * only on a class that has the method itself (a test's stand-in layer has not).
+ */
+function guardTransitionEnd(layer: object): void {
+  const proto = Object.getPrototypeOf(layer) as GlLayerInternals | null
+  if (!proto || proto._trekGuarded || !Object.prototype.hasOwnProperty.call(proto, '_transitionEnd')) return
+  proto._transitionEnd = function (this: GlLayerInternals) {
+    L.Util.requestAnimFrame(() => {
+      const map = this._map
+      if (!map) return
+      const zoom = map.getZoom()
+      const center = map.getCenter()
+      const offset = map.latLngToContainerPoint(map.getBounds().getNorthWest())
+      this._resizeContainer()
+      L.DomUtil.setTransform(this._glMap._actualCanvas, offset, 1)
+      this._glMap.once('moveend', () => {
+        if (this._map) this._zoomEnd()
+      })
+      this._glMap.jumpTo({ center, zoom: zoom - 1 })
+    })
+  }
+  proto._trekGuarded = true
+}
+
 /** The factory, or null when its chunk never arrived. A dead chunk is not the basemap's problem. */
 async function loadLayerFactoryOrNull() {
   try {
@@ -96,6 +135,7 @@ function disarmGlLayer(layer: GlLeafletLayer): void {
  * map.remove().
  */
 function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolean {
+  guardTransitionEnd(layer)
   try {
     layer.addTo(map)
   } catch (err) {
@@ -198,7 +238,7 @@ export function restyleBasemap(layer: BasemapLayer | null | undefined, style: st
  * is no (#2288). Asking is also what keeps the maplibre chunk off the wire for a
  * browser that could never have used it.
  */
-export function VectorBasemap({ style }: { style: string }) {
+export function VectorBasemap({ style, hideLabels = false }: { style: string; hideLabels?: boolean }) {
   const map = useMap()
   const layerRef = useRef<GlLeafletLayer | null>(null)
   const styleRef = useRef(style)
@@ -233,6 +273,8 @@ export function VectorBasemap({ style }: { style: string }) {
         return
       }
       layerRef.current = layer
+      // Fixed per map (a small route map wants no place names), so it never rebuilds the layer.
+      if (hideLabels) hideLabelLayers(layer)
       // A style that never loads (its server, or the iOS app's offline protocol
       // failing) would leave the map white under its markers: raster instead.
       onStyleFailure(layer, () => {
@@ -248,7 +290,7 @@ export function VectorBasemap({ style }: { style: string }) {
       detachBasemapLayer(layerRef.current)
       layerRef.current = null
     }
-  }, [map, glUsable])
+  }, [map, glUsable, hideLabels])
 
   useEffect(() => {
     restyleBasemap(layerRef.current, style)

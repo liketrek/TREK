@@ -5,7 +5,7 @@ import { DialogSection, fs } from '../shared/DialogShell'
 import { Segmented } from '../shared/dialogParts'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import { SETTINGS_BUTTON, SettingRow, SettingRows, StatusPill } from './settingsKit'
+import { SETTINGS_BUTTON, SettingRow, SettingRows, SettingsColumns, StatusPill } from './settingsKit'
 import { APPEARANCE_SCHEMES, CUSTOM_ACCENT_PRESETS } from '../../theme/schemes'
 import { APPEARANCE_SCALE_MIN, APPEARANCE_SCALE_MAX } from '@trek/shared'
 import { DESKTOP_GROUPS, MOBILE_GROUPS, isHex } from './appearanceModel'
@@ -44,6 +44,8 @@ export default function AppearanceSettingsTab(): React.ReactElement {
 
   return (
     <>
+    <SettingsColumns
+      start={<>
       {/* ── Theme ───────────────────────────────────────────────── */}
       <Section title={tr('settings.appearance.theme', 'Theme')} icon={Paintbrush}>
         <SettingRows>
@@ -70,7 +72,8 @@ export default function AppearanceSettingsTab(): React.ReactElement {
 
           {/* Color scheme swatches */}
           <SettingRow label={tr('settings.appearance.scheme', 'Color scheme')} stacked>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {/* As many per line as fit at a width that holds every name in full. */}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
               {APPEARANCE_SCHEMES.map((s) => {
                 const active = cfg.schemeId === s.id
                 const dot = isDark ? s.swatch.dark : s.swatch.light
@@ -208,6 +211,8 @@ export default function AppearanceSettingsTab(): React.ReactElement {
         </SettingRows>
       </Section>
 
+      </>}
+      end={<>
       {/* ── Dashboard widgets ───────────────────────────────────── */}
       <Section
         title={tr('settings.appearance.dashboardWidgets', 'Dashboard widgets')}
@@ -236,12 +241,12 @@ export default function AppearanceSettingsTab(): React.ReactElement {
                     hint={tr('settings.appearance.sidebarHint', 'The whole right column. Turn off and the dashboard centers.')}
                     control={<ToggleSwitch on={masterOn} onToggle={() => setWidget('desktop', g.master as string, !masterOn)}
                       label={tr(`settings.appearance.widget.${g.master}`, WIDGET_LABELS[g.master])} />}
-                  >
-                    {/* Its widgets only matter while the column is shown: dimmed, not hidden, while it is off. */}
-                    <SettingRows className={`bg-surface-secondary transition-opacity ${masterOn ? '' : 'pointer-events-none opacity-40'}`}>
-                      {rows}
-                    </SettingRows>
-                  </SettingRow>
+                  />
+                  {/* Its widgets, indented under it in the same block. They only matter while the
+                      column is shown: dimmed, not hidden, while it is off. */}
+                  <div className={`divide-y divide-edge-faint ps-6 transition-opacity ${masterOn ? '' : 'pointer-events-none opacity-40'}`}>
+                    {rows}
+                  </div>
                 </SettingRows>
               )
             })}
@@ -265,9 +270,11 @@ export default function AppearanceSettingsTab(): React.ReactElement {
           </div>
         </DialogSection>
       </Section>
+      </>}
+    />
 
       <div className="mb-6 flex justify-end">
-        <button type="button" onClick={resetAll} className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+        <button type="button" onClick={resetAll} className={SETTINGS_BUTTON}>
           <RotateCcw size={14} strokeWidth={2} />
           {tr('settings.appearance.reset', 'Reset to defaults')}
         </button>

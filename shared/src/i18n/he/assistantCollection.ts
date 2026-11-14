@@ -34,6 +34,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'העברה ל-{name}',
   'assistant.card.collection.removed': 'הוסר מהרשימה',
   'assistant.card.collection.photo': 'תמונה',
+  'assistant.card.collection.mapEntry': 'רשומה במפה',
   'assistant.card.collection.places': 'מקומות שמורים ב-{name}',
   'assistant.card.collection.saved': 'מקומות שמורים',
   'assistant.card.collection.statusSet': '{count} מקומות שמורים עודכנו',

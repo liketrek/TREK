@@ -1426,3 +1426,126 @@ describe('downloadTripPDF — transport notes', () => {
     localStorage.removeItem('trek_pdf_page_break_per_day')
   })
 })
+
+// ── Large text (#2817) ──────────────────────────────────────────────────────
+
+/** The preview frame, which every export below opens. */
+function previewFrame(): HTMLIFrameElement {
+  const frame = getIframe()
+  if (!frame) throw new Error('no preview frame')
+  return frame
+}
+
+describe('downloadTripPDF — large text', () => {
+  beforeEach(() => {
+    localStorage.removeItem('trek_pdf_large_text')
+  })
+
+  const largeToggle = () => {
+    const toggle = document.querySelector<HTMLButtonElement>('#pdf-large-text-toggle')
+    if (!toggle) throw new Error('no large text switch')
+    return toggle
+  }
+
+  it('FE-PDF-LARGE-001: the document keeps its compact type by default and offers the switch off', async () => {
+    await downloadTripPDF(richArgs)
+    const html = previewFrame().srcdoc
+
+    expect(html).not.toContain('pdf-large-text"')
+    expect(largeToggle().getAttribute('aria-checked')).toBe('false')
+    // One scale and one set of greys, at today's values unless the class is on.
+    expect(html).toContain('--pdf-text: 1;')
+    expect(html).toContain('body.pdf-large-text {')
+    expect(html).toContain('.place-name { font-size: calc(11.5px * var(--pdf-text));')
+    expect(html).toContain('.note-text { font-size: calc(9.5px * var(--pdf-text)); color: var(--pdf-ink);')
+  })
+
+  it('FE-PDF-LARGE-002: the clock and the booking code of a transport scale with the rest', async () => {
+    await downloadTripPDF(richArgs)
+    const html = previewFrame().srcdoc
+
+    expect(html).toContain('<span class="note-clock">')
+    expect(html).toContain('<div class="note-time note-code">Code: ABC123</div>')
+    expect(html).not.toContain('font-size:10px;')
+  })
+
+  it('FE-PDF-LARGE-003: turning it on enlarges the open preview at once and is remembered', async () => {
+    await downloadTripPDF(richArgs)
+    largeToggle().click()
+
+    expect(largeToggle().getAttribute('aria-checked')).toBe('true')
+    expect(localStorage.getItem('trek_pdf_large_text')).toBe('1')
+    const body = previewFrame().contentDocument?.body
+    if (body) expect(body.classList.contains('pdf-large-text')).toBe(true)
+  })
+
+  it('FE-PDF-LARGE-004: the remembered choice comes back next to the other switches', async () => {
+    localStorage.setItem('trek_pdf_large_text', '1')
+    localStorage.setItem('trek_pdf_page_break_per_day', '0')
+    await downloadTripPDF(richArgs)
+
+    expect(previewFrame().srcdoc).toContain('<body class="pdf-flow pdf-large-text">')
+    expect(largeToggle().getAttribute('aria-checked')).toBe('true')
+    localStorage.removeItem('trek_pdf_page_break_per_day')
+  })
+
+  it('FE-PDF-LARGE-005: a blocked storage prints the compact document', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+
+    await downloadTripPDF(richArgs)
+    expect(previewFrame().srcdoc).not.toContain('pdf-large-text"')
+    expect(largeToggle().getAttribute('aria-checked')).toBe('false')
+  })
+})
+
+// ── Thumbnail-sized photos (#1501) ──────────────────────────────────────────
+
+describe('downloadTripPDF — photos at thumbnail size', () => {
+  const JPEG = 'data:image/jpeg;base64,dGh1bWI='
+
+  beforeEach(() => {
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 1600, height: 1200, close: vi.fn() })))
+    // Only the 2d context: a WebGL answer would send the route map down the basemap path.
+    const ctx = { fillStyle: '', fillRect: vi.fn(), drawImage: vi.fn() }
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+      ((type: string) => (type === '2d' ? ctx : null)) as unknown as HTMLCanvasElement['getContext'],
+    )
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(JPEG)
+    server.use(
+      http.get('http://localhost:3000/uploads/colosseum.jpg', () =>
+        new HttpResponse(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/jpeg' } })),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const withImage = (image_url: string) => ({
+    ...richArgs,
+    assignments: { '10': [{ ...assignmentForDay, place: { ...placeWithDetails, image_url } }] } as unknown as typeof richArgs.assignments,
+  })
+
+  it('FE-PDF-THUMB-001: an uploaded photo is baked in as a small JPEG instead of its full-size URL', async () => {
+    await downloadTripPDF(withImage('/uploads/colosseum.jpg'))
+    const html = previewFrame().srcdoc
+
+    expect(html).toContain(`<img class="place-thumb" src="${JPEG}" />`)
+    expect(html).not.toContain('colosseum.jpg')
+  })
+
+  it('FE-PDF-THUMB-002: a photo from another origin keeps its URL', async () => {
+    await downloadTripPDF(withImage('https://images.example.com/colosseum.jpg'))
+
+    expect(previewFrame().srcdoc).toContain('<img class="place-thumb" src="https://images.example.com/colosseum.jpg" />')
+  })
+
+  it('FE-PDF-THUMB-003: a closed export dialog stops the photos and opens nothing', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    await downloadTripPDF({ ...withImage('/uploads/colosseum.jpg'), signal: controller.signal })
+
+    expect(getOverlay()).toBeNull()
+    expect(HTMLCanvasElement.prototype.toDataURL).not.toHaveBeenCalled()
+  })
+})

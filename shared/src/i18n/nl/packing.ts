@@ -55,6 +55,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Alles aanvinken',
   'packing.menuUncheckAll': 'Alles uitvinken',
   'packing.menuDeleteCat': 'Lijst verwijderen',
+  'packing.menuShareCat': 'Delen voor de hele lijst',
+  'packing.shareCat.hint': 'Al je items in deze lijst gaan naar het niveau dat je kiest.',
+  'packing.shareCat.othersKept':
+    'Items die anderen hebben toegevoegd blijven zoals ze zijn. Alleen zij kunnen ze wijzigen.',
+  'packing.shareCat.noneOwn':
+    'Alle items in deze lijst zijn door iemand anders toegevoegd, dus alleen die persoon kan het delen wijzigen.',
+  'packing.shareCat.pickPeople': 'Kies minstens één persoon om mee te delen.',
+  'packing.shareCat.apply': 'Op lijst toepassen',
+  'packing.shareCat.done': 'Delen gewijzigd voor "{name}"',
+  'packing.shareCat.doneOthersKept':
+    'Delen gewijzigd voor "{name}". Items die anderen hebben toegevoegd zijn gebleven zoals ze waren.',
   'packing.addItem': 'Item toevoegen',
   'packing.addItemPlaceholder': 'Itemnaam...',
   'packing.addCategory': 'Lijst toevoegen',

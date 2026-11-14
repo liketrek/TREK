@@ -11,6 +11,7 @@ const pdf: TranslationStrings = {
     'iOS nie może drukować z aplikacji na ekranie początkowym. Safari otworzy tę podróż z gotowym eksportem i tam zapiszesz PDF.',
   'pdf.pageBreakPerDay': 'Podział strony dla każdego dnia',
   'pdf.transportNotes': 'Notatki do transportu',
+  'pdf.largeText': 'Duży tekst',
   'pdf.mapTitle': 'Przegląd trasy',
   'pdf.distanceLabel': 'Dystans',
   'pdf.mapCredit': 'Kontury krajów: geoBoundaries (CC BY 4.0)',

@@ -113,7 +113,6 @@ export default function ChatGptPasteStep({
               }}
               aria-disabled={!flow}
               className={`${SETTINGS_BUTTON_PRIMARY} ${flow ? '' : 'pointer-events-none opacity-50'}`}
-              style={fs(13, 'body')}
             >
               {flow ? <ExternalLink size={14} strokeWidth={2.2} /> : <Loader2 size={14} className="animate-spin" />}
               {t('assistant.connect.chatgptOpen')}
@@ -163,7 +162,6 @@ export default function ChatGptPasteStep({
                 onClick={() => void submit()}
                 disabled={busy || !flow}
                 className={SETTINGS_BUTTON_PRIMARY}
-                style={fs(13, 'body')}
               >
                 {busy && <Loader2 size={14} className="animate-spin" />}
                 {t('assistant.connect.save')}
@@ -174,7 +172,6 @@ export default function ChatGptPasteStep({
                 onClick={pasteFromClipboard}
                 disabled={!flow}
                 className={`${SETTINGS_BUTTON} whitespace-nowrap`}
-                style={fs(13, 'body')}
               >
                 <ClipboardPaste size={14} strokeWidth={2} />
                 {t('assistant.connect.chatgptPaste')}

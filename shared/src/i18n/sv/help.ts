@@ -1156,7 +1156,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Vilken motor som ritar kartorna i reseplaneraren och i dagboken, och i vilken stil. Leaflet är den klassiska rasterkartan, Mapbox GL lägger till 3D-byggnader och terräng med din egen token, och MapLibre GL ritar vektorrutor från OpenFreeMap utan token. Atlas använder alltid Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Kartleverantör: Leaflet, Mapbox GL (Experimentell) eller MapLibre GL, varje alternativ med en kort beskrivning.',
+    'Kartleverantör: Leaflet, Mapbox GL eller MapLibre GL, varje alternativ med en kort beskrivning.',
   'help.ctx.settings-map.bullet.2':
     'Kartmall och CARTO API-nyckel för Leaflet, Kartstil för de två GL-motorerna, samt Mapbox-åtkomsttoken för Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

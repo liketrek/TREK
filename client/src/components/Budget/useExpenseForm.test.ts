@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildBudgetItem, buildTrip } from '../../../tests/helpers/factories';
+import { buildBudgetItem, buildTrip, buildTripFile } from '../../../tests/helpers/factories';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { clearExchangeRateCache } from '../../hooks/useExchangeRates';
 import { useTripStore, type TripStoreState } from '../../store/tripStore';
@@ -21,7 +21,7 @@ vi.mock('./receiptUploads', () => ({
   ),
 }));
 
-// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-023
+// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-028
 
 const PEOPLE: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -104,7 +104,7 @@ afterEach(() => {
 });
 
 describe('useExpenseForm: where it starts', () => {
-  it('FE-BUDGET-EXPFORM-001: a new expense is food, in the display currency, today, split equally by everyone, paid by me', () => {
+  it('FE-BUDGET-EXPFORM-001: a new expense is food, in the trip currency, today, split equally by everyone, paid by me', () => {
     const { result } = setup();
     const f = result.current;
     expect(f.name).toBe('');
@@ -148,6 +148,39 @@ describe('useExpenseForm: where it starts', () => {
     // The lines wait in the Ticket split; the split itself stays Equally.
     expect(f.splitMode).toBe('equally');
     expect(f.pendingReceiptFiles).toEqual([photo]);
+  });
+
+  it('FE-BUDGET-EXPFORM-025: a new expense starts in the trip currency, which leads the picker with the display one (#2807)', () => {
+    localStorage.setItem('trek_fx_JPY', JSON.stringify({ rates: { JPY: 1, EUR: 0.006 }, ts: Date.now() }));
+    useTripStore.setState({ trip: buildTrip({ id: 7, currency: 'JPY' }) } as unknown as Partial<TripStoreState>);
+    const fresh = setup().result.current;
+    expect(fresh.currency).toBe('JPY');
+    expect(fresh.currencyChoices.slice(0, 2).map((o) => o.value)).toEqual(['JPY', 'EUR']);
+    expect(fresh.currencyChoices.filter((o) => o.value === 'EUR')).toHaveLength(1);
+    // A scanned receipt knows its own currency, and an edit keeps the saved one.
+    expect(setup({ prefill: { currency: 'usd' } }).result.current.currency).toBe('USD');
+    const editing = buildBudgetItem({ total_price: 20, currency: 'EUR', payers: [], members: [] });
+    expect(setup({ editing }).result.current.currency).toBe('EUR');
+  });
+
+  it('FE-BUDGET-EXPFORM-027: a trip of one hides who paid and the split, unless the expense holds more (#2689)', () => {
+    expect(setup().result.current.showSplit).toBe(true);
+    const solo = (editing: BudgetItem | null) =>
+      renderHook(() =>
+        useExpenseForm({ tripId: 7, base: 'EUR', people: [PEOPLE[0]], me: 1, editing, onSaved: vi.fn() })
+      ).result.current;
+    expect(solo(null).showSplit).toBe(false);
+    expect(solo(buildBudgetItem({ payers: [{ user_id: 1, amount: 20 }], members: [] })).showSplit).toBe(false);
+    // Someone who left the trip, or an uneven split, stays in reach.
+    const withBob = buildBudgetItem({
+      payers: [{ user_id: 1, amount: 20 }],
+      members: [{ user_id: 2, paid: 0, username: 'bob', amount: null }],
+    } as Partial<BudgetItem>);
+    expect(solo(withBob).showSplit).toBe(true);
+    const custom = buildBudgetItem({
+      members: [{ user_id: 1, paid: 0, username: 'alice', amount: 15 }],
+    } as Partial<BudgetItem>);
+    expect(solo(custom).showSplit).toBe(true);
   });
 
   it('FE-BUDGET-EXPFORM-003: an edited expense reopens with its payer, its custom split, its note and receipts', () => {
@@ -460,6 +493,61 @@ describe('useExpenseForm: saving', () => {
     expect(saveWithReceipts).toHaveBeenCalledWith(7, [photo], 9, expect.any(Function));
     expect(updateBudgetItem).toHaveBeenCalledWith(7, 9, expect.objectContaining({ receipt_file_ids: [3, 41] }));
     expect(result.current.pendingReceiptFiles).toEqual([]);
+  });
+
+  it("FE-BUDGET-EXPFORM-026: a trip file linked as a receipt goes out with the save, the booking's files first (#2839)", async () => {
+    const menu = buildTripFile({ id: 21, original_name: 'menu.jpg' });
+    const confirmation = buildTripFile({ id: 22, original_name: 'confirmation.pdf', reservation_id: 4 });
+    const binned = buildTripFile({ id: 23, original_name: 'old.pdf', deleted_at: '2026-01-01 10:00:00' });
+    useTripStore.setState({ files: [menu, confirmation, binned] } as unknown as Partial<TripStoreState>);
+    const { result } = setup({ prefill: { reservationId: 4 } });
+    expect(result.current.linkableFiles.map((f) => f.id)).toEqual([22, 21]);
+
+    act(() => result.current.handleLinkReceipt(confirmation));
+    act(() => result.current.handleLinkReceipt(confirmation));
+    expect(result.current.receipts.map((r) => r.id)).toEqual([22]);
+    expect(result.current.linkableFiles.map((f) => f.id)).toEqual([21]);
+
+    fill(result, 'Hotel', '200');
+    await save(result);
+    expect(addBudgetItem).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ receipt_file_ids: [22], reservation_id: 4 })
+    );
+  });
+
+  it('FE-BUDGET-EXPFORM-028: on a totals-only trip a new expense names nobody, an edit keeps who it named (#1714)', async () => {
+    useTripStore.setState({
+      trip: buildTrip({ id: 7, currency: 'EUR', costs_mode: 'totals' }),
+    } as Partial<TripStoreState>);
+    const created = setup();
+    expect(created.result.current.showSplit).toBe(false);
+    fill(created.result, 'Museum', '30');
+    await save(created.result);
+    expect(addBudgetItem).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ payers: [], members: [], member_ids: [], total_price: 30 })
+    );
+
+    const editing = buildBudgetItem({
+      id: 9,
+      name: 'Dinner',
+      total_price: 40,
+      payers: [{ user_id: 2, amount: 40 }],
+      members: [
+        { user_id: 1, paid: 0, username: 'alice', amount: null },
+        { user_id: 2, paid: 0, username: 'bob', amount: null },
+      ],
+    } as Partial<BudgetItem>);
+    const edited = setup({ editing });
+    expect(edited.result.current.showSplit).toBe(false);
+    act(() => edited.result.current.onTotalChange('50'));
+    await save(edited.result);
+    expect(updateBudgetItem).toHaveBeenCalledWith(
+      7,
+      9,
+      expect.objectContaining({ payers: [{ user_id: 2, amount: 50 }], member_ids: [1, 2], total_price: 50 })
+    );
   });
 
   it('FE-BUDGET-EXPFORM-017: a ticket split sends everyone a line names, ticked or not (#1382)', async () => {

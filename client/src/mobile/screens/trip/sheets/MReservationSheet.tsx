@@ -185,13 +185,13 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
       <FormSheetHeader
         icon={Ticket}
         title={res ? t('reservations.editTitle') : t('reservations.newTitle')}
+        // A saved booking goes into the phone's wallet (in the iOS and Android apps).
+        trailing={<MWalletButton tripId={tripId} reservationId={savedId(res)} onError={toast.error} compact />}
         onClose={handleClose}
         closeLabel={t('common.close')}
       />
 
       <FormSheetBody>
-        {/* A saved booking goes into Apple Wallet (iOS app only). */}
-        <MWalletButton tripId={tripId} reservationId={savedId(res)} onError={toast.error} className="mb-1 mt-2 flex" />
 
         {/* BOOKING TYPE */}
         <Eyebrow className="mb-[6px] mt-2 uppercase">{t('reservations.bookingType')}</Eyebrow>

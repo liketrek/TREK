@@ -76,6 +76,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Servade silumine ja gloobuse projektsioon selgemate servade ning realistliku maailmavaate jaoks.',
   'settings.mapHighQualityWarning': 'Võib nõrgemates seadmetes jõudlust vähendada.',
+  'settings.mapHidePois': 'Peida huvipunktid',
+  'settings.mapHidePoisHint':
+    'Peidab poed, restoranid ja vaatamisväärsused, mida Mapbox ise märgib, et esile tõuseksid ainult sinu kohad. Ainult Standard-stiilidel.',
   'settings.mapTipLabel': 'Vihje:',
   'settings.mapTip':
     'kaardi pööramiseks või kallutamiseks lohista paremat hiirenuppu all hoides. Koha lisamiseks kasuta keskmist klõpsu (paremklõps on pööramiseks).',
@@ -88,6 +91,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Ilmaandmete jaoks. Tasuta aadressil openweathermap.org/api',
   'settings.keyPlaceholder': 'Sisesta võti...',
   'settings.configured': 'Seadistatud',
+  'settings.notSetUp': 'Seadistamata',
+  'settings.mcp.appsConnected': '{count} rakendust ühendatud',
+  'settings.mcp.appsConnected.one': '{count} rakendus ühendatud',
   'settings.saveKeys': 'Salvesta võtmed',
   'settings.display': 'Kuva',
   'settings.colorMode': 'Värvirežiim',
@@ -124,7 +130,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Teavitused',
   'settings.notifyTripInvite': 'Reisikutsed',
   'settings.notifyBookingChange': 'Broneeringute muudatused',
+  'settings.notifyFlightDeparted': 'Väljalennud',
+  'settings.notifyFlightDelayed': 'Lendude hilinemised',
+  'settings.notifyFlightLanded': 'Maandumised',
   'settings.notifyTripReminder': 'Reisimeeldetuletused',
+  'settings.notifyMailBookingAdded': 'Kirjadest lisatud broneeringud',
+  'settings.notifyMailBookingPending': 'Ülevaatamist ootavad edastatud broneeringud',
+  'settings.notifyMailIngestPaused': 'Kirjaimport peatatud',
   'settings.notifyTodoDue': 'Ülesande tähtaeg läheneb',
   'settings.notifyVacayInvite': 'Vacay ühendamiskutsed',
   'settings.notifyVacayShare': 'Vacay kalendri jagamised',

@@ -118,4 +118,20 @@ describe('useMapSettingsForm', () => {
     await act(() => result.current.save());
     expect(toast.error).toHaveBeenCalledWith('common.error');
   });
+
+  it('FE-COMP-MAPFORM-009: the basemap points of interest switch is read from the settings and saved back (#1761)', async () => {
+    seed({ map_provider: 'mapbox-gl', map_hide_basemap_pois: true });
+    const { result } = renderHook(() => useMapSettingsForm());
+    expect(result.current.hideBasemapPois).toBe(true);
+
+    act(() => result.current.setHideBasemapPois(false));
+    await act(() => result.current.save());
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ map_hide_basemap_pois: false }));
+  });
+
+  it('FE-COMP-MAPFORM-010: the preview takes the Mapbox-only switches on Mapbox alone', () => {
+    seed({ map_provider: 'maplibre-gl', map_hide_basemap_pois: true, mapbox_3d_enabled: true });
+    const { result } = renderHook(() => useMapSettingsForm());
+    expect(result.current.mapboxPreview).toEqual({ enable3d: false, quality: false, hidePois: false });
+  });
 });

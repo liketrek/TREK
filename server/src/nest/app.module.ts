@@ -46,6 +46,7 @@ import { DocSyncModule } from './doc-sync/doc-sync.module';
 import { FeedsModule } from './feeds/feeds.module';
 import { FerratasModule } from './ferratas/ferratas.module';
 import { FilesModule } from './files/files.module';
+import { FlightLiveModule } from './flight-live/flight-live.module';
 import { GeoModule } from './geo/geo.module';
 import { GoogleQuotaModule } from './google-quota/google-quota.module';
 import { HealthModule } from './health/health.module';
@@ -57,6 +58,7 @@ import { JourneyAccessModule } from './journey/journey-access.module';
 import { JourneyModule } from './journey/journey.module';
 import { TripJournalLinkModule } from './journey/trip-journal-link.module';
 import { LlmParseModule } from './llm-parse/llm-parse.module';
+import { MailIngestModule } from './mail-ingest/mail-ingest.module';
 import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
@@ -178,6 +180,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     PhotosModule,
     MemoriesModule,
     AirtrailModule,
+    FlightLiveModule,
     DawarichModule,
     JourneyModule,
     JourneyRecordingsModule,
@@ -207,6 +210,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     ReservationImportModule,
     ReceiptScanModule,
     LlmParseModule,
+    MailIngestModule,
     AiConnectionsModule,
     AssistantModule,
     ManagedExtModule,

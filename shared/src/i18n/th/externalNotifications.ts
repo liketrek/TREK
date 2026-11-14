@@ -16,6 +16,18 @@ const th: NotificationLocale = {
       title: `การจองใหม่: ${p.booking}`,
       body: `${p.actor} เพิ่ม${p.type}ใหม่ "${p.booking}" ลงใน "${p.trip}"`,
     }),
+    flight_departed: (p) => ({
+      title: `เที่ยวบิน ${p.flight} ออกเดินทางแล้ว`,
+      body: `เที่ยวบิน ${p.flight} จาก ${p.from} ไป ${p.to} อยู่บนอากาศแล้ว`,
+    }),
+    flight_delayed: (p) => ({
+      title: `เที่ยวบิน ${p.flight} ล่าช้า`,
+      body: `เที่ยวบิน ${p.flight} จาก ${p.from} ไป ${p.to} ล่าช้ากว่ากำหนดประมาณ ${p.delay} นาที`,
+    }),
+    flight_landed: (p) => ({
+      title: `เที่ยวบิน ${p.flight} ลงจอดแล้ว`,
+      body: `เที่ยวบิน ${p.flight} จาก ${p.from} ลงจอดที่ ${p.to} แล้ว`,
+    }),
     trip_reminder: (p) => ({
       title: `แจ้งเตือนทริป: ${p.trip}`,
       body: `ทริป "${p.trip}" ของคุณกำลังจะมาถึงเร็ว ๆ นี้!`,
@@ -76,6 +88,21 @@ const th: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `"${p.tour}" ใน "${p.trip}" ตรวจใน wanderer ไม่ได้อีกต่อไป ทัวร์ในทริปของคุณยังคงเหมือนเดิม`
             : `"${p.tour}" ใน "${p.trip}" อาจเปลี่ยนแปลงใน wanderer เปิดทัวร์และตรวจแหล่งที่มา ไม่มีสิ่งใดในทริปเปลี่ยนเอง`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `เพิ่มจากอีเมล: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} เพิ่ม "${p.booking}" ลงใน "${p.trip}" จากอีเมลที่ส่งต่อ`
+          : `เพิ่ม "${p.booking}" จากอีเมลที่คุณส่งต่อลงใน "${p.trip}" แล้ว คุณเลิกทำได้ใน TREK ภายใน 7 วัน`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'การจองที่ส่งต่อซึ่งรอตรวจสอบ',
+      body: `การจองที่ส่งต่อซึ่งรอคุณอยู่ใน TREK: ${p.count} แต่ละรายการบอกเหตุผลที่ไม่ได้เพิ่มเองโดยอัตโนมัติ`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'หยุดการนำเข้าอีเมลชั่วคราว',
+      body: 'ขณะนี้ TREK ยังไม่รับอีเมลการจองที่ส่งต่อมา โปรดรอก่อนส่งต่อ ที่อยู่ของคุณยังคงอยู่และจะใช้งานได้อีกครั้งเมื่อการนำเข้ากลับมา และการจองที่เพิ่มแล้วยังคงอยู่ในทริปของคุณ',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

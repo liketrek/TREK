@@ -33,6 +33,16 @@ export function tripSpanDays(startDate: string, endDate: string): number {
 }
 
 /**
+ * How a trip keeps its costs (#1714): `split` tracks who paid and who shares
+ * each expense and settles up between the travellers, `totals` keeps only what
+ * the trip costs. Who paid and the shares stay stored either way; `totals` only
+ * leaves them out of Costs. Trips start out as `split`.
+ */
+export const TRIP_COSTS_MODES = ['split', 'totals'] as const;
+export const tripCostsModeSchema = z.enum(TRIP_COSTS_MODES);
+export type TripCostsMode = z.infer<typeof tripCostsModeSchema>;
+
+/**
  * Trip entity as returned by the trip list / get / create / update endpoints
  * (server/src/services/tripService.ts -> TRIP_SELECT). Columns of the `trips`
  * table plus the computed list fields (day_count, place_count, is_owner as 0/1,
@@ -49,6 +59,8 @@ export const tripSchema = z.object({
   cover_image: z.string().nullable().optional(),
   is_archived: z.number(),
   reminder_days: z.number(),
+  // Optional: a trip cached before the column existed has none, and reads as `split`.
+  costs_mode: tripCostsModeSchema.optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   // computed in TRIP_SELECT (list/get)
@@ -121,6 +133,8 @@ export const tripUpdateRequestSchema = z.object({
   // Bounded like a place's image url: a replaced cover is queued for release,
   // and every upload path the old value spells out is one queued object.
   cover_image: z.string().max(2048).nullable().optional(),
+  /** Costs as totals only or split between the travellers; needs `budget_edit`, not `trip_edit`. */
+  costs_mode: tripCostsModeSchema.optional(),
 });
 export type TripUpdateRequest = z.infer<typeof tripUpdateRequestSchema>;
 
@@ -179,3 +193,22 @@ export const tripSearchResponseSchema = z.object({
   ),
 });
 export type TripSearchResponse = z.infer<typeof tripSearchResponseSchema>;
+
+/**
+ * Query of the trip calendars: the one-time download (GET
+ * /api/trips/:id/export.ics) and both subscribable feeds (GET
+ * /api/feed/{trip,user}/:token.ics). `days=0` leaves out the all-day summary
+ * each day with untimed stops or notes gets (#2602); `days=1` or no value keeps
+ * it. Other keys are dropped rather than refused, so a calendar app that adds
+ * its own still gets the feed.
+ */
+export const tripCalendarQuerySchema = z.object({
+  days: z.enum(['0', '1']).optional(),
+});
+export type TripCalendarQuery = z.infer<typeof tripCalendarQuerySchema>;
+
+/**
+ * The MCP export's switch for the per-day summary events (#2602): what the
+ * routes' `days` query says as 0 or 1, as a boolean for a tool's caller.
+ */
+export const tripCalendarDayEventsSchema = z.boolean();

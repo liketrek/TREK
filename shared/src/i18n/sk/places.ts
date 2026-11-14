@@ -100,6 +100,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Zemepisná dĺžka (napr. 2.3522)',
   'places.formLatLabel': 'Zemepisná šírka',
   'places.formLngLabel': 'Zemepisná dĺžka',
+  'places.noCoordinates': 'Bez súradníc, preto nie je na mape',
+  'places.noCoordinatesHint': 'Uprav miesto a vyber ho vo vyhľadávaní, alebo zadaj zemepisnú šírku a dĺžku.',
+  'places.noCoordinatesFormHint':
+    'Táto adresa zatiaľ nemá súradnice, takže sa miesto na mape nezobrazí. Vyber ho vo vyhľadávaní vyššie, alebo zadaj zemepisnú šírku a dĺžku.',
   'places.formCategory': 'Kategória',
   'places.noCategory': 'Bez kategórie',
   'places.newCategory': 'Nová kategória',

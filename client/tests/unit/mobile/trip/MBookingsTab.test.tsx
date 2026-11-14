@@ -18,7 +18,7 @@ const money = (amount: number, currency: string) => formatMoney(amount, currency
 
 vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
-  openFile: vi.fn(),
+  openFile: vi.fn(() => Promise.resolve()),
 }))
 
 vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({

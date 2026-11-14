@@ -69,6 +69,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Anticrénelage + projection globe pour des bords plus nets et une vue réaliste du monde.',
   'settings.mapHighQualityWarning': 'Peut affecter les performances sur les appareils moins puissants.',
+  'settings.mapHidePois': 'Masquer les points d’intérêt',
+  'settings.mapHidePoisHint':
+    'Masque les boutiques, restaurants et sites que Mapbox affiche de lui-même, pour que seuls tes lieux ressortent. Styles Standard uniquement.',
   'settings.mapTipLabel': 'Astuce :',
   'settings.mapTip':
     'Clic droit et glisser pour pivoter/incliner la carte. Clic milieu pour ajouter un lieu (le clic droit est réservé à la rotation).',
@@ -81,6 +84,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Pour les données météo. Gratuit sur openweathermap.org/api',
   'settings.keyPlaceholder': 'Saisir la clé…',
   'settings.configured': 'Configuré',
+  'settings.notSetUp': 'Non configuré',
+  'settings.mcp.appsConnected': '{count} applications connectées',
+  'settings.mcp.appsConnected.one': '{count} application connectée',
   'settings.saveKeys': 'Enregistrer les clés',
   'settings.display': 'Affichage',
   'settings.colorMode': 'Mode de couleur',
@@ -111,7 +117,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Notifications', // same-as-en
   'settings.notifyTripInvite': 'Invitations de voyage',
   'settings.notifyBookingChange': 'Modifications de réservation',
+  'settings.notifyFlightDeparted': 'Décollages',
+  'settings.notifyFlightDelayed': 'Retards de vol',
+  'settings.notifyFlightLanded': 'Atterrissages',
   'settings.notifyTripReminder': 'Rappels de voyage',
+  'settings.notifyMailBookingAdded': 'Réservations ajoutées depuis des e-mails',
+  'settings.notifyMailBookingPending': 'Réservations transférées à vérifier',
+  'settings.notifyMailIngestPaused': 'Import des e-mails en pause',
   'settings.notifyTodoDue': 'Tâche à échéance',
   'settings.notifyVacayInvite': 'Invitations de fusion Vacay',
   'settings.notifyVacayShare': 'Partages de calendrier Vacay',

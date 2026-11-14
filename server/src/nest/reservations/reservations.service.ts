@@ -1,3 +1,6 @@
+import { originColumns } from './reservation-origin.contract';
+import type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
+export type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { TripAccess, TripsRepository } from '../../db/repositories/Trips.repository';
@@ -52,22 +55,6 @@ export type CostEvent =
   | { event: 'budget:updated'; payload: TrekWsPayload<'budget:updated'> }
   | { event: 'budget:deleted'; payload: TrekWsPayload<'budget:deleted'> };
 
-export interface ReservationEndpoint {
-  id?: number;
-  reservation_id?: number;
-  role: 'from' | 'to' | 'stop';
-  sequence: number;
-  name: string;
-  code: string | null;
-  lat: number;
-  lng: number;
-  timezone: string | null;
-  local_time: string | null;
-  local_date: string | null;
-}
-
-export type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
-
 // --- Travelers (#1517): trip members / named guests assigned to a booking -----
 
 export interface ReservationTraveler {
@@ -93,57 +80,6 @@ export type ReservationRow = Record<string, unknown> & {
   endpoints?: ReservationEndpoint[];
   travelers?: ReservationTraveler[];
 };
-
-interface CreateAccommodation {
-  place_id?: number;
-  start_day_id?: number;
-  end_day_id?: number;
-  check_in?: string;
-  check_out?: string;
-  confirmation?: string;
-}
-
-export interface CreateReservationData {
-  title: string;
-  reservation_time?: string;
-  reservation_end_time?: string;
-  location?: string;
-  confirmation_number?: string;
-  notes?: string;
-  url?: string;
-  day_id?: number;
-  end_day_id?: number;
-  place_id?: number;
-  assignment_id?: number;
-  status?: string;
-  type?: string;
-  accommodation_id?: number;
-  metadata?: unknown;
-  create_accommodation?: CreateAccommodation;
-  endpoints?: EndpointInput[];
-  needs_review?: boolean;
-}
-
-export interface UpdateReservationData {
-  title?: string;
-  reservation_time?: string;
-  reservation_end_time?: string;
-  location?: string;
-  confirmation_number?: string;
-  notes?: string;
-  url?: string;
-  day_id?: number | null;
-  end_day_id?: number | null;
-  place_id?: number;
-  assignment_id?: number;
-  status?: string;
-  type?: string;
-  accommodation_id?: number;
-  metadata?: unknown;
-  create_accommodation?: CreateAccommodation;
-  endpoints?: EndpointInput[];
-  needs_review?: boolean;
-}
 
 type AccommodationTimesMeta = {
   check_in_time?: string | null;
@@ -305,7 +241,7 @@ export class ReservationsService {
   async setTravelers(id: string, tripId: string, userIds: number[]) {
     if (!(await this.getReservation(id, tripId))) return null;
     await this.setReservationTravelers(id, tripId, userIds);
-    return { travelers: await this.loadTravelers(id), reservation: await this.getReservationWithJoins(Number(id)) };
+    return { travelers: await this.loadTravelers(id), reservation: await this.getReservationWithJoins(Number(id), tripId) };
   }
 
   // Resolve the day row whose date matches the date portion of an ISO-ish
@@ -437,8 +373,8 @@ export class ReservationsService {
     return await this.reservationsRepo.listUpcomingForUser(userId, date, time, limit);
   }
 
-  async getReservationWithJoins(id: string | number) {
-    return this.reads.getReservationWithJoins(id);
+  async getReservationWithJoins(id: string | number, tripId: string | number) {
+    return this.reads.getReservationWithJoins(id, tripId);
   }
 
   /**
@@ -749,6 +685,7 @@ export class ReservationsService {
       accommodation_id: resolvedAccommodationId == null ? null : legacyBoundIntegerText(resolvedAccommodationId),
       metadata: metadata ? JSON.stringify(metadata) : null,
       needs_review: needs_review ? 1 : 0,
+      ...originColumns(data),
     });
 
     if (endpoints && endpoints.length > 0) {
@@ -772,7 +709,7 @@ export class ReservationsService {
     }
 
     // The row was just inserted, so the re-select can't miss (legacy typed this any).
-    const reservation = (await this.getReservationWithJoins(insertedId))!;
+    const reservation = (await this.getReservationWithJoins(insertedId, tripId))!;
     return { reservation, accommodationCreated, stayMirror };
   }
 
@@ -1018,7 +955,7 @@ export class ReservationsService {
 
     // The caller passed the pre-checked `current` row, so the re-select can't
     // miss (legacy typed this any).
-    const reservation = (await this.getReservationWithJoins(id))!;
+    const reservation = (await this.getReservationWithJoins(id, tripId))!;
     return { reservation, accommodationChanged, accommodationCreated: !hadStay && Boolean(resolvedAccId), stayMirror };
   }
 

@@ -130,6 +130,18 @@ describe('ContextMenu', () => {
     expect(menu.style.overflowY).toBe('auto')
   })
 
+  it('FE-W4CTX-010c: a menu hanging from a button near the foot opens above the button, not over it', () => {
+    layoutSize(160, 80)
+
+    const { baseElement } = render(
+      <ContextMenu menu={{ x: 300, y: 276, alignEnd: true, anchorTop: 240, items: [{ label: 'Open' }] }} onClose={() => {}} />
+    )
+
+    const menu = baseElement.querySelector('.trek-popover-enter') as HTMLElement
+    expect(menu.style.left).toBe('140px')
+    expect(menu.style.top).toBe('154px')
+  })
+
   it('FE-W4CTX-011: Escape, a scroll and a resize close it', () => {
     const onClose = vi.fn()
     render(<ContextMenu menu={{ x: 0, y: 0, items: [{ label: 'Open' }] }} onClose={onClose} />)

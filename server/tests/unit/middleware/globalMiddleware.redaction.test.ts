@@ -33,6 +33,21 @@ describe('globalMiddleware request-log redaction', () => {
     }
   });
 
+  it('redacts the mail import secrets the admin settings form sends, and keeps the rest readable', () => {
+    const out = redact({
+      mail_ingest_imap_host: 'imap.example.com',
+      mail_ingest_imap_pass: 'box-secret',
+      mail_ingest_webhook_secret: 'hook-secret',
+      mail_ingest_address_template: 'trek+{token}@example.com',
+    });
+    expect(out).toEqual({
+      mail_ingest_imap_host: 'imap.example.com',
+      mail_ingest_imap_pass: '[REDACTED]',
+      mail_ingest_webhook_secret: '[REDACTED]',
+      mail_ingest_address_template: 'trek+{token}@example.com',
+    });
+  });
+
   it('redacts nested objects and arrays, leaving non-sensitive fields untouched', () => {
     const out = redact({
       name: 'off-box',

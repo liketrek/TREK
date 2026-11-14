@@ -120,6 +120,9 @@ describe('MCollPlaceSheet', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Visited' }))
     expect(onSetStatus).toHaveBeenCalledWith('visited')
+    // #2567: the fourth status sits in the same cycle.
+    fireEvent.click(screen.getByRole('button', { name: 'Want to revisit' }))
+    expect(onSetStatus).toHaveBeenCalledWith('revisit')
   })
 
   it('FE-MOB-CPLSH-005: a read-only member cannot change the status or edit', () => {

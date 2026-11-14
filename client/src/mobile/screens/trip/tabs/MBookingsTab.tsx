@@ -185,9 +185,9 @@ function BookingCard({ res, planner, canEdit, compact, onView }: {
             )}
 
             <CardNotes notes={res.notes} />
-
-            <CardFiles files={files} card={card} t={t} />
           </button>
+
+          <CardFiles files={files} card={card} t={t} />
         </div>
       )}
       {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}

@@ -8,6 +8,8 @@
     <string name="widget_today_description">El plan del día como línea de tiempo, con el tiempo y la próxima parada.</string>
     <string name="widget_bookings_name">Reservas</string>
     <string name="widget_bookings_description">Tus próximos vuelos, trenes, hoteles y mesas, y cuándo tocan.</string>
+    <string name="widget_flight_name">Vuelo</string>
+    <string name="widget_flight_description">Tu próximo vuelo en directo: cuenta atrás de la salida, el avión en camino, retraso y llegada.</string>
     <string name="widget_todos_name">Tareas</string>
     <string name="widget_todos_description">Lo que aún queda para el viaje y cómo va la maleta.</string>
     <string name="widget_packing_name">Equipaje</string>

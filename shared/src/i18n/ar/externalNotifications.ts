@@ -17,6 +17,18 @@ const ar: NotificationLocale = {
       title: `حجز جديد: ${p.booking}`,
       body: `${p.actor} أضاف حجز "${p.booking}" (${p.type}) إلى "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `أقلعت الرحلة ${p.flight}`,
+      body: `الرحلة ${p.flight} من ${p.from} إلى ${p.to} في الجو.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `الرحلة ${p.flight} متأخرة`,
+      body: `الرحلة ${p.flight} من ${p.from} إلى ${p.to} متأخرة نحو ${p.delay} دقيقة عن الموعد.`,
+    }),
+    flight_landed: (p) => ({
+      title: `هبطت الرحلة ${p.flight}`,
+      body: `هبطت الرحلة ${p.flight} القادمة من ${p.from} في ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `تذكير: ${p.trip}`,
       body: `رحلتك "${p.trip}" تقترب!`,
@@ -98,6 +110,21 @@ const ar: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `لم يعد بالإمكان التحقق من «${p.tour}» في «${p.trip}» على wanderer. تبقى الجولة في رحلتك كما هي.`
             : `ربما تغيّر «${p.tour}» في «${p.trip}» على wanderer. افتح الجولة وتحقق من مصدرها. لا يتغير شيء في الرحلة من تلقاء نفسه.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `أُضيف من بريد: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `أضاف ${p.actor} الحجز "${p.booking}" إلى "${p.trip}" من بريد مُعاد توجيهه.`
+          : `تمت إضافة "${p.booking}" من بريدك المُعاد توجيهه إلى "${p.trip}". يمكنك التراجع عن ذلك في TREK لمدة 7 أيام.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'حجوزات مُعاد توجيهها للمراجعة',
+      body: `حجوزات مُعاد توجيهها بانتظارك في TREK: ${p.count}. يذكر كل منها سبب عدم إضافته تلقائيًا.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'تم إيقاف استيراد البريد مؤقتًا',
+      body: 'لا يقبل TREK رسائل الحجز المُعاد توجيهها في الوقت الحالي، لذا انتظر قبل إعادة توجيهها. تبقى عناوينك وستعمل مجددًا عند عودة الاستيراد، وتبقى الحجوزات المضافة بالفعل في رحلاتك.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

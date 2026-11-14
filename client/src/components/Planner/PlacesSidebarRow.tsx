@@ -1,7 +1,7 @@
 import React, { useId } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Plus, Check, Star } from 'lucide-react'
+import { Plus, Check, Star, MapPinOff } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { Tooltip } from '../shared/Tooltip'
 import { fs } from '../shared/DialogShell'
@@ -10,6 +10,7 @@ import { resolveTrackColor } from '../Map/trackColors'
 import { MoreButton, SoftPill, type MenuEntry } from './planParts'
 import type { Place, Category } from '../../types'
 import { startPlaceDrag } from '../Map/markerDrag'
+import { addressWithoutCoordinates } from './placeCoordinates'
 
 interface MemoPlaceRowProps {
   place: Place
@@ -115,6 +116,15 @@ export const MemoPlaceRow = React.memo(function MemoPlaceRow({
           <span id={nameId} className="min-w-0 truncate font-semibold leading-tight text-content" style={fs(13, 'body')}>
             {place.name}
           </span>
+          {/* A typed address that never got coordinates: nothing stands for this place on the
+              map, and the row says so (#2837). */}
+          {addressWithoutCoordinates(place) && (
+            <Tooltip label={t('places.noCoordinates')}>
+              <span role="img" aria-label={t('places.noCoordinates')} className="inline-flex flex-none text-warning">
+                <MapPinOff size={12} strokeWidth={2.2} />
+              </span>
+            </Tooltip>
+          )}
           {/* Average member rating (#1435). */}
           {hasRating && (
             <SoftPill className="tabular-nums" icon={<Star size={9} strokeWidth={2.2} fill="currentColor" className="flex-none text-warning" />}>

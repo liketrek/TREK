@@ -101,6 +101,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Uzunluq (məs. 2.3522)',
   'places.formLatLabel': 'Enlik',
   'places.formLngLabel': 'Uzunluq',
+  'places.noCoordinates': 'Koordinat yoxdur, xəritədə görünmür',
+  'places.noCoordinatesHint': 'Məkanı redaktə et və axtarışdan seç, ya da enlik və uzunluğu daxil et.',
+  'places.noCoordinatesFormHint':
+    'Bu ünvanın hələ koordinatı yoxdur, ona görə məkan xəritədə görünməyəcək. Onu yuxarıdakı axtarışdan seç və ya enlik və uzunluğu daxil et.',
   'places.formCategory': 'Kateqoriya',
   'places.noCategory': 'Kateqoriya yoxdur',
   'places.newCategory': 'Yeni kateqoriya',

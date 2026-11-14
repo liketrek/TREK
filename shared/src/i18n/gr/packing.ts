@@ -56,6 +56,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Επιλογή Όλων',
   'packing.menuUncheckAll': 'Αποεπιλογή Όλων',
   'packing.menuDeleteCat': 'Διαγραφή λίστας',
+  'packing.menuShareCat': 'Κοινή χρήση για όλη τη λίστα',
+  'packing.shareCat.hint': 'Όλα τα αντικείμενά σας σε αυτή τη λίστα μεταφέρονται στο επίπεδο που επιλέγετε.',
+  'packing.shareCat.othersKept':
+    'Τα αντικείμενα που πρόσθεσαν άλλοι μένουν ως έχουν. Μόνο εκείνοι μπορούν να τα αλλάξουν.',
+  'packing.shareCat.noneOwn':
+    'Όλα τα αντικείμενα αυτής της λίστας τα πρόσθεσε κάποιος άλλος, οπότε μόνο εκείνος μπορεί να αλλάξει την κοινή χρήση τους.',
+  'packing.shareCat.pickPeople': 'Επιλέξτε τουλάχιστον ένα άτομο για κοινή χρήση.',
+  'packing.shareCat.apply': 'Εφαρμογή στη λίστα',
+  'packing.shareCat.done': 'Η κοινή χρήση άλλαξε για «{name}»',
+  'packing.shareCat.doneOthersKept':
+    'Η κοινή χρήση άλλαξε για «{name}». Τα αντικείμενα που πρόσθεσαν άλλοι έμειναν ως είχαν.',
   'packing.noMembers': 'Δεν υπάρχουν μέλη ταξιδιού',
   'packing.addItem': 'Προσθήκη αντικειμένου',
   'packing.addItemPlaceholder': 'Όνομα αντικειμένου...',

@@ -7,6 +7,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} fitxer per a {trip}',
   'files.download': 'Baixa',
   'files.openError': "No s'ha pogut obrir el fitxer",
+  'files.downloadError': "No s'ha pogut baixar el fitxer",
   'files.downloadPdf': 'Baixa el PDF',
   'files.count': '{count} fitxers',
   'files.count.one': '{count} fitxer',

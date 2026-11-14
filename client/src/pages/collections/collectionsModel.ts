@@ -1,5 +1,6 @@
 import type { CollectionPlace, CollectionLabel } from '@trek/shared'
 import type { StatusFilter, CollectionSortMode } from '../../store/collectionStore'
+import { textMatchesSearch } from '../../utils/placeSearch'
 
 /**
  * Pure data shaping + presentation metadata for the Collections page. No React
@@ -36,7 +37,6 @@ export function filterPlaces(
   labelFilter: number[] = [],
   ratingFilter: number | 'all' = 'all',
 ): CollectionPlace[] {
-  const q = search.trim().toLowerCase()
   return places.filter(p => {
     if (!p) return false
     if (statusFilter !== 'all' && p.status !== statusFilter) return false
@@ -44,18 +44,13 @@ export function filterPlaces(
     // Minimum-average-stars filter (#1435): unrated places drop out once a floor is set.
     if (ratingFilter !== 'all' && (p.rating_avg == null || p.rating_avg < ratingFilter)) return false
     if (labelFilter.length && !labelFilter.some(id => (p.label_ids ?? []).includes(id))) return false
-    if (!q) return true
-    return (
-      p.name.toLowerCase().includes(q) ||
-      (p.address ?? '').toLowerCase().includes(q) ||
-      (p.notes ?? '').toLowerCase().includes(q)
-    )
+    return textMatchesSearch([p.name, p.address, p.notes], search)
   })
 }
 
 /** Count places per status for the filter chips. */
 export function statusCounts(places: CollectionPlace[]): Record<StatusFilter, number> {
-  const counts: Record<StatusFilter, number> = { all: 0, idea: 0, want: 0, visited: 0 }
+  const counts: Record<StatusFilter, number> = { all: 0, idea: 0, want: 0, visited: 0, revisit: 0 }
   for (const p of places) { if (!p) continue; counts.all += 1; counts[p.status] += 1 }
   return counts
 }
@@ -91,6 +86,25 @@ export function presentLabels(labels: CollectionLabel[], places: CollectionPlace
 /** Only the places that can render on a map. */
 export function mappablePlaces(places: CollectionPlace[]): CollectionPlace[] {
   return places.filter(p => p && typeof p.lat === 'number' && typeof p.lng === 'number')
+}
+
+/**
+ * A saved place with its category where the trip map reads it. The server nests a
+ * collection place's category (`category.color`), the markers and the hover card
+ * read the flat fields a trip place carries, so every pin here was the grey default
+ * (#3073).
+ */
+export function withMarkerCategory(place: CollectionPlace): CollectionPlace & {
+  category_name: string | null
+  category_color: string | null
+  category_icon: string | null
+} {
+  return {
+    ...place,
+    category_name: place.category?.name ?? null,
+    category_color: place.category?.color ?? null,
+    category_icon: place.category?.icon ?? null,
+  }
 }
 
 /**

@@ -32,7 +32,6 @@ export default function WebPushCard(): React.ReactElement {
                 onClick={push.sendTest}
                 disabled={!push.canTest}
                 className={SETTINGS_BUTTON}
-                style={fs(13, 'body')}
               >
                 {t('settings.notificationPreferences.sendTest')}
               </button>
@@ -41,7 +40,6 @@ export default function WebPushCard(): React.ReactElement {
                 onClick={push.toggle}
                 disabled={push.busy}
                 className={push.on ? SETTINGS_BUTTON : SETTINGS_BUTTON_PRIMARY}
-                style={fs(13, 'body')}
               >
                 {push.switchLabel}
               </button>

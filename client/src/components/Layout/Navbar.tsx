@@ -6,7 +6,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, ChevronLeft, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark } from 'lucide-react'
+import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, ChevronLeft, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark, Inbox } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 import HelpButton from '../Help/HelpButton'
@@ -14,6 +14,9 @@ import AssistantLauncher from '../Assistant/AssistantLauncher'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 import { useCollapseOnOverflow } from '../../hooks/useCollapseOnOverflow'
+import { openMailInbox } from '../MailIngest/mailInboxOpener'
+import { useMailInboxShell } from '../MailIngest/useMailInboxShell'
+import MailInboxDialog from '../MailIngest/MailInboxDialog'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass, Bookmark }
 
@@ -43,6 +46,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
+  // The booking mail import's inbox: its menu entry shows only where the import is on for this person.
+  const { on: mailImportOn, pending: mailPending } = useMailInboxShell(user?.id)
   const darkMode = settings.dark_mode
   const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
@@ -326,6 +331,16 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
                     {t('nav.settings')}
                   </Link>
 
+                  {/* Bookings from forwarded mails that wait for a decision; only where the import is on. */}
+                  {mailImportOn && (
+                  <button type="button" onClick={() => { setUserMenuOpen(false); openMailInbox() }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-body transition-colors text-content-secondary hover:bg-surface-hover">
+                    <Inbox className="w-4 h-4" />
+                    <span className="min-w-0 flex-1 truncate text-start">{t('mailInbox.title')}</span>
+                    {mailPending > 0 && <span className="rounded-full bg-accent px-1.5 text-caption font-semibold text-accent-text">{mailPending}</span>}
+                  </button>
+                  )}
+
                   {!managed && (
                   <Link to="/help" onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-sm transition-colors text-content-secondary"
@@ -378,6 +393,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onSettings
         </div>
       )}
       </div>
+      {mailImportOn && <MailInboxDialog />}
     </nav>
   )
 }

@@ -1,0 +1,43 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} d {h} h',
+  'flightLive.durHoursMinutes': '{h} h {m} min',
+  'flightLive.durMinutes': '{m} min',
+  'flightLive.late': '+{m} min',
+  'flightLive.early': '{m} min antes',
+  'flightLive.onTime': 'Puntual',
+  'flightLive.departsIn': 'Sale en {time}',
+  'flightLive.scheduled': 'Programado',
+  'flightLive.taxiing': 'Listo para salir',
+  'flightLive.atAirport': 'En tierra en {code}',
+  'flightLive.airborne': 'En el aire',
+  'flightLive.landsIn': 'Aterriza en {time}',
+  'flightLive.landed': 'Aterrizado',
+  'flightLive.landedAt': 'Aterrizó a las {time} en {code}',
+  'flightLive.estimated': 'estimada',
+  'flightLive.altitude': 'Altitud',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Velocidad',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/h',
+  'flightLive.remaining': 'Restante',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Avión',
+  'flightLive.noGateHint':
+    'La puerta, la terminal y la cinta de equipaje no forman parte de los datos de vuelo abiertos. Añádelos tú a la reserva si los necesitas.',
+  'flightLive.legOf': 'Vuelo {n} de {total}',
+  'flightLive.adminTitle': 'Estado de vuelos en directo',
+  'flightLive.adminHint':
+    'Muestra la posición, el retraso y la llegada estimada de los vuelos reservados a partir de datos ADS-B abiertos (adsb.lol, adsb.fi). Solo el indicativo del vuelo sale de este servidor.',
+  'flightLive.adminToggle': 'Seguir en directo los vuelos reservados',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Muestra la posición, el retraso y la llegada estimada de los vuelos reservados a partir de datos ADS-B abiertos (adsb.lol). Solo el indicativo del vuelo sale de la instancia.',
+  'flightLive.noFlight': 'Ningún vuelo próximo',
+  'flightLive.envLocked': 'Definido por FLIGHT_LIVE_ENABLED en el servidor y no se puede cambiar aquí.',
+};
+
+export default flightLive;

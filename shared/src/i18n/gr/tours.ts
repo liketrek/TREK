@@ -96,6 +96,8 @@ const tours: TranslationStrings = {
   'tours.detail.descent': 'Υψομετρική κάθοδος',
   'tours.detail.navigationHint':
     'Η πλοήγηση ανοίγει την αφετηρία του μονοπατιού· δεν σας καθοδηγεί κατά μήκος της διαδρομής.',
+  'tours.detail.openRoute': 'Άνοιγμα της διαδρομής σε εφαρμογή χαρτών',
+  'tours.detail.mapsShort': 'Χάρτες',
   'tours.planner.title': 'Σχεδιασμός εκδρομής',
   'tours.planner.newTour': 'Σχεδιασμός νέας εκδρομής',
   'tours.planner.addTour': 'Προσθήκη διαδρομής',

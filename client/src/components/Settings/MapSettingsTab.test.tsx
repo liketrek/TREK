@@ -1,4 +1,4 @@
-// FE-COMP-MAP-001 to FE-COMP-MAP-035
+// FE-COMP-MAP-001 to FE-COMP-MAP-036
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { useAuthStore } from '../../store/authStore';
@@ -19,8 +19,8 @@ vi.mock('../Map/MapView', () => ({
 // The GL preview boots a real mapbox/maplibre instance; the tab only cares that
 // it gets the right provider/style, so render those as data attributes.
 vi.mock('./MapboxPreview', () => ({
-  default: ({ provider, style, token, enable3d, quality }: {
-    provider?: string; style: string; token?: string; enable3d: boolean; quality?: boolean;
+  default: ({ provider, style, token, enable3d, quality, hidePois }: {
+    provider?: string; style: string; token?: string; enable3d: boolean; quality?: boolean; hidePois?: boolean;
   }) => (
     <div
       data-testid="gl-preview"
@@ -29,6 +29,7 @@ vi.mock('./MapboxPreview', () => ({
       data-token={token}
       data-3d={String(enable3d)}
       data-quality={String(quality)}
+      data-hide-pois={String(hidePois)}
     />
   ),
 }));
@@ -466,5 +467,19 @@ describe('MapSettingsTab – CARTO key', () => {
     render(<MapSettingsTab />);
 
     expect(screen.queryByText(/API KEY REQUIRED/)).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-036: under Mapbox the basemap points of interest can be hidden, in the preview and on save (#1761)', async () => {
+    const user = userEvent.setup();
+    const updateSettings = vi.fn().mockResolvedValue(undefined);
+    seedStore(useSettingsStore, { settings: buildSettings(), updateSettings });
+    render(<MapSettingsTab />);
+
+    await user.click(screen.getByText('Mapbox GL'));
+    await user.click(screen.getByRole('button', { name: 'Hide Points of Interest' }));
+    expect(await screen.findByTestId('gl-preview')).toHaveAttribute('data-hide-pois', 'true');
+
+    await user.click(screen.getByText('Save Map'));
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ map_hide_basemap_pois: true }));
   });
 });

@@ -68,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + földgömb-vetítés az élesebb kontúrokért és egy valósághű világnézethez.',
   'settings.mapHighQualityWarning': 'Gyengébb eszközökön befolyásolhatja a teljesítményt.',
+  'settings.mapHidePois': 'Érdekes helyek elrejtése',
+  'settings.mapHidePoisHint':
+    'Elrejti az üzleteket, éttermeket és látnivalókat, amelyeket a Mapbox magától jelöl, így csak a saját helyeid tűnnek ki. Csak a Standard stílusoknál.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Jobb klikk és húzás a térkép forgatásához/döntéséhez. Középső kattintás hely hozzáadásához (a jobb klikk a forgatáshoz van fenntartva).',
@@ -79,6 +82,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Időjárás adatokhoz. Ingyenes: openweathermap.org/api',
   'settings.keyPlaceholder': 'Kulcs megadása...',
   'settings.configured': 'Konfigurálva',
+  'settings.notSetUp': 'Nincs beállítva',
+  'settings.mcp.appsConnected': '{count} alkalmazás csatlakoztatva',
+  'settings.mcp.appsConnected.one': '{count} alkalmazás csatlakoztatva',
   'settings.saveKeys': 'Kulcsok mentése',
   'settings.display': 'Megjelenítés',
   'settings.colorMode': 'Színmód',
@@ -109,7 +115,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Értesítések',
   'settings.notifyTripInvite': 'Utazási meghívók',
   'settings.notifyBookingChange': 'Foglalási változások',
+  'settings.notifyFlightDeparted': 'Felszállások',
+  'settings.notifyFlightDelayed': 'Járatkésések',
+  'settings.notifyFlightLanded': 'Leszállások',
   'settings.notifyTripReminder': 'Utazási emlékeztetők',
+  'settings.notifyMailBookingAdded': 'E-mailből hozzáadott foglalások',
+  'settings.notifyMailBookingPending': 'Átnézésre váró továbbított foglalások',
+  'settings.notifyMailIngestPaused': 'E-mail-import szüneteltetve',
   'settings.notifyTodoDue': 'Teendő esedékes',
   'settings.notifyVacayInvite': 'Vacay összevonási meghívók',
   'settings.notifyVacayShare': 'Vacay naptármegosztások',

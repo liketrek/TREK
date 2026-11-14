@@ -15,11 +15,12 @@ import { Tooltip } from '../shared/Tooltip'
 import { Search, RotateCcw, LocateFixed, PencilLine } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { PlaceContactFields } from './PlaceContactFields'
+import { PlaceFormLocation } from './PlaceFormLocation'
 import { weekFromPeriods } from './placeHours'
 import type { PlaceOpeningHours } from '@trek/shared'
 import {
-  DEFAULT_FORM, endsBeforeStart, findDuplicatePlace, formPin, mergeResult, parseCoordinatePair, placeEditForm, placeFormPayload,
-  prefillForm, type PlaceFormData, type PlacePrefill,
+  DEFAULT_FORM, endsBeforeStart, findDuplicatePlace, formPin, mergeResult, placeEditForm, placeFormPayload,
+  prefillForm, savedCategoryId, type PlaceFormData, type PlacePrefill,
 } from './PlaceFormModal.helpers'
 import { useNewCategory, usePlaceForm } from './usePlaceForm'
 import { usePlaceSearch } from './usePlaceSearch'
@@ -30,7 +31,6 @@ import { useLocationBias } from '../../hooks/useLocationBias'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { Place, Category, Assignment, BudgetItem } from '../../types'
-import { NumericInput } from '../shared/NumericInput'
 import { formatDistance } from '../../utils/units'
 import ServiceStopSection from '../Roadtrip/ServiceStopSection'
 import { DEFAULT_SERVICE_KIND, serviceStopChoice, type ServiceStopMode } from '../Roadtrip/manualStop'
@@ -135,9 +135,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   // the next pick may replace it and a hand choice is never overwritten (#2282).
   const categoryGuessedRef = useRef(false)
   const guessedCategory = (result: Record<string, unknown>): string => {
-    const id = guessCategoryId(result, categories || [])
+    const saved = savedCategoryId(result, categories || []) // a collection's place keeps its own (#3074)
+    const id = saved ? null : guessCategoryId(result, categories || [])
     categoryGuessedRef.current = id != null
-    return id != null ? String(id) : ''
+    return saved ?? (id != null ? String(id) : '')
   }
   // The hours the details column looked up, as a week the contact block can take over (#2472).
   const [detailsHours, setDetailsHours] = useState<PlaceOpeningHours | null>(null)
@@ -769,50 +770,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             )}
           </div>
 
-          {/* Where it is: what a pick, a pasted link or the map filled in, or typed by hand. */}
-          <div className={PANEL}>
-            <EditorField label={t('places.formAddress')} htmlFor={`${fieldId}-address`}>
-              <input
-                id={`${fieldId}-address`}
-                type="text"
-                value={form.address}
-                onChange={e => handleChange('address', e.target.value)}
-                placeholder={t('places.formAddressPlaceholder')}
-                className={INPUT}
-              />
-            </EditorField>
-            <div role="group" aria-label={t('collections.coordinates')} className={GRID_2}>
-              <EditorField label={t('places.formLatLabel')} htmlFor={`${fieldId}-lat`}>
-                <NumericInput
-                  id={`${fieldId}-lat`}
-                  mode="signed"
-                  value={form.lat}
-                  onValueChange={v => handleChange('lat', v)}
-                  onPaste={e => {
-                    // "48.85, 2.35" pasted into the latitude fills both halves.
-                    const pair = parseCoordinatePair(e.clipboardData.getData('text'))
-                    if (pair) {
-                      e.preventDefault()
-                      handleChange('lat', pair[0])
-                      handleChange('lng', pair[1])
-                    }
-                  }}
-                  placeholder={t('places.formLat')}
-                  className={INPUT}
-                />
-              </EditorField>
-              <EditorField label={t('places.formLngLabel')} htmlFor={`${fieldId}-lng`}>
-                <NumericInput
-                  id={`${fieldId}-lng`}
-                  mode="signed"
-                  value={form.lng}
-                  onValueChange={v => handleChange('lng', v)}
-                  placeholder={t('places.formLng')}
-                  className={INPUT}
-                />
-              </EditorField>
-            </div>
-          </div>
+          <PlaceFormLocation fieldId={fieldId} form={form} onChange={handleChange} warnWithoutCoordinates={!serviceStop} />
 
           {/* For a stop on a drive: the kind of stop, how long, and where it belongs.
               The category it replaces is gone from the head band too: refuelling is

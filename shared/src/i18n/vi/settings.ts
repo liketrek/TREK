@@ -68,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Khử răng cưa + chiếu hình ảnh địa cầu cho các cạnh sắc nét hơn và thế giới quan chân thực hơn.',
   'settings.mapHighQualityWarning': 'Có thể ảnh hưởng đến hiệu suất trên các thiết bị cấp thấp hơn.',
+  'settings.mapHidePois': 'Ẩn điểm tham quan',
+  'settings.mapHidePoisHint':
+    'Ẩn các cửa hàng, nhà hàng và điểm tham quan mà Mapbox tự gắn nhãn, để chỉ địa điểm của bạn nổi bật. Chỉ với các kiểu Standard.',
   'settings.mapTipLabel': 'Mẹo:',
   'settings.mapTip':
     'nhấp chuột phải và kéo để xoay/cao độ bản đồ. Nhấp chuột giữa để thêm địa điểm (nhấp chuột phải được dành riêng cho việc xoay).',
@@ -79,6 +82,8 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Đối với dữ liệu thời tiết. Miễn phí tại openweathermap.org/api',
   'settings.keyPlaceholder': 'Nhập khóa...',
   'settings.configured': 'Đã định cấu hình',
+  'settings.notSetUp': 'Chưa thiết lập',
+  'settings.mcp.appsConnected': '{count} ứng dụng đã kết nối',
   'settings.saveKeys': 'Lưu chìa khóa',
   'settings.display': 'Hiển thị',
   'settings.colorMode': 'Chế độ màu',
@@ -114,7 +119,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Thông báo',
   'settings.notifyTripInvite': 'Lời mời chuyến đi',
   'settings.notifyBookingChange': 'Thay đổi đặt chỗ',
+  'settings.notifyFlightDeparted': 'Chuyến bay cất cánh',
+  'settings.notifyFlightDelayed': 'Chuyến bay bị trễ',
+  'settings.notifyFlightLanded': 'Chuyến bay hạ cánh',
   'settings.notifyTripReminder': 'Lời nhắc chuyến đi',
+  'settings.notifyMailBookingAdded': 'Đặt chỗ được thêm từ email',
+  'settings.notifyMailBookingPending': 'Đặt chỗ chuyển tiếp cần xem xét',
+  'settings.notifyMailIngestPaused': 'Nhập email bị tạm dừng',
   'settings.notifyTodoDue': 'Việc cần làm sắp đến hạn',
   'settings.notifyVacayInvite': 'Lời mời kết hợp Vacay',
   'settings.notifyVacayShare': 'Chia sẻ lịch Vacay',

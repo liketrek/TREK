@@ -47,13 +47,7 @@ export default function StorageReclaimSection({
       icon={Eraser}
       hint={t('storage.reclaim.hint')}
       action={
-        <button
-          type="button"
-          className={SETTINGS_BUTTON}
-          style={fs(12.5, 'body')}
-          onClick={onCheck}
-          disabled={checking}
-        >
+        <button type="button" className={SETTINGS_BUTTON} onClick={onCheck} disabled={checking}>
           {checking ? (
             <Loader2 size={14} strokeWidth={2.2} className="animate-spin" />
           ) : (
@@ -132,7 +126,6 @@ export default function StorageReclaimSection({
                       <button
                         type="button"
                         className={SETTINGS_BUTTON}
-                        style={fs(12, 'body')}
                         onClick={() => onConfirm({ category: line.category, unreferenced: line.unreferenced })}
                         disabled={confirming === line.category}
                       >

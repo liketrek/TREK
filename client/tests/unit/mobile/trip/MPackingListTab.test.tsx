@@ -13,7 +13,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import * as fileDownload from '../../../../src/utils/fileDownload'
 
-// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046 (plus 060-069)
+// FE-MOB-PACKTAB-001 to FE-MOB-PACKTAB-046 (plus 060-071)
 
 const ME = 7
 const ANNA = { id: 11, username: 'anna', avatar: null, avatar_url: 'https://cdn.example/anna.png' } as unknown as TripMember
@@ -1001,5 +1001,21 @@ describe('MPackingListTab', () => {
     expect(card.className).toContain('wide:break-inside-avoid')
     expect(card.className).toContain('wide:inline-block')
     expect((card.parentElement as HTMLElement).className).toContain('wide:columns-[300px]')
+  })
+  it('FE-MOB-PACKTAB-071: the list menu moves the whole list to my list, one write per item (#2961)', async () => {
+    const { planner } = await setup({ planner: { tripMembers: [ANNA, BEN] } })
+    enterEditMode()
+
+    openCategoryMenu('Documents')
+    fireEvent.click(screen.getByRole('button', { name: 'packing.menuShareCat' }))
+    const sheet = screen.getByRole('dialog', { name: 'packing.menuShareCat' })
+    fireEvent.click(within(sheet).getByRole('button', { name: /^packing.tierPersonal/ }))
+    await act(async () => { fireEvent.click(within(sheet).getByRole('button', { name: 'packing.shareCat.apply' })) })
+
+    expect(asMock(planner.tripActions.setPackingItemSharing).mock.calls).toEqual([
+      [3, 1, 'personal', []],
+      [3, 2, 'personal', []],
+    ])
+    expect(planner.toast.success).toHaveBeenCalledWith(expect.stringContaining('packing.shareCat.done'))
   })
 })

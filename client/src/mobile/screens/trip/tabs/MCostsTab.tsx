@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertCircle, ArrowDown, ArrowLeftRight, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp,
   Layers, Pencil, Plus, RotateCcw, StickyNote, Trash2, Receipt,
@@ -12,6 +12,9 @@ import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
 import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
 import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
+import { useCostsMode } from '../../../../components/Budget/useCostsMode'
+import { CostsCurrencyPicker } from '../../../../components/Budget/CostsCurrencyPicker'
+import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import MConfirmSheet from '../../settings/MConfirmSheet'
@@ -45,12 +48,15 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   // The display and trip currencies, the server-computed settlement, totals,
   // filters and the ledger writes: the same ledger the desktop panel runs on.
   const {
-    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, knownNames,
+    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, splitting, knownNames,
     search, setSearch, segment, setSegment, catFilter, setCatFilter, dayFilter, setDayFilter,
-    totals, filtered, filteredSettlements, catBreakdown, exportCsv: handleExportCsv,
-    deleteExpense, undoSettlement: handleUndoSettlement,
-  } = useCostsLedger({ tripId, trip, budgetItems, actions: planner.tripActions, canEdit, t, toast })
+    totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
+    deleteExpense, undoSettlement: handleUndoSettlement, setBase, baseOptions,
+  } = useCostsLedger({ tripId, trip, budgetItems, memberCount: tripMembers.length, actions: planner.tripActions, canEdit, t, toast })
 
+  // Split between the travellers or totals only (#1714), switched at the foot of the summary.
+  const costsMode = useCostsMode(trip, tripMembers.length, canEdit)
+  const modeHintId = useId()
   const [catOpen, setCatOpen] = useState(false)
   const [dayOpen, setDayOpen] = useState(false)
   const [settleOpen, setSettleOpen] = useState(true)
@@ -137,8 +143,11 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         <div className="mt-1 font-geist text-[1.875rem] font-extrabold tabular-nums tracking-[-0.02em]">
           {formatMoney(totals.totalSpend, base, locale)}
         </div>
-        {/* Each figure under its own label, so the two pairs never read as one run. */}
-        <div className="mt-[8px] flex flex-wrap gap-x-[22px] gap-y-[6px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
+        {/* Categories left out below (#2819) leave this total too, which it says. */}
+        {leftOutLabel && <div className="mt-[2px] text-caption opacity-70">{leftOutLabel}</div>}
+        {/* Each figure under its own label, so the two pairs never read as one run.
+            Only with something to split (#2689), like everything owed below. */}
+        {splitting && <div className="mt-[8px] flex flex-wrap gap-x-[22px] gap-y-[6px] text-[0.6875rem]" style={{ color: 'rgba(245,245,247,.7)' }}>
           <span className="flex flex-col">
             {t('costs.yourShare')}
             <b className="tabular-nums" style={{ color: '#F5F5F7' }}>{formatMoney(totals.myShare, base, locale)}</b>
@@ -147,9 +156,10 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             {t('costs.youPaid')}
             <b className="tabular-nums" style={{ color: '#F5F5F7' }}>{formatMoney(totals.myPaid, base, locale)}</b>
           </span>
-        </div>
+        </div>}
       </div>
 
+      {splitting && <>
       {/* You owe / You're owed (spec §3.2). The two tiles stand level and each
           amount sits at the foot of its tile, so a label that wraps in one of
           them (German "Dir wird geschuldet") leaves both amounts on one line. */}
@@ -300,30 +310,72 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         })}
       </div>
 
-      {/* By category (spec §3.5) */}
+      </>}
+
+      {/* By category (spec §3.5). A tap leaves a category out of the totals
+          for a look without it (#2819); the row stays, dimmed. */}
       <div className="mt-2 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
-        <div className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('costs.byCategory')}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{t('costs.byCategory')}</div>
+          {leftOutLabel && (
+            <button
+              type="button"
+              onClick={countAllCats}
+              className="ms-auto flex flex-none items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[9px] py-[3px] text-caption font-semibold text-m-muted"
+            >
+              <RotateCcw size={11} strokeWidth={2.2} />
+              {t('costs.breakdown.countAll')}
+            </button>
+          )}
+        </div>
+        {/* What is left out is said once, under the total above. */}
+        {!leftOutLabel && catBreakdown.length > 1 && <p className="mt-1 text-caption text-m-faint">{t('costs.breakdown.hint')}</p>}
         {catBreakdown.length === 0 ? (
           <p className="mt-2 font-geist text-[0.71875rem] text-m-faint">{t('costs.noCategories')}</p>
         ) : (
           catBreakdown.map(c => {
             const meta = COST_CAT_META[c.key]
+            const name = t(meta.labelKey)
+            const action = c.leftOut ? t('costs.breakdown.countIn', { category: name }) : t('costs.breakdown.leaveOut', { category: name })
             return (
-              <div key={c.key} className="pb-[2px] pt-[6px]">
-                <div className="flex items-center gap-[7px]">
+              <button
+                key={c.key}
+                type="button"
+                aria-label={action}
+                onClick={() => toggleLeftOutCat(c.key)}
+                className={`block w-full pb-[2px] pt-[6px] text-start ${c.leftOut ? 'opacity-45' : ''}`}
+              >
+                <span className="flex items-center gap-[7px]">
                   <span className="h-2 w-2 flex-none rounded-full" style={{ background: meta.color }} />
-                  <span className="min-w-0 flex-1 truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{t(meta.labelKey)}</span>
-                  <span dir="ltr" className="ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink">{formatMoney(c.amount, base, locale)}</span>
-                </div>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-[color:var(--m-ic)]">
+                  <span className="min-w-0 flex-1 truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{name}</span>
+                  <span dir="ltr" className={`ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink ${c.leftOut ? 'line-through' : ''}`}>{formatMoney(c.amount, base, locale)}</span>
+                </span>
+                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-[color:var(--m-ic)]">
                   <span className="block h-full rounded-full" style={{ width: `${c.widthPct}%`, background: meta.color }} />
-                </div>
-              </div>
+                </span>
+              </button>
             )
           })
         )}
       </div>
 
+      {costsMode.offered && (
+        <div className="mt-2 flex items-start gap-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
+          <div className="min-w-0 flex-1">
+            <div className="text-body font-bold text-m-ink">{t('costs.mode.label')}</div>
+            <p id={modeHintId} className="m-0 mt-[2px] text-caption text-m-faint">
+              {costsMode.splitting ? t('costs.mode.hintSplit') : t('costs.mode.hintTotals')}
+            </p>
+          </div>
+          <ToggleSwitch
+            on={costsMode.splitting}
+            onToggle={() => void costsMode.setSplitting(!costsMode.splitting)}
+            label={t('costs.mode.label')}
+            describedBy={modeHintId}
+            disabled={costsMode.saving}
+          />
+        </div>
+      )}
     </>
   )
 
@@ -333,7 +385,11 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
       {/* Expenses — header, search, filters (spec §3.6). One block, so on a wide
           window the search field keeps to the column like the heading above it. */}
       <section aria-label={t('costs.expenses')}>
-      <h2 className="mt-4 text-[1.0625rem] font-extrabold text-m-ink split:mt-0">{t('costs.expenses')}</h2>
+      {/* The currency the tab reads the trip in (#1683) sits by the heading, as on the desktop. */}
+      <div className="mt-4 flex items-center gap-2 split:mt-0">
+        <h2 className="min-w-0 flex-1 text-[1.0625rem] font-extrabold text-m-ink">{t('costs.expenses')}</h2>
+        <CostsCurrencyPicker value={base} options={baseOptions} onChange={setBase} />
+      </div>
       <input
         type="text"
         value={search}
@@ -342,7 +398,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         aria-label={t('costs.searchPlaceholder')}
         className="mt-2 block w-full rounded-full border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[10px] font-[inherit] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
       />
-      <div className="mt-2 flex rounded-full bg-m-card p-[3px]">
+      {splitting && <div className="mt-2 flex rounded-full bg-m-card p-[3px]">
         {(['all', 'mine', 'owed'] as const).map(seg => (
           <button
             key={seg}
@@ -354,7 +410,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             {t('costs.filter.' + seg)}
           </button>
         ))}
-      </div>
+      </div>}
 
       <div className="mt-2 flex gap-2">
         <button
@@ -469,6 +525,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 locale={locale}
                 t={t}
                 canEdit={canEdit}
+                splitting={splitting}
                 onEdit={() => {
                   setEditingExpense(en.item)
                   setExpenseModalOpen(true)
@@ -573,13 +630,15 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
 }
 
 /** One expense card (spec 03 §3.7): category ribbon, optional unfinished ribbon, member chips, total pill, edit/delete stack. */
-function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onTogglePaid, onPreviewReceipts }: {
+function ExpenseRow({ item, ctx, base, locale, t, canEdit, splitting, onEdit, onDelete, onTogglePaid, onPreviewReceipts }: {
   item: BudgetItem
   ctx: CostsCtx
   base: string
   locale: string
   t: TFn
   canEdit: boolean
+  /** False with nothing to split (#2689): no unfinished ribbon, no shares to tick paid. */
+  splitting: boolean
   onEdit: () => void
   onDelete: () => void
   onTogglePaid: (userId: number, paid: boolean) => void
@@ -589,9 +648,9 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
   const Icon = meta.Icon
   const total = baseTotal(item, ctx)
   const line = lineOf(item.total_price || 0, item, ctx, total)
-  const unfinished = isUnfinished(item, ctx)
+  const unfinished = splitting && isUnfinished(item, ctx)
   const borderColor = tint(meta.color, 0.55)
-  const members = item.members || []
+  const members = splitting ? item.members || [] : []
   const note = readUserNote(item)
 
   // No swipe here: edit and delete stand beside the card already, and a swipe

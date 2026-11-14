@@ -7,6 +7,8 @@ import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyse
 import type { DayAssignmentRow } from './day-assignment-rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { passContextQuery, type PassContextDB } from './_shared/reservation-pass-context';
+import { originColumnValues, type ReservationOriginColumns } from './_shared/reservation-origin-columns';
+import { idByExternalQuery, joinedReservationQuery, type ReservationJoinDB } from './_shared/reservation-joined-query';
 import type { DB } from '../kysely/db';
 import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
 import type {
@@ -41,7 +43,6 @@ export type {
  * D4's T5 seam) and are cast to the column type only at the bind, so this
  * join keeps the legacy statement's exact raw-bind flexibility.
  */
-type ReservationJoinKyselyDB = Pick<DB, 'reservations' | 'days' | 'places' | 'day_accommodations'>;
 
 /**
  * `reservations` as the two aliases below bind it: `accommodation_id` is a
@@ -363,24 +364,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   findPassContext(id: number, tripId: number) { return passContextQuery(this.kysely<PassContextDB>(), id, tripId); }
 
   private joinedQuery() {
-    return this.kysely<ReservationJoinKyselyDB>()
-      .selectFrom('reservations as r')
-      .leftJoin('days as d', 'd.id', 'r.day_id')
-      .leftJoin('places as p', 'p.id', 'r.place_id')
-      .leftJoin('day_accommodations as ap', 'ap.id', 'r.accommodation_id')
-      .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
-      .selectAll('r')
-      .select([
-        'd.day_number as day_number',
-        'p.name as place_name',
-        'ap.place_id as accommodation_place_id',
-        'acc_p.name as accommodation_name',
-        'ap.start_day_id as accommodation_start_day_id',
-        'ap.end_day_id as accommodation_end_day_id',
-        'ap.check_in as accommodation_check_in',
-        'ap.check_in_end as accommodation_check_in_end',
-        'ap.check_out as accommodation_check_out',
-      ]);
+    return joinedReservationQuery(this.kysely<ReservationJoinDB>());
   }
 
   /**
@@ -398,10 +382,15 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
 
   /**
    * RR1 (`ReservationsReadService.getReservationWithJoins`) — the SAME
-   * projection for one reservation, no `ORDER BY` (a single row).
+   * projection for one reservation, no `ORDER BY` (a single row), and only
+   * when it belongs to `trip_id`: every caller holds the trip it checked, so a
+   * booking id from another trip reads as missing rather than leaking its row.
    */
-  async findWithJoins(id: number | string): Promise<ReservationJoinRow | undefined> {
-    const row = await this.joinedQuery().where('r.id', '=', id as number).executeTakeFirst();
+  async findWithJoins(id: number | string, trip_id: number | string): Promise<ReservationJoinRow | undefined> {
+    const row = await this.joinedQuery()
+      .where('r.id', '=', id as number)
+      .where('r.trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row as ReservationJoinRow | undefined;
   }
 
@@ -459,12 +448,16 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * (trip_id, day_id, end_day_id, place_id, assignment_id, title,
    * reservation_time, reservation_end_time, location, confirmation_number,
    * notes, url, status, type, accommodation_id, metadata, needs_review)
-   * VALUES (?×17)`. `sync_enabled`/`ingest_state`/`day_plan_position`
-   * deliberately NOT named, so the column's own DB-level `DEFAULT` applies
-   * (`sync_enabled INTEGER DEFAULT 1`, `Migration20200101021800_…`;
-   * `ingest_state` `.default('live')`) — the caller has already resolved
-   * every value (the `|| null` coercions, `resolvedOrNull`, the numeric
-   * `accommodation_id` stringified for the TEXT column, R2).
+   * VALUES (?×17)`. `ingest_state`/`day_plan_position` deliberately NOT
+   * named, so the column's own DB-level `DEFAULT` applies (`ingest_state`
+   * `.default('live')`) — the caller has already resolved every value (the
+   * `|| null` coercions, `resolvedOrNull`, the numeric `accommodation_id`
+   * stringified for the TEXT column, R2).
+   *
+   * `external_source`/`external_id`/`sync_enabled` are named only when the
+   * caller passes them: an imported booking records where it came from, every
+   * other write leaves them to the column defaults as before (`sync_enabled
+   * INTEGER DEFAULT 1`, `Migration20200101021800_…`).
    */
   async insertReservation(input: {
     trip_id: number;
@@ -484,7 +477,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     accommodation_id: string | null;
     metadata: string | null;
     needs_review: number;
-  }): Promise<number> {
+  } & ReservationOriginColumns): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
       day: input.day_id,
@@ -503,7 +496,13 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       accommodation_id: input.accommodation_id,
       metadata: input.metadata,
       needs_review: input.needs_review,
+      ...originColumnValues(input),
     });
+  }
+
+  /** The booking an import already wrote into this trip under the same origin (_shared/reservation-joined-query.ts). */
+  findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
+    return idByExternalQuery(this.kysely<DB>(), trip_id, external_source, external_id);
   }
 
   /**

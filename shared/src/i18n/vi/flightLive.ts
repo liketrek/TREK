@@ -1,0 +1,43 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d} ng {h} g',
+  'flightLive.durHoursMinutes': '{h} g {m} ph',
+  'flightLive.durMinutes': '{m} ph',
+  'flightLive.late': '+{m} ph',
+  'flightLive.early': 'sớm {m} ph',
+  'flightLive.onTime': 'Đúng giờ',
+  'flightLive.departsIn': 'Khởi hành sau {time}',
+  'flightLive.scheduled': 'Theo lịch',
+  'flightLive.taxiing': 'Sẵn sàng khởi hành',
+  'flightLive.atAirport': 'Trên mặt đất tại {code}',
+  'flightLive.airborne': 'Đang bay',
+  'flightLive.landsIn': 'Hạ cánh sau {time}',
+  'flightLive.landed': 'Đã hạ cánh',
+  'flightLive.landedAt': 'Hạ cánh lúc {time} tại {code}',
+  'flightLive.estimated': 'dự kiến',
+  'flightLive.altitude': 'Độ cao',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} m',
+  'flightLive.speed': 'Tốc độ',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} km/h',
+  'flightLive.remaining': 'Còn lại',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} km',
+  'flightLive.aircraft': 'Máy bay',
+  'flightLive.noGateHint':
+    'Cửa, nhà ga và băng chuyền hành lý không có trong dữ liệu chuyến bay mở. Hãy tự thêm vào đặt chỗ nếu cần.',
+  'flightLive.legOf': 'Chuyến {n}/{total}',
+  'flightLive.adminTitle': 'Trạng thái chuyến bay trực tiếp',
+  'flightLive.adminHint':
+    'Hiển thị vị trí, độ trễ và giờ đến dự kiến của các chuyến bay đã đặt từ dữ liệu ADS-B mở (adsb.lol, adsb.fi). Chỉ có hô hiệu chuyến bay rời khỏi máy chủ này.',
+  'flightLive.adminToggle': 'Theo dõi trực tiếp các chuyến bay đã đặt',
+  'flightLive.headlineDetail': '{headline}, {detail}',
+  'flightLive.adminHintManaged':
+    'Hiển thị vị trí, độ trễ và giờ đến dự kiến của các chuyến bay đã đặt từ dữ liệu ADS-B mở (adsb.lol). Chỉ có hô hiệu chuyến bay rời khỏi phiên bản.',
+  'flightLive.noFlight': 'Không có chuyến bay sắp tới',
+  'flightLive.envLocked': 'Được đặt bởi FLIGHT_LIVE_ENABLED trên máy chủ và không thể thay đổi ở đây.',
+};
+
+export default flightLive;

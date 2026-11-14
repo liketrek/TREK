@@ -50,6 +50,32 @@ export interface DialogShellProps {
   discardGuard?: unknown
 }
 
+/**
+ * Ctrl/Cmd+Enter finishes the dialog from any field (#1303), so a form filled in
+ * with the keyboard can be saved without reaching for the mouse. It presses the
+ * footer's one primary button the way a hand would: the focus moves onto it
+ * first, so a field that takes its value on blur (a typed time) has it, and the
+ * press follows once that has rendered. It saves exactly what the button saves
+ * and nothing while the button is disabled. A footer with no primary, or two to
+ * choose between, leaves the keys to the field, and so does a field marked
+ * `data-keeps-ctrl-enter` (the journal's story, written like a long text).
+ */
+function pressPrimaryOnCtrlEnter(e: ReactKeyboardEvent<HTMLDivElement>, panel: HTMLDivElement) {
+  if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.repeat || e.nativeEvent.isComposing) return
+  // A dialog opened from this one sits in its own portal: its keys are its own.
+  const target = e.target
+  if (!(target instanceof Element) || !panel.contains(target) || target.closest('[data-keeps-ctrl-enter]')) return
+  const primaries = panel.querySelectorAll<HTMLButtonElement>(':scope > footer [data-dialog-primary]')
+  if (primaries.length !== 1) return
+  const primary = primaries[0]
+  // Spent here, so a field's own Enter (a title that saves on Enter) does not save a second time.
+  e.preventDefault()
+  e.stopPropagation()
+  if (primary.disabled) return
+  primary.focus()
+  setTimeout(() => { if (primary.isConnected && !primary.disabled) primary.click() })
+}
+
 const DISCARD_BUTTON = 'inline-flex items-center gap-1.5 rounded-[10px] bg-danger px-4 py-2 font-medium text-white hover:opacity-90' // theme-lint-disable: white on the danger fill, as ConfirmDialog draws it
 
 /**
@@ -125,7 +151,10 @@ function DialogFrame({ onClose, labelledBy, width = 'detail', align = 'center', 
         aria-labelledby={labelledBy}
         tabIndex={-1}
         onPaste={onPaste}
-        onKeyDownCapture={markStart}
+        onKeyDownCapture={e => {
+          markStart()
+          if (!held && panelRef.current) pressPrimaryOnCtrlEnter(e, panelRef.current)
+        }}
         onPointerDownCapture={markStart}
         onKeyDown={e => { if (panelRef.current) trapTab(e, panelRef.current) }}
         className={`trek-modal-enter relative flex max-h-full w-full ${PANEL_WIDTH[width]} flex-col overflow-hidden rounded-[22px] bg-surface-card shadow-2xl outline-none`}
@@ -267,12 +296,19 @@ export function DialogHeader(p: DialogHeaderProps) {
 export const PILL = 'inline-flex flex-none items-center gap-1.5 rounded-full bg-surface-card px-2.5 py-1 font-semibold text-content shadow-sm'
 
 /** A labelled block of the body, with room for an action on the right of its label. */
-export function DialogSection({ label, action, className, children }: { label: ReactNode; action?: ReactNode; className?: string; children: ReactNode }) {
+export function DialogSection({ label, action, tallAction = false, className, children }: {
+  label: ReactNode
+  action?: ReactNode
+  /** The action is a control as tall as a button (a Segmented): the head grows to hold it instead of letting it overhang the card. */
+  tallAction?: boolean
+  className?: string
+  children: ReactNode
+}) {
   return (
     <section className={className}>
       {/* A fixed height, so a section with an action (an upload pill) starts its content on the
-          same line as its neighbour without one; the action is centred and may overhang. */}
-      <div className="mb-2 flex h-4 items-center gap-2">
+          same line as its neighbour without one; the pill is centred and may overhang. */}
+      <div className={`flex items-center gap-2 ${tallAction ? 'mb-3 min-h-4 flex-wrap gap-y-2' : 'mb-2 h-4'}`}>
         <div className={EYEBROW} style={fs(9.5)}>{label}</div>
         {action && <span className="ms-auto flex items-center">{action}</span>}
       </div>
@@ -294,35 +330,54 @@ const BUTTON_LOOK = {
   secondary: 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-card px-3.5 py-2 font-medium text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-secondary disabled:cursor-default disabled:opacity-50',
   active: 'inline-flex items-center gap-1.5 rounded-[10px] bg-accent px-3.5 py-2 font-medium text-accent-text disabled:cursor-default disabled:opacity-50',
   primary: 'inline-flex items-center gap-1.5 rounded-[10px] bg-accent px-4 py-2 font-medium text-accent-text hover:opacity-90 disabled:cursor-default disabled:opacity-50',
+  danger: 'inline-flex items-center gap-1.5 rounded-[10px] bg-danger px-4 py-2 font-medium text-[color:var(--danger-text)] hover:opacity-90 disabled:cursor-default disabled:opacity-50',
 } as const
 
 export type DialogButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style'> & {
-  variant?: 'primary' | 'secondary'
+  /** danger: the same filled button in red, for an action that removes or cuts a tie. */
+  variant?: 'primary' | 'secondary' | 'danger'
   /** A secondary button that is switched on (shown on the map) takes the accent fill. */
   active?: boolean
   icon?: ReactNode
 }
 
-/** A footer button: white on a hairline, or the accent fill for the one that finishes the dialog. */
+/**
+ * A footer button: white on a hairline, or the accent fill for the one that finishes the dialog.
+ * The primary one is marked, for the dialog's Ctrl/Cmd+Enter.
+ */
 export function DialogButton({ variant = 'secondary', active = false, icon, children, type = 'button', ...rest }: DialogButtonProps) {
-  const look = variant === 'primary' ? BUTTON_LOOK.primary : active ? BUTTON_LOOK.active : BUTTON_LOOK.secondary
+  const primary = variant === 'primary'
+  const look = primary ? BUTTON_LOOK.primary : variant === 'danger' ? BUTTON_LOOK.danger : active ? BUTTON_LOOK.active : BUTTON_LOOK.secondary
   return (
-    <button {...rest} type={type} className={look} style={fs(13, 'body')}>
+    <button {...rest} type={type} className={look} style={fs(13, 'body')} data-dialog-primary={primary ? '' : undefined}>
       {icon}{children}
     </button>
+  )
+}
+
+const ICON_BUTTON = 'grid h-9 w-9 flex-none place-items-center rounded-[10px] bg-surface-card shadow-sm ring-1 ring-edge-faint disabled:cursor-default disabled:opacity-50'
+
+/**
+ * A square footer button with an icon only, named by its tooltip: what a footer
+ * offers besides its one or two worded actions, so the row never wraps.
+ */
+export function DialogIconButton({ label, icon, danger = false, ...rest }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'style' | 'children'> & {
+  label: string
+  icon: ReactNode
+  danger?: boolean
+}) {
+  return (
+    <Tooltip label={label} placement="top">
+      <button type="button" {...rest} aria-label={label}
+        className={`${ICON_BUTTON} ${danger ? 'text-danger hover:bg-danger-soft' : 'text-content hover:bg-surface-secondary'}`}>
+        {icon}
+      </button>
+    </Tooltip>
   )
 }
 
 /** The square delete button of the footer, named by its tooltip. */
 export function DeleteButton({ onClick, label, disabled }: { onClick: () => void; label?: string; disabled?: boolean }) {
   const { t } = useTranslation()
-  const name = label ?? t('common.delete')
-  return (
-    <Tooltip label={name} placement="top">
-      <button type="button" onClick={onClick} disabled={disabled} aria-label={name}
-        className="grid h-9 w-9 place-items-center rounded-[10px] bg-surface-card text-danger shadow-sm ring-1 ring-edge-faint hover:bg-danger-soft disabled:cursor-default disabled:opacity-50">
-        <Trash2 size={15} strokeWidth={2} />
-      </button>
-    </Tooltip>
-  )
+  return <DialogIconButton label={label ?? t('common.delete')} onClick={onClick} disabled={disabled} danger icon={<Trash2 size={15} strokeWidth={2} />} />
 }

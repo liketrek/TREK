@@ -14,6 +14,7 @@ const files: TranslationStrings = {
   'files.subtitle.few': '{count} súbory pre {trip}',
   'files.download': 'Stiahnuť',
   'files.openError': 'Súbor sa nedá otvoriť',
+  'files.downloadError': 'Súbor sa nedá stiahnuť',
   'files.downloadPdf': 'Stiahnuť PDF',
   'files.count': '{count} súborov',
   'files.count.one': '{count} súbor',

@@ -8,6 +8,8 @@
     <string name="widget_today_description">План дня у вигляді стрічки часу, з погодою і наступною зупинкою.</string>
     <string name="widget_bookings_name">Бронювання</string>
     <string name="widget_bookings_description">Найближчі рейси, поїзди, готелі й столики та коли вони.</string>
+    <string name="widget_flight_name">Рейс</string>
+    <string name="widget_flight_description">Ваш наступний рейс наживо: відлік до вильоту, літак у дорозі, затримка й прибуття.</string>
     <string name="widget_todos_name">Завдання</string>
     <string name="widget_todos_description">Що ще лишилося зробити до подорожі і як просувається пакування.</string>
     <string name="widget_packing_name">Пакування</string>

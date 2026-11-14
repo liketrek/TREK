@@ -8,6 +8,8 @@
     <string name="widget_today_description">Dagens plan som tidslinje, med vädret och nästa stopp.</string>
     <string name="widget_bookings_name">Bokningar</string>
     <string name="widget_bookings_description">Dina nästa flyg, tåg, hotell och bord, och när de är.</string>
+    <string name="widget_flight_name">Flyg</string>
+    <string name="widget_flight_description">Ditt nästa flyg live: nedräkning till avgång, planet på väg, försening och ankomst.</string>
     <string name="widget_todos_name">Att göra</string>
     <string name="widget_todos_description">Vad som återstår inför resan och hur långt packningen har kommit.</string>
     <string name="widget_packing_name">Packning</string>

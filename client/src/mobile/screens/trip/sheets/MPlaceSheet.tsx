@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
-  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, Navigation, Paperclip,
+  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, MapPinOff, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, RouteOff, Sparkles, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
@@ -24,6 +24,7 @@ import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
 import { filesForPlace } from '../../../../utils/placeFiles'
 import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import { getPlaceBookings } from '../../../../utils/dayMerge'
 import type { Assignment, Day, Reservation, TripMember } from '../../../../types'
@@ -218,6 +219,13 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 </div>
                 {place.address && (
                   <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted"><bdi>{place.address}</bdi></div>
+                )}
+                {/* A typed address that never got coordinates: no marker, and the sheet says why (#2837). */}
+                {addressWithoutCoordinates(place) && (
+                  <div className="mt-[3px] flex items-center gap-1 text-caption font-semibold text-[color:var(--m-st-pending)]">
+                    <MapPinOff size={12} strokeWidth={2.2} aria-hidden="true" className="flex-none" />
+                    {t('places.noCoordinates')}
+                  </div>
                 )}
                 {/* The category under the name and address, as wide as its name:
                     squeezed under the photo it was cut to "Shoppi…". */}

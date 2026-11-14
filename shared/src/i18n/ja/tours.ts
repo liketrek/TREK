@@ -89,6 +89,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': '累積上昇量',
   'tours.detail.descent': '累積下降量',
   'tours.detail.navigationHint': 'ナビには登山口が表示されます。ルートに沿った案内は行いません。',
+  'tours.detail.openRoute': 'ルートを地図アプリで開く',
+  'tours.detail.mapsShort': '地図',
   'tours.planner.title': 'ツアーを計画',
   'tours.planner.newTour': '新しいツアーを計画',
   'tours.planner.addTour': 'ツアーを追加',

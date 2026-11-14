@@ -184,7 +184,7 @@ describe('Photos through AI Parsing e2e', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.items).toHaveLength(1);
-      expect(res.body.files).toEqual([{ fileName: 'ticket.png', aiAvailable: true, aiUsed: true }]);
+      expect(res.body.files).toEqual([{ fileName: 'ticket.png', aiAvailable: true, aiUsed: true, outcome: 'ok' }]);
       const image = sentUserContent().find((p: { type: string }) => p.type === 'image_url');
       expect(image.image_url.url).toMatch(/^data:image\/png;base64,/);
     });

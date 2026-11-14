@@ -71,6 +71,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'لم يتم العثور على ألبومات',
   'journey.picker.selectDate': 'اختر تاريخ',
   'journey.picker.search': 'بحث',
+  'journey.picker.takenBetween': 'التُقطت بين',
   'journey.title': 'يوميات',
   'journey.subtitle': 'وثّق رحلاتك أولًا بأول',
   'journey.new': 'يوميات جديدة',

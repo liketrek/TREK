@@ -63,6 +63,16 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Zaznacz wszystko',
   'packing.menuUncheckAll': 'Odznacz wszystko',
   'packing.menuDeleteCat': 'Usuń listę',
+  'packing.menuShareCat': 'Udostępnianie całej listy',
+  'packing.shareCat.hint': 'Wszystkie Twoje przedmioty z tej listy przejdą na wybrany poziom.',
+  'packing.shareCat.othersKept': 'Przedmioty dodane przez innych pozostają bez zmian. Tylko oni mogą je zmienić.',
+  'packing.shareCat.noneOwn':
+    'Wszystkie przedmioty z tej listy dodał ktoś inny, więc tylko ta osoba może zmienić ich udostępnianie.',
+  'packing.shareCat.pickPeople': 'Wybierz co najmniej jedną osobę, której chcesz udostępnić.',
+  'packing.shareCat.apply': 'Zastosuj do listy',
+  'packing.shareCat.done': 'Zmieniono udostępnianie listy „{name}”',
+  'packing.shareCat.doneOthersKept':
+    'Zmieniono udostępnianie listy „{name}”. Przedmioty dodane przez innych pozostały bez zmian.',
   'packing.saveAsTemplate': 'Zapisz jako szablon',
   'packing.templateName': 'Nazwa szablonu',
   'packing.templateSaved': 'Lista pakowania zapisana jako szablon',

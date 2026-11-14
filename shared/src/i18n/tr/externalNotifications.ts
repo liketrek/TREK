@@ -17,6 +17,18 @@ const tr: NotificationLocale = {
       title: `Yeni rezervasyon: ${p.booking}`,
       body: `${p.actor}, "${p.trip}" seyahatine "${p.booking}" (${p.type}) rezervasyonu ekledi.`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} kalktı`,
+      body: `${p.from} çıkışlı ${p.to} varışlı ${p.flight} havada.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} rötarlı`,
+      body: `${p.from} çıkışlı ${p.to} varışlı ${p.flight} yaklaşık ${p.delay} dakika rötarlı.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} indi`,
+      body: `${p.from} çıkışlı ${p.flight} ${p.to} varış noktasına indi.`,
+    }),
     trip_reminder: (p) => ({
       title: `Seyahat hatırlatıcısı: ${p.trip}`,
       body: `"${p.trip}" seyahatiniz yaklaşıyor!`,
@@ -86,6 +98,21 @@ const tr: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `"${p.trip}" içindeki "${p.tour}" artık wanderer'da denetlenemiyor. Gezindeki tur olduğu gibi kalır.`
             : `"${p.trip}" içindeki "${p.tour}" wanderer'da değişmiş olabilir. Turu aç ve kaynağını denetle. Gezide hiçbir şey kendiliğinden değişmez.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `E-postadan eklendi: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor}, iletilen bir e-postadaki "${p.booking}" rezervasyonunu "${p.trip}" seyahatine ekledi.`
+          : `İlettiğin e-postadaki "${p.booking}" rezervasyonu "${p.trip}" seyahatine eklendi. Bunu TREK içinde 7 gün boyunca geri alabilirsin.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'İncelenecek iletilen rezervasyonlar',
+      body: `TREK içinde seni bekleyen iletilen rezervasyonlar: ${p.count}. Her birinde neden kendiliğinden eklenmediği yazıyor.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'E-posta içe aktarımı duraklatıldı',
+      body: 'TREK şimdilik iletilen rezervasyon e-postalarını kabul etmiyor, bu yüzden şimdilik iletme. Adreslerin kalıyor ve içe aktarım geri geldiğinde yeniden çalışacak, zaten eklenmiş rezervasyonlar da seyahatlerinde kalıyor.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

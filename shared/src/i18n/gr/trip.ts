@@ -110,6 +110,13 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Κοινοποίηση',
   'trip.settings.sharingHint':
     'Ένας σύνδεσμος μόνο για ανάγνωση για όλους και ένας σύνδεσμος πρόσκλησης για συμμετοχή.',
+  'trip.settings.editTripHint': 'Τίτλος, ημερομηνίες, εξώφυλλο, περιγραφή και νόμισμα.',
+  'trip.form.coverTitle': 'Εικόνα εξωφύλλου',
+  'trip.form.coverHint': 'Εμφανίζεται στην κάρτα του ταξιδιού και στην κορυφή του σχεδιαστή.',
+  'trip.form.aboutTitle': 'Όνομα και περιγραφή',
+  'trip.form.aboutHint': 'Πώς λέγεται το ταξίδι και τι αφορά.',
+  'trip.form.whenTitle': 'Ημερομηνίες και νόμισμα',
+  'trip.form.whenHint': 'Πότε γίνεται το ταξίδι, σε ποιο νόμισμα πληρώνετε και πότε θα σου υπενθυμιστεί.',
   'trip.tabs.journal': 'Ημερολόγιο',
   'trip.journal.title': 'Ημερολόγιο',
   'trip.journal.hint':
@@ -131,6 +138,8 @@ const trip: TranslationStrings = {
   'trip.journal.pickPlaceholder': 'Επιλέξτε ημερολόγιο',
   'trip.journal.noMembers': 'Δεν υπάρχει ακόμη κανείς άλλος σε αυτό το ταξίδι.',
   'trip.journal.members': 'Πρόσβαση για τα μέλη του ταξιδιού',
+  'trip.journal.membersHint':
+    'Ποιοι από το ταξίδι ανοίγουν το ημερολόγιο στην καρτέλα Ημερολόγιο και αν μπορούν να γράψουν σε αυτό.',
   'trip.journal.allRead': 'Όλοι διαβάζουν',
   'trip.journal.allNone': 'Κανείς',
   'trip.journal.roleNone': 'Χωρίς πρόσβαση',

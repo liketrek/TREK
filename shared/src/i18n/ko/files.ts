@@ -12,6 +12,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{trip}의 파일 {count}개',
   'files.download': '다운로드',
   'files.openError': '파일을 열 수 없습니다',
+  'files.downloadError': '파일을 다운로드할 수 없습니다',
   'files.downloadPdf': 'PDF 다운로드',
   'files.count': '파일 {count}개',
   'files.uploaded': '{count}개 업로드됨',

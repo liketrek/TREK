@@ -9,7 +9,7 @@ import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-EXPSH-001 to FE-MOB-EXPSH-016
+// FE-MOB-EXPSH-001 to FE-MOB-EXPSH-017
 // This sheet reads its copy from useTranslation(), so the assertions are English.
 
 vi.mock('../../../../src/components/PDF/TripPDF', () => ({ downloadTripPDF: vi.fn() }))
@@ -158,6 +158,17 @@ describe('MExportSheet', () => {
     // The object URL outlives the click so slower browsers can still read it.
     expect(URL.revokeObjectURL).not.toHaveBeenCalled()
     await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:trek/ics'))
+    await waitFor(() => expect(shell.closeSheet).toHaveBeenCalledTimes(1))
+  })
+
+  it('FE-MOB-EXPSH-017: the places go out as KML for Google My Maps, named after the trip (#1866)', async () => {
+    server.use(http.get('/api/trips/1/places/export.kml', () => HttpResponse.text('<kml/>')))
+    const { shell } = renderSheet()
+    expect(screen.getByText('A KML file to import as a layer in My Maps')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Places for Google My Maps'))
+
+    await waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1))
+    expect(clickedAnchor().download).toBe('Japan 2026.kml')
     await waitFor(() => expect(shell.closeSheet).toHaveBeenCalledTimes(1))
   })
 

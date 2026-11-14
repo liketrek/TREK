@@ -1,6 +1,6 @@
-// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-061
+// FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-063
 import type { Mock } from 'vitest';
-import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import { act, render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -1106,5 +1106,29 @@ describe('TripMembersModal', () => {
     expect(screen.getByText('Copy')).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/join/inv9'));
     view.unmount();
+  });
+
+  it('FE-COMP-MEMBERS-062: Edit Trip is an area of the dialog that shows the trip form (#2811)', async () => {
+    const user = userEvent.setup();
+    const trip = buildTrip({ id: 1, title: 'Lisbon in spring', user_id: ownerUser.id });
+    render(<TripMembersModal {...defaultProps} editTrip={{ trip, onSave: vi.fn() }} />);
+
+    // The column stands for it even where People is the only area.
+    const nav = await screen.findByRole('navigation', { name: 'Trip settings' });
+    await user.click(within(nav).getByRole('button', { name: 'Edit Trip' }));
+
+    // The trip's own form, in place: its title field holds the trip's title.
+    expect(await screen.findByDisplayValue('Lisbon in spring')).toBeVisible();
+    expect(within(nav).getByRole('button', { name: 'Edit Trip' })).toHaveAttribute('aria-current', 'page');
+    // The area itself says what it is for; the side column carries the names alone.
+    expect(within(nav).queryByText('Title, dates, cover, description and currency.')).toBeNull();
+    expect(screen.getByText('Title, dates, cover, description and currency.')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MEMBERS-063: without the right to edit the trip, the dialog offers no way to its form', async () => {
+    render(<TripMembersModal {...defaultProps} />);
+
+    expect(await screen.findByText('owner')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit Trip' })).toBeNull();
   });
 });

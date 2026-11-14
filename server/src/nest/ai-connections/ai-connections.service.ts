@@ -23,6 +23,7 @@ import { maskHint, openSecrets, sealSecrets } from './ai-secrets';
 import { AiSettingsService } from './ai-settings.service';
 import { AiUsageService } from './ai-usage.service';
 import { ChatgptAuthService } from './chatgpt-auth.service';
+import { ChatgptParsingReader } from './chatgpt-parsing.reader';
 import { ModelCatalogService, modelReadsImages, pickDefaultModel, type CatalogTarget } from './model-catalog.service';
 import { AiProviderError } from './providers/provider-errors';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -87,6 +88,7 @@ export class AiConnectionsService implements SharedAiConnectionPort {
     private readonly rateLimit: RateLimitService,
     private readonly llmParse: LlmParseService,
     private readonly audit: AuditService,
+    private readonly chatgptParsing: ChatgptParsingReader,
   ) {}
 
   /** `kind:model` of the models a provider refused an image for, while this process runs. */
@@ -411,10 +413,10 @@ export class AiConnectionsService implements SharedAiConnectionPort {
   /**
    * The connection a user's assistant would run on, as AI parsing reads it, so
    * an instance sets up one provider for both. The admin's policy decides it
-   * the same way. A ChatGPT plan is left out: its sign-in only reaches the chat
-   * models, not the completions endpoint parsing calls. Gemini and OpenRouter
-   * go through their OpenAI-compatible endpoints; a custom server is the
-   * admin's own address, read like parsing's local provider (#1772).
+   * the same way. A ChatGPT plan has no key for parsing's clients, so it is
+   * lent as a reader that holds the sign-in (chatgpt-parsing.reader.ts). Gemini
+   * and OpenRouter go through their OpenAI-compatible endpoints; a custom server
+   * is the admin's own address, read like parsing's local provider (#1772).
    */
   async forParsing(userId: number): Promise<SharedParsingConnection | null> {
     if (readEnv().managed.enabled) return null;
@@ -438,6 +440,8 @@ export class AiConnectionsService implements SharedAiConnectionPort {
         return apiKey ? { provider: 'openai', model: row.model, apiKey, baseUrl: AI_BASE_URLS[kind] } : null;
       case 'custom':
         return row.base_url ? { provider: 'local', model: row.model, apiKey, baseUrl: row.base_url } : null;
+      case 'chatgpt':
+        return { provider: 'chatgpt', model: row.model, read: this.chatgptParsing.readerFor(row, row.model) };
       default:
         return null;
     }

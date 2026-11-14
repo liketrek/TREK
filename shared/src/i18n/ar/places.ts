@@ -123,6 +123,10 @@ const places: TranslationStrings = {
   'places.formLng': 'خط الطول (مثال: 2.3522)',
   'places.formLatLabel': 'خط العرض',
   'places.formLngLabel': 'خط الطول',
+  'places.noCoordinates': 'لا إحداثيات، لذا لا يظهر على الخريطة',
+  'places.noCoordinatesHint': 'عدّل المكان واختره من البحث، أو أدخل خط العرض وخط الطول.',
+  'places.noCoordinatesFormHint':
+    'لا توجد إحداثيات لهذا العنوان بعد، لذا لن يظهر المكان على الخريطة. اختره من البحث أعلاه أو أدخل خط العرض وخط الطول.',
   'places.formCategory': 'الفئة',
   'places.noCategory': 'بلا فئة',
   'places.newCategory': 'فئة جديدة',

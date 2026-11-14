@@ -53,6 +53,17 @@ const HOLE = undefined as unknown as CollectionPlace;
 describe('collectionsModel', () => {
   // ── filterPlaces ────────────────────────────────────────────────────────────
   describe('filterPlaces', () => {
+    it('FE-COLLECTIONS-MODEL-045: the search finds Óbidos and São Brás typed without accents (#3075)', () => {
+      const places = [
+        cp({ id: 1, name: 'Óbidos', status: 'idea' }),
+        cp({ id: 2, name: 'São Brás de Alportel', status: 'idea' }),
+        cp({ id: 3, name: 'Lagos', status: 'idea', address: 'Rua de Évora' }),
+      ];
+      expect(filterPlaces(places, 'all', 'obidos').map(p => p.id)).toEqual([1]);
+      expect(filterPlaces(places, 'all', 'Sao Bras').map(p => p.id)).toEqual([2]);
+      expect(filterPlaces(places, 'all', 'evora').map(p => p.id)).toEqual([3]);
+    });
+
     it('FE-COLLECTIONS-MODEL-001: status filter keeps only the matching status', () => {
       const places = [
         cp({ id: 1, name: 'A', status: 'idea' }),
@@ -230,11 +241,11 @@ describe('collectionsModel', () => {
         cp({ id: 5, name: 'E', status: 'visited' }),
         cp({ id: 6, name: 'F', status: 'visited' }),
       ];
-      expect(statusCounts(places)).toEqual({ all: 6, idea: 2, want: 1, visited: 3 });
+      expect(statusCounts(places)).toEqual({ all: 6, idea: 2, want: 1, visited: 3, revisit: 0 });
     });
 
     it('FE-COLLECTIONS-MODEL-015: empty input yields all zeros', () => {
-      expect(statusCounts([])).toEqual({ all: 0, idea: 0, want: 0, visited: 0 });
+      expect(statusCounts([])).toEqual({ all: 0, idea: 0, want: 0, visited: 0, revisit: 0 });
     });
 
     it('FE-COLLECTIONS-MODEL-016: undefined entries are skipped from every count', () => {
@@ -244,7 +255,12 @@ describe('collectionsModel', () => {
         cp({ id: 2, name: 'B', status: 'want' }),
       ];
       expect(() => statusCounts(places)).not.toThrow();
-      expect(statusCounts(places)).toEqual({ all: 2, idea: 1, want: 1, visited: 0 });
+      expect(statusCounts(places)).toEqual({ all: 2, idea: 1, want: 1, visited: 0, revisit: 0 });
+    });
+
+    it('FE-COLLECTIONS-MODEL-046: a place to revisit counts under its own status (#2567)', () => {
+      const places = [cp({ id: 1, name: 'A', status: 'revisit' }), cp({ id: 2, name: 'B', status: 'visited' })];
+      expect(statusCounts(places)).toEqual({ all: 2, idea: 0, want: 0, visited: 1, revisit: 1 });
     });
   });
 
@@ -341,14 +357,15 @@ describe('collectionsModel', () => {
 
   // ── status metadata + cycle ─────────────────────────────────────────────────
   describe('status metadata', () => {
-    it('FE-COLLECTIONS-MODEL-040: nextStatus cycles idea → want → visited → idea', () => {
+    it('FE-COLLECTIONS-MODEL-040: nextStatus cycles idea → want → visited → revisit → idea', () => {
       expect(nextStatus('idea')).toBe('want');
       expect(nextStatus('want')).toBe('visited');
-      expect(nextStatus('visited')).toBe('idea');
+      expect(nextStatus('visited')).toBe('revisit');
+      expect(nextStatus('revisit')).toBe('idea');
     });
 
     it('FE-COLLECTIONS-MODEL-041: STATUS_ORDER holds every status exactly once', () => {
-      expect(STATUS_ORDER).toEqual(['idea', 'want', 'visited']);
+      expect(STATUS_ORDER).toEqual(['idea', 'want', 'visited', 'revisit']);
     });
 
     it('FE-COLLECTIONS-MODEL-042: every status has a label key, an icon and both colours', () => {

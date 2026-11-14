@@ -85,6 +85,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'ความสูงสะสมขาขึ้น',
   'tours.detail.descent': 'ความสูงสะสมขาลง',
   'tours.detail.navigationHint': 'การนำทางจะเปิดจุดเริ่มต้นทางเดิน ไม่ได้นำทางตามเส้นทางทัวร์',
+  'tours.detail.openRoute': 'เปิดเส้นทางในแอปแผนที่',
+  'tours.detail.mapsShort': 'แผนที่',
   'tours.planner.title': 'วางแผนทัวร์',
   'tours.planner.newTour': 'วางแผนทัวร์ใหม่',
   'tours.planner.addTour': 'เพิ่มทริป',

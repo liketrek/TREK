@@ -41,6 +41,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Перемістити в «{name}»',
   'assistant.card.collection.removed': 'Прибрано зі списку',
   'assistant.card.collection.photo': 'Фото',
+  'assistant.card.collection.mapEntry': 'Запис на мапі',
   'assistant.card.collection.places': 'Збережені місця в «{name}»',
   'assistant.card.collection.saved': 'Збережені місця',
   'assistant.card.collection.statusSet': 'Змінено збережених місць: {count}',

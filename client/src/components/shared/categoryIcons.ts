@@ -9,12 +9,14 @@ import {
   Church, Library, Store, Home, Cross,
   Heart, Star, CreditCard, Wifi,
   Luggage, Backpack, Zap, Croissant, ShoppingBasket,
+  BusFront, TrainFront, PlaneTakeoff, ParkingSquare, Fuel,
   LucideIcon,
 } from 'lucide-react'
 
 export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   MapPin, Building2, BedDouble, UtensilsCrossed, Landmark, ShoppingBag,
   Bus, Train, Car, Plane, Ship, Bike,
+  BusFront, TrainFront, PlaneTakeoff, ParkingSquare, Fuel,
   Activity, Dumbbell, Mountain, Tent, Anchor,
   Coffee, Beer, Wine, Utensils,
   Camera, Music, Theater, Ticket,
@@ -28,7 +30,8 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
 export const ICON_LABELS: Record<string, string> = {
   MapPin: 'Pin', Building2: 'Building', BedDouble: 'Hotel', UtensilsCrossed: 'Restaurant',
   Landmark: 'Attraction', ShoppingBag: 'Shopping', Bus: 'Bus', Train: 'Train',
-  Car: 'Car', Plane: 'Plane', Ship: 'Ship', Bike: 'Bicycle',
+  Car: 'Car', Plane: 'Plane', Ship: 'Ship / Ferry', Bike: 'Bicycle',
+  BusFront: 'Bus stop', TrainFront: 'Station', PlaneTakeoff: 'Airport', ParkingSquare: 'Parking', Fuel: 'Fuel',
   Activity: 'Activity', Dumbbell: 'Fitness', Mountain: 'Mountain', Tent: 'Camping',
   Anchor: 'Harbor', Coffee: 'Cafe', Beer: 'Bar', Wine: 'Wine', Utensils: 'Food',
   Camera: 'Photo', Music: 'Music', Theater: 'Theater', Ticket: 'Events',

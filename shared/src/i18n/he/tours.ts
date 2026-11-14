@@ -92,6 +92,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'עלייה מצטברת',
   'tours.detail.descent': 'ירידה מצטברת',
   'tours.detail.navigationHint': 'הניווט מוביל לנקודת ההתחלה של המסלול, ולא מנווט לאורכו.',
+  'tours.detail.openRoute': 'פתיחת המסלול באפליקציית מפות',
+  'tours.detail.mapsShort': 'מפות',
   'tours.planner.title': 'תכנון מסלול',
   'tours.planner.newTour': 'תכנון מסלול חדש',
   'tours.planner.addTour': 'הוספת מסלול',

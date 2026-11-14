@@ -77,6 +77,13 @@ const FIELD_OF: Readonly<Record<string, (typeof COLLECTION_CARD_FIELDS)[number]>
   category_id: 'category',
   links: 'link',
   image_url: 'photo',
+  website: 'website',
+  phone: 'phone',
+  price: 'price',
+  currency: 'price',
+  google_place_id: 'mapEntry',
+  google_ftid: 'mapEntry',
+  osm_id: 'mapEntry',
 };
 
 function fieldsOf(args: ToolArgs): CollectionCardDelta['fields'] {

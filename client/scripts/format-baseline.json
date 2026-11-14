@@ -1025,7 +1025,6 @@
   "src/components/Tours/useTourPermissions.ts",
   "src/components/Trips/TripDateReview.tsx",
   "src/components/Trips/TripFormModal.test.tsx",
-  "src/components/Trips/TripFormModal.tsx",
   "src/components/Trips/TripMemberAvatar.tsx",
   "src/components/Trips/TripMembersModal.test.tsx",
   "src/components/Trips/TripMembersModal.tsx",

@@ -21,10 +21,12 @@ describe('collectionsMobileModel', () => {
     expect(categoryMeta({ name: null, color: '#123456' })).toBeNull()
   })
 
-  it('FE-MOB-COLL-003: the status canon covers the Idea → Want to go → Visited cycle', () => {
+  it('FE-MOB-COLL-003: the status canon covers the Idea → Want to go → Visited → Want to revisit cycle', () => {
     expect(STATUS_SPEC.idea.labelKey).toBe('collections.status.idea')
     expect(STATUS_SPEC.want.labelKey).toBe('collections.status.want')
     expect(STATUS_SPEC.visited.labelKey).toBe('collections.status.visited')
+    expect(STATUS_SPEC.revisit.labelKey).toBe('collections.status.revisit')
+    expect(STATUS_SPEC.revisit.color).toBe('var(--m-st-pending)')
     expect(STATUS_SPEC.idea.color).toBe('#9A9AA1')
     expect(STATUS_SPEC.want.color).toBe('#4A7DDB')
     expect(STATUS_SPEC.visited.color).toBe('#2FA37A')

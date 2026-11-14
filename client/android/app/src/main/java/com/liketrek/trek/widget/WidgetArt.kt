@@ -149,4 +149,100 @@ object WidgetArt {
         }
         return bitmap
     }
+
+    /**
+     * A flight's route as an arc: dashed ahead, solid where it has flown, a dot
+     * at either airport and an airliner riding the curve at its heading. White
+     * on a translucent track, like the ring; the widget tints nothing, so the
+     * caller passes the flight colour.
+     */
+    fun flightArc(
+        progress: Float,
+        color: Int,
+        track: Int,
+        width: Int = 600,
+        height: Int = 120,
+        showPlane: Boolean = true,
+        rtl: Boolean = false,
+    ): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        // Right to left the origin stands on the right: the whole drawing is mirrored.
+        if (rtl) canvas.scale(-1f, 1f, width / 2f, height / 2f)
+        val p = progress.coerceIn(0f, 1f)
+        val inset = height * 0.14f
+        val sx = inset
+        val sy = height - inset
+        val ex = width - inset
+        val ey = height - inset
+        val cx = width / 2f
+        val cy = -height * 0.45f
+        val path = android.graphics.Path().apply {
+            moveTo(sx, sy)
+            quadTo(cx, cy, ex, ey)
+        }
+        val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = height * 0.035f
+            this.color = track
+            pathEffect = android.graphics.DashPathEffect(floatArrayOf(height * 0.02f, height * 0.07f), 0f)
+        }
+        canvas.drawPath(path, line)
+        val measure = android.graphics.PathMeasure(path, false)
+        if (p > 0f) {
+            val flown = android.graphics.Path()
+            measure.getSegment(0f, measure.length * p, flown, true)
+            line.pathEffect = null
+            line.strokeWidth = height * 0.045f
+            line.color = color
+            canvas.drawPath(flown, line)
+        }
+        val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+        canvas.drawCircle(sx, sy, height * 0.05f, dot)
+        val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = if (p >= 1f) Paint.Style.FILL else Paint.Style.STROKE
+            strokeWidth = height * 0.03f
+            this.color = color
+        }
+        canvas.drawCircle(ex, ey, height * 0.06f, ring)
+        if (showPlane) {
+            val pos = FloatArray(2)
+            val tan = FloatArray(2)
+            measure.getPosTan(measure.length * p, pos, tan)
+            canvas.save()
+            canvas.translate(pos[0], pos[1])
+            canvas.rotate(Math.toDegrees(kotlin.math.atan2(tan[1].toDouble(), tan[0].toDouble())).toFloat())
+            val scale = height * 0.012f
+            canvas.scale(scale, scale)
+            canvas.drawCircle(0f, 0f, 13f, Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = Color.WHITE })
+            canvas.drawPath(airliner(), Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color })
+            canvas.restore()
+        }
+        return bitmap
+    }
+
+    /** An airliner seen from above, nose along +x, about 18 units long, centred. */
+    private fun airliner(): android.graphics.Path = android.graphics.Path().apply {
+        moveTo(9f, 0f)
+        cubicTo(9f, -0.9f, 8.3f, -1.3f, 7.4f, -1.3f)
+        lineTo(3.2f, -1.3f)
+        lineTo(-1.6f, -7.6f)
+        lineTo(-3.7f, -7.6f)
+        lineTo(-1.4f, -1.3f)
+        lineTo(-5.5f, -1.3f)
+        lineTo(-7.2f, -3.7f)
+        lineTo(-8.8f, -3.7f)
+        lineTo(-7.8f, 0f)
+        lineTo(-8.8f, 3.7f)
+        lineTo(-7.2f, 3.7f)
+        lineTo(-5.5f, 1.3f)
+        lineTo(-1.4f, 1.3f)
+        lineTo(-3.7f, 7.6f)
+        lineTo(-1.6f, 7.6f)
+        lineTo(3.2f, 1.3f)
+        lineTo(7.4f, 1.3f)
+        cubicTo(8.3f, 1.3f, 9f, 0.9f, 9f, 0f)
+        close()
+    }
 }

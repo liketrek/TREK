@@ -238,5 +238,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple Təqvimə / Outlook-a əlavə et',
   'dashboard.ics.copyManually': 'Və ya keçidi əllə kopyalayın',
   'dashboard.ics.pasteFromUrl': '“URL-dən” sahəsinə yapışdırın',
+  'dashboard.ics.dayEvents': 'Günün icmalı tədbirləri',
+  'dashboard.ics.dayEventsHint':
+    'Hər gün üçün vaxtı olmayan məkanları və qeydləri göstərən bütün günlük tədbir. Bunu dəyişmək linki dəyişir, ona görə yeni linklə yenidən abunə olun.',
 };
 export default dashboard;

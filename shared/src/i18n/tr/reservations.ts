@@ -36,7 +36,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Aktarma',
   'reservations.layover.layover': 'Aktarma bekleme süresi',
   'reservations.needsReview': 'Gözden geçirmek',
-  'reservations.needsReviewHint': 'Havaalanı otomatik olarak eşleştirilemedi; lütfen konumu onaylayın.',
+  'reservations.needsReviewHint': 'Bazı bilgiler otomatik dolduruldu ve kesin okunamadı. Lütfen kontrol et.',
+  'reservations.reviewConfirm': 'Doğru görünüyor',
+  'reservations.reviewConfirmHint': 'Kontrol edildi olarak işaretlemek için tıkla.',
+  'reservations.reviewConfirmed': 'Kontrol edildi olarak işaretlendi',
   'reservations.searchLocation': 'İstasyonu, limanı, adresi arayın…',
   'reservations.meta.trainNumber': 'Tren No.',
   'reservations.meta.platform': 'Platformu',
@@ -277,7 +280,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Gösterilen {total} satırdan {shown} tanesini dışa aktar (CSV)',
   'reservations.wallet.add': 'Apple Cüzdan’a Ekle',
   'reservations.wallet.addGoogle': 'Google Cüzdan’a Ekle',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Cüzdan kartı oluşturulamadı. Lütfen tekrar deneyin.',
   'reservations.wallet.undated': 'Önce rezervasyona bir tarih verin: Cüzdan kartı o zamana yakın gösterir.',
 };

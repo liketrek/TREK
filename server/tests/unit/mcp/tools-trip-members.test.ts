@@ -6,6 +6,7 @@
  */
 import { db as testDb } from '../../../src/db/database';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
@@ -13,9 +14,9 @@ import { Users } from '../../../src/db/entities/Users.entity';
 import { GUEST_HAS_PAYMENTS } from '../../../src/nest/budget/budget-departure.helpers';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import { createUser, createAdmin, createTrip, addTripMember } from '../../helpers/factories';
+import { createUser, createAdmin, createTrip, addTripMember, createDayNote } from '../../helpers/factories';
 import { addBudgetItemMember, addBudgetItemPayer, makeBudgetItem } from '../../helpers/factories/budget';
-import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { countRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
 import { makeShareToken } from '../../helpers/factories/trips';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
@@ -489,6 +490,26 @@ describe('Tool: export_trip_ics', () => {
       expect(data.ics).toContain('BEGIN:VCALENDAR');
       expect(data.ics).toContain('Paris Trip');
       expect(data.filename).toMatch(/\.ics$/);
+    });
+  });
+
+  it('leaves the per-day summaries out with dayEvents false, like days=0 on the route (#2602)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2025-06-01', end_date: '2025-06-05' });
+    // A dated trip comes with its days; the first one is the 1st of June.
+    const [day] = await findRows(orm, Days, { trip: trip.id }, { id: 'asc' });
+    createDayNote(testDb, day.id, trip.id, { text: 'Pick up the museum pass' });
+    await withHarness(user.id, async (h) => {
+      const call = async (args: Record<string, unknown>) =>
+        (
+          parseToolResult(
+            await h.client.callTool({ name: 'export_trip_ics', arguments: { tripId: trip.id, ...args } }),
+          ) as { ics: string }
+        ).ics;
+      expect(await call({})).toContain('SUMMARY:Day 1');
+      const lean = await call({ dayEvents: false });
+      expect(lean).not.toContain('SUMMARY:Day 1');
+      expect(lean).toContain('SUMMARY:Paris Trip');
     });
   });
 

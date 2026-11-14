@@ -17,6 +17,18 @@ const de: NotificationLocale = {
       title: `Neue Buchung: ${p.booking}`,
       body: `${p.actor} hat eine neue Buchung "${p.booking}" (${p.type}) zu "${p.trip}" hinzugefügt.`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} ist gestartet`,
+      body: `${p.flight} von ${p.from} nach ${p.to} ist in der Luft.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} hat Verspätung`,
+      body: `${p.flight} von ${p.from} nach ${p.to} liegt etwa ${p.delay} Minuten hinter dem Flugplan.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} ist gelandet`,
+      body: `${p.flight} aus ${p.from} ist in ${p.to} gelandet.`,
+    }),
     trip_reminder: (p) => ({
       title: `Reiseerinnerung: ${p.trip}`,
       body: `Deine Reise "${p.trip}" steht bald an!`,
@@ -83,6 +95,21 @@ const de: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `„${p.tour}“ in „${p.trip}“ lässt sich in wanderer nicht mehr prüfen. Die Tour in deiner Reise bleibt, wie sie ist.`
             : `„${p.tour}“ in „${p.trip}“ hat sich in wanderer möglicherweise geändert. Öffne die Tour und prüfe ihre Quelle, um es zu sehen. In der Reise ändert sich nichts von selbst.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Aus einer Mail eingetragen: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} hat „${p.booking}“ aus einer weitergeleiteten Mail in „${p.trip}“ eingetragen.`
+          : `„${p.booking}“ aus deiner weitergeleiteten Mail wurde in „${p.trip}“ eingetragen. Du kannst das 7 Tage lang in TREK rückgängig machen.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Weitergeleitete Buchungen prüfen',
+      body: `In TREK warten weitergeleitete Buchungen auf dich: ${p.count}. Bei jeder steht, warum sie nicht von selbst eingetragen wurde.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Mail-Import pausiert',
+      body: 'TREK nimmt weitergeleitete Buchungsmails vorerst nicht an, leite also gerade keine weiter. Deine Adressen bleiben und funktionieren wieder, sobald der Import zurück ist, und bereits eingetragene Buchungen bleiben in deinen Reisen.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

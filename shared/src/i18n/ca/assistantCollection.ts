@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Mou a {name}',
   'assistant.card.collection.removed': 'Tret de la llista',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Fitxa del mapa',
   'assistant.card.collection.places': 'Llocs desats a {name}',
   'assistant.card.collection.saved': 'Llocs desats',
   'assistant.card.collection.statusSet': '{count} llocs desats canviats',

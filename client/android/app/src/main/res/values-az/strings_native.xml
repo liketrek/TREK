@@ -8,6 +8,8 @@
     <string name="widget_today_description">Günün planı zaman xətti kimi, hava və növbəti dayanacaqla.</string>
     <string name="widget_bookings_name">Bronlar</string>
     <string name="widget_bookings_description">Növbəti uçuşlar, qatarlar, otellər və restoranlar, nə vaxt olduqları ilə.</string>
+    <string name="widget_flight_name">Uçuş</string>
+    <string name="widget_flight_description">Növbəti uçuşun canlı: uçuşa qədər geri sayım, yolda olan təyyarə, gecikmə və gəliş.</string>
     <string name="widget_todos_name">Tapşırıqlar</string>
     <string name="widget_todos_description">Səyahət üçün hələ nəyin qaldığı və yığışmağın nə yerdə olduğu.</string>
     <string name="widget_packing_name">Yük siyahısı</string>

@@ -64,12 +64,14 @@ interface FormSheetHeaderProps {
   subtitle?: ReactNode
   /** Replaces the icon tile, e.g. a back button on the import sub-steps. */
   leading?: ReactNode
+  /** A 34px action before the close button (the booking's Wallet pass). */
+  trailing?: ReactNode
   onClose: () => void
   closeLabel: string
 }
 
 /** Form-sheet header: optional tile, 17px/700 title, 34px close. No hairline. */
-export function FormSheetHeader({ icon: Icon, title, subtitle, leading, onClose, closeLabel }: FormSheetHeaderProps) {
+export function FormSheetHeader({ icon: Icon, title, subtitle, leading, trailing, onClose, closeLabel }: FormSheetHeaderProps) {
   return (
     <div className="m-fs-head flex flex-none items-center gap-3 px-[18px] pb-2 pt-4">
       {leading}
@@ -84,6 +86,7 @@ export function FormSheetHeader({ icon: Icon, title, subtitle, leading, onClose,
         <div className="line-clamp-2 break-words text-[1.0625rem] font-bold leading-tight text-m-ink">{title}</div>
         {subtitle && <div className="truncate font-geist text-[0.71875rem] text-m-muted">{subtitle}</div>}
       </div>
+      {trailing}
       <MIconBtn ariaLabel={closeLabel} onClick={onClose} variant="neutral" size={34} className="m-fs-close">
         <X size={15} strokeWidth={2.2} />
       </MIconBtn>

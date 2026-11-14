@@ -89,6 +89,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Longitud (p. ex. 2.3522)',
   'places.formLatLabel': 'Latitud',
   'places.formLngLabel': 'Longitud',
+  'places.noCoordinates': 'Sense coordenades, per tant no surt al mapa',
+  'places.noCoordinatesHint': "Edita el lloc i tria'l a la cerca, o introdueix la latitud i la longitud.",
+  'places.noCoordinatesFormHint':
+    "Aquesta adreça encara no té coordenades, així que el lloc no sortirà al mapa. Tria'l a la cerca de dalt o introdueix la latitud i la longitud.",
   'places.formCategory': 'Categoria',
   'places.noCategory': 'Sense categoria',
   'places.newCategory': 'Categoria nova',

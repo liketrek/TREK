@@ -1,4 +1,4 @@
-// FE-COMP-COLEXPORT-001 to FE-COMP-COLEXPORT-008
+// FE-COMP-COLEXPORT-001 to FE-COMP-COLEXPORT-009
 import React from 'react';
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -34,7 +34,7 @@ describe('CollectionExportMenu (#2301)', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('FE-COMP-COLEXPORT-002: offers both formats, each with its extension and what it is for', async () => {
+  it('FE-COMP-COLEXPORT-002: offers every format, each with its extension and what it is for', async () => {
     renderMenu();
     await userEvent.click(trigger());
 
@@ -44,7 +44,17 @@ describe('CollectionExportMenu (#2301)', () => {
     expect(items().map(item => item.textContent)).toEqual([
       'TREK list.trekcollection.jsonFor another TREK, with labels and status',
       'GPX.gpxWaypoints for OsmAnd, Organic Maps, Garmin and other map apps',
+      'KML.kmlPins for Google My Maps, to see the places in Google Maps',
     ]);
+  });
+
+  it('FE-COMP-COLEXPORT-009: exports the places as KML for Google My Maps (#1866)', async () => {
+    const props = renderMenu();
+    await userEvent.click(trigger());
+
+    await userEvent.click(screen.getByRole('menuitem', { name: /KML/ }));
+
+    expect(props.onExport).toHaveBeenCalledWith('kml');
   });
 
   it('FE-COMP-COLEXPORT-003: exports the picked format, closes and gives focus back', async () => {
@@ -65,15 +75,17 @@ describe('CollectionExportMenu (#2301)', () => {
 
     await userEvent.keyboard('{ArrowDown}');
     expect(items()[1]).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(items()[2]).toHaveFocus();
     // Past the end wraps round, as it does in every menu.
     await userEvent.keyboard('{ArrowDown}');
     expect(items()[0]).toHaveFocus();
     await userEvent.keyboard('{ArrowUp}');
-    expect(items()[1]).toHaveFocus();
+    expect(items()[2]).toHaveFocus();
     await userEvent.keyboard('{Home}');
     expect(items()[0]).toHaveFocus();
     await userEvent.keyboard('{End}');
-    expect(items()[1]).toHaveFocus();
+    expect(items()[2]).toHaveFocus();
   });
 
   it('FE-COMP-COLEXPORT-005: opens from the keyboard and picks with Enter', async () => {

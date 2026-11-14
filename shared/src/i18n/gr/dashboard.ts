@@ -240,5 +240,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Προσθήκη στο Ημερολόγιο Apple / Outlook',
   'dashboard.ics.copyManually': 'Ή αντιγράψτε έναν σύνδεσμο χειροκίνητα',
   'dashboard.ics.pasteFromUrl': 'επικολλήστε στο «Από URL»',
+  'dashboard.ics.dayEvents': 'Συμβάντα σύνοψης ημέρας',
+  'dashboard.ics.dayEventsHint':
+    'Ένα ολοήμερο συμβάν για κάθε ημέρα με τα μέρη και τις σημειώσεις χωρίς ώρα. Η αλλαγή αυτής της ρύθμισης αλλάζει τον σύνδεσμο, οπότε εγγραφείτε ξανά με τον νέο.',
 };
 export default dashboard;

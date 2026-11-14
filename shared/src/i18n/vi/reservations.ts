@@ -36,7 +36,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Sự liên quan',
   'reservations.layover.layover': 'quá cảnh',
   'reservations.needsReview': 'Ôn tập',
-  'reservations.needsReviewHint': 'Sân bay không thể được khớp tự động - vui lòng xác nhận vị trí.',
+  'reservations.needsReviewHint':
+    'Một số chi tiết được điền tự động và không thể đọc chắc chắn. Vui lòng kiểm tra lại.',
+  'reservations.reviewConfirm': 'Đúng rồi',
+  'reservations.reviewConfirmHint': 'Nhấp để đánh dấu là đã kiểm tra.',
+  'reservations.reviewConfirmed': 'Đã đánh dấu là đã kiểm tra',
   'reservations.searchLocation': 'Trạm tìm kiếm, cổng, địa chỉ…',
   'reservations.meta.trainNumber': 'Số tàu',
   'reservations.meta.platform': 'Sân ga',
@@ -271,7 +275,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Xuất {shown} trong {total} dòng đang hiển thị (CSV)',
   'reservations.wallet.add': 'Thêm vào Apple Wallet',
   'reservations.wallet.addGoogle': 'Thêm vào Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Không thể tạo thẻ Wallet. Vui lòng thử lại.',
   'reservations.wallet.undated': 'Hãy đặt ngày cho đặt chỗ trước: Wallet sẽ hiện thẻ vào khoảng thời gian đó.',
 };

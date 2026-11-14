@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Flytta till {name}',
   'assistant.card.collection.removed': 'Borttagen från listan',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Kartpost',
   'assistant.card.collection.places': 'Sparade platser i {name}',
   'assistant.card.collection.saved': 'Sparade platser',
   'assistant.card.collection.statusSet': '{count} sparade platser ändrade',

@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Verplaatsen naar {name}',
   'assistant.card.collection.removed': 'Uit de lijst verwijderd',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Kaartvermelding',
   'assistant.card.collection.places': 'Bewaarde plaatsen in {name}',
   'assistant.card.collection.saved': 'Bewaarde plaatsen',
   'assistant.card.collection.statusSet': '{count} bewaarde plaatsen gewijzigd',

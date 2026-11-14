@@ -1,4 +1,4 @@
-// FE-PAGE-TPW-001 to FE-PAGE-TPW-074
+// FE-PAGE-TPW-001 to FE-PAGE-TPW-075
 //
 // The planner page is a wiring container: everything stateful lives in
 // useTripPlanner (covered in src/pages/tripPlanner/useTripPlanner.test.tsx).
@@ -638,21 +638,25 @@ describe('TripPlannerPage — shell', () => {
     expect(plannerActions.viewGpxTour).toHaveBeenCalledOnce()
   })
 
-  it('FE-PAGE-TPW-002: the splash holds the page until the trip finished loading', () => {
-    renderPage({ isLoading: true, splashDone: false })
+  it('FE-PAGE-TPW-002: a slow open shows the splash until the trip finished loading', () => {
+    renderPage({ isLoading: true, slowOpen: true })
 
     expect(screen.getByRole('status')).toHaveTextContent('Kyoto')
     expect(screen.queryByTestId('map-view')).not.toBeInTheDocument()
   })
 
-  it('FE-PAGE-TPW-003: the splash also covers the gap between load and splashDone', () => {
-    renderPage({ isLoading: false, splashDone: false })
+  it('FE-PAGE-TPW-003: a quick open shows no splash, only the empty page while it loads, and the trip at once', () => {
+    const view = renderPage({ isLoading: true, slowOpen: false })
+    expect(screen.queryByTestId('splash')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('map-view')).not.toBeInTheDocument()
+    view.unmount()
 
-    expect(screen.getByTestId('splash')).toBeInTheDocument()
+    renderPage({ isLoading: false, slowOpen: false })
+    expect(screen.queryByTestId('splash')).not.toBeInTheDocument()
   })
 
   it('FE-PAGE-TPW-004: a trip that never arrived renders nothing at all', () => {
-    const { container } = renderPage({ trip: null, isLoading: false, splashDone: true })
+    const { container } = renderPage({ trip: null, isLoading: false, slowOpen: false })
 
     expect(container).toBeEmptyDOMElement()
   })
@@ -1518,13 +1522,10 @@ describe('TripPlannerPage — modals', () => {
     expect((props('placeForm').dayAssignments as unknown as unknown[]).length).toBe(1)
   })
 
-  it('FE-PAGE-TPW-047: saving the trip form reloads the accommodations and confirms', async () => {
+  it('FE-PAGE-TPW-047: the trip form saves through the hook, the same save the trip settings use', () => {
     renderPage()
 
-    await act(async () => { await props('tripForm').onSave({ title: 'Kyoto 2' }) })
-    const tripActions = hookState.tripActions as Record<string, ReturnType<typeof vi.fn>>
-    expect(tripActions.updateTrip).toHaveBeenCalledWith(42, { title: 'Kyoto 2' })
-    expect(hookState.loadAccommodations).toHaveBeenCalled()
+    expect(props('tripForm').onSave).toBe(hookState.saveTrip)
 
     act(() => { props('tripForm').onClose() })
     expect(hookState.setShowTripForm).toHaveBeenCalledWith(false)
@@ -1550,6 +1551,14 @@ describe('TripPlannerPage — modals', () => {
 
     act(() => { props('membersModal').onClose() })
     expect(hookState.setShowMembersModal).toHaveBeenCalledWith(false)
+  })
+
+  it('FE-PAGE-TPW-075: the trip settings hold the trip form only for someone who may edit the trip (#2811)', () => {
+    renderPage()
+    expect(props('membersModal').editTrip).toBeTruthy()
+
+    renderPage({ can: vi.fn((action: string) => action !== 'trip_edit') })
+    expect(props('membersModal').editTrip).toBeUndefined()
   })
 
   it('FE-PAGE-TPW-050: closing the booking modal outside a review resets the editor', async () => {

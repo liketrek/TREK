@@ -154,8 +154,8 @@ describe('MTripShell', () => {
     }
   })
 
-  it('FE-MOB-SHELL-002: the trip shows as soon as it has loaded, without the desktop splash minimum', () => {
-    renderShell({ splashDone: false } as Partial<TripPlanner>)
+  it('FE-MOB-SHELL-002: the trip shows as soon as it has loaded, whatever the desktop splash gate says', () => {
+    renderShell({ slowOpen: true } as Partial<TripPlanner>)
     expect(screen.getByTestId('map-area')).toBeInTheDocument()
   })
 

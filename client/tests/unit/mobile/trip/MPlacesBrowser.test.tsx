@@ -11,7 +11,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { AssignmentsMap, Category, Day, Place } from '../../../../src/types'
 
-// FE-MOB-PBROW-001 to FE-MOB-PBROW-036
+// FE-MOB-PBROW-001 to FE-MOB-PBROW-037
 
 const CATEGORIES = [
   { id: 1, name: 'Sights', color: '#123456', icon: 'landmark' },
@@ -513,5 +513,13 @@ describe('MPlacesBrowser', () => {
     expect(screen.getByText('places.count:2')).toBeInTheDocument()
     expect(screen.getByText('places.selectionCount:2')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'common.selectAll' })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-037: a typed address without coordinates is marked as not on the map (#2837)', () => {
+    const TYPED = place({ id: 5, name: 'Typed Cafe', address: 'Rue de Rivoli 1', lat: null, lng: null } as Partial<Place>)
+    renderBrowser(makePlanner({ places: [TYPED, LOUVRE], assignments: {} } as Partial<TripPlanner>))
+
+    expect(within(row('Typed Cafe')).getByRole('img', { name: 'places.noCoordinates' })).toBeInTheDocument()
+    expect(within(row('Louvre')).queryByRole('img', { name: 'places.noCoordinates' })).toBeNull()
   })
 })

@@ -15,7 +15,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
-import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { resolveApiKey } from '../settings/instance-api-keys';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
@@ -44,7 +44,7 @@ import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { UserCleanupService } from './user-cleanup.service';
-import { splitManagedKeys } from '../common/managed';
+import { envLockedKeys, splitManagedKeys, withEnvLocks } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { User } from '../../types';
@@ -71,13 +71,14 @@ import {
 } from './auth.helpers';
 import {
   ADMIN_FORM_SETTING_KEYS,
-  APP_SETTINGS,
   MASKED_ADMIN_SETTING_KEYS,
+  ADMIN_SETTING_MASK,
+  isMaskEcho,
+  storedAdminValue,
   PUBLIC_CONFIG_SETTING_KEYS,
   isOidcConfigured,
   isOidcConfiguredIn,
   readAppSetting,
-  type AppSettingDef,
   type AppSettingKey,
 } from '../common/app-settings.registry';
 
@@ -308,8 +309,7 @@ export class AuthService {
     const userCount = await this.usersRepo.countNonGuest();
     const isDemo = readEnv().demo.enabled;
     const toggles = await this.resolveAuthToggles();
-    // One directory deeper than the legacy src/services location — the extra
-    // '../' keeps resolving to the workspace package.json.
+    // One directory deeper than the old src/services, so the extra '../' still reaches the package.json.
     const version: string = readEnv().app.appVersion ?? require('../../../package.json').version;
     // Asked through the same resolver the search itself uses, so the client can
     // never show Google features that rest on a key this caller does not get —
@@ -359,6 +359,7 @@ export class AuthService {
       password_registration: isDemo ? false : toggles.password_registration,
       oidc_login: toggles.oidc_login,
       oidc_registration: isDemo ? false : toggles.oidc_registration,
+      oidc_auto_redirect: settings.get('oidc_auto_redirect') !== 'false', // read only without password login (#2925)
       // Passkey login: the instance toggle + whether a usable RP ID resolves for
       // this deployment. The login page shows the passkey button only when both
       // are true. `passkey_configured` stays a pure boolean — it never leaks the
@@ -709,9 +710,9 @@ export class AuthService {
     const result: Record<string, string> = {};
     for (const key of ADMIN_FORM_SETTING_KEYS) {
       const value = await readAppSetting(this.appSettings, key);
-      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? '••••••••' : value;
+      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? ADMIN_SETTING_MASK : value;
     }
-    return { data: result };
+    return { data: withEnvLocks(result) };
   }
 
   async updateAppSettings(
@@ -754,7 +755,7 @@ export class AuthService {
     // the admin does own, so a managed install skips those names and keeps the
     // rest of the save working. Reported, never thrown: the settings tab sends
     // the whole form in one request.
-    const { blocked } = splitManagedKeys(body as Record<string, unknown>, readEnv().managed.enabled);
+    const blocked = [...splitManagedKeys(body, readEnv().managed.enabled).blocked, ...envLockedKeys(body)];
 
     await this.uow.transactional(async () => { // the whole form lands, or none of it
       for (const key of ADMIN_FORM_SETTING_KEYS) {
@@ -769,16 +770,14 @@ export class AuthService {
           // admin a saved setting that quietly does nothing.
           if (key === 'places_provider' && !isPlacesProviderChoice(val)) continue;
           // A masked key sent back unchanged keeps its stored value.
-          if (MASKED_ADMIN_SETTING_KEYS.has(key) && val === '••••••••') continue;
-          const encrypted: AppSettingDef['encrypted'] = (APP_SETTINGS[key] as AppSettingDef).encrypted;
-          if (encrypted === 'always') val = encrypt_api_key(val);
-          else if (encrypted === 'if-plain' && val) val = maybe_encrypt_api_key(val) ?? val;
-          await this.appSettings.setValue(key, val);
+          if (isMaskEcho(key, val)) continue;
+          await this.appSettings.setValue(key, storedAdminValue(key, val));
         }
       }
     });
 
-    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
+    // A masked key sent back as its mask was not changed, and a secret's value never reaches the audit row.
+    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !isMaskEcho(k, body[k]));
 
     const summary: Record<string, unknown> = {};
     const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
@@ -789,10 +788,11 @@ export class AuthService {
     if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
     if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
     if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
+    if (changedKeys.some(k => k.startsWith('mail_ingest_'))) summary.mail_ingest_settings_updated = true;
 
     const debugDetails: Record<string, unknown> = {};
     for (const k of changedKeys) {
-      debugDetails[k] = k === 'smtp_pass' ? '***' : body[k];
+      debugDetails[k] = MASKED_ADMIN_SETTING_KEYS.has(k) ? '***' : body[k];
     }
 
     // The reminder crons read their enable gates and channels per tick, so a

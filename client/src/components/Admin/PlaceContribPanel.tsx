@@ -1,26 +1,16 @@
-import type { PlaceContribField, PlaceContribState } from '@trek/shared';
-import { ChevronRight, HeartHandshake, Undo2 } from 'lucide-react';
-import { useState } from 'react';
+import type { PlaceContribState } from '@trek/shared';
+import { HeartHandshake, Undo2 } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import type { TranslationFn } from '../../types';
-import { getApiErrorMessage } from '../../utils/apiError';
 import { SettingsCard, StatusPill } from '../Settings/settingsKit';
 import ToggleSwitch from '../Settings/ToggleSwitch';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { fs } from '../shared/DialogShell';
-import { useToast } from '../shared/Toast';
 import { FigureBadge } from '../Tours/paddle/FigureBadge';
 import PlaceContribLog from './PlaceContribLog';
-import {
-  contribNote,
-  contribStatus,
-  fieldEntries,
-  fieldLabel,
-  refusalReason,
-  type ContribStatus,
-} from './placeContribModel';
+import { contribNote, fieldEntries, fieldLabel, type ContribStatus } from './placeContribModel';
 import PlaceContribPrompt from './PlaceContribPrompt';
-import { usePlaceContrib } from './usePlaceContrib';
+import { usePlaceContribPanel } from './usePlaceContribPanel';
 
 const PILL_TONE: Record<ContribStatus, 'success' | 'warning' | 'neutral'> = {
   active: 'success',
@@ -61,54 +51,12 @@ function Figures({ state, t }: { state: PlaceContribState; t: TranslationFn }) {
  * way to take everything back. Turning it on for the first time opens the same
  * prompt an admin gets on the first visit, so an agreement always comes from it.
  */
-/**
- * Standing alone (managed settings), a card that can only say "not available"
- * because the operator switched sharing off is a dead end.
- */
-function hiddenAlone(state: PlaceContribState, alone: boolean): boolean {
-  return alone && state.ineligibleReason === 'env_off';
-}
-
 export default function PlaceContribPanel({ hideWhenSwitchedOff = false }: { hideWhenSwitchedOff?: boolean } = {}) {
   const { t } = useTranslation();
-  const toast = useToast();
-  const contrib = usePlaceContrib();
-  const { state } = contrib;
-  const [prompting, setPrompting] = useState<boolean | null>(null);
-  const [confirm, setConfirm] = useState<'off' | 'withdraw' | null>(null);
+  const panel = usePlaceContribPanel({ hideWhenSwitchedOff });
+  const { contrib, state, status, on, confirm, setConfirm, toggleField, withdraw } = panel;
 
-  if (!state) return null;
-  if (hiddenAlone(state, hideWhenSwitchedOff)) return null;
-  const status = contribStatus(state);
-  const agreed = state.consent.decision === 'agreed' && state.consent.termsVersion === state.termsVersion;
-  // The prompt opens by itself once per visit while the server asks for it.
-  const showPrompt = prompting ?? state.showPrompt;
-
-  const fail = (err: unknown) => {
-    const reason = refusalReason(err);
-    toast.error(
-      reason === 'terms_outdated' || reason === 'no_field'
-        ? t(`admin.contribute.refused.${reason}`)
-        : getApiErrorMessage(err, t('common.error'))
-    );
-  };
-
-  const toggleField = (field: PlaceContribField) => {
-    const fields = { ...state.consent.fields, [field]: !state.consent.fields[field] };
-    if (!Object.values(fields).some(Boolean)) {
-      setConfirm('off');
-      return;
-    }
-    contrib.decide({ action: 'fields', fields }).catch(fail);
-  };
-
-  const withdraw = () => {
-    setConfirm(null);
-    contrib.withdraw().then((r) => {
-      const total = Object.values(r.withdrawn).reduce((a, b) => a + b, 0);
-      toast.success(t('admin.contribute.withdrawn', { total }));
-    }, fail);
-  };
+  if (panel.hidden || !state || !status) return null;
 
   return (
     <SettingsCard
@@ -119,15 +67,15 @@ export default function PlaceContribPanel({ hideWhenSwitchedOff = false }: { hid
       hint={contribNote(t, state)}
       action={
         <ToggleSwitch
-          on={agreed && state.consent.enabled}
+          on={on}
           label={t('admin.contribute.title')}
           disabled={!state.eligible || contrib.busy}
-          onToggle={() => (agreed && state.consent.enabled ? setConfirm('off') : setPrompting(true))}
+          onToggle={panel.toggleMain}
         />
       }
       bodyClassName="flex flex-col gap-3 p-4"
     >
-      {agreed && state.consent.enabled && (
+      {on && (
         <>
           <Figures state={state} t={t} />
           <ul className="m-0 grid list-none grid-cols-2 gap-1.5 p-0 max-sm:grid-cols-1">
@@ -151,20 +99,14 @@ export default function PlaceContribPanel({ hideWhenSwitchedOff = false }: { hid
         </>
       )}
 
-      {(agreed || state.consent.decision === 'off') && (
-        <details className="group overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card">
-          {/* The admin page's fold head (pages/admin/FoldSummary), which a component cannot import. */}
-          <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3.5 py-2.5 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--text-primary)] [&::-webkit-details-marker]:hidden">
-            <ChevronRight
-              size={15}
-              strokeWidth={2}
-              className="flex-none text-content-faint transition-transform group-open:rotate-90"
-              aria-hidden="true"
-            />
+      {panel.showLog && (
+        <div className="overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card">
+          {/* A plain section head: the settings fold nothing away. */}
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5">
             <span className="font-medium text-content" style={fs(12.5, 'body')}>
               {t('admin.contribute.log.title')}
             </span>
-          </summary>
+          </div>
           <div className="flex flex-col gap-3 border-t border-edge-faint p-3">
             <PlaceContribLog />
             <button
@@ -178,19 +120,14 @@ export default function PlaceContribPanel({ hideWhenSwitchedOff = false }: { hid
               {t('admin.contribute.withdraw')}
             </button>
           </div>
-        </details>
+        </div>
       )}
 
-      {showPrompt && state.eligible && (
-        <PlaceContribPrompt state={state} contrib={contrib} onClose={() => setPrompting(false)} />
-      )}
+      {panel.showPrompt && <PlaceContribPrompt state={state} contrib={contrib} onClose={panel.closePrompt} />}
       <ConfirmDialog
         isOpen={confirm === 'off'}
         onClose={() => setConfirm(null)}
-        onConfirm={() => {
-          setConfirm(null);
-          contrib.decide({ action: 'off' }).catch(fail);
-        }}
+        onConfirm={panel.switchOff}
         title={t('admin.contribute.offTitle')}
         message={t('admin.contribute.offMessage')}
         confirmLabel={t('admin.contribute.offConfirm')}

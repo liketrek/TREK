@@ -526,19 +526,95 @@ public class TrekShellPlugin extends Plugin {
         authBrowserOpen = false;
     }
 
-    /** iOS only: Android keeps the service worker, which already starts TREK offline. */
+    /**
+     * Keeps the server's UI on the device for a start without the server
+     * (TrekOfflineShell): the start page, and each file of the build that
+     * native/offlineShell.ts lists from the server's manifest and the copy does
+     * not hold yet. Once all of them are there, files of older builds go. A web
+     * view runs no service worker on a plain-http server, the usual address of a
+     * server at home, so without this the app could not start away from it.
+     */
     @PluginMethod
     public void refreshOfflineCopy(PluginCall call) {
-        JSObject result = new JSObject();
-        result.put("saved", false);
-        call.resolve(result);
+        Context context = getContext();
+        String server = TrekServerStore.getUrl(context);
+        JSArray listed = call.getArray("files");
+        if (server == null || TrekOfflineShell.isActive()) {
+            JSObject result = new JSObject();
+            result.put("saved", false);
+            call.resolve(result);
+            return;
+        }
+        new Thread(() -> {
+            JSObject result = new JSObject();
+            byte[] page = download(server, "", "text/html");
+            boolean saved = page != null && TrekOfflineShell.savePage(context, server, page);
+            boolean complete = saved;
+            if (saved && listed != null) {
+                Set<String> keep = new HashSet<>();
+                for (int i = 0; i < listed.length(); i++) {
+                    String path = listed.optString(i, null);
+                    if (path == null || path.isEmpty()) continue;
+                    String clean = path.startsWith("/") ? path.substring(1) : path;
+                    keep.add(clean);
+                    if (TrekOfflineShell.hasFile(context, clean)) continue;
+                    byte[] data = download(server, clean, null);
+                    if (data == null || !TrekOfflineShell.saveFile(context, clean, data)) complete = false;
+                }
+                if (complete) TrekOfflineShell.prune(context, keep);
+            }
+            result.put("saved", saved);
+            result.put("complete", complete);
+            call.resolve(result);
+        }).start();
     }
 
+    /** A file of the server's UI, or null: only a 200 counts, and the page only as HTML. */
+    private static byte[] download(String server, String path, String wantType) {
+        java.net.HttpURLConnection connection = null;
+        try {
+            java.net.URL base = new java.net.URL(server.endsWith("/") ? server : server + "/");
+            java.net.URL url = new java.net.URL(base, path);
+            connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(30000);
+            connection.setInstanceFollowRedirects(true);
+            if (wantType != null) connection.setRequestProperty("Accept", wantType);
+            if (connection.getResponseCode() != 200) return null;
+            String type = connection.getContentType();
+            if (wantType != null && (type == null || !type.startsWith(wantType))) return null;
+            try (java.io.InputStream in = connection.getInputStream()) {
+                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                byte[] buffer = new byte[16384];
+                for (int n = in.read(buffer); n > 0; n = in.read(buffer)) out.write(buffer, 0, n);
+                return out.toByteArray();
+            }
+        } catch (java.io.IOException | RuntimeException e) {
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
+    }
+
+    /**
+     * The address screen found the server out of reach: with a copy of its UI
+     * the app restarts on that instead (TrekOfflineShell), the same way it
+     * leaves the server for the address screen. Also for the server an update
+     * asked to check again, whose check then waits for the next launch.
+     */
     @PluginMethod
     public void openOfflineCopy(PluginCall call) {
+        Context context = getContext();
         JSObject result = new JSObject();
-        result.put("opened", false);
+        if (!TrekOfflineShell.hasCopy(context, TrekServerStore.getUrlOrPrevious(context)) || getActivity() == null) {
+            result.put("opened", false);
+            call.resolve(result);
+            return;
+        }
+        TrekServerStore.markOfflineStart(context);
+        result.put("opened", true);
         call.resolve(result);
+        restart();
     }
 
     // ---- Widgets, shortcuts and the travel day ----

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Footprints, Paperclip, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
+import { ArrowRight, Footprints, Pencil, Route as RouteIcon, Trash2 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MWalletButton from '../../../components/MWalletButton'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -8,7 +8,6 @@ import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
 import { getFlightLegs, getTrainLegs, usesStationRoute, type FlightLeg, type TrainLeg } from '../../../../utils/flightLegs'
-import { openFile } from '../../../../utils/fileDownload'
 import { runsOnDay } from '../../../../utils/reservationRoutes'
 import { filesFor } from '../../../../utils/reservationFiles'
 import { bookingDayLabel, segmentCodeLabel } from '../../../../components/Planner/transportDetailModel'
@@ -18,8 +17,13 @@ import { isTransportReservationType } from '@trek/shared'
 import { useBookingLink } from '../../../../hooks/useBookingLink'
 import { bookingFacts, stayStats } from '../../../../components/Planner/bookings/bookingFacts'
 import { parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
-import { Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
+import { ActionCircle, Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
+import { CardFiles } from '../tabs/MReservationCardParts'
+import { downloadAttachment, openAttachment } from '../../../../components/Planner/bookings/openAttachment'
 import { flowText } from '../../../../utils/flowText'
+import { useFlightLiveLegs } from '../../../../store/flightLiveStore'
+import MFlightLiveCard from './MFlightLiveCard'
+import MReviewNotice from './MReviewNotice'
 
 interface TransportSheetPayload {
   reservationId?: number
@@ -107,6 +111,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
   const [codeRevealed, setCodeRevealed] = useState(false)
+  const liveLegs = useFlightLiveLegs(planner.tripId, payload.reservationId ?? -1)
   useEffect(() => { if (!open) setCodeRevealed(false) }, [open])
 
   // Hold the last reservation so the card content survives the exit animation.
@@ -161,6 +166,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const seat = leg && !isFlight ? legDetail.seat : meta.seat
   const platform = leg && !isFlight ? legDetail.platform : meta.platform
   const transitLegs: TransitLeg[] = Array.isArray(meta.transit?.legs) ? meta.transit.legs : []
+
+  // Opened from one leg's row, only that leg's live card; from the booking, every followed leg.
+  const shownLive = leg ? liveLegs.filter(l => l.leg_index === payload.legIndex) : liveLegs
 
   const resFiles = filesFor(res, planner.files || [])
 
@@ -224,6 +232,17 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
       </div>
 
       <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
+        {/* ── An import could not read every detail for sure ── */}
+        {!!liveRes?.needs_review && (
+          <MReviewNotice
+            onConfirm={canEdit ? () => {
+              planner.tripActions.updateReservation(planner.tripId, liveRes.id, { needs_review: 0 })
+                .then(() => planner.toast.success(t('reservations.reviewConfirmed')))
+                .catch(() => planner.toast.error(t('reservations.toast.updateError')))
+            } : undefined}
+          />
+        )}
+
         {/* ── A stay: check-in, check-out, nights ── */}
         {hotelStats.length > 0 && (
           <div className="mt-[14px] flex gap-[6px]">
@@ -231,13 +250,24 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
           </div>
         )}
 
-        {/* ── Times / seat stats ── */}
-        {hotelStats.length === 0 && (depTime || arrTime || seat || platform) && (
+        {/* ── Live flight: the leg opened from, or every followed leg of the booking ── */}
+        {shownLive.map(l => (
+          <MFlightLiveCard
+            key={l.leg_index}
+            tripId={planner.tripId}
+            reservationId={res.id}
+            legIndex={l.leg_index}
+            legLabel={shownLive.length > 1 ? t('flightLive.legOf', { n: l.leg_index + 1, total: routeLegs.length }) : undefined}
+          />
+        ))}
+
+        {/* ── Times / seat stats (the live card already shows the times) ── */}
+        {hotelStats.length === 0 && ((shownLive.length === 0 && (depTime || arrTime)) || seat || platform) && (
           <div className="mt-[14px] flex gap-[6px]">
-            {depTime && (
+            {shownLive.length === 0 && depTime && (
               <StatBox value={displayTime(depTime, locale, timeFormat)} label={depLabel} />
             )}
-            {arrTime && (
+            {shownLive.length === 0 && arrTime && (
               <StatBox value={displayTime(arrTime, locale, timeFormat)} label={arrLabel} />
             )}
             {platform && <StatBox value={platform} label={t('reservations.meta.platform')} />}
@@ -342,50 +372,31 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
           </>
         )}
 
-        {/* ── Actions ── */}
-        <div className="mt-3 flex flex-wrap items-center gap-[7px]">
-          <button
-            type="button"
-            onClick={showOnMap}
-            aria-pressed={onMap}
-            className={`flex items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold ${
-              onMap ? 'bg-m-act text-m-actfg' : INNER_CLS
-            }`}
-          >
-            <RouteIcon size={13} strokeWidth={2} />
-            {t('mobileTrip.onMap')}
-          </button>
+        {/* ── Files: their own rows, so a long name never pushes the actions onto a second line ── */}
+        <CardFiles
+          files={resFiles}
+          card={{
+            openFile: openAttachment,
+            downloadFile: f => downloadAttachment(f, () => planner.toast.error(t('files.downloadError'))),
+          }}
+          t={t}
+        />
+
+        {/* ── Actions: icons only, the names are their labels ── */}
+        <div className="mt-[14px] flex items-center gap-[7px]">
+          <ActionCircle onClick={showOnMap} label={t('mobileTrip.onMap')} pressed={onMap}>
+            <RouteIcon size={15} strokeWidth={2} />
+          </ActionCircle>
           <MWalletButton tripId={planner.tripId} reservationId={payload.reservationId} onError={planner.toast.error} />
-          {resFiles.map(f => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => openFile(f.url, f.original_name)}
-              className={`flex max-w-[150px] items-center gap-[5px] rounded-full px-3 py-[7px] text-[0.75rem] font-semibold ${INNER_CLS}`}
-            >
-              <Paperclip size={13} strokeWidth={2} className="flex-none" />
-              <span dir="auto" className="truncate">{f.original_name}</span>
-            </button>
-          ))}
           {canEdit && (
-            <button
-              type="button"
-              onClick={editTransport}
-              className="ms-auto flex items-center gap-[5px] rounded-full bg-m-act px-3 py-[7px] text-[0.75rem] font-semibold text-m-actfg"
-            >
-              <Pencil size={13} strokeWidth={2} />
-              {t('common.edit')}
-            </button>
+            <ActionCircle onClick={editTransport} label={t('common.edit')} primary className="ms-auto">
+              <Pencil size={15} strokeWidth={2} />
+            </ActionCircle>
           )}
           {canEdit && (
-            <button
-              type="button"
-              onClick={deleteTransport}
-              aria-label={t('common.delete')}
-              className={`flex items-center rounded-full px-3 py-[7px] text-[color:var(--m-st-danger)] ${INNER_CLS}`}
-            >
-              <Trash2 size={14} strokeWidth={2} />
-            </button>
+            <ActionCircle onClick={deleteTransport} label={t('common.delete')} danger>
+              <Trash2 size={15} strokeWidth={2} />
+            </ActionCircle>
           )}
         </div>
       </div>

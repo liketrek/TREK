@@ -68,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + proiezione globo per bordi più nitidi e una vista realistica del mondo.',
   'settings.mapHighQualityWarning': 'Può influire sulle prestazioni su dispositivi meno potenti.',
+  'settings.mapHidePois': 'Nascondi punti di interesse',
+  'settings.mapHidePoisHint':
+    'Nasconde negozi, ristoranti e attrazioni che Mapbox segna da sé, così risaltano solo i tuoi luoghi. Solo con gli stili Standard.',
   'settings.mapTipLabel': 'Suggerimento:',
   'settings.mapTip':
     'Click destro e trascina per ruotare/inclinare la mappa. Click centrale per aggiungere un luogo (il click destro è riservato alla rotazione).',
@@ -79,6 +82,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Per i dati meteo. Gratuita su openweathermap.org/api',
   'settings.keyPlaceholder': 'Inserisci la chiave...',
   'settings.configured': 'Configurata',
+  'settings.notSetUp': 'Non configurato',
+  'settings.mcp.appsConnected': '{count} app collegate',
+  'settings.mcp.appsConnected.one': '{count} app collegata',
   'settings.saveKeys': 'Salva Chiavi',
   'settings.display': 'Visualizzazione',
   'settings.colorMode': 'Modalità Colore',
@@ -108,7 +114,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Notifiche',
   'settings.notifyTripInvite': 'Inviti di viaggio',
   'settings.notifyBookingChange': 'Modifiche alle prenotazioni',
+  'settings.notifyFlightDeparted': 'Decolli',
+  'settings.notifyFlightDelayed': 'Ritardi dei voli',
+  'settings.notifyFlightLanded': 'Atterraggi',
   'settings.notifyTripReminder': 'Promemoria di viaggio',
+  'settings.notifyMailBookingAdded': 'Prenotazioni aggiunte da e-mail',
+  'settings.notifyMailBookingPending': 'Prenotazioni inoltrate da controllare',
+  'settings.notifyMailIngestPaused': 'Importazione e-mail in pausa',
   'settings.notifyTodoDue': 'Attività in scadenza',
   'settings.notifyVacayInvite': 'Inviti fusione Vacay',
   'settings.notifyVacayShare': 'Condivisioni calendario Vacay',

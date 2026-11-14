@@ -21,6 +21,7 @@ import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service'
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
+import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
@@ -815,6 +816,15 @@ describe('getAppConfig', () => {
     vi.unstubAllEnvs();
   });
 
+  it('AUTH-DB-052d: oidc_auto_redirect stays on until an admin stores false (#2925)', async () => {
+    createUser(testDb);
+    expect((await svc.getAppConfig(null)).oidc_auto_redirect).toBe(true);
+    await appSetting('oidc_auto_redirect', 'false');
+    expect((await svc.getAppConfig(null)).oidc_auto_redirect).toBe(false);
+    await appSetting('oidc_auto_redirect', 'true');
+    expect((await svc.getAppConfig(null)).oidc_auto_redirect).toBe(true);
+  });
+
   it('AUTH-DB-052b: managed is false unless the install says otherwise', async () => {
     createUser(testDb);
     expect((await svc.getAppConfig(null)).managed).toBe(false);
@@ -1054,6 +1064,23 @@ describe('deleteAccount', () => {
 });
 
 describe('updateAppSettings', () => {
+  it('AUTH-DB-070b: FLIGHT_LIVE_ENABLED holds the switch: the form shows it as env_override_*, a save skips it', async () => {
+    const { user } = createAdmin(testDb);
+    vi.stubEnv('FLIGHT_LIVE_ENABLED', 'false');
+    try {
+      await appSetting('flight_live_enabled', 'true');
+      const read = await asLegacyResult(svc.getAppSettings(user.id));
+      expect(read.data).toMatchObject({ flight_live_enabled: 'false', env_override_flight_live_enabled: 'false' });
+
+      await deleteRows(orm, AppSettings, { key: 'flight_live_enabled' });
+      const saved = await asLegacyResult(svc.updateAppSettings(user.id, { flight_live_enabled: 'true' }));
+      expect(saved).toMatchObject({ success: true, managedKeys: ['flight_live_enabled'] });
+      expect(await findRow(orm, AppSettings, { key: 'flight_live_enabled' })).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('AUTH-DB-071: 403 for non-admin', async () => {
     const { user } = createUser(testDb);
     expect((await asLegacyResult(svc.updateAppSettings(user.id, {}))).status).toBe(403);
@@ -1099,6 +1126,41 @@ describe('updateAppSettings', () => {
     expect(value).toBe('stored'); // sentinel never overwrites the secret
     expect(result.auditDebugDetails).not.toHaveProperty('smtp_pass', 'stored');
     await deleteRows(orm, AppSettings, { key: { $in: ['smtp_pass', 'notification_channels'] } });
+  });
+
+  const HOOK_SECRET = 'h'.repeat(40);
+
+  it('AUTH-DB-075b: the mail import secrets are stored encrypted and never reach the audit row', async () => {
+    const { user } = createAdmin(testDb);
+    const result = await asLegacyResult(
+      svc.updateAppSettings(user.id, {
+        mail_ingest_imap_host: 'imap.example.com',
+        mail_ingest_imap_pass: 'box-secret',
+        mail_ingest_webhook_secret: HOOK_SECRET,
+      }),
+    );
+    expect(result.success).toBe(true);
+    expect(vi.mocked(encrypt_api_key)).toHaveBeenCalledWith('box-secret');
+    expect(vi.mocked(encrypt_api_key)).toHaveBeenCalledWith(HOOK_SECRET);
+    expect(result.auditDebugDetails).toEqual({
+      mail_ingest_imap_host: 'imap.example.com',
+      mail_ingest_imap_pass: '***',
+      mail_ingest_webhook_secret: '***',
+    });
+    expect(result.auditSummary).toMatchObject({ mail_ingest_settings_updated: true });
+    const keys = ['mail_ingest_imap_host', 'mail_ingest_imap_pass', 'mail_ingest_webhook_secret'];
+    await deleteRows(orm, AppSettings, { key: { $in: keys } });
+  });
+
+  it('AUTH-DB-075c: a webhook secret shorter than 32 characters is refused, and nothing of the form lands', async () => {
+    const { user } = createAdmin(testDb);
+    await expect(
+      svc.updateAppSettings(user.id, { mail_ingest_imap_host: 'imap.example.com', mail_ingest_webhook_secret: 'abc' }),
+    ).rejects.toThrow('The webhook secret needs at least 32 characters');
+    expect(await readAppSetting(orm, 'mail_ingest_imap_host')).toBeNull();
+    const cleared = await asLegacyResult(svc.updateAppSettings(user.id, { mail_ingest_webhook_secret: '' }));
+    expect(cleared.success).toBe(true);
+    await deleteRows(orm, AppSettings, { key: 'mail_ingest_webhook_secret' });
   });
 });
 

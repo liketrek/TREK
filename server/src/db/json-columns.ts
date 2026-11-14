@@ -6,8 +6,15 @@ import {
   assistantChangePreviewWriteSchema,
   assistantMessagePartWriteSchema,
   assistantStoredPartsSchema,
+  bookingImportPreviewItemSchema,
   ferrataSchema,
   hikingPreferencesSchema,
+  mailIngestAttachmentSchema,
+  mailIngestCheckResultSchema,
+  mailIngestCheckSchema,
+  mailIngestFieldSchema,
+  mailIngestHintSchema,
+  mailIngestSuggestedTripSchema,
   obstacleSnapshotSchema,
   paddleGeometrySchema,
   paddleLockSchema,
@@ -26,9 +33,15 @@ import {
   type DawarichTrackSegment,
   type AssistantChangePreview,
   type AssistantMessagePart,
+  type BookingImportPreviewItem,
   type Ferrata,
   type GeometryPoint,
   type HikingPreferences,
+  type MailIngestAttachment,
+  type MailIngestCheck,
+  type MailIngestCheckResult,
+  type MailIngestField,
+  type MailIngestHint,
   type ObstacleSnapshot,
   type PaddleGeometry,
   type PaddleLock,
@@ -530,4 +543,74 @@ export const PLACE_DETAILS_CACHE_PAYLOAD: JsonColumn<Record<string, unknown> | n
   column: 'place_details_cache.payload_json',
   schema: z.record(z.string(), z.unknown()).nullable(),
   fallback: () => null,
+};
+
+// ── The booking mail import (mail-ingest) ──────────────────────────────────
+
+/** The booking read from a mail, as the inbox and the form show it; null for an entry that stands for the mail. */
+export const MAIL_INGEST_ITEM: JsonColumn<BookingImportPreviewItem | null> = {
+  column: 'mail_ingest_candidates.item_json',
+  schema: bookingImportPreviewItemSchema.nullable(),
+  fallback: () => null,
+};
+
+/** The server's checks on the booking, by name. A broken row reads as none run. */
+export const MAIL_INGEST_CHECKS: JsonColumn<Partial<Record<MailIngestCheck, MailIngestCheckResult>>> = {
+  column: 'mail_ingest_candidates.checks_json',
+  schema: z.partialRecord(mailIngestCheckSchema, mailIngestCheckResultSchema),
+  fallback: () => ({}),
+};
+
+/** The fields of the booking marked for a second look. */
+export const MAIL_INGEST_UNCERTAIN_FIELDS: JsonColumn<MailIngestField[]> = {
+  column: 'mail_ingest_candidates.uncertain_fields',
+  schema: z.array(mailIngestFieldSchema),
+  fallback: () => [],
+};
+
+const mailIngestMatchSchema = z.object({
+  /** A change or cancellation of an earlier booking rather than a new one. */
+  kind: z.enum(['new_booking', 'change', 'cancellation']),
+  /** The trip the AI proposed to create when none fits; never created on its own. */
+  suggested_new_trip: mailIngestSuggestedTripSchema.nullable(),
+});
+type MailIngestMatch = z.infer<typeof mailIngestMatchSchema>;
+
+/** How the booking was matched to a trip, past the suggested trip's own column. */
+export const MAIL_INGEST_MATCH: JsonColumn<MailIngestMatch> = {
+  column: 'mail_ingest_candidates.match_json',
+  schema: mailIngestMatchSchema,
+  fallback: () => ({ kind: 'new_booking', suggested_new_trip: null }),
+};
+
+const idList = z.array(z.number().int().positive());
+const mailIngestCreatedSchema = z.object({
+  reservation_ids: idList,
+  place_ids: idList,
+  budget_item_ids: idList,
+  file_ids: idList,
+  /** The booking as it was written, to tell an edit since then. */
+  fingerprint: z.string().nullable(),
+});
+export type MailIngestCreated = z.infer<typeof mailIngestCreatedSchema>;
+
+/** What adding the booking created, for its undo. A broken row undoes nothing. */
+export const MAIL_INGEST_CREATED: JsonColumn<MailIngestCreated> = {
+  column: 'mail_ingest_candidates.created_ids_json',
+  schema: mailIngestCreatedSchema,
+  fallback: () => ({ reservation_ids: [], place_ids: [], budget_item_ids: [], file_ids: [], fingerprint: null }),
+};
+
+/** What the inbox notes about a mail without holding it back. */
+export const MAIL_INGEST_HINTS: JsonColumn<MailIngestHint[]> = {
+  column: 'mail_ingest_messages.hints',
+  schema: z.array(mailIngestHintSchema),
+  fallback: () => [],
+};
+
+/** The attachments a mail carried that a booking travels in, without their bytes. */
+export const MAIL_INGEST_ATTACHMENTS: JsonColumn<MailIngestAttachment[]> = {
+  column: 'mail_ingest_messages.attachments',
+  schema: z.array(mailIngestAttachmentSchema),
+  fallback: () => [],
 };

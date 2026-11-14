@@ -28,6 +28,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.removed': 'Retiré de la liste',
   'assistant.card.collection.photo': 'Photo', // same-as-en
   'assistant.card.collection.places': 'Lieux enregistrés dans {name}',
+  'assistant.card.collection.mapEntry': 'Fiche sur la carte',
   'assistant.card.collection.saved': 'Lieux enregistrés',
   'assistant.card.collection.statusSet': '{count} lieux enregistrés modifiés',
   'assistant.card.collection.statusSet.one': '{count} lieu enregistré modifié',

@@ -1201,7 +1201,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Qué motor dibuja los mapas del planificador y del diario, y con qué estilo. Leaflet es el mapa ráster clásico; Mapbox GL añade edificios en 3D y relieve con tu propio token; MapLibre GL muestra teselas vectoriales de OpenFreeMap sin necesidad de token. El atlas siempre usa Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '«Proveedor de mapa»: Leaflet, Mapbox GL (Experimental) o MapLibre GL, cada opción con una breve descripción.',
+    '«Proveedor de mapa»: Leaflet, Mapbox GL o MapLibre GL, cada opción con una breve descripción.',
   'help.ctx.settings-map.bullet.2':
     '«Plantilla del mapa» y «Clave de API de CARTO» para Leaflet; «Estilo de mapa» para los dos motores GL, y además el «Token de acceso de Mapbox» para Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

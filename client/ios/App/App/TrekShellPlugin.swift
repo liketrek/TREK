@@ -69,7 +69,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// builds a snapshot for nothing; "wallet" only where Wallet can take a pass (an
     /// iPhone: an iPad has no Wallet app), so the UI offers no button that does nothing.
     static var features: [String] {
-        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "clientCertificate", "filePreview"]
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "appLinks", "clientCertificate", "filePreview"]
         if canAddWalletPasses { names.append("wallet") }
         if TrekWatchLink.isAvailable { names.append("watch") }
         return names
@@ -94,8 +94,9 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         TrekKeyCommands.onPress = { [weak self] id in
             self?.notifyListeners("keyCommand", data: ["id": id])
         }
+        // Kept until a listener takes it: a tap while the page reloads reaches the new page.
         TrekQuickActions.onOpen = { [weak self] path in
-            DispatchQueue.main.async { self?.notifyListeners("quickAction", data: ["path": path]) }
+            DispatchQueue.main.async { self?.notifyListeners("quickAction", data: ["path": path], retainUntilConsumed: true) }
         }
     }
 
@@ -173,7 +174,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
                 nextName: nextName,
                 nextTime: call.getString("nextTime"),
                 done: call.getInt("done") ?? 0,
-                total: call.getInt("total") ?? 0
+                total: call.getInt("total") ?? 0,
+                flight: TrekShellPlugin.activityFlight(call.getObject("flight"))
             )
             // Stale at the end of the day, so a forgotten one fades out on its own.
             let stale = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400))
@@ -191,6 +193,19 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         #endif
         call.resolve(["running": false])
+    }
+
+    /// The day's flight the UI sent along (native/widgets.ts tripDayState), when complete.
+    @available(iOS 16.1, *)
+    static func activityFlight(_ raw: JSObject?) -> TripDayAttributes.Flight? {
+        guard let raw, let number = raw["number"] as? String, let from = raw["from"] as? String, let to = raw["to"] as? String,
+              let dep = (raw["dep"] as? NSNumber)?.doubleValue, let arr = (raw["arr"] as? NSNumber)?.doubleValue, arr > dep,
+              let depTime = raw["depTime"] as? String, let arrTime = raw["arrTime"] as? String else { return nil }
+        return TripDayAttributes.Flight(
+            number: number, from: from, to: to, dep: dep, arr: arr, depTime: depTime, arrTime: arrTime,
+            delay: (raw["delay"] as? NSNumber)?.intValue,
+            airborne: (raw["airborne"] as? Bool) ?? false
+        )
     }
 
     @objc func endTripDay(_ call: CAPPluginCall) {
@@ -462,6 +477,18 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     }
 
     @objc func openOfflineCopy(_ call: CAPPluginCall) {
+        // The server an update asked to check again, out of reach: back to it on
+        // its copy. The new bridge loads the server, fails, and this screen comes
+        // back with the server set, which then opens the copy below.
+        if TrekServerStore.url == nil {
+            if TrekServerStore.restoreForOffline() {
+                call.resolve(["opened": true])
+                restartBridge()
+            } else {
+                call.resolve(["opened": false])
+            }
+            return
+        }
         // With the trailing slash, like the bridge's serverURL: Capacitor only
         // keeps a navigation in the app when it starts with that exact string,
         // and hands anything else to Safari.
@@ -685,7 +712,7 @@ extension TrekShellPlugin {
             // A held one that was delivered stops the purchase here. One that was paid
             // but never set up is handed back as bought, so its instance is set up now.
             if let held = await TrekStore.currentEntitlement(prefix: "cloud.") {
-                if await TrekStore.isUnfinished(held.id) {
+                if await TrekStore.awaitingSetup(held) {
                     call.resolve(["kind": "bought", "jws": held.jws, "transactionId": String(held.id), "productId": held.productId])
                 } else {
                     call.resolve(["kind": "subscribed"])
@@ -759,8 +786,8 @@ extension TrekShellPlugin {
                 call.resolve(["held": false])
                 return
             }
-            let unfinished = await TrekStore.isUnfinished(held.id)
-            call.resolve(["held": !unfinished])
+            let awaiting = await TrekStore.awaitingSetup(held)
+            call.resolve(["held": !awaiting])
         }
     }
 }
@@ -793,17 +820,54 @@ enum TrekStore {
         }
     }
 
-    static func currentEntitlement(prefix: String) async -> (jws: String, id: UInt64, productId: String)? {
-        var newest: (date: Date, jws: String, id: UInt64, productId: String)?
+    typealias Held = (jws: String, id: UInt64, productId: String, firstPurchase: Bool)
+
+    /// The subscription this Apple ID holds under `prefix`, newest first. The
+    /// entitlements on the device come first; on a fresh install they can still
+    /// be empty while the subscription runs, so the status of the subscription
+    /// group, which StoreKit asks the App Store for, decides then.
+    static func currentEntitlement(prefix: String) async -> Held? {
+        var newest: (date: Date, held: Held)?
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
                   transaction.productID.hasPrefix(prefix),
                   transaction.revocationDate == nil else { continue }
             if newest == nil || transaction.purchaseDate > newest!.date {
-                newest = (transaction.purchaseDate, result.jwsRepresentation, transaction.id, transaction.productID)
+                newest = (transaction.purchaseDate, held(result.jwsRepresentation, transaction))
             }
         }
-        return newest.map { (jws: $0.jws, id: $0.id, productId: $0.productId) }
+        if let newest { return newest.held }
+        return await subscriptionGroupHeld(prefix: prefix)
+    }
+
+    /// The plans the control plane sells (`cloud.<plan>.<monthly|yearly>`, as
+    /// productIdFor in iap.ts); one of them is enough to find their group.
+    private static let plans = ["start", "basis", "plus", "pro"]
+
+    private static func subscriptionGroupHeld(prefix: String) async -> Held? {
+        let ids = plans.flatMap { ["\(prefix)\($0).monthly", "\(prefix)\($0).yearly"] }
+        guard let products = try? await Product.products(for: ids),
+              let group = products.compactMap({ $0.subscription?.subscriptionGroupID }).first,
+              let statuses = try? await Product.SubscriptionInfo.status(for: group) else { return nil }
+        let running: [Product.SubscriptionInfo.RenewalState] = [.subscribed, .inGracePeriod, .inBillingRetryPeriod]
+        for status in statuses where running.contains(status.state) {
+            if case .verified(let transaction) = status.transaction, transaction.revocationDate == nil {
+                return held(status.transaction.jwsRepresentation, transaction)
+            }
+        }
+        return nil
+    }
+
+    private static func held(_ jws: String, _ transaction: Transaction) -> Held {
+        (jws: jws, id: transaction.id, productId: transaction.productID, firstPurchase: transaction.originalID == transaction.id)
+    }
+
+    /// A first purchase that was paid but whose instance was never set up: handed
+    /// back as bought so it is set up now. A renewal the device has not finished
+    /// yet is no such purchase; its subscription is running and counts as held.
+    static func awaitingSetup(_ held: Held) async -> Bool {
+        guard held.firstPurchase else { return false }
+        return await isUnfinished(held.id)
     }
 
     /// Paid but not delivered yet: the shell finishes a transaction once its instance exists.

@@ -1,5 +1,5 @@
 import { QueryFlag } from '@mikro-orm/core';
-import type { Trips } from '../entities/Trips.entity';
+import type { TTripsCostsMode, Trips } from '../entities/Trips.entity';
 import { coalesceParam, currentTimestamp, nowDateOffset } from '../dialect/sql-functions';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -36,6 +36,7 @@ export interface TripRawRow {
   created_at: string | null;
   updated_at: string | null;
   reminder_sent_for: string | null;
+  costs_mode: TTripsCostsMode;
 }
 
 const _tripRawRowKeys: AssertRowKeys<TripRawRow, Trips> = true;
@@ -544,7 +545,7 @@ export class TripsRepository extends TrekRepository<Trips> {
   /**
    * TP37 (`trips.service.ts::copy`'s INSERT) — `INSERT INTO trips (user_id,
    * title, description, start_date, end_date, currency, cover_image,
-   * is_archived, reminder_days) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`. A
+   * is_archived, reminder_days, costs_mode) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`. A
    * DIFFERENT column set from `insertTrip` (TP18, `create`'s own INSERT):
    * this one also writes `cover_image` (verbatim from the source row) and
    * `is_archived` as a hard-coded literal `0` — a copy is never archived,
@@ -563,6 +564,7 @@ export class TripsRepository extends TrekRepository<Trips> {
     currency: string | null;
     cover_image: string | null;
     reminder_days: number;
+    costs_mode: TTripsCostsMode;
   }): Promise<number> {
     return await this.insert({
       user: input.user_id,
@@ -574,13 +576,14 @@ export class TripsRepository extends TrekRepository<Trips> {
       cover_image: input.cover_image,
       is_archived: 0,
       reminder_days: input.reminder_days,
+      costs_mode: input.costs_mode,
     });
   }
 
   /**
    * TP25 (`trips.service.ts::updateTrip`) — `UPDATE trips SET title=?,
    * description=?, start_date=?, end_date=?, currency=?, is_archived=?,
-   * cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP WHERE
+   * cover_image=?, reminder_days=?, costs_mode=?, updated_at=CURRENT_TIMESTAMP WHERE
    * id=?`. The `||`/`!== undefined` pre-image fallbacks are the SERVICE's
    * own (R5/§18.6 — this write stays OUTSIDE the days-regeneration
    * transaction, unchanged); this takes the final, already-decided values
@@ -597,16 +600,11 @@ export class TripsRepository extends TrekRepository<Trips> {
    * here would tempt a caller to paper over that with its own `?? 0`, the
    * exact regression the review found.
    */
-  async updateTripRow(id: number, data: {
-    title: string;
-    description: string | null;
-    start_date: string | null;
-    end_date: string | null;
-    currency: string;
-    is_archived: number | null;
-    cover_image: string | null;
-    reminder_days: number;
-  }): Promise<void> {
+  async updateTripRow(
+    id: number,
+    data: Pick<TripRawRow, 'title' | 'description' | 'start_date' | 'end_date' | 'is_archived' | 'cover_image' | 'costs_mode'>
+      & { currency: string; reminder_days: number },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate({ id }, { ...data, updated_at: currentTimestamp(platform) });
   }

@@ -13,7 +13,7 @@ import type { Assignment, Category, Day, Place, TripFile, TripMember } from '../
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLSH-001 to FE-MOB-PLSH-032
+// FE-MOB-PLSH-001 to FE-MOB-PLSH-033
 
 vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
 // The gallery says "no pictures" through the shared toast, the sheet's own writes through planner.toast.
@@ -560,5 +560,15 @@ describe('MPlaceSheet', () => {
     renderSheet(bookingPlanner({ id: 9, assignment_id: 999, title: 'Someone elses ferry', status: 'pending', type: 'ferry' }))
 
     expect(screen.queryByText('Someone elses ferry')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSH-033: a typed address without coordinates says the place is not on the map (#2837)', () => {
+    const typed = { ...PLACE, lat: null, lng: null } as unknown as Place
+    const { unmount } = renderSheet(makePlanner({ selectedPlace: typed }) as unknown as TripPlanner)
+    expect(screen.getByText('No coordinates, so not on the map')).toBeInTheDocument()
+    unmount()
+
+    renderSheet()
+    expect(screen.queryByText('No coordinates, so not on the map')).toBeNull()
   })
 })

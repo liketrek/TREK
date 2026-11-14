@@ -1,6 +1,7 @@
 import {
   deriveHttpBoot,
   deriveKitinerary,
+  deriveMailIngest,
   deriveServices,
   deriveStorage,
   deriveTransit,
@@ -234,6 +235,13 @@ describe('derivePlugins', () => {
 });
 
 describe('deriveIntegrations', () => {
+  it('reads FLIGHT_LIVE_ENABLED as the setting spells it, unset or unparseable as no word at all', () => {
+    expect(deriveIntegrations({}).flightLiveEnabled).toBeUndefined();
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: 'off' }).flightLiveEnabled).toBe('false');
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: ' YES ' }).flightLiveEnabled).toBe('true');
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: 'maybe' }).flightLiveEnabled).toBeUndefined();
+  });
+
   it('pins unsplash trim, nominatim trim + default, overpass timeout', () => {
     expect(deriveIntegrations({ UNSPLASH_ACCESS_KEY: ' key ' }).unsplashAccessKey).toBe('key');
     expect(deriveIntegrations({}).nominatimUrl).toBe('https://nominatim.openstreetmap.org');
@@ -289,6 +297,23 @@ describe('deriveKitinerary (kitineraryConfig token)', () => {
     expect(deriveKitinerary({ PATH: ['/a', ' /b ', '', '/c'].join(sep) }).searchPath).toEqual(['/a', '/b', '/c']);
     expect(deriveKitinerary({ Path: ['/w1', '/w2'].join(sep) }).searchPath).toEqual(['/w1', '/w2']);
     expect(deriveKitinerary({}).searchPath).toEqual([]);
+  });
+});
+
+describe('deriveMailIngest (mailIngestConfig token)', () => {
+  it('leaves every value unset unless its variable holds one, trimmed', () => {
+    expect(Object.values(deriveMailIngest({}))).toEqual(Array(9).fill(null));
+    expect(deriveMailIngest({ MAIL_INGEST_IMAP_HOST: '  ', MAIL_INGEST_IMAP_PASS: ' s3cret ' })).toMatchObject({
+      imapHost: null,
+      imapPass: 's3cret',
+    });
+  });
+
+  it('reads the transport and the encryption in lower case', () => {
+    expect(deriveMailIngest({ MAIL_INGEST_TRANSPORT: 'IMAP', MAIL_INGEST_IMAP_TLS: 'StartTLS' })).toMatchObject({
+      transport: 'imap',
+      imapTls: 'starttls',
+    });
   });
 });
 

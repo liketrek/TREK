@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle': '{count} tệp cho {trip}',
   'files.download': 'Tải xuống',
   'files.openError': 'Không thể mở tập tin',
+  'files.downloadError': 'Không thể tải xuống tập tin',
   'files.downloadPdf': 'Tải xuống PDF',
   'files.count': '{count} tập tin',
   'files.uploaded': 'Đã tải lên {count} tệp',

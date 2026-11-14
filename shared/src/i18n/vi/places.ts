@@ -83,6 +83,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Kinh độ (ví dụ: 2,3522)',
   'places.formLatLabel': 'Vĩ độ',
   'places.formLngLabel': 'Kinh độ',
+  'places.noCoordinates': 'Không có tọa độ nên không hiện trên bản đồ',
+  'places.noCoordinatesHint': 'Hãy sửa địa điểm và chọn từ ô tìm kiếm, hoặc nhập vĩ độ và kinh độ.',
+  'places.noCoordinatesFormHint':
+    'Địa chỉ này chưa có tọa độ nên địa điểm sẽ không hiện trên bản đồ. Hãy chọn từ ô tìm kiếm phía trên hoặc nhập vĩ độ và kinh độ.',
   'places.formCategory': 'Loại',
   'places.noCategory': 'Không có danh mục',
   'places.newCategory': 'Danh mục mới',

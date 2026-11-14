@@ -2,8 +2,8 @@ import { ReactNode, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import {
   Bookmark, Check, CheckCheck, CheckSquare, ChevronDown, Copy, CopyPlus,
-  FolderInput, Layers, List, Map as MapIcon, Pencil, Plus, Search, Share2,
-  Tag, Tags, Trash2, X,
+  FolderInput, Layers, List, Map as MapIcon, Pencil, Search, Settings2, Shapes, Share2,
+  Tag, Tags, Trash2,
 } from 'lucide-react'
 import type { CollectionStatus } from '@trek/shared'
 import MDancingTrek, { type TrekScene } from '../../components/MDancingTrek'
@@ -22,7 +22,7 @@ import MCollTripPickerSheet from './MCollTripPickerSheet'
 import MCollListPickerSheet from './MCollListPickerSheet'
 import MCollTours from './MCollTours'
 import MCollInvites from './MCollInvites'
-import { STATUS_SPEC } from './collectionsMobileModel'
+import { STATUS_SPEC, categoryMeta } from './collectionsMobileModel'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import MCollListNav from './MCollListNav'
 import { useIsSplit } from '../../../hooks/sizeClass'
@@ -45,6 +45,30 @@ const CHIP_ON = 'border border-transparent bg-m-act text-m-actfg'
 
 const DROP_PANEL =
   'rounded-[14px] border border-[color:var(--m-rowbr)] bg-m-sheetop shadow-[0_20px_44px_-18px_rgba(0,0,0,.45)]'
+
+/** The filter chips that open a dropdown; at most one is open at a time. */
+type FilterDrop = 'status' | 'category' | 'label'
+
+/** One row of the status or category dropdown: icon, name, count. */
+function DropRow({ icon, label, count, on, onPick }: {
+  icon: ReactNode
+  label: string
+  count: number
+  on: boolean
+  onPick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${on ? 'bg-[color:var(--m-ic)]' : ''}`}
+    >
+      {icon}
+      <span dir="auto" className="min-w-0 flex-1 truncate text-start">{label}</span>
+      <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{count}</span>
+    </button>
+  )
+}
 
 function EmptyNote({ icon, scene, title }: { icon?: ReactNode; scene?: TrekScene; title: string }) {
   return (
@@ -73,8 +97,8 @@ export default function MCollections() {
   // With room for two panes the lists stand in a column beside the places
   // (MCollListNav) instead of behind the header's dropdown.
   const split = useIsSplit()
-  const [statusDrop, setStatusDrop] = useState(false)
-  const [labelDrop, setLabelDrop] = useState(false)
+  const [filterDrop, setFilterDrop] = useState<FilterDrop | null>(null)
+  const toggleDrop = (drop: FilterDrop) => setFilterDrop(cur => (cur === drop ? null : drop))
 
   // The bottom-nav "+" hands off via the ?create= contract.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -102,18 +126,17 @@ export default function MCollections() {
   // Close transient popovers when the active list changes under them.
   useEffect(() => {
     setDrop(false)
-    setStatusDrop(false)
-    setLabelDrop(false)
+    setFilterDrop(null)
   }, [c.activeId])
 
-  // The mobile toolbar has no category or rating filter control, but the shared
-  // hook still applies whatever was set on desktop — keep both cleared so
-  // resizing to phone doesn't silently filter the list and map (#1435).
-  const { categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter } = c
+  // The mobile toolbar has no rating filter control, but the shared hook still
+  // applies whatever was set on desktop: keep it cleared so resizing to phone
+  // doesn't silently filter the list and map (#1435). The category filter has
+  // its own chip here (#2618), so it carries over.
+  const { ratingFilter, setRatingFilter } = c
   useEffect(() => {
-    if (categoryFilter !== 'all') setCategoryFilter('all')
     if (ratingFilter !== 'all') setRatingFilter('all')
-  }, [categoryFilter, setCategoryFilter, ratingFilter, setRatingFilter])
+  }, [ratingFilter, setRatingFilter])
 
   const title = c.isAllSaved ? t('collections.allSaved') : (c.activeCollection?.name ?? t('collections.title'))
   const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
@@ -127,6 +150,15 @@ export default function MCollections() {
   const statusLabel = c.statusFilter === 'all'
     ? t('collections.status.filterAll')
     : t(STATUS_SPEC[c.statusFilter].labelKey)
+  // A category picked on another list (or on desktop) stays set when this list
+  // has none of it, so the chip stays reachable to clear it again.
+  const showCategoryChip = c.categoryOptions.length > 0 || c.categoryFilter !== 'all'
+  const categoryLabel = c.categoryFilter === 'all'
+    ? t('collections.status.filterAll')
+    : (c.categoryOptions.find(o => o.id === c.categoryFilter)?.name
+      ?? c.categories.find(o => o.id === c.categoryFilter)?.name
+      ?? t('collections.status.filterAll'))
+  const categoryTotal = c.categoryOptions.reduce((n, o) => n + o.count, 0)
   const labelLabel = c.labelFilter.length === 0
     ? t('collections.status.filterAll')
     : c.labelFilter.length === 1
@@ -148,7 +180,17 @@ export default function MCollections() {
 
   const pickStatusFilter = (f: StatusFilter) => {
     c.setStatusFilter(f)
-    setStatusDrop(false)
+    setFilterDrop(null)
+  }
+
+  const pickCategoryFilter = (f: number | 'all') => {
+    c.setCategoryFilter(f)
+    setFilterDrop(null)
+  }
+
+  const openLabelManager = () => {
+    setFilterDrop(null)
+    c.setShowLabelManager(true)
   }
 
   const toggleLabelFilter = (id: number) => {
@@ -169,6 +211,7 @@ export default function MCollections() {
     />
   )
 
+  const none = c.selectedIds.length === 0
   const selectChip = (disabled: boolean) =>
     `flex flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-2 text-[0.75rem] font-semibold text-m-ink ${disabled ? 'opacity-40' : ''}`
 
@@ -280,30 +323,37 @@ export default function MCollections() {
               <div className="relative mt-2 flex items-center gap-[6px]">
                 <button
                   type="button"
-                  onClick={() => { setStatusDrop(v => !v); setLabelDrop(false) }}
-                  aria-expanded={statusDrop}
+                  onClick={() => toggleDrop('status')}
+                  aria-expanded={filterDrop === 'status'}
                   className={`${FILTER_CHIP} ${c.statusFilter !== 'all' ? CHIP_ON : CHIP_IDLE}`}
                 >
                   <Layers size={13} strokeWidth={2} className="flex-none" />
                   <span className="truncate">{statusLabel}</span>
                   <ChevronDown size={12} strokeWidth={2} className={`flex-none ${c.statusFilter !== 'all' ? '' : 'text-m-faint'}`} />
                 </button>
+                {showCategoryChip && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDrop('category')}
+                    aria-expanded={filterDrop === 'category'}
+                    aria-label={`${t('categories.title')}: ${categoryLabel}`}
+                    className={`${FILTER_CHIP} ${c.categoryFilter !== 'all' ? CHIP_ON : CHIP_IDLE}`}
+                  >
+                    <Shapes size={13} strokeWidth={2} className="flex-none" />
+                    <span dir="auto" className="truncate">{categoryLabel}</span>
+                    <ChevronDown size={12} strokeWidth={2} className={`flex-none ${c.categoryFilter !== 'all' ? '' : 'text-m-faint'}`} />
+                  </button>
+                )}
                 {isRealList && (
                   <button
                     type="button"
-                    onClick={() => { setLabelDrop(v => !v); setStatusDrop(false) }}
-                    aria-expanded={labelDrop}
+                    onClick={() => toggleDrop('label')}
+                    aria-expanded={filterDrop === 'label'}
                     className={`${FILTER_CHIP} ${c.labelFilter.length > 0 ? CHIP_ON : CHIP_IDLE}`}
                   >
                     <Tag size={13} strokeWidth={2} className="flex-none" />
                     <span className="truncate">{labelLabel}</span>
                     <ChevronDown size={12} strokeWidth={2} className={`flex-none ${c.labelFilter.length > 0 ? '' : 'text-m-faint'}`} />
-                  </button>
-                )}
-                {canManageLabels && (
-                  <button type="button" onClick={() => c.setShowLabelManager(true)} className={`${FILTER_CHIP} ${CHIP_IDLE}`}>
-                    <Plus size={12} strokeWidth={2.2} className="flex-none" />
-                    <span className="truncate">{t('collections.labels.title')}</span>
                   </button>
                 )}
                 {showSelect && (
@@ -313,48 +363,69 @@ export default function MCollections() {
                   </button>
                 )}
 
-                {(statusDrop || labelDrop) && (
+                {filterDrop && (
                   <button
                     type="button"
                     aria-label={t('common.close')}
                     className="fixed inset-0 z-10 cursor-default"
-                    onClick={() => { setStatusDrop(false); setLabelDrop(false) }}
+                    onClick={() => setFilterDrop(null)}
                   />
                 )}
-                {statusDrop && (
+                {filterDrop === 'status' && (
                   <div className={`absolute inset-x-0 top-[calc(100%+6px)] z-20 p-[6px] ${DROP_PANEL}`}>
-                    <button
-                      type="button"
-                      onClick={() => pickStatusFilter('all')}
-                      className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.statusFilter === 'all' ? 'bg-[color:var(--m-ic)]' : ''}`}
-                    >
-                      <Layers size={15} strokeWidth={2} />
-                      <span className="flex-1 text-start">{t('collections.status.filterAll')}</span>
-                      <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{c.counts.all}</span>
-                    </button>
+                    <DropRow
+                      icon={<Layers size={15} strokeWidth={2} className="flex-none" />}
+                      label={t('collections.status.filterAll')}
+                      count={c.counts.all}
+                      on={c.statusFilter === 'all'}
+                      onPick={() => pickStatusFilter('all')}
+                    />
                     {STATUS_ORDER.map(s => {
                       const meta = STATUS_SPEC[s]
                       const Icon = meta.icon
                       return (
-                        <button
+                        <DropRow
                           key={s}
-                          type="button"
-                          onClick={() => pickStatusFilter(s)}
-                          className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.statusFilter === s ? 'bg-[color:var(--m-ic)]' : ''}`}
-                        >
-                          <Icon size={15} strokeWidth={2} style={{ color: meta.color }} />
-                          <span className="flex-1 text-start">{t(meta.labelKey)}</span>
-                          <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{c.counts[s]}</span>
-                        </button>
+                          icon={<Icon size={15} strokeWidth={2} className="flex-none" style={{ color: meta.color }} />}
+                          label={t(meta.labelKey)}
+                          count={c.counts[s]}
+                          on={c.statusFilter === s}
+                          onPick={() => pickStatusFilter(s)}
+                        />
                       )
                     })}
                   </div>
                 )}
-                {labelDrop && (
-                  <div className={`absolute inset-x-0 top-[calc(100%+6px)] z-20 max-h-[240px] overflow-y-auto p-[6px] ${DROP_PANEL}`}>
+                {filterDrop === 'category' && (
+                  <div className={`absolute inset-x-0 top-[calc(100%+6px)] z-20 max-h-[300px] overflow-y-auto p-[6px] ${DROP_PANEL}`}>
+                    <DropRow
+                      icon={<Shapes size={15} strokeWidth={2} className="flex-none" />}
+                      label={t('collections.status.filterAll')}
+                      count={categoryTotal}
+                      on={c.categoryFilter === 'all'}
+                      onPick={() => pickCategoryFilter('all')}
+                    />
+                    {c.categoryOptions.map(o => {
+                      const meta = categoryMeta(o)
+                      const Icon = meta?.icon ?? Shapes
+                      return (
+                        <DropRow
+                          key={o.id}
+                          icon={<Icon size={15} strokeWidth={2} className="flex-none" style={{ color: meta?.color }} />}
+                          label={o.name}
+                          count={o.count}
+                          on={c.categoryFilter === o.id}
+                          onPick={() => pickCategoryFilter(o.id)}
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+                {filterDrop === 'label' && (
+                  <div className={`absolute inset-x-0 top-[calc(100%+6px)] z-20 max-h-[300px] overflow-y-auto p-[6px] ${DROP_PANEL}`}>
                     <button
                       type="button"
-                      onClick={() => { c.setLabelFilter([]); setLabelDrop(false) }}
+                      onClick={() => { c.setLabelFilter([]); setFilterDrop(null) }}
                       className={`flex w-full items-center gap-[9px] rounded-[11px] p-[10px] text-[0.8125rem] font-semibold text-m-ink ${c.labelFilter.length === 0 ? 'bg-[color:var(--m-ic)]' : ''}`}
                     >
                       <Tag size={15} strokeWidth={2} />
@@ -379,49 +450,62 @@ export default function MCollections() {
                     {c.labelOptions.length === 0 && (
                       <div className="p-[10px] text-center font-geist text-[0.71875rem] text-m-faint">{t('collections.labels.empty')}</div>
                     )}
+                    {/* Managing the labels sits under their list, which keeps the row at
+                        four chips now that the category chip joined it (#2618). */}
+                    {canManageLabels && (
+                      <button
+                        type="button"
+                        onClick={openLabelManager}
+                        className="mt-1 flex w-full items-center gap-[9px] rounded-[11px] border-t border-[color:var(--m-rowbr)] p-[10px] text-[0.8125rem] font-semibold text-m-ink"
+                      >
+                        <Settings2 size={15} strokeWidth={2} className="flex-none" />
+                        <span className="flex-1 text-start">{c.labelOptions.length > 0 ? t('collections.labels.manage') : t('collections.labels.add')}</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
+            {/* Selecting: what is picked and the way out on one line, the actions as icons on
+                the next, so nothing scrolls sideways or hides the way back. */}
             {c.view === 'list' && c.selectMode && (
-              <div className="mt-2 flex items-center gap-[6px] overflow-x-auto pb-[2px]">
-                <button type="button" onClick={c.handleSelectAll} className={selectChip(false)}>
-                  <CheckCheck size={13} strokeWidth={2.2} />
-                  {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
-                </button>
-                <span className="flex-none whitespace-nowrap px-1 font-geist text-[0.6875rem] font-bold text-m-muted">
-                  {t('collections.selectedCount', { count: c.selectedIds.length })}
-                </span>
-                {canManageLabels && (
-                  <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                    <Tags size={13} strokeWidth={2.2} /> {t('collections.labels.assign')}
+              <div className="mt-2">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={c.handleSelectAll} className={selectChip(false)}>
+                    <CheckCheck size={13} strokeWidth={2.2} />
+                    {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
                   </button>
-                )}
-                <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                  <Copy size={13} strokeWidth={2.2} /> {t('collections.copyToTrip')}
-                </button>
-                {c.canDelete && (
-                  <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                    <FolderInput size={13} strokeWidth={2.2} /> {t('collections.moveToList')}
+                  <span className="min-w-0 flex-1 truncate text-center font-geist text-[0.6875rem] font-bold text-m-muted">
+                    {t('collections.selectedCount', { count: c.selectedIds.length })}
+                  </span>
+                  <button type="button" onClick={() => c.setSelectMode(false)} className="flex-none rounded-full bg-m-act px-[14px] py-2 text-caption font-semibold text-m-actfg">
+                    {t('packing.editDone')}
                   </button>
-                )}
-                <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className={selectChip(c.selectedIds.length === 0)}>
-                  <CopyPlus size={13} strokeWidth={2.2} /> {t('collections.duplicateToList')}
-                </button>
-                {c.canDelete && (
-                  <button
-                    type="button"
-                    onClick={c.handleDeleteSelected}
-                    disabled={c.selectedIds.length === 0}
-                    className={`${selectChip(c.selectedIds.length === 0)} !text-[color:var(--m-st-danger)]`}
-                  >
-                    <Trash2 size={13} strokeWidth={2.2} /> {t('common.delete')}
-                  </button>
-                )}
-                <button type="button" onClick={() => c.setSelectMode(false)} aria-label={t('common.cancel')} className={selectChip(false)}>
-                  <X size={14} strokeWidth={2.2} />
-                </button>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-[6px]">
+                  {canManageLabels && (
+                    <SelectionAction label={t('collections.labels.assign')} onClick={() => c.setLabelPickerOpen(true)} disabled={none}>
+                      <Tags size={16} strokeWidth={2} />
+                    </SelectionAction>
+                  )}
+                  <SelectionAction label={t('collections.copyToTrip')} onClick={c.openCopyForSelection} disabled={none}>
+                    <Copy size={16} strokeWidth={2} />
+                  </SelectionAction>
+                  {c.canDelete && (
+                    <SelectionAction label={t('collections.moveToList')} onClick={() => c.setListPickerMode('move')} disabled={none}>
+                      <FolderInput size={16} strokeWidth={2} />
+                    </SelectionAction>
+                  )}
+                  <SelectionAction label={t('collections.duplicateToList')} onClick={() => c.setListPickerMode('copy')} disabled={none}>
+                    <CopyPlus size={16} strokeWidth={2} />
+                  </SelectionAction>
+                  {c.canDelete && (
+                    <SelectionAction label={t('common.delete')} onClick={c.handleDeleteSelected} disabled={none} danger>
+                      <Trash2 size={16} strokeWidth={2} />
+                    </SelectionAction>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -567,5 +651,27 @@ export default function MCollections() {
         onConfirm={c.handleDeleteList}
       />
     </div>
+  )
+}
+
+/** One action on the picked places: an icon, named by its label, as wide as its share of the row. */
+function SelectionAction({ label, onClick, disabled, danger = false, children }: {
+  label: string
+  onClick: () => void
+  disabled: boolean
+  danger?: boolean
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`flex h-10 min-w-0 flex-1 items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-m-sheetop disabled:opacity-40 ${danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'}`}
+    >
+      {children}
+    </button>
   )
 }

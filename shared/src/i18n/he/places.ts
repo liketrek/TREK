@@ -98,6 +98,10 @@ const places: TranslationStrings = {
   'places.formLng': 'קו אורך (למשל 2.3522)',
   'places.formLatLabel': 'קו רוחב',
   'places.formLngLabel': 'קו אורך',
+  'places.noCoordinates': 'אין קואורדינטות, ולכן לא על המפה',
+  'places.noCoordinatesHint': 'ערכו את המקום ובחרו אותו מהחיפוש, או הזינו קו רוחב וקו אורך.',
+  'places.noCoordinatesFormHint':
+    'לכתובת הזו עדיין אין קואורדינטות, ולכן המקום לא יופיע על המפה. בחרו אותו מהחיפוש למעלה או הזינו קו רוחב וקו אורך.',
   'places.formCategory': 'קטגוריה',
   'places.noCategory': 'ללא קטגוריה',
   'places.newCategory': 'קטגוריה חדשה',

@@ -17,6 +17,18 @@ const pl: NotificationLocale = {
       title: `Nowa rezerwacja: ${p.booking}`,
       body: `${p.actor} dodał rezerwację "${p.booking}" (${p.type}) do "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} wystartował`,
+      body: `${p.flight} z ${p.from} do ${p.to} jest w powietrzu.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} jest opóźniony`,
+      body: `${p.flight} z ${p.from} do ${p.to} ma około ${p.delay} minut opóźnienia.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} wylądował`,
+      body: `${p.flight} z ${p.from} wylądował w ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Przypomnienie o podróży: ${p.trip}`,
       body: `Twoja podróż "${p.trip}" zbliża się!`,
@@ -92,6 +104,21 @@ const pl: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `„${p.tour}” w „${p.trip}” nie da się już sprawdzić w wanderer. Trasa w twojej podróży pozostaje bez zmian.`
             : `„${p.tour}” w „${p.trip}” mógł się zmienić w wanderer. Otwórz trasę i sprawdź jej źródło. W podróży nic nie zmienia się samo.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Dodano z wiadomości: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} dodał(a) „${p.booking}” do „${p.trip}” z przekazanej wiadomości.`
+          : `„${p.booking}” z Twojej przekazanej wiadomości dodano do „${p.trip}”. Możesz to cofnąć w TREK przez 7 dni.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Przekazane rezerwacje do sprawdzenia',
+      body: `Przekazane rezerwacje czekające na Ciebie w TREK: ${p.count}. Przy każdej podano, dlaczego nie została dodana automatycznie.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Import e-maili wstrzymany',
+      body: 'TREK na razie nie przyjmuje przekazanych e-maili z rezerwacjami, więc wstrzymaj się z ich przekazywaniem. Twoje adresy zostają i znów zadziałają, gdy import wróci, a dodane już rezerwacje zostają w Twoich podróżach.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

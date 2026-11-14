@@ -1,0 +1,42 @@
+import type { TranslationStrings } from '../types';
+
+const flightLive: TranslationStrings = {
+  'flightLive.durDaysHours': '{d}天{h}小時',
+  'flightLive.durHoursMinutes': '{h}小時{m}分',
+  'flightLive.durMinutes': '{m}分',
+  'flightLive.late': '+{m}分',
+  'flightLive.early': '提早{m}分',
+  'flightLive.onTime': '準點',
+  'flightLive.departsIn': '{time}後起飛',
+  'flightLive.scheduled': '預定',
+  'flightLive.taxiing': '準備起飛',
+  'flightLive.atAirport': '在 {code} 地面',
+  'flightLive.airborne': '飛行中',
+  'flightLive.landsIn': '{time}後降落',
+  'flightLive.landed': '已降落',
+  'flightLive.landedAt': '{time} 降落於 {code}',
+  'flightLive.estimated': '預計',
+  'flightLive.altitude': '高度',
+  'flightLive.feet': '{n} ft',
+  'flightLive.meters': '{n} 公尺',
+  'flightLive.speed': '速度',
+  'flightLive.mph': '{n} mph',
+  'flightLive.kmh': '{n} 公里/小時',
+  'flightLive.remaining': '剩餘',
+  'flightLive.mi': '{n} mi',
+  'flightLive.km': '{n} 公里',
+  'flightLive.aircraft': '飛機',
+  'flightLive.noGateHint': '登機門、航廈和行李轉盤不屬於開放航班資料。如有需要，請自行加入訂位。',
+  'flightLive.legOf': '第 {n} 段，共 {total} 段',
+  'flightLive.adminTitle': '即時航班狀態',
+  'flightLive.adminHint':
+    '依據開放 ADS-B 資料（adsb.lol、adsb.fi）顯示已預訂航班的位置、延誤和預計抵達時間。只有航班呼號會離開此伺服器。',
+  'flightLive.adminToggle': '即時追蹤已預訂的航班',
+  'flightLive.headlineDetail': '{headline}，{detail}',
+  'flightLive.adminHintManaged':
+    '依據開放 ADS-B 資料（adsb.lol）顯示已預訂航班的位置、延誤和預計抵達時間。只有航班呼號會離開執行個體。',
+  'flightLive.noFlight': '沒有即將到來的航班',
+  'flightLive.envLocked': '由伺服器上的 FLIGHT_LIVE_ENABLED 設定，無法在此變更。',
+};
+
+export default flightLive;

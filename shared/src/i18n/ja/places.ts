@@ -83,6 +83,10 @@ const places: TranslationStrings = {
   'places.formLng': '経度（例：2.3522）',
   'places.formLatLabel': '緯度',
   'places.formLngLabel': '経度',
+  'places.noCoordinates': '座標がないため地図に表示されません',
+  'places.noCoordinatesHint': '場所を編集して検索から選ぶか、緯度と経度を入力してください。',
+  'places.noCoordinatesFormHint':
+    'この住所にはまだ座標がないため、地図に表示されません。上の検索から選ぶか、緯度と経度を入力してください。',
   'places.formCategory': 'カテゴリ',
   'places.noCategory': 'カテゴリなし',
   'places.newCategory': '新しいカテゴリ',

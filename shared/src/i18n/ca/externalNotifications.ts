@@ -17,6 +17,18 @@ const ca: NotificationLocale = {
       title: `Reserva nova: ${p.booking}`,
       body: `${p.actor} va afegir una reserva "${p.booking}" (${p.type}) a "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} ha enlairat`,
+      body: `${p.flight} de ${p.from} a ${p.to} és a l'aire.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} va amb retard`,
+      body: `${p.flight} de ${p.from} a ${p.to} porta uns ${p.delay} minuts de retard.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} ha aterrat`,
+      body: `${p.flight} des de ${p.from} ha aterrat a ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Recordatori: ${p.trip}`,
       body: `El teu viatge "${p.trip}" s'apropa!`,
@@ -83,6 +95,21 @@ const ca: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `«${p.tour}» a «${p.trip}» ja no es pot comprovar a wanderer. El recorregut del teu viatge es queda com està.`
             : `«${p.tour}» a «${p.trip}» pot haver canviat a wanderer. Obre el recorregut i comprova'n la font per saber-ho. Res del viatge canvia sol.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Afegit des d’un correu: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} ha afegit «${p.booking}» a «${p.trip}» des d’un correu reenviat.`
+          : `«${p.booking}» del teu correu reenviat s’ha afegit a «${p.trip}». Pots desfer-ho a TREK durant 7 dies.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Reserves reenviades per revisar',
+      body: `Reserves reenviades pendents a TREK: ${p.count}. Cadascuna diu per què no s’ha afegit sola.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Importació de correus en pausa',
+      body: 'De moment TREK no accepta correus de reserva reenviats, així que espera abans de reenviar-ne. Les teves adreces es mantenen i tornaran a funcionar quan torni la importació, i les reserves ja afegides continuen als teus viatges.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

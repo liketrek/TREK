@@ -48,6 +48,7 @@ import TrackColorPicker from '../shared/TrackColorPicker';
 import { markdownLinkComponents } from '../shared/markdownLink';
 import { TourDayRowAvatar } from './TourDayRowFacts';
 import { TourGpxExportButton } from './TourGpxExportButton';
+import { TourRouteAppsButton } from './TourRouteAppsButton';
 import { TourTypeSections } from './TourTypeSections';
 import TourActivitySection from './activity/TourActivitySection';
 import type { PlanValues } from './activity/planComparison';
@@ -663,6 +664,7 @@ export default function TourDetailDialog({
           )}
         </>
       )}
+      <TourRouteAppsButton type={tour.tour_type} line={analysis?.routeCoordinates} name={place.name} />
       {website && (
         <Tooltip label={website.domain}>
           <span className="inline-flex">

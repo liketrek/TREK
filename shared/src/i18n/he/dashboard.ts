@@ -250,6 +250,9 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'הוספה ל-Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'או העתיקו קישור ידנית',
   'dashboard.ics.pasteFromUrl': 'הדביקו ב-„From URL”',
+  'dashboard.ics.dayEvents': 'אירועי סיכום יום',
+  'dashboard.ics.dayEventsHint':
+    'אירוע של יום שלם לכל יום עם המקומות וההערות ללא שעה. שינוי ההגדרה משנה את הקישור, לכן יש להירשם שוב עם הקישור החדש.',
 };
 
 export default dashboard;

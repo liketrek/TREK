@@ -91,6 +91,10 @@ const places: TranslationStrings = {
   'places.formLng': 'Lengtegraad (bijv. 2.3522)',
   'places.formLatLabel': 'Breedtegraad',
   'places.formLngLabel': 'Lengtegraad',
+  'places.noCoordinates': 'Geen coördinaten, dus niet op de kaart',
+  'places.noCoordinatesHint': 'Bewerk de plek en kies hem in de zoekfunctie, of vul de breedte- en lengtegraad in.',
+  'places.noCoordinatesFormHint':
+    'Dit adres heeft nog geen coördinaten, dus de plek verschijnt niet op de kaart. Kies hem in de zoekfunctie hierboven of vul de breedte- en lengtegraad in.',
   'places.formCategory': 'Categorie',
   'places.noCategory': 'Geen categorie',
   'places.newCategory': 'Nieuwe categorie',

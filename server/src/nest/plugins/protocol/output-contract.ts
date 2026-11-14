@@ -65,6 +65,7 @@ export const PLUGIN_ENTITY_CONTRACT = {
       'created_at',
       'updated_at',
       'reminder_sent_for',
+      'costs_mode',
     ],
     // The sole credential of the anonymous calendar feed.
     withheld: ['feed_token'],

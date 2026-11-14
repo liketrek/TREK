@@ -560,6 +560,7 @@ describe('TripsRepository.findForViewer / listForUser / activeTrip (Plan 3c Task
             is_archived: 0,
             cover_image: null,
             reminder_days: 3,
+            costs_mode: 'split',
           });
           // Seen INSIDE the open transaction — the write and the read share
           // one connection.
@@ -609,6 +610,7 @@ describe('TripsRepository.insertTrip / updateTripRow / setCoverImage / deleteByI
       is_archived: 1,
       cover_image: 'c.png',
       reminder_days: 7,
+      costs_mode: 'totals',
     });
     const row = await tripRow(trip.id);
     expect(row).toMatchObject({
@@ -620,6 +622,7 @@ describe('TripsRepository.insertTrip / updateTripRow / setCoverImage / deleteByI
       is_archived: 1,
       cover_image: 'c.png',
       reminder_days: 7,
+      costs_mode: 'totals',
     });
     // CURRENT_TIMESTAMP has one-second resolution — a same-second before/after
     // comparison is flaky, not a real assertion; the column being non-null and
@@ -647,7 +650,7 @@ describe('TripsRepository.insertTrip / updateTripRow / setCoverImage / deleteByI
 // ── Plan 3c Task 8 (`TripsService.copy`, TP37) — additive ───────────────────
 
 describe('TripsRepository.insertTripCopy (TP37)', () => {
-  it('TRIPREPO-039: writes the 8-column copy set, is_archived hard-coded to 0 regardless of the caller', async () => {
+  it('TRIPREPO-039: writes the 9-column copy set, is_archived hard-coded to 0 regardless of the caller', async () => {
     const { user: owner } = createUser(testDb);
     const { user: newOwner } = createUser(testDb);
     const newId = await trips.insertTripCopy({
@@ -659,9 +662,20 @@ describe('TripsRepository.insertTripCopy (TP37)', () => {
       currency: 'USD',
       cover_image: 'c.png',
       reminder_days: 7,
+      costs_mode: 'totals',
     });
-    const { user_id, title, description, start_date, end_date, currency, cover_image, is_archived, reminder_days } =
-      await tripRow(newId);
+    const {
+      user_id,
+      title,
+      description,
+      start_date,
+      end_date,
+      currency,
+      cover_image,
+      is_archived,
+      reminder_days,
+      costs_mode,
+    } = await tripRow(newId);
     const row = {
       user_id,
       title,
@@ -672,6 +686,7 @@ describe('TripsRepository.insertTripCopy (TP37)', () => {
       cover_image,
       is_archived,
       reminder_days,
+      costs_mode,
     };
     expect(row).toEqual({
       user_id: newOwner.id,
@@ -683,6 +698,7 @@ describe('TripsRepository.insertTripCopy (TP37)', () => {
       cover_image: 'c.png',
       is_archived: 0,
       reminder_days: 7,
+      costs_mode: 'totals',
     });
     // The source trip (never touched) proves is_archived: 0 is a literal, not a copied value.
     await setTrip(owner.id, { is_archived: 1 });
@@ -701,6 +717,7 @@ describe('TripsRepository.insertTripCopy (TP37)', () => {
       currency: null,
       cover_image: null,
       reminder_days: 3,
+      costs_mode: 'split',
     });
     expect((await tripRow(newId)).is_archived).toBe(0);
   });

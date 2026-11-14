@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, Plus,
+  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPinOff, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
@@ -26,6 +26,7 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
 import { MCategoryFilterList, MRatingFloorChips, SquareCheck } from './MPlacesFilterControls'
 import { countActivePlacesFilters } from '../../../../utils/placesFilter'
 import { usePlacesPool } from '../../../../components/Planner/usePlacesPool'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 
 /**
  * Fullscreen places pool (mode === 'browse'): All/Unplanned/Tracks filter
@@ -242,6 +243,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             daysForTrip={() => days.map(day => ({
               id: day.id,
               ...formatDayOption(day.day_number, day.date, locale, t),
+              date: day.date ?? undefined,
             }))}
             // The place it just created belongs on the map and in the list
             // now, not after a reload.
@@ -340,6 +342,16 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                       )}
                       <CatIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: cat?.color || 'var(--m-muted)' }} />
                       <span dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
+                      {/* A typed address without coordinates: this place has no marker (#2837). */}
+                      {addressWithoutCoordinates(place) && (
+                        <MapPinOff
+                          size={12}
+                          strokeWidth={2.2}
+                          role="img"
+                          aria-label={t('places.noCoordinates')}
+                          className="flex-none text-[color:var(--m-st-pending)]"
+                        />
+                      )}
                     </span>
                     {sub && (
                       <MarkdownText clamp className="mt-px font-geist text-[0.65625rem] text-m-muted">{sub}</MarkdownText>

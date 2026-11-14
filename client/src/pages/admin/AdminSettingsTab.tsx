@@ -1,21 +1,20 @@
 import React from 'react'
-import { adminApi } from '../../api/client'
-import { getApiErrorMessage } from '../../types'
 import {
   AlertTriangle, CheckCircle, Compass, Eye, EyeOff, FileType, Fingerprint, KeyRound, Loader2, LockKeyhole, LogIn,
-  RefreshCw, Save, ShieldCheck, XCircle,
+  Plane, RefreshCw, Save, XCircle,
 } from 'lucide-react'
 import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import CustomSelect from '../../components/shared/CustomSelect'
 import { fs } from '../../components/shared/DialogShell'
 import { EditorField, GRID_2, INPUT } from '../../components/shared/dialogParts'
 import {
-  SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsCard, SettingsHint, StatusPill,
+  SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsCard, SettingsColumns, SettingsHint, StatusPill,
 } from '../../components/Settings/settingsKit'
 import GoogleOptions from './GoogleOptions'
 import GoogleDailyLimitRow from '../../components/Admin/GoogleDailyLimitRow'
 import ProviderBlock from './ProviderBlock'
 import TrekApiCard from './TrekApiCard'
+import MailIngestAdminCard from '../../components/Admin/mailIngest/MailIngestAdminCard'
 import PlaceContribPanel from '../../components/Admin/PlaceContribPanel'
 import { useAdminSettingsActions } from '../../components/Admin/useAdminSettingsActions'
 import { placesGoogleOnlyHint } from '../../utils/placeSource'
@@ -25,6 +24,12 @@ import type { useAdmin } from './useAdmin'
 interface AdminSettingsTabProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
+  /**
+   * Which tab this renders: sign-in and its safety (security), what the
+   * install talks to outside (services), or the setup of the features the
+   * addons tab switches on (features).
+   */
+  part: 'security' | 'services' | 'features'
 }
 
 /**
@@ -101,7 +106,7 @@ function KeyField({ shown, value, onChange, inputProps, label, onToggle }: {
 function SaveBar({ onClick, saving, label }: { onClick: () => void; saving: boolean; label: string }) {
   return (
     <div className="flex justify-end">
-      <button type="button" onClick={onClick} disabled={saving} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+      <button type="button" onClick={onClick} disabled={saving} className={SETTINGS_BUTTON_PRIMARY}>
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
         {label}
       </button>
@@ -109,19 +114,19 @@ function SaveBar({ onClick, saving, label }: { onClick: () => void; saving: bool
   )
 }
 
-// "Settings" admin tab: auth methods, require-MFA, allowed file types, API keys,
-// OIDC config and the danger zone. Pure layout around the useAdmin hook.
-export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): React.ReactElement {
+// The admin's security, services and feature setup tabs, cut from what was one
+// "Settings" tab. Pure layout around the useAdmin hook.
+export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabProps): React.ReactElement {
   const {
-    toast,
     placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
     placesGoogleOnly, handleTogglePlacesGoogleOnly,
-    transitProvider, setTransitProviderState,
-    transitGoogleKeySource, setTransitGoogleKeySource,
+    transitProvider,
+    transitGoogleKeySource,
     placeShadowEnabled,
     oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
-    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
+    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
+    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
@@ -135,14 +140,12 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
   } = admin
   const {
     saveOidc, saveFileTypes, togglePlacesPhotos, togglePlacesAutocomplete, togglePlacesDetails, togglePlacesEnrich,
-    togglePlaceShadow,
+    togglePlaceShadow, changeTransitProvider,
   } = useAdminSettingsActions(admin, t)
 
   const passwordLoginLocked = !passwordLogin && !oidcLogin
   const oidcLoginLocked = !passwordLogin && oidcLogin
 
-  // On a managed install the right column loses place search, routing and the
-  // keys to the operator, so file types move over and the columns stay even.
   const fileTypesCard = (
     <SettingsCard icon={FileType} title={t('admin.fileTypes')} hint={t('admin.fileTypesHint')}>
       <div>
@@ -164,18 +167,9 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
     </SettingsCard>
   )
 
-  return (
-        <div>
-      {/* Two columns from xl up. Nearly every card here is "label left,
-          switch right", so on a wide screen the middle stayed empty while the
-          page scrolled for ages. Two explicit columns rather than a grid over
-          the flat list: a plain grid pairs cards row by row and leaves a hole
-          under whichever of the pair is shorter, and these differ by hundreds
-          of pixels. Grouped by subject, not by height — access and identity
-          left, integrations and data right. The cards carry their own bottom
-          margin, so only the column gap is set here. */}
-      <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-2 xl:items-start">
-        <div className="min-w-0">
+  // Each card is built once; the parts below pick theirs.
+  const authCard = (
+    <>
         {/* Authentication Methods */}
         <SettingsCard icon={LockKeyhole} title={t('admin.authMethods')}>
           {envOverrideOidcOnly && <Callout>{t('admin.envOverrideHint')}</Callout>}
@@ -235,12 +229,21 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                 }
               />
             )}
-          </SettingRows>
-        </SettingsCard>
-
-        {/* Passkey (WebAuthn) login */}
-        <SettingsCard icon={Fingerprint} title={t('admin.passkey.title')} hint={t('admin.passkey.cardHint')}>
-          <SettingRows>
+            {/* Whether an instance without password login skips its own login page (#2925) */}
+            {oidcConfigured && (
+              <SettingRow
+                label={t('admin.oidcAutoRedirect')}
+                hint={t('admin.oidcAutoRedirectHint')}
+                control={
+                  <ToggleSwitch
+                    on={oidcAutoRedirect}
+                    label={t('admin.oidcAutoRedirect')}
+                    onToggle={() => void handleToggleAuthSetting('oidc_auto_redirect', !oidcAutoRedirect, setOidcAutoRedirect)}
+                  />
+                }
+              />
+            )}
+            {/* Passkeys and the 2FA rule are ways in too, so they sit with the others. */}
             <SettingRow
               label={t('admin.passkey.login')}
               hint={t('admin.passkey.loginHint')}
@@ -252,17 +255,38 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                 />
               }
             />
+            <SettingRow
+              label={t('admin.requireMfa')}
+              hint={t('admin.requireMfaHint')}
+              control={
+                <ToggleSwitch
+                  on={requireMfa}
+                  label={t('admin.requireMfa')}
+                  onToggle={() => handleToggleRequireMfa(!requireMfa)}
+                />
+              }
+            />
           </SettingRows>
-
           {passkeyLogin && !passkeyConfigured && <Callout>{t('admin.passkey.notConfigured')}</Callout>}
-
+        </SettingsCard>
+    </>
+  )
+  // Where passkeys bind: an expert setting, a row of the setup list. The switch
+  // to offer passkeys at all is in the sign-in card.
+  const passkeyCard = (
+    <>
           {/* The domain passkeys bind to and the origins that may present them
               follow from the address the instance is served on, which the operator
               owns. Getting either wrong invalidates every enrolled passkey, and on
               a shared parent domain a wrong RP ID reaches past this instance
-              entirely — so they are pinned per container, not offered here. The
-              switch above stays: whether to offer passkeys at all is a house rule. */}
-          {!managed && (<>
+              entirely — so they are pinned per container, not offered here. */}
+          {!managed && (
+          <SettingsCard
+            icon={Fingerprint}
+            title={t('admin.passkey.title')}
+            hint={t('admin.passkey.cardHint')}
+            badge={webauthnRpId ? <StatusPill>{webauthnRpId}</StatusPill> : undefined}
+          >
             <EditorField label={t('admin.passkey.rpId')} htmlFor="admin-webauthn-rp-id" hint={t('admin.passkey.rpIdHint')}>
               <input
                 id="admin-webauthn-rp-id"
@@ -284,32 +308,27 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               />
             </EditorField>
             <SaveBar onClick={handleSaveWebauthn} saving={savingWebauthn} label={t('common.save')} />
-          </>)}
-        </SettingsCard>
-
-        {/* Require 2FA for all users */}
-        <SettingsCard icon={ShieldCheck} title={t('admin.requireMfa')}>
-          <SettingRows>
-            <SettingRow
-              label={t('admin.requireMfa')}
-              hint={t('admin.requireMfaHint')}
-              control={
-                <ToggleSwitch
-                  on={requireMfa}
-                  label={t('admin.requireMfa')}
-                  onToggle={() => handleToggleRequireMfa(!requireMfa)}
-                />
-              }
-            />
-          </SettingRows>
-        </SettingsCard>
-
+          </SettingsCard>
+          )}
+    </>
+  )
+  const oidcCard = (
+    <>
           {/* An issuer the instance names can assert any address as verified, and the
               discovery calls leave from inside the operator’s network. Sign-on is theirs
               to wire, so the fields are not offered. */}
           {!managed && (
           /* OIDC / SSO Configuration */
-          <SettingsCard icon={LogIn} title={t('admin.oidcTitle')} hint={t('admin.oidcSubtitle')}>
+          <SettingsCard
+            icon={LogIn}
+            title={t('admin.oidcTitle')}
+            hint={t('admin.oidcSubtitle')}
+            badge={
+              oidcConfigured
+                ? <StatusPill tone="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{t('settings.configured')}</StatusPill>
+                : <StatusPill icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{t('settings.notSetUp')}</StatusPill>
+            }
+          >
             <div className={GRID_2}>
               <EditorField label={t('admin.oidcDisplayName')} htmlFor="oidc-display-name">
                 <input
@@ -374,16 +393,38 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
             />
           </SettingsCard>
           )}
-
-        {!managed && fileTypesCard}
-        </div>
-
-        <div className="min-w-0">
-        {managed && fileTypesCard}
-        {/* Inside the place search card elsewhere; that card is the operator's here,
-            sharing place details is still the admin's decision. */}
-        {managed && <PlaceContribPanel hideWhenSwitchedOff />}
-
+    </>
+  )
+  const flightCard = (
+    <>
+          {/* Live flight status: open ADS-B data, no key, on by default; the admin may keep it off. */}
+          <SettingsCard icon={Plane} title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}>
+            <SettingRows>
+              <SettingRow
+                label={t('flightLive.adminToggle')}
+                hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
+                control={
+                  <ToggleSwitch
+                    on={flightLive}
+                    label={t('flightLive.adminToggle')}
+                    disabled={flightLiveLocked}
+                    onToggle={() => void handleToggleAuthSetting('flight_live_enabled', !flightLive, setFlightLive)}
+                  />
+                }
+              />
+            </SettingRows>
+          </SettingsCard>
+    </>
+  )
+  const mailCard = (
+    <>
+          {/* Booking mail import: how forwarded booking mails reach this install. On a managed
+              install the operator runs the TREK Cloud relay, so the card is not shown there. */}
+          {!managed && <MailIngestAdminCard />}
+    </>
+  )
+  const servicesCard = (
+    <>
           {/* Place search and routing: TREK's own services first, then which provider
               answers search and transit, and the search log. Apart from the keys, so a
               keyless install reads its whole setup in one card. Everything here saves
@@ -408,24 +449,7 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                 the body, which is what lets it escape the card's overflow-hidden. */}
             <CustomSelect
               value={transitProvider}
-              onChange={async value => {
-                // A native select stayed silent when the option already selected was
-                // picked again; this one reports every pick, and a no-op PUT is still
-                // a write on an audited settings route.
-                if (value === transitProvider) return
-                const next = value === 'google' ? 'google' : 'transitous'
-                const previous = transitProvider
-                setTransitProviderState(next)
-                try {
-                  const saved = await adminApi.updateTransitProvider(next)
-                  setTransitGoogleKeySource(saved.googleKeySource)
-                } catch (err: unknown) {
-                  // The select springs back on its own; without a word that reads
-                  // as a broken control, not as a save that failed.
-                  setTransitProviderState(previous)
-                  toast.error(getApiErrorMessage(err, t('common.error')))
-                }
-              }}
+              onChange={value => void changeTransitProvider(String(value))}
               options={[
                 { value: 'transitous', label: t('admin.transitProvider.transitous') },
                 { value: 'google', label: t('admin.transitProvider.google') },
@@ -500,7 +524,10 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
 
           </SettingsCard>
           )}
-
+    </>
+  )
+  const apiKeysCard = (
+    <>
           {/* API Keys: only the keyed providers, Google, Unsplash and Amap. They are
               the operator's on a managed install, so the card is not shown there
               (server managed.ts), and neither is the provider pick in the card
@@ -531,7 +558,6 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
                   onClick={() => handleValidateKey('maps')}
                   disabled={!mapsKeyTestable || validating.maps}
                   className={`${SETTINGS_BUTTON} flex-none whitespace-nowrap`}
-                  style={fs(13, 'body')}
                 >
                   {validating.maps ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -656,9 +682,10 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
           <SaveBar onClick={handleSaveApiKeys} saving={savingKeys} label={t('common.save')} />
           </SettingsCard>
           )}
-        </div>
-      </div>
-
+    </>
+  )
+  const dangerCard = (
+    <>
       {/* Full width, and last. A destructive action should not sit beside a
           harmless toggle where a mis-aimed click can reach it. */}
       {/* Rotating the secret signs every user out and fixes nothing an instance admin
@@ -674,7 +701,6 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
               <button type="button"
                 onClick={() => setShowRotateJwtModal(true)}
                 className={SETTINGS_BUTTON_DANGER}
-                style={fs(13, 'body')}
               >
                 <RefreshCw size={14} />
                 {t('admin.rotateJwt.button')}
@@ -684,6 +710,55 @@ export default function AdminSettingsTab({ admin, t }: AdminSettingsTabProps): R
         </SettingRows>
       </SettingsCard>
       )}
-    </div>
+    </>
+  )
+
+  // What used to be one "Settings" tab, split by what an admin comes for:
+  // who may sign in and how (security), what the install talks to outside
+  // (services), and how the features in the addons tab are set up there.
+  if (part === 'features') {
+    return (
+      <>
+        {flightCard}
+        {mailCard}
+      </>
+    )
+  }
+  if (part === 'services') {
+    // Place search and the services on the left, the keys and file types on the right.
+    return (
+      <SettingsColumns
+        start={<>
+          {/* Inside the place search card elsewhere; that card is the operator's here,
+              sharing place details is still the admin's decision. */}
+          {managed && <PlaceContribPanel hideWhenSwitchedOff />}
+          {servicesCard}
+        </>}
+        end={<>
+          {apiKeysCard}
+          {fileTypesCard}
+        </>}
+      />
+    )
+  }
+  // Who may sign in and what it takes (the passkey domain, single sign-on),
+  // with the one destructive action in its own card.
+  return (
+    // Split by length, not by kind: single sign-on is the one long form, so the
+    // right column holds it and the short danger zone under it.
+    <SettingsColumns
+      start={
+        <>
+          {authCard}
+          {passkeyCard}
+        </>
+      }
+      end={
+        <>
+          {oidcCard}
+          {dangerCard}
+        </>
+      }
+    />
   )
 }

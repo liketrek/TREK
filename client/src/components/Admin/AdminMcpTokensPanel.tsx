@@ -5,7 +5,7 @@ import { useFormatDate } from '../../hooks/useDateFormat'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
 import { fs } from '../shared/DialogShell'
-import { SETTINGS_ICON_BUTTON, SettingRows, SettingsCard, SettingsHint, StatusPill } from '../Settings/settingsKit'
+import { SETTINGS_ICON_BUTTON, SettingRows, SettingsCard, SettingsHint, StatusPill, SettingsColumns } from '../Settings/settingsKit'
 import { SCOPES_PREVIEW, useMcpTokensAdmin } from './useMcpTokensAdmin'
 
 const ROW = 'flex flex-wrap items-center gap-x-4 gap-y-2 px-3.5 py-3'
@@ -72,6 +72,9 @@ export default function AdminMcpTokensPanel() {
 
   return (
     <div>
+      {/* The sessions and the tokens side by side: two lists of the same kind. */}
+      <SettingsColumns
+        start={<>
       {/* OAuth Sessions. The tab's own subtitle sits in its band: the sidebar
           already names the tab, so a bare heading over the cards only repeated it. */}
       <SettingsCard
@@ -116,7 +119,8 @@ export default function AdminMcpTokensPanel() {
           </SettingRows>
         )}
       </SettingsCard>
-
+        </>}
+        end={<>
       {/* MCP Tokens */}
       <SettingsCard
         icon={KeyRound}
@@ -147,6 +151,8 @@ export default function AdminMcpTokensPanel() {
           </SettingRows>
         )}
       </SettingsCard>
+        </>}
+      />
 
       {/* Revoke OAuth session */}
       <ConfirmDialog

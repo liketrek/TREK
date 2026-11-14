@@ -33,6 +33,8 @@ export const SECRET_ENV_KEYS: ReadonlySet<string> = new Set([
   'MAPBOX_ACCESS_TOKEN',
   'CARTO_API_KEY',
   'DEMO_ADMIN_PASS',
+  'MAIL_INGEST_IMAP_PASS',
+  'MAIL_INGEST_WEBHOOK_SECRET',
 ]);
 
 /** How a variable's value appears in the boot report. */

@@ -297,7 +297,6 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                     if (editingUser) setPasskeyResetUser(editingUser);
                   }}
                   className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-                  style={fs(12.5, 'body')}
                 >
                   <Fingerprint size={14} /> {t('admin.passkey.reset')}
                 </button>
@@ -313,7 +312,6 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                     type="button"
                     onClick={() => setMfaResetUser(editingUser)}
                     className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-                    style={fs(12.5, 'body')}
                   >
                     <ShieldOff size={14} /> {t('admin.mfa.reset')}
                   </button>
@@ -359,7 +357,6 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                 target="_blank"
                 rel="noopener noreferrer"
                 className={SETTINGS_BUTTON}
-                style={fs(13, 'body')}
               >
                 <ExternalLink size={14} strokeWidth={2.1} className="flex-none" />
                 {t('admin.update.button')}
@@ -525,7 +522,6 @@ function SsoUnlinkSection({
             type="button"
             onClick={() => setAsking(true)}
             className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-            style={fs(12.5, 'body')}
           >
             <Unlink size={14} /> {t('admin.sso.unlink')}
           </button>

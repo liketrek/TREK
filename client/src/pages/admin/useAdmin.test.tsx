@@ -100,6 +100,7 @@ describe('useAdmin', () => {
           password_registration: false,
           oidc_login: false,
           oidc_registration: false,
+          oidc_auto_redirect: false,
           env_override_oidc_only: true,
           oidc_configured: true,
           require_mfa: 1,
@@ -116,6 +117,7 @@ describe('useAdmin', () => {
     expect(result.current.passwordRegistration).toBe(false);
     expect(result.current.oidcLogin).toBe(false);
     expect(result.current.oidcRegistration).toBe(false);
+    expect(result.current.oidcAutoRedirect).toBe(false);
     expect(result.current.envOverrideOidcOnly).toBe(true);
     expect(result.current.oidcConfigured).toBe(true);
     expect(result.current.requireMfa).toBe(true);

@@ -247,12 +247,21 @@ persistence:
     size: 1Gi
     # Leave empty to use the cluster's default StorageClass; set to bind a specific class.
     storageClassName: ""
-    # Bind an existing PVC. The other values (size, storageClassName, annotations) are then ignored.
+    # Access modes of the claim. ReadWriteMany lets another pod mount the volume, for
+    # example a backup sidecar, but only for reading: SQLite needs every writer on one
+    # host, so two pods writing travel.db over a network filesystem corrupt it.
+    accessModes:
+      - ReadWriteOnce
+    # Bind an existing PVC. The other values (size, storageClassName, accessModes,
+    # annotations) are then ignored.
     existingClaim: ""
     annotations: {}
   uploads:
     size: 1Gi
     storageClassName: ""
+    # Access modes of the claim; ReadWriteMany lets other pods read or add uploads.
+    accessModes:
+      - ReadWriteOnce
     # Specify an existing PVC to bind. The other values are then ignored.
     existingClaim: ""
     annotations: {}

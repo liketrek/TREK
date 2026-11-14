@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Idea', // same-as-en
   'collections.status.want': 'Quiero ir',
   'collections.status.visited': 'Visitado',
+  'collections.status.revisit': 'Quiero volver',
   'collections.status.filterAll': 'Todos',
   'collections.status.cycleHint': 'toca para cambiar',
 
@@ -197,10 +198,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'Lista de TREK',
   'collections.file.formatTrekHint': 'Para otro TREK, con etiquetas y estado',
   'collections.file.formatGpxHint': 'Puntos de ruta para OsmAnd, Organic Maps, Garmin y otras apps de mapas',
+  'collections.file.formatKmlHint': 'Marcadores para Google My Maps, para ver los lugares en Google Maps',
   'collections.file.gpxOmitted': '{count} lugares no tienen coordenadas y se han quedado fuera del archivo GPX',
   'collections.file.gpxOmitted.one': '{count} lugar no tiene coordenadas y se ha quedado fuera del archivo GPX',
   'collections.file.gpxNothing':
     'Ninguno de estos lugares tiene coordenadas, así que no hay nada que poner en un archivo GPX.',
+  'collections.file.kmlOmitted': '{count} lugares no tienen coordenadas y se han quedado fuera del archivo KML',
+  'collections.file.kmlOmitted.one': '{count} lugar no tiene coordenadas y se ha quedado fuera del archivo KML',
+  'collections.file.kmlNothing':
+    'Ninguno de estos lugares tiene coordenadas, así que no hay nada que poner en un archivo KML.',
   'collections.file.reading': 'Leyendo el archivo…',
   'collections.file.gpxSkipped': 'Se dejan fuera {count} puntos de ruta sin coordenadas válidas.',
   'collections.file.gpxSkipped.one': 'Se deja fuera {count} punto de ruta sin coordenadas válidas.',

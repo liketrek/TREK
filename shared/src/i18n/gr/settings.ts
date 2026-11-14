@@ -71,6 +71,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + προβολή υδρογείου για ευκρινέστερες ακμές και ρεαλιστική όψη του κόσμου.',
   'settings.mapHighQualityWarning': 'Μπορεί να επηρεάσει την απόδοση σε συσκευές χαμηλότερων προδιαγραφών.',
+  'settings.mapHidePois': 'Απόκρυψη σημείων ενδιαφέροντος',
+  'settings.mapHidePoisHint':
+    'Κρύβει τα καταστήματα, τα εστιατόρια και τα αξιοθέατα που σημειώνει μόνο του το Mapbox, ώστε να ξεχωρίζουν μόνο τα δικά σου μέρη. Μόνο για τα στυλ Standard.',
   'settings.mapTipLabel': 'Συμβουλή:',
   'settings.mapTip':
     'κάντε δεξί κλικ και σύρετε για περιστροφή/κλίση του χάρτη. Μεσαίο κλικ για προσθήκη τοποθεσίας (το δεξί κλικ έχει κρατηθεί για περιστροφή).',
@@ -83,6 +86,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Για δεδομένα καιρού. Δωρεάν στο openweathermap.org/api',
   'settings.keyPlaceholder': 'Εισάγετε κλειδί...',
   'settings.configured': 'Διαμορφωμένο',
+  'settings.notSetUp': 'Δεν έχει ρυθμιστεί',
+  'settings.mcp.appsConnected': '{count} εφαρμογές συνδεδεμένες',
+  'settings.mcp.appsConnected.one': '{count} εφαρμογή συνδεδεμένη',
   'settings.saveKeys': 'Αποθήκευση Κλειδιών',
   'settings.display': 'Εμφάνιση',
   'settings.colorMode': 'Λειτουργία Χρώματος',
@@ -116,7 +122,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Ειδοποιήσεις',
   'settings.notifyTripInvite': 'Προσκλήσεις ταξιδιού',
   'settings.notifyBookingChange': 'Αλλαγές κρατήσεων',
+  'settings.notifyFlightDeparted': 'Αναχωρήσεις πτήσεων',
+  'settings.notifyFlightDelayed': 'Καθυστερήσεις πτήσεων',
+  'settings.notifyFlightLanded': 'Προσγειώσεις πτήσεων',
   'settings.notifyTripReminder': 'Υπενθυμίσεις ταξιδιού',
+  'settings.notifyMailBookingAdded': 'Κρατήσεις που προστέθηκαν από email',
+  'settings.notifyMailBookingPending': 'Προωθημένες κρατήσεις προς έλεγχο',
+  'settings.notifyMailIngestPaused': 'Η εισαγωγή email σταμάτησε',
   'settings.notifyTodoDue': 'Εκκρεμότητα λήγει σύντομα',
   'settings.notifyVacayInvite': 'Προσκλήσεις Vacay fusion',
   'settings.notifyVacayShare': 'Κοινοποιήσεις ημερολογίου Vacay',

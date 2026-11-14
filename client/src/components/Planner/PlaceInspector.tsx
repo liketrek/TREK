@@ -6,10 +6,8 @@ import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { markdownLinkComponents } from '../shared/markdownLink'
-import { X, Clock, MapPin, ExternalLink, Phone, Mail, Banknote, Pencil, Plus, Minus, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, File, FileImage, Star, Navigation, Mountain, Bookmark, BookmarkCheck, Copy } from 'lucide-react'
+import { Clock, MapPin, ExternalLink, Pencil, Plus, Minus, ChevronDown, ChevronUp, ChevronRight, FileText, Upload, File, FileImage, Navigation, Mountain, Bookmark, BookmarkCheck, Copy, Trash2 } from 'lucide-react'
 import { hoursLines, periodsFromWeek } from './placeHours'
-import PlaceAvatar from '../shared/PlaceAvatar'
-import PlacePhotoGallery from './PlacePhotoGallery'
 import { BlurredCode } from '../shared/BookingCode'
 import PlaceRating from '../shared/StarRating'
 import TrackColorPicker from '../shared/TrackColorPicker'
@@ -23,13 +21,11 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { placeToSaveTarget } from '../Collections/saveTarget'
-import DawarichIcon from '../shared/DawarichIcon'
 import { Tooltip } from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { usePluginStore } from '../../store/pluginStore'
 import PluginFrame from '../Plugins/PluginFrame'
-import AssistantAskButton from '../Assistant/AssistantAskButton'
 import type { Place, Category, Day, Reservation, TripFile, AssignmentsMap, DistanceUnit } from '../../types'
 import type { CollectionStatus } from '@trek/shared'
 import { splitReservationDateTime, formatTime, formatMoney } from '../../utils/formatters'
@@ -44,10 +40,11 @@ import { resolveOpenNow, resolvePlaceTimeZone, getWeekdayIndex, type OpeningPeri
 import { convertHoursLine } from './placeHoursFormat'
 import type { EndDayControlProps } from '../Roadtrip/EndDayControl'
 import VisitControls, { type RoadtripStayControl } from '../Roadtrip/VisitControls'
-import { DialogButton, DialogSection, DeleteButton, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { DialogButton, DialogIconButton, DialogSection, DeleteButton, FooterSpacer, fs } from '../shared/DialogShell'
 import { BOX, Field, TypeTile, toneOf, toneTint, useOpenFile } from './bookings/bookingParts'
 import { parseMeta } from './bookings/bookingsModel'
-import { SoftPill, TimePill, tintOf } from './planParts'
+import { MoreButton, SoftPill } from './planParts'
+import { InspectorHead } from './PlaceInspectorHead'
 import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { participantsWith, participantsWithout, splitParticipants, usePlaceFileUpload } from './usePlaceActions'
 
@@ -188,15 +185,14 @@ interface PlaceInspectorProps extends MapCardPlacement {
   onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
   /** Cast/clear the current user's star vote (#1435); enables the rating row. */
   onRate?: (placeId: number, rating: number | null) => Promise<void> | void
+  /** The card over the map folds to its head (#3039); the phone's modal sheet does not. */
+  collapsible?: boolean
   // ── Collection-mode props ──
   collectionStatus?: CollectionStatus
   onCopyToTrip?: () => void
   onSetStatus?: (status: CollectionStatus) => void
   onRemoveFromList?: () => void
 }
-
-/** The small pill of the head band, the size of a SoftPill but raised on the tint. */
-const HEAD_PILL = 'inline-flex flex-none items-center gap-1 whitespace-nowrap rounded-full bg-surface-card px-2 py-[2px] font-semibold text-content shadow-sm'
 
 /**
  * The card a selected place opens over the map, in the planner's dialog
@@ -209,7 +205,7 @@ export default function PlaceInspector({
   assignments = {}, reservations = [], onEditTransport, onEditReservation, onOpenBooking,
   onClose, onEdit: editPlace, onDelete: deletePlace, onAssignToDay, onRemoveAssignment,
   files = [], onFileUpload, tripMembers = [], onSetParticipants, onUpdatePlace: updatePlace, onRate,
-  leftWidth = 0, rightWidth = 0, clearMapPill = false, cardRef,
+  leftWidth = 0, rightWidth = 0, clearMapPill = false, cardRef, collapsible,
   collectionStatus, onCopyToTrip, onSetStatus, onRemoveFromList, roadtripEndDay, roadtripStay, roadtripActive,
 }: PlaceInspectorProps) {
   // Editing the place is a place right. The planner hands the handlers over regardless, and a member
@@ -256,6 +252,10 @@ export default function PlaceInspector({
   const saveVersion = useSaveToCollectionStore(s => s.version)
   const [savedInCollection, setSavedInCollection] = useState(false)
   const [hoursExpanded, setHoursExpanded] = useState(false)
+  // Folded for the place on show only; any other selected, coming back included, opens in full.
+  const [foldedId, setFoldedId] = useState<number | null>(null)
+  if (foldedId !== null && foldedId !== place?.id) setFoldedId(null)
+  const collapsed = foldedId === place?.id
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -384,11 +384,12 @@ export default function PlaceInspector({
           time={place.place_time ? `${formatTime(place.place_time, locale, timeFormat)}${place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}` : null}
           editingName={editingName} nameInputRef={nameInputRef} nameValue={nameValue} setNameValue={setNameValue}
           commitNameEdit={commitNameEdit} handleNameKeyDown={handleNameKeyDown} startNameEdit={startNameEdit}
-          onUpdatePlace={onUpdatePlace}
+          photoCredit={<PhotoCredit imageUrl={place.image_url} />} onUpdatePlace={onUpdatePlace} collapsed={collapsed}
+          onToggleCollapsed={collapsible ? () => setFoldedId(collapsed ? null : place.id) : undefined}
           onClose={onClose} />
 
         {/* The body scrolls inside the capped card; each block keeps its natural height (#1195). */}
-        <div data-testid="inspector-scroll" className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 py-3.5 empty:hidden">
+        <div data-testid="inspector-scroll" className={`${collapsed ? 'hidden' : 'flex'} min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 py-3.5 empty:hidden`}>
 
           {/* Collaborative rating (#1435): every member's own vote, shown as the
               average, and the first review worth quoting. */}
@@ -475,8 +476,9 @@ export default function PlaceInspector({
           )}
         </div>
 
-        {/* Footer: the day action and the ways out on the left, delete and edit on the right. */}
-        <footer className="flex flex-none flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5">
+        {/* Footer: the day action and the ways out on the left, the "…" and edit on the right. */}
+        {/* A container: squeezed between the sidebars, the buttons drop their words before wrapping. */}
+        <footer className={`${collapsed ? 'hidden' : 'flex'} flex-none flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5 [container-type:inline-size]`}>
           {/* Collection mode — copy to trip + per-place status */}
           {mode === 'collection' && onCopyToTrip && (
             <DialogButton variant="primary" onClick={onCopyToTrip} icon={<Copy size={14} strokeWidth={2} />} aria-label={t('collections.copyToTrip')}>
@@ -486,23 +488,13 @@ export default function PlaceInspector({
           {mode === 'collection' && collectionStatus && onSetStatus && (
             <StatusBadge status={collectionStatus} onChange={onSetStatus} t={t} />
           )}
-          {/* Trip mode — day assignment.
-              A stop a lodging booking put there is not offered either way. Taking it off
-              the day would leave the booking behind with nothing on the drive and no way
-              back short of saving it again, and putting a second one beside it is the
-              duplicate the stop exists to prevent. The booking is removed where it is
-              made: in the day's overnight block, or by turning the night back into a
-              pause in road trip mode. */}
-          {mode === 'trip' && !!selectedDayId && !bookedNight && (
-            assignmentInDay ? (
-              <DialogButton onClick={() => onRemoveAssignment?.(selectedDayId, assignmentInDay.id)} icon={<Minus size={14} strokeWidth={2} />} aria-label={t('inspector.removeFromDay')}>
-                <span className="max-sm:hidden">{t('inspector.removeFromDay')}</span>
-              </DialogButton>
-            ) : (
-              <DialogButton variant="primary" onClick={() => onAssignToDay?.(place.id)} icon={<Plus size={14} strokeWidth={2} />}>
-                {t('inspector.addToDay')}
-              </DialogButton>
-            )
+          {/* Adding to the day is worded, taking it off waits in the "…". Neither is offered for a
+              stop a lodging booking wrote: removing it would strand the booking, adding would double
+              it. That stop goes where it is made, in the overnight block or as a pause again. */}
+          {mode === 'trip' && !!selectedDayId && !bookedNight && !assignmentInDay && (
+            <DialogButton onClick={() => onAssignToDay?.(place.id)} icon={<Plus size={14} strokeWidth={2} />} aria-label={t('inspector.addToDay')}>
+              <span className="[@container(max-width:600px)]:hidden">{t('inspector.addToDay')}</span>
+            </DialogButton>
           )}
           {navigationTargets.length > 0 && (
             <>
@@ -519,7 +511,7 @@ export default function PlaceInspector({
                   aria-expanded={navigationTargets.length > 1 ? navOpen : undefined}
                   icon={<Navigation size={14} strokeWidth={2} />}
                 >
-                  <span className="max-sm:hidden">{navigationLabel}</span>
+                  <span className="[@container(max-width:460px)]:hidden">{navigationLabel}</span>
                 </DialogButton>
               </span>
               {navOpen && (
@@ -531,26 +523,34 @@ export default function PlaceInspector({
               )}
             </>
           )}
+          {/* The ways out besides navigation: icons, named by their tooltips. */}
           {websiteUrl && (
-            <DialogButton onClick={() => window.open(websiteUrl, '_blank', 'noopener,noreferrer')} icon={<ExternalLink size={14} strokeWidth={2} />} aria-label={t('inspector.website')}>
-              <span className="max-sm:hidden">{t('inspector.website')}</span>
-            </DialogButton>
+            <DialogIconButton label={t('inspector.website')} icon={<ExternalLink size={15} strokeWidth={2} />}
+              onClick={() => window.open(websiteUrl, '_blank', 'noopener,noreferrer')} />
           )}
-          {/* Save to Collection — trip mode, independent of the Google Maps link */}
           {showSaveToCollection && (
-            <DialogButton onClick={handleSaveToCollection}
-              icon={savedInCollection ? <BookmarkCheck size={14} strokeWidth={2} /> : <Bookmark size={14} strokeWidth={2} />}
-              aria-label={savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}>
-              <span className="max-sm:hidden">{savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}</span>
-            </DialogButton>
+            <DialogIconButton label={savedInCollection ? t('inspector.savedToCollection') : t('inspector.saveToCollection')}
+              icon={savedInCollection ? <BookmarkCheck size={15} strokeWidth={2} /> : <Bookmark size={15} strokeWidth={2} />}
+              onClick={handleSaveToCollection} />
           )}
           <FooterSpacer />
           {mode === 'collection'
             ? (onRemoveFromList && <DeleteButton onClick={onRemoveFromList} label={t('collections.removeFromList')} />)
-            : (onDelete && <DeleteButton onClick={onDelete} />)}
+            : (
+              // The rare and the destructive behind one "…", so the row holds what is used.
+              <MoreButton label={t('files.menu')} size={36} alwaysVisible
+                className="!rounded-[10px] bg-surface-card !text-content shadow-sm ring-1 ring-edge-faint hover:!bg-surface-secondary"
+                items={[
+                  mode === 'trip' && !!selectedDayId && !bookedNight && assignmentInDay && {
+                    label: t('inspector.removeFromDay'), icon: Minus,
+                    onClick: () => onRemoveAssignment?.(selectedDayId, assignmentInDay.id),
+                  },
+                  onDelete && { label: t('common.delete'), icon: Trash2, danger: true, onClick: onDelete },
+                ]} />
+            )}
           {mode === 'trip' && onEdit && (
             <DialogButton variant="primary" onClick={onEdit} icon={<Pencil size={14} strokeWidth={2} />} aria-label={t('common.edit')}>
-              <span className="max-sm:hidden">{t('common.edit')}</span>
+              <span className="[@container(max-width:460px)]:hidden">{t('common.edit')}</span>
             </DialogButton>
           )}
         </footer>
@@ -566,150 +566,6 @@ function MarkdownBox({ children }: { children: string }) {
       style={{ ...fs(12.5, 'body'), lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
       <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{children}</Markdown>
     </div>
-  )
-}
-
-interface InspectorHeadProps {
-  place: Place
-  category: Category | undefined
-  openNow: boolean | null
-  phone: string | null | undefined
-  /** Typed in by hand (#2472); there is no looked-up one. */
-  email?: string | null
-  rating: number | null
-  ratingCount: number | null
-  price: string | null
-  time: string | null
-  editingName: boolean
-  nameInputRef: React.RefObject<HTMLInputElement | null>
-  nameValue: string
-  setNameValue: (value: string) => void
-  commitNameEdit: () => void
-  handleNameKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void
-  startNameEdit: () => void
-  onUpdatePlace?: (placeId: number, data: Partial<Place>) => void
-  onClose: () => void
-}
-
-/**
- * The head band: the avatar with its open/closed ring and photo credit, the
- * name (a double-click renames it), the address, and the facts as pills. The
- * avatar opens the place's photos; its picture is changed in the editor.
- */
-function InspectorHead({ place, category, openNow, phone, email, rating, ratingCount, price, time, editingName, nameInputRef,
-  nameValue, setNameValue, commitNameEdit, handleNameKeyDown, startNameEdit, onUpdatePlace, onClose }: InspectorHeadProps) {
-  const { t, locale, language } = useTranslation()
-  const ring = openNow === true ? 'bg-success' : openNow === false ? 'bg-danger' : 'bg-surface-card shadow-sm'
-  const hasCoords = !!(place.lat && place.lng)
-  const hasPills = openNow !== null || !!category || !!time || rating != null || !!price || place.source === 'dawarich' || !!phone || !!email || hasCoords
-  return (
-    <header className="flex-none border-b border-edge-faint px-4 pb-3 pt-3.5" style={{ background: category?.color ? tintOf(category.color) : NEUTRAL_TINT }}>
-      <div className="flex items-start gap-3.5">
-        <div className="flex w-[57px] flex-none flex-col items-center">
-          <div className={`rounded-full p-[2.5px] ${ring}`}>
-            <PlacePhotoGallery place={place} language={language} label={t('places.openPhotos')} className="rounded-full">
-              <PlaceAvatar place={place} category={category} size={52} />
-            </PlacePhotoGallery>
-          </div>
-          <PhotoCredit imageUrl={place.image_url} />
-        </div>
-
-        <div className="min-w-0 flex-1 pt-0.5">
-          {editingName ? (
-            <input
-              ref={nameInputRef}
-              value={nameValue}
-              onChange={e => setNameValue(e.target.value)}
-              onBlur={commitNameEdit}
-              onKeyDown={handleNameKeyDown}
-              aria-label={t('places.formName')}
-              className="-mx-1.5 block w-[calc(100%+12px)] rounded-[8px] border-0 bg-surface-card px-1.5 py-0.5 font-bold tracking-[-0.01em] text-content shadow-sm outline-none"
-              style={fs(17, 'subtitle')}
-            />
-          ) : (
-            <h2 onDoubleClick={startNameEdit}
-              className={`m-0 break-words font-bold leading-snug tracking-[-0.01em] text-content ${onUpdatePlace ? 'cursor-text' : ''}`}
-              style={fs(17, 'subtitle')}>
-              {place.name}
-            </h2>
-          )}
-          {place.address && (
-            // One line, whatever its length; the whole address is in the tooltip.
-            <div className="mt-0.5 flex min-w-0 items-center gap-1 text-content-muted" style={fs(12.5, 'body')}>
-              <MapPin size={12} strokeWidth={2} className="flex-none text-content-faint" />
-              <Tooltip label={place.address}>
-                <span className="min-w-0 truncate">{place.address}</span>
-              </Tooltip>
-            </div>
-          )}
-
-          {hasPills && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {openNow !== null && (
-                <SoftPill tone={openNow ? 'success' : 'danger'} icon={<span className="h-1.5 w-1.5 flex-none rounded-full bg-current" />}>
-                  {openNow ? t('inspector.opened') : t('inspector.closed')}
-                </SoftPill>
-              )}
-              {category && (
-                <span className={HEAD_PILL} style={fs(10.5)}>
-                  <span className="h-2 w-2 flex-none rounded-full" style={{ background: category.color || 'var(--text-faint)' }} />
-                  {category.name}
-                </span>
-              )}
-              {time && <TimePill>{time}</TimePill>}
-              {rating != null && rating > 0 && (
-                <span className={HEAD_PILL} style={fs(10.5)}>
-                  <Star size={11} strokeWidth={2} fill="currentColor" className="flex-none text-warning" />
-                  {rating.toFixed(1)}
-                  {ratingCount ? <span className="font-medium text-content-faint">({ratingCount.toLocaleString(locale)})</span> : null}
-                </span>
-              )}
-              {price && (
-                <span className={HEAD_PILL} style={fs(10.5)}>
-                  <Banknote size={11} strokeWidth={2} className="flex-none text-success" />
-                  {price}
-                </span>
-              )}
-              {/* Where the place came from, when it did not come from somebody typing it: a stay
-                  accepted out of their own recordings. The mark alone — the name beside it is
-                  already the place's name, and a word here would only repeat the tooltip. */}
-              {place.source === 'dawarich' && (
-                <Tooltip label={t('dawarich.place.fromDawarich')} placement="top">
-                  <span role="img" aria-label={t('dawarich.place.fromDawarich')} className={`${HEAD_PILL} px-1 py-[3px]`}>
-                    <span className="inline-flex overflow-hidden rounded-[4px]"><DawarichIcon size={13} /></span>
-                  </span>
-                </Tooltip>
-              )}
-              {phone && (
-                <a href={`tel:${phone}`} className={`${HEAD_PILL} hover:text-content-secondary`} style={fs(10.5)}>
-                  <Phone size={11} strokeWidth={2} className="flex-none text-content-faint" />
-                  {phone}
-                </a>
-              )}
-              {email && (
-                <a href={`mailto:${email}`} className={`${HEAD_PILL} min-w-0 hover:text-content-secondary`} style={fs(10.5)}>
-                  <Mail size={11} strokeWidth={2} className="flex-none text-content-faint" />
-                  <span className="truncate">{email}</span>
-                </a>
-              )}
-              {hasCoords && (
-                <span className="hidden flex-none items-center rounded-full border border-edge-faint px-2 py-[1px] font-geist tabular-nums text-content-faint sm:inline-flex" style={fs(10.5)}>
-                  {Number(place.lat).toFixed(6)}, {Number(place.lng).toFixed(6)}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        <AssistantAskButton place={place} />
-        <Tooltip label={t('common.close')}>
-          <button type="button" onClick={onClose} aria-label={t('common.close')}
-            className="grid h-8 w-8 flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm transition-colors hover:text-content">
-            <X size={15} strokeWidth={2.2} />
-          </button>
-        </Tooltip>
-      </div>
-    </header>
   )
 }
 

@@ -107,6 +107,13 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Wie er op deze reis zijn, en gasten zonder account.',
   'trip.settings.sharing': 'Delen',
   'trip.settings.sharingHint': 'Een alleen-lezen-link voor iedereen en een uitnodigingslink om mee te doen.',
+  'trip.settings.editTripHint': 'Titel, data, omslagfoto, beschrijving en valuta.',
+  'trip.form.coverTitle': 'Omslagfoto',
+  'trip.form.coverHint': 'Staat op de kaart van de reis en bovenaan de planner.',
+  'trip.form.aboutTitle': 'Naam en beschrijving',
+  'trip.form.aboutHint': 'Hoe de reis heet en waar hij over gaat.',
+  'trip.form.whenTitle': 'Data en valuta',
+  'trip.form.whenHint': 'Wanneer de reis is, in welke valuta wordt betaald en wanneer je een herinnering krijgt.',
   'trip.tabs.journal': 'Dagboek',
   'trip.journal.title': 'Dagboek',
   'trip.journal.hint':
@@ -128,6 +135,8 @@ const trip: TranslationStrings = {
   'trip.journal.pickPlaceholder': 'Kies een dagboek',
   'trip.journal.noMembers': 'Verder is er nog niemand op deze reis.',
   'trip.journal.members': 'Toegang voor reisleden',
+  'trip.journal.membersHint':
+    'Wie van deze reis het dagboek opent in het tabblad Dagboek, en of die erin mag schrijven.',
   'trip.journal.allRead': 'Iedereen lezen',
   'trip.journal.allNone': 'Niemand',
   'trip.journal.roleNone': 'Geen toegang',

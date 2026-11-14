@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Přípoj',
   'reservations.layover.layover': 'Mezipřistání',
   'reservations.needsReview': 'Zkontrolovat',
-  'reservations.needsReviewHint': 'Letiště nebylo možné automaticky rozpoznat — potvrďte prosím místo.',
+  'reservations.needsReviewHint':
+    'Některé údaje se vyplnily automaticky a nešlo je přečíst s jistotou. Zkontroluj je prosím.',
+  'reservations.reviewConfirm': 'Souhlasí',
+  'reservations.reviewConfirmHint': 'Kliknutím označíš jako zkontrolované.',
+  'reservations.reviewConfirmed': 'Označeno jako zkontrolované',
   'reservations.searchLocation': 'Hledat stanici, přístav, adresu...',
   'reservations.meta.trainNumber': 'Číslo vlaku',
   'reservations.meta.platform': 'Nástupiště',
@@ -282,7 +286,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Exportovat zobrazené řádky, {shown} z {total} (CSV)',
   'reservations.wallet.add': 'Přidat do Apple Wallet',
   'reservations.wallet.addGoogle': 'Přidat do Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Kartu do Wallet se nepodařilo vytvořit. Zkuste to znovu.',
   'reservations.wallet.undated': 'Nejdřív rezervaci zadejte datum: Wallet kartu zobrazí kolem toho času.',
 };

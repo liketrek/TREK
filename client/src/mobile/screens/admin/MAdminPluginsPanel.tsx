@@ -11,7 +11,7 @@ import MToggle from '../../components/MToggle'
 import MSheet from '../../components/MSheet'
 import MSegmented from '../../components/MSegmented'
 import MConfirmSheet from '../settings/MConfirmSheet'
-import { MAdminButton, MAdminSheetFrame } from './MAdminUi'
+import { MAdminButton, MAdminSelect, MAdminSheetFrame } from './MAdminUi'
 import {
   KNOWN_TYPES, PERM_KEYS, blockIsCurrent, dependencyRows, deriveDeps, fingerprint, formatCompactCount,
   installOffer, isRegistrySourced, parseJson, signatureBlockView, sortLabel, statusLabel,
@@ -437,14 +437,12 @@ export default function MAdminPluginsPanel() {
                       ariaLabel={f.label || f.key}
                     />
                   ) : f.input_type === 'select' && f.options ? (
-                    <select
+                    <MAdminSelect
+                      title={f.label || f.key}
                       value={String(settings.form.values[f.key] ?? '')}
-                      onChange={e => settings.setValue(f.key, e.target.value)}
-                      className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]"
-                    >
-                      <option value="">—</option>
-                      {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                      onChange={value => settings.setValue(f.key, value)}
+                      options={[{ value: '', label: '—' }, ...f.options.map(o => ({ value: o.value, label: o.label }))]}
+                    />
                   ) : (
                     <input
                       type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}

@@ -10,6 +10,7 @@ import android.view.KeyboardShortcutGroup;
 import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -34,7 +35,18 @@ public class MainActivity extends BridgeActivity {
         // runs and on its own origin. BridgeActivity reads `config` while it
         // builds the bridge inside super.onCreate().
         boolean restarting = TrekServerStore.consumeRestart(this);
-        TrekServerStore.recheckAfterUpdate(this);
+        // Without a network the server cannot answer: with a copy of its UI the
+        // app starts on that at once (TrekOfflineShell), as it does when the
+        // address screen found the server out of reach. The check an update asks
+        // for waits for a launch that can reach the server.
+        boolean offlineStart = TrekServerStore.consumeOfflineStart(this)
+            || (!TrekOfflineShell.hasNetwork(this) && TrekOfflineShell.hasCopy(this, TrekServerStore.getUrlOrPrevious(this)));
+        if (offlineStart && TrekOfflineShell.hasCopy(this, TrekServerStore.getUrlOrPrevious(this))) {
+            TrekServerStore.restoreForOffline(this);
+            TrekOfflineShell.activate();
+        } else {
+            TrekServerStore.recheckAfterUpdate(this);
+        }
         String server = TrekServerStore.getUrl(this);
         boolean onServer = server != null && !TrekServerStore.consumeShellOnce(this);
         config = TrekServerStore.configFor(this, onServer ? server : null, restarting);
@@ -77,6 +89,18 @@ public class MainActivity extends BridgeActivity {
         super.onProvideKeyboardShortcuts(data, menu, deviceId);
         KeyboardShortcutGroup group = TrekKeyCommands.INSTANCE.shortcutGroup(getString(R.string.app_name));
         if (group != null) data.add(group);
+    }
+
+    /**
+     * The web view keeps new cookies in memory and writes them to disk on its
+     * own schedule, about half a minute later. An app Android ends in that time
+     * (swiped away, or reclaimed for memory) forgets the sign-in it just had, so
+     * the session is written down whenever the app leaves the screen.
+     */
+    @Override
+    public void onPause() {
+        super.onPause();
+        CookieManager.getInstance().flush();
     }
 
     @Override

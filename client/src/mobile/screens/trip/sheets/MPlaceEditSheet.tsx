@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react'
-import { MapPin } from 'lucide-react'
+import { MapPin, MapPinOff } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import {
   DEFAULT_FORM,
@@ -12,6 +12,7 @@ import {
   type PlaceFormData,
 } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { usePlaceForm } from '../../../../components/Planner/usePlaceForm'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import { useAddonStore } from '../../../../store/addonStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
@@ -331,6 +332,13 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
             className={`${FIELD_CLS} flex-1 text-[0.8125rem] [font-variant-numeric:tabular-nums]`}
           />
         </div>
+        {/* An address typed without coordinates puts nothing on the map (#2837). */}
+        {addressWithoutCoordinates(form) && (
+          <p className="mt-1.5 flex items-start gap-1.5 text-caption text-m-muted">
+            <MapPinOff size={13} strokeWidth={2} aria-hidden="true" className="mt-px flex-none text-[color:var(--m-st-pending)]" />
+            {t('places.noCoordinatesFormHint')}
+          </p>
+        )}
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('places.formCategory')}</Eyebrow>
         <PlCategoryPicker planner={planner} value={form.category_id} onChange={id => handleChange('category_id', id)} />

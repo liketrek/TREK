@@ -323,7 +323,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
 
     mapTileUrl: 'https://tile.example/{z}/{x}/{y}.png',
     fontStyle: {},
-    splashDone: true,
+    slowOpen: false,
   };
 
   const planner = { ...base, ...overrides } as unknown as TripPlanner;

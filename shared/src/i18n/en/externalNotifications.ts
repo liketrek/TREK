@@ -17,6 +17,18 @@ const en: NotificationLocale = {
       title: `New booking: ${p.booking}`,
       body: `${p.actor} added a new ${p.type} "${p.booking}" to "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} departed`,
+      body: `${p.flight} from ${p.from} to ${p.to} is in the air.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} is running late`,
+      body: `${p.flight} from ${p.from} to ${p.to} is running about ${p.delay} minutes behind schedule.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} has landed`,
+      body: `${p.flight} from ${p.from} has landed in ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Trip reminder: ${p.trip}`,
       body: `Your trip "${p.trip}" is coming up soon!`,
@@ -83,6 +95,21 @@ const en: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `"${p.tour}" in "${p.trip}" can no longer be checked in wanderer. The tour in your trip stays as it is.`
             : `"${p.tour}" in "${p.trip}" may have changed in wanderer. Open the tour and check its source to see whether it did. Nothing in the trip changes by itself.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Added from a mail: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} added "${p.booking}" to "${p.trip}" from a forwarded mail.`
+          : `"${p.booking}" from your forwarded mail was added to "${p.trip}". You can undo it in TREK for 7 days.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Forwarded bookings to review',
+      body: `Forwarded bookings waiting for you in TREK: ${p.count}. Each one says why it was not added on its own.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Mail import paused',
+      body: 'TREK does not take in forwarded booking mails for now, so hold off forwarding them. Your addresses stay and work again once the import is back, and bookings already added stay in your trips.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

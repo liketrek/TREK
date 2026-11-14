@@ -327,6 +327,7 @@ function mapState(): HookState {
     selectedTour: null,
     mapTileUrl: 'https://tiles/{z}/{x}/{y}.png',
     fontStyle: { fontFamily: 'var(--font-system)' },
-    splashDone: true,
+    slowOpen: false,
+    saveTrip: vi.fn(),
   };
 }

@@ -116,6 +116,8 @@ export default defineConfig({
         // scripts/coverage-thresholds.mjs after the first full run.
         'src/nest/ferratas/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/files/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 98 },
+        // New with live flight status; at the floor until the first full run regenerates it.
+        'src/nest/flight-live/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/geo/**/*.ts': { statements: 99, branches: 95, functions: 99, lines: 99 },
         // google-quota, managed, mcp-shared, mcp-transport, public-api,
         // receipt-scan, route-usage, scheduling, school-holidays, tokens and tours
@@ -134,6 +136,9 @@ export default defineConfig({
         // like ferratas until the first full run regenerates it.
         'src/nest/journey-recordings/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/llm-parse/**/*.ts': { statements: 91, branches: 85, functions: 85, lines: 94 },
+        // New domain in this change (the booking mail import), unmeasured: pinned at the 80 floor
+        // until the first full run regenerates it.
+        'src/nest/mail-ingest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/managed/**/*.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
         'src/nest/maps/**/*.ts': { statements: 93, branches: 86, functions: 97, lines: 96 },
         'src/nest/mcp-shared/**/*.ts': { statements: 84, branches: 59, functions: 99, lines: 88 },

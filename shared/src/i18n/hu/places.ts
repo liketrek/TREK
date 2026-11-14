@@ -91,6 +91,11 @@ const places: TranslationStrings = {
   'places.formLng': 'Hosszúsági fok (pl. 2.3522)',
   'places.formLatLabel': 'Szélességi fok',
   'places.formLngLabel': 'Hosszúsági fok',
+  'places.noCoordinates': 'Nincsenek koordináták, ezért nincs a térképen',
+  'places.noCoordinatesHint':
+    'Szerkeszd a helyet, és válaszd ki a keresésből, vagy add meg a szélességet és a hosszúságot.',
+  'places.noCoordinatesFormHint':
+    'Ehhez a címhez még nincsenek koordináták, így a hely nem jelenik meg a térképen. Válaszd ki a fenti keresésből, vagy add meg a szélességet és a hosszúságot.',
   'places.formCategory': 'Kategória',
   'places.noCategory': 'Nincs kategória',
   'places.newCategory': 'Új kategória',

@@ -34,7 +34,7 @@ Requires `trips:read` or `trips:write` scope.
 |---|---|
 | `list_trips` | List all trips you own or are a member of. Supports `include_archived` flag. |
 | `create_trip` | Create a trip with title, dates, and currency. Days are auto-generated from the date range. Without a currency the trip takes your display currency (Settings → General, or the admin's User Defaults preset), and EUR when that is left on *Trip currency*; see [Currencies](Currencies). |
-| `update_trip` | Update a trip's title, description, dates, or currency. Day plans follow their position, so dates that hold fewer days remove the last days with what is on them, also when only the start moved later. Every day a change removes is listed in `removed_days`, with its id, number and date as they stood before and a reason: `overflow` for a day past the new range, `spare` for an empty day without a date. |
+| `update_trip` | Update a trip's title, description, dates, or currency, and with `costs_mode` whether Costs splits the expenses between the travelers (`split`) or keeps the totals only (`totals`); the costs mode needs `budget_edit` instead of `trip_edit`. Day plans follow their position, so dates that hold fewer days remove the last days with what is on them, also when only the start moved later. Every day a change removes is listed in `removed_days`, with its id, number and date as they stood before and a reason: `overflow` for a day past the new range, `spare` for an empty day without a date. |
 | `search_cover_images` | Search Unsplash for candidate cover photos and return their URLs, thumbnails and photographer credits. Nothing is saved; pass the chosen photo's URL to `update_trip` as `cover_image`. |
 | `delete_trip` | Delete a trip. Owner only. Requires `trips:delete`. |
 | `list_trip_members` | List the owner and all collaborators of a trip. |
@@ -45,7 +45,7 @@ Requires `trips:read` or `trips:write` scope.
 | `rename_trip_guest` | Rename a guest on a trip. Owner only. |
 | `delete_trip_guest` | Delete a guest and hand their share of each expense to the others in its split. Refused while the guest paid for an expense or is part of a recorded payment. Owner only. |
 | `copy_trip` | Duplicate a trip (days, places, itinerary, packing, budget, reservations). Packing items reset to unchecked. |
-| `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. |
+| `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. `dayEvents: false` leaves out the all-day summary per day. |
 | `get_share_link` | Get the current public share link for a trip and its permission flags. Requires `trips:share`. |
 | `create_share_link` | Create or update the public share link with configurable visibility flags, including the travel-only and without-photos options. Requires `trips:share`. |
 | `delete_share_link` | Revoke the public share link for a trip. Requires `trips:share`. |
@@ -64,6 +64,7 @@ Requires `places:read` or `places:write` scope.
 | `delete_place` | Remove a place from a trip. Also removes all day assignments, the expenses linked to the place and any night booked at it, together with that night's reservation and the reservation's expense. Cannot be undone, so an assistant should warn before deleting a hotel that holds a booking. |
 | `bulk_delete_places` | Delete multiple places by ID. Removes all day assignments, linked expenses and any nights booked at each place, with their reservations and expenses. Cannot be undone. |
 | `import_places_from_url` | Import all places from a publicly shared Google Maps or Naver Maps list URL. |
+| `export_trip_kml` | Export the trip's places as KML text for Google My Maps: every place with coordinates as a pin with its name, address, description and category. Google Maps takes no list of places from outside, but a My Maps map imports the file as a layer. Requires `places:read`. |
 | `list_categories` | List all available place categories with id, name, icon, and color. |
 | `create_category` | Add a category to the instance-wide palette, with name, hex colour and emoji icon. Every trip on the instance sees it, so prefer an existing one from `list_categories`. Admin only; a non-admin gets `Admin access required`. Requires `places:write`. |
 | `update_category` | Rename a category or change its colour or icon. Every place already carrying it follows the change. Admin only. Requires `places:write`. |
@@ -150,6 +151,7 @@ Requires `reservations:read` or `reservations:write` scope.
 | `link_hotel_accommodation` | Set or update a hotel reservation's check-in/out day links and place. |
 | `list_reservations` | The bookings of one trip with their readable details (`details`: airline, flight or train number, platform, seat, the legs of a stopover booking, check-in and check-out times, price, and `has_leg_reference` when a leg holds a booking reference of its own, never the reference itself) in place of the raw metadata. `kinds` keeps `transport` or `booking`, `dayId` the bookings on that day. Requires `reservations:read`. |
 | `list_upcoming_reservations` | The next bookings across all of the user's trips, soonest first, for "what is coming up?" when no particular trip is in question. Hotel stays appear as their check-in and check-out moments. Cancelled bookings, planned public-transit journeys and archived trips are left out. `limit` defaults to 6, at most 50. Requires `reservations:read`. |
+| `get_trip_flight_status` | The live status of a trip's booked flights, one entry per flight leg with a known flight number and both airports: the schedule in UTC with each airport's time zone, the phase (`scheduled`, `taxiing`, `airborne`, `landed`, `unknown`), observed wheels-up and touchdown, an estimated arrival with the delays worked out from it, progress and distances, the last position and the aircraft. Positions come from the free ADS-B feeds adsb.lol and, on a self-hosted install, adsb.fi; only the callsign is sent to them. Gates and cancellations are not known, and delays and arrival times are estimates. `enabled` is false when an admin switched live flight status off. Requires `reservations:read`. |
 
 ### Budget
 
@@ -231,7 +233,7 @@ Requires `settings:read` or `settings:write`.
 
 | Tool | Description |
 |---|---|
-| `get_display_settings` | Read the user's units, time format, first day of the week, language, the language of place names in search, default currency, start page, the trip tab a trip opens on, the colour mode (light, dark or auto) and a few map and planner switches such as blurred booking codes. Read this before rendering a temperature, a distance or a clock time. |
+| `get_display_settings` | Read the user's units, time format, first day of the week, language, the language of place names in search, default currency, start page, the trip tab a trip opens on, the colour mode (light, dark or auto), the world clocks on the dashboard and a few map and planner switches such as blurred booking codes. Read this before rendering a temperature, a distance or a clock time. |
 | `update_display_settings` | Change one or more of those preferences. Only display preferences: API keys, map tokens and LLM settings are refused, whatever is passed. |
 
 ### Calendar feeds
@@ -248,6 +250,8 @@ Requires `trips:share`, the same scope that manages public share links.
 | `enable_all_trips_calendar_feed` | |
 | `rotate_all_trips_calendar_feed` | |
 | `disable_all_trips_calendar_feed` | |
+
+A feed URL with `?days=0` appended leaves out the all-day summary per day; the tools hand back the plain URL and say so in their descriptions.
 
 ### Invite links
 
@@ -267,6 +271,25 @@ Accepting an invite has no tool on purpose: joining somebody's trip is a human a
 |---|---|
 | `list_airtrail_flights` | List the flights available to import from a connected AirTrail account. Requires the AirTrail addon. |
 | `import_airtrail_flights` | Import chosen flights into a trip as transport bookings. |
+
+### Booking mail import
+
+The bookings read from mails the user forwarded to TREK ([Booking mail import](Booking-Mail-Import)). Requires
+`reservations:read`, or `reservations:write` to act on an entry; the import must be switched on for the instance. No
+tool reads or makes a forwarding address, since an address carries its secret token.
+
+| Tool | Description |
+|---|---|
+| `list_mail_inbox` | The entries waiting for a decision, each with why it waits, the booking as read, the trip it suggests and the mail's subject; `status: "resolved"` lists the decided ones. |
+| `add_mail_booking` | Add a waiting booking to the trip it suggests, or to another (`trip_id`). Undoable for seven days. |
+| `move_mail_booking` | Move a booking added from a mail into another trip while it can still be undone. Only the person who forwarded the mail can move it. |
+| `file_mail_booking` | Put the mail into a trip as documents, without a booking. Needs the Documents addon. |
+| `discard_mail_booking` | Set a waiting entry aside. |
+| `undo_mail_booking` | Remove a booking added from a mail with its stay, cost and documents, within seven days. |
+| `update_mail_import_settings` | The user's switches: `enabled`, `ai_enabled`, `auto_add` (add on its own or ask first). |
+
+A move or an undo of a booking whose cost was settled with, or that was edited since, answers `needs_confirmation`
+until it is repeated with `confirm: true`.
 
 ### Photos
 
