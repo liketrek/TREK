@@ -58,6 +58,21 @@
       "mobile": ["src/mobile/screens/admin/MAdminSettingsSection.tsx"]
     },
     {
+      "feature": "Wanderer connection",
+      "hooks": ["src/components/Settings/useWandererConnection.ts"],
+      "desktop": ["src/components/Settings/WandererConnectionSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MWandererConnectionSection.tsx"]
+    },
+    {
+      "feature": "Admin notification defaults",
+      "hooks": [
+        "src/pages/admin/useNotificationDefaults.ts",
+        "src/pages/admin/notificationDefaultsModel.ts"
+      ],
+      "desktop": ["src/pages/admin/AdminNotificationDefaultsPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminNotificationDefaults.tsx"]
+    },
+    {
       "feature": "Admin Google daily limit",
       "hooks": ["src/components/Admin/useGoogleQuota.ts"],
       "desktop": ["src/components/Admin/GoogleDailyLimitRow.tsx"],

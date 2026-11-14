@@ -12,6 +12,7 @@ import { dateFormatOptions } from '../../../utils/dateFormat'
 import { MSetCard, MSetEyebrow, MSetHint, MSetSelectRow, MSetSegments, MSetRow } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
 import MSetPickerSheet from './MSetPickerSheet'
+import MHintLabel from '../../components/MHintLabel'
 import { preferredNavAppOptions } from '../../../components/Planner/placeNavigation'
 import DemoLock from '../../../components/Demo/DemoLock'
 import { useDemoAccountLock } from '../../../components/Demo/useDemoLock'
@@ -26,6 +27,7 @@ export default function MSettingsGeneral() {
   const demoLocked = useDemoAccountLock()
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+  const [placeLangOpen, setPlaceLangOpen] = useState(false)
   const [startTabOpen, setStartTabOpen] = useState(false)
   const [navAppOpen, setNavAppOpen] = useState(false)
   const [dateFormatOpen, setDateFormatOpen] = useState(false)
@@ -133,6 +135,20 @@ export default function MSettingsGeneral() {
           <MSetSelectRow label={language.label} trailing={chevron} onClick={() => setLangOpen(true)} />
         </DemoLock>
 
+        {/* Place names (#1799): searches can answer in another language than the app. */}
+        <div className="mb-[5px] mt-[14px]">
+          <MHintLabel
+            label={t('settings.placeLanguage')}
+            hint={t('settings.placeLanguageHint')}
+            labelClassName="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold uppercase tracking-[.09em] text-m-faint"
+          />
+        </div>
+        <MSetSelectRow
+          label={SUPPORTED_LANGUAGES.find((l) => l.value === settings.place_language)?.label ?? t('settings.placeLanguageApp')}
+          trailing={chevron}
+          onClick={() => setPlaceLangOpen(true)}
+        />
+
         <MSetEyebrow className="mb-[6px] mt-[14px]">{t('settings.temperature')}</MSetEyebrow>
         <MSetSegments
           value={settings.temperature_unit || 'celsius'}
@@ -230,6 +246,17 @@ export default function MSettingsGeneral() {
         options={dateFormats}
       />
 
+      <MSetPickerSheet
+        open={placeLangOpen}
+        onClose={() => setPlaceLangOpen(false)}
+        title={t('settings.placeLanguage')}
+        value={settings.place_language || ''}
+        onSelect={(v) => save('place_language', v)}
+        options={[
+          { value: '', label: t('settings.placeLanguageApp') },
+          ...SUPPORTED_LANGUAGES.map((l) => ({ value: l.value, label: l.label })),
+        ]}
+      />
       <MSetPickerSheet
         open={langOpen}
         onClose={() => setLangOpen(false)}

@@ -1,5 +1,4 @@
-import React, { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import React, { ComponentType, ReactNode } from 'react'
 import MHintLabel from '../../components/MHintLabel'
 
 /**
@@ -10,7 +9,8 @@ import MHintLabel from '../../components/MHintLabel'
 
 interface MSetCardProps {
   title: string
-  icon: LucideIcon
+  /** A lucide icon or a brand mark drawn the same way (WandererMark). */
+  icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
   badge?: ReactNode
   className?: string
   children: ReactNode

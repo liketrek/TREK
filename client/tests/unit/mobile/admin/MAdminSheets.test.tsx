@@ -1,4 +1,4 @@
-// FE-MOB-ASHEET-001 to FE-MOB-ASHEET-026
+// FE-MOB-ASHEET-001 to FE-MOB-ASHEET-028
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -215,6 +215,30 @@ describe('MAdminSheets', () => {
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Removed 3 passkeys'));
     expect(hitId).toBe('2');
+  });
+
+  it('FE-MOB-ASHEET-027: unlinking single sign-on confirms first, then forgets that user's SSO identity', async () => {
+    const user = userEvent.setup();
+    let hitId = '';
+    server.use(
+      http.delete('/api/admin/users/:id/sso', ({ params }) => {
+        hitId = String(params.id);
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    const admin = renderSheets({ editingUser: ALICE, oidcConfigured: true });
+
+    await user.click(screen.getByRole('button', { name: 'Remove SSO link' }));
+    expect(screen.getByRole('dialog', { name: 'Remove SSO link' })).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Remove SSO link' })[1]);
+
+    await waitFor(() => expect(admin.toast.success).toHaveBeenCalled());
+    expect(hitId).toBe('2');
+  });
+
+  it('FE-MOB-ASHEET-028: without single sign-on set up there is nothing to unlink', () => {
+    renderSheets({ editingUser: ALICE, oidcConfigured: false });
+    expect(screen.queryByRole('button', { name: 'Remove SSO link' })).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ASHEET-012: a failing passkey reset toasts the error and keeps the sheet open', async () => {

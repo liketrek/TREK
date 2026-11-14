@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, ShieldOff, Trash2, UserPlus, UserCog, Download, KeyRound, RotateCcw } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, ShieldOff, Trash2, Unlink, UserPlus, UserCog, Download, KeyRound, RotateCcw } from 'lucide-react'
 import { useAdminUserActions } from '../../../components/Admin/useAdminUserActions'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MSheet from '../../components/MSheet'
 import MSegmented from '../../components/MSegmented'
 import MAdminResetMfaSheet from './MAdminResetMfaSheet'
+import MConfirmSheet from '../settings/MConfirmSheet'
 import { MAdminButton, MAdminField, MAdminInput, MAdminSecretInput, MAdminSheetFrame } from './MAdminUi'
 import { NO_AUTOFILL } from '../../../utils/noAutofill'
 
@@ -33,6 +34,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
     updateInfo, showUpdateModal, setShowUpdateModal,
     showRotateJwtModal, setShowRotateJwtModal, rotatingJwt,
     handleCreateUser, handleSaveUser, handleDeleteUser,
+    oidcConfigured,
   } = admin
 
   const roleOptions = [
@@ -43,6 +45,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
   const [showResetPasskeys, setShowResetPasskeys] = useState(false)
   const [resettingPk, setResettingPk] = useState(false)
   const [showResetMfa, setShowResetMfa] = useState(false)
+  const [showUnlinkSso, setShowUnlinkSso] = useState(false)
 
   const userActions = useAdminUserActions(admin, t)
   const { rotateJwt } = userActions
@@ -176,6 +179,13 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                       {t('admin.mfa.reset')}
                     </MAdminButton>
                   )}
+                  {/* Unlinking single sign-on, as on the desktop: only once SSO is set up, and never for yourself. */}
+                  {oidcConfigured && editingUser.id !== currentUser?.id && (
+                    <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowUnlinkSso(true)}>
+                      <Unlink size={12} strokeWidth={2.2} />
+                      {t('admin.sso.unlink')}
+                    </MAdminButton>
+                  )}
                   <MAdminButton
                     variant="danger"
                     disabled={editingUser.id === currentUser?.id}
@@ -194,6 +204,21 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
           )}
         </MAdminSheetFrame>
       </MSheet>
+
+      {/* Unlink single sign-on confirm */}
+      <MConfirmSheet
+        open={showUnlinkSso && !!editingUser}
+        onClose={() => setShowUnlinkSso(false)}
+        title={t('admin.sso.unlink')}
+        message={`${t('admin.sso.unlinkHint')} ${t('admin.sso.unlinkConfirm', { name: editingUser?.username ?? '' })}`}
+        confirmLabel={t('admin.sso.unlink')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => {
+          setShowUnlinkSso(false)
+          if (editingUser) void userActions.unlinkSso(editingUser)
+        }}
+      />
 
       {/* Reset two-factor confirm */}
       <MAdminResetMfaSheet

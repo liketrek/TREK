@@ -2,6 +2,7 @@ import MPhotoProvidersSection from './MPhotoProvidersSection'
 import MAirTrailConnectionSection from './MAirTrailConnectionSection'
 import MMailImportSection from './MMailImportSection'
 import MDawarichConnectionSection from './MDawarichConnectionSection'
+import MWandererConnectionSection from './MWandererConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MAiConnectionSection from './MAiConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
@@ -14,7 +15,7 @@ import { useIntegrationGates } from '../../../components/Settings/useIntegration
  * function audit is rebuilt natively in the mobile design language.
  */
 export default function MSettingsIntegrations() {
-  const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, managed } = useIntegrationGates({ reloadAddons: true })
+  const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, wandererEnabled, managed } = useIntegrationGates({ reloadAddons: true })
 
   return (
     <>
@@ -26,6 +27,7 @@ export default function MSettingsIntegrations() {
       {!managed && <MPhotoProvidersSection />}
       {airtrailEnabled && !managed && <MAirTrailConnectionSection />}
       {dawarichEnabled && !managed && <MDawarichConnectionSection />}
+      {wandererEnabled && !managed && <MWandererConnectionSection />}
       {aiConnectionEnabled && !managed && <MAiConnectionSection assistant={aiAssistantEnabled} parsing={llmEnabled} />}
       {/* Which model reads a booking, and what that costs, comes with the instance on
        a managed install. The per-user fallback exists for people who supply their
