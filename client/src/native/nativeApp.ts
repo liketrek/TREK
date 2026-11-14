@@ -11,7 +11,7 @@ import { fadeInImages } from './imageFade';
 import { keepFieldInView } from './keepFieldInView';
 import { prepareKeyboardFields } from './keyboardFields';
 import { keepOfflineShellFresh } from './offlineShell';
-import { isNativeApp, isNativeIos } from './platform';
+import { isNativeAndroid, isNativeApp, isNativeIos } from './platform';
 import { openPushTarget, startNativePush } from './push';
 import { startQuickActions } from './quickActions';
 import { reportNativeFailure } from './reportFailure';
@@ -88,15 +88,20 @@ export function startNativeApp(): void {
     // The "‹ › Done" strip above the keyboard is a web form's, not an app's.
     void Keyboard.setAccessoryBarVisible({ isVisible: false });
     keepFieldInView(Keyboard);
-    window.setTimeout(() => {
-      if (isEffectivelyOffline()) return;
-      // Not refreshed this time is no harm: the next launch tries again. An app
-      // older than the offline copy has no such method, which is no failure.
-      keepOfflineShellFresh(fetch, useSettingsStore.getState().settings.language).catch((err: unknown) => {
-        if (!isUnimplemented(err)) reportNativeFailure(err);
-      });
-    }, OFFLINE_SHELL_DELAY_MS);
   }
+
+  // The copy of the UI the app starts from without its server (offlineShell.ts):
+  // iOS in WebKit's cache, Android in the app's own store.
+  window.setTimeout(() => {
+    if (isEffectivelyOffline()) return;
+    // Not refreshed this time is no harm: the next launch tries again. An app
+    // older than the offline copy has no such method, which is no failure.
+    keepOfflineShellFresh(fetch, useSettingsStore.getState().settings.language, isNativeAndroid()).catch(
+      (err: unknown) => {
+        if (!isUnimplemented(err)) reportNativeFailure(err);
+      }
+    );
+  }, OFFLINE_SHELL_DELAY_MS);
 }
 
 /**

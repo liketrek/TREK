@@ -34,7 +34,18 @@ public class MainActivity extends BridgeActivity {
         // runs and on its own origin. BridgeActivity reads `config` while it
         // builds the bridge inside super.onCreate().
         boolean restarting = TrekServerStore.consumeRestart(this);
-        TrekServerStore.recheckAfterUpdate(this);
+        // Without a network the server cannot answer: with a copy of its UI the
+        // app starts on that at once (TrekOfflineShell), as it does when the
+        // address screen found the server out of reach. The check an update asks
+        // for waits for a launch that can reach the server.
+        boolean offlineStart = TrekServerStore.consumeOfflineStart(this)
+            || (!TrekOfflineShell.hasNetwork(this) && TrekOfflineShell.hasCopy(this, TrekServerStore.getUrlOrPrevious(this)));
+        if (offlineStart && TrekOfflineShell.hasCopy(this, TrekServerStore.getUrlOrPrevious(this))) {
+            TrekServerStore.restoreForOffline(this);
+            TrekOfflineShell.activate();
+        } else {
+            TrekServerStore.recheckAfterUpdate(this);
+        }
         String server = TrekServerStore.getUrl(this);
         boolean onServer = server != null && !TrekServerStore.consumeShellOnce(this);
         config = TrekServerStore.configFor(this, onServer ? server : null, restarting);

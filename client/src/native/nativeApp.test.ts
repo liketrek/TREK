@@ -10,7 +10,7 @@ import { installNativeGeolocation } from './geolocation';
 import { prepareKeyboardFields } from './keyboardFields';
 import { scrollToTop, startNativeApp } from './nativeApp';
 import { keepOfflineShellFresh } from './offlineShell';
-import { isNativeApp, isNativeIos } from './platform';
+import { isNativeAndroid, isNativeApp, isNativeIos } from './platform';
 import { openPushTarget } from './push';
 import { trackTouchInput } from './touchInput';
 
@@ -22,7 +22,7 @@ vi.mock('@capacitor/keyboard', () => ({
 }));
 vi.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: vi.fn() } }));
 vi.mock('@capacitor/status-bar', () => ({ StatusBar: { setStyle: vi.fn() }, Style: { Dark: 'DARK', Light: 'LIGHT' } }));
-vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }));
+vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn(), isNativeAndroid: vi.fn() }));
 vi.mock('./offlineShell', () => ({ keepOfflineShellFresh: vi.fn() }));
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn() }));
 vi.mock('./capabilities', () => ({
@@ -50,6 +50,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(isNativeApp).mockReturnValue(true);
   vi.mocked(isNativeIos).mockReturnValue(false);
+  vi.mocked(isNativeAndroid).mockReturnValue(false);
   vi.mocked(isEffectivelyOffline).mockReturnValue(false);
   vi.mocked(keepOfflineShellFresh).mockResolvedValue();
   vi.mocked(hasNativeFeature).mockReturnValue(false);
@@ -153,18 +154,19 @@ describe('startNativeApp', () => {
     startNativeApp();
     expect(keepOfflineShellFresh).not.toHaveBeenCalled();
     vi.advanceTimersByTime(15_000);
-    expect(keepOfflineShellFresh).toHaveBeenCalled();
+    expect(vi.mocked(keepOfflineShellFresh).mock.calls[0]?.[2]).toBe(false);
   });
 
-  it('skips the refresh while offline, and never on Android', () => {
-    vi.mocked(isNativeIos).mockReturnValue(true);
-    vi.mocked(isEffectivelyOffline).mockReturnValue(true);
+  it('refreshes it on Android too, into the store of the app', () => {
+    vi.mocked(isNativeAndroid).mockReturnValue(true);
     startNativeApp();
     vi.advanceTimersByTime(15_000);
-    expect(keepOfflineShellFresh).not.toHaveBeenCalled();
+    expect(vi.mocked(keepOfflineShellFresh).mock.calls[0]?.[2]).toBe(true);
+  });
 
-    vi.mocked(isNativeIos).mockReturnValue(false);
-    vi.mocked(isEffectivelyOffline).mockReturnValue(false);
+  it('skips the refresh while offline', () => {
+    vi.mocked(isNativeIos).mockReturnValue(true);
+    vi.mocked(isEffectivelyOffline).mockReturnValue(true);
     startNativeApp();
     vi.advanceTimersByTime(15_000);
     expect(keepOfflineShellFresh).not.toHaveBeenCalled();

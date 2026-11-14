@@ -477,6 +477,18 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     }
 
     @objc func openOfflineCopy(_ call: CAPPluginCall) {
+        // The server an update asked to check again, out of reach: back to it on
+        // its copy. The new bridge loads the server, fails, and this screen comes
+        // back with the server set, which then opens the copy below.
+        if TrekServerStore.url == nil {
+            if TrekServerStore.restoreForOffline() {
+                call.resolve(["opened": true])
+                restartBridge()
+            } else {
+                call.resolve(["opened": false])
+            }
+            return
+        }
         // With the trailing slash, like the bridge's serverURL: Capacitor only
         // keeps a navigation in the app when it starts with that exact string,
         // and hands anything else to Safari.

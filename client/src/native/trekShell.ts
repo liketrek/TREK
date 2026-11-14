@@ -57,9 +57,14 @@ export interface TrekShellPlugin {
    * only for two minutes, as long as the server keeps its code. Not in iOS builds, nor in Android builds before 5.1.4.
    */
   takeAuthCallback(): Promise<{ url: string | null }>;
-  /** iOS: stores the server's start page for a cold start without network. */
-  refreshOfflineCopy(): Promise<{ saved: boolean }>;
-  /** iOS: loads that copy under the server's origin. False when there is none. */
+  /**
+   * Stores the server's start page for a start without the server. Android
+   * also downloads the build's `files` the copy does not hold yet (an Android
+   * build before the offline copy resolves `saved: false`); iOS keeps those in
+   * WebKit's HTTP cache instead and ignores them.
+   */
+  refreshOfflineCopy(options?: { files?: string[] }): Promise<{ saved: boolean; complete?: boolean }>;
+  /** Starts on that copy under the server's origin. False when there is none. */
   openOfflineCopy(): Promise<{ opened: boolean }>;
   /** What this binary offers the UI (native/capabilities.ts). Missing before shell API 2. */
   getCapabilities(): Promise<NativeCapabilities>;

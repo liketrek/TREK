@@ -36,3 +36,10 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 -keep public class * extends com.getcapacitor.Plugin
+
+# The stored copy of the server's UI gets Capacitor's bridge the way the
+# server's own page does (TrekOfflineShell.withBridge reads it by reflection).
+-keepclassmembers class com.getcapacitor.Bridge {
+    private com.getcapacitor.JSInjector getJSInjector();
+}
+-keep class com.getcapacitor.JSInjector { public *; }
