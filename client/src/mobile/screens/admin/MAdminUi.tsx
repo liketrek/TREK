@@ -80,10 +80,23 @@ export function MAdminClampedText({ children, className = '' }: { children: stri
   )
 }
 
+/** A short line in a card body: a fact under a control, or (warn) what a setting will not do as things stand. */
+export function MAdminNote({ warn = false, children }: { warn?: boolean; children: ReactNode }) {
+  return (
+    <p
+      className={`mt-[5px] font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] leading-relaxed ${
+        warn ? 'font-bold text-[color:var(--m-st-pending)]' : 'text-m-muted'
+      }`}
+    >
+      {children}
+    </p>
+  )
+}
+
 /** Labelled form field; its hint waits behind the label's info mark. */
 export function MAdminField({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
-    <div>
+    <div data-m-field="">
       <div className="mb-[5px]">
         <MHintLabel
           label={label}

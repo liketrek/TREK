@@ -58,6 +58,30 @@
       "mobile": ["src/mobile/screens/admin/MAdminSettingsSection.tsx"]
     },
     {
+      "feature": "Admin Google daily limit",
+      "hooks": ["src/components/Admin/useGoogleQuota.ts"],
+      "desktop": ["src/components/Admin/GoogleDailyLimitRow.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminGoogleDailyLimit.tsx"]
+    },
+    {
+      "feature": "Admin share place details",
+      "hooks": [
+        "src/components/Admin/usePlaceContribPanel.ts",
+        "src/components/Admin/placeContribModel.ts"
+      ],
+      "desktop": ["src/components/Admin/PlaceContribPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminPlaceContrib.tsx"]
+    },
+    {
+      "feature": "Admin TREK services allowance",
+      "hooks": [
+        "src/components/Admin/useServiceIdentity.ts",
+        "src/components/Admin/serviceIdentityModel.ts"
+      ],
+      "desktop": ["src/components/Admin/ServiceIdentityPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminServiceQuota.tsx"]
+    },
+    {
       "feature": "Admin users invite status",
       "hooks": ["src/pages/admin/adminModel.ts"],
       "desktop": ["src/pages/admin/AdminUsersTab.tsx"],

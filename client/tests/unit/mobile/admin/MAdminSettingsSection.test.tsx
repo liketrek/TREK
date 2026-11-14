@@ -10,6 +10,12 @@ import { buildAdminHook, type AdminHook } from '../../../helpers/mobileAdmin';
 import { useTranslation } from '../../../../src/i18n';
 import MAdminSettingsSection from '../../../../src/mobile/screens/admin/MAdminSettingsSection';
 
+// The services section's own panels load their data and have their own suite
+// (MAdminServices.test.tsx); here only where they sit matters.
+vi.mock('../../../../src/mobile/screens/admin/MAdminServiceQuota', () => ({ default: () => <div data-testid="service-quota" /> }));
+vi.mock('../../../../src/mobile/screens/admin/MAdminPlaceContrib', () => ({ default: () => <div data-testid="place-contrib" /> }));
+vi.mock('../../../../src/mobile/screens/admin/MAdminGoogleDailyLimit', () => ({ default: () => <div data-testid="google-daily-limit" /> }));
+
 const PARTS = ['security', 'services', 'features'] as const;
 
 /** All three sections at once, so each card's behaviour is tested wherever it now lives. */
@@ -241,7 +247,7 @@ describe('MAdminSettingsSection', () => {
     );
     const admin = renderSettings({ allowedFileTypes: 'jpg,png' });
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('File type settings saved'));
     expect(sent).toEqual({ allowed_file_types: 'jpg,png' });
@@ -256,7 +262,7 @@ describe('MAdminSettingsSection', () => {
     );
     const admin = renderSettings();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Error'));
     expect(admin.setSavingFileTypes).toHaveBeenLastCalledWith(false);
@@ -477,7 +483,7 @@ describe('MAdminSettingsSection', () => {
     expect(screen.getByDisplayValue('trek')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('OIDC configuration saved'));
     expect(sent).toEqual({
@@ -509,7 +515,7 @@ describe('MAdminSettingsSection', () => {
       },
     });
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Issuer unreachable'));
     expect(sent.client_secret).toBe('s3cr3t');

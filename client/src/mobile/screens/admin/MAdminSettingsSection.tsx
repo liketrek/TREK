@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { AlertTriangle, ChevronDown, RefreshCw } from 'lucide-react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAdminSettingsActions } from '../../../components/Admin/useAdminSettingsActions'
 import { placesGoogleOnlyHint } from '../../../utils/placeSource'
 import type { TranslationFn } from '../../../types'
@@ -8,15 +7,19 @@ import MToggle from '../../components/MToggle'
 import { MBlockDisclosure, MProviderBlock, MTrekApiBlock } from './MApiProviderBlocks'
 import MAdminOidcCard from './MAdminOidcCard'
 import MMailIngestAdminCard from './MMailIngestAdminCard'
-import MSetPickerSheet from '../settings/MSetPickerSheet'
+import MAdminGoogleDailyLimit from './MAdminGoogleDailyLimit'
+import MAdminPlaceContrib from './MAdminPlaceContrib'
+import MAdminServiceQuota from './MAdminServiceQuota'
 import {
   MAdminButton,
   MAdminCard,
   MAdminCardHead,
   MAdminField,
   MAdminInput,
+  MAdminNote,
   MAdminRow,
   MAdminSecretInput,
+  MAdminSelect,
 } from './MAdminUi'
 
 interface MAdminSettingsSectionProps {
@@ -30,52 +33,50 @@ interface MAdminSettingsSectionProps {
   part: 'security' | 'services' | 'features'
 }
 
-// The admin's security, services and feature setup sections as phone cards.
-// All state and mutations come from useAdmin.
+type PartProps = Omit<MAdminSettingsSectionProps, 'part'>
+
+// The admin's security, services and feature setup sections as phone cards,
+// one function each. All state and mutations come from useAdmin.
 export default function MAdminSettingsSection({ admin, t, part }: MAdminSettingsSectionProps) {
-  const [providerPickerOpen, setProviderPickerOpen] = useState(false)
+  if (part === 'features') return <FeaturesPart admin={admin} t={t} />
+  if (part === 'security') return <SecurityPart admin={admin} t={t} />
+  return <ServicesPart admin={admin} t={t} />
+}
+
+/** Live flights and booking mails: how the integrations of the addons tab reach the world. */
+function FeaturesPart({ admin, t }: PartProps) {
+  const { managed, flightLive, setFlightLive, flightLiveLocked, handleToggleAuthSetting } = admin
+  return (
+    <div className="space-y-3">
+      {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
+      <FlightLiveCard
+        t={t}
+        managed={!!managed}
+        on={flightLive}
+        locked={flightLiveLocked}
+        onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
+      />
+      {/* Booking mail import: self-hosted only, the operator runs the TREK Cloud relay (desktop parity). */}
+      {!managed && <MMailIngestAdminCard />}
+    </div>
+  )
+}
+
+/** Who may sign in and what it takes, with the one destructive action last. */
+function SecurityPart({ admin, t }: PartProps) {
   const {
-    placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
-    placesGoogleOnly, handleTogglePlacesGoogleOnly,
-    placeShadowEnabled,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
-    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
-    allowedFileTypes, setAllowedFileTypes, savingFileTypes,
-    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, keyInputProps, mapsKeyTestable, savingKeys, validating, validation,
-    placesProvider, savingPlacesProvider, handleSavePlacesProvider,
     managed,
     setShowRotateJwtModal,
     handleToggleAuthSetting, handleToggleRequireMfa,
-    handleSaveApiKeys, handleValidateKey,
   } = admin
+  const { saveOidc } = useAdminSettingsActions(admin, t)
 
-  const {
-    saveOidc, saveFileTypes, togglePlacesPhotos, togglePlacesAutocomplete, togglePlacesDetails, togglePlacesEnrich,
-    togglePlaceShadow,
-  } = useAdminSettingsActions(admin, t)
-
-  if (part === 'features') {
-    return (
-      <div className="space-y-3">
-        {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
-        <FlightLiveCard
-          t={t}
-          managed={!!managed}
-          on={flightLive}
-          locked={flightLiveLocked}
-          onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
-        />
-        {/* Booking mail import: self-hosted only, the operator runs the TREK Cloud relay (desktop parity). */}
-        {!managed && <MMailIngestAdminCard />}
-      </div>
-    )
-  }
-
-  if (part === 'security') return (
+  return (
     <div className="space-y-3">
       {/* Authentication methods, with the passkey switch and the 2FA rule: they are ways in too. */}
       <MAdminCard>
@@ -230,30 +231,117 @@ export default function MAdminSettingsSection({ admin, t, part }: MAdminSettings
       )}
     </div>
   )
+}
 
-  // Services: what the install talks to outside, and the file types it takes.
+/** What the install talks to outside: place search and routing, the keys, the file types. */
+function ServicesPart({ admin, t }: PartProps) {
+  const {
+    placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
+    placesGoogleOnly, handleTogglePlacesGoogleOnly,
+    placeShadowEnabled,
+    transitProvider, transitGoogleKeySource,
+    allowedFileTypes, setAllowedFileTypes, savingFileTypes,
+    mapsKey, setMapsKey, unsplashKey, setUnsplashKey, amapKey, setAmapKey, hasMapsKey, hasAmapKey, keyInputProps, mapsKeyTestable, savingKeys, validating, validation,
+    placesProvider, savingPlacesProvider, handleSavePlacesProvider,
+    managed,
+    handleSaveApiKeys, handleValidateKey,
+  } = admin
+  const {
+    saveFileTypes, togglePlacesPhotos, togglePlacesAutocomplete, togglePlacesDetails, togglePlacesEnrich,
+    togglePlaceShadow, changeTransitProvider,
+  } = useAdminSettingsActions(admin, t)
+
+  // Services, cut like the desktop tab: place search and routing (TREK's own
+  // services, which provider answers what, the search log), then the keys for
+  // the keyed providers, then the file types.
+  const providerMissingKey = (placesProvider === 'google' && !hasMapsKey) || (placesProvider === 'amap' && !hasAmapKey)
   return (
     <div className="space-y-3">
-      {/* API keys, place search and routing: the operator's on a managed install,
-          same as the desktop tab, so the whole card is left out. Unlike the desktop
-          tab, the phone has no share place details section for a managed install. */}
+      {/* On a managed install place search and routing are the operator's, but
+          sharing place details stays the admin's decision, as on the desktop. */}
+      {managed && <MAdminPlaceContrib hideWhenSwitchedOff />}
+
+      {!managed && (
+      <MAdminCard>
+        <MAdminCardHead title={t('admin.servicesCard.title')} hint={t('admin.servicesCard.hint')} />
+        <div className="space-y-3">
+          <MTrekApiBlock />
+          <MAdminServiceQuota />
+          <MAdminPlaceContrib />
+
+          {/* Transit backend (#1699): Transitous has no GTFS for much of Asia, so an
+              install can send transit search to Google on the same key. */}
+          <MAdminField label={t('admin.transitProvider.title')} hint={t('admin.transitProvider.subtitle')}>
+            <MAdminSelect
+              title={t('admin.transitProvider.title')}
+              value={transitProvider}
+              onChange={(value) => void changeTransitProvider(value)}
+              options={[
+                { value: 'transitous', label: t('admin.transitProvider.transitous') },
+                { value: 'google', label: t('admin.transitProvider.google') },
+              ]}
+            />
+            <MAdminNote>
+              {transitProvider === 'google' ? t('admin.transitProvider.googleHint') : t('admin.transitProvider.transitousHint')}
+            </MAdminNote>
+            {/* Google without a key that resolves changes nothing, and a personal key
+                serves this admin alone: the request-time fallback is silent, so here
+                is the only place to say it. */}
+            {transitProvider === 'google' && transitGoogleKeySource === null && (
+              <MAdminNote warn>{t('admin.transitProvider.noKeyWarning')}</MAdminNote>
+            )}
+            {transitProvider === 'google' && transitGoogleKeySource === 'user-row' && (
+              <MAdminNote warn>{t('admin.transitProvider.personalKeyWarning')}</MAdminNote>
+            )}
+          </MAdminField>
+
+          {/* Which keyed provider answers place search. */}
+          <MAdminField label={t('admin.placesProvider.title')} hint={t('admin.placesProvider.subtitle')}>
+            <MAdminSelect
+              title={t('admin.placesProvider.title')}
+              value={placesProvider}
+              disabled={savingPlacesProvider}
+              onChange={(value) => void handleSavePlacesProvider(value)}
+              options={[
+                { value: 'auto', label: t('admin.placesProvider.auto') },
+                { value: 'google', label: t('admin.placesProvider.google') },
+                { value: 'amap', label: t('admin.placesProvider.amap') },
+                { value: 'openstreetmap', label: t('admin.placesProvider.openstreetmap') },
+              ]}
+            />
+            {/* From app-config, like the desktop card: the key fields are empty
+                on a managed install and on an operator key set by environment. */}
+            {providerMissingKey && <MAdminNote warn>{t('admin.placesProvider.missingKey')}</MAdminNote>}
+          </MAdminField>
+
+          {/* The instance's own search log, which is not Google's to spend. */}
+          <div>
+            <MAdminRow
+              first
+              title={t('admin.placeShadow.title')}
+              hint={t('admin.placeShadow.subtitle')}
+              trailing={
+                <MToggle
+                  checked={placeShadowEnabled}
+                  ariaLabel={t('admin.placeShadow.title')}
+                  onChange={togglePlaceShadow}
+                />
+              }
+            />
+          </div>
+        </div>
+      </MAdminCard>
+      )}
+
+      {/* The keys of the keyed providers, in the desktop order: Google, Unsplash, Amap. */}
       {!managed && (
       <MAdminCard>
         <MAdminCardHead title={t('admin.apiKeys')} hint={t('admin.apiKeysHint')} />
         <div className="space-y-3">
-          {/* Comparable blocks in the order we would have somebody choose them,
-              matching the desktop tab: the free source first, the keys after it.
-              The recommendation used to sit on the Google field here, which told
-              a phone admin the opposite of what the same setting says on a
-              laptop. */}
-          <MTrekApiBlock />
-
           <MProviderBlock title={t('admin.mapsKey')} badge={t('admin.googleCaveat.badge')} tone="caution">
             {/* Said before the field, not after it: somebody about to paste a key
                 should read this while deciding, not once they already have. */}
-            <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">
-              {t('admin.mapsKeyHintShort')}
-            </p>
+            <MAdminNote>{t('admin.mapsKeyHintShort')}</MAdminNote>
             <div className="flex gap-2">
               <div className="min-w-0 flex-1">
                 <MAdminSecretInput
@@ -274,18 +362,17 @@ export default function MAdminSettingsSection({ admin, t, part }: MAdminSettings
               </MAdminButton>
             </div>
             {validation.maps === true && (
-              <p className="font-geist text-[0.625rem] font-bold text-[color:var(--m-st-confirmed)]">
+              <p className="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold text-[color:var(--m-st-confirmed)]">
                 {t('admin.keyValid')}
               </p>
             )}
             {validation.maps === false && (
-              <p className="font-geist text-[0.625rem] font-bold text-[color:var(--m-st-danger)]">
+              <p className="font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] font-bold text-[color:var(--m-st-danger)]">
                 {t('admin.keyInvalid')}
               </p>
             )}
-            {/* What the key is allowed to be spent on. Under the key rather than
-                loose at the foot of the card: every one of them is a Google
-                request, and none of them mean anything without it. */}
+            {/* What the key may be spent on, and how much of it a day. Under the key:
+                every one of them is a Google request. */}
             <MBlockDisclosure label={t('admin.placesUsageTitle')}>
             <MAdminRow
               title={t('admin.placesPhotos.title')}
@@ -342,23 +429,12 @@ export default function MAdminSettingsSection({ admin, t, part }: MAdminSettings
                 />
               }
             />
+            <MAdminGoogleDailyLimit />
             </MBlockDisclosure>
           </MProviderBlock>
 
-          {/* No Test button, same as the desktop tab: /auth/validate-keys only
-              knows how to probe Google Places and OpenWeatherMap. */}
-          <MProviderBlock title={t('admin.amapKey')}>
-            <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{t('admin.amapKeyHintShort')}</p>
-            <MAdminSecretInput
-              aria-label={t('admin.amapKey')}
-              value={amapKey}
-              onChange={(e) => setAmapKey(e.target.value)}
-              {...keyInputProps('amap')}
-            />
-          </MProviderBlock>
-
           <MProviderBlock title={t('admin.unsplashKey')}>
-            <p className="font-geist text-[0.625rem] leading-relaxed text-m-faint">{t('admin.unsplashKeyHint')}</p>
+            <MAdminNote>{t('admin.unsplashKeyHint')}</MAdminNote>
             <MAdminSecretInput
               aria-label={t('admin.unsplashKey')}
               value={unsplashKey}
@@ -367,56 +443,17 @@ export default function MAdminSettingsSection({ admin, t, part }: MAdminSettings
             />
           </MProviderBlock>
 
-          <MAdminField label={t('admin.placesProvider.title')} hint={t('admin.placesProvider.subtitle')}>
-            {/* The app's own picker rather than a bare <select>: a native one is
-                drawn by the operating system and was the one control on this page
-                that did not belong to TREK. Same sheet the settings selects use. */}
-            <button
-              type="button"
-              disabled={savingPlacesProvider}
-              onClick={() => setProviderPickerOpen(true)}
-              className="flex h-[42px] w-full items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-start text-[0.84375rem] text-m-ink disabled:opacity-50"
-            >
-              <span className="min-w-0 flex-1 truncate">{t(`admin.placesProvider.${placesProvider}`)}</span>
-              <ChevronDown size={15} strokeWidth={2.2} className="flex-none text-m-faint" aria-hidden />
-            </button>
-            <MSetPickerSheet
-              open={providerPickerOpen}
-              onClose={() => setProviderPickerOpen(false)}
-              title={t('admin.placesProvider.title')}
-              value={placesProvider}
-              onSelect={(value) => { if (value !== placesProvider) void handleSavePlacesProvider(value) }}
-              options={[
-                { value: 'auto', label: t('admin.placesProvider.auto') },
-                { value: 'google', label: t('admin.placesProvider.google') },
-                { value: 'amap', label: t('admin.placesProvider.amap') },
-                { value: 'openstreetmap', label: t('admin.placesProvider.openstreetmap') },
-              ]}
+          {/* No Test button, same as the desktop tab: /auth/validate-keys only
+              knows how to probe Google Places and OpenWeatherMap. */}
+          <MProviderBlock title={t('admin.amapKey')}>
+            <MAdminNote>{t('admin.amapKeyHintShort')}</MAdminNote>
+            <MAdminSecretInput
+              aria-label={t('admin.amapKey')}
+              value={amapKey}
+              onChange={(e) => setAmapKey(e.target.value)}
+              {...keyInputProps('amap')}
             />
-            {/* From app-config, like the desktop card: the key fields are empty
-                on a managed install and on an operator key set by environment. */}
-            {((placesProvider === 'google' && !hasMapsKey) || (placesProvider === 'amap' && !hasAmapKey)) && (
-              <p className="mt-1 font-geist text-[0.625rem] font-bold text-[color:var(--m-st-pending)]">
-                {t('admin.placesProvider.missingKey')}
-              </p>
-            )}
-          </MAdminField>
-
-          <div>
-            {/* The instance's own search log, which is not Google's to spend. */}
-            <MAdminRow
-              first
-              title={t('admin.placeShadow.title')}
-              hint={t('admin.placeShadow.subtitle')}
-              trailing={
-                <MToggle
-                  checked={placeShadowEnabled}
-                  ariaLabel={t('admin.placeShadow.title')}
-                  onChange={togglePlaceShadow}
-                />
-              }
-            />
-          </div>
+          </MProviderBlock>
 
           <MAdminButton busy={savingKeys} onClick={handleSaveApiKeys}>
             {t('common.save')}

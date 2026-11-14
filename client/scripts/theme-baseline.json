@@ -160,7 +160,7 @@
   "mobile/screens/admin/MAdminPackingTemplateManager.tsx": 8,
   "mobile/screens/admin/MAdminPermissionsPanel.tsx": 1,
   "mobile/screens/admin/MAdminPluginsPanel.tsx": 128,
-  "mobile/screens/admin/MAdminSettingsSection.tsx": 9,
+  "mobile/screens/admin/MAdminSettingsSection.tsx": 2,
   "mobile/screens/admin/MAdminSheets.tsx": 11,
   "mobile/screens/admin/MAdminStoragePanel.tsx": 42,
   "mobile/screens/admin/MAdminUi.tsx": 7,

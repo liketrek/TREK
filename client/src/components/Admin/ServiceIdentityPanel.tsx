@@ -1,15 +1,22 @@
-import type { ServiceAllowance, ServiceIdentityState, ServiceIdentityStatus, ServiceQuotaView } from '@trek/shared';
+import type { ServiceAllowance, ServiceIdentityState } from '@trek/shared';
 import { MapPin, RefreshCw, Route, Search, Signal, type LucideIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../store/settingsStore';
-import type { TranslationFn } from '../../types';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { formatClockTime } from '../../utils/formatters';
 import { SettingsCard } from '../Settings/settingsKit';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import { useToast } from '../shared/Toast';
 import { FigureBadge } from '../Tours/paddle/FigureBadge';
+import {
+  allowanceNote,
+  canRegenerateKey,
+  identityHint,
+  quotaLevel,
+  quotaResetClock,
+  quotaShare,
+  type QuotaLevel,
+} from './serviceIdentityModel';
 import { useServiceIdentity } from './useServiceIdentity';
 
 const STATE_DOT: Record<ServiceIdentityState, string> = {
@@ -23,32 +30,8 @@ const STATE_DOT: Record<ServiceIdentityState, string> = {
 const SERVICE_ICON: Record<string, LucideIcon> = { places: MapPin, photon: Search, valhalla: Route };
 
 /** Below a tenth of the day left the bar turns amber, at nothing left red. */
-function barTone(quota: ServiceQuotaView): string {
-  if (quota.remaining === 0) return 'bg-danger';
-  return quota.remaining < quota.limit / 10 ? 'bg-warning' : 'bg-accent';
-}
-
-function figureTone(quota: ServiceQuotaView): string {
-  if (quota.remaining === 0) return 'text-danger';
-  return quota.remaining < quota.limit / 10 ? 'text-warning' : 'text-content';
-}
-
-/** The clock time the counts start again, in the user's format; one for all services, which share the day. */
-function useResetTime(status: ServiceIdentityStatus | null): string | null {
-  const is12h = useSettingsStore((s) => s.settings.time_format === '12h');
-  const at = status?.services.find((s) => s.quota)?.quota?.resetAt;
-  if (!at) return null;
-  const reset = new Date(at);
-  return formatClockTime(
-    `${String(reset.getHours()).padStart(2, '0')}:${String(reset.getMinutes()).padStart(2, '0')}`,
-    is12h
-  );
-}
-
-function tileNote(t: TranslationFn, allowance: ServiceAllowance): string | null {
-  if (!allowance.inUse) return t('admin.trekApi.quota.notInUse');
-  return allowance.quota ? null : t('admin.trekApi.quota.unavailable');
-}
+const BAR_TONE: Record<QuotaLevel, string> = { ok: 'bg-accent', low: 'bg-warning', out: 'bg-danger' };
+const FIGURE_TONE: Record<QuotaLevel, string> = { ok: 'text-content', low: 'text-warning', out: 'text-danger' };
 
 /**
  * One service under the key, as a tile: what is left today as the figure that
@@ -59,10 +42,10 @@ function ServiceTile({ allowance }: { allowance: ServiceAllowance }) {
   const { t, locale } = useTranslation();
   const number = new Intl.NumberFormat(locale);
   const name = t(`admin.trekApi.quota.service.${allowance.service}`);
-  const note = tileNote(t, allowance);
+  const note = allowanceNote(t, allowance);
   const quota = allowance.quota;
   const Icon = SERVICE_ICON[allowance.service] ?? MapPin;
-  const share = quota && quota.limit > 0 ? Math.min(100, (quota.used / quota.limit) * 100) : 100;
+  const share = quota ? quotaShare(quota) : 100;
 
   // One row per service: its name, the day's use as a bar, used of the limit.
   return (
@@ -83,7 +66,7 @@ function ServiceTile({ allowance }: { allowance: ServiceAllowance }) {
               className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-tertiary"
             >
               <div
-                className={`h-full rounded-full transition-[width] duration-500 ${barTone(quota)}`}
+                className={`h-full rounded-full transition-[width] duration-500 ${BAR_TONE[quotaLevel(quota)]}`}
                 style={{ width: `${share}%` }}
               />
             </div>
@@ -91,7 +74,7 @@ function ServiceTile({ allowance }: { allowance: ServiceAllowance }) {
               className="flex-none text-caption tabular-nums text-content-faint"
               title={`${t('admin.trekApi.quota.remaining')}: ${number.format(quota.remaining)}`}
             >
-              <span className={`font-semibold ${figureTone(quota)}`}>{number.format(quota.used)}</span>
+              <span className={`font-semibold ${FIGURE_TONE[quotaLevel(quota)]}`}>{number.format(quota.used)}</span>
               {' / '}
               {number.format(quota.limit)}
             </span>
@@ -101,11 +84,6 @@ function ServiceTile({ allowance }: { allowance: ServiceAllowance }) {
       {note && <p className="m-0 text-caption leading-snug text-content-muted">{note}</p>}
     </li>
   );
-}
-
-function stateHint(t: TranslationFn, status: ServiceIdentityStatus | null, failed: boolean): string | null {
-  if (!status) return failed ? t('admin.trekApi.quota.unavailable') : null;
-  return status.state === 'connected' ? null : t(`admin.trekApi.quota.hint.${status.state}`);
 }
 
 /**
@@ -121,7 +99,8 @@ export default function ServiceIdentityPanel({ managed = false }: { managed?: bo
   const panel = useRef<HTMLDivElement>(null);
   const { status, failed, regenerating, regenerate } = useServiceIdentity(panel);
   const [confirming, setConfirming] = useState(false);
-  const resetAt = useResetTime(status);
+  const is12h = useSettingsStore((s) => s.settings.time_format === '12h');
+  const resetAt = quotaResetClock(status, is12h);
 
   const confirmRegenerate = async () => {
     setConfirming(false);
@@ -133,8 +112,8 @@ export default function ServiceIdentityPanel({ managed = false }: { managed?: bo
     }
   };
 
-  const hint = stateHint(t, status, failed);
-  const canRegenerate = !managed && status !== null && status.keySource !== 'env' && status.state !== 'off';
+  const hint = identityHint(t, status, failed);
+  const canRegenerate = canRegenerateKey(status, managed);
 
   return (
     <div ref={panel}>

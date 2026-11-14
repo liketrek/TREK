@@ -1,6 +1,4 @@
 import React from 'react'
-import { adminApi } from '../../api/client'
-import { getApiErrorMessage } from '../../types'
 import {
   AlertTriangle, CheckCircle, Compass, Eye, EyeOff, FileType, Fingerprint, KeyRound, Loader2, LockKeyhole, LogIn,
   Plane, RefreshCw, Save, XCircle,
@@ -120,11 +118,10 @@ function SaveBar({ onClick, saving, label }: { onClick: () => void; saving: bool
 // "Settings" tab. Pure layout around the useAdmin hook.
 export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabProps): React.ReactElement {
   const {
-    toast,
     placesPhotosEnabled, placesAutocompleteEnabled, placesDetailsEnabled, placesEnrichEnabled,
     placesGoogleOnly, handleTogglePlacesGoogleOnly,
-    transitProvider, setTransitProviderState,
-    transitGoogleKeySource, setTransitGoogleKeySource,
+    transitProvider,
+    transitGoogleKeySource,
     placeShadowEnabled,
     oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
@@ -143,7 +140,7 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
   } = admin
   const {
     saveOidc, saveFileTypes, togglePlacesPhotos, togglePlacesAutocomplete, togglePlacesDetails, togglePlacesEnrich,
-    togglePlaceShadow,
+    togglePlaceShadow, changeTransitProvider,
   } = useAdminSettingsActions(admin, t)
 
   const passwordLoginLocked = !passwordLogin && !oidcLogin
@@ -452,24 +449,7 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
                 the body, which is what lets it escape the card's overflow-hidden. */}
             <CustomSelect
               value={transitProvider}
-              onChange={async value => {
-                // A native select stayed silent when the option already selected was
-                // picked again; this one reports every pick, and a no-op PUT is still
-                // a write on an audited settings route.
-                if (value === transitProvider) return
-                const next = value === 'google' ? 'google' : 'transitous'
-                const previous = transitProvider
-                setTransitProviderState(next)
-                try {
-                  const saved = await adminApi.updateTransitProvider(next)
-                  setTransitGoogleKeySource(saved.googleKeySource)
-                } catch (err: unknown) {
-                  // The select springs back on its own; without a word that reads
-                  // as a broken control, not as a save that failed.
-                  setTransitProviderState(previous)
-                  toast.error(getApiErrorMessage(err, t('common.error')))
-                }
-              }}
+              onChange={value => void changeTransitProvider(String(value))}
               options={[
                 { value: 'transitous', label: t('admin.transitProvider.transitous') },
                 { value: 'google', label: t('admin.transitProvider.google') },

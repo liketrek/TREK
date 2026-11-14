@@ -100,7 +100,7 @@ describe('AdminSettingsTab', () => {
     expect(screen.getByRole('heading', { name: 'Authentication Methods' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Passkey login' })).toBeInTheDocument();
     // Requiring two-factor is a switch of the sign-in card now, not a card of its own.
-    expect(screen.getByText(/require two-factor/i)).toBeInTheDocument();
+    expect(screen.getByText(/require 2fa/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Allowed File Types' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'API Keys' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /single sign-on/i })).toBeInTheDocument();
