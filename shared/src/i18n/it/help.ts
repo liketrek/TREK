@@ -1194,7 +1194,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Quale motore disegna le mappe del planner e del diario, e con quale stile. Leaflet è la classica mappa raster, Mapbox GL aggiunge edifici e rilievi in 3D con un tuo token, MapLibre GL disegna le tile vettoriali di OpenFreeMap senza bisogno di token. Atlante usa sempre Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '«Provider mappa»: Leaflet, Mapbox GL («Sperimentale») o MapLibre GL, ciascuno con una breve descrizione.',
+    '«Provider mappa»: Leaflet, Mapbox GL o MapLibre GL, ciascuno con una breve descrizione.',
   'help.ctx.settings-map.bullet.2':
     '«Modello Mappa» e «Chiave API CARTO» per Leaflet; «Stile mappa» per i due motori GL, più il «Token di accesso Mapbox» per Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

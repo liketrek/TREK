@@ -1212,7 +1212,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Səyahət planlaşdırıcısı və gündəlik xəritələrini hansı mühərrikin, hansı üslubda çəkdiyi. Leaflet klassik raster xəritədir, Mapbox GL öz tokeninizlə 3D binalar və relyef əlavə edir, MapLibre GL isə tokensiz OpenFreeMap vektor plitələrini çəkir. Atlas həmişə Leaflet istifadə edir.',
   'help.ctx.settings-map.bullet.1':
-    '«Xəritə provayderi»: Leaflet, Mapbox GL («Eksperimental») və ya MapLibre GL, hər seçimin qısa təsviri ilə.',
+    '«Xəritə provayderi»: Leaflet, Mapbox GL və ya MapLibre GL, hər seçimin qısa təsviri ilə.',
   'help.ctx.settings-map.bullet.2':
     'Leaflet üçün «Xəritə şablonu» və «CARTO API açarı»; iki GL mühərriki üçün «Xəritə üslubu», Mapbox GL üçün isə əlavə olaraq «Mapbox giriş tokeni».',
   'help.ctx.settings-map.bullet.3':

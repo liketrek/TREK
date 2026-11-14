@@ -1177,7 +1177,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Какой движок рисует карты планировщика поездок и дневника и в каком стиле. Leaflet даёт классическую растровую карту, Mapbox GL добавляет 3D-здания и рельеф с вашим собственным токеном, MapLibre GL рисует векторные тайлы OpenFreeMap без токена. Атлас всегда использует Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '«Провайдер карты»: Leaflet, Mapbox GL («Экспериментально») или MapLibre GL. У каждого варианта есть короткое описание.',
+    '«Провайдер карты»: Leaflet, Mapbox GL или MapLibre GL. У каждого варианта есть короткое описание.',
   'help.ctx.settings-map.bullet.2':
     '«Шаблон карты» и «Ключ API CARTO» для Leaflet, «Стиль карты» для двух GL-движков и «Токен доступа Mapbox» для Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

@@ -165,8 +165,6 @@ export default function MapSettingsTab(): React.ReactElement {
                 icon={Box}
                 name={<><span className="sm:hidden">Mapbox</span><span className="hidden sm:inline">Mapbox GL</span></>}
                 subtitle={t('settings.mapMapboxSubtitle')}
-                // Only on ≥sm; on a narrow window there's no room next to the title.
-                badge={<span className="hidden sm:inline-flex"><StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill></span>}
               />
             )}
             <ProviderTile

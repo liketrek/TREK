@@ -1111,7 +1111,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     '旅行プランナーと日記の地図を描くエンジンと、そのスタイルを設定します。Leafletは従来のラスター地図です。Mapbox GLは自分のトークンを使って3Dの建物と地形を表示します。MapLibre GLはトークンなしでOpenFreeMapのベクタータイルを描きます。Atlasでは常にLeafletが使われます。',
   'help.ctx.settings-map.bullet.1':
-    '「地図プロバイダー」：Leaflet、Mapbox GL（「実験的」）、MapLibre GLから選べます。それぞれに短い説明があります。',
+    '「地図プロバイダー」：Leaflet、Mapbox GL、MapLibre GLから選べます。それぞれに短い説明があります。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet用の「地図テンプレート」と「CARTO API キー」、2つのGLエンジン用の「地図スタイル」、Mapbox GL用の「Mapbox アクセストークン」があります。',
   'help.ctx.settings-map.bullet.3':

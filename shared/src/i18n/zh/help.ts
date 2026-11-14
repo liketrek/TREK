@@ -988,7 +988,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     '行程规划器和旅程日志的地图用哪个引擎绘制，以及采用什么样式。Leaflet 是经典的栅格地图；Mapbox GL 用你自己的令牌增加 3D 建筑和地形；MapLibre GL 不需要令牌，绘制 OpenFreeMap 矢量瓦片。足迹始终使用 Leaflet。',
   'help.ctx.settings-map.bullet.1':
-    '“地图提供商”：Leaflet、Mapbox GL（“实验性”）或 MapLibre GL，每个选项都有一行简短说明。',
+    '“地图提供商”：Leaflet、Mapbox GL或 MapLibre GL，每个选项都有一行简短说明。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet 使用“地图模板”和“CARTO API 密钥”；两种 GL 引擎使用“地图样式”，Mapbox GL 另外还需要“Mapbox 访问令牌”。',
   'help.ctx.settings-map.bullet.3':

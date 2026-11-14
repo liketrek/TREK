@@ -1208,7 +1208,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Welche Engine die Karten im Reiseplaner und im Journal zeichnet und in welchem Stil. Leaflet ist die klassische Rasterkarte, Mapbox GL ergänzt mit deinem eigenen Token 3D-Gebäude und Gelände, MapLibre GL zeichnet OpenFreeMap-Vektorkacheln ganz ohne Token. Atlas nutzt immer Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Kartenanbieter: Leaflet, Mapbox GL (Experimentell) oder MapLibre GL, jede Kachel mit einer kurzen Beschreibung.',
+    'Kartenanbieter: Leaflet, Mapbox GL oder MapLibre GL, jede Kachel mit einer kurzen Beschreibung.',
   'help.ctx.settings-map.bullet.2':
     '„Karten-Vorlage“ und „CARTO-API-Key“ für Leaflet; „Kartenstil“ für die beiden GL-Engines, dazu das „Mapbox Access Token“ für Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

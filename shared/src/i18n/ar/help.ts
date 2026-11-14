@@ -1092,7 +1092,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'المحرك الذي يرسم خرائط مخطط الرحلة والمجلة، ونمطها. Leaflet هي الخريطة النقطية الكلاسيكية، وMapbox GL تضيف مباني وتضاريس ثلاثية الأبعاد برمزك الخاص، وMapLibre GL ترسم بلاطات OpenFreeMap المتجهية دون رمز. ويستخدم «الأطلس» Leaflet دائمًا.',
   'help.ctx.settings-map.bullet.1':
-    '«مزود الخريطة»: Leaflet أو Mapbox GL («تجريبي») أو MapLibre GL، ولكل خيار وصف قصير.',
+    '«مزود الخريطة»: Leaflet أو Mapbox GL أو MapLibre GL، ولكل خيار وصف قصير.',
   'help.ctx.settings-map.bullet.2':
     '«قالب الخريطة» و«مفتاح CARTO API» لـ Leaflet؛ و«نمط الخريطة» لمحركي GL، إضافة إلى «رمز وصول Mapbox» لـ Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

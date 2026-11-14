@@ -1178,7 +1178,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Mesin yang menggambar peta perencana perjalanan dan jurnal, beserta gayanya. Leaflet adalah peta raster klasik, Mapbox GL menambahkan bangunan dan medan 3D dengan token milikmu sendiri, dan MapLibre GL menggambar tile vektor OpenFreeMap tanpa token. Atlas selalu memakai Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '“Penyedia peta”: Leaflet, Mapbox GL (“Eksperimental”), atau MapLibre GL, masing-masing dengan keterangan singkat.',
+    '“Penyedia peta”: Leaflet, Mapbox GL, atau MapLibre GL, masing-masing dengan keterangan singkat.',
   'help.ctx.settings-map.bullet.2':
     '“Template Peta” dan “Kunci API CARTO” untuk Leaflet; “Gaya peta” untuk kedua mesin GL, ditambah “Token akses Mapbox” untuk Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
