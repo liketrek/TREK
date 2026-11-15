@@ -422,8 +422,10 @@ export class PackingService {
     if (!item) return null;
     // On a Common item the owner is its first bringer, so taking them off the
     // item has to clear the owner too; otherwise their avatar stuck for good (#3098).
-    if (item.is_private === 0 && item.owner_id === userId) await this.itemsRepo.clearOwner(id);
-    await this.contributorsRepo.deleteOne(id, userId);
+    await this.uow.transactional(async () => {
+      if (item.is_private === 0 && item.owner_id === userId) await this.itemsRepo.clearOwner(id);
+      await this.contributorsRepo.deleteOne(id, userId);
+    });
     return (await this.enrichItems([await this.itemsRepo.findById(id)]))[0];
   }
 
