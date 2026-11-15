@@ -77,11 +77,11 @@ export default function PackingListsMenu(props: Readonly<PackingListsMenuProps>)
       >
         <MoreHorizontal size={14} strokeWidth={2.5} />
       </button>
-      {open && <div role="presentation" className="fixed inset-0 z-[99]" onClick={close} />}
+      {open && <div role="presentation" className="fixed inset-0 z-50" onClick={close} />}
       <div
         role="menu"
         hidden={!open}
-        className="trek-menu-enter absolute end-0 top-full z-[100] mt-1.5 w-[260px] origin-top-right"
+        className="trek-menu-enter absolute end-0 top-full z-[var(--z-bar)] mt-1.5 w-[260px] origin-top-right"
         style={POPOVER}
       >
         {canEdit && <ApplyTemplateButton tripId={tripId} visibility={view} variant="menu" onApplied={close} />}

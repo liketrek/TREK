@@ -544,11 +544,11 @@ export function PackingItemDetail(props: Readonly<PackingItemDetailProps>) {
 
   return createPortal(
     <>
-      <div role="presentation" className="fixed inset-0 z-[1098]" onClick={onClose} />
+      <div role="presentation" className="fixed inset-0 z-[var(--z-toast)]" onClick={onClose} />
       <div
         role="dialog"
         aria-label={item.name}
-        className="trek-menu-enter fixed z-[1099] overflow-y-auto"
+        className="trek-menu-enter fixed z-[var(--z-toast)] overflow-y-auto"
         onKeyDown={(e) => {
           if (e.key === 'Escape') {
             e.stopPropagation();
