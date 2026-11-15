@@ -975,7 +975,7 @@ describe('PluginFrame visibility and mobile suspend', () => {
 
   it('FE-PLUGINS-FRAME-062: tells the plugin when it leaves the screen', () => {
     const { container } = render(<PluginFrame pluginId="demo" surface="dashboard-widget" />);
-    const iframe = container.querySelector('iframe')!;
+    const iframe = container.querySelector('iframe') as HTMLIFrameElement;
     const posted: Array<Record<string, unknown>> = [];
     (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m) => posted.push(m as Record<string, unknown>);
     fire(false);
