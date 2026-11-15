@@ -40,7 +40,6 @@
   "components/Packing/PackingListPanelBagCard.tsx": 1,
   "components/Packing/PackingListPanelCategoryGroup.tsx": 3,
   "components/Packing/PackingListPanelItemRow.tsx": 2,
-  "components/Packing/PackingShareControl.tsx": 3,
   "components/Planner/DayDetailPanel.tsx": 1,
   "components/Planner/PlaceInspector.tsx": 1,
   "components/Planner/TransitSearchPanel.tsx": 3,

@@ -648,6 +648,12 @@
       "mobile": ["src/mobile/screens/trip/tabs/MPackingListTab.tsx"]
     },
     {
+      "feature": "Packing list: who brings and who sees an item",
+      "hooks": ["src/components/Packing/packingItemAccess.ts"],
+      "desktop": ["src/components/Packing/PackingItemDetail.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MPackItemSheet.tsx"]
+    },
+    {
       "feature": "Packing list: sharing of a whole list",
       "hooks": ["src/components/Packing/usePackingCategorySharing.ts"],
       "desktop": ["src/components/Packing/usePackingListPanel.ts"],

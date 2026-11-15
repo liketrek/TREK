@@ -1,4 +1,4 @@
-// FE-W4ATB-001 to FE-W4ATB-010
+// FE-W4ATB-001 to FE-W4ATB-012
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render'
 import { useTripStore } from '../../store/tripStore'
@@ -137,5 +137,17 @@ describe('ApplyTemplateButton', () => {
     render(<ApplyTemplateButton tripId={4} visibility="common" style={{}} className="btn-ghost" />)
 
     expect(await screen.findByRole('button')).toHaveClass('btn-ghost')
+  })
+
+  it('FE-W4ATB-012: as a menu line it opens the templates under it and closes the menu once applied', async () => {
+    const onApplied = vi.fn()
+    render(<ApplyTemplateButton tripId={4} visibility="personal" variant="menu" onApplied={onApplied} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Apply template/ }))
+    fireEvent.click(screen.getByText('City break'))
+
+    await waitFor(() => expect(applyTemplate).toHaveBeenCalledWith(4, 2, 'personal'))
+    await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText('Beach trip')).toBeNull()
   })
 })

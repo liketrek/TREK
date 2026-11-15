@@ -489,7 +489,7 @@ describe('KategorieGruppe — inline add item', () => {
     server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: buildPackingItem({ id: 1, name: 'Tent', category: 'Gear' }) })))
     setup({ items: [buildPackingItem({ id: 1, name: '...', category: 'Gear' })] })
 
-    fireEvent.click(screen.getByText('...'))
+    // The placeholder row is a field from the start.
     fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'Tent' } })
     fireEvent.keyDown(screen.getByPlaceholderText('...'), { key: 'Enter' })
 
@@ -519,13 +519,17 @@ describe('KategorieGruppe — inline add item', () => {
     expect(screen.queryByPlaceholderText('Item name...')).toBeNull()
   })
 
-  it('FE-W5CAT-030: the X button closes the inline form', () => {
+  it('FE-W5CAT-030: an empty field closes when it loses focus, a typed one stays', () => {
     const { container } = setup()
     fireEvent.click(screen.getByText('Add item'))
+    expect(container.querySelector('svg.lucide-x')).toBeNull()
+
     fireEvent.change(screen.getByPlaceholderText('Item name...'), { target: { value: 'Rope' } })
+    fireEvent.blur(screen.getByPlaceholderText('Item name...'))
+    expect(screen.getByPlaceholderText('Item name...')).toBeInTheDocument()
 
-    fireEvent.click(container.querySelector('svg.lucide-x')!.closest('button')!)
-
+    fireEvent.change(screen.getByPlaceholderText('Item name...'), { target: { value: '  ' } })
+    fireEvent.blur(screen.getByPlaceholderText('Item name...'))
     expect(screen.queryByPlaceholderText('Item name...')).toBeNull()
   })
 

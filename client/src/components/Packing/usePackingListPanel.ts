@@ -45,6 +45,23 @@ export interface PackingListPanelProps {
   // Lifted so an out-of-panel Apply Template button knows the active view (#1565).
   view?: 'common' | 'personal'
   onViewChange?: (view: 'common' | 'personal') => void
+  // Set from the Lists menu, which sits outside the panel.
+  sort?: PackingSort
+  hideDone?: boolean
+  clearCheckedSignal?: number
+  openBagsSignal?: number
+}
+
+/** A-Z or the manual order, remembered per browser. */
+export function usePackingSortPreference(): [PackingSort, (next: PackingSort) => void] {
+  const [sort, setSortState] = useState<PackingSort>(() => {
+    try { return localStorage.getItem(PACKING_SORT_KEY) === 'name' ? 'name' : 'manual' } catch { return 'manual' }
+  })
+  const setSort = (next: PackingSort) => {
+    setSortState(next)
+    try { localStorage.setItem(PACKING_SORT_KEY, next) } catch { /* storage unavailable: the choice lasts until reload */ }
+  }
+  return [sort, setSort]
 }
 
 /**
@@ -54,17 +71,14 @@ export interface PackingListPanelProps {
  * sections below render header, filters, the grouped list, the bag sidebar/
  * modal and the import dialog.
  */
-export function usePackingList({ tripId, items, openImportSignal = 0, addCategorySignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange }: PackingListPanelProps) {
-  const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
+export function usePackingList({ tripId, items, openImportSignal = 0, addCategorySignal = 0, saveTemplateSignal = 0, inlineHeader = true, view: viewProp, onViewChange, sort: sortProp, hideDone, clearCheckedSignal = 0, openBagsSignal = 0 }: PackingListPanelProps) {
+  const [ownFilter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
+  // Under the Lists bar the menu decides whether packed items show.
+  const filter = hideDone === undefined ? ownFilter : (hideDone ? 'offen' : 'alle')
   // A-Z only changes what is shown; the manual order stays stored underneath and
-  // comes back when the switch is turned off. Remembered per browser.
-  const [sort, setSortState] = useState<PackingSort>(() => {
-    try { return localStorage.getItem(PACKING_SORT_KEY) === 'name' ? 'name' : 'manual' } catch { return 'manual' }
-  })
-  const setSort = (next: PackingSort) => {
-    setSortState(next)
-    try { localStorage.setItem(PACKING_SORT_KEY, next) } catch { /* storage unavailable: the choice lasts until reload */ }
-  }
+  // comes back when the switch is turned off.
+  const [ownSort, setSort] = usePackingSortPreference()
+  const sort = sortProp ?? ownSort
   // Three-tier sharing (#858): 'common' = the group pool (where existing items
   // live — non-breaking), 'personal' = my own list (private + shared-to-me).
   const [ownView, setOwnView] = useState<'common' | 'personal'>('common')
@@ -136,6 +150,11 @@ export function usePackingList({ tripId, items, openImportSignal = 0, addCategor
     if (!confirm(t('packing.confirm.clearChecked', { count: abgehakt }))) return
     await clearChecked()
   }
+  const lastClearSignal = useRef(clearCheckedSignal)
+  useEffect(() => {
+    if (clearCheckedSignal !== lastClearSignal.current && clearCheckedSignal > 0 && confirm(t('packing.confirm.clearChecked', { count: abgehakt }))) void clearChecked()
+    lastClearSignal.current = clearCheckedSignal
+  }, [clearCheckedSignal, abgehakt, clearChecked, t])
 
   // Bag tracking — the global toggle is a packing sub-flag surfaced to every
   // authenticated user via the addon store (loaded on app start), not the
@@ -150,6 +169,13 @@ export function usePackingList({ tripId, items, openImportSignal = 0, addCategor
   useEffect(() => {
     if (!addonsLoaded) loadAddons()
   }, [addonsLoaded, loadAddons])
+
+  // The Lists menu opens the bag overview on a screen too narrow for its sidebar.
+  const lastBagsSignal = useRef(openBagsSignal)
+  useEffect(() => {
+    if (openBagsSignal !== lastBagsSignal.current && openBagsSignal > 0) setShowBagModal(true)
+    lastBagsSignal.current = openBagsSignal
+  }, [openBagsSignal])
 
   const {
     bags, unassignedWeightGrams, serverWeightsFresh, tryCreateBag, createBag: handleCreateBagByName,

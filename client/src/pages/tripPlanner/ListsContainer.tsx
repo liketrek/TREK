@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { PackageCheck, ListTodo, ListPlus, Download, Plus, FolderPlus } from 'lucide-react'
-import ApplyTemplateButton from '../../components/Packing/ApplyTemplateButton'
-import PackingExportMenu from '../../components/Packing/PackingExportMenu'
+import { PackageCheck, ListTodo, ListPlus, Plus } from 'lucide-react'
+import PackingListsMenu from '../../components/Packing/PackingListsMenu'
+import { usePackingSortPreference } from '../../components/Packing/usePackingListPanel'
+import { packingProgress, packingViewItems } from '../../components/Packing/packingListModel'
 import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
@@ -18,6 +19,12 @@ export function ListsContainer({ tripId, packingItems, todoItems }: Readonly<{ t
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
   const [packingView, setPackingView] = useState<'common' | 'personal'>('common')
+  // The Lists menu sets these; the panel below reads them.
+  const [packingSort, setPackingSort] = usePackingSortPreference()
+  const [hideDone, setHideDone] = useState(false)
+  const [clearCheckedSignal, setClearCheckedSignal] = useState(0)
+  const [openBagsSignal, setOpenBagsSignal] = useState(0)
+  const packedInView = packingProgress(packingViewItems(packingItems, packingView)).checked
   const { t } = useTranslation()
   const isAdmin = useAuthStore(s => s.user?.role === 'admin')
   const trip = useTripStore(s => s.trip)
@@ -71,48 +78,29 @@ export function ListsContainer({ tripId, packingItems, todoItems }: Readonly<{ t
           </div>
 
           {subTab === 'packing' && (() => {
-            const sharedBtnClass = 'inline-flex items-center gap-1.5 px-2.5 sm:px-[14px] py-[7px] sm:py-[9px] hover:opacity-[0.88]'
-            // Export and Import carry only their icon, with the name as tooltip and label.
-            const iconBtnClass = 'inline-flex items-center justify-center px-2.5 py-[7px] sm:py-[9px] hover:opacity-[0.88] bg-accent text-accent-text'
-            const sharedBtnStyle: React.CSSProperties = {
+            const btnClass = 'inline-flex items-center gap-1.5 px-2.5 sm:px-[14px] py-[7px] sm:py-[9px] hover:opacity-[0.88] bg-accent text-accent-text'
+            const btnStyle: React.CSSProperties = {
               appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500,
             }
+            // One button for what is done often, everything else in the menu beside it.
             return (
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginInlineStart: 'auto', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginInlineStart: 'auto' }}>
                 {canEditPacking && (
-                  <button type="button" onClick={() => setAddCategorySignal(s => s + 1)}
-                    className={`${sharedBtnClass} bg-accent text-accent-text`}
-                    style={sharedBtnStyle}
-                  >
+                  <button type="button" onClick={() => setAddCategorySignal(s => s + 1)} className={btnClass} style={btnStyle}>
                     <ListPlus size={14} strokeWidth={2.5} />
                     <span className="hidden sm:inline">{t('packing.addCategory')}</span>
                   </button>
                 )}
-                <ApplyTemplateButton
-                  tripId={tripId}
-                  visibility={packingView}
-                  className={`${sharedBtnClass} bg-accent text-accent-text`}
-                  style={sharedBtnStyle}
+                <PackingListsMenu
+                  tripId={tripId} view={packingView} canEdit={canEditPacking} isAdmin={isAdmin}
+                  hasItems={packingItems.length > 0} packedCount={packedInView}
+                  sort={packingSort} onSortChange={setPackingSort} hideDone={hideDone} onHideDoneChange={setHideDone}
+                  onImport={() => setImportPackingSignal(s => s + 1)} onSaveTemplate={() => setSaveTemplateSignal(s => s + 1)}
+                  onClearChecked={() => setClearCheckedSignal(s => s + 1)} onOpenBags={() => setOpenBagsSignal(s => s + 1)}
+                  buttonClassName="inline-flex items-center justify-center px-2.5 py-[7px] sm:py-[9px] hover:opacity-[0.88] bg-accent text-accent-text"
+                  buttonStyle={btnStyle}
                 />
-                {isAdmin && packingItems.length > 0 && (
-                  <button type="button" onClick={() => setSaveTemplateSignal(s => s + 1)}
-                    className={`${sharedBtnClass} bg-accent text-accent-text`}
-                    style={sharedBtnStyle}
-                  >
-                    <FolderPlus size={14} strokeWidth={2.5} />
-                    <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
-                  </button>
-                )}
-                <PackingExportMenu tripId={tripId} view={packingView} className={iconBtnClass} style={sharedBtnStyle} />
-                <button type="button" onClick={() => setImportPackingSignal(s => s + 1)}
-                  className={iconBtnClass}
-                  style={sharedBtnStyle}
-                  aria-label={t('packing.import')}
-                  title={t('packing.import')}
-                >
-                  <Download size={14} strokeWidth={2.5} />
-                </button>
               </div>
             )
           })()}
@@ -136,7 +124,8 @@ export function ListsContainer({ tripId, packingItems, todoItems }: Readonly<{ t
       <div style={fill ? { padding: '16px 28px 16px', flex: 1, minHeight: 0 } : { padding: '16px 28px 0' }} className="max-md:!px-4">
         {subTab === 'packing' && (
           <LazyPanel id="packing">
-            <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} addCategorySignal={addCategorySignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView} />
+            <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} addCategorySignal={addCategorySignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} view={packingView} onViewChange={setPackingView}
+              sort={packingSort} hideDone={hideDone} clearCheckedSignal={clearCheckedSignal} openBagsSignal={openBagsSignal} />
           </LazyPanel>
         )}
         {subTab === 'todo' && (

@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Package } from 'lucide-react'
+import { ChevronDown, ChevronRight, Package } from 'lucide-react'
 import { packingApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { PackingTemplateOption } from './PackingTemplateOption'
+import { PopoverItem } from './PackingPopover'
 import { offlineOr } from '../../utils/needsConnection'
 
 interface Template {
@@ -16,13 +17,16 @@ interface Template {
 interface ApplyTemplateButtonProps {
   tripId: number
   visibility: 'common' | 'personal'
-  style: React.CSSProperties
+  style?: React.CSSProperties
   className?: string
+  /** 'menu' draws a line of the Lists menu that opens the templates under it; onApplied closes that menu. */
+  variant?: 'button' | 'menu'
+  onApplied?: () => void
 }
 
 // Dropdown-Button um ein Packing-Template auf den aktuellen Trip anzuwenden.
 // Rendert nichts wenn keine Templates existieren.
-export default function ApplyTemplateButton({ tripId, visibility, style, className }: ApplyTemplateButtonProps): React.ReactElement | null {
+export default function ApplyTemplateButton({ tripId, visibility, style, className, variant = 'button', onApplied }: ApplyTemplateButtonProps): React.ReactElement | null {
   const [templates, setTemplates] = useState<Template[]>([])
   const [open, setOpen] = useState(false)
   const [applying, setApplying] = useState(false)
@@ -50,6 +54,7 @@ export default function ApplyTemplateButton({ tripId, visibility, style, classNa
       useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(data.items || [])] }))
       toast.success(t('packing.templateApplied', { count: data.count }))
       setOpen(false)
+      onApplied?.()
     } catch {
       toast.error(offlineOr(t, t('packing.templateError')))
     } finally {
@@ -58,6 +63,20 @@ export default function ApplyTemplateButton({ tripId, visibility, style, classNa
   }
 
   if (templates.length === 0) return null
+
+  if (variant === 'menu') return (
+    <>
+      <PopoverItem icon={<Package size={13} />} label={t('packing.applyTemplate')} onClick={() => setOpen(v => !v)}
+        trailing={open ? <ChevronDown size={13} className="shrink-0 text-content-faint" /> : <ChevronRight size={13} className="shrink-0 text-content-faint" />} />
+      {open && (
+        <div className="mb-1 ms-[18px] border-s border-edge-faint ps-1.5">
+          {templates.map(tmpl => (
+            <PackingTemplateOption key={tmpl.id} name={tmpl.name} itemCount={tmpl.item_count} onClick={() => { if (!applying) void handleApply(tmpl.id) }} t={t} />
+          ))}
+        </div>
+      )}
+    </>
+  )
 
   return (
     <div ref={dropRef} style={{ position: 'relative' }}>

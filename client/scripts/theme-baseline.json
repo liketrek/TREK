@@ -77,7 +77,6 @@
   "components/Packing/PackingListPanelCategoryGroup.tsx": 5,
   "components/Packing/PackingListPanelHeader.tsx": 5,
   "components/Packing/PackingListPanelItemRow.tsx": 2,
-  "components/Packing/PackingShareControl.tsx": 3,
   "components/Packing/packingPrintDocument.ts": 24,
   "components/Planner/AirTrailImportModal.tsx": 4,
   "components/Planner/BookingCostsSection.tsx": 1,

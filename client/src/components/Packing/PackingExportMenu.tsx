@@ -3,13 +3,17 @@ import type { LucideIcon } from 'lucide-react'
 import { FileSpreadsheet, FileText, Printer, Upload } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import PackingPrintPreview from './PackingPrintPreview'
+import { PopoverItem } from './PackingPopover'
 import { usePackingExport, type PackingView } from './usePackingExport'
 
 interface PackingExportMenuProps {
   tripId: number
   view: PackingView
-  style: React.CSSProperties
+  style?: React.CSSProperties
   className?: string
+  /** 'menu' draws the three ways out as lines of the Lists menu; onChosen closes that menu. */
+  variant?: 'button' | 'menu'
+  onChosen?: () => void
 }
 
 function MenuItem({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
@@ -31,7 +35,7 @@ function MenuItem({ icon: Icon, label, onClick }: { icon: LucideIcon; label: str
  * as PDF, a Markdown checklist, or CSV in the import's own format. Covers the view on
  * screen and renders nothing while that view is empty.
  */
-export default function PackingExportMenu({ tripId, view, style, className }: PackingExportMenuProps): React.ReactElement | null {
+export default function PackingExportMenu({ tripId, view, style, className, variant = 'button', onChosen }: PackingExportMenuProps): React.ReactElement | null {
   const { t } = useTranslation()
   const packingExport = usePackingExport(tripId, view)
   const [open, setOpen] = useState(false)
@@ -55,8 +59,18 @@ export default function PackingExportMenu({ tripId, view, style, className }: Pa
 
   const choose = (action: () => void | Promise<void>) => () => {
     setOpen(false)
+    onChosen?.()
     void action()
   }
+
+  if (variant === 'menu') return (
+    <>
+      <PopoverItem icon={<Printer size={13} />} label={t('packing.exportPrint')} onClick={choose(packingExport.openPrint)} />
+      <PopoverItem icon={<FileText size={13} />} label={t('packing.exportMarkdown')} onClick={choose(packingExport.exportMarkdown)} />
+      <PopoverItem icon={<FileSpreadsheet size={13} />} label={t('packing.exportCsv')} onClick={choose(packingExport.exportCsv)} />
+      <PackingPrintPreview html={packingExport.printHtml} title={packingExport.printTitle} onClose={packingExport.closePrint} />
+    </>
+  )
 
   return (
     // A flex box, so the button stretches to the row height like its neighbours in the header.
