@@ -256,7 +256,11 @@ function Bringers({
     faces.length > 0 ? (
       <span className="-ms-2 inline-flex shrink-0">
         <BringerAvatar bringer={faces[0]} />
-        {faces.length > 1 && <MoreBringers count={faces.length - 1} />}
+        {faces.length > 1 && (
+          <span className="ms-1.5 inline-flex">
+            <MoreBringers count={faces.length - 1} />
+          </span>
+        )}
       </span>
     ) : undefined;
   return (
@@ -331,7 +335,7 @@ function Visibility({
               key={o.id}
               aria-checked={shown === o.id}
               onClick={() => choose(o.id)}
-              className={`h-6 cursor-pointer whitespace-nowrap rounded-full border-0 px-2.5 font-[inherit] text-caption font-semibold ${shown === o.id ? 'bg-content text-surface' : 'bg-transparent text-content-muted'}`}
+              className={`h-6 cursor-pointer whitespace-nowrap rounded-full border-0 px-3 font-[inherit] text-caption font-semibold transition-colors ${shown === o.id ? 'bg-surface-card text-content shadow-sm' : 'bg-transparent text-content-muted hover:text-content'}`}
             >
               {o.label}
             </button>
