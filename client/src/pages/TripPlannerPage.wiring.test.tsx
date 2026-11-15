@@ -260,7 +260,7 @@ describe('TripPlannerPage — shell', () => {
     { leftHidden: true, rightHidden: false, visibleSide: 'right', leftInset: 0, rightInset: 300 },
   ])('UI-R2: the 768-1023px panel state shows only its selected rail ($visibleSide)', ({ leftHidden, rightHidden, visibleSide, leftInset, rightInset }) => {
     const { container } = renderToursPage({ narrowPanels: true,
-      leftHidden, rightHidden, leftWidth: 300, rightWidth: 300, resizeMax: 300 })
+      leftHidden, rightHidden, leftWidth: 300, rightWidth: 300, resizeMaxLeft: 300, resizeMaxRight: 300 })
     const handles = container.querySelectorAll<HTMLElement>('div[role="separator"]')
     expect(handles).toHaveLength(1)
     expect(handles[0]).toHaveAttribute('data-resize', visibleSide)

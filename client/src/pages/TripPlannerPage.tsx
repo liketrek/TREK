@@ -76,7 +76,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth,
     leftHidden, rightHidden, toggleLeft, toggleRight,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
     stayPickerDayId, setStayPickerDayId,
@@ -294,7 +294,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 boxShadow: leftHidden ? 'none' : 'var(--sidebar-shadow)',
                 borderRadius: 16,
                 overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease',
+                transition: resizing ? 'none' : 'width 0.25s ease',
                 opacity: leftHidden ? 0 : 1,
               }}>
                 {enabledAddons.roadtrip && (
@@ -402,7 +402,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 />
                 )}
                 {!leftHidden && (
-                  <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMax} onStart={startResizeLeft} onNudge={nudgeLeft} />
+                  <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMaxLeft} onStart={startResizeLeft} onNudge={nudgeLeft} />
                 )}
               </div>
             </div>
@@ -418,11 +418,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 boxShadow: rightHidden ? 'none' : 'var(--sidebar-shadow)',
                 borderRadius: 16,
                 overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease',
+                transition: resizing ? 'none' : 'width 0.25s ease',
                 opacity: rightHidden ? 0 : 1,
               }}>
                 {!rightHidden && (
-                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMax} onStart={startResizeRight} onNudge={nudgeRight} />
+                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMaxRight} onStart={startResizeRight} onNudge={nudgeRight} />
                 )}
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   {roadtripActive ? (
@@ -633,9 +633,9 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 background: 'var(--sidebar-bg)', backdropFilter: 'blur(24px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(180%)', boxShadow: leftHidden ? 'none' : 'var(--sidebar-shadow)',
                 borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease', opacity: leftHidden ? 0 : 1,
+                transition: resizing ? 'none' : 'width 0.25s ease', opacity: leftHidden ? 0 : 1,
               }}>
-                {!leftHidden && <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMax} onStart={startResizeLeft} onNudge={nudgeLeft} />}
+                {!leftHidden && <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMaxLeft} onStart={startResizeLeft} onNudge={nudgeLeft} />}
                 <LazyPanel id="tour-planner-rail"><TourWorkspaceRail workspace={pageState} canEdit={canPlaceEdit} canAssign={canDayEdit} /></LazyPanel>
               </div>
             </div>
@@ -654,7 +654,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 style={{
                   width: rightHidden ? 0 : rightWidth,
                   opacity: rightHidden ? 0 : 1,
-                  transition: 'width 0.25s ease, opacity 0.25s ease',
+                  transition: resizing ? 'opacity 0.25s ease' : 'width 0.25s ease, opacity 0.25s ease',
                   background: 'var(--sidebar-bg)',
                   backdropFilter: 'blur(24px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -662,7 +662,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 }}
               >
                 {!rightHidden && (
-                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMax} onStart={startResizeRight} onNudge={nudgeRight} />
+                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMaxRight} onStart={startResizeRight} onNudge={nudgeRight} />
                 )}
                 {!rightHidden && (
                   <LazyPanel id="tour-planner-tours">
