@@ -4,6 +4,7 @@ import { usePlannerTripView } from './usePlannerTripView'
 import type { TripStoreState } from '../../store/tripStore'
 import type { Place } from '../../types'
 import type { PlannerBase } from './plannerTypes'
+import { useMapLock } from '../../hooks/useMapLock'
 
 interface PlannerMapViewOptions extends Pick<PlannerBase, 'tripId' | 'trip'> {
   places: Place[]
@@ -60,20 +61,11 @@ export function usePlannerMapView(options: PlannerMapViewOptions) {
   // A locked map stays where the traveller put it (#2010): picking a day or a place no
   // longer zooms or pans it. Remembered per browser, like the other view toggles; the
   // first frame of a trip still fits, or the map would open on nothing.
-  const [mapLocked, setMapLocked] = useState<boolean>(() => {
-    try { return localStorage.getItem('trek:map-locked') === '1' } catch { return false }
-  })
+  const [mapLocked, toggleMapLocked] = useMapLock()
   const mapLockedRef = useRef(mapLocked)
   mapLockedRef.current = mapLocked
   const isMobileRef = useRef(isMobile)
   isMobileRef.current = isMobile
-  const toggleMapLocked = useCallback(() => {
-    setMapLocked(prev => {
-      const next = !prev
-      try { localStorage.setItem('trek:map-locked', next ? '1' : '0') } catch { /* private mode keeps it for the session */ }
-      return next
-    })
-  }, [])
   // The recorded route from Dawarich (#2279), per trip and remembered on the
   // account for the same reason as the overview above: it answers "what
   // actually happened on this trip", a question about one trip rather than a
