@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Пріоритет',
   'todo.detail.noPriority': 'Немає',
   'todo.sortByPrio': 'Пріоритет',
+  'todo.progressCount': '{done} з {total} виконано',
+  'todo.allDone': 'Усе готово!',
+  'todo.filter.myShort': 'Мої',
 };
 export default todo;

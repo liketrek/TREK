@@ -67,6 +67,11 @@ function sheet() {
   return screen.getByTestId('task-sheet')
 }
 
+/** The order and the lists live in a sheet behind the progress card's "...". */
+function openOptions() {
+  fireEvent.click(screen.getByRole('button', { name: 'todo.sidebar.sortBy' }))
+}
+
 /** Row order, read off the check buttons — they are the only ones carrying the task name as aria-label. */
 function rowOrder(names: string[]) {
   return screen
@@ -85,16 +90,19 @@ describe('MTodoListTab', () => {
     setup([])
 
     expect(screen.getByText('todo.empty')).toBeInTheDocument()
-    expect(screen.getByText('0/0')).toBeInTheDocument()
-    expect(screen.getByText('0% todo.completed')).toBeInTheDocument()
+    expect(screen.getByText('todo.progressCount:0,0')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /todo.filter.all/ })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-TODO-002: reports done/total and the completion percentage', () => {
     setup([todo({ id: 1 }), todo({ id: 2, checked: 1 }), todo({ id: 3, checked: 1 }), todo({ id: 4 })])
 
-    expect(screen.getByText('2/4')).toBeInTheDocument()
-    expect(screen.getByText('50% todo.completed')).toBeInTheDocument()
+    expect(screen.getByText('todo.progressCount:2,4')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-TODO-002b: everything done reads as done', () => {
+    setup([todo({ id: 1, checked: 1 })])
+    expect(screen.getByText('todo.allDone')).toBeInTheDocument()
   })
 
   it('FE-MOB-TODO-003: hides "new task" without packing_edit', () => {
@@ -113,7 +121,7 @@ describe('MTodoListTab', () => {
     ])
 
     expect(screen.getByRole('button', { name: 'todo.filter.all3' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'todo.filter.my1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'todo.filter.myShort1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'todo.filter.overdue1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'todo.filter.done1' })).toBeInTheDocument()
   })
@@ -150,7 +158,7 @@ describe('MTodoListTab', () => {
     seedStore(useAuthStore, { user: null })
     setup([todo({ id: 1, name: 'Mine', assigned_user_id: ME })])
 
-    expect(screen.getByRole('button', { name: 'todo.filter.my0' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'todo.filter.myShort0' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /todo.filter.my/ }))
 
@@ -174,6 +182,7 @@ describe('MTodoListTab', () => {
 
     expect(rowOrder(['Low', 'High'])).toEqual(['Low', 'High'])
 
+    openOptions()
     const sortButton = screen.getByRole('button', { name: /todo.priority/ })
     expect(sortButton).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(sortButton)
@@ -191,6 +200,7 @@ describe('MTodoListTab', () => {
 
     expect(rowOrder(['Later', 'Sooner', 'Undated'])).toEqual(['Later', 'Sooner', 'Undated'])
 
+    openOptions()
     const sortButton = screen.getByRole('button', { name: /todo.detail.dueDate/ })
     expect(sortButton).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(sortButton)
@@ -219,6 +229,7 @@ describe('MTodoListTab', () => {
       todo({ id: 2, name: 'Boots', category: 'Gear' }),
     ])
 
+    openOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Gear1' }))
 
     expect(rowOrder(['Packed', 'Boots'])).toEqual(['Boots', 'Packed'])
@@ -231,10 +242,13 @@ describe('MTodoListTab', () => {
       todo({ id: 3, name: 'Boots', category: 'Gear' }),
     ])
 
+    openOptions()
     expect(screen.getByRole('button', { name: 'Admin1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Gear1' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Admin1' }))
+    // The chosen list shows in the switch and opens the sheet again.
+    expect(screen.getByRole('button', { name: 'Admin', pressed: true })).toBeInTheDocument()
 
     // the category bucket keeps done items visible
     expect(screen.getByText('Visa')).toBeInTheDocument()
@@ -272,14 +286,14 @@ describe('MTodoListTab', () => {
     expect(screen.getByText('Direct if possible')).toBeInTheDocument()
     expect(screen.getByText('P1')).toBeInTheDocument()
     expect(screen.getByText(/Jan/)).toBeInTheDocument()
-    expect(screen.getByText('lea')).toBeInTheDocument()
+    expect(screen.getByLabelText('lea')).toBeInTheDocument()
     expect(document.querySelector('img[src="/uploads/avatars/lea.png"]')).toBeInTheDocument()
   })
 
   it('FE-MOB-TODO-014: falls back to the username initial when a member has no avatar', () => {
     setup([todo({ id: 3, due_date: FUTURE, assigned_user_id: ME })])
 
-    expect(screen.getByText('maurice')).toBeInTheDocument()
+    expect(screen.getByLabelText('maurice')).toBeInTheDocument()
     expect(screen.getByText('M')).toBeInTheDocument()
     expect(document.querySelector('img')).toBeNull()
   })
@@ -301,6 +315,7 @@ describe('MTodoListTab', () => {
   it('FE-MOB-TODO-016: seeds the new task with the active category filter', () => {
     setup([todo({ id: 3, name: 'Visa', category: 'Admin' })])
 
+    openOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Admin1' }))
     fireEvent.click(screen.getByRole('button', { name: /todo.newItem/ }))
 
@@ -323,6 +338,7 @@ describe('MTodoListTab', () => {
       todo({ id: 3, name: 'Boots' }),
     ])
 
+    openOptions()
     fireEvent.click(screen.getByRole('button', { name: 'done1' }))
 
     expect(screen.getByText('Visa')).toBeInTheDocument()

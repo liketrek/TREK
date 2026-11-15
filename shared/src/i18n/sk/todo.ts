@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Priorita',
   'todo.detail.noPriority': 'Žiadna',
   'todo.detail.create': 'Vytvoriť úlohu',
+  'todo.progressCount': '{done} z {total} hotové',
+  'todo.allDone': 'Všetko hotové!',
+  'todo.filter.myShort': 'Moje',
 };
 export default todo;
