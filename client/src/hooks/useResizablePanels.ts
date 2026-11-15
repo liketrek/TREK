@@ -82,15 +82,15 @@ export function useResizablePanels() {
   const shownRight = clampWidth(rightWidth, resizeMaxRight)
   const resizeMaxLeft = Math.max(MIN_SIDEBAR, room - (rightHidden ? 0 : shownRight))
   // The drag listeners are bound once, so they read the live ceilings from here.
-  const maxRef = useRef({ left: resizeMaxLeft, right: resizeMaxRight })
-  useEffect(() => { maxRef.current = { left: resizeMaxLeft, right: resizeMaxRight } }, [resizeMaxLeft, resizeMaxRight])
+  const maxRef = useRef({ dayPlan: resizeMaxLeft, places: resizeMaxRight })
+  useEffect(() => { maxRef.current = { dayPlan: resizeMaxLeft, places: resizeMaxRight } }, [resizeMaxLeft, resizeMaxRight])
 
   // A mouse drags through mousemove; a finger on a tablet sends touch events and
   // never a mousemove, which is why the handles used to be dead on an iPad (#1012).
   useEffect(() => {
     const moveTo = (clientX: number) => {
-      if (isResizingLeft.current) setLeftWidth(remember('sidebarLeftWidth', clampWidth(clientX - 10, maxRef.current.left)))
-      if (isResizingRight.current) setRightWidth(remember('sidebarRightWidth', clampWidth(window.innerWidth - clientX - 10, maxRef.current.right)))
+      if (isResizingLeft.current) setLeftWidth(remember('sidebarLeftWidth', clampWidth(clientX - 10, maxRef.current.dayPlan)))
+      if (isResizingRight.current) setRightWidth(remember('sidebarRightWidth', clampWidth(window.innerWidth - clientX - 10, maxRef.current.places)))
     }
     const onMove = (e: MouseEvent) => moveTo(e.clientX)
     const onTouchMove = (e: TouchEvent) => {

@@ -50,6 +50,8 @@ describe('useResizablePanels', () => {
   });
 
   it('FE-HOOK-PANELS-004: rightWidth loaded from localStorage when set', () => {
+    // Wide enough that the map's share leaves the stored width alone.
+    setViewport(1440, false);
     localStorage.setItem('sidebarRightWidth', '350');
     const { result } = renderHook(() => useResizablePanels());
     expect(result.current.rightWidth).toBe(350);

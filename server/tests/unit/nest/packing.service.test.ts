@@ -78,6 +78,15 @@ async function tripItems(tripId: number) {
 }
 
 /** The stored item; fails the case when it is gone. */
+/** What the bringer tests read off an item the service hands back (#3098). */
+type BroughtItem = {
+  id: number;
+  is_private: number;
+  owner_id: number | null;
+  owner_username: string | null;
+  contributors: { user_id: number }[];
+};
+
 async function itemRow(id: number) {
   const row = await findRow(await orm(), PackingItems, { id });
   if (!row) throw new Error(`no packing item ${id}`);
@@ -734,10 +743,14 @@ describe('three-tier packing sharing (#858)', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, friend.id);
-    const common = (await svc.createItem(trip.id, { name: 'Tent', visibility: 'common' }, owner.id)) as any;
+    const common = (await svc.createItem(
+      trip.id,
+      { name: 'Tent', visibility: 'common' },
+      owner.id,
+    )) as unknown as BroughtItem;
 
-    const assigned = (await svc.addContributor(trip.id, common.id, friend.id, owner.id)) as any;
-    expect(assigned.contributors.map((c: any) => c.user_id)).toEqual([friend.id]);
+    const assigned = (await svc.addContributor(trip.id, common.id, friend.id, owner.id)) as unknown as BroughtItem;
+    expect(assigned.contributors.map((c: { user_id: number }) => c.user_id)).toEqual([friend.id]);
     expect(await svc.addContributor(trip.id, common.id, stranger.id, owner.id)).toBeNull();
   });
 
@@ -747,15 +760,19 @@ describe('three-tier packing sharing (#858)', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, friend.id);
     // Personal first, then back to the shared list: the owner stays on as its bringer.
-    const item = (await svc.createItem(trip.id, { name: 'Stove', visibility: 'personal' }, owner.id)) as any;
+    const item = (await svc.createItem(
+      trip.id,
+      { name: 'Stove', visibility: 'personal' },
+      owner.id,
+    )) as unknown as BroughtItem;
     await svc.setItemSharing(trip.id, item.id, owner.id, 'common', []);
     await svc.addContributor(trip.id, item.id, friend.id, friend.id);
     expect((await itemRow(item.id)).owner_id).toBe(owner.id);
 
-    const after = (await svc.removeContributor(trip.id, item.id, owner.id, friend.id)) as any;
+    const after = (await svc.removeContributor(trip.id, item.id, owner.id, friend.id)) as unknown as BroughtItem;
     expect(after.owner_id).toBeNull();
     expect(after.owner_username).toBeNull();
-    expect(after.contributors.map((c: any) => c.user_id)).toEqual([friend.id]);
+    expect(after.contributors.map((c: { user_id: number }) => c.user_id)).toEqual([friend.id]);
     expect(after.is_private).toBe(0);
   });
 

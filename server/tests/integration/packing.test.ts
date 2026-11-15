@@ -266,7 +266,7 @@ describe('Three-tier packing sharing (#858)', () => {
       .set('Cookie', authCookie(owner.id))
       .send({ user_id: helper.id });
     expect(assigned.status).toBe(201);
-    expect(assigned.body.item.contributors.map((c: any) => c.user_id)).toEqual([helper.id]);
+    expect(assigned.body.item.contributors.map((c: { user_id: number }) => c.user_id)).toEqual([helper.id]);
 
     const outsider = await request(app)
       .post(`/api/trips/${trip.id}/packing/${id}/contributors`)
@@ -285,7 +285,7 @@ describe('Three-tier packing sharing (#858)', () => {
       .set('Cookie', authCookie(helper.id));
     expect(ownerOff.status).toBe(200);
     expect(ownerOff.body.item.owner_id).toBeNull();
-    expect(ownerOff.body.item.contributors.map((c: any) => c.user_id)).toEqual([helper.id]);
+    expect(ownerOff.body.item.contributors.map((c: { user_id: number }) => c.user_id)).toEqual([helper.id]);
   });
 
   it('PACK-3T-005 — sharing can only be changed by the owner', async () => {
