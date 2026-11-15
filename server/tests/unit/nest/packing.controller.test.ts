@@ -498,8 +498,16 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       const svc = makeService({ addContributor, broadcast } as Partial<PackingService>);
       await new PackingController(svc).addContributor(user, '5', '9', 'sock');
       // Plan 4 Task 8b (U6) — :id is now parsed ONCE at the controller gate (toRowId).
-      expect(addContributor).toHaveBeenCalledWith('5', 9, user.id);
+      expect(addContributor).toHaveBeenCalledWith('5', 9, user.id, user.id);
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item }, 'sock');
+    });
+
+    it('POST /:id/contributors with a user_id puts that person down as a bringer (#3098)', async () => {
+      const item = { id: 9, is_private: 0, contributors: [{ user_id: 7 }] };
+      const addContributor = vi.fn().mockReturnValue(item);
+      const svc = makeService({ addContributor, broadcast: vi.fn() } as Partial<PackingService>);
+      await new PackingController(svc).addContributor(user, '5', '9', 'sock', { user_id: 7 });
+      expect(addContributor).toHaveBeenCalledWith('5', 9, 7, user.id);
     });
 
     it('DELETE /:id/contributors/:userId removes the contributor + broadcasts', async () => {
@@ -509,7 +517,7 @@ describe('PackingController (parity with the legacy /api/trips/:tripId/packing r
       const svc = makeService({ removeContributor, broadcast } as Partial<PackingService>);
       await new PackingController(svc).removeContributor(user, '5', '9', '2', 'sock');
       // Plan 4 Task 8b (U6) — :id/:userId are now parsed ONCE at the controller gate (toRowId).
-      expect(removeContributor).toHaveBeenCalledWith('5', 9, 2);
+      expect(removeContributor).toHaveBeenCalledWith('5', 9, 2, user.id);
       expect(broadcast).toHaveBeenCalledWith('5', 'packing:updated', { item }, 'sock');
     });
 

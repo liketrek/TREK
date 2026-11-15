@@ -728,6 +728,37 @@ describe('three-tier packing sharing (#858)', () => {
     expect(cleared.contributors).toEqual([]);
   });
 
+  it('PACK-SVC-044b: anyone on the trip can be put down as the bringer of a Common item, nobody else (#3098)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
+    const common = (await svc.createItem(trip.id, { name: 'Tent', visibility: 'common' }, owner.id)) as any;
+
+    const assigned = (await svc.addContributor(trip.id, common.id, friend.id, owner.id)) as any;
+    expect(assigned.contributors.map((c: any) => c.user_id)).toEqual([friend.id]);
+    expect(await svc.addContributor(trip.id, common.id, stranger.id, owner.id)).toBeNull();
+  });
+
+  it('PACK-SVC-044c: taking the owner off a Common item clears them as its bringer and leaves the others (#3098)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, friend.id);
+    // Personal first, then back to the shared list: the owner stays on as its bringer.
+    const item = (await svc.createItem(trip.id, { name: 'Stove', visibility: 'personal' }, owner.id)) as any;
+    await svc.setItemSharing(trip.id, item.id, owner.id, 'common', []);
+    await svc.addContributor(trip.id, item.id, friend.id, friend.id);
+    expect((await itemRow(item.id)).owner_id).toBe(owner.id);
+
+    const after = (await svc.removeContributor(trip.id, item.id, owner.id, friend.id)) as any;
+    expect(after.owner_id).toBeNull();
+    expect(after.owner_username).toBeNull();
+    expect(after.contributors.map((c: any) => c.user_id)).toEqual([friend.id]);
+    expect(after.is_private).toBe(0);
+  });
+
   it("PACK-SVC-045: cloneItem copies an item onto the cloner's personal list", async () => {
     const { user: owner } = createUser(testDb);
     const { user: cloner } = createUser(testDb);
@@ -1436,30 +1467,13 @@ describe('packing item object-level authorization', () => {
     expect((await itemRow(personal.id)).owner_id).toBe(owner.id);
   });
 
-  it("U3 HOLE — contributor removal checks the path user's visibility, not the caller's: an intruder who cannot see a Personal item still gets it back by naming the owner as :userId", async () => {
-    // PRE-EXISTING on base (packing.controller.ts ~250 → packing.service.ts
-    // removeContributor; base carries the identical shape). The controller
-    // passes the PATH `:userId` — not `user.id`, the caller — as the third
-    // argument to `PackingService.removeContributor`, which uses that same
-    // id both to run the visibility check AND as the contributor row to
-    // delete. An intruder who cannot see `owner`'s Personal item at all can
-    // still name `owner` as `:userId`: the visibility check passes because
-    // OWNERS can always see their own item, and the full enriched item comes
-    // back in the response — an IDOR read of content the intruder has no
-    // business seeing, RIGHTS-gated only by `packing_edit`, not by the
-    // three-tier privacy model. Deliberately NOT fixed here (controller
-    // ruling U3, pinned so it cannot be "fixed" silently); the one-line fix
-    // is in the fix-wave report for the user: check `findVisibleInTrip` for
-    // the CALLER, and additionally require `userId === callerId ||
-    // item.owner_id === callerId`.
-    // The intruder is the caller in the real route (RequirePermission checks
-    // only packing_edit, never visibility) — but the service signature never
-    // receives the caller's id at all, only the path :userId. That gap is
-    // the bug, so there is nothing of the intruder's identity to pass here.
-    const { owner, trip, personal } = await restrictedTrip();
-    const leaked = await svc.removeContributor(trip.id, personal.id, owner.id);
-    expect(leaked).not.toBeNull();
-    expect(leaked.name).toBe('Diary');
+  it("U3: contributor removal checks the caller's visibility, so naming the owner as :userId no longer hands an intruder their Personal item", async () => {
+    // The route used to pass only the path :userId, which ran the visibility
+    // check as the owner and returned the item to whoever asked. The caller now
+    // rides along (#3098 needed it to take the owner off a Common item).
+    const { owner, intruder, trip, personal } = await restrictedTrip();
+    expect(await svc.removeContributor(trip.id, personal.id, owner.id, intruder.id)).toBeNull();
+    expect((await itemRow(personal.id)).owner_id).toBe(owner.id);
   });
 
   it('PACK-SVC-105b: a visible item the caller does not own still reports forbidden, not missing', async () => {

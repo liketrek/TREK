@@ -222,7 +222,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, addCategor
   const handleSetSharing = (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) =>
     setPackingItemSharing(tripId, id, visibility, recipientIds)
   const handleCloneItem = (id: number) => clonePackingItem(tripId, id)
-  const handleJoinItem = (id: number) => addPackingContributor(tripId, id)
+  const handleJoinItem = (id: number, userId?: number) => addPackingContributor(tripId, id, userId)
   const handleLeaveItem = (id: number, userId: number) => removePackingContributor(tripId, id, userId)
   // A whole list at once (#2961), through the same per-item write as above.
   const categorySharing = usePackingCategorySharing({

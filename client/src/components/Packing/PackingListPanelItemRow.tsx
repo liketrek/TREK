@@ -39,7 +39,7 @@ interface ArtikelZeileProps {
   currentUserId?: number
   onSetSharing?: (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => void
   onClone?: (id: number) => void
-  onJoin?: (id: number) => void
+  onJoin?: (id: number, userId?: number) => void
   onLeave?: (id: number, userId: number) => void
   /** Draws the hairline above the row; the category group leaves it off its first row. */
   divider?: boolean
@@ -68,6 +68,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   const bagBox = useAnchoredPosition(bagBtnRef, showBagPicker, { estimatedHeight: 260, offset: 6 })
   const [showItemMenu, setShowItemMenu] = useState(false)
   const [showMenuCategories, setShowMenuCategories] = useState(false)
+  const [showMenuBringers, setShowMenuBringers] = useState(false)
   const [bagInlineCreate, setBagInlineCreate] = useState(false)
   const [bagInlineName, setBagInlineName] = useState('')
   const itemMenuBtnRef = useRef<HTMLButtonElement>(null)
@@ -79,8 +80,13 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
   const sharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId
   const recipients = item.recipients || []
   const sharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
-  const broughtBy = !item.is_private && item.owner_username ? item.owner_username : null
   const canShare = canEdit && !isPlaceholder && !!onSetSharing
+  // Who brings a Common item is anyone's call on the trip, not just a pledge for
+  // yourself: the menu lists every member to tick on or off (#3098).
+  const canPickBringers = canEdit && !isPlaceholder && !item.is_private && tripMembers.length > 0 && !!onJoin && !!onLeave
+  const isBringer = (userId: number) => item.owner_id === userId || (item.contributors || []).some(c => c.user_id === userId)
+  const toggleBringer = (userId: number) => (isBringer(userId) ? onLeave!(item.id, userId) : onJoin!(item.id, userId))
+  const closeItemMenu = () => { setShowItemMenu(false); setShowMenuCategories(false); setShowMenuBringers(false) }
 
   const handleToggle = () => togglePackingItem(tripId, item.id, !item.checked)
 
@@ -234,13 +240,23 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
           </span>
         </Tooltip>
       )}
-      {!isPlaceholder && broughtBy && (
+      {!isPlaceholder && !item.is_private && bringers.length > 0 && (
         <Tooltip label={t('packing.broughtBy', { name: packingBringerNames(item) })} content={<BringersCard bringers={bringers} />}>
-          <span className="packing-row-badge" aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}
-            style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-            <BringerAvatar bringer={bringers[0]} />
-            {bringers.length > 1 && <MoreBringers count={bringers.length - 1} />}
-          </span>
+          {/* A click on the faces opens the menu right at the bringers (#3098). */}
+          {canPickBringers ? (
+            <button type="button" className="packing-row-badge" aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}
+              onClick={() => { setShowItemMenu(true); setShowMenuBringers(true) }}
+              style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}>
+              <BringerAvatar bringer={bringers[0]} />
+              {bringers.length > 1 && <MoreBringers count={bringers.length - 1} />}
+            </button>
+          ) : (
+            <span className="packing-row-badge" aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}
+              style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+              <BringerAvatar bringer={bringers[0]} />
+              {bringers.length > 1 && <MoreBringers count={bringers.length - 1} />}
+            </span>
+          )}
         </Tooltip>
       )}
 
@@ -340,7 +356,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
         <div className="packing-row-overflow" style={{ display: 'flex', flexShrink: 0, position: 'relative', ...reveal(active) }}>
           <button type="button"
             ref={itemMenuBtnRef}
-            onClick={() => setShowItemMenu(m => !m)}
+            onClick={() => (showItemMenu ? closeItemMenu() : setShowItemMenu(true))}
             title={t('common.showMore')}
             aria-label={t('common.showMore')} aria-expanded={showItemMenu}
             style={{ width: 26, height: 26, borderRadius: 7, border: 'none', background: showItemMenu ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', padding: 0 }}
@@ -351,7 +367,7 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
             const rect = itemMenuBtnRef.current?.getBoundingClientRect()
             return (
               <>
-                <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1098 }} onClick={() => { setShowItemMenu(false); setShowMenuCategories(false) }} />
+                <div role="presentation" style={{ position: 'fixed', inset: 0, zIndex: 1098 }} onClick={closeItemMenu} />
                 <div className="trek-menu-enter" style={{
                   ...POPOVER,
                   position: 'fixed',
@@ -405,6 +421,20 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange: _onCa
                         <PopoverItem key={cat} icon={<span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), display: 'inline-block' }} />} label={cat} active={cat === (item.category || t('packing.defaultCategory'))} onClick={() => handleCatChange(cat)} />
                       ))}
                     </div>
+                  )}
+
+                  {canPickBringers && (
+                    <>
+                      <PopoverItem icon={<HandHelping size={13} />} label={t('packing.bringersTitle')} onClick={() => setShowMenuBringers(v => !v)}
+                        trailing={showMenuBringers ? <ChevronDown size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} /> : <ChevronRight size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />} />
+                      {showMenuBringers && (
+                        <div style={{ marginBlock: '2px 4px', marginInlineStart: 18, paddingInlineStart: 6, borderInlineStart: '1px solid var(--border-faint)' }}>
+                          {tripMembers.map(m => (
+                            <PopoverItem key={m.id} icon={<BringerAvatar bringer={{ name: m.username, avatar: m.avatar_url ?? m.avatar ?? null }} />} label={m.username} active={isBringer(m.id)} onClick={() => toggleBringer(m.id)} />
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {canShare && onClone && onJoin && onLeave && (

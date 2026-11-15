@@ -52,7 +52,7 @@ interface KategorieGruppeProps {
   currentUserId?: number
   onSetSharing?: (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => void
   onClone?: (id: number) => void
-  onJoin?: (id: number) => void
+  onJoin?: (id: number, userId?: number) => void
   onLeave?: (id: number, userId: number) => void
   // Opens the choice of one sharing tier for the whole list (#2961).
   onShareCategory?: () => void

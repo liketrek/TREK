@@ -121,6 +121,13 @@ export const packingSetSharingRequestSchema = z.object({
 });
 export type PackingSetSharingRequest = z.infer<typeof packingSetSharingRequestSchema>;
 
+// Who brings a Common item (#3098): without a body the caller pledges themselves,
+// with user_id anyone on the trip can be put down as a bringer.
+export const packingAddContributorRequestSchema = z.object({
+  user_id: z.number().int().positive().optional(),
+});
+export type PackingAddContributorRequest = z.infer<typeof packingAddContributorRequestSchema>;
+
 export const packingUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
   // The legacy route accepted both boolean and 0/1 for checked — both stay valid.

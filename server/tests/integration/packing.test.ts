@@ -245,6 +245,49 @@ describe('Three-tier packing sharing (#858)', () => {
     expect(res.body.item.contributors.map((c: any) => c.user_id)).toContain(helper.id);
   });
 
+  it('PACK-3T-004b — a member puts someone else down as the bringer, and takes the owner off again (#3098)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: helper } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, helper.id);
+    const created = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Stove', visibility: 'personal' });
+    const id = created.body.item.id;
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/${id}/sharing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ visibility: 'common' });
+
+    const assigned = await request(app)
+      .post(`/api/trips/${trip.id}/packing/${id}/contributors`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_id: helper.id });
+    expect(assigned.status).toBe(201);
+    expect(assigned.body.item.contributors.map((c: any) => c.user_id)).toEqual([helper.id]);
+
+    const outsider = await request(app)
+      .post(`/api/trips/${trip.id}/packing/${id}/contributors`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_id: stranger.id });
+    expect(outsider.status).toBe(404);
+
+    const bad = await request(app)
+      .post(`/api/trips/${trip.id}/packing/${id}/contributors`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_id: 'x' });
+    expect(bad.status).toBe(400);
+
+    const ownerOff = await request(app)
+      .delete(`/api/trips/${trip.id}/packing/${id}/contributors/${owner.id}`)
+      .set('Cookie', authCookie(helper.id));
+    expect(ownerOff.status).toBe(200);
+    expect(ownerOff.body.item.owner_id).toBeNull();
+    expect(ownerOff.body.item.contributors.map((c: any) => c.user_id)).toEqual([helper.id]);
+  });
+
   it('PACK-3T-005 — sharing can only be changed by the owner', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);

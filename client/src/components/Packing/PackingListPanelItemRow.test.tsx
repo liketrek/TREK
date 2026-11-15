@@ -1,4 +1,4 @@
-// FE-W5ROW-001 to FE-W5ROW-056
+// FE-W5ROW-001 to FE-W5ROW-059
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { ComponentProps } from 'react'
 import { http, HttpResponse } from 'msw'
@@ -1082,5 +1082,56 @@ describe('ArtikelZeile — overflow menu', () => {
 
     fireEvent.mouseEnter(danger)
     expect(danger.style.background).toBe('rgba(239, 68, 68, 0.1)')
+  })
+})
+
+describe('ArtikelZeile — who brings a common item (#3098)', () => {
+  const handlers = () => ({ onSetSharing: vi.fn(), onClone: vi.fn(), onJoin: vi.fn(), onLeave: vi.fn() })
+
+  it('FE-W5ROW-057: the item menu lists every member and ticks one on as a bringer', () => {
+    const h = handlers()
+    const { container } = setup({ currentUserId: 1, tripMembers: MEMBERS, ...h })
+
+    fireEvent.click(overflowTrigger(container))
+    fireEvent.click(menuButton(container, 'Brought by'))
+    fireEvent.click(menuButton(container, 'alice'))
+
+    expect(h.onJoin).toHaveBeenCalledWith(1, 2)
+    expect(h.onLeave).not.toHaveBeenCalled()
+  })
+
+  it('FE-W5ROW-058: a ticked bringer, the owner included, comes off again', () => {
+    const h = handlers()
+    const { container } = setup({
+      item: buildPackingItem({
+        id: 1, name: 'Stove', is_private: 0, owner_id: 1, owner_username: 'owner',
+        contributors: [{ user_id: 2, username: 'alice' }],
+      } as unknown as Partial<PackingItem>),
+      currentUserId: 1, tripMembers: MEMBERS, ...h,
+    })
+
+    fireEvent.click(overflowTrigger(container))
+    fireEvent.click(menuButton(container, 'Brought by'))
+    fireEvent.click(menuButton(container, 'owner'))
+    fireEvent.click(menuButton(container, 'alice'))
+
+    expect(h.onLeave).toHaveBeenNthCalledWith(1, 1, 1)
+    expect(h.onLeave).toHaveBeenNthCalledWith(2, 1, 2)
+    expect(h.onJoin).not.toHaveBeenCalled()
+  })
+
+  it('FE-W5ROW-059: a click on the faces opens the menu at the bringers, also when only co-bringers are left', () => {
+    const { container } = setup({
+      item: buildPackingItem({
+        id: 1, name: 'Stove', is_private: 0, owner_id: null, owner_username: null,
+        contributors: [{ user_id: 2, username: 'alice' }],
+      } as unknown as Partial<PackingItem>),
+      currentUserId: 1, tripMembers: MEMBERS, ...handlers(),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'brought by alice' }))
+
+    expect(menuButton(container, 'alice')).toBeInTheDocument()
+    expect(menuButton(container, 'owner')).toBeInTheDocument()
   })
 })

@@ -406,18 +406,23 @@ export class PackingService {
    * getItemPrivacy} (`PackingController.addContributor`, native Nest code
    * with no pre-ORM Express precedent — #858 landed post-migration).
    */
-  async addContributor(tripId: string | number, id: number, userId: number) {
-    const item = await this.itemsRepo.findVisibleInTrip(id, tripId, userId);
+  async addContributor(tripId: string | number, id: number, userId: number, actingUserId: number = userId) {
+    const item = await this.itemsRepo.findVisibleInTrip(id, tripId, actingUserId);
     if (!item || item.is_private !== 0) return null; // co-contribution is a Common-list concept
     if (item.owner_id === userId) return null; // the bringer is already covering it
+    // Putting someone else down as a bringer (#3098) only reaches people on the trip.
+    if (userId !== actingUserId && !(await this.tripRosterIds(tripId)).has(userId)) return null;
     await this.contributorsRepo.insertIgnore(id, userId);
     return (await this.enrichItems([await this.itemsRepo.findById(id)]))[0];
   }
 
   /** `id: number` — same Plan 4 Task 8b (U6) narrowing as {@link addContributor}; `userId` here is the target being removed, not the acting viewer (`PackingController.removeContributor` now parses both `:id`/`:userId` via `toRowId` instead of a bare `Number.parseInt`). */
-  async removeContributor(tripId: string | number, id: number, userId: number) {
-    const item = await this.itemsRepo.findVisibleInTrip(id, tripId, userId);
+  async removeContributor(tripId: string | number, id: number, userId: number, actingUserId: number = userId) {
+    const item = await this.itemsRepo.findVisibleInTrip(id, tripId, actingUserId);
     if (!item) return null;
+    // On a Common item the owner is its first bringer, so taking them off the
+    // item has to clear the owner too; otherwise their avatar stuck for good (#3098).
+    if (item.is_private === 0 && item.owner_id === userId) await this.itemsRepo.clearOwner(id);
     await this.contributorsRepo.deleteOne(id, userId);
     return (await this.enrichItems([await this.itemsRepo.findById(id)]))[0];
   }
