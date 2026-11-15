@@ -488,6 +488,24 @@ function Amounts({
   );
 }
 
+/** Which of the people sections the window shows, and with which handlers. */
+function sectionsFor({
+  item,
+  canEdit,
+  tripMembers,
+  currentUserId,
+  onSetSharing,
+  onClone,
+  onJoin,
+  onLeave,
+}: Readonly<PackingItemDetailProps>) {
+  const { isCommon, isOwner, sharedToMe, canClone } = packingItemAccess(item, currentUserId);
+  const bringers = canEdit && isCommon && onJoin && onLeave && tripMembers.length > 0 ? { onJoin, onLeave } : null;
+  const sharing = canEdit && isOwner && onSetSharing ? onSetSharing : null;
+  const clone = canEdit && canClone && onClone ? onClone : null;
+  return { bringers, sharing, sharedToMe, clone };
+}
+
 /**
  * Everything about one packing item in one small window at its row: which list,
  * how many and how many are packed, weight and bag, who brings it and who sees
@@ -507,10 +525,6 @@ export function PackingItemDetail(props: Readonly<PackingItemDetailProps>) {
     onCreateBag,
     tripMembers,
     currentUserId,
-    onSetSharing,
-    onClone,
-    onJoin,
-    onLeave,
     onDelete,
   } = props;
   const { t } = useTranslation();
@@ -526,10 +540,7 @@ export function PackingItemDetail(props: Readonly<PackingItemDetailProps>) {
       toast.error(t('packing.toast.saveError'));
     }
   };
-  const { isCommon, isOwner, sharedToMe, canClone } = packingItemAccess(item, currentUserId);
-  const bringers = canEdit && isCommon && onJoin && onLeave && tripMembers.length > 0 ? { onJoin, onLeave } : null;
-  const sharing = canEdit && isOwner && onSetSharing ? onSetSharing : null;
-  const clone = canEdit && canClone && onClone ? onClone : null;
+  const { bringers, sharing, sharedToMe, clone } = sectionsFor(props);
 
   return createPortal(
     <>

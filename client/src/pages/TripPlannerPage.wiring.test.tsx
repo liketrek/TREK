@@ -1458,6 +1458,7 @@ describe('TripPlannerPage — lists tab', () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
     await screen.findByTestId('packing-list-panel')
 
+    openListsMenu()
     fireEvent.click(screen.getByRole('button', { name: /Save as template/i }))
     expect(props('packingPanel').saveTemplateSignal).toBe(1)
   })
@@ -1466,6 +1467,7 @@ describe('TripPlannerPage — lists tab', () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
     await screen.findByTestId('packing-list-panel')
 
+    openListsMenu()
     expect(screen.queryByRole('button', { name: /Save as template/i })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Import/i }))
     expect(props('packingPanel').openImportSignal).toBe(1)
@@ -1480,7 +1482,7 @@ describe('TripPlannerPage — lists tab', () => {
     expect(props('applyTemplate').visibility).toBe('personal')
   })
 
-  it('FE-PAGE-TPW-044b: export and import sit in the header as icons, export following the open view (#875, #1420)', async () => {
+  it('FE-PAGE-TPW-044b: export and import sit in the Lists menu, export following the open view (#875, #1420)', async () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
     await screen.findByTestId('packing-list-panel')
 
@@ -1490,11 +1492,17 @@ describe('TripPlannerPage — lists tab', () => {
     act(() => { props('packingPanel').onViewChange('personal') })
     expect(props('exportMenu').view).toBe('personal')
 
-    const importButton = screen.getByRole('button', { name: 'Import' })
-    expect(importButton).toHaveAttribute('title', 'Import')
-    expect(importButton).toHaveTextContent('')
+    expect(props('exportMenu').variant).toBe('menu')
+    openListsMenu()
+    expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument()
   })
 })
+
+/** The Lists bar's "..." beside Add list, which holds templates, import and export. */
+function openListsMenu() {
+  const trigger = screen.getAllByRole('button', { name: 'Show more' }).find(b => b.getAttribute('aria-haspopup') === 'menu')
+  if (trigger) fireEvent.click(trigger)
+}
 
 describe('TripPlannerPage — modals', () => {
   it('FE-PAGE-TPW-045: closing the place form clears every editing slot', () => {

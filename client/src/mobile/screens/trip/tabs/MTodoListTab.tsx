@@ -101,7 +101,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
     <div className="flex items-center gap-[10px] rounded-2xl border border-m-rowbr bg-m-sheetop px-[14px] py-[12px]">
       <div className="min-w-0 flex-1">
         <div className="text-caption font-semibold tabular-nums text-m-ink">
-          {items.length > 0 && pct === 100 ? t('todo.allDone') : t('todo.progressCount', { done: counts.done, total: items.length })}
+          {progressLabel(t, counts.done, items.length)}
         </div>
         <div className="mt-[7px] h-[5px] overflow-hidden rounded-full bg-m-ic">
           <div className="h-full rounded-full bg-m-act" style={{ width: `${pct}%` }} />
@@ -247,6 +247,11 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
       />
     </>
   )
+}
+
+/** How far the list has come, in words: done once every task is. */
+function progressLabel(t: TripPlanner['t'], done: number, total: number): string {
+  return total > 0 && done === total ? t('todo.allDone') : t('todo.progressCount', { done, total })
 }
 
 function OptionRow({ icon, label, count, on, onClick }: Readonly<{ icon?: ReactNode; label: string; count?: number; on: boolean; onClick: () => void }>) {

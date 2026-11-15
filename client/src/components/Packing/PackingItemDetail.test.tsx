@@ -15,7 +15,10 @@ import type { TripMember } from './usePackingListPanel';
 
 type Props = ComponentProps<typeof PackingItemDetail>;
 
-const toastSpy = vi.fn((_message: string, _type?: string, _duration?: number) => 0);
+const toastError = vi.hoisted(() => vi.fn());
+vi.mock('../shared/Toast', () => ({
+  useToast: () => ({ success: vi.fn(), error: toastError, info: vi.fn(), warning: vi.fn() }),
+}));
 const MEMBERS = [
   { id: 1, username: 'owner' },
   { id: 2, username: 'alice' },
@@ -75,14 +78,12 @@ function capturePut() {
 
 beforeEach(() => {
   resetAllStores();
-  toastSpy.mockClear();
-  window.__addToast = toastSpy;
+  toastError.mockClear();
   seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }), packingItems: [buildPackingItem({ id: 1, name: 'Tent' })] });
 });
 
 afterEach(() => {
-  delete window.__addToast;
   vi.restoreAllMocks();
 });
 
@@ -115,7 +116,7 @@ describe('PackingItemDetail — name and list', () => {
     const input = dialog.getByRole('textbox', { name: 'Rename' });
     fireEvent.change(input, { target: { value: 'Tarp' } });
     fireEvent.blur(input);
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith('Failed to save'));
   });
 
   it('FE-PACKDETAIL-004: the List choice moves the item and leaves the current list alone', async () => {

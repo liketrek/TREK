@@ -8,7 +8,7 @@ import type { PackingState } from './usePackingListPanel'
  * Lists menu, so the row asks one question and answers one.
  */
 export function PackingViewTabs(S: PackingState) {
-  const { view, setView, t, items, abgehakt, viewTotal, fortschritt } = S
+  const { view, setView, t, items, abgehakt, viewTotal, fortschritt, inlineHeader } = S
   const commonCount = items.filter(i => !i.is_private).length
   const personalCount = items.filter(i => !!i.is_private).length
 
@@ -39,7 +39,8 @@ export function PackingViewTabs(S: PackingState) {
         {viewPill('common', <Users size={14} />, t('packing.viewCommon'), commonCount)}
         {viewPill('personal', <UserRound size={14} />, t('packing.viewPersonal'), personalCount)}
       </div>
-      {viewTotal > 0 && (
+      {/* The standalone panel says it in its own header already. */}
+      {!inlineHeader && viewTotal > 0 && (
         <div className="ms-auto inline-flex items-center gap-2.5 text-caption tabular-nums text-content-muted">
           {fortschritt === 100 ? (
             <span className="inline-flex items-center gap-1.5 font-semibold text-success"><CheckCheck size={14} strokeWidth={2.5} />{t('packing.allPacked')}</span>

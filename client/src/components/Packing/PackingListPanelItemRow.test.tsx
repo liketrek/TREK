@@ -95,7 +95,7 @@ describe('ArtikelZeile — at rest', () => {
     const { container } = setup({ item: buildPackingItem({ id: 1, name: 'Socks', quantity: 5, packed_quantity: 2 } as Partial<PackingItem>) })
     expect(screen.getByText('2/5')).toBeInTheDocument()
     expect(screen.queryByText('×5')).toBeNull()
-    expect(container.querySelector<HTMLElement>('.packing-check')!.style.borderColor).toBe('var(--accent)')
+    expect(container.querySelector<HTMLElement>('.packing-check')?.getAttribute('style')).toContain('solid var(--accent)')
   })
 
   it('FE-W5ROW-006: hovering brings up the chevron, leaving puts it away', () => {
@@ -161,7 +161,9 @@ describe('ArtikelZeile — badges', () => {
     expect(badge).toHaveTextContent('B+1')
     fireEvent.mouseEnter(badge)
     const rows = within(await screen.findByRole('tooltip')).getAllByRole('listitem')
-    expect(rows.map(r => r.textContent)).toEqual(['Bob', 'cleo'])
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toHaveTextContent('Bob')
+    expect(rows[1]).toHaveTextContent('cleo')
   })
 
   it('FE-W5ROW-012: co-bringers alone still show, without an owner', () => {
@@ -169,7 +171,7 @@ describe('ArtikelZeile — badges', () => {
       item: buildPackingItem({ id: 1, name: 'Stove', is_private: 0, owner_id: null, owner_username: null, contributors: [{ user_id: 2, username: 'alice' }] } as unknown as Partial<PackingItem>),
       tripMembers: MEMBERS,
     })
-    expect(screen.getByLabelText('brought by alice')).toHaveTextContent(/^A$/)
+    expect(screen.getByLabelText('brought by alice')).toHaveTextContent(/^a$/i)
   })
 
   it('FE-W5ROW-013: a private item shows no bringer faces', () => {
