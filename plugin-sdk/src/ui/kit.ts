@@ -475,6 +475,8 @@ export const TREK_THEME_JS = `(function () {
   var docEl = document.documentElement;
   var ctxHandlers = [];
   var evtHandlers = [];
+  var visHandlers = [];
+  var visible = true;
   var lastCtx = null;
   var pending = {};
   var pendingConfirms = {};
@@ -555,6 +557,14 @@ export const TREK_THEME_JS = `(function () {
       for (var w = 0; w < geoWatchers.length; w++) { try { geoWatchers[w](m.position || null, m.error || null); } catch (e) {} }
     } else if (m.type === 'trek:event') {
       for (var j = 0; j < evtHandlers.length; j++) { try { evtHandlers[j](m.event, m.tripId); } catch (e) {} }
+    } else if (m.type === 'trek:visibility') {
+      // The host tells us when this frame leaves the screen or the app goes to the
+      // background. Pause your timers, polling and animation here: a widget that keeps
+      // working off screen bogs down the shared WebView on a phone. data-hidden lets the
+      // kit CSS pause its own animations; onVisibility gets the plugin's own work.
+      visible = m.visible !== false;
+      setFlag('data-hidden', !visible);
+      for (var v = 0; v < visHandlers.length; v++) { try { visHandlers[v](visible); } catch (e) {} }
     }
   });
 
@@ -634,6 +644,14 @@ export const TREK_THEME_JS = `(function () {
       ctxHandlers.push(cb);
       if (lastCtx) { try { cb(lastCtx); } catch (e) {} }
       return function () { var i = ctxHandlers.indexOf(cb); if (i >= 0) { ctxHandlers.splice(i, 1); } };
+    },
+    // Whether the frame is on screen and the app is in the foreground, and a hook for
+    // the changes. Use it to pause heavy work while hidden; isVisible() seeds the first
+    // run. Returns an unsubscribe.
+    isVisible: function () { return visible; },
+    onVisibility: function (cb) {
+      visHandlers.push(cb);
+      return function () { var i = visHandlers.indexOf(cb); if (i >= 0) { visHandlers.splice(i, 1); } };
     },
     notify: function (level, message, duration) { send({ type: 'trek:notify', level: level, message: message, duration: duration }); },
     navigate: function (to) { send({ type: 'trek:navigate', to: to }); },
