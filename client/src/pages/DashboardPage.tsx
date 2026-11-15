@@ -773,7 +773,7 @@ function UpcomingTool({ items, locale, onOpen }: {
                   <div className="s">
                     {timeStr && <span className="upc-chip"><Clock size={11} />{timeStr}</span>}
                     {(moment || r.location || r.place_name || r.trip_title) && (
-                      <span className="upc-chip">{moment ? t(moment) : (r.location || r.place_name || r.trip_title)}</span>
+                      <span className="upc-chip"><span className="upc-chip-text">{moment ? t(moment) : (r.location || r.place_name || r.trip_title)}</span></span>
                     )}
                   </div>
                 </div>
