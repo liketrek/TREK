@@ -769,14 +769,22 @@ function UpcomingTool({ items, locale, onOpen }: {
                 <div className="upc-info">
                   <div className="t">
                     {r.title}
-                    {r.status === 'pending' && <span className="upc-pending">{t('reservations.pending')}</span>}
                   </div>
                   <div className="s">
-                    {timeStr && <><Clock size={11} /> {timeStr} · </>}
-                    {moment ? t(moment) : (r.location || r.place_name || r.trip_title)}
+                    {timeStr && <span className="upc-chip"><Clock size={11} />{timeStr}</span>}
+                    {(moment || r.location || r.place_name || r.trip_title) && (
+                      <span className="upc-chip">{moment ? t(moment) : (r.location || r.place_name || r.trip_title)}</span>
+                    )}
                   </div>
                 </div>
-                <div className={`upc-type ${typeClass}`}>{RES_ICON[r.type] || <Ticket size={16} />}</div>
+                <div className={`upc-type ${typeClass}`}>
+                  {RES_ICON[r.type] || <Ticket size={16} />}
+                  {r.status === 'pending' && (
+                    <span className="upc-pending" title={t('reservations.pending')} aria-label={t('reservations.pending')}>
+                      {t('reservations.pending').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
             )
           })}

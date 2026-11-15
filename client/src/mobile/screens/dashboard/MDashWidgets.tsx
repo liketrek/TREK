@@ -278,7 +278,7 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
     navigate(`/trips/${tripId}`)
   }
 
-  const subFor = (r: UpcomingReservation): string => {
+  const subFor = (r: UpcomingReservation): string[] => {
     const parsed = splitReservationDateTime(r.reservation_time)
     const datePart = parsed.date || r.day_date || null
     const date = datePart ? new Date(datePart + 'T00:00:00Z') : null
@@ -287,7 +287,8 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
       : null
     const timeStr = parsed.time ? formatTime(parsed.time, locale, timeFormat) : null
     const tail = MOMENT_LABEL[r.type] ? t(MOMENT_LABEL[r.type]) : (r.location || r.place_name || r.trip_title || null)
-    return [dateStr, timeStr, tail].filter(Boolean).join(' · ')
+    // Each part a badge of its own instead of one line strung together with dots.
+    return [dateStr, timeStr, tail].filter((part): part is string => !!part)
   }
 
   return (
@@ -302,19 +303,24 @@ function MUpcomingWidget({ items }: { items: UpcomingReservation[] }): React.Rea
             onClick={() => openReservation(r.trip_id)}
             className="flex w-full items-center gap-[11px] border-b border-[color:var(--m-rowbr)] py-[9px] text-start"
           >
-            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)]">
+            <span className="relative flex h-8 w-8 flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)]">
               {RES_ICON[r.type] || <Ticket size={14} strokeWidth={2} />}
+              {/* Pending: the status's first letter on a dot at the icon's corner, the word for screen readers. */}
+              {r.status === 'pending' && (
+                <span aria-label={t('reservations.pending')} className="absolute -start-[5px] -top-[5px] flex h-4 w-4 items-center justify-center rounded-full bg-m-act text-[0.5625rem] font-bold leading-none text-m-actfg shadow-[0_0_0_2px_var(--m-card)]">
+                  {t('reservations.pending').charAt(0).toUpperCase()}
+                </span>
+              )}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-1.5">
                 <span dir="auto" className="truncate text-[0.8125rem] font-semibold">{r.title}</span>
-                {r.status === 'pending' && (
-                  <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-[6px] py-px font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-muted">
-                    {t('reservations.pending')}
-                  </span>
-                )}
               </div>
-              <div className="truncate font-geist text-[0.625rem] text-m-muted">{subFor(r)}</div>
+              <div className="mt-[3px] flex min-w-0 gap-[4px]">
+                {subFor(r).map(part => (
+                  <span key={part} className="min-w-0 truncate rounded-full bg-m-ic first:flex-none px-[7px] py-px font-geist text-[0.625rem] font-medium text-m-muted">{part}</span>
+                ))}
+              </div>
             </div>
             <ChevronRight size={14} strokeWidth={2} className="flex-none text-m-faint" />
           </button>
