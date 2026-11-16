@@ -347,10 +347,53 @@ describe('FlightLivePollService: closing and sectors', () => {
     expect(await poll.poll(at(DEP + 5 * MIN))).toMatchObject({ asked: 2 });
     const rows = await findRows(orm, FlightLiveStates, { callsign: 'DLH100' });
     // Seen climbing out of Frankfurt: wheels-up for the first sector, nothing claimed for the second.
-    expect(rows.map((r) => [r.origin, r.destination, r.departed_at]).sort()).toEqual([
-      ['BER', 'FRA', null],
-      ['FRA', 'BER', '2026-07-01 10:05:00'],
+    expect(rows.map((r) => [r.origin, r.destination, r.phase, r.departed_at]).sort()).toEqual([
+      ['BER', 'FRA', 'scheduled', null],
+      ['FRA', 'BER', 'airborne', '2026-07-01 10:05:00'],
     ]);
+    expect(events()).toEqual(['flight_departed']);
+    feed.lookup.mockReset();
+  });
+
+  it('FLPOLL-013: the second sector of a through flight departs only when its own aircraft leaves', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Onwards' });
+    const day = await makeDay(orm, trip.id, { day_number: 1, date: '2026-07-01' });
+    const legs = [
+      { from: 'FRA', to: 'BER', flight_number: 'LH 100', dep_day_id: day.id, dep_time: '12:00', arr_time: '13:10' },
+      { from: 'BER', to: 'VIE', flight_number: 'LH 100', dep_day_id: day.id, dep_time: '13:55', arr_time: '15:05' },
+    ];
+    const flight = await makeReservation(orm, trip.id, {
+      title: 'Through flight',
+      type: 'flight',
+      metadata: JSON.stringify({ legs }),
+    });
+    const fra = { name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.0333, lng: 8.5706, timezone: 'Europe/Berlin' };
+    const ber = { name: 'Berlin (BER)', code: 'BER', lat: 52.3667, lng: 13.5033, timezone: 'Europe/Berlin' };
+    const vie = { name: 'Vienna (VIE)', code: 'VIE', lat: 48.1103, lng: 16.5697, timezone: 'Europe/Vienna' };
+    await makeReservationEndpoint(orm, flight.id, { role: 'from', sequence: 0, ...fra, local_date: '2026-07-01' });
+    await makeReservationEndpoint(orm, flight.id, { role: 'stop', sequence: 1, ...ber, local_date: '2026-07-01' });
+    await makeReservationEndpoint(orm, flight.id, { role: 'to', sequence: 2, ...vie, local_date: '2026-07-01' });
+    const sector = (origin: string) => findRow(orm, FlightLiveStates, { callsign: 'DLH100', origin });
+
+    // Cruising towards Berlin on the first sector: the Vienna sector stays on the ground.
+    feed.lookup.mockResolvedValue(seen(aircraft({ alt_baro: 30000, lat: 51.2, lon: 11, gs: 450 })));
+    await poll.poll(at(DEP + 30 * MIN));
+    expect(await sector('BER')).toMatchObject({ phase: 'scheduled', departed_notified: 0 });
+    expect(events()).toEqual(['flight_departed']);
+
+    // Down in Berlin: the first sector lands, the second still waits for its own departure.
+    feed.lookup.mockResolvedValue(seen(aircraft({ alt_baro: 'ground', lat: 52.37, lon: 13.5, gs: 15 })));
+    await poll.poll(at(ARR + 2 * MIN));
+    expect(await sector('FRA')).toMatchObject({ phase: 'landed' });
+    expect(await sector('BER')).toMatchObject({ departed_notified: 0, departed_at: null });
+
+    // Climbing out of Berlin towards Vienna: now the second sector has departed, told once.
+    notifications.send.mockClear();
+    feed.lookup.mockResolvedValue(seen(aircraft({ alt_baro: 5000, lat: 52.3, lon: 13.6, gs: 230 })));
+    await poll.poll(at(DEP + 120 * MIN));
+    expect(await sector('BER')).toMatchObject({ phase: 'airborne', departed_at: '2026-07-01 12:00:00' });
+    expect(events()).toEqual(['flight_departed']);
     feed.lookup.mockReset();
   });
 });

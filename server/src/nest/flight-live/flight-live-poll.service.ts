@@ -19,6 +19,7 @@ import {
   toLiveLeg,
   watchWindow,
   type LiveState,
+  type SiblingSector,
 } from './flight-live.derive';
 import { FlightLiveFeedService, type FeedLookup } from './flight-live.feeds';
 import { FlightLiveService, legKey, type TripLeg } from './flight-live.service';
@@ -94,6 +95,23 @@ function visible(state: LiveState): string {
 /** The local date `days` away from `now`'s UTC date. */
 function utcDate(now: number, days: number): string {
   return new Date(now + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** The other sectors in their window that fly under the same callsign as the flight `key`. */
+function siblingSectors(
+  key: string,
+  groups: ReadonlyMap<string, TripLeg[]>,
+  stored: ReadonlyMap<string, LiveState>,
+): SiblingSector[] {
+  const route = groups.get(key)?.[0];
+  if (!route) return [];
+  const siblings: SiblingSector[] = [];
+  for (const [other, legs] of groups) {
+    const sector = legs[0];
+    if (other === key || !sector || sector.callsign !== route.callsign) continue;
+    siblings.push({ route: sector, landed: stored.get(other)?.phase === 'landed' });
+  }
+  return siblings;
 }
 
 /**
@@ -176,7 +194,11 @@ export class FlightLivePollService {
           (a.state?.next_poll_at ?? 0) - (b.state?.next_poll_at ?? 0),
       );
 
-    const queue = due.slice(0, MAX_REQUESTS_PER_TICK).map(({ key, state }) => ({ legs: groups.get(key) ?? [], state }));
+    const queue = due.slice(0, MAX_REQUESTS_PER_TICK).map(({ key, state }) => ({
+      legs: groups.get(key) ?? [],
+      state,
+      siblings: siblingSectors(key, groups, stored),
+    }));
     const result: PollResult = { asked: 0, changed: 0, skipped: null };
     await this.pollEach(queue, clock, result);
     return result;
@@ -214,7 +236,7 @@ export class FlightLivePollService {
    * @txIndependent one write per flight (pollDue).
    */
   private async pollEach(
-    queue: ReadonlyArray<{ legs: TripLeg[]; state: LiveState | null }>,
+    queue: ReadonlyArray<{ legs: TripLeg[]; state: LiveState | null; siblings: SiblingSector[] }>,
     clock: () => number,
     result: PollResult,
   ): Promise<void> {
@@ -231,7 +253,8 @@ export class FlightLivePollService {
     if (!answer.ok && (answer as Extract<FeedLookup, { ok: false }>).reason === 'budget') return;
     result.asked++;
     const at = clock();
-    let next = answer.ok ? advance(prev, pickAircraft(answer.aircraft, route), route, at, answer.source) : failed(prev);
+    const picked = answer.ok ? pickAircraft(answer.aircraft, route, { now: at, siblings: head.siblings }) : null;
+    let next = answer.ok ? advance(prev, picked, route, at, answer.source) : failed(prev);
     next = closeIfOver({ ...next, next_poll_at: nextPollAt(next, route, at) }, route, at);
     const notices = this.dueNotices(prev, next, head.legs, at);
     next = { ...next, ...notices.flags };

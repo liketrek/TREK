@@ -17,6 +17,7 @@ import {
   watchWindow,
   type FeedAircraft,
   type LiveState,
+  type SiblingSector,
 } from '../../../../src/nest/flight-live/flight-live.derive';
 import type { ScheduledLeg } from '../../../../src/nest/flight-live/flight-live.schedule';
 import { flightLiveLegSchema } from '@trek/shared';
@@ -85,6 +86,56 @@ describe('pickAircraft and observe', () => {
     expect(pickAircraft([blind, far, near], LEG)?.hex).toBe('near');
     expect(pickAircraft([blind], LEG)?.hex).toBe('blind');
     expect(pickAircraft([], LEG)).toBeNull();
+  });
+
+  it('FLDER-020: on a through flight the aircraft of the first sector is not taken for the second', () => {
+    const at = (iso: string) => Date.parse(iso);
+    const bwi = { code: 'BWI', name: 'Baltimore', lat: 39.1754, lng: -76.6683, timezone: 'America/New_York' };
+    const mdw = { code: 'MDW', name: 'Chicago Midway', lat: 41.7868, lng: -87.7522, timezone: 'America/Chicago' };
+    const den = { code: 'DEN', name: 'Denver', lat: 39.8561, lng: -104.6737, timezone: 'America/Denver' };
+    const sector = { ...LEG, callsign: 'SWA1234', flight_number: 'WN 1234', service_date: '2026-07-01' };
+    const first: ScheduledLeg = {
+      ...sector,
+      origin: bwi,
+      destination: mdw,
+      scheduled_departure: at('2026-07-01T12:00:00Z'),
+      scheduled_arrival: at('2026-07-01T14:00:00Z'),
+    };
+    const second: ScheduledLeg = {
+      ...sector,
+      leg_index: 1,
+      origin: mdw,
+      destination: den,
+      scheduled_departure: at('2026-07-01T14:45:00Z'),
+      scheduled_arrival: at('2026-07-01T17:15:00Z'),
+    };
+    const flying = [{ route: first, landed: false }];
+    const landed = [{ route: first, landed: true }];
+    const pick = (aircraft: FeedAircraft, leg: ScheduledLeg, now: number, siblings: SiblingSector[]) =>
+      pickAircraft([aircraft], leg, { now, siblings })?.hex ?? null;
+    const swa = (overrides: Partial<FeedAircraft>) => ac({ hex: 'swa', flight: 'SWA1234', ...overrides });
+
+    // At the gate in Baltimore and climbing out of it: the first sector's, not the second's.
+    const atGate = swa({ lat: 39.18, lon: -76.67 });
+    const climbing = swa({ alt_baro: 8000, lat: 39.3, lon: -77.01 });
+    const takeoff = at('2026-07-01T12:10:00Z');
+    expect(pick(atGate, second, at('2026-07-01T11:45:00Z'), flying)).toBeNull();
+    expect(pick(climbing, second, takeoff, flying)).toBeNull();
+    expect(pick(climbing, first, takeoff, [{ route: second, landed: false }])).toBe('swa');
+    const empty = emptyState('SWA1234', '2026-07-01', 'MDW', 'DEN');
+    const picked = pickAircraft([climbing], second, { now: takeoff, siblings: flying });
+    const quiet = advance(empty, picked, second, takeoff, 'adsb.lol');
+    expect(quiet).toMatchObject({ phase: 'scheduled', departed_at: null, first_seen_at: null });
+
+    // Late on final into Midway, close to the second sector's departure: still the first sector's while it flies.
+    const onFinal = swa({ alt_baro: 2500, lat: 41.78, lon: -87.6 });
+    const nearDeparture = at('2026-07-01T14:40:00Z');
+    expect(pick(onFinal, second, nearDeparture, flying)).toBeNull();
+
+    // Once the first sector is down the aircraft at Midway is the second one's, and so is its climb towards Denver.
+    expect(pick(swa({ lat: 41.787, lon: -87.75 }), second, nearDeparture, landed)).toBe('swa');
+    const westbound = swa({ alt_baro: 6000, lat: 41.77, lon: -88.1 });
+    expect(pick(westbound, second, at('2026-07-01T14:52:00Z'), flying)).toBe('swa');
   });
 
   it('FLDER-003: reads a report at its own time, on the ground at zero feet, the geometric height as a fallback', () => {

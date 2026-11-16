@@ -117,23 +117,73 @@ export function inWatchWindow(leg: Schedule, now: number): boolean {
   return span !== null && now >= span.start && now <= span.end;
 }
 
+/** Another sector the same callsign flies in its watch window right now, and whether it is down already. */
+export interface SiblingSector {
+  route: Route;
+  landed: boolean;
+}
+
+function detourKm(lat: number, lng: number, route: Route): number {
+  const total = kmTo(route.origin.lat, route.origin.lng, route.destination);
+  return kmTo(lat, lng, route.origin) + kmTo(lat, lng, route.destination) - total;
+}
+
+/**
+ * How far a position is from where the sector's aircraft should be at `now`,
+ * in km: at the origin before the scheduled departure, at the destination
+ * after the scheduled arrival, on the route in between.
+ */
+function sectorFitKm(lat: number, lng: number, route: Route, now: number): number {
+  if (route.scheduled_departure !== null && now < route.scheduled_departure) return kmTo(lat, lng, route.origin);
+  if (route.scheduled_arrival !== null && now > route.scheduled_arrival) return kmTo(lat, lng, route.destination);
+  return detourKm(lat, lng, route);
+}
+
+function departsEarlier(a: Route, b: Route): boolean {
+  return (a.scheduled_departure ?? Number.POSITIVE_INFINITY) < (b.scheduled_departure ?? Number.POSITIVE_INFINITY);
+}
+
+/**
+ * Whether a sibling sector of the same flight number claims this position: it
+ * fits that sector better, or as well and that sector flies first and has not
+ * landed yet. A through flight (BWI-MDW-DEN as one number) is in the second
+ * sector's window during the whole first one, and the aircraft flying to MDW
+ * must not read as the MDW-DEN sector having departed.
+ */
+function claimedBySibling(
+  lat: number,
+  lng: number,
+  route: Route,
+  now: number,
+  siblings: readonly SiblingSector[],
+): boolean {
+  const own = sectorFitKm(lat, lng, route, now);
+  return siblings.some((sibling) => {
+    if (sibling.landed) return false;
+    const fit = sectorFitKm(lat, lng, sibling.route, now);
+    return fit < own || (fit === own && departsEarlier(sibling.route, route));
+  });
+}
+
 /**
  * The aircraft that flies this leg among those the feed answered for the
  * callsign: the one with a position nearest the great circle between the two
  * airports (least detour over the direct distance). A callsign is reused by
- * the next leg of a rotation, so two can be in the air at once.
+ * the next leg of a rotation, so two can be in the air at once. An aircraft a
+ * sibling sector of the same flight number claims at `now` is left to it.
  */
-export function pickAircraft(aircraft: readonly FeedAircraft[], route: Route): FeedAircraft | null {
-  const total = kmTo(route.origin.lat, route.origin.lng, route.destination);
+export function pickAircraft(
+  aircraft: readonly FeedAircraft[],
+  route: Route,
+  sectors: { now: number; siblings: readonly SiblingSector[] } = { now: 0, siblings: [] },
+): FeedAircraft | null {
   let best: FeedAircraft | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
   for (const ac of aircraft) {
     const lat = finite(ac.lat);
     const lng = finite(ac.lon);
-    const score =
-      lat === null || lng === null
-        ? Number.MAX_VALUE
-        : kmTo(lat, lng, route.origin) + kmTo(lat, lng, route.destination) - total;
+    if (lat !== null && lng !== null && claimedBySibling(lat, lng, route, sectors.now, sectors.siblings)) continue;
+    const score = lat === null || lng === null ? Number.MAX_VALUE : detourKm(lat, lng, route);
     if (best === null || score < bestScore) {
       best = ac;
       bestScore = score;
