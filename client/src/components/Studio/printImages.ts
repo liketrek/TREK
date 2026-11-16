@@ -43,11 +43,16 @@ function loadOne(img: HTMLImageElement, src: string, timeoutMs: number): Promise
   });
 }
 
+/** What `loadPrintImages` reads off the print document, as `whenReady` does. */
+interface PrintDocument {
+  querySelectorAll?: (selector: string) => ArrayLike<Element>;
+}
+
 /** Resolves once every deferred photo in `doc` has loaded or been given up on. */
-export async function loadPrintImages(doc: Document, options: PrintImageOptions = {}): Promise<void> {
+export async function loadPrintImages(doc: PrintDocument, options: PrintImageOptions = {}): Promise<void> {
   const concurrency = Math.max(1, options.concurrency ?? PRINT_IMAGES.concurrency);
   const timeoutMs = options.timeoutMs ?? PRINT_IMAGES.timeoutMs;
-  const images = Array.from(doc.querySelectorAll<HTMLImageElement>(`img[${PRINT_SRC_ATTR}]`));
+  const images = Array.from(doc.querySelectorAll?.(`img[${PRINT_SRC_ATTR}]`) ?? []) as HTMLImageElement[];
   const total = images.length;
   let next = 0;
   let done = 0;

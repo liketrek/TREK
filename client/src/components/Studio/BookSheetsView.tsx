@@ -1,5 +1,6 @@
 import type { BookDocument } from '@trek/shared'
 import { SpreadView } from './SpreadView'
+import { DeferPrintPhotos } from './bookRender'
 import { MARK_LENGTH, MARK_WEIGHT, sheetBox, sheetsFor, type Sheet, type SheetMode, foliosOf } from './bookSheets'
 
 /**
@@ -104,13 +105,15 @@ function SheetView({
             height: `${sheet.height}mm`,
           }}
         >
-          <SpreadView
-            spread={sheet.spread}
-            page={doc.page}
-            folios={foliosOf(doc.spreads, sheet.spreadIndex, doc.page.pageNumbers.startAt)}
-            big
-            print
-          />
+          <DeferPrintPhotos.Provider value>
+            <SpreadView
+              spread={sheet.spread}
+              page={doc.page}
+              folios={foliosOf(doc.spreads, sheet.spreadIndex, doc.page.pageNumbers.startAt)}
+              big
+              print
+            />
+          </DeferPrintPhotos.Provider>
         </div>
       </div>
 

@@ -222,6 +222,6 @@ describe('what the sheets are made of', () => {
     // worth waiting for. Held back from `src` until the print view loads it a
     // few at a time (#3102).
     expect(img!.getAttribute('data-print-src')).toContain('/original')
-    expect(img!.hasAttribute('src')).toBe(false)
+    expect(img?.hasAttribute('src')).toBe(false)
   })
 })

@@ -59,7 +59,7 @@ describe('loadPrintImages', () => {
     expect(state.maxInFlight).toBe(3);
     expect(imgs.every((img) => img.getAttribute('src')?.startsWith('/api/photos/'))).toBe(true);
     expect(imgs.some((img) => img.hasAttribute(PRINT_SRC_ATTR))).toBe(false);
-    expect(progress.at(-1)).toBe('10/10');
+    expect(progress[progress.length - 1]).toBe('10/10');
   });
 
   it('FE-STUDIO-PRINTIMG-002: asks once more for a photo that failed', async () => {

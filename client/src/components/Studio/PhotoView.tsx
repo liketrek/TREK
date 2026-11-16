@@ -1,8 +1,8 @@
 import { photoLookOf, type BookFrame, type BookPhotoElement, type BookShapeId, type PhotoLook } from '@trek/shared';
-import type { CSSProperties, ReactNode } from 'react';
+import { useContext, type CSSProperties, type ReactNode } from 'react';
 
 import { fontStack } from './bookFonts';
-import { PRINT_SRC_ATTR, photoSrc } from './bookRender';
+import { DeferPrintPhotos, PRINT_SRC_ATTR, photoSrc } from './bookRender';
 import { usePaintId } from './paint/usePaintId';
 import { pictureFilter, silhouetteShadows, svgFilterMatrices, zoomPlacement } from './photo/photoLook';
 import { photoClip } from './shapeOutline';
@@ -170,9 +170,10 @@ function Picture({
   filterId: string | null;
 }) {
   const zoom = zoomPlacement(look.zoom, el.focalX, el.focalY);
+  const defer = useContext(DeferPrintPhotos) && print;
   const img = (
     <img
-      {...(print ? { [PRINT_SRC_ATTR]: photoSrc(photoId, big) } : { src: photoSrc(photoId, big) })}
+      {...(defer ? { [PRINT_SRC_ATTR]: photoSrc(photoId, big) } : { src: photoSrc(photoId, big) })}
       alt=""
       draggable={false}
       // Lazy on the canvas, where a long book scrolls past; eager in print,
