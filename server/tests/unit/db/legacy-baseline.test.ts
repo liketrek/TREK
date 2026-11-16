@@ -110,6 +110,7 @@ const UNNUMBERED = [
   'Migration20200101046400_a_booked_flight_shows_where_it_is',
   'Migration20200101046410_a_forwarded_booking_mail_lands_in_its_trip',
   'Migration20200101046420_a_visit_keeps_its_own_stay',
+  'Migration20200101046430_a_paused_mail_import_can_tell_its_address_holders',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

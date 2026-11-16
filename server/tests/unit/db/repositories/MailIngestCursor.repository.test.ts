@@ -63,4 +63,12 @@ describe('MailIngestCursorRepository', () => {
     expect(await cursor.findCursor('imap', 'INBOX')).toMatchObject({ uid_validity: 7, last_ok_at: null });
     expect(await cursor.findCursor('cloud', '')).toBeNull();
   });
+
+  it('keeps the pause notice as a reader of its own, as the schema allows', async () => {
+    // The pause job takes this lease before it tells anyone; the insert behind
+    // it once failed the transport CHECK, so nobody was ever told.
+    expect(await cursor.acquireLease('notice', 'paused', 'a', T1, T0)).toBe(true);
+    await cursor.recordOk('notice', 'paused', T0);
+    expect(await cursor.findCursor('notice', 'paused')).toMatchObject({ last_ok_at: T0, lease_owner: 'a' });
+  });
 });
