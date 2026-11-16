@@ -88,16 +88,23 @@ export class MailIngestActionsService {
     const { entry, tripId, created } = await this.addedEntry(candidateId, userId, now);
     await this.requireConfirmed(tripId, created, confirm, 'Undoing this booking changes more than the booking');
     const removed = await this.uow.transactional(async () => {
-      const claimed = await this.candidates.resolve(entry.id, ADDED_RESOLUTIONS, {
-        resolution: 'undone',
-        reason: null,
-        resolvedTripId: tripId,
-        createdIdsJson: entry.created_ids_json,
-        resolvedBy: userId,
-        resolvedAt: dbNow(now),
-        undoUntil: null,
-      });
-      if (!claimed) throw new DomainError(409, 'This booking was undone already');
+      // A move keeps the resolution, so the claim also asks for the trip and ids read above: after a move
+      // in between, removing those would miss the booking in the new trip and leave it behind.
+      const claimed = await this.candidates.resolve(
+        entry.id,
+        ADDED_RESOLUTIONS,
+        {
+          resolution: 'undone',
+          reason: null,
+          resolvedTripId: tripId,
+          createdIdsJson: entry.created_ids_json,
+          resolvedBy: userId,
+          resolvedAt: dbNow(now),
+          undoUntil: null,
+        },
+        { tripId, createdIdsJson: entry.created_ids_json },
+      );
+      if (!claimed) throw new DomainError(409, 'This booking was moved or undone already');
       return this.apply.removeInTx(tripId, created);
     });
     await this.apply.announceRemoved(removed, created.file_ids);

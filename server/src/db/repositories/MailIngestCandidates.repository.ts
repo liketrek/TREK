@@ -193,9 +193,16 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
   /**
    * Decides an entry, if it is still in one of the `from` states: one
    * conditional update, so of two decisions at once only the first lands.
+   * With `held`, only while the entry still holds that trip and those
+   * created ids: a move keeps the resolution and changes only these.
    */
-  async resolve(id: number, from: readonly string[], patch: MailIngestResolutionPatch): Promise<boolean> {
-    const result = await this.db()
+  async resolve(
+    id: number,
+    from: readonly string[],
+    patch: MailIngestResolutionPatch,
+    held?: { tripId: number; createdIdsJson: string | null },
+  ): Promise<boolean> {
+    let query = this.db()
       .updateTable('mail_ingest_candidates')
       .set({
         resolution: patch.resolution,
@@ -207,8 +214,15 @@ export class MailIngestCandidatesRepository extends TrekRepository<MailIngestCan
         undo_until: patch.undoUntil,
       })
       .where('id', '=', id)
-      .where('resolution', 'in', [...from])
-      .executeTakeFirst();
+      .where('resolution', 'in', [...from]);
+    if (held) {
+      query = query.where('resolved_trip_id', '=', held.tripId);
+      query =
+        held.createdIdsJson === null
+          ? query.where('created_ids_json', 'is', null)
+          : query.where('created_ids_json', '=', held.createdIdsJson);
+    }
+    const result = await query.executeTakeFirst();
     return Number(result.numUpdatedRows) > 0;
   }
 

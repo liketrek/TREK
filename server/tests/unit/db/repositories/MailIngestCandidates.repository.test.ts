@@ -130,6 +130,39 @@ describe('MailIngestCandidatesRepository: the entries', () => {
     });
   });
 
+  it('decides an added entry only while it still holds the trip and ids it was read with', async () => {
+    const { user } = await makeUser(t);
+    const trip = await makeTrip(t, user.id);
+    const other = await makeTrip(t, user.id);
+    const mail = await mailOf(user.id);
+    const id = await entry(mail, user.id);
+    const added = {
+      resolution: 'applied',
+      reason: null,
+      resolvedTripId: trip.id,
+      createdIdsJson: '{"reservation_ids":[1]}',
+      resolvedBy: user.id,
+      resolvedAt: DAY1,
+      undoUntil: at('2026-11-08T10:00:00Z'),
+    };
+    expect(await candidates.resolve(id, ['pending'], added)).toBe(true);
+    const undone = { ...added, resolution: 'undone', undoUntil: null };
+
+    expect(
+      await candidates.resolve(id, ['applied'], undone, { tripId: other.id, createdIdsJson: added.createdIdsJson }),
+    ).toBe(false);
+    expect(await candidates.resolve(id, ['applied'], undone, { tripId: trip.id, createdIdsJson: '{"x":1}' })).toBe(
+      false,
+    );
+    expect(await candidates.resolve(id, ['applied'], undone, { tripId: trip.id, createdIdsJson: null })).toBe(false);
+    expect(await candidates.findById(id)).toMatchObject({ resolution: 'applied' });
+
+    expect(
+      await candidates.resolve(id, ['applied'], undone, { tripId: trip.id, createdIdsJson: added.createdIdsJson }),
+    ).toBe(true);
+    expect(await candidates.findById(id)).toMatchObject({ resolution: 'undone', resolved_trip_id: trip.id });
+  });
+
   it('writes an entry decided as it is written with its trip, ids and undo window', async () => {
     const { user } = await makeUser(t);
     const trip = await makeTrip(t, user.id);

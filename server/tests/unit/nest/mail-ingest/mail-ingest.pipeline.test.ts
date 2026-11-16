@@ -17,6 +17,7 @@ import { MailReadService } from '../../../../src/nest/llm-parse/mail-read.servic
 import type { MailReading as AiReading } from '../../../../src/nest/llm-parse/mail-read.types';
 import { walkMail } from '../../../../src/nest/llm-parse/mime-walker';
 import { MailIngestActionsService } from '../../../../src/nest/mail-ingest/mail-ingest-actions.service';
+import { MailIngestApplyService } from '../../../../src/nest/mail-ingest/mail-ingest-apply.service';
 import { MailIngestInboxService } from '../../../../src/nest/mail-ingest/mail-ingest-inbox.service';
 import { MailIngestIntakeService } from '../../../../src/nest/mail-ingest/mail-ingest-intake.service';
 import { MailIngestProcessJob } from '../../../../src/nest/mail-ingest/mail-ingest-process.job';
@@ -284,6 +285,33 @@ describe('a booking that passes every check', () => {
     expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(1);
     expect(t.realtime.broadcastMock).toHaveBeenCalledWith(first.id, 'reservation:deleted', expect.anything());
     expect(t.realtime.broadcastMock).toHaveBeenCalledWith(second.id, 'reservation:created', expect.anything());
+
+    await actions().undo(entry.id, user.id, false, NOW);
+    expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(0);
+  });
+
+  it('is not undone when it moves while the undo waits: the booking stays where it went, with its entry', async () => {
+    const user = await person();
+    const first = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    const messageId = await forward(user.id, eml('flight'));
+    const [entry] = await entriesOf(messageId);
+    const second = await makeTrip(orm(), user.id, { start_date: '2030-02-25', end_date: '2030-03-05' });
+    // The move lands between the undo reading the entry and claiming it, while the undo checks for edits.
+    const edited = vi.spyOn(t.get(MailIngestApplyService), 'editedSince').mockImplementationOnce(async () => {
+      await actions().move(entry.id, user.id, second.id, true, NOW);
+      return false;
+    });
+    try {
+      await expect(actions().undo(entry.id, user.id, false, NOW)).rejects.toThrow(
+        'This booking was moved or undone already',
+      );
+    } finally {
+      edited.mockRestore();
+    }
+    expect(await countRows(orm(), Reservations, { trip: first.id })).toBe(0);
+    expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(1);
+    const [after] = await entriesOf(messageId);
+    expect(after).toMatchObject({ resolution: 'auto_applied', resolved_trip_id: second.id });
 
     await actions().undo(entry.id, user.id, false, NOW);
     expect(await countRows(orm(), Reservations, { trip: second.id })).toBe(0);
