@@ -186,8 +186,7 @@ const settings: TranslationStrings = {
   'settings.mcp.toast.createError': 'فشل إنشاء الرمز',
   'settings.mcp.toast.deleted': 'تم حذف الرمز',
   'settings.mcp.toast.deleteError': 'فشل حذف الرمز',
-  'settings.mcp.apiTokensDeprecated':
-    'رموز API قديمة وستُزال في إصدار مستقبلي. يُرجى استخدام عملاء OAuth 2.1 بدلاً منها.',
+  'settings.mcp.apiTokensDeprecated': 'رموز API قديمة وستُزال في إصدار مستقبلي. يُرجى استخدام عملاء OAuth 2.1 بدلاً منها.',
   'settings.oauth.clients': 'عملاء OAuth 2.1',
   'settings.oauth.clientsHint':
     'سجّل عملاء OAuth 2.1 للسماح لتطبيقات MCP الخارجية (Claude Web وCursor وغيرها) بالاتصال دون رموز ثابتة.',

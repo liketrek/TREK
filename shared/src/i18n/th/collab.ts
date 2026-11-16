@@ -102,8 +102,7 @@ const collab: TranslationStrings = {
   'collab.links.confirmDeleteTitle': 'ลบลิงก์ใช่ไหม',
   'collab.links.confirmDeleteBody': 'ลิงก์นี้จะถูกลบอย่างถาวร',
   'collab.notes.categoryInUse': 'ยังมีโน้ตที่ใช้หมวดหมู่นี้อยู่ ย้ายหรือลบโน้ตเหล่านั้นก่อนจึงจะลบหมวดหมู่ได้',
-  'collab.notes.categoriesLocalHint':
-    'หมวดหมู่ที่ไม่มีโน้ตจะถูกบันทึกในเบราว์เซอร์นี้เท่านั้น สมาชิกคนอื่นจะเห็นเมื่อมีโน้ตใช้หมวดหมู่นั้น',
+  'collab.notes.categoriesLocalHint': 'หมวดหมู่ที่ไม่มีโน้ตจะถูกบันทึกในเบราว์เซอร์นี้เท่านั้น สมาชิกคนอื่นจะเห็นเมื่อมีโน้ตใช้หมวดหมู่นั้น',
   'collab.chat.fromAssistant': 'จากผู้ช่วย',
   'collab.chat.fromAssistantHint': '{name} แชร์คำตอบนี้จากผู้ช่วย',
 };

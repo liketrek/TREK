@@ -5,8 +5,7 @@ const places: TranslationStrings = {
   'places.importFile': 'นำเข้าไฟล์',
   'places.trackIndicator': 'เส้นทางที่บันทึกไว้',
   'places.sidebarDrop': 'วางเพื่อนำเข้า',
-  'places.importFileHint':
-    'นำเข้าไฟล์ .gpx, .kml หรือ .kmz จากเครื่องมือ เช่น Google My Maps, Google Earth หรือเครื่องติดตาม GPS',
+  'places.importFileHint': 'นำเข้าไฟล์ .gpx, .kml หรือ .kmz จากเครื่องมือ เช่น Google My Maps, Google Earth หรือเครื่องติดตาม GPS',
   'places.importFileDropHere': 'คลิกเพื่อเลือกไฟล์หรือลากและวางที่นี่',
   'places.importFileDropActive': 'วางไฟล์เพื่อเลือก',
   'places.importFileUnsupported': 'ประเภทไฟล์ที่ไม่รองรับ ใช้ .gpx, .kml หรือ .kmz',
@@ -79,8 +78,7 @@ const places: TranslationStrings = {
   'places.formLngLabel': 'ลองจิจูด',
   'places.noCoordinates': 'ไม่มีพิกัด จึงไม่แสดงบนแผนที่',
   'places.noCoordinatesHint': 'แก้ไขสถานที่แล้วเลือกจากการค้นหา หรือใส่ละติจูดและลองจิจูด',
-  'places.noCoordinatesFormHint':
-    'ที่อยู่นี้ยังไม่มีพิกัด สถานที่จึงจะไม่แสดงบนแผนที่ เลือกจากการค้นหาด้านบน หรือใส่ละติจูดและลองจิจูด',
+  'places.noCoordinatesFormHint': 'ที่อยู่นี้ยังไม่มีพิกัด สถานที่จึงจะไม่แสดงบนแผนที่ เลือกจากการค้นหาด้านบน หรือใส่ละติจูดและลองจิจูด',
   'places.formCategory': 'หมวดหมู่',
   'places.noCategory': 'ไม่มีหมวดหมู่',
   'places.newCategory': 'หมวดหมู่ใหม่',
@@ -150,8 +148,7 @@ const places: TranslationStrings = {
   'places.duplicateExists': "'{name}' อยู่ในทริปนี้แล้ว",
   'places.addAnyway': 'เพิ่มต่อไป',
   'places.enrichOnImport': 'เติมเต็มสถานที่ผ่าน Google',
-  'places.enrichOnImportHint':
-    'ค้นหาสถานที่ที่นำเข้าแต่ละแห่งเพื่อกรอกรูปภาพ ที่อยู่ และรายละเอียดการติดต่อ ใช้คีย์ Google Maps ของคุณ',
+  'places.enrichOnImportHint': 'ค้นหาสถานที่ที่นำเข้าแต่ละแห่งเพื่อกรอกรูปภาพ ที่อยู่ และรายละเอียดการติดต่อ ใช้คีย์ Google Maps ของคุณ',
   'places.enrichOnImportFileHint':
     'หลังนำเข้า จะค้นหาแต่ละจุดบน Google แล้วเพิ่มรูปภาพ ที่อยู่ เว็บไซต์ และเบอร์โทรศัพท์ เส้นทางและแทร็กจะคงเดิม',
   'places.uploadImage': 'อัปโหลดรูปภาพ',
@@ -172,8 +169,7 @@ const places: TranslationStrings = {
   'places.source.amap': 'Amap',
   'places.refresh.pill': 'ข้อมูลสถานที่ใหม่',
   'places.refresh.title': 'อัปเดตข้อมูลสถานที่',
-  'places.refresh.intro':
-    'TREK มีข้อมูลที่ใหม่กว่าสำหรับสถานที่นี้ เลือกสิ่งที่ต้องการนำมาใช้ ส่วนที่เหลือคงเดิม จากนั้นบันทึกสถานที่',
+  'places.refresh.intro': 'TREK มีข้อมูลที่ใหม่กว่าสำหรับสถานที่นี้ เลือกสิ่งที่ต้องการนำมาใช้ ส่วนที่เหลือคงเดิม จากนั้นบันทึกสถานที่',
   'places.refresh.apply': 'นำมาใช้',
   'places.refresh.replaces': 'แทนที่ค่าที่บันทึกไว้ตอนนี้',
   'places.refresh.empty': 'ว่าง',

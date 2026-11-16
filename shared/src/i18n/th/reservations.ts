@@ -82,8 +82,7 @@ const reservations: TranslationStrings = {
   'reservations.confirm.deleteBodyWithExpense': '"{name}" และค่าใช้จ่ายที่เชื่อมโยงไว้จะถูกลบอย่างถาวร',
   'reservations.toast.updated': 'อัพเดตการจองแล้ว',
   'reservations.toast.removed': 'ลบการจองแล้ว',
-  'reservations.toast.filesNotUploaded':
-    'บันทึกการจองแล้ว แต่บางไฟล์อัปโหลดไม่สำเร็จ บันทึกอีกครั้งเพื่อส่งไฟล์เหล่านั้น',
+  'reservations.toast.filesNotUploaded': 'บันทึกการจองแล้ว แต่บางไฟล์อัปโหลดไม่สำเร็จ บันทึกอีกครั้งเพื่อส่งไฟล์เหล่านั้น',
   'reservations.newTitle': 'การจองใหม่',
   'reservations.bookingType': 'ประเภทการจอง',
   'reservations.titleLabel': 'ชื่อเรื่อง',
@@ -140,8 +139,7 @@ const reservations: TranslationStrings = {
   'reservations.span.end': 'สิ้นสุด',
   'reservations.span.ongoing': 'กำลังดำเนินการอยู่',
   'reservations.validation.endBeforeStart': 'วันที่/เวลาสิ้นสุดต้องอยู่หลังวันที่/เวลาเริ่มต้น',
-  'reservations.validation.endTimeBeforeStartTime':
-    'เวลาสิ้นสุดอยู่ก่อนเวลาเริ่มต้น หากสิ้นสุดในวันถัดไป ให้กำหนดวันที่สิ้นสุด',
+  'reservations.validation.endTimeBeforeStartTime': 'เวลาสิ้นสุดอยู่ก่อนเวลาเริ่มต้น หากสิ้นสุดในวันถัดไป ให้กำหนดวันที่สิ้นสุด',
   'reservations.addBooking': 'เพิ่มการจอง',
   'reservations.import.title': 'นำเข้าการยืนยันการจอง',
   'reservations.import.cta': 'นำเข้าจากไฟล์',
@@ -150,11 +148,9 @@ const reservations: TranslationStrings = {
   'reservations.import.pinSearching': 'กำลังค้นหาบนแผนที่…',
   'reservations.import.pinFound': 'อยู่บนแผนที่',
   'reservations.import.pinMissingTitle': 'ยังไม่อยู่บนแผนที่',
-  'reservations.import.pinMissingBody':
-    'TREK ไม่พบที่พักนี้บนแผนที่ ตรวจสอบชื่อและที่อยู่ด้านบนแล้วค้นหาอีกครั้ง หรือบันทึกโดยไม่มีหมุด',
+  'reservations.import.pinMissingBody': 'TREK ไม่พบที่พักนี้บนแผนที่ ตรวจสอบชื่อและที่อยู่ด้านบนแล้วค้นหาอีกครั้ง หรือบันทึกโดยไม่มีหมุด',
   'reservations.import.pinRetry': 'ค้นหาอีกครั้ง',
-  'reservations.import.savedWithoutPin':
-    'บันทึกแล้วโดยไม่มีหมุดบนแผนที่ แก้ไขสถานที่และกำหนดตำแหน่งเพื่อให้แสดงบนแผนที่',
+  'reservations.import.savedWithoutPin': 'บันทึกแล้วโดยไม่มีหมุดบนแผนที่ แก้ไขสถานที่และกำหนดตำแหน่งเพื่อให้แสดงบนแผนที่',
   'reservations.import.acceptedFormats': 'ยอมรับ: EML, PDF, PKPass, HTML, TXT (สูงสุด 10 MB ต่อไฟล์ สูงสุด 5 ไฟล์)',
   'reservations.import.acceptedPhotos': 'โมเดล AI จะอ่านรูปถ่าย (JPG, PNG, WEBP)',
   'reservations.import.parsing': 'กำลังแยกวิเคราะห์ไฟล์...',

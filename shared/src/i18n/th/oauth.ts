@@ -28,11 +28,9 @@ const oauth: TranslationStrings = {
   'oauth.scope.places:write.label': 'จัดการสถานที่',
   'oauth.scope.places:write.description': 'สร้าง อัปเดต และลบสถานที่ การมอบหมาย และแท็ก',
   'oauth.scope.collections:read.label': 'ดูคอลเลกชัน',
-  'oauth.scope.collections:read.description':
-    'อ่านคอลเลกชันสถานที่ที่บันทึกไว้ สถานที่ การให้คะแนน ป้ายกำกับ และสมาชิก',
+  'oauth.scope.collections:read.description': 'อ่านคอลเลกชันสถานที่ที่บันทึกไว้ สถานที่ การให้คะแนน ป้ายกำกับ และสมาชิก',
   'oauth.scope.collections:write.label': 'จัดการคอลเลกชัน',
-  'oauth.scope.collections:write.description':
-    'สร้าง/แก้ไขคอลเลกชัน บันทึก ให้คะแนน ติดป้ายกำกับและคัดลอกสถานที่ และแชร์รายการ',
+  'oauth.scope.collections:write.description': 'สร้าง/แก้ไขคอลเลกชัน บันทึก ให้คะแนน ติดป้ายกำกับและคัดลอกสถานที่ และแชร์รายการ',
   'oauth.scope.atlas:read.label': 'ดูแอตลาส',
   'oauth.scope.atlas:read.description': 'อ่านประเทศ ภูมิภาค และรายการสิ่งที่อยากไป',
   'oauth.scope.atlas:write.label': 'จัดการแอตลาส',
@@ -84,8 +82,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.requestLabel': 'คำขออนุมัติ',
   'oauth.authorize.requestDescription': 'แอปพลิเคชันนี้กำลังขอเข้าถึงบัญชี TREK ของคุณ',
   'oauth.authorize.verifiedHost': 'โดเมนที่ยืนยันแล้ว: {host}',
-  'oauth.authorize.trustNote':
-    'ให้สิทธิ์การเข้าถึงเฉพาะแอปพลิเคชันที่คุณเชื่อถือเท่านั้น ข้อมูลของคุณอยู่บนเซิร์ฟเวอร์ของคุณ',
+  'oauth.authorize.trustNote': 'ให้สิทธิ์การเข้าถึงเฉพาะแอปพลิเคชันที่คุณเชื่อถือเท่านั้น ข้อมูลของคุณอยู่บนเซิร์ฟเวอร์ของคุณ',
   'oauth.authorize.selectScope': 'เลือกอย่างน้อยหนึ่งขอบเขต',
   'oauth.authorize.approveScopes': 'อนุมัติ ({count} ขอบเขต)',
   'oauth.authorize.approveAccess': 'อนุมัติการเข้าถึง',
@@ -100,15 +97,13 @@ const oauth: TranslationStrings = {
   'oauth.scope.files:read.label': 'ดูไฟล์การเดินทาง',
   'oauth.scope.files:read.description': 'แสดงรายการเอกสารในการเดินทาง: ชื่อ ขนาด ผู้อัปโหลด และลิงก์ไปยังไฟล์',
   'oauth.scope.files:write.label': 'จัดระเบียบไฟล์การเดินทาง',
-  'oauth.scope.files:write.description':
-    'เปลี่ยนชื่อและอธิบายไฟล์ ลิงก์ไปยังการจองและสถานที่ ติดดาวและทิ้งไฟล์เหล่านั้น',
+  'oauth.scope.files:write.description': 'เปลี่ยนชื่อและอธิบายไฟล์ ลิงก์ไปยังการจองและสถานที่ ติดดาวและทิ้งไฟล์เหล่านั้น',
   'oauth.scope.files:content.label': 'อ่านเนื้อหาไฟล์',
   'oauth.scope.files:content.description': 'อ่านสิ่งที่อยู่ภายในเอกสารที่อัปโหลด เช่น การจอง PDF หรือตั๋ว',
   'oauth.scope.settings:read.label': 'ดูการตั้งค่าของคุณ',
   'oauth.scope.settings:read.description': 'อ่านหน่วย รูปแบบเวลา ภาษา สกุลเงินเริ่มต้น และหน้าเริ่มต้น',
   'oauth.scope.settings:write.label': 'เปลี่ยนการตั้งค่าของคุณ',
-  'oauth.scope.settings:write.description':
-    'เปลี่ยนหน่วย รูปแบบเวลา ภาษา สกุลเงินเริ่มต้น และหน้าเริ่มต้น ไม่เคยเก็บคีย์ API',
+  'oauth.scope.settings:write.description': 'เปลี่ยนหน่วย รูปแบบเวลา ภาษา สกุลเงินเริ่มต้น และหน้าเริ่มต้น ไม่เคยเก็บคีย์ API',
   'oauth.scope.group.plugins': 'ปลั๊กอิน',
   'oauth.scope.plugins:use.label': 'เรียกใช้เครื่องมือปลั๊กอิน',
   'oauth.scope.plugins:use.description':

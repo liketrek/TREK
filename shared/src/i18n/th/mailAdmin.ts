@@ -27,8 +27,7 @@ const mailAdmin: TranslationStrings = {
   'mailAdmin.imap.mailbox': 'โฟลเดอร์',
   'mailAdmin.imap.mailboxHint': 'อีเมลที่อ่านแล้วจะย้ายไปที่ TREK/processed',
   'mailAdmin.webhook.secret': 'รหัสลับสำหรับลงชื่อ',
-  'mailAdmin.webhook.secretHint':
-    'อย่างน้อย 32 ตัวอักษร ผู้ส่งจะใช้รหัสนี้ลงชื่อกำกับทุกอีเมล หากเว้นว่างไว้ เว็บฮุกจะปิดอยู่',
+  'mailAdmin.webhook.secretHint': 'อย่างน้อย 32 ตัวอักษร ผู้ส่งจะใช้รหัสนี้ลงชื่อกำกับทุกอีเมล หากเว้นว่างไว้ เว็บฮุกจะปิดอยู่',
   'mailAdmin.inboundUrl': 'ที่อยู่เว็บฮุก',
   'mailAdmin.inboundUrlHint': 'บริการอีเมลของคุณจะส่งแต่ละอีเมลมาที่นี่ในรูปแบบดิบพร้อมลายเซ็น',
   'mailAdmin.copyUrl': 'คัดลอกที่อยู่',

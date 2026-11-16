@@ -49,8 +49,7 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.testSuccess': 'ทดสอบการส่ง ntfy สำเร็จ',
   'admin.notifications.adminNtfyPanel.testFailed': 'การทดสอบ ntfy ล้มเหลว',
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'ผู้ดูแลระบบ ntfy จะเริ่มทำงานเสมอเมื่อมีการกำหนดค่าหัวข้อ',
-  'admin.notifications.adminNotificationsHint':
-    'กำหนดค่าช่องทางที่จะส่งการแจ้งเตือนเฉพาะผู้ดูแลระบบเท่านั้น (เช่น การแจ้งเตือนเวอร์ชัน)',
+  'admin.notifications.adminNotificationsHint': 'กำหนดค่าช่องทางที่จะส่งการแจ้งเตือนเฉพาะผู้ดูแลระบบเท่านั้น (เช่น การแจ้งเตือนเวอร์ชัน)',
   'admin.notificationDefaults.title': 'ค่าเริ่มต้นสำหรับผู้ใช้',
   'admin.notificationDefaults.hint':
     'สถานะเริ่มต้นของการแจ้งเตือนของผู้ใช้แต่ละคน "ปิด" ผู้ใช้ยังเปิดเองได้ "บล็อก" จะปิดสำหรับทุกคนและแสดงเป็นล็อกในการตั้งค่าของพวกเขา ใช้กับทุกคนที่ยังไม่ได้เปลี่ยนช่องนั้นเอง',
@@ -59,8 +58,7 @@ const admin: TranslationStrings = {
   'admin.notificationDefaults.blocked': 'บล็อก',
   'admin.notificationDefaults.cycle': 'คลิกเพื่อเปลี่ยนเป็น: {next}',
   'admin.notifications.tripReminders.title': 'การแจ้งเตือนการเดินทาง',
-  'admin.notifications.tripReminders.hint':
-    'ส่งการแจ้งเตือนก่อนที่การเดินทางจะเริ่มต้น (ต้องตั้งค่าวันเตือนความจำในการเดินทาง)',
+  'admin.notifications.tripReminders.hint': 'ส่งการแจ้งเตือนก่อนที่การเดินทางจะเริ่มต้น (ต้องตั้งค่าวันเตือนความจำในการเดินทาง)',
   'admin.notifications.tripReminders.enabled': 'เปิดใช้งานการแจ้งเตือนการเดินทางแล้ว',
   'admin.notifications.tripReminders.disabled': 'ปิดใช้การแจ้งเตือนการเดินทางแล้ว',
   'admin.smtp.title': 'อีเมลและการแจ้งเตือน',
@@ -166,15 +164,13 @@ const admin: TranslationStrings = {
   'admin.oidcIssuerHint': 'URL ผู้ออก OpenID Connect ของผู้ให้บริการ เช่น https://accounts.google.com',
   'admin.oidcSaved': 'บันทึกการกำหนดค่า OIDC แล้ว',
   'admin.oidcOnlyMode': 'ปิดการใช้งานการตรวจสอบรหัสผ่าน',
-  'admin.oidcOnlyModeHint':
-    'เมื่อเปิดใช้งาน จะอนุญาตเฉพาะการเข้าสู่ระบบ SSO เท่านั้น การเข้าสู่ระบบและการลงทะเบียนด้วยรหัสผ่านถูกบล็อก',
+  'admin.oidcOnlyModeHint': 'เมื่อเปิดใช้งาน จะอนุญาตเฉพาะการเข้าสู่ระบบ SSO เท่านั้น การเข้าสู่ระบบและการลงทะเบียนด้วยรหัสผ่านถูกบล็อก',
   'admin.fileTypes': 'ประเภทไฟล์ที่อนุญาต',
   'admin.fileTypesHint': 'กำหนดค่าประเภทไฟล์ที่ผู้ใช้สามารถอัปโหลดได้',
   'admin.fileTypesFormat': 'ส่วนขยายที่คั่นด้วยเครื่องหมายจุลภาค (เช่น jpg,png,pdf,doc) ใช้ * เพื่ออนุญาตทุกประเภท',
   'admin.fileTypesSaved': 'บันทึกการตั้งค่าประเภทไฟล์แล้ว',
   'admin.placesPhotos.title': 'รูปภาพสถานที่',
-  'admin.placesPhotos.subtitle':
-    'ดึงรูปภาพจาก Google Places API ปิดใช้เพื่อบันทึกโควต้า API ภาพถ่ายวิกิมีเดียไม่ได้รับผลกระทบ',
+  'admin.placesPhotos.subtitle': 'ดึงรูปภาพจาก Google Places API ปิดใช้เพื่อบันทึกโควต้า API ภาพถ่ายวิกิมีเดียไม่ได้รับผลกระทบ',
   'admin.placesAutocomplete.title': 'การเติมคำอัตโนมัติสำหรับสถานที่',
   'admin.placesAutocomplete.subtitle': 'ใช้ Google Places API เพื่อแนะนำการค้นหา ปิดใช้เพื่อบันทึกโควต้า API',
   'admin.placesDetails.title': 'รายละเอียดสถานที่',
@@ -218,8 +214,7 @@ const admin: TranslationStrings = {
   'admin.defaultSettings.reset': 'รีเซ็ตเป็นค่าเริ่มต้นในตัว',
   'admin.defaultSettings.resetToBuiltIn': 'รีเซ็ต',
   'admin.defaultSettings.mapProvider': 'เครื่องยนต์แผนที่',
-  'admin.defaultSettings.mapProviderHint':
-    'แผนที่เริ่มต้นสำหรับผู้ใช้ทุกคนในอินสแตนซ์นี้ ผู้ใช้แต่ละคนยังสามารถแทนที่ในการตั้งค่าของตนเองได้',
+  'admin.defaultSettings.mapProviderHint': 'แผนที่เริ่มต้นสำหรับผู้ใช้ทุกคนในอินสแตนซ์นี้ ผู้ใช้แต่ละคนยังสามารถแทนที่ในการตั้งค่าของตนเองได้',
   'admin.defaultSettings.providerLeaflet': 'มาตรฐาน (ฟรี)',
   'admin.defaultSettings.providerMapbox': 'Mapbox (3D)',
   'admin.defaultSettings.providerMapLibre': 'MapLibre (OpenFreeMap)',
@@ -284,8 +279,7 @@ const admin: TranslationStrings = {
   'admin.plugins.allowedHosts.hint':
     'ปลั๊กอินนี้เชื่อมต่อกับบริการที่มีเพียงคุณเท่านั้นที่ระบุได้ เพิ่มโฮสต์ที่อนุญาตให้เชื่อมต่อได้ — นอกเหนือจากนั้นจะเชื่อมต่อไม่ได้',
   'admin.plugins.allowedHosts.none': 'ยังไม่ได้เพิ่มโฮสต์',
-  'admin.plugins.allowedHosts.unsupported':
-    'ปลั๊กอินนี้ไม่ได้ใช้โฮสต์ที่ผู้ดูแลระบุ โฮสต์ที่อนุญาตถูกกำหนดไว้ตายตัวใน manifest',
+  'admin.plugins.allowedHosts.unsupported': 'ปลั๊กอินนี้ไม่ได้ใช้โฮสต์ที่ผู้ดูแลระบุ โฮสต์ที่อนุญาตถูกกำหนดไว้ตายตัวใน manifest',
   'admin.plugins.allowedHosts.restartNote': 'การบันทึกจะรีสตาร์ทปลั๊กอินเพื่อให้เลือกรายการใหม่',
   'admin.plugins.allowedHosts.add': 'เพิ่มโฮสต์ที่ได้รับอนุญาต',
   'admin.plugins.allowedHosts.count': 'โฮสต์ที่อนุญาต {n} รายการ',
@@ -315,8 +309,7 @@ const admin: TranslationStrings = {
     'รันไทม์ปลั๊กอินปิดอยู่ (TREK_PLUGINS_ENABLED) ไม่มีปลั๊กอินใดทำงานจนกว่าผู้ดูแลระบบจะเปิดใช้งานในการกำหนดค่าเซิร์ฟเวอร์',
   'admin.plugins.empty': 'ยังไม่มีการติดตั้งปลั๊กอิน',
   'admin.plugins.loadError': 'ไม่สามารถโหลดปลั๊กอินได้',
-  'admin.plugins.scaffoldNote':
-    'การติดตั้งและการเปิดใช้งานปลั๊กอินจะมาในการอัปเดตในภายหลัง ปัจจุบันแผงนี้แสดงรายการปลั๊กอินที่ติดตั้งเท่านั้น',
+  'admin.plugins.scaffoldNote': 'การติดตั้งและการเปิดใช้งานปลั๊กอินจะมาในการอัปเดตในภายหลัง ปัจจุบันแผงนี้แสดงรายการปลั๊กอินที่ติดตั้งเท่านั้น',
   'admin.plugins.status.active': 'ใช้งานอยู่',
   'admin.plugins.status.inactive': 'ไม่ได้ใช้งาน',
   'admin.plugins.status.disabled': 'ปิดการใช้งาน',
@@ -349,10 +342,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:write:tags': 'สร้าง แก้ไข และลบแท็กของผู้ใช้ที่ทำหน้าที่เอง',
   'admin.plugins.perm.db:read:todos': 'อ่านสิ่งที่ต้องทำของการเดินทางที่ผู้ใช้บริการสามารถเข้าถึงได้',
   'admin.plugins.perm.db:write:todos': 'สร้าง แก้ไข และลบสิ่งที่ต้องทำในการเดินทางที่ผู้ใช้ที่ดำเนินการสามารถแก้ไขได้',
-  'admin.plugins.perm.db:write:atlas':
-    'ทำเครื่องหมายประเทศและภูมิภาคที่เยี่ยมชมและจัดการรายชื่อผู้ใช้ที่ดำเนินการ (ต้องการ Atlas addon)',
-  'admin.plugins.perm.db:write:vacay':
-    'สลับวันลาพักร้อนและวันหยุดบริษัทตามแผนที่ใช้งานอยู่ของผู้ใช้ที่รักษาการ (ต้องการ Vacay addon)',
+  'admin.plugins.perm.db:write:atlas': 'ทำเครื่องหมายประเทศและภูมิภาคที่เยี่ยมชมและจัดการรายชื่อผู้ใช้ที่ดำเนินการ (ต้องการ Atlas addon)',
+  'admin.plugins.perm.db:write:vacay': 'สลับวันลาพักร้อนและวันหยุดบริษัทตามแผนที่ใช้งานอยู่ของผู้ใช้ที่รักษาการ (ต้องการ Vacay addon)',
   'admin.plugins.perm.db:write:journal':
     'สร้าง แก้ไข และลบรายการบันทึกประจำวัน และแนบรูปถ่ายในการเดินทางที่ผู้ใช้ดำเนินการสามารถแก้ไขได้ (ต้องการส่วนเสริม Journey)',
   'admin.plugins.perm.db:write:collections':
@@ -374,20 +365,16 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:atlas': 'อ่านประเทศและภูมิภาคที่เยี่ยมชมของผู้ใช้ที่ทำหน้าที่ (ต้องการ Atlas addon)',
   'admin.plugins.perm.db:read:vacay': 'อ่านแผนวันหยุดของผู้ใช้ที่ทำหน้าที่ (ต้องการ Vacay addon)',
   'admin.plugins.perm.db:read:daynotes': 'อ่านบันทึกประจำวันของทริปที่ผู้ใช้ที่กำลังดำเนินการเข้าถึงได้',
-  'admin.plugins.perm.db:read:collections':
-    'อ่านคอลเลกชันสถานที่ที่บันทึกไว้ของผู้ใช้ที่ทำหน้าที่ (ต้องการส่วนเสริมคอลเลกชัน)',
+  'admin.plugins.perm.db:read:collections': 'อ่านคอลเลกชันสถานที่ที่บันทึกไว้ของผู้ใช้ที่ทำหน้าที่ (ต้องการส่วนเสริมคอลเลกชัน)',
   'admin.plugins.perm.db:write:costs': 'สร้างต้นทุน (รายการงบประมาณ) ในการเดินทางที่ผู้ใช้ที่ดำเนินการสามารถแก้ไขได้',
   'admin.plugins.perm.db:write:places': 'เพิ่ม แก้ไข และลบสถานที่ในทริปที่ผู้ใช้ที่กำลังดำเนินการแก้ไขได้',
   'admin.plugins.perm.db:write:days': 'เพิ่ม แก้ไข และลบวันในทริปที่ผู้ใช้ที่กำลังดำเนินการแก้ไขได้',
   'admin.plugins.perm.db:write:itinerary': 'กำหนดและลบสถานที่ในวันที่เดินทางซึ่งผู้ใช้ที่ดำเนินการสามารถแก้ไขได้',
-  'admin.plugins.perm.db:write:trips':
-    'แก้ไขรายละเอียดทริป (ชื่อ วันที่ สกุลเงิน…) ในทริปที่ผู้ใช้ที่กำลังดำเนินการแก้ไขได้',
+  'admin.plugins.perm.db:write:trips': 'แก้ไขรายละเอียดทริป (ชื่อ วันที่ สกุลเงิน…) ในทริปที่ผู้ใช้ที่กำลังดำเนินการแก้ไขได้',
   'admin.plugins.perm.db:write:reservations': 'สร้าง แก้ไข และลบการจองในทริปที่ผู้ใช้ที่กำลังดำเนินการแก้ไขได้',
-  'admin.plugins.perm.db:write:accommodations':
-    'สร้าง แก้ไข และลบที่พัก (ช่วงที่พัก) ในการเดินทางที่ผู้ใช้บริการสามารถแก้ไขได้',
+  'admin.plugins.perm.db:write:accommodations': 'สร้าง แก้ไข และลบที่พัก (ช่วงที่พัก) ในการเดินทางที่ผู้ใช้บริการสามารถแก้ไขได้',
   'admin.plugins.perm.db:write:daynotes': 'สร้าง แก้ไข และลบบันทึกประจำวันของการเดินทางที่ผู้ใช้บริการสามารถแก้ไขได้',
-  'admin.plugins.perm.db:meta':
-    'แนบข้อมูลส่วนตัวของตัวเองไปกับการเดินทาง สถานที่ และวันที่ผู้ใช้บริการสามารถเข้าถึงได้',
+  'admin.plugins.perm.db:meta': 'แนบข้อมูลส่วนตัวของตัวเองไปกับการเดินทาง สถานที่ และวันที่ผู้ใช้บริการสามารถเข้าถึงได้',
   'admin.plugins.perm.ws:broadcast:trip': 'ส่งการอัปเดตแบบเรียลไทม์ให้กับสมาชิกทริป',
   'admin.plugins.perm.ws:broadcast:user': 'ส่งการอัปเดตแบบเรียลไทม์ไปยังผู้ใช้แต่ละราย',
   'admin.plugins.perm.hook:photo-provider': 'มอบภาพถ่ายให้กับความทรงจำ',
@@ -403,30 +390,25 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:route-provider':
     'เสนอโปรไฟล์เส้นทางที่ผู้วางแผนสามารถกำหนดเส้นทางวันได้ (เช่น การกำหนดเส้นทาง EV พร้อมจุดชาร์จ)',
   'admin.plugins.perm.hook:day-schedule-provider': 'แนบรายการเวลาเข้ากับแผนวัน (จุดชาร์จ บัฟเฟอร์ความปลอดภัย)',
-  'admin.plugins.perm.hook:day-tint-provider':
-    'กำหนดสีให้แต่ละวันในแผนรายวัน (เช่น เพื่อแสดงว่าวันนั้นอยู่ในช่วงใดของทริป)',
+  'admin.plugins.perm.hook:day-tint-provider': 'กำหนดสีให้แต่ละวันในแผนรายวัน (เช่น เพื่อแสดงว่าวันนั้นอยู่ในช่วงใดของทริป)',
   'admin.plugins.cap.mcpTools': 'เผยแพร่เครื่องมือ AI',
   'admin.plugins.mcpToolsTitle': 'เครื่องมือ AI ที่เผยแพร่',
-  'admin.plugins.mcpToolsHint':
-    'ผู้ช่วยสามารถเรียกใช้สิ่งเหล่านี้ในนามของผู้ใช้ได้ แต่ละคนดำเนินการตามสิทธิ์การเข้าถึงที่ได้รับข้างต้น',
+  'admin.plugins.mcpToolsHint': 'ผู้ช่วยสามารถเรียกใช้สิ่งเหล่านี้ในนามของผู้ใช้ได้ แต่ละคนดำเนินการตามสิทธิ์การเข้าถึงที่ได้รับข้างต้น',
   'admin.plugins.poiCategoriesTitle': 'หมวดหมู่แผนที่ที่ปลั๊กอินเพิ่ม',
   'admin.plugins.perm.mcp:tools':
     'เผยแพร่เครื่องมือที่ผู้ช่วย AI สามารถทำงานในนามของคุณ (จะกระทำกับการเข้าถึงที่คุณให้สิทธิ์ปลั๊กอินที่นี่ ไม่ใช่กับผู้ช่วยเอง)',
   'admin.plugins.perm.geolocation:read':
     'ขอตำแหน่งปัจจุบันของคุณในขณะที่มุมมองใดมุมมองหนึ่งเปิดอยู่ (TREK อ่านภายใต้การอนุญาตตำแหน่งของไซต์นี้ ไม่ใช่ของปลั๊กอิน)',
   'admin.plugins.perm.hook:pdf-section-provider': 'เพิ่มส่วนข้อความต่อท้ายการส่งออก PDF ของการเดินทาง',
-  'admin.plugins.perm.hook:atlas-layer-provider':
-    'เน้นประเทศต่างๆ บนแผนที่โลก Atlas (เช่น สิ่งที่อยากได้หรือคำแนะนำการเดินทาง)',
+  'admin.plugins.perm.hook:atlas-layer-provider': 'เน้นประเทศต่างๆ บนแผนที่โลก Atlas (เช่น สิ่งที่อยากได้หรือคำแนะนำการเดินทาง)',
   'admin.plugins.perm.hook:journal-entry-provider': 'เพิ่มแถวพิเศษ (ลิงก์ สถิติ) ให้กับรายการบันทึกประจำวัน',
   'admin.plugins.perm.hook:trip-card-provider': 'เพิ่มป้ายเล็กๆ (สถานะ จำนวน) ลงในการ์ดการเดินทางบนแดชบอร์ดของคุณ',
   'admin.plugins.perm.hook:notification-channel': 'ส่งการแจ้งเตือนของคุณผ่านช่องทางเพิ่มเติม',
   'admin.plugins.perm.hook:user-data': 'ลบหรือส่งออกข้อมูลที่เก็บไว้เกี่ยวกับผู้ใช้ (การลบบัญชี GDPR และคำขอข้อมูล)',
   'admin.plugins.perm.events:subscribe': 'ตอบสนองต่อเหตุการณ์กิจกรรมหลัก (ชื่องาน + ทริปเท่านั้น ไม่ใช่เนื้อหา)',
-  'admin.plugins.perm.jobs:run':
-    'รันงานพื้นหลังที่ประกาศตามกำหนดเวลา (ไม่มีบริบทของผู้ใช้ — ไม่สามารถอ่านข้อมูลผู้ใช้ได้)',
+  'admin.plugins.perm.jobs:run': 'รันงานพื้นหลังที่ประกาศตามกำหนดเวลา (ไม่มีบริบทของผู้ใช้ — ไม่สามารถอ่านข้อมูลผู้ใช้ได้)',
   'admin.plugins.perm.http:outbound': 'ส่งคำขอขาออกไปยังโฮสต์ที่ประกาศไว้',
-  'admin.plugins.perm.db:read:collab':
-    'อ่านบันทึก โพล และข้อความแชทของทริปที่ผู้ใช้ที่กำลังดำเนินการเข้าถึงได้ (ต้องการส่วนเสริม Collab)',
+  'admin.plugins.perm.db:read:collab': 'อ่านบันทึก โพล และข้อความแชทของทริปที่ผู้ใช้ที่กำลังดำเนินการเข้าถึงได้ (ต้องการส่วนเสริม Collab)',
   'admin.plugins.perm.db:read:files:content': 'อ่านเนื้อหาไบต์ของไฟล์ในการเดินทางที่ผู้ใช้ที่ดำเนินการสามารถเข้าถึงได้',
   'admin.plugins.perm.db:create:trips': 'สร้างการเดินทางใหม่ที่เป็นของผู้ใช้ที่รักษาการ',
   'admin.plugins.perm.rates:read': 'อ่านอัตราแลกเปลี่ยนสกุลเงินแคชของโฮสต์',
@@ -462,8 +444,7 @@ const admin: TranslationStrings = {
   'admin.plugins.signed': 'ลงนาม',
   'admin.plugins.signedHint': 'ตรวจสอบกับรหัสลงนามของผู้เขียนเมื่อมีการติดตั้ง',
   'admin.plugins.unsigned': 'ไม่ได้ลงนาม',
-  'admin.plugins.unsignedHint':
-    'ไฟล์ตรงกับสิ่งที่รีจิสทรีรับรอง แต่ไม่มีสิ่งใดเชื่อมโยงกับผู้เขียน รับประกันน้อยกว่าหนึ่งข้อ — ไม่ปลอดภัย',
+  'admin.plugins.unsignedHint': 'ไฟล์ตรงกับสิ่งที่รีจิสทรีรับรอง แต่ไม่มีสิ่งใดเชื่อมโยงกับผู้เขียน รับประกันน้อยกว่าหนึ่งข้อ — ไม่ปลอดภัย',
   'admin.plugins.updateBlocked': 'การอัปเดตถูกบล็อก — {reason}',
   'admin.plugins.reviewBlock': 'การตรวจสอบ',
   'admin.plugins.retrusted': 'คีย์การลงนามใหม่ที่เชื่อถือได้ — ปลั๊กอินได้รับการอัปเดตแล้ว',
@@ -482,8 +463,7 @@ const admin: TranslationStrings = {
     'TREK ไม่สามารถบอกได้ว่าการหมุนเวียนคีย์ที่ถูกต้องตามกฎหมายนอกเหนือจากการครอบครอง — ทั้งสองดูเหมือนกันจากที่นี่ ยืนยันรหัสใหม่กับผู้เขียนผ่านช่องทางที่คุณเชื่อถือแล้วก่อนที่จะยอมรับ เมื่อคุณดำเนินการแล้ว ปลั๊กอินจะได้รับการอัปเดตและรหัสใหม่จะถูกจดจำ',
   'admin.plugins.sig.retrustConfirm': 'เชื่อถือคีย์ใหม่และอัปเดต',
   'admin.plugins.sig.cancel': 'อย่าวางใจมัน',
-  'admin.plugins.sig.consentUnsigned':
-    'ไม่มีสิ่งใดที่เชื่อมโยงกับเวอร์ชันนี้กับผู้เขียน ไฟล์ต่างๆ ตรงกับรีจิสทรี แต่ไม่มีลายเซ็นผู้เขียน',
+  'admin.plugins.sig.consentUnsigned': 'ไม่มีสิ่งใดที่เชื่อมโยงกับเวอร์ชันนี้กับผู้เขียน ไฟล์ต่างๆ ตรงกับรีจิสทรี แต่ไม่มีลายเซ็นผู้เขียน',
   'admin.plugins.security.trustTitle': 'บรรทัดล่าง',
   'admin.plugins.security.trustBody':
     'การติดตั้งปลั๊กอินก็เหมือนกับการติดตั้งแอปของบุคคลที่สาม เพียงเพิ่มโค้ดจากผู้เขียนที่คุณเชื่อถือเท่านั้น และหากมีข้อสงสัย ให้ตรวจสอบด้วยตนเองก่อน TREK จะไม่รับผิดชอบต่อปลั๊กอินของบุคคลที่สาม',
@@ -649,8 +629,7 @@ const admin: TranslationStrings = {
   'admin.addons.toast.error': 'ไม่สามารถอัปเดต addon',
   'admin.addons.group.count': 'เปิดใช้งาน {enabled} จาก {total} แล้ว',
   'admin.toursWanderer.title': 'wanderer',
-  'admin.toursWanderer.subtitle':
-    'ผู้ใช้เชื่อมต่ออินสแตนซ์ wanderer ของตนเองและนำเข้าเส้นทางเดินจากที่นั่นเป็นทัวร์ได้',
+  'admin.toursWanderer.subtitle': 'ผู้ใช้เชื่อมต่ออินสแตนซ์ wanderer ของตนเองและนำเข้าเส้นทางเดินจากที่นั่นเป็นทัวร์ได้',
   'admin.toursHikingMap.title': 'แผนที่เดินป่า (OpenHikingMap)',
   'admin.toursHikingMap.subtitle':
     'เสนอ OpenHikingMap เป็นแผนที่ฐานในตัววางแผนทัวร์ ใช้ฟรีสำหรับการติดตั้งที่ไม่ใช่เชิงพาณิชย์ได้ถึง 500,000 ไทล์ต่อเดือน การติดตั้งเชิงพาณิชย์หรือขนาดใหญ่กว่าต้องทำข้อตกลงกับ openmaps.fr ก่อน',
@@ -727,10 +706,8 @@ const admin: TranslationStrings = {
   'admin.update.button': 'ดูบน GitHub',
   'admin.update.install': 'ติดตั้งอัปเดต',
   'admin.update.confirmTitle': 'ติดตั้งอัพเดต?',
-  'admin.update.confirmText':
-    'TREK จะได้รับการอัปเดตจาก {current} เป็น {version} เซิร์ฟเวอร์จะรีสตาร์ทโดยอัตโนมัติหลังจากนั้น',
-  'admin.update.dataInfo':
-    'ข้อมูลทั้งหมดของคุณ (การเดินทาง ผู้ใช้ คีย์ API การอัปโหลด Vacay Atlas งบประมาณ) จะถูกเก็บไว้',
+  'admin.update.confirmText': 'TREK จะได้รับการอัปเดตจาก {current} เป็น {version} เซิร์ฟเวอร์จะรีสตาร์ทโดยอัตโนมัติหลังจากนั้น',
+  'admin.update.dataInfo': 'ข้อมูลทั้งหมดของคุณ (การเดินทาง ผู้ใช้ คีย์ API การอัปโหลด Vacay Atlas งบประมาณ) จะถูกเก็บไว้',
   'admin.update.warning': 'แอปจะไม่สามารถใช้งานได้ในช่วงสั้นๆ ระหว่างการรีสตาร์ท',
   'admin.update.confirm': 'อัปเดตทันที',
   'admin.update.installing': 'กำลังอัปเดต...',
@@ -747,8 +724,7 @@ const admin: TranslationStrings = {
   'admin.update.reloadHint': 'โปรดโหลดหน้านี้ใหม่ภายในไม่กี่วินาที',
   'admin.tabs.permissions': 'สิทธิ์',
   'admin.addons.catalog.journey.name': 'การเดินทาง',
-  'admin.addons.catalog.journey.description':
-    'ติดตามการเดินทางและบันทึกการเดินทางพร้อมการเช็คอิน รูปภาพ และเรื่องราวประจำวัน',
+  'admin.addons.catalog.journey.description': 'ติดตามการเดินทางและบันทึกการเดินทางพร้อมการเช็คอิน รูปภาพ และเรื่องราวประจำวัน',
   'admin.addons.catalog.collections.name': 'คอลเลกชัน',
   'admin.addons.catalog.collections.description': 'รวบรวมสถานที่จากการเดินทางใดๆ ลงในรายการที่มีชื่อและนำกลับมาใช้ใหม่',
   'admin.passkey.title': 'รหัสผ่านเข้าสู่ระบบ',
@@ -761,11 +737,9 @@ const admin: TranslationStrings = {
   'admin.passkey.rpIdHint':
     'พาสคีย์โดเมนเปล่าถูกผูกไว้กับ เช่น trek.example.org เว้นว่างไว้เพื่อรับข้อมูลจาก APP_URL การเปลี่ยนแปลงในภายหลังจะทำให้พาสคีย์ที่มีอยู่เป็นโมฆะ',
   'admin.passkey.origins': 'ต้นกำเนิดที่ได้รับอนุญาต',
-  'admin.passkey.originsHint':
-    'ต้นทางแบบเต็มที่คั่นด้วยเครื่องหมายจุลภาค เช่น https://trek.example.org. เว้นว่างไว้เพื่อใช้ APP_URL',
+  'admin.passkey.originsHint': 'ต้นทางแบบเต็มที่คั่นด้วยเครื่องหมายจุลภาค เช่น https://trek.example.org. เว้นว่างไว้เพื่อใช้ APP_URL',
   'admin.passkey.reset': 'รีเซ็ตพาสคีย์',
-  'admin.passkey.resetHint':
-    'ลบพาสคีย์ของผู้ใช้รายนี้ทั้งหมด (เช่น บนอุปกรณ์ที่สูญหาย) พวกเขายังสามารถลงชื่อเข้าใช้ด้วยรหัสผ่านได้',
+  'admin.passkey.resetHint': 'ลบพาสคีย์ของผู้ใช้รายนี้ทั้งหมด (เช่น บนอุปกรณ์ที่สูญหาย) พวกเขายังสามารถลงชื่อเข้าใช้ด้วยรหัสผ่านได้',
   'admin.passkey.resetConfirm': 'ลบรหัสผ่านทั้งหมดสำหรับ {name} หรือไม่',
   'admin.passkey.resetDone': 'ลบพาสคีย์ {count} รายการแล้ว',
   'admin.group.users': 'ผู้ใช้',
@@ -801,8 +775,7 @@ const admin: TranslationStrings = {
   'admin.trekApi.more': 'มีอะไรบ้าง',
   'admin.trekApi.fieldPhone': 'โทรศัพท์',
   'admin.trekApi.fieldStableId': 'รหัสประจำที่คงที่',
-  'admin.trekApi.includedNote':
-    'คำอธิบายมาจากเว็บไซต์ของสถานที่นั้นเอง และเวลาเปิดทำการมาจาก OpenStreetMap เมื่อมีการระบุไว้',
+  'admin.trekApi.includedNote': 'คำอธิบายมาจากเว็บไซต์ของสถานที่นั้นเอง และเวลาเปิดทำการมาจาก OpenStreetMap เมื่อมีการระบุไว้',
   'admin.trekApi.notRatings': 'คะแนน',
   'admin.trekApi.notPhotos': 'รูปภาพของธุรกิจทั่วไป',
   'admin.trekApi.notIncludedNote':
@@ -824,13 +797,10 @@ const admin: TranslationStrings = {
   'admin.trekApi.quota.tier.hosted': 'โฮสต์ให้',
   'admin.trekApi.quota.tier.own': 'อินสแตนซ์ของตัวเอง',
   'admin.trekApi.quota.tier.legacy': 'ส่วนกลาง',
-  'admin.trekApi.quota.hint.registering':
-    'การติดตั้งนี้กำลังรับคีย์อยู่เบื้องหลัง ระหว่างนี้การค้นหายังใช้งานได้ตามปกติ',
-  'admin.trekApi.quota.hint.legacy':
-    'ยังไม่มีคีย์ การค้นหาจะใช้โควตาส่วนกลางจนกว่าการติดตั้งจะได้รับคีย์ในการค้นหาครั้งถัดไป',
+  'admin.trekApi.quota.hint.registering': 'การติดตั้งนี้กำลังรับคีย์อยู่เบื้องหลัง ระหว่างนี้การค้นหายังใช้งานได้ตามปกติ',
+  'admin.trekApi.quota.hint.legacy': 'ยังไม่มีคีย์ การค้นหาจะใช้โควตาส่วนกลางจนกว่าการติดตั้งจะได้รับคีย์ในการค้นหาครั้งถัดไป',
   'admin.trekApi.quota.hint.off': 'ไม่ได้ใช้งานบนอินสแตนซ์นี้: ปิดอยู่ หรือชี้ไปยังสำเนาของคุณเอง',
-  'admin.trekApi.quota.hint.revoked':
-    'คีย์ของการติดตั้งนี้ถูกเพิกถอนแล้ว การค้นหาจะใช้โควตาส่วนกลางจนกว่าคุณจะสร้างตัวตนใหม่',
+  'admin.trekApi.quota.hint.revoked': 'คีย์ของการติดตั้งนี้ถูกเพิกถอนแล้ว การค้นหาจะใช้โควตาส่วนกลางจนกว่าคุณจะสร้างตัวตนใหม่',
   'admin.trekApi.quota.unavailable': 'ไม่สามารถอ่านโควตาได้ในขณะนี้',
   'admin.trekApi.quota.service.places': 'ค้นหาสถานที่',
   'admin.trekApi.quota.service.photon': 'ค้นหาที่อยู่',
@@ -853,8 +823,7 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey':
-    'ผู้ให้บริการที่เลือกยังไม่ได้ตั้งค่าคีย์ API ดังนั้นการค้นหาสถานที่จะใช้เพียงดัชนี TREK และ OpenStreetMap',
+  'admin.placesProvider.missingKey': 'ผู้ให้บริการที่เลือกยังไม่ได้ตั้งค่าคีย์ API ดังนั้นการค้นหาสถานที่จะใช้เพียงดัชนี TREK และ OpenStreetMap',
   'admin.placesProvider.saved': 'บันทึกผู้ให้บริการค้นหาสถานที่แล้ว',
   'admin.googleOptions': 'สิ่งที่คีย์นี้ใช้ได้',
   'admin.googleOptionsSummary': 'เปิด {on} จาก {total}',
@@ -875,13 +844,11 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.search': 'ตอบการค้นหา',
   'admin.plugins.cap.poiCategories': 'เพิ่มหมวดหมู่บนแผนที่',
   'admin.addons.catalog.roadtrip.name': 'โรดทริป',
-  'admin.addons.catalog.roadtrip.description':
-    'วางแผนการขับรถด้วยจุดแวะตามเส้นทาง เวลาเดินทาง และเวลาไปถึงที่อัปเดตเอง',
+  'admin.addons.catalog.roadtrip.description': 'วางแผนการขับรถด้วยจุดแวะตามเส้นทาง เวลาเดินทาง และเวลาไปถึงที่อัปเดตเอง',
   'admin.addons.catalog.tours.name': 'ทัวร์',
   'admin.addons.catalog.tours.description': 'เดินป่า ปั่นจักรยาน และทัวร์อื่นๆ ที่ไปตามเส้นทาง',
   'admin.addons.catalog.dawarich.name': 'Dawarich',
-  'admin.addons.catalog.dawarich.description':
-    'อ่านการเยี่ยมชมและเส้นทางที่บันทึกจากอินสแตนซ์ Dawarich ที่ผู้อ่านแต่ละคนเชื่อมต่อเอง',
+  'admin.addons.catalog.dawarich.description': 'อ่านการเยี่ยมชมและเส้นทางที่บันทึกจากอินสแตนซ์ Dawarich ที่ผู้อ่านแต่ละคนเชื่อมต่อเอง',
   'admin.placesUsageTitle': 'คีย์นี้ใช้ทำอะไร',
   'admin.mapsKeyHintShort': 'เพิ่มรูปภาพ คะแนน และเวลาเปิดทำการ ทุกการค้นหาจะส่งไปยัง Google',
   'admin.amapKeyHintShort': 'สำหรับค้นหาสถานที่ในจีนแผ่นดินใหญ่ ต้องใช้คีย์เว็บเซอร์วิส ไม่ใช่คีย์ JS API',
@@ -904,8 +871,7 @@ const admin: TranslationStrings = {
   'admin.paddleRegions.keptData': 'ข้อมูลที่อ่านไว้ก่อนหน้ายังคงใช้งานอยู่',
   'admin.paddleRegions.refresh': 'อ่านใหม่',
   'admin.paddleRegions.remove': 'ลบภูมิภาค',
-  'admin.paddleRegions.removeMessage':
-    '{name} และข้อมูลสิ่งกีดขวางของภูมิภาคนี้จะถูกลบ ทริปพายเรือในพื้นที่นั้นจะไม่แสดงข้อมูล',
+  'admin.paddleRegions.removeMessage': '{name} และข้อมูลสิ่งกีดขวางของภูมิภาคนี้จะถูกลบ ทริปพายเรือในพื้นที่นั้นจะไม่แสดงข้อมูล',
   'admin.paddleRegions.retry': 'ลองอีกครั้ง',
   'admin.paddleRegions.offline': 'จัดการภูมิภาคได้เฉพาะเมื่อมีการเชื่อมต่อเท่านั้น',
   'admin.paddleRegions.catalogUnavailable': 'ไม่สามารถเชื่อมต่อ Geofabrik ได้ในขณะนี้ โปรดลองอีกครั้งภายหลัง',
@@ -928,8 +894,7 @@ const admin: TranslationStrings = {
   'admin.paddleRegions.auto.mode.off': 'ปิด',
   'admin.paddleRegions.auto.modeHint.auto':
     'เมื่อมีคนวางแผนทริปพายเรือในที่ที่ยังไม่มีข้อมูลแหล่งน้ำ TREK จะโหลดภูมิภาคที่เล็กที่สุดที่เหมาะสมทันที ไม่เกินขนาดที่กำหนดและเพียงไม่กี่แห่งต่อวัน ภูมิภาคที่ใหญ่กว่าจะรออยู่ที่นี่เป็นคำขอ Geofabrik ได้รับเพียงชื่อภูมิภาค ไม่เคยได้รับตำแหน่ง',
-  'admin.paddleRegions.auto.modeHint.ask':
-    'ภูมิภาคใหม่ทุกแห่งจะรออยู่ที่นี่จนกว่าผู้ดูแลจะอนุญาต หากผู้ดูแลวางแผนเอง จะโหลดทันที',
+  'admin.paddleRegions.auto.modeHint.ask': 'ภูมิภาคใหม่ทุกแห่งจะรออยู่ที่นี่จนกว่าผู้ดูแลจะอนุญาต หากผู้ดูแลวางแผนเอง จะโหลดทันที',
   'admin.paddleRegions.auto.modeHint.off': 'TREK จะไม่โหลดอะไรเองและไม่ขออะไร เพิ่มภูมิภาคที่นี่ด้วยตนเอง',
   'admin.paddleRegions.auto.maxSize': 'ภูมิภาคที่ใหญ่ที่สุดที่โหลดอัตโนมัติ',
   'admin.paddleRegions.auto.maxSizeHint':
@@ -959,8 +924,7 @@ const admin: TranslationStrings = {
   'admin.rotateJwt.hint': 'สร้างรหัสลับสำหรับลงนาม JWT ใหม่ เซสชันที่ใช้งานอยู่ทั้งหมดจะถูกยกเลิกทันที',
   'admin.rotateJwt.confirm': 'หมุนเวียนและออกจากระบบ',
   'admin.rotateJwt.warning': 'คำเตือน การดำเนินการนี้จะทำให้ทุกเซสชันใช้ไม่ได้และคุณจะถูกออกจากระบบ',
-  'admin.rotateJwt.body':
-    'ระบบจะสร้างรหัสลับ JWT ใหม่ทันที ผู้ใช้ที่เข้าสู่ระบบอยู่ทุกคน รวมถึงคุณ จะถูกออกจากระบบและต้องเข้าสู่ระบบใหม่',
+  'admin.rotateJwt.body': 'ระบบจะสร้างรหัสลับ JWT ใหม่ทันที ผู้ใช้ที่เข้าสู่ระบบอยู่ทุกคน รวมถึงคุณ จะถูกออกจากระบบและต้องเข้าสู่ระบบใหม่',
   'admin.oidcDisplayNamePlaceholder': 'เช่น Google, Authentik, Keycloak',
   'admin.oidcDiscoveryUrl': 'Discovery URL (ไม่บังคับ)',
   'admin.oidcDiscoveryUrlHint':
@@ -968,8 +932,7 @@ const admin: TranslationStrings = {
   'admin.smtp.skipTls': 'ข้ามการตรวจสอบใบรับรอง TLS',
   'admin.smtp.skipTlsHint': 'เปิดใช้เมื่อเมลเซิร์ฟเวอร์ภายในใช้ใบรับรองที่ลงนามเอง',
   'admin.demoBaseline.title': 'เบสไลน์เดโม',
-  'admin.demoBaseline.hint':
-    'บันทึกสถานะปัจจุบันเป็นจุดรีเซ็ตทุกชั่วโมง ทริปและการตั้งค่าของผู้ดูแลทั้งหมดจะถูกเก็บไว้',
+  'admin.demoBaseline.hint': 'บันทึกสถานะปัจจุบันเป็นจุดรีเซ็ตทุกชั่วโมง ทริปและการตั้งค่าของผู้ดูแลทั้งหมดจะถูกเก็บไว้',
   'admin.demoBaseline.button': 'บันทึกเบสไลน์',
   'admin.demoBaseline.saved': 'บันทึกเบสไลน์แล้ว! การรีเซ็ตจะกลับมาที่สถานะนี้',
   'admin.demoBaseline.failed': 'บันทึกเบสไลน์ไม่สำเร็จ',
@@ -991,8 +954,7 @@ const admin: TranslationStrings = {
   'admin.addons.ai.parsing.useShared': 'ใช้การเชื่อมต่อที่ใช้ร่วมกัน',
   'admin.addons.ai.parsing.sharedTag': 'ใช้ร่วมกัน',
   'admin.addons.ai.parsing.perUser': 'แต่ละคนอ่านด้วยการเชื่อมต่อของตนเองจากการตั้งค่าของตน',
-  'admin.addons.ai.parsing.none':
-    'ยังไม่มีการเชื่อมต่อ ตั้งค่าหนึ่งรายการสำหรับทุกคน หรือให้การวิเคราะห์ด้วย AI มีของตัวเอง',
+  'admin.addons.ai.parsing.none': 'ยังไม่มีการเชื่อมต่อ ตั้งค่าหนึ่งรายการสำหรับทุกคน หรือให้การวิเคราะห์ด้วย AI มีของตัวเอง',
   'admin.addons.ai.parsing.setupOwn': 'ใช้รายการอื่น',
   'admin.addons.ai.parsing.installed': 'ติดตั้งบนเซิร์ฟเวอร์แล้ว',
   'admin.addons.ai.parsing.refresh': 'รีเฟรช',
@@ -1011,8 +973,7 @@ const admin: TranslationStrings = {
   'admin.contribute.status.paused': 'หยุดชั่วคราว',
   'admin.contribute.status.off': 'ปิด',
   'admin.contribute.status.unavailable': 'ไม่พร้อมใช้งาน',
-  'admin.contribute.noteActive':
-    'สิ่งที่ผู้ใช้ของคุณพิมพ์เกี่ยวกับสถานที่จะไปถึง TREK ทุกที่หลังผ่านการตรวจสอบ ขอบคุณที่ช่วยเหลือ',
+  'admin.contribute.noteActive': 'สิ่งที่ผู้ใช้ของคุณพิมพ์เกี่ยวกับสถานที่จะไปถึง TREK ทุกที่หลังผ่านการตรวจสอบ ขอบคุณที่ช่วยเหลือ',
   'admin.contribute.noteOff': 'ให้สิ่งที่ผู้ใช้ของคุณพิมพ์เกี่ยวกับสถานที่ช่วยทำให้ TREK Places API ดีขึ้นสำหรับทุกคน',
   'admin.contribute.ineligible.env_off': 'ปิดสำหรับการติดตั้งนี้โดย TREK_PLACES_CONTRIBUTE',
   'admin.contribute.ineligible.not_production': 'มีเพียงการติดตั้งสำหรับใช้งานจริงเท่านั้นที่แชร์รายละเอียดสถานที่ได้',
@@ -1022,8 +983,7 @@ const admin: TranslationStrings = {
   'admin.contribute.ineligible.services_off': 'บริการของ TREK ถูกปิดสำหรับการติดตั้งนี้',
   'admin.contribute.ineligible.no_key': 'การติดตั้งนี้ยังไม่มีคีย์บริการ ระบบจะขอให้โดยอัตโนมัติ',
   'admin.contribute.pause.key_invalid': 'หยุดชั่วคราว: บริการไม่ยอมรับคีย์ของการติดตั้งนี้',
-  'admin.contribute.pause.key_refused':
-    'หยุดชั่วคราว: บริการปฏิเสธคีย์ของการติดตั้งนี้ คีย์ใหม่จะทำให้การแชร์กลับมาทำงาน',
+  'admin.contribute.pause.key_refused': 'หยุดชั่วคราว: บริการปฏิเสธคีย์ของการติดตั้งนี้ คีย์ใหม่จะทำให้การแชร์กลับมาทำงาน',
   'admin.contribute.pause.not_accepting': 'หยุดชั่วคราว: ขณะนี้บริการไม่รับข้อมูล ค่าที่รออยู่จะถูกส่งภายหลัง',
   'admin.contribute.field.website': 'เว็บไซต์',
   'admin.contribute.field.phone': 'โทรศัพท์',
@@ -1057,8 +1017,7 @@ const admin: TranslationStrings = {
     'ค่าทุกอย่างที่การติดตั้งนี้ส่งไปจะถูกลบออกจาก TREK Places API และค่าที่รออยู่จะถูกทิ้ง สถานที่ยังคงมีรายละเอียดอยู่ที่นี่',
   'admin.contribute.withdrawn': 'ถอนออกจากดัชนีแล้ว: {total}',
   'admin.contribute.offTitle': 'หยุดแชร์หรือไม่',
-  'admin.contribute.offMessage':
-    'จะไม่มีการส่งข้อมูลเพิ่ม และค่าที่รออยู่จะถูกทิ้ง สิ่งที่ถูกยอมรับไปแล้วจะยังอยู่ในดัชนี เว้นแต่คุณจะถอนคืน',
+  'admin.contribute.offMessage': 'จะไม่มีการส่งข้อมูลเพิ่ม และค่าที่รออยู่จะถูกทิ้ง สิ่งที่ถูกยอมรับไปแล้วจะยังอยู่ในดัชนี เว้นแต่คุณจะถอนคืน',
   'admin.contribute.offConfirm': 'หยุดแชร์',
   'admin.contribute.refused.terms_outdated': 'ข้อกำหนดมีการเปลี่ยนแปลงระหว่างนี้ กรุณาอ่านอีกครั้ง',
   'admin.contribute.refused.no_field': 'เลือกอย่างน้อยหนึ่งช่องเพื่อแชร์',

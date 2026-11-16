@@ -63,8 +63,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.renewConfirm': 'แตะอีกครั้ง ที่อยู่เดิมจะใช้งานไม่ได้อีก',
   'mailInbox.settings.renewed': 'ที่อยู่ใหม่ของคุณพร้อมแล้ว',
   'mailInbox.settings.saveError': 'บันทึกไม่ได้',
-  'mailInbox.settings.addressHint':
-    'ส่งต่ออีเมลยืนยันการจองมาที่ที่อยู่นี้ แล้ว TREK จะเพิ่มลงในทริปที่ถูกต้อง เก็บไว้เป็นความลับเหมือนรหัสผ่าน',
+  'mailInbox.settings.addressHint': 'ส่งต่ออีเมลยืนยันการจองมาที่ที่อยู่นี้ แล้ว TREK จะเพิ่มลงในทริปที่ถูกต้อง เก็บไว้เป็นความลับเหมือนรหัสผ่าน',
   'mailInbox.settings.howTo': 'ส่งต่ออัตโนมัติ',
   'mailInbox.settings.howToGmail':
     'Gmail: การตั้งค่า, การส่งต่อและ POP/IMAP, เพิ่มที่อยู่สำหรับส่งต่อ Gmail จะส่งรหัสมาให้ ซึ่งจะแสดงในส่วนการจองที่รอดำเนินการ จากนั้นเพิ่มตัวกรองสำหรับผู้ส่งอีเมลการจองให้ส่งต่อไปยัง TREK',
@@ -74,8 +73,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.enabled': 'นำเข้าอีเมลการจอง',
   'mailInbox.settings.enabledHint': 'เมื่อปิด อีเมลที่ส่งมาที่ที่อยู่ของคุณจะไม่ถูกอ่าน',
   'mailInbox.settings.ai': 'อ่านด้วย AI',
-  'mailInbox.settings.aiHint':
-    'อ่านอีเมลการจองทุกรูปแบบและหาทริปที่เกี่ยวข้อง อีเมลรวมถึงวันที่และจุดหมายของทริปจะถูกส่งไปยังผู้ให้บริการ AI',
+  'mailInbox.settings.aiHint': 'อ่านอีเมลการจองทุกรูปแบบและหาทริปที่เกี่ยวข้อง อีเมลรวมถึงวันที่และจุดหมายของทริปจะถูกส่งไปยังผู้ให้บริการ AI',
   'mailInbox.settings.aiUnavailable':
     'ต้องใช้ส่วนเสริม {addon} และการเชื่อมต่อ AI ที่ผู้ดูแลระบบตั้งค่า จนกว่าจะถึงตอนนั้น ระบบจะอ่านเฉพาะอีเมลที่มีข้อมูลการจองที่เครื่องอ่านได้',
   'mailInbox.settings.autoAdd': 'เพิ่มอัตโนมัติ',
@@ -85,8 +83,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.uploaded': 'ได้รับอีเมลแล้ว กำลังอ่านอยู่',
   'mailInbox.settings.uploadDuplicate': 'อีเมลนี้นำเข้าแล้ว',
   'mailInbox.settings.uploadError': 'อ่านไฟล์นี้เป็นอีเมลไม่ได้',
-  'mailInbox.settings.privacy':
-    'อีเมลที่ส่งต่อจะถูกเก็บไว้แบบเข้ารหัสไม่เกิน 30 วันแล้วลบทิ้ง โปรดอย่าส่งต่อเอกสารระบุตัวตนหรือเอกสารสุขภาพ',
+  'mailInbox.settings.privacy': 'อีเมลที่ส่งต่อจะถูกเก็บไว้แบบเข้ารหัสไม่เกิน 30 วันแล้วลบทิ้ง โปรดอย่าส่งต่อเอกสารระบุตัวตนหรือเอกสารสุขภาพ',
   'mailInbox.trip.title': 'หรือส่งต่อทางอีเมล',
   'mailInbox.trip.hint': 'อีเมลการจองที่ส่งมาที่ที่อยู่ของทริปนี้จะมาอยู่ที่นี่โดยไม่ต้องเดา',
   'mailInbox.trip.create': 'สร้างที่อยู่สำหรับทริปนี้',

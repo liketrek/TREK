@@ -48,8 +48,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.viewDetails': 'ดูรายละเอียด',
   'mobileTrip.transportsEmpty': 'ยังไม่มีการขนส่ง',
   'mobileTrip.rtInfoTitle': 'ข้อมูลการขับรถ',
-  'mobileTrip.rtDesktopNote':
-    'กำหนดข้อมูลเหล่านี้บนเดสก์ท็อป ซึ่งคุณยังเปรียบเทียบเส้นทางอื่นและให้วันนั้นตามเส้นทางที่นำเข้าได้',
+  'mobileTrip.rtDesktopNote': 'กำหนดข้อมูลเหล่านี้บนเดสก์ท็อป ซึ่งคุณยังเปรียบเทียบเส้นทางอื่นและให้วันนั้นตามเส้นทางที่นำเข้าได้',
   'mobileTrip.planOnDesktop': 'วางแผนบนคอมพิวเตอร์',
   'mobileTrip.rtDriveOnTwoPlaces': 'TREK จะคำนวณการขับรถเมื่อวันหนึ่งมีสถานที่สองแห่ง',
   'mobileTrip.toursEmptyBody': 'ทัวร์ที่บันทึกไว้จะแสดงที่นี่ และเพิ่มลงในวันได้',
@@ -67,8 +66,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'จากจุดเริ่มต้นของช่วงเส้นทาง',
   'mobileTrip.rtNoneAhead': 'ไม่มีสิ่งใดบนเส้นทางข้างหน้า ลองค้นหาทั้งช่วงเส้นทาง',
   'mobileTrip.rtNoneOnStage': 'ไม่มีสิ่งนั้นตลอดช่วงเส้นทางนี้',
-  'mobileTrip.rtTruncated.other':
-    'มี {count} ช่วงที่มีผลลัพธ์มากเกินกว่าจะแสดงในคำตอบเดียว เลือกประเภทให้น้อยลงเพื่อดูที่เหลือ',
+  'mobileTrip.rtTruncated.other': 'มี {count} ช่วงที่มีผลลัพธ์มากเกินกว่าจะแสดงในคำตอบเดียว เลือกประเภทให้น้อยลงเพื่อดูที่เหลือ',
   'mobileTrip.rtNoDay': 'ยังไม่ได้เลือกวัน',
   'mobileTrip.rtNoDayHint': 'แผนที่แสดงทั้งการเดินทาง แตะวันด้านบนเพื่อดูเส้นทางขับรถของวันนั้น',
   'mobileTrip.maps': 'แผนที่',

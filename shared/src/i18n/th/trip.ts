@@ -33,8 +33,7 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': 'ลบสถานที่ {count} แห่งใช่ไหม',
   'trip.toast.placesDeleted': 'ลบสถานที่ {count} แห่งแล้ว',
   'trip.invite.linkTitle': 'ลิงก์เชิญเข้าร่วมทริป',
-  'trip.invite.linkHint':
-    'ใครก็ตามที่มีบัญชี TREK ที่เปิดลิงก์นี้จะเข้าร่วมการเดินทางในฐานะสมาชิก สร้างใหม่เพื่อทำให้ลิงก์เก่าใช้ไม่ได้',
+  'trip.invite.linkHint': 'ใครก็ตามที่มีบัญชี TREK ที่เปิดลิงก์นี้จะเข้าร่วมการเดินทางในฐานะสมาชิก สร้างใหม่เพื่อทำให้ลิงก์เก่าใช้ไม่ได้',
   'trip.invite.create': 'สร้างลิงก์คำเชิญ',
   'trip.invite.regenerate': 'สร้างใหม่',
   'trip.invite.disable': 'ปิดการใช้งาน',
@@ -90,10 +89,8 @@ const trip: TranslationStrings = {
   'transit.walkLabel': 'เดิน',
   'transit.searchHint': 'ค้นหาการเชื่อมต่อจริงและเพิ่มโดยตรงไปยังวัน — ข้อมูลผ่าน Transitous',
   'trip.confirm.deletePlaceNight': 'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” ด้วย',
-  'trip.confirm.deletePlaceBooked':
-    'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” การจอง “{booking}” และค่าใช้จ่ายที่ผูกไว้ด้วย',
-  'trip.confirm.deletePlaceBookedSame':
-    'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” รวมถึงการจองและค่าใช้จ่ายที่ผูกไว้ด้วย',
+  'trip.confirm.deletePlaceBooked': 'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” การจอง “{booking}” และค่าใช้จ่ายที่ผูกไว้ด้วย',
+  'trip.confirm.deletePlaceBookedSame': 'การดำเนินการนี้จะลบการพักที่จองไว้ที่ “{name}” รวมถึงการจองและค่าใช้จ่ายที่ผูกไว้ด้วย',
   'trip.toast.loadError': 'ไม่สามารถโหลดทริปได้',
   'trip.toast.accessLost': 'คุณไม่ได้เป็นสมาชิกของทริปนี้อีกต่อไป',
   'transit.noResultsVia': 'ไม่พบเส้นทางผ่าน {provider} ลองเปลี่ยนเวลาหรือตัวกรอง',
@@ -136,8 +133,7 @@ const trip: TranslationStrings = {
   'trip.journal.roleViewer': 'อ่าน',
   'trip.journal.roleEditor': 'แก้ไข',
   'trip.journal.hasAccess': 'มีสิทธิ์',
-  'trip.journal.warnNew':
-    '{names} จะได้รับสิทธิ์เข้าถึงบันทึกนี้เป็นครั้งแรก และจากนี้จะเห็นบันทึกนี้ในรายการบันทึกของตนเองด้วย',
+  'trip.journal.warnNew': '{names} จะได้รับสิทธิ์เข้าถึงบันทึกนี้เป็นครั้งแรก และจากนี้จะเห็นบันทึกนี้ในรายการบันทึกของตนเองด้วย',
   'trip.journal.errorOffline': 'ต้องเชื่อมต่ออินเทอร์เน็ตเพื่อเชื่อมบันทึก',
   'trip.journal.errorForbidden': 'คุณไม่ได้รับอนุญาตให้ทำสิ่งนี้',
   'trip.journal.errorGeneric': 'ไม่สำเร็จ โปรดลองอีกครั้ง',

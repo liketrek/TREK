@@ -10,18 +10,15 @@ const native: TranslationStrings = {
   'native.connect.errorInvalid': 'ดูเหมือนว่านี่ไม่ใช่ที่อยู่เว็บ',
   'native.connect.errorUnreachable': 'ไม่มีเซิร์ฟเวอร์ตอบกลับที่ที่อยู่นี้ โปรดตรวจสอบที่อยู่และการเชื่อมต่อของคุณ',
   'native.connect.errorNotTrek': 'เซิร์ฟเวอร์ที่ที่อยู่นี้ไม่ใช่ TREK',
-  'native.connect.errorTooOld':
-    'เซิร์ฟเวอร์นี้ใช้ TREK เวอร์ชันเก่า แอปต้องใช้ TREK 5.1.4 ขึ้นไป จึงต้องอัปเดตเซิร์ฟเวอร์ก่อน',
-  'native.connect.recheckHint':
-    'แอปเวอร์ชันนี้ต้องใช้ TREK 5.1.4 ขึ้นไปบนเซิร์ฟเวอร์ของคุณ จึงตรวจสอบเซิร์ฟเวอร์อีกครั้ง',
+  'native.connect.errorTooOld': 'เซิร์ฟเวอร์นี้ใช้ TREK เวอร์ชันเก่า แอปต้องใช้ TREK 5.1.4 ขึ้นไป จึงต้องอัปเดตเซิร์ฟเวอร์ก่อน',
+  'native.connect.recheckHint': 'แอปเวอร์ชันนี้ต้องใช้ TREK 5.1.4 ขึ้นไปบนเซิร์ฟเวอร์ของคุณ จึงตรวจสอบเซิร์ฟเวอร์อีกครั้ง',
   'native.offline.title': 'เข้าถึงเซิร์ฟเวอร์ไม่ได้',
   'native.offline.hint': 'TREK เข้าถึง {server} ไม่ได้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
   'native.offline.retry': 'ลองอีกครั้ง',
   'native.changeServer': 'เปลี่ยนเซิร์ฟเวอร์',
   'native.errorPageBar.hint':
     'หน้านี้ไม่ได้มาจาก TREK: เซิร์ฟเวอร์หรือพร็อกซีที่อยู่ข้างหน้าปฏิเสธแอป ตรวจสอบพร็อกซีหรือใบรับรอง หรือเปลี่ยนเซิร์ฟเวอร์',
-  'native.signInBar.hint':
-    'พาสคีย์และคีย์ความปลอดภัยใช้ไม่ได้บนหน้านี้ในแอป ลงชื่อเข้าใช้ด้วยรหัสผ่าน หรืออนุญาตให้แอปผ่านพร็อกซีของคุณ',
+  'native.signInBar.hint': 'พาสคีย์และคีย์ความปลอดภัยใช้ไม่ได้บนหน้านี้ในแอป ลงชื่อเข้าใช้ด้วยรหัสผ่าน หรืออนุญาตให้แอปผ่านพร็อกซีของคุณ',
   'native.login.failed': 'เข้าสู่ระบบไม่สำเร็จ โปรดลองอีกครั้ง',
   'native.handoff.title': 'ดำเนินการต่อในแอป',
   'native.handoff.hint': 'คุณเข้าสู่ระบบในชื่อ {name} เปิดแอป TREK เพื่อเข้าสู่ระบบให้เสร็จสิ้นที่นั่น',
@@ -110,8 +107,7 @@ const native: TranslationStrings = {
   'native.share.linkSaved': 'บันทึกลิงก์แล้ว',
   'native.share.linkUnsupported': 'เปิด Collab เพื่อเก็บลิงก์ในทริป',
   'native.pushPrompt.title': 'เปิดการแจ้งเตือนไหม?',
-  'native.pushPrompt.body':
-    'รู้ทันทีเมื่อมีคนเขียนในแชทของทริป เชิญคุณ หรือเปลี่ยนการจอง คุณเปลี่ยนได้ทุกเมื่อในการตั้งค่า',
+  'native.pushPrompt.body': 'รู้ทันทีเมื่อมีคนเขียนในแชทของทริป เชิญคุณ หรือเปลี่ยนการจอง คุณเปลี่ยนได้ทุกเมื่อในการตั้งค่า',
   'native.pushPrompt.enable': 'เปิด',
   'native.pushPrompt.later': 'ไว้ทีหลัง',
   'native.widget.dayOf': 'วันที่ {n} จาก {m}',
@@ -140,8 +136,7 @@ const native: TranslationStrings = {
   'native.gate.signIn': 'ลงชื่อเข้าใช้ {name}',
   'native.gate.signInGeneric': 'ลงชื่อเข้าใช้',
   'native.gate.googleNote': 'การลงชื่อเข้าใช้ด้วย Google ใช้ในแอปไม่ได้ หากของคุณใช้ ให้ปล่อย TREK ผ่านพร็อกซีแทน',
-  'native.gate.basicHint':
-    'แอปตอบคำขอนี้ไม่ได้ ให้ปล่อย TREK ผ่านในพร็อกซีของคุณ: TREK ยังคงขอการลงชื่อเข้าใช้ของตัวเอง',
+  'native.gate.basicHint': 'แอปตอบคำขอนี้ไม่ได้ ให้ปล่อย TREK ผ่านในพร็อกซีของคุณ: TREK ยังคงขอการลงชื่อเข้าใช้ของตัวเอง',
   'native.gate.help': 'การใช้แอปหลังพร็อกซีลงชื่อเข้าใช้',
   'native.cert.title': 'เซิร์ฟเวอร์นี้ขอใบรับรองไคลเอนต์',
   'native.cert.titleRefused': 'เซิร์ฟเวอร์ไม่ยอมรับใบรับรอง',

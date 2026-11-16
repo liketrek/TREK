@@ -313,8 +313,7 @@ const collection: TranslationStrings = {
   'collections.file.gpxSkipped.many': 'ستُستبعد {count} نقطة طريق لعدم وجود إحداثيات صالحة لها.',
   'collections.file.gpxTrack': 'يحتوي هذا الملف أيضًا على {count} نقطة مسار. لا تُستورد المسارات، بل نقاط الطريق فقط.',
   'collections.file.gpxTrack.zero': 'لا يحتوي هذا الملف على نقاط مسار. لا تُستورد المسارات، بل نقاط الطريق فقط.',
-  'collections.file.gpxTrack.one':
-    'يحتوي هذا الملف أيضًا على نقطة مسار واحدة. لا تُستورد المسارات، بل نقاط الطريق فقط.',
+  'collections.file.gpxTrack.one': 'يحتوي هذا الملف أيضًا على نقطة مسار واحدة. لا تُستورد المسارات، بل نقاط الطريق فقط.',
   'collections.file.gpxTrack.two': 'يحتوي هذا الملف أيضًا على نقطتَي مسار. لا تُستورد المسارات، بل نقاط الطريق فقط.',
   'collections.file.gpxTrack.few':
     'يحتوي هذا الملف أيضًا على {count} نقاط مسار. لا تُستورد المسارات، بل نقاط الطريق فقط.',

@@ -4,8 +4,7 @@ import type { TranslationStrings } from '../types';
 const studioLayers: TranslationStrings = {
   'journey.studio.layers': 'الطبقات',
   'journey.studio.layers.empty': 'لا شيء في هذه الصفحة بعد. ما تضيفه يظهر هنا، من الأمام إلى الخلف.',
-  'journey.studio.layers.hint':
-    'من الأمام إلى الخلف. اسحب صفًا لإعادة ترتيبه، وانقر نقرًا مزدوجًا على اسم لإعادة تسميته.',
+  'journey.studio.layers.hint': 'من الأمام إلى الخلف. اسحب صفًا لإعادة ترتيبه، وانقر نقرًا مزدوجًا على اسم لإعادة تسميته.',
   'journey.studio.layers.group': 'مجموعة',
   'journey.studio.layers.groupAction': 'تجميع',
   'journey.studio.layers.ungroup': 'فك التجميع',

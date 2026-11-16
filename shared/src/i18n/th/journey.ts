@@ -144,8 +144,7 @@ const journey: TranslationStrings = {
   'journey.editor.makeFirst': 'ทำให้เป็นที่ 1',
   'journey.editor.searching': 'กำลังค้นหา...',
   'journey.editor.useCurrentLocation': 'ใช้ตำแหน่งปัจจุบันของฉัน',
-  'journey.editor.locationPermissionDenied':
-    'การเข้าถึงตำแหน่งถูกปฏิเสธ อนุญาตในการตั้งค่าเบราว์เซอร์ของคุณแล้วลองอีกครั้ง',
+  'journey.editor.locationPermissionDenied': 'การเข้าถึงตำแหน่งถูกปฏิเสธ อนุญาตในการตั้งค่าเบราว์เซอร์ของคุณแล้วลองอีกครั้ง',
   'journey.editor.locationTimeout': 'หมดเวลารับตำแหน่งของคุณ ลองอีกครั้ง',
   'journey.editor.locationUnavailable': 'ไม่สามารถระบุตำแหน่งของคุณได้',
   'journey.editor.locationInsecureContext': 'ตำแหน่งต้องมีการเชื่อมต่อที่ปลอดภัย (HTTPS)',
@@ -226,8 +225,7 @@ const journey: TranslationStrings = {
   'journey.settings.statusManualHint': 'ตั้งเอง วันที่ของทริปจะไม่เปลี่ยนสถานะนี้จนกว่าจะกลับเป็นอัตโนมัติ',
   'journey.settings.photosSection': 'รูปภาพ',
   'journey.settings.photoLocation': 'ระบุตำแหน่งบันทึกจากรูปภาพ',
-  'journey.settings.photoLocationHint':
-    'บันทึกที่ไม่มีสถานที่จะใช้ตำแหน่งที่ถ่ายรูปแรกที่มี GPS สถานที่ที่คุณตั้งเองจะไม่ถูกย้าย',
+  'journey.settings.photoLocationHint': 'บันทึกที่ไม่มีสถานที่จะใช้ตำแหน่งที่ถ่ายรูปแรกที่มี GPS สถานที่ที่คุณตั้งเองจะไม่ถูกย้าย',
   'journey.settings.endJourney': 'ปิดการเดินทาง',
   'journey.settings.reopenJourney': 'เปิดการเดินทางอีกครั้ง',
   'journey.settings.archived': 'เก็บถาวรการเดินทางแล้ว',
@@ -452,11 +450,9 @@ const journey: TranslationStrings = {
   'journey.studio.copyToPage': 'คัดลอกเพื่อวางในหน้าใดก็ได้ (Ctrl+C)',
   'journey.studio.paste': 'วาง (Ctrl+V)',
   'journey.studio.pasteEmpty': 'คัดลอกบางอย่างก่อน แล้ววางในหน้าใดก็ได้',
-  'journey.studio.pageFull':
-    'หน้านี้เต็มแล้ว ใส่องค์ประกอบได้ครบจำนวนสูงสุดของหนึ่งหน้า โปรดลบบางอย่างก่อนหรือใช้หน้าอื่น',
+  'journey.studio.pageFull': 'หน้านี้เต็มแล้ว ใส่องค์ประกอบได้ครบจำนวนสูงสุดของหนึ่งหน้า โปรดลบบางอย่างก่อนหรือใช้หน้าอื่น',
   'journey.studio.myLayouts': 'เค้าโครงของฉัน',
-  'journey.studio.myLayoutsEmpty':
-    'เก็บหน้าที่คุณจัดไว้ แล้วจัดหน้าอื่นในแบบเดียวกัน รูปภาพและข้อความของหน้าเหล่านั้นยังคงอยู่',
+  'journey.studio.myLayoutsEmpty': 'เก็บหน้าที่คุณจัดไว้ แล้วจัดหน้าอื่นในแบบเดียวกัน รูปภาพและข้อความของหน้าเหล่านั้นยังคงอยู่',
   'journey.studio.saveLayout': 'บันทึกหน้านี้เป็นเค้าโครง',
   'journey.studio.saveLayoutHint': 'เก็บการจัดวางโดยไม่รวมรูปภาพ สำหรับผู้แก้ไขทุกคนของหนังสือเล่มนี้',
   'journey.studio.saveLayoutFull': 'หนังสือเล่มนี้เก็บเค้าโครงได้สูงสุด 24 แบบ ลบหนึ่งแบบเพื่อบันทึกแบบใหม่',
@@ -612,15 +608,13 @@ const journey: TranslationStrings = {
   'journey.studio.recommended': 'แนะนำ',
   'journey.studio.bleed': 'ระยะตัดตก',
   'journey.studio.safeArea': 'ปลอดภัย',
-  'journey.studio.mapSourceSatelliteHint':
-    'ภาพ Sentinel-2 ไร้เมฆ พิมพ์ได้ฟรีเมื่อระบุแหล่งที่มา และคมชัดถึงระดับถนนในเมือง',
+  'journey.studio.mapSourceSatelliteHint': 'ภาพ Sentinel-2 ไร้เมฆ พิมพ์ได้ฟรีเมื่อระบุแหล่งที่มา และคมชัดถึงระดับถนนในเมือง',
   'journey.studio.mapPerTrip': 'เที่ยวละครั้ง',
   'journey.studio.mapWholeJourney': 'ทั้งการเดินทาง',
   'journey.studio.mapScope': 'การแสดง',
   'journey.studio.mapPrintDpi': 'พิมพ์เมื่อประมาณ',
   'journey.studio.mapPrintDpiLow': 'ภาพจะไม่คมที่ขนาดนี้ ลองมุมมองที่กว้างขึ้นหรือใช้แหล่งอื่น',
-  'journey.studio.mapSourceReliefHint':
-    'ภาพนูนสีเทาของ NASA พิมพ์ได้ฟรี ดีที่สุดสำหรับประเทศหรือทวีป หยาบเกินไปสำหรับเมืองเดียว',
+  'journey.studio.mapSourceReliefHint': 'ภาพนูนสีเทาของ NASA พิมพ์ได้ฟรี ดีที่สุดสำหรับประเทศหรือทวีป หยาบเกินไปสำหรับเมืองเดียว',
   'journey.studio.mapSourceTiles': 'ไทล์แผนที่',
   'journey.studio.mapSourceStatic': 'Mapbox',
   'journey.studio.mapSourceHint': 'ดึงข้อมูลเมื่อเพจถูกแสดงผล และพิมพ์พร้อมเครดิต',
@@ -670,8 +664,7 @@ const journey: TranslationStrings = {
   'journey.studio.fillSpread': 'เติมสเปรด',
   'journey.studio.fillHint': 'ขยายรูปภาพให้ทั่วทั้งหน้า รวมขอบตก และส่งไปด้านหลังสิ่งอื่นๆ',
   'journey.studio.stops': 'จุดแวะ',
-  'journey.studio.stopsHint':
-    'ทุกจุดแวะจะนับรวมเส้นทาง ระยะทาง และประเทศ ปิดสวิตช์เครื่องหนึ่งเพื่อทิ้งไว้ เช่น สนามบินที่บ้านของคุณ',
+  'journey.studio.stopsHint': 'ทุกจุดแวะจะนับรวมเส้นทาง ระยะทาง และประเทศ ปิดสวิตช์เครื่องหนึ่งเพื่อทิ้งไว้ เช่น สนามบินที่บ้านของคุณ',
   'journey.studio.stopOn': 'นับ',
   'journey.studio.stopOff': 'ทิ้งไว้',
   'journey.studio.stopToggle': 'นับจุดแวะนี้',
@@ -681,8 +674,7 @@ const journey: TranslationStrings = {
   'journey.entry.offRoute': 'นอกเส้นทาง',
   'journey.entry.draft': 'ฉบับร่าง',
   'journey.editor.draft': 'ฉบับร่าง',
-  'journey.editor.draftHint':
-    'มีเพียงคุณและผู้ร่วมให้ข้อมูลคนอื่นที่เห็นรายการนี้ การเดินทางที่แชร์จะไม่แสดงรายการนี้จนกว่าคุณจะปิดตัวเลือกนี้',
+  'journey.editor.draftHint': 'มีเพียงคุณและผู้ร่วมให้ข้อมูลคนอื่นที่เห็นรายการนี้ การเดินทางที่แชร์จะไม่แสดงรายการนี้จนกว่าคุณจะปิดตัวเลือกนี้',
   'journey.editor.tripSuggestionHint': 'วันนี้อยู่ในช่วงทริปนี้ เชื่อมโยงแล้วสถานที่ของทริปจะเข้าร่วมการเดินทางนี้',
   'journey.editor.tripSuggestionLater': 'ไว้ทีหลัง',
   'journey.suggestions.dismiss': 'ซ่อนคำแนะนำนี้',
@@ -721,12 +713,10 @@ const journey: TranslationStrings = {
   'journey.recording.pieces': '{count} ช่วง',
   'journey.recording.gaps': 'ขาดหาย {count} จุด',
   'journey.recording.gapsHint': 'ที่ใดการบันทึกหยุด เส้นก็หยุดด้วย จะไม่วาดเส้นทางที่ไม่ได้บันทึก',
-  'journey.recording.sourceHint':
-    'แทร็กคือเส้นทางที่ Dawarich แบ่งตามวิธีเดินทางแล้ว จุดคือตำแหน่งดิบ ลดเหลือ 600 จุดต่อวัน',
+  'journey.recording.sourceHint': 'แทร็กคือเส้นทางที่ Dawarich แบ่งตามวิธีเดินทางแล้ว จุดคือตำแหน่งดิบ ลดเหลือ 600 จุดต่อวัน',
   'journey.recording.sourceTracks': 'แทร็ก',
   'journey.recording.sourcePoints': 'จุด',
-  'journey.recording.changedSincePreview':
-    'การบันทึกใน Dawarich เปลี่ยนไประหว่างที่คุณดูอยู่ ตรวจสอบอีกครั้งแล้วจึงบันทึก',
+  'journey.recording.changedSincePreview': 'การบันทึกใน Dawarich เปลี่ยนไประหว่างที่คุณดูอยู่ ตรวจสอบอีกครั้งแล้วจึงบันทึก',
   'journey.recording.truncated': 'Dawarich ส่งมาเพียงบางส่วนของวันนี้ เส้นทางจึงไม่ครบ',
   'journey.recording.provisional': 'วันนี้ยังไม่จบในเขตเวลานี้ คุณเปลี่ยนเส้นทางเป็นทั้งวันได้ภายหลัง',
   'journey.recording.same': 'ทริปนี้เก็บการบันทึกนี้ไว้แล้วทุกประการ',
@@ -767,8 +757,7 @@ const journey: TranslationStrings = {
   'journey.dayImport.modeEntries': 'รายการ',
   'journey.dayImport.modeReport': 'บันทึกประจำวัน',
   'journey.dayImport.reportDefault': 'วันที่ {date}',
-  'journey.dayImport.reportHint':
-    'จุดแวะพักที่เลือกทั้งหมดจะเป็นรายการเดียวที่แสดงพร้อมเวลา ทุกสถานที่ยังถูกเก็บไว้สำหรับแผนที่',
+  'journey.dayImport.reportHint': 'จุดแวะพักที่เลือกทั้งหมดจะเป็นรายการเดียวที่แสดงพร้อมเวลา ทุกสถานที่ยังถูกเก็บไว้สำหรับแผนที่',
   'journey.dayImport.reportNeedsTwo': 'เลือกจุดแวะพักสองแห่งขึ้นไปสำหรับบันทึกประจำวัน',
   'journey.dayImport.groupTitle': 'ชื่อรายการ',
   'journey.dayImport.groupPin': 'ตำแหน่งบนแผนที่',
@@ -803,8 +792,7 @@ const journey: TranslationStrings = {
   'journey.dayImport.problem.title': 'รายการที่รวมกันและบันทึกประจำวันต้องมีชื่อ',
   'journey.dayImport.done': 'นำเข้าฉบับร่าง {count} รายการแล้ว',
   'journey.dayImport.alreadyTaken': 'จุดแวะพัก {count} แห่งถูกนำเข้าไปแล้ว ไม่มีอะไรถูกเขียนซ้ำ',
-  'journey.dayImport.failed':
-    'ยังไม่ได้นำเข้าอะไร: {reason} รายการแสดงสิ่งที่อยู่ในบันทึกตอนนี้ การลองใหม่จะไม่เขียนซ้ำ',
+  'journey.dayImport.failed': 'ยังไม่ได้นำเข้าอะไร: {reason} รายการแสดงสิ่งที่อยู่ในบันทึกตอนนี้ การลองใหม่จะไม่เขียนซ้ำ',
   'journey.dayImport.routeFailed': 'สร้างฉบับร่างแล้ว แต่ยังไม่ได้เก็บเส้นทาง: {reason}',
   'journey.dayImport.routeRetry': 'เก็บเส้นทางอีกครั้ง',
   'journey.dayImport.stale': 'Dawarich ไม่ตอบกลับ: {reason} กำลังแสดงจุดแวะพักจากการซิงก์ครั้งล่าสุดเมื่อ {date}',
@@ -825,8 +813,7 @@ const journey: TranslationStrings = {
   'journey.prep.dayPending': 'ยังไม่ได้ดึงข้อมูล',
   'journey.prep.dayProvisional': 'ดึงเมื่อ {time} ก่อนสิ้นวัน อาจมีจุดแวะพักขาดหาย',
   'journey.prep.dayFailed': 'การรีเฟรชล่าสุดล้มเหลว นี่คือสถานะเก่ากว่า',
-  'journey.prep.outOfReach':
-    'ทริปที่จบไปนานกว่า {count} วันจะไม่ถูกเตรียมเบื้องหลัง เปิดวันใดวันหนึ่งของทริปเพื่อดึงข้อมูลด้วยตนเอง',
+  'journey.prep.outOfReach': 'ทริปที่จบไปนานกว่า {count} วันจะไม่ถูกเตรียมเบื้องหลัง เปิดวันใดวันหนึ่งของทริปเพื่อดึงข้อมูลด้วยตนเอง',
   'journey.prep.alreadyRunning': 'มีการดึงข้อมูลทำงานอยู่เบื้องหลังแล้ว จุดแวะพักจะปรากฏเมื่อเสร็จ',
   'journey.dayImport.running': 'วันนี้ยังไม่จบ จุดแวะพักที่บันทึกภายหลังจะปรากฏเมื่อ Dawarich ได้รับแล้ว',
   'journey.map.layers': 'เลเยอร์แผนที่',
@@ -851,8 +838,7 @@ const journey: TranslationStrings = {
   'journey.map.legend.lines': 'เส้นทาง',
   'journey.map.legend.plannedRoute': 'เส้นทางตามแผน (GPX ของทริป)',
   'journey.map.legend.recordedRoute': 'เส้นทางที่บันทึก',
-  'journey.map.legend.planIsNoVisit':
-    'สถานที่ตามแผนไม่ใช่หลักฐานว่าไปมาแล้ว มีเพียงบันทึก รูปภาพ และการบันทึกเส้นทางที่แสดงว่าคุณอยู่ที่ไหน',
+  'journey.map.legend.planIsNoVisit': 'สถานที่ตามแผนไม่ใช่หลักฐานว่าไปมาแล้ว มีเพียงบันทึก รูปภาพ และการบันทึกเส้นทางที่แสดงว่าคุณอยู่ที่ไหน',
   'journey.map.pick.openEntry': 'เปิดบันทึก',
   'journey.map.pick.planned': 'ตามแผน',
   'journey.map.pick.notWritten': 'ยังไม่มีการเขียนถึงที่นี่',
@@ -864,8 +850,7 @@ const journey: TranslationStrings = {
   'journey.share.plan': 'แผนการเดินทาง',
   'journey.share.planHint': 'สถานที่ตามแผนและเส้นทาง GPX ของทริปที่เชื่อมโยงบนแผนที่',
   'journey.share.recordings': 'เส้นทางที่บันทึก',
-  'journey.share.recordingsHint':
-    'วันที่บันทึกและจุดแวะที่นำมาจากวันนั้น ในวันที่มีบันทึกที่เผยแพร่แล้ว แสดงว่าคุณอยู่ที่ไหนและเมื่อไร รวมถึงที่พักด้วย',
+  'journey.share.recordingsHint': 'วันที่บันทึกและจุดแวะที่นำมาจากวันนั้น ในวันที่มีบันทึกที่เผยแพร่แล้ว แสดงว่าคุณอยู่ที่ไหนและเมื่อไร รวมถึงที่พักด้วย',
   'journey.share.needsMap': 'แชร์แผนที่เพื่อเปิดใช้งานนี้',
   'journey.editor.tags': 'แท็ก',
   'journey.studio.assistant.toggle': 'ผู้ช่วย',

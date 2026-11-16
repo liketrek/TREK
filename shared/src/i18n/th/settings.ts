@@ -66,8 +66,7 @@ const settings: TranslationStrings = {
   'settings.mapHidePoisHint':
     'ซ่อนร้านค้า ร้านอาหาร และสถานที่ท่องเที่ยวที่ Mapbox แสดงเอง เพื่อให้เห็นเฉพาะสถานที่ของคุณ ใช้ได้กับสไตล์ Standard เท่านั้น',
   'settings.mapTipLabel': 'เคล็ดลับ:',
-  'settings.mapTip':
-    'คลิกขวาค้างแล้วลากเพื่อหมุนหรือเอียงแผนที่ คลิกกลางเพื่อเพิ่มสถานที่ (คลิกขวาสงวนไว้สำหรับการหมุน)',
+  'settings.mapTip': 'คลิกขวาค้างแล้วลากเพื่อหมุนหรือเอียงแผนที่ คลิกกลางเพื่อเพิ่มสถานที่ (คลิกขวาสงวนไว้สำหรับการหมุน)',
   'settings.saveMap': 'บันทึกแผนที่',
   'settings.apiKeys': 'คีย์ API',
   'settings.mapsKey': 'คีย์ Google Maps API',
@@ -141,16 +140,14 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.ntfy': 'เอ็นทีฟี่',
   'settings.notificationPreferences.push': 'พุช',
   'settings.webPush.title': 'การแจ้งเตือนแบบพุชบนอุปกรณ์นี้',
-  'settings.webPush.hint':
-    'แสดงการแจ้งเตือนของ TREK บนอุปกรณ์นี้แม้ในขณะที่ปิด TREK อยู่ เหตุการณ์ที่จะได้รับเป็นไปตามคอลัมน์ พุช',
+  'settings.webPush.hint': 'แสดงการแจ้งเตือนของ TREK บนอุปกรณ์นี้แม้ในขณะที่ปิด TREK อยู่ เหตุการณ์ที่จะได้รับเป็นไปตามคอลัมน์ พุช',
   'settings.webPush.enable': 'เปิดสำหรับอุปกรณ์นี้',
   'settings.webPush.disable': 'ปิดสำหรับอุปกรณ์นี้',
   'settings.webPush.enabled': 'เปิดอยู่สำหรับอุปกรณ์นี้',
   'settings.webPush.unsupported': 'เบราว์เซอร์นี้ไม่สามารถรับการแจ้งเตือนแบบพุชได้',
   'settings.webPush.insecure': 'การแจ้งเตือนแบบพุชต้องเปิด TREK ผ่าน HTTPS',
   'settings.webPush.iosInstall': 'บน iPhone และ iPad ให้เพิ่ม TREK ไปยังหน้าจอโฮมก่อน แล้วเปิดจากที่นั่น',
-  'settings.webPush.denied':
-    'การแจ้งเตือนของ TREK ถูกบล็อกในเบราว์เซอร์นี้ อนุญาตในการตั้งค่าเบราว์เซอร์ แล้วลองอีกครั้ง',
+  'settings.webPush.denied': 'การแจ้งเตือนของ TREK ถูกบล็อกในเบราว์เซอร์นี้ อนุญาตในการตั้งค่าเบราว์เซอร์ แล้วลองอีกครั้ง',
   'settings.webPush.failed': 'ไม่สามารถเปิดการแจ้งเตือนแบบพุชสำหรับอุปกรณ์นี้ได้',
   'settings.notificationPreferences.noChannels':
     'ไม่มีการกำหนดค่าช่องทางการแจ้งเตือน ขอให้ผู้ดูแลระบบตั้งค่าการแจ้งเตือนทางอีเมลหรือเว็บฮุค',
@@ -174,8 +171,7 @@ const settings: TranslationStrings = {
   'settings.ntfyUrl.testSuccess': 'ทดสอบการส่งการแจ้งเตือน ntfy สำเร็จ',
   'settings.ntfyUrl.testFailed': 'ทดสอบการแจ้งเตือน ntfy ล้มเหลว',
   'settings.ntfyUrl.tokenCleared': 'ล้างโทเค็นการเข้าถึงแล้ว',
-  'settings.notificationsDisabled':
-    'ไม่ได้กำหนดค่าการแจ้งเตือน ขอให้ผู้ดูแลระบบเปิดใช้งานการแจ้งเตือนทางอีเมลหรือเว็บฮุค',
+  'settings.notificationsDisabled': 'ไม่ได้กำหนดค่าการแจ้งเตือน ขอให้ผู้ดูแลระบบเปิดใช้งานการแจ้งเตือนทางอีเมลหรือเว็บฮุค',
   'settings.notificationsActive': 'ช่องที่ใช้งานอยู่',
   'settings.notificationsManagedByAdmin': 'กิจกรรมการแจ้งเตือนได้รับการกำหนดค่าโดยผู้ดูแลระบบของคุณ',
   'settings.on': 'เปิด',
@@ -195,23 +191,20 @@ const settings: TranslationStrings = {
   'settings.mcp.tokenCreatedAt': 'สร้างแล้ว',
   'settings.mcp.tokenUsedAt': 'ใช้แล้ว',
   'settings.mcp.deleteTokenTitle': 'ลบโทเค็น',
-  'settings.mcp.deleteTokenMessage':
-    'โทเค็นนี้จะหยุดทำงานทันที ไคลเอ็นต์ MCP ใดๆ ที่ใช้งานอยู่จะสูญเสียสิทธิ์ในการเข้าถึง',
+  'settings.mcp.deleteTokenMessage': 'โทเค็นนี้จะหยุดทำงานทันที ไคลเอ็นต์ MCP ใดๆ ที่ใช้งานอยู่จะสูญเสียสิทธิ์ในการเข้าถึง',
   'settings.mcp.modal.createTitle': 'สร้างโทเค็น API',
   'settings.mcp.modal.tokenName': 'ชื่อโทเค็น',
   'settings.mcp.modal.tokenNamePlaceholder': 'เช่น Claude Desktop แล็ปท็อปสำหรับทำงาน',
   'settings.mcp.modal.creating': 'กำลังสร้าง...',
   'settings.mcp.modal.create': 'สร้างโทเค็น',
   'settings.mcp.modal.createdTitle': 'สร้างโทเค็นแล้ว',
-  'settings.mcp.modal.createdWarning':
-    'โทเค็นนี้จะแสดงเพียงครั้งเดียวเท่านั้น คัดลอกและจัดเก็บทันที: ไม่สามารถกู้คืนได้',
+  'settings.mcp.modal.createdWarning': 'โทเค็นนี้จะแสดงเพียงครั้งเดียวเท่านั้น คัดลอกและจัดเก็บทันที: ไม่สามารถกู้คืนได้',
   'settings.mcp.modal.done': 'เสร็จแล้ว',
   'settings.mcp.toast.created': 'สร้างโทเค็นแล้ว',
   'settings.mcp.toast.createError': 'ไม่สามารถสร้างโทเค็นได้',
   'settings.mcp.toast.deleted': 'ลบโทเค็นแล้ว',
   'settings.mcp.toast.deleteError': 'ลบโทเค็นไม่สำเร็จ',
-  'settings.mcp.apiTokensDeprecated':
-    'โทเค็น API เลิกใช้งานแล้วและจะถูกลบออกในรุ่นต่อๆ ไป โปรดใช้ไคลเอนต์ OAuth 2.1 แทน',
+  'settings.mcp.apiTokensDeprecated': 'โทเค็น API เลิกใช้งานแล้วและจะถูกลบออกในรุ่นต่อๆ ไป โปรดใช้ไคลเอนต์ OAuth 2.1 แทน',
   'settings.oauth.clients': 'ลูกค้า OAuth 2.1',
   'settings.oauth.clientsHint':
     'ลงทะเบียนไคลเอ็นต์ OAuth 2.1 เพื่อให้แอปพลิเคชัน MCP บุคคลที่สาม (Claude Web, Cursor ฯลฯ) เชื่อมต่อได้โดยไม่ต้องใช้โทเค็นแบบคงที่',
@@ -330,8 +323,7 @@ const settings: TranslationStrings = {
     'บัญชีของคุณและทริป บันทึกการเดินทาง สถานที่ และไฟล์ทั้งหมดที่คุณเป็นเจ้าของจะถูกลบถาวร รวมถึงทริปที่แชร์กับสมาชิกคนอื่น ซึ่งสมาชิกเหล่านั้นจะเข้าถึงไม่ได้อีก ทริปที่คนอื่นเป็นเจ้าของจะยังอยู่ และคุณจะถูกนำออกจากทริปเหล่านั้น การดำเนินการนี้ไม่สามารถย้อนกลับได้',
   'settings.deleteAccountConfirm': 'ลบอย่างถาวร',
   'settings.deleteBlockedTitle': 'ไม่สามารถลบได้',
-  'settings.deleteBlockedMessage':
-    'คุณเป็นผู้ดูแลระบบเพียงคนเดียว เลื่อนระดับผู้ใช้รายอื่นเป็นผู้ดูแลระบบก่อนที่จะลบบัญชีของคุณ',
+  'settings.deleteBlockedMessage': 'คุณเป็นผู้ดูแลระบบเพียงคนเดียว เลื่อนระดับผู้ใช้รายอื่นเป็นผู้ดูแลระบบก่อนที่จะลบบัญชีของคุณ',
   'settings.roleUser': 'ผู้ใช้',
   'settings.saveProfile': 'บันทึกโปรไฟล์',
   'settings.toast.mapSaved': 'บันทึกการตั้งค่าแผนที่แล้ว',
@@ -370,13 +362,11 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'เปิดใช้งานการรับรองความถูกต้องด้วยสองปัจจัย',
   'settings.mfa.toastDisabled': 'การรับรองความถูกต้องด้วยสองปัจจัยถูกปิดใช้งาน',
   'settings.currency': 'แสดงสกุลเงิน',
-  'settings.currencyHint':
-    'จำนวนเงินในต้นทุนจะแสดงแปลงเป็นสกุลเงินนี้เพื่อแสดงเท่านั้น; จำนวนเงินเดิมไม่มีการเปลี่ยนแปลง',
+  'settings.currencyHint': 'จำนวนเงินในต้นทุนจะแสดงแปลงเป็นสกุลเงินนี้เพื่อแสดงเท่านั้น; จำนวนเงินเดิมไม่มีการเปลี่ยนแปลง',
   'settings.currencyTrip': 'สกุลเงินการเดินทาง',
   'settings.placeLanguage': 'ชื่อสถานที่',
   'settings.placeLanguageApp': 'เหมือนกับแอป',
-  'settings.placeLanguageHint':
-    'ภาษาที่ใช้ในการค้นหาสถานที่ คำแนะนำ และที่อยู่ หากสถานที่ไม่มีชื่อในภาษานั้น จะแสดงชื่อท้องถิ่นแทน',
+  'settings.placeLanguageHint': 'ภาษาที่ใช้ในการค้นหาสถานที่ คำแนะนำ และที่อยู่ หากสถานที่ไม่มีชื่อในภาษานั้น จะแสดงชื่อท้องถิ่นแทน',
   'settings.passkey.title': 'พาสคีย์',
   'settings.passkey.description':
     'ลงชื่อเข้าใช้เร็วขึ้นและป้องกันฟิชชิ่งด้วยรหัสผ่าน ไม่ว่าจะเป็นลายนิ้วมือ ใบหน้า PIN หรือคีย์ฮาร์ดแวร์ รหัสผ่านของคุณยังคงเป็นข้อมูลสำรอง',
@@ -429,8 +419,7 @@ const settings: TranslationStrings = {
     'ตำแหน่งข้อมูลภายใน (Ollama) ได้รับการตั้งค่าครั้งเดียวสำหรับอินสแตนซ์ทั้งหมดในการตั้งค่าผู้ดูแลระบบ คุณยังคงสามารถใช้คีย์ OpenAI หรือ Anthropic ของคุณเองได้ที่นี่',
   'settings.aiParsing.model': 'รุ่น',
   'settings.aiParsing.baseUrl': 'URL ฐาน',
-  'settings.aiParsing.baseUrlHint':
-    'ตำแหน่งที่โมเดลทำงาน — เซิร์ฟเวอร์ Ollama ในเครื่องหรือจุดสิ้นสุดที่เข้ากันได้กับ OpenAI',
+  'settings.aiParsing.baseUrlHint': 'ตำแหน่งที่โมเดลทำงาน — เซิร์ฟเวอร์ Ollama ในเครื่องหรือจุดสิ้นสุดที่เข้ากันได้กับ OpenAI',
   'settings.aiParsing.apiKey': 'คีย์เอพีไอ',
   'settings.aiParsing.apiKeyHint': 'จัดเก็บแบบเข้ารหัส เว้นว่างไว้เพื่อเก็บคีย์ปัจจุบันไว้',
   'settings.aiParsing.multimodal': 'โมเดลอ่านรูปภาพได้',
@@ -467,8 +456,7 @@ const settings: TranslationStrings = {
   'settings.appearance.tier.body': 'ร่างกาย',
   'settings.appearance.tier.caption': 'คำบรรยายภาพ',
   'settings.appearance.dashboardWidgets': 'วิดเจ็ตแดชบอร์ด',
-  'settings.appearance.dashboardWidgetsHint':
-    'แสดงหรือซ่อนวิดเจ็ตแดชบอร์ดอย่างเป็นอิสระบนเดสก์ท็อปและอุปกรณ์เคลื่อนที่',
+  'settings.appearance.dashboardWidgetsHint': 'แสดงหรือซ่อนวิดเจ็ตแดชบอร์ดอย่างเป็นอิสระบนเดสก์ท็อปและอุปกรณ์เคลื่อนที่',
   'settings.appearance.desktop': 'เดสก์ท็อป',
   'settings.appearance.mobile': 'มือถือ',
   'settings.appearance.widget.sidebar': 'แถบด้านข้างขวา',
@@ -484,8 +472,7 @@ const settings: TranslationStrings = {
   'settings.appearance.group.belowHero': 'ข้างล่างพระเอก.',
   'settings.appearance.group.bottomOfPage': 'ด้านล่างของหน้า',
   'settings.appearance.sidebarHint': 'คอลัมน์ขวาทั้งหมด ปิดและแผงหน้าปัดตรงกลาง',
-  'settings.appearance.densityHint':
-    'ขนาดกะทัดรัดทำให้ระยะห่างและช่องว่างภายในกระชับขึ้นเพื่อเค้าโครงที่หนาแน่นยิ่งขึ้นซึ่งพอดีกับหน้าจอมากขึ้น',
+  'settings.appearance.densityHint': 'ขนาดกะทัดรัดทำให้ระยะห่างและช่องว่างภายในกระชับขึ้นเพื่อเค้าโครงที่หนาแน่นยิ่งขึ้นซึ่งพอดีกับหน้าจอมากขึ้น',
   'settings.appearance.textSizeAll': 'ทุกอย่าง',
   'settings.appearance.perSize': 'ปรับขนาดแต่ละขนาดแยกกัน',
   'settings.appearance.size.large': 'ใหญ่',
@@ -502,8 +489,7 @@ const settings: TranslationStrings = {
   'settings.appearance.example.small': 'ที่อยู่, ป้ายกำกับ',
   'settings.appearance.experimental': 'การทดลอง',
   'settings.appearance.mobileNav': 'แถบนำทางด้านล่าง',
-  'settings.appearance.mobileNav.hint':
-    'เลือกรายการที่จะปรากฏในแถบและรายการใดอยู่ใต้ "เพิ่มเติม" แดชบอร์ดจะอยู่อันดับแรกเสมอ',
+  'settings.appearance.mobileNav.hint': 'เลือกรายการที่จะปรากฏในแถบและรายการใดอยู่ใต้ "เพิ่มเติม" แดชบอร์ดจะอยู่อันดับแรกเสมอ',
   'settings.appearance.mobileNav.inBar': 'ในบาร์',
   'settings.appearance.mobileNav.underMore': 'ภายใต้ “เพิ่มเติม”',
   'settings.appearance.mobileNav.moreEmpty': 'ยังไม่มีอะไรที่นี่ ทุกอย่างลงตัวพอดีในบาร์',
@@ -511,8 +497,7 @@ const settings: TranslationStrings = {
   'settings.appearance.mobileNav.toMore': 'ย้ายไปใต้ "เพิ่มเติม"',
   'settings.appearance.mobileNav.toBar': 'ย้ายไปที่บาร์',
   'settings.appearance.dashOrder': 'ลำดับแดชบอร์ด',
-  'settings.appearance.dashOrder.hint':
-    'จัดลำดับรายการการเดินทางและวิดเจ็ตใหม่บนแดชบอร์ดโทรศัพท์ของคุณ ทริปเด่นจะอยู่ด้านบนเสมอ',
+  'settings.appearance.dashOrder.hint': 'จัดลำดับรายการการเดินทางและวิดเจ็ตใหม่บนแดชบอร์ดโทรศัพท์ของคุณ ทริปเด่นจะอยู่ด้านบนเสมอ',
   'settings.appearance.dashOrder.trips': 'ทริป',
   'settings.appearance.dashOrder.hidden': 'ซ่อนเร้น',
   'settings.general.languageRegion': 'ภาษาและภูมิภาค',
@@ -520,14 +505,12 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'การเริ่มต้น',
   'settings.dayDateFirst': 'แสดงวันที่ก่อนในหัวข้อวัน',
   'settings.compactUnplanned': 'หมุดขนาดเล็กสำหรับสถานที่ที่ยังไม่ได้วางแผน',
-  'settings.compactUnplannedHint':
-    'สถานที่ที่ยังไม่ได้วางแผนไว้ในวันใดจะแสดงเป็นหมุดเล็กโดยไม่มีรูปภาพ เพื่อให้จุดแวะที่วางแผนไว้โดดเด่นขึ้น',
+  'settings.compactUnplannedHint': 'สถานที่ที่ยังไม่ได้วางแผนไว้ในวันใดจะแสดงเป็นหมุดเล็กโดยไม่มีรูปภาพ เพื่อให้จุดแวะที่วางแผนไว้โดดเด่นขึ้น',
   'settings.dayDateFirstHint': 'เริ่มแต่ละวันด้วยวันที่ในปฏิทิน และแสดง "วันที่ 1" หรือชื่อของวันนั้นไว้ข้างๆ',
   'settings.startPage': 'หน้าเริ่มต้น',
   'settings.startPageDashboard': 'แดชบอร์ด',
   'settings.startPageActiveTrip': 'การเดินทางที่ใช้งานอยู่',
-  'settings.startPageHint':
-    'TREK เปิดตรงในทริปที่กำลังวิ่งวันนี้หรือทริปถัดไปที่กำลังจะมาถึง นั่นคือการเดินทางเดียวกันกับคุณสมบัติแดชบอร์ด',
+  'settings.startPageHint': 'TREK เปิดตรงในทริปที่กำลังวิ่งวันนี้หรือทริปถัดไปที่กำลังจะมาถึง นั่นคือการเดินทางเดียวกันกับคุณสมบัติแดชบอร์ด',
   'settings.startTripTab': 'แท็บเริ่มต้น',
   'settings.startTripTabHint': 'แท็บการเดินทางจะเปิดขึ้น หากเป็นของส่วนเสริมที่คุณปิดไป มุมมองแผนจะเปิดขึ้นแทน',
 
@@ -535,12 +518,10 @@ const settings: TranslationStrings = {
   'settings.offline.cache.title': 'แคชออฟไลน์',
   'settings.offline.mode.title': 'โหมดออฟไลน์',
   'settings.offline.mode.force': 'บังคับโหมดออฟไลน์',
-  'settings.offline.mode.forceHint':
-    'ทำงานจากข้อมูลแคชเท่านั้นและจัดคิวการเปลี่ยนแปลงของคุณ ปิดเพื่อเชื่อมต่อและซิงค์อีกครั้ง',
+  'settings.offline.mode.forceHint': 'ทำงานจากข้อมูลแคชเท่านั้นและจัดคิวการเปลี่ยนแปลงของคุณ ปิดเพื่อเชื่อมต่อและซิงค์อีกครั้ง',
   'settings.offline.mode.active': 'โหมดออฟไลน์เปิดอยู่: การเปลี่ยนแปลงของคุณอยู่ในคิวและจะซิงค์เมื่อคุณปิด',
   'settings.offline.prepare.title': 'เตรียมความพร้อมสำหรับออฟไลน์',
-  'settings.offline.prepare.hint':
-    'ดาวน์โหลดทุกสิ่งที่คุณต้องการ (ข้อมูลการเดินทาง เอกสาร และไทล์แผนที่) ก่อนที่คุณจะขาดการเชื่อมต่อ',
+  'settings.offline.prepare.hint': 'ดาวน์โหลดทุกสิ่งที่คุณต้องการ (ข้อมูลการเดินทาง เอกสาร และไทล์แผนที่) ก่อนที่คุณจะขาดการเชื่อมต่อ',
   'settings.offline.prepare.button': 'ดาวน์โหลดเพื่อใช้แบบออฟไลน์',
   'settings.offline.prepare.running': 'กำลังดาวน์โหลด...',
   'settings.offline.prepare.done': 'พร้อมสำหรับการใช้งานแบบออฟไลน์',
@@ -551,8 +532,7 @@ const settings: TranslationStrings = {
   'settings.offline.resyncing': 'กำลังซิงค์...',
   'settings.offline.storage.title': 'สิ่งที่จะจัดเก็บแบบออฟไลน์',
   'settings.offline.storage.tiles': 'จัดเก็บแผ่นแผนที่แบบออฟไลน์',
-  'settings.offline.storage.tilesHint':
-    'ไทล์แผนที่ใช้พื้นที่เก็บข้อมูลมากที่สุด ปิดตัวเลือกนี้เพื่อเก็บเฉพาะข้อมูลการเดินทางและเอกสารแบบออฟไลน์',
+  'settings.offline.storage.tilesHint': 'ไทล์แผนที่ใช้พื้นที่เก็บข้อมูลมากที่สุด ปิดตัวเลือกนี้เพื่อเก็บเฉพาะข้อมูลการเดินทางและเอกสารแบบออฟไลน์',
   'settings.offline.storage.tripsTitle': 'ทริป',
   'settings.offline.storage.tripOn': 'เก็บไว้แบบออฟไลน์',
   'settings.offline.storage.tripOff': 'ไม่ได้เก็บไว้',
@@ -569,8 +549,7 @@ const settings: TranslationStrings = {
   'settings.offline.stats.trips': 'ทริปที่แคชไว้',
   'settings.offline.stats.pending': 'รอดำเนินการเปลี่ยนแปลง',
   'settings.offline.stats.failed': 'การเปลี่ยนแปลงล้มเหลว',
-  'settings.offline.failed.hint':
-    'การเปลี่ยนแปลงเหล่านี้ไม่เคยไปถึงเซิร์ฟเวอร์ ลองอีกครั้ง หรือทิ้งไปเพื่อคงเวอร์ชันบนเซิร์ฟเวอร์ไว้',
+  'settings.offline.failed.hint': 'การเปลี่ยนแปลงเหล่านี้ไม่เคยไปถึงเซิร์ฟเวอร์ ลองอีกครั้ง หรือทิ้งไปเพื่อคงเวอร์ชันบนเซิร์ฟเวอร์ไว้',
   'settings.offline.failed.retry': 'ลองอีกครั้ง',
   'settings.offline.failed.discard': 'ทิ้ง',
   'settings.offline.stats.conflicts': 'ข้อขัดแย้ง',
@@ -640,8 +619,7 @@ const settings: TranslationStrings = {
   'settings.notifyReplicaFailure': 'การทำสำเนาที่เก็บข้อมูลล้มเหลว',
   'settings.notifyPaddleRegionRequested': 'มีคำขอภูมิภาคพายเรือ',
   'settings.apiScopes.title': 'สิ่งที่คีย์นี้อ่านได้',
-  'settings.apiScopes.hint':
-    'เปิดทุกอย่างไว้สำหรับคีย์ที่ควรเห็นข้อมูลทั้งหมด สิ่งที่คุณปิดจะถูกปฏิเสธสำหรับคีย์นี้ ไม่ใช่เพียงไม่แสดงในคำตอบ',
+  'settings.apiScopes.hint': 'เปิดทุกอย่างไว้สำหรับคีย์ที่ควรเห็นข้อมูลทั้งหมด สิ่งที่คุณปิดจะถูกปฏิเสธสำหรับคีย์นี้ ไม่ใช่เพียงไม่แสดงในคำตอบ',
   'settings.apiScopes.all': 'ทุกอย่าง',
   'settings.apiScopes.noneSelected': 'เลือกอย่างน้อยหนึ่งส่วน มิฉะนั้นคีย์จะอ่านข้อมูลไม่ได้เลย',
   'settings.apiScopes.limited': '{count} จาก {total}',
@@ -657,8 +635,7 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'ปลายทาง',
   'settings.apiKeys.neverUsed': 'ไม่เคยใช้',
   'settings.apiKeys.loadFailed': 'ไม่สามารถโหลดคีย์ของคุณได้ โหลดหน้านี้ใหม่เพื่อลองอีกครั้ง',
-  'settings.apiKeys.limitReached':
-    'คุณมีคีย์ {count} อัน ซึ่งเป็นจำนวนสูงสุดที่บัญชีหนึ่งมีได้ ลบคีย์ที่ไม่ได้ใช้ออกเพื่อสร้างคีย์ใหม่',
+  'settings.apiKeys.limitReached': 'คุณมีคีย์ {count} อัน ซึ่งเป็นจำนวนสูงสุดที่บัญชีหนึ่งมีได้ ลบคีย์ที่ไม่ได้ใช้ออกเพื่อสร้างคีย์ใหม่',
   'settings.apiKeys.copyFailed': 'ไม่สามารถคัดลอกได้ เลือกข้อความและคัดลอกด้วยตนเอง',
   'settings.mcp.deprecated': 'เลิกใช้แล้ว',
   'settings.offline.cache.dateRange': '{start} ถึง {end}',

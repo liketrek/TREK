@@ -198,8 +198,7 @@ const budget: TranslationStrings = {
   'costs.splitUnit': 'إدخال الحصص كـ',
   'costs.splitPercentOff': 'تم توزيع {sum} % من 100 %',
   'costs.splitUnitShares': 'الحصص',
-  'costs.splitHint.shares':
-    'أعطِ كل شخص عددًا من الحصص، مثل عدد الليالي التي أقامها؛ ويُقسَّم المبلغ الإجمالي بهذه النسبة.',
+  'costs.splitHint.shares': 'أعطِ كل شخص عددًا من الحصص، مثل عدد الليالي التي أقامها؛ ويُقسَّم المبلغ الإجمالي بهذه النسبة.',
   'costs.splitSharesOf': 'حصص {name}',
   'costs.splitSharesNone': 'أعطِ حصة لشخص واحد على الأقل',
   'costs.mode.label': 'تقسيم التكاليف بين المسافرين',

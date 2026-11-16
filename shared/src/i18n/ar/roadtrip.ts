@@ -196,8 +196,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.track.length': 'بطول {distance}',
   'roadtrip.track.gap': 'على بعد {distance} من هذا اليوم',
   'roadtrip.track.onDay': 'على امتداد هذا اليوم',
-  'roadtrip.track.explain':
-    'يُسحب المسار إلى التتبع بواسطة بضع نقاط عبور. تُستبدل نقاط العبور الموجودة على تلك المراحل.',
+  'roadtrip.track.explain': 'يُسحب المسار إلى التتبع بواسطة بضع نقاط عبور. تُستبدل نقاط العبور الموجودة على تلك المراحل.',
   'roadtrip.track.action': 'اتبع هذا المسار',
   'roadtrip.track.working': 'يجري ملاءمة المسار مع التتبع، الجولة {round}',
   'roadtrip.track.done': 'تم وضع {count} نقطة عبور. يبقى المسار ضمن {distance} من التتبع.',
@@ -240,8 +239,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.truncated.zero': 'لم تتجاوز النتائج في أي مقطع ما تتسع له استجابة واحدة.',
   'roadtrip.poi.truncated.one': 'في مقطع واحد كانت النتائج أكثر مما تتسع له استجابة واحدة. قلّص الممر لرؤية البقية.',
   'roadtrip.poi.truncated.two': 'في مقطعين كانت النتائج أكثر مما تتسع له استجابة واحدة. قلّص الممر لرؤية البقية.',
-  'roadtrip.poi.truncated.few':
-    'في {count} مقاطع كانت النتائج أكثر مما تتسع له استجابة واحدة. قلّص الممر لرؤية البقية.',
+  'roadtrip.poi.truncated.few': 'في {count} مقاطع كانت النتائج أكثر مما تتسع له استجابة واحدة. قلّص الممر لرؤية البقية.',
   'roadtrip.poi.truncated.many':
     'في {count} مقطعًا كانت النتائج أكثر مما تتسع له استجابة واحدة. قلّص الممر لرؤية البقية.',
   'roadtrip.poi.search': 'بحث',
@@ -262,8 +260,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.clearResults': 'مسح النتائج',
   'roadtrip.poi.addManual': 'إضافة يدوية',
   'roadtrip.poi.addManualShort': 'يدوي',
-  'roadtrip.poi.manualHint':
-    'لا يجد البحث عن الأماكن كل محطة شحن أو وقود. ابحث عن واحدة بالاسم وحدّد موضعها في الرحلة.',
+  'roadtrip.poi.manualHint': 'لا يجد البحث عن الأماكن كل محطة شحن أو وقود. ابحث عن واحدة بالاسم وحدّد موضعها في الرحلة.',
   'roadtrip.poi.addBetween': 'الإضافة بين محطتين',
   'roadtrip.poi.manualOffRoute': '{distance} عن المسار، لذا تحقق من المرحلة التي تناسبها.',
   'roadtrip.poi.manualAppend': 'لا يوجد مسار بعد، لذا تُضاف في نهاية اليوم {number}.',

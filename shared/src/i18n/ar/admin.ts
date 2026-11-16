@@ -240,8 +240,7 @@ const admin: TranslationStrings = {
   'admin.oidcIssuerHint': 'عنوان OpenID Connect Issuer URL للمزود. مثال: https://accounts.google.com',
   'admin.oidcSaved': 'تم حفظ إعدادات OIDC',
   'admin.oidcOnlyMode': 'تعطيل المصادقة بكلمة المرور',
-  'admin.oidcOnlyModeHint':
-    'عند التفعيل، يُسمح فقط بتسجيل الدخول عبر SSO. سيتم حظر تسجيل الدخول والتسجيل بكلمة المرور.',
+  'admin.oidcOnlyModeHint': 'عند التفعيل، يُسمح فقط بتسجيل الدخول عبر SSO. سيتم حظر تسجيل الدخول والتسجيل بكلمة المرور.',
   'admin.fileTypes': 'أنواع الملفات المسموح بها',
   'admin.fileTypesHint': 'حدد أنواع الملفات التي يمكن للمستخدمين رفعها.',
   'admin.fileTypesFormat': 'امتدادات مفصولة بفواصل (مثل jpg,png,pdf,doc). استخدم * للسماح بجميع الأنواع.',
@@ -497,8 +496,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:route-provider':
     'توفير ملفات تعريف توجيه يحسب بها المخطط مسارات الأيام (مثل توجيه السيارات الكهربائية مع توقفات للشحن)',
   'admin.plugins.perm.hook:day-schedule-provider': 'إلحاق مدخلات زمنية بخطة اليوم (توقفات للشحن، هوامش احتياطية)',
-  'admin.plugins.perm.hook:day-tint-provider':
-    'تلوين الأيام في خطة اليوم (مثلاً تحديد المرحلة التي ينتمي إليها كل يوم)',
+  'admin.plugins.perm.hook:day-tint-provider': 'تلوين الأيام في خطة اليوم (مثلاً تحديد المرحلة التي ينتمي إليها كل يوم)',
   'admin.plugins.cap.mcpTools': 'ينشر أدوات ذكاء اصطناعي',
   'admin.plugins.mcpToolsTitle': 'أدوات الذكاء الاصطناعي المنشورة',
   'admin.plugins.mcpToolsHint': 'يمكن لمساعد ذكي تشغيلها نيابة عن المستخدم. وتعمل كل أداة بالصلاحيات الممنوحة أعلاه.',
@@ -729,8 +727,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'التعاون',
   'admin.addons.catalog.collab.description': 'ملاحظات واستطلاعات ومحادثة واقتراحات للتخطيط المشترك',
   'admin.addons.catalog.roadtrip.name': 'رحلة برية',
-  'admin.addons.catalog.roadtrip.description':
-    'خطّط رحلات القيادة مع محطات توقف، وتُحدَّث أوقات القيادة والوصول تلقائيًا',
+  'admin.addons.catalog.roadtrip.description': 'خطّط رحلات القيادة مع محطات توقف، وتُحدَّث أوقات القيادة والوصول تلقائيًا',
   'admin.addons.catalog.tours.name': 'الجولات',
   'admin.addons.catalog.tours.description': 'مشي وركوب دراجات وجولات أخرى تتبع مسارًا',
   'admin.addons.catalog.memories.name': 'صور (Immich)',
@@ -743,8 +740,7 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.airtrail.name': 'AirTrail',
   'admin.addons.catalog.airtrail.description': 'مزامنة الرحلات من خادم AirTrail الخاص بك',
   'admin.addons.catalog.dawarich.name': 'Dawarich',
-  'admin.addons.catalog.dawarich.description':
-    'قراءة الزيارات والمسارات المسجَّلة من خادم Dawarich يربطه كل قارئ بنفسه',
+  'admin.addons.catalog.dawarich.description': 'قراءة الزيارات والمسارات المسجَّلة من خادم Dawarich يربطه كل قارئ بنفسه',
   'admin.addons.catalog.llm_parsing.name': 'التحليل بالذكاء الاصطناعي',
   'admin.addons.catalog.llm_parsing.description':
     'يقرأ الحجوزات التي يعجز المحلل المدمج عن فهمها، بنموذج ذكاء اصطناعي تختاره',
@@ -1145,8 +1141,7 @@ const admin: TranslationStrings = {
     'تُزال كل قيمة أرسلها هذا التثبيت من TREK Places API وتُهمل القيم المنتظرة. تحتفظ الأماكن بتفاصيلها هنا.',
   'admin.contribute.withdrawn': 'تم السحب من الفهرس: {total}',
   'admin.contribute.offTitle': 'إيقاف المشاركة؟',
-  'admin.contribute.offMessage':
-    'لا يُرسل شيء بعد الآن وتُهمل القيم المنتظرة. ما قُبل سابقًا يبقى في الفهرس ما لم تسحبه.',
+  'admin.contribute.offMessage': 'لا يُرسل شيء بعد الآن وتُهمل القيم المنتظرة. ما قُبل سابقًا يبقى في الفهرس ما لم تسحبه.',
   'admin.contribute.offConfirm': 'إيقاف المشاركة',
   'admin.contribute.refused.terms_outdated': 'تغيّرت الشروط في هذه الأثناء. يرجى الاطلاع عليها مجددًا.',
   'admin.contribute.refused.no_field': 'اختر حقلًا واحدًا على الأقل للمشاركة.',
