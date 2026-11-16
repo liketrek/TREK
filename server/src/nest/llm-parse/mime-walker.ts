@@ -388,6 +388,7 @@ function unwrapForwards(text: string): { text: string; layers: number } {
 
 function unwrapLayer(lines: string[]): { lines: string[]; changed: boolean } {
   const out: string[] = [];
+  const bareBlockStarts = bareHeaderBlockStarts(lines);
   let changed = false;
   let i = 0;
   while (i < lines.length) {
@@ -399,7 +400,7 @@ function unwrapLayer(lines: string[]): { lines: string[]; changed: boolean } {
     if (opensBlock) {
       i = skipHeaderBlock(lines, i + 1);
       changed = true;
-    } else if (isBareHeaderBlock(lines, i)) {
+    } else if (bareBlockStarts[i]) {
       i = skipHeaderBlock(lines, i);
       changed = true;
     } else if (ATTRIBUTION.test(line)) {
@@ -418,16 +419,31 @@ function unwrapLayer(lines: string[]): { lines: string[]; changed: boolean } {
 }
 
 /**
- * A header block with no marker above it, as Outlook forwards: a sender line
- * and at least two more header lines, one of them the subject. The subject is
- * what tells it from a booking's own lines: a French ticket reads
- * "De : Paris / À : Lyon / Date : 12/05" and must stay.
+ * The lines a header block with no marker above it starts on, as Outlook
+ * forwards: a sender line and at least two more header lines, one of them the
+ * subject. The subject is what tells it from a booking's own lines: a French
+ * ticket reads "De : Paris / À : Lyon / Date : 12/05" and must stay.
+ *
+ * Worked out for every line in one pass from the bottom up, carrying the end of
+ * the header run below and whether it holds a subject. Scanning the run again
+ * from each line would make a mail of nothing but sender lines quadratic, and
+ * the walk runs on whatever arrives at the ingest address.
  */
-function isBareHeaderBlock(lines: string[], start: number): boolean {
-  if (!FROM_LINE.test(lines[start])) return false;
-  let end = start;
-  while (end < lines.length && HEADER_LINE.test(lines[end])) end++;
-  return end - start >= MIN_BARE_HEADER_BLOCK && lines.slice(start, end).some((line) => SUBJECT_LINE.test(line));
+function bareHeaderBlockStarts(lines: string[]): boolean[] {
+  const starts = new Array<boolean>(lines.length).fill(false);
+  let runEnd = lines.length;
+  let subjectInRun = false;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (!HEADER_LINE.test(line)) {
+      runEnd = i;
+      subjectInRun = false;
+      continue;
+    }
+    if (SUBJECT_LINE.test(line)) subjectInRun = true;
+    starts[i] = subjectInRun && runEnd - i >= MIN_BARE_HEADER_BLOCK && FROM_LINE.test(line);
+  }
+  return starts;
 }
 
 /** The index after a header block starting at `start`: its header lines, their folded continuations, one blank line. */

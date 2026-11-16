@@ -240,6 +240,41 @@ describe('walkMail: forwarded and quoted messages', () => {
     expect(walked.body).toBe('');
     expect(walked.forwardLayers).toBe(10);
   });
+
+  it('MIME-WALK-016: a run of sender lines ending in a subject goes, the run without one under it stays', () => {
+    const walked = walk(
+      mail(
+        'From: ana@example.org',
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        'From: a',
+        'From: b',
+        'From: Ferry <info@ferry.example>',
+        'Subject: Ticket',
+        '',
+        'From: Naxos',
+        'To: Piraeus',
+        '',
+        'Ferry ticket F-12',
+        '',
+      ),
+    );
+    expect(walked.body).toBe('From: Naxos\nTo: Piraeus\n\nFerry ticket F-12');
+    expect(walked.forwardLayers).toBe(1);
+  });
+
+  it(
+    'MIME-WALK-017: a mail of nothing but sender lines is read in one pass instead of rescanning them per line',
+    { timeout: 5_000 },
+    () => {
+      const lines = 30_000;
+      const walked = walk(
+        mail('From: ana@example.org', 'Content-Type: text/plain', '', ...Array<string>(lines).fill('From: a'), ''),
+      );
+      expect(walked.body.split('\n')).toHaveLength(lines);
+      expect(walked.forwardLayers).toBe(0);
+    },
+  );
 });
 
 describe('walkMail: attachments', () => {
