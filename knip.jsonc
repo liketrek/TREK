@@ -17,8 +17,10 @@
       // An optional peer of tsdown, which loads shared/tsdown.config.ts through
       // it; nothing imports it by name. eslint and prettier are the workspaces'
       // own copies: the shared scripts/lib takes them handed in, and its tests
-      // import the hoisted ones the server and shared declare.
-      "ignoreDependencies": ["unrun", "eslint", "prettier"]
+      // import the hoisted ones the server and shared declare. jsdom is here
+      // only to hold one copy at the root, where vitest's built-in jsdom
+      // environment resolves it (see the comment in package.json).
+      "ignoreDependencies": ["unrun", "eslint", "prettier", "jsdom"]
     },
     "client": {
       // The app, the native apps' address screen, its scripts, the Playwright specs and the server launcher

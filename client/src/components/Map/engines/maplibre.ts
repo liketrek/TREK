@@ -25,7 +25,7 @@ import { installOfflineProtocol } from '../../../native/offlineTiles'
 // together with this module.
 maplibregl.setWorkerUrl(workerUrl)
 
-// No RTL text plugin here, unlike mapbox. MapLibre 6.9 shapes Arabic and orders
+// No RTL text plugin here, as with mapbox. MapLibre 6.9 shapes Arabic and orders
 // bidirectional text itself; the old plugin would replace that implementation, and
 // a v6 worker can only load the plugin's UMD build through eval.
 

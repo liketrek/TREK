@@ -31,9 +31,11 @@
     "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
     "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"
   },
+  "comment:devDependencies": "jsdom is the client's test DOM. It is listed here too so npm keeps one copy at the root: vitest's built-in jsdom environment resolves it from there, and with jsdom only in the client npm nested it under client/ where vitest cannot see it. Keep the two ranges equal.",
   "devDependencies": {
-    "concurrently": "^10.0.6",
-    "knip": "^6.44.1",
+    "concurrently": "^10.0.7",
+    "jsdom": "^31.0.1",
+    "knip": "^6.45.1",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
@@ -66,7 +68,7 @@
   "optionalDependencies": {
     "@img/sharp-linuxmusl-arm64": "0.35.5",
     "@img/sharp-linuxmusl-x64": "0.35.5",
-    "@rollup/rollup-linux-arm64-musl": "4.62.0",
-    "@rollup/rollup-linux-x64-musl": "4.62.0"
+    "@rollup/rollup-linux-arm64-musl": "4.68.3",
+    "@rollup/rollup-linux-x64-musl": "4.68.3"
   }
 }

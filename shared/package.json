@@ -101,7 +101,7 @@
     "i18n:untranslated:update": "node scripts/i18n-untranslated.mjs --update"
   },
   "dependencies": {
-    "isomorphic-dompurify": "^3.23.0",
+    "isomorphic-dompurify": "^4.7.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -111,7 +111,7 @@
     "eslint": "^10.11.0",
     "eslint-config-flat-gitignore": "^2.4.0",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "tsdown": "^0.23.7",
     "typescript": "^6.0.3",

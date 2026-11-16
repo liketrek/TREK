@@ -519,8 +519,6 @@
   "src/components/Map/reservationsMapbox.ts",
   "src/components/Map/routeUsageCounter.test.ts",
   "src/components/Map/routeUsageCounter.ts",
-  "src/components/Map/rtlText.test.ts",
-  "src/components/Map/rtlText.ts",
   "src/components/Map/selectedPlaceTarget.test.ts",
   "src/components/Map/selectedPlaceTarget.ts",
   "src/components/Map/trackColors.ts",
