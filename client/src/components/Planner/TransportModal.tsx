@@ -20,6 +20,7 @@ import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { BookingReviewDraft } from './parsedItemToDraft'
 import TransitSearchPanel from './TransitSearchPanel'
+import { getTransitDayPlaces } from './transitDayPlaces'
 import type { TransitPrefill } from './transitLeg'
 import { BookingDialogHeader, StatusPill } from './bookings/BookingDialogShell'
 import { DialogShell, DialogSection, DialogFooter, FooterSpacer, DialogButton, DeleteButton } from '../shared/DialogShell'
@@ -287,22 +288,20 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const transitSearch = () => {
     const transitDay = days.find(d => d.id === Number(form.start_day_id))
     if (!transitDay) return <p className="m-0 text-content-faint" style={fs(13, 'body')}>{t('transit.pickDay')}</p>
-    // Quick picks offer the chosen day's itinerary, not the whole trip (#1460).
-    const dayPlaces = (assignments[String(transitDay.id)] || [])
-      .slice().sort((a, b) => a.order_index - b.order_index)
-      .map(a => places.find(p => p.id === a.place_id))
-      .filter((p): p is Place => p != null)
+    const dayPlaces = getTransitDayPlaces(transitDay.id, assignments, places)
+    const dayPrefill = transitDay.id === selectedDayId ? transitPrefill : null
     return (
       <TransitSearchPanel
+        key={transitDay.id}
         day={transitDay}
         days={days}
         places={dayPlaces}
         accommodations={accommodations}
         onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
-        initialFrom={transitPrefill?.from ?? null}
-        initialTo={transitPrefill?.to ?? null}
-        initialTime={transitPrefill?.time ?? null}
-        walk={transitPrefill?.walk ?? null}
+        initialFrom={dayPrefill?.from ?? null}
+        initialTo={dayPrefill?.to ?? null}
+        initialTime={dayPrefill?.time ?? null}
+        walk={dayPrefill?.walk ?? null}
       />
     )
   }

@@ -11,6 +11,7 @@ import AirportSelect from '../../../../components/Planner/AirportSelect'
 import LocationSelect from '../../../../components/Planner/LocationSelect'
 import { toLocationPicks } from '../../../../components/Planner/locationPicks'
 import TransitSearchPanel from '../../../../components/Planner/TransitSearchPanel'
+import { getTransitDayPlaces } from '../../../../components/Planner/transitDayPlaces'
 import {
   EMPTY_TRANSPORT_FIELDS, TRANSPORT_TYPE_OPTIONS as TYPE_OPTIONS, emptyCarStop, emptyStationWaypoint, emptyWaypoint,
   transportDayOptions, type StationWaypointForm, type WaypointForm,
@@ -21,7 +22,7 @@ import { useBookingFollowUp } from '../../../../components/Planner/useBookingFol
 import { useBookingExpenseIntent } from '../../../../components/Planner/useBookingExpenseIntent'
 import { Eyebrow, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import MBookingFilesCosts from './MBookingFilesCosts'
-import type { Place, Reservation } from '../../../../types'
+import type { Reservation } from '../../../../types'
 import type { BookingReviewDraft } from '../../../../components/Planner/parsedItemToDraft'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import type { TripPlanner } from '../MTripShell'
@@ -226,23 +227,21 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
               if (!transitDay) {
                 return <div className="mt-3 font-geist text-[0.78125rem] text-m-faint">{t('transit.pickDay')}</div>
               }
-              // Quick picks offer the chosen day's itinerary, not the whole trip.
-              const dayPlaces = (assignments[String(transitDay.id)] || [])
-                .slice().sort((a, b) => a.order_index - b.order_index)
-                .map(a => places.find(p => p.id === a.place_id))
-                .filter((p): p is Place => p != null)
+              const dayPlaces = getTransitDayPlaces(transitDay.id, assignments, places)
+              const dayPrefill = transitDay.id === transportModalDayId ? transitPrefill : null
               return (
                 <div className="mt-4">
                   <TransitSearchPanel
+                    key={transitDay.id}
                     day={transitDay}
                     days={days}
                     places={dayPlaces}
                     accommodations={tripAccommodations}
                     onAdd={(p) => saveTransport(p as Record<string, unknown> & { title: string })}
-                    initialFrom={transitPrefill?.from ?? null}
-                    initialTo={transitPrefill?.to ?? null}
-                    initialTime={transitPrefill?.time ?? null}
-                    walk={transitPrefill?.walk ?? null}
+                    initialFrom={dayPrefill?.from ?? null}
+                    initialTo={dayPrefill?.to ?? null}
+                    initialTime={dayPrefill?.time ?? null}
+                    walk={dayPrefill?.walk ?? null}
                   />
                 </div>
               )
