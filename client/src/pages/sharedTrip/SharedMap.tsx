@@ -11,7 +11,7 @@ import VectorBasemap from '../../components/Map/VectorBasemap'
 import { getCategoryIcon } from '../../components/shared/categoryIcons'
 import CustomSelect from '../../components/shared/CustomSelect'
 import { Tooltip as HintTooltip } from '../../components/shared/Tooltip'
-import { OFM_POSITRON, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, attributionForTile } from '../../constants/mapDefaults'
+import { OFM_BRIGHT, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MAP_MAX_ZOOM, attributionForTile } from '../../constants/mapDefaults'
 import { useTranslation } from '../../i18n'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { computeMapViewport, TILE_SIZE_RASTER } from '../../utils/mapViewport'
@@ -134,7 +134,7 @@ export function SharedMap({ places, line, orderByPlace, cartoApiKey, days, selec
   // CARTO key still travels in the payload and is still applied, because a raster
   // template reaching this page keeps working, and without the key CARTO would
   // stamp "API KEY REQUIRED" over it.
-  const basemap = resolveBasemap(null, OFM_POSITRON, cartoApiKey)
+  const basemap = resolveBasemap(null, OFM_BRIGHT, cartoApiKey)
 
   return (
     // `isolate` keeps Leaflet's pane z-indexes inside the card, under the sticky tab bar.

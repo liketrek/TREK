@@ -1,7 +1,7 @@
 import type { TourFileLeftOut, TourGpxImportFields } from '@trek/shared';
 import { AlertTriangle, Ban, Clock, FileDown, Layers, MapPin, Shapes } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
-import { OFM_POSITRON } from '../../constants/mapDefaults';
+import { OFM_BRIGHT } from '../../constants/mapDefaults';
 import { useTileUrl } from '../../hooks/useTileUrl';
 import { useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -243,7 +243,7 @@ function PreviewDialog({
 }) {
   const { t } = useTranslation();
   const labelId = useId();
-  const tileUrl = useTileUrl(OFM_POSITRON);
+  const tileUrl = useTileUrl(OFM_BRIGHT);
   const choices = useGpxImportChoices(initial);
   const leftOut = useMemo(() => leftOutOf(files), [files]);
   // On by default where offered: a file with a route and its stops is usually meant as both.

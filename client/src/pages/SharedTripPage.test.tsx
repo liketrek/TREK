@@ -1087,7 +1087,7 @@ describe('SharedTripPage', () => {
 
       expect(screen.getByTestId('vector-basemap')).toHaveAttribute(
         'data-style',
-        'https://tiles.openfreemap.org/styles/positron',
+        'https://tiles.openfreemap.org/styles/bright',
       );
       expect(screen.queryByTestId('raster-tiles')).toBeNull();
     });

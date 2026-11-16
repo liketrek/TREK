@@ -715,9 +715,9 @@ describe('useAtlas', () => {
       const it = countryLayer.entries.find((e) => (e.feature.properties as Record<string, string>).ISO_A2 === 'IT');
       const de = countryLayer.entries.find((e) => (e.feature.properties as Record<string, string>).ISO_A2 === 'DE');
 
-      // Visited countries get a colour fill, unvisited ones the neutral one.
+      // Visited countries get a colour fill, unvisited ones the mint tint.
       expect((countryLayer.styles[0] as { fillOpacity: number }).fillOpacity).toBe(0.7);
-      expect((countryLayer.styles[2] as { fillOpacity: number }).fillOpacity).toBe(0.3);
+      expect((countryLayer.styles[2] as { fillOpacity: number }).fillOpacity).toBe(0.35);
 
       act(() => it!.layer.handlers.mouseover({ target: it!.layer }));
       expect(it!.layer.setStyle).toHaveBeenCalledWith(expect.objectContaining({ fillOpacity: 0.9 }));

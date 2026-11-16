@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTileUrl } from '../../hooks/useTileUrl'
-import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
+import { OFM_BRIGHT, OFM_DARK } from '../../constants/mapDefaults'
 import { attachVectorBasemap, detachBasemapLayer, hideLabelLayers, restyleBasemap, type BasemapLayer } from '../../components/Map/VectorBasemap'
 import { isVectorStyle } from '../../utils/tileUrl'
 import apiClient, { mapsApi, pluginsApi, type PluginAtlasLayer } from '../../api/client'
@@ -43,9 +43,9 @@ export function useAtlas(options: { chromeInsets?: () => AtlasChromeInsets } = {
   const resolveName = useCountryNames(language)
   const dm = settings.dark_mode
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  // Label-free tiles on purpose (the country fills carry the names here), so the
-  // user's own template is deliberately not read, only their CARTO key.
-  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON, true)
+  // The atlas paints its own country fills, so it draws the app's colour basemap
+  // rather than the user's template — only their CARTO key is read here.
+  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT, true)
   // The template is read through a ref inside the map effect so a template change —
   // the CARTO key arriving after the first render is the usual one — retiles the
   // layers below instead of tearing the whole map down and building it again (#2097).
@@ -510,8 +510,11 @@ export function useAtlas(options: { chromeInsets?: () => AtlasChromeInsets } = {
           }
         }
         return {
-          fillColor: visited ? colorForCode(a3) : (dark ? '#1e1e2e' : '#e2e8f0'),
-          fillOpacity: visited ? 0.7 : 0.3,
+          // Unvisited land used to be near-white grey over a grey basemap, which made
+          // the whole atlas look like an empty canvas. A soft mint tint keeps unvisited
+          // countries readable while the coloured basemap stays visible underneath.
+          fillColor: visited ? colorForCode(a3) : (dark ? '#1e1e2e' : '#a7f3d0'),
+          fillOpacity: visited ? 0.7 : 0.35,
           color: dark ? '#333' : '#cbd5e1',
           weight: 0.5,
         }

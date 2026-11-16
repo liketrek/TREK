@@ -74,6 +74,11 @@ export const RASTER_FALLBACK_MAX_ZOOM = 19
 // serves vector tiles only. Leaflet draws them through VectorBasemap. Positron
 // is the same design CARTO's light basemap was, so the maps look like they did.
 export const OFM_POSITRON = 'https://tiles.openfreemap.org/styles/positron'
+// The light basemap the app itself draws: Positron is the muted grey design, and a
+// grey map behind a white panel reads as "no map at all". Bright keeps the same
+// OpenMapTiles planet tiles (so offline prefetching and attribution are unchanged)
+// while colouring water, parks and roads.
+export const OFM_BRIGHT = 'https://tiles.openfreemap.org/styles/bright'
 export const OFM_DARK = 'https://tiles.openfreemap.org/styles/dark'
 export const OFM_ATTRIBUTION =
   '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

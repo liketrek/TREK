@@ -3,7 +3,7 @@ import { MapViewAuto } from '../Map/MapViewAuto'
 import type { CollectionPlace } from '@trek/shared'
 import { mappablePlaces } from '../../pages/collections/collectionsModel'
 import { useTileUrl } from '../../hooks/useTileUrl'
-import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
+import { OFM_BRIGHT, OFM_DARK } from '../../constants/mapDefaults'
 import type { ViewportPadding } from '../../utils/mapViewport'
 
 interface CollectionMapProps {
@@ -71,7 +71,7 @@ function framePoints(places: CollectionPlace[]): [number, number][] {
  */
 export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark, underBar = false }: CollectionMapProps): React.ReactElement {
   const pts = useMemo(() => mappablePlaces(places), [places])
-  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_POSITRON)
+  const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT)
   const focusPoints = useMemo(() => framePoints(pts), [pts])
   // The places as a set: another list, a filter or a new place frames again, while a
   // reload, another sort order or an edited note leaves a map the user moved alone.

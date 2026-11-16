@@ -4,7 +4,7 @@ import L from 'leaflet'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
 import { isGcj02Basemap, isVectorStyle, resolveTileUrl } from '../../utils/tileUrl'
-import { OFM_DARK, OFM_POSITRON, attributionForTile } from '../../constants/mapDefaults'
+import { OFM_BRIGHT, OFM_DARK, attributionForTile } from '../../constants/mapDefaults'
 import { attachVectorBasemap, detachBasemapLayer, restyleBasemap, type BasemapLayer } from '../Map/VectorBasemap'
 import { crsForBasemap } from '../Map/gcj02Crs'
 import { escapeHtml, type JourneyTrack } from '@trek/shared'
@@ -313,7 +313,7 @@ function JourneyMap(
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const storedCartoKey = useCartoApiKey()
   const cartoKey = cartoApiKey || storedCartoKey
-  const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_POSITRON, cartoKey)
+  const tileUrl = resolveTileUrl(mapTileUrl, dark ? OFM_DARK : OFM_BRIGHT, cartoKey)
   // Amap's tiles are GCJ-02 (see gcj02Crs.ts), the same shift the planner map
   // applies. Leaflet fixes a map's CRS at construction, so this one value is
   // allowed to rebuild the map where a template change only retiles it.

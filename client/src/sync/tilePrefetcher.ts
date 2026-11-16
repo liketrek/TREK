@@ -28,7 +28,7 @@ import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isAuthed } from './authGate'
 import { isStoragePersisted } from './persistentStorage'
 import { isOfflineForbiddenTemplate, isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
-import { OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
+import { OFM_BRIGHT, OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
 import { clearVectorCache, prefetchStyleAssets, prefetchVectorForPlaces } from './glPrefetcher'
 import { isNativeIos } from '../native/platform'
 import { isIosDevice } from '../utils/iosDevice'
@@ -89,7 +89,7 @@ const TILE_PX = 256
 /** Map size to assume where there is no window (SSR, plain-node callers). */
 const FALLBACK_MAP_PX = { width: 1024, height: 768 }
 
-const DEFAULT_TILE_URL = OFM_POSITRON
+const DEFAULT_TILE_URL = OFM_BRIGHT
 
 /**
  * Must stay identical to Leaflet's `subdomains` default ('abc'), because the

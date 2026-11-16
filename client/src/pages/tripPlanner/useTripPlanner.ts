@@ -32,7 +32,7 @@ import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useIsTouch } from '../../hooks/useIsTouch'
 import { usePluginStore } from '../../store/pluginStore'
 import type { Assignment, TripMember, Day, Reservation } from '../../types'
-import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
+import { OFM_BRIGHT, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { placesForDays, tourPlannerTabOf } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
@@ -694,7 +694,7 @@ export function useTripPlanner() {
     ? inspectorStay(roadtripRoutes.days, endDayStop, selectedPlace, can('place_edit', trip) ? editRoadtripStay : undefined)
     : undefined
 
-  const mapTileUrl = useTileUrl(OFM_POSITRON)
+  const mapTileUrl = useTileUrl(OFM_BRIGHT)
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 

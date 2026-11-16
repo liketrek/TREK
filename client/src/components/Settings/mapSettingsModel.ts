@@ -84,10 +84,17 @@ export function slotStyle(
 
 /**
  * Somewhere recognisable for the style preview to render. A city shows off label density,
- * 3D buildings and satellite texture in a way open ocean cannot. It is not a user setting,
- * and no map opens here: each map frames itself on its own places.
+ * 3D buildings and satellite texture in a way open ocean cannot.
+ *
+ * Central Shanghai, and that is a correctness matter rather than taste: the Amap
+ * presets are the only basemaps with detail inside mainland China, and Amap has
+ * no tiles outside it — a preview centred elsewhere turns a perfectly working
+ * Amap choice into a grey rectangle. The other presets cover this area too.
+ *
+ * It is not a user setting, and no map opens here: each map frames itself on its
+ * own places.
  */
-export const PREVIEW_CENTER: [number, number] = [48.8566, 2.3522];
+export const PREVIEW_CENTER: [number, number] = [31.2304, 121.4737];
 export const PREVIEW_ZOOM = 16;
 
 /** The one place the user's map preview shows. */
