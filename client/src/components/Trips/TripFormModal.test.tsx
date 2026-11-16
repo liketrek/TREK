@@ -1521,6 +1521,16 @@ describe('TripFormModal', () => {
     expect(onSave.mock.calls[1][0]).toMatchObject({ day_count: 6 });
   });
 
+  it('FE-COMP-TRIPFORM-099: the currency picker finds a currency by its localized name', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} trip={null} />);
+
+    await user.click(screen.getByRole('button', { name: /^EUR \(/ }));
+    await user.type(screen.getByRole('textbox', { name: 'Search' }), 'Chinese Yuan');
+
+    expect(screen.getByRole('button', { name: /^CNY/ })).toBeInTheDocument();
+  });
+
   // #2601: offline a new name still saves, while what only the server can do says so.
   describe('offline', () => {
     const setOnline = (v: boolean) => Object.defineProperty(navigator, 'onLine', { value: v, writable: true, configurable: true });

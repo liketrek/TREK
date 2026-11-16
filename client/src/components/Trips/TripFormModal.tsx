@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Modal from '../shared/Modal'
 import { Calendar, Camera, Search, X, UserPlus, Bell } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
@@ -49,7 +49,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const isEditing = !!trip
   const fileRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
   const defaultCurrency = useSettingsStore(s => s.settings.default_currency) || 'EUR'
   const tripRemindersEnabled = useAuthStore(s => s.tripRemindersEnabled)
@@ -267,6 +267,23 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const columnCls = "flex flex-col gap-4"
   const panelCls = "rounded-2xl border border-edge bg-surface-secondary p-4 space-y-3.5"
 
+  /* The picker searches what it shows, and that is the code ("CNY (¥)"). Someone
+     typing the currency's own name — 人民币, 元, Renminbi — found nothing, so the
+     localized name rides along as a search-only alias. */
+  const currencyOptions = useMemo(() => {
+    let names: Intl.DisplayNames | null = null
+    try {
+      names = new Intl.DisplayNames([locale], { type: 'currency' })
+    } catch {
+      names = null
+    }
+    return currenciesWith(formData.currency).map(c => ({
+      value: c,
+      label: `${c} (${SYMBOLS[c] || c})`,
+      searchLabel: names?.of(c) ?? undefined,
+    }))
+  }, [formData.currency, locale])
+
   return (
     <Modal
       isOpen={isOpen}
@@ -466,7 +483,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             value={formData.currency}
             onChange={v => canEditTrip && update('currency', v)}
             disabled={!canEditTrip}
-            options={currenciesWith(formData.currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+            options={currencyOptions}
             searchable
           />
         </div>
