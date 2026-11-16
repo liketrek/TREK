@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-017
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-021
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -299,10 +299,99 @@ describe('useCostsLedger: another currency for this trip (#1683)', () => {
     act(() => result.current.setBase('USD'));
     expect(result.current.base).toBe('USD');
     await waitFor(() => expect(settlementMock()).toHaveBeenLastCalledWith(7, 'USD', expect.anything()));
+    await waitFor(() => expect(result.current.canSettle).toBe(true));
     await act(async () => {
       await result.current.settleFlow(1, 2, 15);
     });
     expect(createMock()).toHaveBeenCalledWith(7, expect.objectContaining({ amount: 15, currency: 'USD' }));
+    localStorage.removeItem('trek:costs-currency:7');
+  });
+
+  it('FE-BUDGET-LEDGER-018: while the read in the new currency runs, nothing is settled in it', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    const { result } = setup();
+    await waitFor(() => expect(result.current.canSettle).toBe(true));
+    let answer: (s: CostsSettlementResponse) => void = () => undefined;
+    settlementMock().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        })
+    );
+    act(() => result.current.setBase('JPY'));
+    await waitFor(() => expect(settlementMock()).toHaveBeenLastCalledWith(7, 'JPY', expect.anything()));
+    // The flows held are still the euro ones.
+    expect(result.current.settlement).toEqual(SETTLEMENT);
+    expect(result.current.canSettle).toBe(false);
+    await act(async () => {
+      await result.current.settleFlow(1, 2, 15);
+      await result.current.settleAll();
+    });
+    expect(createMock()).not.toHaveBeenCalled();
+    await act(async () => answer(SETTLEMENT));
+    await waitFor(() => expect(result.current.canSettle).toBe(true));
+    localStorage.removeItem('trek:costs-currency:7');
+  });
+
+  it('FE-BUDGET-LEDGER-019: a read in the new currency that fails, offline say, leaves the old flows unsettleable', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    await clearAll();
+    const { result } = setup();
+    await waitFor(() => expect(result.current.canSettle).toBe(true));
+    settlementMock().mockRejectedValueOnce(new Error('Settlement not available offline'));
+    act(() => result.current.setBase('JPY'));
+    await waitFor(() => expect(result.current.settlementError).toBe(true));
+    expect(result.current.canSettle).toBe(false);
+    await act(async () => {
+      await result.current.settleAll();
+      await result.current.settleFlow(1, 2, 15);
+    });
+    expect(createMock()).not.toHaveBeenCalled();
+    expect(await offlineDb.mutationQueue.count()).toBe(0);
+    localStorage.removeItem('trek:costs-currency:7');
+  });
+
+  it('FE-BUDGET-LEDGER-020: a late answer for the currency picked before does not overwrite the current one', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    let answerEur: (s: CostsSettlementResponse) => void = () => undefined;
+    settlementMock().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answerEur = resolve;
+        })
+    );
+    const usd: CostsSettlementResponse = { ...SETTLEMENT, flows: [flow(1, 2, 30)], currency: 'USD' };
+    settlementMock().mockResolvedValueOnce(usd);
+    const { result } = setup();
+    await waitFor(() => expect(settlementMock()).toHaveBeenCalledTimes(1));
+    act(() => result.current.setBase('USD'));
+    await waitFor(() => expect(result.current.settlement).toEqual(usd));
+    await act(async () => answerEur(SETTLEMENT));
+    expect(result.current.settlement).toEqual(usd);
+    expect(result.current.canSettle).toBe(true);
+    await act(async () => {
+      await result.current.settleAll();
+    });
+    expect(createMock()).toHaveBeenCalledTimes(1);
+    expect(createMock()).toHaveBeenCalledWith(7, expect.objectContaining({ amount: 30, currency: 'USD' }));
+    localStorage.removeItem('trek:costs-currency:7');
+  });
+
+  it('FE-BUDGET-LEDGER-021: a settlement the server answers in the trip currency, lacking a quote, is not booked in the one picked', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    const { result } = setup();
+    await waitFor(() => expect(result.current.canSettle).toBe(true));
+    settlementMock().mockResolvedValueOnce({ ...SETTLEMENT, currency: 'EUR' });
+    act(() => result.current.setBase('JPY'));
+    await waitFor(() => expect(settlementMock()).toHaveBeenLastCalledWith(7, 'JPY', expect.anything()));
+    await waitFor(() => expect(result.current.settlement).toEqual({ ...SETTLEMENT, currency: 'EUR' }));
+    expect(result.current.settlementError).toBe(false);
+    expect(result.current.canSettle).toBe(false);
+    await act(async () => {
+      await result.current.settleFlow(1, 2, 15);
+      await result.current.settleAll();
+    });
+    expect(createMock()).not.toHaveBeenCalled();
     localStorage.removeItem('trek:costs-currency:7');
   });
 });

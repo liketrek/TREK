@@ -77,7 +77,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, countedCount, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
-    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, setBase, baseOptions,
+    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, canSettle, setBase, baseOptions,
   } = useCostsLedger({
     tripId, trip, budgetItems, memberCount: tripMembers.length, actions: { loadBudgetItems, deleteBudgetItem }, canEdit, t, toast,
     settlementOnTripChange: true, skipUnfinishedShares: true, csvCurrencyAsStored: true,
@@ -271,7 +271,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
      {isMobile ? MobileBody() : (
      <div style={{ maxWidth: '100%', margin: '0 auto' }}>
       <CostsToolbar dateMeta={dateMeta} people={people} me={me} colorFor={colorFor} splitting={splitting}
-        canEdit={canEdit} canSettle={(settlement?.flows || []).length > 0}
+        canEdit={canEdit} canSettle={canSettle}
         onSettleAll={settleAll} onAddExpense={() => { setEditing(null); setModalOpen(true) }}
         onScanReceipt={receiptScan.offered ? receiptScan.open : undefined}
         view={view} onView={setView} currency={{ value: base, options: baseOptions, onChange: setBase }}
@@ -472,7 +472,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             </Tooltip>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700 }}>{fmt(f.amount)}</span>
-              {canEdit && <button type="button" aria-label={`${t('costs.settle')}: ${transferLabel(f.from.user_id, f.to.user_id)}, ${fmt(f.amount)}`} onClick={() => settleFlow(f.from.user_id, f.to.user_id, f.amount)} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '7px 12px', borderRadius: 9, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>{t('costs.settle')}</button>}
+              {canSettle && <button type="button" aria-label={`${t('costs.settle')}: ${transferLabel(f.from.user_id, f.to.user_id)}, ${fmt(f.amount)}`} onClick={() => settleFlow(f.from.user_id, f.to.user_id, f.amount)} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '7px 12px', borderRadius: 9, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>{t('costs.settle')}</button>}
             </div>
           </div>
         ))}

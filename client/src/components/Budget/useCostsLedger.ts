@@ -1,6 +1,6 @@
 import type { CostCategory } from '@trek/shared';
 import { liveQuery } from 'dexie';
-import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 import { useExchangeRates, withFallbackFx } from '../../hooks/useExchangeRates';
 import { useNetworkMode } from '../../hooks/useNetworkMode';
@@ -112,20 +112,31 @@ export function useCostsLedger({
   // A failed settlement read leaves `settlement` null, which the views would
   // otherwise present as "everyone is square", a balance claim we cannot make.
   const [settlementError, setSettlementError] = useState(false);
+  // The currency the flows held in `settlement` are in. After the currency is
+  // switched they stay in the old one until the new read lands, or for good when
+  // that read fails offline, so a settle-up must not book them in the new one.
+  const [settledIn, setSettledIn] = useState<string | null>(null);
+  // Only the latest read may land: an answer for the currency picked before would
+  // otherwise overwrite the one for the currency shown now.
+  const latestRead = useRef(0);
 
   // The browser's own figure for the display currency goes along, for the server to
   // answer in it when it cannot fetch a quote itself.
-  const readSettlement = useCallback(
-    () =>
-      budgetRepo
-        .settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
-        .then((s) => {
-          setSettlement(s);
-          setSettlementError(false);
-        })
-        .catch(() => setSettlementError(true)),
-    [tripId, base, tripCurrency, displayPerTrip]
-  );
+  const readSettlement = useCallback(() => {
+    const read = ++latestRead.current;
+    return budgetRepo
+      .settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
+      .then((s: CostsSettlementResponse) => {
+        if (read !== latestRead.current) return;
+        setSettlement(s);
+        // Without a quote for the display currency the server answers in the trip's own.
+        setSettledIn((s.currency || base).toUpperCase());
+        setSettlementError(false);
+      })
+      .catch(() => {
+        if (read === latestRead.current) setSettlementError(true);
+      });
+  }, [tripId, base, tripCurrency, displayPerTrip]);
   const loadSettlement = useCallback(() => {
     void readSettlement();
   }, [readSettlement]);
@@ -202,6 +213,10 @@ export function useCostsLedger({
 
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
   const flows = useMemo(() => settlement?.flows || [], [settlement]);
+  // A settle-up books the flows in the display currency, so only flows read in it
+  // may be booked: not after a failed read, and not while they are in another one.
+  // And only by someone who may edit the costs at all.
+  const canSettle = canEdit && !settlementError && settledIn === base && flows.length > 0;
   const splitting = useMemo(
     () => showsSplitting(trip?.costs_mode, memberCount, budgetItems, settlement, me),
     [trip?.costs_mode, memberCount, budgetItems, settlement, me]
@@ -283,6 +298,7 @@ export function useCostsLedger({
   // A quick settle is dated on the viewer's own day, as the payment dialog dates
   // it, so it is not left to the server's UTC clock (#2604).
   const settleFlow = async (fromId: number, toId: number, amount: number) => {
+    if (!canSettle) return;
     try {
       const result = await budgetRepo.createSettlement(
         tripId,
@@ -298,7 +314,7 @@ export function useCostsLedger({
   };
 
   const settleAll = async () => {
-    if (!flows.length) return;
+    if (!canSettle) return;
     let queued = false;
     try {
       for (const f of flows) {
@@ -337,6 +353,7 @@ export function useCostsLedger({
     settlementError,
     loadSettlement,
     flows,
+    canSettle,
     splitting,
     knownNames,
     search,
