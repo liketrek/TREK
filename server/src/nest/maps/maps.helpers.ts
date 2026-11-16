@@ -4,6 +4,7 @@ import { stripHtmlTags } from '../common/stripHtmlTags';
 import { buildUserAgent, parseOverpassEndpoints } from './overpass.constants';
 import { normalizePlaceWebsite } from '@trek/shared';
 
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 /**
@@ -22,6 +23,48 @@ import { z } from 'zod';
 export { buildUserAgent };
 // Computed once at load — getAppUrl() reads only env vars, which don't change at runtime.
 export const UA = buildUserAgent(getAppUrl());
+
+// ── Amap (高德) request plumbing ──────────────────────────────────────────────
+
+/** The upstream every Amap Web Service call is written against; `AMAP_API_BASE` mirrors it for a gateway. */
+export const AMAP_UPSTREAM = 'https://restapi.amap.com';
+
+/**
+ * Amap's optional 数字签名 (digital signature).
+ *
+ * A key can be created with a private secret, and such a key rejects every
+ * unsigned request. The scheme is an MD5 over every query parameter sorted by
+ * name — the key and the output format included — with the secret appended.
+ * MD5 because Amap specifies MD5, not because anything here is choosing a hash.
+ *
+ * Unset, which is the common case, nothing is added.
+ */
+export function amapSignature(params: Record<string, string>, key: string): string | null {
+  const secret = readEnv().maps.amapApiSecret;
+  if (!secret) return null;
+  const signed = { ...params, key, output: 'JSON' };
+  const canonical = Object.keys(signed)
+    // Byte order, and it has to stay byte order: Amap computes the same signature over
+    // the same sorted names, so a locale-aware comparison would produce a signature the
+    // other side rejects.
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    .map((k) => `${k}=${signed[k]}`)
+    .join('&');
+  return createHash('md5').update(`${canonical}${secret}`).digest('hex');
+}
+
+/**
+ * The full URL for one Amap Web Service call: key and optional signature
+ * attached, `output=JSON` always asked for (v3 and v4 both take it), against
+ * the configured base — an install that routes its outbound calls through a
+ * proxy or a gateway holding the credential says so once.
+ */
+export function amapUrl(base: string, path: string, params: Record<string, string>, key: string): string {
+  const query = new URLSearchParams({ ...params, key, output: 'JSON' });
+  const sig = amapSignature(params, key);
+  if (sig) query.set('sig', sig);
+  return `${(base || AMAP_UPSTREAM).replace(/([^/]|^)\/+$/, '$1')}${path}?${query.toString()}`;
+}
 
 // TREK's internal language codes mostly coincide with valid BCP-47 codes, but a
 // couple don't: 'br' is Brazilian Portuguese here (BCP-47 'pt-BR'; bare 'br' is

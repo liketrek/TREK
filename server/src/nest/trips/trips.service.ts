@@ -43,6 +43,7 @@ import { BudgetService, type CurrencyRebase } from '../budget/budget.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
+import { AmapPhotoService } from '../amap-photo/amap-photo.service';
 import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
 import { escapeLikePattern } from '../places/places.helpers';
@@ -154,6 +155,7 @@ export class TripsService {
     private readonly vacay: VacayService,
     private readonly realtime: RealtimeService,
     private readonly unsplash: UnsplashService,
+    private readonly amapPhoto: AmapPhotoService,
     private readonly release: StorageReleaseService, // the cover a change replaced, released after the commit
     private readonly uow: UnitOfWork,
     // Plan 3c Task 0b (task-0a-review-security.md F-A1): `canAccessTrip`/
@@ -456,6 +458,16 @@ export class TripsService {
   }
 
   async searchCoverImages(query: string, userId: number) {
+    // Amap POI photos first — works out-of-the-box for Chinese place names,
+    // returns a handful of POI-indexed cover candidates without needing a
+    // separately configured Unsplash Access Key.
+    const amapResult = await this.amapPhoto.searchCoverPhotos(query, 9, userId);
+    if (amapResult.photos.length > 0) return { photos: amapResult.photos };
+
+    // Fall back to Unsplash for users who *do* have an Access Key configured
+    // (or who manage to get one and the DNS proxy covers them). The original
+    // "unsplash_key_needed" error survives here — when both sources yield
+    // nothing, callers still get the hint that explains what to do next.
     return this.unsplash.searchUnsplashPhotos(query, 9, await this.unsplash.getUnsplashKey(userId));
   }
 

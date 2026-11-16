@@ -69,6 +69,15 @@ import { Module } from '@nestjs/common';
     TrekPlacesLayersService,
     TrekCommunityService,
   ],
-  exports: [MapsService, GooglePlacesClient, OsmClient, WikimediaClient, TrekPlacesLayersService, TrekCommunityService],
+  exports: [
+    MapsService,
+    GooglePlacesClient,
+    OsmClient,
+    WikimediaClient,
+    TrekPlacesLayersService,
+    TrekCommunityService,
+    // The routing relay asks the same key chain before it hands a domestic route to Amap.
+    PlacesProviderSelector,
+  ],
 })
 export class MapsModule {}

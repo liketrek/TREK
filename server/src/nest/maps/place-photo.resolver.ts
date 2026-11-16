@@ -1,7 +1,8 @@
 /**
  * The marker photo of a place: Google's first photo for a Google id, otherwise
- * (and as the fallback) a Wikipedia or Commons picture near its coordinates,
- * cached on disk and served through /api/maps/place-photo/:id/bytes.
+ * an Amap POI photo near its coordinates (where Amap answers), and as the last
+ * fallback a Wikipedia or Commons picture, cached on disk and served through
+ * /api/maps/place-photo/:id/bytes.
  *
  * Everything the cache needs to stay cheap lives here: the disk hit, the
  * negative cache that tells "no photo anywhere" (a day) from "the provider
@@ -117,6 +118,31 @@ export class PlacePhotoResolver {
           return { attribution: outcome.attribution };
         };
 
+        // Amap's own photo of the POI at these coordinates. The picture a Chinese
+        // place actually has, and its image host is reachable from a Chinese
+        // network where Wikimedia's often is not — so it is tried before the
+        // coordinate-based fallback. A miss here (no name, no POI with a photo)
+        // is not an error; only a refused call is.
+        const fetchAmapPhoto = async (): Promise<{ attribution: string | null } | null> => {
+          const amap = await this.selector.resolvePlacesProvider(userId);
+          if (!amap) return null;
+          const outcome = await amap.photo(lat, lng, name);
+          if (outcome.kind === 'failed') providerFailed = true;
+          if (outcome.kind !== 'photo') return null;
+          try {
+            const cached = await this.photoCache.put(placeId, outcome.bytes, outcome.attribution);
+            try {
+              await this.placesRepo.setImageUrlIfUnset(placeId, cached.photoUrl);
+            } catch (dbErr) {
+              console.error('Failed to persist photo URL to database:', dbErr);
+            }
+            return { attribution: cached.attribution };
+          } catch {
+            providerFailed = true;
+            return null;
+          }
+        };
+
         // Prefer the Google photo (higher quality); if Google yields nothing, fall
         // back to the same coordinate-based Wikipedia/OSM lookup that right-click
         // places use. Ids Google cannot resolve skip it entirely.
@@ -124,6 +150,9 @@ export class PlacePhotoResolver {
           const googlePhoto = await fetchGooglePhoto();
           if (googlePhoto) return googlePhoto;
         }
+
+        const amapPhoto = await fetchAmapPhoto();
+        if (amapPhoto) return amapPhoto;
 
         const fallback = await fetchWikimediaFallback();
         if (fallback) return fallback;

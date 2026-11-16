@@ -1,6 +1,7 @@
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AccommodationsModule } from '../accommodations/accommodations.module';
 import { AddonsModule } from '../addons/addons.module';
+import { AmapPhotoModule } from '../amap-photo/amap-photo.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { BudgetModule } from '../budget/budget.module';
@@ -62,6 +63,7 @@ import { MulterModule } from '@nestjs/platform-express';
     CollabModule,
     VacayModule,
     PlacesModule,
+    AmapPhotoModule,
     AppConfigModule,
     UnsplashModule,
     RealtimeModule,

@@ -1158,6 +1158,66 @@ describe('MapsService: Amap first inside China when picked outright (#1636)', ()
   });
 });
 
+describe('AmapPlacesProvider.photo', () => {
+  /** An image answer: the bytes, which is all `photo()` reads off it. */
+  function image(bytes: Buffer) {
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    };
+  }
+
+  it('AMAP-120: takes the nearest POI photo around the point and names Amap as the source', async () => {
+    const bytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ pois: [{ id: 'B1', photos: [{ url: 'https://store.is.autonavi.com/showpic/abc' }] }] }))
+      .mockResolvedValueOnce(image(bytes));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const outcome = await provider().photo(39.90869, 116.39124, '天安门');
+
+    expect(outcome).toEqual({ kind: 'photo', bytes, attribution: '© 高德地图' });
+    const around = new URL(String(fetchSpy.mock.calls[0][0]));
+    expect(around.pathname).toBe('/v3/place/around');
+    expect(around.searchParams.get('keywords')).toBe('天安门');
+    expect(around.searchParams.get('extensions')).toBe('all');
+    expect(around.searchParams.get('location')).toBe(TIANANMEN_LOCATION);
+    expect(new URL(String(fetchSpy.mock.calls[1][0])).href).toBe('https://store.is.autonavi.com/showpic/abc');
+  });
+
+  it('AMAP-121: a point with no name is a miss before Amap is asked, because the nearest POI may be a stranger', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    expect(await provider().photo(39.9, 116.4)).toEqual({ kind: 'none' });
+    expect(await provider().photo(39.9, 116.4, '   ')).toEqual({ kind: 'none' });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('AMAP-122: a POI with no photos is a miss, not a failure', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(ok({ pois: [{ id: 'B1', photos: [] }] }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    expect(await provider().photo(39.9, 116.4, '小店')).toEqual({ kind: 'none' });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('AMAP-123: an image host that refuses is a failure, and so is an Amap refusal', async () => {
+    const refusing = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ pois: [{ photos: [{ url: 'https://store.is.autonavi.com/showpic/x' }] }] }))
+      .mockResolvedValueOnce({ ok: false, status: 500, headers: { get: () => null }, arrayBuffer: async () => new ArrayBuffer(0) });
+    vi.stubGlobal('fetch', refusing);
+    expect(await provider().photo(39.9, 116.4, '天安门')).toEqual({ kind: 'failed' });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(amapError('10001', 'INVALID_USER_KEY')));
+    expect(await provider().photo(39.9, 116.4, '天安门')).toEqual({ kind: 'failed' });
+  });
+});
+
 describe('AmapTipStash', () => {
   it('AMAP-090: a tip is forgotten once its ten minutes are up', () => {
     const tips = new AmapTipStash();

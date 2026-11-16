@@ -299,6 +299,7 @@ beforeAll(async () => {
   ),
   realtime,
   undefined as never, // unsplash — not exercised here
+  undefined as never, // amapPhoto — not exercised here
   { releaseValues: async () => [] } as never, // StorageReleaseService: the cover release has its own suite
   await createTestUnitOfWork(testDb),
   (await sharedTestOrm(testDb)).em,

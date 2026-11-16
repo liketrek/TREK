@@ -38,7 +38,11 @@ function resolver(
   const places = { setImageUrlIfUnset: vi.fn(async () => 1) };
   const google = { firstPhoto: vi.fn(async () => googleOutcome) };
   const wiki = { downloadPhoto: vi.fn(async () => wikiOutcome) };
-  const selector = { getMapsKey: vi.fn(async () => key) };
+  const selector = {
+    getMapsKey: vi.fn(async () => key),
+    // Amap does not hold the key slot here: these cases are Google and Wikimedia's.
+    resolvePlacesProvider: vi.fn(async () => null),
+  };
   const r = new PlacePhotoResolver(
     c as unknown as PlacePhotoCacheService,
     places as unknown as PlacesRepository,

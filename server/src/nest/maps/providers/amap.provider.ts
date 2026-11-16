@@ -22,16 +22,17 @@
  *     otherwise the controller's error mapping would report every failure as an
  *     empty result.
  *
- * No picture comes out of this provider. Amap's POI photos carry no licence
- * statement we could show a user, and the Wikimedia fallback the place-details
- * column already uses produces a picture *with* its attribution. An
- * unattributable image is worse than no image, so an Amap place gets its picture
- * the same way a place found on OpenStreetMap does.
+ * A place's marker picture comes from Amap too: `place/around` with `extensions=all`
+ * returns the POI's own photos, and its `store.is.autonavi.com` image host is
+ * reachable from the networks this provider exists for (Wikimedia's upload host
+ * often is not). Those photos carry no author, so the attribution TREK shows
+ * beside the image is the source itself. {@link AmapPlacesProvider.photo} asks
+ * for one; a place Amap has no photo for keeps the Wikimedia fallback.
  */
 import { readEnv } from '../../../app-config';
-import { discardBody, exceedsDeclaredLength, readCappedJson } from '../../../utils/cappedFetch';
+import { discardBody, exceedsDeclaredLength, readCapped, readCappedJson } from '../../../utils/cappedFetch';
 import { safeFetchFollow } from '../../../utils/ssrfGuard';
-import { UA, parseOpeningHours } from '../maps.helpers';
+import { UA, amapUrl, parseOpeningHours } from '../maps.helpers';
 import type {
   PlacesProvider,
   ProviderCredential,
@@ -42,12 +43,12 @@ import type {
 } from './places-provider';
 import { fromAmapLocation, gcj02ToWgs84, normalizePlaceWebsite, toAmapLocation } from '@trek/shared';
 
-import { createHash } from 'node:crypto';
-
-/** The upstream every Web Service call is written against. */
-const AMAP_UPSTREAM = 'https://restapi.amap.com';
 /** A search answer is a few dozen POIs; anything past this is not the endpoint we think it is. */
 const AMAP_MAX_RESPONSE_BYTES = 1_000_000;
+/** A marker photo is shown tiny; the cache downscales, so this only bounds the download. */
+const AMAP_MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+/** Shown with the image: Amap's terms ask for the source to be named, and it names no author. */
+const AMAP_PHOTO_ATTRIBUTION = '© 高德地图';
 
 /** An Amap list field, or nothing. The envelope is checked; its arrays never were. */
 function asArray<T>(value: T[] | undefined | null): T[] {
@@ -183,9 +184,18 @@ interface AmapPoi {
   type?: string;
   tel?: unknown;
   website?: unknown;
+  photos?: { url?: unknown }[];
   biz_ext?: { rating?: unknown; open_time?: unknown };
   business?: { rating?: unknown; tel?: unknown; opentime_week?: unknown; opentime_today?: unknown };
 }
+
+/** What a marker picture lookup can come back with. */
+export type AmapPhotoOutcome =
+  | { kind: 'photo'; bytes: Buffer; attribution: string | null }
+  /** No POI with a photo near the point: remembered as a plain miss. */
+  | { kind: 'none' }
+  /** Amap or its image host refused or broke: remembered only briefly. */
+  | { kind: 'failed' };
 
 /**
  * Amap returns an empty *array* where a string field has no value — `address:
@@ -287,41 +297,11 @@ export class AmapPlacesProvider implements PlacesProvider {
   /**
    * Build the full URL for one call, key and optional signature attached.
    *
-   * `AMAP_API_BASE` mirrors `PLACES_API_BASE`: an install that routes its
-   * outbound calls through a proxy or a gateway holding the credential says so
-   * once, here.
+   * The scheme itself lives in maps.helpers' `amapUrl`, shared with the routing
+   * relay's Amap directions client so a signed key works on both.
    */
   private url(path: string, params: Record<string, string>): string {
-    const query = new URLSearchParams({ ...params, key: this.credential.key, output: 'JSON' });
-    const sig = this.signature(params);
-    if (sig) query.set('sig', sig);
-    const base = (readEnv().maps.amapApiBase || AMAP_UPSTREAM).replace(/([^/]|^)\/+$/, '$1');
-    return `${base}${path}?${query.toString()}`;
-  }
-
-  /**
-   * Amap's optional 数字签名 (digital signature).
-   *
-   * A key can be created with a private secret, and such a key rejects every
-   * unsigned request. The scheme is an MD5 over every query parameter sorted by
-   * name, the key and the output format included, with the secret appended.
-   * MD5 because Amap specifies MD5, not because anything here is choosing a
-   * hash.
-   *
-   * Unset, which is the common case, nothing is added.
-   */
-  private signature(params: Record<string, string>): string | null {
-    const secret = readEnv().maps.amapApiSecret;
-    if (!secret) return null;
-    const signed = { ...params, key: this.credential.key, output: 'JSON' };
-    const canonical = Object.keys(signed)
-      // Byte order, and it has to stay byte order: Amap computes the same signature over
-      // the same sorted names, so a locale-aware comparison would produce a signature the
-      // other side rejects.
-      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-      .map((k) => `${k}=${signed[k]}`)
-      .join('&');
-    return createHash('md5').update(`${canonical}${secret}`).digest('hex');
+    return amapUrl(readEnv().maps.amapApiBase || '', path, params, this.credential.key);
   }
 
   /**
@@ -548,6 +528,64 @@ export class AmapPlacesProvider implements PlacesProvider {
       location: tip.location,
     });
     return place.lat == null ? null : { ...place, cached_at: Date.now() };
+  }
+
+  /**
+   * The first photo of the POI nearest a point, for the marker image.
+   *
+   * `place/around` rather than `place/detail`: the photo belongs to a name at a
+   * place, and a place added from the map has no Amap id to look up. The name is
+   * required for the same reason — without one the nearest POI may be a stranger
+   * (a bank next door), and a wrong picture is worse than none, so the caller's
+   * Wikimedia fallback answers instead.
+   *
+   * Photos are only present with `extensions=all`. The image itself is fetched
+   * from Amap's own host and capped; every failure is `failed` so the caller can
+   * tell "no photo here" from "the host is down" in its negative cache.
+   */
+  async photo(lat: number, lng: number, name?: string): Promise<AmapPhotoOutcome> {
+    const keywords = name?.trim();
+    if (!keywords) return { kind: 'none' };
+
+    try {
+      const data = await this.call<AmapEnvelope & { pois?: AmapPoi[] }>(
+        '/v3/place/around',
+        {
+          location: toAmapLocation(lat, lng),
+          keywords,
+          radius: '500',
+          offset: '5',
+          page: '1',
+          extensions: 'all',
+          language: 'zh_cn',
+        },
+        'place/around(photo)',
+      );
+
+      const url = asArray(data.pois)
+        .flatMap((poi) => asArray(poi.photos))
+        .map((photo) => amapText(photo.url))
+        .find((candidate) => /^https?:\/\//i.test(candidate));
+      if (!url) return { kind: 'none' };
+
+      const response = await safeFetchFollow(
+        url,
+        { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) },
+        { bypassInternalIpAllowed: true },
+      );
+      if (!response.ok || exceedsDeclaredLength(response, AMAP_MAX_PHOTO_BYTES)) {
+        discardBody(response);
+        return { kind: 'failed' };
+      }
+      const { bytes, truncated } = await readCapped(response, AMAP_MAX_PHOTO_BYTES);
+      if (truncated || !bytes.length) return { kind: 'failed' };
+      return { kind: 'photo', bytes, attribution: AMAP_PHOTO_ATTRIBUTION };
+    } catch (err) {
+      console.error(
+        `[Maps] amap photo failed userId=${this.credential.userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { kind: 'failed' };
+    }
   }
 
   /**

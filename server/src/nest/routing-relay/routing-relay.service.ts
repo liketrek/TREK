@@ -4,10 +4,18 @@ import { servicesConfig } from '../app-config/tokens';
 import { logWarn } from '../audit/audit-log.logger';
 import { DomainError } from '../common/domain-error';
 import { RateLimitService } from '../common/rate-limit.service';
+import { PlacesProviderSelector } from '../maps/places-provider.selector';
 import { ServiceIdentityPort } from '../service-identity/service-identity.interface';
+import { routeByAmap } from './amap-directions.client';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { VALHALLA_RELAY_REQUEST_SCHEMAS, compactValhallaRequest, type ValhallaRelayAction } from '@trek/shared';
+import {
+  isOutsideChina,
+  VALHALLA_RELAY_REQUEST_SCHEMAS,
+  compactValhallaRequest,
+  type ValhallaRelayAction,
+  type ValhallaRouteRequest,
+} from '@trek/shared';
 
 /**
  * Questions one user may put to the TREK Valhalla a minute, the browser and the server's
@@ -69,6 +77,7 @@ export class RoutingRelayService {
     @Inject(servicesConfig.KEY) private readonly config: ConfigType<typeof servicesConfig>,
     private readonly identity: ServiceIdentityPort,
     private readonly rateLimit: RateLimitService,
+    private readonly places: PlacesProviderSelector,
   ) {}
 
   /** The TREK Valhalla's address while it can be asked: the services are on and hold a key for it. */
@@ -91,13 +100,7 @@ export class RoutingRelayService {
     if (!parsed.success) {
       throw new DomainError(400, parsed.error.issues[0]?.message ?? 'Invalid routing request');
     }
-    const url = this.endpoint(action);
-    const headers = this.keyHeaders(url);
-    if (!headers) throw new DomainError(503, 'The TREK routing service is not available on this instance');
     const now = Date.now();
-    if (now < this.restingUntil) {
-      return refusal(503, 'The TREK routing service is resting', this.restingUntil - now);
-    }
     const allowed = await this.rateLimit.check(
       'valhalla-relay',
       String(userId),
@@ -116,7 +119,52 @@ export class RoutingRelayService {
       now,
     );
     if (!withinInstallation) return refusal(429, 'Too many routing requests on this instance', RATE_WINDOW_MS);
+
+    // A question inside China is Amap's, whether or not a Valhalla is configured: the
+    // TREK services' one sits overseas, where a mainland network waits out the deadline.
+    const domestic = await this.answerFromAmap(userId, action, parsed.data, timeoutMs);
+    if (domestic) return domestic;
+
+    const url = this.endpoint(action);
+    const headers = this.keyHeaders(url);
+    if (!headers) throw new DomainError(503, 'The TREK routing service is not available on this instance');
+    if (now < this.restingUntil) {
+      return refusal(503, 'The TREK routing service is resting', this.restingUntil - now);
+    }
     return this.forward(url, headers, parsed.data, timeoutMs);
+  }
+
+  /**
+   * Amap's answer, when Amap should give it, and null to ask the Valhalla as before.
+   *
+   * The gate is the way rather than the user: every point of the chain has to be
+   * inside the box Amap serves, because outside it Amap answers with the wrong
+   * place (asked for Paris it lands the pin in Macau). A chain asking for
+   * alternates is Valhalla's too — Amap has one way per question.
+   */
+  private async answerFromAmap(
+    userId: number,
+    action: ValhallaRelayAction,
+    body: unknown,
+    timeoutMs: number,
+  ): Promise<ValhallaRelayAnswer | null> {
+    if (action !== 'route') return null;
+    const route = body as ValhallaRouteRequest;
+    if (route.alternates) return null;
+    if (!route.locations.every((point) => !isOutsideChina(point.lat, point.lon))) return null;
+
+    const credential = await this.places.resolveAmapKey(userId);
+    if (!credential.key) return null;
+
+    const answer = await routeByAmap(route, credential.key, timeoutMs);
+    if (answer.kind === 'failed') throw new DomainError(502, 'The Amap routing service did not answer');
+    // No way found there either: let the Valhalla behind this answer (or refuse) as before.
+    if (answer.kind === 'none') return null;
+    return {
+      status: 200,
+      contentType: 'application/json',
+      body: Buffer.from(JSON.stringify(answer.body)),
+    };
   }
 
   private async forward(

@@ -10,16 +10,20 @@ import { servicesConfig } from '../../../../src/nest/app-config/tokens';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import { RateLimitModule } from '../../../../src/nest/common/rate-limit.module';
 import { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
+import { PlacesProviderSelector } from '../../../../src/nest/maps/places-provider.selector';
 import { RoutingRelayService } from '../../../../src/nest/routing-relay/routing-relay.service';
 import { ServiceIdentityPort } from '../../../../src/nest/service-identity/service-identity.interface';
-import { safeFetchAdminConfigured } from '../../../../src/utils/ssrfGuard';
+import { safeFetchAdminConfigured, safeFetchFollow } from '../../../../src/utils/ssrfGuard';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { oneByOne } from '../../../helpers/one-by-one';
 import { createTestModule, type TestModule } from '../../../helpers/test-module';
 
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchAdminConfigured: vi.fn() }));
+vi.mock('../../../../src/utils/ssrfGuard', () => ({
+  safeFetchAdminConfigured: vi.fn(),
+  safeFetchFollow: vi.fn(),
+}));
 
 const config = {
   mode: 'auto' as 'auto' | 'off',
@@ -31,6 +35,36 @@ const identity = {
   headersFor: vi.fn((): Record<string, string> => ({ 'User-Agent': 'TREK/5.1.0', Authorization: 'Bearer tk1.k.p.s' })),
   observe: vi.fn(),
 };
+/** No Amap key: every question in these cases is the Valhalla's, as it was before Amap. */
+const places = {
+  resolveAmapKey: vi.fn(async (): Promise<{ key: string | null; source: string | null }> => ({ key: null, source: null })),
+};
+const DOMESTIC = {
+  locations: [
+    { lat: 31.230416, lon: 121.473701, radius: 50 },
+    { lat: 31.298886, lon: 120.585316, radius: 50 },
+  ],
+  costing: 'auto',
+};
+/** The Amap driving envelope: HTTP 200, the verdict in `status`, metre/step lists inside. */
+const amapRoute = () =>
+  new Response(
+    JSON.stringify({
+      status: '1',
+      info: 'OK',
+      route: {
+        paths: [
+          {
+            distance: '104300',
+            duration: '7056',
+            tolls: '35',
+            steps: [{ road: '延安高架路', polyline: '121.473701,31.230416;120.585316,31.298886' }],
+          },
+        ],
+      },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
 const ROUTE = {
   locations: [
     { lat: 48.2, lon: 16.37, radius: 50 },
@@ -49,6 +83,8 @@ let relay: RoutingRelayService;
 
 beforeEach(async () => {
   vi.mocked(safeFetchAdminConfigured).mockReset();
+  vi.mocked(safeFetchFollow).mockReset();
+  places.resolveAmapKey.mockResolvedValue({ key: null, source: null });
   identity.headersFor.mockClear();
   identity.observe.mockClear();
   config.mode = 'auto';
@@ -59,6 +95,7 @@ beforeEach(async () => {
       RoutingRelayService,
       { provide: servicesConfig.KEY, useValue: config },
       { provide: ServiceIdentityPort, useValue: identity },
+      { provide: PlacesProviderSelector, useValue: places },
     ],
   });
   relay = t.get(RoutingRelayService);
@@ -226,6 +263,59 @@ describe('RoutingRelayService.ask', () => {
     expect(spent.status).toBe(429);
     expect(spent).not.toHaveProperty('retryAfter');
     expect((await relay.ask(1, 'route', ROUTE)).retryAfter).toBe('60');
+  });
+
+  it('RELAY-017: a route inside China is Amap\'s, answered without the Valhalla being asked', async () => {
+    places.resolveAmapKey.mockResolvedValueOnce({ key: 'amap-key', source: 'instance' });
+    vi.mocked(safeFetchFollow).mockResolvedValueOnce(amapRoute());
+
+    const answer = await relay.ask(1, 'route', DOMESTIC);
+
+    expect(answer.status).toBe(200);
+    expect(answer.contentType).toBe('application/json');
+    const trip = JSON.parse(answer.body.toString()) as {
+      trip: { language: string; legs: { summary: { length: number; time: number; has_toll: boolean } }[] };
+    };
+    expect(trip.trip.language).toBe('zh-CN');
+    expect(trip.trip.legs[0]?.summary).toMatchObject({ length: 104.3, time: 7056, has_toll: true });
+    expect(String(vi.mocked(safeFetchFollow).mock.calls[0]?.[0])).toContain('restapi.amap.com/v3/direction/driving');
+    expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
+  });
+
+  it('RELAY-018: a domestic chain asking for alternates stays the Valhalla\'s question', async () => {
+    places.resolveAmapKey.mockResolvedValueOnce({ key: 'amap-key', source: 'instance' });
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(200, '{"trip":{}}'));
+
+    expect((await relay.ask(1, 'route', { ...DOMESTIC, alternates: 2 })).status).toBe(200);
+
+    expect(safeFetchFollow).not.toHaveBeenCalled();
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+  });
+
+  it('RELAY-019: an Amap that failed is a 502; an Amap with no way hands the question to the Valhalla', async () => {
+    places.resolveAmapKey.mockResolvedValue({ key: 'amap-key', source: 'instance' });
+    vi.mocked(safeFetchFollow).mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
+    await expect(relay.ask(1, 'route', DOMESTIC)).rejects.toMatchObject({
+      status: 502,
+      message: 'The Amap routing service did not answer',
+    });
+
+    vi.mocked(safeFetchFollow).mockResolvedValueOnce(
+      new Response(JSON.stringify({ status: '1', route: { paths: [] } }), { status: 200 }),
+    );
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(200, '{"trip":{}}'));
+    expect((await relay.ask(1, 'route', DOMESTIC)).status).toBe(200);
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
+  });
+
+  it('RELAY-020: leaves a route outside China to the Valhalla even when an Amap key is configured', async () => {
+    places.resolveAmapKey.mockResolvedValueOnce({ key: 'amap-key', source: 'instance' });
+    vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(200, '{"trip":{}}'));
+
+    expect((await relay.ask(1, 'route', ROUTE)).status).toBe(200);
+
+    expect(safeFetchFollow).not.toHaveBeenCalled();
+    expect(safeFetchAdminConfigured).toHaveBeenCalledTimes(1);
   });
 
   it('RELAY-012: waits ten seconds for a route and thirty for a description, unless told otherwise', async () => {
