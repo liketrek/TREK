@@ -75,7 +75,8 @@ const CAPABILITIES: DawarichCapabilities = {
 };
 
 const listVisits = vi.fn();
-const client = { listVisits } as unknown as DawarichClient;
+const listGeocodedPoints = vi.fn();
+const client = { listVisits, listGeocodedPoints } as unknown as DawarichClient;
 
 /** Reads the same two columns the real service reads, so a row without a key is null. */
 const getCredentials = vi.fn(async (userId: number): Promise<DawarichCreds | null> => {
@@ -282,6 +283,7 @@ beforeEach(async () => {
   t.clear();
   vi.clearAllMocks();
   probeCapabilities.mockResolvedValue(CAPABILITIES);
+  listGeocodedPoints.mockReset().mockResolvedValue([]);
 
   setAddonEnabled(testDb, 'dawarich', true);
   USER = createUser(testDb).user.id;
@@ -295,6 +297,78 @@ afterAll(async () => {
 });
 
 // ── Creating suggestions ─────────────────────────────────────────────────────
+
+describe('DawarichSyncService, naming a stay Dawarich sends without a name (#3105)', () => {
+  const nameless = (id: number) => visit({ id, name: 'Unknown Location', place: null });
+
+  it('DAWARICH-SYNC-090: names it after the reverse-geocoded points recorded during it', async () => {
+    withVisits(nameless(901));
+    listGeocodedPoints.mockResolvedValue([{ city: 'Cinisi', country_name: 'Italy' }]);
+
+    await svc.syncUser(USER);
+
+    expect((await only()).name).toBe('Cinisi, Italy');
+    const [, from, to] = listGeocodedPoints.mock.calls[0] as [DawarichCreds, Date, Date];
+    expect(from.toISOString()).toBe(`${VISIT_DAY}T09:00:00.000Z`);
+    expect(to.toISOString()).toBe(`${VISIT_DAY}T12:00:00.000Z`);
+  });
+
+  it('DAWARICH-SYNC-091: a name the visit carries itself needs no points read', async () => {
+    withVisits(visit({ id: 902, name: 'Hotel Adlon' }));
+
+    await svc.syncUser(USER);
+
+    expect((await only()).name).toBe('Hotel Adlon');
+    expect(listGeocodedPoints).not.toHaveBeenCalled();
+  });
+
+  it('DAWARICH-SYNC-092: a found name is kept on the next run without reading the points again', async () => {
+    withVisits(nameless(903));
+    listGeocodedPoints.mockResolvedValue([{ city: 'Cinisi', country_name: 'Italy' }]);
+    await svc.syncUser(USER);
+    listGeocodedPoints.mockClear();
+
+    await svc.syncUser(USER);
+
+    expect((await only()).name).toBe('Cinisi, Italy');
+    expect(listGeocodedPoints).not.toHaveBeenCalled();
+  });
+
+  it('DAWARICH-SYNC-093: points without a geocode settle on "Unnamed stay" until the visit changes', async () => {
+    withVisits(nameless(904));
+    await svc.syncUser(USER);
+    expect((await only()).name).toBe('Unnamed stay');
+    listGeocodedPoints.mockClear();
+
+    await svc.syncUser(USER);
+
+    expect(listGeocodedPoints).not.toHaveBeenCalled();
+  });
+
+  it('DAWARICH-SYNC-094: points that could not be read keep the placeholder and are read on the next run', async () => {
+    withVisits(nameless(905));
+    listGeocodedPoints.mockRejectedValue(new DawarichError('unreachable', 'down'));
+    const result = await svc.syncUser(USER);
+    expect(result.state).toBe('ok');
+    expect((await only()).name).toBe('Unknown Location');
+
+    listGeocodedPoints.mockResolvedValue([{ city: 'Cinisi', country_name: 'Italy' }]);
+    await svc.syncUser(USER);
+
+    expect((await only()).name).toBe('Cinisi, Italy');
+  });
+
+  it('DAWARICH-SYNC-095: after one failed read a run stops asking for the rest', async () => {
+    withVisits(nameless(906), nameless(907), nameless(908));
+    listGeocodedPoints.mockRejectedValue(new DawarichError('unreachable', 'down'));
+
+    await svc.syncUser(USER);
+
+    // The first stay of each window is asked about; the rest wait for the next run.
+    expect(listGeocodedPoints).toHaveBeenCalledTimes(listVisits.mock.calls.length);
+    expect((await rows()).map((r) => r.name)).toEqual(['Unknown Location', 'Unknown Location', 'Unknown Location']);
+  });
+});
 
 describe('DawarichSyncService — new visits', () => {
   it('DAWARICH-SYNC-001: stores an unseen visit as a suggestion in state "new"', async () => {
