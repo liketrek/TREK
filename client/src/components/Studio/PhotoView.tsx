@@ -2,7 +2,7 @@ import { photoLookOf, type BookFrame, type BookPhotoElement, type BookShapeId, t
 import type { CSSProperties, ReactNode } from 'react';
 
 import { fontStack } from './bookFonts';
-import { photoSrc } from './bookRender';
+import { PRINT_SRC_ATTR, photoSrc } from './bookRender';
 import { usePaintId } from './paint/usePaintId';
 import { pictureFilter, silhouetteShadows, svgFilterMatrices, zoomPlacement } from './photo/photoLook';
 import { photoClip } from './shapeOutline';
@@ -172,7 +172,7 @@ function Picture({
   const zoom = zoomPlacement(look.zoom, el.focalX, el.focalY);
   const img = (
     <img
-      src={photoSrc(photoId, big)}
+      {...(print ? { [PRINT_SRC_ATTR]: photoSrc(photoId, big) } : { src: photoSrc(photoId, big) })}
       alt=""
       draggable={false}
       // Lazy on the canvas, where a long book scrolls past; eager in print,

@@ -10,6 +10,18 @@
 // here is exactly how #2183 happened: the renderer kept a three-font copy
 // while the picker grew to seven, and everything else fell back to Poppins.
 
+/**
+ * Where a printed photo keeps its source until the print view asks for it.
+ *
+ * A book's sheets are rendered in one go, and an `<img>` starts loading the
+ * moment it has a `src`. A journey of a few hundred photos asked the server for
+ * every original at once, twice (off screen in the editor, then in the print
+ * frame), and the browser gave up with "insufficient resources" (#3102). So the
+ * print markup carries the source here and `loadPrintImages` hands it over a
+ * few at a time.
+ */
+export const PRINT_SRC_ATTR = 'data-print-src'
+
 export function photoSrc(photoId: number, big: boolean): string {
   return `/api/photos/${photoId}/${big ? 'original' : 'thumbnail'}`
 }
