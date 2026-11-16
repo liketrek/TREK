@@ -159,7 +159,7 @@ function realName(value: unknown): string | null {
  * The best name the visit itself carries: its own, its place's, then the
  * place's address. Null when there is none of them.
  */
-export function visitSourceName(visit: DawarichVisitRaw): string | null {
+function visitSourceName(visit: DawarichVisitRaw): string | null {
   return realName(visit.name) ?? realName(visit.place?.name) ?? realName(visit.place?.address);
 }
 

@@ -48,7 +48,7 @@ export const TRACKS_PAGE_SIZE = 200;
 /** Points cap at 10000 upstream. A day of tracking is a few thousand. */
 export const POINTS_PAGE_SIZE = 5000;
 /** Points read to name one stay. Enough to get past a few not yet geocoded. */
-export const GEOCODED_POINTS_PAGE_SIZE = 50;
+const GEOCODED_POINTS_PAGE_SIZE = 50;
 
 /**
  * How many pages one call will walk before giving up and saying so.
