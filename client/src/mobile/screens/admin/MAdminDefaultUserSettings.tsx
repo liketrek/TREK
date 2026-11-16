@@ -8,7 +8,7 @@ import { weekStartOptions } from '../../../utils/calendarWeek'
 import { dateFormatOptions } from '../../../utils/dateFormat'
 import { withTileApiKey } from '../../../utils/tileUrl'
 import { defaultStyleForProvider } from '../../../components/Map/glProviders'
-import type { MapProvider } from '../../../components/Settings/mapSettingsModel'
+import { PREVIEW_CENTER, type MapProvider } from '../../../components/Settings/mapSettingsModel'
 import { useDefaultUserSettings, type Defaults } from '../../../components/Admin/useDefaultUserSettings'
 import MToggle from '../../components/MToggle'
 import MSegmented from '../../components/MSegmented'
@@ -228,7 +228,7 @@ export default function MAdminDefaultUserSettings(): React.ReactElement {
               onMarkerClick: null,
               onMapClick: null,
               onMapContextMenu: null,
-              center: [48.8566, 2.3522],
+              center: PREVIEW_CENTER,
               zoom: 10,
               // As on the other three previews: the field holds what is being
               // edited, so the key goes back on before the template resolves.

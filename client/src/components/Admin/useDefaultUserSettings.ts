@@ -17,6 +17,7 @@ import {
   mapboxOffered,
   mapPresetsFor,
   normalizeProvider,
+  PREVIEW_CENTER,
   styleForProvider,
 } from '../Settings/mapSettingsModel';
 import { useToast } from '../shared/Toast';
@@ -188,7 +189,7 @@ export function useDefaultUserSettings({ errorMessage, previewCreatedAt }: Defau
   };
 }
 
-/** The one place the admin's tile preview shows. */
+/** The one place the admin's tile preview shows — the same city as the user's preview. */
 function adminPreviewPlace(createdAt: string): Place {
   return {
     id: 1,
@@ -196,8 +197,8 @@ function adminPreviewPlace(createdAt: string): Place {
     name: 'Preview center',
     description: null,
     notes: null,
-    lat: 48.8566,
-    lng: 2.3522,
+    lat: PREVIEW_CENTER[0],
+    lng: PREVIEW_CENTER[1],
     address: null,
     category_id: null,
     price: null,

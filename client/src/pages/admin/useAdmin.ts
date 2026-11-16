@@ -234,18 +234,23 @@ export function useAdmin() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [usersData, statsData, invitesData, inviteTripsData] = await Promise.all([
+      // Each slice stands on its own. The four used to share one Promise.all, so
+      // a single aborted request (a dev reload, a flaky proxy hop) blanked the
+      // whole page and shouted "Failed to load admin data" even when the users
+      // list was fine. Only a failed users request is worth a toast now; stats
+      // and the invite lists render when they arrive and stay empty when they
+      // don't, which is what the empty states already describe.
+      const [usersData, statsData, invitesData, inviteTripsData] = await Promise.allSettled([
         adminApi.users(),
         adminApi.stats(),
         adminApi.listInvites().catch(() => ({ invites: [] })),
         adminApi.listInviteTrips().catch(() => ({ trips: [] })),
       ])
-      setUsers(usersData.users)
-      setStats(statsData)
-      setInvites(invitesData.invites || [])
-      setInviteTrips(inviteTripsData.trips || [])
-    } catch (err: unknown) {
-      toast.error(t('admin.toast.loadError'))
+      if (usersData.status === 'fulfilled') setUsers(usersData.value.users)
+      if (statsData.status === 'fulfilled') setStats(statsData.value)
+      if (invitesData.status === 'fulfilled') setInvites(invitesData.value.invites || [])
+      if (inviteTripsData.status === 'fulfilled') setInviteTrips(inviteTripsData.value.trips || [])
+      if (usersData.status === 'rejected') toast.error(t('admin.toast.loadError'))
     } finally {
       setIsLoading(false)
     }

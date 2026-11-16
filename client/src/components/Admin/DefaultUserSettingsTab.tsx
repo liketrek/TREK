@@ -13,7 +13,7 @@ import { weekStartOptions } from '../../utils/calendarWeek'
 import { dateFormatOptions } from '../../utils/dateFormat'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { defaultStyleForProvider } from '../Map/glProviders'
-import type { MapProvider } from '../Settings/mapSettingsModel'
+import { PREVIEW_CENTER, type MapProvider } from '../Settings/mapSettingsModel'
 import RoutingInstanceFields from './RoutingInstanceFields'
 import { useDefaultUserSettings, type Defaults } from './useDefaultUserSettings'
 
@@ -282,7 +282,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           onMarkerClick: null,
           onMapClick: null,
           onMapContextMenu: null,
-          center: [48.8566, 2.3522],
+          center: PREVIEW_CENTER,
           zoom: 10,
           // Same as the user-facing map tab: the field holds what is being
           // edited, so the key goes back on before the preview resolves it.

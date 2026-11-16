@@ -79,6 +79,16 @@ describe('useAdmin', () => {
     expect(toastCalls).toContainEqual({ type: 'error', message: 'Failed to load admin data' });
   });
 
+  it('FE-ADMHOOK-002b: a stats failure keeps the users list and stays quiet', async () => {
+    server.use(http.get('/api/admin/stats', () => HttpResponse.json({}, { status: 500 })));
+
+    const { result } = await mountAdmin();
+
+    expect(result.current.users.map(u => u.username)).toEqual(['admin', 'alice']);
+    expect(result.current.stats).toBeNull();
+    expect(toastCalls).toEqual([]);
+  });
+
   it('FE-ADMHOOK-003: survives failing invite endpoints with empty lists', async () => {
     server.use(
       http.get('/api/admin/invites', () => HttpResponse.json({}, { status: 500 })),
