@@ -83,6 +83,8 @@ function delayText(minutes: number | null, t: T): { text: string; tone: DelayTon
 /** The stages a card speaks for; without live data (past, unknown) there is no card. */
 type ShownStage = Exclude<FlightStage, 'past' | 'unknown'>;
 
+const isShown = (stage: FlightStage): stage is ShownStage => stage !== 'past' && stage !== 'unknown';
+
 function headlineOf(
   stage: ShownStage,
   view: FlightLiveView,
@@ -193,7 +195,7 @@ export function useFlightLiveCard(tripId: number, reservationId: number, legInde
 
   const view = flightLiveView(leg, now);
   // No live data to show: the flight is long over, or the feed never heard it. Nothing at all then.
-  if (view.stage === 'past' || view.stage === 'unknown') return null;
+  if (!isShown(view.stage)) return null;
   const time = (ms: number, tz: string | null) => airportTime(ms, tz, locale, timeFormat);
   const { headline, detail } = headlineOf(view.stage, view, leg, t, time);
   return {
@@ -212,6 +214,19 @@ export function useFlightLiveCard(tripId: number, reservationId: number, legInde
     live: view.stage === 'airborne' || view.stage === 'taxiing',
     tone: TONE[view.stage],
   };
+}
+
+/**
+ * The legs of one booking a live card is drawn for, in leg order. The server
+ * hands over every followed leg at any date, but a flight long over or never
+ * heard by the feed gets no card (see useFlightLiveCard). The booking views
+ * hide their own time tiles only for these, so such a flight keeps its times.
+ */
+export function useFlightLiveCardLegs(tripId: number, reservationId: number): FlightLiveLeg[] {
+  const legs = useFlightLiveLegs(tripId, reservationId);
+  // The card's own pace, so a leg drops out here about when its card goes.
+  const now = useNow(30_000, legs.length > 0);
+  return legs.filter((leg) => isShown(flightLiveView(leg, now).stage));
 }
 
 /**

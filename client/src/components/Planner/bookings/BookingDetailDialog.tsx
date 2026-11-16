@@ -25,8 +25,8 @@ import { AirTrailPill, MailPill, BOX, Eyebrow, Field, FileRows, ReviewPill, Trav
 import { TransitLegs, transitSummary } from './transitParts'
 import { BookingDialogHeader, StatusPill, TypePill } from './BookingDialogShell'
 import { DeleteButton, DialogButton, DialogFooter, DialogSection as Section, DialogShell, FooterSpacer, PILL } from '../../shared/DialogShell'
-import { useFlightLiveLegs } from '../../../store/flightLiveStore'
 import FlightLiveCard from '../flightLive/FlightLiveCard'
+import { useFlightLiveCardLegs } from '../flightLive/useFlightLiveCard'
 import { getFlightLegs } from '../../../utils/flightLegs'
 
 export interface BookingDetailDialogProps {
@@ -69,8 +69,9 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
   const tripCurrency = useTripStore(s => s.trip?.currency)
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const [renaming, setRenaming] = useState(false)
-  // A flight TREK follows live shows its live card instead of the plain time tiles.
-  const liveLegs = useFlightLiveLegs(p.tripId, r.id)
+  // A flight TREK follows live shows its live card instead of the plain time tiles;
+  // one long over or never seen by the feed has no card and keeps its tiles.
+  const liveLegs = useFlightLiveCardLegs(p.tripId, r.id)
   const legTotal = liveLegs.length > 0 ? getFlightLegs(r).length : 0
   const [name, setName] = useState('')
   const meta = parseMeta(r)

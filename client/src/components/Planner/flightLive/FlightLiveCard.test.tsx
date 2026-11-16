@@ -1,4 +1,4 @@
-// FE-PLANNER-FLIGHTLIVE-001 to FE-PLANNER-FLIGHTLIVE-007
+// FE-PLANNER-FLIGHTLIVE-001 to FE-PLANNER-FLIGHTLIVE-008
 import type { FlightLiveLeg } from '@trek/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import { legKey, useFlightLiveStore } from '../../../store/flightLiveStore';
 import type { Reservation } from '../../../types';
 import FlightLiveCard from './FlightLiveCard';
 import FlightLiveStrip, { PlanFlightLiveLine } from './FlightLiveStrip';
+import { useFlightLiveCardLegs } from './useFlightLiveCard';
 
 // The map is Leaflet and WebGL, neither of which jsdom draws; the card around it is what is under test here.
 vi.mock('./FlightMiniMap', () => ({ default: () => null, FLIGHT_MAP_CREDIT: 'map credit' }));
@@ -184,5 +185,29 @@ describe('strips and plan lines', () => {
       </>
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('useFlightLiveCardLegs', () => {
+  function CardLegs() {
+    const legs = useFlightLiveCardLegs(1, 6);
+    return <span data-testid="card-legs">{legs.map((l) => l.leg_index).join(',')}</span>;
+  }
+
+  it('FE-PLANNER-FLIGHTLIVE-008: lists only the legs a card is drawn for, not one long over', () => {
+    const now = Date.now();
+    seed(
+      leg({
+        leg_index: 0,
+        phase: 'landed',
+        scheduled_departure: new Date(now - 30 * H).toISOString(),
+        scheduled_arrival: new Date(now - 22 * H).toISOString(),
+        landed_at: new Date(now - 22 * H).toISOString(),
+        position: null,
+      }),
+      leg({ leg_index: 1 })
+    );
+    render(<CardLegs />);
+    expect(screen.getByTestId('card-legs')).toHaveTextContent(/^1$/);
   });
 });

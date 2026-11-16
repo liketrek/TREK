@@ -21,7 +21,7 @@ import { ActionCircle, Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } fr
 import { CardFiles } from '../tabs/MReservationCardParts'
 import { downloadAttachment, openAttachment } from '../../../../components/Planner/bookings/openAttachment'
 import { flowText } from '../../../../utils/flowText'
-import { useFlightLiveLegs } from '../../../../store/flightLiveStore'
+import { useFlightLiveCardLegs } from '../../../../components/Planner/flightLive/useFlightLiveCard'
 import MFlightLiveCard from './MFlightLiveCard'
 import MReviewNotice from './MReviewNotice'
 
@@ -111,7 +111,8 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const blurCodes = useSettingsStore(s => s.settings.blur_booking_codes)
   const [codeRevealed, setCodeRevealed] = useState(false)
-  const liveLegs = useFlightLiveLegs(planner.tripId, payload.reservationId ?? -1)
+  // Only legs with a card: a flight long over keeps its time boxes below.
+  const liveLegs = useFlightLiveCardLegs(planner.tripId, payload.reservationId ?? -1)
   useEffect(() => { if (!open) setCodeRevealed(false) }, [open])
 
   // Hold the last reservation so the card content survives the exit animation.
@@ -257,7 +258,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
             tripId={planner.tripId}
             reservationId={res.id}
             legIndex={l.leg_index}
-            legLabel={shownLive.length > 1 ? t('flightLive.legOf', { n: l.leg_index + 1, total: routeLegs.length }) : undefined}
+            legLabel={!leg && routeLegs.length > 1 ? t('flightLive.legOf', { n: l.leg_index + 1, total: routeLegs.length }) : undefined}
           />
         ))}
 

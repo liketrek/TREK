@@ -964,6 +964,12 @@
       "mobile": ["src/mobile/screens/trip/sheets/MTransportSheet.tsx"]
     },
     {
+      "feature": "Live flight cards in the booking detail: useFlightLiveCard",
+      "hooks": ["src/components/Planner/flightLive/useFlightLiveCard.ts"],
+      "desktop": ["src/components/Planner/bookings/BookingDetailDialog.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MTransportSheet.tsx"]
+    },
+    {
       "feature": "Transport booking form: bookingFormModel",
       "hooks": ["src/components/Planner/bookingFormModel.ts"],
       "desktop": [

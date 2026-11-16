@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MTransportSheet from '../../../../src/mobile/screens/trip/sheets/MTransportSheet'
 import { downloadFile, openFile } from '../../../../src/utils/fileDownload'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { legKey, useFlightLiveStore } from '../../../../src/store/flightLiveStore'
+import type { FlightLiveLeg } from '@trek/shared'
 import type { Reservation, TripFile } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRSH-001 to FE-MOB-TRSH-035
+// FE-MOB-TRSH-001 to FE-MOB-TRSH-036
 
 vi.mock('../../../../src/utils/fileDownload', () => ({
   openFile: vi.fn(() => Promise.resolve()),
@@ -485,5 +487,21 @@ describe('MTransportSheet', () => {
       expect(screen.getByText('10-4C')).toBeInTheDocument()
       expect(screen.queryByText('4-5A')).not.toBeInTheDocument()
     })
+  })
+
+  it('FE-MOB-TRSH-036: a followed flight long over has no live card and keeps its time boxes', () => {
+    const past: FlightLiveLeg = {
+      reservation_id: 7, leg_index: 0, callsign: 'DLH716', flight_number: 'LH 716', service_date: '2026-05-01',
+      origin: { code: 'FRA', name: 'Frankfurt', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin' },
+      destination: { code: 'HND', name: 'Tokyo Haneda', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo' },
+      phase: 'scheduled', scheduled_departure: '2026-05-01T06:00:00Z', scheduled_arrival: '2026-05-01T17:30:00Z',
+      departed_at: null, landed_at: null, estimated_arrival: null, departure_delay_min: null, arrival_delay_min: null,
+      progress: null, distance_total_km: null, distance_remaining_km: null, position: null, aircraft: null,
+      last_seen_at: null, fetched_at: '2026-05-01T05:00:00Z', stale: false, source: 'adsb.lol',
+    }
+    useFlightLiveStore.setState({ trips: { 1: { enabled: true, attribution: null, legs: { [legKey(7, 0)]: past } } } })
+    render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
+    expect(screen.getByText('10:20')).toBeInTheDocument()
+    expect(screen.getByText('06:45')).toBeInTheDocument()
   })
 })
