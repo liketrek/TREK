@@ -183,7 +183,7 @@ class TrekWebViewClient extends BridgeWebViewClient {
             // the stored copy of the UI takes over, with the app's own offline data.
             String server = TrekServerStore.getUrl(view.getContext());
             if (isNetworkError(error.getErrorCode()) && !TrekOfflineShell.isActive() && TrekOfflineShell.hasCopy(view.getContext(), server)) {
-                TrekOfflineShell.activate();
+                TrekOfflineShell.activate(server);
                 String url = request.getUrl().toString();
                 view.post(() -> view.loadUrl(url));
                 return;

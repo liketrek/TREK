@@ -61,8 +61,12 @@ final class TrekOfflineShell {
         TYPES.put("html", "text/html");
     }
 
-    /** The UI comes from the copy in this run: the server did not answer when the app started. */
-    private static volatile boolean active;
+    /**
+     * The server whose copy the UI comes from in this run: it did not answer
+     * when the app started. Null while the UI comes from the server itself.
+     * Bound to the server, so a copy never answers for another one.
+     */
+    private static volatile String activeServer;
     /** Capacitor's JSInjector (package-private there) and its getInjectedStream, found once. */
     private static volatile Object injector;
     private static volatile Method injectMethod;
@@ -71,11 +75,27 @@ final class TrekOfflineShell {
     private TrekOfflineShell() {}
 
     static boolean isActive() {
-        return active;
+        return activeServer != null;
     }
 
-    static void activate() {
-        active = true;
+    static void activate(String server) {
+        activeServer = server;
+    }
+
+    /**
+     * A start that goes to the server. The flag lives in the process, and
+     * restart() recreates the activity in that same process (another server
+     * picked, the address screen, a reload once the server is back), so each
+     * start sets it anew instead of keeping the last run's copy in front.
+     */
+    static void deactivate() {
+        activeServer = null;
+    }
+
+    /** Whether the copy stands in for this server in this run. */
+    static boolean isActiveFor(String server) {
+        String current = activeServer;
+        return current != null && current.equals(server);
     }
 
     private static File root(Context context) {
@@ -84,9 +104,13 @@ final class TrekOfflineShell {
 
     /** Whether there is a copy of this server's UI to start from. */
     static boolean hasCopy(Context context, String server) {
+        return hasCopy(root(context), server);
+    }
+
+    static boolean hasCopy(File root, String server) {
         if (server == null) return false;
-        File page = new File(root(context), PAGE);
-        return page.isFile() && server.equals(readStamp(context));
+        File page = new File(root, PAGE);
+        return page.isFile() && server.equals(readStamp(root));
     }
 
     /** Whether the device has a network at all; with none, the server cannot answer and the copy starts at once. */
@@ -103,21 +127,49 @@ final class TrekOfflineShell {
         }
     }
 
-    /** Keeps the start page; a copy of another server is thrown away first. */
+    /**
+     * Before a refresh fetches the files of a build: a copy of another server
+     * is thrown away, one of this server stays as it is until savePage.
+     */
+    static boolean beginRefresh(Context context, String server) {
+        return beginRefresh(root(context), server);
+    }
+
+    static boolean beginRefresh(File root, String server) {
+        if (!server.equals(readStamp(root))) deleteTree(root);
+        return root.isDirectory() || root.mkdirs();
+    }
+
+    /**
+     * Keeps the start page, and only once every file it names is stored: the
+     * page points at the build's files by their hashes, so a refresh cut off
+     * halfway (no reception, the app ended) keeps the previous page with its
+     * complete build instead of a new page whose scripts are missing.
+     */
     static boolean savePage(Context context, String server, byte[] html) {
-        if (!server.equals(readStamp(context))) clear(context);
-        File dir = root(context);
-        if (!dir.isDirectory() && !dir.mkdirs()) return false;
-        return write(new File(dir, STAMP), server.getBytes(StandardCharsets.UTF_8)) && write(new File(dir, PAGE), html);
+        return savePage(root(context), server, html);
+    }
+
+    static boolean savePage(File root, String server, byte[] html) {
+        if (!root.isDirectory() && !root.mkdirs()) return false;
+        return write(new File(root, STAMP), server.getBytes(StandardCharsets.UTF_8)) && write(new File(root, PAGE), html);
     }
 
     static boolean hasFile(Context context, String path) {
-        File file = fileFor(context, path);
+        return hasFile(root(context), path);
+    }
+
+    static boolean hasFile(File root, String path) {
+        File file = fileFor(root, path);
         return file != null && file.isFile();
     }
 
     static boolean saveFile(Context context, String path, byte[] data) {
-        File file = fileFor(context, path);
+        return saveFile(root(context), path, data);
+    }
+
+    static boolean saveFile(File root, String path, byte[] data) {
+        File file = fileFor(root, path);
         if (file == null) return false;
         File parent = file.getParentFile();
         if (parent != null && !parent.isDirectory() && !parent.mkdirs()) return false;
@@ -126,13 +178,12 @@ final class TrekOfflineShell {
 
     /** Drops the files of older builds once the current one is complete. */
     static void prune(Context context, Set<String> keep) {
-        File base = new File(root(context), FILES);
-        pruneDir(base, base, keep);
+        prune(root(context), keep);
     }
 
-    static void clear(Context context) {
-        active = false;
-        deleteTree(root(context));
+    static void prune(File root, Set<String> keep) {
+        File base = new File(root, FILES);
+        pruneDir(base, base, keep);
     }
 
     /**
@@ -142,7 +193,7 @@ final class TrekOfflineShell {
      * the build by its path. Null for anything else, which goes on as usual.
      */
     static WebResourceResponse serve(Context context, Bridge bridge, String server, WebResourceRequest request) {
-        if (!active || server == null || !"GET".equalsIgnoreCase(request.getMethod())) return null;
+        if (!isActiveFor(server) || !"GET".equalsIgnoreCase(request.getMethod())) return null;
         Uri url = request.getUrl();
         Uri origin = Uri.parse(server);
         if (!sameOrigin(url, origin)) return null;
@@ -155,7 +206,7 @@ final class TrekOfflineShell {
             }
             String path = url.getPath();
             if (path == null) return null;
-            File file = fileFor(context, path);
+            File file = fileFor(root(context), path);
             if (file == null || !file.isFile()) return null;
             return response(typeOf(path), new FileInputStream(file));
         } catch (IOException e) {
@@ -218,10 +269,10 @@ final class TrekOfflineShell {
         return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
     }
 
-    private static File fileFor(Context context, String path) {
+    private static File fileFor(File root, String path) {
         String clean = path.startsWith("/") ? path.substring(1) : path;
         if (clean.isEmpty() || clean.contains("..") || !SAFE_PATH.matcher(clean).matches()) return null;
-        return new File(new File(root(context), FILES), clean);
+        return new File(new File(root, FILES), clean);
     }
 
     private static String typeOf(String path) {
@@ -231,8 +282,8 @@ final class TrekOfflineShell {
         return type == null ? "application/octet-stream" : type;
     }
 
-    private static String readStamp(Context context) {
-        File stamp = new File(root(context), STAMP);
+    private static String readStamp(File root) {
+        File stamp = new File(root, STAMP);
         if (!stamp.isFile()) return null;
         try (FileInputStream in = new FileInputStream(stamp)) {
             byte[] data = new byte[(int) Math.min(stamp.length(), 4096)];

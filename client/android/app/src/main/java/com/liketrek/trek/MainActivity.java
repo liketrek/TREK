@@ -43,8 +43,9 @@ public class MainActivity extends BridgeActivity {
             || (!TrekOfflineShell.hasNetwork(this) && TrekOfflineShell.hasCopy(this, TrekServerStore.getUrlOrPrevious(this)));
         if (offlineStart && TrekOfflineShell.hasCopy(this, TrekServerStore.getUrlOrPrevious(this))) {
             TrekServerStore.restoreForOffline(this);
-            TrekOfflineShell.activate();
+            TrekOfflineShell.activate(TrekServerStore.getUrl(this));
         } else {
+            TrekOfflineShell.deactivate();
             TrekServerStore.recheckAfterUpdate(this);
         }
         String server = TrekServerStore.getUrl(this);

@@ -548,10 +548,9 @@ public class TrekShellPlugin extends Plugin {
         new Thread(() -> {
             JSObject result = new JSObject();
             byte[] page = download(server, "", "text/html");
-            boolean saved = page != null && TrekOfflineShell.savePage(context, server, page);
-            boolean complete = saved;
-            if (saved && listed != null) {
-                Set<String> keep = new HashSet<>();
+            boolean complete = page != null && TrekOfflineShell.beginRefresh(context, server);
+            Set<String> keep = new HashSet<>();
+            if (complete && listed != null) {
                 for (int i = 0; i < listed.length(); i++) {
                     String path = listed.optString(i, null);
                     if (path == null || path.isEmpty()) continue;
@@ -561,8 +560,12 @@ public class TrekShellPlugin extends Plugin {
                     byte[] data = download(server, clean, null);
                     if (data == null || !TrekOfflineShell.saveFile(context, clean, data)) complete = false;
                 }
-                if (complete) TrekOfflineShell.prune(context, keep);
             }
+            // The new page goes in last: until all its files are there the
+            // stored page stays the previous one, whose build is still whole.
+            boolean saved = complete && TrekOfflineShell.savePage(context, server, page);
+            complete = saved;
+            if (saved && listed != null) TrekOfflineShell.prune(context, keep);
             result.put("saved", saved);
             result.put("complete", complete);
             call.resolve(result);
