@@ -5,6 +5,7 @@
  * with nothing stored switches to the stored OpenFreeMap one, with the same
  * markers and routes, and says so.
  */
+import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
@@ -12,6 +13,7 @@ import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults';
 import { useSettingsStore } from '../../store/settingsStore';
 import { resetWebGLProbe } from '../../utils/webgl';
 import { MapViewAuto } from './MapViewAuto';
+import { useMapLoadStatus } from './MapLoadStatus';
 
 const env = vi.hoisted(() => ({ offline: false, dark: false, tileStore: false }));
 const seen = vi.hoisted(() => ({
@@ -25,15 +27,16 @@ vi.mock('./MapView', () => ({
     return <div data-testid="leaflet-map" />;
   },
 }));
+function FakeGlMap({ engine, ...props }: { engine: string; glProvider?: string; styleOverride?: string }) {
+  const report = useMapLoadStatus();
+  useEffect(() => { report?.('ready'); }, [report]);
+  seen.gl = { engine, ...props };
+  return <div data-testid="gl-map" />;
+}
+
 vi.mock('./glLazy', () => ({
-  MapViewGLMaplibre: (props: { glProvider?: string; styleOverride?: string }) => {
-    seen.gl = { engine: 'maplibre', ...props };
-    return <div data-testid="gl-map" />;
-  },
-  MapViewGLMapbox: (props: { glProvider?: string; styleOverride?: string }) => {
-    seen.gl = { engine: 'mapbox', ...props };
-    return <div data-testid="gl-map" />;
-  },
+  MapViewGLMaplibre: (props: { glProvider?: string; styleOverride?: string }) => <FakeGlMap engine="maplibre" {...props} />,
+  MapViewGLMapbox: (props: { glProvider?: string; styleOverride?: string }) => <FakeGlMap engine="mapbox" {...props} />,
 }));
 vi.mock('./useRoadtripHazards', () => ({ useRoadtripHazards: () => ({ feed: null }) }));
 vi.mock('../../hooks/useNetworkMode', () => ({

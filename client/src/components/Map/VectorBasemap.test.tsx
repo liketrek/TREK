@@ -21,6 +21,7 @@ import {
   type GlLeafletLayer,
 } from './VectorBasemap'
 import { OFM_POSITRON, OFM_DARK, OFM_ATTRIBUTION, RASTER_FALLBACK_TILE_URL } from '../../constants/mapDefaults'
+import { MapLoadStatusProvider } from './MapLoadStatus'
 
 const addAttribution = vi.fn()
 /** Only the two things the component touches; casting keeps the mock honest about that. */
@@ -132,7 +133,11 @@ describe('VectorBasemap', () => {
 
   it('FE-COMP-VECBM-020: a style that errors before it loads gives way to raster tiles; later errors do not', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    const { findByTestId, queryByTestId } = render(<VectorBasemap style={OFM_POSITRON} />)
+    const { findByTestId, queryByTestId, queryByRole } = render(
+      <MapLoadStatusProvider onRetry={vi.fn()}>
+        <VectorBasemap style={OFM_POSITRON} />
+      </MapLoadStatusProvider>,
+    )
     await waitFor(() => expect(maplibreGL).toHaveBeenCalledTimes(1))
     const { layer, gl } = lastLayer()
     const onError = gl.on.mock.calls.find(([name]) => name === 'error')?.[1] as (e: { error?: unknown }) => void
@@ -143,6 +148,8 @@ describe('VectorBasemap', () => {
     expect(await findByTestId('raster-basemap')).toBeInTheDocument()
     expect(layer.remove).toHaveBeenCalled()
     expect(gl.off).toHaveBeenCalledWith('error', onError)
+    await waitFor(() => expect(queryByRole('status')).toBeNull())
+    expect(queryByRole('alert')).toBeNull()
 
     // A second map whose style did load keeps its vector basemap through a tile error.
     render(<VectorBasemap style={OFM_POSITRON} />)
@@ -153,6 +160,23 @@ describe('VectorBasemap', () => {
     act(() => secondError({ error: new Error('one tile') }))
     expect(second.layer.remove).not.toHaveBeenCalled()
     warn.mockRestore()
+  })
+
+  it('FE-COMP-VECBM-022: reports loading until the first GL load, then clears it', async () => {
+    const { queryByRole } = render(
+      <MapLoadStatusProvider onRetry={vi.fn()}>
+        <VectorBasemap style={OFM_POSITRON} />
+      </MapLoadStatusProvider>,
+    )
+    await waitFor(() => expect(maplibreGL).toHaveBeenCalledTimes(1))
+    expect(queryByRole('status')).toBeInTheDocument()
+
+    const { gl } = lastLayer()
+    const onLoad = gl.once.mock.calls.find(([name]) => name === 'load')?.[1] as () => void
+    act(() => onLoad())
+
+    expect(queryByRole('status')).not.toBeInTheDocument()
+    expect(queryByRole('alert')).toBeNull()
   })
 
   it('FE-COMP-VECBM-021: in the iOS app the basemap is raster tiles, and no GL layer is built', async () => {

@@ -28,6 +28,7 @@ import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import { buildGlMap, initialMapStyle } from './glSupport'
+import { useMapLoadStatus } from './MapLoadStatus'
 import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
@@ -455,6 +456,7 @@ export function MapViewGL({
   const glStyle = styleOverride ?? styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const [mapReady, setMapReady] = useState(false)
+  const reportMapLoad = useMapLoadStatus()
   const [readyMap, setReadyMap] = useState<FerrataGlMap | null>(null) // the ready map, read without touching mapRef
   // Hover tooltip — a cursor-following name/category/address card, matching the
   // Leaflet map's overlay exactly (no anchored popup, no photo thumbnail).
@@ -938,6 +940,7 @@ export function MapViewGL({
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
+    reportMapLoad?.('loading')
     if (!isMapLibre) gl.accessToken = mapboxToken
 
     // Open framed on the places rather than on the caller's default: a trip in Japan should
@@ -969,8 +972,19 @@ export function MapViewGL({
 
     // Null when the GPU refused WebGL2: MapViewAuto has switched to Leaflet by then.
     const map = buildGlMap(() => new gl.Map(mapOptions as any))
-    if (!map) return
+    if (!map) {
+      reportMapLoad?.('failed')
+      return
+    }
     mapRef.current = map
+    let cancelled = false
+    let styleLoaded = false
+    const onStyleLoad = () => { styleLoaded = true }
+    const onError = () => {
+      if (!cancelled && !styleLoaded) reportMapLoad?.('failed')
+    }
+    map.once('style.load', onStyleLoad)
+    map.on('error', onError)
     popupRef.current = new gl.Popup({
       closeButton: false,
       closeOnClick: false,
@@ -1004,6 +1018,7 @@ export function MapViewGL({
     ;(window as any).__trek_map = map
 
     map.on('load', () => {
+      styleLoaded = true
       if (enableMapbox3d) {
         // Terrain is only valuable on satellite styles — on clean vector
         // styles it makes route lines drift off the HTML markers because
@@ -1222,6 +1237,7 @@ export function MapViewGL({
       // cleanup below.
       setMapReady(true)
       setReadyMap(map)
+      if (!cancelled) reportMapLoad?.('ready')
     })
 
     // Layer for the hand-positioned place pins, inside the canvas container so it
@@ -1419,6 +1435,9 @@ export function MapViewGL({
     if (enableMapbox3d) map.on('render', syncMarkerAltitudes)
 
     return () => {
+      cancelled = true
+      map.off('style.load', onStyleLoad)
+      map.off('error', onError)
       canvas.removeEventListener('mousedown', onAuxDown)
       canvas.removeEventListener('auxclick', onAuxClick)
       canvas.removeEventListener('touchstart', onTouchStart)
@@ -1450,7 +1469,7 @@ export function MapViewGL({
       if ((window as any).__trek_map === map) delete (window as any).__trek_map
       setMapReady(false)
     }
-  }, [glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality]) // rebuild on provider/style changes only
+  }, [glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, reportMapLoad]) // rebuild on provider/style changes only
 
   // Pin the basemap label language to the UI language so labels don't fall back to the
   // browser/OS locale and stack multiple scripts per place (e.g. "India/भारत/India", #1299).

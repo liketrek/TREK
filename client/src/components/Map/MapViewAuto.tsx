@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { AlertTriangle, Clock, CloudOff, Info } from 'lucide-react'
 import { Tooltip } from '../shared/Tooltip'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -14,6 +14,8 @@ import { useIsDark } from '../../hooks/useIsDark'
 import { OFM_POSITRON } from '../../constants/mapDefaults'
 import { glWorksOffline, leafletWorksOffline, offlineStyleFor } from './offlineBasemap'
 import { glTileStoreActive, tileCacheActive } from '../../native/tileCache'
+import { MapLoadStatusProvider, useMapLoadStatus } from './MapLoadStatus'
+import { isVectorStyle } from '../../utils/tileUrl'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -50,6 +52,7 @@ export function MapViewAuto(props: MapViewAutoProps) {
   // nothing stored is swapped for the stored one straight away.
   const nativeStore = tileCacheActive()
   const [preferStored, setPreferStored] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const mapboxKept = configuredGl === 'mapbox-gl' && glTileStoreActive()
   const glFallback = !!configuredGl && offline && !glWorksOffline(configuredGl, maplibreStyle) && (!mapboxKept || preferStored)
   const glProvider = glFallback ? 'maplibre-gl' : configuredGl
@@ -68,30 +71,36 @@ export function MapViewAuto(props: MapViewAutoProps) {
   // maplibre-gl out of each other's downloads.
   const MapViewGL = glProvider === 'maplibre-gl' ? MapViewGLMaplibre : MapViewGLMapbox
   if (glProvider) {
-    // Render the previous Leaflet map as the fallback so there's no blank flash
-    // while the GL chunk loads on first use.
     return (
-      // Outside the Suspense on purpose: Suspense handles the pending promise,
-      // a rejected one (chunk gone after a deploy) throws past it. Falling back
-      // to Leaflet keeps a usable map instead of an error card.
-      // resetKeys: with two engine chunks, a failure under one provider must not
-      // keep showing Leaflet after the user switches to the other.
-      <>
-        <ErrorBoundary boundaryId="map:gl" resetKeys={[glProvider]} fallback={<MapView {...mapProps} />}>
-          <Suspense fallback={<MapView {...mapProps} />}>
+      // A full Leaflet fallback here could initialise a second MapLibre map while
+      // the GL chunk was still downloading. The status pill avoids that duplicate
+      // work; only a rejected chunk uses the ErrorBoundary's Leaflet fallback.
+      <MapLoadStatusProvider key={`${glProvider}:${attempt}`} onRetry={() => setAttempt(v => v + 1)}>
+        <ErrorBoundary boundaryId="map:gl" resetKeys={[glProvider]} fallback={<LeafletMapWithStatus {...mapProps} />}>
+          <Suspense fallback={null}>
             <MapViewGL {...mapProps} glProvider={glProvider} styleOverride={glFallback ? offlineStyle : undefined} />
           </Suspense>
         </ErrorBoundary>
         {pill}
-      </>
+      </MapLoadStatusProvider>
     )
   }
   return (
-    <>
-      <MapView {...mapProps} />
+    <MapLoadStatusProvider key="leaflet" initial="ready" onRetry={() => setAttempt(v => v + 1)}>
+      <LeafletMapWithStatus {...mapProps} />
       {pill}
-    </>
+    </MapLoadStatusProvider>
   )
+}
+
+/** A raster Leaflet map has no GL load event, so its mount completes the GL fallback. */
+function LeafletMapWithStatus(props: MapViewProps) {
+  const report = useMapLoadStatus()
+  const raster = !isVectorStyle(props.tileUrl ?? OFM_POSITRON)
+  useEffect(() => {
+    if (raster) report?.('ready')
+  }, [raster, report])
+  return <MapView {...props} />
 }
 
 /** A raster template cannot be served offline in the iOS app unless it has its tile store. */

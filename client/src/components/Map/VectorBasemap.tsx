@@ -13,6 +13,7 @@ import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
 import { offlineStyle } from '../../native/offlineTiles'
 import { isNativeIos } from '../../native/platform'
 import { nativeRasterTemplate } from '../../native/tileCache'
+import { useMapLoadStatus } from './MapLoadStatus'
 
 /** The Leaflet layer maplibre-gl-leaflet hands back. */
 export type GlLeafletLayer = InstanceType<typeof MaplibreGL>
@@ -200,6 +201,7 @@ export function restyleBasemap(layer: BasemapLayer | null | undefined, style: st
  */
 export function VectorBasemap({ style }: { style: string }) {
   const map = useMap()
+  const reportMapLoad = useMapLoadStatus()
   const layerRef = useRef<GlLeafletLayer | null>(null)
   const styleRef = useRef(style)
   styleRef.current = style
@@ -209,8 +211,13 @@ export function VectorBasemap({ style }: { style: string }) {
   const [glUsable, setGlUsable] = useState(vectorBasemapDraws)
 
   useEffect(() => {
-    if (!glUsable) return
+    if (!glUsable) {
+      reportMapLoad?.('ready')
+      return
+    }
+    reportMapLoad?.('loading')
     let cancelled = false
+    let removeLoadListener: (() => void) | undefined
 
     void (async () => {
       const maplibreGL = await loadLayerFactoryOrNull()
@@ -233,10 +240,17 @@ export function VectorBasemap({ style }: { style: string }) {
         return
       }
       layerRef.current = layer
+      const gl = layer.getMaplibreMap?.()
+      const onLoad = () => {
+        if (!cancelled && layerRef.current === layer) reportMapLoad?.('ready')
+      }
+      gl?.once('load', onLoad)
+      removeLoadListener = () => gl?.off('load', onLoad)
       // A style that never loads (its server, or the iOS app's offline protocol
       // failing) would leave the map white under its markers: raster instead.
       onStyleFailure(layer, () => {
         if (cancelled || layerRef.current !== layer) return
+        removeLoadListener?.()
         detachBasemapLayer(layer)
         layerRef.current = null
         setGlUsable(false)
@@ -245,10 +259,11 @@ export function VectorBasemap({ style }: { style: string }) {
 
     return () => {
       cancelled = true
+      removeLoadListener?.()
       detachBasemapLayer(layerRef.current)
       layerRef.current = null
     }
-  }, [map, glUsable])
+  }, [map, glUsable, reportMapLoad])
 
   useEffect(() => {
     restyleBasemap(layerRef.current, style)
