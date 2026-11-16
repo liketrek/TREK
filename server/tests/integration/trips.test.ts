@@ -1059,6 +1059,8 @@ describe('Copy trip with data', () => {
       place: place.id,
       order_index: 0,
       notes: 'Visit in morning',
+      // #3092: the visit's own stay, apart from the place's duration
+      stay_minutes: 90,
     });
 
     // Accommodation spanning days 0→1
@@ -1103,6 +1105,7 @@ describe('Copy trip with data', () => {
     // Assignment copied
     const newAssignments = await findRows(orm, DayAssignments, { day: { trip: newId } });
     expect(newAssignments).toHaveLength(1);
+    expect(newAssignments[0].stay_minutes).toBe(90);
 
     // Accommodation copied
     const newAccom = await findRows(orm, DayAccommodations, { trip: newId });

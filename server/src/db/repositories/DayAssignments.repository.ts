@@ -568,6 +568,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       assignment_end_time: input.assignment_end_time,
       end_day: input.end_day,
       tour_stage_key: input.tour_stage_key ?? null,
+      stay_minutes: input.stay_minutes ?? null,
     });
   }
 

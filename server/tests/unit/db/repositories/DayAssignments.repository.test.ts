@@ -1046,6 +1046,31 @@ describe('DayAssignmentsRepository.insertAssignmentCopy (TP49)', () => {
       accommodation_id: null,
     });
   });
+
+  it("ASSIGNREPO-048: carries the visit's own stay_minutes, null when none is given (#3092)", async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const copy = {
+      day_id: day.id,
+      place_id: place.id,
+      order_index: 0,
+      notes: null,
+      reservation_status: null,
+      reservation_notes: null,
+      reservation_datetime: null,
+      assignment_time: null,
+      assignment_end_time: null,
+      end_day: 0,
+    };
+
+    const withStay = await assignments.insertAssignmentCopy({ ...copy, stay_minutes: 90 });
+    const without = await assignments.insertAssignmentCopy(copy);
+
+    expect(await assignmentCols(withStay, 'stay_minutes')).toEqual({ stay_minutes: 90 });
+    expect(await assignmentCols(without, 'stay_minutes')).toEqual({ stay_minutes: null });
+  });
 });
 
 describe('DayAssignmentsRepository.setAccommodation (TP57)', () => {
