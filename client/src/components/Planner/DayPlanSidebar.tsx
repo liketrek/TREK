@@ -844,7 +844,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
     // Places get sequential integer positions (0, 1, 2, ...)
     // Non-place items between place N-1 and place N get fractional positions
-    const { assignmentIds, noteUpdates, transportUpdates, legPosUpdates } = planMergedOrder(newOrder)
+    const { assignmentIds, noteUpdates, transportUpdates, legPosUpdates } = planMergedOrder(newOrder, prevAssignmentIds)
 
     try {
       // Update transport positions in store FIRST so the useEffect triggered by

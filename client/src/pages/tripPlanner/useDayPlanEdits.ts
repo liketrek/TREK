@@ -6,6 +6,7 @@ import { useTripStore, type TripStoreState } from '../../store/tripStore'
 import { isEffectivelyOffline } from '../../sync/networkMode'
 import type { Accommodation, Place } from '../../types'
 import { timedSlot } from '../../utils/dayMerge'
+import { withHiddenRows } from '../../utils/mergedOrder'
 import { restoreVisit, visitOf } from './placeUndo'
 import type { PlannerBase, PlannerHistory } from './plannerTypes'
 import type { PlaceEdits } from './usePlaceEdits'
@@ -142,9 +143,7 @@ export function useDayPlanEdits(options: DayPlanEditsOptions) {
     // pinned behind instead of being shifted arithmetically. Without this the
     // day's detours stayed on their old numbers and the drive quietly took a
     // different road, persisted and visible to every collaborator.
-    const visible = new Set(orderedIds)
-    let nextVisible = 0
-    const completeOrder = prevIds.map(id => visible.has(id) ? orderedIds[nextVisible++] : id)
+    const completeOrder = withHiddenRows(prevIds, orderedIds)
     const stopIdsBefore = roadtripStopsOf(dayId).map(a => a.id)
     const stopIdsAfter = completeOrder.filter(id => stopIdsBefore.includes(id))
     const plan = reanchorByStopOrder(roadtripVias.byDay[dayId] ?? [], stopIdsBefore, stopIdsAfter)
