@@ -318,7 +318,7 @@ describe('postgresSafetyNet', () => {
     await expect(hint.restoreHint('20200101000100')).resolves.toMatch(/none of them from this release/);
     writeFileSync(path.join(dir, 'pre-migrate-20200101000100-20250102T000000Z.pgdump'), 'mine');
     await expect(hint.restoreHint('20200101000100')).resolves.toMatch(
-      /pre-migrate-20200101000100-20250102T000000Z\.pgdump: stop TREK, empty the database .*pg_restore --no-owner/,
+      /pre-migrate-20200101000100-20250102T000000Z\.pgdump: stop TREK and load it as the wiki page Updating .*pg_restore --no-owner/,
     );
   });
 });

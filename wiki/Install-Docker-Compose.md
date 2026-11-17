@@ -120,14 +120,14 @@ See [Reverse-Proxy](Reverse-Proxy) for complete proxy configuration examples.
 
 [`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs TREK beside a `postgres:17` service instead of the SQLite file. Its `db` service keeps the database in a named volume and publishes no port, and the `trek` service waits for the database's health check before it starts.
 
-Put a password in a `.env` file beside the compose file, then start it:
+Put two passwords in a `.env` file beside the compose file, then start it:
 
 ```bash
-echo 'POSTGRES_PASSWORD=<a long random value>' > .env
+printf 'POSTGRES_ADMIN_PASSWORD=%s\nPOSTGRES_PASSWORD=%s\n' '<a long random value>' '<another long random value>' > .env
 docker compose -f docker-compose.postgres.yml up -d
 ```
 
-The password goes into `TREK_DB_URL`, so use URL-safe characters or percent-encode it. Without `POSTGRES_PASSWORD` the database does not initialize and TREK does not start. To run it against a database that already exists elsewhere, use the plain `docker-compose.yml` and set `TREK_DB_URL` yourself.
+`POSTGRES_ADMIN_PASSWORD` is the password of the database's superuser `postgres`, which on the first start only creates the role `trek`. `POSTGRES_PASSWORD` is the password of `trek`, the role TREK connects as: it owns TREK's database and is not a superuser, so a crafted backup restored into it cannot reach the database container. That password goes into `TREK_DB_URL`, so use URL-safe characters or percent-encode it. Without either password the database does not initialize and TREK does not start. An install made with an older version of the compose file connects as a superuser; [Database: Postgres](Database-Postgres#moving-a-compose-install-off-the-superuser) shows how to move it. To run it against a database that already exists elsewhere, use the plain `docker-compose.yml` and set `TREK_DB_URL` yourself.
 
 Read [Database: Postgres](Database-Postgres) before you use it. It covers the requirements, SSL, backups and restores, and the limits of a Postgres install.
 

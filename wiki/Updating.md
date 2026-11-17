@@ -100,16 +100,62 @@ An image from 5.0 on that refuses a newer database names the copy it can run, if
 
 On a [PostgreSQL database](Database-Postgres) the copy TREK takes before a migration is `data/pre-migrate-<schema>-<time>.pgdump`, a `pg_dump` custom-format file, and the procedure is different from the SQLite one above. The copy holds the database only. Anything written after it was taken is lost when you roll back, and the uploads are not affected.
 
+The copy cannot be loaded over the migrated schema: it recreates TREK's tables, its `nocase` collation, its trigger functions and its sequences, and every one of them still exists. Dropping only the tables is not enough, because the functions, the collation and the sequences a table does not own stay behind, and the load then stops at the first one that already exists. So the steps below clear the whole schema and load the copy in one transaction, the way TREK's own restore does: a load that fails leaves the database as it was.
+
 1. Stop TREK.
-2. Empty the database: drop it and create it again with the same owner, or drop the tables in its schema. `pg_restore` cannot load into a database that still holds the migrated tables.
-3. Load the copy with the client tools of a version that carries the CVE-2025-8714 fix (17.6, 16.10, 15.14 or 14.19 at least):
+2. Turn the copy into a SQL script, with client tools of a version that carries the CVE-2025-8714 fix (18.0, 17.6, 16.10, 15.14 or 14.19 at least) and that is at least as new as the server. Name the schema TREK's tables are in, normally `public`:
 
    ```bash
-   pg_restore --no-owner --no-privileges --single-transaction -d "postgres://user:password@host:5432/trek?sslmode=require" data/pre-migrate-<schema>-<time>.pgdump
+   pg_restore --no-owner --no-privileges --schema=public --file=restore.sql data/pre-migrate-<schema>-<time>.pgdump
    ```
 
-   Use the same connection URL as `TREK_DB_URL`. The password can also come from the `PGPASSWORD` environment variable, which keeps it out of the command line.
-4. Start the previous image with the same `TREK_DB_URL`.
+3. Save this block as `clear-schema.sql`. It drops every table, view, sequence, function, collation and type in the current schema, which is what TREK's restore runs before it loads a backup:
+
+   ```sql
+   DO $clear$
+   DECLARE r record;
+   BEGIN
+     FOR r IN SELECT c.oid::regclass AS name, c.relkind FROM pg_class c
+       WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
+         AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.deptype IN ('e', 'a', 'i'))
+     LOOP
+       EXECUTE format('DROP %s IF EXISTS %s CASCADE',
+         CASE r.relkind WHEN 'v' THEN 'VIEW' WHEN 'm' THEN 'MATERIALIZED VIEW' WHEN 'S' THEN 'SEQUENCE'
+           WHEN 'f' THEN 'FOREIGN TABLE' ELSE 'TABLE' END, r.name);
+     END LOOP;
+     FOR r IN SELECT p.oid::regprocedure AS sig FROM pg_proc p
+       WHERE p.pronamespace = current_schema()::regnamespace
+         AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
+     LOOP
+       EXECUTE format('DROP ROUTINE IF EXISTS %s CASCADE', r.sig);
+     END LOOP;
+     FOR r IN SELECT format('%I.%I', n.nspname, c.collname) AS name FROM pg_collation c
+       JOIN pg_namespace n ON n.oid = c.collnamespace
+       WHERE n.nspname = current_schema()
+         AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.deptype = 'e')
+     LOOP
+       EXECUTE format('DROP COLLATION IF EXISTS %s CASCADE', r.name);
+     END LOOP;
+     FOR r IN SELECT t.oid::regtype AS name FROM pg_type t
+       WHERE t.typnamespace = current_schema()::regnamespace AND t.typtype IN ('e', 'd', 'r')
+         AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = t.oid AND d.deptype IN ('e', 'i'))
+     LOOP
+       EXECUTE format('DROP TYPE IF EXISTS %s CASCADE', r.name);
+     END LOOP;
+   END
+   $clear$;
+   ```
+
+4. Clear the schema and load the script in one transaction, connected as TREK's own role (the URL in `TREK_DB_URL`):
+
+   ```bash
+   psql "postgres://user@host:5432/trek?sslmode=require" --no-psqlrc --single-transaction --set=ON_ERROR_STOP=1 --file=clear-schema.sql --file=restore.sql
+   ```
+
+   Put the password in the `PGPASSWORD` environment variable rather than in the URL, which keeps it out of the command line. Delete `restore.sql` afterwards: it holds the whole database in plain text.
+5. Start the previous image with the same `TREK_DB_URL`.
+
+On a server you administer, dropping the database and creating it again with the same owner, then loading the copy with `pg_restore --no-owner --no-privileges --single-transaction -d <url> <copy>`, works as well.
 
 A TREK image without PostgreSQL support cannot read this database at all. It would start on a new SQLite file instead. An image from 5.0 on that refuses a newer database names the copy it can run, if one is in the data directory.
 
