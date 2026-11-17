@@ -87,6 +87,7 @@ export class SettingsRepository extends TrekRepository<Settings> {
    * parameter — never interpolated into SQL text.
    */
   async deleteByKeyPrefix(prefix: string): Promise<number> {
+    // like-exact: a plugin's setting keys start with its exact `plugin:<id>:` prefix on both engines.
     return await this.nativeDelete({ key: { $like: `${prefix}%` } });
   }
 }

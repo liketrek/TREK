@@ -201,12 +201,14 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
    * never match `LIKE`, so every returned value is a real string.
    */
   async listByFilePathPrefix(prefix: string): Promise<string[]> {
+    // like-exact: a storage path prefix, exact on both engines.
     const rows = await this.find({ file_path: { $like: `${prefix}%` } }, { fields: ['file_path'] });
     return rows.map((row) => row.file_path).filter((path): path is string => path != null);
   }
 
   /** TH2 — `SELECT thumbnail_path FROM trek_photos WHERE thumbnail_path LIKE 'journey/thumbs/%'`, same shape as TH1 on the sibling column. */
   async listByThumbnailPathPrefix(prefix: string): Promise<string[]> {
+    // like-exact: a storage path prefix, exact on both engines.
     const rows = await this.find({ thumbnail_path: { $like: `${prefix}%` } }, { fields: ['thumbnail_path'] });
     return rows.map((row) => row.thumbnail_path).filter((path): path is string => path != null);
   }
