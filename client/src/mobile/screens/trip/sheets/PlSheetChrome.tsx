@@ -3,6 +3,7 @@ import { Plus, Trash2, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MIconBtn from '../../../components/MIconBtn'
 import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
+import { fs } from '../../../../components/shared/DialogShell'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 
 /**
@@ -58,7 +59,7 @@ export function AddFieldButton({ icon: Icon, label, onClick, disabled, pressed, 
       className={`${SELECT_FIELD_CLS} gap-[10px] text-start disabled:opacity-40 ${pressed ? '!border-transparent !bg-m-act text-m-actfg' : 'text-m-faint'}`}
     >
       <Icon size={14} strokeWidth={2} aria-hidden="true" className="flex-none" />
-      <span className="min-w-0 flex-1 truncate text-[0.84375rem] font-medium">{label}</span>
+      <span className="min-w-0 flex-1 truncate font-medium" style={fs(13.5, 'body')}>{label}</span>
       <Plus size={14} strokeWidth={2.2} aria-hidden="true" className="flex-none" />
     </button>
   )

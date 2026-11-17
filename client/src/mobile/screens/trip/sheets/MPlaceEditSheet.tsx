@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react'
 import { Globe, MapPin, MapPinOff } from 'lucide-react'
+import { fs } from '../../../../components/shared/DialogShell'
 import MSheet from '../../../components/MSheet'
 import {
   DEFAULT_FORM,
@@ -373,7 +374,8 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
             onChange={e => handleChange('website', e.target.value)}
             placeholder="https://"
             aria-label={t('places.formWebsite')}
-            className="min-w-0 flex-1 bg-transparent font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
+            className="min-w-0 flex-1 bg-transparent font-[inherit] font-medium text-m-ink outline-none placeholder:text-m-faint"
+            style={fs(13.5, 'body')}
           />
         </label>
 

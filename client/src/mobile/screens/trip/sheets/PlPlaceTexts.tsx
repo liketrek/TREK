@@ -1,4 +1,5 @@
 import { usePlaceTextTabs, type PlaceTextField } from '../../../../components/Planner/usePlaceTextTabs';
+import { fs } from '../../../../components/shared/DialogShell';
 import MSegmented from '../../../components/MSegmented';
 import { Eyebrow, FIELD_AREA_CLS } from './PlSheetChrome';
 
@@ -34,7 +35,7 @@ export function PlPlaceTexts({
   return (
     <div className="flex flex-col gap-2">
       <Eyebrow className="-mb-[3px] mt-3 uppercase">{t('places.textsLabel')}</Eyebrow>
-      <MSegmented
+      <MSegmented<PlaceTextField>
         value={shown.field}
         onChange={setActive}
         options={tabs.map((tab) => ({
@@ -57,7 +58,9 @@ export function PlPlaceTexts({
             aria-label={tab.aria}
             className={FIELD_AREA_CLS}
           />
-          <p className="m-0 mt-[5px] px-[6px] font-geist text-[0.65625rem] leading-snug text-m-faint">{tab.hint}</p>
+          <p className="m-0 mt-[5px] px-[6px] font-geist leading-snug text-m-faint" style={fs(10.5, 'caption')}>
+            {tab.hint}
+          </p>
         </div>
       ))}
     </div>

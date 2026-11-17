@@ -41,10 +41,10 @@ export default function PlFileAttach({ planner, files, onAdd, onRemove, canAttac
       <Eyebrow className="mb-[5px] mt-3 uppercase">{t('files.title')}</Eyebrow>
       {(canAttach || canLink) && (
         <div className={`grid gap-2 ${canAttach && canLink ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {canAttach && <AddFieldButton icon={Paperclip} label={t('files.attach')} onClick={() => inputRef.current?.click()} />}
           {canLink && (
             <AddFieldButton icon={Link2} label={t('files.link')} onClick={() => setPicking(v => !v)} pressed={picking} ariaExpanded={picking} />
           )}
+          {canAttach && <AddFieldButton icon={Paperclip} label={t('files.attach')} onClick={() => inputRef.current?.click()} />}
         </div>
       )}
       <input

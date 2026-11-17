@@ -67,7 +67,7 @@ describe('typing and taking over (#2472)', () => {
     // Google writes a place open all week as one period on Sunday that never closes.
     expect(weekFromPeriods([{ open: p(0, 0), close: null }])).toEqual(Array.from({ length: 7 }, () => ({ closed: false, ...ALL_DAY })))
     // A day from midnight to the next midnight is the same.
-    expect(weekFromPeriods([{ open: p(1, 0), close: p(2, 0) }])![0]).toEqual({ closed: false, ...ALL_DAY })
+    expect(weekFromPeriods([{ open: p(1, 0), close: p(2, 0) }])?.[0]).toEqual({ closed: false, ...ALL_DAY })
     expect(isAllDay({ closed: false, open: '00:00', close: '23:59' })).toBe(true)
     expect(isAllDay({ closed: false, open: '00:00', close: '00:00' })).toBe(true)
     expect(isAllDay({ closed: false, open: '00:00', close: '22:00' })).toBe(false)
@@ -78,10 +78,10 @@ describe('typing and taking over (#2472)', () => {
     const week = emptyWeek()
     week[0] = { closed: false, ...ALL_DAY }
     week[1] = { closed: false, open: '09:00', close: '17:00' }
-    const lines = hoursLines(writeWeek(week), 'en', 'Closed', 'Open 24 hours')!
+    const lines = hoursLines(writeWeek(week), 'en', 'Closed', 'Open 24 hours') ?? []
     expect(lines[0]).toBe('Monday: Open 24 hours')
     expect(lines[1]).toBe('Tuesday: 09:00 – 17:00')
     // Without the label the times stay, as before.
-    expect(hoursLines(writeWeek(week), 'en', 'Closed')![0]).toBe('Monday: 00:00 – 23:59')
+    expect(hoursLines(writeWeek(week), 'en', 'Closed')?.[0]).toBe('Monday: 00:00 – 23:59')
   })
 })

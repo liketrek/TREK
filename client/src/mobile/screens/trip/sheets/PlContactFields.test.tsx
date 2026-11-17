@@ -43,11 +43,11 @@ describe('PlContactFields', () => {
     fireEvent.click(screen.getByRole('button', { name: 'places.hoursAdd' }));
 
     fireEvent.click(screen.getByRole('switch', { name: 'Monday: places.hoursAllDay' }));
-    expect(JSON.parse(onChange.mock.lastCall![1])[0]).toEqual({ closed: false, open: '00:00', close: '23:59' });
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: false, open: '00:00', close: '23:59' });
     expect(screen.getByRole('switch', { name: 'Monday: places.hoursAllDay' })).toHaveAttribute('aria-checked', 'true');
 
     fireEvent.click(screen.getByRole('switch', { name: 'Tuesday: places.hoursClosed' }));
-    expect(JSON.parse(onChange.mock.lastCall![1])[1]).toEqual({ closed: true });
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[1]).toEqual({ closed: true });
     expect(screen.getByText('places.hoursClosed')).toBeInTheDocument();
   });
 
@@ -57,7 +57,7 @@ describe('PlContactFields', () => {
     fireEvent.click(screen.getByRole('button', { name: 'places.hoursAdd' }));
     fireEvent.click(screen.getByRole('switch', { name: 'Monday: places.hoursClosed' }));
     fireEvent.click(screen.getByRole('button', { name: 'places.hoursCopyFirst:Monday' }));
-    expect(JSON.parse(onChange.mock.lastCall![1]).every((d: { closed: boolean }) => d.closed)).toBe(true);
+    expect(JSON.parse(onChange.mock.lastCall?.[1]).every((d: { closed: boolean }) => d.closed)).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'places.hoursRemove' }));
     expect(onChange).toHaveBeenLastCalledWith('opening_hours', '');
     expect(screen.getByRole('button', { name: 'places.hoursAdd' })).toBeInTheDocument();

@@ -58,7 +58,7 @@ export function PlaceFormTexts({
 
   return (
     <div className={PANEL}>
-      <Segmented
+      <Segmented<PlaceTextField>
         fill
         value={shown.field}
         onChange={setActive}

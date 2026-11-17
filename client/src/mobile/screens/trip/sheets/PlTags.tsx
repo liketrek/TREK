@@ -20,14 +20,14 @@ const CHIP =
 const CHIP_OFF = 'border-[color:var(--m-rowbr)] bg-[color:var(--m-card)]';
 const DOT_BUTTON = 'grid h-[30px] w-[26px] flex-none place-items-center ps-[3px]';
 const DOT = 'h-[12px] w-[12px] rounded-full ring-1 ring-inset ring-[color:var(--m-rowbr)]';
-const NAME_BUTTON = 'inline-flex h-full min-w-0 items-center gap-[5px] text-[0.75rem] font-semibold';
+const NAME_BUTTON = 'inline-flex h-full min-w-0 items-center gap-[5px] text-caption font-semibold';
 /** The tick of a picked tag, in a round white badge. */
 const TICK =
   'me-[3px] grid h-[22px] w-[22px] flex-none place-items-center rounded-full bg-[color:var(--m-card)] shadow-sm';
 /** Where a new tag is typed: the rest of the field's line, at least wide enough for a short name. */
 const NEW_TAG = 'flex h-[30px] min-w-[9rem] flex-1 items-center gap-[6px]';
 const NEW_INPUT =
-  'min-w-0 flex-1 bg-transparent font-[inherit] text-[0.75rem] font-semibold text-m-ink outline-none placeholder:font-medium placeholder:text-m-faint';
+  'min-w-0 flex-1 bg-transparent font-[inherit] text-caption font-semibold text-m-ink outline-none placeholder:font-medium placeholder:text-m-faint';
 const ADD_BUTTON = 'grid h-[30px] w-[30px] flex-none place-items-center rounded-full';
 /** The palette laid into the sheet under the field, in the sheet's own surface. */
 const PALETTE =

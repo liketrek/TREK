@@ -49,7 +49,7 @@ describe('PlCategoryPicker', () => {
     setup({}, '4')
     expect(field()).toHaveAccessibleName('places.formCategory: Museums')
     openList()
-    expect(screen.getByRole('button', { name: /Museums/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Museums' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /^places.noCategory$/ })).toHaveAttribute('aria-pressed', 'false')
   })
 

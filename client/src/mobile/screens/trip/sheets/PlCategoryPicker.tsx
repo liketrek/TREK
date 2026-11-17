@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { createElement, useState } from 'react'
 import { Ban, Check, ChevronDown, Plus, X } from 'lucide-react'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { useNewCategory } from '../../../../components/Planner/usePlaceForm'
@@ -35,7 +35,14 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
   } = useNewCategory({ variant: 'sheet', create: tripActions.addCategory, onCreated: pick, t, toast })
 
   const current = (categories || []).find(cat => String(cat.id) === value)
-  const CurrentIcon = current ? getCategoryIcon(current.icon) : Ban
+  // The icon of the picked category, made as an element: a component looked up while
+  // rendering would be a new one each time to React.
+  const currentIcon = createElement(current ? getCategoryIcon(current.icon) : Ban, {
+    size: 15,
+    strokeWidth: 2,
+    className: 'flex-none',
+    style: current?.color ? { color: current.color } : undefined,
+  })
 
   return (
     <div>
@@ -46,7 +53,7 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
         onClick={() => setOpen(v => !v)}
         className={`${SELECT_FIELD_CLS} gap-[10px] text-start`}
       >
-        <CurrentIcon size={15} strokeWidth={2} className="flex-none" style={current?.color ? { color: current.color } : undefined} />
+        {currentIcon}
         <span className={`${ROW_TEXT} font-medium ${current ? 'text-m-ink' : 'text-m-faint'}`}>
           {current ? current.name : t('places.noCategory')}
         </span>

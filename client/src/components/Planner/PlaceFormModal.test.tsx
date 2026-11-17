@@ -2448,8 +2448,9 @@ describe('PlaceFormModal on the dialog frame', () => {
     const coords = screen.getByRole('group', { name: 'Coordinates' });
     expect(within(coords).getByPlaceholderText(/Latitude/i)).toBeInTheDocument();
     expect(within(coords).getByPlaceholderText(/Longitude/i)).toBeInTheDocument();
-    // Each Markdown field keeps its own formatting bar.
-    expect(screen.getAllByRole('toolbar')).toHaveLength(2);
+    // Each Markdown field keeps its own formatting bar; only the open tab's is shown.
+    expect(screen.getAllByRole('toolbar', { hidden: true })).toHaveLength(2);
+    expect(screen.getAllByRole('toolbar')).toHaveLength(1);
   });
 
   it('FE-PLANNER-PLACEFORM-105: the new category field takes the focus when it opens', async () => {
@@ -2685,7 +2686,8 @@ describe('PlaceFormModal in the look of the booking editors', () => {
   it('FE-PLANNER-PLACEFORM-120: the formatting bars show their names in the shared tooltip, never the native one', async () => {
     const user = userEvent.setup();
     render(<PlaceFormModal {...defaultProps} />);
-    const bars = screen.getAllByRole('toolbar');
+    // Both Markdown texts have a bar; the hidden tab's waits under its tab.
+    const bars = screen.getAllByRole('toolbar', { hidden: true });
     expect(bars).toHaveLength(2);
     for (const bar of bars) {
       for (const button of within(bar).getAllByRole('button')) expect(button).not.toHaveAttribute('title');
@@ -2748,6 +2750,8 @@ describe('PlaceFormModal and the columns beside it', () => {
     const assignment = buildAssignment({ id: 123, day_id: 5, place, notes: 'Old note' });
     render(<PlaceFormModal {...defaultProps} onSave={onSave} place={place} assignmentId={123} dayAssignments={[assignment]} />);
 
+    // The day's note sits under its own tab.
+    await user.click(within(screen.getByRole('group', { name: 'Text to edit' })).getByRole('button', { name: /day/i }));
     const notes = screen.getByRole('textbox', { name: 'Notes for this day' });
     expect(notes).toHaveValue('Old note');
     await user.clear(notes);

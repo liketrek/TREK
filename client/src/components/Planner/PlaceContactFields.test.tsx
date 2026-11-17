@@ -54,7 +54,7 @@ describe('PlaceContactFields (#2472)', () => {
     const opens = screen.getAllByRole('textbox', { name: /Monday opens/ })
     await user.type(opens[0], '0930')
     expect(opens[0]).toHaveValue('09:30')
-    expect(JSON.parse(onChange.mock.lastCall![1])[0]).toEqual({ closed: false, open: '09:30' })
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: false, open: '09:30' })
   })
 
   it('FE-PLANNER-CONTACT-004: looked-up hours fill an empty place, and an edited one offers to take them over', async () => {
@@ -97,7 +97,7 @@ describe('PlaceContactFields (#2472)', () => {
     const allDay = screen.getByRole('switch', { name: 'Monday: Open 24 hours' })
     expect(allDay).toHaveAttribute('aria-checked', 'false')
     await user.click(allDay)
-    expect(JSON.parse(onChange.mock.lastCall![1])[0]).toEqual({ closed: false, open: '00:00', close: '23:59' })
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: false, open: '00:00', close: '23:59' })
     expect(allDay).toHaveAttribute('aria-checked', 'true')
     // The two time fields give way to the word.
     expect(screen.queryByRole('textbox', { name: /Monday opens/ })).not.toBeInTheDocument()
@@ -105,7 +105,7 @@ describe('PlaceContactFields (#2472)', () => {
 
     // Closing the day turns the all-day switch off.
     await user.click(screen.getByRole('switch', { name: 'Monday: Closed' }))
-    expect(JSON.parse(onChange.mock.lastCall![1])[0]).toEqual({ closed: true })
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: true })
     expect(allDay).toHaveAttribute('aria-checked', 'false')
   })
 

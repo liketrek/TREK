@@ -97,6 +97,8 @@ export function TagColorField({
     <div className="flex w-full flex-col gap-2.5">
       <div
         role="slider"
+        // The gradient runs left to right in every language; so does the pick on it.
+        dir="ltr"
         tabIndex={0}
         aria-label={t('places.tagColorCustom')}
         aria-valuetext={hex}
@@ -111,10 +113,15 @@ export function TagColorField({
           return { h: hsv.h, s: p.x, v: 1 - p.y };
         })}
       >
-        <span className={THUMB} style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hex }} />
+        <span
+          className={THUMB}
+          style={{ insetInlineStart: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hex }}
+        />
       </div>
       <div
         role="slider"
+        // The gradient runs left to right in every language; so does the pick on it.
+        dir="ltr"
         tabIndex={0}
         aria-label={t('places.tagColorHue')}
         aria-valuenow={Math.round(hsv.h)}
@@ -132,7 +139,10 @@ export function TagColorField({
         }}
         {...drag((e) => ({ ...hsv, h: at(e).x * 359.9 }))}
       >
-        <span className={`${THUMB} top-1/2`} style={{ left: `${(hsv.h / 360) * 100}%`, background: hueHex(hsv.h) }} />
+        <span
+          className={`${THUMB} top-1/2`}
+          style={{ insetInlineStart: `${(hsv.h / 360) * 100}%`, background: hueHex(hsv.h) }}
+        />
       </div>
       <div className="flex items-center gap-2">
         <span

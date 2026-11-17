@@ -4,22 +4,26 @@ import { Clock, Copy, DoorClosed, Mail, Phone, RotateCcw, X } from 'lucide-react
 import { isAllDay, weekdayNames } from '../../../../components/Planner/placeHours';
 import { usePlaceHours } from '../../../../components/Planner/usePlaceHours';
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker';
+import { fs } from '../../../../components/shared/DialogShell';
 import { NO_AUTOFILL } from '../../../../utils/noAutofill';
 import { AddFieldButton, AMOUNT_FIELD_CLS, Eyebrow, FORM_PAIR_CLS } from './PlSheetChrome';
+
+/** The text of the sheet's fields, 13.5 px as in FIELD_CLS, following the text size setting. */
+const FIELD_TEXT = fs(13.5, 'body');
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 const LABEL = 'mb-[5px] mt-3 uppercase';
 const BARE_INPUT =
-  'min-w-0 flex-1 bg-transparent font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint';
+  'min-w-0 flex-1 bg-transparent font-[inherit] font-medium text-m-ink outline-none placeholder:text-m-faint';
 const HEAD_BUTTON = 'grid h-[28px] w-[28px] place-items-center rounded-full text-m-muted active:bg-[color:var(--m-ic)]';
 const WEEK = 'overflow-hidden rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]';
 const DAY_ROW =
   'grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-[6px] border-b border-[color:var(--m-rowbr)] px-[8px] py-[6px] last:border-b-0';
 /** A closed or all-day day says so where its two times would be. */
-const DAY_STATE = 'flex h-[38px] items-center px-[4px] text-[0.78125rem] font-medium text-m-muted';
+const DAY_STATE = 'flex h-[38px] items-center px-[4px] font-medium text-m-muted';
 /** The two switches after the times: round, as tall as a time field. */
-const DAY_BUTTON = 'grid h-[30px] w-[30px] flex-none place-items-center rounded-full text-[0.6875rem] font-bold';
+const DAY_BUTTON = 'grid h-[30px] w-[30px] flex-none place-items-center rounded-full font-bold';
 const DAY_BUTTON_OFF = 'bg-[color:var(--m-card)] text-m-muted';
 const DAY_BUTTON_ON = 'bg-m-act text-m-actfg';
 
@@ -69,6 +73,7 @@ export function PlContactFields({
               placeholder="+49 …"
               aria-label={t('places.formPhone')}
               className={BARE_INPUT}
+              style={FIELD_TEXT}
               {...NO_AUTOFILL}
             />
           </label>
@@ -86,6 +91,7 @@ export function PlContactFields({
               placeholder="info@…"
               aria-label={t('places.formEmail')}
               className={BARE_INPUT}
+              style={FIELD_TEXT}
               {...NO_AUTOFILL}
             />
           </label>
@@ -131,9 +137,13 @@ export function PlContactFields({
             const allDay = isAllDay(day);
             return (
               <div key={i} className={DAY_ROW}>
-                <span className="text-[0.71875rem] font-semibold text-m-ink">{names[i]}</span>
+                <span className="font-semibold text-m-ink" style={fs(11.5, 'caption')}>
+                  {names[i]}
+                </span>
                 {day.closed || allDay ? (
-                  <span className={DAY_STATE}>{day.closed ? t('places.hoursClosed') : t('places.hoursAllDay')}</span>
+                  <span className={DAY_STATE} style={fs(12.5, 'body')}>
+                    {day.closed ? t('places.hoursClosed') : t('places.hoursAllDay')}
+                  </span>
                 ) : (
                   <div className="flex min-w-0 items-center gap-[3px]">
                     <div className="min-w-0 flex-1">
@@ -160,6 +170,7 @@ export function PlContactFields({
                     aria-label={`${longNames[i]}: ${t('places.hoursAllDay')}`}
                     onClick={() => hours.toggleAllDay(i)}
                     className={`${DAY_BUTTON} ${allDay ? DAY_BUTTON_ON : DAY_BUTTON_OFF}`}
+                    style={fs(11, 'caption')}
                   >
                     24h
                   </button>

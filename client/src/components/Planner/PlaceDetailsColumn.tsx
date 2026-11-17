@@ -251,7 +251,7 @@ export default function PlaceDetailsColumn({
           className="flex h-[36px] w-full shrink-0 items-center gap-2 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] pe-3 ps-3.5 text-start"
         >
           <Landmark size={13} strokeWidth={2.2} className="flex-none text-m-muted" />
-          <span className="min-w-0 flex-1 truncate font-geist text-[0.75rem] font-semibold text-m-ink">{t('places.details.title')}</span>
+          <span className="min-w-0 flex-1 truncate font-geist text-caption font-semibold text-m-ink">{t('places.details.title')}</span>
           <ChevronDown
             size={13}
             strokeWidth={2.2}

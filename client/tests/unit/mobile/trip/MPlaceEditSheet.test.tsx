@@ -77,7 +77,7 @@ describe('MPlaceEditSheet', () => {
     expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('35.7148')
     expect(screen.getByPlaceholderText('places.formLngLabel')).toHaveValue('139.7967')
     expect(screen.getByPlaceholderText('https://')).toHaveValue('https://senso-ji.jp')
-    expect(screen.getByRole('button', { name: /Food/ }).className).toContain('bg-m-act')
+    expect(screen.getByRole('button', { name: /^places.formCategory:/ })).toHaveAccessibleName('places.formCategory: Food')
     expect(submit()).toHaveTextContent('common.save')
   })
 
@@ -135,6 +135,7 @@ describe('MPlaceEditSheet', () => {
     fireEvent.change(nameField(), { target: { value: 'Nakamise' } })
     fireEvent.change(screen.getByPlaceholderText('places.formLatLabel'), { target: { value: '35.71' } })
     fireEvent.change(screen.getByPlaceholderText('places.formLngLabel'), { target: { value: '139.79' } })
+    fireEvent.click(screen.getByRole('button', { name: /^places.formCategory:/ }))
     fireEvent.click(screen.getByRole('button', { name: /Food/ }))
     fireEvent.click(submit())
 
