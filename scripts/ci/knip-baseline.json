@@ -78,7 +78,6 @@
     "server/src/nest/accommodations/night-seat.ts": 1,
     "server/src/nest/app-config/index.ts": 6,
     "server/src/nest/auth/auth.helpers.ts": 1,
-    "server/src/nest/backup/backup-archive.ts": 1,
     "server/src/nest/backup/backup.impl.ts": 3,
     "server/src/nest/budget/budget.service.ts": 1,
     "server/src/nest/day-notes/day-notes.service.ts": 1,
