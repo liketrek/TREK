@@ -67,6 +67,8 @@ describe('demo-reset DB path', () => {
       lifecycle as unknown as DatabaseLifecycle,
       maintenance as unknown as SqliteMaintenance,
     );
+    // The baseline here exists only in the existsSync stand-in; DEMORESET-008 covers a refused one.
+    vi.spyOn(database, 'checkCopy').mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -154,5 +156,19 @@ describe('demo-reset DB path', () => {
 
     expect(console.error).not.toHaveBeenCalledWith('[Demo Reset] Failed to restore baseline:', expect.anything());
     expect(renameSync).not.toHaveBeenCalled();
+  });
+
+  it('DEMORESET-008: a baseline this engine cannot restore is not swapped in, but replaced by a fresh one', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(database, 'checkCopy').mockResolvedValue(`${BASELINE} is not a SQLite database`);
+
+    await withCtx(() => resetDemoUser(database));
+
+    expect(database.checkCopy).toHaveBeenCalledWith(BASELINE);
+    expect(lifecycle.close).not.toHaveBeenCalled();
+    expect(copyFileSync).not.toHaveBeenCalled();
+    expect(maintenance.vacuumInto).toHaveBeenCalledWith(BASELINE + '.tmp');
+    expect(renameSync).toHaveBeenCalledWith(BASELINE + '.tmp', BASELINE);
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/is not a SQLite database\); saving the current database/));
   });
 });

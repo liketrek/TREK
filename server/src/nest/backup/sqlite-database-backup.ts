@@ -9,6 +9,9 @@ import { Injectable } from '@nestjs/common';
 import fs from 'fs';
 import path from 'path';
 
+/** The first 16 bytes of every SQLite database file. */
+const SQLITE_HEADER = Buffer.from('SQLite format 3\0', 'latin1');
+
 /**
  * The backup port on a SQLite file, the engine TREK runs on by default.
  *
@@ -59,6 +62,22 @@ export class SqliteDatabaseBackup implements DatabaseBackupStrategy {
   async verify(extractDir: string): Promise<void> {
     const refusal = checkBackupDatabase(extractDir);
     if (refusal) throw new DomainError(refusal.status, refusal.error);
+  }
+
+  /** A SQLite file starts with its format header; anything else (a Postgres dump, an empty file) is refused. */
+  async checkCopy(file: string): Promise<string | null> {
+    const header = Buffer.alloc(SQLITE_HEADER.length);
+    try {
+      const fd = fs.openSync(file, 'r');
+      try {
+        fs.readSync(fd, header, 0, header.length, 0);
+      } finally {
+        fs.closeSync(fd);
+      }
+    } catch (err: unknown) {
+      return `${file} cannot be read (${err instanceof Error ? err.message : String(err)})`;
+    }
+    return header.equals(SQLITE_HEADER) ? null : `${file} is not a SQLite database`;
   }
 
   /** A copy of the database a restore is about to replace, next to it: the swap deletes the current file. */

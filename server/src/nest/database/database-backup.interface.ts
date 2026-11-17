@@ -50,6 +50,15 @@ export interface DatabaseBackupStrategy {
   verify(extractDir: string): Promise<void>;
 
   /**
+   * Why `file`, a copy kept on disk (the demo baseline), cannot be put in place
+   * by `replace` on this engine, or null when it can: SQLite wants a SQLite
+   * file, Postgres a dump with TREK's migration history from this or an older
+   * TREK. Checked before every swap, so a file another engine left behind is
+   * refused with a reason instead of failing inside the swap.
+   */
+  checkCopy(file: string): Promise<string | null>;
+
+  /**
    * Keeps a copy of the database a restore is about to replace. Best effort: a
    * database broken enough to need the restore may not copy, and that must not
    * block the recovery. Resolves with where the copy went, or null.

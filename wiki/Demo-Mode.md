@@ -56,6 +56,8 @@ TREK schedules an automatic hourly reset of the demo database. At each reset:
 
 If no baseline has been saved yet, the reset is skipped and a message is logged.
 
+On a [Postgres](Database-Postgres) install the baseline is a `pg_dump` file, `travel-baseline.pgdump`, restored into the database instead of a file swap. Each engine reads only its own baseline, and checks it before every reset: a baseline it cannot restore (a damaged file, or one another engine wrote under its name) is replaced by a fresh one from the current database, with the reason in the log, instead of failing every hour.
+
 The seeder defaults the admin address to `admin@trek.app` while the reset defaults it to `admin@nomad.app`, a legacy quirk that is pinned deliberately. With `DEMO_ADMIN_EMAIL` unset the reset looks up an address that does not exist, finds no admin row, and skips the carry-over entirely; a password change, API key or avatar set after the baseline was saved is lost on every hourly reset. Set `DEMO_ADMIN_EMAIL` (to `admin@trek.app`, for instance) if you want them to survive. Unlike the seed-time variables above, the reset reads it on every run, so setting it on an already-seeded instance and restarting is enough.
 
 The instance-wide Maps and Unsplash keys stored in `app_settings` are carried across either way, so map and photo search keep working after a reset.

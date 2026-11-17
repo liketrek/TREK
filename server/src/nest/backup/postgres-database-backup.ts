@@ -32,6 +32,11 @@ export async function checkPostgresDump(extractDir: string, binDir: string | und
       ? 'This backup holds a SQLite database, which cannot be restored into a Postgres database.'
       : `Invalid backup: ${PG_ARCHIVE_ENTRY} not found`;
   }
+  return checkPostgresDumpFile(dump, binDir);
+}
+
+/** Why the dump at `dump` cannot be restored into a Postgres database, or null: the checks of {@link checkPostgresDump}. */
+async function checkPostgresDumpFile(dump: string, binDir: string | undefined): Promise<string | null> {
   let executed: string[];
   try {
     executed = await pgDumpMigrations(dump, binDir);
@@ -105,6 +110,11 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
   async verify(extractDir: string): Promise<void> {
     const refusal = await checkPostgresDump(extractDir, this.connection.binDir);
     if (refusal) throw new DomainError(400, refusal);
+  }
+
+  /** A kept copy must be a dump this build can restore: a SQLite file a switch of engine left behind is refused. */
+  checkCopy(file: string): Promise<string | null> {
+    return checkPostgresDumpFile(file, this.connection.binDir);
   }
 
   /** A dump of the database a restore is about to replace, in the data directory. */

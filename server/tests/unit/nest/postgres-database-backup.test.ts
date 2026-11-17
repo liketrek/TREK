@@ -169,4 +169,18 @@ describe('PostgresDatabaseBackup', () => {
     expect(backup.location()).toBe('Postgres postgresql://trek:***@db/trek');
     await expect(postgresBackup({}).snapshot(path.join(root, 'c.pgdump'))).rejects.toThrow(/without TREK_DB_URL/);
   });
+
+  it('PGBACKUP-007: a kept copy (the demo baseline) passes only as a dump with TREK history this build knows', async () => {
+    const copy = path.join(root, 'travel-baseline.pgdump');
+    writeFileSync(copy, 'dump');
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 2))] });
+    await expect(backup.checkCopy(copy)).resolves.toBeNull();
+
+    const notADump = failsWith('pg_restore: error: input file does not appear to be a valid archive');
+    installFakeTool(bin, 'pg_restore', { snippets: [notADump] });
+    await expect(backup.checkCopy(copy)).resolves.toBe('Uploaded file is not a valid Postgres dump');
+
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(['Migration20990101000000_from_the_future'])] });
+    await expect(backup.checkCopy(copy)).resolves.toMatch(/made by a newer TREK version/);
+  });
 });
