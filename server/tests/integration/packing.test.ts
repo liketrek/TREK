@@ -3,27 +3,24 @@
  * Covers PACK-001 to PACK-014.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { PackingItems } from '../../src/db/entities/PackingItems.entity';
 import { PackingTemplateCategories } from '../../src/db/entities/PackingTemplateCategories.entity';
 import { PackingTemplateItems } from '../../src/db/entities/PackingTemplateItems.entity';
 import { PackingTemplates } from '../../src/db/entities/PackingTemplates.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, createPackingItem, addTripMember } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makePackingItem } from '../helpers/factories/packing';
 import { findRows, insertRow } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -36,13 +33,12 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,8 +47,8 @@ afterAll(async () => {
 
 describe('Create packing item', () => {
   it('PACK-001 — POST creates a packing item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
@@ -65,8 +61,8 @@ describe('Create packing item', () => {
   });
 
   it('PACK-001 — POST without name returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
@@ -76,9 +72,9 @@ describe('Create packing item', () => {
   });
 
   it('PACK-014 — non-member cannot create packing item', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
@@ -94,10 +90,10 @@ describe('Create packing item', () => {
 
 describe('List packing items', () => {
   it('PACK-002 — GET /api/trips/:tripId/packing returns all items', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPackingItem(testDb, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
-    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePackingItem(orm, trip.id, { name: 'Toothbrush', category: 'Toiletries' });
+    await makePackingItem(orm, trip.id, { name: 'Shirt', category: 'Clothing' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -105,11 +101,11 @@ describe('List packing items', () => {
   });
 
   it('PACK-002 — member can list packing items', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    createPackingItem(testDb, trip.id, { name: 'Jacket' });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await makePackingItem(orm, trip.id, { name: 'Jacket' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
@@ -123,10 +119,10 @@ describe('List packing items', () => {
 
 describe('Private packing items (#858)', () => {
   it('PACK-PRIV-001 — a private item is hidden from other members but visible to its owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
 
     // Owner creates one shared and one private item.
     await request(app)
@@ -148,10 +144,10 @@ describe('Private packing items (#858)', () => {
   });
 
   it('PACK-PRIV-002 — toggling an item private hides it from other members', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
 
     const created = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
@@ -175,24 +171,24 @@ describe('Private packing items (#858)', () => {
 
 describe('Three-tier packing sharing (#858)', () => {
   it('PACK-3T-001 — existing items stay Common (visible to all) — non-breaking', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     // A pre-existing row (default is_private=0) must remain visible to everyone.
-    createPackingItem(testDb, trip.id, { name: 'Group tent' });
+    await makePackingItem(orm, trip.id, { name: 'Group tent' });
 
     const memberView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
     expect(memberView.body.items.map((i: any) => i.name)).toContain('Group tent');
   });
 
   it('PACK-3T-002 — a Shared item reaches the recipient (with the bringer) but no one else', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: friend } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, friend.id);
-    addTripMember(testDb, trip.id, stranger.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: friend } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, friend.id);
+    await addTripMember(orm, trip.id, stranger.id);
 
     const created = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
@@ -208,10 +204,10 @@ describe('Three-tier packing sharing (#858)', () => {
   });
 
   it("PACK-3T-003 — clone copies a Common item onto the caller's personal list", async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     const created = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
       .set('Cookie', authCookie(owner.id))
@@ -229,10 +225,10 @@ describe('Three-tier packing sharing (#858)', () => {
   });
 
   it('PACK-3T-004 — "I can bring that too" adds the caller as a contributor on a Common item', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: helper } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, helper.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: helper } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, helper.id);
     const created = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
       .set('Cookie', authCookie(owner.id))
@@ -246,11 +242,11 @@ describe('Three-tier packing sharing (#858)', () => {
   });
 
   it('PACK-3T-004b — a member puts someone else down as the bringer, and takes the owner off again (#3098)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: helper } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, helper.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: helper } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, helper.id);
     const created = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
       .set('Cookie', authCookie(owner.id))
@@ -289,10 +285,10 @@ describe('Three-tier packing sharing (#858)', () => {
   });
 
   it('PACK-3T-005 — sharing can only be changed by the owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     const created = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
       .set('Cookie', authCookie(owner.id))
@@ -325,9 +321,9 @@ describe('Three-tier packing sharing (#858)', () => {
 
 describe('Update packing item', () => {
   it('PACK-003 — PUT updates packing item (toggle checked)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id, { name: 'Camera' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id, { name: 'Camera' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/packing/${item.id}`)
@@ -338,8 +334,8 @@ describe('Update packing item', () => {
   });
 
   it('PACK-003 — PUT returns 404 for non-existent item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/packing/99999`)
@@ -355,9 +351,9 @@ describe('Update packing item', () => {
 
 describe('Delete packing item', () => {
   it('PACK-004 — DELETE removes packing item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id, { name: 'Sunglasses' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id, { name: 'Sunglasses' });
 
     const del = await request(app)
       .delete(`/api/trips/${trip.id}/packing/${item.id}`)
@@ -376,8 +372,8 @@ describe('Delete packing item', () => {
 
 describe('Bulk import packing items', () => {
   it('PACK-005 — POST /import creates multiple items at once', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/import`)
@@ -395,8 +391,8 @@ describe('Bulk import packing items', () => {
   });
 
   it('PACK-005 — POST /import with empty array returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/import`)
@@ -412,10 +408,10 @@ describe('Bulk import packing items', () => {
 
 describe('Reorder packing items', () => {
   it('PACK-006 — PUT /reorder reorders items', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const i1 = createPackingItem(testDb, trip.id, { name: 'Item A' });
-    const i2 = createPackingItem(testDb, trip.id, { name: 'Item B' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const i1 = await makePackingItem(orm, trip.id, { name: 'Item A' });
+    const i2 = await makePackingItem(orm, trip.id, { name: 'Item B' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/packing/reorder`)
@@ -436,8 +432,8 @@ describe('Reorder packing items', () => {
 
 describe('Bags', () => {
   it('PACK-008 — POST /bags creates a bag', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
@@ -448,8 +444,8 @@ describe('Bags', () => {
   });
 
   it('PACK-008 — POST /bags without name returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
@@ -459,8 +455,8 @@ describe('Bags', () => {
   });
 
   it('PACK-011 — GET /bags returns bags list', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Create a bag
     await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
@@ -473,8 +469,8 @@ describe('Bags', () => {
   });
 
   it('PACK-009 — PUT /bags/:bagId updates bag', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
       .set('Cookie', authCookie(user.id))
@@ -490,8 +486,8 @@ describe('Bags', () => {
   });
 
   it('PACK-009b — H2 regression: PUT /bags/:bagId with an empty body no-ops (200, not 500)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
       .set('Cookie', authCookie(user.id))
@@ -508,8 +504,8 @@ describe('Bags', () => {
   });
 
   it('PACK-009c — H2 regression: PUT /bags/:bagId with an empty name no-ops (200, not 500)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
       .set('Cookie', authCookie(user.id))
@@ -525,8 +521,8 @@ describe('Bags', () => {
   });
 
   it('PACK-009d — H2 regression: PUT /bags/:bagId with an empty color no-ops (200, not 500)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
       .set('Cookie', authCookie(user.id))
@@ -542,8 +538,8 @@ describe('Bags', () => {
   });
 
   it('PACK-010 — DELETE /bags/:bagId removes bag', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/packing/bags`)
       .set('Cookie', authCookie(user.id))
@@ -564,10 +560,10 @@ describe('Bags', () => {
 
 describe('Category assignees', () => {
   it('PACK-012 — PUT /category-assignees/:category sets assignees', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/packing/category-assignees/Clothing`)
@@ -578,10 +574,10 @@ describe('Category assignees', () => {
   });
 
   it('PACK-012b — H1 regression: a string trip id (the real REST shape) with a non-empty roster does not 500', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, member.id);
 
     // `trip.id` is a number in the fixture, but the route param — like every
     // real REST call — arrives as a string; `insertIgnore` used to hand that
@@ -596,8 +592,8 @@ describe('Category assignees', () => {
   });
 
   it('PACK-013 — GET /category-assignees returns all category assignments', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Set an assignee first
     await request(app)
       .put(`/api/trips/${trip.id}/packing/category-assignees/Electronics`)
@@ -614,8 +610,8 @@ describe('Category assignees', () => {
 
 describe('Packing — apply-template, bag members, save-as-template', () => {
   it('PACK-015 — POST /apply-template/:templateId applies template items to trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const templateId = await insertRow(orm, PackingTemplates, { name: 'Beach', createdByRef: user.id });
     const categoryId = await insertRow(orm, PackingTemplateCategories, {
@@ -636,8 +632,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-015b — POST /apply-template/:id for empty template returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     // Template with no items
     const emptyTemplateId = await insertRow(orm, PackingTemplates, { name: 'Empty', createdByRef: user.id });
@@ -651,10 +647,10 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-016 — PUT /bags/:bagId/members sets bag members', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, member.id);
 
     // Create a bag first
     const bagRes = await request(app)
@@ -675,8 +671,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-016b — PUT /bags/:bagId/members for non-existent bag returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/packing/bags/999999/members`)
@@ -688,11 +684,11 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-017 — POST /save-as-template saves packing list as a template (admin)', async () => {
-    const { user } = createUser(testDb, { role: 'admin' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { role: 'admin' });
+    const trip = await makeTrip(orm, user.id);
 
     // Add an item so the trip has something to save
-    createPackingItem(testDb, trip.id);
+    await makePackingItem(orm, trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/save-as-template`)
@@ -705,8 +701,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-017b — POST /save-as-template without name returns 400 (admin)', async () => {
-    const { user } = createUser(testDb, { role: 'admin' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { role: 'admin' });
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/save-as-template`)
@@ -718,8 +714,8 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-017c — POST /save-as-template when trip has no items returns 400 (admin)', async () => {
-    const { user } = createUser(testDb, { role: 'admin' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { role: 'admin' });
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/save-as-template`)
@@ -731,9 +727,9 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-017d — POST /save-as-template is forbidden for non-admins (403)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePackingItem(orm, trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/save-as-template`)
@@ -745,9 +741,9 @@ describe('Packing — apply-template, bag members, save-as-template', () => {
   });
 
   it('PACK-017e — GET /packing/templates lists templates for a trip member', async () => {
-    const { user: admin } = createUser(testDb, { role: 'admin' });
-    const trip = createTrip(testDb, admin.id);
-    createPackingItem(testDb, trip.id);
+    const { user: admin } = await makeUser(orm, { role: 'admin' });
+    const trip = await makeTrip(orm, admin.id);
+    await makePackingItem(orm, trip.id);
     await request(app)
       .post(`/api/trips/${trip.id}/packing/save-as-template`)
       .set('Cookie', authCookie(admin.id))
