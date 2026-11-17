@@ -58,6 +58,8 @@ To find your current key: check the `ENCRYPTION_KEY` environment variable or rea
 
 Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed below without downtime or manual re-entry.
 
+The script works on the SQLite database only. On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) it stops before it changes anything, because it cannot re-encrypt the secrets held in Postgres yet. Keep the current key there; rotating a `travel.db` left over from before the move would rewrite the key file while the secrets in Postgres stay under the old key.
+
 **Docker:**
 
 ```bash
