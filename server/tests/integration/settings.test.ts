@@ -3,42 +3,41 @@
  * Covers GET /api/settings, PUT /api/settings, POST /api/settings/bulk.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
+// The booted app's own ORM, the one the requests write through.
+let orm: FactoryOrm;
 
 beforeAll(async () => {
   nestApp = await buildApp();
+  orm = nestApp.get(MikroORM);
   app = nestApp.getHttpAdapter().getInstance();
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Settings', () => {
   it('SET-001: GET /api/settings returns empty object for new user', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).get('/api/settings').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.settings).toBeDefined();
@@ -48,7 +47,7 @@ describe('Settings', () => {
   });
 
   it('SET-002: PUT /api/settings sets a key/value pair', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .put('/api/settings')
       .set('Cookie', authCookie(user.id))
@@ -60,7 +59,7 @@ describe('Settings', () => {
   });
 
   it('SET-003: PUT /api/settings updates an existing key', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await request(app).put('/api/settings').set('Cookie', authCookie(user.id)).send({ key: 'theme', value: 'dark' });
 
     const res = await request(app)
@@ -77,7 +76,7 @@ describe('Settings', () => {
   });
 
   it('SET-004: POST /api/settings/bulk upserts multiple settings', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/settings/bulk')
       .set('Cookie', authCookie(user.id))
@@ -88,7 +87,7 @@ describe('Settings', () => {
   });
 
   it('SET-005: GET /api/settings reflects previously upserted values', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await request(app)
       .post('/api/settings/bulk')
       .set('Cookie', authCookie(user.id))
@@ -106,14 +105,14 @@ describe('Settings', () => {
   });
 
   it('SET-007: PUT /api/settings without key returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).put('/api/settings').set('Cookie', authCookie(user.id)).send({ value: 'dark' });
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
   });
 
   it('SET-008: PUT /api/settings with masked value is ignored (no-op)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // First set a real value
     await request(app)
       .put('/api/settings')
@@ -130,7 +129,7 @@ describe('Settings', () => {
   });
 
   it('SET-009: POST /api/settings/bulk without settings object returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/settings/bulk')
       .set('Cookie', authCookie(user.id))
@@ -139,8 +138,8 @@ describe('Settings', () => {
   });
 
   it('SET-010: settings are user-scoped (user A cannot see user B settings)', async () => {
-    const { user: userA } = createUser(testDb);
-    const { user: userB } = createUser(testDb);
+    const { user: userA } = await makeUser(orm);
+    const { user: userB } = await makeUser(orm);
 
     await request(app)
       .put('/api/settings')
