@@ -2684,7 +2684,7 @@ describe('PlaceFormModal in the look of the booking editors', () => {
     const bars = screen.getAllByRole('toolbar', { hidden: true });
     expect(bars).toHaveLength(2);
     for (const bar of bars) {
-      for (const button of within(bar).getAllByRole('button')) expect(button).not.toHaveAttribute('title');
+      for (const b of within(bar).getAllByRole('button', { hidden: true })) expect(b).not.toHaveAttribute('title');
     }
     await user.hover(within(bars[0]).getByRole('button', { name: 'Bold' }));
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Bold');
