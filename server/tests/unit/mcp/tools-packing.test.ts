@@ -12,44 +12,44 @@
  * legacy registerResources fan-out anymore).
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { PackingBags } from '../../../src/db/entities/PackingBags.entity';
 import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
-import { createUser, createTrip, createPackingItem, addTripMember } from '../../helpers/factories';
 import { inContext } from '../../helpers/factories/context';
-import { addPackingBagMembers, addPackingItemRecipients, makePackingBag } from '../../helpers/factories/packing';
+import {
+  addPackingBagMembers,
+  addPackingItemRecipients,
+  makePackingBag,
+  makePackingItem,
+} from '../../helpers/factories/packing';
 import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { setAddonEnabled } from '../../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -72,8 +72,8 @@ const errorText = (result: unknown) =>
 
 describe('Tool: create_packing_item', () => {
   it('creates a packing item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -87,8 +87,8 @@ describe('Tool: create_packing_item', () => {
   });
 
   it('defaults category to "General"', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -100,8 +100,8 @@ describe('Tool: create_packing_item', () => {
   });
 
   it('broadcasts packing:created event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_packing_item', arguments: { tripId: trip.id, name: 'Hat' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:created', expect.any(Object));
@@ -109,9 +109,9 @@ describe('Tool: create_packing_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -123,8 +123,8 @@ describe('Tool: create_packing_item', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -156,8 +156,8 @@ const recipientIds = async (itemId: number) =>
 
 describe('Tool: create_packing_item sharing', () => {
   it("puts a personal item on the caller's own list", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -170,11 +170,11 @@ describe('Tool: create_packing_item sharing', () => {
   });
 
   it('records the recipients of a shared item and drops ids off the trip roster', async () => {
-    const { user } = createUser(testDb);
-    const { user: mate } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, mate.id);
+    const { user } = await makeUser(orm);
+    const { user: mate } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, mate.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -187,8 +187,8 @@ describe('Tool: create_packing_item sharing', () => {
   });
 
   it('honours the legacy is_private flag', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -199,8 +199,8 @@ describe('Tool: create_packing_item sharing', () => {
   });
 
   it('creates an already-checked item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -211,8 +211,8 @@ describe('Tool: create_packing_item sharing', () => {
   });
 
   it('keeps a personal item off the rest of the room', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'create_packing_item',
@@ -224,8 +224,8 @@ describe('Tool: create_packing_item sharing', () => {
   });
 
   it('refuses a visibility tier that does not exist', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_packing_item',
@@ -246,8 +246,8 @@ describe('Tool: create_packing_item sharing', () => {
 
 describe('Tool: create_packing_item bag, quantity, weight (#2154)', () => {
   it('creates the item with its bag, quantity and weight in one write', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const { id: bagId } = await makePackingBag(orm, trip.id, { name: 'Carry-On' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -262,9 +262,9 @@ describe('Tool: create_packing_item bag, quantity, weight (#2154)', () => {
   });
 
   it('refuses a bag from another trip, inserting nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const { id: foreignBag } = await makePackingBag(orm, otherTrip.id, { name: 'Foreign' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -284,9 +284,9 @@ describe('Tool: create_packing_item bag, quantity, weight (#2154)', () => {
 
 describe('Tool: update_packing_item', () => {
   it('updates packing item name and category', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id, { name: 'Old', category: 'Clothes' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id, { name: 'Old', category: 'Clothes' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_packing_item',
@@ -299,9 +299,9 @@ describe('Tool: update_packing_item', () => {
   });
 
   it('counts packed pieces like the REST route does (#2296)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id, { name: 'Shirts' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id, { name: 'Shirts' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_packing_item',
@@ -325,9 +325,9 @@ describe('Tool: update_packing_item', () => {
   });
 
   it('broadcasts packing:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_packing_item',
@@ -338,8 +338,8 @@ describe('Tool: update_packing_item', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_packing_item',
@@ -350,10 +350,10 @@ describe('Tool: update_packing_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_packing_item',
@@ -376,9 +376,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   const makeBag = async (tripId: number, name = 'Carry-On') => (await makePackingBag(orm, tripId, { name })).id;
 
   it('moves an item into a bag', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     const bagId = await makeBag(trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -391,9 +391,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('takes an item out of its bag with an explicit null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     const bagId = await makeBag(trip.id);
     await updateRows(orm, PackingItems, { id: item.id }, { bag: bagId });
     await withHarness(user.id, async (h) => {
@@ -406,9 +406,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('sets the quantity', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_packing_item',
@@ -419,9 +419,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('sets and clears the weight', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_packing_item',
@@ -438,9 +438,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('leaves the bag alone when the key is omitted', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     const bagId = await makeBag(trip.id);
     await updateRows(orm, PackingItems, { id: item.id }, { bag: bagId });
     await withHarness(user.id, async (h) => {
@@ -453,9 +453,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it("takes a common item onto the caller's own list, and off everyone else's screen", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_packing_item',
@@ -472,9 +472,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('hands a private item back to the room when it goes common again', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await updateRows(orm, PackingItems, { id: item.id }, { is_private: 1, owner: user.id });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -489,9 +489,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('refuses a bag id that is not a number', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_packing_item',
@@ -504,10 +504,10 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
   });
 
   it('refuses a bag from another trip (#2154)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     const foreignBag = await makeBag(otherTrip.id, 'Foreign');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -527,9 +527,9 @@ describe('Tool: update_packing_item bag, quantity, weight, privacy', () => {
 
 describe('Tool: set_packing_item_sharing', () => {
   it("moves a common item onto the caller's own list", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -543,12 +543,12 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it('shares an item with named members and drops ids off the trip roster', async () => {
-    const { user } = createUser(testDb);
-    const { user: mate } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, mate.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: mate } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, mate.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -560,11 +560,11 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it('returns an item to the common list and forgets its recipients', async () => {
-    const { user } = createUser(testDb);
-    const { user: mate } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, mate.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: mate } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, mate.id);
+    const item = await makePackingItem(orm, trip.id);
     await updateRows(orm, PackingItems, { id: item.id }, { is_private: 1, owner: user.id });
     await addPackingItemRecipients(orm, item.id, [mate.id]);
     await withHarness(user.id, async (h) => {
@@ -578,9 +578,9 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it("rebuilds the room's view: gone for everyone, back for the people who may see it", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -595,11 +595,11 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it('lets only the owner change sharing', async () => {
-    const { user } = createUser(testDb);
-    const { user: mate } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, mate.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: mate } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, mate.id);
+    const item = await makePackingItem(orm, trip.id);
     await updateRows(orm, PackingItems, { id: item.id }, { owner: mate.id });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -612,8 +612,8 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -624,10 +624,10 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -640,9 +640,9 @@ describe('Tool: set_packing_item_sharing', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -653,9 +653,9 @@ describe('Tool: set_packing_item_sharing', () => {
   });
 
   it('refuses a visibility tier that does not exist', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_packing_item_sharing',
@@ -678,8 +678,8 @@ describe('Tool: update_packing_bag limit and owner', () => {
   const makeBag = async (tripId: number) => (await makePackingBag(orm, tripId, { name: 'Carry-On' })).id;
 
   it('sets a weight limit', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const bagId = await makeBag(trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -692,8 +692,8 @@ describe('Tool: update_packing_bag limit and owner', () => {
   });
 
   it('lifts the limit with an explicit null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const bagId = await makeBag(trip.id);
     await updateRows(orm, PackingBags, { id: bagId }, { weight_limit_grams: 8000 });
     await withHarness(user.id, async (h) => {
@@ -706,8 +706,8 @@ describe('Tool: update_packing_bag limit and owner', () => {
   });
 
   it('leaves the limit alone when the key is omitted', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const bagId = await makeBag(trip.id);
     await updateRows(orm, PackingBags, { id: bagId }, { weight_limit_grams: 8000 });
     await withHarness(user.id, async (h) => {
@@ -719,10 +719,10 @@ describe('Tool: update_packing_bag limit and owner', () => {
   });
 
   it('assigns the bag to a trip member', async () => {
-    const { user } = createUser(testDb);
-    const { user: mate } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, mate.id);
+    const { user } = await makeUser(orm);
+    const { user: mate } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, mate.id);
     const bagId = await makeBag(trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'update_packing_bag', arguments: { tripId: trip.id, bagId, user_id: mate.id } });
@@ -731,9 +731,9 @@ describe('Tool: update_packing_bag limit and owner', () => {
   });
 
   it('leaves the bag unassigned for an id off the trip roster', async () => {
-    const { user } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const bagId = await makeBag(trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -745,8 +745,8 @@ describe('Tool: update_packing_bag limit and owner', () => {
   });
 
   it('refuses a weight limit that is not a number', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const bagId = await makeBag(trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -766,9 +766,9 @@ describe('Tool: update_packing_bag limit and owner', () => {
 
 describe('Tool: toggle_packing_item', () => {
   it('checks a packing item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_packing_item',
@@ -780,9 +780,9 @@ describe('Tool: toggle_packing_item', () => {
   });
 
   it('unchecks a packing item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await updateRows(orm, PackingItems, { id: item.id }, { checked: 1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -795,9 +795,9 @@ describe('Tool: toggle_packing_item', () => {
   });
 
   it('broadcasts packing:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'toggle_packing_item',
@@ -808,8 +808,8 @@ describe('Tool: toggle_packing_item', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_packing_item',
@@ -820,10 +820,10 @@ describe('Tool: toggle_packing_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_packing_item',
@@ -840,9 +840,9 @@ describe('Tool: toggle_packing_item', () => {
 
 describe('Tool: delete_packing_item', () => {
   it('deletes an existing packing item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_packing_item',
@@ -855,9 +855,9 @@ describe('Tool: delete_packing_item', () => {
   });
 
   it('broadcasts packing:deleted event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'delete_packing_item', arguments: { tripId: trip.id, itemId: item.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'packing:deleted', expect.any(Object));
@@ -865,8 +865,8 @@ describe('Tool: delete_packing_item', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_packing_item',
@@ -877,10 +877,10 @@ describe('Tool: delete_packing_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makePackingItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_packing_item',
@@ -897,14 +897,14 @@ describe('Tool: delete_packing_item', () => {
 
 describe('Tool: list_packing_items', () => {
   it("PACKMCP-001: hides another member's own items; narrows to a category, a bag, no bag or a status", async () => {
-    const { user } = createUser(testDb);
-    const { user: mate } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, mate.id);
+    const { user } = await makeUser(orm);
+    const { user: mate } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, mate.id);
     const { id: bagId } = await makePackingBag(orm, trip.id, { name: 'Carry-On' });
-    const jacket = createPackingItem(testDb, trip.id, { name: 'Jacket', category: 'Clothes' });
-    createPackingItem(testDb, trip.id, { name: 'Charger', category: 'Tech' });
-    const diary = createPackingItem(testDb, trip.id, { name: 'Diary', category: 'Clothes' });
+    const jacket = await makePackingItem(orm, trip.id, { name: 'Jacket', category: 'Clothes' });
+    await makePackingItem(orm, trip.id, { name: 'Charger', category: 'Tech' });
+    const diary = await makePackingItem(orm, trip.id, { name: 'Diary', category: 'Clothes' });
     await updateRows(orm, PackingItems, { id: jacket.id }, { bag: bagId, checked: 1 });
     await updateRows(orm, PackingItems, { id: diary.id }, { is_private: 1, owner: mate.id });
 
@@ -924,10 +924,10 @@ describe('Tool: list_packing_items', () => {
   });
 
   it('PACKMCP-002: answers a trip the user is not part of with the access-denied payload', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    createPackingItem(testDb, trip.id, { name: 'Jacket' });
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    await makePackingItem(orm, trip.id, { name: 'Jacket' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_packing_items', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
@@ -974,20 +974,20 @@ describe('Packing tools — scope gating', () => {
   }
 
   it('registers all nineteen tools with null scopes (full access)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
   });
 
   it('registers only the read tools with packing:read', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['packing:read']);
     for (const tool of READ_TOOLS) expect(names).toContain(tool);
     for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
   });
 
   it('registers no packing tools for an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['budget:read']);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).not.toContain(tool);
   });
@@ -1000,8 +1000,8 @@ describe('Packing tools — scope gating', () => {
 
 describe('Packing tools — packing addon gating', () => {
   it('registers nothing (tools or resources) when the packing addon is disabled', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await setAddonEnabled(orm, ADDON_IDS.PACKING, false);
     try {
       await withHarness(user.id, async (h) => {
@@ -1023,9 +1023,9 @@ describe('Packing tools — packing addon gating', () => {
 
 describe('Resource: trek://trips/{tripId}/packing', () => {
   it('returns packing items for a trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPackingItem(testDb, trip.id, { name: 'Passport' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePackingItem(orm, trip.id, { name: 'Passport' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing` });
       const items = parseResourceResult(result) as { name: string }[];
@@ -1035,9 +1035,9 @@ describe('Resource: trek://trips/{tripId}/packing', () => {
   });
 
   it("hides another member's private items from the requesting user (#858)", async () => {
-    const { user } = createUser(testDb);
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await insertRow(orm, PackingItems, {
       trip: trip.id,
       name: 'Secret gift',
@@ -1053,9 +1053,9 @@ describe('Resource: trek://trips/{tripId}/packing', () => {
   });
 
   it('returns the access-denied payload for a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing` });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
@@ -1063,7 +1063,7 @@ describe('Resource: trek://trips/{tripId}/packing', () => {
   });
 
   it('returns the access-denied payload for a malformed trip id', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: 'trek://trips/not-a-number/packing' });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
@@ -1077,8 +1077,8 @@ describe('Resource: trek://trips/{tripId}/packing', () => {
 
 describe('Resource: trek://trips/{tripId}/packing/bags', () => {
   it('returns the bags with their members', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const { id: bagId } = await makePackingBag(orm, trip.id, { name: 'Carry-On' });
     await addPackingBagMembers(orm, bagId, [user.id]);
     await withHarness(user.id, async (h) => {
@@ -1091,9 +1091,9 @@ describe('Resource: trek://trips/{tripId}/packing/bags', () => {
   });
 
   it('returns the access-denied payload for a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/packing/bags` });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
@@ -1128,9 +1128,9 @@ describe('a restricted packing item over MCP', () => {
     updateRows(orm, PackingItems, { id: itemId }, { is_private: 1, owner: ownerId });
 
   it('is ticked off for its owner alone, not for the whole trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await makePrivate(item.id, user.id);
 
     await withHarness(user.id, async (h) => {
@@ -1147,9 +1147,9 @@ describe('a restricted packing item over MCP', () => {
   });
 
   it('is renamed for its owner alone', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await makePrivate(item.id, user.id);
 
     await withHarness(user.id, async (h) => {
@@ -1170,9 +1170,9 @@ describe('a restricted packing item over MCP', () => {
    * delete hands back.
    */
   it('is deleted for its owner alone', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
     await makePrivate(item.id, user.id);
 
     await withHarness(user.id, async (h) => {
@@ -1187,9 +1187,9 @@ describe('a restricted packing item over MCP', () => {
   });
 
   it('still tells the whole room about a shared one, unchanged', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createPackingItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makePackingItem(orm, trip.id);
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
