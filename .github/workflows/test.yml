@@ -31,11 +31,11 @@ permissions:
 #                            thresholds, uploads lcov
 #   Server: S3 Contract (MinIO)
 #                            the storage driver against MinIO
-#   Server: Postgres 14/18   per supported major: the probe (the repository
-#                            SQL against Postgres), then the lane (every suite
-#                            that boots the app on the real database module,
-#                            plus PARITY-PG and the write lock;
-#                            vitest.pg.config.ts)
+#   Server: Postgres 14/18   per supported major, in three slices: the probe
+#                            (the repository SQL against Postgres, first slice
+#                            only), then a slice of the lane (every suite that
+#                            boots the app on the real database module, plus
+#                            PARITY-PG and the write lock; vitest.pg.config.ts)
 #   Client: Types & Checks   typecheck and the strict ratchet; then the page
 #                            pattern and the source ratchets (RTL, size,
 #                            Prettier, layers, offline path, duplication,
@@ -69,13 +69,16 @@ permissions:
 #     test jobs feeds the scan.
 #   - Job count: GitHub runs at most 20 jobs of the organisation at once and
 #     does not say in which order it starts queued ones. A code change starts
-#     the 14 shards and about a dozen other jobs; eight of those (parity, the
-#     SDK, the bundle, S3, the two Postgres majors, shared coverage, the
-#     chart) are done in a few minutes, so what queues at the start waits about that long. The
-#     jobs that run for minutes (shards, gates, e2e, the image) must not
-#     outnumber the 20 slots, or one of them waits for another to finish and
-#     the run grows by a whole job: a layout with six gate jobs did exactly
-#     that. Check the count before adding a long job or a shard.
+#     the 14 shards, the six Postgres slices and about a dozen other jobs; six
+#     of those (parity, the SDK, the bundle, S3, shared coverage, the chart)
+#     are done in a few minutes, so what queues at the start waits about that
+#     long. The jobs that run for minutes (shards, Postgres slices, gates,
+#     e2e, the image) should not outnumber the 20 slots, or one of them waits
+#     for another to finish and the run grows by a whole job: a layout with
+#     six gate jobs did exactly that. The Postgres slices go past that count
+#     because the lane needs the runner time either way: fewer slices would
+#     not shorten the run, only push each slice past its timeout. Check the
+#     count before adding a long job or a shard.
 #   - Scan `needs:` the gates and the four coverage jobs. A coverage job
 #     failing must stop the scan — a missing lcov file would make every line
 #     of that package report as uncovered, and the dashboard would show a
@@ -776,12 +779,16 @@ jobs:
   # without TREK_TEST_DB_URL, and TREK_TEST_PG_MAJOR makes it refuse a service
   # of another major. It runs after a red probe too, so one run shows both.
   #
-  # About four minutes per major: a minute of setup, the probe in about one,
-  # the lane in about two on four workers. Past one runner's worth, add a
-  # shard axis to the matrix and pass --shard=<i>/<n>; each slice builds its
-  # own template.
+  # The lane runs the whole server suite that boots the app, about ten
+  # minutes on 18 and well past the job's twenty on 14, so each major runs it
+  # in three slices (--shard=<i>/3), each on a runner and a service of its
+  # own; each slice builds its own template in global setup. The probe runs
+  # once per major, in the first slice. ci-ok needs this job, and a matrix
+  # job's result is failure when any one slice fails or is cancelled, so
+  # every slice is required. Once a slice nears the timeout, add one to the
+  # shard axis and to the --shard divisor together.
   server-postgres:
-    name: 'Server: Postgres ${{ matrix.postgres }}'
+    name: 'Server: Postgres ${{ matrix.postgres }} (${{ matrix.shard }}/3)'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: changes
@@ -790,6 +797,7 @@ jobs:
       fail-fast: false
       matrix:
         postgres: [14, 18]
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:${{ matrix.postgres }}
@@ -823,6 +831,7 @@ jobs:
         run: npm run build --workspace=shared
 
       - name: Run the Postgres probe
+        if: matrix.shard == 1
         env:
           TREK_PG_PROBE_URL: postgres://postgres:lane@127.0.0.1:5432/trek_probe
         run: >-
@@ -831,7 +840,7 @@ jobs:
           --report="$RUNNER_TEMP/pg-probe-report.json"
 
       - name: Upload the measured baseline and the report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.shard == 1 }}
         uses: actions/upload-artifact@v6
         with:
           name: pg-probe-baseline-${{ matrix.postgres }}
@@ -846,7 +855,7 @@ jobs:
         env:
           TREK_TEST_DB_URL: postgres://postgres:lane@127.0.0.1:5432/postgres
           TREK_TEST_PG_MAJOR: ${{ matrix.postgres }}
-        run: npm run test:pg --workspace=server
+        run: npm run test:pg --workspace=server -- --shard=${{ matrix.shard }}/3
 
   # The server suite in seven slices. vitest.shard.config.ts is vitest.config.ts
   # without the thresholds and the coverage reports: a slice's blob carries
