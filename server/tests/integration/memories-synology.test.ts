@@ -1264,21 +1264,35 @@ describe('Synology SSRF blocked error handling', () => {
       body: null,
     } as any;
 
-    // Auth succeeds, personal album source throws SSRF, shared + shared-with-me succeed.
-    // listSynologyAlbums uses Promise.allSettled so the SSRF failure is logged and skipped.
-    vi.mocked(safeFetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'sid-x' } }),
-        body: null,
-      } as any)
-      .mockRejectedValueOnce(new SsrfErr('Private IP detected'))
-      .mockResolvedValueOnce(emptyAlbumResponse)
-      .mockResolvedValueOnce(emptyAlbumResponse);
+    // Auth succeeds, the personal album source throws SSRF, shared and shared-with-me succeed.
+    // listSynologyAlbums asks the three sources at once (Promise.allSettled), so which call
+    // reaches the fake first depends on how database reads interleave on each engine: the
+    // fake answers by API and category, not by call position.
+    const savedImpl = vi.mocked(safeFetch).getMockImplementation();
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+      const params: URLSearchParams =
+        init?.body instanceof URLSearchParams ? init.body : new URLSearchParams(String(init?.body ?? ''));
+      if (params.get('api') === 'SYNO.API.Auth') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: () => 'application/json' },
+          json: async () => ({ success: true, data: { sid: 'sid-x' } }),
+          body: null,
+        } as any);
+      }
+      if (params.get('api') === 'SYNO.Foto.Browse.Album' && !params.get('category')) {
+        return Promise.reject(new SsrfErr('Private IP detected'));
+      }
+      return Promise.resolve(emptyAlbumResponse);
+    });
 
-    const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
+    let res: request.Response;
+    try {
+      res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
+    } finally {
+      if (savedImpl) vi.mocked(safeFetch).mockImplementation(savedImpl);
+    }
 
     // Personal failed (SSRF), shared sources returned an album — 200 with non-empty list.
     expect(res.status).toBe(200);
