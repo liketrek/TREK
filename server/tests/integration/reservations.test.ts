@@ -316,6 +316,101 @@ describe('Update reservation', () => {
     const row = (await findRow(orm, Reservations, { id: resv.id }))!;
     expect(row.accommodation_id).toBeNull();
   });
+
+  it('L2 — POST with a hex-spelled accommodation_id stores NULL, the same as PUT', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: 'Hotel' });
+    const { accommodation: accom } = (
+      await request(app)
+        .post(`/api/trips/${trip.id}/accommodations`)
+        .set('Cookie', authCookie(user.id))
+        .send({ place_id: place.id, start_day_id: day.id, end_day_id: day.id })
+    ).body as { accommodation: { id: number } };
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Flight', type: 'flight', accommodation_id: '0x' + accom.id.toString(16) });
+    expect(res.status).toBe(201);
+
+    const row = await findRow(orm, Reservations, { id: res.body.reservation.id as number });
+    expect(row).toMatchObject({ accommodation_id: null });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The body is not schema-checked, so a referenced id can arrive as any string.
+// Only the canonical shapes toRowId accepts reach SQL: SQLite matches nothing
+// for '0x1' or 'abc' against an integer column, while Postgres refuses the
+// cast (14 and 15) or reads hex as a number (16 and later). Every engine has
+// to answer the same 400 instead of a 500 on one and a write on another.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('a referenced id the row-id rule refuses is an unknown reference on every engine', () => {
+  const shapes = [
+    ['hex', (id: number) => '0x' + id.toString(16)],
+    ['exponent', (id: number) => `${id}e0`],
+    ['word', () => 'abc'],
+  ] as const;
+  const fields = [
+    ['day_id', 'day_id'],
+    ['end_day_id', 'end_day_id'],
+    ['place_id', 'place_id'],
+    ['create_accommodation.place_id', 'place_id'],
+    ['create_accommodation.start_day_id', 'start_day_id'],
+  ] as const;
+
+  for (const [field, key] of fields) {
+    for (const [shapeName, spell] of shapes) {
+      it(`${field} spelled as ${shapeName}: PUT and POST answer 400 "Unknown reference: ${field}"`, async () => {
+        const { user } = await makeUser(orm);
+        const trip = await makeTrip(orm, user.id);
+        const day = await makeDay(orm, trip.id);
+        const place = await makePlace(orm, trip.id, { name: 'Hotel' });
+        const resv = await makeReservation(orm, trip.id, { title: 'Stay', type: 'hotel' });
+        const value = spell(key === 'place_id' ? place.id : day.id);
+        const body = field.startsWith('create_accommodation.')
+          ? {
+              type: 'hotel',
+              create_accommodation: { place_id: place.id, start_day_id: day.id, end_day_id: day.id, [key]: value },
+            }
+          : { [key]: value };
+
+        const put = await request(app)
+          .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
+          .set('Cookie', authCookie(user.id))
+          .send(body);
+        expect(put.status).toBe(400);
+        expect(put.body.error).toBe(`Unknown reference: ${field}`);
+
+        const post = await request(app)
+          .post(`/api/trips/${trip.id}/reservations`)
+          .set('Cookie', authCookie(user.id))
+          .send({ title: 'Stay', type: 'hotel', ...body });
+        expect(post.status).toBe(400);
+        expect(post.body.error).toBe(`Unknown reference: ${field}`);
+        expect(await findRows(orm, Reservations, { trip: trip.id })).toHaveLength(1);
+      });
+    }
+  }
+
+  it('assignment_id spelled as hex: PUT answers 400 "Unknown reference: assignment_id"', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: 'Museum' });
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'Ticket', type: 'event' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ assignment_id: '0x' + assignment.id.toString(16) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Unknown reference: assignment_id');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

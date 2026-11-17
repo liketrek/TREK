@@ -1,6 +1,8 @@
 import { originColumns } from './reservation-origin.contract';
 import type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 export type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
+import type { ReservationRow, ReservationTraveler } from './reservation-rows';
+export type { ReservationRow, ReservationTraveler } from './reservation-rows';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { TripAccess, TripsRepository } from '../../db/repositories/Trips.repository';
@@ -54,32 +56,6 @@ export type CostEvent =
   | { event: 'budget:created'; payload: TrekWsPayload<'budget:created'> }
   | { event: 'budget:updated'; payload: TrekWsPayload<'budget:updated'> }
   | { event: 'budget:deleted'; payload: TrekWsPayload<'budget:deleted'> };
-
-// --- Travelers (#1517): trip members / named guests assigned to a booking -----
-
-export interface ReservationTraveler {
-  user_id: number;
-  username: string;
-  avatar: string | null;
-  avatar_url?: string | null;
-  is_guest?: number | null;
-}
-
-/** A reservation row as the joined list/get queries return it (open record —
- *  the legacy queries selected `r.*` and callers pass the row through; the
- *  named fields are the columns consumers read in a typed position). */
-export type ReservationRow = Record<string, unknown> & {
-  id: number;
-  trip_id: number;
-  title: string;
-  status: string;
-  type: string;
-  metadata?: string | null;
-  accommodation_id?: number | string | null;
-  day_positions?: Record<number, number> | null;
-  endpoints?: ReservationEndpoint[];
-  travelers?: ReservationTraveler[];
-};
 
 type AccommodationTimesMeta = {
   check_in_time?: string | null;
@@ -406,7 +382,14 @@ export class ReservationsService {
     // every call site below `await`s it; the async-closure mutation harness
     // (`tests/integration/async-closure-truthiness-guards.test.ts`,
     // RS21-001/RS21-002) proves a dropped `await` goes red.
-    const elsewhere = async (table: 'days' | 'places' | 'day_accommodations', id: number): Promise<boolean> => {
+    //
+    // The body is not schema-checked, so an id can be any string: one `toRowId`
+    // refuses resolves to nothing, as on SQLite, where `'0x1'` or `'abc'` matches
+    // no integer id. Postgres would refuse the cast (14, 15) or read the hex
+    // (16 on): a 500 on one engine and a real row on another.
+    const elsewhere = async (table: 'days' | 'places' | 'day_accommodations', value: unknown): Promise<boolean> => {
+      const id = toRowId(value);
+      if (id === null) return false;
       let rowTripId: number | undefined;
       if (table === 'days') {
         rowTripId = (await this.daysRepo.findById(id))?.trip_id;
@@ -427,7 +410,8 @@ export class ReservationsService {
     if (data.assignment_id != null) {
       // An assignment belongs to a trip through its day, so the join is the
       // lookup — same shape as the MCP tool's getAssignmentForTrip. RS22.
-      const rowTripId = await this.reservationsRepo.getAssignmentTripId(data.assignment_id);
+      const assignmentId = toRowId(data.assignment_id);
+      const rowTripId = assignmentId === null ? undefined : await this.reservationsRepo.getAssignmentTripId(assignmentId);
       check('assignment_id', rowTripId !== undefined && String(rowTripId) !== String(tripId));
     }
 
@@ -469,7 +453,10 @@ export class ReservationsService {
     // NOT catch a dropped `await` here (Task 0's finding), so every call
     // site below is `await`ed deliberately and the async-closure mutation
     // harness (RS23-001) is the only net.
-    const onTrip = async (table: 'days' | 'places', id: number): Promise<boolean> => {
+    // An id `toRowId` refuses resolves to nothing, as in referencesOutsideTrip.
+    const onTrip = async (table: 'days' | 'places', value: unknown): Promise<boolean> => {
+      const id = toRowId(value);
+      if (id === null) return false;
       const tripIdNum = this.rowIdNum(tripId);
       return table === 'days' ? this.daysRepo.existsInTrip(id, tripIdNum) : this.placesRepo.existsInTrip(id, tripIdNum);
     };
@@ -480,7 +467,8 @@ export class ReservationsService {
     if (data.assignment_id) {
       // An assignment belongs to a trip through its day, the same join the
       // other guard walks. RS24.
-      const row = await this.dayAssignmentsRepo.findInTrip(data.assignment_id, tripId);
+      const assignmentId = toRowId(data.assignment_id);
+      const row = assignmentId === null ? undefined : await this.dayAssignmentsRepo.findInTrip(assignmentId, tripId);
       if (!row) offenders.push('assignment_id');
     }
 
@@ -489,8 +477,14 @@ export class ReservationsService {
     // on a write that currently succeeds is not what this guard is for.
     if (data.create_accommodation && data.type === 'hotel') {
       const acc = data.create_accommodation;
+      const ref = (field: 'place_id' | 'start_day_id' | 'end_day_id'): number | undefined => {
+        if (!acc[field]) return undefined;
+        const id = toRowId(acc[field]);
+        if (id === null) offenders.push(`create_accommodation.${field}`);
+        return id ?? undefined;
+      };
       const errors = await this.accommodations.validateAccommodationRefs(
-        tripId, acc.place_id || undefined, acc.start_day_id || undefined, acc.end_day_id || undefined,
+        tripId, ref('place_id'), ref('start_day_id'), ref('end_day_id'),
       );
       for (const { field } of errors) offenders.push(`create_accommodation.${field}`);
     }
@@ -618,7 +612,10 @@ export class ReservationsService {
     // surface has its own field set and its own COALESCE semantics, and folding
     // the two together would bend one of them out of shape. The day stop is the
     // part that must not exist twice, so it comes from AccommodationsService.
-    let resolvedAccommodationId: number | null = accommodation_id || null;
+    // The payload's accommodation_id is untrusted input and goes through
+    // `toRowId` the way update() reads it (L2): a `'0x1'` or an `'abc'` used to
+    // be stored as `'0x1.0'`, which Postgres cannot cast back for the join.
+    let resolvedAccommodationId: number | null = toRowId(accommodation_id) || null;
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {
