@@ -167,7 +167,8 @@ export async function copyTable(
     const values: PostgresValue[] = [];
     spec.columns.forEach((column, index) => {
       const converted = convertValue(raw[index] as SqliteValue, column.kind);
-      if (converted.ok) {
+      // Narrowed by `in`: the server compiles without strictNullChecks, where `ok` does not narrow the union.
+      if (!('reason' in converted)) {
         values.push(converted.value);
         if (column.kind === 'integer' && beyondSafeInteger(converted.value)) result.unsafeIntegers++;
         return;

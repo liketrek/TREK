@@ -1,6 +1,6 @@
 import { coalesceParam } from '../../dialect/sql-functions';
-import { accommodationIdMatches } from './reservation-accommodation';
 import type { DB } from '../../kysely/db';
+import { accommodationIdMatches } from './reservation-accommodation';
 import type { Platform } from '@mikro-orm/core';
 
 import type { ExpressionBuilder, ExpressionWrapper, ReferenceExpression, SqlBool } from 'kysely';
