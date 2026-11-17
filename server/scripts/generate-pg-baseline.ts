@@ -14,12 +14,18 @@
  * generated (`through`). Once a migration lands after it, the baseline is
  * frozen like a shipped migration: the newer migration runs on Postgres
  * through the migrator, written through `engineDdl` with the Postgres side
- * from `npm run gen:pg-migration`, and `--check` verifies the manifest and
- * lists the migrations after the cut. Nothing here moves the cut.
+ * from `npm run gen:pg-migration`, and `--check` verifies the manifest, that
+ * every SQLite trigger still has its port, and lists the migrations after the
+ * cut. Rewriting a frozen baseline moves the cut, so the default mode refuses
+ * it and only `--move-cut` does it. That is safe because lint:dialect holds
+ * every migration after POSTGRES_FIRST_CUT to the post-cut rules wherever the
+ * cut stands, so an install created from the old baseline still reaches the
+ * same schema through the migrator.
  *
  * Usage:
- *   node --import tsx scripts/generate-pg-baseline.ts           # rewrite server/assets/postgres/
- *   node --import tsx scripts/generate-pg-baseline.ts --check   # exit 1 when it drifted (CI)
+ *   node --import tsx scripts/generate-pg-baseline.ts              # rewrite server/assets/postgres/ (not while frozen)
+ *   node --import tsx scripts/generate-pg-baseline.ts --move-cut   # rewrite it over the migrations after the cut
+ *   node --import tsx scripts/generate-pg-baseline.ts --check      # exit 1 when it drifted (CI)
  */
 import {
   baselineMatches,
@@ -114,16 +120,34 @@ export function checkBaseline(
     );
   }
   const frozen = committed.through !== generated.through;
-  if (frozen) return problems;
-  if (!matches) {
+  if (!frozen && !matches) {
     problems.push(
       'server/assets/postgres/ is not what the entities, POSTGRES_TRIGGERS and the reference rows the migrations ' +
         'insert generate now, and no migration follows its cut: run npm run gen:pg-baseline and commit ' +
         'server/assets/postgres/.',
     );
   }
-  problems.push(...triggerPortProblems(sqliteTriggers, Object.keys(POSTGRES_TRIGGERS)));
+  // Frozen or not: the entities carry no triggers, so this is the only check
+  // that a trigger a migration leaves on SQLite exists on Postgres too.
+  problems.push(...triggerPortProblems(sqliteTriggers, Object.keys(POSTGRES_TRIGGERS), frozen));
   return problems;
+}
+
+/**
+ * Why the default mode refuses to rewrite the baseline, or null when it may:
+ * the migrations after the committed cut. Rewriting the baseline would move
+ * the cut over them, which only `--move-cut` does.
+ */
+export function cutMoveRefusal(committed: PostgresBaseline, known: readonly string[]): string | null {
+  const after = postCutMigrations(committed, known);
+  if (after.length === 0) return null;
+  return (
+    `the baseline is frozen at ${committed.through}, and ${after.length} migration(s) follow its cut: ` +
+    `${after.join(', ')}. A Postgres install created from it reaches them through the migrator, so the baseline ` +
+    'is not regenerated for them: write their schema change through engineDdl with the postgres member that npm ' +
+    'run gen:pg-migration prints (server/CLAUDE.md, SQL dialect, Migrations). To fold them into a new baseline on ' +
+    'purpose, run npm run gen:pg-baseline -- --move-cut.'
+  );
 }
 
 /** Migration bookkeeping: the baseline's manifest stands for it on Postgres. */
@@ -213,29 +237,52 @@ export function rowStatements(table: string, rows: readonly Row[]): string[] {
 /**
  * The SQLite triggers without a Postgres port in `POSTGRES_TRIGGERS`, and the
  * ports whose trigger is gone. The entities carry no triggers, so this is
- * what keeps the hand-written ports level with the migrations.
+ * what keeps the hand-written ports level with the migrations. `frozen` says
+ * a migration follows the baseline's cut, so the fix goes into that
+ * migration rather than into a regenerated baseline.
  */
-export function triggerPortProblems(sqliteTriggers: readonly string[], ported: readonly string[]): string[] {
+export function triggerPortProblems(
+  sqliteTriggers: readonly string[],
+  ported: readonly string[],
+  frozen = false,
+): string[] {
   const problems: string[] = [];
   const missing = sqliteTriggers.filter((name) => !ported.includes(name));
   if (missing.length > 0) {
     problems.push(
-      `SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}. Add each one's ` +
-        'function and trigger to src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
+      frozen
+        ? `SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}. A migration after ` +
+            "the baseline's cut created them, and a trigger after the cut has no Postgres port (server/CLAUDE.md, " +
+            'SQL dialect, Migrations): take it out of the migration and do its work in the repository instead.'
+        : `SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}. Add each one's ` +
+            'function and trigger to src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
     );
   }
   const stale = ported.filter((name) => !sqliteTriggers.includes(name));
   if (stale.length > 0) {
     problems.push(
-      `POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}. Remove them from ` +
-        'src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
+      frozen
+        ? `POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}. A migration ` +
+            "after the baseline's cut dropped them on SQLite: drop them on Postgres in the postgres member of its " +
+            'engineDdl call too, and remove them from src/db/engine/postgres/postgres-triggers.ts.'
+        : `POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}. Remove them from ` +
+            'src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
     );
   }
   return problems;
 }
 
-/** The default mode: writes the baseline the entities and the migrations describe. */
-async function writeMode(): Promise<void> {
+/**
+ * The default mode: writes the baseline the entities and the migrations
+ * describe, refused while the committed one is frozen unless `moveCut`.
+ */
+async function writeMode(moveCut: boolean): Promise<void> {
+  const known = [...knownMigrationNames()].sort();
+  const refusal = cutMoveRefusal(readPostgresBaseline(), known);
+  if (refusal && !moveCut) {
+    console.error(`[generate-pg-baseline] ${refusal}`);
+    process.exit(1);
+  }
   const { baseline } = await generateBaseline();
   writePostgresBaseline(baseline);
   console.log(`[generate-pg-baseline] wrote ${baseline.statements.length} statements through ${baseline.through}`);
@@ -268,8 +315,9 @@ async function checkMode(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  if (process.argv.slice(2).includes('--check')) await checkMode();
-  else await writeMode();
+  const args = process.argv.slice(2);
+  if (args.includes('--check')) await checkMode();
+  else await writeMode(args.includes('--move-cut'));
 }
 
 if (require.main === module) {
