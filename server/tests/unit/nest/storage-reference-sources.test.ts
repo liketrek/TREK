@@ -38,6 +38,7 @@ import { makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
 import { createTestModule, type TestModule } from '../../helpers/test-module';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { SqlitePlatform } from '@mikro-orm/sql';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -246,9 +247,11 @@ describe('reference sources', () => {
 
   it('RSRC-016: a filter past MAX_LIKE_TERMS terms is refused before it reaches SQLite', () => {
     const runs = Array.from({ length: MAX_LIKE_TERMS + 1 }, (_unused, i) => `run-${String(i).padStart(8, '0')}`);
-    expect(() => likeAny<{ a: string }>(['a'], runs)).toThrow(/at most/);
-    expect(() => likeAny<{ a: string; b: string }>(['a', 'b'], runs.slice(0, 25))).not.toThrow();
-    expect(() => likeAny<{ a: string; b: string }>(['a', 'b'], runs.slice(0, 26))).toThrow(/at most/);
+    expect(() => likeAny<{ a: string }>(new SqlitePlatform(), ['a'], runs)).toThrow(/at most/);
+    expect(() => likeAny<{ a: string; b: string }>(new SqlitePlatform(), ['a', 'b'], runs.slice(0, 25))).not.toThrow();
+    expect(() => likeAny<{ a: string; b: string }>(new SqlitePlatform(), ['a', 'b'], runs.slice(0, 26))).toThrow(
+      /at most/,
+    );
   });
 
   it('RSRC-017: namedKeysByCategory reads once and answers every category the source claims, none it does not', async () => {

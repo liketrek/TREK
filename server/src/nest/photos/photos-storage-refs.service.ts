@@ -23,7 +23,7 @@ export class PhotosStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(TrekPhotos)
-      .find(likeAny<TrekPhotos>(['file_path', 'thumbnail_path'], containing), {
+      .find(likeAny<TrekPhotos>(this.em.getPlatform(), ['file_path', 'thumbnail_path'], containing), {
         fields: ['file_path', 'thumbnail_path'],
       });
     return rows.flatMap((row) => [row.file_path, row.thumbnail_path]);

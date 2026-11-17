@@ -19,7 +19,7 @@ export class PlacesStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(Places)
-      .find(likeAny<Places>(['image_url'], containing), { fields: ['image_url'] });
+      .find(likeAny<Places>(this.em.getPlatform(), ['image_url'], containing), { fields: ['image_url'] });
     return rows.map((row) => row.image_url);
   }
 }
