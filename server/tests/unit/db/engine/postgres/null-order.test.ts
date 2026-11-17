@@ -69,7 +69,9 @@ describe('SQLite NULL order on Postgres', () => {
     expect(withSqliteNullPosition('"t"."start_date" desc nulls first')).toBe('"t"."start_date" desc nulls first');
     const platform = new SqliteNullOrderPlatform();
     expect(platform.getOrderByExpression('"name"', 'ASC')).toEqual(['"name" asc nulls first']);
-    expect(platform.getOrderByExpression('"name"', 'desc', 'nocase')).toEqual(['"name" collate "nocase" desc nulls last']);
+    expect(platform.getOrderByExpression('"name"', 'desc', 'nocase')).toEqual([
+      '"name" collate "nocase" desc nulls last',
+    ]);
     expect(platform.getOrderByExpression('"name"', 'asc nulls last')).toEqual(['"name" asc nulls last']);
   });
 });

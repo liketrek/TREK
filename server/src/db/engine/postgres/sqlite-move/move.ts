@@ -25,6 +25,7 @@ import {
   resolveIdentitySequences,
   type PluginPlan,
 } from './plugin-data';
+import type { AbstractSqlConnection } from '@mikro-orm/sql';
 
 import type { Kysely } from 'kysely';
 
@@ -281,7 +282,7 @@ export async function moveSqliteToPostgres(options: MoveOptions): Promise<MoveSu
     warnings: [],
     seconds: 0,
   };
-  const db = options.orm.em.getConnection().getClient<object>();
+  const db = (options.orm.em.getConnection() as AbstractSqlConnection).getClient<object>();
   let source: SqliteSource;
   try {
     source = SqliteSource.open(options.sqliteFile);
