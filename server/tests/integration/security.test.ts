@@ -15,10 +15,9 @@ import type { FactoryOrm } from '../helpers/factories/context';
 import { findRows, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
-import { makeUser } from '../helpers/factories/users';
-import { readUser } from '../helpers/factories/users';
+import { makeUser, readUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
