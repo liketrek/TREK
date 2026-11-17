@@ -127,7 +127,7 @@ export interface PluginContext {
     listNotes(tripId: number): Promise<unknown[]>;
     /** A trip's polls (with options + voters). Needs 'db:read:collab'. */
     listPolls(tripId: number): Promise<unknown[]>;
-    /** A trip's chat messages (newest 100, oldest first; `before` = a message id to page back). Needs 'db:read:collab'. */
+    /** A trip's chat messages: newest 100, oldest first; `before` pages back from a message. Needs 'db:read:collab'. */
     listMessages(tripId: number, before?: number): Promise<unknown[]>;
     createNote(tripId: number, input: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }): Promise<unknown>;
     createPoll(tripId: number, input: { question: string; options: unknown[]; multiple?: boolean; deadline?: string }): Promise<unknown>;
@@ -175,7 +175,7 @@ export interface PluginContext {
   };
   /** Exchange rates (tenant-free, cached upstream). Needs 'rates:read'. */
   rates: {
-    /** A map of quote → rate relative to `base` (e.g. base 'EUR' → { USD: 1.08, ... }). `null` on an upstream failure. */
+    /** A map of quote → rate relative to `base` (base 'EUR' → { USD: 1.08 }). `null` on an upstream failure. */
     get(base: string): Promise<Record<string, number> | null>;
   };
   /** The global place-category reference list (read-only). Needs 'db:read:categories'. */
@@ -450,7 +450,7 @@ export interface SearchRequest {
 }
 export interface SearchProvider {
   search(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
-  /** Optional: the same question while it is typed (#2221). The host only calls it when the child reported it at load. */
+  /** Optional: the same question while it is typed (#2221). The host calls it only if the child reported it at load. */
   suggest?(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
 }
 /**
