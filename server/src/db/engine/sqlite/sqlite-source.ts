@@ -1,4 +1,5 @@
-import Database from 'better-sqlite3';
+import { openDatabase } from '../../connection';
+
 import fs from 'node:fs';
 
 /**
@@ -46,9 +47,12 @@ function quoteSqliteIdentifier(name: string): string {
   return `"${name.replaceAll('"', '""')}"`;
 }
 
+/** A handle as `openDatabase` gives it: the driver itself stays behind src/db/connection.ts. */
+type SqliteHandle = ReturnType<typeof openDatabase>;
+
 export class SqliteSource {
   private constructor(
-    private readonly db: Database.Database,
+    private readonly db: SqliteHandle,
     readonly file: string,
   ) {}
 
@@ -58,7 +62,7 @@ export class SqliteSource {
    */
   static open(file: string): SqliteSource {
     if (!fs.existsSync(file)) throw new Error(`There is no SQLite file at ${file}.`);
-    const db = new Database(file, { readonly: true, fileMustExist: true });
+    const db = openDatabase(file, { readonly: true, fileMustExist: true });
     try {
       db.defaultSafeIntegers(true);
       db.exec('BEGIN');
