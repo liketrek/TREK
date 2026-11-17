@@ -122,7 +122,7 @@ TREK ships a command that copies a SQLite install into an empty Postgres databas
 2. It checks that every row's references point at a row that exists, since Postgres enforces them, and lists the rows that do not.
 3. It refuses a Postgres database that holds any table or plugin schema, so it never mixes two installs.
 4. It creates the schema exactly as a first start on an empty database does.
-5. In one transaction it copies every table in the order of their references, converts each value to its Postgres column type, moves the id sequences past the copied ids, and reads every table back to compare its row count and a checksum over all its rows with the SQLite file. A value Postgres cannot store exactly (text in a number column, a NUL character in text) stops the copy and is listed by table, row and column.
+5. In one transaction it copies every table in the order of their references, converts each value to its Postgres column type, moves the id sequences past the copied ids, and reads every table back to compare its row count and a checksum over all its rows with the SQLite file. A value Postgres cannot store exactly (text in a number column, a fraction in a whole-number column) stops the copy and is listed by table, row and column. A NUL character in text, which TREK no longer stores on either engine, is dropped instead.
 6. Only a copy that matches is committed. If anything fails, the transaction is rolled back and the schema the command created is dropped again, so the database is empty as before.
 
 It prints a summary: the tables and rows it copied, the plugin schemas it filled, and anything it could not carry over.
