@@ -1782,6 +1782,17 @@ describe('PlaceInspector', () => {
     expect(header.textContent).not.toContain('·');
   });
 
+  it('FE-PLANNER-INSPECTOR-106b: the tags of the place are pills beside its category, each once and by name', () => {
+    const tags = [{ id: 8, name: 'Zone', color: '#10b981' }, { id: 7, name: 'Monument' }, { id: 8, name: 'Zone' }];
+    render(<PlaceInspector {...defaultProps} place={{ ...place, id: 716, category_id: cat.id, tags }} />);
+    const header = document.querySelector('header') as HTMLElement;
+    const pills = ['Landmark', 'Monument', 'Zone'].map(name => within(header).getByText(name));
+    expect(pills[0].compareDocumentPosition(pills[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(pills[1].compareDocumentPosition(pills[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The tag's own colour is on its mark only; the pill and the marker keep theirs.
+    expect((pills[2].querySelector('svg') as SVGElement).style.color).toBe('rgb(16, 185, 129)');
+  });
+
   it('FE-PLANNER-INSPECTOR-107: the rating block is labelled and quotes the first usable review', async () => {
     vi.mocked(mapsApi.details).mockResolvedValue({
       place: { rating: 4.1, reviews: [{ text: 'meh' }, { text: 'Lovely staff and view' }] },

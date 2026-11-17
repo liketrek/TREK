@@ -210,16 +210,16 @@ export class PlacesService {
   }
 
   /**
-   * The subset of `tagIds` that someone on this trip owns. A tag has no trip of
-   * its own, only a `user_id`, so "belongs to this trip" resolves through the
-   * roster — which keeps the shared case working: a member tags a place, another
-   * member re-saves it and sends the id back, and the tag survives because its
-   * owner is still on the trip. Scoping to the caller instead would quietly strip
-   * a co-traveller's tag on every foreign edit.
+   * The subset of `tagIds` this trip may put on a place: the tags it owns, and the
+   * personal tags of anybody on its roster. A personal tag has no trip, only a
+   * `user_id`, so it resolves through the roster, which keeps the shared case
+   * working: a member tags a place, another re-saves it and sends the id back, and
+   * the tag survives because its owner is still on the trip. Scoping to the caller
+   * instead would quietly strip a co-traveller's tag on every foreign edit.
    *
-   * Off-roster ids drop silently. The place body is an open record, so an id can
-   * arrive from an older client that had no business knowing it existed, and the
-   * read-back join hands `tags.user_id` straight to the caller.
+   * Every other id drops silently, another trip's tag included. The place body is an
+   * open record, so an id can arrive from a client that had no business knowing it
+   * existed, and the read-back join hands the tag straight to the caller.
    */
   private async tagsOnTrip(tripId: string | number, tagIds: number[]): Promise<number[]> {
     const unique = [...new Set(tagIds)];
@@ -229,9 +229,9 @@ export class PlacesService {
     // precedent: each domain converts its own `DatabaseService`-delegated
     // callers as it lands.
     const roster = await this.tripMembersRepo.rosterUserIds(tripId);
-    // PL2 — `SELECT id, user_id FROM tags WHERE id IN (${…})`.
-    const owned = await this.tagsRepo.findByIds(unique);
-    return owned.filter(t => roster.has(t.user_id)).map(t => t.id);
+    // PL2 — `SELECT id, user_id, trip_id FROM tags WHERE id IN (${…})`.
+    const rows = await this.tagsRepo.findByIds(unique);
+    return rows.filter(t => (t.trip_id === null ? roster.has(t.user_id) : t.trip_id === Number(tripId))).map(t => t.id);
   }
 
   broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {

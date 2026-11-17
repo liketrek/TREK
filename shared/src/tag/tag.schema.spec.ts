@@ -13,6 +13,13 @@ describe('tagSchema', () => {
       }).success,
     ).toBe(true);
   });
+
+  it('takes the trip a tag belongs to, null for a personal one', () => {
+    const tag = { id: 1, user_id: 5, name: 'Beach', color: '#10b981' };
+    expect(tagSchema.safeParse({ ...tag, trip_id: 9 }).success).toBe(true);
+    expect(tagSchema.safeParse({ ...tag, trip_id: null }).success).toBe(true);
+    expect(tagSchema.safeParse({ ...tag, trip_id: 'nine' }).success).toBe(false);
+  });
 });
 
 describe('createTagRequestSchema', () => {

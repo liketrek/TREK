@@ -11,6 +11,7 @@ import {
   placeImportListRequestSchema,
   placeEmailField,
   placeOpeningHoursSchema,
+  placeTagIdsSchema,
   placeWebsiteSchema,
   roadtripStopTypeSchema,
   type PlaceOpeningHours,
@@ -100,23 +101,24 @@ export class PlacesMcp {
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
       stop_type: roadtripStopTypeSchema.optional().describe('Marks the place as a stop on a drive rather than a destination: fuel, charging, rest_area, campsite, restaurant, sights or hotel. A service stop is left out of the stop count for the day, so a day with a charger between four places still reads as four stops. Leave unset for an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
+      tags: placeTagIdsSchema.optional().describe('Ids of the tags to put on the place: tags of this trip (list_trip_tags, create_trip_tag) or personal tags of someone on it (list_tags). Any other id is ignored'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'places', mode: 'write' },
   })
   async createPlace(
-    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours, image_url, price, currency, stop_type }: {
+    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours, image_url, price, currency, stop_type, tags }: {
       tripId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
       category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string;
       notes?: string; website?: string; phone?: string; email?: string | null; opening_hours?: PlaceOpeningHours | null;
       image_url?: string; price?: number; currency?: string;
-      stop_type?: RoadtripStopType;
+      stop_type?: RoadtripStopType; tags?: number[];
     },
     ctx: McpContext,
   ) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
-    const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type });
+    const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type, tags });
     this.guards.safeBroadcast(tripId, 'place:created', { place });
     await this.origins.record(place.id, null, AGENT);
     // The journey hook the REST route and the plugin RPC run after the same write.
@@ -150,17 +152,18 @@ export class PlacesMcp {
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
       stop_type: roadtripStopTypeSchema.optional().describe('Marks the place as a stop on a drive rather than a destination: fuel, charging, rest_area, campsite, restaurant, sights or hotel. A service stop is left out of the stop count for the day, so a day with a charger between four places still reads as four stops. Leave unset for an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
+      tags: placeTagIdsSchema.optional().describe('Ids of the tags to put on the place: tags of this trip (list_trip_tags, create_trip_tag) or personal tags of someone on it (list_tags). Any other id is ignored'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'places', mode: 'write' },
   })
   async createAndAssignPlace(
-    { tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, place_notes, website, phone, email, opening_hours, image_url, assignment_notes, price, currency, stop_type }: {
+    { tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, place_notes, website, phone, email, opening_hours, image_url, assignment_notes, price, currency, stop_type, tags }: {
       tripId: number; dayId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
       category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string;
       place_notes?: string; website?: string; phone?: string; email?: string | null; opening_hours?: PlaceOpeningHours | null;
       image_url?: string; assignment_notes?: string;
-      price?: number; currency?: string; stop_type?: RoadtripStopType;
+      price?: number; currency?: string; stop_type?: RoadtripStopType; tags?: number[];
     },
     ctx: McpContext,
   ) {
@@ -169,7 +172,7 @@ export class PlacesMcp {
     if (!(await this.assignments.dayExists(dayId, tripId))) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     try {
       const result = await this.uow.transactional(async () => {
-        const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes: place_notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type });
+        const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes: place_notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type, tags });
         const assignment = await this.assignments.createAssignment(dayId, place.id, assignment_notes ?? null);
         return { place, assignment };
       });
@@ -213,12 +216,13 @@ export class PlacesMcp {
       amap_poi_id: z.string().optional().describe('Amap (高德地图) POI ID, amap:-prefixed (e.g. "amap:B000A83M61")'),
       stop_type: roadtripStopTypeSchema.nullable().optional().describe('What kind of stop on a drive this is: fuel, charging, rest_area, campsite, restaurant, sights or hotel. Pass null to turn a service stop back into an ordinary place. calculate_roadtrip reports the same value on a stop as stopType; this field is stop_type.'),
       fill_percent: z.number().int().min(1).max(100).nullable().optional().describe('How full THIS stop fills the tank, 1-100. A motorway rapid charger is worth about 80 %, the one at the hotel 100 %. Pass null to follow whatever the traveller set as their default fill.'),
+      tags: placeTagIdsSchema.optional().describe('The whole set of tag ids the place should carry afterwards: tags of this trip (list_trip_tags, create_trip_tag) or personal tags of someone on it (list_tags). Send the ids it keeps along with the new ones, and an empty list to clear them. Leave out to keep its tags as they are'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
   })
   async updatePlace(
-    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent }: {
+    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent, tags }: {
       tripId: number; placeId: number; name?: string; description?: string; lat?: number; lng?: number;
       address?: string; category_id?: number; price?: number; currency?: string; place_time?: string | null;
       end_time?: string | null; duration_minutes?: number | null; notes?: string; website?: string; phone?: string;
@@ -226,14 +230,14 @@ export class PlacesMcp {
       image_url?: string | null;
       transport_mode?: 'walking' | 'driving' | 'cycling' | 'transit' | 'flight'; osm_id?: string;
       google_place_id?: string; google_ftid?: string; amap_poi_id?: string; stop_type?: RoadtripStopType | null;
-      fill_percent?: number | null;
+      fill_percent?: number | null; tags?: number[];
     },
     ctx: McpContext,
   ) {
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
     const before = await this.origins.valuesBefore(placeId);
-    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours: opening_hours === undefined ? undefined : hoursText(opening_hours), image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent });
+    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours: opening_hours === undefined ? undefined : hoursText(opening_hours), image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent, tags });
     // No base version is sent, so the update never answers a conflict; the guard only narrows the type.
     if (!place || isUpdateConflict(place)) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });

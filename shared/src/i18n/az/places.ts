@@ -171,6 +171,10 @@ const places: TranslationStrings = {
   'places.details.fact.internetAccess': 'Wi-Fi',
 
   'places.categoryCreateError': 'Kateqoriya yaratmaq mümkün olmadı',
+  'places.tags': 'Etiketlər',
+  'places.newTag': 'Yeni etiket',
+  'places.addTag': 'Etiket əlavə et',
+  'places.tagCreateError': 'Etiket yaratmaq mümkün olmadı',
   'places.nameRequired': 'Ad daxil edin',
   'places.saveError': 'Yadda saxlamaq mümkün olmadı',
   'places.createExpenseHint': 'Məkanı yadda saxlayır, sonra Xərclər redaktorunu açır.',

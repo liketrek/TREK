@@ -658,18 +658,18 @@ export class CollectionsService {
   // -------------------------------------------------------------------------
 
   /**
-   * A tag has no list of its own, only a `user_id`, so "belongs here" resolves
-   * through the people on the list — the same shape places.service uses against
-   * a trip roster. Off-list tag ids drop silently rather than being stored and
-   * read straight back out: the tag read-back ships `tags.user_id`, so an
-   * unfiltered id answers who owns a tag the caller cannot otherwise see.
+   * A personal tag has no list of its own, only a `user_id`, so "belongs here" resolves
+   * through the people on the list — the same shape places.service uses against a trip
+   * roster. Every other id drops silently, a trip's own tag included (it labels that
+   * trip's places only), rather than being stored and read straight back out: the
+   * read-back ships `tags.user_id`, so it answers who owns a tag the caller cannot see.
    */
   private async attachTags(collectionPlaceId: number, tagIds: number[] | undefined): Promise<void> {
     if (!tagIds || tagIds.length === 0) return;
     const unique = [...new Set(tagIds)];
     const eligible = await this.collectionMemberIds(await this.collectionIdOfPlace(collectionPlaceId));
     const owned = await this.tags.findByIds(unique);
-    const eligibleTagIds = owned.filter(t => eligible.has(t.user_id)).map(t => t.id);
+    const eligibleTagIds = owned.filter(t => t.trip_id === null && eligible.has(t.user_id)).map(t => t.id);
     await this.collectionPlaces.attachTags(collectionPlaceId, eligibleTagIds);
   }
 

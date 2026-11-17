@@ -11,7 +11,7 @@ import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-049, plus the 009b, 025b and 029b variants
+// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-050, plus the 009b, 025b and 029b variants
 // planner.t echoes the key, so every label/placeholder is asserted as its key.
 
 const CATEGORIES = [
@@ -729,5 +729,32 @@ describe('MPlaceEditSheet', () => {
     fireEvent.change(screen.getByPlaceholderText('places.formLat'), { target: { value: '35.71' } })
     fireEvent.change(screen.getByPlaceholderText('places.formLng'), { target: { value: '139.79' } })
     expect(screen.queryByText('places.noCoordinatesFormHint')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLEDIT-050: the tags ticked in the form are saved as the whole set, and an untouched form sends none', async () => {
+    seedStore(useTripStore, {
+      tripTags: [
+        { id: 7, trip_id: 1, user_id: 1, name: 'Monument', color: '#6366f1' },
+        { id: 8, trip_id: 1, user_id: 1, name: 'Zone', color: '#10b981' },
+      ],
+    })
+    const tagged = { ...EDITED, tags: [{ id: 8, name: 'Zone' }] } as unknown as Place
+    const { planner, unmount } = setup({ editingPlace: tagged })
+    expect(screen.getByRole('group', { name: 'places.tags' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zone' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Monument' })).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Monument' }))
+    expect(screen.getByRole('button', { name: 'Monument' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(submit())
+    await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledTimes(1))
+    expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ tags: [8, 7] }))
+    unmount()
+
+    // Nothing ticked or unticked: the save names no tags, so it cannot undo one put on elsewhere.
+    const untouched = setup({ editingPlace: tagged })
+    fireEvent.click(submit())
+    await waitFor(() => expect(untouched.planner.handleSavePlace).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(untouched.planner.handleSavePlace).mock.calls[0][0]).not.toHaveProperty('tags')
   })
 })

@@ -48,6 +48,7 @@ import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
 import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { inOrder } from '../common/in-order';
 import { UnitOfWork } from '../database/unit-of-work';
 import { legacyBoundIntegerText } from '../common/row-id';
 import { appClock } from '../common/timezoneService';
@@ -712,10 +713,15 @@ export class TripsService {
         if (newDayId && newPlaceId) await this.roadtripDayTracksRepo.upsertTrack(newDayId, newPlaceId, t.stray_km); // TP45
       }
 
+      // The trip's own tags are written again as the copy's; a personal tag stays its owner's one row.
+      const tagMap = new Map<number, number>();
+      await inOrder(await this.tagsRepo.listByTrip(Number(sourceTripId)), async ({ id, name, color }) => {
+        tagMap.set(id, (await this.tagsRepo.createTag({ user_id: newOwnerId, trip_id: newTripId, name, color })).id);
+      });
       const oldTags = await this.tagsRepo.listPlaceTagsForTrip(sourceTripId); // TP46
       for (const t of oldTags) {
         const newPlaceId = placeMap.get(t.place_id);
-        if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [t.tag_id]); // TP47
+        if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [tagMap.get(t.tag_id) ?? t.tag_id]); // TP47
       }
 
       // The `tours` facet goes first: the import record, obstacle decisions, packing link and waypoints need it.

@@ -159,6 +159,10 @@ const places: TranslationStrings = {
   'places.details.fact.vegan': 'Veganistisch',
   'places.details.fact.internetAccess': 'Wifi',
   'places.categoryCreateError': 'Categorie aanmaken mislukt',
+  'places.tags': 'Tags', // same-as-en
+  'places.newTag': 'Nieuwe tag',
+  'places.addTag': 'Tag toevoegen',
+  'places.tagCreateError': 'Tag aanmaken mislukt',
   'places.nameRequired': 'Voer een naam in',
   'places.saveError': 'Opslaan mislukt',
   'places.createExpenseHint': 'Slaat de plaats op en opent daarna de kosten-editor.',

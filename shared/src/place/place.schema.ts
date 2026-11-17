@@ -1,3 +1,4 @@
+import { idSchema } from '../common/primitives.schema';
 import { tagSchema } from '../tag/tag.schema';
 import { placeFieldOriginsSchema } from './place-contrib.schema';
 import { placeEmailField, placeOpeningHoursField } from './place-hours';
@@ -344,6 +345,13 @@ export const placeImportMapRequestSchema = z.object({
   enrich: z.string().optional(),
 });
 export type PlaceImportMapRequest = z.infer<typeof placeImportMapRequestSchema>;
+
+/**
+ * A place's tags as a write names them: tag ids, and always the whole set, since an
+ * update replaces what the place had. The REST bodies above are open records and read
+ * the key as it comes; the MCP place tools take it through this schema.
+ */
+export const placeTagIdsSchema = z.array(idSchema).max(50);
 
 /** Query filters for the place list. */
 export const placeListQuerySchema = z.object({

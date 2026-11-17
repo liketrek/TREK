@@ -12,12 +12,14 @@ import {
   type PlaceFormData,
 } from '../../../../components/Planner/PlaceFormModal.helpers'
 import { usePlaceForm } from '../../../../components/Planner/usePlaceForm'
+import { usePlaceTags } from '../../../../components/Planner/usePlaceTags'
 import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import { useAddonStore } from '../../../../store/addonStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
+import { PlTagPicker } from './PlTags'
 import PlTimeFields from './PlTimeFields'
 import PlFileAttach from './PlFileAttach'
 import MLinkedCosts from './MLinkedCosts'
@@ -91,6 +93,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   // the edit chrome doesn't flip to "add" while fading out.
   const [sheetPlace, setSheetPlace] = useState<Place | null>(null)
   const [sheetAssignmentId, setSheetAssignmentId] = useState<number | null>(null)
+  const tagField = usePlaceTags({ tripId: planner.tripId, place: sheetPlace, tags: form.tags, setForm, t, toast })
 
   const placesEnrichEnabled = useAuthStore(s => s.placesEnrichEnabled)
   const { language, locale } = useTranslation()
@@ -342,6 +345,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
 
         <Eyebrow className="mb-[6px] mt-3 uppercase">{t('places.formCategory')}</Eyebrow>
         <PlCategoryPicker planner={planner} value={form.category_id} onChange={id => handleChange('category_id', id)} />
+        <PlTagPicker tags={tagField} t={t} />
 
         {/* Times live per day-assignment — only editable when one is in context.
             Same for the day-specific note (#2163). */}

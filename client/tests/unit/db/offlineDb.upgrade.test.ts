@@ -57,6 +57,7 @@ const HISTORY: Record<number, StoreSpec> = {
   12: { tourStationVisits: '[assignment_id+station_key], trip_id, assignment_id' },
   13: { tourDrafts: 'tripId' },
   14: { routeCache: 'key, savedAt' },
+  15: { tripTags: 'tripId' },
 };
 
 const HISTORY_VERSIONS = Object.keys(HISTORY)
@@ -138,6 +139,7 @@ function rowsAt(version: number): Record<string, Record<string, unknown>> {
     tourStationVisits: { assignment_id: 71, station_key: 'stop-01', status: 'visited', trip_id: 1 },
     tourDrafts: { tripId: 1, draft: { payload: '{"version":11}', updated_at: '2026-10-22 09:00:00' } },
     routeCache: { key: 'driving:km:11.5,48.1;11.6,48.2', route: { coordinates: [], legs: [] }, savedAt: 13 },
+    tripTags: { tripId: 1, tags: [{ id: 91, trip_id: 1, name: 'Viewpoint', color: '#10b981' }] },
   };
   const tables = schemaAt(version);
   return Object.fromEntries(Object.entries(all).filter(([table]) => table in tables));
@@ -362,6 +364,28 @@ const UPGRADE_CASES: Record<number, UpgradeCase> = {
         'walking:km:1,2;3,4',
         'driving:km:1,2;3,4',
       ]);
+    },
+  },
+  15: {
+    intent: 'adds the tags a trip owns, one list per trip, and keeps the road routes kept on the device',
+    check: async (db) => {
+      expect((await db.routeCache.get('driving:km:11.5,48.1;11.6,48.2'))?.savedAt).toBe(13);
+      await db.table('tripTags').bulkPut([
+        { tripId: 1, tags: [{ id: 91, name: 'Viewpoint' }] },
+        { tripId: 2, tags: [] },
+      ]);
+      // One row per trip: the list read again replaces the one kept before.
+      await db.table('tripTags').put({
+        tripId: 1,
+        tags: [
+          { id: 91, name: 'Lookout' },
+          { id: 92, name: 'Zone' },
+        ],
+      });
+      expect(await db.tripTags.count()).toBe(2);
+      expect((await db.tripTags.get(1))?.tags.map((tag) => tag.name)).toEqual(['Lookout', 'Zone']);
+      // The user's personal tags stay in their own table, as they were.
+      expect(await db.tags.count()).toBe(1);
     },
   },
 };

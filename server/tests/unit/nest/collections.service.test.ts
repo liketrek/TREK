@@ -285,6 +285,16 @@ describe('saved places + dedup', () => {
     expect(res.place!.tags?.map((t) => t.name)).toContain('food');
   });
 
+  it('COLLECTIONS-SVC-012b: savePlace leaves out a tag that belongs to a trip', async () => {
+    const u = createUser(testDb).user;
+    const own = createTag(testDb, u.id, { name: 'food' });
+    const ofTrip = createTag(testDb, u.id, { name: 'Monument' });
+    await updateRows(await orm(), Tags, { id: ofTrip.id }, { trip: createTrip(testDb, u.id).id });
+    const col = await svc.createCollection(u.id, { name: 'Tagged' });
+    const res = await svc.savePlace(u.id, { collection_id: col.id, name: 'Ramen', tag_ids: [own.id, ofTrip.id] });
+    expect(res.place?.tags?.map((t) => t.name)).toEqual(['food']);
+  });
+
   it('CL49 (Plan 3h Task 7 review, M1 coverage): updatePlace with tag_ids rewrites the tag set (CollectionPlacesRepository.deleteTags)', async () => {
     const u = createUser(testDb).user;
     const food = createTag(testDb, u.id, { name: 'food' });

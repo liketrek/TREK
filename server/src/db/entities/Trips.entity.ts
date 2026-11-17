@@ -31,6 +31,7 @@ import { Reservations } from './Reservations.entity';
 import { RoadtripDayBoundaries } from './RoadtripDayBoundaries.entity';
 import { RoadtripPreferences } from './RoadtripPreferences.entity';
 import { ShareTokens } from './ShareTokens.entity';
+import { Tags } from './Tags.entity';
 import { TodoCategoryAssignees } from './TodoCategoryAssignees.entity';
 import { TodoItems } from './TodoItems.entity';
 import { TourDrafts } from './TourDrafts.entity';
@@ -93,6 +94,7 @@ export class Trips {
   roadtrip_day_boundaries_collection = new Collection<RoadtripDayBoundaries>(this);
   roadtrip_preferences_collection = new Collection<RoadtripPreferences>(this);
   share_tokens_collection = new Collection<ShareTokens>(this);
+  tags_collection = new Collection<Tags>(this);
   todo_category_assignees_collection = new Collection<TodoCategoryAssignees>(this);
   todo_items_collection = new Collection<TodoItems>(this);
   tour_drafts_collection = new Collection<TourDrafts>(this);
@@ -171,6 +173,7 @@ export const TripsSchema = defineEntity({
     roadtrip_day_boundaries_collection: () => p.oneToMany(RoadtripDayBoundaries).mappedBy('trip').hidden(),
     roadtrip_preferences_collection: () => p.oneToMany(RoadtripPreferences).mappedBy('trip').hidden(),
     share_tokens_collection: () => p.oneToMany(ShareTokens).mappedBy('trip').hidden(),
+    tags_collection: () => p.oneToMany(Tags).mappedBy('trip').hidden(),
     todo_category_assignees_collection: () => p.oneToMany(TodoCategoryAssignees).mappedBy('trip').hidden(),
     todo_items_collection: () => p.oneToMany(TodoItems).mappedBy('trip').hidden(),
     tour_drafts_collection: () => p.oneToMany(TourDrafts).mappedBy('trip').hidden(),

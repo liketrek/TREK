@@ -31,6 +31,7 @@ import type { Assignment, Day, Reservation, TripMember } from '../../../../types
 import PlacePhotoGallery from '../../../../components/Planner/PlacePhotoGallery'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
 import { FormSheetBody } from './PlSheetChrome'
+import { PlTagChips } from './PlTags'
 
 /**
  * Place inspector sheet (glass card), opened by the current place selection —
@@ -235,6 +236,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     <span dir="auto" className="truncate">{category.name}</span>
                   </span>
                 )}
+                <PlTagChips tags={place.tags} />
               </div>
               <button
                 type="button"

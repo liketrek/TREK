@@ -19,6 +19,7 @@ const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'place:created': { place: { id: 3, name: 'Louvre' } },
   'place:updated': { place: { id: 3, name: 'Louvre' } },
   'place:deleted': { placeId: 3 },
+  'tripTags:changed': {},
   'tours:changed': { placeIds: [3] },
   'tours:visits': { assignmentId: 9, visits: [{ assignment_id: 9, station_key: 'abcdef', status: 'visited' }] },
   'assignment:created': { assignment: { id: 9, day_id: 2 } },
@@ -219,9 +220,11 @@ describe('@trek/shared realtime event registry', () => {
     // writes that send them follow.
     // 42nd and 43rd user event: mailInbox:changed and mailInbox:settings, the
     // inbox of forwarded booking mails and its settings card.
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(80);
+    // 81st trip event: tripTags:changed, so a tag a member adds to the trip,
+    // renames or deletes shows the same for everyone on it.
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(81);
     expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(43);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(123);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(124);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

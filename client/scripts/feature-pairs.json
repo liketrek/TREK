@@ -699,6 +699,12 @@
       "mobile": ["src/mobile/screens/trip/sheets/PlPlaceSearch.tsx"]
     },
     {
+      "feature": "Place add/edit form: tags",
+      "hooks": ["src/components/Planner/usePlaceTags.ts"],
+      "desktop": ["src/components/Planner/PlaceFormModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MPlaceEditSheet.tsx"]
+    },
+    {
       "feature": "Place detail actions",
       "hooks": ["src/components/Planner/usePlaceActions.ts"],
       "desktop": [
@@ -1172,6 +1178,7 @@
     "src/mobile/screens/trip/sheets/MTripSheetUi.tsx": "Phone sheet UI primitives (eyebrow, headers, stat boxes, action circles) and a time display helper.",
     "src/mobile/screens/trip/sheets/PlFileAttach.tsx": "Markup only; pending files and link actions come through props from the phone form sheets.",
     "src/mobile/screens/trip/sheets/PlSheetChrome.tsx": "Phone form sheet chrome primitives (header, footer, field classes).",
+    "src/mobile/screens/trip/sheets/PlTags.tsx": "Markup only; the tag picker's state comes through props from MPlaceEditSheet, which runs usePlaceTags, and the chips of the place sheet draw the tags the place carries.",
     "src/mobile/screens/trip/sheets/PlTimeFields.tsx": "Phone time fields that already share timeCollisions with the desktop PlaceFormModal.",
     "src/mobile/screens/trip/sheets/tourSheetOpen.ts": "Phone only context for MTourDetailShell: whether the tour sheet is open and the name it carries.",
     "src/mobile/screens/trip/tabs/MCollabTab.tsx": "Phone collab sub tab router that reuses the desktop CollabLinks component.",

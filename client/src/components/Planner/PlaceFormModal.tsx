@@ -23,6 +23,8 @@ import {
   prefillForm, savedCategoryId, type PlaceFormData, type PlacePrefill,
 } from './PlaceFormModal.helpers'
 import { useNewCategory, usePlaceForm } from './usePlaceForm'
+import { usePlaceTags } from './usePlaceTags'
+import { PlaceFormTags } from './PlaceFormTags'
 import { usePlaceSearch } from './usePlaceSearch'
 import { guessCategoryId } from '@trek/shared'
 import { offersGoogleRetry } from '../../utils/placeSource'
@@ -128,6 +130,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const image = usePlaceImageField({
     place, imageUrl: form.image_url, pendingImage, canUploadFiles, stageUpload, stageAttached, removeImage,
   })
+  const tagField = usePlaceTags({ tripId, place, tags: form.tags, setForm, t, toast })
   // The index the picked place came from, as its row named it, shown as a pill
   // in the head band. Null for a place typed by hand or taken from the saved list.
   const [pickedSource, setPickedSource] = useState<string | null>(null)
@@ -451,6 +454,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     handlePaste,
     pickImage,
     image,
+    tagField,
     adoptDescription,
     hasTimeError,
     handleSubmit,
@@ -792,6 +796,9 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             </div>
           )}
 
+          {/* Extra labels next to the one category, to filter the places by. Not for a
+              stop on a drive, which is not an activity anyone looks up by its tags. */}
+          {!serviceStop && <PlaceFormTags tags={S.tagField} t={t} />}
 
           {/* The day in context: its times and its own note. Both live on the
               day-assignment, not on the pool place (#2163), so they are only shown

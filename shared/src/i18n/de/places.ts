@@ -160,6 +160,10 @@ const places: TranslationStrings = {
   'places.details.fact.vegan': 'Vegan', // same-as-en
   'places.details.fact.internetAccess': 'WLAN',
   'places.categoryCreateError': 'Fehler beim Erstellen der Kategorie',
+  'places.tags': 'Tags', // same-as-en
+  'places.newTag': 'Neuer Tag',
+  'places.addTag': 'Tag hinzufügen',
+  'places.tagCreateError': 'Fehler beim Erstellen des Tags',
   'places.nameRequired': 'Bitte einen Namen eingeben',
   'places.saveError': 'Fehler beim Speichern',
   'places.createExpenseHint': 'Speichert den Ort und öffnet dann den Kosten-Editor.',

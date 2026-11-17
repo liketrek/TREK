@@ -161,6 +161,10 @@ const places: TranslationStrings = {
   'places.details.fact.vegan': 'Vegan', // same-as-en
   'places.details.fact.internetAccess': 'Wi-Fi',
   'places.categoryCreateError': 'Kategori oluşturulamadı',
+  'places.tags': 'Etiketler',
+  'places.newTag': 'Yeni etiket',
+  'places.addTag': 'Etiket ekle',
+  'places.tagCreateError': 'Etiket oluşturulamadı',
   'places.nameRequired': 'Lütfen bir ad girin',
   'places.saveError': 'Kaydedilemedi',
   'places.createExpenseHint': 'Yeri kaydeder, sonra masraf düzenleyicisini açar.',

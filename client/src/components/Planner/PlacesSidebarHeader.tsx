@@ -8,9 +8,10 @@ import { Eyebrow } from './bookings/bookingParts'
 import { tintOf } from './planParts'
 import { CategoryTile } from './PlacesBulkCategoryModal'
 import type { SidebarState } from './usePlacesSidebar'
-import { placesFilterTabs } from './usePlacesPool'
+import { placesFilterTabs, usePlacesFilterTags } from './usePlacesPool'
 import { PLACES_SORTS, type PlacesSort } from './placesSort'
-import { RATING_FLOORS, UNCATEGORIZED } from '../../utils/placesFilter'
+import { RATING_FLOORS, UNCATEGORIZED, tagFilterKey } from '../../utils/placesFilter'
+import type { TagChoice } from '../../utils/placeTags'
 
 /**
  * Below this the two labels stop fitting side by side and both buttons fall back
@@ -249,22 +250,31 @@ function FilterDropdown({ label, active, badge, icon, open, setOpen, name, child
   )
 }
 
-/** Which categories to show, many at once; the label says what is in force. */
+/**
+ * What the category filter says is in force: nothing, the one name, or how many
+ * categories. Once a tag is ticked too it is no count of categories any more, so
+ * the names say it.
+ */
+function categoryFilterLabel({ t, categories, categoryFilters }: SidebarState, tags: TagChoice[]): string {
+  if (categoryFilters.size === 0) return t('places.allCategories')
+  const tagNames = tags.filter(tag => categoryFilters.has(tagFilterKey(tag.id))).map(tag => tag.name)
+  if (tagNames.length === 0 && categoryFilters.size > 1) {
+    return `${categoryFilters.size} ${t('places.categoriesSelected', { count: categoryFilters.size })}`
+  }
+  const names = categories.filter(c => categoryFilters.has(String(c.id))).map(c => c.name)
+  if (categoryFilters.has(UNCATEGORIZED)) names.push(t('places.noCategory'))
+  return [...names, ...tagNames].join(', ') || t('places.allCategories')
+}
+
+/** Which categories and which tags to show, many at once; the label says what is in force. */
 function CategoryFilter(S: SidebarState) {
   const { t, places, categories, categoryFilters, setCategoryFilters, toggleCategoryFilter } = S
   const [open, setOpen] = useState(false)
-  if (categories.length === 0) return null
-  let label = t('places.allCategories')
-  if (categoryFilters.size === 1) {
-    const only = categories.find(c => categoryFilters.has(String(c.id)))
-    if (categoryFilters.has(UNCATEGORIZED)) label = t('places.noCategory')
-    else if (only) label = only.name
-  } else if (categoryFilters.size > 1) {
-    label = `${categoryFilters.size} ${t('places.categoriesSelected', { count: categoryFilters.size })}`
-  }
+  const tags = usePlacesFilterTags(places)
+  if (categories.length === 0 && tags.length === 0) return null
   return (
-    <FilterDropdown name={t('categories.title')} label={label} active={categoryFilters.size > 0} badge={categoryFilters.size}
-      icon={<Tag size={14} strokeWidth={2} />} open={open} setOpen={setOpen}>
+    <FilterDropdown name={t('categories.title')} label={categoryFilterLabel(S, tags)} active={categoryFilters.size > 0}
+      badge={categoryFilters.size} icon={<Tag size={14} strokeWidth={2} />} open={open} setOpen={setOpen}>
       {categories.map(c => (
         <CategoryChoice
           key={c.id}
@@ -282,6 +292,21 @@ function CategoryFilter(S: SidebarState) {
           label={t('places.noCategory')}
         />
       )}
+      {/* The tags, in the same list: a place has one category and any number of these. */}
+      {tags.length > 0 && <Eyebrow className="px-1.5 pb-1 pt-2">{t('places.tags')}</Eyebrow>}
+      {tags.map(tag => (
+        <CategoryChoice
+          key={tagFilterKey(tag.id)}
+          on={categoryFilters.has(tagFilterKey(tag.id))}
+          onClick={() => toggleCategoryFilter(tagFilterKey(tag.id))}
+          tile={(
+            <span className="grid h-[22px] w-[22px] flex-none place-items-center rounded-[7px] bg-surface-tertiary text-content-faint">
+              <Tag size={11} strokeWidth={2.2} style={{ color: tag.color }} />
+            </span>
+          )}
+          label={tag.name}
+        />
+      ))}
       {categoryFilters.size > 0 && (
         <button type="button" onClick={() => setCategoryFilters(new Set())}
           className="mt-1 flex w-full items-center gap-1.5 rounded-[9px] border-t border-edge-faint px-1.5 pb-1 pt-2 text-start font-semibold text-content-muted hover:text-content"

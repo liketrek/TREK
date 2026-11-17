@@ -150,6 +150,10 @@ const places: TranslationStrings = {
   'places.details.fact.vegan': 'Vegan', // same-as-en
   'places.details.fact.internetAccess': 'Wi-Fi',
   'places.categoryCreateError': 'Gagal membuat kategori',
+  'places.tags': 'Tag',
+  'places.newTag': 'Tag baru',
+  'places.addTag': 'Tambah tag',
+  'places.tagCreateError': 'Gagal membuat tag',
   'places.nameRequired': 'Harap masukkan nama',
   'places.saveError': 'Gagal menyimpan',
   'places.createExpenseHint': 'Menyimpan tempat, lalu membuka editor biaya.',

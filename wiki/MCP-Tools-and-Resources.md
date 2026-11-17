@@ -57,8 +57,8 @@ Requires `places:read` or `places:write` scope.
 | Tool | Description |
 |---|---|
 | `list_places` | List places in a trip, optionally filtered by assignment status, category, tag, or search query. |
-| `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, email, and optional `google_place_id` / `osm_id` / `amap_poi_id`. `opening_hours` takes the place's own hours, seven days starting on Monday (`closed`, `open`, `close` as `HH:MM`), shown instead of looked-up hours; `null` clears them. An optional `stop_type` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) marks it as a service stop on a drive rather than a destination, so it is left out of the day's stop count; see [Road-Trip](Road-Trip). Leave it unset for an ordinary place. |
-| `update_place` | Update any field of an existing place including phone, email, opening hours, transport mode, timing, price and `stop_type`. Pass `stop_type: null` to turn a service stop back into an ordinary place. |
+| `create_place` | Add a place with name, coordinates, address, category, notes, website, phone, email, and optional `google_place_id` / `osm_id` / `amap_poi_id`. `opening_hours` takes the place's own hours, seven days starting on Monday (`closed`, `open`, `close` as `HH:MM`), shown instead of looked-up hours; `null` clears them. An optional `stop_type` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) marks it as a service stop on a drive rather than a destination, so it is left out of the day's stop count; see [Road-Trip](Road-Trip). Leave it unset for an ordinary place. `tags` takes the ids of the tags the place should carry: tags of the trip (`list_trip_tags`) or personal tags of someone on the trip; any other id is ignored. |
+| `update_place` | Update any field of an existing place including phone, email, opening hours, transport mode, timing, price and `stop_type`. Pass `stop_type: null` to turn a service stop back into an ordinary place. `tags` replaces the place's tags with the given ids, `[]` clears them, and leaving it out keeps them. |
 | `rate_place` | Set or clear your own 1–5 star rating on a place. Every trip member rates independently and the place shows the average. Pass `null` to clear the vote. |
 | `bulk_update_places` | Update many places at once, applying the same field values (e.g. category, price, transport mode, `stop_type`) to every listed place in a single call. `stop_type: null` turns the listed service stops back into ordinary places. |
 | `delete_place` | Remove a place from a trip. Also removes all day assignments, the expenses linked to the place and any night booked at it, together with that night's reservation and the reservation's expense. Cannot be undone, so an assistant should warn before deleting a hotel that holds a booking. |
@@ -179,10 +179,16 @@ Requires `places:read` or `places:write` scope.
 
 | Tool | Description |
 |---|---|
-| `list_tags` | List all tags belonging to the current user. |
-| `create_tag` | Create a new tag (user-scoped label for places) with optional hex color. |
-| `update_tag` | Update the name or color of an existing tag. |
-| `delete_tag` | Delete a tag (removes it from all attached places). |
+| `list_tags` | List all personal tags belonging to the current user. A trip's own tags are not among them. |
+| `create_tag` | Create a new personal tag (user-scoped label for places) with optional hex color. |
+| `update_tag` | Update the name or color of an existing personal tag. |
+| `delete_tag` | Delete a personal tag (removes it from all attached places). |
+| `list_trip_tags` | List the tags a trip owns, the same list for every member of the trip. |
+| `create_trip_tag` | Add a tag to a trip, with a name of up to 50 characters and an optional hex color. A trip has each name once, whatever its capitals: a name it already has returns that tag. Needs the permission to edit the trip's places. |
+| `update_trip_tag` | Rename or recolour a tag of a trip, on every place that carries it. A name another tag of the trip has is refused. Needs the permission to edit the trip's places. |
+| `delete_trip_tag` | Delete a tag of a trip and take it off every place that carried it. Needs the permission to edit the trip's places. |
+
+A trip's tags are the ones the app shows and filters by; see [Tags-and-Categories](Tags-and-Categories#trip-tags). Put them on a place with `tags` on `create_place`, `create_and_assign_place` and `update_place`.
 
 ### Maps & Weather
 

@@ -65,6 +65,9 @@ export const TREK_WS_EVENTS = {
   'place:created': { scope: 'trip', payload: z.object({ place: entity }) },
   'place:updated': { scope: 'trip', payload: z.object({ place: entity }) },
   'place:deleted': { scope: 'trip', payload: z.object({ placeId: id }) },
+  // The trip's own tags changed (one added, renamed, recoloured or deleted): every
+  // client reads the list again and takes the change over into the places it holds.
+  'tripTags:changed': { scope: 'trip', payload: empty },
   // Invalidate the trip's Tours list; affected ids let peers exclude new Tours immediately.
   'tours:changed': { scope: 'trip', payload: z.object({ placeIds: idList.optional() }) },
   // CW-03: the stations of a city walk visited or skipped on one of its days, all of them as they are now.

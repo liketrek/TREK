@@ -47,6 +47,11 @@ export interface PlaceFormData {
   // Which shareable fields the user typed and which a pick or the details column filled
   // (placeFieldOrigins.ts). Rides along to the save as `fieldOrigins`; never shown.
   fieldOrigins?: PlaceFieldOrigins
+  // The ids of the place's tags, always the whole set, as the save takes them. Absent
+  // until one is ticked or unticked in the form (usePlaceTags): a missing key writes
+  // nothing, so a save that never touched the tags cannot undo a tag put on the place
+  // elsewhere in the meantime.
+  tags?: number[]
 }
 
 export function isGoogleMapsUrl(input: string): boolean {

@@ -71,6 +71,16 @@ interface CachedTourDraft {
 }
 
 /**
+ * The tags a trip owns, as the server last listed them: one row per trip, so the
+ * place form and the category filter still offer them offline. Not the `tags`
+ * table, which holds the signed-in user's personal ones.
+ */
+interface CachedTripTags {
+  tripId: number;
+  tags: Tag[];
+}
+
+/**
  * A road route as the router answered it, kept on the device so a trip opens
  * with its roads drawn instead of asking the router for every leg again (#2794).
  * `key` is RouteCalculator's cache key (profile, unit, waypoints, avoided
@@ -293,6 +303,7 @@ export class TrekOfflineDb extends Dexie {
   tourStationVisits!: Table<CachedTourStationVisit, [number, string]>;
   tourDrafts!: Table<CachedTourDraft, number>;
   routeCache!: Table<CachedRoute, string>;
+  tripTags!: Table<CachedTripTags, number>;
 
   constructor(name: string = ANON_DB_NAME) {
     super(name);
@@ -385,6 +396,10 @@ export class TrekOfflineDb extends Dexie {
     // whole route shown opens drawn instead of re-routing every leg (#2794). Not per
     // trip: the same waypoints are the same road in any trip; `savedAt` to prune.
     this.version(14).stores({ routeCache: 'key, savedAt' });
+
+    // v15: the tags a trip owns, one list per trip, so they are offered offline
+    // and go with the trip.
+    this.version(15).stores({ tripTags: 'tripId' });
   }
 }
 
@@ -686,10 +701,12 @@ export async function clearTripData(tripId: number): Promise<void> {
       offlineDb.ferrataTiles,
       offlineDb.tourStationVisits,
       offlineDb.tourDrafts,
+      offlineDb.tripTags,
     ],
     async () => {
       await offlineDb.roadtripPreferences.delete(tripId);
       await offlineDb.tourDrafts.delete(tripId);
+      await offlineDb.tripTags.delete(tripId);
       await offlineDb.budgetSettlements.delete(tripId);
       await offlineDb.days.where('trip_id').equals(tripId).delete();
       await offlineDb.places.where('trip_id').equals(tripId).delete();

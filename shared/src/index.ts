@@ -30,6 +30,7 @@ export * from './maps/place-shadow.schema';
 export * from './maps/route-usage.schema';
 export * from './category/category.schema';
 export * from './tag/tag.schema';
+export * from './tag/trip-tag.schema';
 export * from './notification/notification.schema';
 export * from './memories/memories.schema';
 export * from './atlas/atlas.schema';

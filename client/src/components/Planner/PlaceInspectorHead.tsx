@@ -1,8 +1,20 @@
-import { Banknote, ChevronDown, ChevronUp, Mail, MapPin, MapPinOff, Phone, Star, X } from 'lucide-react';
+import {
+  Banknote,
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  MapPin,
+  MapPinOff,
+  Phone,
+  Star,
+  Tag as TagIcon,
+  X,
+} from 'lucide-react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 
 import { useTranslation } from '../../i18n';
 import type { Category, Place } from '../../types';
+import { tagChoices } from '../../utils/placeTags';
 import AssistantAskButton from '../Assistant/AssistantAskButton';
 import DawarichIcon from '../shared/DawarichIcon';
 import { NEUTRAL_TINT, fs } from '../shared/DialogShell';
@@ -84,9 +96,12 @@ export function InspectorHead({
   const hasCoords = !!(place.lat && place.lng);
   // A typed address that never got coordinates: the place has no marker, and says why (#2837).
   const offMap = addressWithoutCoordinates(place);
+  // The extra labels of the place, beside its one category. They never reach the marker.
+  const tags = tagChoices(place.tags);
   const hasPills =
     openNow !== null ||
     !!category ||
+    tags.length > 0 ||
     !!time ||
     rating != null ||
     !!price ||
@@ -174,6 +189,12 @@ export function InspectorHead({
                   {category.name}
                 </span>
               )}
+              {tags.map((tag) => (
+                <span key={tag.id} className={HEAD_PILL} style={fs(10.5)}>
+                  <TagIcon size={11} strokeWidth={2} className="flex-none" style={{ color: tag.color }} />
+                  {tag.name}
+                </span>
+              ))}
               {time && <TimePill>{time}</TimePill>}
               {rating != null && rating > 0 && (
                 <span className={HEAD_PILL} style={fs(10.5)}>

@@ -1,11 +1,11 @@
 import { ReactNode } from 'react'
-import { Check, MapPin, Star } from 'lucide-react'
+import { Check, MapPin, Star, Tag as TagIcon } from 'lucide-react'
 import MChip from '../../../components/MChip'
 import { useTripStore } from '../../../../store/tripStore'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
-import { RATING_FLOORS, UNCATEGORIZED } from '../../../../utils/placesFilter'
+import { RATING_FLOORS, UNCATEGORIZED, tagFilterKey } from '../../../../utils/placesFilter'
 import { useTranslation } from '../../../../i18n'
-import { usePlacesCategoryFilter } from '../../../../components/Planner/usePlacesPool'
+import { usePlacesCategoryFilter, usePlacesFilterTags } from '../../../../components/Planner/usePlacesPool'
 import type { Category, Place } from '../../../../types'
 
 /**
@@ -48,10 +48,14 @@ function CategoryFilterRow({ checked, onToggle, label, children }: {
   )
 }
 
-/** The trip's categories as a multi-select, plus "no category" while a place has none. */
+/**
+ * The trip's categories as a multi-select, plus "no category" while a place has
+ * none, and after them the tags, which filter through the same set.
+ */
 export function MCategoryFilterList({ categories, places }: { categories: Category[]; places: Place[] }) {
   const { t } = useTranslation()
   const { categoryFilters, toggleCategoryFilter: toggle } = usePlacesCategoryFilter()
+  const tags = usePlacesFilterTags(places)
   return (
     <>
       {categories.map(c => {
@@ -76,6 +80,16 @@ export function MCategoryFilterList({ categories, places }: { categories: Catego
           <MapPin size={14} strokeWidth={2} className="flex-none text-m-faint" />
         </CategoryFilterRow>
       )}
+      {tags.map(tag => (
+        <CategoryFilterRow
+          key={tagFilterKey(tag.id)}
+          checked={categoryFilters.has(tagFilterKey(tag.id))}
+          onToggle={() => toggle(tagFilterKey(tag.id))}
+          label={tag.name}
+        >
+          <TagIcon size={14} strokeWidth={2} className="flex-none text-m-faint" style={{ color: tag.color }} />
+        </CategoryFilterRow>
+      ))}
     </>
   )
 }

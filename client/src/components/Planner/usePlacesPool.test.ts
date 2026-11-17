@@ -1,9 +1,9 @@
-// FE-PLANNER-POOL-001 to FE-PLANNER-POOL-016: the places pool's search, filters and
+// FE-PLANNER-POOL-001 to FE-PLANNER-POOL-017: the places pool's search, filters and
 // multi-select behind the desktop sidebar ('exit') and the phone browser ('prune').
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildPlace } from '../../../tests/helpers/factories';
+import { buildPlace, buildTag } from '../../../tests/helpers/factories';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { collectionsApi } from '../../api/collections';
 import { useTripStore } from '../../store/tripStore';
@@ -11,6 +11,7 @@ import {
   placesFilterTabs,
   poolHasTracks,
   usePlacesCategoryFilter,
+  usePlacesFilterTags,
   usePlacesPool,
   type PlacesPoolOptions,
 } from './usePlacesPool';
@@ -286,5 +287,30 @@ describe('usePlacesPool', () => {
     // A stale id picked up later is dropped as soon as it is in the selection.
     act(() => result.current.setSelectedIds(new Set([12345])));
     expect(result.current.selectedIds.size).toBe(0);
+  });
+
+  it('FE-PLANNER-POOL-017: the filter offers the tags of the trip and any other a listed place carries, by name', () => {
+    const monument = buildTag({ id: 7, name: 'Monument', color: '#6366f1' });
+    const zone = buildTag({ id: 8, name: 'Zone', color: 'not a colour' });
+    seedStore(useTripStore, { tripTags: [zone, monument] });
+    const places = [
+      buildPlace({ tags: [{ id: 7, name: 'Monument (old name)' }] }),
+      buildPlace({ tags: [{ id: 50, name: 'Hidden gem', color: '#f59e0b' }] }),
+      buildPlace(),
+    ];
+    const { result, rerender } = renderHook((listed: typeof places) => usePlacesFilterTags(listed), {
+      initialProps: places,
+    });
+    expect(result.current).toEqual([
+      { id: 50, name: 'Hidden gem', color: '#f59e0b' },
+      // The trip's own name, not the copy on the place.
+      { id: 7, name: 'Monument', color: '#6366f1' },
+      // A colour that is no plain hex value is left out: the row keeps the colour of its text.
+      { id: 8, name: 'Zone', color: undefined },
+    ]);
+    // The same places and tags are the same list, so a row does not redraw for nothing.
+    const first = result.current;
+    rerender(places);
+    expect(result.current).toBe(first);
   });
 });
