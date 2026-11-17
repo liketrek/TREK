@@ -1,7 +1,8 @@
 import { CURRENT_SCHEMA_TABLES_SQL } from '../../dialect/catalog';
 import { CLEAR_SCHEMA_SQL } from './clear-schema';
-import { pgConnectionEnv, run } from './pg-process';
+import { pgConnectionEnv, PgOutputLimitError, refuseClientOlderThanServer, run, runToFile } from './pg-process';
 import { refuseToolsWithoutRestrict } from './restore-safety';
+import { PRIVILEGED_ROLE_SQL, serverMajor } from './server-checks';
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,6 +16,13 @@ import readline from 'node:readline';
  */
 const RESTORE_SESSION_OPTIONS = '-c lock_timeout=60s -c client_min_messages=warning';
 
+/** Why a restore refuses a role that could reach the database host (`PRIVILEGED_ROLE_SQL`). */
+const PRIVILEGED_RESTORE_REFUSAL =
+  'TREK_DB_URL connects as a superuser, or as a role that may run programs or write files on the database server. ' +
+  'A backup archive is a SQL script that runs as this role, so a crafted one could take over the database host; ' +
+  'nothing was replaced. Connect TREK as a role that owns its database and is not a superuser ' +
+  '(the wiki page "Database: Postgres" shows how).';
+
 /** An empty file only its owner can read: the tool writing into it keeps the mode. */
 function createPrivateFile(file: string): void {
   fs.writeFileSync(file, '', { mode: 0o600 });
@@ -26,42 +34,53 @@ interface PgSchema {
   quoted: string;
 }
 
+/** What a dump or a restore needs to know about the server before it runs. */
+interface PgServer {
+  schema: PgSchema;
+  /** The server's major version, which the client tools must reach. */
+  major: number;
+  /** Whether TREK's role could run programs or write files on the database host (`PRIVILEGED_ROLE_SQL`). */
+  privileged: boolean;
+}
+
+/** One line, tab-separated: the current schema, its quoted name, the server version, whether the role is privileged. */
+const SERVER_SQL =
+  "select concat_ws(E'\\t', coalesce(current_schema(), ''), coalesce(quote_ident(current_schema()), ''), " +
+  `current_setting('server_version_num'), (${PRIVILEGED_ROLE_SQL})::text)`;
+
 /**
  * The current schema of the database at `url`, the one TREK creates its
- * tables in. A backup and a restore stay inside it: a hosted database
- * (Supabase) keeps the platform's own schemas, `auth` among them, beside it,
- * and they are neither TREK's to copy nor to replace.
+ * tables in, with the server's version and what TREK's role may do there. A
+ * backup and a restore stay inside that schema: a hosted database (Supabase)
+ * keeps the platform's own schemas, `auth` among them, beside it, and they are
+ * neither TREK's to copy nor to replace.
  */
-async function pgCurrentSchema(url: string, binDir: string | undefined): Promise<PgSchema> {
+async function pgServer(url: string, binDir: string | undefined): Promise<PgServer> {
   const out = await run(
     'psql',
     binDir,
-    [
-      '--no-psqlrc',
-      '--no-align',
-      '--tuples-only',
-      "--command=select concat_ws(E'\\t', current_schema(), quote_ident(current_schema()))",
-    ],
+    ['--no-psqlrc', '--no-align', '--tuples-only', `--command=${SERVER_SQL}`],
     pgConnectionEnv(url),
   );
-  const [name, quoted] = out.replace(/\n$/, '').split('\t');
+  const [name, quoted, version, privileged] = out.replace(/\n$/, '').split('\t');
   if (!name || !quoted) {
     throw new Error('The database has no current schema: set the search_path of the role in TREK_DB_URL.');
   }
-  return { name, quoted };
+  return { schema: { name, quoted }, major: serverMajor(version), privileged: privileged === 'true' };
 }
 
 /**
  * Writes a custom-format dump of the current schema of the database at `url`
  * to `target`, readable by its owner only. It is written beside the target and
  * renamed into place, so a dump that fails or is killed never leaves a file
- * that passes for a copy.
+ * that passes for a copy. A pg_dump older than the server is refused first.
  */
 export async function pgDump(url: string, target: string, binDir: string | undefined): Promise<void> {
   const partial = `${target}.partial`;
   try {
     createPrivateFile(partial);
-    const schema = await pgCurrentSchema(url, binDir);
+    const { schema, major } = await pgServer(url, binDir);
+    await refuseClientOlderThanServer(['pg_dump'], binDir, major);
     await run(
       'pg_dump',
       binDir,
@@ -108,29 +127,61 @@ async function scriptHoldsTrekSchema(script: string, schema: PgSchema): Promise<
   }
 }
 
+/** pg_restore's script for the dump at `source`, written to `script` and held to `maxBytes`. */
+async function writeRestoreScript(
+  source: string,
+  script: string,
+  schema: PgSchema,
+  binDir: string | undefined,
+  maxBytes: number,
+): Promise<void> {
+  const args = ['--no-owner', '--no-privileges', `--schema=${schema.name}`, '--file=-', '--', source];
+  try {
+    await runToFile('pg_restore', binDir, args, {}, script, maxBytes);
+  } catch (err) {
+    if (!(err instanceof PgOutputLimitError)) throw err;
+    throw new Error(
+      `The backup's database expands to more than ${Number((maxBytes / 1024 / 1024).toFixed(2))} MB of SQL, the limit ` +
+        'BACKUP_MAX_DECOMPRESSED_MB sets; nothing was replaced. Raise the limit if the backup is genuine.',
+      { cause: err },
+    );
+  }
+}
+
 /**
  * Replaces the current schema of the database at `url` with the dump at
  * `source`: pg_restore turns the dump's objects in that schema into a script
  * beside it (anything else the dump holds is left out), then psql clears the
  * schema and runs the script in one transaction, so a restore that fails
- * leaves the database as it was. A dump without TREK's tables in that schema
- * is refused before anything is cleared.
+ * leaves the database as it was. Refused before anything is cleared:
+ *
+ * - client tools without the CVE-2025-8714 fix, or older than the server;
+ * - a role that could run programs or write files on the database host,
+ *   since the script comes from an archive and runs as that role;
+ * - a script past `maxScriptBytes` (BACKUP_MAX_DECOMPRESSED_MB): the dump is
+ *   compressed once more inside the archive, so its script is held to the
+ *   limit while pg_restore writes it, not only the archive's entry;
+ * - a dump without TREK's tables in that schema.
+ *
+ * The work files are removed whatever happens.
  */
-export async function pgRestore(url: string, source: string, binDir: string | undefined): Promise<void> {
+export async function pgRestore(
+  url: string,
+  source: string,
+  binDir: string | undefined,
+  maxScriptBytes: number,
+): Promise<void> {
   await refuseToolsWithoutRestrict(binDir);
-  const schema = await pgCurrentSchema(url, binDir);
+  const { schema, major, privileged } = await pgServer(url, binDir);
+  if (privileged) throw new Error(PRIVILEGED_RESTORE_REFUSAL);
+  await refuseClientOlderThanServer(['pg_restore', 'psql'], binDir, major);
   const workDir = fs.mkdtempSync(path.join(path.dirname(source), '.pg-restore-'));
   try {
     const clear = path.join(workDir, 'clear-schema.sql');
     const script = path.join(workDir, 'restore.sql');
     fs.writeFileSync(clear, CLEAR_SCHEMA_SQL, { mode: 0o600 });
     createPrivateFile(script);
-    await run(
-      'pg_restore',
-      binDir,
-      ['--no-owner', '--no-privileges', `--schema=${schema.name}`, `--file=${script}`, '--', source],
-      {},
-    );
+    await writeRestoreScript(source, script, schema, binDir, maxScriptBytes);
     if (!(await scriptHoldsTrekSchema(script, schema))) {
       throw new Error(`The backup holds no TREK tables in the schema "${schema.name}"; nothing was replaced.`);
     }

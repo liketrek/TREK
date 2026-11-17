@@ -1,6 +1,11 @@
 import { pgRestore, pgTableNames } from '../../db/engine/postgres/pg-tools';
 import { stageExtractedPluginTrees } from '../plugins/plugin-backup';
-import { checkBackupDatabase, extractBackupArchive, markReclaimResetPending } from './backup-archive';
+import {
+  checkBackupDatabase,
+  extractBackupArchive,
+  markReclaimResetPending,
+  MAX_BACKUP_DECOMPRESSED_SIZE,
+} from './backup-archive';
 import { checkPostgresDump, PG_ARCHIVE_ENTRY } from './postgres-database-backup';
 
 import fs from 'fs';
@@ -79,7 +84,8 @@ async function checkArchiveDatabase(plan: BootRestorePlan, staging: string): Pro
 /** Puts the archive's database in place: renamed in beside the file, or loaded into Postgres in one transaction. */
 async function putDatabaseInPlace(plan: BootRestorePlan, staging: string): Promise<void> {
   if (plan.postgres) {
-    await pgRestore(plan.postgres.url, path.join(staging, PG_ARCHIVE_ENTRY), plan.postgres.binDir);
+    const dump = path.join(staging, PG_ARCHIVE_ENTRY);
+    await pgRestore(plan.postgres.url, dump, plan.postgres.binDir, MAX_BACKUP_DECOMPRESSED_SIZE);
     return;
   }
   fs.mkdirSync(path.dirname(plan.dbFile), { recursive: true });

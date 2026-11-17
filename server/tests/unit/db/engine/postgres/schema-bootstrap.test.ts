@@ -34,14 +34,25 @@ interface FakeDb {
   logged: string[];
   inTransaction: boolean[];
   up: ReturnType<typeof vi.fn>;
+  /** What the server reports before anything is written: its current schema, version and the role's privilege. */
+  server: { schema: string | null; version: string; privileged: boolean };
+  /** The ORM's migrations option, which the bootstrap points at the current schema. */
+  migrations: { tableName?: string };
 }
 
-function fakeOrm(state: Pick<FakeDb, 'executed' | 'pending' | 'tables'> & { history?: boolean }): {
+type FakeState = Pick<FakeDb, 'executed' | 'pending' | 'tables'> & {
+  history?: boolean;
+  server?: Partial<FakeDb['server']>;
+};
+
+function fakeOrm(state: FakeState): {
   orm: AnyOrm;
   db: FakeDb;
 } {
   const db: FakeDb = {
     ...state,
+    server: { schema: 'public', version: '170004', privileged: false, ...state.server },
+    migrations: { tableName: 'mikro_orm_migrations' },
     history: state.history ?? state.executed.length > 0,
     ensureTable: vi.fn(async () => {
       db.history = true;
@@ -54,6 +65,7 @@ function fakeOrm(state: Pick<FakeDb, 'executed' | 'pending' | 'tables'> & { hist
   const trx = { trx: true };
   const connection = {
     execute: vi.fn(async (sql: string, _params?: unknown[], _method?: string, ctx?: unknown) => {
+      if (sql.includes('server_version_num')) return [db.server];
       if (sql.includes('information_schema.tables')) {
         return [...db.tables, ...(db.history ? ['mikro_orm_migrations'] : [])].map((table_name) => ({ table_name }));
       }
@@ -79,7 +91,7 @@ function fakeOrm(state: Pick<FakeDb, 'executed' | 'pending' | 'tables'> & { hist
     up: db.up,
   };
   const orm = {
-    config: { getExtension: () => migrator, get: () => ({}) },
+    config: { getExtension: () => migrator, get: () => db.migrations },
     em: { getConnection: () => connection },
   } as unknown as AnyOrm;
   return { orm, db };
@@ -175,6 +187,51 @@ describe('bootstrapPostgresSchema', () => {
     expect(db.sql).toEqual([]);
     expect(db.up).not.toHaveBeenCalled();
     expect(net.safetyNet.beforeMigrate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { id: 'PGBOOT-020a', version: '130016', major: 13 },
+    { id: 'PGBOOT-020b', version: '190000', major: 19 },
+  ])('$id: a server outside 14 to 18 is refused before anything is read or written', async ({ version, major }) => {
+    const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], server: { version } });
+    await expect(bootstrapPostgresSchema(orm, deps())).rejects.toThrow(
+      `Refusing to boot: the Postgres server is version ${major}; TREK supports PostgreSQL 14 to 18.`,
+    );
+    expect(db.sql).toEqual([]);
+    expect(db.ensureTable).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-021: the oldest and the newest supported servers boot', async () => {
+    for (const version of ['140019', '180001']) {
+      const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], server: { version } });
+      await bootstrapPostgresSchema(orm, deps());
+      expect(db.logged).toEqual([M1, M2]);
+    }
+  });
+
+  it('PGBOOT-022: the migration history is looked for in the current schema, where the tables are', async () => {
+    const { orm, db } = fakeOrm({ executed: [M1, M2, M3], pending: [], tables: ['users'], server: { schema: 'trek' } });
+    await bootstrapPostgresSchema(orm, deps());
+    expect(db.migrations.tableName).toBe('trek.mikro_orm_migrations');
+    // A second bootstrap (a restore's reopen) keeps the same name.
+    await bootstrapPostgresSchema(orm, deps());
+    expect(db.migrations.tableName).toBe('trek.mikro_orm_migrations');
+  });
+
+  it.each([
+    { id: 'PGBOOT-023a', schema: null, message: /has no current schema/ },
+    { id: 'PGBOOT-023b', schema: 'a.b', message: /the current schema "a\.b", whose name holds a dot/ },
+  ])('$id: a role without a usable current schema is refused', async ({ schema, message }) => {
+    const { orm, db } = fakeOrm({ executed: [], pending: [M1], tables: [], server: { schema } });
+    await expect(bootstrapPostgresSchema(orm, deps())).rejects.toThrow(message);
+    expect(db.ensureTable).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-024: a role that could reach the database host boots with a warning', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const { orm } = fakeOrm({ executed: [M1, M2, M3], pending: [], tables: ['users'], server: { privileged: true } });
+    await bootstrapPostgresSchema(orm, deps());
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/Restores are refused for such a role/));
   });
 });
 

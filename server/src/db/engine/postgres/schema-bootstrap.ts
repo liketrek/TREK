@@ -7,6 +7,12 @@ import type { AnyOrm } from '../../orm';
 import { listSnapshots, PREFIX, pruneSnapshots, stamp } from '../../pre-migrate-snapshot';
 import { readPostgresBaseline, type PostgresBaseline } from './baseline';
 import { pgDump } from './pg-tools';
+import {
+  PRIVILEGED_ROLE_SQL,
+  PRIVILEGED_ROLE_WARNING,
+  refuseUnsupportedServer,
+  serverMajor,
+} from './server-checks';
 import type { Connection } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 import { Logger } from '@nestjs/common';
@@ -77,6 +83,49 @@ async function refuseNewerHistory(executed: string[], deps: PostgresBootstrapDep
   refuseNewerDatabase(executed, deps.known, await deps.safetyNet.restoreHint(thisRelease));
 }
 
+/** The migration history's table, without a schema. */
+const HISTORY_TABLE = 'mikro_orm_migrations';
+
+/** What the boot reads about the server before it writes anything. */
+interface ServerFacts {
+  schema: string | null;
+  version: string;
+  privileged: boolean;
+}
+
+/**
+ * Refuses a server version TREK does not support, warns about a role that
+ * could reach the database host (a restore refuses it), and points MikroORM's
+ * migration history at the current schema, where TREK's tables live.
+ *
+ * The history table is created without a schema, so it lands in the current
+ * schema beside the tables, but MikroORM looks for it in `public` unless told
+ * otherwise. On a role whose search_path resolves to another schema (a role
+ * `trek` with a schema `trek`, which the default `"$user", public` picks) it
+ * would find none there on the second boot and try to create it again. The
+ * name is qualified here, before the migrator reads it; the migrator reads
+ * the option on every use, so a restore's re-bootstrap sets it again alike.
+ * Returns the table's name without the schema.
+ */
+async function checkServerAndPlaceHistory(orm: AnyOrm, connection: Connection): Promise<string> {
+  const [facts] = await connection.execute<ServerFacts[]>(
+    "select current_schema() as schema, current_setting('server_version_num') as version, " +
+      `(${PRIVILEGED_ROLE_SQL}) as privileged`,
+  );
+  refuseUnsupportedServer(serverMajor(facts?.version));
+  if (facts?.privileged) logger.warn(PRIVILEGED_ROLE_WARNING);
+  const schema = facts?.schema;
+  if (!schema || schema.includes('.')) {
+    const why = schema ? `the current schema "${schema}", whose name holds a dot` : 'no current schema';
+    throw new Error(
+      `${REFUSAL} the role in TREK_DB_URL has ${why}. Set its search_path to a schema TREK may create its tables in.`,
+    );
+  }
+  const migrations = orm.config.get('migrations');
+  migrations.tableName = `${schema}.${HISTORY_TABLE}`;
+  return HISTORY_TABLE;
+}
+
 /**
  * Brings a Postgres database to the current schema: inspect what it holds,
  * then create the schema or verify the history it has, then migrate.
@@ -92,7 +141,7 @@ async function refuseNewerHistory(executed: string[], deps: PostgresBootstrapDep
 export async function bootstrapPostgresSchema(orm: AnyOrm, deps: PostgresBootstrapDeps): Promise<void> {
   const migrator = orm.config.getExtension('@mikro-orm/migrator') as Migrator;
   const connection = orm.em.getConnection();
-  const historyTable = orm.config.get('migrations').tableName ?? 'mikro_orm_migrations';
+  const historyTable = await checkServerAndPlaceHistory(orm, connection);
 
   const tables = await currentTables(connection);
   const executed = tables.includes(historyTable) ? (await migrator.getExecuted()).map((row) => row.name) : [];

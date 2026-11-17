@@ -9,6 +9,7 @@ import { DomainError } from '../common/domain-error';
 import type { DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { DATABASE_ENGINE, DATABASE_SETTINGS } from '../database/database-engine.module';
 import { DatabaseLifecycle } from '../database/database-lifecycle.service';
+import { MAX_BACKUP_DECOMPRESSED_SIZE } from './backup-archive';
 import { keepRestoreCopy, replaceThenReopen } from './database-swap';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -117,7 +118,7 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
       async () => {
         const { url, binDir } = this.connection;
         // A rejection with no reason still has to fail the swap, so it is never swallowed.
-        await pgRestore(url, source, binDir).catch((err: unknown) => {
+        await pgRestore(url, source, binDir, MAX_BACKUP_DECOMPRESSED_SIZE).catch((err: unknown) => {
           throw err ?? new Error('pg_restore failed');
         });
       },
