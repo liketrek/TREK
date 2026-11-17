@@ -4,27 +4,23 @@
  * and create_journey_entry returns the enriched entry (parsed tags, photos array).
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { JourneyEntries } from '../../../src/db/entities/JourneyEntries.entity';
 import { JourneyEntryPhotos } from '../../../src/db/entities/JourneyEntryPhotos.entity';
 import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
 import { Journeys } from '../../../src/db/entities/Journeys.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { createUser, createTrip } from '../../helpers/factories';
 import { addJourneyContributor } from '../../helpers/factories/journeys';
 import { createRow, findRow, insertRow } from '../../helpers/factories/rows';
+import { setAddonEnabled } from '../../helpers/factories/settings';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { setAddonEnabled } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 /*
  * get_journey_stats resolves a country per stop. The real lookup loads and
@@ -50,24 +46,23 @@ realtime.broadcastToUserMock.mockImplementation((...args) =>
   broadcastMock(...(args as unknown as Parameters<typeof broadcastMock>)),
 );
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   // The `when:` gate reads the injected AddonsService, so the toggle is the row
   // the admin panel writes — and this addon ships disabled by default.
-  setAddonEnabled(testDb, ADDON_IDS.JOURNEY, true);
+  await setAddonEnabled(orm, ADDON_IDS.JOURNEY, true);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -81,7 +76,7 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: create_journey', () => {
   it('returns the fully-hydrated journey, not a bare row', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_journey',
@@ -101,7 +96,7 @@ describe('Tool: create_journey', () => {
 
 describe('Tool: create_journey_entry', () => {
   it('returns the enriched entry with parsed tags and a photos array', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = (
         parseToolResult(
@@ -127,7 +122,7 @@ describe('Tool: create_journey_entry', () => {
 
 describe('Tool: update_journey_entry', () => {
   it('returns the enriched entry (parsed tags, photos array)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = (
         parseToolResult(
@@ -157,7 +152,7 @@ describe('Tool: update_journey_entry', () => {
   });
 
   it('creates a draft and publishes it, as the REST route does (#696)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = (
         parseToolResult(await h.client.callTool({ name: 'create_journey', arguments: { title: 'J' } })) as any
@@ -186,7 +181,7 @@ describe('Tool: update_journey_entry', () => {
 
 describe('Tool: update_journey_preferences', () => {
   it('returns the updated preference, not { success }', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = (
         parseToolResult(
@@ -215,7 +210,7 @@ describe('Tool: update_journey_preferences', () => {
 
 /** A journey owned by someone else — every access check must refuse it. */
 async function foreignJourney() {
-  const { user: other } = createUser(testDb);
+  const { user: other } = await makeUser(orm);
   const j = await createRow(orm, Journeys, {
     user: other.id,
     title: 'Not yours',
@@ -239,7 +234,7 @@ async function seedJourney(h: McpHarness, title = 'J') {
 
 describe('journey read tools', () => {
   it('list_journeys returns the caller-visible journeys', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       await seedJourney(h, 'Alpha');
       const data = parseToolResult(await h.client.callTool({ name: 'list_journeys', arguments: {} })) as any;
@@ -248,7 +243,7 @@ describe('journey read tools', () => {
   });
 
   it('get_journey hydrates entries, contributors and trips', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const data = parseToolResult(
@@ -263,7 +258,7 @@ describe('journey read tools', () => {
   });
 
   it('get_journey refuses a journey the caller cannot see', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_journey', arguments: { journeyId } });
@@ -272,7 +267,7 @@ describe('journey read tools', () => {
   });
 
   it('list_journey_entries returns the entries', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       await h.client.callTool({
@@ -290,7 +285,7 @@ describe('journey read tools', () => {
   });
 
   it('list_journey_entries refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_journey_entries', arguments: { journeyId } });
@@ -299,7 +294,7 @@ describe('journey read tools', () => {
   });
 
   it('MCP-JRN-ENTRY-001: list_journey_entries keeps the days from/to name and names its journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h, 'Berlin 2026');
       const days = [
@@ -330,7 +325,7 @@ describe('journey read tools', () => {
   });
 
   it('MCP-JRN-ENTRY-002: list_journey_entries refuses a day that is no calendar day', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const result = await h.client.callTool({
@@ -342,7 +337,7 @@ describe('journey read tools', () => {
   });
 
   it('MCP-JRN-ENTRY-003: get_journey_entry answers one entry with its photos and its journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h, 'Japan');
       const created = parseToolResult(
@@ -362,8 +357,8 @@ describe('journey read tools', () => {
   });
 
   it('MCP-JRN-ENTRY-004: get_journey_entry does not show an entry of a journal the caller cannot see', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     let entryId = 0;
     await withHarness(other.id, async (h) => {
       const journey = await seedJourney(h, 'Private');
@@ -385,7 +380,7 @@ describe('journey read tools', () => {
   });
 
   it('list_journey_contributors returns the contributor rows', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const data = parseToolResult(
@@ -399,7 +394,7 @@ describe('journey read tools', () => {
   });
 
   it('list_journey_contributors refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_journey_contributors', arguments: { journeyId } });
@@ -408,7 +403,7 @@ describe('journey read tools', () => {
   });
 
   it('get_journey_suggestions and list_journey_available_trips answer with arrays', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const s = parseToolResult(await h.client.callTool({ name: 'get_journey_suggestions', arguments: {} })) as any;
       const t = parseToolResult(
@@ -422,7 +417,7 @@ describe('journey read tools', () => {
 
 describe('journey write tools', () => {
   it('update_journey applies the change and refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
@@ -439,7 +434,7 @@ describe('journey write tools', () => {
   });
 
   it('update_journey switches the preparation of recorded days on and refuses a value that is no boolean', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const updated = parseToolResult(
@@ -458,7 +453,7 @@ describe('journey write tools', () => {
   });
 
   it('update_journey answers what the changed settings held before, flags as booleans, and only those', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h, 'Before');
       const updated = parseToolResult(
@@ -478,7 +473,7 @@ describe('journey write tools', () => {
   });
 
   it('update_journey takes the trip tracks and the cover gradient the REST route takes, and clears a subtitle', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const updated = parseToolResult(
@@ -506,7 +501,7 @@ describe('journey write tools', () => {
   });
 
   it('delete_journey removes it and refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
@@ -523,8 +518,8 @@ describe('journey write tools', () => {
   });
 
   it('add_journey_trip links a trip, remove_journey_trip unlinks it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const added = parseToolResult(
@@ -545,8 +540,8 @@ describe('journey write tools', () => {
   });
 
   it('add_journey_trip refuses a foreign journey; remove_journey_trip is idempotent but refuses one', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
@@ -582,7 +577,7 @@ describe('journey write tools', () => {
   });
 
   it('create_journey_entry refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -594,7 +589,7 @@ describe('journey write tools', () => {
   });
 
   it('update_journey_entry and delete_journey_entry refuse an unknown entry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       expect(
         (
@@ -616,7 +611,7 @@ describe('journey write tools', () => {
   });
 
   it('delete_journey_entry removes an owned entry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = (
@@ -638,7 +633,7 @@ describe('journey write tools', () => {
   });
 
   it('reorder_journey_entries reorders, and rejects IDs from outside the journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const a = (
@@ -678,7 +673,7 @@ describe('journey write tools', () => {
   });
 
   it('reorder_journey_entry_photos refuses ids that are not the entry photos (#824)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = (
@@ -701,8 +696,8 @@ describe('journey write tools', () => {
   });
 
   it('contributor tools add, re-role and remove; each refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
-    const { user: guest } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: guest } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
@@ -759,7 +754,7 @@ describe('journey write tools', () => {
   });
 
   it('update_journey_preferences refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -824,7 +819,7 @@ async function seedGalleryPhoto(journeyId: number, entryId?: number): Promise<nu
 
 describe('journey photo tools', () => {
   it('link_journey_photo and unlink_journey_photo put a gallery photo on an entry and take it off, telling the tabs', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, { title: 'Vik' });
@@ -858,7 +853,7 @@ describe('journey photo tools', () => {
   });
 
   it('move_journey_photos moves photos between entries of a journey and refuses one of another journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const from = await seedEntry(h, journey.id, { title: 'Vik' });
@@ -882,7 +877,7 @@ describe('journey photo tools', () => {
   });
 
   it('set_journey_photo_caption answers the caption it replaced and refuses a photo of another journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const other = await seedJourney(h, 'Other');
@@ -905,7 +900,7 @@ describe('journey photo tools', () => {
 
 describe('journey entry fields', () => {
   it('create_journey_entry persists the place, coordinates, weather, tags, verdict, visibility and type', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, {
@@ -933,7 +928,7 @@ describe('journey entry fields', () => {
   });
 
   it('create_journey_entry accepts a one-sided verdict and fills the other side in', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, { pros_cons: { pros: ['cheap'] } });
@@ -942,7 +937,7 @@ describe('journey entry fields', () => {
   });
 
   it('create_journey_entry defaults to a private entry when neither is given', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const row = await entryRow((await seedEntry(h, journey.id)).id);
@@ -952,7 +947,7 @@ describe('journey entry fields', () => {
   });
 
   it('create_journey_entry refuses coordinates off the globe and an unknown visibility', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       for (const bad of [{ location_lat: 91 }, { location_lng: -181 }, { visibility: 'friends' }]) {
@@ -969,7 +964,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry corrects the place and its coordinates', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, {
@@ -996,7 +991,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry sets weather, tags, the verdict, visibility and sort_order', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id);
@@ -1028,7 +1023,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry promotes a trip-derived skeleton to a real entry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, { type: 'skeleton', title: 'Blue Lagoon' });
@@ -1040,7 +1035,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry clears a field on null and leaves the omitted ones alone', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, {
@@ -1081,7 +1076,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry answers what the named fields held before, decoded, and nothing for the rest', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id, {
@@ -1112,7 +1107,7 @@ describe('journey entry fields', () => {
    * does too, and get_journey_stats is where the effect shows.
    */
   it('update_journey_entry switches a stop out of the figures and back', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const airport = await seedEntry(h, journey.id, {
@@ -1165,7 +1160,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry refuses a stats_excluded that is not a boolean', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id);
@@ -1182,7 +1177,7 @@ describe('journey entry fields', () => {
   });
 
   it('update_journey_entry refuses an unknown visibility and an out-of-range longitude', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       const entry = await seedEntry(h, journey.id);
@@ -1223,7 +1218,7 @@ describe('Tool: get_journey_stats', () => {
   }
 
   it('answers with the distance, days and countries get_journey does not carry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await twoStopJourney(h);
 
@@ -1255,7 +1250,7 @@ describe('Tool: get_journey_stats', () => {
   });
 
   it('leaves the route out unless include_route asks for it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await twoStopJourney(h);
 
@@ -1280,7 +1275,7 @@ describe('Tool: get_journey_stats', () => {
   });
 
   it('refuses a journey the caller cannot see', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       expect(
@@ -1297,7 +1292,7 @@ describe('Tool: get_journey_stats', () => {
 
 describe('journey share-link tools', () => {
   it('creates, reads and revokes the link', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       // No link yet — the tool answers with a null shareLink, not an error.
@@ -1336,7 +1331,7 @@ describe('journey share-link tools', () => {
   });
 
   it('passes the share flags through, and an omitted flag keeps its value', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await seedJourney(h);
       await h.client.callTool({
@@ -1358,8 +1353,8 @@ describe('journey share-link tools', () => {
   });
 
   it('get_journey_share_link is owner-only, like create and delete', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: guest } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: guest } = await makeUser(orm);
     let journeyId = 0;
     await withHarness(owner.id, async (h) => {
       const journey = await seedJourney(h);
@@ -1382,7 +1377,7 @@ describe('journey share-link tools', () => {
   });
 
   it('every share tool refuses a foreign journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { journeyId } = await foreignJourney();
     await withHarness(user.id, async (h) => {
       for (const name of ['get_journey_share_link', 'create_journey_share_link', 'delete_journey_share_link']) {
@@ -1415,7 +1410,7 @@ describe('demo mode', () => {
 
   it.each(WRITES)('%s is blocked for a demo user', async (name, args) => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name, arguments: args });
       expect(result.isError).toBe(true);
@@ -1424,7 +1419,7 @@ describe('demo mode', () => {
 
   it('list_journeys still answers for a demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(await h.client.callTool({ name: 'list_journeys', arguments: {} })) as any;
       expect(Array.isArray(data.journeys)).toBe(true);
@@ -1451,7 +1446,7 @@ async function createJourney(h: McpHarness, title = 'Eurotrip'): Promise<any> {
 
 describe('Resource: trek://journeys', () => {
   it('returns the journeys of the current user', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await createJourney(h);
       const data = parseResourceResult(await h.client.readResource({ uri: 'trek://journeys' })) as any[];
@@ -1463,7 +1458,7 @@ describe('Resource: trek://journeys', () => {
 
 describe('Resource: trek://journeys/{journeyId}', () => {
   it('returns the hydrated journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await createJourney(h);
       const data = parseResourceResult(await h.client.readResource({ uri: `trek://journeys/${journey.id}` })) as any;
@@ -1474,8 +1469,8 @@ describe('Resource: trek://journeys/{journeyId}', () => {
   });
 
   it('answers the legacy denial payload for a bad id and an inaccessible journey', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     await withHarness(other.id, async (hOther) => {
       const foreign = await createJourney(hOther, 'Private');
       await withHarness(user.id, async (h) => {
@@ -1490,7 +1485,7 @@ describe('Resource: trek://journeys/{journeyId}', () => {
 
 describe('Resource: trek://journeys/{journeyId}/entries', () => {
   it('returns the enriched entries', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await createJourney(h);
       await h.client.callTool({
@@ -1509,7 +1504,7 @@ describe('Resource: trek://journeys/{journeyId}/entries', () => {
 
 describe('Resource: trek://journeys/{journeyId}/contributors', () => {
   it('returns the contributors, with the legacy [] fallback shape', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const journey = await createJourney(h);
       const data = parseResourceResult(
@@ -1523,15 +1518,15 @@ describe('Resource: trek://journeys/{journeyId}/contributors', () => {
 
 describe('Journey resource gating', () => {
   it('does not register the resources when the journey addon is off', async () => {
-    const { user } = createUser(testDb);
-    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
+    const { user } = await makeUser(orm);
+    await setAddonEnabled(orm, ADDON_IDS.JOURNEY, false);
     await withHarness(user.id, async (h) => {
       await expect(h.client.readResource({ uri: 'trek://journeys' })).rejects.toThrow();
     });
   });
 
   it('does not register the resources without the journey:read scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const h = await createMcpHarness({ realtime, userId: user.id, scopes: ['trips:read'] });
     try {
       await expect(h.client.readResource({ uri: 'trek://journeys' })).rejects.toThrow();

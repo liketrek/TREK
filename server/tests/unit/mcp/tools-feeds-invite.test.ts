@@ -7,25 +7,21 @@
  * interesting part: trip access before permission, share_manage on reads as
  * well as writes, and demo mode refused on every write.
  */
-import { db as testDb } from '../../../src/db/database';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { TripInviteTokens } from '../../../src/db/entities/TripInviteTokens.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
+import { addTripMember, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const BASE = 'https://trek.example';
 
@@ -42,10 +38,10 @@ function textOf(result: ToolResult): string {
   return content.find((c) => c.type === 'text')?.text ?? '';
 }
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp()).get(MikroORM);
 });
 
 async function tripToken(tripId: number): Promise<string | null> {
@@ -75,12 +71,12 @@ interface InviteResult {
 }
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   // trip_invite_tokens is not in the shared helper's RESET_TABLES, and trip ids
   // restart after a DELETE-based reset, so a leftover row would attach itself
   // to the next test's trip.
   await deleteRows(orm, TripInviteTokens);
-  // The permission levels are cached in module state that resetTestDb knows
+  // The permission levels are cached in module state that resetDatabase knows
   // nothing about, so the one test that lowers share_manage would otherwise
   // keep the lowered level alive for every test after it.
   await invalidatePermissionsCache();
@@ -90,8 +86,7 @@ beforeEach(async () => {
 
 afterAll(async () => {
   delete process.env.APP_URL;
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp()).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -109,8 +104,8 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: get_trip_calendar_feed', () => {
   it('answers null while the feed is off and the subscribable URL once it is on', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const off = payload<FeedResult>(
         await h.client.callTool({ name: 'get_trip_calendar_feed', arguments: { tripId: trip.id } }),
@@ -126,10 +121,10 @@ describe('Tool: get_trip_calendar_feed', () => {
   });
 
   it('reads the feed of a trip the user is a member of once share_manage is lowered to trip_member', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     await insertRow(orm, AppSettings, { key: 'perm_share_manage', value: 'trip_member' });
     await withHarness(owner.id, async (h) => {
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
@@ -145,8 +140,8 @@ describe('Tool: get_trip_calendar_feed', () => {
 
 describe('Tool: enable_trip_calendar_feed', () => {
   it('mints one token and hands back the same URL on a second call', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const first = payload<FeedResult>(
         await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } }),
@@ -166,8 +161,8 @@ describe('Tool: enable_trip_calendar_feed', () => {
 
 describe('Tool: rotate_trip_calendar_feed', () => {
   it('replaces the token so the old URL stops resolving', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
       const before = await tripToken(trip.id);
@@ -183,8 +178,8 @@ describe('Tool: rotate_trip_calendar_feed', () => {
 
 describe('Tool: disable_trip_calendar_feed', () => {
   it('clears the token and answers a null URL', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_trip_calendar_feed', arguments: { tripId: trip.id } });
       const result = payload<FeedResult>(
@@ -205,9 +200,9 @@ describe('trip calendar feed gates', () => {
   ];
 
   it.each(TRIP_FEED_TOOLS)('%s refuses a trip the user cannot reach', async (name) => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const foreign = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const foreign = await makeTrip(orm, other.id);
     await updateRows(orm, Trips, { id: foreign.id }, { feed_token: 'foreign-token' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name, arguments: { tripId: foreign.id } });
@@ -220,7 +215,7 @@ describe('trip calendar feed gates', () => {
   });
 
   it.each(TRIP_FEED_TOOLS)('%s refuses a trip id that does not exist', async (name) => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name, arguments: { tripId: 987654 } });
       expect(result.isError).toBe(true);
@@ -229,10 +224,10 @@ describe('trip calendar feed gates', () => {
   });
 
   it.each(TRIP_FEED_TOOLS)('%s refuses a member without share_manage', async (name) => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     await updateRows(orm, Trips, { id: trip.id }, { feed_token: 'owner-token' });
     await withHarness(member.id, async (h) => {
       const result = await h.client.callTool({ name, arguments: { tripId: trip.id } });
@@ -246,8 +241,8 @@ describe('trip calendar feed gates', () => {
     '%s refuses a demo account',
     async (name) => {
       process.env.DEMO_MODE = 'true';
-      const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
-      const trip = createTrip(testDb, demo.id);
+      const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
+      const trip = await makeTrip(orm, demo.id);
       await updateRows(orm, Trips, { id: trip.id }, { feed_token: 'demo-token' });
       await withHarness(demo.id, async (h) => {
         const result = await h.client.callTool({ name, arguments: { tripId: trip.id } });
@@ -265,7 +260,7 @@ describe('trip calendar feed gates', () => {
 
 describe('Tool: get_all_trips_calendar_feed', () => {
   it('answers null while the feed is off and the user URL once it is on', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const off = payload<FeedResult>(await h.client.callTool({ name: 'get_all_trips_calendar_feed', arguments: {} }));
       expect(off.feed_url).toBeNull();
@@ -279,8 +274,8 @@ describe('Tool: get_all_trips_calendar_feed', () => {
 
 describe('Tool: enable_all_trips_calendar_feed', () => {
   it('mints the calling user their own token and leaves everybody else alone', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const first = payload<FeedResult>(
         await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} }),
@@ -300,7 +295,7 @@ describe('Tool: enable_all_trips_calendar_feed', () => {
 
 describe('Tool: rotate_all_trips_calendar_feed', () => {
   it('replaces the token so the old URL stops resolving', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} });
       const before = await userToken(user.id);
@@ -316,7 +311,7 @@ describe('Tool: rotate_all_trips_calendar_feed', () => {
 
 describe('Tool: disable_all_trips_calendar_feed', () => {
   it('clears the token and answers a null URL', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'enable_all_trips_calendar_feed', arguments: {} });
       const result = payload<FeedResult>(
@@ -330,7 +325,7 @@ describe('Tool: disable_all_trips_calendar_feed', () => {
 
 describe('calendar feed tools, the lean variant (#2602)', () => {
   it('tell a model how to ask for a feed without the per-day summaries', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const { tools } = await h.client.listTools();
       for (const name of [
@@ -352,7 +347,7 @@ describe('all-trips calendar feed gates', () => {
     '%s refuses a demo account',
     async (name) => {
       process.env.DEMO_MODE = 'true';
-      const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+      const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
       await updateRows(orm, Users, { id: demo.id }, { feed_token: 'demo-user-token' });
       await withHarness(demo.id, async (h) => {
         const result = await h.client.callTool({ name, arguments: {} });
@@ -370,8 +365,8 @@ describe('all-trips calendar feed gates', () => {
 
 describe('Tool: get_trip_invite_link', () => {
   it('answers null without a link, then the token and the join URL', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const none = payload<InviteResult>(
         await h.client.callTool({ name: 'get_trip_invite_link', arguments: { tripId: trip.id } }),
@@ -391,8 +386,8 @@ describe('Tool: get_trip_invite_link', () => {
 
 describe('Tool: create_trip_invite_link', () => {
   it('stores the token against the trip and audits who minted it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = payload<InviteResult>(
         await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }),
@@ -409,9 +404,9 @@ describe('Tool: create_trip_invite_link', () => {
   });
 
   it('takes an expiry as a number or as the digits-only string the contract allows', async () => {
-    const { user } = createUser(testDb);
-    const numeric = createTrip(testDb, user.id);
-    const stringy = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const numeric = await makeTrip(orm, user.id);
+    const stringy = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'create_trip_invite_link',
@@ -431,9 +426,9 @@ describe('Tool: create_trip_invite_link', () => {
   });
 
   it('reads a non-positive or empty expiry as no expiry at all', async () => {
-    const { user } = createUser(testDb);
-    const zero = createTrip(testDb, user.id);
-    const blank = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const zero = await makeTrip(orm, user.id);
+    const blank = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: zero.id, expires_in_days: 0 } });
       await h.client.callTool({
@@ -446,8 +441,8 @@ describe('Tool: create_trip_invite_link', () => {
   });
 
   it('rejects an expiry the shared contract does not admit', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_trip_invite_link',
@@ -459,8 +454,8 @@ describe('Tool: create_trip_invite_link', () => {
   });
 
   it('rotates in place: a second call replaces the token and keeps one row', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const first = payload<InviteResult>(
         await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } }),
@@ -477,8 +472,8 @@ describe('Tool: create_trip_invite_link', () => {
 
 describe('Tool: delete_trip_invite_link', () => {
   it('removes the link and audits the revocation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } });
       const result = payload<{ success: boolean }>(
@@ -496,9 +491,9 @@ describe('trip invite link gates', () => {
   const INVITE_TOOLS = ['get_trip_invite_link', 'create_trip_invite_link', 'delete_trip_invite_link'];
 
   it.each(INVITE_TOOLS)('%s refuses a trip the user cannot reach', async (name) => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const foreign = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const foreign = await makeTrip(orm, other.id);
     await withHarness(other.id, async (h) => {
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: foreign.id } });
     });
@@ -512,7 +507,7 @@ describe('trip invite link gates', () => {
   });
 
   it.each(INVITE_TOOLS)('%s refuses a trip id that does not exist', async (name) => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name, arguments: { tripId: 987654 } });
       expect(result.isError).toBe(true);
@@ -521,10 +516,10 @@ describe('trip invite link gates', () => {
   });
 
   it.each(INVITE_TOOLS)('%s refuses a member without share_manage', async (name) => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     await withHarness(owner.id, async (h) => {
       await h.client.callTool({ name: 'create_trip_invite_link', arguments: { tripId: trip.id } });
     });
@@ -539,8 +534,8 @@ describe('trip invite link gates', () => {
 
   it.each(['create_trip_invite_link', 'delete_trip_invite_link'])('%s refuses a demo account', async (name) => {
     process.env.DEMO_MODE = 'true';
-    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
-    const trip = createTrip(testDb, demo.id);
+    const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
+    const trip = await makeTrip(orm, demo.id);
     await insertRow(orm, TripInviteTokens, { trip: trip.id, token: 'seeded-token', createdByRef: demo.id });
     await withHarness(demo.id, async (h) => {
       const result = await h.client.callTool({ name, arguments: { tripId: trip.id } });
