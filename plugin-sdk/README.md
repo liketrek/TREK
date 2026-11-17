@@ -193,21 +193,41 @@ What changes on Postgres:
   of `AUTOINCREMENT`, `now()` instead of `datetime('now')`, `ON CONFLICT` works on both.
   A `bigint` comes back as a number, and one past 2^53 is refused. A boolean comes back as
   `true`/`false`, not `1`/`0`.
+- **Not on a privileged role.** While TREK connects to Postgres as a superuser, a member of
+  one, or another role that could reach the database server (the same roles TREK refuses
+  restores for), every `ctx.db` call fails with an error that starts `Plugin databases
+  (db:own) are refused on Postgres`, and TREK's boot log says so. Your SQL would run as
+  that role. The admin fixes it by connecting TREK as a role that owns its database and is
+  not a superuser; your plugin needs no change.
 - **Your SQL stays in your schema.** Only your schema is on the `search_path`, and a
   statement is refused before it runs when it names another schema (`public.users`,
   another plugin's), anything starting with `pg_` or `information_schema`, or a function
   that runs SQL from a string, reads settings or reaches an object by a name in a string
-  (`query_to_xml`, `ts_stat`, `set_config`, `current_setting`, `nextval`, `setval`, the
-  `reg*` casts, `lo_*`, `dblink`). An alias that shares a schema's name is refused too, so
-  pick another.
+  (`query_to_xml`, `ts_stat`, `set_config`, `current_setting`, `nextval`, `setval`,
+  `has_table_privilege` and the other `has_*_privilege` functions, `currtid2`, `to_reg*`,
+  `lo_*`, `dblink`). The types that look an object up by name are refused in every
+  spelling: `regclass`, `regtype`, `regproc`, `regprocedure`, `regoper`, `regoperator`,
+  `regconfig`, `regdictionary`, `regnamespace`, `regrole`, `regcollation` and their arrays
+  (`'x'::regtype`, `CAST('x' AS regtype)`, `regtype 'x'`). An alias that shares a schema's
+  name is refused too, so pick another.
+- **You change your own objects only.** Right before an `ALTER`, `DROP`, `REFRESH`,
+  `TRUNCATE` or `CREATE INDEX ... ON` runs, Postgres resolves the object it names (and the
+  tables a `CREATE`/`ALTER TABLE` ties to with `REFERENCES`, `INHERITS`, `PARTITION OF`,
+  `ATTACH`/`DETACH PARTITION` or `INHERIT`), and the statement is refused unless each one
+  that exists is in your schema. Postgres searches its catalog before your schema, so
+  `ALTER TYPE int4 ...` or `DROP TYPE text` names the built-in type and is refused; name
+  your own types so they do not clash with built-in ones.
 - **Statements**: `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `WITH`, `VALUES`,
   `TABLE`, `TRUNCATE`, `REFRESH`, and `CREATE`/`ALTER`/`DROP` of a table, index, view,
-  materialized view, sequence or type. No functions, triggers, procedures, `DO` blocks,
-  temporary tables, `SELECT ... INTO`, `COPY`, `SET`, transaction control (`tx()` makes a
-  batch atomic), `WITH RECURSIVE`, and no `ALTER` of a schema, owner or tablespace.
-  Dollar-quoted strings, `E'...'` and `U&'...'` are refused; write plain single-quoted
-  strings. The words `TEMP` and `TEMPORARY` are refused anywhere outside a string (quote a
-  column named `"temp"`), and so is `INTO` anywhere but `INSERT INTO` and `MERGE INTO`.
+  materialized view, sequence or type (a composite, enum or range type, `CREATE TYPE x AS
+  ...`). No functions, triggers, procedures, `DO` blocks, base types, temporary tables,
+  `SELECT ... INTO`, `COPY`, `SET`, transaction control (`tx()` makes a batch atomic),
+  `WITH RECURSIVE`, and no `ALTER` of a schema, owner or tablespace. Dollar-quoted strings,
+  `E'...'` and `U&'...'` are refused; write plain single-quoted strings. `CREATE TEMP` and
+  `CREATE TEMPORARY` (also after `OR REPLACE`, `LOCAL` or `GLOBAL`) are refused, and so is
+  `INTO` anywhere but right after the `INSERT` or `MERGE` that is the statement's verb (or
+  the verb of a `WITH` query's body): `SELECT 1 insert INTO t` is refused, because `insert`
+  there is a column alias. A column named `temp` needs no quoting.
   Numbers are decimal: `0x1F`, `0o17`, `0b1` and `1_000` are refused, because Postgres
   before 16 reads them differently. Outside strings, quoted names and comments, whitespace is
   space, tab, newline, carriage return or form feed; any other control character or non-ASCII
@@ -216,11 +236,22 @@ What changes on Postgres:
 - **One statement at a time.** Each statement goes to Postgres on its own, over the protocol
   that runs exactly one: `query` and each `tx` entry take one statement, and an `exec`
   script is split at its semicolons and sent statement by statement.
+- **No NUL in text.** Postgres text cannot hold the character U+0000. A bound argument
+  holding one (a string, or a string in an array) and a `migrate` id holding one are refused
+  with an error that names it, and so is SQL text with one anywhere, a string literal
+  included; TREK never drops or changes the character, since `'a\0b'` and `'ab'` are
+  different keys. Bind binary data as a `Buffer` into a `bytea` column, and use another
+  separator for composite keys. On SQLite your arguments are bound exactly as you send
+  them, NUL included, as they always were.
 - **Limits**: the same row cap and quota as on SQLite. The 2 s budget is a
   `statement_timeout` here, so it also stops a single long statement, and an `exec` with
-  bound args is held to it too; `migrate` stays untimed. A write that takes your schema past
-  256 MB and grows it is rolled back; a delete still runs. Rows deleted or rolled back keep
-  their space until Postgres vacuums them.
+  bound args is held to it too; `migrate` stays untimed. The quota counts every relation of
+  your schema (tables, indexes, sequences, materialized views and each table's TOAST
+  storage), and a schema may hold at most 5,000 catalog objects (relations, types, each
+  table brings its row type and that type's array, constraints and enum labels). A write
+  that takes your schema past 256 MB or past 5,000 objects and grows it there is rolled
+  back; a delete or a drop still runs. Rows deleted or rolled back keep their space until
+  Postgres vacuums them.
 
 ## Settings
 
