@@ -90,16 +90,14 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
    * separately-awaited calls — two concurrent `meta.set` calls for two
    * DIFFERENT new keys on the same (plugin, entity) could both read
    * `count < max` before either's write landed, so a 100-key cap let a live
-   * burst land 130 rows. Wrapped in `this.getEntityManager().transactional`
-   * — the same MikroORM API `UnitOfWork.transactional` itself calls (see
-   * that class's own docstring on why its default NESTED/savepoint
-   * propagation is safe even when a caller is already inside a transaction)
-   * — so `MetaRpc` needs no new constructor dependency: this fix wave found
-   * `tests/helpers/plugin-host.ts` (which hand-constructs `MetaRpc`) mid-edit
-   * by a concurrent Plan 4 task and could not touch its construction site,
-   * so the fix stays entirely inside the repository it already owns.
-   * Returns whether the write happened; `false` means a NEW key was blocked
-   * by the cap (the caller maps that to `BadParams`, same message as before).
+   * burst land 130 rows. The three run in one transaction, which keeps them
+   * together on SQLite's single writer. On Postgres two transactions on two
+   * pool connections both read the same count, and only the engine's write
+   * lock, which `UnitOfWork` takes, puts them one after the other, so the
+   * caller runs this inside `UnitOfWork.transactional` (`MetaRpc#set`), and
+   * the transaction here becomes a savepoint of that one. Returns whether the
+   * write happened; `false` means a NEW key was blocked by the cap (the
+   * caller maps that to `BadParams`, same message as before).
    */
   async upsertValueCapped(
     pluginId: string,

@@ -22,6 +22,7 @@ import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { PluginRpcRegistryService } from '../../../src/nest-rpc/rpc-kit/registry.service';
 import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { UnreadableLlmResponse } from '../../../src/nest/llm-parse/clients/openai-compatible.client';
 import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.resolver';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
@@ -397,9 +398,11 @@ const usersRepo = {
 // params are gone: canAccessTrip now reads through the TripsRepository each
 // already injects (`tripsRepo` above, findAccessible-only).
 const guards = new PluginGuards(tripsRepo, permissions, addons, usersRepo);
+/** The capped writes run in a unit of work; the stand-in repositories here are atomic on their own. */
+const uow = { transactional: <T>(fn: () => Promise<T>) => fn() } as unknown as UnitOfWork;
 const registry = createTestPluginRegistry([
   new DbRpc(userSettings),
-  new MetaRpc(guards, metaRepo, tripsRepo, placesRepo, daysRepo, reservationsRepo, dayAccommodationsRepo),
+  new MetaRpc(guards, metaRepo, tripsRepo, placesRepo, daysRepo, reservationsRepo, dayAccommodationsRepo, uow),
   new HostSurfaceRpc(
     realtime,
     notifications,
@@ -410,6 +413,7 @@ const registry = createTestPluginRegistry([
     usersRepo,
     tripsRepo,
     scheduledTasksRepo,
+    uow,
   ),
 ]);
 const factory = new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService);
