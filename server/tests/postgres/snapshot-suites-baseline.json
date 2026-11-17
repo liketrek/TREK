@@ -1,9 +1,6 @@
 [
   "tests/unit/mcp/tools-notifications.test.ts",
   "tests/unit/mcp/tools-packing-advanced.test.ts",
-  "tests/unit/mcp/tools-transports.test.ts",
-  "tests/unit/mcp/tools-trip-members.test.ts",
-  "tests/unit/mcp/tools-trip-warnings.test.ts",
   "tests/unit/mcp/tools-trips.test.ts",
   "tests/unit/mcp/tools-vacay.test.ts",
   "tests/unit/nest/route-inventory.test.ts",

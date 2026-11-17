@@ -4,7 +4,6 @@
  * lat/lng/timezone from the airport database (the columns are NOT NULL), and
  * endpoints that can't be resolved produce a clean error instead of a SQL crash.
  */
-import { db as testDb } from '../../../src/db/database';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
@@ -12,22 +11,19 @@ import { Reservations } from '../../../src/db/entities/Reservations.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
 import { makeBudgetItem } from '../../helpers/factories/budget';
+import { makePlace } from '../../helpers/factories/places';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
-import { makeDay } from '../../helpers/factories/trips';
+import { makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { oneByOne } from '../../helpers/one-by-one';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -37,21 +33,20 @@ async function setMetadata(metadata: string, reservationId: number): Promise<voi
   await updateRows(orm, Reservations, { id: reservationId }, { metadata });
 }
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -88,8 +83,8 @@ const foreignDayOn = async (tripId: number, date: string) => (await makeDay(orm,
 
 describe('Tool: create_transport', () => {
   it('backfills lat/lng/timezone for code-only flight endpoints', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -109,8 +104,8 @@ describe('Tool: create_transport', () => {
   });
 
   it('keeps manually-supplied coordinates and the caller timezone', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -132,8 +127,8 @@ describe('Tool: create_transport', () => {
   });
 
   it('errors on an unresolvable airport code instead of crashing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -150,8 +145,8 @@ describe('Tool: create_transport', () => {
   });
 
   it('errors on an endpoint missing both coordinates and a code', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -168,8 +163,8 @@ describe('Tool: create_transport', () => {
   });
 
   it('creates a transport with no endpoints', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -183,8 +178,8 @@ describe('Tool: create_transport', () => {
 
 describe('Tool: update_transport', () => {
   it('backfills coords when replacing endpoints', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -211,8 +206,8 @@ describe('Tool: update_transport', () => {
   });
 
   it('leaves endpoints untouched when not provided', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -231,8 +226,8 @@ describe('Tool: update_transport', () => {
   });
 
   it('re-files a linked expense on a type change in the same write, as REST and the plugin RPC do', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -289,9 +284,9 @@ describe('Tool: update_transport', () => {
 
 describe('Transport tools: access and validation', () => {
   it('create_transport refuses a trip the caller cannot see', async () => {
-    const { user } = createUser(testDb);
-    const { user: stranger } = createUser(testDb, { username: 'stranger' });
-    const trip = createTrip(testDb, stranger.id);
+    const { user } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm, { username: 'stranger' });
+    const trip = await makeTrip(orm, stranger.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -303,9 +298,9 @@ describe('Transport tools: access and validation', () => {
   });
 
   it('create_transport rejects a start_day_id from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreignDay = await foreignDayOn(otherTrip.id, '2026-07-01');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -320,9 +315,9 @@ describe('Transport tools: access and validation', () => {
   });
 
   it('create_transport rejects an end_day_id from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreignDay = await foreignDayOn(otherTrip.id, '2026-07-02');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -339,8 +334,8 @@ describe('Transport tools: access and validation', () => {
 
 describe('Transport tools: the price link', () => {
   it('create_transport with a price creates the budget item and broadcasts it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -357,8 +352,8 @@ describe('Transport tools: the price link', () => {
   });
 
   it('create_transport falls back to the transport type as the budget category', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -372,8 +367,8 @@ describe('Transport tools: the price link', () => {
   });
 
   it('books a ticket with changes as one booking with legs and one cost (#2895)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -405,8 +400,8 @@ describe('Transport tools: the price link', () => {
   });
 
   it('warns when a segment repeats the fare an earlier booking of the same reference carries (#2895)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const segment = (title: string, extra: Record<string, unknown> = {}) =>
         h.client.callTool({
@@ -450,8 +445,8 @@ describe('Transport tools: the price link', () => {
   });
 
   it('compares an earlier cost in its own currency against the trip currency after a switch', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const segment = (title: string) =>
         h.client.callTool({
@@ -475,8 +470,8 @@ describe('Transport tools: the price link', () => {
   });
 
   it('create_reservation warns about a repeated booking total too', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const room = (title: string) =>
         h.client.callTool({
@@ -489,8 +484,8 @@ describe('Transport tools: the price link', () => {
   });
 
   it('create_transport with price 0 records no budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -504,8 +499,8 @@ describe('Transport tools: the price link', () => {
 
 describe('Tool: update_transport (guards)', () => {
   it('404s an unknown reservation id', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_transport',
@@ -517,8 +512,8 @@ describe('Tool: update_transport (guards)', () => {
   });
 
   it('refuses a reservation that is not a transport type', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_reservation',
@@ -538,9 +533,9 @@ describe('Tool: update_transport (guards)', () => {
   });
 
   it('rejects a start_day_id from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreignDay = await foreignDayOn(otherTrip.id, '2026-08-01');
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
@@ -561,8 +556,8 @@ describe('Tool: update_transport (guards)', () => {
   });
 
   it('errors on an unresolvable airport code when replacing endpoints', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_transport',
@@ -586,8 +581,8 @@ describe('Tool: update_transport (guards)', () => {
 
 describe('Tool: delete_transport', () => {
   it('deletes the booking and broadcasts it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_transport',
@@ -608,8 +603,8 @@ describe('Tool: delete_transport', () => {
   });
 
   it('takes every expense linked to the transport with it and announces each one (#2084)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_transport',
@@ -652,11 +647,11 @@ describe('Tool: delete_transport', () => {
   // tool used to take the stay along without saying so, so the planner's hotel
   // block outlived it until a reload; REST always sent accommodation:deleted.
   it('takes along the stay a booking retyped from a hotel still carries, and says so as REST does', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id, { day_number: 1 });
-    const day2 = createDay(testDb, trip.id, { day_number: 2 });
-    const hotel = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id, { day_number: 1 });
+    const day2 = await makeDay(orm, trip.id, { day_number: 2 });
+    const hotel = await makePlace(orm, trip.id, { name: 'Grand Hotel' });
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_reservation',
@@ -691,8 +686,8 @@ describe('Tool: delete_transport', () => {
   });
 
   it('404s an unknown reservation id', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_transport',
@@ -704,9 +699,9 @@ describe('Tool: delete_transport', () => {
   });
 
   it('refuses a trip the caller cannot see', async () => {
-    const { user } = createUser(testDb);
-    const { user: stranger } = createUser(testDb, { username: 'stranger2' });
-    const trip = createTrip(testDb, stranger.id);
+    const { user } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm, { username: 'stranger2' });
+    const trip = await makeTrip(orm, stranger.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_transport',
@@ -726,8 +721,8 @@ describe('Transport tools: the booking notice and the AirTrail push', () => {
   it('create, update and delete each tell the fellow travellers, as the booking routes do', async () => {
     const notify = vi.spyOn(ReservationsService.prototype, 'notifyBookingChange').mockResolvedValue(undefined);
     try {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
       await withHarness(user.id, async (h) => {
         const created = parseToolResult(
           await h.client.callTool({
@@ -757,8 +752,8 @@ describe('Transport tools: the booking notice and the AirTrail push', () => {
   it('pushes an edit of a linked AirTrail flight back to AirTrail, and only of a linked one', async () => {
     const push = vi.spyOn(AirtrailLinkService.prototype, 'pushReservationToAirtrail').mockResolvedValue(undefined);
     try {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
       let linked = 0;
       await withHarness(user.id, async (h) => {
         const create = async (title: string) =>
@@ -798,9 +793,9 @@ describe('Transport tools: the booking notice and the AirTrail push', () => {
 
 describe('Tool: create_transport (multi-leg)', () => {
   it('stores the per-leg times of the reported AMS to CDG to FCO stopover', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2026-02-04' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2026-02-04' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -832,8 +827,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('mirrors the flat metadata keys off the first and last leg', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -860,8 +855,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('stores a per-segment booking reference and leaves the booking-level one alone (#1943)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -891,8 +886,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('never overwrites a flat key the caller set itself', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -917,8 +912,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('fills from/to from the endpoint codes when the leg omits them', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -944,8 +939,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('accepts a multi-leg train and mirrors its flat keys', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -979,8 +974,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects a leg count that does not match the endpoints', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1003,8 +998,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects a single leg, which no reader would treat as multi-segment', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1022,8 +1017,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects legs on a transport type that has none', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1043,10 +1038,10 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects a leg day that belongs to another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const foreignDay = createDay(testDb, otherTrip.id, { date: '2026-02-04' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const foreignDay = await makeDay(orm, otherTrip.id, { date: '2026-02-04' });
     await withHarness(user.id, async (h) => {
       const depResult = await h.client.callTool({
         name: 'create_transport',
@@ -1081,8 +1076,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects a leg airport that contradicts its endpoint', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const wrongTo = await h.client.callTool({
         name: 'create_transport',
@@ -1117,8 +1112,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects a leg time that contradicts an endpoint time already set', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const withTimes = [
       { ...stopoverEndpoints[0], local_time: '09:00' },
       { ...stopoverEndpoints[1], local_time: '11:30' },
@@ -1158,10 +1153,10 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('rejects a span that contradicts the first or last leg', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const dayOne = createDay(testDb, trip.id, { date: '2026-02-04' });
-    const dayTwo = createDay(testDb, trip.id, { date: '2026-02-05' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const dayOne = await makeDay(orm, trip.id, { date: '2026-02-04' });
+    const dayTwo = await makeDay(orm, trip.id, { date: '2026-02-05' });
     await withHarness(user.id, async (h) => {
       const startClash = await h.client.callTool({
         name: 'create_transport',
@@ -1200,8 +1195,8 @@ describe('Tool: create_transport (multi-leg)', () => {
   });
 
   it('refuses segments smuggled through metadata.legs and names the legs parameter', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1238,8 +1233,8 @@ describe('Tool: update_transport (multi-leg)', () => {
     ) as any;
 
   it('keeps the stored metadata and the day-plan positions when only legs are sent', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       // What an AirTrail import leaves behind: sync ids plus per-leg planner positions.
@@ -1277,8 +1272,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('keeps a per-segment booking reference through a legs-only update (#1943)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       const result = await h.client.callTool({
@@ -1301,8 +1296,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('uses the supplied metadata as the base when both are sent', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       const result = await h.client.callTool({
@@ -1326,8 +1321,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('leaves the metadata alone when neither legs nor metadata are sent', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       const before = await storedMetadata(created.reservation.id);
@@ -1340,8 +1335,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('counts the stored endpoints when the caller does not replace them', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -1368,8 +1363,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('leaves the endpoint rows untouched when the legs change nothing about them', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       const idsBefore = await endpointIds(created.reservation.id);
@@ -1390,8 +1385,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('fills the endpoint times when the stored endpoints have none', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -1416,8 +1411,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('survives a booking whose stored metadata is not valid JSON', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       await setMetadata('not json at all', created.reservation.id);
@@ -1438,8 +1433,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('recovers legs from double-encoded metadata instead of losing the positions', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       await setMetadata(
@@ -1471,8 +1466,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('rejects legs on a booking that is not a flight or train', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -1497,8 +1492,8 @@ describe('Tool: update_transport (multi-leg)', () => {
   });
 
   it('refuses segments smuggled through metadata.legs', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await seedStopover(h, trip.id);
       const result = await h.client.callTool({
@@ -1542,8 +1537,8 @@ const NEWLY_ACCEPTED = ['bus', 'taxi', 'bicycle', 'ferry', 'transport_other'] as
 
 describe('Transport tools: the full type list', () => {
   it.each(PICKER_TRANSPORT_TYPES)('create_transport accepts %s', async (type) => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1557,10 +1552,10 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('stores a bus booking with its stops, times and booking reference', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const depDay = createDay(testDb, trip.id, { day_number: 1 });
-    const arrDay = createDay(testDb, trip.id, { day_number: 2 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const depDay = await makeDay(orm, trip.id, { day_number: 1 });
+    const arrDay = await makeDay(orm, trip.id, { day_number: 2 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1590,8 +1585,8 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('reports a missing coordinate on a non-flight endpoint rather than failing the insert', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1608,8 +1603,8 @@ describe('Transport tools: the full type list', () => {
   });
 
   it.each(NEWLY_ACCEPTED)('update_transport accepts %s as the new type', async (type) => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_transport',
@@ -1627,8 +1622,8 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('update_transport reaches a booking created as a bus', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_transport',
@@ -1646,8 +1641,8 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('still refuses a type the picker does not offer', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1658,8 +1653,8 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('refuses to hand-make a transit booking, which create_transit_journey owns', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
@@ -1670,8 +1665,8 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('still lets update_transport reach a stored transit booking', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // As create_transit_journey leaves it: a transport row carrying an itinerary.
     const reservationId = await insertRow(orm, Reservations, {
       trip: trip.id,
@@ -1691,9 +1686,9 @@ describe('Transport tools: the full type list', () => {
   });
 
   it('still refuses legs on a mode whose form never writes them', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { day_number: 1 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { day_number: 1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_transport',
