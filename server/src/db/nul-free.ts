@@ -21,12 +21,13 @@ import type { AbortableOperationOptions, CompiledQuery, DatabaseConnection, Dial
  *   `engine/postgres/postgres-driver.ts`) send every query's parameters
  *   through {@link withNulFreeParameters}, which covers the Kysely
  *   statements of the repositories;
- * - a plugin's own SQLite file (`nest/plugins/host/plugin-data.service.ts`)
- *   and its schema on Postgres (`engine/postgres/plugin-data-store.ts`,
- *   which sends on a `pg` client of its own) bind its arguments through
- *   {@link nulFreeParameter};
  * - the move from SQLite to Postgres (`engine/postgres/sqlite-move/values.ts`)
  *   copies text the same way.
+ *
+ * A plugin's own data (`db:own`) is not TREK's to change: its SQLite file
+ * (`nest/plugins/host/plugin-data.service.ts`) binds a NUL exactly, so keys
+ * it stored with one stay findable, and its schema on Postgres refuses an
+ * argument holding one with an error (`engine/postgres/plugin-data-checks.ts`).
  *
  * A filter is stripped as well as a write, so a lookup finds what the write
  * stored. Text that spells the character as the six characters `\u0000`

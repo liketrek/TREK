@@ -269,7 +269,14 @@ describe('moving a SQLite install to Postgres', () => {
     const highest = Math.max(...(await findRows(sqliteOrm, Users)).map((row) => row.id));
     expect(user.id).toBeGreaterThan(highest);
 
-    const store = new PostgresPluginDataStore(PLUGIN_ID, poolClients(pgOrm.em.getConnection()), new PluginDataSlots(1));
+    // The lane connects as a superuser, for which plugin SQL is refused (PGPLUG-013); the move is what is read here.
+    const store = new PostgresPluginDataStore(
+      PLUGIN_ID,
+      poolClients(pgOrm.em.getConnection()),
+      new PluginDataSlots(1),
+      {},
+      { refuseIfPrivileged: async () => undefined },
+    );
     expect(await store.query('select id, body, score from notes order by id')).toEqual([
       { id: 1, body: 'first', score: 1.5 },
       { id: 2, body: 'second', score: null },
