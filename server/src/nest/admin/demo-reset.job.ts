@@ -64,7 +64,7 @@ export class DemoResetJob implements OnApplicationBootstrap {
    * not read as the reopen failing.
    */
   private async saveFirstBaselineIfSeeded(): Promise<void> {
-    if (!takeExampleTripsSeeded() || hasBaseline()) return;
+    if (!takeExampleTripsSeeded() || hasBaseline(this.database)) return;
     try {
       await withRequestContext({ em: this.em }, () => saveBaseline(this.database));
     } catch (err: unknown) {

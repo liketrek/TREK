@@ -16,7 +16,16 @@ import { RequestContext, type EntityManager } from '@mikro-orm/core';
 import fs from 'fs';
 import path from 'path';
 
-const baselinePath = path.join(resolveDataPaths().dataDir, 'travel-baseline.db');
+/**
+ * The baseline the hourly reset returns to, named for the engine that wrote
+ * it after the database's own archive entry: `travel-baseline.db` on SQLite,
+ * `travel-baseline.pgdump` on Postgres. An install that changes engine keeps
+ * its data directory, so a baseline the other engine left there is never
+ * taken for this one's.
+ */
+function baselinePathFor(database: DatabaseBackupStrategy): string {
+  return path.join(resolveDataPaths().dataDir, `travel-baseline${path.extname(database.archiveEntry)}`);
+}
 
 /**
  * The active fork's `EntityManager`, resolved via `RequestContext.getEntityManager()`
@@ -49,6 +58,7 @@ export function requireEntityManager(): EntityManager {
  * closes the connection, swaps the baseline in atomically and reopens it.
  */
 async function resetDemoUser(database: DatabaseBackupStrategy): Promise<void> {
+  const baselinePath = baselinePathFor(database);
   if (!fs.existsSync(baselinePath)) {
     console.log('[Demo Reset] No baseline found, skipping. Admin must save baseline first.');
     return;
@@ -56,6 +66,18 @@ async function resetDemoUser(database: DatabaseBackupStrategy): Promise<void> {
 
   if (!database.canSnapshot()) {
     console.log('[Demo Reset] In-memory database, nothing to restore.');
+    return;
+  }
+
+  // A baseline this engine cannot restore (damaged, or written by an older
+  // build under this name) would fail inside the swap every hour. It is
+  // replaced by the current database once, with the reason in the log.
+  const refusal = await database.checkCopy(baselinePath);
+  if (refusal) {
+    console.warn(
+      `[Demo Reset] The baseline cannot be restored here (${refusal}); saving the current database as the baseline.`,
+    );
+    await saveBaseline(database);
     return;
   }
 
@@ -183,6 +205,7 @@ async function saveBaseline(database: DatabaseBackupStrategy): Promise<void> {
     return;
   }
 
+  const baselinePath = baselinePathFor(database);
   const pending = baselinePath + '.tmp';
   fs.rmSync(pending, { force: true });
   await database.snapshot(pending);
@@ -190,8 +213,8 @@ async function saveBaseline(database: DatabaseBackupStrategy): Promise<void> {
   console.log('[Demo] Baseline saved');
 }
 
-function hasBaseline(): boolean {
-  return fs.existsSync(baselinePath);
+function hasBaseline(database: DatabaseBackupStrategy): boolean {
+  return fs.existsSync(baselinePathFor(database));
 }
 
 /**
