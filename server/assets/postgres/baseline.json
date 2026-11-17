@@ -1,5 +1,5 @@
 {
-  "through": "Migration20200101046360_a_new_install_starts_with_more_addons_on",
+  "through": "Migration20200101046440_a_trip_owns_its_tags",
   "migrations": [
     "Migration20200101000000_baseline_schema",
     "Migration20200101000100_users_add_unsplash_api_key",
@@ -333,6 +333,14 @@
     "Migration20200101046330_an_object_no_row_names_is_marked_before_it_goes",
     "Migration20200101046340_a_released_object_outlasts_every_undo_before_it_goes",
     "Migration20200101046350_a_place_lies_on_the_real_world",
-    "Migration20200101046360_a_new_install_starts_with_more_addons_on"
+    "Migration20200101046360_a_new_install_starts_with_more_addons_on",
+    "Migration20200101046370_a_deleted_chat_message_keeps_no_text",
+    "Migration20200101046380_ireland_gained_its_counties",
+    "Migration20200101046390_a_trip_can_keep_its_costs_as_totals_only",
+    "Migration20200101046400_a_booked_flight_shows_where_it_is",
+    "Migration20200101046410_a_forwarded_booking_mail_lands_in_its_trip",
+    "Migration20200101046420_a_visit_keeps_its_own_stay",
+    "Migration20200101046430_a_paused_mail_import_can_tell_its_address_holders",
+    "Migration20200101046440_a_trip_owns_its_tags"
   ]
 }
