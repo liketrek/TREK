@@ -230,7 +230,7 @@ describe('erasePluginUserData', () => {
     }
   });
 
-  it('USER-CLEANUP-005: survives a slim schema without the plugin tables', async () => {
+  it('USER-CLEANUP-005: a plugin table missing from the schema fails the erasure instead of being skipped', async () => {
     const slim = new (require('better-sqlite3'))(':memory:');
     slim.exec('CREATE TABLE users (id INTEGER PRIMARY KEY)');
     // test-sql-allow: the slim database is hand-rolled without the migrated schema, so no entity can write its users row.
@@ -238,9 +238,10 @@ describe('erasePluginUserData', () => {
     // `erasePluginUserData`'s UC1 (this test's only call) DOES reach
     // `MaintenanceRepository` now (Plan 4 Task 4) — it needs a real
     // EntityManager bound to `slim` (MikroORM binds fine against a table-less
-    // connection; only the per-statement query against the missing
-    // plugin_user_config/plugin_oauth_tokens/plugin_oauth_state tables fails,
-    // caught by `deletePluginUserData`'s own try/catch). `tripMembersRepo`
+    // connection; only the query against the missing plugin_user_config table
+    // fails). The plugin tables come with the migrations on both engines, so
+    // that failure is a real one: it propagates and rolls the erasure back,
+    // rather than being skipped in a savepoint of its own. `tripMembersRepo`
     // (UC4), `budgetItemsRepo` (UC5's own method) and the Plan 3g Task 4
     // journey repositories (UC7-10) still never reach their tables from this
     // call — stubs are enough for those.
@@ -260,17 +261,15 @@ describe('erasePluginUserData', () => {
       // never touches it, but MikroORM's entity metadata does not require the
       // physical table to exist to construct the repository object itself).
       await createTestShareTokensRepo(slim),
-      // Plan 4 Task 8a: also real repositories, not stubs — `erasePluginUserData`
-      // DOES call into these two (UC2/UC3), and this test's whole point is that
-      // the query against the missing table throws and is caught, the same
-      // "table absent (slim schema)" outer try/catch as before, not a
-      // constructor-time failure.
+      // Plan 4 Task 8a: also real repositories, not stubs, for UC2/UC3; the
+      // erasure fails at UC1 before it reaches them, so the failure the test
+      // reads is the missing table's, not a constructor-time one.
       await createTestPluginsRepo(slim),
       await createTestPluginUserErasureQueueRepo(slim),
       { releaseValues: async () => [] } as never,
     );
 
-    await expect(slimSvc.erasePluginUserData(1)).resolves.toBeUndefined();
+    await expect(slimSvc.erasePluginUserData(1)).rejects.toThrow(/no such table: plugin_user_config/);
 
     slim.close();
   });
