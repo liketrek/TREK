@@ -1,20 +1,26 @@
 /**
  * The Postgres store of a plugin's own data
- * (src/db/engine/postgres/plugin-data-store.ts) against a stand-in Kysely
- * client that records what it is handed: the transaction every call opens and
- * what it sets first, the schema check before plugin SQL runs, the row cap,
- * the time budget, the quota, a script committed statement by statement, the
- * tx and migrate shapes, and one call at a time per plugin. The same store on
- * a real database is the Postgres lane's tests/postgres/plugin-data.test.ts.
+ * (src/db/engine/postgres/plugin-data-store.ts) against a stand-in `pg`
+ * client that records what it is handed: the client every call checks out
+ * and releases, the transaction it opens and what it sets first, the schema
+ * check before plugin SQL runs, the row cap, the time budget, the quota, a
+ * script committed statement by statement, the tx and migrate shapes, one
+ * call at a time per plugin, the protocol every plugin statement goes over,
+ * and the session cleanup before a client goes back to the pool. The same
+ * store on a real database is the Postgres lane's
+ * tests/postgres/plugin-data.test.ts.
  */
-import { unmarkedValues } from '../../../../../src/db/engine/postgres/extended-query';
 import {
   dropPluginSchema,
+  END_SESSION,
   PluginDataSlots,
+  poolClients,
   PostgresPluginDataStore,
+  type PluginSqlClient,
 } from '../../../../../src/db/engine/postgres/plugin-data-store';
 
 import type { Kysely } from 'kysely';
+import Cursor from 'pg-cursor';
 import { describe, expect, it } from 'vitest';
 
 interface FakeOptions {
@@ -22,7 +28,7 @@ interface FakeOptions {
   schemas?: string[];
   /** The sizes the quota reads answer, in order. */
   sizes?: number[];
-  /** Rows a streamed statement yields, by its text; streamed two at a time. */
+  /** Rows a cursor yields, by its statement's text; read two at a time. */
   rows?: Record<string, unknown[]>;
   /** What a write reports as changed. */
   changes?: number;
@@ -30,67 +36,87 @@ interface FakeOptions {
   migrated?: boolean;
   /** An error for a statement, or undefined to run it. */
   fail?: (sql: string) => Error | undefined;
-  /** Called before every streamed chunk, so a test can move its clock. */
+  /** Called before every chunk a cursor reads, so a test can move its clock. */
   onChunk?: () => void;
-  /** Awaited before a stream starts. */
+  /** Awaited before a cursor's first read. */
   beforeStream?: (sql: string) => Promise<void>;
 }
 
-/** A Kysely client that records each statement, and `begin`/`commit`/`rollback` around each transaction. */
-function fakeDb(options: FakeOptions = {}) {
+/** What a plugin statement or a query with values was handed to the client as. */
+interface QueryConfig {
+  text: string;
+  values: unknown[];
+  queryMode?: 'extended';
+}
+
+/**
+ * A pool of stand-in `pg` clients. `log` holds every statement's text in the
+ * order the clients ran them (`begin`, `commit`, `rollback` and the session
+ * cleanup among them), `configs` every query handed over as a config object,
+ * `cursors` every cursor submitted, `releases` whether each client was
+ * released to be closed.
+ */
+function fakePool(options: FakeOptions = {}) {
   const log: string[] = [];
-  /** Every statement handed to executeQuery, with its parameters as Kysely passes them to pg. */
-  const executed: Array<{ sql: string; parameters: readonly unknown[] }> = [];
+  const configs: QueryConfig[] = [];
+  const cursors: Array<{ text: string; values: unknown[] | null; closed: boolean }> = [];
+  const releases: boolean[] = [];
   let size = 0;
   const run = (sql: string) => {
     log.push(sql);
     const err = options.fail?.(sql);
     if (err) throw err;
   };
-  const trx = {
-    executeQuery: async (query: { sql: string; parameters: readonly unknown[] }) => {
-      executed.push(query);
-      run(query.sql);
-      if (query.sql.startsWith('select nspname'))
-        return { rows: (options.schemas ?? []).map((nspname) => ({ nspname })) };
-      if (query.sql.startsWith('select coalesce(sum(')) return { rows: [{ bytes: options.sizes?.[size++] ?? 0 }] };
-      if (query.sql.startsWith('select 1 from')) return { rows: options.migrated ? [{ '?column?': 1 }] : [] };
-      return { rows: [], numAffectedRows: BigInt(options.changes ?? 0) };
+  const answer = (sql: string) => {
+    if (sql.startsWith('select nspname')) return { rows: (options.schemas ?? []).map((nspname) => ({ nspname })) };
+    if (sql.startsWith('select coalesce(sum(')) return { rows: [{ bytes: options.sizes?.[size++] ?? 0 }], rowCount: 1 };
+    if (sql.startsWith('select 1 from')) return { rows: options.migrated ? [{ '?column?': 1 }] : [], rowCount: 0 };
+    return { rows: [], rowCount: options.changes ?? 0 };
+  };
+  const cursorOf = (cursor: Cursor) => {
+    const { text, values } = cursor as unknown as { text: string; values: unknown[] | null };
+    const seen = { text, values, closed: false };
+    cursors.push(seen);
+    let next: number | null = null;
+    return {
+      async read(): Promise<unknown[]> {
+        if (next === null) {
+          await options.beforeStream?.(text);
+          run(text);
+          next = 0;
+        }
+        const rows = options.rows?.[text] ?? [];
+        if (next >= rows.length) return [];
+        options.onChunk?.();
+        next += 2;
+        return rows.slice(next - 2, next);
+      },
+      async close(): Promise<void> {
+        seen.closed = true;
+      },
+    };
+  };
+  const client = {
+    query(arg: string | QueryConfig | Cursor): unknown {
+      if (arg instanceof Cursor) return cursorOf(arg);
+      const sql = typeof arg === 'string' ? arg : arg.text;
+      if (typeof arg !== 'string') configs.push(arg);
+      return (async () => {
+        run(sql);
+        return answer(sql);
+      })();
     },
-    getExecutor: () => ({
-      async *stream(query: { sql: string }) {
-        await options.beforeStream?.(query.sql);
-        run(query.sql);
-        const rows = options.rows?.[query.sql] ?? [];
-        for (let i = 0; i < rows.length; i += 2) {
-          options.onChunk?.();
-          yield { rows: rows.slice(i, i + 2) };
-        }
-      },
-    }),
+    release(destroy?: boolean) {
+      releases.push(destroy === true);
+    },
   };
-  const db = {
-    transaction: () => ({
-      execute: async <T>(work: (t: typeof trx) => Promise<T>): Promise<T> => {
-        log.push('begin');
-        try {
-          const result = await work(trx);
-          log.push('commit');
-          return result;
-        } catch (err) {
-          log.push('rollback');
-          throw err;
-        }
-      },
-    }),
-    executeQuery: trx.executeQuery,
-  };
-  return { db: db as unknown as Kysely<object>, log, executed };
+  const connect = async () => client as unknown as PluginSqlClient;
+  return { connect, log, configs, cursors, releases };
 }
 
 function store(options: FakeOptions = {}, limits = {}) {
-  const fake = fakeDb(options);
-  return { ...fake, store: new PostgresPluginDataStore('notes', fake.db, new PluginDataSlots(4), limits) };
+  const pool = fakePool(options);
+  return { ...pool, store: new PostgresPluginDataStore('notes', pool.connect, new PluginDataSlots(4), limits) };
 }
 
 /** A pg error with its SQLSTATE. */
@@ -116,6 +142,7 @@ describe('Postgres plugin data store', () => {
       ].join(';\n'),
       'SELECT body FROM notes',
       'commit',
+      END_SESSION,
     ]);
   });
 
@@ -123,7 +150,7 @@ describe('Postgres plugin data store', () => {
     const { store: s, log } = store({ schemas: ['public', 'auth', 'trek_plugin_notes'] });
     await expect(s.query('SELECT x FROM auth.secret')).rejects.toThrow(/"auth" is another schema/);
     expect(log).not.toContain('SELECT x FROM auth.secret');
-    expect(log.at(-1)).toBe('rollback');
+    expect(log.slice(-2)).toEqual(['rollback', END_SESSION]);
     await expect(s.query('SELECT n.body FROM trek_plugin_notes.notes n')).resolves.toEqual([]);
     await expect(s.query('SELECT * FROM public.users')).rejects.toThrow(/another schema/);
   });
@@ -165,7 +192,7 @@ describe('Postgres plugin data store', () => {
     await expect(grows.store.exec('INSERT INTO t VALUES ($1)', ['x'])).rejects.toThrow(
       'the plugin database is past its 0.0009765625 MB quota',
     );
-    expect(grows.log.at(-1)).toBe('rollback');
+    expect(grows.log.slice(-2)).toEqual(['rollback', END_SESSION]);
 
     const shrinks = store({ sizes: [4096, 4096], changes: 3 }, { quotaBytes: 1024 });
     expect(await shrinks.store.exec('DELETE FROM t WHERE x = $1', ['x'])).toEqual({ changes: 3 });
@@ -230,13 +257,14 @@ describe('Postgres plugin data store', () => {
   });
 
   it('PGSTORE-009: the SQL is checked before anything runs, and a closed store takes no new call', async () => {
-    const { store: s, log } = store();
+    const { store: s, log, releases } = store();
     await expect(s.query(42 as never)).rejects.toThrow('sql must be a string');
     await expect(s.query('x'.repeat(100_001))).rejects.toThrow('sql too long');
     await expect(s.query('-- only a comment')).rejects.toThrow('contains no statements');
     await expect(s.query('SELECT 1; SELECT 2')).rejects.toThrow(/exactly one statement/);
     await expect(s.exec('DO $$ BEGIN END $$')).rejects.toThrow(/dollar-quoted/);
     expect(log).toEqual([]);
+    expect(releases).toEqual([]);
 
     s.close();
     expect(s.isOpen()).toBe(false);
@@ -256,25 +284,87 @@ describe('Postgres plugin data store', () => {
     expect(log.filter((sql) => sql === 'begin' || sql === 'commit')).toEqual(['begin', 'commit', 'begin', 'commit']);
   });
 
-  it('PGSTORE-012: every plugin statement it executes goes over the extended protocol, alone and with its own args', async () => {
-    const { store: s, executed } = store({ changes: 1 });
+  it('PGSTORE-012: every plugin write goes to pg as one extended-protocol query with its own args, even with none', async () => {
+    // EXTQ-001 before the store checked out its own clients.
+    const { store: s, configs } = store({ changes: 1 });
     await s.exec('INSERT INTO a VALUES (1); UPDATE a SET x = 2 -- note\rWHERE x = 1');
     await s.exec('INSERT INTO a VALUES ($1)', ['x']);
     await s.tx([{ sql: 'DELETE FROM a WHERE x = $1', args: [3] }]);
     await s.migrate('002', 'CREATE TABLE b (y int); CREATE INDEX b_y ON b (y)');
-    const plugin = executed.filter((q) => /^(INSERT|UPDATE|DELETE|CREATE)/.test(q.sql));
-    expect(plugin.map((q) => [q.sql, unmarkedValues(q.parameters)])).toEqual([
-      ['INSERT INTO a VALUES (1)', []],
-      ['UPDATE a SET x = 2 -- note\rWHERE x = 1', []],
-      ['INSERT INTO a VALUES ($1)', ['x']],
-      ['DELETE FROM a WHERE x = $1', [3]],
-      ['CREATE TABLE b (y int)', []],
-      ['CREATE INDEX b_y ON b (y)', []],
+    const plugin = configs.filter((q) => /^(INSERT|UPDATE|DELETE|CREATE)/.test(q.text));
+    expect(plugin).toEqual([
+      { text: 'INSERT INTO a VALUES (1)', values: [], queryMode: 'extended' },
+      { text: 'UPDATE a SET x = 2 -- note\rWHERE x = 1', values: [], queryMode: 'extended' },
+      { text: 'INSERT INTO a VALUES ($1)', values: ['x'], queryMode: 'extended' },
+      { text: 'DELETE FROM a WHERE x = $1', values: [3], queryMode: 'extended' },
+      { text: 'CREATE TABLE b (y int)', values: [], queryMode: 'extended' },
+      { text: 'CREATE INDEX b_y ON b (y)', values: [], queryMode: 'extended' },
     ]);
+    // TREK's own statements with values are never sent as a plugin's are.
+    expect(configs.filter((q) => q.queryMode === 'extended')).toHaveLength(plugin.length);
+  });
+
+  it('PGSTORE-013: every read goes through a cursor on the same client, closed however the read ends, args without NUL', async () => {
+    // EXTQ-002 before the store checked out its own clients: what is not a plugin write reaches pg as it was.
+    const rows = Array.from({ length: 7 }, (_, i) => ({ i }));
+    const {
+      store: s,
+      cursors,
+      configs,
+    } = store({ rows: { 'SELECT i FROM t WHERE x = $1': rows, 'SELECT 1 FROM t': [{}] } }, { maxRows: 5 });
+    await expect(s.query('SELECT i FROM t WHERE x = $1', ['a\u0000b'])).rejects.toThrow('more than 5 rows');
+    await s.exec('SELECT 1 FROM t', ['x']);
+    await s.exec('INSERT INTO t VALUES ($1)', ['c\u0000d']);
+    expect(cursors).toEqual([
+      { text: 'SELECT i FROM t WHERE x = $1', values: ['ab'], closed: true },
+      { text: 'SELECT 1 FROM t', values: ['x'], closed: true },
+    ]);
+    expect(configs.find((q) => q.text.startsWith('INSERT'))?.values).toEqual(['cd']);
+  });
+
+  it('PGSTORE-014: each transaction checks out a client of its own and gives it back clean, or closes it', async () => {
+    const ok = store({ changes: 1 });
+    await ok.store.exec('INSERT INTO a VALUES (1); INSERT INTO b VALUES (2)');
+    await expect(ok.store.query('SELECT 1; SELECT 2')).rejects.toThrow(/exactly one statement/);
+    // One client per statement of the script, each after its session state was dropped; the refused read took none.
+    expect(ok.releases).toEqual([false, false]);
+    expect(ok.log.filter((sql) => sql === END_SESSION)).toHaveLength(2);
+
+    const failed = store({ fail: (sql) => (sql.startsWith('INSERT') ? new Error('boom') : undefined) });
+    await expect(failed.store.exec('INSERT INTO a VALUES ($1)', [1])).rejects.toThrow('boom');
+    expect(failed.log.slice(-2)).toEqual(['rollback', END_SESSION]);
+    expect(failed.releases).toEqual([false]);
+
+    // A client whose rollback fails is in a state nobody knows: it is closed, and the call reports its own error.
+    const stuck = store({
+      fail: (sql) =>
+        sql.startsWith('INSERT') ? new Error('boom') : sql === 'rollback' ? new Error('gone') : undefined,
+    });
+    await expect(stuck.store.exec('INSERT INTO a VALUES ($1)', [1])).rejects.toThrow('boom');
+    expect(stuck.log).not.toContain(END_SESSION);
+    expect(stuck.releases).toEqual([true]);
+
+    // So is one whose session state cannot be dropped, after a call that succeeded.
+    const dirty = store({ fail: (sql) => (sql === END_SESSION ? new Error('gone') : undefined) });
+    expect(await dirty.store.query('SELECT 1')).toEqual([]);
+    expect(dirty.releases).toEqual([true]);
+  });
+
+  it("PGSTORE-015: poolClients checks a client out of the pool behind the ORM's connection", async () => {
+    const client = { query: async () => ({ rows: [], rowCount: 0 }), release: () => undefined };
+    const pool = { connect: async () => client };
+    const connect = poolClients({ getNativeClient: async () => pool });
+    expect(await connect()).toBe(client);
   });
 
   it('PGSTORE-011: dropping a plugin schema names it quoted, and an id no schema comes from drops nothing', async () => {
-    const { db, log } = fakeDb();
+    const log: string[] = [];
+    const db = {
+      executeQuery: async (query: { sql: string }) => {
+        log.push(query.sql);
+        return { rows: [] };
+      },
+    } as unknown as Kysely<object>;
     await dropPluginSchema(db, 'trip-notes');
     await dropPluginSchema(db, '../etc');
     expect(log).toEqual(['drop schema if exists "trek_plugin_trip_notes" cascade']);

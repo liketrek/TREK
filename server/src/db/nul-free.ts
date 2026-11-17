@@ -20,9 +20,11 @@ import type { AbortableOperationOptions, CompiledQuery, DatabaseConnection, Dial
  * - the Kysely dialects of both engines (`orm-driver.ts`,
  *   `engine/postgres/postgres-driver.ts`) send every query's parameters
  *   through {@link withNulFreeParameters}, which covers the Kysely
- *   statements of the repositories and a plugin's own SQL on Postgres;
+ *   statements of the repositories;
  * - a plugin's own SQLite file (`nest/plugins/host/plugin-data.service.ts`)
- *   binds its arguments through {@link nulFreeParameter};
+ *   and its schema on Postgres (`engine/postgres/plugin-data-store.ts`,
+ *   which sends on a `pg` client of its own) bind its arguments through
+ *   {@link nulFreeParameter};
  * - the move from SQLite to Postgres (`engine/postgres/sqlite-move/values.ts`)
  *   copies text the same way.
  *

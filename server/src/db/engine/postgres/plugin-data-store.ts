@@ -1,25 +1,33 @@
+import { nulFreeParameter } from '../../nul-free';
 import { PLUGIN_DATA_CAPS, type PluginDataStore, type PluginTxOp, type PluginTxResult } from '../plugin-data';
-import { extendedQuery } from './extended-query';
 import { isPluginId, pluginSchemaName, quotePluginSchema } from './plugin-schema';
 import { checkPlaceholders, checkQualifiers, parsePluginSql, type PluginStatement } from './plugin-sql-guard';
 
-import { CompiledQuery, type Kysely, type Transaction } from 'kysely';
+import { CompiledQuery, type Kysely } from 'kysely';
+import Cursor from 'pg-cursor';
 
 /**
  * A plugin's own data on Postgres (`db:own`): a schema of its own in TREK's
  * database (`plugin-schema.ts`), reached through TREK's pool.
  *
- * Every call runs in one transaction that first makes sure the schema and its
- * migration table exist, then puts only that schema on the `search_path`, with
- * `pg_temp` explicitly last so a temporary table is never found before the
- * plugin's own, and sets `statement_timeout` to the call's time budget. The
- * plugin's SQL is checked by `plugin-sql-guard.ts` before it runs, so it cannot
- * name another schema, and each statement goes to Postgres on its own over the
- * extended query protocol (`extended-query.ts`), which runs one statement and
- * no more. Reads stream through a cursor and stop at the row cap. A call that
- * may write measures the schema's size before and after, and rolls back one
- * that leaves it past the quota and larger than it found it, so a plugin at
- * its quota can still delete.
+ * Every call checks a `pg` client out of the pool for itself
+ * ({@link poolClients}) and runs one transaction on it directly, not through
+ * Kysely. The transaction first makes sure the schema and its migration table
+ * exist, then puts only that schema on the `search_path`, with `pg_temp`
+ * explicitly last so a temporary table is never found before the plugin's
+ * own, and sets `statement_timeout` to the call's time budget; every setting
+ * is `local` and ends with the transaction. The plugin's SQL is checked by
+ * `plugin-sql-guard.ts` before it runs, so it cannot name another schema, and
+ * each statement goes to Postgres on its own over the extended query
+ * protocol, which runs one statement and no more: a write as a query with
+ * `queryMode: 'extended'`, which `pg` honours even without values, and a read
+ * through a `pg-cursor`, which always uses that protocol. Reads stop at the
+ * row cap. A call that may write measures the schema's size before and
+ * after, and rolls back one that leaves it past the quota and larger than it
+ * found it, so a plugin at its quota can still delete. Before the client goes
+ * back to the pool, whatever session state a statement could have left on it
+ * is dropped ({@link END_SESSION}); a client that cannot be brought back to a
+ * clean state is closed instead of reused.
  *
  * The calls of one plugin run one at a time, as they do on its SQLite file,
  * and all plugins together hold at most half of TREK's pool
@@ -57,6 +65,54 @@ const CHUNK_ROWS = 500;
 /** What better-sqlite3 says about a closed handle, which the host recognizes. */
 const CLOSED = 'The database connection is not open';
 
+/**
+ * What a client runs before it goes back to the pool, outside any
+ * transaction: `DISCARD ALL` without the two parts that would undo the pool's
+ * own session state. `RESET ALL` would drop the `search_path` every pool
+ * connection sets with `pg_temp` last (`session-search-path.ts`), and
+ * `DEALLOCATE ALL` the statements `pg` prepared by name for other callers.
+ * The plugin's settings need neither: they are all `local`. The guard
+ * refuses every statement that could leave anything this drops, so this is
+ * the layer behind it.
+ */
+export const END_SESSION = 'close all; unlisten *; select pg_advisory_unlock_all(); discard temp; discard sequences';
+
+/** A query result, as far as the store reads it. */
+interface PgResult {
+  rows: unknown[];
+  rowCount: number | null;
+}
+
+/** The part of a `pg` client the store uses. It is the store's alone from checkout to release. */
+export interface PluginSqlClient {
+  /** SQL of TREK's own, without values: over the simple protocol. */
+  query(text: string): Promise<PgResult>;
+  /** A query with values, or a plugin statement with `queryMode: 'extended'`. */
+  query(config: { text: string; values: unknown[]; queryMode?: 'extended' }): Promise<PgResult>;
+  /** Submits a cursor and hands it back. */
+  query(cursor: Cursor): Cursor;
+  /** Back to the pool, or closed when `destroy` is true. */
+  release(destroy?: boolean): void;
+}
+
+/** Checks a client out of the pool; resolves once one is free. */
+export type ConnectPluginClient = () => Promise<PluginSqlClient>;
+
+/** The part of `pg`'s pool the store checks clients out of. */
+interface PgPool {
+  connect(): Promise<PluginSqlClient>;
+}
+
+/**
+ * Clients of the `pg` pool behind MikroORM's Postgres connection, which its
+ * `getNativeClient` hands out. Its options apply to them as to every other
+ * client of the pool: the TLS settings, and the `int8` and `numeric` parsers
+ * (`postgres-driver.ts`). Nothing of the pool is changed for them.
+ */
+export function poolClients(connection: { getNativeClient(): Promise<unknown> }): ConnectPluginClient {
+  return async () => ((await connection.getNativeClient()) as PgPool).connect();
+}
+
 /** How many plugin transactions may hold a pool connection at once: half of TREK's pool, at least one. */
 export function pluginDataSlots(poolMax: number): number {
   return Math.max(1, Math.floor(poolMax / 2));
@@ -83,8 +139,6 @@ export class PluginDataSlots {
   }
 }
 
-type Trx = Transaction<object>;
-
 /** The rows one call has returned so far, against the cap they share. */
 interface RowBudget {
   count: number;
@@ -109,7 +163,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
 
   constructor(
     readonly pluginId: string,
-    private readonly db: Kysely<object>,
+    private readonly connect: ConnectPluginClient,
     private readonly slots: PluginDataSlots,
     limits: Partial<PostgresPluginDataLimits> = {},
   ) {
@@ -122,7 +176,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
     return this.open;
   }
 
-  /** Stops new calls. One already running finishes: it holds a pool connection of its own, not this store. */
+  /** Stops new calls. One already running finishes: it holds a pool client of its own, not this store. */
   close(): void {
     this.open = false;
   }
@@ -131,9 +185,9 @@ export class PostgresPluginDataStore implements PluginDataStore {
     const statement = this.single(sql, args);
     const { maxRows } = this.limits;
     return this.call('query', (budget) =>
-      this.transaction(budget.ms, [statement], (trx) => {
+      this.transaction(budget.ms, [statement], (client) => {
         const rows = { count: 0, max: maxRows, message: `query returned more than ${maxRows} rows` };
-        return this.stream(trx, statement, args, rows, budget.check);
+        return this.stream(client, statement, args, rows, budget.check);
       }),
     );
   }
@@ -142,7 +196,9 @@ export class PostgresPluginDataStore implements PluginDataStore {
     if (args.length > 0) {
       const statement = this.single(sql, args);
       return this.call('exec', (budget) =>
-        this.transaction(budget.ms, [statement], async (trx) => ({ changes: await this.run(trx, statement, args) })),
+        this.transaction(budget.ms, [statement], async (client) => ({
+          changes: await this.run(client, statement, args),
+        })),
       );
     }
     const statements = this.parse(sql);
@@ -151,7 +207,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       // the clock is read before every statement but the first.
       await inOrder(statements, (statement, index) => {
         if (index > 0) budget.check();
-        return this.transaction(budget.remaining(), [statement], (trx) => this.run(trx, statement, []));
+        return this.transaction(budget.remaining(), [statement], (client) => this.run(client, statement, []));
       });
       return { changes: 0 };
     });
@@ -166,15 +222,15 @@ export class PostgresPluginDataStore implements PluginDataStore {
     const statements = ops.map((op) => this.single(op?.sql, op?.args ?? []));
     const { maxRows } = this.limits;
     return this.call('tx', (budget) =>
-      this.transaction(budget.ms, statements, async (trx) => {
+      this.transaction(budget.ms, statements, async (client) => {
         const rows = { count: 0, max: maxRows, message: `tx returned more than ${maxRows} rows in total` };
         const results = await inOrder(statements, async (statement, index) => {
           const args = ops[index].args ?? [];
           // One budget for the whole batch: each statement after the first gets what is left of it.
-          if (index > 0) await this.setTimeout(trx, budget.remaining());
+          if (index > 0) await this.setTimeout(client, budget.remaining());
           const result = statement.returnsRows
-            ? { rows: await this.stream(trx, statement, args, rows, budget.check) }
-            : { changes: await this.run(trx, statement, args) };
+            ? { rows: await this.stream(client, statement, args, rows, budget.check) }
+            : { changes: await this.run(client, statement, args) };
           budget.check();
           return result;
         });
@@ -187,18 +243,17 @@ export class PostgresPluginDataStore implements PluginDataStore {
   async migrate(id: string, sql: string): Promise<{ applied: boolean }> {
     const statements = this.parse(sql);
     return this.enqueue(() =>
-      this.transaction(null, statements, async (trx) => {
-        const seen = await trx.executeQuery(
-          CompiledQuery.raw(`select 1 from ${this.quoted}._plugin_migrations where id = $1`, [id]),
-        );
+      this.transaction(null, statements, async (client) => {
+        const seen = await client.query({
+          text: `select 1 from ${this.quoted}._plugin_migrations where id = $1`,
+          values: [id],
+        });
         if (seen.rows.length > 0) return { applied: false };
-        await inOrder(statements, (statement) => this.run(trx, statement, []));
-        await trx.executeQuery(
-          CompiledQuery.raw(`insert into ${this.quoted}._plugin_migrations (id, applied_at) values ($1, $2)`, [
-            id,
-            Date.now(),
-          ]),
-        );
+        await inOrder(statements, (statement) => this.run(client, statement, []));
+        await client.query({
+          text: `insert into ${this.quoted}._plugin_migrations (id, applied_at) values ($1, $2)`,
+          values: [id, Date.now()],
+        });
         return { applied: true };
       }),
     );
@@ -257,81 +312,111 @@ export class PostgresPluginDataStore implements PluginDataStore {
   }
 
   /**
-   * One transaction on this plugin's schema: created if missing, alone on the
-   * `search_path`, with `statement_timeout` at `timeoutMs` (none for null).
-   * The statements' qualified names are checked against the database's
-   * schemas first, and a call that may write is held to the quota.
+   * One transaction on this plugin's schema, on a client of its own: created
+   * if missing, alone on the `search_path`, with `statement_timeout` at
+   * `timeoutMs` (none for null). The statements' qualified names are checked
+   * against the database's schemas first, and a call that may write is held
+   * to the quota. The client goes back to the pool with its session state
+   * dropped, or is closed when the rollback or that cleanup fails.
    */
-  private transaction<T>(
+  private async transaction<T>(
     timeoutMs: number | null,
     statements: readonly PluginStatement[],
-    work: (trx: Trx) => Promise<T>,
+    work: (client: PluginSqlClient) => Promise<T>,
   ): Promise<T> {
-    return this.db.transaction().execute(async (trx) => {
-      const setup = [
-        `create schema if not exists ${this.quoted}`,
-        `create table if not exists ${this.quoted}._plugin_migrations (id text primary key, applied_at bigint)`,
-        `set local search_path to ${this.quoted}, pg_temp`,
-        'set local standard_conforming_strings to on',
-      ];
-      if (timeoutMs !== null) setup.push(`set local statement_timeout to ${Math.max(1, Math.floor(timeoutMs))}`);
-      await trx.executeQuery(CompiledQuery.raw(setup.join(';\n')));
-      if (statements.some((s) => s.qualifies)) {
-        const schemas = await this.schemaNames(trx);
-        for (const statement of statements) checkQualifiers(statement, this.schema, schemas);
+    const client = await this.connect();
+    let reusable = true;
+    try {
+      await client.query('begin');
+      try {
+        const result = await this.inTransaction(client, timeoutMs, statements, work);
+        await client.query('commit');
+        return result;
+      } catch (err) {
+        await client.query('rollback').catch(() => {
+          reusable = false;
+        });
+        throw err;
       }
-      const writes = statements.some((s) => s.mayWrite);
-      const before = writes ? await this.sizeBytes(trx) : 0;
-      const result = await work(trx);
-      if (writes) {
-        const after = await this.sizeBytes(trx);
-        if (after > this.limits.quotaBytes && after > before) {
-          throw new Error(`the plugin database is past its ${this.limits.quotaBytes / 1024 / 1024} MB quota`);
-        }
+    } finally {
+      if (reusable) {
+        await client.query(END_SESSION).catch(() => {
+          reusable = false;
+        });
       }
-      return result;
+      client.release(!reusable);
+    }
+  }
+
+  /** What {@link transaction} runs between `begin` and `commit`. */
+  private async inTransaction<T>(
+    client: PluginSqlClient,
+    timeoutMs: number | null,
+    statements: readonly PluginStatement[],
+    work: (client: PluginSqlClient) => Promise<T>,
+  ): Promise<T> {
+    const setup = [
+      `create schema if not exists ${this.quoted}`,
+      `create table if not exists ${this.quoted}._plugin_migrations (id text primary key, applied_at bigint)`,
+      `set local search_path to ${this.quoted}, pg_temp`,
+      'set local standard_conforming_strings to on',
+    ];
+    if (timeoutMs !== null) setup.push(`set local statement_timeout to ${Math.max(1, Math.floor(timeoutMs))}`);
+    await client.query(setup.join(';\n'));
+    if (statements.some((s) => s.qualifies)) {
+      const schemas = await this.schemaNames(client);
+      for (const statement of statements) checkQualifiers(statement, this.schema, schemas);
+    }
+    const writes = statements.some((s) => s.mayWrite);
+    const before = writes ? await this.sizeBytes(client) : 0;
+    const result = await work(client);
+    if (writes) {
+      const after = await this.sizeBytes(client);
+      if (after > this.limits.quotaBytes && after > before) {
+        throw new Error(`the plugin database is past its ${this.limits.quotaBytes / 1024 / 1024} MB quota`);
+      }
+    }
+    return result;
+  }
+
+  private async setTimeout(client: PluginSqlClient, ms: number): Promise<void> {
+    await client.query({
+      text: "select set_config('statement_timeout', $1, true)",
+      values: [String(Math.max(1, Math.floor(ms)))],
     });
   }
 
-  private async setTimeout(trx: Trx, ms: number): Promise<void> {
-    await trx.executeQuery(
-      CompiledQuery.raw("select set_config('statement_timeout', $1, true)", [String(Math.max(1, Math.floor(ms)))]),
-    );
-  }
-
   /** Every schema name of the database, which a qualified name in plugin SQL may not use. */
-  private async schemaNames(trx: Trx): Promise<Set<string>> {
-    const result = await trx.executeQuery<{ nspname: string }>(CompiledQuery.raw('select nspname from pg_namespace'));
-    return new Set(result.rows.map((row) => row.nspname));
+  private async schemaNames(client: PluginSqlClient): Promise<Set<string>> {
+    const result = await client.query('select nspname from pg_namespace');
+    return new Set((result.rows as Array<{ nspname: string }>).map((row) => row.nspname));
   }
 
   /** What this plugin's tables, indexes and materialized views take on disk. */
-  private async sizeBytes(trx: Trx): Promise<number> {
-    const result = await trx.executeQuery<{ bytes: number | string }>(
-      CompiledQuery.raw(
+  private async sizeBytes(client: PluginSqlClient): Promise<number> {
+    const result = await client.query({
+      text:
         'select coalesce(sum(pg_total_relation_size(c.oid)), 0) as bytes from pg_class c ' +
-          "join pg_namespace n on n.oid = c.relnamespace where n.nspname = $1 and c.relkind in ('r', 'm')",
-        [this.schema],
-      ),
-    );
-    return Number(result.rows[0]?.bytes ?? 0);
+        "join pg_namespace n on n.oid = c.relnamespace where n.nspname = $1 and c.relkind in ('r', 'm')",
+      values: [this.schema],
+    });
+    const [row] = result.rows as Array<{ bytes: number | string }>;
+    return Number(row?.bytes ?? 0);
   }
 
   /**
    * Runs a statement for its effect: the rows it changed, or 0 for a read,
-   * whose rows are streamed past and dropped. Both ways use the extended
-   * protocol: a cursor always does, and a write goes through `extendedQuery`.
+   * whose rows are read past and dropped. Both go over the extended protocol:
+   * a write as an extended query, a read through a cursor.
    */
-  private async run(trx: Trx, statement: PluginStatement, args: readonly unknown[]): Promise<number> {
+  private async run(client: PluginSqlClient, statement: PluginStatement, args: readonly unknown[]): Promise<number> {
     if (!statement.mayWrite) {
-      const chunks = trx.getExecutor().stream(CompiledQuery.raw(statement.text, [...args]), CHUNK_ROWS);
-      for await (const _chunk of chunks) {
-        // Read to the end so the statement runs whole; its rows are not wanted.
-      }
+      // Read to the end so the statement runs whole; its rows are not wanted.
+      await readCursor(client.query(new Cursor(statement.text, boundValues(args))), () => undefined);
       return 0;
     }
-    const result = await trx.executeQuery(extendedQuery(statement.text, args));
-    return Number(result.numAffectedRows ?? 0);
+    const result = await client.query({ text: statement.text, values: boundValues(args), queryMode: 'extended' });
+    return result.rowCount ?? 0;
   }
 
   /**
@@ -339,23 +424,45 @@ export class PostgresPluginDataStore implements PluginDataStore {
    * row cap the read stops and throws, and the clock is read between chunks.
    */
   private async stream(
-    trx: Trx,
+    client: PluginSqlClient,
     statement: PluginStatement,
     args: readonly unknown[],
     budget: RowBudget,
     checkTime: () => void,
   ): Promise<unknown[]> {
     const rows: unknown[] = [];
-    const chunks = trx.getExecutor().stream(CompiledQuery.raw(statement.text, [...args]), CHUNK_ROWS);
-    for await (const chunk of chunks) {
+    await readCursor(client.query(new Cursor(statement.text, boundValues(args))), (chunk) => {
       if (rows.length > 0) checkTime();
-      for (const row of chunk.rows) {
+      for (const row of chunk) {
         rows.push(row);
         budget.count++;
         if (budget.count > budget.max) throw new Error(budget.message);
       }
-    }
+    });
     return rows;
+  }
+}
+
+/** A plugin's args as they are bound: without NUL, which Postgres text cannot hold (`nul-free.ts`). */
+function boundValues(args: readonly unknown[]): unknown[] {
+  return args.map(nulFreeParameter);
+}
+
+/**
+ * Reads `cursor` to its end a chunk at a time, handing each chunk to `take`
+ * (which may throw to stop the read), and closes it however the read ends.
+ */
+async function readCursor(cursor: Cursor, take: (rows: unknown[]) => void): Promise<void> {
+  const next = async (): Promise<void> => {
+    const rows = await cursor.read(CHUNK_ROWS);
+    if (rows.length === 0) return;
+    take(rows);
+    return next();
+  };
+  try {
+    await next();
+  } finally {
+    await cursor.close();
   }
 }
 

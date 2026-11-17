@@ -6,6 +6,7 @@ import {
   dropPluginSchema,
   PluginDataSlots,
   pluginDataSlots,
+  poolClients,
   PostgresPluginDataStore,
 } from '../../../db/engine/postgres/plugin-data-store';
 import { DATABASE_ENGINE, DATABASE_SETTINGS } from '../../database/database-engine.module';
@@ -52,8 +53,9 @@ export class SqlitePluginDataBackend implements PluginDataBackend {
 
 /**
  * Each plugin's own schema in TREK's Postgres database
- * (`db/engine/postgres/plugin-data-store.ts`), reached through the ORM's
- * pool. The plugin's data directory is still created, for the files a plugin
+ * (`db/engine/postgres/plugin-data-store.ts`). Each call checks a client
+ * out of the ORM's pool for itself; erasing a plugin runs on the ORM's Kysely
+ * client. The plugin's data directory is still created, for the files a plugin
  * keeps beside its database, and it is what marks a plugin uninstalled with
  * its data kept (the erasure queue reads it).
  */
@@ -70,7 +72,7 @@ export class PostgresPluginDataBackend implements PluginDataBackend {
 
   open(pluginId: string): PluginDataStore {
     fs.mkdirSync(pluginDataDir(pluginId), { recursive: true });
-    return new PostgresPluginDataStore(pluginId, this.client(), this.sharedSlots());
+    return new PostgresPluginDataStore(pluginId, poolClients(this.orm.em.getConnection()), this.sharedSlots());
   }
 
   async erase(pluginId: string): Promise<void> {
