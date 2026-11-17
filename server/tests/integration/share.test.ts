@@ -3,7 +3,6 @@
  * Covers SHARE-001 to SHARE-009.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { db as sharedDb } from '../../src/db/database';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
@@ -20,21 +19,20 @@ import { DEFAULT_UPLOADS_ROOT, GLOBAL_TEMP_DIR } from '../../src/nest/storage/st
 import type { StorageRegistryService, ResolvedCategory } from '../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createTrip,
-  addTripMember,
-  createDay,
-  createPlace,
-  createDayAssignment,
-  createDayNote,
-} from '../helpers/factories';
 import { makeCollabMessage } from '../helpers/factories/collab';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makeDayAssignment } from '../helpers/factories/itinerary';
+import { makeDayNote } from '../helpers/factories/itinerary';
 import { makePackingItem } from '../helpers/factories/packing';
+import { makePlace } from '../helpers/factories/places';
 import { deleteRows, insertRow, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember } from '../helpers/factories/trips';
+import { makeDay } from '../helpers/factories/trips';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { createTestOrm } from '../helpers/test-orm';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -44,12 +42,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // A real instance over the same connection the app uses — these cases write a
 // cache entry and then read it back through the HTTP route, so the stub
@@ -91,19 +84,18 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Share link CRUD', () => {
   it('SHARE-001 — POST creates share link with default permissions', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(201);
@@ -112,8 +104,8 @@ describe('Share link CRUD', () => {
   });
 
   it('SHARE-002 — POST creates share link with custom permissions', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -124,8 +116,8 @@ describe('Share link CRUD', () => {
   });
 
   it('SHARE-003 — POST again updates share link permissions', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const first = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -141,8 +133,8 @@ describe('Share link CRUD', () => {
   });
 
   it('SHARE-004 — GET returns share link status', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(user.id)).send({});
 
@@ -152,8 +144,8 @@ describe('Share link CRUD', () => {
   });
 
   it('SHARE-004 — GET returns null token when no share link exists', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -161,8 +153,8 @@ describe('Share link CRUD', () => {
   });
 
   it('SHARE-005 — DELETE removes share link', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(user.id)).send({});
 
@@ -177,8 +169,8 @@ describe('Share link CRUD', () => {
 
 describe('Shared trip access', () => {
   it('SHARE-006 — GET /shared/:token returns trip data with all sections', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Adventure' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris Adventure' });
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -193,8 +185,8 @@ describe('Shared trip access', () => {
   });
 
   it('SHARE-007 — GET /shared/:token hides budget when share_budget=false', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -211,8 +203,8 @@ describe('Shared trip access', () => {
 
   // Regression: a co-member's private packing item (#858) must never reach a public share.
   it('SHARE-026 — hides private packing items from the public payload', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await makePackingItem(orm, trip.id, {
       name: 'Private thing',
       category: 'Misc',
@@ -242,12 +234,12 @@ describe('Shared trip access', () => {
   // just hidden in the client. When the owner disables the map, the itinerary and
   // every place (with coordinates) must be withheld from the public payload.
   it('SHARE-024 — hides itinerary and places when share_map=false', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Secret Route' });
-    const day = createDay(testDb, trip.id, { date: '2025-06-01' });
-    const place = createPlace(testDb, trip.id, { name: 'Safehouse', lat: 12.3456, lng: 65.4321 });
-    createDayAssignment(testDb, day.id, place.id);
-    createDayNote(testDb, day.id, trip.id, { text: 'Do not share' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Secret Route' });
+    const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+    const place = await makePlace(orm, trip.id, { name: 'Safehouse', lat: 12.3456, lng: 65.4321 });
+    await makeDayAssignment(orm, day.id, place.id);
+    await makeDayNote(orm, day.id, trip.id, { text: 'Do not share' });
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -274,9 +266,9 @@ describe('Shared trip access', () => {
   });
 
   it('SHARE-009 — non-member cannot create share link', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -289,10 +281,10 @@ describe('Shared trip access', () => {
     // Reading the link hands out the credential for the anonymous /api/shared
     // page, which outlives the membership that was used to fetch it. Under the
     // default policy share_manage stays with the owner.
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id)).send({});
 
     const res = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(member.id));
@@ -302,9 +294,9 @@ describe('Shared trip access', () => {
   });
 
   it('SHARE-027 — the owner still reads it, and a non-member still gets 404 rather than 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id)).send({});
 
     const mine = await request(app).get(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id));
@@ -317,10 +309,10 @@ describe('Shared trip access', () => {
   });
 
   it('SHARE-028 — a member may read it once the instance lowers share_manage to trip_member', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     await request(app).post(`/api/trips/${trip.id}/share-link`).set('Cookie', authCookie(owner.id)).send({});
 
     const { invalidatePermissionsCache } = await import('../../src/nest/permissions/permissions-cache');
@@ -340,11 +332,11 @@ describe('Shared trip access', () => {
 
 describe('Shared trip — day assignments and notes', () => {
   it('SHARE-010 — shared trip with days and assignments includes place data in assignments', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Rome Trip' });
-    const day = createDay(testDb, trip.id, { date: '2025-06-01' });
-    const place = createPlace(testDb, trip.id, { name: 'Colosseum', lat: 41.89, lng: 12.49 });
-    createDayAssignment(testDb, day.id, place.id, { notes: 'Amazing site' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Rome Trip' });
+    const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+    const place = await makePlace(orm, trip.id, { name: 'Colosseum', lat: 41.89, lng: 12.49 });
+    await makeDayAssignment(orm, day.id, place.id, { notes: 'Amazing site' });
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -363,10 +355,10 @@ describe('Shared trip — day assignments and notes', () => {
   });
 
   it('SHARE-011 — shared trip with day notes includes notes in response', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Notes Trip' });
-    const day = createDay(testDb, trip.id, { date: '2025-07-01' });
-    createDayNote(testDb, day.id, trip.id, { text: 'Meet at the station' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Notes Trip' });
+    const day = await makeDay(orm, trip.id, { date: '2025-07-01' });
+    await makeDayNote(orm, day.id, trip.id, { text: 'Meet at the station' });
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -383,8 +375,8 @@ describe('Shared trip — day assignments and notes', () => {
   });
 
   it('SHARE-012 — share_collab=true includes collab messages in response', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await makeCollabMessage(orm, trip.id, user.id, { text: 'Hello team!', deleted: 0 });
 
     const create = await request(app)
@@ -401,9 +393,9 @@ describe('Shared trip — day assignments and notes', () => {
   });
 
   it('SHARE-013 — assignments empty when days have no assignments', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createDay(testDb, trip.id, { date: '2025-08-01' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeDay(orm, trip.id, { date: '2025-08-01' });
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/share-link`)
@@ -420,11 +412,11 @@ describe('Shared trip — day assignments and notes', () => {
 
 describe('Shared trip — ordering parity (issue #981)', () => {
   it('SHARE-014 — assignments with same order_index are ordered by created_at (tiebreaker)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2025-09-01' });
-    const place1 = createPlace(testDb, trip.id, { name: 'First Created' });
-    const place2 = createPlace(testDb, trip.id, { name: 'Second Created' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-09-01' });
+    const place1 = await makePlace(orm, trip.id, { name: 'First Created' });
+    const place2 = await makePlace(orm, trip.id, { name: 'Second Created' });
 
     // Both with order_index = 0 (schema default) but different created_at
     await insertRow(orm, DayAssignments, {
@@ -453,9 +445,9 @@ describe('Shared trip — ordering parity (issue #981)', () => {
   });
 
   it('SHARE-015 — reservations include day_positions map from reservation_day_positions table', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2025-09-01' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-09-01' });
 
     const reservationId = await insertRow(orm, Reservations, {
       trip: trip.id,
@@ -486,8 +478,8 @@ describe('Shared trip — ordering parity (issue #981)', () => {
 
 describe('Shared trip — display currency (issue #1361)', () => {
   it("SHARE-021 — baseCurrency resolves from the share owner's default_currency setting", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Trip keeps the EUR default; the owner's Costs display currency is CAD.
     await insertRow(orm, Settings, { user: user.id, key: 'default_currency', value: JSON.stringify('CAD') });
 
@@ -504,8 +496,8 @@ describe('Shared trip — display currency (issue #1361)', () => {
   });
 
   it('SHARE-022 — baseCurrency falls back to the trip currency when the owner has no setting', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await updateRows(orm, Trips, { id: trip.id }, { currency: 'GBP' });
 
     const {
@@ -521,8 +513,8 @@ describe('Shared trip — display currency (issue #1361)', () => {
   });
 
   it('SHARE-023 — baseCurrency uses the admin instance default when the owner has no per-user setting', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id); // EUR trip default, no user setting
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id); // EUR trip default, no user setting
     await insertRow(orm, AppSettings, { key: 'default_user_setting_default_currency', value: JSON.stringify('USD') });
 
     const {
@@ -540,8 +532,8 @@ describe('Shared trip — display currency (issue #1361)', () => {
 
 describe('Shared trip: CARTO tile key (issue #2054)', () => {
   it("SHARE-029: the payload carries the owner's carto_api_key, behind it the admin instance default", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await insertRow(orm, AppSettings, { key: 'default_user_setting_carto_api_key', value: 'instance-key' });
 
     const {
@@ -576,9 +568,9 @@ describe('Shared trip — place photos in shared links (issue #1100)', () => {
   });
 
   async function setupSharedPlaceWithPhoto() {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Photo Place' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Photo Place' });
     await updateRows(orm, Places, { id: place.id }, { image_url: PROXY_URL, google_place_id: PLACE_ID });
 
     const {
@@ -597,12 +589,12 @@ describe('Shared trip — place photos in shared links (issue #1100)', () => {
   });
 
   it('SHARE-017 — shared payload rewrites assignment place image_url too', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2025-10-01' });
-    const place = createPlace(testDb, trip.id, { name: 'Assigned Photo Place' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-10-01' });
+    const place = await makePlace(orm, trip.id, { name: 'Assigned Photo Place' });
     await updateRows(orm, Places, { id: place.id }, { image_url: PROXY_URL });
-    createDayAssignment(testDb, day.id, place.id, {});
+    await makeDayAssignment(orm, day.id, place.id, {});
 
     const {
       body: { token },
@@ -654,9 +646,9 @@ describe('Shared trip — place photos in shared links (issue #1100)', () => {
   // so the proxy must stream nothing when the owner disabled the map, even
   // with a valid token + cached bytes.
   it('SHARE-025 — public place-photo proxy streams nothing when share_map=false', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Hidden Photo Place' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Hidden Photo Place' });
     await updateRows(orm, Places, { id: place.id }, { image_url: PROXY_URL, google_place_id: PLACE_ID });
     const {
       body: { token },
