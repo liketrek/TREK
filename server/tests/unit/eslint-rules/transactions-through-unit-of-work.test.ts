@@ -1,8 +1,8 @@
 import transactionsThroughUnitOfWork from '../../../eslint-rules/transactions-through-unit-of-work.mjs';
-import tsParser from '@typescript-eslint/parser';
 
 import { RuleTester, type Rule } from 'eslint';
 import path from 'path';
+import tseslint from 'typescript-eslint';
 
 // TXGATE: the rule reads the receiver's type, so the tester runs against a real
 // TypeScript program, the fixture project no-promise-as-value.test.ts uses
@@ -13,7 +13,7 @@ const filename = path.join(fixtureRoot, 'file.ts');
 
 const ruleTester = new RuleTester({
   languageOptions: {
-    parser: tsParser,
+    parser: tseslint.parser,
     parserOptions: {
       project: './tsconfig.json',
       tsconfigRootDir: fixtureRoot,
