@@ -9,6 +9,7 @@ import { TrekPostgreSqlPlatform } from '../../../src/db/engine/postgres/postgres
 import { nulFreeJson, nulFreeParameter, stripNul, withNulFreeParameters } from '../../../src/db/nul-free';
 
 import {
+  type AbortableOperationOptions,
   CompiledQuery,
   type DatabaseConnection,
   type Dialect,
@@ -25,17 +26,25 @@ const RELEASE = Symbol('release');
 /** A connection that records what it was sent and keeps a private release, like Kysely's Postgres one. */
 class RecordingConnection implements DatabaseConnection {
   readonly sent: CompiledQuery[] = [];
+  /** What came with each query besides itself: the chunk size of a stream, the abort options. */
+  readonly extras: unknown[][] = [];
   released = false;
   #open = true;
 
-  async executeQuery<R>(query: CompiledQuery): Promise<QueryResult<R>> {
+  async executeQuery<R>(query: CompiledQuery, options?: AbortableOperationOptions): Promise<QueryResult<R>> {
     if (!this.#open) throw new Error('closed');
     this.sent.push(query);
+    this.extras.push([options]);
     return { rows: [] };
   }
 
-  async *streamQuery<R>(query: CompiledQuery): AsyncIterableIterator<QueryResult<R>> {
+  async *streamQuery<R>(
+    query: CompiledQuery,
+    chunkSize: number,
+    options?: AbortableOperationOptions,
+  ): AsyncIterableIterator<QueryResult<R>> {
     this.sent.push(query);
+    this.extras.push([chunkSize, options]);
     yield { rows: [] };
   }
 
@@ -118,6 +127,20 @@ describe('NUL-free values', () => {
     expect(connection.sent[4].sql).toBe('begin');
     await driver.releaseConnection(acquired);
     expect(connection.released).toBe(true);
+  });
+
+  it('NULFREE-005: the chunk size of a stream and the abort options reach the connection as they were given', async () => {
+    const connection = new RecordingConnection();
+    const acquired = await withNulFreeParameters(recordingDialect(connection)).createDriver().acquireConnection();
+    const options: AbortableOperationOptions = { signal: new AbortController().signal };
+
+    await acquired.executeQuery(CompiledQuery.raw('select ?', ['a\u0000']), options);
+    for await (const chunk of acquired.streamQuery(CompiledQuery.raw('select 1'), 25, options)) {
+      expect(chunk.rows).toEqual([]);
+    }
+    expect(connection.extras).toEqual([[options], [25, options]]);
+    expect(connection.extras[0][0]).toBe(options);
+    expect(connection.extras[1][1]).toBe(options);
   });
 
   it('NULFREE-004: the Postgres platform inlines strings and serializes JSON without NUL', () => {
