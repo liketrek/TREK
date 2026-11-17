@@ -123,11 +123,12 @@ The copy is a safety net for an update. It does not replace a backup, and it doe
 
 ## Backups and restore
 
-A Postgres install produces the same backup archive as a SQLite install, with one difference: the database is stored as `travel.pgdump`, a `pg_dump` custom-format file, instead of `travel.db`. The uploads, plugin data and the encryption key are in the archive as before. See [Backups](Backups).
+A Postgres install produces the same backup archive as a SQLite install, with one difference: the database is stored as `travel.pgdump`, a `pg_dump` custom-format file, instead of `travel.db`. The uploads, the files plugins keep in their data directories and the encryption key are in the archive as before, and the dump holds each plugin's data schema beside TREK's own (see [Plugin data](#plugin-data)). See [Backups](Backups).
 
 Restoring a backup on Postgres follows these rules:
 
 - **The current database is replaced.** TREK first keeps a copy of it as `data/pre-restore-<time>.pgdump`. `pg_restore` then turns the archive's dump into a SQL script, and `psql` clears the current schema, which drops its tables, views, sequences, functions, types and collations, and runs the script. Both steps run in one transaction, so a restore that fails leaves the database as it was.
+- **Plugin data is replaced with the archive's.** The same transaction drops every `trek_plugin_*` schema the role owns and loads the ones the dump holds, so a plugin installed after the backup loses its data, as it does on SQLite. Schemas the role does not own, and every other schema of the database, are never touched.
 - **TREK checks the archive before it replaces anything.** The archive must hold a Postgres dump, not a SQLite file. The dump must carry TREK's migration history, and it must not come from a newer TREK. TREK refuses the restore with a message saying which check failed.
 - **The client tools must be recent enough.** The restore refuses `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19, and tools older than the server.
 - **The role must not be a superuser.** The restore refuses a role that is a superuser or holds `pg_execute_server_program` or `pg_write_server_files`. See [A role that is not a superuser](#a-role-that-is-not-a-superuser).
@@ -135,10 +136,21 @@ Restoring a backup on Postgres follows these rules:
 
 `RESTORE_FROM_BACKUP` works on Postgres too. On the first start, TREK loads the archive's dump into the database when that database holds no tables. When the database already has tables, the variable is ignored and TREK logs a warning. See [Backups: Restoring on a new install, before setup](Backups#restoring-on-a-new-install-before-setup).
 
+## Plugin data
+
+A plugin with the `db:own` permission keeps its own database. On SQLite that is a `plugin.db` file in its data directory. On Postgres it is a schema of its own in TREK's database, named `trek_plugin_<plugin id>` with each dash an underscore, so a Postgres install writes no SQLite file to the data volume, and the data volume can sit on network storage (NFS). Each plugin's directory under `data/plugins-data` is still created, for files a plugin keeps beside its database.
+
+- **TREK's role creates the schemas**, so it needs the `CREATE` privilege on the database, which the role that owns the database has.
+- **A plugin's SQL stays in its schema.** Only that schema is on the plugin's `search_path`, and TREK refuses a statement before it runs when it names another schema, the system catalogs or a function that could reach past it. The rules are in the [plugin-sdk README](https://github.com/liketrek/TREK/blob/main/plugin-sdk/README.md#your-own-database-on-postgres).
+- **A plugin writes Postgres SQL** on a Postgres install, not SQLite SQL. TREK does not translate it. A plugin written for SQLite only fails its `db:own` calls with the database's error; ask its author for Postgres support (`ctx.db.engine()` tells a plugin which engine it runs on).
+- **Plugin calls share TREK's pool**, at most half of `TREK_DB_POOL_MAX` at once, one at a time per plugin.
+- **Uninstalling a plugin with "delete data"** drops its schema.
+- **One TREK per database.** The schema names depend only on the plugin id, so two TREK instances on one database would share their plugins' data.
+
 ## Maintenance tools
 
 - **Resetting the admin account** works as on SQLite: `docker exec -it -u node trek node server/reset-admin.js` resets or creates the account in the Postgres database, with the server's connection settings and its write lock. It never opens or creates a `travel.db`, and it refuses to run when `TREK_DB_FILE` is set beside `TREK_DB_URL`. See [Troubleshooting](Troubleshooting).
-- **Rotating the encryption key** is not available on Postgres yet. `scripts/migrate-encryption.ts` stops before it changes anything when `TREK_DB_URL` is set. Keep the current `ENCRYPTION_KEY`. See [Encryption Key Rotation](Encryption-Key-Rotation).
+- **Rotating the encryption key** is not available on Postgres yet. `server/scripts/migrate-encryption.ts` stops before it changes anything when `TREK_DB_URL` is set. Keep the current `ENCRYPTION_KEY`. See [Encryption Key Rotation](Encryption-Key-Rotation).
 
 ## Limitations
 
@@ -146,6 +158,7 @@ Restoring a backup on Postgres follows these rules:
 - **No more than one TREK replica.** TREK keeps state in memory: rate limits, pending one-time codes, the permission cache and the WebSocket connections. Each process has its own copy, so two replicas would disagree with each other. Keep `replicas: 1` in the Helm chart and one `trek` container. Postgres does not change that.
 - **Two processes booting on one database at once are not coordinated.** Start one process for the first boot and for each upgrade, then continue with one.
 - **PostgreSQL 14 to 18 only.** A newer server is refused until a TREK release supports it, because the image's client tools would not be able to back it up.
+- **One TREK instance per database.** Plugin data schemas are named after the plugin alone (see [Plugin data](#plugin-data)), and a restore drops the plugin schemas the role owns. Give each instance its own database.
 - **Writes are serialized.** TREK takes a database-wide advisory lock for each write transaction, as the SQLite engine does with its single writer. Heavy concurrent writes wait on that lock.
 
 ## Supabase

@@ -169,6 +169,50 @@ Every ctx method falls into one of three kinds, listed per method in the exporte
   answer, an access token) or data you own (`ctx.db`, `ctx.meta`, another plugin's
   answer), returned as it is.
 
+### Your own database on Postgres
+
+`ctx.db` is a SQLite file of your own on a default TREK. When the instance runs on
+PostgreSQL (`TREK_DB_URL`), it is a schema of your own in TREK's database instead,
+named `trek_plugin_<your id>` with each dash an underscore, and no SQLite file is
+written. TREK hands your SQL to the engine as you wrote it and translates nothing, so
+ask which one you are on and write that dialect:
+
+```js
+const pg = (await ctx.db.engine()) === 'postgres'
+await ctx.db.migrate('001', pg
+  ? 'CREATE TABLE notes (id bigserial PRIMARY KEY, body text NOT NULL)'
+  : 'CREATE TABLE notes (id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL)')
+await ctx.db.exec(pg ? 'INSERT INTO notes (body) VALUES ($1)' : 'INSERT INTO notes (body) VALUES (?)', body)
+```
+
+What changes on Postgres:
+
+- **Placeholders** are `$1`, `$2`, ..., not `?`. A `?` with bound args is refused with a
+  message that says so.
+- **Types and functions** are Postgres's: `bigserial`/`GENERATED ... AS IDENTITY` instead
+  of `AUTOINCREMENT`, `now()` instead of `datetime('now')`, `ON CONFLICT` works on both.
+  A `bigint` comes back as a number, and one past 2^53 is refused. A boolean comes back as
+  `true`/`false`, not `1`/`0`.
+- **Your SQL stays in your schema.** Only your schema is on the `search_path`, and a
+  statement is refused before it runs when it names another schema (`public.users`,
+  another plugin's), anything starting with `pg_` or `information_schema`, or a function
+  that runs SQL from a string, reads settings or reaches an object by a name in a string
+  (`query_to_xml`, `ts_stat`, `set_config`, `current_setting`, `nextval`, `setval`, the
+  `reg*` casts, `lo_*`, `dblink`). An alias that shares a schema's name is refused too, so
+  pick another.
+- **Statements**: `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `WITH`, `VALUES`,
+  `TABLE`, `TRUNCATE`, `REFRESH`, and `CREATE`/`ALTER`/`DROP` of a table, index, view,
+  materialized view, sequence or type. No functions, triggers, procedures, `DO` blocks,
+  temporary tables, `SELECT ... INTO`, `COPY`, `SET`, transaction control (`tx()` makes a
+  batch atomic), `WITH RECURSIVE`, and no `ALTER` of a schema, owner or tablespace.
+  Dollar-quoted strings, `E'...'` and `U&'...'` are refused; write plain single-quoted
+  strings.
+- **Limits**: the same row cap and quota as on SQLite. The 2 s budget is a
+  `statement_timeout` here, so it also stops a single long statement, and an `exec` with
+  bound args is held to it too; `migrate` stays untimed. A write that takes your schema past
+  256 MB and grows it is rolled back; a delete still runs. Rows deleted or rolled back keep
+  their space until Postgres vacuums them.
+
 ## Settings
 
 Declare settings in `trek-plugin.json`; TREK renders the form, you write no settings UI.
@@ -252,7 +296,7 @@ for a legitimate plugin and only bite a runaway or abusive one — build against
 | `ctx.ai` | 200 calls/day per plugin (UTC midnight rollover); past it throws `"daily AI budget exhausted (resets at UTC midnight)"` |
 | `ctx.notify` | 100 calls/day per plugin (UTC midnight rollover); past it throws `"daily notification budget exhausted (resets at UTC midnight)"` |
 | RPC (every `ctx.*` call) | burst 60, sustained 20/s, 16 in-flight per plugin; a throttled call is refused with `HOST_ERROR: rate limit exceeded — slow down ctx.* calls` |
-| `ctx.db` (your own sqlite) | 256 MB per plugin; a `query` or `tx` returns at most 100,000 rows (a whole `tx` batch shares one count). A `query`, a whole `tx` batch and an `exec` script without bound args each have 2 s of wall-clock time, checked between the rows a statement reads and between the statements of a batch or script; past either limit the call throws (`query exceeded its 2000 ms time budget`), a `tx` rolls back, and an `exec` script stops before its next statement once the time is up (the statements that ran stay applied, as they always did, and a transaction the script opened itself is rolled back; a script whose last statement has run counts as done, however long it took). Split a longer script over several calls, or batch it with `tx`. `migrate` has no time budget, since a migration stopped part of the way would fail again on every start. `ATTACH`, `DETACH`, `VACUUM`, `PRAGMA`, `WITH RECURSIVE` and `load_extension` are refused. The budget cannot stop a single statement, because SQLite runs it on TREK's main thread in one step: a write runs to its end (an `INSERT ... SELECT` over a cross join of large tables), and a read runs until its first row (an aggregate over one). Keep your statements indexed and bounded |
+| `ctx.db` (your own database) | 256 MB per plugin; a `query` or `tx` returns at most 100,000 rows (a whole `tx` batch shares one count). A `query`, a whole `tx` batch and an `exec` script without bound args each have 2 s of wall-clock time, checked between the rows a statement reads and between the statements of a batch or script; past either limit the call throws (`query exceeded its 2000 ms time budget`), a `tx` rolls back, and an `exec` script stops before its next statement once the time is up (the statements that ran stay applied, as they always did, and a transaction the script opened itself is rolled back; a script whose last statement has run counts as done, however long it took). Split a longer script over several calls, or batch it with `tx`. `migrate` has no time budget, since a migration stopped part of the way would fail again on every start. `ATTACH`, `DETACH`, `VACUUM`, `PRAGMA`, `WITH RECURSIVE` and `load_extension` are refused. The budget cannot stop a single statement, because SQLite runs it on TREK's main thread in one step: a write runs to its end (an `INSERT ... SELECT` over a cross join of large tables), and a read runs until its first row (an aggregate over one). Keep your statements indexed and bounded. On a TREK running on Postgres the same caps hold, and the budget also stops a single statement (see [Your own database on Postgres](#your-own-database-on-postgres)) |
 | `ctx.meta` | 64 KB per value, 256 chars per key, 100 keys per (plugin, entity) |
 | Plugin process | 300 MB RSS ceiling; auto-disabled after 5 crashes in 5 minutes |
 | Event redelivery buffer | 200 events held per plugin, dropped unreplayed after 15 minutes |
