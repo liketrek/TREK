@@ -29,7 +29,7 @@ export const collabNoteUpdateRequestSchema = z.object({
   content: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
   color: z.string().nullable().optional(),
-  pinned: z.union([z.boolean(), z.number()]).optional(),
+  pinned: z.union([z.boolean(), z.number().int()]).optional(),
   website: z.string().nullable().optional(),
 });
 export type CollabNoteUpdateRequest = z.infer<typeof collabNoteUpdateRequestSchema>;
@@ -44,7 +44,7 @@ export const collabPollCreateRequestSchema = z.object({
 export type CollabPollCreateRequest = z.infer<typeof collabPollCreateRequestSchema>;
 
 export const collabPollVoteRequestSchema = z.object({
-  option_index: z.number(),
+  option_index: z.number().int(),
 });
 export type CollabPollVoteRequest = z.infer<typeof collabPollVoteRequestSchema>;
 
@@ -57,14 +57,14 @@ const httpUrl = z.url().refine((value) => /^https?:\/\//i.test(value.trim()), 'A
 export const collabLinkCreateRequestSchema = z.object({
   title: z.string().trim().min(1),
   url: httpUrl,
-  pinned: z.union([z.boolean(), z.number()]).optional(),
+  pinned: z.union([z.boolean(), z.number().int()]).optional(),
 });
 export type CollabLinkCreateRequest = z.infer<typeof collabLinkCreateRequestSchema>;
 
 export const collabLinkUpdateRequestSchema = z.object({
   title: z.string().trim().min(1).optional(),
   url: httpUrl.optional(),
-  pinned: z.union([z.boolean(), z.number()]).optional(),
+  pinned: z.union([z.boolean(), z.number().int()]).optional(),
 });
 export type CollabLinkUpdateRequest = z.infer<typeof collabLinkUpdateRequestSchema>;
 
@@ -73,7 +73,7 @@ export type CollabLinkUpdateRequest = z.infer<typeof collabLinkUpdateRequestSche
 export const collabMessageCreateRequestSchema = z.object({
   text: z.string().max(5000).optional(),
   // Multipart fields arrive as strings; JSON chat still sends a number/null.
-  reply_to: z.union([z.number(), z.string(), z.null()]).optional(),
+  reply_to: z.union([z.number().int(), z.string(), z.null()]).optional(),
 });
 export type CollabMessageCreateRequest = z.infer<typeof collabMessageCreateRequestSchema>;
 

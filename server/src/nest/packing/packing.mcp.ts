@@ -664,7 +664,7 @@ export class PackingMcp {
               .max(100)
               .optional()
               .describe('Bag name to assign the item to; created if it does not exist'),
-            weight_grams: z.number().nonnegative().optional(),
+            weight_grams: z.number().int().nonnegative().optional(),
             checked: z.boolean().optional(),
           }),
         )

@@ -283,15 +283,15 @@ export const reservationPositionsRequestSchema = z.object({
   // day_plan_position is optional on the wire: the legacy route never
   // validated position items, and an absent value binds NULL (clears the
   // stored position) — pinned by the server integration suite (RESV-006).
-  positions: z.array(z.object({ id: z.number(), day_plan_position: z.number().optional() })),
-  day_id: z.union([z.number(), z.string()]).nullable().optional(),
+  positions: z.array(z.object({ id: z.number().int(), day_plan_position: z.number().optional() })),
+  day_id: z.union([z.number().int(), z.string()]).nullable().optional(),
 });
 export type ReservationPositionsRequest = z.infer<typeof reservationPositionsRequestSchema>;
 
 export const accommodationCreateRequestSchema = z.object({
-  place_id: z.union([z.number(), z.string()]),
-  start_day_id: z.union([z.number(), z.string()]),
-  end_day_id: z.union([z.number(), z.string()]),
+  place_id: z.union([z.number().int(), z.string()]),
+  start_day_id: z.union([z.number().int(), z.string()]),
+  end_day_id: z.union([z.number().int(), z.string()]),
   check_in: z.string().nullable().optional(),
   check_in_end: z.string().nullable().optional(),
   check_out: z.string().nullable().optional(),

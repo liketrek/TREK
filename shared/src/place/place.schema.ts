@@ -298,7 +298,7 @@ export const placeBulkUpdateRequestSchema = z.object({
   ids: z.array(z.number()),
   // null clears the category ("No category"); a number sets it. Optional so the
   // field can be omitted, but the endpoint requires it to be present to act.
-  category_id: z.number().nullable().optional(),
+  category_id: z.number().int().nullable().optional(),
 });
 export type PlaceBulkUpdateRequest = z.infer<typeof placeBulkUpdateRequestSchema>;
 
