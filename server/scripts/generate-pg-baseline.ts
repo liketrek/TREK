@@ -13,7 +13,9 @@
  * The baseline stands for every migration up to the newest one when it was
  * generated (`through`). Once a migration lands after it, the baseline is
  * frozen like a shipped migration: the newer migration runs on Postgres
- * through the migrator, and `--check` only verifies the manifest.
+ * through the migrator, written through `engineDdl` with the Postgres side
+ * from `npm run gen:pg-migration`, and `--check` verifies the manifest and
+ * lists the migrations after the cut. Nothing here moves the cut.
  *
  * Usage:
  *   node --import tsx scripts/generate-pg-baseline.ts           # rewrite server/assets/postgres/
@@ -68,12 +70,24 @@ async function generateBaseline(known: Set<string> = knownMigrationNames()): Pro
 }
 
 /**
- * What `--check` holds, as the problems it finds. Every manifest must name
- * migrations that exist and every migration up to `through`. While no migration
- * is newer than the committed baseline (`through` matches), the baseline is
- * not frozen: it must be exactly what the entities generate, and each SQLite
- * trigger needs a port. Once a newer migration lands, the baseline is frozen
- * and only the manifest is checked.
+ * The migrations after the committed baseline's cut, in order: what a boot
+ * runs on Postgres through the migrator, each written through `engineDdl`
+ * (lint:dialect) and held by PARITY-PG. While there is one, the baseline is
+ * frozen. `known` is every migration on disk.
+ */
+export function postCutMigrations(committed: PostgresBaseline, known: readonly string[]): string[] {
+  return known.filter((name) => name > committed.through).sort();
+}
+
+/**
+ * What `--check` holds, as the problems it finds, each with what to do about
+ * it. Every manifest must name migrations that exist and every migration up to
+ * `through`. While no migration is newer than the committed baseline
+ * (`through` matches), the baseline is not frozen: it must be exactly what the
+ * entities generate, and each SQLite trigger needs a port. Once a newer
+ * migration lands, the baseline is frozen: Postgres reaches the newer schema
+ * through that migration, so only the manifest is checked here, and
+ * `checkMode` lists the migrations after the cut.
  */
 export function checkBaseline(
   committed: PostgresBaseline,
@@ -84,15 +98,30 @@ export function checkBaseline(
   const known = new Set(generated.migrations);
   const problems: string[] = [];
   const missing = committed.migrations.filter((name) => !known.has(name));
-  if (missing.length > 0) problems.push(`the baseline names migrations that do not exist: ${missing.join(', ')}`);
+  if (missing.length > 0) {
+    problems.push(
+      `the manifest names migrations that are not in src/db/migrations: ${missing.join(', ')}. ` +
+        'A migration that has shipped is never renamed or deleted; restore it under its name.',
+    );
+  }
   const unlisted = generated.migrations.filter(
     (name) => name <= committed.through && !committed.migrations.includes(name),
   );
-  if (unlisted.length > 0)
-    problems.push(`migrations up to ${committed.through} are missing from it: ${unlisted.join(', ')}`);
+  if (unlisted.length > 0) {
+    problems.push(
+      `migrations that sort before the cut (${committed.through}) are not in the manifest: ${unlisted.join(', ')}. ` +
+        `Postgres would never run them; give each a name that sorts after ${generated.through}.`,
+    );
+  }
   const frozen = committed.through !== generated.through;
   if (frozen) return problems;
-  if (!matches) problems.push('the entities generate a different schema; run npm run gen:pg-baseline');
+  if (!matches) {
+    problems.push(
+      'server/assets/postgres/ is not what the entities, POSTGRES_TRIGGERS and the reference rows the migrations ' +
+        'insert generate now, and no migration follows its cut: run npm run gen:pg-baseline and commit ' +
+        'server/assets/postgres/.',
+    );
+  }
   problems.push(...triggerPortProblems(sqliteTriggers, Object.keys(POSTGRES_TRIGGERS)));
   return problems;
 }
@@ -189,11 +218,19 @@ export function rowStatements(table: string, rows: readonly Row[]): string[] {
 export function triggerPortProblems(sqliteTriggers: readonly string[], ported: readonly string[]): string[] {
   const problems: string[] = [];
   const missing = sqliteTriggers.filter((name) => !ported.includes(name));
-  if (missing.length > 0)
-    problems.push(`SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}`);
+  if (missing.length > 0) {
+    problems.push(
+      `SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: ${missing.join(', ')}. Add each one's ` +
+        'function and trigger to src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
+    );
+  }
   const stale = ported.filter((name) => !sqliteTriggers.includes(name));
-  if (stale.length > 0)
-    problems.push(`POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}`);
+  if (stale.length > 0) {
+    problems.push(
+      `POSTGRES_TRIGGERS ports triggers the migrations no longer create: ${stale.join(', ')}. Remove them from ` +
+        'src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
+    );
+  }
   return problems;
 }
 
@@ -209,11 +246,25 @@ async function checkMode(): Promise<void> {
   const { baseline: generated, sqliteTriggers } = await generateBaseline();
   const committed = readPostgresBaseline();
   const problems = checkBaseline(committed, generated, baselineMatches(generated), sqliteTriggers);
+  const after = postCutMigrations(committed, generated.migrations);
+  if (after.length > 0) {
+    // Frozen: say so, and what keeps those migrations right on Postgres, whether or not the manifest passed.
+    console.log(
+      `[generate-pg-baseline] --check: the baseline is frozen at ${committed.through}. ${after.length} migration(s) ` +
+        `run on Postgres after its cut, through the migrator: ${after.join(', ')}. Each writes its schema change ` +
+        'through engineDdl (lint:dialect) and PARITY-PG in the Postgres lane holds the result against the entities; ' +
+        'the baseline is not regenerated for them.',
+    );
+  }
   if (problems.length > 0) {
     for (const problem of problems) console.error(`[generate-pg-baseline] ${problem}`);
     process.exit(1);
   }
-  console.log('[generate-pg-baseline] --check: the Postgres baseline matches the entities and the migrations');
+  console.log(
+    after.length > 0
+      ? `[generate-pg-baseline] --check: the manifest lists every migration through ${committed.through}`
+      : '[generate-pg-baseline] --check: the Postgres baseline matches the entities and the migrations',
+  );
 }
 
 async function main(): Promise<void> {

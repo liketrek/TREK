@@ -3,7 +3,12 @@
  * honest: reading and writing it (src/db/engine/postgres/baseline.ts) and the
  * generator's --check (scripts/generate-pg-baseline.ts).
  */
-import { checkBaseline, rowStatements, triggerPortProblems } from '../../../../../scripts/generate-pg-baseline';
+import {
+  checkBaseline,
+  postCutMigrations,
+  rowStatements,
+  triggerPortProblems,
+} from '../../../../../scripts/generate-pg-baseline';
 import {
   baselineMatches,
   readPostgresBaseline,
@@ -78,8 +83,15 @@ describe('checkBaseline', () => {
   it('PGBASE-010: at the newest migration the baseline must be exactly what the entities generate', () => {
     expect(checkBaseline(sample, generated(B, [A, B]), true, PORTED)).toEqual([]);
     expect(checkBaseline(sample, generated(B, [A, B]), false, PORTED)).toEqual([
-      'the entities generate a different schema; run npm run gen:pg-baseline',
+      'server/assets/postgres/ is not what the entities, POSTGRES_TRIGGERS and the reference rows the migrations ' +
+        'insert generate now, and no migration follows its cut: run npm run gen:pg-baseline and commit ' +
+        'server/assets/postgres/.',
     ]);
+  });
+
+  it('PGBASE-014: the migrations after the cut are the ones Postgres runs through the migrator, in order', () => {
+    expect(postCutMigrations(sample, [C, A, B])).toEqual([C]);
+    expect(postCutMigrations(sample, [A, B])).toEqual([]);
   });
 
   it('PGBASE-011: once a migration lands after the cut, the baseline is frozen and only its manifest is checked', () => {
@@ -89,18 +101,21 @@ describe('checkBaseline', () => {
   it('PGBASE-013: while not frozen, a SQLite trigger without a port is reported; once frozen the triggers are not checked', () => {
     const withNewTrigger = [...PORTED, 'trg_new_trigger'];
     expect(checkBaseline(sample, generated(B, [A, B]), true, withNewTrigger)).toEqual([
-      'SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: trg_new_trigger',
+      "SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: trg_new_trigger. Add each one's function and " +
+        'trigger to src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
     ]);
     expect(checkBaseline(sample, generated(C, [A, B, C]), false, withNewTrigger)).toEqual([]);
   });
 
   it('PGBASE-012: a manifest naming a migration that is gone, or missing one before its cut, is reported', () => {
     expect(checkBaseline(sample, generated(C, [B, C]), true, PORTED)).toEqual([
-      `the baseline names migrations that do not exist: ${A}`,
+      `the manifest names migrations that are not in src/db/migrations: ${A}. ` +
+        'A migration that has shipped is never renamed or deleted; restore it under its name.',
     ]);
     const skipped = { ...sample, migrations: [B] };
     expect(checkBaseline(skipped, generated(B, [A, B]), true, PORTED)).toEqual([
-      `migrations up to ${B} are missing from it: ${A}`,
+      `migrations that sort before the cut (${B}) are not in the manifest: ${A}. ` +
+        `Postgres would never run them; give each a name that sorts after ${B}.`,
     ]);
   });
 });
@@ -124,8 +139,10 @@ describe('triggerPortProblems', () => {
   it('PGBASE-020: every SQLite trigger needs a Postgres port, and a port without its trigger is stale', () => {
     expect(triggerPortProblems(['a', 'b'], ['b', 'a'])).toEqual([]);
     expect(triggerPortProblems(['a', 'b'], ['a', 'c'])).toEqual([
-      'SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: b',
-      'POSTGRES_TRIGGERS ports triggers the migrations no longer create: c',
+      "SQLite triggers without a Postgres port in POSTGRES_TRIGGERS: b. Add each one's function and trigger to " +
+        'src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
+      'POSTGRES_TRIGGERS ports triggers the migrations no longer create: c. Remove them from ' +
+        'src/db/engine/postgres/postgres-triggers.ts, then run npm run gen:pg-baseline.',
     ]);
   });
 
