@@ -633,6 +633,7 @@ export const PLUGIN_METHOD_OUTPUT = {
   'db.query': HOST,
   'db.migrate': HOST,
   'db.tx': HOST,
+  'db.engine': HOST,
   'trips.getById': row('trip'),
   'trips.getPlaces': rows('place'),
   'trips.getReservations': rows('reservation'),

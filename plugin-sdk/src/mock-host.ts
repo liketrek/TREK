@@ -48,6 +48,8 @@ export interface MockHostOptions {
   users?: Record<number, unknown>;
   /** Optional canned db.query results, keyed by the exact sql string. */
   queryResults?: Record<string, unknown[]>;
+  /** What `db.engine()` answers; 'sqlite' when unset. Set 'postgres' to test a plugin's Postgres SQL path. */
+  dbEngine?: 'sqlite' | 'postgres';
   /** The host-bound acting user for costs.* (a job/onLoad has none → refused). */
   actingUserId?: number;
   /** Trip bound to the mock plugin UI's `session` helper. Required for scope: 'trip'. */
@@ -450,6 +452,10 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           need('db:own', 'db.migrate');
           guardSql(sql);
           return { applied: true };
+        },
+        async engine() {
+          need('db:own', 'db.engine');
+          return opts.dbEngine ?? 'sqlite';
         },
         async tx(ops) {
           need('db:own', 'db.tx');

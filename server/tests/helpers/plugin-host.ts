@@ -63,6 +63,7 @@ import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-
 import type { PlaceOriginsService } from '../../src/nest/places/place-origins.service';
 import { PlacesRpc } from '../../src/nest/places/places.rpc';
 import { PlacesService } from '../../src/nest/places/places.service';
+import { SqlitePluginDataBackend } from '../../src/nest/plugins/host/plugin-data.backend';
 import { PluginRpcHostFactory } from '../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { DbRpc } from '../../src/nest/plugins/host/rpc/db.rpc';
 import { HostSurfaceRpc } from '../../src/nest/plugins/host/rpc/host-surface.rpc';
@@ -662,7 +663,11 @@ export async function createPluginRpcHostParts(
   ];
   const registry = createTestPluginRegistry(controllers);
   return {
-    factory: new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService),
+    factory: new PluginRpcHostFactory(
+      pluginAuditRepo,
+      registry as unknown as PluginRpcRegistryService,
+      new SqlitePluginDataBackend(),
+    ),
     controllers,
   };
 }

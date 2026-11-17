@@ -1,4 +1,5 @@
 import { openDatabase } from '../../../db/connection';
+import { PLUGIN_DATA_CAPS, type PluginDataStore } from '../../../db/engine/plugin-data';
 import { pluginDataDir, pluginDbFile, pluginsDataRoot } from '../paths';
 import { splitAfterSemicolons } from './sql-script';
 
@@ -6,8 +7,13 @@ import type { Database as Db, Statement } from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 
+// The port, re-exported for the RPC kit, which may import from this file only (eslint.config.mjs).
+export type { PluginDataStore };
+
 /**
- * A plugin's own sqlite database (#plugins, db:own). The HOST owns the handle;
+ * A plugin's own sqlite database (#plugins, db:own): the SQLite side of the
+ * `PluginDataStore` port (`db/engine/plugin-data.ts`; the Postgres side is a
+ * schema per plugin, `db/engine/postgres/plugin-data-store.ts`). The HOST owns the handle;
  * the plugin child never gets a path or a connection — it can only reach this
  * through RPC (db.exec / db.query / db.migrate). Because it is a SEPARATE FILE,
  * containment is a filesystem fact: the plugin physically cannot read trek.db,
@@ -19,7 +25,7 @@ import path from 'node:path';
  * script are held to a time budget (below).
  */
 
-const MAX_SQL_LENGTH = 100_000;
+const MAX_SQL_LENGTH = PLUGIN_DATA_CAPS.maxSqlLength;
 // RECURSIVE is the one construct that generates unbounded rows/CPU independent of
 // the (capped) data size — a `WITH RECURSIVE …` can spin the synchronous host
 // forever even with an empty database, which neither the size quota nor the
@@ -39,11 +45,11 @@ const TX_CONTROL = /^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|END)\b/i;
 // the file (writes past it fail SQLITE_FULL, contained to the plugin) and bounds
 // the worst-case scan cost. Result sets are additionally row-capped below so a
 // recursive CTE / cartesian product can't materialize an unbounded array.
-const QUOTA_BYTES = 256 * 1024 * 1024;
-const MAX_ROWS = 100_000;
+const QUOTA_BYTES = PLUGIN_DATA_CAPS.quotaBytes;
+const MAX_ROWS = PLUGIN_DATA_CAPS.maxRows;
 // Cap statements per atomic batch so a single tx() can't monopolise the synchronous
 // host — generous for real write batches, far below anything abusive.
-const MAX_TX_OPS = 100;
+const MAX_TX_OPS = PLUGIN_DATA_CAPS.maxTxOps;
 // Wall-clock budget for one query(), one whole tx() batch or one exec() script.
 // better-sqlite3 has no interrupt or progress handler, so the budget is checked
 // between the rows a statement yields and between the statements of a batch or a
@@ -55,7 +61,7 @@ const MAX_TX_OPS = 100;
 // and the plugin-sdk README says so. migrate() is left unbudgeted on purpose: a
 // migration is stopped part of the way only to fail the same way on every later
 // start, which leaves a plugin that cannot update its schema at all.
-const TIME_BUDGET_MS = 2_000;
+const TIME_BUDGET_MS = PLUGIN_DATA_CAPS.timeBudgetMs;
 // What better-sqlite3 throws from prepare() for a statement cut off before its end:
 // in an exec() script, a trigger body whose semicolon split it.
 const INCOMPLETE_INPUT = 'incomplete input';
@@ -90,9 +96,10 @@ export function checkpointAllPluginDataDbs(): void {
   }
 }
 
-export class PluginDataDb {
+export class PluginDataDb implements PluginDataStore {
   private db: Db;
   readonly pluginId: string;
+  readonly engine = 'sqlite' as const;
   private readonly limits: PluginDataLimits;
 
   constructor(pluginId: string, limits: Partial<PluginDataLimits> = {}) {

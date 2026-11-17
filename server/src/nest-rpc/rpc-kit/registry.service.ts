@@ -37,7 +37,7 @@ export class PluginRpcRegistryService extends PluginRpcRegistry implements OnMod
    * Separate from validate() because the two answer different questions: this one is
    * about discovery (which providers were found, and once each), validate() is about
    * the surface being complete and correctly declared. Keeping them apart lets the
-   * discovery behaviour be tested without assembling all 113 methods first.
+   * discovery behaviour be tested without assembling all 115 methods first.
    */
   scanProviders(): void {
     // A provider can be wrapped once per module that lists it, so dedupe by instance

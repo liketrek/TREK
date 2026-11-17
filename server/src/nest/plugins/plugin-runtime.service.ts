@@ -53,7 +53,6 @@ import path from 'node:path';
 import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { closePluginDataDb } from './host/plugin-host-state';
 import { ForbiddenResource } from './host/rpc-host';
-import { removePluginData } from './host/plugin-data.service';
 import { isKnownPermission } from './protocol/envelope';
 import { discoverPlugins, type DiscoveryRepos } from './install/discovery';
 import { enqueueHookUserDataErasures } from './user-erasure-enqueue';
@@ -1091,7 +1090,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // leave a plugin without its row but with its settings, grants or tasks, which a
     // later plugin reusing the id would inherit. The data dir goes after the commit.
     await this.uow.transactional(() => this.dropPluginRows(id, deleteData));
-    if (deleteData) removePluginData(id);
+    // The plugin's own database (a SQLite file, or its schema on Postgres) and its data dir.
+    if (deleteData) {
+      if (!this.hostFactory) throw new Error('PluginRpcHostFactory not provided: it is what erases the plugin data');
+      await this.hostFactory.erasePluginData(id);
+    }
   }
 
   private async dropPluginRows(id: string, deleteData: boolean): Promise<void> {

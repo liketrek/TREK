@@ -24,6 +24,8 @@ export interface PluginContext {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;
     exec(sql: string, ...args: unknown[]): Promise<{ changes: number }>;
     migrate(id: string, sql: string): Promise<{ applied: boolean }>;
+    /** The engine your SQL runs on: 'sqlite' (the default), or 'postgres' when TREK runs on Postgres. */
+    engine(): Promise<'sqlite' | 'postgres'>;
     /** Run several statements atomically on your OWN db — all commit or all roll
      * back. Each op is one statement; reads see the batch's own earlier writes.
      * A read returns `{ rows }`, a write `{ changes }`. Max 100 statements. */
@@ -824,6 +826,7 @@ export function createPluginContext(
       exec: (sql, ...args) => t.rpc('db.exec', { sql, args }) as Promise<{ changes: number }>,
       migrate: (mid, sql) => t.rpc('db.migrate', { id: mid, sql }) as Promise<{ applied: boolean }>,
       tx: (ops) => t.rpc('db.tx', { ops }) as Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>,
+      engine: () => (t.rpc('db.engine', {}) as Promise<{ engine: 'sqlite' | 'postgres' }>).then((r) => r.engine),
     },
     trips: {
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),
