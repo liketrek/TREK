@@ -210,6 +210,27 @@ What changes on Postgres:
   `regconfig`, `regdictionary`, `regnamespace`, `regrole`, `regcollation` and their arrays
   (`'x'::regtype`, `CAST('x' AS regtype)`, `regtype 'x'`). An alias that shares a schema's
   name is refused too, so pick another.
+- **Postgres's own functions: an allowlist.** You may call the functions that work only on
+  their arguments: strings and bytes (`lower`, `substring`, `regexp_replace`, `format`,
+  `md5`, `sha256`, ...), numbers (`round`, `abs`, `random`, ...), dates and times (`now`,
+  `date_trunc`, `extract`, `to_char`, `make_date`, ...), the conversions (`numeric(10, 2)`,
+  `varchar(20)`, `int8`, ...), JSON and JSONB (`jsonb_build_object`, `jsonb_set`,
+  `jsonb_path_query`, ...), arrays (`unnest`, `array_agg`, `generate_series`, ...),
+  aggregates and window functions (`count`, `sum`, `string_agg`, `row_number`, `lag`, ...),
+  UUIDs (`gen_random_uuid`), ranges, geometry, network addresses and full text search
+  (`to_tsvector`, `ts_rank`, ...). Any other function of Postgres's catalog is refused
+  however you spell the call (`f(...)`, `"f"(...)`, the column notation `(x).f`): the ones
+  that read the catalogs or the server rather than their arguments (`obj_description`,
+  `col_description`, `format_type`, `version`, `current_database`, `inet_server_addr`,
+  `txid_current`, ...), and so is every new function a later Postgres adds until TREK has
+  decided about it. The keywords `current_user`, `session_user`, `current_role`, `user`,
+  `system_user`, `current_catalog` and `current_schema` are refused too. `coalesce`,
+  `nullif`, `greatest`, `least`, `CASE` and `CAST` are syntax and always work. The complete
+  list is `PLUGIN_FUNCTIONS` in TREK's
+  [`plugin-sql-functions.ts`](https://github.com/liketrek/TREK/blob/main/server/src/db/engine/postgres/plugin-sql-functions.ts).
+  A table or type of yours may still share a refused function's name where it cannot be a
+  call (`INSERT INTO version (...)`, `CREATE TABLE version (...)`, `REFERENCES version (id)`);
+  as the table of `CREATE INDEX ... ON` it cannot, so name it differently.
 - **You change your own objects only.** Right before an `ALTER`, `DROP`, `REFRESH`,
   `TRUNCATE` or `CREATE INDEX ... ON` runs, Postgres resolves the object it names (and the
   tables a `CREATE`/`ALTER TABLE` ties to with `REFERENCES`, `INHERITS`, `PARTITION OF`,

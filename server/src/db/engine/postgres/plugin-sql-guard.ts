@@ -1,4 +1,5 @@
 import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
+import { refusedCatalogCall, SESSION_KEYWORDS } from './plugin-sql-functions';
 
 /**
  * What keeps a plugin's own SQL on Postgres inside its own schema.
@@ -69,6 +70,12 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  *   `setval`, `has_table_privilege` and its siblings, `currtid2`, the BRIN
  *   and GIN maintenance functions, `to_reg*`), large objects (`lo_*`) or
  *   `dblink`;
+ * - a call to a function of `pg_catalog` that is not on the allowlist in
+ *   `plugin-sql-functions.ts` (`obj_description`, `format_type`, `version`,
+ *   `current_database`, ...: whatever reads the catalogs or the server rather
+ *   than its arguments), in either spelling of a call (`f(...)`, or the
+ *   column notation `(x).f`), and the keywords that name the session's roles,
+ *   database or schema (`current_user`, `session_user`, `current_catalog`, ...);
  * - the object identifier types that look an object up by name
  *   (`regclass`, `regtype`, `regproc`, `regprocedure`, `regoper`,
  *   `regoperator`, `regconfig`, `regdictionary`, `regnamespace`, `regrole`,
@@ -472,6 +479,7 @@ function describe(text: string, tokens: Token[]): PluginStatement {
     if (token.kind === 'punct' && token.value === ')') depth--;
     if (token.kind !== 'word') continue;
     checkName(token.value);
+    checkCall(tokens, index);
     const after = tokens[index + 1];
     if (after?.kind === 'punct' && after.value === '.') qualifies = true;
     if (token.quoted) continue;
@@ -538,6 +546,39 @@ function checkObject(verb: string, tokens: readonly Token[]): void {
 function checkKeyword(word: string): void {
   if (word === 'recursive') throw new PluginSqlRefused('WITH RECURSIVE is not allowed');
   if (word === 'tablespace') throw new PluginSqlRefused('a tablespace may not be named');
+  if (SESSION_KEYWORDS.has(word)) {
+    throw new PluginSqlRefused(`${word.toUpperCase()} describes the session, which a plugin may not read`);
+  }
+}
+
+/** The keywords after which a name followed by `(` is an object's, not a call: `INSERT INTO version (...)`. */
+const NAME_BEFORE = new Set(['into', 'table', 'view', 'references', 'exists']);
+
+/**
+ * Refuses the word at `index` when it calls a function of `pg_catalog` a
+ * plugin may not call (`plugin-sql-functions.ts`): followed by `(`, unless
+ * it names an object after one of {@link NAME_BEFORE}, or in Postgres's
+ * column notation for a call, right after `).` or `].` (`(16386::oid).obj_description`).
+ */
+function checkCall(tokens: readonly Token[], index: number): void {
+  const token = tokens[index];
+  if (token.kind !== 'word') return;
+  const before = tokens[index - 2];
+  const columnNotation = isPunct(tokens[index - 1], '.') && (isPunct(before, ')') || isPunct(before, ']'));
+  const called = columnNotation || (isPunct(tokens[index + 1], '(') && !namesObject(tokens, index));
+  if (called && refusedCatalogCall(token.value)) {
+    throw new PluginSqlRefused(
+      `"${token.value}" is a function of the Postgres catalog that a plugin may not call; ` +
+        "the plugin SDK's README lists the functions a plugin may call",
+    );
+  }
+}
+
+/** Whether the (possibly qualified) name ending at `index` follows one of {@link NAME_BEFORE}. */
+function namesObject(tokens: readonly Token[], index: number): boolean {
+  let start = index;
+  while (isPunct(tokens[start - 1], '.') && tokens[start - 2]?.kind === 'word') start -= 2;
+  return NAME_BEFORE.has(keyword(tokens[start - 1]) ?? '');
 }
 
 /**

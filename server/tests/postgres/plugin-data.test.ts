@@ -1,5 +1,5 @@
 /**
- * PGPLUG-001..020 — a plugin's own data (`db:own`) on Postgres, against the
+ * PGPLUG-001..021 — a plugin's own data (`db:own`) on Postgres, against the
  * real app on the lane's database: each plugin gets a schema of its own and no
  * SQLite file, its SQL keeps the SQLite store's semantics (migrate once per
  * id, a script's statements committed one by one, an atomic tx, the row cap,
@@ -24,6 +24,7 @@ import {
   poolClients,
   PostgresPluginDataStore,
 } from '../../src/db/engine/postgres/plugin-data-store';
+import { catalogFunctionNames } from '../../src/db/engine/postgres/plugin-sql-functions';
 import { TrekPostgreSqlDriver } from '../../src/db/engine/postgres/postgres-driver';
 import { putTempSchemaLast } from '../../src/db/engine/postgres/session-search-path';
 import { DATABASE_SETTINGS } from '../../src/nest/database/database-engine.module';
@@ -686,5 +687,54 @@ describe('plugin data on Postgres', () => {
     await store.migrate('003', 'CREATE TABLE raw (b bytea)');
     await store.exec('INSERT INTO raw VALUES ($1)', [Buffer.from([1, 0, 2])]);
     expect(await store.query('SELECT length(b) AS n FROM raw')).toEqual([{ n: 3 }]);
+  });
+
+  it("PGPLUG-021: a plugin calls only the catalog's functions on the allowlist, and every function of this server is listed", async () => {
+    const rows = await asSuper<{ proname: string }>(
+      "select distinct proname from pg_proc where pronamespace = 'pg_catalog'::regnamespace",
+    );
+    const unlisted = rows.map((row) => row.proname).filter((name) => !catalogFunctionNames().has(name));
+    expect(
+      unlisted,
+      'These functions of this Postgres are missing from server/assets/postgres/catalog-functions.txt. ' +
+        'Add each name there (one per line, keep it sorted), and to PLUGIN_FUNCTIONS in ' +
+        'src/db/engine/postgres/plugin-sql-functions.ts only if it works on its arguments alone ' +
+        'and reads neither the catalogs nor the server.',
+    ).toEqual([]);
+
+    await asSuper("comment on table users is 'catalog comment the plugin must not read'");
+    const [{ oid }] = await asSuper<{ oid: number }>("select 'public.users'::regclass::oid::int8 as oid");
+    const store = data.open('pg-catalog');
+    await store.migrate('001', 'CREATE TABLE version (id bigserial PRIMARY KEY, body text NOT NULL)');
+    await Promise.all(
+      [
+        `select obj_description(${oid})`,
+        `select obj_description(${oid}, 'pg_class')`,
+        `select col_description(${oid}, 1)`,
+        `select (${oid}::oid).obj_description`,
+        `select "obj_description"(${oid})`,
+        "select shobj_description(10, 'pg_authid')",
+        `select format_type(${oid}, null)`,
+        'select version()',
+        'select current_database()',
+        'select inet_server_addr()',
+        'select current_user',
+        'select session_user',
+        'select current_catalog',
+      ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/a plugin may not (call|read)/)),
+    );
+    // A table named like a refused function, and the functions a plugin needs, still work.
+    await store.exec('INSERT INTO version (body) VALUES ($1), ($2)', ['Alpha', 'beta']);
+    expect(
+      await store.query(
+        "SELECT lower(body) AS b, length(body) AS n, jsonb_build_object('k', id)->>'k' AS k, " +
+          "to_char(date_trunc('day', now()), 'YYYY') <> '' AS d, gen_random_uuid() IS NOT NULL AS u " +
+          'FROM version ORDER BY id',
+      ),
+    ).toEqual([
+      { b: 'alpha', n: 5, k: '1', d: true, u: true },
+      { b: 'beta', n: 4, k: '2', d: true, u: true },
+    ]);
+    await asSuper('comment on table users is null');
   });
 });
