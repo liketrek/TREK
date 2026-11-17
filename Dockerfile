@@ -73,14 +73,22 @@ COPY server/package.json ./server/
 # The upgrade takes the Debian security fixes the base image was built before
 # (zlib, 11/2026, failed the image scan until node:24-trixie-slim caught up).
 #
-# postgresql-client-17 (Debian 13's own) brings pg_dump and pg_restore to
-# /usr/lib/postgresql/17/bin, which back up an install on Postgres
-# (TREK_DB_URL). pg_dump refuses a server newer than itself, so it stays at the
-# newest major TREK supports.
-RUN apt-get update && \
+# postgresql-client-18 brings pg_dump, pg_restore and psql to
+# /usr/lib/postgresql/18/bin, which back up and restore an install on Postgres
+# (TREK_DB_URL). A client handles every server up to its own major and refuses
+# a newer one, so the image carries the newest major TREK supports (14 to 18).
+# Debian 13 ships 17 only, so it comes from the PostgreSQL project's apt
+# repository (PGDG): the `18` component lists that major's packages and no
+# other, and the repository's signing key (fingerprint B97B 0AFC AA1A 47F0 44F2
+# 44A0 7FCC 7D46 ACCC 4CF8) is kept beside the entrypoint instead of fetched at
+# build time. Raise both together when TREK supports a newer major.
+COPY server/scripts/pgdg-apt-key.asc /etc/apt/keyrings/pgdg.asc
+RUN echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main 18' \
+      > /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates \
-    libkitinerary-bin libsqlite3-0 postgresql-client-17 && \
+    libkitinerary-bin libsqlite3-0 postgresql-client-18 && \
     npm ci --workspace=server --omit=dev --ignore-scripts && \
     { ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor || true; } && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
