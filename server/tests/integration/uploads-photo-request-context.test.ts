@@ -24,16 +24,17 @@
  *    succeed, not an accident of the test setup.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Photos } from '../../src/db/entities/Photos.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { applyPlatformUploads } from '../../src/nest/platform/platform.routes';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { generateToken } from '../helpers/auth';
-import { createUser, createTrip } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
 import { insertRow } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
 import { makeShareToken } from '../helpers/factories/trips';
-import { resetTestDb } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -44,13 +45,10 @@ import path from 'node:path';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 let nestApp: INestApplication;
 let app: Application;
+// The booted app's own ORM, the one the routes read through.
+let orm: FactoryOrm;
 
 // A real file under the local driver's actual 'photos' root (DEFAULT_UPLOADS_ROOT,
 // server/uploads — same fixture pattern as tests/e2e/share.e2e.test.ts's
@@ -64,6 +62,7 @@ beforeAll(async () => {
   fs.writeFileSync(photoFile, photoBytes);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
 afterAll(async () => {
@@ -75,13 +74,13 @@ afterAll(async () => {
   }
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
 });
 
 describe('GET /uploads/photos/:filename — request context (Plan 3b Task 0, D6)', () => {
   it('PHOTOCTX-001: a valid JWT session still serves the photo — the wrap changes nothing observable', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .get(`/uploads/photos/${photoName}`)
       .set('Authorization', `Bearer ${generateToken(user.id)}`);
@@ -90,9 +89,8 @@ describe('GET /uploads/photos/:filename — request context (Plan 3b Task 0, D6)
   });
 
   it('PHOTOCTX-002: a repository read forced inside the handler succeeds under the wrap (load-bearing positive proof)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const storage = nestApp.get(StorageService);
-    const orm = nestApp.get(MikroORM);
     let caught: unknown;
     let found: unknown;
     // storage.exists is the very first thing servePhoto calls — forcing a
@@ -131,10 +129,10 @@ describe('GET /uploads/photos/:filename — request context (Plan 3b Task 0, D6)
   // These two cases drive the REAL pre-init route, anonymously, through the
   // real compiled `buildApp()` boot above — not a wrapper mock.
   it('PHOTOCTX-004 (R1): a valid share token serves the SAME photo bytes as the JWT path, byte-identical', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    await insertRow(nestApp.get(MikroORM), Photos, { trip: trip.id, filename: photoName, original_name: photoName });
-    await makeShareToken(nestApp.get(MikroORM), trip.id, user.id, { token: 'ratchet-valid-token' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await insertRow(orm, Photos, { trip: trip.id, filename: photoName, original_name: photoName });
+    await makeShareToken(orm, trip.id, user.id, { token: 'ratchet-valid-token' });
 
     const res = await request(app).get(`/uploads/photos/${photoName}?token=ratchet-valid-token`);
 
@@ -143,9 +141,9 @@ describe('GET /uploads/photos/:filename — request context (Plan 3b Task 0, D6)
   });
 
   it('PHOTOCTX-005 (R1): an invalid/unknown share token answers the legacy 401 — never `cannotUseGlobalContext`', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    await insertRow(nestApp.get(MikroORM), Photos, { trip: trip.id, filename: photoName, original_name: photoName });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await insertRow(orm, Photos, { trip: trip.id, filename: photoName, original_name: photoName });
     // No matching share_tokens row for this token at all.
 
     const res = await request(app).get(`/uploads/photos/${photoName}?token=ratchet-unknown-token`);

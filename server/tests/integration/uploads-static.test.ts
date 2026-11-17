@@ -14,19 +14,13 @@
  * public pages, and email-embedded avatars. No auth setup here is deliberate.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import fs from 'fs';
 import path from 'path';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -64,7 +58,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
   for (const abs of created) fs.rmSync(abs, { force: true });
   fs.rmSync(path.join(uploadsDir, 'avatars/.tmp'), { recursive: true, force: true });
   fs.rmSync(path.join(uploadsDir, 'journey/parity-subdir'), { recursive: true, force: true });
