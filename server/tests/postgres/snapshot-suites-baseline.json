@@ -98,6 +98,5 @@
   "tests/unit/mcp/tools-trips.test.ts",
   "tests/unit/mcp/tools-vacay.test.ts",
   "tests/unit/nest/route-inventory.test.ts",
-  "tests/websocket/connection.test.ts",
   "tests/websocket/wire-envelope.test.ts"
 ]
