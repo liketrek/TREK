@@ -29,9 +29,9 @@ beforeEach(async () => {
   // The summary reads these three off the injected AddonsService, so the case
   // that wants one off writes the row the admin panel writes. resetDatabase
   // puts back the default addon rows, so each case restates what it needs.
-  for (const id of [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB]) {
-    await setAddonEnabled(orm, id, true);
-  }
+  await Promise.all(
+    [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB].map((id) => setAddonEnabled(orm, id, true)),
+  );
 });
 
 afterAll(async () => {

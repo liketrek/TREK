@@ -71,7 +71,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await resetDatabase(orm);
-  for (const id of Object.values(ADDON_IDS)) await setAddonEnabled(orm, id, true);
+  await Promise.all(Object.values(ADDON_IDS).map((id) => setAddonEnabled(orm, id, true)));
   // The wanderer tools show only while wanderer is allowed under Tours.
   await setAppSetting(orm, 'tours_wanderer_enabled', 'true');
 });

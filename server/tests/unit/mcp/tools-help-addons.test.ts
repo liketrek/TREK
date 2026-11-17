@@ -119,9 +119,9 @@ beforeEach(async () => {
   });
   // resetDatabase leaves the addons table alone, so a case that flips a toggle
   // would otherwise leak into the next one.
-  for (const id of [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB]) {
-    await setAddonEnabled(orm, id, true);
-  }
+  await Promise.all(
+    [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB].map((id) => setAddonEnabled(orm, id, true)),
+  );
 });
 
 let orm: MikroORM;
