@@ -12,12 +12,14 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  * 1. This guard holds the statement to what cannot leave the schema, before
  *    it runs.
  * 2. The store sends every statement on its own over the extended query
- *    protocol (`extended-query.ts`), which runs exactly one statement, so a
- *    second statement the guard missed is an error, never run.
+ *    protocol, on a pool client it checked out for the call
+ *    (`plugin-data-store.ts`): Postgres parses exactly one statement there,
+ *    so a second statement the guard missed is an error, never run.
  * 3. The transaction puts the plugin's schema on the `search_path` with
- *    `pg_temp` explicitly last, and TREK's own pool connections put `pg_temp`
- *    last too (`session-search-path.ts`), so a temporary table never stands
- *    in for a table of TREK's or of the plugin's.
+ *    `pg_temp` explicitly last, TREK's own pool connections put `pg_temp`
+ *    last too (`session-search-path.ts`), and the store drops every
+ *    temporary table on its client before giving it back, so a temporary
+ *    table never stands in for a table of TREK's or of the plugin's.
  *
  * The SQL is split into tokens the way Postgres's own lexer splits it (string
  * and identifier quoting, comments, dollar signs). Where JavaScript and the
