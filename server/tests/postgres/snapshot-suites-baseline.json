@@ -1,9 +1,4 @@
 [
-  "tests/integration/legacy-upgrade-v066.test.ts",
-  "tests/integration/legacy-upgrade-v082.test.ts",
-  "tests/integration/legacy-upgrade-v205.test.ts",
-  "tests/integration/legacy-upgrade-v242.test.ts",
-  "tests/integration/legacy-upgrade-v244.test.ts",
   "tests/integration/scheduler-gate.test.ts",
   "tests/integration/security.test.ts",
   "tests/integration/settings.test.ts",

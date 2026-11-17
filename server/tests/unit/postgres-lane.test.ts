@@ -33,11 +33,14 @@ describe('the Postgres lane', () => {
   });
 
   it('PGLANE-002: every SQLite-only exclusion names a suite that would otherwise run on Postgres', () => {
-    const stale = Object.keys(SQLITE_ONLY).filter((file) => !scan.realDatabase.includes(file));
+    const stale = Object.keys(SQLITE_ONLY).filter(
+      (file) => !scan.realDatabase.includes(file) && !scan.ownSqlite.includes(file),
+    );
     expect(
       stale,
       'These SQLITE_ONLY entries in tests/postgres/lane.ts no longer name a suite that boots the app on the real ' +
-        'database module (renamed, deleted or rewritten). Remove or rename the entry.',
+        'database module or on a SQLite database of its own (renamed, deleted or rewritten). Remove or rename ' +
+        'the entry.',
     ).toEqual([]);
     for (const [file, reason] of Object.entries(SQLITE_ONLY)) {
       expect(reason.trim().length, `${file} needs a reason in SQLITE_ONLY`).toBeGreaterThan(20);
@@ -71,7 +74,8 @@ describe('the Postgres lane', () => {
     const lane = postgresLane(scan);
     expect(lane[0]).toBe('tests/postgres/**/*.test.ts');
     const files = lane.slice(1);
-    expect(files.length).toBe(scan.realDatabase.length - Object.keys(SQLITE_ONLY).length);
+    expect(files.length).toBe(scan.realDatabase.filter((file) => !(file in SQLITE_ONLY)).length);
+    for (const file of scan.ownSqlite) expect(files, file).not.toContain(file);
     for (const file of files) {
       expect(fs.existsSync(path.join(SERVER_ROOT, file)), file).toBe(true);
       expect(file in SQLITE_ONLY, file).toBe(false);

@@ -13,8 +13,12 @@
  *
  * Two lists hold the exceptions, and tests/unit/postgres-lane.test.ts keeps
  * both honest:
- *   - SQLITE_ONLY: suites on the real database module that stay on SQLite by
- *     design, each with its reason.
+ *   - SQLITE_ONLY: suites that stay on SQLite by design, each with its
+ *     reason. Most are on the real database module; the legacy upgrade
+ *     suites mock `db/database` onto a SQLite file the retired positional
+ *     runner built (Postgres never had that runner), which the scan
+ *     tells apart from the snapshot mock because they never name
+ *     `createSnapshotTestDb`.
  *   - snapshot-suites-baseline.json: the suites that boot the app over the
  *     SQLite snapshot mock. It may only shrink; a new suite that boots the app
  *     is written on the real database module and so runs on both engines.
@@ -38,10 +42,17 @@ const BOOT_MODULES = ['src/bootstrap.ts', 'src/nest/app.module.ts'].map((file) =
 /** The module whose `vi.mock` puts a SQLite snapshot in place of the real database. */
 const DATABASE_MODULE = path.join(SERVER_ROOT, 'src', 'db', 'database.ts');
 
+/** The reason shared by the legacy upgrade suites (tests/helpers/legacy-upgrade-suite.ts). */
+const LEGACY_UPGRADE =
+  'Boots on a SQLite file the retired positional runner built (tests/fixtures/legacy/) to prove the legacy ' +
+  'baseline adopts it. That runner only ever wrote SQLite; a Postgres database starts from the Postgres ' +
+  'baseline or from db:move-to-postgres, never from a schema_version install.';
+
 /**
- * Suites that boot the app on the real database module and still stay on
- * SQLite, keyed by path from server/, each with the reason. A reason has to be
- * about SQLite itself; "not ported yet" is not one.
+ * Suites that boot the app and still stay on SQLite, keyed by path from
+ * server/, each with the reason: on the real database module, or mocking it
+ * onto a SQLite database of their own that is not the snapshot. A reason has
+ * to be about SQLite itself; "not ported yet" is not one.
  */
 export const SQLITE_ONLY: Readonly<Record<string, string>> = {
   'tests/e2e/tours-hike.e2e.test.ts':
@@ -57,6 +68,11 @@ export const SQLITE_ONLY: Readonly<Record<string, string>> = {
   'tests/integration/demo-reset-connection-swap.spike.test.ts':
     'Closes and reopens the better-sqlite3 handle in src/db/database.ts mid request context; the Postgres ' +
     'engine has no such handle.',
+  'tests/integration/legacy-upgrade-v066.test.ts': LEGACY_UPGRADE,
+  'tests/integration/legacy-upgrade-v082.test.ts': LEGACY_UPGRADE,
+  'tests/integration/legacy-upgrade-v205.test.ts': LEGACY_UPGRADE,
+  'tests/integration/legacy-upgrade-v242.test.ts': LEGACY_UPGRADE,
+  'tests/integration/legacy-upgrade-v244.test.ts': LEGACY_UPGRADE,
   'tests/integration/places-nul-sqlite.test.ts':
     'About SQLite value quoting of a NUL byte (U+0000) in a user string; Postgres text cannot hold that ' +
     'character, so the round-trip it asserts does not exist there. The other control characters run on ' +
@@ -142,6 +158,11 @@ function tokens(file: string): Array<{ kind: ts.SyntaxKind; text: string }> {
   return out;
 }
 
+/** Whether the suite uses the SQLite snapshot (tests/helpers/db-mock.ts) in code. */
+function namesTheSnapshot(file: string): boolean {
+  return tokens(file).some((token) => token.kind === ts.SyntaxKind.Identifier && token.text === 'createSnapshotTestDb');
+}
+
 /** Whether the suite replaces `src/db/database` with `vi.mock`/`vi.doMock`. */
 function mocksTheDatabase(file: string): boolean {
   const list = tokens(file);
@@ -188,18 +209,26 @@ export interface LaneScan {
   realDatabase: string[];
   /** Suites that boot the app over the SQLite snapshot mock. */
   snapshot: string[];
+  /**
+   * Suites named in SQLITE_ONLY that mock `src/db/database` onto a SQLite
+   * database of their own, never the snapshot (the legacy upgrade fixtures).
+   */
+  ownSqlite: string[];
   /** Suites that name a boot entry point in code but were not found to import one. */
   undiscovered: string[];
 }
 
 /** Every server test file, sorted into the groups above. tests/postgres/ is the lane's own and is left out. */
 export function scanSuites(): LaneScan {
-  const scan: LaneScan = { realDatabase: [], snapshot: [], undiscovered: [] };
+  const scan: LaneScan = { realDatabase: [], snapshot: [], ownSqlite: [], undiscovered: [] };
   const own = path.join(TESTS_ROOT, 'postgres') + path.sep;
   for (const file of listTestFiles(TESTS_ROOT).sort()) {
     if (file.startsWith(own)) continue;
     if (bootsTheApp(file)) {
-      (mocksTheDatabase(file) ? scan.snapshot : scan.realDatabase).push(relative(file));
+      const name = relative(file);
+      if (!mocksTheDatabase(file)) scan.realDatabase.push(name);
+      else if (name in SQLITE_ONLY && !namesTheSnapshot(file)) scan.ownSqlite.push(name);
+      else scan.snapshot.push(name);
     } else if (namesABootEntryPoint(file)) {
       scan.undiscovered.push(relative(file));
     }
