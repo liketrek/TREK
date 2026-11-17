@@ -4,6 +4,7 @@
  */
 import { buildApp } from '../../src/bootstrap';
 import { VacayHolidayCalendars } from '../../src/db/entities/VacayHolidayCalendars.entity';
+import { VacayUserYears } from '../../src/db/entities/VacayUserYears.entity';
 import { VacayService } from '../../src/nest/vacay/vacay.service';
 import { authCookie } from '../helpers/auth';
 import type { FactoryOrm } from '../helpers/factories/context';
@@ -197,6 +198,33 @@ describe('Vacay entries', () => {
     const res = await request(app).get('/api/addons/vacay/stats/2025').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('stats');
+  });
+});
+
+describe('Vacay carry-over', () => {
+  it('VACAY-046 — a half day left over carries as a half day into the next year, on every engine', async () => {
+    const { user } = await makeUser(orm);
+    const cookie = authCookie(user.id);
+    await request(app).get('/api/addons/vacay/plan').set('Cookie', cookie);
+    await request(app).put('/api/addons/vacay/plan').set('Cookie', cookie).send({ carry_over_enabled: true });
+    await request(app).post('/api/addons/vacay/years').set('Cookie', cookie).send({ year: 2025 });
+    await request(app).post('/api/addons/vacay/years').set('Cookie', cookie).send({ year: 2026 });
+    const half = await request(app)
+      .post('/api/addons/vacay/entries/toggle')
+      .set('Cookie', cookie)
+      .send({ date: '2025-06-16', year: 2025, type: 'vacation', fraction: 0.5 });
+    expect(half.status).toBe(200);
+
+    // Reading 2025 writes what is left of it into 2026: 30 days less a half day.
+    expect((await request(app).get('/api/addons/vacay/stats/2025').set('Cookie', cookie)).status).toBe(200);
+    const next = await request(app).get('/api/addons/vacay/stats/2026').set('Cookie', cookie);
+    expect(next.status).toBe(200);
+    const mine = (next.body.stats as Array<{ user_id: number; carried_over: number }>).find(
+      (s) => s.user_id === user.id,
+    );
+    expect(mine?.carried_over).toBe(29.5);
+    const [row] = await findRows(orm, VacayUserYears, { user: user.id, year: 2026 });
+    expect(row.carried_over).toBe(29.5);
   });
 });
 
