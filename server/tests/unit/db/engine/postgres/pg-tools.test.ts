@@ -27,11 +27,14 @@ import {
 import fs, { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os, { tmpdir } from 'node:os';
 import path from 'node:path';
+import { inspect } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const URL_WITH_SECRET = 'postgresql://trek:s3cr%40t@db.example:6543/trek_db?sslmode=require';
 /** The restore's session settings, which psql gets through PGOPTIONS. */
 const RESTORE_OPTIONS = '-c lock_timeout=60s -c client_min_messages=warning';
+/** The most SQL a restore script may hold in these tests (BACKUP_MAX_DECOMPRESSED_MB in the app). */
+const LIMIT = 64 * 1024 * 1024;
 
 let bin: string;
 let out: string;
@@ -114,12 +117,12 @@ describe('pg-tools', () => {
       snippets: [answersSchema(), copiesFileEndingWith('clear-schema.sql', clearCopy)],
     });
     const source = path.join(out, 'in.pgdump');
-    await pgRestore(URL_WITH_SECRET, source, bin);
+    await pgRestore(URL_WITH_SECRET, source, bin, LIMIT);
 
     const restore = readToolCall(restoreLog);
-    expect(restore.args).toEqual(expect.arrayContaining(['--no-owner', '--no-privileges', '--schema=public']));
-    const [restoreScript] = flagValues(restore.args, '--file=');
-    expect(restoreScript).toMatch(/\.pg-restore-[^/]+\/restore\.sql$/);
+    expect(restore.args).toEqual(
+      expect.arrayContaining(['--no-owner', '--no-privileges', '--schema=public', '--file=-']),
+    );
     expect(restore.args.slice(-2)).toEqual(['--', source]);
     expect(restore.env).toEqual({});
 
@@ -136,7 +139,7 @@ describe('pg-tools', () => {
     // Order is the point here: the schema is cleared before the script loads.
     const [clearFile, loadFile] = flagValues(psql.args, '--file=');
     expect(clearFile).toMatch(/clear-schema\.sql$/);
-    expect(loadFile).toBe(restoreScript);
+    expect(loadFile).toMatch(/\.pg-restore-[^/]+\/restore\.sql$/);
     expect(psql.env.PGOPTIONS).toBe(RESTORE_OPTIONS);
     expect(readFileSync(clearCopy, 'utf8')).toMatch(/DROP %s IF EXISTS %s CASCADE/);
     expect(readdirSync(out)).toEqual([]);
@@ -150,7 +153,7 @@ describe('pg-tools', () => {
     installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
     const readWhole = vi.spyOn(fs, 'readFileSync');
     try {
-      await pgRestore(URL_WITH_SECRET, source, bin);
+      await pgRestore(URL_WITH_SECRET, source, bin, LIMIT);
       expect(readWhole.mock.calls.filter(([file]) => String(file).endsWith('restore.sql'))).toEqual([]);
     } finally {
       readWhole.mockRestore();
@@ -193,10 +196,10 @@ describe('pg-tools', () => {
 
   it('PGTOOLS-008: a missing tool says how to install it, and a restore that cannot run leaves no work files', async () => {
     const source = path.join(out, 'in.pgdump');
-    await expect(pgRestore(URL_WITH_SECRET, source, bin)).rejects.toThrow(PgToolMissingError);
+    await expect(pgRestore(URL_WITH_SECRET, source, bin, LIMIT)).rejects.toThrow(PgToolMissingError);
     await expect(pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), bin)).rejects.toThrow(/TREK_DB_PG_BIN_DIR/);
     installFakeTool(bin, 'pg_restore', { snippets: [writesRestrictedScript()] });
-    await expect(pgRestore(URL_WITH_SECRET, source, bin)).rejects.toThrow(/psql was not found/);
+    await expect(pgRestore(URL_WITH_SECRET, source, bin, LIMIT)).rejects.toThrow(/psql was not found/);
     expect(existsSync(out) && readdirSync(out)).toEqual([]);
   });
 
@@ -206,7 +209,7 @@ describe('pg-tools', () => {
       tool: 'pg_restore' as const,
       version: '16.9',
       message:
-        /pg_restore is too old to restore safely \(pg_restore \(PostgreSQL\) 16\.9 \(Debian\)\): it must be at least 17\.6, 16\.10, 15\.14 or 14\.19/,
+        /pg_restore is too old to restore safely \(pg_restore \(PostgreSQL\) 16\.9 \(Debian\)\): it must be at least 18\.0, 17\.6, 16\.10, 15\.14 or 14\.19/,
     },
     { id: 'PGTOOLS-009b', tool: 'psql' as const, version: '17.5', message: /psql is too old/ },
   ])(
@@ -216,7 +219,7 @@ describe('pg-tools', () => {
       installFakeTool(bin, 'pg_restore', { snippets: [touches(ran)] });
       installFakeTool(bin, 'psql', { snippets: [touches(ran)] });
       installFakeTool(bin, tool, { version, snippets: [touches(ran)] });
-      await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin)).rejects.toThrow(message);
+      await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT)).rejects.toThrow(message);
       expect(existsSync(ran)).toBe(false);
       expect(readdirSync(out)).toEqual([]);
     },
@@ -250,11 +253,86 @@ describe('pg-tools', () => {
       snippets: [writesFile('\\restrict k1\nCREATE TABLE auth.users (\n);\n')],
     });
     const psqlLog = installFakeTool(bin, 'psql', { snippets: [answersSchema('trek')] });
-    await expect(pgRestore(URL_WITH_SECRET, source, bin)).rejects.toThrow(
+    await expect(pgRestore(URL_WITH_SECRET, source, bin, LIMIT)).rejects.toThrow(
       'The backup holds no TREK tables in the schema "trek"; nothing was replaced.',
     );
     expect(readToolCall(restoreLog).args).toContain('--schema=trek');
     expect(readToolCall(psqlLog).args.join(' ')).not.toContain('--single-transaction');
     expect(readdirSync(out)).toEqual([]);
+  });
+
+  it('PGTOOLS-013: a restore refuses a role that could reach the database host, before it writes a script', async () => {
+    const ran = path.join(bin, 'ran');
+    installFakeTool(bin, 'pg_restore', { snippets: [touches(ran)] });
+    const psqlLog = installFakeTool(bin, 'psql', { snippets: [answersSchema('public', 'public', { privileged: true })] });
+    await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT)).rejects.toThrow(
+      /connects as a superuser, or as a role that may run programs or write files on the database server/,
+    );
+    expect(existsSync(ran)).toBe(false);
+    expect(readToolCall(psqlLog).args.join(' ')).toContain('pg_execute_server_program');
+    expect(readdirSync(out)).toEqual([]);
+  });
+
+  it('PGTOOLS-014: a script past the limit stops pg_restore, replaces nothing and leaves no work file', async () => {
+    installFakeTool(bin, 'pg_restore', {
+      snippets: [writesRestrictedScript(), 'seq 1 200000 >> "$(fake_file_target "$@")"'],
+    });
+    const psqlLog = installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
+    await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, 64 * 1024)).rejects.toThrow(
+      /expands to more than 0\.06 MB of SQL, the limit BACKUP_MAX_DECOMPRESSED_MB sets; nothing was replaced/,
+    );
+    expect(readToolCall(psqlLog).args.join(' ')).not.toContain('--single-transaction');
+    expect(readdirSync(out)).toEqual([]);
+  });
+
+  it.each([
+    {
+      id: 'PGTOOLS-015a',
+      run: (b: string) => pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), b),
+      tool: 'pg_dump',
+    },
+    {
+      id: 'PGTOOLS-015b',
+      run: (b: string) => pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), b, LIMIT),
+      tool: 'pg_restore',
+    },
+  ])('$id: a client older than the server is refused before it runs, naming both versions', async ({ run, tool }) => {
+    const ran = path.join(bin, 'ran');
+    installFakeTool(bin, 'pg_dump', { snippets: [touches(ran)] });
+    installFakeTool(bin, 'pg_restore', { snippets: [touches(ran)] });
+    installFakeTool(bin, 'psql', { snippets: [answersSchema('public', 'public', { versionNum: '180001' })] });
+    await expect(run(bin)).rejects.toThrow(
+      `${tool} is version 17, older than the PostgreSQL 18 server, which it cannot back up or restore.`,
+    );
+    expect(existsSync(ran)).toBe(false);
+    expect(readdirSync(out)).toEqual([]);
+  });
+
+  it('PGTOOLS-016: the system CA store is used only by a client that understands sslrootcert=system (16 and later)', async () => {
+    const server15 = answersSchema('public', 'public', { versionNum: '150010' });
+    installFakeTool(bin, 'psql', { version: '15.14', snippets: [server15] });
+    installFakeTool(bin, 'pg_dump', { version: '15.14', snippets: [writesFile('dump')] });
+    await expect(pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), bin)).rejects.toThrow(
+      /psql \(psql \(PostgreSQL\) 15\.14 \(Debian\)\) cannot verify the server against the system's trusted/,
+    );
+    // With the CA named in the URL, the same client runs.
+    await pgDump(`${URL_WITH_SECRET}&sslrootcert=%2Fca.crt`, path.join(out, 'x.pgdump'), bin);
+    const server16 = answersSchema('public', 'public', { versionNum: '160004' });
+    installFakeTool(bin, 'psql', { version: '16.10', snippets: [server16] });
+    installFakeTool(bin, 'pg_dump', { version: '16.10', snippets: [writesFile('dump')] });
+    await pgDump(URL_WITH_SECRET, path.join(out, 'y.pgdump'), bin);
+    expect(readdirSync(out).sort()).toEqual(['x.pgdump', 'y.pgdump']);
+  });
+
+  it('PGTOOLS-017: a failed tool leaves the rows it quoted out of the error, its cause included', async () => {
+    installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
+    const stderr = 'pg_dump: error: COPY failed\nDETAIL: Key (email)=(a@b.c)\nCONTEXT: COPY users, line 2: "secret-row"';
+    installFakeTool(bin, 'pg_dump', { snippets: [failsWith(stderr)] });
+    const failure = await pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), bin).catch((err: unknown) => err);
+    const printed = inspect(failure, { depth: null });
+    expect(printed).toContain('pg_dump failed: pg_dump: error: COPY failed');
+    expect(printed).toContain('pg_dump ended with code 1');
+    expect(printed).not.toContain('secret-row');
+    expect(printed).not.toContain('a@b.c');
   });
 });

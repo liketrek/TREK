@@ -38,9 +38,22 @@ export function printsWhen(pattern: string, text: string): string {
   return `case "$*" in *${pattern}*) printf '%s' ${shellWord(text)}; exit 0;; esac`;
 }
 
-/** psql's current-schema answer: the schema's name, and its quote_ident spelling, as pgCurrentSchema reads them. */
-export function answersSchema(name = 'public', quoted = name): string {
-  return printsWhen('quote_ident', `${name}\t${quoted}\n`);
+/** What the server says about itself beside its current schema. */
+export interface FakeServer {
+  /** `server_version_num`; 170000 by default, which the default tool version (17.11) reaches. */
+  versionNum?: string;
+  /** Whether TREK's role could reach the database host. */
+  privileged?: boolean;
+}
+
+/**
+ * psql's answer about the server, as pgServer reads it: the schema's name, its
+ * quote_ident spelling, the server's version number and whether the role is
+ * privileged, tab-separated.
+ */
+export function answersSchema(name = 'public', quoted = name, server: FakeServer = {}): string {
+  const { versionNum = '170000', privileged = false } = server;
+  return printsWhen('quote_ident', `${name}\t${quoted}\t${versionNum}\t${String(privileged)}\n`);
 }
 
 /** psql's table listing, one name per line, as pgTableNames reads it. */
@@ -80,9 +93,13 @@ export function copiesFileEndingWith(suffix: string, destination: string): strin
   return `for a in "$@"; do case "$a" in --file=*${suffix}) cp "\${a#--file=}" ${shellWord(destination)};; esac; done`;
 }
 
-/** The function every stand-in uses to find its `--file=` argument, wherever it sits. */
+/**
+ * The function every stand-in uses to find its `--file=` argument, wherever it
+ * sits. `--file=-` is stdout, as the real tools read it.
+ */
 const FILE_TARGET_FUNCTION =
-  'fake_file_target() { for a in "$@"; do case "$a" in --file=*) printf \'%s\' "${a#--file=}";; esac; done; }';
+  'fake_file_target() { for a in "$@"; do case "$a" in --file=-) printf /dev/stdout;; ' +
+  '--file=*) printf \'%s\' "${a#--file=}";; esac; done; }';
 
 /**
  * Installs the stand-in `name` in `bin` and returns the path of its call log.
