@@ -1,4 +1,5 @@
-import { castIntegerKysely, integerTextEqualsKysely } from '../../dialect/kysely-functions';
+import { legacyBoundIntegerText } from '../../../nest/common/row-id';
+import { integerTextEqualsKysely } from '../../dialect/kysely-functions';
 import type { Platform } from '@mikro-orm/core';
 
 import type { ExpressionBuilder, ExpressionWrapper, SqlBool, StringReference } from 'kysely';
@@ -24,16 +25,17 @@ export function accommodationIdMatches<DB, TB extends keyof DB>(
 
 /**
  * A reservation booked against the stay `stayId`, the filter form of
- * {@link accommodationIdMatches}: the TEXT column read as an integer, so the
- * stored `'14.0'` matches 14 on Postgres too. Compared as written (`= 14`),
- * Postgres binds the number as the text `'14'` and finds no row at all, which
- * no error reports.
+ * {@link accommodationIdMatches}, held to the legacy compare: SQLite bound the
+ * id as a REAL, so only the stored `'<id>.0'` shape ever matched, never `'14'`,
+ * `' 14'` or `'14abc'` (Reservations.repository.test.ts AC37/AC40). Comparing
+ * the column with that same text keeps that on both engines. Compared with a
+ * bare number instead, Postgres binds it as the text `'14'` and finds no row
+ * at all, which no error reports.
  */
 export function reservationStayIs<DB, TB extends keyof DB>(
-  platform: Platform,
   eb: ExpressionBuilder<DB, TB>,
   accommodationId: StringReference<DB, TB>,
   stayId: number,
 ): ExpressionWrapper<DB, TB, SqlBool> {
-  return eb(castIntegerKysely(platform, eb, accommodationId), '=', stayId);
+  return eb(accommodationId, '=', legacyBoundIntegerText(stayId));
 }
