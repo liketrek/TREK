@@ -87,10 +87,8 @@ describe('PlaceFormModal, the tags', () => {
 
     await user.type(field, 'Viewpoint{Enter}');
 
-    expect(await within(tagGroup()).findByRole('button', { name: 'Viewpoint' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    );
+    // The tag reaches the trip first and is ticked a beat later, so wait for the tick itself.
+    await waitFor(() => expect(tagSwitch('Viewpoint')).toHaveAttribute('aria-pressed', 'true'));
     expect(sent).toMatchObject({ name: 'Viewpoint' });
     expect(field).toHaveValue('');
     expect(useTripStore.getState().tripTags.map((tag) => tag.name)).toEqual(['Monument', 'Viewpoint', 'Zone']);
