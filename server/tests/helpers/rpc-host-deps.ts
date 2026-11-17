@@ -94,8 +94,18 @@ export function allRpcControllers(): object[] {
     // Plan 3j Task 5 — MetaRpc/HostSurfaceRpc's own repository conversions (MR#/HR#).
     // Plan 4 Task 2 — both classes' own DatabaseService param is gone (canAccessTrip
     // now reads through the TripsRepository they already inject), one fewer anyService().
-    new MetaRpc(anyService(), anyService(), anyService(), anyService(), anyService(), anyService(), anyService()),
+    new MetaRpc(
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+    ),
     new HostSurfaceRpc(
+      anyService(),
       anyService(),
       anyService(),
       anyService(),

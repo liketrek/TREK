@@ -11,6 +11,7 @@ import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
 import { asPayload, num, str } from '../../../../nest-rpc/rpc-params';
+import { UnitOfWork } from '../../../database/unit-of-work';
 import { UnreadableLlmResponse } from '../../../llm-parse/clients/openai-compatible.client';
 import { createLlmClient } from '../../../llm-parse/llm-client.factory';
 import type { ResolvedLlmConfig } from '../../../llm-parse/llm-config';
@@ -58,6 +59,7 @@ export class HostSurfaceRpc {
     @InjectRepository(Trips) private readonly trips: TripsRepository,
     // HR5–HR8 (Plan 3j Task 5) — a plugin's own scheduler.set/scheduler.cancel RPCs.
     @InjectRepository(PluginScheduledTasks) private readonly scheduledTasks: PluginScheduledTasksRepository,
+    private readonly uow: UnitOfWork,
   ) {}
 
   @PluginMethod('users.getById', { permission: 'db:read:users' })
@@ -212,11 +214,16 @@ export class HostSurfaceRpc {
       throw new BadParams(`scheduler payload too large (max ${SCHED_PAYLOAD_MAX} bytes)`);
     // HR5/HR6/HR7 — Plan 3j Task 7 fix (must-land 3): one atomic call, not
     // three separately-awaited ones (task-7-review.md's concurrent-cap-bypass).
-    // Upsert by (plugin, name): re-scheduling the same name replaces it.
-    const written = await this.scheduledTasks.upsertTaskCapped(
-      { plugin_id: ctx.pluginId, name, due_at: Math.max(dueAt, Date.now()), payload: json, every_ms: everyMs ?? null },
-      SCHED_MAX,
-    );
+    // Upsert by (plugin, name): re-scheduling the same name replaces it. In a
+    // unit of work, whose write lock keeps the cap check atomic on Postgres too.
+    const task = {
+      plugin_id: ctx.pluginId,
+      name,
+      due_at: Math.max(dueAt, Date.now()),
+      payload: json,
+      every_ms: everyMs ?? null,
+    };
+    const written = await this.uow.transactional(() => this.scheduledTasks.upsertTaskCapped(task, SCHED_MAX));
     if (!written) throw new BadParams(`too many scheduled tasks (max ${SCHED_MAX})`);
     return { scheduled: true };
   }

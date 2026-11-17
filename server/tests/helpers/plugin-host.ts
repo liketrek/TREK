@@ -641,6 +641,7 @@ export async function createPluginRpcHostParts(
       await createTestDaysRepo(db),
       await createTestReservationsRepo(db),
       await createTestDayAccommodationsRepo(db),
+      await createTestUnitOfWork(db),
     ),
     // Plan 3j Task 5 — HostSurfaceRpc's own HR1/HR5–HR9 conversion: the plugin-visible
     // user row, the bilateral trip-sharing gate, and its own scheduler.set/cancel.
@@ -655,6 +656,7 @@ export async function createPluginRpcHostParts(
       usersRepo,
       await createTestTripsRepo(db),
       pluginOrm.repo(PluginScheduledTasks),
+      await createTestUnitOfWork(db),
     ),
     new PluginHooks(undefined as never),
   ];
