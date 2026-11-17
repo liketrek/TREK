@@ -3,26 +3,24 @@
  * Covers BUDGET-001 to BUDGET-010.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, createBudgetItem, addTripMember, createReservation } from '../helpers/factories';
+import { makeBudgetItem } from '../helpers/factories/budget';
+import { makeReservation } from '../helpers/factories/reservations';
 import { deleteRows, findRow, insertRow } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -46,7 +44,7 @@ function seedBookedExpense(tripId: number, reservationId: number, totalPrice: nu
 }
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   // GET /budget/settlement reaches ExchangeRatesService.getRates unconditionally
   // (budget.service.ts settlement()), and that is a real fetch to
@@ -65,7 +63,6 @@ beforeEach(async () => {
 afterAll(async () => {
   vi.unstubAllGlobals();
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,8 +71,8 @@ afterAll(async () => {
 
 describe('Create budget item', () => {
   it('BUDGET-001 — POST creates budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/budget`)
@@ -87,8 +84,8 @@ describe('Create budget item', () => {
   });
 
   it('BUDGET-001 — POST without name returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/budget`)
@@ -98,9 +95,9 @@ describe('Create budget item', () => {
   });
 
   it('BUDGET-010 — non-member cannot create budget item', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/budget`)
@@ -116,10 +113,10 @@ describe('Create budget item', () => {
 
 describe('List budget items', () => {
   it('BUDGET-002 — GET /api/trips/:tripId/budget returns all items', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createBudgetItem(testDb, trip.id, { name: 'Flight', total_price: 300 });
-    createBudgetItem(testDb, trip.id, { name: 'Hotel', total_price: 500 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeBudgetItem(orm, trip.id, { name: 'Flight', total_price: 300 });
+    await makeBudgetItem(orm, trip.id, { name: 'Hotel', total_price: 500 });
 
     const res = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -127,11 +124,11 @@ describe('List budget items', () => {
   });
 
   it('BUDGET-002 — member can list budget items', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    createBudgetItem(testDb, trip.id, { name: 'Rental', total_price: 200 });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await makeBudgetItem(orm, trip.id, { name: 'Rental', total_price: 200 });
 
     const res = await request(app).get(`/api/trips/${trip.id}/budget`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
@@ -145,9 +142,9 @@ describe('List budget items', () => {
 
 describe('Update budget item', () => {
   it('BUDGET-003 — PUT updates budget item fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id, { name: 'Old Name', total_price: 100 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id, { name: 'Old Name', total_price: 100 });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/${item.id}`)
@@ -159,8 +156,8 @@ describe('Update budget item', () => {
   });
 
   it('BUDGET-003 — PUT non-existent item returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/99999`)
@@ -176,9 +173,9 @@ describe('Update budget item', () => {
 
 describe('Delete budget item', () => {
   it('BUDGET-004 — DELETE removes item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     const del = await request(app).delete(`/api/trips/${trip.id}/budget/${item.id}`).set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
@@ -189,9 +186,9 @@ describe('Delete budget item', () => {
   });
 
   it('BUDGET-004b — DELETE budget item does NOT delete its linked reservation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id, { title: 'Hotel Booking', type: 'hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id, { title: 'Hotel Booking', type: 'hotel' });
 
     const itemId = await seedBookedExpense(trip.id, reservation.id, 250);
 
@@ -209,11 +206,11 @@ describe('Delete budget item', () => {
 
 describe('Budget item members', () => {
   it('BUDGET-005 — PUT /members assigns members to budget item', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, member.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/${item.id}/members`)
@@ -231,9 +228,9 @@ describe('Budget item members', () => {
   });
 
   it('BUDGET-005b — PUT /members with empty user_ids clears members', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     // First assign a member
     await request(app)
@@ -251,9 +248,9 @@ describe('Budget item members', () => {
   });
 
   it('BUDGET-005 — PUT /members with non-array user_ids returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/${item.id}/members`)
@@ -263,9 +260,9 @@ describe('Budget item members', () => {
   });
 
   it('BUDGET-006 — PUT /members/:userId/paid toggles paid status', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     // Assign user as member first
     await request(app)
@@ -298,9 +295,9 @@ describe('Budget item members', () => {
 
 describe('Budget summary and settlement', () => {
   it('BUDGET-007 — GET /summary/per-person returns per-person breakdown', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id, { name: 'Dinner', total_price: 60 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id, { name: 'Dinner', total_price: 60 });
 
     await request(app)
       .put(`/api/trips/${trip.id}/budget/${item.id}/members`)
@@ -323,11 +320,11 @@ describe('Budget summary and settlement', () => {
   });
 
   it('BUDGET-008 — GET /settlement returns settlement transactions', async () => {
-    const { user } = createUser(testDb);
-    const { user: user2 } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, user2.id);
-    const item = createBudgetItem(testDb, trip.id, { name: 'Dinner', total_price: 60 });
+    const { user } = await makeUser(orm);
+    const { user: user2 } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, user2.id);
+    const item = await makeBudgetItem(orm, trip.id, { name: 'Dinner', total_price: 60 });
 
     await request(app)
       .put(`/api/trips/${trip.id}/budget/${item.id}/members`)
@@ -357,9 +354,9 @@ describe('Budget summary and settlement', () => {
   });
 
   it('BUDGET-009 — settlement with no payers returns empty transactions', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createBudgetItem(testDb, trip.id, { name: 'Train', total_price: 40 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeBudgetItem(orm, trip.id, { name: 'Train', total_price: 40 });
 
     const res = await request(app).get(`/api/trips/${trip.id}/budget/settlement`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -377,10 +374,10 @@ describe('Budget summary and settlement', () => {
 
 describe('Reorder budget items', () => {
   it('BUDGET-011 — non-member gets 404 on PUT /reorder/items', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/reorder/items`)
@@ -390,11 +387,11 @@ describe('Reorder budget items', () => {
   });
 
   it('BUDGET-012 — member without permission gets 403 on PUT /reorder/items', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const item = await makeBudgetItem(orm, trip.id);
 
     // Restrict budget_edit to trip_owner only
     await setAppSetting(orm, 'perm_budget_edit', 'trip_owner');
@@ -413,10 +410,10 @@ describe('Reorder budget items', () => {
   });
 
   it('BUDGET-013 — owner can reorder budget items — returns 200', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item1 = createBudgetItem(testDb, trip.id, { name: 'First' });
-    const item2 = createBudgetItem(testDb, trip.id, { name: 'Second' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item1 = await makeBudgetItem(orm, trip.id, { name: 'First' });
+    const item2 = await makeBudgetItem(orm, trip.id, { name: 'Second' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/reorder/items`)
@@ -433,9 +430,9 @@ describe('Reorder budget items', () => {
 
 describe('Reorder budget categories', () => {
   it('BUDGET-014 — non-member gets 404 on PUT /reorder/categories', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/reorder/categories`)
@@ -445,10 +442,10 @@ describe('Reorder budget categories', () => {
   });
 
   it('BUDGET-015 — owner can reorder categories — returns 200', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createBudgetItem(testDb, trip.id, { name: 'Flight', category: 'Transport' });
-    createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeBudgetItem(orm, trip.id, { name: 'Flight', category: 'Transport' });
+    await makeBudgetItem(orm, trip.id, { name: 'Hotel', category: 'Accommodation' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/budget/reorder/categories`)
@@ -465,9 +462,9 @@ describe('Reorder budget categories', () => {
 
 describe('Reservation price sync on budget item update', () => {
   it('BUDGET-016 — updating total_price syncs to linked reservation metadata', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id, { title: 'Hotel Booking', type: 'hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id, { title: 'Hotel Booking', type: 'hotel' });
 
     // Create a budget item linked to the reservation
     const itemId = await seedBookedExpense(trip.id, reservation.id, 200);
@@ -493,10 +490,10 @@ describe('Reservation price sync on budget item update', () => {
 
 describe('Budget edit permission enforcement', () => {
   it('BUDGET-017 — member cannot create item when budget_edit is restricted to trip_owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
 
     const { invalidatePermissionsCache } = await import('../../src/nest/permissions/permissions-cache');
     await setAppSetting(orm, 'perm_budget_edit', 'trip_owner');
@@ -513,11 +510,11 @@ describe('Budget edit permission enforcement', () => {
   });
 
   it('BUDGET-018 — member cannot reorder categories when budget_edit is restricted to trip_owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    createBudgetItem(testDb, trip.id, { name: 'Item', category: 'Transport' });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await makeBudgetItem(orm, trip.id, { name: 'Item', category: 'Transport' });
 
     const { invalidatePermissionsCache } = await import('../../src/nest/permissions/permissions-cache');
     await setAppSetting(orm, 'perm_budget_edit', 'trip_owner');

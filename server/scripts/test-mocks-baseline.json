@@ -65,7 +65,6 @@
     "tests/integration/backup.test.ts": 1,
     "tests/integration/boot-sweeps-request-context.test.ts": 1,
     "tests/integration/bootstrap.test.ts": 1,
-    "tests/integration/budget.test.ts": 1,
     "tests/integration/collab.test.ts": 1,
     "tests/integration/collections.test.ts": 1,
     "tests/integration/dayNotes.test.ts": 1,
