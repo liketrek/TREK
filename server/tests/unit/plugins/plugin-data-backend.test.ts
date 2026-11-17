@@ -7,7 +7,9 @@
  */
 import type { DbSettings } from '../../../src/app-config';
 import type { DatabaseEngine } from '../../../src/db/engine';
+import { PRIVILEGED_ROLE_PLUGIN_REFUSAL } from '../../../src/db/engine/postgres/plugin-data-checks';
 import { PostgresPluginDataStore } from '../../../src/db/engine/postgres/plugin-data-store';
+import { PRIVILEGED_ROLE_DESCRIPTION } from '../../../src/db/engine/postgres/server-checks';
 import {
   PLUGIN_DATA,
   PLUGIN_DATA_PROVIDERS,
@@ -21,7 +23,13 @@ import type { FactoryProvider } from '@nestjs/common';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+
+const { logWarn } = vi.hoisted(() => ({ logWarn: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/audit/audit-log.logger')>()),
+  logWarn,
+}));
 
 let tmp: string;
 beforeAll(() => {
@@ -33,15 +41,30 @@ afterAll(() => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-/** An ORM whose Kysely client records the SQL it is handed. */
-function fakeOrm(executed: string[]): MikroORM {
+/**
+ * An ORM whose Kysely client records the SQL it is handed, and whose pool
+ * hands out a client answering the role check with `privileged` (or failing
+ * with it, when it is an Error).
+ */
+function fakeOrm(executed: string[], privileged: boolean | Error = false, released: boolean[] = []): MikroORM {
   const client = {
     executeQuery: async (query: { sql: string }) => {
       executed.push(query.sql);
       return { rows: [] };
     },
   };
-  return { em: { getConnection: () => ({ getClient: () => client }) } } as unknown as MikroORM;
+  const pgClient = {
+    query: async (sql: string) => {
+      executed.push(sql);
+      if (privileged instanceof Error) throw privileged;
+      return { rows: [{ privileged }], rowCount: 1 };
+    },
+    release: (destroy?: boolean) => released.push(destroy === true),
+  };
+  const pool = { connect: async () => pgClient };
+  return {
+    em: { getConnection: () => ({ getClient: () => client, getNativeClient: async () => pool }) },
+  } as unknown as MikroORM;
 }
 
 const POSTGRES = { engine: 'postgres', url: 'postgres://trek@db/trek', poolMax: 4 } as unknown as DbSettings;
@@ -100,5 +123,31 @@ describe('plugin data port', () => {
     expect(store.isOpen()).toBe(false);
     await expect(store.query('SELECT 1')).rejects.toThrow('The database connection is not open');
     await expect(store.query('SELECT * FROM public.users')).rejects.toThrow('The database connection is not open');
+  });
+
+  it("PLUGDATA-006: on Postgres the boot log says when TREK's role keeps plugin databases refused, and why", async () => {
+    logWarn.mockClear();
+    const released: boolean[] = [];
+    await new PostgresPluginDataBackend(fakeOrm([], true, released), POSTGRES).onApplicationBootstrap();
+    expect(logWarn).toHaveBeenCalledWith(PRIVILEGED_ROLE_PLUGIN_REFUSAL);
+    expect(PRIVILEGED_ROLE_PLUGIN_REFUSAL).toContain(PRIVILEGED_ROLE_DESCRIPTION);
+    expect(released).toEqual([false]);
+
+    logWarn.mockClear();
+    await new PostgresPluginDataBackend(fakeOrm([], false), POSTGRES).onApplicationBootstrap();
+    await new PostgresPluginDataBackend(fakeOrm([], true), SQLITE).onApplicationBootstrap();
+    expect(logWarn).not.toHaveBeenCalled();
+
+    await new PostgresPluginDataBackend(fakeOrm([], new Error('down')), POSTGRES).onApplicationBootstrap();
+    expect(logWarn).toHaveBeenCalledWith("Could not check whether TREK's role may run plugin SQL: down");
+  });
+
+  it('PLUGDATA-007: the stores of one backend share its role check, so a connection is asked once', async () => {
+    const executed: string[] = [];
+    const backend = new PostgresPluginDataBackend(fakeOrm(executed, true), POSTGRES);
+    await backend.onApplicationBootstrap();
+    await expect(backend.open('pg-four').query('SELECT 1')).rejects.toThrow(PRIVILEGED_ROLE_PLUGIN_REFUSAL);
+    await expect(backend.open('pg-five').query('SELECT 1')).rejects.toThrow(PRIVILEGED_ROLE_PLUGIN_REFUSAL);
+    expect(executed.filter((sql) => sql.includes('as privileged'))).toHaveLength(1);
   });
 });

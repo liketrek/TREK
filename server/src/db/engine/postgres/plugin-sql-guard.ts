@@ -7,19 +7,40 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  * TREK's tables at all. On Postgres its schema sits in TREK's database and
  * its statements run as TREK's role, which may read every table TREK has: a
  * role per plugin would need CREATEROLE, which TREK's role is not given. So
- * three layers keep it in, each enough on its own for what it covers:
+ * the store (`plugin-data-store.ts`) keeps it in with layers that each hold
+ * on their own for what they cover, the ones after this guard enforced by
+ * the database itself:
  *
- * 1. This guard holds the statement to what cannot leave the schema, before
- *    it runs.
- * 2. The store sends every statement on its own over the extended query
- *    protocol, on a pool client it checked out for the call
- *    (`plugin-data-store.ts`): Postgres parses exactly one statement there,
- *    so a second statement the guard missed is an error, never run.
- * 3. The transaction puts the plugin's schema on the `search_path` with
+ * 1. No plugin SQL at all while TREK's role is privileged in the sense of the
+ *    restore check (`PRIVILEGED_ROLE_SQL` in `server-checks.ts`: a superuser
+ *    or a member of one, a role that may reach the server's files or
+ *    programs, ...): every `db:own` call fails with
+ *    `PRIVILEGED_ROLE_PLUGIN_REFUSAL`, and the boot log says why
+ *    (`plugin-data-checks.ts`). Such a role may change the system catalogs,
+ *    which no check on the SQL text can rule out.
+ * 2. This guard holds each statement to what cannot leave the schema, before
+ *    it runs (below).
+ * 3. Every existing object a statement changes ({@link PluginTarget}: the
+ *    target of an ALTER, DROP, REFRESH, TRUNCATE or CREATE INDEX ... ON, and
+ *    the tables a CREATE or ALTER TABLE ties to its own) is resolved by
+ *    Postgres in the transaction, right before the statement, with
+ *    `to_regclass` or `to_regtype` on the plugin's `search_path`, and the
+ *    statement is refused unless each one found lies in the plugin's schema.
+ *    `pg_catalog` is searched first, so an unqualified `int4`, `text` or
+ *    `box` is the catalog's type and refused, on a superuser connection too.
+ * 4. The store sends every statement on its own over the extended query
+ *    protocol, on a pool client it checked out for the call: Postgres parses
+ *    exactly one statement there, so a second statement the guard missed is
+ *    an error, never run.
+ * 5. The transaction puts the plugin's schema on the `search_path` with
  *    `pg_temp` explicitly last, TREK's own pool connections put `pg_temp`
  *    last too (`session-search-path.ts`), and the store drops every
  *    temporary table on its client before giving it back, so a temporary
  *    table never stands in for a table of TREK's or of the plugin's.
+ * 6. A call that may write is held to the disk quota, counted over every
+ *    relation of the schema with its TOAST table, and to
+ *    `PLUGIN_SCHEMA_MAX_OBJECTS` catalog objects, so views, types and enum
+ *    labels, which take no disk space of their own, are bounded too.
  *
  * The SQL is split into tokens the way Postgres's own lexer splits it (string
  * and identifier quoting, comments, dollar signs). Where JavaScript and the
@@ -27,12 +48,14 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  * instead of guessing: whitespace is exactly what Postgres skips (space, tab,
  * CR, LF, form feed), a `--` comment ends at CR or LF as it does there, and
  * any other control character, or whitespace past ASCII (U+00A0, U+FEFF,
- * U+2028, ...), outside a string, a quoted name or a comment is refused. The
- * SQL is refused when it holds:
+ * U+2028, ...), outside a string, a quoted name or a comment is refused. A
+ * NUL is refused anywhere, strings included: the protocol ends a statement's
+ * text there. The SQL is refused when it holds:
  *
  * - a statement other than SELECT, INSERT, UPDATE, DELETE, MERGE, WITH,
  *   VALUES, TABLE, TRUNCATE, REFRESH, or a CREATE, ALTER or DROP of a table,
- *   index, view, materialized view, sequence or type. No function, schema,
+ *   index, view, materialized view, sequence or type (a composite, enum or
+ *   range type; a base type is built from C functions). No function, schema,
  *   role, setting, transaction control, COPY, LOCK, prepared statement or
  *   notification. Several statements are split at their semicolons and each
  *   is checked;
@@ -43,11 +66,21 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  * - a function that runs SQL handed to it as text (`query_to_xml`, `ts_stat`,
  *   `ts_rewrite`), reads or changes settings (`set_config`,
  *   `current_setting`), reaches objects by a name in a string (`nextval`,
- *   `setval`, the `reg*` casts), large objects (`lo_*`) or `dblink`;
- * - the words TEMP and TEMPORARY anywhere outside a string or a quoted name,
- *   and INTO anywhere but right after INSERT or MERGE, at any depth of
- *   parentheses: a temporary table outlives the call on a pooled connection,
- *   and `SELECT ... INTO` creates a table outside what CREATE is held to;
+ *   `setval`, `has_table_privilege` and its siblings, `currtid2`, the BRIN
+ *   and GIN maintenance functions, `to_reg*`), large objects (`lo_*`) or
+ *   `dblink`;
+ * - the object identifier types that look an object up by name
+ *   (`regclass`, `regtype`, `regproc`, `regprocedure`, `regoper`,
+ *   `regoperator`, `regconfig`, `regdictionary`, `regnamespace`, `regrole`,
+ *   `regcollation`, and their array types `_regclass`, ...), in every
+ *   spelling: `'x'::regtype`, `CAST('x' AS regtype)`, `regtype 'x'`, quoted;
+ * - a temporary object: CREATE TEMP or TEMPORARY (also after OR REPLACE,
+ *   LOCAL or GLOBAL), and SELECT ... INTO TEMP; a temporary table outlives
+ *   the call on a pooled connection. Elsewhere `temp` is an ordinary name;
+ * - INTO anywhere but right after the verb INSERT or MERGE of the statement
+ *   itself or of a WITH query's body, at any depth of parentheses: `SELECT
+ *   ... INTO` creates a table outside what CREATE is held to, and in `SELECT
+ *   1 insert INTO t` the word `insert` is only a column alias;
  * - `WITH RECURSIVE`, refused on SQLite too;
  * - in an ALTER, a change of a table's schema, owner or tablespace;
  * - escape strings (`E'...'`), Unicode escapes (`U&'...'`), dollar-quoted
@@ -92,6 +125,27 @@ export interface PluginStatement {
   readonly qualifies: boolean;
   /** How many `$n` placeholders it holds. */
   readonly params: number;
+  /**
+   * The existing objects it changes, which the store resolves in the
+   * transaction right before the statement runs and refuses unless each one
+   * found lies in the plugin's own schema ({@link PluginTarget}).
+   */
+  readonly targets: readonly PluginTarget[];
+}
+
+/**
+ * An existing object a statement changes: the table, index, view,
+ * materialized view or sequence (`relation`) or the type an ALTER, DROP,
+ * REFRESH or TRUNCATE names, the table a CREATE INDEX is ON, and the tables a
+ * CREATE or ALTER TABLE ties to its own (REFERENCES, INHERITS, PARTITION OF,
+ * ATTACH, DETACH and INHERIT). `name` holds the name's parts as Postgres
+ * keeps them (folded unless quoted, cut to 63 bytes), qualifier first. A
+ * name that resolves to nothing is left to Postgres, which reports it missing
+ * or, with IF EXISTS, skips it.
+ */
+export interface PluginTarget {
+  readonly kind: 'relation' | 'type';
+  readonly name: readonly string[];
 }
 
 /** Postgres keeps the first 63 bytes of a name (NAMEDATALEN - 1) and drops the rest. */
@@ -126,6 +180,26 @@ const VERBS = new Set(['select', 'insert', 'update', 'delete', 'merge', 'values'
 /** The verbs of a statement that only reads. */
 const READ_VERBS = new Set(['select', 'values', 'table']);
 
+/**
+ * The object identifier types whose input looks an object up by a name in a
+ * string (`'public.users'::regclass`, `CAST('int4' AS regtype)`,
+ * `regtype 'text'`), refused in every spelling, their array types
+ * (`_regclass`) too.
+ */
+const NAME_LOOKUP_TYPES = [
+  'regclass',
+  'regtype',
+  'regproc',
+  'regprocedure',
+  'regoper',
+  'regoperator',
+  'regconfig',
+  'regdictionary',
+  'regnamespace',
+  'regrole',
+  'regcollation',
+];
+
 /** Functions and types refused under any spelling, quoted or not. */
 const REFUSED_NAMES = new Set([
   'set_config',
@@ -138,14 +212,29 @@ const REFUSED_NAMES = new Set([
   'lastval',
   'loread',
   'lowrite',
-  'regclass',
-  'regproc',
-  'regprocedure',
-  'regoper',
-  'regoperator',
-  'regnamespace',
-  'regrole',
-  'regcollation',
+  ...NAME_LOOKUP_TYPES,
+  ...NAME_LOOKUP_TYPES.map((type) => `_${type}`),
+  // Functions that take a relation, a type or another object by a name in a
+  // string, or reach an index by one to maintain it.
+  'has_any_column_privilege',
+  'has_column_privilege',
+  'has_database_privilege',
+  'has_foreign_data_wrapper_privilege',
+  'has_function_privilege',
+  'has_language_privilege',
+  'has_parameter_privilege',
+  'has_schema_privilege',
+  'has_sequence_privilege',
+  'has_server_privilege',
+  'has_table_privilege',
+  'has_tablespace_privilege',
+  'has_type_privilege',
+  'row_security_active',
+  'currtid2',
+  'brin_summarize_new_values',
+  'brin_summarize_range',
+  'brin_desummarize_range',
+  'gin_clean_pending_list',
   'information_schema',
 ]);
 
@@ -166,8 +255,10 @@ const PUNCT = new Set([...'.,()[];+-*/<>=~!@#%^&|?']);
  * tab is whitespace only from Postgres 16 on, so it is refused instead.
  */
 const WHITESPACE = new Set([' ', '\t', '\n', '\r', '\f']);
-/** The keywords INTO may follow. Anywhere else it makes a table (`SELECT ... INTO`). */
+/** The verbs INTO may follow. Anywhere else it makes a table (`SELECT ... INTO`). */
 const INTO_AFTER = new Set(['insert', 'merge']);
+/** The words that make an object temporary right after CREATE (`CREATE LOCAL TEMP TABLE`). */
+const TEMPORARY = new Set(['temp', 'temporary']);
 
 /**
  * Whether JavaScript and the Postgres lexer read `ch` differently: a control
@@ -208,6 +299,12 @@ function truncateName(name: string): string {
 
 /** Splits `sql` into tokens, or refuses what this guard does not read the way Postgres would. */
 export function tokenize(sql: string): Token[] {
+  if (sql.includes('\u0000')) {
+    // The protocol ends a statement's text at a NUL, so what Postgres would read is not what was checked.
+    throw new PluginSqlRefused(
+      'the SQL holds the character U+0000 (NUL), which Postgres cannot read in a statement or store in text',
+    );
+  }
   const tokens: Token[] = [];
   let i = 0;
   const n = sql.length;
@@ -341,6 +438,11 @@ function keyword(token: Token | undefined): string | null {
   return token?.kind === 'word' && !token.quoted ? token.value : null;
 }
 
+/** Whether `token` is the punctuation `value`. */
+function isPunct(token: Token | undefined, value: string): boolean {
+  return token?.kind === 'punct' && token.value === value;
+}
+
 /** Reads what a statement's caller needs to know about it, and refuses one this guard does not allow. */
 function describe(text: string, tokens: Token[]): PluginStatement {
   const first = tokens[0];
@@ -355,9 +457,12 @@ function describe(text: string, tokens: Token[]): PluginStatement {
     throw new PluginSqlRefused(`a statement may not start with ${describeToken(first)}`);
   }
   if (verb === 'create' || verb === 'alter' || verb === 'drop' || verb === 'refresh') checkObject(verb, tokens);
+  const targets = targetsOf(verb, tokens);
 
   let depth = 0;
   let main: string | null = verb === 'with' ? null : verb;
+  // Where the statement's own verb stands: its first token, or after a WITH clause the verb at depth 0.
+  let mainAt = verb === 'with' ? -1 : 0;
   let returning = false;
   let params = 0;
   let qualifies = false;
@@ -370,12 +475,16 @@ function describe(text: string, tokens: Token[]): PluginStatement {
     const after = tokens[index + 1];
     if (after?.kind === 'punct' && after.value === '.') qualifies = true;
     if (token.quoted) continue;
-    checkKeyword(token.value, keyword(tokens[index - 1]));
+    checkKeyword(token.value);
+    if (token.value === 'into') checkInto(tokens, index, mainAt);
     if (verb === 'alter' && (token.value === 'schema' || token.value === 'owner')) {
       throw new PluginSqlRefused(`an ALTER may not change the ${token.value}`);
     }
     if (depth !== 0) continue;
-    if (main === null && VERBS.has(token.value)) main = token.value;
+    if (main === null && VERBS.has(token.value)) {
+      main = token.value;
+      mainAt = index;
+    }
     if (token.value === 'returning') returning = true;
   }
 
@@ -391,6 +500,7 @@ function describe(text: string, tokens: Token[]): PluginStatement {
     mayWrite: !reads || writesInside,
     qualifies,
     params,
+    targets,
   };
 }
 
@@ -399,6 +509,15 @@ function checkObject(verb: string, tokens: readonly Token[]): void {
   let at = 1;
   if (verb === 'create') {
     if (keyword(tokens[at]) === 'or' && keyword(tokens[at + 1]) === 'replace') at += 2;
+    const scope = keyword(tokens[at]);
+    if (
+      TEMPORARY.has(scope ?? '') ||
+      ((scope === 'local' || scope === 'global') && TEMPORARY.has(keyword(tokens[at + 1]) ?? ''))
+    ) {
+      throw new PluginSqlRefused(
+        `CREATE ${describeToken(tokens[at])} is not allowed: a temporary object outlives the call on a pooled connection`,
+      );
+    }
     while (keyword(tokens[at]) === 'unique' || keyword(tokens[at]) === 'unlogged') at++;
   }
   const object = keyword(tokens[at]);
@@ -406,27 +525,142 @@ function checkObject(verb: string, tokens: readonly Token[]): void {
   if (!allowed) {
     throw new PluginSqlRefused(`${verb.toUpperCase()} ${describeToken(tokens[at])} is not allowed`);
   }
+  // A base type is made of C functions and needs a superuser; a composite, enum or range type says AS.
+  if (verb === 'create' && object === 'type' && isPunct(tokens[at + 2], '(')) {
+    throw new PluginSqlRefused('CREATE TYPE may make a composite, enum or range type (CREATE TYPE x AS ...) only');
+  }
 }
 
 /**
  * Refuses an unquoted keyword that is never safe, at whatever depth of
- * parentheses it sits: `previous` is the unquoted keyword before it, if any.
- * TEMP and TEMPORARY make an object that outlives the call on a pooled
- * connection. INTO anywhere but after INSERT or MERGE is `SELECT ... INTO`,
- * which makes a table (a temporary one with TEMP) past what CREATE is held to;
- * `(SELECT ... INTO t)` and `WITH x AS (...) SELECT ... INTO t` included.
+ * parentheses it sits.
  */
-function checkKeyword(word: string, previous: string | null): void {
+function checkKeyword(word: string): void {
   if (word === 'recursive') throw new PluginSqlRefused('WITH RECURSIVE is not allowed');
   if (word === 'tablespace') throw new PluginSqlRefused('a tablespace may not be named');
-  if (word === 'temp' || word === 'temporary') {
-    throw new PluginSqlRefused(
-      `temporary objects are not allowed (${word.toUpperCase()}); quote a name spelled "${word}"`,
-    );
+}
+
+/**
+ * Refuses the INTO at `index` unless it follows the verb INSERT or MERGE of
+ * the statement itself (`mainAt`) or of a WITH query's body (`AS (INSERT
+ * INTO ...`). Anywhere else it is `SELECT ... INTO`, which makes a table (a
+ * temporary one with TEMP) past what CREATE is held to, at any depth of
+ * parentheses: `(SELECT ... INTO t)`, `WITH x AS (...) SELECT ... INTO t`,
+ * and `SELECT 1 insert INTO t`, where `insert` is only a column alias.
+ */
+function checkInto(tokens: readonly Token[], index: number, mainAt: number): void {
+  const verbAt = index - 1;
+  const verb = keyword(tokens[verbAt]);
+  if (verb !== null && INTO_AFTER.has(verb) && (verbAt === mainAt || opensQueryBody(tokens, verbAt))) return;
+  const next = keyword(tokens[index + 1]);
+  if (next !== null && TEMPORARY.has(next)) {
+    throw new PluginSqlRefused(`SELECT ... INTO ${next.toUpperCase()} is not allowed: no temporary tables`);
   }
-  if (word === 'into' && (previous === null || !INTO_AFTER.has(previous))) {
-    throw new PluginSqlRefused('SELECT ... INTO is not allowed; use CREATE TABLE ... AS');
+  throw new PluginSqlRefused('SELECT ... INTO is not allowed; use CREATE TABLE ... AS');
+}
+
+/** Whether the token at `index` is the first of a WITH query's body: `AS (`, `AS [NOT] MATERIALIZED (`. */
+function opensQueryBody(tokens: readonly Token[], index: number): boolean {
+  if (!isPunct(tokens[index - 1], '(')) return false;
+  const before = keyword(tokens[index - 2]);
+  return before === 'as' || (before === 'materialized' && keyword(tokens[index - 3]) !== null);
+}
+
+/** A name of up to three parts (`t`, `s.t`, `db.s.t`) at `at` and the index past it; null when none starts there. */
+function readName(tokens: readonly Token[], at: number): { name: string[]; next: number } | null {
+  const name: string[] = [];
+  let i = at;
+  for (;;) {
+    const token = tokens[i];
+    if (token?.kind !== 'word') return name.length === 0 ? null : { name, next: i };
+    name.push(token.value);
+    if (!isPunct(tokens[i + 1], '.')) return { name, next: i + 1 };
+    if (name.length === 3) throw new PluginSqlRefused('a name may have at most three parts');
+    i += 2;
   }
+}
+
+/** The index past the unquoted keywords `words` at `at`, or `at` when they are not there. */
+function skip(tokens: readonly Token[], at: number, ...words: string[]): number {
+  return words.every((word, i) => keyword(tokens[at + i]) === word) ? at + words.length : at;
+}
+
+/** The comma-separated names starting at `at`, each optionally led by ONLY or followed by `*` (TRUNCATE). */
+function readNames(tokens: readonly Token[], at: number, what: string): string[][] {
+  const names: string[][] = [];
+  let i = at;
+  for (;;) {
+    const read = readName(tokens, skip(tokens, i, 'only'));
+    if (read === null) throw new PluginSqlRefused(`the object ${what} acts on could not be read`);
+    names.push(read.name);
+    i = read.next;
+    if (isPunct(tokens[i], '*')) i++;
+    if (!isPunct(tokens[i], ',')) return names;
+    i++;
+  }
+}
+
+/**
+ * The existing objects a statement changes ({@link PluginTarget}). The one an
+ * ALTER, DROP, REFRESH, TRUNCATE or CREATE INDEX acts on must be readable, or
+ * the statement is refused; the tables a CREATE or ALTER ties to its own are
+ * every name after REFERENCES, INHERITS (, PARTITION OF, ATTACH PARTITION,
+ * DETACH PARTITION and INHERIT, read generously: a word there that is no
+ * table resolves to nothing and changes nothing.
+ */
+function targetsOf(verb: string, tokens: readonly Token[]): PluginTarget[] {
+  const targets: PluginTarget[] = [];
+  const add = (kind: PluginTarget['kind'], names: string[][]) => {
+    for (const name of names) targets.push({ kind, name });
+  };
+  const object = keyword(tokens[1]);
+  const kind = object === 'type' ? 'type' : 'relation';
+  if (verb === 'alter') {
+    const at = skip(tokens, object === 'materialized' ? 3 : 2, 'if', 'exists');
+    add(kind, readNames(tokens, at, 'an ALTER').slice(0, 1));
+  } else if (verb === 'drop') {
+    const at = skip(tokens, skip(tokens, object === 'materialized' ? 3 : 2, 'concurrently'), 'if', 'exists');
+    add(kind, readNames(tokens, at, 'a DROP'));
+  } else if (verb === 'refresh') {
+    add('relation', readNames(tokens, skip(tokens, 3, 'concurrently'), 'a REFRESH').slice(0, 1));
+  } else if (verb === 'truncate') {
+    add('relation', readNames(tokens, skip(tokens, 1, 'table'), 'a TRUNCATE'));
+  } else if (verb === 'create' && keyword(tokens[skip(tokens, 1, 'unique')]) === 'index') {
+    const on = tokens.findIndex((t, i) => keyword(t) === 'on' && depthAt(tokens, i) === 0);
+    if (on < 0) throw new PluginSqlRefused('a CREATE INDEX must name its table with ON');
+    add('relation', readNames(tokens, on + 1, 'a CREATE INDEX').slice(0, 1));
+  }
+  if (verb === 'create' || verb === 'alter') add('relation', tiedTables(tokens));
+  return targets;
+}
+
+/** The names after REFERENCES, INHERITS (, PARTITION OF, ATTACH/DETACH PARTITION and INHERIT. */
+function tiedTables(tokens: readonly Token[]): string[][] {
+  const names: string[][] = [];
+  for (const [index, token] of tokens.entries()) {
+    const word = keyword(token);
+    let at = -1;
+    if (word === 'references' || word === 'inherit') at = index + 1;
+    else if (word === 'partition' && keyword(tokens[index + 1]) === 'of') at = index + 2;
+    else if (word === 'partition' && ['attach', 'detach'].includes(keyword(tokens[index - 1]) ?? '')) at = index + 1;
+    else if (word === 'inherits' && isPunct(tokens[index + 1], '(')) {
+      names.push(...readNames(tokens, index + 2, 'INHERITS'));
+      continue;
+    }
+    const read = at < 0 ? null : readName(tokens, at);
+    if (read !== null) names.push(read.name);
+  }
+  return names;
+}
+
+/** How deep in parentheses the token at `index` sits. */
+function depthAt(tokens: readonly Token[], index: number): number {
+  let depth = 0;
+  for (const token of tokens.slice(0, index)) {
+    if (token.kind === 'punct' && token.value === '(') depth++;
+    if (token.kind === 'punct' && token.value === ')') depth--;
+  }
+  return depth;
 }
 
 /** Refuses a name that reaches past the plugin's schema whatever qualifies it. */

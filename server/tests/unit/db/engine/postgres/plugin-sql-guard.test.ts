@@ -11,6 +11,7 @@ import {
   parsePluginSql,
   PluginSqlRefused,
   tokenize,
+  type PluginTarget,
 } from '../../../../../src/db/engine/postgres/plugin-sql-guard';
 
 import { describe, expect, it } from 'vitest';
@@ -63,6 +64,20 @@ describe('plugin SQL guard', () => {
     'WITH gone AS (DELETE FROM notes RETURNING id) INSERT INTO trash SELECT id FROM gone',
     'MERGE INTO notes n USING incoming i ON n.id = i.id WHEN NOT MATCHED THEN INSERT (body) VALUES (i.body)',
     'SELECT body AS "into", "temporary" FROM notes',
+    // TEMP is refused only where it makes a temporary object; a column of that name is fine.
+    'CREATE TABLE readings (day text, temp real, temporary bool)',
+    'SELECT day, temp FROM readings WHERE temp > 1 ORDER BY temp',
+    'select 1 from notes as temporary',
+    'INSERT INTO temp (x) VALUES (1)',
+    // INSERT INTO in a WITH query's body or after a WITH clause is the statement's own verb.
+    'WITH n AS (INSERT INTO notes (body) VALUES ($1) RETURNING id) SELECT id FROM n',
+    'WITH n AS NOT MATERIALIZED (SELECT 1) INSERT INTO notes (body) SELECT * FROM n',
+    'WITH n AS MATERIALIZED (INSERT INTO notes (body) VALUES (1) RETURNING id) SELECT 1',
+    // Names that only start like a refused one.
+    'SELECT region, regexp_replace(body, $1, $2), regr_slope(1, 2) FROM notes',
+    'CREATE TYPE span AS RANGE (subtype = float8)',
+    'CREATE TABLE index (x int)',
+    'CREATE INDEX ON notes (body)',
   ])('lets through %s', (sql) => {
     expect(() => check(sql)).not.toThrow();
   });
@@ -126,7 +141,6 @@ describe('plugin SQL guard', () => {
     ['SELECT `x`', /unexpected character/],
     ['SELECT 1; SELECT * FROM public.users', /another schema/],
     ['SELECT 1 FROM notes INTO TEMP copy', /SELECT \.\.\. INTO/],
-    ['SELECT * FROM notes WHERE temp > 1', /TEMP/],
     ['SELECT 0x1F', /hexadecimal/],
     ['SELECT 0o17, 0b1', /hexadecimal/],
     ['SELECT 1_000', /digit separators/],
@@ -165,8 +179,33 @@ describe('plugin SQL guard', () => {
     ['CREATE TEMP VIEW v AS SELECT 1', /CREATE TEMP is not allowed/],
     ['CREATE OR REPLACE TEMP VIEW v AS SELECT 1', /CREATE TEMP is not allowed/],
     ['CREATE TEMPORARY SEQUENCE s', /CREATE TEMPORARY is not allowed/],
-    ['select temp from notes', /TEMP/],
-    ['select 1 from notes as temporary', /TEMPORARY/],
+    // The re-review's bypasses. A column alias named insert or merge in front of INTO made a table.
+    ['select 1 insert into t1', /SELECT \.\.\. INTO/],
+    ['select 1 merge into t9', /SELECT \.\.\. INTO/],
+    ['select 1 insert into unlogged t10', /SELECT \.\.\. INTO/],
+    ['select x as insert into t from notes', /SELECT \.\.\. INTO/],
+    ['WITH x AS (SELECT 1) SELECT 1 insert INTO t', /SELECT \.\.\. INTO/],
+    ['insert into notes select 1 insert into t', /SELECT \.\.\. INTO/],
+    ['select 1 insert into temp t', /SELECT \.\.\. INTO TEMP/],
+    // The reg* types and functions that look an object up by a name in a string, in every spelling.
+    ["select 'public.users'::regtype::oid", /"regtype" may not be named/],
+    ["select cast('int4' as regtype)", /"regtype" may not be named/],
+    ["select regtype 'text'", /"regtype" may not be named/],
+    [`select 'x'::"regtype"`, /"regtype" may not be named/],
+    ["select 'english'::regconfig", /"regconfig" may not be named/],
+    ["select 'simple'::regdictionary", /"regdictionary" may not be named/],
+    ["select '{public.users}'::_regclass", /"_regclass" may not be named/],
+    ["select 'x'::pg_catalog.regtype", /"pg_catalog" may not be named/],
+    ["select has_table_privilege('public.users', 'select')", /"has_table_privilege" may not be named/],
+    ["select currtid2('public.users', '(0,1)')", /"currtid2" may not be named/],
+    ["select gin_clean_pending_list('public.users_idx')", /"gin_clean_pending_list" may not be named/],
+    ["select to_regtype('int4')", /"to_regtype" may not be named/],
+    // A base type is built from C functions, which only a superuser may do.
+    ['CREATE TYPE fake (INPUT = int4in, OUTPUT = int4out, INTERNALLENGTH = 1000)', /composite, enum or range/],
+    // The protocol ends a statement's text at a NUL, in a string as anywhere else.
+    ["select 'a\u0000' -- then\nfrom public.users", /U\+0000/],
+    ['CREATE INDEX i (x)', /must name its table with ON/],
+    ['ALTER TABLE', /could not be read/],
   ])('refuses the bypass %j', (sql, reason) => {
     expect(() => check(sql)).toThrow(PluginSqlRefused);
     expect(() => check(sql)).toThrow(reason);
@@ -232,6 +271,54 @@ describe('plugin SQL guard', () => {
     expect(ddl).toMatchObject({ returnsRows: false, mayWrite: true });
     const [qualified] = parsePluginSql('SELECT n.body FROM notes n');
     expect(qualified.qualifies).toBe(true);
+  });
+
+  it('refuses TEMP where it makes a temporary object, and says so', () => {
+    for (const sql of [
+      'CREATE TEMP TABLE t (x int)',
+      'CREATE TEMPORARY VIEW v AS SELECT 1',
+      'CREATE OR REPLACE TEMP VIEW v AS SELECT 1',
+      'CREATE LOCAL TEMP TABLE t (x int)',
+      'CREATE GLOBAL TEMPORARY TABLE t (x int)',
+    ]) {
+      expect(() => check(sql), sql).toThrow(/is not allowed: a temporary object outlives the call/);
+    }
+    expect(() => check('select 1 into temp t')).toThrow(/SELECT \.\.\. INTO TEMP is not allowed: no temporary tables/);
+    expect(() => check('CREATE LOCAL TABLE t (x int)')).toThrow(/CREATE LOCAL is not allowed$/);
+  });
+
+  it('names the existing objects a statement changes, for the store to resolve in its transaction', () => {
+    const targets = (sql: string) => parsePluginSql(sql)[0].targets;
+    const rel = (...name: string[]): PluginTarget => ({ kind: 'relation', name });
+    expect(targets('ALTER TYPE int4 RENAME TO int4x')).toEqual([{ kind: 'type', name: ['int4'] }]);
+    expect(targets('DROP TYPE IF EXISTS mood, "Text" CASCADE')).toEqual([
+      { kind: 'type', name: ['mood'] },
+      { kind: 'type', name: ['Text'] },
+    ]);
+    expect(targets('DROP TABLE IF EXISTS a, "B", trek_plugin_notes.c CASCADE')).toEqual([
+      rel('a'),
+      rel('B'),
+      rel('trek_plugin_notes', 'c'),
+    ]);
+    expect(targets('DROP INDEX CONCURRENTLY IF EXISTS i')).toEqual([rel('i')]);
+    expect(targets('DROP MATERIALIZED VIEW mv')).toEqual([rel('mv')]);
+    expect(targets('REFRESH MATERIALIZED VIEW CONCURRENTLY mv WITH DATA')).toEqual([rel('mv')]);
+    expect(targets('TRUNCATE TABLE ONLY a, b * RESTART IDENTITY')).toEqual([rel('a'), rel('b')]);
+    expect(targets('TRUNCATE a')).toEqual([rel('a')]);
+    expect(targets('CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS i ON ONLY t USING btree (x)')).toEqual([rel('t')]);
+    expect(targets('CREATE INDEX ON t (x)')).toEqual([rel('t')]);
+    expect(targets('ALTER MATERIALIZED VIEW IF EXISTS mv RENAME TO mv2')).toEqual([rel('mv')]);
+    expect(targets('ALTER TABLE IF EXISTS ONLY t ADD CONSTRAINT f FOREIGN KEY (x) REFERENCES p (id)')).toEqual([
+      rel('t'),
+      rel('p'),
+    ]);
+    expect(targets('CREATE TABLE c (x int REFERENCES p) INHERITS (q, r)')).toEqual([rel('p'), rel('q'), rel('r')]);
+    expect(targets('CREATE TABLE c PARTITION OF p FOR VALUES IN (1)')).toEqual([rel('p')]);
+    expect(targets('ALTER TABLE p ATTACH PARTITION c FOR VALUES IN (1)')).toEqual([rel('p'), rel('c')]);
+    expect(targets('ALTER TABLE c NO INHERIT p')).toEqual([rel('c'), rel('p')]);
+    expect(targets('CREATE TABLE t (x int)')).toEqual([]);
+    expect(targets('SELECT 1')).toEqual([]);
+    expect(() => parsePluginSql('DROP TABLE a.b.c.d')).toThrow(/at most three parts/);
   });
 
   it('turns a SQLite ? placeholder into a message about $1 when args are bound', () => {

@@ -10,6 +10,7 @@
  * store on a real database is the Postgres lane's
  * tests/postgres/plugin-data.test.ts.
  */
+import { PRIVILEGED_ROLE_PLUGIN_REFUSAL } from '../../../../../src/db/engine/postgres/plugin-data-checks';
 import {
   dropPluginSchema,
   END_SESSION,
@@ -18,6 +19,7 @@ import {
   PostgresPluginDataStore,
   type PluginSqlClient,
 } from '../../../../../src/db/engine/postgres/plugin-data-store';
+import { PRIVILEGED_ROLE_SQL } from '../../../../../src/db/engine/postgres/server-checks';
 
 import type { Kysely } from 'kysely';
 import Cursor from 'pg-cursor';
@@ -28,6 +30,12 @@ interface FakeOptions {
   schemas?: string[];
   /** The sizes the quota reads answer, in order. */
   sizes?: number[];
+  /** The catalog object counts the quota reads answer, in order. */
+  objects?: number[];
+  /** Whether the role check answers that TREK's role is privileged. */
+  privileged?: boolean;
+  /** The objects the target check finds outside the plugin's schema. */
+  foreign?: Array<{ name: string; nspname: string }>;
   /** Rows a cursor yields, by its statement's text; read two at a time. */
   rows?: Record<string, unknown[]>;
   /** What a write reports as changed. */
@@ -62,6 +70,7 @@ function fakePool(options: FakeOptions = {}) {
   const cursors: Array<{ text: string; values: unknown[] | null; closed: boolean }> = [];
   const releases: boolean[] = [];
   let size = 0;
+  let objects = 0;
   const run = (sql: string) => {
     log.push(sql);
     const err = options.fail?.(sql);
@@ -69,7 +78,14 @@ function fakePool(options: FakeOptions = {}) {
   };
   const answer = (sql: string) => {
     if (sql.startsWith('select nspname')) return { rows: (options.schemas ?? []).map((nspname) => ({ nspname })) };
-    if (sql.startsWith('select coalesce(sum(')) return { rows: [{ bytes: options.sizes?.[size++] ?? 0 }], rowCount: 1 };
+    if (sql.startsWith('select (exists')) return { rows: [{ privileged: options.privileged === true }], rowCount: 1 };
+    if (sql.startsWith('select t.name')) return { rows: options.foreign ?? [], rowCount: 0 };
+    if (sql.startsWith('select coalesce((select sum(')) {
+      return {
+        rows: [{ bytes: options.sizes?.[size++] ?? 0, objects: options.objects?.[objects++] ?? 0 }],
+        rowCount: 1,
+      };
+    }
     if (sql.startsWith('select 1 from')) return { rows: options.migrated ? [{ '?column?': 1 }] : [], rowCount: 0 };
     return { rows: [], rowCount: options.changes ?? 0 };
   };
@@ -119,6 +135,9 @@ function store(options: FakeOptions = {}, limits = {}) {
   return { ...pool, store: new PostgresPluginDataStore('notes', pool.connect, new PluginDataSlots(4), limits) };
 }
 
+/** The role check every first call on a client runs before its transaction. */
+const ROLE_CHECK = `select (${PRIVILEGED_ROLE_SQL}) as privileged`;
+
 /** A pg error with its SQLSTATE. */
 function pgError(code: string, message: string): Error {
   return Object.assign(new Error(message), { code });
@@ -132,6 +151,7 @@ describe('Postgres plugin data store', () => {
     expect(s.engine).toBe('postgres');
     expect(await s.query('SELECT body FROM notes')).toEqual([{ body: 'a' }, { body: 'b' }, { body: 'c' }]);
     expect(log).toEqual([
+      ROLE_CHECK,
       'begin',
       [
         'create schema if not exists "trek_plugin_notes"',
@@ -199,7 +219,7 @@ describe('Postgres plugin data store', () => {
 
     const reads = store({}, { quotaBytes: 1 });
     await reads.store.query('SELECT 1');
-    expect(reads.log.some((sql) => sql.startsWith('select coalesce(sum('))).toBe(false);
+    expect(reads.log.some((sql) => sql.startsWith('select coalesce((select sum('))).toBe(false);
   });
 
   it('PGSTORE-006: a script commits statement by statement and stops at the first that fails', async () => {
@@ -304,7 +324,7 @@ describe('Postgres plugin data store', () => {
     expect(configs.filter((q) => q.queryMode === 'extended')).toHaveLength(plugin.length);
   });
 
-  it('PGSTORE-013: every read goes through a cursor on the same client, closed however the read ends, args without NUL', async () => {
+  it('PGSTORE-013: every read goes through a cursor on the same client, closed however the read ends', async () => {
     // EXTQ-002 before the store checked out its own clients: what is not a plugin write reaches pg as it was.
     const rows = Array.from({ length: 7 }, (_, i) => ({ i }));
     const {
@@ -312,14 +332,85 @@ describe('Postgres plugin data store', () => {
       cursors,
       configs,
     } = store({ rows: { 'SELECT i FROM t WHERE x = $1': rows, 'SELECT 1 FROM t': [{}] } }, { maxRows: 5 });
-    await expect(s.query('SELECT i FROM t WHERE x = $1', ['a\u0000b'])).rejects.toThrow('more than 5 rows');
+    await expect(s.query('SELECT i FROM t WHERE x = $1', ['ab'])).rejects.toThrow('more than 5 rows');
     await s.exec('SELECT 1 FROM t', ['x']);
-    await s.exec('INSERT INTO t VALUES ($1)', ['c\u0000d']);
+    await s.exec('INSERT INTO t VALUES ($1)', ['cd']);
     expect(cursors).toEqual([
       { text: 'SELECT i FROM t WHERE x = $1', values: ['ab'], closed: true },
       { text: 'SELECT 1 FROM t', values: ['x'], closed: true },
     ]);
     expect(configs.find((q) => q.text.startsWith('INSERT'))?.values).toEqual(['cd']);
+  });
+
+  it('PGSTORE-016: an argument or a migration id holding NUL is refused before a client is taken, never altered', async () => {
+    const { store: s, log, releases } = store();
+    const nul = /U\+0000 \(NUL\), which Postgres text cannot store/;
+    await expect(s.query('SELECT 1 FROM t WHERE k = $1', ['a\u0000b'])).rejects.toThrow(nul);
+    await expect(s.exec('INSERT INTO t VALUES ($1)', [['x', 'c\u0000d']])).rejects.toThrow(nul);
+    await expect(s.tx([{ sql: 'SELECT 1' }, { sql: 'DELETE FROM t WHERE k = $1', args: ['\u0000'] }])).rejects.toThrow(
+      nul,
+    );
+    await expect(s.migrate('001\u0000', 'CREATE TABLE t (k text)')).rejects.toThrow(nul);
+    expect({ log, releases }).toEqual({ log: [], releases: [] });
+    // A Buffer goes to bytea, which holds any byte.
+    await expect(s.exec('INSERT INTO t VALUES ($1)', [Buffer.from([0, 1])])).resolves.toEqual({ changes: 0 });
+  });
+
+  it('PGSTORE-017: a privileged role is refused before the transaction opens, and the answer is kept per connection', async () => {
+    const privileged = store({ privileged: true });
+    await expect(privileged.store.query('SELECT 1')).rejects.toThrow(PRIVILEGED_ROLE_PLUGIN_REFUSAL);
+    await expect(privileged.store.exec('CREATE TABLE t (x int)')).rejects.toThrow(/db:own\) are refused on Postgres/);
+    // One read for the connection, no transaction, and the client goes back clean.
+    expect(privileged.log).toEqual([ROLE_CHECK, END_SESSION, END_SESSION]);
+    expect(privileged.releases).toEqual([false, false]);
+
+    const plain = store();
+    await plain.store.query('SELECT 1');
+    await plain.store.query('SELECT 2');
+    expect(plain.log.filter((sql) => sql === ROLE_CHECK)).toHaveLength(1);
+
+    // A read that failed is asked again on the next call.
+    let fails = 1;
+    const flaky = store({ fail: (sql) => (sql === ROLE_CHECK && fails-- > 0 ? new Error('reset') : undefined) });
+    await expect(flaky.store.query('SELECT 1')).rejects.toThrow('reset');
+    await expect(flaky.store.query('SELECT 1')).resolves.toEqual([]);
+    expect(flaky.log.filter((sql) => sql === ROLE_CHECK)).toHaveLength(2);
+  });
+
+  it('PGSTORE-018: the objects a statement changes are resolved right before it runs, and one outside the schema refuses it', async () => {
+    const own = store();
+    await own.store.migrate('001', 'CREATE TABLE a (x int); ALTER TYPE mood RENAME TO feeling; DROP TABLE "B", c');
+    const checks = own.configs.filter((q) => q.text.startsWith('select t.name'));
+    expect(checks.map((q) => q.values)).toEqual([
+      [['"mood"'], ['type'], 'trek_plugin_notes'],
+      [['"B"', '"c"'], ['relation', 'relation'], 'trek_plugin_notes'],
+    ]);
+    // Each check comes right before its statement, after the ones before it ran.
+    const order = own.log
+      .filter((sql) => /^(select t\.name|CREATE|ALTER|DROP)/.test(sql))
+      .map((sql) => sql.slice(0, 13));
+    expect(order).toEqual(['CREATE TABLE ', 'select t.name', 'ALTER TYPE mo', 'select t.name', 'DROP TABLE "B']);
+
+    const foreign = store({ foreign: [{ name: '"int4"', nspname: 'pg_catalog' }] });
+    await expect(foreign.store.exec('ALTER TYPE int4 RENAME TO int4x')).rejects.toThrow(
+      /"int4" is an object of the schema "pg_catalog"; a plugin changes its own objects only/,
+    );
+    expect(foreign.log).not.toContain('ALTER TYPE int4 RENAME TO int4x');
+    expect(foreign.log.slice(-2)).toEqual(['rollback', END_SESSION]);
+    // A statement that changes no existing object asks nothing.
+    const plain = store();
+    await plain.store.exec('INSERT INTO a VALUES (1)');
+    expect(plain.log.some((sql) => sql.startsWith('select t.name'))).toBe(false);
+  });
+
+  it('PGSTORE-019: a write that takes the schema past its object cap and adds objects rolls back; a drop still runs', async () => {
+    const grows = store({ sizes: [0, 0], objects: [10, 11] }, { maxObjects: 10 });
+    await expect(grows.store.exec('CREATE TABLE t (x int)')).rejects.toThrow(
+      'the plugin database holds more than 10 catalog objects',
+    );
+    expect(grows.log.slice(-2)).toEqual(['rollback', END_SESSION]);
+    const drops = store({ sizes: [0, 0], objects: [12, 11] }, { maxObjects: 10 });
+    await expect(drops.store.exec('DROP TABLE t')).resolves.toEqual({ changes: 0 });
   });
 
   it('PGSTORE-014: each transaction checks out a client of its own and gives it back clean, or closes it', async () => {

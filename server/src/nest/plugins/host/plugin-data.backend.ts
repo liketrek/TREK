@@ -2,6 +2,7 @@ import type { DbSettings } from '../../../app-config';
 import type { EngineId } from '../../../app-config/db-settings';
 import { postgresTarget, type DatabaseEngine } from '../../../db/engine';
 import type { PluginDataStore } from '../../../db/engine/plugin-data';
+import { PRIVILEGED_ROLE_PLUGIN_REFUSAL, PrivilegedRoleGate } from '../../../db/engine/postgres/plugin-data-checks';
 import {
   dropPluginSchema,
   PluginDataSlots,
@@ -9,12 +10,13 @@ import {
   poolClients,
   PostgresPluginDataStore,
 } from '../../../db/engine/postgres/plugin-data-store';
+import { logWarn } from '../../audit/audit-log.logger';
 import { DATABASE_ENGINE, DATABASE_SETTINGS } from '../../database/database-engine.module';
 import { pluginDataDir } from '../paths';
 import { PluginDataDb, removePluginData } from './plugin-data.service';
 import { MikroORM } from '@mikro-orm/core';
 import type { AbstractSqlConnection } from '@mikro-orm/sql';
-import { Inject, Injectable, type Provider } from '@nestjs/common';
+import { Inject, Injectable, type OnApplicationBootstrap, type Provider } from '@nestjs/common';
 
 import type { Kysely } from 'kysely';
 import fs from 'node:fs';
@@ -58,21 +60,44 @@ export class SqlitePluginDataBackend implements PluginDataBackend {
  * client. The plugin's data directory is still created, for the files a plugin
  * keeps beside its database, and it is what marks a plugin uninstalled with
  * its data kept (the erasure queue reads it).
+ *
+ * While TREK's role is privileged (`PRIVILEGED_ROLE_SQL`), every store refuses
+ * its calls (`plugin-data-checks.ts`), and the boot log says so once.
  */
 @Injectable()
-export class PostgresPluginDataBackend implements PluginDataBackend {
+export class PostgresPluginDataBackend implements PluginDataBackend, OnApplicationBootstrap {
   readonly engine = 'postgres' as const;
   /** Shared by every plugin's store; made on first use, since on SQLite this provider is built but never used. */
   private slots: PluginDataSlots | null = null;
+  /** Shared by every plugin's store, so the role is read once per pool connection. */
+  private readonly roleGate = new PrivilegedRoleGate();
 
   constructor(
     private readonly orm: MikroORM,
     @Inject(DATABASE_SETTINGS) private readonly settings: DbSettings,
   ) {}
 
+  /** On Postgres, says in the boot log when plugin databases are refused because of TREK's role. */
+  async onApplicationBootstrap(): Promise<void> {
+    if (!postgresTarget(this.settings)) return;
+    try {
+      const client = await poolClients(this.orm.em.getConnection())();
+      try {
+        if (await this.roleGate.privileged(client)) logWarn(PRIVILEGED_ROLE_PLUGIN_REFUSAL);
+      } finally {
+        client.release();
+      }
+    } catch (err) {
+      logWarn(
+        `Could not check whether TREK's role may run plugin SQL: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   open(pluginId: string): PluginDataStore {
     fs.mkdirSync(pluginDataDir(pluginId), { recursive: true });
-    return new PostgresPluginDataStore(pluginId, poolClients(this.orm.em.getConnection()), this.sharedSlots());
+    const connect = poolClients(this.orm.em.getConnection());
+    return new PostgresPluginDataStore(pluginId, connect, this.sharedSlots(), {}, this.roleGate);
   }
 
   async erase(pluginId: string): Promise<void> {

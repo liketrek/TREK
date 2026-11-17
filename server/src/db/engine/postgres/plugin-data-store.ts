@@ -1,5 +1,13 @@
-import { nulFreeParameter } from '../../nul-free';
 import { PLUGIN_DATA_CAPS, type PluginDataStore, type PluginTxOp, type PluginTxResult } from '../plugin-data';
+import {
+  PLUGIN_SCHEMA_MAX_OBJECTS,
+  PrivilegedRoleGate,
+  refuseForeignTargets,
+  refuseNulValues,
+  schemaUsage,
+  type PluginRoleGate,
+  type SchemaUsage,
+} from './plugin-data-checks';
 import { isPluginId, pluginSchemaName, quotePluginSchema } from './plugin-schema';
 import { checkPlaceholders, checkQualifiers, parsePluginSql, type PluginStatement } from './plugin-sql-guard';
 
@@ -12,19 +20,27 @@ import Cursor from 'pg-cursor';
  *
  * Every call checks a `pg` client out of the pool for itself
  * ({@link poolClients}) and runs one transaction on it directly, not through
- * Kysely. The transaction first makes sure the schema and its migration table
- * exist, then puts only that schema on the `search_path`, with `pg_temp`
- * explicitly last so a temporary table is never found before the plugin's
- * own, and sets `statement_timeout` to the call's time budget; every setting
- * is `local` and ends with the transaction. The plugin's SQL is checked by
- * `plugin-sql-guard.ts` before it runs, so it cannot name another schema, and
- * each statement goes to Postgres on its own over the extended query
- * protocol, which runs one statement and no more: a write as a query with
- * `queryMode: 'extended'`, which `pg` honours even without values, and a read
- * through a `pg-cursor`, which always uses that protocol. Reads stop at the
- * row cap. A call that may write measures the schema's size before and
- * after, and rolls back one that leaves it past the quota and larger than it
- * found it, so a plugin at its quota can still delete. Before the client goes
+ * Kysely. Before the transaction it refuses the call outright while TREK's
+ * role is privileged (`PrivilegedRoleGate` in `plugin-data-checks.ts`, read
+ * once per connection). The transaction first makes sure the schema and its
+ * migration table exist, then puts only that schema on the `search_path`,
+ * with `pg_temp` explicitly last so a temporary table is never found before
+ * the plugin's own, and sets `statement_timeout` to the call's time budget;
+ * every setting is `local` and ends with the transaction. The plugin's SQL is
+ * checked by `plugin-sql-guard.ts` before it runs, so it cannot name another
+ * schema; right before each statement, the existing objects it changes are
+ * resolved by Postgres and must lie in the plugin's schema
+ * (`refuseForeignTargets`); and each statement goes to Postgres on its own
+ * over the extended query protocol, which runs one statement and no more: a
+ * write as a query with `queryMode: 'extended'`, which `pg` honours even
+ * without values, and a read through a `pg-cursor`, which always uses that
+ * protocol. A bound value or a migration id holding U+0000 is refused before
+ * anything runs, since Postgres text cannot hold it and changing it would
+ * change the plugin's data. Reads stop at the row cap. A call that may write
+ * measures the schema before and after (`schemaUsage`: the bytes of every
+ * relation with its TOAST table, and the catalog objects), and rolls back one
+ * that leaves it past the quota or the object cap and larger than it found
+ * it, so a plugin at either limit can still delete. Before the client goes
  * back to the pool, whatever session state a statement could have left on it
  * is dropped ({@link END_SESSION}); a client that cannot be brought back to a
  * clean state is closed instead of reused.
@@ -47,6 +63,8 @@ interface PostgresPluginDataLimits {
   maxRows: number;
   timeBudgetMs: number;
   quotaBytes: number;
+  /** The most catalog objects the schema may hold (`PLUGIN_SCHEMA_MAX_OBJECTS`). */
+  maxObjects: number;
   /** The clock the time budget reads. */
   now: () => number;
 }
@@ -55,6 +73,7 @@ const DEFAULT_LIMITS: PostgresPluginDataLimits = {
   maxRows: PLUGIN_DATA_CAPS.maxRows,
   timeBudgetMs: PLUGIN_DATA_CAPS.timeBudgetMs,
   quotaBytes: PLUGIN_DATA_CAPS.quotaBytes,
+  maxObjects: PLUGIN_SCHEMA_MAX_OBJECTS,
   now: () => Date.now(),
 };
 
@@ -166,6 +185,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
     private readonly connect: ConnectPluginClient,
     private readonly slots: PluginDataSlots,
     limits: Partial<PostgresPluginDataLimits> = {},
+    private readonly roleGate: PluginRoleGate = new PrivilegedRoleGate(),
   ) {
     this.schema = pluginSchemaName(pluginId);
     this.quoted = quotePluginSchema(this.schema);
@@ -242,6 +262,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
   /** No time budget, as on SQLite: a migration stopped part of the way would fail the same way on every start. */
   async migrate(id: string, sql: string): Promise<{ applied: boolean }> {
     const statements = this.parse(sql);
+    refuseNulValues([id]);
     return this.enqueue(() =>
       this.transaction(null, statements, async (client) => {
         const seen = await client.query({
@@ -264,6 +285,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
     const statements = this.parse(sql);
     if (statements.length !== 1) throw new Error('sql must hold exactly one statement here; use exec() for a script');
     checkPlaceholders(statements[0], args);
+    refuseNulValues(args);
     return statements[0];
   }
 
@@ -327,6 +349,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
     const client = await this.connect();
     let reusable = true;
     try {
+      await this.roleGate.refuseIfPrivileged(client);
       await client.query('begin');
       try {
         const result = await this.inTransaction(client, timeoutMs, statements, work);
@@ -368,15 +391,27 @@ export class PostgresPluginDataStore implements PluginDataStore {
       for (const statement of statements) checkQualifiers(statement, this.schema, schemas);
     }
     const writes = statements.some((s) => s.mayWrite);
-    const before = writes ? await this.sizeBytes(client) : 0;
+    const before = writes ? await schemaUsage(client, this.schema) : null;
     const result = await work(client);
-    if (writes) {
-      const after = await this.sizeBytes(client);
-      if (after > this.limits.quotaBytes && after > before) {
-        throw new Error(`the plugin database is past its ${this.limits.quotaBytes / 1024 / 1024} MB quota`);
-      }
-    }
+    if (before !== null) this.checkQuota(before, await schemaUsage(client, this.schema));
     return result;
+  }
+
+  /**
+   * Refuses a call that left the schema past its quota or its object cap and
+   * grew it there, so a plugin at either limit can still delete.
+   */
+  private checkQuota(before: SchemaUsage, after: SchemaUsage): void {
+    const { quotaBytes, maxObjects } = this.limits;
+    if (after.bytes > quotaBytes && after.bytes > before.bytes) {
+      throw new Error(`the plugin database is past its ${quotaBytes / 1024 / 1024} MB quota`);
+    }
+    if (after.objects > maxObjects && after.objects > before.objects) {
+      throw new Error(
+        `the plugin database holds more than ${maxObjects} catalog objects (tables, indexes, sequences, views, ` +
+          'types, constraints, enum labels)',
+      );
+    }
   }
 
   private async setTimeout(client: PluginSqlClient, ms: number): Promise<void> {
@@ -392,30 +427,19 @@ export class PostgresPluginDataStore implements PluginDataStore {
     return new Set((result.rows as Array<{ nspname: string }>).map((row) => row.nspname));
   }
 
-  /** What this plugin's tables, indexes and materialized views take on disk. */
-  private async sizeBytes(client: PluginSqlClient): Promise<number> {
-    const result = await client.query({
-      text:
-        'select coalesce(sum(pg_total_relation_size(c.oid)), 0) as bytes from pg_class c ' +
-        "join pg_namespace n on n.oid = c.relnamespace where n.nspname = $1 and c.relkind in ('r', 'm')",
-      values: [this.schema],
-    });
-    const [row] = result.rows as Array<{ bytes: number | string }>;
-    return Number(row?.bytes ?? 0);
-  }
-
   /**
    * Runs a statement for its effect: the rows it changed, or 0 for a read,
    * whose rows are read past and dropped. Both go over the extended protocol:
    * a write as an extended query, a read through a cursor.
    */
   private async run(client: PluginSqlClient, statement: PluginStatement, args: readonly unknown[]): Promise<number> {
+    await refuseForeignTargets(client, statement, this.schema);
     if (!statement.mayWrite) {
       // Read to the end so the statement runs whole; its rows are not wanted.
-      await readCursor(client.query(new Cursor(statement.text, boundValues(args))), () => undefined);
+      await readCursor(client.query(new Cursor(statement.text, [...args])), () => undefined);
       return 0;
     }
-    const result = await client.query({ text: statement.text, values: boundValues(args), queryMode: 'extended' });
+    const result = await client.query({ text: statement.text, values: [...args], queryMode: 'extended' });
     return result.rowCount ?? 0;
   }
 
@@ -430,8 +454,9 @@ export class PostgresPluginDataStore implements PluginDataStore {
     budget: RowBudget,
     checkTime: () => void,
   ): Promise<unknown[]> {
+    await refuseForeignTargets(client, statement, this.schema);
     const rows: unknown[] = [];
-    await readCursor(client.query(new Cursor(statement.text, boundValues(args))), (chunk) => {
+    await readCursor(client.query(new Cursor(statement.text, [...args])), (chunk) => {
       if (rows.length > 0) checkTime();
       for (const row of chunk) {
         rows.push(row);
@@ -441,11 +466,6 @@ export class PostgresPluginDataStore implements PluginDataStore {
     });
     return rows;
   }
-}
-
-/** A plugin's args as they are bound: without NUL, which Postgres text cannot hold (`nul-free.ts`). */
-function boundValues(args: readonly unknown[]): unknown[] {
-  return args.map(nulFreeParameter);
 }
 
 /**
