@@ -270,10 +270,11 @@ describe('pg-tools', () => {
       snippets: [answersSchema('public', 'public', { privileged: true })],
     });
     await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT)).rejects.toThrow(
-      /connects as a superuser, or as a role that may run programs or write files on the database server/,
+      /connects as a superuser or a member of a superuser role, a role that may run programs or read or write files/,
     );
     expect(existsSync(ran)).toBe(false);
     expect(readToolCall(psqlLog).args.join(' ')).toContain('pg_execute_server_program');
+    expect(readToolCall(psqlLog).args.join(' ')).toContain('pg_read_server_files');
     expect(readdirSync(out)).toEqual([]);
   });
 

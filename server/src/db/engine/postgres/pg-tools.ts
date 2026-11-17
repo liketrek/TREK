@@ -3,7 +3,7 @@ import { CLEAR_SCHEMA_SQL, pluginSchemasSql } from './clear-schema';
 import { pgConnectionEnv, PgOutputLimitError, refuseClientOlderThanServer, run, runToFile } from './pg-process';
 import { isPluginSchemaName, PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
 import { refuseToolsWithoutRestrict } from './restore-safety';
-import { PRIVILEGED_ROLE_SQL, serverMajor } from './server-checks';
+import { PRIVILEGED_ROLE_DESCRIPTION, PRIVILEGED_ROLE_SQL, serverMajor } from './server-checks';
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -19,7 +19,7 @@ const RESTORE_SESSION_OPTIONS = '-c lock_timeout=60s -c client_min_messages=warn
 
 /** Why a restore refuses a role that could reach the database host (`PRIVILEGED_ROLE_SQL`). */
 const PRIVILEGED_RESTORE_REFUSAL =
-  'TREK_DB_URL connects as a superuser, or as a role that may run programs or write files on the database server. ' +
+  `TREK_DB_URL connects as ${PRIVILEGED_ROLE_DESCRIPTION}. ` +
   'A backup archive is a SQL script that runs as this role, so a crafted one could take over the database host; ' +
   'nothing was replaced. Connect TREK as a role that owns its database and is not a superuser ' +
   '(the wiki page "Database: Postgres" shows how).';
@@ -42,7 +42,7 @@ interface PgServer {
   pluginSchemas: string[];
   /** The server's major version, which the client tools must reach. */
   major: number;
-  /** Whether TREK's role could run programs or write files on the database host (`PRIVILEGED_ROLE_SQL`). */
+  /** Whether TREK's role could reach the database host from SQL (`PRIVILEGED_ROLE_SQL`). */
   privileged: boolean;
 }
 
@@ -176,7 +176,7 @@ async function writeRestoreScript(
  * other schema of the database is touched. Refused before anything is cleared:
  *
  * - client tools without the CVE-2025-8714 fix, or older than the server;
- * - a role that could run programs or write files on the database host,
+ * - a role that could reach the database host from SQL (`PRIVILEGED_ROLE_SQL`),
  *   since the script comes from an archive and runs as that role;
  * - a script past `maxScriptBytes` (BACKUP_MAX_DECOMPRESSED_MB): the dump is
  *   compressed once more inside the archive, so its script is held to the
