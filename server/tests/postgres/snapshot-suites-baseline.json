@@ -1,7 +1,4 @@
 [
-  "tests/unit/mcp/tools-budget-advanced.test.ts",
-  "tests/unit/mcp/tools-budget.test.ts",
-  "tests/unit/mcp/tools-collections.test.ts",
   "tests/unit/mcp/tools-days-accommodations.test.ts",
   "tests/unit/mcp/tools-days.test.ts",
   "tests/unit/mcp/tools-feeds-invite.test.ts",

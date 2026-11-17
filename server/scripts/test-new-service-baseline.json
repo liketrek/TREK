@@ -23,7 +23,6 @@
     "tests/unit/db/repositories/MaintenanceRepository.test.ts": 2,
     "tests/unit/db/repositories/UserConnections.repository.test.ts": 3,
     "tests/unit/demo/demo-reset-sessions.test.ts": 3,
-    "tests/unit/mcp/tools-budget-advanced.test.ts": 2,
     "tests/unit/mcp/tools-prompts.test.ts": 7,
     "tests/unit/mcp/tools-roadtrip.test.ts": 1,
     "tests/unit/mcp/tools-transit.test.ts": 1,
