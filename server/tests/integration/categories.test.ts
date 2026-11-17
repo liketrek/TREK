@@ -3,24 +3,19 @@
  * Covers GET/POST/PUT/DELETE /api/categories.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Categories } from '../../src/db/entities/Categories.entity';
 import { authCookie } from '../helpers/auth';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { findRow } from '../helpers/factories/rows';
 import { makeUser, makeAdmin } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -41,13 +36,12 @@ async function someCategoryId(): Promise<number> {
 }
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Categories', () => {
