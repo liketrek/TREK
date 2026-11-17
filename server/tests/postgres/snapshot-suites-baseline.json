@@ -15,7 +15,6 @@
   "tests/integration/collab.test.ts",
   "tests/integration/collections.test.ts",
   "tests/integration/dayNotes.test.ts",
-  "tests/integration/days.test.ts",
   "tests/integration/demo-seed-request-context.test.ts",
   "tests/integration/doc-sync-webhook-request-context.test.ts",
   "tests/integration/feeds-request-context.test.ts",

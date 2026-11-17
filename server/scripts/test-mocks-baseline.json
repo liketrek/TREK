@@ -69,7 +69,6 @@
     "tests/integration/collections.test.ts": 1,
     "tests/integration/dayNotes.test.ts": 1,
     "tests/integration/dayReorder.test.ts": 1,
-    "tests/integration/days.test.ts": 1,
     "tests/integration/demo-seed-request-context.test.ts": 1,
     "tests/integration/doc-sync-webhook-request-context.test.ts": 1,
     "tests/integration/feeds-request-context.test.ts": 1,
