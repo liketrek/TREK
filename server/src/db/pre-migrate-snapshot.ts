@@ -45,6 +45,7 @@ async function databaseFile(connection: Connection): Promise<string | null> {
 /** A fresh install: nothing but the migrator's own bookkeeping table yet. */
 async function holdsAnything(connection: Connection): Promise<boolean> {
   const rows: unknown[] = await connection.execute(
+    // like-exact: SQLite's own `sqlite_` tables, on the SQLite file this snapshot is for.
     `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'mikro_orm_migrations' LIMIT 1`,
   );
   return rows.length > 0;

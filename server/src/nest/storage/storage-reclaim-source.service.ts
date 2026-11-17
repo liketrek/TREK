@@ -129,7 +129,8 @@ export function likeAny<T>(
   const terms =
     containing === null
       ? fields.map((field) => ({ [field]: { $ne: null } }))
-      : fields.flatMap((field) => containing.map((run) => ({ [lower(platform, field)]: { $like: `%${run}%` } })));
+      : // like-exact: the column is lowercased and the runs are lowercase, so the match ignores case on both engines.
+        fields.flatMap((field) => containing.map((run) => ({ [lower(platform, field)]: { $like: `%${run}%` } })));
   if (terms.length > MAX_LIKE_TERMS) {
     logWarn(`[storage] a reference lookup asked for ${terms.length} LIKE terms, more than ${MAX_LIKE_TERMS}`);
     throw new Error(`a reference lookup may hold at most ${MAX_LIKE_TERMS} LIKE terms`);
