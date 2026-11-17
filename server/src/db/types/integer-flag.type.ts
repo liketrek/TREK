@@ -18,13 +18,17 @@ type FlagColumn = number | null | undefined;
  */
 export class IntegerFlagType extends Type<FlagValue, FlagColumn> {
   override convertToDatabaseValue(value: FlagValue): FlagColumn {
-    if (value === null || value === undefined) return value;
+    // Spelled out: the server compiles without strictNullChecks, where returning the narrowed `value` keeps its full type.
+    if (value === null) return null;
+    if (value === undefined) return undefined;
     return value ? 1 : 0;
   }
 
   /** 0/1 from either driver (Postgres's `bigint` reads as a number); a boolean from a value set in JS passes through. */
   override convertToJSValue(value: FlagColumn | boolean): FlagValue {
-    if (value === null || value === undefined) return value;
+    // Spelled out: the server compiles without strictNullChecks, where returning the narrowed `value` keeps its full type.
+    if (value === null) return null;
+    if (value === undefined) return undefined;
     return Boolean(Number(value));
   }
 
