@@ -18,7 +18,7 @@ import { deleteRows, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
 import { readUser } from '../helpers/factories/users';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createTestMcpTokensRepo, createTestUsersRepo } from '../helpers/test-uow';
+import { createTestMcpTokensRepo, createTestUnitOfWork, createTestUsersRepo } from '../helpers/test-uow';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -55,6 +55,7 @@ beforeAll(async () => {
     await createTestMcpTokensRepo(testDb),
     await createTestUsersRepo(testDb),
     new EphemeralTokenService(),
+    await createTestUnitOfWork(testDb),
   );
   // Real WebSocket against the unified NestJS app (Express is gone). buildApp owns
   // the same composition production uses; we attach the real ws server to it.

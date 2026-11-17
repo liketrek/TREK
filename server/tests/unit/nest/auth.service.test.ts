@@ -134,6 +134,7 @@ beforeAll(async () => {
     await createTestMcpTokensRepo(testDb),
     await createTestUsersRepo(testDb),
     new EphemeralTokenService(),
+    await createTestUnitOfWork(testDb),
   );
   svc = new AuthService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),

@@ -260,19 +260,6 @@ export class AdminService {
     }
     const passwordHash = password ? bcrypt.hashSync(password, BCRYPT_COST) : null;
 
-    // Don't let the admin UI demote the last remaining admin — that would leave the
-    // instance with no one able to manage it (and on OIDC-only setups, no recovery). #1274
-    // SECURITY: plain JS comparisons, deliberately never folded into a
-    // repository method's WHERE clause (R4) — two repository reads, one
-    // service-level `if`.
-    if (role && role !== 'admin') {
-      const currentRole = await this.users.getRole(userId);
-      if (currentRole === 'admin') {
-        const adminCount = await this.users.countAdmins();
-        if (adminCount <= 1) throw new DomainError(400, 'Cannot remove the last admin');
-      }
-    }
-
     // An admin sets a password for exactly one reason: the account is believed
     // compromised. Without bumping password_version, verifyJwtAndLoadUser keeps
     // accepting every cookie the intruder already holds, so the one action taken
@@ -299,6 +286,19 @@ export class AdminService {
     // call, never split across separate un-transacted repository calls.
     try {
       await this.uow.transactional(async () => {
+        // Don't let the admin UI demote the last remaining admin — that would leave the
+        // instance with no one able to manage it (and on OIDC-only setups, no recovery). #1274
+        // SECURITY: plain JS comparisons, deliberately never folded into a
+        // repository method's WHERE clause (R4) — two repository reads, one
+        // service-level `if`. Read in the transaction that demotes, so two admins
+        // demoting each other at once cannot both see the other one still counted.
+        if (role && role !== 'admin') {
+          const currentRole = await this.users.getRole(userId);
+          if (currentRole === 'admin') {
+            const adminCount = await this.users.countAdmins();
+            if (adminCount <= 1) throw new DomainError(400, 'Cannot remove the last admin');
+          }
+        }
         await this.users.applyAdminEdit(userId, patch);
 
         if (password) {

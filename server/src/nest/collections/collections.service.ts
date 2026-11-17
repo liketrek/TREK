@@ -1225,17 +1225,16 @@ export class CollectionsService {
     const collectionId = await this.collectionIdOfLabel(labelId);
     await this.assertCanEdit(userId, collectionId);
     const write: Parameters<CollectionLabelsRepository['updateFields']>[1] = {};
-    if (body.name !== undefined) {
-      const trimmed = body.name.trim();
-      if (!trimmed) httpError(400, 'Label name is required');
-      if (await this.labels.nameExistsExcluding(collectionId, trimmed, labelId)) {
-        httpError(409, 'A label with this name already exists');
-      }
-      write.name = trimmed;
-    }
+    const trimmed = body.name?.trim();
+    if (body.name !== undefined && !trimmed) httpError(400, 'Label name is required');
+    if (trimmed) write.name = trimmed;
     if (body.color !== undefined) write.color = body.color;
     if (body.sort_order !== undefined) write.sort_order = body.sort_order;
-    await this.labels.updateFields(labelId, write);
+    // Checked in the renaming transaction, as createLabel does: no index keeps names unique.
+    await this.uow.transactional(async () => {
+      if (trimmed && (await this.labels.nameExistsExcluding(collectionId, trimmed, labelId))) httpError(409, 'A label with this name already exists');
+      await this.labels.updateFields(labelId, write);
+    });
     await this.notifyCollectionUsers(collectionId, socketId, 'collections:updated');
     return this.getLabelById(labelId);
   }

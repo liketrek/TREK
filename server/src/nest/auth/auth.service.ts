@@ -490,10 +490,8 @@ export class AuthService {
         const token = await this.generateToken(user, undefined, client);
 
         if (validInvite) {
-          const updated = await this.inviteTokens.incrementUsedCount(validInvite.token);
-          if (!updated) {
-            console.warn(`[Auth] Invite token ${validInvite.token.slice(0, 8)}... exceeded max_uses due to race condition`);
-          }
+          // The increment is the capacity check: another signup took the last use since the read above.
+          if (!(await this.inviteTokens.incrementUsedCount(validInvite.token))) throw new DomainError(410, 'Invite link has been fully used');
           // Trip-bound invite (#1402): auto-add the freshly registered user to the
           // trip. Idempotent + owner-safe; no-ops if the bound trip was since deleted.
           if (validInvite.trip_id) {
@@ -678,13 +676,13 @@ export class AuthService {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
       throw new DomainError(403, 'Account deletion is disabled in demo mode.');
     }
-    if (userRole === 'admin') {
+    await this.userCleanup.deleteUserCompletely(userId, async () => {
+      if (userRole !== 'admin') return;
       const adminCount = await this.usersRepo.countAdmins();
       if (adminCount <= 1) {
         throw new DomainError(400, 'Cannot delete the last admin account');
       }
-    }
-    await this.userCleanup.deleteUserCompletely(userId);
+    });
     await emitUserDeleted(userId); // let plugins erase their own per-user data
     return { success: true };
   }
@@ -740,17 +738,6 @@ export class AuthService {
       }
     }
 
-    // Lockout prevention: can't disable all login methods
-    if (body.password_login !== undefined || body.oidc_login !== undefined) {
-      const current = await this.resolveAuthToggles();
-      const oidcConfigured = await isOidcConfigured(this.appSettings);
-      const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
-      const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
-      if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
-        throw new DomainError(400, 'Cannot disable all login methods. At least one must remain enabled.');
-      }
-    }
-
     // SMTP, the OIDC toggles and the WebAuthn pair share this handler with keys
     // the admin does own, so a managed install skips those names and keeps the
     // rest of the save working. Reported, never thrown: the settings tab sends
@@ -758,6 +745,16 @@ export class AuthService {
     const blocked = [...splitManagedKeys(body, readEnv().managed.enabled).blocked, ...envLockedKeys(body)];
 
     await this.uow.transactional(async () => { // the whole form lands, or none of it
+      // Lockout prevention: can't disable all login methods (read in the writing transaction).
+      if (body.password_login !== undefined || body.oidc_login !== undefined) {
+        const current = await this.resolveAuthToggles();
+        const oidcConfigured = await isOidcConfigured(this.appSettings);
+        const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
+        const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
+        if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
+          throw new DomainError(400, 'Cannot disable all login methods. At least one must remain enabled.');
+        }
+      }
       for (const key of ADMIN_FORM_SETTING_KEYS) {
         if (blocked.includes(key)) continue;
         if (body[key] !== undefined) {
@@ -1064,8 +1061,8 @@ export class AuthService {
     const newPv = (user.password_version ?? 0) + 1;
 
     await this.uow.transactional(async () => {
-      // Burn the token first to keep it atomic with the password change.
-      await this.passwordResetTokens.markConsumed(row.id);
+      // Burn the token first, atomic with the password change; a second use racing this one loses here.
+      if (!(await this.passwordResetTokens.markConsumed(row.id))) throw new DomainError(400, 'This reset link has already been used');
       // Also burn every OTHER live token for this user — a fresh login
       // should not leave a second door open.
       await this.passwordResetTokens.consumeAllLiveForUser(user.id, row.id);

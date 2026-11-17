@@ -125,6 +125,16 @@ describe('PasswordResetTokensRepository', () => {
       expect((await rawRow(target)).consumed_at).not.toBeNull();
       expect((await rawRow(other)).consumed_at).toBeNull();
     });
+
+    it('PWDRESETREPO-014: burns a token once: a second call finds it used and leaves the first stamp', async () => {
+      const { user } = createUser(testDb);
+      const target = await seedToken(user.id, hash('once'));
+
+      expect(await tokens.markConsumed(target)).toBe(true);
+      const stamped = (await rawRow(target)).consumed_at;
+      expect(await tokens.markConsumed(target)).toBe(false);
+      expect((await rawRow(target)).consumed_at).toBe(stamped);
+    });
   });
 
   describe('consumeAllLiveForUser', () => {
