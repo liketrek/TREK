@@ -1,4 +1,5 @@
 import type { DatabaseEngine } from '../../db/engine';
+import { writeTransaction } from '../../db/engine/write-transaction';
 import { DATABASE_ENGINE } from './database-engine.module';
 import { EntityManager } from '@mikro-orm/core';
 import { Inject, Injectable } from '@nestjs/common';
@@ -23,7 +24,10 @@ import { Inject, Injectable } from '@nestjs/common';
  * The services read `MAX(...) + 1` inside these transactions on the strength
  * of SQLite's single writer. On Postgres a pool of connections would let two
  * of them read the same MAX, so every transaction first takes the engine's
- * write lock (`DatabaseEngine.serializeWrites`), which keeps that guarantee.
+ * write lock (`DatabaseEngine.serializeWrites`, through `writeTransaction`),
+ * which keeps that guarantee. No other transaction is opened under src/
+ * (ESLint, `trek/transactions-through-unit-of-work`), so a check read
+ * inside one of these is never raced by a write outside the lock.
  */
 @Injectable()
 export class UnitOfWork {
@@ -33,9 +37,6 @@ export class UnitOfWork {
   ) {}
 
   transactional<T>(fn: () => Promise<T>): Promise<T> {
-    return this.em.transactional(async (em) => {
-      await this.engine.serializeWrites(em);
-      return fn();
-    });
+    return writeTransaction(this.em, this.engine, () => fn());
   }
 }

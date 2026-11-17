@@ -90,12 +90,11 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
    * separately-awaited calls — two concurrent `meta.set` calls for two
    * DIFFERENT new keys on the same (plugin, entity) could both read
    * `count < max` before either's write landed, so a 100-key cap let a live
-   * burst land 130 rows. The three run in one transaction, which keeps them
-   * together on SQLite's single writer. On Postgres two transactions on two
-   * pool connections both read the same count, and only the engine's write
-   * lock, which `UnitOfWork` takes, puts them one after the other, so the
-   * caller runs this inside `UnitOfWork.transactional` (`MetaRpc#set`), and
-   * the transaction here becomes a savepoint of that one. Returns whether the
+   * burst land 130 rows. The three run in the caller's
+   * `UnitOfWork.transactional` (`MetaRpc#set`), whose write lock puts two of
+   * them one after the other on either engine; a transaction of its own here
+   * would not take that lock on Postgres, where two pool connections would
+   * both read the same count. Returns whether the
    * write happened; `false` means a NEW key was blocked by the cap (the
    * caller maps that to `BadParams`, same message as before).
    */
@@ -107,14 +106,12 @@ export class PluginEntityMetadataRepository extends TrekRepository<PluginEntityM
     value: string,
     maxKeys: number,
   ): Promise<boolean> {
-    return this.getEntityManager().transactional(async () => {
-      const exists = (await this.findValue(pluginId, entityType, entityId, key)) !== null;
-      if (!exists) {
-        const n = await this.countForEntity(pluginId, entityType, entityId);
-        if (n >= maxKeys) return false;
-      }
-      await this.upsertValue(pluginId, entityType, entityId, key, value);
-      return true;
-    });
+    const exists = (await this.findValue(pluginId, entityType, entityId, key)) !== null;
+    if (!exists) {
+      const n = await this.countForEntity(pluginId, entityType, entityId);
+      if (n >= maxKeys) return false;
+    }
+    await this.upsertValue(pluginId, entityType, entityId, key, value);
+    return true;
   }
 }

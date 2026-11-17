@@ -1,4 +1,3 @@
-import { isMissingTableError } from '../dialect/driver-errors';
 import type { EntityManager } from '@mikro-orm/core';
 
 /**
@@ -39,24 +38,20 @@ export class MaintenanceRepository {
    * `plugin_oauth_tokens`, `plugin_oauth_state`), called inside the erasure's
    * own `UnitOfWork.transactional(...)`.
    *
-   * A table that does not exist (a slimmed-down test schema) is skipped; any
-   * other failure propagates. Each statement runs in its own savepoint, since
-   * on Postgres a failed statement aborts the whole transaction it is in.
-   * `em.getTransactionContext()` hands the statement the open transaction's
-   * connection, which a bare `execute()` would wait on forever.
+   * The three tables come with the migrations on both engines, so a failure
+   * here is a real one and propagates, rolling the erasure back. (A table
+   * missing from a slimmed-down test schema used to be skipped in a savepoint
+   * of its own; there is no such schema any more, and the savepoint was a
+   * transaction outside `UnitOfWork`.) `getTransactionContext()` hands the
+   * statement the open transaction's connection, which a bare `execute()`
+   * would wait on forever.
    */
   async deletePluginUserData(userId: number): Promise<void> {
     this.validateRequestContext();
     for (const table of ['plugin_user_config', 'plugin_oauth_tokens', 'plugin_oauth_state']) {
-      try {
-        await this.em.transactional((em) =>
-          em
-            .getConnection()
-            .execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', em.getTransactionContext()),
-        );
-      } catch (err: unknown) {
-        if (!isMissingTableError(err)) throw err;
-      }
+      await this.em
+        .getConnection()
+        .execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', this.em.getTransactionContext());
     }
   }
 }

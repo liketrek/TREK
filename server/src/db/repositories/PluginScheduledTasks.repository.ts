@@ -137,22 +137,20 @@ export class PluginScheduledTasksRepository extends TrekRepository<PluginSchedul
    * `PluginEntityMetadataRepository.upsertValueCapped` (must-land 2): two
    * concurrent `scheduler.set` calls for two different new task names on the
    * same plugin could both read `count < max` before either's write landed
-   * (live: 130 rows on a 100 cap). One transaction keeps them together on
-   * SQLite; on Postgres the caller runs it inside `UnitOfWork.transactional`
-   * (`HostSurfaceRpc#schedulerSet`), whose write lock keeps them together
-   * there, for the reason `upsertValueCapped`'s docstring gives. Returns
+   * (live: 130 rows on a 100 cap). The caller runs it inside
+   * `UnitOfWork.transactional` (`HostSurfaceRpc#schedulerSet`), whose write
+   * lock keeps them together on either engine, for the reason
+   * `upsertValueCapped`'s docstring gives. Returns
    * whether the write happened; `false` means a NEW task name was blocked by
    * the cap.
    */
   async upsertTaskCapped(input: PluginScheduledTaskUpsertInput, maxTasks: number): Promise<boolean> {
-    return this.getEntityManager().transactional(async () => {
-      const exists = await this.existsForPluginAndName(input.plugin_id, input.name);
-      if (!exists) {
-        const n = await this.countForPlugin(input.plugin_id);
-        if (n >= maxTasks) return false;
-      }
-      await this.upsertTask(input);
-      return true;
-    });
+    const exists = await this.existsForPluginAndName(input.plugin_id, input.name);
+    if (!exists) {
+      const n = await this.countForPlugin(input.plugin_id);
+      if (n >= maxTasks) return false;
+    }
+    await this.upsertTask(input);
+    return true;
   }
 }
