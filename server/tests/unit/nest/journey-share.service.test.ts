@@ -1216,7 +1216,10 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
     ).toBeTruthy();
   });
 
-  it('JOURNEY-SHARE-R07: validateShareTokenForPhoto does not match a token with an embedded NUL byte', async () => {
+  // A NUL is dropped before any value reaches the database (src/db/nul-free.ts), so it neither
+  // forges a token nor hides one: junk after it still refuses, and a NUL inside the right token
+  // is the right token, as the request edge would have made it before the lookup.
+  it('JOURNEY-SHARE-R07: validateShareTokenForPhoto reads a token with an embedded NUL byte without it', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-01' });
@@ -1224,7 +1227,8 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {});
 
     expect(await svc.validateShareTokenForPhoto(`${token}\0trailing`, photoId)).toBeNull();
-    expect(await svc.validateShareTokenForPhoto(`${token.slice(0, 5)}\0${token.slice(5)}`, photoId)).toBeNull();
+    expect(await svc.validateShareTokenForPhoto(`${token.slice(0, 5)}\0${token.slice(5)}`, photoId)).not.toBeNull();
+    expect(await svc.validateShareTokenForPhoto(`${token.slice(0, 5)}\0`, photoId)).toBeNull();
   });
 
   it('JOURNEY-SHARE-R08: validateShareTokenForAsset does not match a token with an embedded NUL byte', async () => {
