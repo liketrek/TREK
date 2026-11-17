@@ -1,8 +1,5 @@
 [
   "tests/unit/mcp/tools-notifications.test.ts",
   "tests/unit/mcp/tools-packing-advanced.test.ts",
-  "tests/unit/mcp/tools-trips.test.ts",
-  "tests/unit/mcp/tools-vacay.test.ts",
-  "tests/unit/nest/route-inventory.test.ts",
   "tests/websocket/wire-envelope.test.ts"
 ]
