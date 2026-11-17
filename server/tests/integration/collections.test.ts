@@ -7,15 +7,15 @@
  * statusCode-400 contract.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
 import { Collections } from '../../src/db/entities/Collections.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { insertRow, upsertRow } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -23,12 +23,7 @@ import type { Application } from 'express';
 import fs from 'fs';
 import path from 'path';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -52,7 +47,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   // Enable the collections addon (the controller sits behind AddonGuard).
   await upsertRow(orm, Addons, {
@@ -68,14 +63,13 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
   fs.rmSync(coversDir, { recursive: true, force: true });
   fs.rmSync(placesDir, { recursive: true, force: true });
 });
 
 describe('Collection cover upload', () => {
   it('COLL-P01 — cover upload stores /uploads/covers/<uuid> and writes the file', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const collectionId = await createCollection(user.id);
 
     const res = await request(app)
@@ -89,7 +83,7 @@ describe('Collection cover upload', () => {
   });
 
   it('COLL-P02 — no file → 400 "No image uploaded"', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const collectionId = await createCollection(user.id);
 
     const res = await request(app)
@@ -100,7 +94,7 @@ describe('Collection cover upload', () => {
   });
 
   it('COLL-P03 — non-image cover is 500 (plain-Error filter quirk — pinned, do not "fix")', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const collectionId = await createCollection(user.id);
 
     const res = await request(app)
@@ -113,7 +107,7 @@ describe('Collection cover upload', () => {
 
 describe('Collection place image upload', () => {
   it('COLL-P04 — place image upload stores /uploads/places/<uuid> and writes the file', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const collectionId = await createCollection(user.id);
     const placeId = await createCollectionPlace(collectionId, user.id);
 
@@ -128,7 +122,7 @@ describe('Collection place image upload', () => {
   });
 
   it('COLL-P05 — non-image place upload is 400 with the bespoke message', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const collectionId = await createCollection(user.id);
     const placeId = await createCollectionPlace(collectionId, user.id);
 

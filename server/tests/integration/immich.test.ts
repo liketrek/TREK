@@ -6,29 +6,25 @@
  * and input validation.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
 import { TripAlbumLinks } from '../../src/db/entities/TripAlbumLinks.entity';
 import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
 import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { setAddonEnabled } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 // Mock SSRF guard: block loopback and private IPs, allow external hostnames without DNS.
 vi.mock('../../src/utils/ssrfGuard', async () => {
@@ -65,10 +61,10 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
-  setAddonEnabled(testDb, 'journey', true);
+  await setAddonEnabled(orm, 'journey', true);
   // The migrated snapshot seeds photo_providers.immich.enabled = 0 (an admin must
   // configure it before it's usable in production); the legacy test helper always
   // seeded it enabled, which is what these tests assume. Same convention
@@ -78,12 +74,11 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Immich settings', () => {
   it('IMMICH-001 — GET /api/integrations/memories/immich/settings returns current settings', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/integrations/memories/immich/settings').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -92,7 +87,7 @@ describe('Immich settings', () => {
   });
 
   it('IMMICH-001 — PUT /api/integrations/memories/immich/settings saves Immich URL and API key', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put('/api/integrations/memories/immich/settings')
@@ -103,7 +98,7 @@ describe('Immich settings', () => {
   });
 
   it('IMMICH-002 — PUT /api/integrations/memories/immich/settings with private IP is blocked by SSRF guard', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put('/api/integrations/memories/immich/settings')
@@ -113,7 +108,7 @@ describe('Immich settings', () => {
   });
 
   it('IMMICH-002 — PUT /api/integrations/memories/immich/settings with loopback is blocked', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put('/api/integrations/memories/immich/settings')
@@ -139,7 +134,7 @@ describe('Immich authentication', () => {
 
 describe('Immich album links', () => {
   it('IMMICH-020 — POST album-links creates a link', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id, { title: 'Test Trip' });
 
     const res = await request(app)
@@ -157,7 +152,7 @@ describe('Immich album links', () => {
   });
 
   it('IMMICH-021 — GET album-links returns linked albums', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id, { title: 'Test Trip' });
     await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-abc', 'My Album');
 
@@ -172,7 +167,7 @@ describe('Immich album links', () => {
   });
 
   it('IMMICH-022 — DELETE album-links removes associated photos but not individually-added ones', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id, { title: 'Test Trip' });
 
     // Create album link
@@ -208,8 +203,8 @@ describe('Immich album links', () => {
   });
 
   it('IMMICH-023 — DELETE album-link by non-member returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     const trip = await makeTrip(orm, owner.id, { title: 'Test Trip' });
 
     const linkResult = await addAlbumLink(orm, trip.id, owner.id, 'immich', 'album-secret', 'Secret Album');
