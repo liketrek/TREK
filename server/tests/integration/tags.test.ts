@@ -7,7 +7,7 @@ import { authCookie } from '../helpers/auth';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { makeUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
