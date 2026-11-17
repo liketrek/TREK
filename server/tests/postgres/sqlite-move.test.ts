@@ -126,7 +126,10 @@ function seedPluginData(root: string): void {
       "create table notes (id integer primary key autoincrement, body text not null default '', score real, raw blob);" +
       'create unique index notes_body on notes (body);' +
       "insert into notes (body, score, raw) values ('first', 1.5, x'00ff'), ('second', null, null), ('gone', 2, null);" +
-      "delete from notes where body = 'gone';",
+      "delete from notes where body = 'gone';" +
+      // Text in a column declared BLOB, and numbers in a column without a type: both come back as the plugin stored them.
+      'create table docs (id integer primary key, payload blob, n);' +
+      `insert into docs values (1, '{"a":1}', 5), (2, 'plain', 2.5);`,
   );
   plugin.close();
 }
@@ -209,6 +212,7 @@ describe('moving a SQLite install to Postgres', () => {
         schema: 'trek_plugin_move_notes',
         tables: [
           expect.objectContaining({ label: '_plugin_migrations', rows: 1 }),
+          expect.objectContaining({ label: 'docs', rows: 2 }),
           expect.objectContaining({ label: 'notes', rows: 2 }),
         ],
       }),
@@ -264,7 +268,7 @@ describe('moving a SQLite install to Postgres', () => {
     expect(reply?.reply_to).toBe(question?.id);
   });
 
-  it('PGMOVE-005: new rows continue after the copied ids; the plugin finds its rows and its migration record', async () => {
+  it('PGMOVE-005: new rows continue after the copied ids; the plugin finds its rows, typed as stored, and its migration record', async () => {
     const { user } = await makeUser(pgOrm);
     const highest = Math.max(...(await findRows(sqliteOrm, Users)).map((row) => row.id));
     expect(user.id).toBeGreaterThan(highest);
@@ -280,6 +284,11 @@ describe('moving a SQLite install to Postgres', () => {
     expect(await store.query('select id, body, score from notes order by id')).toEqual([
       { id: 1, body: 'first', score: 1.5 },
       { id: 2, body: 'second', score: null },
+    ]);
+    // Text from a BLOB column is still a string, and numbers from a column without a type still numbers.
+    expect(await store.query('select id, payload, n from docs order by id')).toEqual([
+      { id: 1, payload: '{"a":1}', n: 5 },
+      { id: 2, payload: 'plain', n: 2.5 },
     ]);
     // The migration the plugin ran on SQLite is not run again, and the next id skips the one SQLite handed out.
     expect(await store.migrate('001-notes', 'create table notes (id bigint)')).toEqual({ applied: false });
