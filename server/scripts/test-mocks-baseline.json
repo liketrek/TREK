@@ -60,8 +60,6 @@
     "tests/integration/legacy-upgrade-v244.test.ts": 1,
     "tests/integration/plugins/boot-registry-order.test.ts": 1,
     "tests/integration/plugins/plugin-runtime.test.ts": 1,
-    "tests/integration/trips.test.ts": 1,
-    "tests/integration/vacay.test.ts": 1,
     "tests/setup.ts": 1,
     "tests/unit/auto-backup.test.ts": 1,
     "tests/unit/db/database-lazy-open.test.ts": 1,
