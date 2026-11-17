@@ -19,24 +19,19 @@
  * this fix round runs (Task 4, OAuth).
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { InviteTokens } from '../../src/db/entities/InviteTokens.entity';
 import { WebauthnCredentials } from '../../src/db/entities/WebauthnCredentials.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createAdmin } from '../helpers/factories';
 import { findRow, insertRow } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -49,18 +44,17 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F1)', () => {
   it('PASSKEY-INT-001 — PATCH /auth/passkey/credentials/abc (non-numeric id) returns the legacy 404, not a 500', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .patch('/api/auth/passkey/credentials/abc')
@@ -72,7 +66,7 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
   });
 
   it('PASSKEY-INT-002 — PATCH /auth/passkey/credentials/1abc (leading-digit non-numeric id) returns the legacy 404, not a 500', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .patch('/api/auth/passkey/credentials/1abc')
@@ -93,7 +87,7 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
   // `renamePasskey` fall back to `Number(id)`, which would rename credential
   // 16 instead of 404ing — verified by hand, recorded in the task report.
   it('PASSKEY-INT-003 — PATCH /auth/passkey/credentials/0x10 (hex-literal id) is refused by the toRowId narrowing, even though credential 16 exists', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await insertRow(orm, WebauthnCredentials, {
       id: 16,
       user: user.id,
@@ -114,7 +108,7 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
   });
 
   it('PASSKEY-INT-004 — DELETE /auth/passkey/credentials/abc (non-numeric id, correct password) returns the legacy 404, not a 500', async () => {
-    const { user, password } = createUser(testDb);
+    const { user, password } = await makeUser(orm);
 
     const res = await request(app)
       .delete('/api/auth/passkey/credentials/abc')
@@ -126,7 +120,7 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
   });
 
   it('PASSKEY-INT-005 — DELETE /admin/users/abc/passkeys (non-numeric id) returns the legacy 404, not a 500', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/admin/users/abc/passkeys').set('Cookie', authCookie(admin.id));
 
@@ -137,7 +131,7 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
 
 describe('Registration invite deletion — prefixed numeric literal parity (Plan 3b Task 3 review, F2)', () => {
   it('INVITE-INT-001 — DELETE /admin/invites/0x10 (hex literal) returns the legacy 404 and leaves invite id 16 untouched', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     await insertRow(orm, InviteTokens, {
       id: 16,
       token: 'hex-literal-survivor',

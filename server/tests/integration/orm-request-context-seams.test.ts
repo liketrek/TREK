@@ -30,7 +30,6 @@
  * `applicationConfig`, despite the class's own name).
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { PlaceShadowPicks } from '../../src/db/entities/PlaceShadowPicks.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { PlaceShadowRetentionJob } from '../../src/nest/place-shadow/place-shadow.job';
@@ -38,8 +37,8 @@ import { PluginRuntimeService } from '../../src/nest/plugins/plugin-runtime.serv
 import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { generateToken } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
 import { countRows, insertRow } from '../helpers/factories/rows';
+import { makeUser } from '../helpers/factories/users';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
@@ -47,11 +46,6 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 describe('ORM request-context seams populated in production', () => {
   let app: INestApplication;
@@ -62,7 +56,6 @@ describe('ORM request-context seams populated in production', () => {
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('SEAM-001: CronRegistrarService, PluginRuntimeService, PluginSupervisor.resolveOrm() and TrekWsAdapter all resolve the SAME MikroORM app.get(MikroORM) does', () => {
@@ -99,7 +92,7 @@ describe('ORM request-context seams populated in production', () => {
    */
   it('SEAM-002: the pre-init /uploads/photos/* route (applyPlatformUploads, bootstrap.ts) forks a request context off the SAME MikroORM app.get(MikroORM) does', async () => {
     const orm = app.get(MikroORM);
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const storage = app.get(StorageService);
     let found: unknown;
     let caught: unknown;
