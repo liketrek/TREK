@@ -219,18 +219,21 @@ What changes on Postgres:
   aggregates and window functions (`count`, `sum`, `string_agg`, `row_number`, `lag`, ...),
   UUIDs (`gen_random_uuid`), ranges, geometry, network addresses and full text search
   (`to_tsvector`, `ts_rank`, ...). Any other function of Postgres's catalog is refused
-  however you spell the call (`f(...)`, `"f"(...)`, the column notation `(x).f`): the ones
-  that read the catalogs or the server rather than their arguments (`obj_description`,
-  `col_description`, `format_type`, `version`, `current_database`, `inet_server_addr`,
-  `txid_current`, ...), and so is every new function a later Postgres adds until TREK has
+  however you spell the call (`f(...)`, `"f"(...)`, the column notation `(x).f`, `t.f`,
+  `$1.f`): the ones that read the catalogs or the server rather than their arguments
+  (`obj_description`, `col_description`, `format_type`, `version`, `current_database`,
+  `inet_server_addr`, `txid_current`, ...), and so is every new function a later Postgres adds until TREK has
   decided about it. The keywords `current_user`, `session_user`, `current_role`, `user`,
   `system_user`, `current_catalog` and `current_schema` are refused too. `coalesce`,
   `nullif`, `greatest`, `least`, `CASE` and `CAST` are syntax and always work. The complete
-  list is `PLUGIN_FUNCTIONS` in TREK's
-  [`plugin-sql-functions.ts`](https://github.com/liketrek/TREK/blob/main/server/src/db/engine/postgres/plugin-sql-functions.ts).
+  list is TREK's
+  [`plugin-functions.txt`](https://github.com/liketrek/TREK/blob/main/server/assets/postgres/plugin-functions.txt).
   A table or type of yours may still share a refused function's name where it cannot be a
   call (`INSERT INTO version (...)`, `CREATE TABLE version (...)`, `REFERENCES version (id)`);
-  as the table of `CREATE INDEX ... ON` it cannot, so name it differently.
+  as the table of `CREATE INDEX ... ON` it cannot, so name it differently. Postgres reads
+  `t.f` as the call `f(t)` when `t` has no column `f`, so a column named like a refused
+  function cannot follow a table's name and a dot either (`name`, `version`, `money`, `oid`,
+  `xid` and `xml` can); write it without the table's name, or name it differently.
 - **You change your own objects only.** Right before an `ALTER`, `DROP`, `REFRESH`,
   `TRUNCATE` or `CREATE INDEX ... ON` runs, Postgres resolves the object it names (and the
   tables a `CREATE`/`ALTER TABLE` ties to with `REFERENCES`, `INHERITS`, `PARTITION OF`,

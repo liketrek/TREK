@@ -24,7 +24,7 @@ import {
   poolClients,
   PostgresPluginDataStore,
 } from '../../src/db/engine/postgres/plugin-data-store';
-import { catalogFunctionNames } from '../../src/db/engine/postgres/plugin-sql-functions';
+import { catalogFunctionNames, COLUMN_NAMES } from '../../src/db/engine/postgres/plugin-sql-functions';
 import { TrekPostgreSqlDriver } from '../../src/db/engine/postgres/postgres-driver';
 import { putTempSchemaLast } from '../../src/db/engine/postgres/session-search-path';
 import { DATABASE_SETTINGS } from '../../src/nest/database/database-engine.module';
@@ -615,6 +615,9 @@ describe('plugin data on Postgres', () => {
       "select has_table_privilege('public.users', 'select')",
       "select currtid2('public.users', '(0,1)')",
       "select to_regtype('public.users')",
+      // aclitem names roles: the cluster's first superuser, whether a role exists.
+      "select '=r'::aclitem::text",
+      "select cast('x=r/x' as aclitem)",
     ];
     const stores = [data.open('pg-reg'), superuserStore('pg-reg-su')];
     await Promise.all(
@@ -697,8 +700,8 @@ describe('plugin data on Postgres', () => {
     expect(
       unlisted,
       'These functions of this Postgres are missing from server/assets/postgres/catalog-functions.txt. ' +
-        'Add each name there (one per line, keep it sorted), and to PLUGIN_FUNCTIONS in ' +
-        'src/db/engine/postgres/plugin-sql-functions.ts only if it works on its arguments alone ' +
+        'Add each name there (one per line, keep it sorted), and to server/assets/postgres/plugin-functions.txt ' +
+        'only if it works on its arguments alone ' +
         'and reads neither the catalogs nor the server.',
     ).toEqual([]);
 
@@ -712,6 +715,9 @@ describe('plugin data on Postgres', () => {
         `select obj_description(${oid}, 'pg_class')`,
         `select col_description(${oid}, 1)`,
         `select (${oid}::oid).obj_description`,
+        `select g.obj_description from generate_series(${oid}, ${oid}) g`,
+        `select u.obj_description from unnest(array[${oid}::oid]) u`,
+        'select g.txid_status from generate_series(1, 3) g',
         `select "obj_description"(${oid})`,
         "select shobj_description(10, 'pg_authid')",
         `select format_type(${oid}, null)`,
@@ -723,6 +729,14 @@ describe('plugin data on Postgres', () => {
         'select current_catalog',
       ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/a plugin may not (call|read)/)),
     );
+    await expect(store.query('select $1.obj_description', [oid])).rejects.toThrow(/a plugin may not call/);
+    // The refused names a column may have after a dot read nothing when Postgres calls them that way.
+    const calls = await asSuper<{ f: string }>(
+      'select p.oid::regprocedure::text as f from pg_proc p ' +
+        `where p.pronamespace = 'pg_catalog'::regnamespace and p.proname in (${[...COLUMN_NAMES].map((n) => `'${n}'`).join(', ')}) ` +
+        'and p.pronargs >= 1 and p.pronargs - p.pronargdefaults <= 1 and format_type(p.prorettype, null) <> p.proname',
+    );
+    expect(calls, 'a COLUMN_NAMES entry that the column notation calls with one argument').toEqual([]);
     // A table named like a refused function, and the functions a plugin needs, still work.
     await store.exec('INSERT INTO version (body) VALUES ($1), ($2)', ['Alpha', 'beta']);
     expect(
@@ -734,6 +748,13 @@ describe('plugin data on Postgres', () => {
     ).toEqual([
       { b: 'alpha', n: 5, k: '1', d: true, u: true },
       { b: 'beta', n: 4, k: '2', d: true, u: true },
+    ]);
+    await store.migrate('002', 'ALTER TABLE version ADD COLUMN name text');
+    expect(
+      await store.query("SELECT v.name, excluded.name AS e FROM version v, (SELECT 'x' AS name) excluded"),
+    ).toEqual([
+      { name: null, e: 'x' },
+      { name: null, e: 'x' },
     ]);
     await asSuper('comment on table users is null');
   });

@@ -16,14 +16,16 @@ import path from 'node:path';
  * activity. Listing those one by one would miss the next one Postgres adds.
  *
  * So the rule is an allowlist: a call to a function of `pg_catalog` is
- * refused unless its name is in {@link PLUGIN_FUNCTIONS}, the string, math,
+ * refused unless its name is in {@link PLUGIN_FUNCTIONS_FILE}, the string, math,
  * date and time, JSON, array, range, aggregate, window, UUID and text search
  * functions a data plugin plausibly needs, each of which works only on its
  * arguments. A name counts as called when `(` follows it (`version()`,
- * `"version" ()`) or when it follows `).`, Postgres's column notation for a
- * call (`(16386::oid).obj_description`). A plugin's own table or type may
- * still carry such a name where it cannot be a call: after INTO, TABLE, VIEW,
- * REFERENCES or IF NOT EXISTS (`INSERT INTO version (...)`).
+ * `"version" ()`) or when it follows a dot, Postgres's column notation for
+ * a call (`(16386::oid).obj_description`, `u.obj_description` over `FROM
+ * unnest(...) u`, `$1.obj_description`), unless it is one of
+ * {@link COLUMN_NAMES}. A plugin's own table or type may still carry such a
+ * name where it cannot be a call: after INTO, TABLE, VIEW, REFERENCES or IF
+ * NOT EXISTS (`INSERT INTO version (...)`).
  *
  * Which names are functions of `pg_catalog` is read from
  * `assets/postgres/catalog-functions.txt`: every function name of every
@@ -37,417 +39,6 @@ import path from 'node:path';
  * refused unquoted wherever they appear; quoted they are plain names. A
  * name starting with `pg_` is refused anywhere by the guard itself.
  */
-
-/** The functions of `pg_catalog` a plugin may call. Each must exist in the catalog list (a unit test checks). */
-export const PLUGIN_FUNCTIONS: ReadonlySet<string> = new Set([
-  // Strings and bytes.
-  'ascii',
-  'bit_count',
-  'bit_length',
-  'btrim',
-  'casefold',
-  'char_length',
-  'character_length',
-  'chr',
-  'concat',
-  'concat_ws',
-  'convert',
-  'convert_from',
-  'convert_to',
-  'crc32',
-  'crc32c',
-  'decode',
-  'encode',
-  'format',
-  'get_bit',
-  'get_byte',
-  'initcap',
-  'is_normalized',
-  'left',
-  'length',
-  'like',
-  'lower',
-  'lpad',
-  'ltrim',
-  'md5',
-  'normalize',
-  'octet_length',
-  'overlay',
-  'position',
-  'quote_ident',
-  'quote_literal',
-  'quote_nullable',
-  'regexp_count',
-  'regexp_instr',
-  'regexp_like',
-  'regexp_match',
-  'regexp_matches',
-  'regexp_replace',
-  'regexp_split_to_array',
-  'regexp_split_to_table',
-  'regexp_substr',
-  'repeat',
-  'replace',
-  'reverse',
-  'right',
-  'rpad',
-  'rtrim',
-  'set_bit',
-  'set_byte',
-  'sha224',
-  'sha256',
-  'sha384',
-  'sha512',
-  'split_part',
-  'starts_with',
-  'string_to_array',
-  'string_to_table',
-  'strpos',
-  'substr',
-  'substring',
-  'to_ascii',
-  'to_bin',
-  'to_hex',
-  'to_oct',
-  'translate',
-  'unistr',
-  'upper',
-  // Numbers.
-  'abs',
-  'acos',
-  'acosd',
-  'acosh',
-  'asin',
-  'asind',
-  'asinh',
-  'atan',
-  'atan2',
-  'atan2d',
-  'atand',
-  'atanh',
-  'cbrt',
-  'ceil',
-  'ceiling',
-  'cos',
-  'cosd',
-  'cosh',
-  'cot',
-  'cotd',
-  'degrees',
-  'div',
-  'erf',
-  'erfc',
-  'exp',
-  'factorial',
-  'floor',
-  'gamma',
-  'gcd',
-  'lcm',
-  'lgamma',
-  'ln',
-  'log',
-  'log10',
-  'min_scale',
-  'mod',
-  'pi',
-  'pow',
-  'power',
-  'radians',
-  'random',
-  'random_normal',
-  'round',
-  'scale',
-  'sign',
-  'sin',
-  'sind',
-  'sinh',
-  'sqrt',
-  'tan',
-  'tand',
-  'tanh',
-  'trim_scale',
-  'trunc',
-  'width_bucket',
-  // Dates and times.
-  'age',
-  'clock_timestamp',
-  'date_add',
-  'date_bin',
-  'date_part',
-  'date_subtract',
-  'date_trunc',
-  'extract',
-  'isfinite',
-  'justify_days',
-  'justify_hours',
-  'justify_interval',
-  'make_date',
-  'make_interval',
-  'make_time',
-  'make_timestamp',
-  'make_timestamptz',
-  'now',
-  'overlaps',
-  'statement_timestamp',
-  'timeofday',
-  'timezone',
-  'to_char',
-  'to_date',
-  'to_number',
-  'to_timestamp',
-  'transaction_timestamp',
-  // Conversions, also the type names written with a modifier (`varchar(20)`, `numeric(10, 2)`).
-  'bit',
-  'bool',
-  'bpchar',
-  'bytea',
-  'char',
-  'date',
-  'float4',
-  'float8',
-  'int2',
-  'int4',
-  'int8',
-  'interval',
-  'numeric',
-  'text',
-  'time',
-  'timestamp',
-  'timestamptz',
-  'timetz',
-  'varbit',
-  'varchar',
-  // JSON.
-  'array_to_json',
-  'json_agg',
-  'json_agg_strict',
-  'json_array_elements',
-  'json_array_elements_text',
-  'json_array_length',
-  'json_build_array',
-  'json_build_object',
-  'json_each',
-  'json_each_text',
-  'json_extract_path',
-  'json_extract_path_text',
-  'json_object',
-  'json_object_agg',
-  'json_object_agg_strict',
-  'json_object_agg_unique',
-  'json_object_agg_unique_strict',
-  'json_object_keys',
-  'json_populate_record',
-  'json_populate_recordset',
-  'json_strip_nulls',
-  'json_to_record',
-  'json_to_recordset',
-  'json_typeof',
-  'jsonb_agg',
-  'jsonb_agg_strict',
-  'jsonb_array_elements',
-  'jsonb_array_elements_text',
-  'jsonb_array_length',
-  'jsonb_build_array',
-  'jsonb_build_object',
-  'jsonb_each',
-  'jsonb_each_text',
-  'jsonb_extract_path',
-  'jsonb_extract_path_text',
-  'jsonb_insert',
-  'jsonb_object',
-  'jsonb_object_agg',
-  'jsonb_object_agg_strict',
-  'jsonb_object_agg_unique',
-  'jsonb_object_agg_unique_strict',
-  'jsonb_object_keys',
-  'jsonb_path_exists',
-  'jsonb_path_exists_tz',
-  'jsonb_path_match',
-  'jsonb_path_match_tz',
-  'jsonb_path_query',
-  'jsonb_path_query_array',
-  'jsonb_path_query_array_tz',
-  'jsonb_path_query_first',
-  'jsonb_path_query_first_tz',
-  'jsonb_path_query_tz',
-  'jsonb_populate_record',
-  'jsonb_populate_record_valid',
-  'jsonb_populate_recordset',
-  'jsonb_pretty',
-  'jsonb_set',
-  'jsonb_set_lax',
-  'jsonb_strip_nulls',
-  'jsonb_to_record',
-  'jsonb_to_recordset',
-  'jsonb_typeof',
-  'row_to_json',
-  'to_json',
-  'to_jsonb',
-  // Arrays and sets.
-  'array_append',
-  'array_cat',
-  'array_dims',
-  'array_fill',
-  'array_length',
-  'array_lower',
-  'array_ndims',
-  'array_position',
-  'array_positions',
-  'array_prepend',
-  'array_remove',
-  'array_replace',
-  'array_reverse',
-  'array_sample',
-  'array_shuffle',
-  'array_sort',
-  'array_to_string',
-  'array_upper',
-  'cardinality',
-  'generate_series',
-  'generate_subscripts',
-  'trim_array',
-  'unnest',
-  'num_nonnulls',
-  'num_nulls',
-  // Aggregates.
-  'any_value',
-  'array_agg',
-  'avg',
-  'bit_and',
-  'bit_or',
-  'bit_xor',
-  'bool_and',
-  'bool_or',
-  'corr',
-  'count',
-  'covar_pop',
-  'covar_samp',
-  'every',
-  'max',
-  'min',
-  'mode',
-  'percentile_cont',
-  'percentile_disc',
-  'range_agg',
-  'range_intersect_agg',
-  'regr_avgx',
-  'regr_avgy',
-  'regr_count',
-  'regr_intercept',
-  'regr_r2',
-  'regr_slope',
-  'regr_sxx',
-  'regr_sxy',
-  'regr_syy',
-  'stddev',
-  'stddev_pop',
-  'stddev_samp',
-  'string_agg',
-  'sum',
-  'var_pop',
-  'var_samp',
-  'variance',
-  // Window functions.
-  'cume_dist',
-  'dense_rank',
-  'first_value',
-  'lag',
-  'last_value',
-  'lead',
-  'nth_value',
-  'ntile',
-  'percent_rank',
-  'rank',
-  'row_number',
-  // UUIDs.
-  'gen_random_uuid',
-  'uuid_extract_timestamp',
-  'uuid_extract_version',
-  'uuidv4',
-  'uuidv7',
-  // Ranges and the plugin's own enum types.
-  'datemultirange',
-  'daterange',
-  'enum_first',
-  'enum_last',
-  'enum_range',
-  'int4multirange',
-  'int4range',
-  'int8multirange',
-  'int8range',
-  'isempty',
-  'lower_inc',
-  'lower_inf',
-  'multirange',
-  'nummultirange',
-  'numrange',
-  'range_merge',
-  'tsmultirange',
-  'tsrange',
-  'tstzmultirange',
-  'tstzrange',
-  'upper_inc',
-  'upper_inf',
-  // Geometry.
-  'area',
-  'bound_box',
-  'box',
-  'center',
-  'circle',
-  'diagonal',
-  'diameter',
-  'height',
-  'isclosed',
-  'isopen',
-  'line',
-  'lseg',
-  'npoints',
-  'path',
-  'pclose',
-  'point',
-  'polygon',
-  'popen',
-  'radius',
-  'slope',
-  'width',
-  // Network addresses.
-  'abbrev',
-  'broadcast',
-  'cidr',
-  'family',
-  'host',
-  'hostmask',
-  'inet_merge',
-  'inet_same_family',
-  'macaddr',
-  'macaddr8',
-  'masklen',
-  'netmask',
-  'network',
-  'set_masklen',
-  // Full text search. ts_stat and ts_rewrite run SQL handed to them as text and stay refused.
-  'array_to_tsvector',
-  'json_to_tsvector',
-  'jsonb_to_tsvector',
-  'numnode',
-  'phraseto_tsquery',
-  'plainto_tsquery',
-  'querytree',
-  'setweight',
-  'strip',
-  'to_tsquery',
-  'to_tsvector',
-  'ts_delete',
-  'ts_filter',
-  'ts_headline',
-  'ts_rank',
-  'ts_rank_cd',
-  'tsvector_to_array',
-  'websearch_to_tsquery',
-  // The TABLESAMPLE methods (`TABLESAMPLE SYSTEM (10)`).
-  'bernoulli',
-  'system',
-]);
 
 /**
  * The SQL keywords that call a catalog function without parentheses and
@@ -464,6 +55,21 @@ export const SESSION_KEYWORDS: ReadonlySet<string> = new Set([
   'user',
 ]);
 
+/**
+ * The refused names a plugin's table may well have as a column, which may
+ * still follow a table, an alias or a parameter and a dot (`t.name`,
+ * `n.version`). Postgres reads `x.f` as the column `f` of `x` and, when `x`
+ * has no such column, as the call `f(x)`: with a function in FROM that
+ * returns a single value (`FROM unnest(...) u`, `FROM generate_series(...)
+ * g`) or a parameter (`$1.f`), that value is the argument. None of these
+ * reads anything called that way: `version` takes no argument, so the
+ * notation never calls it, and `money`, `name`, `oid`, `xid` and `xml` only
+ * convert their argument to the type of that name. Every other refused name
+ * is refused after a dot too. PGPLUG-021 holds each name here to that on the
+ * lane's server.
+ */
+export const COLUMN_NAMES: ReadonlySet<string> = new Set(['money', 'name', 'oid', 'version', 'xid', 'xml']);
+
 /** The function names of `pg_catalog` on every supported major, one per line, sorted. */
 export const CATALOG_FUNCTIONS_FILE = path.join(
   __dirname,
@@ -476,21 +82,58 @@ export const CATALOG_FUNCTIONS_FILE = path.join(
   'catalog-functions.txt',
 );
 
+/**
+ * The functions of `pg_catalog` a plugin may call, one per line, grouped under
+ * `#` comments. A list of names, not SQL, so it is kept as data beside the
+ * catalog list. Each must exist in that list (a unit test checks).
+ */
+export const PLUGIN_FUNCTIONS_FILE = path.join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+  'assets',
+  'postgres',
+  'plugin-functions.txt',
+);
+
+/** The names in `file`: its lines without blanks and `#` comments. */
+function namesIn(file: string): ReadonlySet<string> {
+  return new Set(
+    fs
+      .readFileSync(file, 'utf8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '' && !line.startsWith('#')),
+  );
+}
+
 let catalog: ReadonlySet<string> | undefined;
+let allowed: ReadonlySet<string> | undefined;
 
 /** The names in {@link CATALOG_FUNCTIONS_FILE}, read once. */
 export function catalogFunctionNames(): ReadonlySet<string> {
-  catalog ??= new Set(
-    fs
-      .readFileSync(CATALOG_FUNCTIONS_FILE, 'utf8')
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line !== ''),
-  );
+  catalog ??= namesIn(CATALOG_FUNCTIONS_FILE);
   return catalog;
+}
+
+/** The names in {@link PLUGIN_FUNCTIONS_FILE}, read once. */
+export function pluginFunctionNames(): ReadonlySet<string> {
+  allowed ??= namesIn(PLUGIN_FUNCTIONS_FILE);
+  return allowed;
 }
 
 /** Whether calling `name` reaches a function of `pg_catalog` a plugin may not call. */
 export function refusedCatalogCall(name: string): boolean {
-  return !PLUGIN_FUNCTIONS.has(name) && catalogFunctionNames().has(name);
+  return !pluginFunctionNames().has(name) && catalogFunctionNames().has(name);
+}
+
+/**
+ * Whether `name` after a dot (`x.name`, the column notation) may call a
+ * function of `pg_catalog` a plugin may not call: one of
+ * {@link refusedCatalogCall} that is not in {@link COLUMN_NAMES}.
+ */
+export function refusedCatalogField(name: string): boolean {
+  return refusedCatalogCall(name) && !COLUMN_NAMES.has(name);
 }

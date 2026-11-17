@@ -200,6 +200,12 @@ describe('plugin SQL guard', () => {
     ["select currtid2('public.users', '(0,1)')", /"currtid2" may not be named/],
     ["select gin_clean_pending_list('public.users_idx')", /"gin_clean_pending_list" may not be named/],
     ["select to_regtype('int4')", /"to_regtype" may not be named/],
+    // aclitem looks its roles up by name and names them in its output.
+    ["select '=r'::aclitem", /"aclitem" may not be named/],
+    ["select cast('x=r/x' as aclitem)", /"aclitem" may not be named/],
+    [`select array['=r']::"aclitem"[]`, /"aclitem" may not be named/],
+    ["select '{=r}'::_aclitem", /"_aclitem" may not be named/],
+    ['CREATE TABLE grants (a aclitem)', /"aclitem" may not be named/],
     // A base type is built from C functions, which only a superuser may do.
     ['CREATE TYPE fake (INPUT = int4in, OUTPUT = int4out, INTERNALLENGTH = 1000)', /composite, enum or range/],
     // The protocol ends a statement's text at a NUL, in a string as anywhere else.

@@ -1,5 +1,5 @@
 import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
-import { refusedCatalogCall, SESSION_KEYWORDS } from './plugin-sql-functions';
+import { refusedCatalogCall, refusedCatalogField, SESSION_KEYWORDS } from './plugin-sql-functions';
 
 /**
  * What keeps a plugin's own SQL on Postgres inside its own schema.
@@ -74,13 +74,15 @@ import { refusedCatalogCall, SESSION_KEYWORDS } from './plugin-sql-functions';
  *   `plugin-sql-functions.ts` (`obj_description`, `format_type`, `version`,
  *   `current_database`, ...: whatever reads the catalogs or the server rather
  *   than its arguments), in either spelling of a call (`f(...)`, or the
- *   column notation `(x).f`), and the keywords that name the session's roles,
- *   database or schema (`current_user`, `session_user`, `current_catalog`, ...);
+ *   column notation `(x).f`, `u.f`, `$1.f`), and the keywords that name the
+ *   session's roles, database or schema (`current_user`, `session_user`,
+ *   `current_catalog`, ...);
  * - the object identifier types that look an object up by name
  *   (`regclass`, `regtype`, `regproc`, `regprocedure`, `regoper`,
  *   `regoperator`, `regconfig`, `regdictionary`, `regnamespace`, `regrole`,
  *   `regcollation`, and their array types `_regclass`, ...), in every
  *   spelling: `'x'::regtype`, `CAST('x' AS regtype)`, `regtype 'x'`, quoted;
+ *   and `aclitem`, whose input and output name roles;
  * - a temporary object: CREATE TEMP or TEMPORARY (also after OR REPLACE,
  *   LOCAL or GLOBAL), and SELECT ... INTO TEMP; a temporary table outlives
  *   the call on a pooled connection. Elsewhere `temp` is an ordinary name;
@@ -207,6 +209,14 @@ const NAME_LOOKUP_TYPES = [
   'regcollation',
 ];
 
+/**
+ * `aclitem`, a privilege as `grantee=privileges/grantor`, refused in every
+ * spelling like the object identifier types: its input looks each role up by
+ * name and its output names them, so `'=r'::aclitem` shows the cluster's
+ * first superuser and `'x=r/x'::aclitem` tells whether a role exists.
+ */
+const ROLE_LOOKUP_TYPES = ['aclitem', '_aclitem'];
+
 /** Functions and types refused under any spelling, quoted or not. */
 const REFUSED_NAMES = new Set([
   'set_config',
@@ -221,6 +231,7 @@ const REFUSED_NAMES = new Set([
   'lowrite',
   ...NAME_LOOKUP_TYPES,
   ...NAME_LOOKUP_TYPES.map((type) => `_${type}`),
+  ...ROLE_LOOKUP_TYPES,
   // Functions that take a relation, a type or another object by a name in a
   // string, or reach an index by one to maintain it.
   'has_any_column_privilege',
@@ -556,19 +567,24 @@ const NAME_BEFORE = new Set(['into', 'table', 'view', 'references', 'exists']);
 
 /**
  * Refuses the word at `index` when it calls a function of `pg_catalog` a
- * plugin may not call (`plugin-sql-functions.ts`): followed by `(`, unless
- * it names an object after one of {@link NAME_BEFORE}, or in Postgres's
- * column notation for a call, right after `).` or `].` (`(16386::oid).obj_description`).
+ * plugin may not call (`plugin-sql-functions.ts`), unless it names an object
+ * after one of {@link NAME_BEFORE}: followed by `(`, or after a dot, in
+ * Postgres's column notation for a call (`(16386::oid).obj_description`, and
+ * `u.obj_description` or `$1.obj_description`, where `u` is a function in
+ * FROM that returns a single value); after a dot, the column names
+ * `COLUMN_NAMES` in `plugin-sql-functions.ts` lists still pass.
  */
 function checkCall(tokens: readonly Token[], index: number): void {
   const token = tokens[index];
-  if (token.kind !== 'word') return;
-  const before = tokens[index - 2];
-  const columnNotation = isPunct(tokens[index - 1], '.') && (isPunct(before, ')') || isPunct(before, ']'));
-  const called = columnNotation || (isPunct(tokens[index + 1], '(') && !namesObject(tokens, index));
-  if (called && refusedCatalogCall(token.value)) {
+  if (token.kind !== 'word' || namesObject(tokens, index)) return;
+  const call = isPunct(tokens[index + 1], '(');
+  const field = !call && isPunct(tokens[index - 1], '.');
+  if ((call && refusedCatalogCall(token.value)) || (field && refusedCatalogField(token.value))) {
     throw new PluginSqlRefused(
       `"${token.value}" is a function of the Postgres catalog that a plugin may not call; ` +
+        (field
+          ? `after a dot Postgres may read x.${token.value} as ${token.value}(x), so name such a column without its table or rename it; `
+          : '') +
         "the plugin SDK's README lists the functions a plugin may call",
     );
   }

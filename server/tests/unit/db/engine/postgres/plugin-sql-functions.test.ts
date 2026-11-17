@@ -9,7 +9,8 @@
 import {
   catalogFunctionNames,
   CATALOG_FUNCTIONS_FILE,
-  PLUGIN_FUNCTIONS,
+  pluginFunctionNames,
+  PLUGIN_FUNCTIONS_FILE,
 } from '../../../../../src/db/engine/postgres/plugin-sql-functions';
 import { parsePluginSql } from '../../../../../src/db/engine/postgres/plugin-sql-guard';
 
@@ -24,8 +25,19 @@ describe('functions a plugin may call on Postgres', () => {
     expect(lines.every((line) => /^[A-Za-z0-9_]+$/.test(line))).toBe(true);
   });
 
+  it('lists the allowed functions one per line without duplicates, comments aside', () => {
+    const names = fs
+      .readFileSync(PLUGIN_FUNCTIONS_FILE, 'utf8')
+      .split(/\r?\n/)
+      .filter((line) => line !== '' && !line.startsWith('#'));
+    expect(names.length).toBeGreaterThan(300);
+    expect(names.every((line) => /^[a-z0-9_]+$/.test(line))).toBe(true);
+    expect(new Set(names).size).toBe(names.length);
+    expect(pluginFunctionNames()).toEqual(new Set(names));
+  });
+
   it('allows only functions the catalog has, so a typo cannot stand in for one', () => {
-    const missing = [...PLUGIN_FUNCTIONS].filter((name) => !catalogFunctionNames().has(name));
+    const missing = [...pluginFunctionNames()].filter((name) => !catalogFunctionNames().has(name));
     expect(missing).toEqual([]);
   });
 
@@ -55,6 +67,15 @@ describe('functions a plugin may call on Postgres', () => {
     'select (16386::oid).obj_description',
     'select (16386::oid)."obj_description"',
     'select (array[16386::oid])[1].obj_description',
+    // The column notation after an alias or a parameter: a function in FROM
+    // that returns a single value, or the parameter, is the argument.
+    'select u.obj_description from unnest(array[16386::oid]) u',
+    'select g.obj_description from generate_series(1, 20000) g',
+    'select o.obj_description from rows from (unnest(array[16386::oid])) o',
+    'select $1.obj_description',
+    'select g."current_schemas" from unnest(array[true]) g',
+    'select g.txid_status from generate_series(1, 3) g',
+    'select n.x from notes n, unnest(array[1]) g where g.mxid_age > 0',
     'select n.x from notes n where n.body = (select version())',
     'create table t (v text default version())',
     'insert into notes (body) values (current_database())',
@@ -93,6 +114,11 @@ describe('functions a plugin may call on Postgres', () => {
     'CREATE TABLE notes (id bigint, v bigint REFERENCES version (id))',
     'CREATE VIEW version (a) AS SELECT 1',
     'select n.version, n.user_id, "user", "current_user" from notes n',
+    // The refused names a table may well have as a column, after a dot.
+    'select n.name, n.money, n.oid, n.xid, n.xml, n.version from notes n',
+    'select (n).name, $1.name from notes n',
+    "insert into notes (id, name) values (1, 'a') on conflict (id) do update set name = excluded.name",
+    'select n.body from trek_plugin_notes.notes n join trek_plugin_notes.version v on v.id = n.id',
     'select version from notes',
     'select mine(1, 2)',
     "select '[1,2)'::span",
