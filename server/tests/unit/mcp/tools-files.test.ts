@@ -8,7 +8,6 @@
  * read_trip_file has to stay behind files:content while list_trip_files answers
  * on files:read alone.
  */
-import { db as testDb } from '../../../src/db/database';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { FileLinks } from '../../../src/db/entities/FileLinks.entity';
 import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
@@ -17,32 +16,24 @@ import { FilesModule } from '../../../src/nest/files/files.module';
 import { FILE_CONTENT_MAX } from '../../../src/nest/files/files.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { StorageService } from '../../../src/nest/storage/storage.service';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  createDayAssignment,
-  createReservation,
-  addTripMember,
-} from '../../helpers/factories';
 import { linkFile, makeTripFile } from '../../helpers/factories/files';
+import { makeDayAssignment } from '../../helpers/factories/itinerary';
+import { makePlace } from '../../helpers/factories/places';
+import { makeReservation } from '../../helpers/factories/reservations';
 import { countRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
+import { addTripMember, makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import fs from 'node:fs';
 import nodePath from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const { fixture } = vi.hoisted(() => ({ fixture: {} as { root: string } }));
 // The booted container's StorageService is a makeStorageFixture('') over its own
@@ -59,23 +50,22 @@ const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
-  // resetTestDb truncates app_settings, but the permission cache is module-scoped
+  // resetDatabase truncates app_settings, but the permission cache is module-scoped
   // and would keep serving whatever the previous case configured.
   await invalidatePermissionsCache();
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -145,10 +135,10 @@ function linkRows(fileId: number) {
 
 describe('Tool: list_trip_files', () => {
   it('reports name, size, uploader, links and starred state', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const reservation = createReservation(testDb, trip.id, { title: 'Hotel Ritz' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const reservation = await makeReservation(orm, trip.id, { title: 'Hotel Ritz' });
     const file = await insertFile(trip.id, {
       original_name: 'boarding-pass.pdf',
       file_size: 4242,
@@ -178,8 +168,8 @@ describe('Tool: list_trip_files', () => {
   });
 
   it('lists the trash only when asked for it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await insertFile(trip.id, { original_name: 'live.pdf' });
     await insertFile(trip.id, { original_name: 'trashed.pdf', deleted_at: '2027-01-01 10:00:00' });
 
@@ -197,10 +187,10 @@ describe('Tool: list_trip_files', () => {
   });
 
   it('reports the bookings and places a file is linked to', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
     await linkFile(orm, file.id, { place: place.id });
@@ -215,9 +205,9 @@ describe('Tool: list_trip_files', () => {
   });
 
   it('denies a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -233,8 +223,8 @@ describe('Tool: list_trip_files', () => {
 
 describe('Tool: read_trip_file', () => {
   it('returns a text document as text', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id, {
       filename: 'notes.txt',
       original_name: 'packing-notes.txt',
@@ -262,8 +252,8 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('returns a binary document base64-encoded', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const bytes = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]);
     const file = await insertFile(trip.id, {
       filename: 'stored.pdf',
@@ -285,8 +275,8 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('falls back to a binary mimetype when the row has none', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id, { filename: 'unknown.bin', mime_type: null, file_size: null });
     storeBytes('unknown.bin', 'hi');
 
@@ -303,9 +293,9 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('refuses a file that belongs to another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreign = await insertFile(otherTrip.id, { filename: 'foreign.txt', mime_type: 'text/plain' });
     storeBytes('foreign.txt', 'secret');
 
@@ -320,8 +310,8 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('refuses a trashed file', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id, {
       filename: 'trashed.txt',
       mime_type: 'text/plain',
@@ -340,8 +330,8 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('refuses a file over the 10 MB cap without touching the bytes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Recorded size only: the refusal happens before the storage layer is asked,
     // which is the whole point of capping on the row.
     const file = await insertFile(trip.id, {
@@ -361,8 +351,8 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('reports a row whose bytes are gone as unavailable, not as a crash', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id, { filename: 'never-stored.pdf' });
 
     await withHarness(user.id, async (h) => {
@@ -376,8 +366,8 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('lets an unexpected storage failure surface instead of calling the file missing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id, { filename: 'flaky.txt', mime_type: 'text/plain' });
     storeBytes('flaky.txt', 'hi');
     // A backend outage is not one of the three refusals: reporting it as "not
@@ -401,9 +391,9 @@ describe('Tool: read_trip_file', () => {
   });
 
   it('denies a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     const file = await insertFile(trip.id, { filename: 'members-only.txt', mime_type: 'text/plain' });
     storeBytes('members-only.txt', 'secret');
 
@@ -424,9 +414,9 @@ describe('Tool: read_trip_file', () => {
 
 describe('Tool: update_trip_file', () => {
   it('sets the description and attaches the file to a place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -443,9 +433,9 @@ describe('Tool: update_trip_file', () => {
   });
 
   it('leaves out fields the caller did not send', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id, { description: 'Keep me' });
 
     await withHarness(user.id, async (h) => {
@@ -458,9 +448,9 @@ describe('Tool: update_trip_file', () => {
   });
 
   it('detaches a booking when reservation_id is null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id, { reservation_id: reservation.id });
 
     await withHarness(user.id, async (h) => {
@@ -473,10 +463,10 @@ describe('Tool: update_trip_file', () => {
   });
 
   it('refuses a place that belongs to another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const foreignPlace = createPlace(testDb, otherTrip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const foreignPlace = await makePlace(orm, otherTrip.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -491,9 +481,9 @@ describe('Tool: update_trip_file', () => {
   });
 
   it('refuses a file id from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreign = await insertFile(otherTrip.id);
 
     await withHarness(user.id, async (h) => {
@@ -507,10 +497,10 @@ describe('Tool: update_trip_file', () => {
   });
 
   it('refuses a member once file_edit is owner-only', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     const file = await insertFile(trip.id);
     await setPermission('file_edit', 'trip_owner');
 
@@ -525,9 +515,9 @@ describe('Tool: update_trip_file', () => {
   });
 
   it('denies a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -542,8 +532,8 @@ describe('Tool: update_trip_file', () => {
 
   it('blocks a demo user before it looks at the trip', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@trek.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@trek.app' });
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -565,9 +555,9 @@ describe('Tool: upload_trip_file', () => {
   const pdf = Buffer.from('%PDF-1.4 booking').toString('base64');
 
   it('stores the bytes, records the row and attaches it to a booking', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id);
 
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
@@ -602,8 +592,8 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('refuses an extension the file manager would refuse', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       for (const filename of ['evil.html', 'logo.svg', 'tool.exe', 'noext']) {
         const result = await h.client.callTool({
@@ -618,8 +608,8 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('follows the operator list, including the wildcard', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await setAppSetting(orm, 'allowed_file_types', 'pdf');
     await withHarness(user.id, async (h) => {
       const refused = await h.client.callTool({
@@ -639,8 +629,8 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('refuses content that is not base64, or decodes to nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const bad = await h.client.callTool({
         name: 'upload_trip_file',
@@ -656,8 +646,8 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('refuses a file over the cap', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Just past the cap after decoding, still inside the schema's base64 length.
     const big = Buffer.alloc(FILE_CONTENT_MAX + 1, 1).toString('base64');
     await withHarness(user.id, async (h) => {
@@ -671,10 +661,10 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('refuses a place from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const foreignTrip = createTrip(testDb, user.id);
-    const foreignPlace = createPlace(testDb, foreignTrip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const foreignTrip = await makeTrip(orm, user.id);
+    const foreignPlace = await makePlace(orm, foreignTrip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'upload_trip_file',
@@ -687,10 +677,10 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('refuses a member once file_upload is owner-only', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     await setPermission('file_upload', 'trip_owner');
     await withHarness(member.id, async (h) => {
       const result = await h.client.callTool({
@@ -702,9 +692,9 @@ describe('Tool: upload_trip_file', () => {
   });
 
   it('denies a non-member, and blocks a demo user', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const foreign = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const foreign = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'upload_trip_file',
@@ -713,8 +703,8 @@ describe('Tool: upload_trip_file', () => {
       expect(JSON.stringify(result.content)).toContain('Trip not found or access denied.');
     });
     process.env.DEMO_MODE = 'true';
-    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
-    const own = createTrip(testDb, demo.id);
+    const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
+    const own = await makeTrip(orm, demo.id);
     await withHarness(demo.id, async (h) => {
       const result = await h.client.callTool({
         name: 'upload_trip_file',
@@ -732,12 +722,12 @@ describe('Tool: upload_trip_file', () => {
 
 describe('Tool: link_trip_file', () => {
   it('attaches one file to a booking, a place and a day assignment', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const day = createDay(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const day = await makeDay(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -763,8 +753,8 @@ describe('Tool: link_trip_file', () => {
   });
 
   it('refuses a call with no target instead of storing an empty link', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -779,10 +769,10 @@ describe('Tool: link_trip_file', () => {
   });
 
   it('refuses a booking from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const foreignReservation = createReservation(testDb, otherTrip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const foreignReservation = await makeReservation(orm, otherTrip.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -797,12 +787,12 @@ describe('Tool: link_trip_file', () => {
   });
 
   it('refuses a day assignment from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const foreignDay = createDay(testDb, otherTrip.id);
-    const foreignPlace = createPlace(testDb, otherTrip.id);
-    const foreignAssignment = createDayAssignment(testDb, foreignDay.id, foreignPlace.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const foreignDay = await makeDay(orm, otherTrip.id);
+    const foreignPlace = await makePlace(orm, otherTrip.id);
+    const foreignAssignment = await makeDayAssignment(orm, foreignDay.id, foreignPlace.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -816,11 +806,11 @@ describe('Tool: link_trip_file', () => {
   });
 
   it('refuses a file id from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreign = await insertFile(otherTrip.id);
-    const reservation = createReservation(testDb, trip.id);
+    const reservation = await makeReservation(orm, trip.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -835,11 +825,11 @@ describe('Tool: link_trip_file', () => {
   });
 
   it('refuses a member once file_edit is owner-only', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id);
     await setPermission('file_edit', 'trip_owner');
 
@@ -854,10 +844,10 @@ describe('Tool: link_trip_file', () => {
   });
 
   it('denies a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -872,9 +862,9 @@ describe('Tool: link_trip_file', () => {
 
   it('blocks a demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@trek.app' });
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm, { email: 'demo@trek.app' });
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -894,10 +884,10 @@ describe('Tool: link_trip_file', () => {
 
 describe('Tool: unlink_trip_file', () => {
   it('removes one link and leaves the others alone', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
     await linkFile(orm, file.id, { place: place.id });
@@ -918,11 +908,11 @@ describe('Tool: unlink_trip_file', () => {
   });
 
   it('refuses a file id from another trip, so a foreign link survives', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreignFile = await insertFile(otherTrip.id);
-    const foreignReservation = createReservation(testDb, otherTrip.id);
+    const foreignReservation = await makeReservation(orm, otherTrip.id);
     await linkFile(orm, foreignFile.id, { reservation: foreignReservation.id });
     const linkId = (await linkRows(foreignFile.id))[0].id;
 
@@ -938,11 +928,11 @@ describe('Tool: unlink_trip_file', () => {
   });
 
   it('refuses a member once file_edit is owner-only', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
     const linkId = (await linkRows(file.id))[0].id;
@@ -959,9 +949,9 @@ describe('Tool: unlink_trip_file', () => {
   });
 
   it('denies a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -976,9 +966,9 @@ describe('Tool: unlink_trip_file', () => {
 
   it('blocks a demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
     const linkId = (await linkRows(file.id))[0].id;
@@ -1006,10 +996,10 @@ describe('Link changes reach every tab', () => {
   }
 
   it('MCP-FILES-001: link_trip_file sends the file again with every link it now carries', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
     await withHarness(user.id, async (h) => {
@@ -1026,10 +1016,10 @@ describe('Link changes reach every tab', () => {
   });
 
   it('MCP-FILES-002: unlink_trip_file sends the file with the links it has left', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
     await linkFile(orm, file.id, { place: place.id });
@@ -1050,9 +1040,9 @@ describe('Link changes reach every tab', () => {
 
 describe('Tool: list_trip_file_links', () => {
   it('returns every link with its id and the booking title', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const reservation = createReservation(testDb, trip.id, { title: 'Nightjet 421' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const reservation = await makeReservation(orm, trip.id, { title: 'Nightjet 421' });
     const file = await insertFile(trip.id);
     await linkFile(orm, file.id, { reservation: reservation.id });
 
@@ -1074,9 +1064,9 @@ describe('Tool: list_trip_file_links', () => {
   });
 
   it('refuses a file id from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
     const foreign = await insertFile(otherTrip.id);
 
     await withHarness(user.id, async (h) => {
@@ -1090,9 +1080,9 @@ describe('Tool: list_trip_file_links', () => {
   });
 
   it('denies a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     const file = await insertFile(trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -1123,34 +1113,34 @@ describe('File tools: scope gating', () => {
   }
 
   it('registers all seven tools for a full-access session', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS, 'read_trip_file']) expect(names).toContain(tool);
   });
 
   it('files:read lists the documents but does not open them', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['files:read']);
     for (const tool of READ_TOOLS) expect(names).toContain(tool);
     for (const tool of [...WRITE_TOOLS, 'read_trip_file']) expect(names).not.toContain(tool);
   });
 
   it('files:content opens a document without granting the listing', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['files:content']);
     expect(names).toContain('read_trip_file');
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).not.toContain(tool);
   });
 
   it('files:write carries the reads, and still not the contents', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['files:write']);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
     expect(names).not.toContain('read_trip_file');
   });
 
   it('a token without any files scope gets none of them', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['trips:read']);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS, 'read_trip_file']) expect(names).not.toContain(tool);
   });
