@@ -35,6 +35,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const { logWarn } = vi.hoisted(() => ({ logWarn: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/audit/audit-log.logger')>()),
+  logWarn,
+}));
+
 const LIVE_DB = path.join(path.sep, 'srv', 'trek', 'custom-name.db');
 const BASELINE = path.resolve(__dirname, '..', '..', '..', 'data', 'travel-baseline.db');
 
@@ -159,7 +165,7 @@ describe('demo-reset DB path', () => {
   });
 
   it('DEMORESET-008: a baseline this engine cannot restore is not swapped in, but replaced by a fresh one', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    logWarn.mockClear();
     vi.spyOn(database, 'checkCopy').mockResolvedValue(`${BASELINE} is not a SQLite database`);
 
     await withCtx(() => resetDemoUser(database));
@@ -169,6 +175,8 @@ describe('demo-reset DB path', () => {
     expect(copyFileSync).not.toHaveBeenCalled();
     expect(maintenance.vacuumInto).toHaveBeenCalledWith(BASELINE + '.tmp');
     expect(renameSync).toHaveBeenCalledWith(BASELINE + '.tmp', BASELINE);
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/is not a SQLite database\); saving the current database/));
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringMatching(/is not a SQLite database\); saving the current database/),
+    );
   });
 });
