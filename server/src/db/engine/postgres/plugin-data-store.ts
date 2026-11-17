@@ -1,4 +1,5 @@
 import { PLUGIN_DATA_CAPS, type PluginDataStore, type PluginTxOp, type PluginTxResult } from '../plugin-data';
+import { extendedQuery } from './extended-query';
 import { isPluginId, pluginSchemaName, quotePluginSchema } from './plugin-schema';
 import { checkPlaceholders, checkQualifiers, parsePluginSql, type PluginStatement } from './plugin-sql-guard';
 
@@ -9,10 +10,13 @@ import { CompiledQuery, type Kysely, type Transaction } from 'kysely';
  * database (`plugin-schema.ts`), reached through TREK's pool.
  *
  * Every call runs in one transaction that first makes sure the schema and its
- * migration table exist, then puts only that schema on the `search_path` and
- * sets `statement_timeout` to the call's time budget. The plugin's SQL is
- * checked by `plugin-sql-guard.ts` before it runs, so it cannot name another
- * schema. Reads stream through a cursor and stop at the row cap. A call that
+ * migration table exist, then puts only that schema on the `search_path`, with
+ * `pg_temp` explicitly last so a temporary table is never found before the
+ * plugin's own, and sets `statement_timeout` to the call's time budget. The
+ * plugin's SQL is checked by `plugin-sql-guard.ts` before it runs, so it cannot
+ * name another schema, and each statement goes to Postgres on its own over the
+ * extended query protocol (`extended-query.ts`), which runs one statement and
+ * no more. Reads stream through a cursor and stop at the row cap. A call that
  * may write measures the schema's size before and after, and rolls back one
  * that leaves it past the quota and larger than it found it, so a plugin at
  * its quota can still delete.
@@ -267,7 +271,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       const setup = [
         `create schema if not exists ${this.quoted}`,
         `create table if not exists ${this.quoted}._plugin_migrations (id text primary key, applied_at bigint)`,
-        `set local search_path to ${this.quoted}`,
+        `set local search_path to ${this.quoted}, pg_temp`,
         'set local standard_conforming_strings to on',
       ];
       if (timeoutMs !== null) setup.push(`set local statement_timeout to ${Math.max(1, Math.floor(timeoutMs))}`);
@@ -313,7 +317,11 @@ export class PostgresPluginDataStore implements PluginDataStore {
     return Number(result.rows[0]?.bytes ?? 0);
   }
 
-  /** Runs a statement for its effect: the rows it changed, or 0 for a read, whose rows are streamed past and dropped. */
+  /**
+   * Runs a statement for its effect: the rows it changed, or 0 for a read,
+   * whose rows are streamed past and dropped. Both ways use the extended
+   * protocol: a cursor always does, and a write goes through `extendedQuery`.
+   */
   private async run(trx: Trx, statement: PluginStatement, args: readonly unknown[]): Promise<number> {
     if (!statement.mayWrite) {
       const chunks = trx.getExecutor().stream(CompiledQuery.raw(statement.text, [...args]), CHUNK_ROWS);
@@ -322,7 +330,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       }
       return 0;
     }
-    const result = await trx.executeQuery(CompiledQuery.raw(statement.text, [...args]));
+    const result = await trx.executeQuery(extendedQuery(statement.text, args));
     return Number(result.numAffectedRows ?? 0);
   }
 
