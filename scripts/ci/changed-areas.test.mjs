@@ -44,6 +44,24 @@ describe('classify', () => {
     assert.deepEqual(classify(['server/src/nest/weather/weather.service.ts']), { code: true, image: true, deploy: false });
   });
 
+  it('runs the Postgres probe and lane for every file they read', () => {
+    // server-postgres is gated on `code`; a migration, a repository, the
+    // engine, the baseline or the lane's own config must never skip it.
+    for (const file of [
+      'server/src/db/migrations/Migration20200101046440_x.ts',
+      'server/src/db/repositories/Trips.repository.ts',
+      'server/src/db/dialect/sql-functions.ts',
+      'server/src/db/engine/postgres/schema-bootstrap.ts',
+      'server/assets/postgres/baseline.sql',
+      'server/scripts/pg-probe-baseline.json',
+      'server/vitest.pg.config.ts',
+      'server/tests/postgres/lane.ts',
+      'server/tests/postgres/snapshot-suites-baseline.json',
+    ]) {
+      assert.equal(classify([file]).code, true, file);
+    }
+  });
+
   it('runs the tests but not the image for a plugin-sdk change', () => {
     assert.deepEqual(classify(['plugin-sdk/src/index.ts']), { code: true, image: false, deploy: false });
   });

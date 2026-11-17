@@ -31,9 +31,11 @@ permissions:
 #                            thresholds, uploads lcov
 #   Server: S3 Contract (MinIO)
 #                            the storage driver against MinIO
-#   Server: Postgres Probe   the repository SQL against Postgres
-#   Server: Postgres Tests   the suites that boot the app, plus PARITY-PG and
-#                            the write lock, on Postgres (vitest.pg.config.ts)
+#   Server: Postgres 14/18   per supported major: the probe (the repository
+#                            SQL against Postgres), then the lane (every suite
+#                            that boots the app on the real database module,
+#                            plus PARITY-PG and the write lock;
+#                            vitest.pg.config.ts)
 #   Client: Types & Checks   typecheck and the strict ratchet; then the page
 #                            pattern and the source ratchets (RTL, size,
 #                            Prettier, layers, offline path, duplication,
@@ -46,7 +48,7 @@ permissions:
 #   Client: Bundle           the production build, one chunk per map engine
 #   Client: End-to-End       the app in Chromium and WebKit
 #   Plugin SDK: Types & Coverage
-#   Repo: Docker Image       builds the image and boots it until ready, on SQLite and on Postgres
+#   Repo: Docker Image       builds the image and boots it until ready, on SQLite and on Postgres 18
 #   Repo: Helm Chart & Compose
 #   Repo: Sonar Scan         SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
@@ -68,7 +70,7 @@ permissions:
 #   - Job count: GitHub runs at most 20 jobs of the organisation at once and
 #     does not say in which order it starts queued ones. A code change starts
 #     the 14 shards and about a dozen other jobs; eight of those (parity, the
-#     SDK, the bundle, S3, the Postgres probe and tests, shared coverage, the
+#     SDK, the bundle, S3, the two Postgres majors, shared coverage, the
 #     chart) are done in a few minutes, so what queues at the start waits about that long. The
 #     jobs that run for minutes (shards, gates, e2e, the image) must not
 #     outnumber the 20 slots, or one of them waits for another to finish and
@@ -750,31 +752,48 @@ jobs:
           TREK_TEST_S3_SECRET_ACCESS_KEY: trekci-secret
         run: cd server && npx vitest run tests/unit/nest/storage/s3.driver.contract.test.ts
 
-  # What of the server's SQL runs on Postgres today (server/scripts/pg-probe.ts).
-  # TREK runs on SQLite; the dialect layer in server/src/db/dialect/ is written
-  # so a second engine is a branch there and not a sweep through the
-  # repositories, and this is the job that holds it to that. Against an empty
-  # Postgres it derives a schema from the entities, runs every dialect helper
-  # on SQLite and Postgres (every case must pass), and calls every public
-  # repository method once, each statement in its own rolled-back transaction.
-  # The statements Postgres refuses as SQL are held per method to
+  # TREK on Postgres, once per supported major: the oldest (14) and the newest
+  # (18). Both steps run against the same service, the probe on an empty
+  # database of its own, the lane on databases it creates and drops.
+  #
+  # The probe (server/scripts/pg-probe.ts): against an empty Postgres it
+  # derives a schema from the entities, runs every dialect helper on SQLite
+  # and Postgres (every case must pass), and calls every public repository
+  # method once, each statement in its own rolled-back transaction. The
+  # statements Postgres refuses as SQL are held per method to
   # server/scripts/pg-probe-baseline.json, and so is the list of methods it
-  # could not measure (uncovered); both may only shrink. An unmeasured
-  # baseline (failing or uncovered null) or a run that called no method fails. The measured
-  # baseline and the full report are uploaded either way, so the first run's
-  # artifact seeds the file and a change that fixes a statement can lower it
-  # without a local Postgres.
-  postgres-probe:
-    name: 'Server: Postgres Probe'
+  # could not measure (uncovered); both may only shrink, on every major. An
+  # unmeasured baseline (failing or uncovered null) or a run that called no
+  # method fails. The measured baseline and the full report are uploaded
+  # either way (pg-probe-baseline-<major>), so a change that fixes a statement
+  # can lower the file without a local Postgres.
+  #
+  # The lane (server/vitest.pg.config.ts): every suite that boots the app on
+  # the real database module, found by server/tests/postgres/lane.ts, each file
+  # on its own copy of one migrated template, plus the Postgres-only suites
+  # (PARITY-PG, the write lock, the search semantics). It fails, never skips,
+  # without TREK_TEST_DB_URL, and TREK_TEST_PG_MAJOR makes it refuse a service
+  # of another major. It runs after a red probe too, so one run shows both.
+  #
+  # About four minutes per major: a minute of setup, the probe in about one,
+  # the lane in about two on four workers. Past one runner's worth, add a
+  # shard axis to the matrix and pass --shard=<i>/<n>; each slice builds its
+  # own template.
+  server-postgres:
+    name: 'Server: Postgres ${{ matrix.postgres }}'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     needs: changes
     if: needs.changes.outputs.code == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: [14, 18]
     services:
       postgres:
-        image: postgres:17
+        image: postgres:${{ matrix.postgres }}
         env:
-          POSTGRES_PASSWORD: probe
+          POSTGRES_PASSWORD: lane
           POSTGRES_DB: trek_probe
         ports:
           - 5432:5432
@@ -804,65 +823,28 @@ jobs:
 
       - name: Run the Postgres probe
         env:
-          TREK_PG_PROBE_URL: postgres://postgres:probe@127.0.0.1:5432/trek_probe
+          TREK_PG_PROBE_URL: postgres://postgres:lane@127.0.0.1:5432/trek_probe
         run: >-
           cd server && npm run probe:pg --
           --next-baseline="$RUNNER_TEMP/pg-probe-baseline.json"
           --report="$RUNNER_TEMP/pg-probe-report.json"
 
       - name: Upload the measured baseline and the report
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v6
         with:
-          name: pg-probe-baseline
+          name: pg-probe-baseline-${{ matrix.postgres }}
           path: |
             ${{ runner.temp }}/pg-probe-baseline.json
             ${{ runner.temp }}/pg-probe-report.json
           if-no-files-found: ignore
           retention-days: 14
 
-  # The Postgres lane: every suite that boots the app through buildApp() on the
-  # real database module, each file on its own copy of one migrated template,
-  # plus the Postgres-only suites (PARITY-PG, the write lock). The lane fails,
-  # never skips, without TREK_TEST_DB_URL.
-  server-postgres-tests:
-    name: 'Server: Postgres Tests'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: lane
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
       - name: Run the Postgres lane
+        if: ${{ !cancelled() }}
         env:
           TREK_TEST_DB_URL: postgres://postgres:lane@127.0.0.1:5432/postgres
+          TREK_TEST_PG_MAJOR: ${{ matrix.postgres }}
         run: npm run test:pg --workspace=server
 
   # The server suite in seven slices. vitest.shard.config.ts is vitest.config.ts
@@ -1271,12 +1253,14 @@ jobs:
       # The same image on a Postgres database (TREK_DB_URL): an empty database
       # gets the baseline schema, the admin is seeded, and the server answers
       # ready. The database runs beside it on a private network, never exposed.
+      # It is the newest supported major, the one the image's client tools are
+      # for; server-postgres covers the oldest.
       - name: Start the container on Postgres
         run: |
           set -euo pipefail
           docker network create trek-ci-pg
           docker run -d --name trek-ci-db --network trek-ci-pg \
-            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:17
+            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:18
           for _ in $(seq 1 30); do
             docker exec trek-ci-db pg_isready -U postgres -d trek >/dev/null 2>&1 && break
             sleep 2
@@ -1453,8 +1437,7 @@ jobs:
       - client-bundle
       - client-e2e
       - s3-contract
-      - postgres-probe
-      - server-postgres-tests
+      - server-postgres
       - server-tests
       - server-coverage
       - client-tests

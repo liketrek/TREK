@@ -23,6 +23,8 @@ export async function setup(): Promise<void> {
     );
   }
 
+  await checkServerVersion(adminUrl);
+
   // Left behind by an earlier run that was killed; nothing else uses these names.
   await dropLaneDatabases(adminUrl);
   await withAdmin(adminUrl, (run) => run(`CREATE DATABASE "${TEMPLATE_DATABASE}"`));
@@ -40,6 +42,27 @@ export async function setup(): Promise<void> {
       TREK_DB_URL: databaseUrl(adminUrl, TEMPLATE_DATABASE),
     },
   });
+}
+
+/**
+ * Prints the server's version, so a run says what it tested. CI runs the lane
+ * once per supported major and sets TREK_TEST_PG_MAJOR to the one its service
+ * was meant to be: a service that came up with another version (an image tag
+ * that moved, a typo in the matrix) fails the run instead of passing for it.
+ */
+async function checkServerVersion(adminUrl: string): Promise<void> {
+  const [row] = await withAdmin(adminUrl, (run) =>
+    run<{ server_version: string; server_version_num: string }>(
+      "select current_setting('server_version') as server_version, " +
+        "current_setting('server_version_num') as server_version_num",
+    ),
+  );
+  const major = Math.floor(Number(row.server_version_num) / 10000);
+  process.stdout.write(`[postgres lane] PostgreSQL ${row.server_version}\n`);
+  const expected = process.env.TREK_TEST_PG_MAJOR;
+  if (expected && Number(expected) !== major) {
+    throw new Error(`TREK_TEST_PG_MAJOR is ${expected}, but the server at TREK_TEST_DB_URL runs PostgreSQL ${major}.`);
+  }
 }
 
 /** The template and every worker's copy: names the lane alone uses (a prefix compared as text, not a LIKE pattern). */

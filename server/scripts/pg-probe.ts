@@ -29,7 +29,7 @@
  * arguments against empty tables, not every statement the code can send: a
  * branch that only runs on data the empty tables do not hold stays unseen.
  *
- * It needs a Postgres server, so CI runs it in the `postgres-probe` job
+ * It needs a Postgres server, so CI runs it in the `server-postgres` job
  * against a service container. Locally:
  *
  *   docker run --rm -d -p 5432:5432 -e POSTGRES_PASSWORD=probe postgres:17
