@@ -23,14 +23,17 @@ export function resolveEngine(db: DbEngineSettings = readEnv().db): DatabaseEngi
 }
 
 /**
- * The Postgres URL and the directory of its client tools, when the settings
- * name a Postgres database; null on SQLite. For the code that drives pg_dump
- * and pg_restore, which needs both and must not read them from the environment
- * again.
+ * The Postgres URL, the directory of its client tools and the pool's size,
+ * when the settings name a Postgres database; null on SQLite. For the code
+ * that drives pg_dump and pg_restore, which needs the first two, and the
+ * plugin data stores, which share the pool, and must not read them from the
+ * environment again.
  */
-export function postgresTarget(db: DbSettings): { url: string; binDir: string | undefined } | null {
+export function postgresTarget(
+  db: DbSettings,
+): { url: string; binDir: string | undefined; poolMax: number } | null {
   if (db.engine !== 'postgres') return null;
-  return { url: db.url, binDir: db.pgBinDir };
+  return { url: db.url, binDir: db.pgBinDir, poolMax: db.poolMax };
 }
 
 /**
