@@ -49,9 +49,12 @@ export function withoutEncodedNul(url: string): string {
 export function nulFreeRequest(req: Request, _res: Response, next: NextFunction): void {
   req.url = withoutEncodedNul(req.url);
   if (req.body !== undefined) req.body = nulFreeInput(req.body);
-  const withCookies = req as Request & { cookies?: unknown; signedCookies?: unknown };
-  if (withCookies.cookies !== undefined) withCookies.cookies = nulFreeInput(withCookies.cookies);
-  if (withCookies.signedCookies !== undefined) withCookies.signedCookies = nulFreeInput(withCookies.signedCookies);
+  const withCookies = req as Request & { cookies?: Record<string, unknown>; signedCookies?: Record<string, unknown> };
+  if (withCookies.cookies !== undefined)
+    withCookies.cookies = nulFreeInput(withCookies.cookies) as Record<string, unknown>;
+  if (withCookies.signedCookies !== undefined) {
+    withCookies.signedCookies = nulFreeInput(withCookies.signedCookies) as Record<string, unknown>;
+  }
   next();
 }
 
