@@ -25,7 +25,7 @@ import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
 import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;

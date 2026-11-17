@@ -44,7 +44,7 @@ import { setAppSetting, setUserSetting } from '../helpers/factories/settings';
 import { makeTrip, readTripDays } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { databaseUrl, withAdmin } from './databases';
-import { MikroORM, type EntityClass } from '@mikro-orm/core';
+import { MikroORM, type EntityClass, type Options } from '@mikro-orm/core';
 import type { AbstractSqlConnection } from '@mikro-orm/sql';
 import type { INestApplication } from '@nestjs/common';
 
@@ -69,12 +69,15 @@ async function migratedSqlite(file: string): Promise<AnyOrm> {
   handle = new Database(file);
   handle.pragma('foreign_keys = ON');
   const config = buildOrmConfig(new SqliteEngine());
-  const orm = await MikroORM.init({
+  // Typed as the engine's plain Options: the bound driver alone would make
+  // init infer the SQLite driver's own entity manager, which config does not name.
+  const options: Options = {
     ...config,
     driver: createBoundSqliteDriver(() => handle),
     dbName: file,
     migrations: { ...config.migrations, silent: true },
-  });
+  };
+  const orm = await MikroORM.init(options);
   await runSchemaBootstrap(orm, { snapshot: false });
   return orm;
 }
