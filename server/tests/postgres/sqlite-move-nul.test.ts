@@ -1,11 +1,12 @@
 /**
- * PGMOVENUL-001..004: the move into Postgres (`src/db/engine/postgres/sqlite-move/`)
+ * PGMOVENUL-001..005: the move into Postgres (`src/db/engine/postgres/sqlite-move/`)
  * changes nothing silently, on the lane's server. A plugin value holding a NUL
- * refuses the move before anything is written; a NUL in TREK's own text
- * refuses it unless `dropNul` (`--drop-nul`) is given; a unique key that
- * dropping a NUL breaks is named as that, with the constraint Postgres
- * reports; and a move with `dropNul` lists every value it changed and stores
- * the value TREK would have written.
+ * or bytes that are not UTF-8 refuses the move before anything is written; a
+ * NUL in TREK's own text refuses it unless `dropNul` (`--drop-nul`) is given;
+ * a unique key that dropping a NUL breaks is named as that, with the
+ * constraint Postgres reports; a move with `dropNul` lists every value it
+ * changed and stores the value TREK would have written, JSON with nothing
+ * else changed; and TREK's own text that is not UTF-8 is refused either way.
  */
 import { buildOrmConfig, resolveEngine } from '../../src/db/engine';
 import { readPostgresBaseline } from '../../src/db/engine/postgres/baseline';
@@ -101,7 +102,7 @@ beforeAll(async () => {
   const plugin = new Database(path.join(dir, 'plugins-data', 'nul-notes', 'plugin.db'));
   plugin.exec(
     'create table notes (k text primary key, v text);' +
-      "insert into notes values ('team' || char(0) || 'a', 'one'), ('teama', 'two');",
+      "insert into notes values ('team' || char(0) || 'a', 'one'), ('teama', 'two'), ('bytes', cast(x'ff41' as text));",
   );
   plugin.close();
   await emptyTarget();
@@ -114,11 +115,14 @@ afterAll(async () => {
 });
 
 describe('the move changes nothing silently', () => {
-  it("PGMOVENUL-001: a plugin's NUL refuses the move before anything is written", async () => {
+  it("PGMOVENUL-001: a plugin's NUL or bytes that are not UTF-8 refuse the move before anything is written", async () => {
     const failure = move(true);
     await expect(failure).rejects.toBeInstanceOf(MoveRefusal);
     await expect(failure).rejects.toThrow(
-      /1 value\(s\) in plugin data cannot move to Postgres unchanged; nothing was written:\n {2}- plugin nul-notes: notes row k=team\\u0000a, column k: the text "team\\u0000a" holds a NUL character/,
+      /2 value\(s\) in plugin data cannot move to Postgres unchanged; nothing was written:\n {2}- plugin nul-notes: notes row k=team\\u0000a, column k: the text "team\\u0000a" holds a NUL character/,
+    );
+    await expect(failure).rejects.toThrow(
+      'plugin nul-notes: notes row k=bytes, column v: the text "\uFFFDA" holds bytes that are not valid UTF-8 (ff41)',
     );
     expect(await tablesInTarget()).toBe(0);
     fs.rmSync(path.join(dir, 'plugins-data'), { recursive: true, force: true });
@@ -149,11 +153,33 @@ describe('the move changes nothing silently', () => {
 
   it('PGMOVENUL-004: with --drop-nul and no collision, each changed value is listed and stored without the NUL', async () => {
     handle.exec(`update users set username = 'mover' || char(0) || 'b' where id = ${movedId}`);
+    // JSON loses the escaped NUL and nothing else: the digits of a large number and the spelling 1.0 stay.
+    handle.exec(
+      `update addons set config = '{"note":"a\\u0000b","big":12345678901234567890,"ratio":1.0}' where id = 'collab'`,
+    );
     const summary = await move(true);
-    expect(summary.nulDropped).toEqual([`users row id=${movedId}, column username`]);
+    expect([...summary.nulDropped].sort()).toEqual([
+      'addons row id=collab, column config',
+      `users row id=${movedId}, column username`,
+    ]);
     const stored = await withAdmin(process.env.TREK_DB_URL as string, (run) =>
       run<{ username: string }>('select username from users where id = ?', [movedId]),
     );
     expect(stored).toEqual([{ username: 'moverb' }]);
+    const config = await withAdmin(process.env.TREK_DB_URL as string, (run) =>
+      run<{ config: string }>("select config::text as config from addons where id = 'collab'"),
+    );
+    expect(config).toEqual([{ config: '{"big": 12345678901234567890, "note": "ab", "ratio": 1.0}' }]);
+  });
+
+  it("PGMOVENUL-005: TREK's own text whose bytes are not UTF-8 is refused, with --drop-nul too", async () => {
+    await emptyTarget();
+    handle.exec("insert into app_settings (key, value) values ('move-bytes', cast(x'ff41' as text))");
+    const failure = move(true);
+    await expect(failure).rejects.toBeInstanceOf(MoveRefusal);
+    await expect(failure).rejects.toThrow(
+      'app_settings row key=move-bytes, column value: the text "\uFFFDA" holds bytes that are not valid UTF-8 (ff41)',
+    );
+    expect(await tablesInTarget()).toBe(0);
   });
 });

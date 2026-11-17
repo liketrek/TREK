@@ -1,5 +1,5 @@
 /**
- * MOVEVAL-001..014: how a SQLite value becomes the value a Postgres column of
+ * MOVEVAL-001..017: how a SQLite value becomes the value a Postgres column of
  * the move's target takes, under TREK's rules and under a plugin's, the text
  * both sides are compared in, and the order-free table checksum
  * (src/db/engine/postgres/sqlite-move/values.ts).
@@ -15,6 +15,7 @@ import {
   TableChecksum,
   type ColumnKind,
 } from '../../../../../../src/db/engine/postgres/sqlite-move/values';
+import { InvalidUtf8Text } from '../../../../../../src/db/engine/sqlite/sqlite-source';
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -260,5 +261,37 @@ describe("a plugin's values (PLUGIN_RULES)", () => {
     // The one change allowed is the one the operator asked for on TREK's own data.
     expect(canonicalFromSource('team\u0000a', 'text', DROP_NUL)).toBe(canonicalFromPostgres('teama', 'text'));
     expect(canonicalFromSource('{"k\\u0000":1}', 'json', DROP_NUL)).toBe(canonicalFromPostgres('{"k": 1}', 'json'));
+  });
+});
+
+describe('values a conversion could change unseen', () => {
+  it('MOVEVAL-015: negative zero keeps its sign on the way and in the compared text', () => {
+    // `pg` spells the number -0 as "0", so it is sent as text.
+    expect(convertValue(-0, 'float')).toEqual(ok('-0'));
+    expect(convertValue('-0', 'float')).toEqual(ok('-0'));
+    expect(convertValue(-0, 'float', PLUGIN_RULES)).toEqual(ok('-0'));
+    expect(convertValue(0, 'float', PLUGIN_RULES)).toEqual(ok(0));
+    expect(canonicalFromSource(-0, 'float', PLUGIN_RULES)).toBe(canonicalFromPostgres('-0', 'float'));
+    expect(canonicalFromSource('-0', 'float')).toBe(canonicalFromPostgres('-0', 'float'));
+    // A zero that lost its sign on the way fails the verification.
+    expect(canonicalFromSource(-0, 'float', PLUGIN_RULES)).not.toBe(canonicalFromPostgres('0', 'float'));
+  });
+
+  it('MOVEVAL-016: dropping a NUL from JSON changes nothing else in it', () => {
+    const written = '{"a\\u0000":"x\\u0000y","big":12345678901234567890,"ratio":1.0,"kept":"\\\\u0000"}';
+    const dropped = '{"a":"xy","big":12345678901234567890,"ratio":1.0,"kept":"\\\\u0000"}';
+    expect(convertValue(written, 'json', DROP_NUL)).toEqual({ ok: true, value: dropped, droppedNul: true });
+    expect(canonicalFromSource(written, 'json', DROP_NUL)).toBe(canonicalFromPostgres(dropped, 'json'));
+  });
+
+  it('MOVEVAL-017: text whose bytes are not UTF-8 is refused under either rules, for every column kind', () => {
+    const invalid = new InvalidUtf8Text(Buffer.from([0xff, 0x41]), '\uFFFDA');
+    const reason = 'the text "\uFFFDA" holds bytes that are not valid UTF-8 (ff41), which Postgres text cannot hold';
+    for (const kind of ['integer', 'float', 'text', 'json', 'bytes'] as const) {
+      expect(convertValue(invalid, kind)).toEqual({ ok: false, reason });
+      expect(convertValue(invalid, kind, DROP_NUL)).toEqual({ ok: false, reason });
+      expect(convertValue(invalid, kind, PLUGIN_RULES)).toEqual({ ok: false, reason });
+    }
+    expect(canonicalFromSource(invalid, 'text')).not.toBe(canonicalFromPostgres('\uFFFDA', 'text'));
   });
 });

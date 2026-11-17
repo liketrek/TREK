@@ -38,8 +38,9 @@ import type { Kysely } from 'kysely';
  *    migrated by starting this TREK on it once, a newer one belongs to the
  *    TREK that wrote it. Nothing else is checked by guess.
  * 2. Every plugin's data must move unchanged (`PLUGIN_RULES` in `values.ts`):
- *    a value Postgres cannot hand back to the plugin as it is (a NUL, a
- *    column whose values mix types) is listed, before anything is written.
+ *    a value Postgres cannot hand back to the plugin as it is (a NUL, text
+ *    whose bytes are not UTF-8, a column whose values mix types) is listed,
+ *    before anything is written.
  * 3. The Postgres database must hold no table and no plugin schema.
  * 4. The schema is created exactly as a first boot creates it (the engine's
  *    bootstrap: the baseline and the migrations after its cut), without the

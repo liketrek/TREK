@@ -1,4 +1,5 @@
-import { nulFreeJson, stripNul } from '../../../nul-free';
+import { stripNul } from '../../../nul-free';
+import { InvalidUtf8Text } from '../../sqlite/sqlite-source';
 
 import { createHash } from 'node:crypto';
 
@@ -28,14 +29,17 @@ import { createHash } from 'node:crypto';
  * that changed a value fails the verification instead of passing it.
  *
  * The SQLite side is read with better-sqlite3's safe integers, so an integer
- * arrives as a `bigint` and keeps all 64 bits.
+ * arrives as a `bigint` and keeps all 64 bits. A TEXT value whose bytes are
+ * not valid UTF-8 arrives as an {@link InvalidUtf8Text} and is refused under
+ * either set of rules: Postgres text cannot hold those bytes, and reading
+ * them as text would replace them without a trace.
  */
 
 /** The Postgres column types the move writes, by what they hold. */
 export type ColumnKind = 'integer' | 'float' | 'text' | 'json' | 'bytes';
 
-/** What a SQLite cell can be: NULL, INTEGER, REAL, TEXT or BLOB. */
-export type SqliteValue = null | bigint | number | string | Uint8Array;
+/** What a SQLite cell can be: NULL, INTEGER, REAL, TEXT (valid UTF-8 or not) or BLOB. */
+export type SqliteValue = null | bigint | number | string | InvalidUtf8Text | Uint8Array;
 
 /** A value Postgres takes as a parameter: a decimal string for an integer, a Buffer for bytes. */
 export type PostgresValue = null | string | number | Buffer;
@@ -100,6 +104,7 @@ function refuse(reason: string): Converted {
 
 function describe(value: SqliteValue): string {
   if (value instanceof Uint8Array) return `a ${value.length}-byte BLOB`;
+  if (value instanceof InvalidUtf8Text) return describe(value.text);
   if (typeof value === 'string')
     return `the text ${JSON.stringify(value.length > 40 ? `${value.slice(0, 40)}...` : value)}`;
   return `the value ${String(value)}`;
@@ -120,8 +125,21 @@ function toInteger(value: Exclude<SqliteValue, null>): Converted {
   return { ok: true, value: whole.toString() };
 }
 
+/**
+ * A double as the parameter Postgres takes. Negative zero is sent as text:
+ * `pg` spells the number -0 as "0", which would drop its sign.
+ */
+function floatParameter(value: number): PostgresValue {
+  return Object.is(value, -0) ? '-0' : value;
+}
+
+/** A double as the compared text, negative zero kept apart from zero as Postgres prints it. */
+function floatText(value: number): string {
+  return Object.is(value, -0) ? '-0' : String(value);
+}
+
 function toFloat(value: Exclude<SqliteValue, null>): Converted {
-  if (typeof value === 'number') return { ok: true, value };
+  if (typeof value === 'number') return { ok: true, value: floatParameter(value) };
   if (typeof value === 'bigint') {
     const number = Number(value);
     if (BigInt(number) !== value) return refuse(`${describe(value)} has more digits than a double holds`);
@@ -129,7 +147,7 @@ function toFloat(value: Exclude<SqliteValue, null>): Converted {
   }
   if (typeof value === 'string' && DECIMAL_NUMBER.test(value.trim())) {
     const number = Number(value.trim());
-    if (Number.isFinite(number)) return { ok: true, value: number };
+    if (Number.isFinite(number)) return { ok: true, value: floatParameter(number) };
   }
   return refuse(`${describe(value)} is not a number`);
 }
@@ -154,6 +172,15 @@ function jsonHoldsNul(value: unknown): boolean {
   return false;
 }
 
+/**
+ * JSON text without its `\u0000` escapes, everything else exactly as written,
+ * so dropping a NUL changes no number or spelling around it. Each escape is
+ * read as a whole, so an escaped backslash followed by `u0000` stays.
+ */
+function dropJsonNul(text: string): string {
+  return text.replace(/\\(?:u0000|[\s\S])/g, (escape) => (escape === '\\u0000' ? '' : escape));
+}
+
 function toJson(value: Exclude<SqliteValue, null>, dropNul: boolean): Converted {
   if (typeof value === 'bigint' || typeof value === 'number') return { ok: true, value: String(value) };
   if (typeof value !== 'string') return refuse(`${describe(value)} is not JSON text`);
@@ -166,7 +193,7 @@ function toJson(value: Exclude<SqliteValue, null>, dropNul: boolean): Converted 
   // Valid JSON holds a NUL only escaped, which jsonb refuses as well.
   if (!jsonHoldsNul(parsed)) return { ok: true, value };
   if (!dropNul) return refuse(`${describe(value)} ${NUL_REASON} (escaped as \\u0000)`);
-  return { ok: true, value: JSON.stringify(nulFreeJson(parsed)), droppedNul: true };
+  return { ok: true, value: dropJsonNul(value), droppedNul: true };
 }
 
 function toBytes(value: Exclude<SqliteValue, null>): Converted {
@@ -188,7 +215,7 @@ const KIND_HOLDS: Record<ColumnKind, string> = {
 /** The SQLite storage class of a value, for a refusal. */
 function storageClass(value: Exclude<SqliteValue, null>): string {
   if (value instanceof Uint8Array) return 'a BLOB';
-  if (typeof value === 'string') return 'TEXT';
+  if (typeof value === 'string' || value instanceof InvalidUtf8Text) return 'TEXT';
   return typeof value === 'bigint' ? 'an INTEGER' : 'a REAL';
 }
 
@@ -213,7 +240,7 @@ function exactly(value: Exclude<SqliteValue, null>, kind: ColumnKind): Converted
       }
       return { ok: true, value: value.toString() };
     case 'float':
-      if (typeof value === 'number') return { ok: true, value };
+      if (typeof value === 'number') return { ok: true, value: floatParameter(value) };
       if (typeof value !== 'bigint') return changed();
       return value > SAFE_MAX || value < -SAFE_MAX
         ? refuse(`${describe(value)} has more digits than a double holds`)
@@ -231,6 +258,11 @@ function exactly(value: Exclude<SqliteValue, null>, kind: ColumnKind): Converted
 /** `value` as the Postgres column of `kind` takes it under `rules`, or the reason it cannot hold it exactly. */
 export function convertValue(value: SqliteValue, kind: ColumnKind, rules: ConvertRules = TREK_RULES): Converted {
   if (value === null) return { ok: true, value: null };
+  if (value instanceof InvalidUtf8Text) {
+    return refuse(
+      `${describe(value)} holds bytes that are not valid UTF-8 (${hex(value.bytes)}), which Postgres text cannot hold`,
+    );
+  }
   if (rules.exact) return exactly(value, kind);
   switch (kind) {
     case 'integer':
@@ -291,17 +323,19 @@ export function canonicalFromSource(
 ): string | null {
   if (value === null) return null;
   if (value instanceof Uint8Array) return kind === 'bytes' ? hex(value) : `blob:${hex(value)}`;
+  if (value instanceof InvalidUtf8Text) return `invalid-utf8:${hex(value.bytes)}`;
   const dropNul = rules.dropNul && !rules.exact;
   switch (kind) {
     case 'integer':
       return typeof value === 'bigint' ? value.toString() : BigInt(String(value).trim()).toString();
     case 'float':
-      return typeof value === 'bigint' ? value.toString() : String(Number(String(value).trim()));
+      if (typeof value === 'number') return floatText(value);
+      return typeof value === 'bigint' ? value.toString() : floatText(Number(value.trim()));
     case 'text':
       return typeof value === 'string' && dropNul ? stripNul(value) : String(value);
     case 'json':
       if (typeof value !== 'string') return stableJson(String(value));
-      return stableJson(dropNul ? JSON.stringify(nulFreeJson(JSON.parse(value))) : value);
+      return stableJson(dropNul ? dropJsonNul(value) : value);
     case 'bytes':
       return typeof value === 'string' ? Buffer.from(value, 'utf8').toString('hex') : `number:${String(value)}`;
   }
@@ -317,7 +351,7 @@ export function canonicalFromPostgres(text: string | null, kind: ColumnKind): st
     case 'integer':
       return BigInt(text).toString();
     case 'float':
-      return String(Number(text));
+      return floatText(Number(text));
     case 'text':
       return text;
     case 'json':

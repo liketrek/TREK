@@ -1,6 +1,6 @@
 import { SqliteSource, type SqliteColumn, type SqliteIndex } from '../../sqlite/sqlite-source';
 import { isPluginId, pluginSchemaName, quotePluginSchema } from '../plugin-schema';
-import { portableDefault } from '../schema-adjust';
+import { PG_NOW_TEXT_DEFAULT, portableDefault } from '../schema-adjust';
 import { inOrder, quoteIdentifier, run, type CopiedSequence, type TableSpec, type Trx } from './copy';
 import type { ColumnKind } from './values';
 
@@ -21,7 +21,8 @@ import path from 'node:path';
  * migrations again over the copied tables. What has no Postgres counterpart
  * here (foreign keys between its tables, views, triggers, partial or
  * expression indexes, other defaults) is not created and is listed in the
- * summary. The file itself stays where it is, untouched.
+ * summary, and so is a key SQLite compared with `NOCASE` or `RTRIM`, which
+ * Postgres compares exactly. The file itself stays where it is, untouched.
  *
  * The rows are the plugin's, so none is changed on the way: every value must
  * come back from the Postgres store with the type and bytes it has in the
@@ -69,9 +70,30 @@ export function pluginColumnKind(declaredType: string, storage: ReadonlySet<stri
 }
 
 const NUMBER_LITERAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+const INTEGER_LITERAL = /^[+-]?\d+$/;
 const STRING_LITERAL = /^'(?:[^']|'')*'$/s;
 
-/** The Postgres spelling of a column default, or null when it has none the move can trust. */
+/** A number literal as a default of `kind`, only where the column stores it as SQLite does. */
+function numberDefault(text: string, kind: ColumnKind): string | null {
+  switch (kind) {
+    case 'integer':
+      // A fraction in a bigint column would be rounded, where SQLite keeps it.
+      return INTEGER_LITERAL.test(text) ? text : null;
+    case 'float':
+      return text;
+    case 'text':
+      return `'${text}'`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * The Postgres spelling of a column default, or null when it has none the move
+ * can trust: a default must give the plugin the value SQLite gives it, and must
+ * be one Postgres takes for the column's type, so a default that fits neither
+ * is listed as not carried over instead of failing the move or changing.
+ */
 export function pluginDefault(sql: string | null, kind: ColumnKind): string | null {
   if (sql === null) return null;
   const text = sql
@@ -79,11 +101,13 @@ export function pluginDefault(sql: string | null, kind: ColumnKind): string | nu
     .replace(/^\((.*)\)$/s, '$1')
     .trim();
   const ported = portableDefault(text);
-  if (ported !== text) return ported;
+  // The time as text belongs in a text column; the seconds since 1970 fit any column but bytes.
+  if (ported === PG_NOW_TEXT_DEFAULT) return kind === 'text' ? ported : null;
+  if (ported !== text) return kind === 'bytes' ? null : ported;
   if (/^null$/i.test(text)) return 'null';
-  if (NUMBER_LITERAL.test(text)) return kind === 'text' ? `'${text}'` : text;
+  if (NUMBER_LITERAL.test(text)) return numberDefault(text, kind);
   if (/^(true|false)$/i.test(text)) return kind === 'integer' ? (/^true$/i.test(text) ? '1' : '0') : null;
-  if (STRING_LITERAL.test(text)) return text;
+  if (STRING_LITERAL.test(text)) return kind === 'text' ? text : null;
   return null;
 }
 
@@ -113,6 +137,14 @@ function columnDdl(column: SqliteColumn, kind: ColumnKind, identity: boolean, no
 }
 
 function indexDdl(index: SqliteIndex, target: string, notes: string[], table: string): string | null {
+  // Postgres compares the copied text exactly, so a key SQLite compared ignoring case or trailing spaces
+  // (`COLLATE NOCASE`, `RTRIM`) is created, or kept as the primary key, but enforces less than it did.
+  if (index.collations.length > 0) {
+    notes.push(
+      `the collation ${index.collations.join(', ')} of the ${index.origin === 'pk' ? 'primary key' : `index ${index.name}`} ` +
+        `on ${table} (Postgres compares its values exactly)`,
+    );
+  }
   if (index.origin === 'pk') return null;
   if (index.partial || index.columns === null) {
     notes.push(`the index ${index.name} on ${table} (partial or over an expression)`);

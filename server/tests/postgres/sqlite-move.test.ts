@@ -127,9 +127,10 @@ function seedPluginData(root: string): void {
       'create unique index notes_body on notes (body);' +
       "insert into notes (body, score, raw) values ('first', 1.5, x'00ff'), ('second', null, null), ('gone', 2, null);" +
       "delete from notes where body = 'gone';" +
-      // Text in a column declared BLOB, and numbers in a column without a type: both come back as the plugin stored them.
+      // Text in a column declared BLOB, and numbers in a column without a type: both come back as the plugin stored them,
+      // negative zero (which a column without a type keeps) with its sign.
       'create table docs (id integer primary key, payload blob, n);' +
-      `insert into docs values (1, '{"a":1}', 5), (2, 'plain', 2.5);`,
+      `insert into docs values (1, '{"a":1}', 5), (2, 'plain', 2.5), (3, 'signed', -0.0);`,
   );
   plugin.close();
 }
@@ -212,7 +213,7 @@ describe('moving a SQLite install to Postgres', () => {
         schema: 'trek_plugin_move_notes',
         tables: [
           expect.objectContaining({ label: '_plugin_migrations', rows: 1 }),
-          expect.objectContaining({ label: 'docs', rows: 2 }),
+          expect.objectContaining({ label: 'docs', rows: 3 }),
           expect.objectContaining({ label: 'notes', rows: 2 }),
         ],
       }),
@@ -289,6 +290,7 @@ describe('moving a SQLite install to Postgres', () => {
     expect(await store.query('select id, payload, n from docs order by id')).toEqual([
       { id: 1, payload: '{"a":1}', n: 5 },
       { id: 2, payload: 'plain', n: 2.5 },
+      { id: 3, payload: 'signed', n: -0 },
     ]);
     // The migration the plugin ran on SQLite is not run again, and the next id skips the one SQLite handed out.
     expect(await store.migrate('001-notes', 'create table notes (id bigint)')).toEqual({ applied: false });

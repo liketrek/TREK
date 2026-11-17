@@ -1,5 +1,5 @@
 /**
- * MOVE-001..025: the move of a SQLite install into Postgres
+ * MOVE-001..026: the move of a SQLite install into Postgres
  * (src/db/engine/postgres/sqlite-move/), over real SQLite files and a
  * stand-in for Postgres that keeps what it is sent (tests/helpers/fake-postgres-move.ts):
  * the refusals before anything is written, the copy in foreign key order with
@@ -10,6 +10,7 @@
  */
 import type { AppEnv } from '../../../../../../src/app-config';
 import { CLEAR_SCHEMA_SQL } from '../../../../../../src/db/engine/postgres/clear-schema';
+import { PG_NOW_TEXT_DEFAULT } from '../../../../../../src/db/engine/postgres/schema-adjust';
 import {
   runMoveCommand,
   USAGE,
@@ -34,7 +35,11 @@ import {
   pluginColumnKind,
   pluginDefault,
 } from '../../../../../../src/db/engine/postgres/sqlite-move/plugin-data';
-import { sqliteInstallHoldsAccounts, SqliteSource } from '../../../../../../src/db/engine/sqlite/sqlite-source';
+import {
+  InvalidUtf8Text,
+  sqliteInstallHoldsAccounts,
+  SqliteSource,
+} from '../../../../../../src/db/engine/sqlite/sqlite-source';
 import type { AnyOrm } from '../../../../../../src/db/orm';
 import { FakePostgres, fakeMoveOrm, type FakeTableDef } from '../../../../../helpers/fake-postgres-move';
 import { PostgreSqlPlatform } from '@mikro-orm/postgresql';
@@ -487,6 +492,15 @@ describe('the pieces', () => {
     expect(pluginDefault("strftime('%s','now')", 'integer')).toBe(
       'CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) AS bigint)',
     );
+    // A default the column's Postgres type would refuse, or store as another value, is not carried over.
+    expect(pluginDefault('0', 'bytes')).toBeNull();
+    expect(pluginDefault("'a'", 'bytes')).toBeNull();
+    expect(pluginDefault('1.5', 'integer')).toBeNull();
+    expect(pluginDefault('1.5', 'float')).toBe('1.5');
+    expect(pluginDefault("'abc'", 'integer')).toBeNull();
+    expect(pluginDefault('CURRENT_TIMESTAMP', 'integer')).toBeNull();
+    expect(pluginDefault('CURRENT_TIMESTAMP', 'text')).toBe(PG_NOW_TEXT_DEFAULT);
+    expect(pluginDefault("strftime('%s','now')", 'bytes')).toBeNull();
 
     expect(batchRows(2)).toBe(500);
     expect(batchRows(200)).toBe(150);
@@ -523,6 +537,57 @@ describe('the pieces', () => {
     source.close();
     source.close();
     expect(fs.readFileSync(path.join(dir, 'travel.db')).equals(before)).toBe(true);
+  });
+
+  it('MOVE-026: text is read by its bytes, so bytes that are not UTF-8 are never replaced unseen', () => {
+    const file = sqlite(
+      path.join(dir, 'bytes.db'),
+      'create table t (v);' +
+        "insert into t values (cast(x'ff41' as text)), (cast(x'f09080' as text)), (cast(x'efbbbf41' as text)), " +
+        "(cast(x'efbfbd' as text)), ('a' || char(0) || 'b'), (''), (x''), (7), (2.5), (null);",
+    );
+    const source = SqliteSource.open(file);
+    const values = [...source.rows('t', ['v'])].map(([value]) => value);
+    source.close();
+    expect(values[0]).toEqual(new InvalidUtf8Text(Buffer.from([0xff, 0x41]), '\uFFFDA'));
+    expect(values[1]).toBeInstanceOf(InvalidUtf8Text);
+    expect(String(values[1])).toBe('\uFFFD');
+    // A byte order mark and a real U+FFFD are text like any other, kept as they are.
+    expect(values.slice(2)).toEqual(['\uFEFFA', '\uFFFD', 'a\u0000b', '', Buffer.alloc(0), 7n, 2.5, null]);
+  });
+
+  it('MOVE-028: text of a file created as UTF-16 is read in that encoding, its bad sequences refused like bad UTF-8', () => {
+    const file = sqlite(
+      path.join(dir, 'utf16.db'),
+      "pragma encoding = 'UTF-16le'; create table t (v);" +
+        "insert into t values ('h\u00e9llo \u{1F600}'), (cast(x'00d841' || x'00' as text)), ('');",
+    );
+    const source = SqliteSource.open(file);
+    const values = [...source.rows('t', ['v'])].map(([value]) => value);
+    source.close();
+    expect(values[0]).toBe('h\u00e9llo \u{1F600}');
+    expect(values[1]).toEqual(new InvalidUtf8Text(Buffer.from([0x00, 0xd8, 0x41, 0x00]), '\uFFFDA'));
+    expect(values[2]).toBe('');
+  });
+
+  it('MOVE-027: a plugin key SQLite compared with NOCASE or RTRIM is listed, since Postgres compares it exactly', async () => {
+    const pluginDir = path.join(dir, 'plugins-data', 'move-tags');
+    fs.mkdirSync(pluginDir, { recursive: true });
+    sqlite(
+      path.join(pluginDir, 'plugin.db'),
+      `create table tags (name text primary key collate nocase, label text, slug text collate rtrim, note text);
+       create unique index tags_label on tags (label collate nocase, slug);
+       create index tags_note on tags (note);
+       insert into tags values ('Alpha', 'a', 's', 'n');`,
+    );
+    const summary = await moveSqliteToPostgres(options());
+    expect(summary.plugins[0].notCarried).toEqual([
+      'the collation NOCASE, RTRIM of the index tags_label on tags (Postgres compares its values exactly)',
+      'the collation NOCASE of the primary key on tags (Postgres compares its values exactly)',
+    ]);
+    const statements = pg.statements.join('\n');
+    expect(statements).toContain('create unique index on "trek_plugin_move_tags"."tags" ("label", "slug")');
+    expect(statements).toContain('create index on "trek_plugin_move_tags"."tags" ("note")');
   });
 });
 
