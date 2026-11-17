@@ -1,9 +1,6 @@
 [
   "tests/unit/mcp/tools-notifications.test.ts",
   "tests/unit/mcp/tools-packing-advanced.test.ts",
-  "tests/unit/mcp/tools-reservations.test.ts",
-  "tests/unit/mcp/tools-roadtrip.test.ts",
-  "tests/unit/mcp/tools-settings.test.ts",
   "tests/unit/mcp/tools-share.test.ts",
   "tests/unit/mcp/tools-tags-maps-weather.test.ts",
   "tests/unit/mcp/tools-transit.test.ts",
