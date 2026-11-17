@@ -3,7 +3,6 @@
  * Covers SHARE-001 to SHARE-009.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as sharedDb } from '../../src/db/database';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
 import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
@@ -13,6 +12,7 @@ import { ReservationDayPositions } from '../../src/db/entities/ReservationDayPos
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { Settings } from '../../src/db/entities/Settings.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { LocalDriver } from '../../src/nest/storage/drivers/local.driver';
 import { DEFAULT_UPLOADS_ROOT, GLOBAL_TEMP_DIR } from '../../src/nest/storage/storage-paths';
@@ -30,7 +30,6 @@ import { addTripMember, makeDay, makeTrip } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
 import { resetRateLimits } from '../helpers/test-db';
-import { createTestOrm } from '../helpers/test-orm';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -56,11 +55,9 @@ const testStorage = new StorageService({
   tempDir: () => GLOBAL_TEMP_DIR,
   replicaFailures: () => [],
 } as unknown as StorageRegistryService);
-// Plan 3c Task 1: PlacePhotoCacheService now needs two repositories — a
-// second, throwaway MikroORM bound to the SAME `sharedDb` connection
-// (`allowGlobalContext: true`, the same shape `place-photo-cache.service
-// .test.ts` uses), since this helper's two call sites below run outside any
-// HTTP request the app's own `withRequestContext` would wrap.
+// The cache over the app's own ORM, so its rows land in the database under
+// test on either engine. Its two call sites below run outside an HTTP request,
+// so each goes through withRequestContext as a request would.
 let placePhotoCache: PlacePhotoCacheService;
 
 let nestApp: INestApplication;
@@ -71,12 +68,11 @@ beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
   orm = nestApp.get(MikroORM);
-  const t = await createTestOrm(sharedDb, { allowGlobalContext: true });
   placePhotoCache = new PlacePhotoCacheService(
     testStorage,
-    t.repo(GooglePlacePhotoMeta),
-    t.repo(Places),
-    t.repo(CollectionPlaces),
+    orm.em.getRepository(GooglePlacePhotoMeta),
+    orm.em.getRepository(Places),
+    orm.em.getRepository(CollectionPlaces),
   );
 });
 
@@ -606,7 +602,7 @@ describe('Shared trip — place photos in shared links (issue #1100)', () => {
 
   it('SHARE-018 — public proxy streams cached bytes for a valid token + place (no cookie)', async () => {
     const { token } = await setupSharedPlaceWithPhoto();
-    await placePhotoCache.put(PLACE_ID, photoBytes, null);
+    await withRequestContext(orm, () => placePhotoCache.put(PLACE_ID, photoBytes, null));
     cachedFilePath = path.join(
       DEFAULT_UPLOADS_ROOT,
       'photos/google',
@@ -653,7 +649,7 @@ describe('Shared trip — place photos in shared links (issue #1100)', () => {
       .post(`/api/trips/${trip.id}/share-link`)
       .set('Cookie', authCookie(user.id))
       .send({ share_map: false });
-    await placePhotoCache.put(PLACE_ID, photoBytes, null);
+    await withRequestContext(orm, () => placePhotoCache.put(PLACE_ID, photoBytes, null));
     cachedFilePath = path.join(
       DEFAULT_UPLOADS_ROOT,
       'photos/google',
