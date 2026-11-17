@@ -1,3 +1,4 @@
+import { SqliteNullOrderPlatform, withSqliteNullOrder } from './null-order';
 import { type Configuration } from '@mikro-orm/core';
 import { PostgreSqlConnection, PostgreSqlDriver } from '@mikro-orm/postgresql';
 
@@ -49,19 +50,29 @@ class NumberTypesConnection extends PostgreSqlConnection {
     types.setTypeParser(NUMERIC_OID, parseNumeric);
     return options;
   }
+
+  /** The pool's Kysely dialect, compiling every ORDER BY with SQLite's NULL position (`null-order.ts`). */
+  override createKyselyDialect(overrides: Parameters<PostgreSqlConnection['createKyselyDialect']>[0]) {
+    return withSqliteNullOrder(super.createKyselyDialect(overrides)) as ReturnType<
+      PostgreSqlConnection['createKyselyDialect']
+    >;
+  }
 }
 
 /**
  * MikroORM's Postgres driver on a connection that reads `bigint` and `numeric`
- * as numbers. The parsers belong to this pool only: nothing global in `pg`
- * changes.
+ * as numbers, and on a platform and a query compiler that sort NULLs where
+ * SQLite does (`null-order.ts`). The parsers belong to this pool only:
+ * nothing global in `pg` changes.
  */
 export class TrekPostgreSqlDriver extends PostgreSqlDriver {
   constructor(config: Configuration) {
     super(config);
-    // PostgreSqlDriver's constructor hardcodes its connection class, as
-    // SqliteDriver's does (`db/orm-driver.ts`). It keeps the connection in a
-    // field, which is not public, so it is replaced here, before anything connects.
+    // PostgreSqlDriver's constructor hardcodes its connection and platform
+    // classes, as SqliteDriver's does (`db/orm-driver.ts`). It keeps both in
+    // fields, which are not public, so they are replaced here, before anything
+    // connects and before the configuration reads the platform.
     (this as unknown as { connection: PostgreSqlConnection }).connection = new NumberTypesConnection(config);
+    (this as unknown as { platform: SqliteNullOrderPlatform }).platform = new SqliteNullOrderPlatform();
   }
 }
