@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Dvojfaktorové overenie',
   'login.mfaSubtitle': 'Zadajte 6-miestny kód z vašej autentifikačnej aplikácie.',
   'login.mfaCodeLabel': 'Overovací kód',
+  'login.mfaPlaceholder': '000000 alebo XXXX-XXXX',
   'login.mfaCodeRequired': 'Zadajte kód z vašej autentifikačnej aplikácie.',
   'login.mfaHint': 'Otvorte Google Authenticator, Authy alebo inú TOTP aplikáciu.',
   'login.mfaBack': '← Späť na prihlásenie',

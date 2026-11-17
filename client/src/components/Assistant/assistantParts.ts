@@ -28,7 +28,8 @@ import type { CardEntry } from './cards/cardTypes';
  */
 
 /** Where the settings card for the user's own AI connection lives. */
-export const AI_SETTINGS_PATH = '/settings?tab=integrations';
+/** The AI connection card itself: the anchor opens it, shut as it otherwise starts. */
+export const AI_SETTINGS_PATH = '/settings?tab=integrations#ai-connection';
 
 type ToolCallPart = Extract<AssistantMessagePart, { type: 'tool-call' }>;
 

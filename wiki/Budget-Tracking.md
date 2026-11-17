@@ -18,6 +18,7 @@ The tab opens with the same bar as Transports, Bookings, Lists and Files. From l
 - **Search expenses…**, which narrows the ledger by name as you type. Esc clears it.
 - The **Filter** button (funnel). Its popover holds the **All / Paid by me / I'm owed** switch, a **Category** list and a **Day** list with the days that have expenses. The button shows how many filters are on, and **Reset filters** at the foot of the popover switches them all off.
 - **Export CSV** (download icon), see [Exporting](#exporting).
+- The **currency** the tab shows the trip in (*Show amounts in*), see [Currency](#currency).
 - **List** and **Table** (two icons), which switch the tab between the expense ledger and the [Table view](#table-view). The list is where Costs opens; the choice is remembered in this browser.
 - For members who may edit costs: **Settle up**, **Scan receipt** (only with the AI Parsing addon and a model that reads images, see [Scanning a receipt](#scanning-a-receipt)) and **Add expense**.
 
@@ -32,6 +33,8 @@ Costs is **multi-currency** (#551). Three settings are involved, and they do dif
 - The **trip currency** (set in the trip's dialog on My Trips: the pencil on the trip card, **Edit Trip**) is the trip's accounting base. Every balance and settle-up is calculated in it.
 - Each **expense** carries **its own currency**. Pick it in the expense dialog and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt does not reopen when the market moves.
 - Your **display currency** (Settings → General → Language & region → **Display currency**) converts what you *read* (totals, balances, the ledger) into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
+
+The tab can also read one trip in another currency than your display currency, without changing Settings: the currency picker in the bar (on the phone and in a narrow window, beside the **Expenses** heading) converts every total, balance and settle-up of this trip into the currency you pick, say the one of the country you travel on to. Your display currency and the trip's own lead the list. The pick is kept per trip in this browser and changes nothing that is stored; picking your display currency again goes back to it. Settle-ups and payments recorded from the tab are made in the picked currency, and the CSV export adds its column in it.
 
 165 currencies are supported, with rates from [Frankfurter](https://frankfurter.dev) (no API key needed). When an expense's currency differs from the one you read in, the dialog shows the original beside the converted amount (`$100.00 ≈ 7 668,71 ₽`, marked *live rate* until the expense is saved and its rate frozen), and the ledger row shows both (`$100.00 → 7 668,71 ₽`).
 
@@ -67,7 +70,7 @@ The filters work together: pick a day and a banner above the list names the day 
 
 ![The Add expense dialog: the name typed into the head band beside the category pill, then amount, currency and day, Who paid?, Split, and Note beside Receipts & Invoices](assets/ExpenseDialog.png)
 
-1. Click **Add expense**. The dialog opens dated today, in your display currency (the trip's own unless you picked another in Settings), paid by you and split equally between everyone.
+1. Click **Add expense**. The dialog opens dated today, in the trip's own currency, paid by you and split equally between everyone. In the **Currency** list the trip currency and your display currency come first, since most bills are in one of the two.
 2. Type what it was for into the head band, where it reads *e.g. Dinner, souvenirs, gas…*. The name is required. The pill beside it is the category, **Food & drink** until you pick another; the head band takes on its colour.
 3. Enter the **Total amount**, and change **Currency** and **Day** if they differ. The **±** beside the amount turns the expense into a refund: a negative total gives money back instead of taking it, and the split runs the other way.
 4. Set **Who paid?** and **Split** (both below).
@@ -104,6 +107,8 @@ On the phone the booking, transport and place sheets carry the same block. Tap a
 
 An expense can carry the receipt or invoice behind it. **Attach** in the **Receipts & Invoices** block of the expense dialog opens the file picker for images and PDFs, and several files can go on one expense. They are uploaded when the expense is saved, land in the trip's Files with a link to the expense, and are listed in the block from then on; click a name to view it. If the save fails after the upload, the uploaded files are taken back out again. Any that could not be removed are reported (*Save failed, and 1 uploaded receipt is still there. Remove it in the Files tab.*), so you can delete them there.
 
+A file the trip already has can be the receipt too, so a booking confirmation that doubles as the invoice is not uploaded a second time. **Link**, beside **Attach** while the trip has files the expense does not carry yet, lists them: the files of the booking the expense belongs to come first, and a click puts one on the expense. Like an attached file it is linked when you save, and nothing is uploaded. The file keeps its other links, and **Remove receipt** only takes it off the expense again. The phone sheet has the same **Link** pill beside **Attach receipt / invoice**.
+
 Receipts need a connection. If you are offline, the dialog says *Receipts need a connection to upload. Remove the new ones to save the expense offline, or save once you are back online.* An expense without new receipts can be saved offline.
 
 A row with receipts shows a **Receipts** chip beside the name, with the count when there is more than one. Click it to open the viewer: it shows one receipt at a time, pages through them with the **arrow keys**, and offers a download for a PDF.
@@ -137,7 +142,7 @@ An expense with no payer is flagged **Unfinished** on its row and counted into t
 **Split** decides who owes for the expense. The switch beside the heading has three modes, and a line under it says what the current one does. Every member is listed with a box to tick; an unticked member owes nothing.
 
 - **Equally**: everyone ticked pays the same share, shown beside each name, with the head count and *{amount} per person* under the list. Remainder cents from rounding are handed out deterministically and rotated by the expense, so over a trip nobody is always the one who pays the extra cent.
-- **Custom**: type each person's share. Together they have to make the total: under the list, a green *Split matches total* or a red *Sum of splits: … (under by …)* / *(over by …)* says where you stand, and the dialog will not save until it matches. A small switch next to the hint (**Enter shares as**) picks between the currency symbol and **%**. In percent, each person gets a percentage instead, they have to add up to 100 % (a red *… % of 100 % assigned* says when they do not), and TREK turns them into amounts that add up to the total exactly.
+- **Custom**: type each person's share. Together they have to make the total: under the list, a green *Split matches total* or a red *Sum of splits: … (under by …)* / *(over by …)* says where you stand, and the dialog will not save until it matches. A small switch next to the hint (**Enter shares as**) picks between the currency symbol, **%** and **Shares**. In percent, each person gets a percentage instead, they have to add up to 100 % (a red *… % of 100 % assigned* says when they do not), and TREK turns them into amounts that add up to the total exactly. With **Shares**, each person gets a number of shares, such as the nights they stayed: everyone starts at one, and an apartment of 390 € for five nights against four comes to 216,67 € and 173,33 €. A person on zero shares owes nothing, and with nobody on a share the dialog says *Give at least one person a share*. What is saved is the amounts, so the expense reopens with them. The phone sheet has the same switch under the split modes.
 - **Ticket**: list what was on the receipt. Each line has an **Item name**, a price and, under *Splitting:*, a chip per member to tick who had it. **Add item** adds a line, the bin removes one. The total is summed from the lines, **Individual shares** shows what each person comes to, cent-exact, and the lines are kept, so the list is still there the next time you open the expense.
 
 ## Settlement calculator
@@ -158,6 +163,20 @@ The final budget comes to each member's share of the paid expenses (exact in the
 The **Add payment** dialog has **From** and **To** (the head band reads *You → Anna* as you pick), **Amount**, **Currency**, **Day** and **Note**. The note is free text, such as *Paid in cash, by bank transfer…*; in the ledger it sits on the payment's row as a pill that opens on a click, like an expense's note. A payment carries **its own currency**: settling a rouble debt with a euro transfer is normal, and its rate is frozen when you record it. A payment made in another currency shows both amounts in the ledger (`$30.00 → 27,00 €`). The day is the day it happened, so a transfer you only get round to recording three days later still lands on the right day; payments recorded before this field existed stay on the day they were recorded.
 
 Balances are always netted in the **trip currency** and converted to your display currency once, at the end, so they stay stable even when the trip mixes currencies. An expense or payment in a foreign currency for which no exchange rate is known yet is left out of the balances and totals rather than counted 1:1; see [Currencies](Currencies#expense-currency).
+
+## Totals only
+
+Not every trip splits its costs: a couple who share everything, or someone who only wants to know what the trip costs, has no use for who paid and who owes whom. **Split costs between travelers**, the switch at the foot of the right-hand column (on the phone, under the summary), turns that side off for the whole trip. It is shown to members who may edit costs (`budget_edit`) on a trip with more than one member.
+
+With the switch off, Costs keeps the totals: **Total trip spend**, the expenses with their categories, days and receipts, **By category**, the table and the CSV export. What is owed, the settle-up suggestions, the balances, the final budget, the payers, the split chips and the **Unfinished** chip are left out, as on a trip of one (see below). A new expense is saved without a payer and without a split, so it does not turn into a debt if the trip splits its costs again later. An expense that already has a payer or a split keeps them, and one whose split holds more than the obvious (several payers, an uneven split, a ticket) still shows them in its dialog. Turning the switch back on brings everything back, with the payments and splits that were recorded before.
+
+The setting belongs to the trip, so every member sees the same Costs. Through MCP it is `update_trip` with `costs_mode` (`split` or `totals`).
+
+## A trip of one
+
+With only you on the trip there is nothing to split: every share is the whole amount, and nobody can owe anybody. Costs then leaves that side out. The summary is the **Total trip spend** card on its own, with the number of expenses under it, and the right-hand column keeps **By category**. **You owe**, **You're owed**, **Outstanding amount**, **Settle up**, **Balances** and **Final budget** are gone, and so are the travelers in the bar, the **Settle up** button and the **All / Paid by me / I'm owed** switch. Rows show no payers, no split and no **Unfinished** chip, and the expense dialog asks for neither **Who paid?** nor **Split**; a new expense is saved as paid by you. The phone does the same.
+
+Everything comes back as soon as a second member joins. It also stays while the ledger still names someone else: a traveler who left with money open, or an expense split with them. An expense whose payers or split hold more than you alone (several payers, an uneven split, a ticket) keeps both sections in its dialog, so nothing on it is hidden from you.
 
 ## Members who left and deleted guests
 
@@ -185,6 +204,8 @@ Four cards sit above the ledger:
 - **Total trip spend**: the grand total across all travelers, with **Your share** and **You paid** under it.
 
 The right-hand column ends with **By category**: spending per category as a ranked list of bars in the category colours. Only categories with spend on them appear, sorted by amount, and the bars are scaled against the biggest category rather than the trip total, so the ranking stays readable.
+
+A click on a category in **By category** leaves it out of the totals for a look without it, say to see what the trip cost without food. The row stays where it was, dimmed and struck through, and the other bars rescale. **Total trip spend**, **Your share** and **You paid** drop that category, and a line on the total card and above the bars names what is left out; **Count all**, or a second click on the row, brings it back. Nothing is saved and nothing owed changes: **You owe**, **You're owed**, the outstanding amount, the settle-up and the balances stay whole, and the choice is gone when you leave the tab. On the phone, a tap on the category does the same.
 
 ### Costs in the day plan
 

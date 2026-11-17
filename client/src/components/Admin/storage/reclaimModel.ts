@@ -67,11 +67,23 @@ function freedBy(run: StorageReclaimReport | null): ReclaimCount {
   );
 }
 
+type SkipReason = StorageReclaimCategoryReport['skipped'];
+
 /**
- * The reclaim state as the storage panels show it, desktop and phone alike.
- * `null` (a server from before the reclaim pass, or a state not loaded) reads
- * as deletion off, not running and never checked.
+ * The reasons the pass gives when it left a category before judging it, so its
+ * counts mean nothing. Every other reason (a backup running, a failed delete,
+ * an interrupted pass) comes after the judgement and keeps its figures; a new
+ * reason counts by default rather than hiding what the pass found.
  */
+const NEVER_JUDGED: ReadonlySet<SkipReason> = new Set<SkipReason>([
+  'sources_missing',
+  'shared_location',
+  'foreign_install',
+  'owner_unknown',
+  'list_failed',
+  'source_failed',
+]);
+
 /**
  * One category of the last check as a line, or null when it has nothing to
  * say. A category the pass stopped in still counts what it found; one it
@@ -82,7 +94,7 @@ function lineOf(
   report: StorageReclaimCategoryReport | undefined
 ): ReclaimCategoryLine | null {
   if (!report || report.skipped === 'not_reclaimed') return null;
-  const judged = report.skipped === null || report.skipped === 'interrupted' || report.skipped === 'delete_failed';
+  const judged = !NEVER_JUDGED.has(report.skipped);
   // What was deleted on this run no longer waits to be freed.
   const freeable = judged ? minus(report.eligible, report.deleted) : NONE;
   const waiting = judged ? minus(report.unreferenced, report.eligible) : NONE;

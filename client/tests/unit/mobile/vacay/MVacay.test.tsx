@@ -1,8 +1,10 @@
-// FE-MOB-MVACSCR-001 to FE-MOB-MVACSCR-021
+// FE-MOB-MVACSCR-001 to FE-MOB-MVACSCR-023
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '../../../helpers/render';
 import MVacay from '../../../../src/mobile/screens/vacay/MVacay';
+import MNavRail from '../../../../src/mobile/components/MNavRail';
+import { setSizeClass } from '../../../helpers/sizeClass';
 import type { DayVisualContext } from '../../../../src/mobile/screens/vacay/vacayDayModel';
 
 const mocks = vi.hoisted(() => ({ v: {} as Record<string, unknown> }));
@@ -45,6 +47,14 @@ const dayCtx: DayVisualContext = {
 };
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+// The paging itself is MDayPager's, tested there. This draws only the current
+// page, so the year grid and the month editor under test are the ones on screen.
+vi.mock('../../../../src/mobile/components/MDayPager', () => ({
+  default: (props: { selectedDayId: number | null; renderDay: (id: number | null, active: boolean) => unknown }) =>
+    props.renderDay(props.selectedDayId, true),
+}));
 
 /** The screen flips the modifier flags with an updater, so the mock has to run it. */
 function boolSetter() {
@@ -58,6 +68,10 @@ function buildV(over: Record<string, unknown> = {}): Record<string, unknown> {
     loading: false,
     plan: { id: 1, holiday_calendars: [] },
     selectedYear: 2026,
+    years: [2026],
+    selectYear: vi.fn((_year: number) => undefined),
+    monthsFor: (_year: number) => Array.from({ length: 12 }, (_, m) => ({ year: 2026, month: m })),
+    monthNameLongFor: (slot: number) => MONTHS_LONG[slot],
     users: [
       { id: 1, username: 'alice', color: '#3b82f6' },
       { id: 2, username: 'bob', color: null },
@@ -218,19 +232,30 @@ describe('MVacay', () => {
     expect(screen.queryByRole('button', { name: 'Increase allowance' })).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-MVACSCR-010: person chips select their member and fall back on the shared color', () => {
+  it('FE-MOB-MVACSCR-010: the people pill opens the people sheet, where a member is picked', () => {
     render(<MVacay />);
-
-    const bobChip = screen.getByRole('button', { name: 'bob' });
-    const swatch = bobChip.querySelector('span') as HTMLElement;
-    expect(swatch.style.background).toBe('rgb(99, 102, 241)');
-
-    fireEvent.click(bobChip);
-    expect(mocks.v.selectPerson).toHaveBeenCalledWith(2);
+    fireEvent.click(screen.getByRole('button', { name: /People/ }));
+    expect(mocks.v.setSheet).toHaveBeenCalledWith('people');
   });
 
-  it('FE-MOB-MVACSCR-011: shared chips toggle their overlay and report their state', () => {
+  it('FE-MOB-MVACSCR-010b: in the people sheet a member is picked, falling back on the shared color', async () => {
+    mocks.v = buildV({ sheet: 'people' });
+    render(<MVacay />);
+
+    const sheet = await screen.findByRole('dialog', { name: 'People' });
+    const bobRow = within(sheet).getByRole('button', { name: 'bob' });
+    const swatch = bobRow.querySelector('span') as HTMLElement;
+    expect(swatch.style.background).toBe('rgb(99, 102, 241)');
+    expect(within(sheet).getByRole('button', { name: 'alice' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(bobRow);
+    expect(mocks.v.selectPerson).toHaveBeenCalledWith(2);
+    expect(mocks.v.setSheet).toHaveBeenLastCalledWith(null);
+  });
+
+  it('FE-MOB-MVACSCR-011: shared calendars toggle their overlay from the people sheet and report their state', async () => {
     mocks.v = buildV({
+      sheet: 'people',
       incomingShares: [
         { id: 7, owner_id: 3, username: 'carol', color: '#f59e0b', hidden: false },
         { id: 8, owner_id: 4, username: 'dan', color: '#10b981', hidden: true },
@@ -238,8 +263,9 @@ describe('MVacay', () => {
     });
     render(<MVacay />);
 
-    const carol = screen.getByRole('button', { name: 'carol' });
-    const dan = screen.getByRole('button', { name: 'dan' });
+    const sheet = await screen.findByRole('dialog', { name: 'People' });
+    const carol = within(sheet).getByRole('button', { name: 'carol' });
+    const dan = within(sheet).getByRole('button', { name: 'dan' });
     expect(carol).toHaveAttribute('aria-pressed', 'true');
     expect(dan).toHaveAttribute('aria-pressed', 'false');
 
@@ -249,8 +275,14 @@ describe('MVacay', () => {
     expect(mocks.v.toggleShareHidden).toHaveBeenNthCalledWith(2, 8, false);
   });
 
-  it('FE-MOB-MVACSCR-012: shows the company legend and every enabled holiday calendar', () => {
-    mocks.v = buildV({
+  it('FE-MOB-MVACSCR-011b: a single member with nothing shared gets no people pill', () => {
+    mocks.v = buildV({ users: [{ id: 1, username: 'alice', color: '#3b82f6' }] });
+    render(<MVacay />);
+    expect(screen.queryByRole('button', { name: /People/ })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MVACSCR-012: the legend waits behind its pill and lists the company days and every holiday calendar', async () => {
+    const holidays = {
       holidaysEnabled: true,
       plan: {
         id: 1,
@@ -259,12 +291,21 @@ describe('MVacay', () => {
           { id: 2, region: 'NL', label: null, color: '#bbf7d0' },
         ],
       },
-    });
-    render(<MVacay />);
+    };
+    mocks.v = buildV(holidays);
+    const { unmount } = render(<MVacay />);
+    // Not on screen until asked for.
+    expect(screen.queryByText('Germany')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Legend/ }));
+    expect(mocks.v.setSheet).toHaveBeenCalledWith('legend');
+    unmount();
 
-    expect(screen.getByText('Company days')).toBeInTheDocument();
-    expect(screen.getByText('Germany')).toBeInTheDocument();
-    expect(screen.getByText('NL')).toBeInTheDocument();
+    mocks.v = buildV({ ...holidays, sheet: 'legend' });
+    render(<MVacay />);
+    const sheet = await screen.findByRole('dialog', { name: 'Legend' });
+    expect(within(sheet).getByText('Company days')).toBeInTheDocument();
+    expect(within(sheet).getByText('Germany')).toBeInTheDocument();
+    expect(within(sheet).getByText('NL')).toBeInTheDocument();
   });
 
   it('FE-MOB-MVACSCR-013: the year grid shows twelve month cards and reports day taps', () => {
@@ -315,7 +356,7 @@ describe('MVacay', () => {
     mocks.v = buildV({ view: 'edit' });
     render(<MVacay />);
 
-    // The person chip row carries the same name; the mode switch comes last.
+    // The mode switch carries the selected person's name.
     const person = screen.getAllByRole('button', { name: 'alice' });
     fireEvent.click(person[person.length - 1]);
     expect(mocks.v.setMode).toHaveBeenLastCalledWith('vacation');
@@ -387,5 +428,31 @@ describe('MVacay', () => {
     mocks.v = buildV({ loading: true });
     rerender(<MVacay />);
     expect(container.firstElementChild).toHaveClass('h-dvh');
+  });
+
+  it('FE-MOB-MVACSCR-022: on a wide window the switch stands at the head of the rail, not over the calendar', () => {
+    setSizeClass('wide');
+    render(
+      <>
+        <MNavRail />
+        <MVacay />
+      </>,
+      { initialEntries: ['/vacay'] }
+    );
+    const rail = screen.getByRole('navigation', { name: 'Navigation' });
+    // One switch, and it is the rail's first button.
+    expect(screen.getAllByRole('button', { name: 'Edit calendar' })).toHaveLength(1);
+    const head = within(rail).getAllByRole('button')[0];
+    expect(head).toHaveAccessibleName('Edit calendar');
+    fireEvent.click(head);
+    expect(mocks.v.toggleView).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-MVACSCR-023: each month of the year grid names its weekday columns, from the first day of the week', () => {
+    mocks.v = buildV({ weekStart: 0 });
+    render(<MVacay />);
+    const grid = screen.getAllByRole('button', { name: 'Jan' })[0].parentElement as HTMLElement;
+    const letters = Array.from(grid.querySelectorAll('[aria-hidden="true"] > span')).map((el) => el.textContent);
+    expect(letters).toEqual(['S', 'M', 'T', 'W', 'T', 'F', 'S']);
   });
 });

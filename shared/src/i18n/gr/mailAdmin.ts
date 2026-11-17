@@ -1,0 +1,52 @@
+import type { TranslationStrings } from '../types';
+
+const mailAdmin: TranslationStrings = {
+  'mailAdmin.title': 'Εισαγωγή email κρατήσεων',
+  'mailAdmin.hint': 'Οι προωθημένες επιβεβαιώσεις κράτησης γίνονται κρατήσεις στο σωστό ταξίδι.',
+  'mailAdmin.enabled': 'Εισαγωγή email κρατήσεων',
+  'mailAdmin.enabledHint':
+    'Δίνει σε όλους σε αυτή την εγκατάσταση μια διεύθυνση προώθησης. Όταν είναι ανενεργό, καμία διεύθυνση δεν δέχεται email.',
+  'mailAdmin.transport.label': 'Πώς φτάνουν τα email',
+  'mailAdmin.transport.off': 'Μόνο μεταφόρτωση',
+  'mailAdmin.transport.imap': 'Γραμματοκιβώτιο IMAP',
+  'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    'Χωρίς γραμματοκιβώτιο: ένα αποθηκευμένο μήνυμα ανεβαίνει στις ρυθμίσεις ως αρχείο .eml και το TREK το διαβάζει με τον ίδιο τρόπο. Ιδανικό για δοκιμή.',
+  'mailAdmin.transport.imapInfo':
+    'Το TREK ελέγχει ένα γραμματοκιβώτιο κάθε δύο λεπτά και παραλαμβάνει τα νέα μηνύματα. Χρησιμοποίησε ξεχωριστό γραμματοκιβώτιο που δέχεται διευθύνσεις με + (trek+…@your-domain), όχι προσωπικό: τα αναγνωσμένα μηνύματα μεταφέρονται στο TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'Μια υπηρεσία email, όπως ένα Cloudflare Email Worker, παραδίδει κάθε μήνυμα απευθείας στο TREK και το υπογράφει με το κλειδί παρακάτω, ώστε κανείς άλλος να μην μπορεί να εισάγει μηνύματα. Για εγκαταστάσεις χωρίς γραμματοκιβώτιο.',
+  'mailAdmin.aiDaily': 'Email AI ανά άτομο και ημέρα',
+  'mailAdmin.aiDailyHint': 'Πάνω από αυτό διαβάζονται μόνο δεδομένα κράτησης αναγνώσιμα από μηχανή.',
+  'mailAdmin.template': 'Πρότυπο διεύθυνσης',
+  'mailAdmin.templateHint': 'Η διεύθυνση προώθησης, με {token} εκεί που μπαίνει ο κωδικός κάθε ατόμου.',
+  'mailAdmin.imap.host': 'Διακομιστής',
+  'mailAdmin.imap.port': 'Θύρα',
+  'mailAdmin.imap.tls': 'Κρυπτογράφηση',
+  'mailAdmin.imap.user': 'Χρήστης',
+  'mailAdmin.imap.pass': 'Κωδικός πρόσβασης',
+  'mailAdmin.imap.mailbox': 'Φάκελος',
+  'mailAdmin.imap.mailboxHint': 'Τα email που διαβάστηκαν μεταφέρονται στο TREK/processed.',
+  'mailAdmin.webhook.secret': 'Μυστικό υπογραφής',
+  'mailAdmin.webhook.secretHint':
+    'Τουλάχιστον 32 χαρακτήρες· ο αποστολέας υπογράφει κάθε email με αυτό. Αν μείνει κενό, το webhook απενεργοποιείται.',
+  'mailAdmin.inboundUrl': 'Διεύθυνση webhook',
+  'mailAdmin.inboundUrlHint': 'Η υπηρεσία email σου στέλνει εδώ κάθε email, ανεπεξέργαστο και υπογεγραμμένο.',
+  'mailAdmin.copyUrl': 'Αντιγραφή διεύθυνσης',
+  'mailAdmin.envHint': 'Οι μεταβλητές περιβάλλοντος (MAIL_INGEST_*) υπερισχύουν αυτών των πεδίων.',
+  'mailAdmin.loadError': 'Οι ρυθμίσεις εισαγωγής email δεν μπόρεσαν να φορτωθούν.',
+  'mailAdmin.problem.secretShort': 'Το μυστικό χρειάζεται τουλάχιστον 32 χαρακτήρες.',
+  'mailAdmin.problem.portInvalid': 'Εισήγαγε θύρα από 1 έως 65535.',
+  'mailAdmin.problem.templateToken': 'Η διεύθυνση χρειάζεται {token} για τον κωδικό κάθε ατόμου.',
+  'mailAdmin.problem.dailyInvalid': 'Εισήγαγε έναν ακέραιο αριθμό από 0 έως 1000.',
+  'mailAdmin.status.lastRead': 'Τελευταία ανάγνωση {time}',
+  'mailAdmin.status.never': 'ποτέ',
+  'mailAdmin.status.mails': 'Email, 24 ώ',
+  'mailAdmin.status.added': 'Προστέθηκαν αυτόματα',
+  'mailAdmin.status.waiting': 'Σε αναμονή',
+  'mailAdmin.status.failed': 'Απέτυχαν',
+  'mailAdmin.test.run': 'Δοκιμή σύνδεσης',
+  'mailAdmin.test.ok': 'Συνδέθηκε',
+  'mailAdmin.test.failed': 'Χωρίς σύνδεση',
+};
+export default mailAdmin;

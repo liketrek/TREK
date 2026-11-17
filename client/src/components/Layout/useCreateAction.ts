@@ -31,18 +31,10 @@ export function useCreateAction(phone: boolean): CreateAction {
   const inCollection = useMatch('/collections/:id');
 
   if (inTrip) {
-    // The "+" is context-aware per active tab: Bookings → reservation,
-    // Transports → transport, Costs → expense. Tabs without a create modal
-    // (lists / files / collab) fall through to adding a place. #1349
-    const id = inTrip.params.id;
+    const id = inTrip.params.id ?? '';
     const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${id}`) : null;
-    if (tripTab === 'finanzplan')
-      return { label: t('costs.addExpense'), run: () => navigate(`/trips/${id}?create=expense`) };
-    if (tripTab === 'buchungen')
-      return { label: t('reservations.addManual'), run: () => navigate(`/trips/${id}?create=reservation`) };
-    if (tripTab === 'transports')
-      return { label: t('transport.addManual'), run: () => navigate(`/trips/${id}?create=transport`) };
-    return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) };
+    const intent = tripCreateIntent(id, tripTab);
+    return { label: t(intent.labelKey), run: () => navigate(intent.to) };
   }
   if (inJourney) {
     // Context-aware per tab, like the trip's "+": the Gallery holds photos, so
@@ -67,6 +59,19 @@ export function useCreateAction(phone: boolean): CreateAction {
     return { label: t('collections.addPlace'), run: () => navigate(`${path}?create=place`) };
   }
   return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') };
+}
+
+/**
+ * What the "+" creates inside a trip, by its active tab: Bookings a reservation,
+ * Transports a transport, Costs an expense. Tabs without a create modal (lists,
+ * files, collab) fall through to adding a place (#1349). Pure, so a caller that
+ * knows the tab itself (the trip's own ⌘N, MTripShell) asks with that one.
+ */
+export function tripCreateIntent(tripId: string, tab: string | null): { labelKey: string; to: string } {
+  if (tab === 'finanzplan') return { labelKey: 'costs.addExpense', to: `/trips/${tripId}?create=expense` };
+  if (tab === 'buchungen') return { labelKey: 'reservations.addManual', to: `/trips/${tripId}?create=reservation` };
+  if (tab === 'transports') return { labelKey: 'transport.addManual', to: `/trips/${tripId}?create=transport` };
+  return { labelKey: 'places.addPlace', to: `/trips/${tripId}?create=place` };
 }
 
 /** Whether a nav item is the current route: the dashboard only on its exact path, the rest by prefix. */

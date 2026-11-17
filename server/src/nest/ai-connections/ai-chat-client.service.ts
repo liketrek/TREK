@@ -45,17 +45,7 @@ export class AiChatClientService {
 
   create(connection: ResolvedAiConnection): AiChatClient {
     const { credential, kind, model } = connection;
-    if (credential.type === 'chatgpt') {
-      let current = credential.accessToken;
-      return new OpenAiResponsesClient(
-        model,
-        async (rejected) => {
-          if (rejected) current = await this.chatgpt.refresh(connection.id, rejected);
-          return current;
-        },
-        cloudFetch,
-      );
-    }
+    if (credential.type === 'chatgpt') return this.chatgptPlan(connection.id, model, credential.accessToken);
     if (kind === 'openai' && openAiWantsResponses(model)) {
       const apiKey = credential.apiKey ?? '';
       return new OpenAiResponsesClient(model, () => Promise.resolve(apiKey), cloudFetch, 'openai');
@@ -74,5 +64,22 @@ export class AiChatClientService {
       default:
         return new OpenAiChatClient(kind, model, AI_BASE_URLS[kind], credential.apiKey, cloudFetch);
     }
+  }
+
+  /**
+   * The Responses client on a ChatGPT plan: a token the provider refuses is
+   * refreshed once for this connection, and the fresh one is kept for the
+   * client's following calls.
+   */
+  chatgptPlan(connectionId: number, model: string, accessToken: string): AiChatClient {
+    let current = accessToken;
+    return new OpenAiResponsesClient(
+      model,
+      async (rejected) => {
+        if (rejected) current = await this.chatgpt.refresh(connectionId, rejected);
+        return current;
+      },
+      cloudFetch,
+    );
   }
 }

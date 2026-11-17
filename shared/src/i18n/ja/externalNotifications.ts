@@ -16,6 +16,18 @@ const ja: NotificationLocale = {
       title: `新しい予約：${p.booking}`,
       body: `${p.actor}が「${p.trip}」に「${p.booking}」（${p.type}）を追加しました。`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight}が出発しました`,
+      body: `${p.from}発${p.to}行きの${p.flight}は飛行中です。`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight}に遅れ`,
+      body: `${p.from}発${p.to}行きの${p.flight}は予定より約${p.delay}分遅れています。`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight}が着陸しました`,
+      body: `${p.from}発の${p.flight}が${p.to}に着陸しました。`,
+    }),
     trip_reminder: (p) => ({
       title: `旅行リマインダー：${p.trip}`,
       body: `「${p.trip}」の旅行が近づいています！`,
@@ -74,6 +86,21 @@ const ja: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `「${p.trip}」の「${p.tour}」は wanderer で確認できなくなりました。旅行内のツアーはそのまま残ります。`
             : `「${p.trip}」の「${p.tour}」が wanderer で変更された可能性があります。ツアーを開いてソースを確認してください。旅行の内容が勝手に変わることはありません。`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `メールから追加: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} が転送メールから「${p.booking}」を「${p.trip}」に追加しました。`
+          : `転送したメールの「${p.booking}」を「${p.trip}」に追加しました。TREK で 7 日間は元に戻せます。`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: '確認待ちの転送予約',
+      body: `TREK に確認待ちの転送予約があります: ${p.count} 件。それぞれに自動で追加されなかった理由が表示されます。`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'メール取り込みを一時停止中',
+      body: 'TREK は現在、転送された予約メールを受け付けていないため、転送はしばらくお待ちください。アドレスはそのまま残り、取り込みが再開されると再び使えます。すでに追加された予約は旅行に残ります。',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bookmark, Calendar, ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from 'lucide-react'
+import { Bookmark, Calendar, ChevronDown, ChevronUp, Eye, Pencil, Trash2, MapPin } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
@@ -9,6 +9,7 @@ import { placeToSaveTarget } from '../../../../components/Collections/saveTarget
 import { useTourDayAssignment } from '../../../../components/Tours/useTourDayAssignment'
 import { stageKeysOfTour } from '../../../../components/Tours/stages/stageSpread'
 import type { Place } from '../../../../types'
+import { TileHeader } from './MTripSheetUi'
 
 interface BrowseActionsPayload {
   placeId?: number
@@ -82,16 +83,17 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
 
   return (
     <MSheet open={open && !!livePlace} onClose={shell.closeSheet} variant="card" material="glass" ariaLabel={place.name}>
-      <div className="flex-none border-b border-[color:var(--m-rowbr)] px-[18px] pb-[11px] pt-4">
-        <div className="truncate text-[1.03125rem] font-bold">{place.name}</div>
-        {(place.address || place.description) && (
-          <div className="mt-[2px] truncate font-geist text-[0.6875rem] text-m-muted">
-            {place.address || place.description}
-          </div>
-        )}
+      <div className="flex-none px-[18px] pt-4">
+        <TileHeader
+          icon={<MapPin size={19} strokeWidth={1.8} />}
+          title={place.name}
+          sub={place.address || place.description || undefined}
+          onClose={shell.closeSheet}
+          closeLabel={t('common.close')}
+        />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[10px] pb-3 pt-[6px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[10px] pb-3 pt-[10px]">
         <button type="button" onClick={viewDetails} className={rowCls}>
           <Eye size={16} strokeWidth={2} className="flex-none text-m-muted" />
           {t('mobileTrip.viewDetails')}

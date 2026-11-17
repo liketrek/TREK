@@ -65,6 +65,7 @@ export const PLUGIN_ENTITY_CONTRACT = {
       'created_at',
       'updated_at',
       'reminder_sent_for',
+      'costs_mode',
     ],
     // The sole credential of the anonymous calendar feed.
     withheld: ['feed_token'],
@@ -170,6 +171,9 @@ export const PLUGIN_ENTITY_CONTRACT = {
       'accommodation_name',
       'accommodation_start_day_id',
       'accommodation_end_day_id',
+      'accommodation_check_in',
+      'accommodation_check_in_end',
+      'accommodation_check_out',
       'day_positions',
       'endpoints',
       'travelers',
@@ -271,6 +275,7 @@ export const PLUGIN_ENTITY_CONTRACT = {
       'accommodation_id',
       'tour_stage_key',
       'created_at',
+      'stay_minutes',
     ],
     withheld: [],
     // The assignment read model names its fields one by one, its `place` included.
@@ -320,7 +325,9 @@ export const PLUGIN_ENTITY_CONTRACT = {
   tag: {
     table: 'tags',
     columns: ['id', 'user_id', 'name', 'color', 'created_at'],
-    withheld: [],
+    // Which trip a tag belongs to is the host's own scoping: tags.* answers the acting
+    // user's personal tags, and a trip's own reach a plugin on that trip's places.
+    withheld: ['trip_id'],
     wholeRow: true,
     derived: [],
   },

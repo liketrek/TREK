@@ -47,6 +47,11 @@ export interface PlaceFormData {
   // Which shareable fields the user typed and which a pick or the details column filled
   // (placeFieldOrigins.ts). Rides along to the save as `fieldOrigins`; never shown.
   fieldOrigins?: PlaceFieldOrigins
+  // The ids of the place's tags, always the whole set, as the save takes them. Absent
+  // until one is ticked or unticked in the form (usePlaceTags): a missing key writes
+  // nothing, so a save that never touched the tags cannot undo a tag put on the place
+  // elsewhere in the meantime.
+  tags?: number[]
 }
 
 export function isGoogleMapsUrl(input: string): boolean {
@@ -409,4 +414,16 @@ export function formPin(form: Pick<PlaceFormData, 'lat' | 'lng'>): { lat: number
   const lng = Number(form.lng)
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
   return { lat, lng }
+}
+
+/**
+ * The category a picked place already carries, as the form's value, when this server
+ * has it. A place saved in a collection keeps its category_id, and categories are the
+ * server's own, so it fits the trip as it stands. Guessing from the place's kind
+ * instead dropped it (#3074).
+ */
+export function savedCategoryId(result: Record<string, unknown>, categories: readonly { id: number }[]): string | null {
+  const id = result.category_id
+  if (typeof id !== 'number') return null
+  return categories.some(c => c.id === id) ? String(id) : null
 }

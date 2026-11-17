@@ -25,8 +25,7 @@ const assistant: TranslationStrings = {
   'assistant.connect.chatgptHint': 'ใช้แพ็กเกจ ChatGPT ของคุณ ไม่ต้องใช้คีย์',
   'assistant.connect.chatgptStep1': 'ลงชื่อเข้าใช้ ChatGPT ในแท็บใหม่',
   'assistant.connect.chatgptOpen': 'เปิดหน้าลงชื่อเข้าใช้ ChatGPT',
-  'assistant.connect.chatgptStep2':
-    'จากนั้นเบราว์เซอร์จะแสดงหน้าข้อผิดพลาด ซึ่งเป็นเรื่องปกติ คัดลอกที่อยู่ด้านบนแล้วกลับมาที่นี่',
+  'assistant.connect.chatgptStep2': 'จากนั้นเบราว์เซอร์จะแสดงหน้าข้อผิดพลาด ซึ่งเป็นเรื่องปกติ คัดลอกที่อยู่ด้านบนแล้วกลับมาที่นี่',
   'assistant.connect.chatgptPaste': 'วางที่อยู่',
   'assistant.connect.chatgptWrong': 'ที่อยู่นี้ไม่ถูกต้อง ที่อยู่ที่ถูกต้องขึ้นต้นด้วย 127.0.0.1',
   'assistant.connect.chatgptExpired': 'ใช้เวลานานเกินไป โปรดลงชื่อเข้าใช้อีกครั้ง',
@@ -40,8 +39,7 @@ const assistant: TranslationStrings = {
   'assistant.connect.openAssistant': 'เปิดผู้ช่วย',
   'assistant.connect.badKey': 'คีย์นี้ใช้งานไม่ได้',
   'assistant.connect.unknownModel': 'ไม่มีโมเดลนี้ให้ใช้ที่นี่',
-  'assistant.connect.noModelList':
-    'เซิร์ฟเวอร์ตอบกลับแล้ว แต่ไม่ได้ส่งรายการโมเดลมา ตรวจสอบที่อยู่ ซึ่งมักลงท้ายด้วย /v1',
+  'assistant.connect.noModelList': 'เซิร์ฟเวอร์ตอบกลับแล้ว แต่ไม่ได้ส่งรายการโมเดลมา ตรวจสอบที่อยู่ ซึ่งมักลงท้ายด้วย /v1',
   'assistant.connect.getKey': 'รับคีย์',
   'assistant.connect.hintAnthropic': 'Claude Max และ Team มีเครดิต API รวมอยู่ด้วย',
   'assistant.connect.hintOpenai': 'สร้างคีย์ในแดชบอร์ด OpenAI ของคุณ',
@@ -73,10 +71,8 @@ const assistant: TranslationStrings = {
   'assistant.privacy.notShared': 'ไม่รวมรหัสผ่าน ไฟล์ และทริปอื่นของคุณ',
   'assistant.privacy.provider': '{provider} จัดการข้อมูลนี้ตามเงื่อนไขความเป็นส่วนตัวของตนเอง',
   'assistant.privacy.bannerBook': 'ข้อความของคุณและข้อมูลการเดินทางที่ผู้ช่วยอ่านจะถูกส่งไปยัง {provider}',
-  'assistant.privacy.sharedBook':
-    'ข้อความของคุณและสิ่งที่ผู้ช่วยอ่านจากการเดินทางนี้ เช่น บันทึก สถานที่ และหน้าในหนังสือ',
-  'assistant.privacy.notSharedBook':
-    'ไม่รวมรหัสผ่านและการเดินทางอื่นของคุณ ภาพของหน้าจะถูกส่งก็ต่อเมื่อคุณอนุญาตแล้วเท่านั้น',
+  'assistant.privacy.sharedBook': 'ข้อความของคุณและสิ่งที่ผู้ช่วยอ่านจากการเดินทางนี้ เช่น บันทึก สถานที่ และหน้าในหนังสือ',
+  'assistant.privacy.notSharedBook': 'ไม่รวมรหัสผ่านและการเดินทางอื่นของคุณ ภาพของหน้าจะถูกส่งก็ต่อเมื่อคุณอนุญาตแล้วเท่านั้น',
   'assistant.empty.title': 'เราจะวางแผนอะไรกันดี',
   'assistant.empty.readOnly': 'คุณดูทริปนี้ได้อย่างเดียว ฉันจึงตอบคำถามได้แต่เปลี่ยนแปลงอะไรไม่ได้',
   'assistant.suggest.planFirstDays': 'ช่วยวางแผนวันแรก ๆ ให้หน่อย',
@@ -324,8 +320,7 @@ const assistant: TranslationStrings = {
   'assistant.share.shared': 'แชร์แล้ว',
   'assistant.share.failed': 'แชร์ไม่สำเร็จ โปรดลองอีกครั้งในอีกสักครู่',
   'assistant.share.chatOff': 'แชตทริปปิดอยู่',
-  'assistant.connect.descriptionWithParsing':
-    'การเชื่อมต่อ AI ของคุณ: ผู้ช่วยทำงานบนการเชื่อมต่อนี้ และใช้อ่านการจองที่คุณนำเข้า',
+  'assistant.connect.descriptionWithParsing': 'การเชื่อมต่อ AI ของคุณ: ผู้ช่วยทำงานบนการเชื่อมต่อนี้ และใช้อ่านการจองที่คุณนำเข้า',
   'assistant.connect.descriptionParsingOnly': 'การเชื่อมต่อ AI ของคุณ: ใช้อ่านการจองที่คุณนำเข้า',
   'assistant.error.emptyAnswer': 'ผู้ช่วยไม่ได้ให้คำตอบ ลองอีกครั้งไหม',
   'assistant.followUp.title': 'ถามต่อ',
@@ -370,8 +365,7 @@ const assistant: TranslationStrings = {
   'assistant.memory.quick.accessible': 'ขอทางที่ไม่มีขั้นบันได',
   'assistant.memory.quick.noMuseums': 'พิพิธภัณฑ์น้อยๆ',
   'assistant.settings.costEstimates': 'ประมาณค่าใช้จ่าย',
-  'assistant.settings.costEstimatesHint':
-    'สำหรับร้านอาหารหรือตั๋ว จะเสนอค่าใช้จ่ายโดยประมาณลงงบประมาณเป็นการ์ดให้คุณยืนยัน',
+  'assistant.settings.costEstimatesHint': 'สำหรับร้านอาหารหรือตั๋ว จะเสนอค่าใช้จ่ายโดยประมาณลงงบประมาณเป็นการ์ดให้คุณยืนยัน',
   'assistant.change.timeline.tight': 'ขาดไป {count} นาที',
   'assistant.check.issues': 'มี {count} จุดที่ควรตรวจ',
   'assistant.week.changes': 'การเปลี่ยนแปลง {count} รายการ',
@@ -453,8 +447,7 @@ const assistant: TranslationStrings = {
     'คุณกำลังแชร์แพ็กเกจ ChatGPT ของตัวเองกับทุกคนบนเซิร์ฟเวอร์นี้: แชตของทุกคนจะนับรวมในแพ็กเกจของคุณ ตรวจสอบว่าแพ็กเกจและข้อกำหนดของ OpenAI อนุญาต',
   'assistant.attach.found': 'ฉันพบการจอง {count} รายการใน {name} เพิ่มรายการที่ต้องการได้ด้านล่าง',
   'assistant.attach.none': 'ฉันไม่พบการจองใน {name}',
-  'assistant.attach.why.aiNotConfigured':
-    'ที่นี่ยังไม่ได้ตั้งค่าการอ่านด้วย AI สำหรับการนำเข้า จึงมีเพียงตัวอ่านของ TREK ที่ตรวจไฟล์นี้',
+  'assistant.attach.why.aiNotConfigured': 'ที่นี่ยังไม่ได้ตั้งค่าการอ่านด้วย AI สำหรับการนำเข้า จึงมีเพียงตัวอ่านของ TREK ที่ตรวจไฟล์นี้',
   'assistant.attach.why.aiFailed': 'ตัวอ่าน AI อ่านไฟล์นี้ไม่ได้',
   'assistant.attach.why.noText': 'ไฟล์นี้ไม่มีข้อความที่อ่านได้ น่าจะเป็นไฟล์สแกน',
   'assistant.attach.why.nothingFound': 'ไม่มีส่วนใดในไฟล์ที่ดูเหมือนการจอง',

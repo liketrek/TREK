@@ -25,6 +25,13 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # TypeScript 7 is the native compiler and has no JavaScript API yet:
+      # typescript-eslint, the coverage instrumenter and the Postgres probe all
+      # call into it (readConfigFile, ScriptTarget). It moves by hand once the
+      # tooling supports it.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
 
   # plugin-sdk is standalone with a lockfile of its own and ships to npm.
   - package-ecosystem: npm

@@ -20,6 +20,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" ist erforderlich',
   'settings.tabs.account': 'Konto',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'Dein Konto',
+  'settings.groups.device': 'Dieses Gerät',
   'settings.tabs.about': 'Über',
   'settings.map': 'Karte',
   'settings.mapTemplate': 'Karten-Vorlage',
@@ -64,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + Globus-Projektion für schärfere Kanten und eine realistische Weltsicht.',
   'settings.mapHighQualityWarning': 'Kann die Performance auf schwächeren Geräten beeinträchtigen.',
+  'settings.mapHidePois': 'Points of Interest ausblenden',
+  'settings.mapHidePoisHint':
+    'Blendet die Geschäfte, Restaurants und Sehenswürdigkeiten aus, die Mapbox selbst beschriftet, damit nur deine Orte hervortreten. Nur bei den Standard-Stilen.',
   'settings.mapTipLabel': 'Tipp:',
   'settings.mapTip':
     'Rechtsklick und ziehen, um die Karte zu drehen/neigen. Mittelklick, um einen Ort hinzuzufügen (Rechtsklick ist für die Rotation reserviert).',
@@ -75,6 +81,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Für Wetterdaten. Kostenlos unter openweathermap.org/api',
   'settings.keyPlaceholder': 'Schlüssel eingeben...',
   'settings.configured': 'Konfiguriert',
+  'settings.notSetUp': 'Nicht eingerichtet',
+  'settings.mcp.appsConnected': '{count} Apps verbunden',
+  'settings.mcp.appsConnected.one': '{count} App verbunden',
   'settings.saveKeys': 'Schlüssel speichern',
   'settings.display': 'Darstellung',
   'settings.colorMode': 'Farbmodus',
@@ -107,7 +116,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Mitteilungen',
   'settings.notifyTripInvite': 'Trip-Einladungen',
   'settings.notifyBookingChange': 'Buchungsänderungen',
+  'settings.notifyFlightDeparted': 'Abflüge',
+  'settings.notifyFlightDelayed': 'Flugverspätungen',
+  'settings.notifyFlightLanded': 'Landungen',
   'settings.notifyTripReminder': 'Trip-Erinnerungen',
+  'settings.notifyMailBookingAdded': 'Buchungen aus Mails',
+  'settings.notifyMailBookingPending': 'Weitergeleitete Buchungen zum Prüfen',
+  'settings.notifyMailIngestPaused': 'Mail-Import pausiert',
   'settings.notifyTodoDue': 'Aufgabe bald fällig',
   'settings.notifyVacayInvite': 'Vacay Fusion-Einladungen',
   'settings.notifyVacayShare': 'Vacay Kalender-Freigaben',
@@ -682,6 +697,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Fertig',
   'settings.mcp.deprecated': 'Veraltet',
   'settings.offline.cache.dateRange': '{start} bis {end}',
+  'settings.offline.tileStore.title': 'Angesehene Kartenkacheln',
+  'settings.offline.tileStore.usage': '{used} von {limit} auf diesem Gerät, höchstens 30 Tage gespeichert',
+  'settings.offline.tileStore.clear': 'Leeren',
 };
 
 export default settings;

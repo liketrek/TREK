@@ -267,6 +267,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Geen albums gevonden',
   'journey.picker.selectDate': 'Selecteer datum',
   'journey.picker.search': 'Zoeken',
+  'journey.picker.takenBetween': 'Gemaakt tussen',
   'journey.detail.journeyTab': 'Reisverslag',
   'journey.contributors.remove': 'Bijdrager verwijderen',
   'journey.contributors.removeConfirm': '{username} uit dit reisverslag verwijderen?',

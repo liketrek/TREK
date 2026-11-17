@@ -75,13 +75,15 @@ export const BRAND_NAMES = [
   'Studio',
   'Synology',
   'Synology Photos',
+  // The hosted TREK offering, a product name like Vacay and Atlas.
+  'TREK Cloud',
   'Vacay',
   'Webhook',
   'wanderer',
 ];
 
 /** Unit symbols, short codes rather than words: "{count} km", "{minutes} min". */
-export const UNITS = ['km', 'mi', 'ft', 'min'];
+export const UNITS = ['km', 'mi', 'ft', 'min', 'mph'];
 
 /**
  * Key cap labels, printed on the keyboard in Latin letters whatever the

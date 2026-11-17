@@ -6,8 +6,7 @@ const storage: TranslationStrings = {
   'storage.field.root': 'ไดเรกทอรีราก',
   'storage.help.root': 'เส้นทางสัมบูรณ์บนเซิร์ฟเวอร์ที่แบ็กเอนด์นี้จัดเก็บออบเจ็กต์',
   'storage.field.endpoint': 'URL ปลายทาง',
-  'storage.help.endpoint':
-    'URL พื้นฐานของบริการที่เข้ากันได้กับ S3 เช่น https://s3.example.com หรือ http://127.0.0.1:9000.',
+  'storage.help.endpoint': 'URL พื้นฐานของบริการที่เข้ากันได้กับ S3 เช่น https://s3.example.com หรือ http://127.0.0.1:9000.',
   'storage.field.bucket': 'ถัง',
   'storage.field.accessKeyId': 'รหัสคีย์การเข้าถึง',
   'storage.field.secretAccessKey': 'รหัสการเข้าถึงความลับ',
@@ -22,8 +21,7 @@ const storage: TranslationStrings = {
 
   // Panel chrome
   'storage.title': 'ที่เก็บของ',
-  'storage.description':
-    'TREK จะจัดเก็บไฟล์ รูปภาพ และข้อมูลสำรองที่อัปโหลดไว้ การเปลี่ยนแปลงจะยังไม่มีผลจนกว่าคุณจะบันทึก',
+  'storage.description': 'TREK จะจัดเก็บไฟล์ รูปภาพ และข้อมูลสำรองที่อัปโหลดไว้ การเปลี่ยนแปลงจะยังไม่มีผลจนกว่าคุณจะบันทึก',
   'storage.loading': 'กำลังโหลด...',
   'storage.saved': 'บันทึกการกำหนดค่าพื้นที่เก็บข้อมูลแล้ว',
   'storage.save': 'บันทึกการเปลี่ยนแปลง',
@@ -56,8 +54,7 @@ const storage: TranslationStrings = {
 
   // Remove pre-check (friendly message; the server stays authoritative)
   'storage.remove.title': 'ลบแบ็กเอนด์',
-  'storage.remove.body':
-    'ลบ {name} ออกจากการกำหนดค่าหรือไม่ เซิร์ฟเวอร์ปฏิเสธการบันทึกหากมีสิ่งใดยังคงขึ้นอยู่กับข้อมูลดังกล่าว',
+  'storage.remove.body': 'ลบ {name} ออกจากการกำหนดค่าหรือไม่ เซิร์ฟเวอร์ปฏิเสธการบันทึกหากมีสิ่งใดยังคงขึ้นอยู่กับข้อมูลดังกล่าว',
   'storage.remove.stillAssigned': 'ยังคงมอบหมายให้: {categories}',
 
   // Backend form
@@ -84,14 +81,12 @@ const storage: TranslationStrings = {
   'storage.category.backups': 'การสำรองข้อมูล',
 
   // What each category stores — rendered under the label in the category map.
-  'storage.categoryDesc.files':
-    'ไฟล์แนบที่อัปโหลดไปยังการเดินทาง - ตั๋ว, PDF, การยืนยันการจอง และไฟล์ที่แชร์ในแชทการเดินทาง',
+  'storage.categoryDesc.files': 'ไฟล์แนบที่อัปโหลดไปยังการเดินทาง - ตั๋ว, PDF, การยืนยันการจอง และไฟล์ที่แชร์ในแชทการเดินทาง',
   'storage.categoryDesc.journey': 'ภาพถ่ายและภาพขนาดย่อที่แนบมากับรายการการเดินทาง',
   'storage.categoryDesc.covers': 'ภาพหน้าปกการเดินทางและคอลเลกชัน รวมถึงหน้าปกที่ดึงมาจาก Unsplash',
   'storage.categoryDesc.avatars': 'รูปโปรไฟล์บัญชีผู้ใช้',
   'storage.categoryDesc.places': 'รูปภาพที่แนบมากับสถานที่และคอลเลกชันสถานที่ — อัปโหลดหรือนำเข้า',
-  'storage.categoryDesc.photos-google':
-    'สำเนารูปภาพสถานที่จาก Google ที่แคชไว้ — สร้างใหม่ได้และสามารถลบได้อย่างปลอดภัย',
+  'storage.categoryDesc.photos-google': 'สำเนารูปภาพสถานที่จาก Google ที่แคชไว้ — สร้างใหม่ได้และสามารถลบได้อย่างปลอดภัย',
   'storage.categoryDesc.photos-trek':
     'รูปภาพที่แคชไว้จากบริการภาพถ่าย TREK ที่ใช้โดย Memories — สามารถดึงข้อมูลใหม่ได้ ปลอดภัยที่จะสูญหาย',
   'storage.categoryDesc.backups': 'คลังสำรองข้อมูลเซิร์ฟเวอร์ที่สร้างโดยแผงสำรองข้อมูลหรือกำหนดการ',
@@ -99,8 +94,7 @@ const storage: TranslationStrings = {
   // Health strip
   'storage.health.title': 'สุขภาพ',
   'storage.health.allClear': 'ไม่มีการบันทึกความล้มเหลวของการจำลอง',
-  'storage.health.seedFile':
-    'มีไฟล์ seed ของ storage-config.json แต่ถูกละเว้น — มีแถวการกำหนดค่าอยู่แล้ว จัดการพื้นที่เก็บข้อมูลที่นี่',
+  'storage.health.seedFile': 'มีไฟล์ seed ของ storage-config.json แต่ถูกละเว้น — มีแถวการกำหนดค่าอยู่แล้ว จัดการพื้นที่เก็บข้อมูลที่นี่',
   'storage.health.failureLine': '{op} จาก {key} บน {backend} ล้มเหลว: {error}',
 
   // Replicas-on-primary mirror UX (2026-08-20 spec)
@@ -174,8 +168,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.skip.owner_unknown': 'ข้าม: TREK ไม่สามารถทำเครื่องหมายว่าที่เก็บข้อมูลนี้เป็นของตนได้',
   'storage.reclaim.skip.delete_failed': 'หยุด: ที่เก็บข้อมูลปฏิเสธการลบ',
   'storage.reclaim.skip.interrupted': 'หยุดก่อนเสร็จสิ้น ตัวเลขเป็นเพียงบางส่วน',
-  'storage.reclaim.confirmNeeded':
-    'ไฟล์เหล่านี้มากกว่าหนึ่งในห้าดูเหมือนไม่ได้ใช้งาน จะไม่มีการลบสิ่งใดจนกว่าคุณจะยืนยันว่าเป็นเรื่องปกติ',
+  'storage.reclaim.confirmNeeded': 'ไฟล์เหล่านี้มากกว่าหนึ่งในห้าดูเหมือนไม่ได้ใช้งาน จะไม่มีการลบสิ่งใดจนกว่าคุณจะยืนยันว่าเป็นเรื่องปกติ',
   'storage.reclaim.confirm': 'ยืนยัน',
   'storage.reclaim.confirmed': 'ยืนยันแล้วสำหรับ 14 วันถัดไป',
   'storage.reclaim.error.reclaim_busy': 'มีงานเกี่ยวกับที่เก็บข้อมูลอื่นกำลังทำงานอยู่ โปรดลองอีกครั้งในอีกสักครู่',

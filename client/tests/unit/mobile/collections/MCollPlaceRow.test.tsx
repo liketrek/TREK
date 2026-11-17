@@ -62,4 +62,14 @@ describe('MCollPlaceRow', () => {
     expect(props.onToggleSelect).toHaveBeenCalledWith(7)
     expect(props.onOpen).not.toHaveBeenCalled()
   })
+
+  it('FE-MOB-COLL-013: one card holds the place and its pills, the status worded in a readable mix of its colour', () => {
+    renderRow()
+    const status = screen.getByRole('button', { name: 'Want to go' })
+    const place = screen.getByText('Jungfernstieg').closest('button') as HTMLElement
+    // Both inside the same card, not in a card of their own beside it.
+    expect(status.closest('.rounded-2xl')).toBe(place.parentElement)
+    expect(status.style.color).toContain('color-mix')
+    expect(status.style.color).toContain('var(--m-ink)')
+  })
 })

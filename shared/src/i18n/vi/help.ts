@@ -1157,7 +1157,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Công cụ nào vẽ bản đồ trong trình lập kế hoạch chuyến đi và nhật ký, và theo kiểu nào. Leaflet là bản đồ raster cổ điển, Mapbox GL thêm tòa nhà 3D và địa hình bằng token của bạn, MapLibre GL vẽ ô vector OpenFreeMap mà không cần token. Bản đồ Atlas luôn dùng Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '“Nhà cung cấp bản đồ”: Leaflet, Mapbox GL (“thực nghiệm”) hoặc MapLibre GL, mỗi lựa chọn kèm một mô tả ngắn.',
+    '“Nhà cung cấp bản đồ”: Leaflet, Mapbox GL hoặc MapLibre GL, mỗi lựa chọn kèm một mô tả ngắn.',
   'help.ctx.settings-map.bullet.2':
     '“Mẫu bản đồ” và “Khóa API CARTO” cho Leaflet; “Kiểu bản đồ” cho hai công cụ GL, cùng “Mapbox Mã thông báo truy cập” cho Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

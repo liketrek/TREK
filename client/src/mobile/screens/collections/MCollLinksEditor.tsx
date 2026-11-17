@@ -27,6 +27,7 @@ export default function MCollLinksEditor({ links, onChange, t }: MCollLinksEdito
             className={`w-24 flex-none ${rowInput}`}
           />
           <input
+            dir="ltr"
             value={l.url}
             onChange={e => setLink(i, { url: e.target.value })}
             placeholder="https://…"

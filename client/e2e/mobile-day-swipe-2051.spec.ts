@@ -32,8 +32,8 @@ async function swipe(page: Page, from: { x: number; y: number }, to: { x: number
   }
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
   await cdp.detach()
-  // The out leg is 150ms and the in leg 220ms.
-  await page.waitForTimeout(500)
+  // The strip snaps natively; give the snap and the selection that follows it time to land.
+  await page.waitForTimeout(900)
 }
 
 const activeChip = (page: Page) => page.locator('button[aria-current="true"]')
@@ -72,19 +72,23 @@ test('#2051 phone: the day details area swipes between days', async ({ page }) =
 
   const day1 = (await activeChip(page).textContent())!.trim()
 
+  // The days are a scroll-snap pager: like a native pager it turns once the
+  // finger has carried the page past its middle, so the swipe covers most of it.
+  const reach = Math.round(env.width * 0.4)
+  const chipText = async () => (await activeChip(page).textContent())!.trim()
+
   // 1. A swipe left steps forward.
-  await swipe(page, { x: mid + 90, y }, { x: mid - 90, y })
-  const day2 = (await activeChip(page).textContent())!.trim()
-  expect(day2, 'swiping left moved to the next day').not.toBe(day1)
+  await swipe(page, { x: mid + reach, y }, { x: mid - reach, y })
+  await expect.poll(chipText, { message: 'swiping left moved to the next day' }).not.toBe(day1)
 
   // 2. A swipe right steps back to where it started.
-  await swipe(page, { x: mid - 90, y }, { x: mid + 90, y })
-  expect((await activeChip(page).textContent())!.trim()).toBe(day1)
+  await swipe(page, { x: mid - reach, y }, { x: mid + reach, y })
+  await expect.poll(chipText).toBe(day1)
 
   // 3. The first day has nowhere to go back to — it must stay put, and the
   //    browser must not have been handed a page-back either.
-  await swipe(page, { x: mid - 90, y }, { x: mid + 90, y })
-  expect((await activeChip(page).textContent())!.trim()).toBe(day1)
+  await swipe(page, { x: mid - reach, y }, { x: mid + reach, y })
+  expect(await chipText()).toBe(day1)
   expect(page.url()).toContain(`/trips/${tripId}`)
 
   // 4. A vertical drag belongs to the card's own scroller, never to the day.

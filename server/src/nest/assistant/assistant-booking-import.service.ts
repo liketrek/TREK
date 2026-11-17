@@ -20,6 +20,7 @@ const PHOTO_EXTENSIONS: ReadonlySet<string> = new Set(LLM_PHOTO_EXTENSIONS);
 
 const NOT_ALLOWED = 'You are not allowed to add bookings to this trip.';
 const NOT_ADDED = 'The booking could not be added.';
+const ALREADY_THERE = 'This booking is already in the trip.';
 const BROKEN = 'This booking can no longer be read.';
 
 /**
@@ -37,20 +38,17 @@ interface BookingRead {
   reason: BookingReadReason | null;
 }
 
-/** The warnings of the AI fallback that say it could not read the file (llm-parse.service.ts words them). */
-const AI_FAILED = [/AI parsing failed/, /could not read file/, /does not read images/];
-const NO_TEXT = /no readable text found/;
-
 /**
- * Why a preview of one file came back empty, from its warnings and its file
- * report. The import dialog shows those warnings as text; the chat names the
- * reason in its answer instead, so it reads them here once.
+ * Why a preview of one file came back empty, from the outcome its file report
+ * carries where the AI read it. The import dialog shows the warnings as text;
+ * the chat names the reason in its answer instead. Every way the AI reading can
+ * fail is one reason to the chat: the AI reader could not read it.
  */
 export function emptyReason(preview: BookingImportPreviewResponse, aiAvailable: boolean): BookingReadReason {
   if (!aiAvailable) return 'ai_not_configured';
-  if (preview.warnings.some((warning) => NO_TEXT.test(warning))) return 'no_text';
-  if (preview.warnings.some((warning) => AI_FAILED.some((pattern) => pattern.test(warning)))) return 'ai_failed';
-  return 'nothing_found';
+  const outcome = preview.files?.[0]?.outcome;
+  if (outcome === undefined || outcome === 'ok' || outcome === 'empty') return 'nothing_found';
+  return outcome === 'no_text' ? 'no_text' : 'ai_failed';
 }
 
 /**
@@ -129,9 +127,9 @@ export class AssistantBookingImportService implements AttachedFileReader {
     }
     // No socket to spare from the echo: the user's own planner learns of the
     // booking like every other member's.
-    const { created } = await this.bookingImport.confirm(String(tripId), [parsed.data], undefined);
+    const { created, failed } = await this.bookingImport.confirm(String(tripId), userId, [parsed.data], undefined);
     const reservation = created[0];
-    if (!reservation) return { ok: false, value: NOT_ADDED };
+    if (!reservation) return { ok: false, value: failed[0]?.reason === 'duplicate' ? ALREADY_THERE : NOT_ADDED };
     return {
       ok: true,
       value: {

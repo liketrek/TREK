@@ -69,14 +69,19 @@ export default function LocationButton({ mode, error, errorCode, onClick, bottom
       style={{
         position: 'absolute',
         bottom: bottomOffset,
-        right: 12,
+        // The map's base-layer switcher sits 20px off the left edge; this mirrors it.
+        right: 20,
         zIndex: 1000,
         width: 42,
         height: 42,
         borderRadius: '50%',
         border: 'none',
         cursor: 'pointer',
-        background: isActive ? '#3b82f6' : 'var(--bg-card, white)',
+        // Off, it wears the same frosted glass as the map's other round controls;
+        // on, the location blue says it is tracking.
+        background: isActive ? '#3b82f6' : 'var(--sidebar-bg)',
+        backdropFilter: isActive ? undefined : 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: isActive ? undefined : 'blur(20px) saturate(180%)',
         color: isActive ? 'white' : (error ? '#ef4444' : 'var(--text-muted, #6b7280)'),
         boxShadow: MAP_CONTROL_SHADOW,
         display: 'flex',

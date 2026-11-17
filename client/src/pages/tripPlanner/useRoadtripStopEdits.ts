@@ -25,6 +25,40 @@ interface RoadtripStopEditsOptions
 }
 
 /**
+ * The day a saved visit is stored on, or null for none: no visit named, the optimistic
+ * row of one still being saved (a negative id the server never issued), or one no longer
+ * planned. A stay is written onto such a visit (#3092); without one it falls back to the
+ * place.
+ */
+function savedVisitDayOf(assignments: TripStoreState['assignments'], assignmentId: number | undefined): number | null {
+  if (assignmentId == null || assignmentId <= 0) return null
+  const day = Object.entries(assignments).find(([, visits]) => visits.some(visit => visit.id === assignmentId))
+  return day ? Number(day[0]) : null
+}
+
+/**
+ * Saves the stop popup over a stop already on the drive. The kind is the place's, the stay
+ * the visit's (#3092): a place planned twice keeps a stay per visit, so the popup on one
+ * of them leaves the other one's alone. A stop with no saved visit writes both onto the
+ * place, as before.
+ */
+async function writeEditedStop(
+  tripActions: TripStoreState,
+  tripId: PlannerBase['tripId'],
+  assignments: TripStoreState['assignments'],
+  { placeId, assignmentId }: { placeId: number; assignmentId?: number },
+  { stopType, dwellMinutes }: { stopType: RoadtripStopType | null; dwellMinutes: number },
+): Promise<void> {
+  const visitDayId = savedVisitDayOf(assignments, assignmentId)
+  if (assignmentId == null || visitDayId === null) {
+    await tripActions.updatePlace(tripId, placeId, { stop_type: stopType, duration_minutes: dwellMinutes })
+    return
+  }
+  await tripActions.updatePlace(tripId, placeId, { stop_type: stopType })
+  await tripActions.setAssignmentStay(tripId, visitDayId, assignmentId, dwellMinutes)
+}
+
+/**
  * Edits to one stop on the drive: saving the stop popup as a pause or as a night,
  * releasing a booked night, the kind, fill and stay of a stop, moving it within its day
  * or onto another one from the rail, ending the day at it, and the stay dialog.
@@ -63,7 +97,7 @@ export function useRoadtripStopEdits(options: RoadtripStopEditsOptions) {
     }
     try {
       if (stopDraft.editing) {
-        await tripActions.updatePlace(tripId, stopDraft.editing.placeId, { stop_type: stopType, duration_minutes: dwellMinutes })
+        await writeEditedStop(tripActions, tripId, assignments, stopDraft.editing, { stopType, dwellMinutes })
         if (accommodationId) {
           // The night is what was switched off, not the stop: it stays where it is
           // in the drive and becomes an ordinary pause.
@@ -106,7 +140,7 @@ export function useRoadtripStopEdits(options: RoadtripStopEditsOptions) {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
-  }, [stopDraft, tripId, tripActions, updateRouteForDay, toast, t, roadtripVias, viaLiesBefore, loadAccommodations, tripAccommodations, reservations, setStayRelease, setStopDraft])
+  }, [stopDraft, tripId, tripActions, updateRouteForDay, toast, t, roadtripVias, viaLiesBefore, loadAccommodations, tripAccommodations, reservations, setStayRelease, setStopDraft, assignments])
 
   /** The yes to the question above: the same save, this time allowed to drop the night. */
   const confirmStayRelease = useCallback(async () => {
@@ -315,22 +349,32 @@ export function useRoadtripStopEdits(options: RoadtripStopEditsOptions) {
   /**
    * How long the traveller stays at one stop.
    *
-   * Writes `places.duration_minutes`, which the schedule has read since it was written
-   * and which nothing in TREK has ever been able to set: the road trip is the only place
-   * the value means anything, so it is the only place that edits it.
+   * The stay belongs to the visit (#3092): the same place planned twice on a day can be
+   * stopped at once and only driven past the other time, so a stop the rail names by its
+   * assignment writes `day_assignments.stay_minutes` and leaves the place and its other
+   * visits alone. Only a stop without a saved visit of its own (no assignment, or the
+   * optimistic row of one still on its way) falls back to the place's
+   * `duration_minutes`, which every visit without a stay of its own reads.
    *
-   * Zero rather than null to clear: the update statement folds a null into "leave it
-   * alone" (`COALESCE(?, duration_minutes)`), so a null could give a stop a stay but
-   * never take one away. The rail reads zero and absent as the same thing.
+   * Zero rather than null to clear: on the place the update statement folds a null into
+   * "leave it alone" (`COALESCE(?, duration_minutes)`), and on a visit a null would hand
+   * it back to the place's stay instead of taking the stay away. The rail reads zero and
+   * absent as the same thing.
    */
-  const setRoadtripStay = useCallback(async (placeId: number, minutes: number) => {
-    if (!can('place_edit', trip)) return
+  const setRoadtripStay = useCallback(async (placeId: number, minutes: number, assignmentId?: number) => {
+    const visitDayId = savedVisitDayOf(assignments, assignmentId)
     try {
+      if (assignmentId != null && visitDayId !== null) {
+        if (!can('day_edit', trip)) return
+        await tripActions.setAssignmentStay(tripId, visitDayId, assignmentId, minutes)
+        return
+      }
+      if (!can('place_edit', trip)) return
       await tripActions.updatePlace(tripId, placeId, { duration_minutes: minutes })
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     }
-  }, [tripId, tripActions, toast, t, can, trip])
+  }, [assignments, tripId, tripActions, toast, t, can, trip])
 
   /**
    * Moves a stop onto another day, from the road trip rail.

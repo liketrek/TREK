@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Conexão',
   'reservations.layover.layover': 'Escala',
   'reservations.needsReview': 'Verificar',
-  'reservations.needsReviewHint': 'Aeroporto não pôde ser identificado automaticamente — confirme o local.',
+  'reservations.needsReviewHint':
+    'Alguns dados foram preenchidos automaticamente e não puderam ser lidos com certeza. Confira-os.',
+  'reservations.reviewConfirm': 'Está certo',
+  'reservations.reviewConfirmHint': 'Clique para marcar como conferido.',
+  'reservations.reviewConfirmed': 'Marcado como conferido',
   'reservations.searchLocation': 'Buscar estação, porto, endereço...',
   'reservations.meta.trainNumber': 'Nº do trem',
   'reservations.meta.platform': 'Plataforma',
@@ -273,5 +277,9 @@ const reservations: TranslationStrings = {
     'Os arquivos precisam de conexão para serem enviados. Remova os novos para salvar a reserva offline, ou salve quando estiver online de novo.',
   'reservations.needsConnection': 'Isso precisa de conexão. Tente de novo quando o TREK voltar a ficar online.',
   'reservations.exportCsvFiltered': 'Ezporzhiañ ar {shown} diwar {total} renk skwer (CSV)',
+  'reservations.wallet.add': 'Adicionar à Apple Wallet',
+  'reservations.wallet.addGoogle': 'Adicionar à Google Wallet',
+  'reservations.wallet.failed': 'Não foi possível criar o passe da Wallet. Tente novamente.',
+  'reservations.wallet.undated': 'Primeiro dê uma data à reserva: a Wallet mostra o passe perto desse horário.',
 };
 export default reservations;

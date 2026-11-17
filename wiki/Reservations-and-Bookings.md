@@ -166,6 +166,8 @@ To delete a booking, click the bin on its card or row, or **Delete** in the deta
 
 TREK can read booking confirmations, PDF tickets and wallet passes and turn them into bookings, using [KDE Itinerary](https://apps.kde.org/itinerary/). Every booking it finds opens in the normal editor for you to check before anything is saved.
 
+Booking mails can also be forwarded to TREK, which reads them and adds the booking to the right trip on its own; see [Booking Mail Import](Booking-Mail-Import).
+
 ### Supported formats
 
 | Format | Extension |

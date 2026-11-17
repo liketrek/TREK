@@ -10,9 +10,33 @@ import { buildAdminHook, type AdminHook } from '../../../helpers/mobileAdmin';
 import { useTranslation } from '../../../../src/i18n';
 import MAdminSettingsSection from '../../../../src/mobile/screens/admin/MAdminSettingsSection';
 
+// The services section's own panels load their data and have their own suite
+// (MAdminServices.test.tsx); here only where they sit matters.
+vi.mock('../../../../src/mobile/screens/admin/MAdminServiceQuota', () => ({ default: () => <div data-testid="service-quota" /> }));
+vi.mock('../../../../src/mobile/screens/admin/MAdminPlaceContrib', () => ({ default: () => <div data-testid="place-contrib" /> }));
+vi.mock('../../../../src/mobile/screens/admin/MAdminGoogleDailyLimit', () => ({ default: () => <div data-testid="google-daily-limit" /> }));
+
+const PARTS = ['security', 'services', 'features'] as const;
+
+/** All three sections at once, so each card's behaviour is tested wherever it now lives. */
+function AllParts({ admin, t }: { admin: AdminHook; t: ReturnType<typeof useTranslation>['t'] }) {
+  return (
+    <>
+      {PARTS.map((part) => (
+        <MAdminSettingsSection key={part} admin={admin} t={t} part={part} />
+      ))}
+    </>
+  );
+}
+
 function Harness({ admin }: { admin: AdminHook }) {
   const { t } = useTranslation();
-  return <MAdminSettingsSection admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
+}
+
+function PartHarness({ admin, part }: { admin: AdminHook; part: (typeof PARTS)[number] }) {
+  const { t } = useTranslation();
+  return <MAdminSettingsSection admin={admin} t={t} part={part} />;
 }
 
 type Spy = ReturnType<typeof vi.fn>;
@@ -52,7 +76,7 @@ function OidcHarness() {
     discovery_url: '',
   });
   const admin = buildAdminHook({ oidcConfig, setOidcConfig });
-  return <MAdminSettingsSection admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
 }
 
 beforeEach(() => {
@@ -69,7 +93,7 @@ describe('MAdminSettingsSection', () => {
 
     expect(screen.getByText('Authentication Methods')).toBeInTheDocument();
     expect(screen.getByText('Passkey login')).toBeInTheDocument();
-    expect(screen.getByText('Require two-factor authentication (2FA)')).toBeInTheDocument();
+    expect(screen.getByText('Require 2FA')).toBeInTheDocument();
     // Card head and field label share the copy
     expect(screen.getAllByText('Allowed File Types')).toHaveLength(2);
     expect(screen.getByText('API Keys')).toBeInTheDocument();
@@ -77,11 +101,39 @@ describe('MAdminSettingsSection', () => {
     expect(screen.getByText('Danger Zone')).toBeInTheDocument();
   });
 
+  it('FE-MOB-ASET-025: each section holds the cards of its desktop tab', () => {
+    const admin = buildAdminHook();
+    const { unmount } = render(<PartHarness admin={admin} part="security" />);
+    expect(screen.getByText('Authentication Methods')).toBeInTheDocument();
+    expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+    expect(screen.queryByText('API Keys')).not.toBeInTheDocument();
+    expect(screen.queryByText('Live flight status')).not.toBeInTheDocument();
+    unmount();
+
+    const services = render(<PartHarness admin={admin} part="services" />);
+    expect(screen.getByText('API Keys')).toBeInTheDocument();
+    expect(screen.getAllByText('Allowed File Types').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Authentication Methods')).not.toBeInTheDocument();
+    services.unmount();
+
+    render(<PartHarness admin={admin} part="features" />);
+    expect(screen.getByText('Live flight status')).toBeInTheDocument();
+    expect(screen.queryByText('API Keys')).not.toBeInTheDocument();
+    expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-ASET-026: a managed install keeps the danger zone and the passkey domain to its operator', () => {
+    renderSettings({ managed: true });
+    expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Require 2FA' })).toBeInTheDocument();
+  });
+
   it('FE-MOB-ASET-002: the OIDC toggles only appear once OIDC is configured', () => {
     renderSettings({ oidcConfigured: false });
 
     expect(screen.queryByRole('switch', { name: 'SSO Login' })).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'SSO Auto-Provisioning' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Go straight to SSO' })).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ASET-003: an env override disables the password toggles and shows the hint', () => {
@@ -126,6 +178,11 @@ describe('MAdminSettingsSection', () => {
       'oidc_registration', true, admin.setOidcRegistration,
     );
 
+    await user.click(toggle('Go straight to SSO'));
+    expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith(
+      'oidc_auto_redirect', false, admin.setOidcAutoRedirect,
+    );
+
     await user.click(toggle('Enable passkey login'));
     expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith('passkey_login', true, admin.setPasskeyLogin);
   });
@@ -134,7 +191,7 @@ describe('MAdminSettingsSection', () => {
     const user = userEvent.setup();
     const admin = renderSettings({ requireMfa: false });
 
-    await user.click(toggle('Require two-factor authentication (2FA)'));
+    await user.click(toggle('Require 2FA'));
 
     expect(admin.handleToggleRequireMfa).toHaveBeenCalledWith(true);
   });
@@ -190,7 +247,7 @@ describe('MAdminSettingsSection', () => {
     );
     const admin = renderSettings({ allowedFileTypes: 'jpg,png' });
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('File type settings saved'));
     expect(sent).toEqual({ allowed_file_types: 'jpg,png' });
@@ -205,7 +262,7 @@ describe('MAdminSettingsSection', () => {
     );
     const admin = renderSettings();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Error'));
     expect(admin.setSavingFileTypes).toHaveBeenLastCalledWith(false);
@@ -426,7 +483,7 @@ describe('MAdminSettingsSection', () => {
     expect(screen.getByDisplayValue('trek')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('OIDC configuration saved'));
     expect(sent).toEqual({
@@ -458,7 +515,7 @@ describe('MAdminSettingsSection', () => {
       },
     });
 
-    await user.click(screen.getAllByRole('button', { name: 'Save' })[3]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[1]);
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Issuer unreachable'));
     expect(sent.client_secret).toBe('s3cr3t');

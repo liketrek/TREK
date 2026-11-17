@@ -182,4 +182,20 @@ describe('remoteEventHandler > broadcast parity', () => {
     expect(reload).toHaveBeenCalledTimes(1);
     expect(reload).toHaveBeenCalledWith(5);
   });
+
+  it('FE-BCAST-027: a burst of tripTags:changed reads the tags of the open trip once, and none without a trip', () => {
+    vi.useFakeTimers();
+    const load = vi.fn(async () => undefined);
+    useTripStore.setState({ loadTripTags: load });
+    send({ type: 'tripTags:changed' });
+    vi.advanceTimersByTime(300);
+    expect(load).not.toHaveBeenCalled();
+
+    useTripStore.setState({ trip: buildTrip({ id: 5 }) });
+    for (let i = 0; i < 3; i++) send({ type: 'tripTags:changed', tripId: 5 });
+    expect(load).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(300);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith(5);
+  });
 });

@@ -4,6 +4,13 @@ import { resolve } from 'node:path';
 import { renderHook, act } from '@testing-library/react';
 import { useIsPhone, isPhoneViewport, PHONE_QUERY } from '../../../src/mobile/useIsPhone';
 
+const native = vi.hoisted(() => ({ app: false }));
+vi.mock('../../../src/native/platform', () => ({
+  isNativeApp: () => native.app,
+  isNativeIos: () => native.app,
+  nativeServerHost: () => null,
+}));
+
 // FE-MOB-PHONE-001 onwards
 
 type ChangeListener = (e: { matches: boolean }) => void;
@@ -24,6 +31,17 @@ const originalMatchMedia = window.matchMedia;
 describe('useIsPhone', () => {
   afterEach(() => {
     window.matchMedia = originalMatchMedia;
+    native.app = false;
+  });
+
+  it('FE-MOB-PHONE-007: the app shows the touch shell at every size, an iPad and an unfolded foldable included', () => {
+    native.app = true;
+    mockMatchMedia(false);
+    expect(isPhoneViewport()).toBe(true);
+    const { result } = renderHook(() => useIsPhone());
+    expect(result.current).toBe(true);
+    // Nothing to follow: a rotation or a fold must never swap the route tree.
+    expect(window.matchMedia).not.toHaveBeenCalled();
   });
 
   it('FE-MOB-PHONE-001: returns true when the viewport matches the phone query', () => {

@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Burada daxil etdikləriniz hələ yadda saxlanmayıb.',
   'common.keepEditing': 'Redaktəyə davam et',
   'common.name': 'Ad',
+  'common.title': 'Başlıq',
   'common.email': 'E-poçt',
   'common.password': 'Parol',
   'common.saving': 'Saxlanılır...',
@@ -80,5 +81,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'Bu səhifə açıq olarkən TREK yeniləndi. Yeni versiyanı əldə etmək üçün səhifəni yenilə.',
   'common.errorPluginTitle': 'Bu plagini göstərmək mümkün olmadı',
   'common.needsConnection': 'Bunun üçün bağlantı lazımdır. TREK yenidən onlayn olduqda bir daha cəhd edin.',
+  'common.errorDetails': 'Təfərrüatlar',
+  'common.share': 'Paylaş',
 };
 export default common;

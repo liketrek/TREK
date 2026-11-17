@@ -4,7 +4,7 @@ import { formatPriceText } from '../../../../utils/formatters'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import { CardActions, CardDeleteSheet, CardFiles, CardNotes, CardTitleButton, CardWhenAndCode } from './MReservationCardParts'
-import { Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { CardGrid, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import { cardWhen, parseTransportMeta } from './transportsModel'
 import { TRANSPORT_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
@@ -12,6 +12,7 @@ import { useReservationListFilter } from '../../../../components/Planner/booking
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
 import { orderedEndpoints } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
+import MFlightLiveStrip from '../MFlightLiveStrip'
 
 /**
  * Tab 1 — Transporte. Real `planner.reservations` filtered to the 10 transport
@@ -36,7 +37,7 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   ].filter(s => s.rows.length > 0)
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       {showTravelerFilter && (
         <TravelerFilterRow
           members={planner.tripMembers}
@@ -60,8 +61,9 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
             open={!collapsed[section.id]}
             onToggle={() => toggle(section.id)}
           />
-          {!collapsed[section.id] &&
-            section.rows.map(res => (
+          {!collapsed[section.id] && (
+            <CardGrid>
+              {section.rows.map(res => (
               <TransportCard
                 key={res.id}
                 res={res}
@@ -70,7 +72,9 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
                 canEdit={canEdit}
                 compact={shell.transportsCompact}
               />
-            ))}
+              ))}
+            </CardGrid>
+          )}
         </div>
       ))}
     </TabScroller>
@@ -141,7 +145,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             type="button"
             onClick={toggleStatus}
             aria-label={confirmed ? t('reservations.pending') : t('reservations.confirmed')}
-            className="-m-1 flex-none p-1"
+            className="-m-1 flex flex-none p-1"
           >
             <StatusDot color={dotColor} />
           </button>
@@ -151,6 +155,11 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
         <CardTitleButton res={res} TypeIcon={TypeIcon} typeColor={typeColor} onOpen={openDetail} t={t} />
         {canEdit && <CardActions onEdit={editTransport} onDelete={card.askDelete} t={t} />}
       </div>
+
+      {/* A flight TREK follows live: its moment in one line, on the compact card too. */}
+      {res.type === 'flight' && (
+        <MFlightLiveStrip tripId={planner.tripId} reservationId={res.id} onOpen={openDetail} className={compact ? 'mx-3 my-2 w-[calc(100%-24px)]' : 'mx-3 mt-[9px] w-[calc(100%-24px)]'} />
+      )}
 
       {/* Body — split around the booking code so the reveal can be its own
           control instead of a click handler buried inside the card button. */}
@@ -172,8 +181,9 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
               <div className="mt-2 flex flex-wrap items-center justify-center gap-2 rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-2 text-[0.71875rem] font-semibold text-m-ink">
                 {eps.map((ep, i) => (
                   <span key={i} className="inline-flex min-w-0 items-center gap-2">
-                    {i > 0 && <TypeIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: typeColor }} />}
-                    <span className="truncate">{ep.name}</span>
+                    {/* The vehicle heads for the next stop, so it turns round with the reading direction. */}
+                    {i > 0 && <TypeIcon size={12} strokeWidth={2.2} className="flex-none rtl:-scale-x-100" style={{ color: typeColor }} />}
+                    <span dir="auto" className="truncate">{ep.name}</span>
                   </span>
                 ))}
               </div>
@@ -190,9 +200,9 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
 
             <CardNotes notes={res.notes} />
-
-            <CardFiles files={files} card={card} t={t} />
           </button>
+
+          <CardFiles files={files} card={card} t={t} />
         </div>
       )}
       {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}

@@ -279,6 +279,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Альбомы не найдены',
   'journey.picker.selectDate': 'Выберите дату',
   'journey.picker.search': 'Поиск',
+  'journey.picker.takenBetween': 'Сняты между',
   'journey.detail.journeyTab': 'Путешествие',
   'journey.contributors.remove': 'Удалить участника',
   'journey.contributors.removeConfirm': 'Удалить {username} из этого путешествия?',

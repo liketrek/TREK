@@ -1,4 +1,5 @@
 import { placesApi } from '../api/client'
+import { cachedTripTags } from '../db/cacheTripTags'
 import { offlineDb, replaceTripRows, upsertPlaces } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
 import { isEffectivelyOffline } from '../sync/networkMode'
@@ -8,11 +9,15 @@ import type { Place } from '../types'
 /**
  * What of a write the optimistic row keeps. `fieldOrigins` says which fields the
  * user typed; it travels in the queued body for the server's origin tracking and
- * is no column of the place.
+ * is no column of the place. `tags` names the place's tags by id, while a row
+ * carries the tags themselves, so the row gets the ones the device knows by those
+ * ids: the trip's cached ones, and those the place had before.
  */
-function placeRow(data: Record<string, unknown>): Record<string, unknown> {
-  const { fieldOrigins: _origins, ...row } = data
-  return row
+async function placeRow(tripId: number, data: Record<string, unknown>, before?: Place): Promise<Record<string, unknown>> {
+  const { fieldOrigins: _origins, tags, ...row } = data
+  if (!Array.isArray(tags)) return row
+  const known = [...(await cachedTripTags(tripId)), ...(before?.tags ?? [])]
+  return { ...row, tags: tags.flatMap(id => known.find(tag => tag.id === id) ?? []) }
 }
 
 export const placeRepo = {
@@ -35,7 +40,7 @@ export const placeRepo = {
     if (isEffectivelyOffline()) {
       const tempId = nextTempId()
       const tempPlace: Place = {
-        ...(placeRow(data) as Partial<Place>),
+        ...(await placeRow(Number(tripId), data) as Partial<Place>),
         id: tempId,
         trip_id: Number(tripId),
         name: (data.name as string) ?? 'New place',
@@ -66,7 +71,7 @@ export const placeRepo = {
       // a row without it is invisible and never cleaned up.
       const optimistic: Place = {
         ...(existing ?? {} as Place),
-        ...(placeRow(data) as Partial<Place>),
+        ...(await placeRow(Number(tripId), data, existing) as Partial<Place>),
         id: Number(id),
         trip_id: Number(tripId),
       }

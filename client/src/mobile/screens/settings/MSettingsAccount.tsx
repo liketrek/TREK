@@ -179,6 +179,7 @@ export default function MSettingsAccount() {
       )}
 
       {/* ── Two-factor authentication ───────────────────────────── */}
+      {/* The app lock and the client certificate belong to this device: MSettings, "This device". */}
       <MSetCard title={t('settings.mfa.title')} icon={KeyRound} className="mt-3">
         {mfaRequiredByPolicy && (
           <div className="mb-3 flex gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">

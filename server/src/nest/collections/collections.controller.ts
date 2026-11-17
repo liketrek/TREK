@@ -7,6 +7,7 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
+import { ResponseContract } from '../common/response-contract';
 import { CollectionGpxError } from '../place-import/place-import.types';
 import { placeImageUrl } from '../places/place-image';
 import { PlaceRatingDto } from '../places/places.dto';
@@ -55,6 +56,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { collectionKmlExportSchema } from '@trek/shared';
 
 import type { Options } from 'multer';
 import path from 'path';
@@ -497,6 +499,13 @@ export class CollectionsController {
   @Get(':id/export/gpx')
   exportCollectionGpx(@CurrentUser() user: User, @Param('id') id: string) {
     return this.collections.exportCollectionGpx(user.id, Number(id));
+  }
+
+  /** The list as KML for Google My Maps (#1866), wrapped in JSON like the GPX above, for the same reasons. */
+  @Get(':id/export/kml')
+  @ResponseContract(collectionKmlExportSchema)
+  exportCollectionKml(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.collections.exportCollectionKml(user.id, Number(id));
   }
 
   /**

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toastHaptic } from '../../native/haptics';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -49,6 +50,7 @@ export function useToastQueue({ exitMs, restorePrevious }: ToastQueueOptions) {
     (message: string, type: ToastType = 'info', duration: number = 3000) => {
       const id = ++toastIdCounter;
       setToasts((prev) => [...prev, { id, message, type, duration, removing: false }]);
+      toastHaptic(type);
 
       if (duration > 0) {
         const t = setTimeout(() => dismissToast(id), duration);

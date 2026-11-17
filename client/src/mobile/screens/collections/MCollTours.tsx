@@ -19,6 +19,7 @@ import { tourDayRowIcon } from '../../../components/Tours/tourDayRowIcon';
 import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
 import MSheet from '../../components/MSheet';
+import MSkeleton from '../../components/MSkeleton';
 import { CancelPill, Eyebrow, PrimaryPill, SheetFooter, SheetHeader } from './MCollSheetKit';
 
 /** A kept tour's measures as the small pills of the phone's rows. */
@@ -146,12 +147,7 @@ function PointsChips({ takeOver }: { takeOver: CollectionTourTakeOver }) {
 /** The sheet's body while it asks: the trips, the points and the name in the trip. */
 function TakeOverForm({ takeOver }: { takeOver: CollectionTourTakeOver }) {
   const { t } = useTranslation();
-  if (takeOver.detailStatus === 'loading')
-    return (
-      <div className="flex justify-center py-10 text-m-faint">
-        <Loader2 size={20} className="animate-spin" />
-      </div>
-    );
+  if (takeOver.detailStatus === 'loading') return <MSkeleton variant="rows" count={3} className="py-2" />;
   if (takeOver.detailStatus === 'offline' || takeOver.detailStatus === 'error')
     return (
       <div className="py-6 text-center font-geist text-m-muted" style={fs(12.5)}>
@@ -211,8 +207,13 @@ function MCollTourSheet({
   const tour = takeOver.tour;
   const title = tour?.name ?? t('tours.collection.add');
   return (
-    <MSheet open={takeOver.open} onClose={takeOver.close} material="opaque" ariaLabel={title}>
-      <SheetHeader title={title} onClose={takeOver.close} closeLabel={t('common.close')} />
+    <MSheet open={takeOver.open} onClose={takeOver.close} material="glass" ariaLabel={title}>
+      <SheetHeader
+        icon={<Route size={19} strokeWidth={1.8} />}
+        title={title}
+        onClose={takeOver.close}
+        closeLabel={t('common.close')}
+      />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {tour && (
           <p className="mb-3 mt-0 font-geist text-m-muted" style={fs(11)}>

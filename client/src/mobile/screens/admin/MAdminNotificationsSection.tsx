@@ -4,6 +4,7 @@ import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../../componen
 import { useAdminNotificationSettings } from '../../../components/Admin/useAdminNotificationSettings'
 import MToggle from '../../components/MToggle'
 import MAdminNotifyMatrix from './MAdminNotifyMatrix'
+import MAdminNotificationDefaults from './MAdminNotificationDefaults'
 import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi'
 
 interface MAdminNotificationsSectionProps {
@@ -204,6 +205,8 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
       </MAdminCard>
 
       <MAdminNotifyMatrix t={t} toast={toast} />
+      {/* What each user's cells start as, below the admin's own channels as on the desktop tab. */}
+      <MAdminNotificationDefaults />
     </div>
   )
 }

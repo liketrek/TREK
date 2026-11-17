@@ -328,6 +328,25 @@ describe('Tool: disable_all_trips_calendar_feed', () => {
   });
 });
 
+describe('calendar feed tools, the lean variant (#2602)', () => {
+  it('tell a model how to ask for a feed without the per-day summaries', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const { tools } = await h.client.listTools();
+      for (const name of [
+        'get_trip_calendar_feed',
+        'enable_trip_calendar_feed',
+        'rotate_trip_calendar_feed',
+        'get_all_trips_calendar_feed',
+        'enable_all_trips_calendar_feed',
+        'rotate_all_trips_calendar_feed',
+      ]) {
+        expect(tools.find((tool) => tool.name === name)?.description).toContain('?days=0');
+      }
+    });
+  });
+});
+
 describe('all-trips calendar feed gates', () => {
   it.each(['enable_all_trips_calendar_feed', 'rotate_all_trips_calendar_feed', 'disable_all_trips_calendar_feed'])(
     '%s refuses a demo account',

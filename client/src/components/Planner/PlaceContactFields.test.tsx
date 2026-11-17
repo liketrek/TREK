@@ -1,4 +1,4 @@
-// FE-PLANNER-CONTACT-001 to FE-PLANNER-CONTACT-002
+// FE-PLANNER-CONTACT-001 to FE-PLANNER-CONTACT-004
 import { describe, expect, it, vi } from 'vitest'
 import { useState } from 'react'
 import userEvent from '@testing-library/user-event'
@@ -54,7 +54,7 @@ describe('PlaceContactFields (#2472)', () => {
     const opens = screen.getAllByRole('textbox', { name: /Monday opens/ })
     await user.type(opens[0], '0930')
     expect(opens[0]).toHaveValue('09:30')
-    expect(JSON.parse(onChange.mock.lastCall![1])[0]).toEqual({ closed: false, open: '09:30' })
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: false, open: '09:30' })
   })
 
   it('FE-PLANNER-CONTACT-004: looked-up hours fill an empty place, and an edited one offers to take them over', async () => {
@@ -87,5 +87,33 @@ describe('PlaceContactFields (#2472)', () => {
     // Still an e-mail field, so the keyboard and the browser's check stay.
     expect(screen.getByLabelText('E-mail')).toHaveAttribute('type', 'email')
   })
-})
 
+  it('FE-PLANNER-CONTACT-003: a day opens around the clock with one switch, and an all-day lookup shows it on', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<Harness onChange={onChange} />)
+    await user.click(screen.getByRole('button', { name: 'Add opening hours' }))
+
+    const allDay = screen.getByRole('switch', { name: 'Monday: Open 24 hours' })
+    expect(allDay).toHaveAttribute('aria-checked', 'false')
+    await user.click(allDay)
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: false, open: '00:00', close: '23:59' })
+    expect(allDay).toHaveAttribute('aria-checked', 'true')
+    // The two time fields give way to the word.
+    expect(screen.queryByRole('textbox', { name: /Monday opens/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Open 24 hours', { selector: 'span' })).toBeInTheDocument()
+
+    // Closing the day turns the all-day switch off.
+    await user.click(screen.getByRole('switch', { name: 'Monday: Closed' }))
+    expect(JSON.parse(onChange.mock.lastCall?.[1])[0]).toEqual({ closed: true })
+    expect(allDay).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('FE-PLANNER-CONTACT-004: looked-up hours open around the clock arrive with the all-day switch on', () => {
+    const suggested = Array.from({ length: 7 }, () => ({ closed: false, open: '00:00', close: '23:59' }))
+    render(<Harness onChange={vi.fn()} suggested={suggested} />)
+    for (const day of ['Monday', 'Sunday']) {
+      expect(screen.getByRole('switch', { name: `${day}: Open 24 hours` })).toHaveAttribute('aria-checked', 'true')
+    }
+  })
+})

@@ -11,10 +11,10 @@ import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
 import { CustomDateTimePicker } from '../../../../components/shared/CustomDateTimePicker'
 import { localIsoDate } from '../../../../utils/localDate'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
-import { SectionHeader, TabScroller } from './tabChrome'
+import { CardGrid, SectionHeader, TabScroller } from './tabChrome'
 import {
   formatPollCountdown,
   hasUserVoted,
@@ -86,7 +86,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
   const { active, closed } = splitPolls(polls)
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       <div className="flex items-center justify-end">
         {canEdit && (
           <button
@@ -107,6 +107,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
         </div>
       ) : (
         <>
+          <CardGrid>
           {active.map(poll => (
             <PollCardRow
               key={poll.id}
@@ -119,6 +120,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
               onDelete={() => setPendingDeleteId(poll.id)}
             />
           ))}
+          </CardGrid>
 
           {closed.length > 0 && (
             <div>
@@ -130,7 +132,9 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
                   onToggle={() => setCollapsedClosed(v => !v)}
                 />
               )}
-              {!collapsedClosed && closed.map(poll => (
+              {!collapsedClosed && (
+                <CardGrid>
+                {closed.map(poll => (
                 <PollCardRow
                   key={poll.id}
                   poll={poll}
@@ -141,7 +145,9 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
                   onClosePoll={handleClosePoll}
                   onDelete={() => setPendingDeleteId(poll.id)}
                 />
-              ))}
+                ))}
+                </CardGrid>
+              )}
             </div>
           )}
         </>
@@ -245,11 +251,14 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
           const pct = total > 0 ? Math.round((count / total) * 100) : 0
           const myVote = currentUserId != null && (opt.voters || []).some(v => String(v.user_id) === String(currentUserId))
           const isWinner = closed && count > 0 && count === maxCount
+          // The share is a fill that differs from both the row's empty rest and the
+          // card around it. At 6% ink it matched the card, so an option at 67% read
+          // as a short white block at its end, the rest of the row.
           const fillTint = myVote
-            ? 'color-mix(in srgb, var(--m-act) 16%, transparent)'
+            ? 'color-mix(in srgb, var(--m-act) 20%, transparent)'
             : isWinner
-              ? 'color-mix(in srgb, var(--m-st-confirmed) 16%, transparent)'
-              : 'color-mix(in srgb, var(--m-ink) 6%, transparent)'
+              ? 'color-mix(in srgb, var(--m-st-confirmed) 22%, transparent)'
+              : 'color-mix(in srgb, var(--m-ink) 13%, transparent)'
 
           return (
             <button
@@ -257,20 +266,20 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
               type="button"
               disabled={closed || !canEdit}
               onClick={() => onVote(poll.id, idx)}
-              className="relative flex items-start gap-[8px] overflow-hidden rounded-[10px] bg-m-card px-[12px] py-[10px] text-start disabled:cursor-default"
+              className="relative flex items-start gap-[8px] overflow-hidden rounded-[10px] border border-[color:var(--m-trackoff)] bg-m-card px-[12px] py-[10px] text-start disabled:cursor-default"
             >
-              <span className="absolute inset-y-0 left-0" style={{ width: `${pct}%`, background: fillTint }} />
+              <span className="absolute inset-y-0 start-0" style={{ width: `${pct}%`, background: fillTint }} />
               <span
                 className={`relative flex h-5 w-5 flex-none items-center justify-center border-2 ${
                   poll.multiple_choice ? 'rounded-[6px]' : 'rounded-full'
                 }`}
-                style={{ borderColor: myVote ? 'var(--m-act)' : 'var(--m-rowbr)', background: myVote ? 'var(--m-act)' : 'transparent' }}
+                style={{ borderColor: myVote ? 'var(--m-act)' : 'var(--m-checkbr)', background: myVote ? 'var(--m-act)' : 'transparent' }}
               >
                 {myVote && <Check size={11} strokeWidth={3} className="text-m-actfg" />}
               </span>
               {/* No truncate: long or multiline options wrap fully (#2177) */}
               <span className={`relative min-w-0 flex-1 whitespace-pre-wrap break-words text-[0.8125rem] [overflow-wrap:anywhere] ${myVote || isWinner ? 'font-bold' : 'font-medium'} text-m-ink`}>
-                {opt.text}
+                <bdi>{opt.text}</bdi>
               </span>
               {(voted || closed) && count > 0 && (
                 <span className="relative flex flex-none [&>*+*]:-ms-1">
@@ -297,6 +306,19 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
       </div>
     </div>
   )
+}
+
+const BARE_DAY = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/**
+ * The instant a deadline from the picker stands for. With its time cleared the picker
+ * hands back the day alone, and `new Date('2030-08-01')` reads that as UTC midnight,
+ * hours off the reader's own day; a day without a time runs to its end on their clock.
+ */
+function deadlineInstant(value: string): string {
+  const day = BARE_DAY.exec(value)
+  const date = day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]), 23, 59) : new Date(value)
+  return date.toISOString()
 }
 
 function PollFormSheet({ open, onClose, onSubmit, t }: {
@@ -330,7 +352,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
         question: question.trim(),
         options: trimmedOptions,
         multipleChoice,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
+        deadline: deadline ? deadlineInstant(deadline) : null,
       })
       onClose()
     } catch {
@@ -341,10 +363,10 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
   }
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={t('collab.polls.new')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={t('collab.polls.new')}>
       <FormSheetHeader icon={BarChart3} title={t('collab.polls.new')} onClose={onClose} closeLabel={t('common.close')} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
+      <FormSheetBody>
         <Eyebrow className="mb-[5px] uppercase">{t('collab.polls.question')} *</Eyebrow>
         <textarea
           rows={4}
@@ -413,7 +435,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
             </button>
           )}
         </div>
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={onClose}

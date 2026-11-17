@@ -12,6 +12,11 @@ import type { Tag } from '@trek/shared';
  * here, exactly as they did over raw SQL, while the SQL itself lives in the
  * repository. All consumers are in-container — the plugin RPC surface
  * injects this class into TagsRpc.
+ *
+ * This is the personal surface: a user's own tags. A tag that belongs to a trip
+ * (`trip_id` set) names its creator in `user_id` as well, but it is the trip's,
+ * so `list` leaves it out and `getByIdAndUser` does not find it; TripTagsService
+ * reads and writes those under the trip's own rights.
  */
 @Injectable()
 export class TagsService {
@@ -24,7 +29,8 @@ export class TagsService {
   // either) — these casts keep that same trust boundary at the service layer
   // instead of inside a raw-SQL call.
   async list(userId: number): Promise<Tag[]> {
-    return (await this.tags.listByUser(userId)) as unknown as Tag[];
+    const own = (await this.tags.listByUser(userId)).filter((tag) => tag.trip_id === null);
+    return own as unknown as Tag[];
   }
 
   async getByIdAndUser(id: string | number, userId: number): Promise<Tag | undefined> {
@@ -39,7 +45,8 @@ export class TagsService {
     const rowId = toRowId(id);
     if (rowId === null) return undefined;
     const tag = await this.tags.findByIdAndUser(rowId, userId);
-    return (tag as unknown as Tag | null) ?? undefined;
+    if (!tag || tag.trip_id !== null) return undefined;
+    return tag as unknown as Tag;
   }
 
   async create(userId: number, name: string, color?: string): Promise<Tag> {

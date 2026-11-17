@@ -7,6 +7,7 @@ import type {
   TourObstacleEntry,
 } from '@trek/shared';
 import { RotateCcw } from 'lucide-react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { TourDayRowPill } from '../TourDayRowFacts';
 import { FigureBadge } from './FigureBadge';
@@ -77,8 +78,9 @@ export function PaddleCheckPill({ check }: { check: PaddleCheck }) {
  */
 export function PaddleCheckDataLine({ check }: { check: PaddleCheck }) {
   const { t, locale } = useTranslation();
+  const dateFormat = useDateFormat();
   const word = checkDataWord(check.data, t);
-  const asOf = check.data_as_of ? formatCheckDate(check.data_as_of, locale) : null;
+  const asOf = check.data_as_of ? formatCheckDate(check.data_as_of, locale, dateFormat) : null;
   const coverage =
     check.data === 'covered' ? null : COVERAGE_INFO[check.data](t, asOf ?? t('tours.paddle.obstacles.dateUnknown'));
   return (
@@ -103,7 +105,7 @@ export function PaddleCheckDataLine({ check }: { check: PaddleCheck }) {
         <FigureBadge
           testId="paddle-check-read"
           label={t('tours.paddle.check.readDate')}
-          value={formatCheckDate(check.read_at, locale)}
+          value={formatCheckDate(check.read_at, locale, dateFormat)}
         />
       ) : null}
     </div>

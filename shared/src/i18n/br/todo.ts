@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Prioridade',
   'todo.detail.noPriority': 'Nenhuma',
   'todo.sortByPrio': 'Prioridade',
+  'todo.progressCount': '{done} de {total} concluídas',
+  'todo.allDone': 'Tudo concluído!',
+  'todo.filter.myShort': 'Minhas',
 };
 export default todo;

@@ -6,9 +6,11 @@ import { openFile } from '../../../../src/utils/fileDownload'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { Place, TripFile } from '../../../../src/types'
 import { buildPlanner, buildShell, buildTripActions } from '../../../helpers/mobileTrip'
-import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { setSizeClass } from '../../../helpers/sizeClass'
+import { fileRepo } from '../../../../src/repo/fileRepo'
+import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-FTAB-001 to FE-MOB-FTAB-025
+// FE-MOB-FTAB-001 to FE-MOB-FTAB-028
 
 vi.mock('../../../../src/utils/fileDownload', () => ({
   downloadFile: vi.fn(async () => undefined),
@@ -183,8 +185,18 @@ describe('MFilesTab', () => {
     expect(screen.getAllByText('May 1').length).toBeGreaterThan(0)
     expect(screen.getByText('ada')).toBeInTheDocument()
     expect(screen.getByText('A')).toBeInTheDocument()
-    expect(screen.getByText('files.sourcePlan · Fushimi Inari')).toBeInTheDocument()
+    // Each link is a badge of its own, the kind beside the name, with no dot between.
+    const place = screen.getByText('Fushimi Inari')
+    expect(place.parentElement?.textContent).toBe('files.sourcePlanFushimi Inari')
     expect(screen.getByText('files.sourceCollab')).toBeInTheDocument()
+    expect(place.closest('div')?.textContent).not.toContain('·')
+  })
+
+  it('FE-MOB-FTAB-028: in Arabic a size reads "2.0 KB", and names keep their own direction', () => {
+    renderTab()
+    expect(screen.getByText('2.0 KB')).toHaveAttribute('dir', 'ltr')
+    expect(screen.getByText('ada')).toHaveAttribute('dir', 'auto')
+    for (const node of screen.queryAllByText(NAME_RE)) expect(node).toHaveAttribute('dir', 'auto')
   })
 
   it('FE-MOB-FTAB-008: starring calls the api and refreshes the store', async () => {
@@ -389,6 +401,34 @@ describe('MFilesTab', () => {
     // A paste event without clipboardData at all must not throw either.
     fireEvent.paste(pasteTarget(container))
     expect(planner.tripActions.addFile).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-FTAB-026: a wide window shows the files as tiles, and a tile opens its file', () => {
+    setSizeClass('wide')
+    vi.spyOn(fileRepo, 'previewUrl').mockResolvedValue('/signed')
+    renderTab()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(rowNames()).toEqual(['beach.jpg', 'guide.pdf', 'notes.txt', 'board.pkpass', 'idea.png'])
+    fireEvent.click(screen.getByText('guide.pdf').closest('button') as HTMLButtonElement)
+    expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'guide.pdf')
+  })
+
+  it('FE-MOB-FTAB-027: with room for two panes a tap picks the file and the pane beside the tiles previews it', () => {
+    setSizeClass('split')
+    vi.spyOn(fileRepo, 'previewUrl').mockResolvedValue('/signed')
+    renderTab()
+    const pane = screen.getByRole('complementary', { name: 'common.preview' })
+    // The first file in the grid's order is on show until another is picked.
+    expect(within(pane).getByRole('heading', { name: 'beach.jpg' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByText('guide.pdf')[0].closest('button') as HTMLButtonElement)
+    expect(within(pane).getByRole('heading', { name: 'guide.pdf' })).toBeInTheDocument()
+    expect(openFile).not.toHaveBeenCalled()
+
+    fireEvent.click(within(pane).getByRole('button', { name: /common\.open/ }))
+    expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'guide.pdf')
+    fireEvent.click(within(pane).getByRole('button', { name: /files\.link/ }))
+    expect(screen.getByTestId('link-sheet')).toHaveAttribute('data-file', '1')
   })
 
   it('FE-MOB-FTAB-025: the header trash signal opens the trash sheet', () => {

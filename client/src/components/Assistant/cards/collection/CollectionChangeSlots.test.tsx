@@ -1,5 +1,5 @@
 /**
- * FE-AI-COLL-020 to FE-AI-COLL-031
+ * FE-AI-COLL-020 to FE-AI-COLL-031, FE-AI-COLL-041
  *
  * The collections inside the change card: a held save with its list, its
  * status and the lists that hold the place already; a change of status, of
@@ -163,6 +163,14 @@ describe('collection change cards', () => {
     const card = placesCard({ places: [savedPlace({ delta })] });
     draw([pending('update_collection_place', 'Septime', card, 'genericUpdate')]);
     expect(screen.getByText('+2')).toBeInTheDocument();
+  });
+
+  it('FE-AI-COLL-041: a change of the website and the map entry names both (#2646)', () => {
+    const delta = emptyDelta({ fields: ['website', 'mapEntry'] });
+    const card = placesCard({ places: [savedPlace({ delta })] });
+    draw([pending('update_collection_place', 'Septime', card, 'genericUpdate')]);
+    expect(screen.getByText('Website')).toBeInTheDocument();
+    expect(screen.getByText('Map entry')).toBeInTheDocument();
   });
 
   it('FE-AI-COLL-029: trip places saved to a list are trip places by nature, so no warning is given', () => {

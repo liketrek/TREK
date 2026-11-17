@@ -29,7 +29,8 @@ function cardState(overrides: Partial<ReturnType<typeof useReservationCard>> = {
     askDelete: vi.fn(),
     cancelDelete: vi.fn(),
     confirmDelete: vi.fn(),
-    fileChip: () => ({ onClick: vi.fn(), onKeyDown: vi.fn() }),
+    openFile: vi.fn(),
+    downloadFile: vi.fn(),
     ...overrides,
   } as unknown as ReturnType<typeof useReservationCard>;
 }
@@ -46,6 +47,32 @@ describe('MReservationCardParts', () => {
     expect(button.querySelector('.lucide-plane')).toHaveStyle({ color: '#123456' });
     fireEvent.click(button);
     expect(onOpen).toHaveBeenCalledOnce();
+  });
+
+  it('FE-COMP-MRESCARD-011: the title leads and may take two lines; the pills follow it and wrap under it', () => {
+    render(<CardTitleButton res={reservation()} TypeIcon={Plane} typeColor="#123456" onOpen={vi.fn()} t={t} />);
+    const title = screen.getByText('LH 400');
+    expect(title).toHaveClass('line-clamp-2', 'flex-[1_1_auto]', 'wide:basis-full');
+    expect(title).not.toHaveClass('truncate');
+    const button = screen.getByRole('button');
+    expect(button).toHaveClass('flex-wrap');
+    expect(button.firstElementChild).toBe(title);
+  });
+
+  it('FE-COMP-MRESCARD-012: the time cell is never narrower than its value', () => {
+    render(
+      <CardWhenAndCode
+        dayValue="Day 1"
+        timeValue="09:05 – 10:15 Uhr"
+        code={null}
+        card={cardState()}
+        onOpen={vi.fn()}
+        t={t}
+      />
+    );
+    const cell = screen.getByText('09:05 – 10:15 Uhr').parentElement as HTMLElement;
+    expect(cell).toHaveClass('min-w-max');
+    expect(screen.getByText('Day 1').parentElement).toHaveClass('min-w-0');
   });
 
   it('FE-COMP-MRESCARD-002: the title button flags a booking that needs review (booking variant)', () => {
@@ -104,18 +131,30 @@ describe('MReservationCardParts', () => {
     expect(toggleCode).toHaveBeenCalledOnce();
   });
 
-  it('FE-COMP-MRESCARD-006: files render as button-role chips, and no files render nothing', () => {
+  it('FE-COMP-MRESCARD-006: each file row opens the file by its name and downloads it by the icon (#2585)', () => {
     const { container, rerender } = render(<CardFiles files={[]} card={cardState()} t={t} />);
     expect(container).toBeEmptyDOMElement();
 
     const files = [{ id: 5, original_name: 'ticket.pdf', url: '/uploads/f/5' }] as Parameters<
       typeof CardFiles
     >[0]['files'];
-    rerender(<CardFiles files={files} card={cardState()} t={t} />);
+    const card = cardState();
+    rerender(<CardFiles files={files} card={card} t={t} />);
     expect(screen.getByText('files.title')).toBeInTheDocument();
-    const chip = screen.getByRole('button', { name: 'ticket.pdf' });
-    expect(chip.tagName).toBe('SPAN');
-    expect(chip).toHaveAttribute('tabindex', '0');
+
+    const open = screen.getByRole('button', { name: 'ticket.pdf' });
+    const download = screen.getByRole('button', { name: 'files.download: ticket.pdf' });
+    // Two sibling buttons, never one inside the other.
+    expect(open.tagName).toBe('BUTTON');
+    expect(open.contains(download)).toBe(false);
+    expect(download.closest('button')).toBe(download);
+
+    fireEvent.click(open);
+    expect(card.openFile).toHaveBeenCalledWith(files[0]);
+    expect(card.downloadFile).not.toHaveBeenCalled();
+    fireEvent.click(download);
+    expect(card.downloadFile).toHaveBeenCalledWith(files[0]);
+    expect(card.openFile).toHaveBeenCalledOnce();
   });
 
   it('FE-COMP-MRESCARD-007: the delete sheet names the reservation and confirms through the card', () => {

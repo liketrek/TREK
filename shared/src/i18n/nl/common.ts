@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Wat je hier hebt ingevuld, is nog niet opgeslagen.',
   'common.keepEditing': 'Verder bewerken',
   'common.name': 'Naam',
+  'common.title': 'Titel',
   'common.email': 'E-mail',
   'common.password': 'Wachtwoord',
   'common.saving': 'Opslaan...',
@@ -81,5 +82,7 @@ const common: TranslationStrings = {
     'TREK is bijgewerkt terwijl dit tabblad open stond. Herlaad om de nieuwe versie te krijgen.',
   'common.errorPluginTitle': 'Deze plug-in kon niet worden getoond',
   'common.needsConnection': 'Hiervoor is een verbinding nodig. Probeer het opnieuw zodra TREK weer online is.',
+  'common.errorDetails': 'Details', // same-as-en,
+  'common.share': 'Delen',
 };
 export default common;

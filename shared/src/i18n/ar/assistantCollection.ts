@@ -55,6 +55,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'نقل إلى {name}',
   'assistant.card.collection.removed': 'أُزيل من القائمة',
   'assistant.card.collection.photo': 'صورة',
+  'assistant.card.collection.mapEntry': 'سجل الخريطة',
   'assistant.card.collection.places': 'الأماكن المحفوظة في {name}',
   'assistant.card.collection.saved': 'الأماكن المحفوظة',
   'assistant.card.collection.statusSet': 'تغيّر {count} مكان محفوظ',

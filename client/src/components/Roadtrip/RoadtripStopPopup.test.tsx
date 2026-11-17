@@ -8,8 +8,10 @@ import type { CorridorPoi } from './useCorridorPois'
 
 // The dialog carries the charging panel, which reads the open availability data for a
 // station that is not on the trip yet. Both of its collaborators are stubbed: the trip
-// is whichever one is open, and the data comes off the network.
-vi.mock('../../store/tripStore', () => ({ useTripStore: (select: (s: { trip: { id: number } }) => unknown) => select({ trip: { id: 1 } }) }))
+// is whichever one is open, and the data comes off the network. The trip's places are
+// what a stop being edited shows its picture from (#2629).
+const tripState = vi.hoisted(() => ({ trip: { id: 1 }, places: [] as Array<Record<string, unknown>> }))
+vi.mock('../../store/tripStore', () => ({ useTripStore: (select: (s: typeof tripState) => unknown) => select(tripState) }))
 vi.mock('../../repo/chargingRepo', () => ({ chargingRepo: { read: vi.fn(), readAt: vi.fn() } }))
 
 const wrap = (ui: React.ReactElement) => render(<TranslationProvider>{ui}</TranslationProvider>)
@@ -21,7 +23,10 @@ const charging = {
   tariffs: [], pricesUnavailable: false,
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+  tripState.places = []
+})
 
 function poi(over: Partial<CorridorPoi> = {}): CorridorPoi {
   return {
@@ -393,6 +398,22 @@ describe('editing a roadtrip stop', () => {
     rerender(ui(draft({ poi: poi({ category: 'hotel', name: 'Hotel Bristol' }), arrivalTime: '15:45', overnight: nights })))
     expect(screen.getByRole('button', { name: 'Overnight' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('textbox', { name: 'Check-in' })).toHaveValue('15:45')
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-035: a stop on the trip shows its picture in place of the tile, and it opens the photos (#2629)', () => {
+    tripState.places = [{ id: 7, name: 'Aral Autohof', lat: 53.1, lng: 10.2, image_url: '/uploads/places/aral.jpg' }]
+    wrap(<RoadtripStopPopup draft={draft({ editing: { placeId: 7, stopType: 'fuel', dwellMinutes: 10 } })} {...noop} />)
+
+    const trigger = screen.getByRole('button', { name: 'Show photos' })
+    expect(trigger.querySelector('img')).toHaveAttribute('src', '/uploads/places/aral.jpg')
+  })
+
+  it('FE-ROADTRIP-STOPPOPUP-036: a hit from the search is no place yet and keeps the tile of its kind', () => {
+    tripState.places = [{ id: 7, name: 'Aral Autohof', lat: 53.1, lng: 10.2, image_url: '/uploads/places/aral.jpg' }]
+    const { container } = wrap(<RoadtripStopPopup draft={draft()} {...noop} />)
+
+    expect(screen.queryByRole('button', { name: 'Show photos' })).toBeNull()
+    expect(container.ownerDocument.querySelector('img[src="/uploads/places/aral.jpg"]')).toBeNull()
   })
 })
 

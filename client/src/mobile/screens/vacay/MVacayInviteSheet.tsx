@@ -1,11 +1,11 @@
-import { ChevronDown, Clock, Loader2, X } from 'lucide-react'
+import { ChevronDown, Clock, Loader2, UserPlus } from 'lucide-react'
 import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
 import MUserPickerList from '../../components/MUserPickerList'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useTranslation } from '../../../i18n'
 import { type VacayUser } from '../../../types'
 import { useVacayUserPicker } from '../../../components/Vacay/useVacayUserPicker'
+import { TileHeader } from '../trip/sheets/MTripSheetUi'
 
 interface MVacayInviteSheetProps {
   open: boolean
@@ -33,12 +33,12 @@ export default function MVacayInviteSheet({ open, onClose }: MVacayInviteSheetPr
   return (
     <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('vacay.inviteUser')}>
       <div className="px-[18px] pb-[18px] pt-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 text-[1.0625rem] font-bold">{t('vacay.inviteUser')}</div>
-          <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
-            <X size={15} strokeWidth={2.2} />
-          </MIconBtn>
-        </div>
+        <TileHeader
+          icon={<UserPlus size={19} strokeWidth={1.8} />}
+          title={t('vacay.inviteUser')}
+          onClose={onClose}
+          closeLabel={t('common.close')}
+        />
         <div className="mb-3 mt-2 font-geist text-[0.75rem] leading-normal text-m-muted">
           {t('vacay.inviteHint')}
         </div>

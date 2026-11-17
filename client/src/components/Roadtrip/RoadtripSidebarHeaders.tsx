@@ -6,6 +6,8 @@ import { useTranslation } from '../../i18n/TranslationContext'
 import { Tooltip } from '../shared/Tooltip'
 import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useDateFormat } from '../../hooks/useDateFormat'
+import { dateLayout } from '../../utils/dateFormat'
 import { formatDistance } from '../../utils/units'
 import { formatDate } from '../../utils/formatters'
 import { formatDurationShort } from './roadtripModel'
@@ -89,13 +91,22 @@ export function TripSummary({ routes, narrow }: { routes: RoadtripRoutes; narrow
 }
 
 /**
- * A date short enough for the day tile, in the order the reader's clock setting implies:
- * month first with the 12-hour clock ("10/5"), day first with the 24-hour one ("5.10.").
+ * A date short enough for the day tile: day and month, unpadded, in the order and with
+ * the separator of the reader's date format ("5/10", "10-5", "5.10."). With the format
+ * on 'auto' the clock setting still decides, as it did before the format existed: month
+ * first with the 12-hour clock ("10/5"), day first with the 24-hour one ("5.10.").
  */
-function shortDate(iso: string, is12h: boolean): string {
+function shortDate(iso: string, is12h: boolean, format?: string | null): string {
   const [, m, d] = iso.split("-").map(Number)
   if (!m || !d) return iso
-  return is12h ? `${m}/${d}` : `${d}.${m}.`
+  const layout = dateLayout(format)
+  if (!layout) return is12h ? `${m}/${d}` : `${d}.${m}.`
+  const text = layout.order
+    .filter(field => field !== 'year')
+    .map(field => (field === 'day' ? d : m))
+    .join(layout.separator)
+  // The dotted layout closes on a dot the way it is written in full ("5.10.2026").
+  return layout.separator === '.' ? `${text}.` : text
 }
 
 
@@ -139,6 +150,7 @@ function flagTexts(day: RoadtripDay, followable: boolean, t: ReturnType<typeof u
 export function DayTile({ day, tint }: { day: RoadtripDay; tint: string | null }): React.ReactElement {
   const { language } = useTranslation()
   const is12h = useSettingsStore(s => s.settings.time_format) === "12h"
+  const dateFormat = useDateFormat()
   return (
     <span
       className="flex w-9 flex-none flex-col items-center overflow-hidden rounded-[10px] font-geist font-bold tabular-nums shadow-sm"
@@ -154,7 +166,7 @@ export function DayTile({ day, tint }: { day: RoadtripDay; tint: string | null }
         <>
           <span aria-hidden className="h-px w-[60%] flex-none bg-current opacity-25" />
           <time dateTime={day.date} aria-label={formatDate(day.date, language)} className="grid h-6 w-full place-items-center font-semibold" style={{ ...fs(9.5), lineHeight: 1 }}>
-            {shortDate(day.date, is12h)}
+            {shortDate(day.date, is12h, dateFormat)}
           </time>
         </>
       ) : null}

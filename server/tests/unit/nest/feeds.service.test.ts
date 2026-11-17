@@ -341,7 +341,15 @@ describe('buildTripIcs', () => {
     );
     expect(result!.ics.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n')).toBe(true);
     expect(result!.ics.endsWith('END:VEVENT\r\nEND:VCALENDAR\r\n')).toBe(true);
-    expect(buildTripCalendar).toHaveBeenCalledWith(trip.id);
+    expect(buildTripCalendar).toHaveBeenCalledWith(trip.id, {});
+  });
+
+  it('FEED-SVC-015b: hands the calendar options on, so the feed can leave the per-day summaries out (#2602)', async () => {
+    const { trip } = await seedTrip('tok-trip');
+
+    await svc.buildTripIcs('tok-trip', { dayEvents: false });
+
+    expect(buildTripCalendar).toHaveBeenCalledWith(trip.id, { dayEvents: false });
   });
 });
 
@@ -420,6 +428,17 @@ describe('buildUserIcs', () => {
     // The body is folded and unfolds back to the original content line.
     expect(ics).toContain('\r\n ');
     expect(ics.replace(/\r\n /g, '')).toContain(`SUMMARY:${longSummary}\r\n`);
+  });
+
+  it('FEED-SVC-019b: hands the calendar options to every trip of the feed (#2602)', async () => {
+    const user = await seedUserWithToken('tok-user');
+    const first = createTrip(testDb, user.id, { start_date: '2026-01-01' });
+    const second = createTrip(testDb, user.id, { start_date: '2026-02-01' });
+
+    await svc.buildUserIcs('tok-user', { dayEvents: false });
+
+    expect(buildTripCalendar).toHaveBeenCalledWith(first.id, { dayEvents: false });
+    expect(buildTripCalendar).toHaveBeenCalledWith(second.id, { dayEvents: false });
   });
 
   it('FEED-SVC-020: the display name is escaped for the header but returned raw', async () => {

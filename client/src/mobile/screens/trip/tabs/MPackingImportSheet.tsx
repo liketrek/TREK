@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { FileDown } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { usePackingImport } from '../../../../components/Packing/usePackingImport'
 import { PACKING_IMPORT_ACCEPT } from '../../../../components/Packing/packingListPanel.constants'
 import type { TripPlanner } from '../MTripShell'
@@ -25,10 +25,10 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
     usePackingImport({ tripId, t, toast, onImported: onClose, oneAtATime: true })
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={t('packing.importTitle')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={t('packing.importTitle')}>
       <FormSheetHeader title={t('packing.importTitle')} onClose={onClose} closeLabel={t('common.close')} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
+      <FormSheetBody>
         <p className="mb-1 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHint')}</p>
         <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHintMarkdown')}</p>
 
@@ -53,7 +53,7 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
         {parsed.length === 0 && text.trim() !== '' && (
           <Eyebrow className="mt-3">{t('packing.importEmpty')}</Eyebrow>
         )}
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={onClose}

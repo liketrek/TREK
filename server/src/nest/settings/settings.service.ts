@@ -3,7 +3,7 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Settings } from '../../db/entities/Settings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { SettingsRepository } from '../../db/repositories/Settings.repository';
-import { readAppSetting, type AppSettingKey } from '../common/app-settings.registry';
+import { readAppSetting, resolveAppSetting, type AppSettingKey } from '../common/app-settings.registry';
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { UnitOfWork } from '../database/unit-of-work';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
@@ -399,6 +399,11 @@ export class SettingsService {
   /** The stored text of a registered instance setting, or null without a row, for a domain that keeps one there. */
   async getAppSetting(key: AppSettingKey): Promise<string | null> {
     return await readAppSetting(this.appSettings, key);
+  }
+
+  /** The environment value of a registered instance setting when one is set, else its stored text, else null. */
+  async getResolvedAppSetting(key: AppSettingKey): Promise<string | null> {
+    return await resolveAppSetting(this.appSettings, key);
   }
 
   /** Writes a registered instance setting only while it has no row; the first of several processes keeps it. */

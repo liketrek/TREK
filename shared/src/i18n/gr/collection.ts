@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Ιδέα',
   'collections.status.want': 'Θέλω να πάω',
   'collections.status.visited': 'Επισκέφθηκα',
+  'collections.status.revisit': 'Θέλω να ξαναπάω',
   'collections.status.filterAll': 'Όλα',
   'collections.status.cycleHint': 'πάτησε για αλλαγή',
 
@@ -197,10 +198,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'Λίστα TREK',
   'collections.file.formatTrekHint': 'Για άλλο TREK, με ετικέτες και κατάσταση',
   'collections.file.formatGpxHint': 'Σημεία διαδρομής για OsmAnd, Organic Maps, Garmin και άλλες εφαρμογές χαρτών',
+  'collections.file.formatKmlHint': 'Πινέζες για το Google My Maps, για να βλέπετε τα μέρη στο Google Maps',
   'collections.file.gpxOmitted': '{count} μέρη χωρίς συντεταγμένες έμειναν εκτός του αρχείου GPX',
   'collections.file.gpxOmitted.one': '{count} μέρος χωρίς συντεταγμένες έμεινε εκτός του αρχείου GPX',
   'collections.file.gpxNothing':
     'Κανένα από αυτά τα μέρη δεν έχει συντεταγμένες, οπότε δεν υπάρχει τίποτα για αρχείο GPX.',
+  'collections.file.kmlOmitted': '{count} μέρη χωρίς συντεταγμένες έμειναν εκτός του αρχείου KML',
+  'collections.file.kmlOmitted.one': '{count} μέρος χωρίς συντεταγμένες έμεινε εκτός του αρχείου KML',
+  'collections.file.kmlNothing':
+    'Κανένα από αυτά τα μέρη δεν έχει συντεταγμένες, οπότε δεν υπάρχει τίποτα για αρχείο KML.',
   'collections.file.reading': 'Ανάγνωση αρχείου…',
   'collections.file.gpxSkipped': '{count} σημεία διαδρομής χωρίς αξιοποιήσιμες συντεταγμένες μένουν εκτός.',
   'collections.file.gpxSkipped.one': '{count} σημείο διαδρομής χωρίς αξιοποιήσιμες συντεταγμένες μένει εκτός.',

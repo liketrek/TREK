@@ -1,7 +1,9 @@
 import { InputHTMLAttributes, ReactNode, useState } from 'react'
-import { Eye, EyeOff, Loader2, X } from 'lucide-react'
+import { ChevronDown, Eye, EyeOff, Loader2, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import MIconBtn from '../../components/MIconBtn'
+import MHintLabel from '../../components/MHintLabel'
+import MSetPickerSheet, { type MSetPickerOption } from '../settings/MSetPickerSheet'
 
 /** Opaque content card of the admin screen (r18, --m-sheetop on --m-rowbr). */
 export function MAdminCard({ className = '', children }: { className?: string; children: ReactNode }) {
@@ -33,7 +35,7 @@ export function MAdminCardHead({
   )
 }
 
-/** Settings row: bold 13px title + Geist hint on the left, control on the right. */
+/** Settings row: bold 13px title (its hint behind the info mark) on the left, control on the right. */
 export function MAdminRow({
   title,
   hint,
@@ -52,8 +54,7 @@ export function MAdminRow({
       }`}
     >
       <div className="min-w-0 flex-1">
-        <div className="text-[0.8125rem] font-bold text-m-ink">{title}</div>
-        {hint && <div className="mt-[1px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{hint}</div>}
+        <MHintLabel label={title} hint={hint} />
       </div>
       {trailing}
     </div>
@@ -79,13 +80,31 @@ export function MAdminClampedText({ children, className = '' }: { children: stri
   )
 }
 
-/** Labelled form field with an optional hint line under the control. */
+/** A short line in a card body: a fact under a control, or (warn) what a setting will not do as things stand. */
+export function MAdminNote({ warn = false, children }: { warn?: boolean; children: ReactNode }) {
+  return (
+    <p
+      className={`mt-[5px] font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] leading-relaxed ${
+        warn ? 'font-bold text-[color:var(--m-st-pending)]' : 'text-m-muted'
+      }`}
+    >
+      {children}
+    </p>
+  )
+}
+
+/** Labelled form field; its hint waits behind the label's info mark. */
 export function MAdminField({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
-    <div>
-      <div className="mb-[6px] text-[0.75rem] font-semibold text-m-ink">{label}</div>
+    <div data-m-field="">
+      <div className="mb-[5px]">
+        <MHintLabel
+          label={label}
+          hint={hint}
+          labelClassName="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint"
+        />
+      </div>
       {children}
-      {hint && <div className="mt-[5px] font-geist text-[0.625rem] leading-relaxed text-m-muted">{hint}</div>}
     </div>
   )
 }
@@ -94,7 +113,7 @@ export function MAdminInput({ className = '', ...props }: InputHTMLAttributes<HT
   return (
     <input
       {...props}
-      className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`h-[42px] w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     />
   )
 }
@@ -161,11 +180,14 @@ export function MAdminButton({
 /** Sheet body frame: title row + close, scrollable content, optional footer. */
 export function MAdminSheetFrame({
   title,
+  icon,
   onClose,
   footer,
   children,
 }: {
   title: ReactNode
+  /** The icon tile in front of the title, as every phone sheet has. */
+  icon?: ReactNode
   onClose: () => void
   footer?: ReactNode
   children: ReactNode
@@ -173,18 +195,76 @@ export function MAdminSheetFrame({
   const { t } = useTranslation()
   return (
     <>
-      <div className="flex flex-none items-center gap-2 px-4 pb-2 pt-4">
-        <div className="min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">{title}</div>
+      {/* TileHeader's shape: the icon tile, the title and the round close. */}
+      <div className="flex flex-none items-center gap-3 px-[18px] pb-1 pt-4">
+        {icon && (
+          <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
+            {icon}
+          </span>
+        )}
+        <div className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold leading-tight text-m-ink">{title}</div>
         <MIconBtn variant="neutral" size={34} ariaLabel={t('common.close')} onClick={onClose}>
-          <X size={16} strokeWidth={2.2} />
+          <X size={15} strokeWidth={2.2} />
         </MIconBtn>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">{children}</div>
       {footer && (
-        <div className="flex flex-none items-center justify-end gap-2 border-t border-[color:var(--m-rowbr)] px-4 py-3">
+        // The footer's buttons take the sheets' 42 px size; elsewhere MAdminButton stays a small pill.
+        <div className="flex flex-none items-center justify-end gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3 [&>button]:h-[42px] [&>button]:px-4 [&>button]:text-[length:calc(13px*var(--fs-scale-body,1))] [&>button]:font-semibold">
           {footer}
         </div>
       )}
+    </>
+  )
+}
+
+interface MAdminSelectProps {
+  value: string
+  options: MSetPickerOption[]
+  onChange: (value: string) => void
+  /** The picker sheet's title and the control's accessible name. */
+  title: string
+  disabled?: boolean
+  /** A small pill for the end of a row instead of a full-width field. */
+  compact?: boolean
+}
+
+/**
+ * The phone's select: TREK's own field (or a pill at the end of a row) that
+ * opens the bottom picker sheet. A native <select> is drawn by the operating
+ * system and was the one control on these screens that did not look like TREK.
+ */
+export function MAdminSelect({ value, options, onChange, title, disabled = false, compact = false }: MAdminSelectProps) {
+  const [open, setOpen] = useState(false)
+  const current = options.find((option) => option.value === value)
+  return (
+    <>
+      <button
+        type="button"
+        // ARIA 1.2's select-only combobox: the button names the value, the sheet is its popup.
+        role="combobox"
+        aria-label={title}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className={
+          compact
+            ? 'inline-flex h-[30px] max-w-[52%] flex-none items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] ps-[11px] pe-[8px] text-[length:calc(11.5px*var(--fs-scale-body,1))] font-bold text-m-ink disabled:opacity-50'
+            : 'flex h-[42px] w-full items-center gap-2 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-start text-[length:calc(13.5px*var(--fs-scale-body,1))] text-m-ink disabled:opacity-50'
+        }
+      >
+        <span className="min-w-0 flex-1 truncate text-start">{current?.label ?? value}</span>
+        <ChevronDown size={compact ? 13 : 15} strokeWidth={2.2} className="flex-none text-m-faint" aria-hidden />
+      </button>
+      <MSetPickerSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={title}
+        value={value}
+        options={options}
+        onSelect={(next) => { if (next !== value) onChange(next) }}
+      />
     </>
   )
 }

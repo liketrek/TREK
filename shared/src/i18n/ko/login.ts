@@ -37,6 +37,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': '2단계 인증',
   'login.mfaSubtitle': '인증 앱의 6자리 코드를 입력하세요.',
   'login.mfaCodeLabel': '인증 코드',
+  'login.mfaPlaceholder': '000000 또는 XXXX-XXXX',
   'login.mfaCodeRequired': '인증 앱의 코드를 입력하세요.',
   'login.mfaHint': 'Google Authenticator, Authy 또는 다른 TOTP 앱을 열어주세요.',
   'login.mfaBack': '← 로그인으로 돌아가기',

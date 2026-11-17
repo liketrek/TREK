@@ -9,7 +9,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import L from 'leaflet'
 import 'leaflet.markercluster'
-import { CLUSTER_OPTIONS, CLUSTER_RADIUS_PX, CLUSTER_UNTIL_ZOOM, revealInCluster } from './markerCluster'
+import { CLUSTER_OPTIONS, CLUSTER_RADIUS_PX, CLUSTER_UNTIL_ZOOM, REVEAL_FAN_MAX_CHILDREN, revealInCluster } from './markerCluster'
 import { COINCIDENT_RADIUS_PX, STACK_RADIUS_PX } from './coincidentPlaces'
 import { MAP_MAX_ZOOM } from '../../constants/mapDefaults'
 
@@ -117,5 +117,45 @@ describe('reaching a stop inside a bubble', () => {
     expect(revealInCluster({ getVisibleParent: () => marker }, marker)).toBe(false)
     // And a parent from a group that cannot spiderfy is left alone rather than called.
     expect(revealInCluster({ getVisibleParent: () => ({}) }, {})).toBe(false)
+  })
+
+  /** A city's worth of stops around HOTEL, a few hundred metres apart, as a big trip has them. */
+  function city(count: number): [number, number][] {
+    return Array.from({ length: count }, (_, i) => [HOTEL[0] + (i % 8) * 0.003, HOTEL[1] + Math.floor(i / 8) * 0.004])
+  }
+  const fanned = (markers: L.Marker[], start: [number, number][]) =>
+    markers.some((marker, i) => marker.getLatLng().lat !== start[i][0] || marker.getLatLng().lng !== start[i][1])
+
+  it('MARKERCLUSTER-009: leaves a city-sized bubble of the overview closed (#2990)', () => {
+    const coords = city(60)
+    const { group, markers } = stopsOn(mapAt(5), coords)
+    const bubble = group.getVisibleParent(markers[17])
+    expect(bubble).not.toBe(markers[17])
+
+    expect(revealInCluster(group, markers[17])).toBe(false)
+    expect(fanned(markers, coords)).toBe(false)
+  })
+
+  it('MARKERCLUSTER-010: still opens a small bubble of the overview', () => {
+    const coords = city(REVEAL_FAN_MAX_CHILDREN)
+    const { group, markers } = stopsOn(mapAt(5), coords)
+    expect(group.getVisibleParent(markers[0])).not.toBe(markers[0])
+
+    expect(revealInCluster(group, markers[0])).toBe(true)
+    expect(fanned(markers, coords)).toBe(true)
+  })
+
+  it('MARKERCLUSTER-011: opens a stack of any size when every stop shares one coordinate', () => {
+    const coords = Array.from({ length: REVEAL_FAN_MAX_CHILDREN + 8 }, () => HOTEL)
+    const { group, markers } = stopsOn(mapAt(16), coords)
+
+    expect(revealInCluster(group, markers[3])).toBe(true)
+    expect(new Set(markers.map(marker => `${marker.getLatLng().lat},${marker.getLatLng().lng}`)).size).toBe(coords.length)
+  })
+
+  it('MARKERCLUSTER-012: reads a bubble without bounds as one that cannot be told apart from a city', () => {
+    const spiderfy = () => { throw new Error('must not fan') }
+    const big = { spiderfy, getChildCount: () => REVEAL_FAN_MAX_CHILDREN + 1 }
+    expect(revealInCluster({ getVisibleParent: () => big }, {})).toBe(false)
   })
 })

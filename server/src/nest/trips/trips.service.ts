@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { Trips } from '../../db/entities/Trips.entity';
+import { Trips, TripsCostsMode } from '../../db/entities/Trips.entity';
 import { Days } from '../../db/entities/Days.entity';
 import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
 import { Users } from '../../db/entities/Users.entity';
@@ -34,6 +34,7 @@ import {
   type DayGridRemoval,
   type TrekWsPayload,
   type TrekWsTripEventName,
+  type TripUpdateRequest,
 } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -47,6 +48,7 @@ import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
 import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { inOrder } from '../common/in-order';
 import { UnitOfWork } from '../database/unit-of-work';
 import { legacyBoundIntegerText } from '../common/row-id';
 import { appClock } from '../common/timezoneService';
@@ -62,20 +64,9 @@ interface CreateTripData {
   day_count?: number;
 }
 
-// Nullable where the wire contract (tripUpdateRequestSchema) is nullable — the
-// legacy route accepted arbitrary JSON, so null always reached these fields.
-interface UpdateTripData {
-  title?: string;
-  description?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  currency?: string;
-  is_archived?: boolean | number;
-  cover_image?: string | null;
-  reminder_days?: number;
-  day_count?: number;
-  date_shift_mode?: 'keep_bookings' | 'shift_all';
-}
+// The wire contract of PUT /api/trips/:id (tripUpdateRequestSchema), which
+// update_trip hands on as well; nullable where it is, as null always arrived.
+type UpdateTripData = TripUpdateRequest;
 
 export interface UpdateTripResult {
   updatedTrip: any;
@@ -475,7 +466,7 @@ export class TripsService {
     const trip = await this.tripsRepo.findRaw(tripId) as (Trip & { reminder_days?: number }) | null; // TP24
     if (!trip) throw new NotFoundError('Trip not found');
 
-    const { title, description, currency, is_archived, cover_image, reminder_days } = data;
+    const { title, description, currency, is_archived, cover_image, reminder_days, costs_mode } = data;
     const { newStart, newEnd, dayCount, regenerate } = this.resolveRange(trip, data);
 
     const newTitle = title || trip.title;
@@ -483,6 +474,9 @@ export class TripsService {
     const newCurrency = currency || trip.currency;
     const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
     const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
+    // A stored trip is read as one of the two modes the column allows.
+    const storedCostsMode = trip.costs_mode === TripsCostsMode.TOTALS ? TripsCostsMode.TOTALS : TripsCostsMode.SPLIT;
+    const newCostsMode = costs_mode ?? storedCostsMode;
     const oldReminder = (trip as any).reminder_days ?? 3;
     const newReminder = reminder_days !== undefined
       ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
@@ -510,6 +504,7 @@ export class TripsService {
         is_archived: newArchived,
         cover_image: newCover ?? null,
         reminder_days: newReminder,
+        costs_mode: newCostsMode,
       });
 
       if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
@@ -545,6 +540,7 @@ export class TripsService {
     if (newEnd !== trip.end_date) changes.end_date = newEnd;
     if (newReminder !== oldReminder) changes.reminder_days = newReminder === 0 ? 'none' : `${newReminder} days`;
     if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
+    if (newCostsMode !== trip.costs_mode) changes.costs_mode = newCostsMode;
 
     const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
     let ownerEmail: string | undefined;
@@ -659,6 +655,7 @@ export class TripsService {
         currency: src.currency,
         cover_image: src.cover_image,
         reminder_days: src.reminder_days ?? 3,
+        costs_mode: src.costs_mode,
       });
 
       const oldDays = await this.daysRepo.listByTrip(Number(sourceTripId)); // TP38
@@ -716,10 +713,15 @@ export class TripsService {
         if (newDayId && newPlaceId) await this.roadtripDayTracksRepo.upsertTrack(newDayId, newPlaceId, t.stray_km); // TP45
       }
 
+      // The trip's own tags are written again as the copy's; a personal tag stays its owner's one row.
+      const tagMap = new Map<number, number>();
+      await inOrder(await this.tagsRepo.listByTrip(Number(sourceTripId)), async ({ id, name, color }) => {
+        tagMap.set(id, (await this.tagsRepo.createTag({ user_id: newOwnerId, trip_id: newTripId, name, color })).id);
+      });
       const oldTags = await this.tagsRepo.listPlaceTagsForTrip(sourceTripId); // TP46
       for (const t of oldTags) {
         const newPlaceId = placeMap.get(t.place_id);
-        if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [t.tag_id]); // TP47
+        if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [tagMap.get(t.tag_id) ?? t.tag_id]); // TP47
       }
 
       // The `tours` facet goes first: the import record, obstacle decisions, packing link and waypoints need it.
@@ -757,6 +759,7 @@ export class TripsService {
             reservation_status: a.reservation_status, reservation_notes: a.reservation_notes,
             reservation_datetime: a.reservation_datetime, assignment_time: a.assignment_time,
             assignment_end_time: a.assignment_end_time, end_day: a.end_day ?? 0, tour_stage_key: a.tour_stage_key,
+            stay_minutes: a.stay_minutes ?? null,
           });
           assignmentMap.set(a.id, newAssignmentId);
         }

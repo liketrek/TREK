@@ -1,8 +1,11 @@
 import { ChevronRight, FileDown, Settings, Settings2, Sparkles } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useState } from 'react'
 import MSheet from '../../../components/MSheet'
+import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
 import type { MTripSheetsProps } from '../MTripShell'
 import { dockTabIds } from '../dockTabs'
+import { useIsWide } from '../../../../hooks/sizeClass'
 import { useTranslation } from '../../../../i18n'
 import { useAssistantAsk } from '../../../../components/Assistant/useAssistantAsk'
 import { useAssistantHints } from '../../../../components/Assistant/useAssistantHints'
@@ -31,11 +34,16 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   const assistant = useAssistantAsk(planner.tripId)
   // Warnings not shown yet turn the tile's line into a count; the dock gets no dot.
   const hints = useAssistantHints(planner.tripId, { withStays: false })
+  const [list, setList] = useState<HTMLDivElement | null>(null)
+  const fade = useEdgeFade(list, 'y')
 
   // Derived from the same priority list the dock seats itself from, so a section
   // can never show up in both places at once.
   const mobileTabs = planner.TRIP_TABS.filter(tab => !tab.desktopOnly)
-  const seated = dockTabIds(new Set(mobileTabs.map(tab => tab.id)))
+  // On a wide window every section has its place in the rail (MTripRail), so
+  // the sheet keeps only the trip's actions.
+  const wide = useIsWide()
+  const seated = wide ? new Set(mobileTabs.map(tab => tab.id)) : dockTabIds(new Set(mobileTabs.map(tab => tab.id)))
   const gridTabs = mobileTabs.filter(tab => !seated.has(tab.id))
 
   const tileStat = (id: string): string | null => {
@@ -62,8 +70,10 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
   ]
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" dimTransparent ariaLabel={t('mobileTrip.more')}>
-      <div className="overflow-y-auto p-[10px]">
+    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" dimTransparent wideWidth="compact" wideAnchor="rail-foot" ariaLabel={t('mobileTrip.more')}>
+      {/* min-h-0: without it the list keeps its full height inside the panel
+          and the panel cuts its last row instead of letting it scroll. */}
+      <div ref={setList} className={`min-h-0 overflow-y-auto overscroll-contain p-[10px] ${edgeFadeClass(fade, 'y')}`}>
         {/* The assistant leads the sheet: the one way into it on the phone besides "Ask" on a place. */}
         {assistant.available && (
           <button
@@ -108,7 +118,9 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
                   >
                     {Icon && <Icon size={19} strokeWidth={1.9} />}
                   </div>
-                  <div className="mt-3 truncate text-[0.90625rem] font-bold">{tab.label}</div>
+                  {/* Two lines before an ellipsis: "Совместная работа" was cut to
+                      "Совместная раб…" in half a phone's width. */}
+                  <div className="mt-3 line-clamp-2 break-words text-[0.90625rem] font-bold leading-tight [hyphens:auto]">{tab.label}</div>
                   {stat && <div className="truncate font-geist text-[0.65625rem] text-m-muted">{stat}</div>}
                 </button>
               )

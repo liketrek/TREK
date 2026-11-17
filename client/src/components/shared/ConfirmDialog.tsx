@@ -4,6 +4,8 @@ import { AlertTriangle, HelpCircle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { DialogTile, NEUTRAL_TINT, fs } from './DialogShell'
+import { useLastOpen, usePresence } from './usePresence'
+import { useNativeQuestion } from '../../native/useNativeQuestion'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -28,7 +30,29 @@ function runConfirm(onConfirm: () => void): void {
   }
 }
 
-export default function ConfirmDialog({
+export default function ConfirmDialog(props: ConfirmDialogProps) {
+  const { t } = useTranslation()
+  // In the app the system asks (native/nativeDialogs.ts); a list under the question needs the HTML card.
+  const question = props.children
+    ? null
+    : {
+        title: props.title || t('common.confirm'),
+        message: props.message,
+        confirmLabel: props.confirmLabel || t('common.delete'),
+        cancelLabel: props.cancelLabel || t('common.cancel'),
+        danger: props.danger ?? true,
+      }
+  const html = useNativeQuestion(props.isOpen, question, (yes) => {
+    if (yes) runConfirm(props.onConfirm)
+    props.onClose()
+  })
+  const { mounted, closing } = usePresence(props.isOpen && html)
+  // The question stays readable while it fades, even when its owner clears the subject on close.
+  const shown = useLastOpen(props, props.isOpen)
+  return mounted ? <ConfirmDialogFrame {...shown} isOpen={props.isOpen && html} closing={closing} /> : null
+}
+
+function ConfirmDialogFrame({
   isOpen,
   onClose,
   onConfirm,
@@ -38,7 +62,8 @@ export default function ConfirmDialog({
   cancelLabel,
   danger = true,
   children,
-}: ConfirmDialogProps) {
+  closing = false,
+}: ConfirmDialogProps & { closing?: boolean }) {
   const { t } = useTranslation()
   const isPhone = useIsPhone()
 
@@ -57,14 +82,21 @@ export default function ConfirmDialog({
     return () => document.removeEventListener('keydown', handleEsc, true)
   }, [isOpen, handleEsc])
 
-  if (!isOpen) return null
+  if (!isOpen && !closing) return null
+
+  // Each used by both layouts, worked out once.
+  const heading = title || t('common.confirm')
+  const cancelText = cancelLabel || t('common.cancel')
+  const confirmText = confirmLabel || t('common.delete')
+  const modalExit = closing ? 'trek-modal-exit' : ''
+  const width = children ? 'max-w-md' : 'max-w-sm'
 
   return createPortal(
     <div
       // Backdrop only — Escape (above) and the Cancel button below are the
       // keyboard routes out of the dialog.
       role="presentation"
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
+      className={`fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)] ${closing ? 'trek-backdrop-exit pointer-events-none' : ''}`}
       style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
@@ -74,7 +106,7 @@ export default function ConfirmDialog({
             own, and the two buttons below it always stay in reach. */}
         <div
           role="presentation"
-          className={`trek-modal-enter flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] flex-col rounded-2xl shadow-2xl w-full ${children ? 'max-w-md' : 'max-w-sm'} p-6 bg-surface-card`}
+          className={`trek-modal-enter ${modalExit} flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] flex-col rounded-2xl shadow-2xl w-full ${width} p-6 bg-surface-card`}
           onClick={e => e.stopPropagation()}
         >
           <div className="flex min-h-0 items-start gap-4 overflow-y-auto overscroll-contain">
@@ -85,7 +117,7 @@ export default function ConfirmDialog({
             )}
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-content">
-                {title || t('common.confirm')}
+                {heading}
               </h3>
               <p className="mt-1 text-sm text-content-secondary">
                 {message}
@@ -99,7 +131,7 @@ export default function ConfirmDialog({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-content-secondary border border-edge-secondary"
             >
-              {cancelLabel || t('common.cancel')}
+              {cancelText}
             </button>
             <button type="button"
               onClick={() => { runConfirm(onConfirm); onClose() }}
@@ -107,7 +139,7 @@ export default function ConfirmDialog({
                 danger ? 'bg-danger text-white' : 'bg-accent text-accent-text'
               }`}
             >
-              {confirmLabel || t('common.delete')}
+              {confirmText}
             </button>
           </div>
         </div>
@@ -117,7 +149,7 @@ export default function ConfirmDialog({
         // with its tile, the message below, the answers in a bar at the foot.
         <div
           role="presentation"
-          className={`trek-modal-enter flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] w-full flex-col overflow-hidden rounded-[22px] bg-surface-card shadow-2xl ${children ? 'max-w-md' : 'max-w-sm'}`}
+          className={`trek-modal-enter ${modalExit} flex max-h-[calc(100dvh-2rem-var(--bottom-nav-h,0px))] w-full flex-col overflow-hidden rounded-[22px] bg-surface-card shadow-2xl ${width}`}
           onClick={e => e.stopPropagation()}
         >
           <div className={`flex flex-none items-center gap-3.5 px-6 pb-4 pt-5 ${danger ? 'bg-danger-soft' : ''}`} style={danger ? undefined : { background: NEUTRAL_TINT }}>
@@ -127,7 +159,7 @@ export default function ConfirmDialog({
                 : <HelpCircle size={20} strokeWidth={1.9} className="text-content-muted" />}
             </DialogTile>
             <h3 className="m-0 min-w-0 flex-1 font-bold tracking-[-0.01em] text-content" style={fs(18, 'subtitle')}>
-              {title || t('common.confirm')}
+              {heading}
             </h3>
           </div>
           <div className="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain px-6 py-5">
@@ -137,13 +169,13 @@ export default function ConfirmDialog({
           <div className="flex flex-none items-center justify-end gap-2 border-t border-edge-faint px-6 py-3.5" style={fs(13, 'body')}>
             <button type="button" onClick={onClose}
               className="inline-flex items-center rounded-[10px] bg-surface-tertiary px-3.5 py-2 font-medium text-content hover:bg-surface-hover">
-              {cancelLabel || t('common.cancel')}
+              {cancelText}
             </button>
             <button type="button"
               onClick={() => { runConfirm(onConfirm); onClose() }}
               className={`inline-flex items-center rounded-[10px] px-4 py-2 font-medium hover:opacity-90 ${danger ? 'bg-danger text-white' : 'bg-accent text-accent-text'}`}
             >
-              {confirmLabel || t('common.delete')}
+              {confirmText}
             </button>
           </div>
         </div>

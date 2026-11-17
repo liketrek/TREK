@@ -71,7 +71,7 @@ export default function MLlmConnectionSection(): React.ReactElement {
         <MSetRow
           first
           label={t('settings.aiParsing.multimodal')}
-          sub={t('settings.aiParsing.multimodalHint')}
+          hint={t('settings.aiParsing.multimodalHint')}
           trailing={
             <MToggle
               checked={multimodal}

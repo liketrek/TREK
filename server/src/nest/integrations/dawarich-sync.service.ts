@@ -13,7 +13,17 @@ import { logError, logInfo } from '../audit/audit-log.logger';
 import { UnitOfWork } from '../database/unit-of-work';
 import { JourneyRecordingPrepService, type PreparedJourney } from '../journey/journey-recording-prep.service';
 import { DawarichClient, DawarichError, type DawarichCreds, type DawarichVisitRaw } from './dawarich.client';
-import { distanceMeters, localDateOf, normalizeVisit, syncWindow, visitHash } from './dawarich.helpers';
+import {
+  distanceMeters,
+  isPlaceholderName,
+  localDateOf,
+  nameFromGeocodedPoints,
+  normalizeVisit,
+  STAY_NAME_PENDING,
+  syncWindow,
+  UNNAMED_STAY,
+  visitHash,
+} from './dawarich.helpers';
 import { DawarichService } from './dawarich.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -26,6 +36,19 @@ import {
 } from '@trek/shared';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Stays one run reads points for to name them. A first sync of a long trip
+ * can hold hundreds without a name; the rest wait for the next run rather than
+ * holding this one open (see `stayNamer`).
+ */
+const MAX_STAY_NAME_LOOKUPS = 100;
+
+/**
+ * Names a stay from its points: the name, null when none of them was
+ * geocoded, undefined when they were not read this run.
+ */
+type StayNamer = (startedAt: string, endedAt: string) => Promise<string | null | undefined>;
 
 /** What one user's sync produced — plus whether it ran at all. */
 export interface DawarichSyncOutcome {
@@ -281,11 +304,12 @@ export class DawarichSyncService {
   ): Promise<{ created: number; updated: number; missing: number }> {
     const { visits } = await this.client.listVisits(creds, from, to);
 
+    const nameStay = this.stayNamer(creds);
     const seenIds = new Set<string>();
     let created = 0;
     let updated = 0;
     for (const raw of visits) {
-      const outcome = await this.upsertVisit(userId, tripId, raw, trips);
+      const outcome = await this.upsertVisit(userId, tripId, raw, trips, nameStay);
       if (!outcome) continue;
       seenIds.add(outcome.sourceVisitId);
       if (outcome.change === 'created') created++;
@@ -294,6 +318,48 @@ export class DawarichSyncService {
 
     const missing = await this.flagMissing(userId, tripId, from, to, seenIds);
     return { created, updated, missing };
+  }
+
+  /**
+   * Reads a stay's points for a name, for one run. A run reads at most
+   * MAX_STAY_NAME_LOOKUPS stays, and stops reading after the first failure,
+   * since an instance that did not answer one will not answer the rest either.
+   * Either way the stay is left for the next run, not given up on.
+   */
+  private stayNamer(creds: DawarichCreds): StayNamer {
+    let left = MAX_STAY_NAME_LOOKUPS;
+    return async (startedAt, endedAt) => {
+      if (left <= 0) return undefined;
+      left--;
+      try {
+        const points = await this.client.listGeocodedPoints(creds, new Date(startedAt), new Date(endedAt));
+        return nameFromGeocodedPoints(points);
+      } catch {
+        left = 0;
+        return undefined;
+      }
+    };
+  }
+
+  /**
+   * What a stay is called. Its own name when Dawarich sent one. Otherwise the
+   * reverse-geocoded points recorded during it name it (#3105): Dawarich sends
+   * a placeholder for a visit without a place even when its points know the
+   * town. A name found earlier is kept while the visit is unchanged, and so is
+   * the finding that none of its points was geocoded; a stay whose points
+   * were not read yet keeps the placeholder, which the next run reads again.
+   */
+  private async stayName(
+    visit: { name: string; named: boolean; startedAt: string; endedAt: string },
+    hash: string,
+    existing: { name: string | null; source_hash: string | null } | null,
+    nameStay: StayNamer,
+  ): Promise<string> {
+    if (visit.named) return visit.name;
+    if (existing?.name && existing.source_hash === hash && !isPlaceholderName(existing.name)) return existing.name;
+    const found = await nameStay(visit.startedAt, visit.endedAt);
+    if (found === undefined) return STAY_NAME_PENDING;
+    return found ?? UNNAMED_STAY;
   }
 
   /**
@@ -309,6 +375,7 @@ export class DawarichSyncService {
     tripId: number | null,
     raw: DawarichVisitRaw,
     trips: TripRow[],
+    nameStay: StayNamer,
   ): Promise<{ sourceVisitId: string; change: 'created' | 'updated' | 'unchanged' } | null> {
     const visit = normalizeVisit(raw);
     if (!visit) return null;
@@ -331,7 +398,7 @@ export class DawarichSyncService {
         user_id: userId,
         source_visit_id: visit.sourceVisitId,
         trip_id: ownerTripId,
-        name: visit.name,
+        name: await this.stayName(visit, hash, null, nameStay),
         lat: visit.lat,
         lng: visit.lng,
         started_at: visit.startedAt,
@@ -358,7 +425,7 @@ export class DawarichSyncService {
       // that includes the trip: a stay parked on a neighbour by an earlier
       // run moves to the trip whose dates hold it.
       await this.suggestions.updateNewVisit(existing.id, {
-        name: visit.name,
+        name: await this.stayName(visit, hash, existing, nameStay),
         lat: visit.lat,
         lng: visit.lng,
         started_at: visit.startedAt,
@@ -424,10 +491,11 @@ export class DawarichSyncService {
     trips: TripRow[],
   ): Promise<{ created: number; updated: number; truncated: boolean }> {
     const { visits, truncated } = await this.client.listVisits(creds, from, to);
+    const nameStay = this.stayNamer(creds);
     let created = 0;
     let updated = 0;
     for (const raw of visits) {
-      const outcome = await this.upsertVisit(userId, null, raw, trips);
+      const outcome = await this.upsertVisit(userId, null, raw, trips, nameStay);
       if (outcome?.change === 'created') created++;
       else if (outcome?.change === 'updated') updated++;
     }

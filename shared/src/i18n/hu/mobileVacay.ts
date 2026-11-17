@@ -16,6 +16,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Céges szabadság',
   'mobileVacay.editCalendar': 'Naptár szerkesztése',
   'mobileVacay.viewYear': 'Év megtekintése',
+  'mobileVacay.people': 'Személyek',
+  'mobileVacay.legend': 'Jelmagyarázat',
 };
 
 export default mobileVacay;

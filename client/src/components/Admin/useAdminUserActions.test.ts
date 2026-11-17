@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAdminUserActions } from './useAdminUserActions';
 
-// FE-HOOK-ADMUSERACT-001 to FE-HOOK-ADMUSERACT-007
+// FE-HOOK-ADMUSERACT-001 to FE-HOOK-ADMUSERACT-009
 
-const api = vi.hoisted(() => ({ rotateJwtSecret: vi.fn(), resetUserPasskeys: vi.fn(), resetUserMfa: vi.fn() }));
-vi.mock('../../api/client', () => ({ adminApi: api }));
+const api = vi.hoisted(() => ({
+  rotateJwtSecret: vi.fn(),
+  resetUserPasskeys: vi.fn(),
+  resetUserMfa: vi.fn(),
+}));
+const http = vi.hoisted(() => ({ delete: vi.fn() }));
+vi.mock('../../api/client', () => ({ adminApi: api, apiClient: http }));
 
 const t = (key: string, params?: Record<string, unknown>) => (params ? `${key} ${JSON.stringify(params)}` : key);
 
@@ -28,6 +33,7 @@ beforeEach(() => {
   api.rotateJwtSecret.mockReset().mockResolvedValue({});
   api.resetUserPasskeys.mockReset().mockResolvedValue({ deleted: 2 });
   api.resetUserMfa.mockReset().mockResolvedValue({ success: true });
+  http.delete.mockReset().mockResolvedValue({ data: { success: true, unlinked: true } });
 });
 
 describe('useAdminUserActions', () => {
@@ -97,6 +103,28 @@ describe('useAdminUserActions', () => {
     let ok: boolean | undefined;
     await act(async () => {
       ok = await actions.resetMfa({ id: 9 });
+    });
+    expect(admin.toast.error).toHaveBeenCalledWith('common.error');
+    expect(ok).toBe(false);
+  });
+
+  it('FE-HOOK-ADMUSERACT-008: removing the SSO link calls the API, toasts and reports success', async () => {
+    const { admin, actions } = mount();
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await actions.unlinkSso({ id: 11 });
+    });
+    expect(http.delete).toHaveBeenCalledWith('/admin/users/11/sso');
+    expect(admin.toast.success).toHaveBeenCalledWith('admin.sso.unlinkDone');
+    expect(ok).toBe(true);
+  });
+
+  it('FE-HOOK-ADMUSERACT-009: a failed SSO unlink toasts and reports failure', async () => {
+    http.delete.mockRejectedValue(new Error('x'));
+    const { admin, actions } = mount();
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await actions.unlinkSso({ id: 11 });
     });
     expect(admin.toast.error).toHaveBeenCalledWith('common.error');
     expect(ok).toBe(false);

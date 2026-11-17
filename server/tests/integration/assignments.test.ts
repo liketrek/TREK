@@ -89,6 +89,42 @@ describe('Create assignment', () => {
     await request(app).put(url).send({ end_day: true }).expect(401);
   });
 
+  it('ASSIGN-STAY: two visits of one place keep their own stay, the other falls back to the place (#3092)', async () => {
+    const { user } = createUser(testDb);
+    const { trip, day, place } = setupAssignmentFixtures(user.id);
+    await updateRows(orm, Places, { id: place.id }, { duration_minutes: 60 });
+    const cookie = authCookie(user.id);
+    const plan = `/api/trips/${trip.id}/days/${day.id}/assignments`;
+    const first = (await request(app).post(plan).set('Cookie', cookie).send({ place_id: place.id }).expect(201)).body
+      .assignment;
+    const second = (await request(app).post(plan).set('Cookie', cookie).send({ place_id: place.id }).expect(201)).body
+      .assignment;
+    expect(first.stay_minutes).toBeNull();
+
+    const url = `/api/trips/${trip.id}/assignments/${second.id}/stay`;
+    const changed = await request(app).put(url).set('Cookie', cookie).send({ stay_minutes: 0 }).expect(200);
+    expect(changed.body.assignment).toMatchObject({ id: second.id, stay_minutes: 0 });
+
+    // The other visit and the place itself are untouched.
+    const listed = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', cookie).expect(200);
+    const visits = listed.body.days[0].assignments as Array<{ id: number; stay_minutes: number | null }>;
+    expect(visits.find((a) => a.id === first.id)?.stay_minutes).toBeNull();
+    expect(visits.find((a) => a.id === second.id)?.stay_minutes).toBe(0);
+    expect((await findRows(orm, Places, { id: place.id }))[0]?.duration_minutes).toBe(60);
+
+    await request(app).put(url).set('Cookie', cookie).send({ stay_minutes: -5 }).expect(400);
+    await request(app).put(url).set('Cookie', cookie).send({ stay_minutes: 1.5 }).expect(400);
+    const foreign = createTrip(testDb, user.id);
+    await request(app)
+      .put(`/api/trips/${foreign.id}/assignments/${second.id}/stay`)
+      .set('Cookie', cookie)
+      .send({ stay_minutes: 10 })
+      .expect(404);
+    const reset = await request(app).put(url).set('Cookie', cookie).send({ stay_minutes: null }).expect(200);
+    expect(reset.body.assignment.stay_minutes).toBeNull();
+    await request(app).put(url).send({ stay_minutes: 10 }).expect(401);
+  });
+
   it('ASSIGN-001 — POST creates assignment linking place to day', async () => {
     const { user } = createUser(testDb);
     const { trip, day, place } = setupAssignmentFixtures(user.id);

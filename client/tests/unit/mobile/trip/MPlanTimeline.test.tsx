@@ -8,6 +8,8 @@ import type { PlanRow, TransitMeta, TransportEntry } from '../../../../src/mobil
 import type { MergedItem } from '../../../../src/utils/dayMerge'
 import type { Assignment, Day, DayNote, Place, RouteSegment } from '../../../../src/types'
 import MPlanTimeline from '../../../../src/mobile/screens/trip/plan/MPlanTimeline'
+import { resetAllStores, seedStore } from '../../../helpers/store'
+import { useSettingsStore } from '../../../../src/store/settingsStore'
 
 // FE-MOB-PLTL-001 to FE-MOB-PLTL-049
 
@@ -113,6 +115,11 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
     canExportRoute: true,
     exportGoogleMaps: vi.fn(),
     exportCoMaps: vi.fn(),
+    routeTargets: [
+      { id: 'google', label: 'Google Maps', url: 'https://www.google.com/maps/dir/1,2/3,4' },
+      { id: 'comaps', label: 'CoMaps', url: 'https://comaps.at/route?x' },
+      { id: 'waze', label: 'Waze', url: 'https://waze.com/ul?ll=1,2&navigate=yes', firstStopOnly: true },
+    ],
     renameDay: vi.fn(),
     fullPlaceOf: vi.fn(() => undefined as Place | undefined),
     routeModeOptions: [
@@ -145,6 +152,7 @@ function renderTimeline(
 
 describe('MPlanTimeline', () => {
   beforeEach(() => {
+    resetAllStores()
     mocks.schedule = EMPTY_SCHEDULE
   })
 
@@ -176,14 +184,25 @@ describe('MPlanTimeline', () => {
       expect(screen.queryByText('Museum Rd 1')).not.toBeInTheDocument()
     })
 
-    it('FE-MOB-PLTL-004: collapses the reserved space when the day has no up next', () => {
+    it('FE-MOB-PLTL-004: the timeline follows the up-next card in one column, and starts at the top without one', () => {
       const { container, unmount } = renderTimeline()
-      expect(card(container).style.top).toContain('216px')
+      // The card flows under the up-next card at a fixed gap, whatever its height,
+      // rather than at an offset that assumed an address line (a gap without one).
+      // The card is a frame around the scroller, so a row's fade at the edge leaves the frame whole.
+      const upNext = screen.getByText('mobileTrip.upNext').closest('button') as HTMLElement
+      const frame = card(container).parentElement as HTMLElement
+      expect(upNext.nextElementSibling).toBe(frame)
+      expect(frame).toHaveClass('overflow-hidden', 'rounded-[22px]')
+      expect(card(container)).toHaveClass('overflow-y-auto')
+      expect(frame.parentElement).toHaveClass('flex-col', 'gap-3')
+      // On a wide window the column ends where the rail does.
+      expect(frame.parentElement).toHaveClass('wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]')
+      expect(card(container).style.top).toBe('')
       unmount()
 
       const empty = renderTimeline({ upNext: null, rows: [], merged: [] })
       expect(screen.queryByText('mobileTrip.upNext')).not.toBeInTheDocument()
-      expect(card(empty.container).style.top).toContain('102px')
+      expect(card(empty.container).parentElement?.previousElementSibling).toBeNull()
     })
   })
 
@@ -199,8 +218,14 @@ describe('MPlanTimeline', () => {
         weatherTemp: 17,
       })
 
-      expect(screen.getByText(/Hotel Sacher/)).toHaveTextContent('Hotel Sacher · 11:00')
-      expect(screen.getByText(/Ryokan Kyoto/)).toHaveTextContent('Ryokan Kyoto · 15:00')
+      // The name gives way with an ellipsis; the time after it stays, with no dot between.
+      const sacher = screen.getByText('Hotel Sacher')
+      expect(sacher).toHaveClass('truncate', 'min-w-0')
+      // In an Arabic header a Latin name keeps its own direction, so the ellipsis lands at its end.
+      expect(sacher).toHaveAttribute('dir', 'auto')
+      expect(sacher.closest('button')).toHaveTextContent('Hotel Sacher11:00')
+      expect(sacher.closest('button')).toHaveClass('shrink')
+      expect(screen.getByText('Ryokan Kyoto').closest('button')).toHaveTextContent('Ryokan Kyoto15:00')
       expect(screen.getByText('Capsule Tokyo')).toBeInTheDocument()
       expect(screen.getByText('17°')).toBeInTheDocument()
     })
@@ -217,9 +242,20 @@ describe('MPlanTimeline', () => {
       expect(screen.getByTitle('Shibuya')).toBeInTheDocument()
     })
 
-    it('FE-MOB-PLTL-006: a stay chip opens the stay editor for members who may edit days (#2210)', () => {
+    it('FE-MOB-PLTL-006: a stay chip opens the overview of its booking, not the editor (#2210)', () => {
+      const { shell } = renderTimeline(
+        { hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: 301 }] },
+        { reservations: [{ id: 44, type: 'hotel', accommodation_id: 3 }] as unknown as TripPlanner['reservations'] },
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'day.checkIn · Capsule Tokyo · 15:00' }))
+
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 44 })
+    })
+
+    it('FE-MOB-PLTL-006d: a stay with neither booking nor place opens the editor for members who may edit days', () => {
       const { shell } = renderTimeline({
-        hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: 301 }],
+        hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: null }],
       })
 
       fireEvent.click(screen.getByRole('button', { name: 'day.checkIn · Capsule Tokyo · 15:00' }))
@@ -532,7 +568,8 @@ describe('MPlanTimeline', () => {
       const { container } = renderTimeline({}, {}, { mode: 'edit' })
 
       expect(screen.queryByText('mobileTrip.upNext')).not.toBeInTheDocument()
-      expect(card(container).style.top).toContain('140px')
+      // The edit header takes the up-next card's place, the timeline right under it.
+      expect(card(container).parentElement?.previousElementSibling).toContainElement(screen.getByLabelText('mobileTrip.renameDay'))
     })
 
     it('FE-MOB-PLTL-026: splits the day title into city pills', () => {
@@ -619,23 +656,46 @@ describe('MPlanTimeline', () => {
       fireEvent.click(screen.getByText('mobileTrip.addBookingShort'))
       fireEvent.click(screen.getByText('mobileTrip.addTransportShort'))
       fireEvent.click(screen.getByText('dayplan.optimize'))
-      fireEvent.click(screen.getByText('mobileTrip.googleMaps'))
 
       expect(mocks.tl.addPlace).toHaveBeenCalledTimes(1)
       expect(shell.openSheet).toHaveBeenCalledWith('note', { dayId: 2 })
       expect(mocks.tl.addBooking).toHaveBeenCalledTimes(1)
       expect(mocks.tl.addTransport).toHaveBeenCalledTimes(1)
       expect(mocks.tl.optimize).toHaveBeenCalledTimes(1)
-      expect(mocks.tl.exportGoogleMaps).toHaveBeenCalledTimes(1)
     })
 
-    it('FE-MOB-PLTL-049: a day with no route to hand over offers no Google Maps or CoMaps tile (#2476)', () => {
+    it('FE-MOB-PLTL-033b: one Maps tile asks which app gets the day, and the pick opens it', async () => {
+      const open = vi.spyOn(window, 'open').mockReturnValue(null)
+      renderTimeline({}, {}, { mode: 'edit' })
+
+      fireEvent.click(screen.getByText('mobileTrip.maps'))
+      const sheet = await screen.findByRole('dialog', { name: 'mobileTrip.openRouteIn' })
+      // The app that only takes one place says so.
+      expect(within(sheet).getByText('mobileTrip.firstStopOnly')).toBeInTheDocument()
+      fireEvent.click(within(sheet).getByText('Google Maps'))
+
+      expect(open).toHaveBeenCalledWith('https://www.google.com/maps/dir/1,2/3,4', '_blank', 'noopener,noreferrer')
+      open.mockRestore()
+    })
+
+    it('FE-MOB-PLTL-033c: with a preferred map app set, the Maps tile opens it straight away (#2423)', () => {
+      const open = vi.spyOn(window, 'open').mockReturnValue(null)
+      seedStore(useSettingsStore, { settings: { preferred_nav_app: 'comaps' } })
+      renderTimeline({}, {}, { mode: 'edit' })
+
+      fireEvent.click(screen.getByText('mobileTrip.maps'))
+
+      expect(open).toHaveBeenCalledWith('https://comaps.at/route?x', '_blank', 'noopener,noreferrer')
+      expect(screen.queryByRole('dialog', { name: 'mobileTrip.openRouteIn' })).not.toBeInTheDocument()
+      open.mockRestore()
+    })
+
+    it('FE-MOB-PLTL-049: a day with no route to hand over offers no Maps tile (#2476)', () => {
       // A moving day whose only content is the flight: the export would be a drive
-      // from one hotel to the other, so the two tiles are left out, not left dead.
+      // from one hotel to the other, so the tile is left out, not left dead.
       renderTimeline({ canExportRoute: false }, {}, { mode: 'edit' })
 
-      expect(screen.queryByText('mobileTrip.googleMaps')).not.toBeInTheDocument()
-      expect(screen.queryByText('mobileTrip.coMaps')).not.toBeInTheDocument()
+      expect(screen.queryByText('mobileTrip.maps')).not.toBeInTheDocument()
       expect(screen.getByText('dayplan.optimize')).toBeInTheDocument()
     })
 
@@ -700,35 +760,45 @@ describe('MPlanTimeline', () => {
       expect(mocks.tl.openTransitJourney).toHaveBeenCalledWith(TRANSIT_RES)
     })
   })
-  describe('day swipe (#2051)', () => {
+  describe('day pager (#2051)', () => {
     const DAYS = [
       { id: 1, trip_id: 1, day_number: 1 }, DAY, { id: 3, trip_id: 1, day_number: 3 },
     ] as unknown as Day[]
 
-    const panel = (container: HTMLElement) => container.firstElementChild as HTMLElement
+    const strip = (container: HTMLElement) => container.querySelector('[data-day-pager]') as HTMLElement
+    const pages = (container: HTMLElement) => Array.from(strip(container).children) as HTMLElement[]
+    const current = (container: HTMLElement) => strip(container).querySelector('[data-page-active]') as HTMLElement
 
-    /** A committing left swipe across the whole panel. */
-    function swipe(el: HTMLElement, from = 300, to = 180) {
-      fireEvent.touchStart(el, { touches: [{ clientX: from, clientY: 300 }] })
-      fireEvent.touchMove(el, { touches: [{ clientX: from - 20, clientY: 300 }] })
-      fireEvent.touchMove(el, { touches: [{ clientX: to, clientY: 300 }] })
-      fireEvent.touchEnd(el, { touches: [], changedTouches: [{ clientX: to, clientY: 300 }] })
+    /** The strip comes to rest with the page of `dayId` filling it. jsdom has no
+     *  layout, so the rects say where each page sits. */
+    function land(container: HTMLElement, dayId: number) {
+      const s = strip(container)
+      s.getBoundingClientRect = () => ({ left: 0 }) as DOMRect
+      for (const page of pages(container)) {
+        page.getBoundingClientRect = () => ({ left: page.dataset.dayId === String(dayId) ? 0 : 400 }) as DOMRect
+      }
+      fireEvent(s, new Event('scrollend'))
     }
 
-    it('FE-MOB-PLTL-039: swiping the panel selects the next day without re-framing the map', async () => {
+    it('FE-MOB-PLTL-039: landing on the next page selects that day without re-framing the map', () => {
       const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
 
-      swipe(panel(container))
+      land(container, 3)
 
       // skipFit must be true: the map stays mounted under the timeline, and
       // re-fitting it here would move it somewhere nobody asked for.
-      await waitFor(() => expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true))
+      expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true)
     })
 
-    it('FE-MOB-PLTL-040: the header chip strip is excluded from the swipe zone', () => {
+    it('FE-MOB-PLTL-040: draws the neighbours as inert pages around the live current day', () => {
       const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
 
-      expect(container.querySelector('[data-hswipe-ignore]')).toBeInTheDocument()
+      expect(pages(container).map(p => p.dataset.dayId)).toEqual(['1', '2', '3'])
+      expect(current(container).dataset.dayId).toBe('2')
+      for (const page of pages(container).filter(p => p !== current(container))) {
+        expect(page).toHaveAttribute('inert')
+        expect(page).toHaveAttribute('aria-hidden', 'true')
+      }
     })
 
     it('FE-MOB-PLTL-041: the live region is present and silent until a swipe lands', () => {
@@ -740,42 +810,45 @@ describe('MPlanTimeline', () => {
       expect(live).toHaveTextContent('')
     })
 
-    it('FE-MOB-PLTL-042: a committed swipe announces the day it reached', async () => {
+    it('FE-MOB-PLTL-042: a landed swipe announces the day it reached', async () => {
       const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
 
-      swipe(panel(container))
+      land(container, 3)
 
       await waitFor(() => expect(container.querySelector('[role="status"]'))
         .toHaveTextContent('mobileTrip.dayAnnounce:3,3'))
     })
 
-    it('FE-MOB-PLTL-043: edit mode keeps both the swipe and the long-press reorder', async () => {
+    it('FE-MOB-PLTL-043: edit mode keeps the pager, and only the current day arms the long-press reorder', () => {
       const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 }, { mode: 'edit' })
 
-      swipe(panel(container))
+      const armed = Array.from(container.querySelectorAll('.overflow-y-auto')).filter(c => c.hasAttribute('data-touch-drag'))
+      expect(armed).toHaveLength(1)
+      expect(armed[0]).toBe(card(current(container)))
 
-      await waitFor(() => expect(planner.handleSelectDay).toHaveBeenCalledWith(3, true))
-      expect(card(container)).toHaveAttribute('data-touch-drag')
+      land(container, 1)
+      expect(planner.handleSelectDay).toHaveBeenCalledWith(1, true)
     })
 
-    it('FE-MOB-PLTL-044: a plain tap on a place row still opens it', () => {
-      const { planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+    it('FE-MOB-PLTL-044: a plain tap on a place row of the current day still opens it', () => {
+      const { container, planner } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
 
-      fireEvent.click(screen.getByText('Ueno Park'))
+      fireEvent.click(within(current(container)).getByText('Ueno Park'))
 
       expect(planner.handlePlaceClick).toHaveBeenCalledWith(102, 12)
     })
 
-    it('FE-MOB-PLTL-045: nothing narrows touch-action, and the excluded strip stays tappable', () => {
-      const { container, shell } = renderTimeline({}, { days: DAYS, selectedDayId: 2 })
+    it('FE-MOB-PLTL-045: an open leg menu holds the strip still, and nothing narrows touch-action', () => {
+      const { container } = renderTimeline({}, { days: DAYS, selectedDayId: 2 }, { mode: 'edit' })
 
+      expect(strip(container)).toHaveClass('overflow-x-auto')
       // touch-action intersects down the tree, so a pan-y here would take the
       // header strip's own horizontal pan with it.
-      expect(panel(container).style.touchAction).toBe('')
-      expect(card(container).style.touchAction).toBe('')
+      expect(strip(container).style.touchAction).toBe('')
+      expect(card(current(container)).style.touchAction).toBe('')
 
-      fireEvent.click(screen.getByLabelText('day.overview'))
-      expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 2 })
+      fireEvent.click(within(current(container)).getByText('7 min').closest('button') as HTMLElement)
+      expect(strip(container)).toHaveClass('overflow-x-hidden')
     })
   })
 })

@@ -524,6 +524,15 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
       ) as { place: { status: string } };
       expect(status.place.status).toBe('want');
 
+      // #2567: "want to revisit" is stored as a status of its own.
+      const revisit = parseToolResult(
+        await h.client.callTool({
+          name: 'set_collection_place_status',
+          arguments: { placeId: pid, status: 'revisit' },
+        }),
+      ) as { place: { status: string } };
+      expect(revisit.place.status).toBe('revisit');
+
       const rated = parseToolResult(
         await h.client.callTool({ name: 'rate_collection_place', arguments: { placeId: pid, rating: 5 } }),
       ) as { place: { rating_avg: number | null; rating_count: number } };
@@ -555,6 +564,51 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
       expect(errorText(res)).toBe('Only an admin can move places out of this list');
     });
     expect((await findRow(orm, CollectionPlaces, { id: pid }))?.collection_id).toBe(shared);
+  });
+
+  // #2646: the fields saving takes, through the same contract and checks as REST.
+  it('update_collection_place sets and clears provider ids, website, phone and price, and refuses a script link', async () => {
+    const { user } = createUser(testDb);
+    const col = await seedCollection(user.id, 'Listings');
+    const pid = await seedPlace(col, user.id, 'Septime');
+    const update = (h: McpHarness, args: Record<string, unknown>) =>
+      h.client.callTool({ name: 'update_collection_place', arguments: { placeId: pid, ...args } });
+    await withHarness(user.id, async (h) => {
+      const set = parseToolResult(
+        await update(h, {
+          google_place_id: 'ChIJseptime',
+          osm_id: 'node/42',
+          website: 'septime-charonne.fr',
+          phone: '+33 1 43 67 38 29',
+          price: 55,
+          currency: 'EUR',
+        }),
+      ) as { place: Record<string, unknown> };
+      expect(set.place).toMatchObject({
+        name: 'Septime',
+        google_place_id: 'ChIJseptime',
+        osm_id: 'node/42',
+        website: 'https://septime-charonne.fr',
+        phone: '+33 1 43 67 38 29',
+        price: 55,
+        currency: 'EUR',
+      });
+
+      const refused = await update(h, { website: 'javascript:alert(1)' });
+      expect(refused.isError).toBe(true);
+      expect((refused.content as { text: string }[])[0].text).toContain('Invalid arguments');
+
+      const cleared = parseToolResult(await update(h, { website: null, phone: null, price: null })) as {
+        place: Record<string, unknown>;
+      };
+      expect(cleared.place).toMatchObject({
+        website: null,
+        phone: null,
+        price: null,
+        currency: 'EUR',
+        google_place_id: 'ChIJseptime',
+      });
+    });
   });
 });
 
@@ -941,12 +995,150 @@ describe('Sharing tools', () => {
 });
 
 // ---------------------------------------------------------------------------
+// list_collection_places (#2647): a long list a compact page at a time, going
+// on from a cursor rather than an offset.
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_collection_places', () => {
+  interface Page {
+    collection: { id: number; name: string };
+    labels: { id: number; name: string; color: string | null }[];
+    total: number;
+    places: Record<string, unknown>[];
+    next_cursor: string | null;
+  }
+
+  async function listPage(h: McpHarness, args: Record<string, unknown>): Promise<Page> {
+    const result = await h.client.callTool({ name: 'list_collection_places', arguments: args });
+    expect(result.isError).toBeFalsy();
+    // Compact on purpose: one line of JSON, however long the page.
+    expect(errorText(result)).not.toContain('\n');
+    return parseToolResult(result) as Page;
+  }
+
+  async function seedPlaces(colId: number, ownerId: number, count: number): Promise<number[]> {
+    // One after the other, so the ids follow the names.
+    return Array.from({ length: count }, (_, i) => i + 1).reduce<Promise<number[]>>(
+      async (done, n) => [...(await done), await seedPlace(colId, ownerId, `Spot ${n}`)],
+      Promise.resolve([]),
+    );
+  }
+
+  it('MCP-COLL-PAGE-001: pages through a list in its order, compact rows leaving out what a place lacks', async () => {
+    const { user } = createUser(testDb);
+    const col = await seedCollection(user.id, 'Paris');
+    await seedPlaces(col, user.id, 4);
+    await seedPlace(col, user.id, 'Septime', { lat: 48.85, lng: 2.38, status: 'want', google_place_id: 'ChIJseptime' });
+    const food = await insertRow(orm, CollectionLabels, { collection: col, name: 'Food', color: '#e11d48' });
+
+    await withHarness(user.id, async (h) => {
+      const first = await listPage(h, { collectionId: col, limit: 2 });
+      expect(first.collection).toEqual({ id: col, name: 'Paris' });
+      expect(first.labels).toEqual([{ id: food, name: 'Food', color: '#e11d48' }]);
+      expect(first.total).toBe(5);
+      expect(first.places).toEqual([
+        { id: expect.any(Number), name: 'Spot 1', status: 'idea' },
+        { id: expect.any(Number), name: 'Spot 2', status: 'idea' },
+      ]);
+      expect(first.next_cursor).toEqual(expect.any(String));
+
+      const second = await listPage(h, { collectionId: col, limit: 2, cursor: first.next_cursor });
+      expect(second.places.map((p) => p.name)).toEqual(['Spot 3', 'Spot 4']);
+
+      const last = await listPage(h, { collectionId: col, limit: 2, cursor: second.next_cursor });
+      expect(last.places).toEqual([
+        {
+          id: expect.any(Number),
+          name: 'Septime',
+          status: 'want',
+          lat: 48.85,
+          lng: 2.38,
+          google_place_id: 'ChIJseptime',
+        },
+      ]);
+      expect(last.next_cursor).toBeNull();
+    });
+  });
+
+  it('MCP-COLL-PAGE-002: labelling each page while paging through the unlabeled places skips none', async () => {
+    const { user } = createUser(testDb);
+    const col = await seedCollection(user.id, 'Long list');
+    const ids = await seedPlaces(col, user.id, 6);
+    const done = await insertRow(orm, CollectionLabels, { collection: col, name: 'Done' });
+
+    await withHarness(user.id, async (h) => {
+      const seen: unknown[] = [];
+      const totals: number[] = [];
+      // Page by page, each one labelled before the next is asked for.
+      const walk = async (cursor: string | null): Promise<void> => {
+        const page = await listPage(h, { collectionId: col, limit: 2, unlabeled: true, ...(cursor ? { cursor } : {}) });
+        totals.push(page.total);
+        seen.push(...page.places.map((p) => p.id));
+        const labelled = await h.client.callTool({
+          name: 'assign_collection_labels',
+          arguments: { label_ids: [done], place_ids: page.places.map((p) => p.id) },
+        });
+        expect(labelled.isError).toBeFalsy();
+        if (page.next_cursor) await walk(page.next_cursor);
+      };
+      await walk(null);
+      // An offset would have jumped from the second place straight to the fifth.
+      expect(seen).toEqual(ids);
+      expect(totals).toEqual([6, 4, 2]);
+
+      const labelled = await listPage(h, { collectionId: col, labelId: done });
+      expect(labelled.total).toBe(6);
+      expect(labelled.places.every((p) => (p.label_ids as number[]).includes(done))).toBe(true);
+    });
+  });
+
+  it('MCP-COLL-PAGE-003: filters by status, and refuses a foreign label, both label filters at once and a made-up cursor', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const col = await seedCollection(user.id, 'Paris');
+    const elsewhere = await seedCollection(other.id, 'Theirs');
+    await seedPlace(col, user.id, 'Louvre', { status: 'visited' });
+    await seedPlace(col, user.id, 'Orsay', { status: 'revisit' });
+    const theirs = await insertRow(orm, CollectionLabels, { collection: elsewhere, name: 'Theirs' });
+    const mine = await insertRow(orm, CollectionLabels, { collection: col, name: 'Mine' });
+
+    await withHarness(user.id, async (h) => {
+      const revisit = await listPage(h, { collectionId: col, status: 'revisit' });
+      expect(revisit.total).toBe(1);
+      expect(revisit.places.map((p) => p.name)).toEqual(['Orsay']);
+
+      const call = (args: Record<string, unknown>) =>
+        h.client.callTool({ name: 'list_collection_places', arguments: { collectionId: col, ...args } });
+      const foreign = await call({ labelId: theirs });
+      expect(foreign.isError).toBe(true);
+      expect(errorText(foreign)).toBe('Label not found in this list');
+      expect(errorText(await call({ labelId: mine, unlabeled: true }))).toBe(
+        'Pass either labelId or unlabeled, not both',
+      );
+      expect(errorText(await call({ cursor: 'not-a-cursor' }))).toBe(
+        'Invalid cursor: pass the next_cursor of the page before',
+      );
+      expect((await call({ limit: 501 })).isError).toBe(true);
+
+      // A list the caller cannot see answers as if it did not exist.
+      const hidden = await h.client.callTool({
+        name: 'list_collection_places',
+        arguments: { collectionId: elsewhere },
+      });
+      expect(hidden.isError).toBe(true);
+      expect(errorText(hidden)).toBe('Collection not found');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Scope gating (collections read/write, registration-time)
 // ---------------------------------------------------------------------------
 
 const READ_TOOLS = [
   'list_collections',
   'get_collection',
+  'list_collection_places',
   'get_collection_items',
   'available_collection_users',
   'find_place_in_collections',
@@ -987,7 +1179,7 @@ describe('Collection tools — scope gating', () => {
     }
   }
 
-  it('registers all 28 tools with null scopes (full access)', async () => {
+  it('registers all 29 tools with null scopes (full access)', async () => {
     const { user } = createUser(testDb);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);

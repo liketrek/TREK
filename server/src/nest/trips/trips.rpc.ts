@@ -27,11 +27,12 @@ const TRIP_STR_LIMITS: Record<string, number> = { title: 200, description: 2000 
  * The trip surface a plugin may reach (#plugins), including the cross-trip feeds and
  * the member roster.
  *
- * Two things are specific to trips. updateTrip gates two individual FIELDS behind
+ * Two things are specific to trips. updateTrip gates three individual FIELDS behind
  * their own admin-configurable permissions, on top of trip_edit, so a plugin cannot
- * archive or re-cover a trip it may otherwise edit. And adding a member GRANTS TRIP
- * ACCESS, which is why it sits behind its own permission and the app's member_manage
- * right rather than being bundled with a lower-risk write.
+ * archive or re-cover a trip it may otherwise edit, nor switch how it keeps its costs.
+ * And adding a member GRANTS TRIP ACCESS, which is why it sits behind its own
+ * permission and the app's member_manage right rather than being bundled with a
+ * lower-risk write.
  */
 @PluginController()
 export class TripsRpc {
@@ -145,13 +146,18 @@ export class TripsRpc {
     this.guards.capStrings(parsed.data as Record<string, unknown>, TRIP_STR_LIMITS);
     await this.guards.requireTripEdit(tripId, actor, TRIP_EDIT_ACTION);
     const input = parsed.data as Record<string, unknown>;
-    // Two fields carry their own permissions on top of trip_edit, exactly as the REST
-    // controller gates them.
+    // Three fields carry their own permissions on top of trip_edit, exactly as the REST
+    // controller and update_trip gate them (tripUpdatePermissions).
     if ('is_archived' in input && !(await this.guards.canEditAs('trip_archive', tripId, actor))) {
       throw new ForbiddenResource(`no permission to archive trip ${tripId}`);
     }
     if ('cover_image' in input && !(await this.guards.canEditAs('trip_cover_upload', tripId, actor))) {
       throw new ForbiddenResource(`no permission to change the cover of trip ${tripId}`);
+    }
+    // The costs mode decides what Costs shows, so it belongs to whoever may edit the
+    // costs (#1714), not to whoever may edit the trip's details.
+    if ('costs_mode' in input && !(await this.guards.canEditAs('budget_edit', tripId, actor))) {
+      throw new ForbiddenResource(`no permission to change how trip ${tripId} keeps its costs`);
     }
     const role = await this.em.getRepository(Users).getRole(actor); // RP4 — UsersRepository.getRole
     try {

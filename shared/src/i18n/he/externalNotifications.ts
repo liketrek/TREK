@@ -17,6 +17,18 @@ const he: NotificationLocale = {
       title: `הזמנה חדשה: ${p.booking}`,
       body: `${p.actor} הוסיף/ה ${p.type} חדש/ה "${p.booking}" אל "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `טיסה ${p.flight} המריאה`,
+      body: `טיסה ${p.flight} מ-${p.from} ל-${p.to} באוויר.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `טיסה ${p.flight} מתעכבת`,
+      body: `טיסה ${p.flight} מ-${p.from} ל-${p.to} מאחרת בכ-${p.delay} דקות.`,
+    }),
+    flight_landed: (p) => ({
+      title: `טיסה ${p.flight} נחתה`,
+      body: `טיסה ${p.flight} מ-${p.from} נחתה ב-${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `תזכורת לטיול: ${p.trip}`,
       body: `הטיול "${p.trip}" מתקרב!`,
@@ -89,6 +101,21 @@ const he: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `כבר אי אפשר לבדוק את "${p.tour}" ב-"${p.trip}" ב-wanderer. המסלול בטיול שלכם נשאר כמו שהוא.`
             : `ייתכן ש-"${p.tour}" ב-"${p.trip}" השתנה ב-wanderer. פתחו את המסלול ובדקו את המקור שלו כדי לראות אם כן. שום דבר בטיול לא משתנה מעצמו.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `נוספה מדוא״ל: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} הוסיף/ה את "${p.booking}" אל "${p.trip}" מדוא״ל שהועבר.`
+          : `"${p.booking}" מהדוא״ל שהעברתם נוספה אל "${p.trip}". אפשר לבטל זאת ב-TREK במשך 7 ימים.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'הזמנות שהועברו לבדיקה',
+      body: `הזמנות שהועברו וממתינות לכם ב-TREK: ${p.count}. ליד כל אחת כתוב מדוע לא נוספה אוטומטית.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'ייבוא הדואר מושהה',
+      body: 'TREK אינו מקבל כרגע הודעות הזמנה שהועברו, לכן המתינו לפני שתעבירו אותן. הכתובות שלכם נשמרות ויעבדו שוב כשהייבוא יחזור, והזמנות שכבר נוספו נשארות בטיולים שלכם.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

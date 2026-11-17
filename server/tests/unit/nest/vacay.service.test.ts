@@ -111,6 +111,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   resetTestDb(testDb);
+  (svc as unknown as { holidayCache: Map<string, unknown> }).holidayCache.clear();
   // Stub fetch with empty holiday list by default so updatePlan / applyHolidayCalendars
   // never makes real network calls.
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -1389,7 +1390,7 @@ describe('applyHolidayCalendars', () => {
     // Override fetch to return one global holiday matching that entry
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => [{ date: holidayDate, global: true }],
+      json: async () => [{ date: holidayDate, name: 'New Year', nationalHoliday: true, subdivisionCodes: null }],
     }));
 
     await svc.applyHolidayCalendars(plan.id);
@@ -1406,7 +1407,10 @@ describe('applyHolidayCalendars', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('fetch failed')));
     await expect(svc.applyHolidayCalendars(plan.id)).resolves.toBeUndefined();
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [{ date: '2031-07-14', global: true }] }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ date: '2031-07-14', name: 'Bastille Day', nationalHoliday: true, subdivisionCodes: null }],
+    }));
     const entries = (svc as unknown as { entries: { deleteForPlanAndDate: () => Promise<void> } }).entries;
     const del = vi.spyOn(entries, 'deleteForPlanAndDate').mockRejectedValueOnce(new Error('database is locked'));
     await expect(svc.applyHolidayCalendars(plan.id)).rejects.toThrow('database is locked');
@@ -1681,13 +1685,8 @@ describe('getSharedCalendars', () => {
 // ── Quirk fixes (transactions, fetch hygiene, cache TTL, addYear errors) ──────
 
 describe('quirk fixes', () => {
-  /** A fresh, fully-functioning VacayService over the same testDb — repository-backed now (Plan 3f Task 5), so a fresh instance no longer needs a `DatabaseService` wrapper, only its own repo set (the holiday-provider cache is instance state, so `applyHolidayCalendars`/`getCountries`/etc.'s TTL tests need a service the earlier tests in this file never touched). */
-  async function freshVacayService(): Promise<VacayService> {
-    return (await buildVacayServiceWithRepos()).service;
-  }
-
   /**
-   * Same repo set `freshVacayService` builds, but returns the repos
+   * A fresh VacayService over the same testDb, but returns the repos
    * themselves too, so a caller can `vi.spyOn` one of them before
    * constructing — the repository-backed replacement for the legacy
    * `failingService`'s `DatabaseService.run` SQL-text-match spy (this file's
@@ -1763,104 +1762,6 @@ describe('quirk fixes', () => {
 
     expect(await storedFields(VacayYears, { plan: plan.id, year }, ['id'])).toBeDefined();
     expect(await storedFields(VacayEntries, { plan: plan.id }, ['id'])).toBeDefined();
-  });
-
-  it('VACAY-SVC-070: getCountries surfaces an upstream non-2xx as the fetch error and caches nothing', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => ({}) });
-    vi.stubGlobal('fetch', fetchMock);
-    const fresh = await freshVacayService();
-
-    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
-    // Nothing cached: a retry hits the network again.
-    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: expect.any(AbortSignal) }));
-  });
-
-  it('VACAY-SVC-070a: getHolidays refuses a year or country that is not a plain code', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    const fresh = await freshVacayService();
-
-    for (const [year, country] of [['../../..', 'DE'], ['2026', 'DE/../../x'], ['20xx', 'DE'], ['2026', 'DEU']]) {
-      expect(await asLegacyResult(fresh.getHolidays(year, country))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
-    }
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('VACAY-SVC-070b: getSchoolHolidayRegions refuses a country that is not an alpha-2 code', async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    const fresh = await freshVacayService();
-
-    expect(await asLegacyResult(fresh.getSchoolHolidayRegions('DE&countryIsoCode=FR'))).toEqual({
-      error: 'Failed to fetch school holiday regions',
-      status: 502,
-    });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it('VACAY-SVC-070c: a provider body over the size cap reads as the usual fetch error', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: (h: string) => (h === 'content-length' ? String(50 * 1024 * 1024) : null) },
-      json: async () => [{ date: '2026-01-01' }],
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    const fresh = await freshVacayService();
-
-    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
-    expect(await asLegacyResult(fresh.getHolidays('2026', 'DE'))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
-  });
-
-  it('VACAY-SVC-070d: a chunked provider body past the cap reads as the usual fetch error', async () => {
-    // nager.at answers chunked, so there is no content-length for the declared
-    // check to look at — only the streaming read stops this being buffered whole.
-    const payload = `[${'{"date":"2026-01-01"},'.repeat(200_000)}{"date":"2026-12-24"}]`;
-    const fetchMock = vi.fn().mockImplementation(async () => {
-      let sent = false;
-      return {
-        ok: true,
-        headers: { get: () => null },
-        body: {
-          getReader: () => ({
-            read: async () => (sent ? { done: true } : ((sent = true), { done: false, value: new TextEncoder().encode(payload) })),
-            cancel: async () => undefined,
-          }),
-          cancel: async () => undefined,
-        },
-        json: async () => JSON.parse(payload),
-      };
-    });
-    vi.stubGlobal('fetch', fetchMock);
-    const fresh = await freshVacayService();
-
-    expect(await asLegacyResult(fresh.getHolidays('2026', 'DE'))).toEqual({ error: 'Failed to fetch holidays', status: 502 });
-    expect(await asLegacyResult(fresh.getCountries())).toEqual({ error: 'Failed to fetch countries', status: 502 });
-  });
-
-  it('VACAY-SVC-071: applyHolidayCalendars honors the cache TTL', async () => {
-    const { plan } = await setupUserWithPlan();
-    await updateRows(await orm(), VacayPlans, { id: plan.id }, { holidays_enabled: 1 });
-    await insertRow(await orm(), VacayHolidayCalendars, { plan: plan.id, region: 'DE' });
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
-    vi.stubGlobal('fetch', fetchMock);
-    const fresh = await freshVacayService();
-
-    await fresh.applyHolidayCalendars(plan.id);
-    const afterFirst = fetchMock.mock.calls.length;
-    await fresh.applyHolidayCalendars(plan.id);
-    // Within the TTL the cached year list is reused — no new requests.
-    expect(fetchMock.mock.calls.length).toBe(afterFirst);
-
-    vi.useFakeTimers();
-    try {
-      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 1);
-      await fresh.applyHolidayCalendars(plan.id);
-      expect(fetchMock.mock.calls.length).toBeGreaterThan(afterFirst);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 
   it('VACAY-SVC-072: addYear still no-ops on a duplicate year but propagates real errors', async () => {

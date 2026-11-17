@@ -92,8 +92,9 @@ export default function MCollLabelsSheet({
   const title = mode === 'assign' ? t('collections.labels.assignN', { count: selectedCount }) : t('collections.labels.manage')
 
   return (
-    <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={title}>
-      <SheetHeader title={title} onClose={onClose} closeLabel={t('common.close')} />
+    <MSheet open={open} onClose={onClose} material="glass" ariaLabel={title}>
+      <SheetHeader
+        icon={<Tag size={19} strokeWidth={1.8} />} title={title} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-4">
         {mode === 'manage' && (
           <>

@@ -11,10 +11,15 @@ const EYEBROW = 'text-center font-geist font-bold uppercase tracking-[.08em] tex
 
 // Per-event × per-channel admin notification preference matrix.
 // Loads its own data and auto-saves each toggle.
-export default function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast: ReturnType<typeof useToast> }) {
+export default function AdminNotificationsPanel({ t, toast, bare = false }: {
+  t: (k: string) => string
+  toast: ReturnType<typeof useToast>
+  /** Inside the admin notifications card, which carries the title: the matrix alone. */
+  bare?: boolean
+}) {
   const { matrix, saving, visibleChannels, toggle } = useAdminNotificationMatrix(t, toast)
 
-  const card = (children: React.ReactNode) => (
+  const card = (children: React.ReactNode) => bare ? <>{children}</> : (
     <SettingsCard icon={BellRing} title={t('admin.tabs.notifications')} hint={t('admin.notifications.adminNotificationsHint')}>
       {children}
     </SettingsCard>

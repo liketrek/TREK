@@ -17,6 +17,7 @@ import { Users } from '../../../src/db/entities/Users.entity';
 import { UserAirtrailRepository } from '../../../src/db/repositories/UserAirtrail.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { AuditService } from '../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
 import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
@@ -42,9 +43,14 @@ const listFlights = vi.fn();
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   usersRepo = t.repo(Users);
-  svc = new AirtrailService(new UserAirtrailRepository(t.orm.em), new AuditService(t.repo(AuditLog), usersRepo), {
-    listFlights,
-  } as unknown as AirtrailClient);
+  svc = new AirtrailService(
+    new UserAirtrailRepository(t.orm.em),
+    new AuditService(t.repo(AuditLog), usersRepo),
+    {
+      listFlights,
+    } as unknown as AirtrailClient,
+    new UnitOfWork(t.orm.em),
+  );
 });
 beforeEach(() => {
   resetTestDb(testDb);
@@ -87,5 +93,43 @@ describe('AirtrailService — at-rest encryption (3h L3)', () => {
     expect(second).not.toBe(first);
     expect(second).not.toContain('second-key');
     expect((await svc.getAirtrailCredentials(user.id))?.apiKey).toBe('second-key');
+  });
+});
+
+describe('AirtrailService — the stored key stays with its host (GHSA-mwf5-5px8-c9h5)', () => {
+  const MASK = '••••••••';
+
+  it.each([
+    ['masked', MASK],
+    ['blank', ''],
+    ['left out', undefined],
+  ])('AIRTRAIL-SVC-HOST-001: a new host saved with the key %s drops the stored key', async (_label, keyField) => {
+    const { user } = createUser(testDb);
+    await svc.saveSettings(user.id, 'https://airtrail-a.example.test', 'key-for-a', false, false, null);
+
+    await svc.saveSettings(user.id, 'https://other-host.example.test', keyField, false, false, null);
+
+    expect(await rawAirtrailKey(user.id)).toBeNull();
+    expect(await svc.getAirtrailCredentials(user.id)).toBeNull();
+    expect((await readUser(t, user.id)).airtrail_url).toBe('https://other-host.example.test');
+  });
+
+  it('AIRTRAIL-SVC-HOST-002: a path edit on the same origin keeps the stored key', async () => {
+    const { user } = createUser(testDb);
+    await svc.saveSettings(user.id, 'https://airtrail-a.example.test', 'key-for-a', false, false, null);
+
+    await svc.saveSettings(user.id, 'https://airtrail-a.example.test/api', MASK, false, false, null);
+
+    expect((await svc.getAirtrailCredentials(user.id))?.apiKey).toBe('key-for-a');
+  });
+
+  it('AIRTRAIL-SVC-HOST-003: a new host saved with a new key stores that key', async () => {
+    const { user } = createUser(testDb);
+    await svc.saveSettings(user.id, 'https://airtrail-a.example.test', 'key-for-a', false, false, null);
+
+    await svc.saveSettings(user.id, 'https://other-host.example.test', 'key-for-b', false, false, null);
+
+    const creds = await svc.getAirtrailCredentials(user.id);
+    expect(creds).toMatchObject({ baseUrl: 'https://other-host.example.test', apiKey: 'key-for-b' });
   });
 });

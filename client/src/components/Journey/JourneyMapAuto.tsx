@@ -10,6 +10,7 @@ import type { JourneyTrack } from '@trek/shared'
 import type { MapPhoto } from './journeyPhotoLayer'
 import type { JourneyMapLayerVisibility } from './journeyMapLayers'
 import type { JourneyMapMark } from './journeyMapMarks'
+import type { BaseLayer } from '../Map/MapLayerSwitcher'
 
 // Unified handle — both providers expose the same three methods.
 export type JourneyMapAutoHandle = JourneyMapHandle
@@ -39,6 +40,12 @@ interface Props {
   onMarkerClick?: (id: string, type?: string) => void
   fullScreen?: boolean
   paddingBottom?: number
+  /**
+   * How much of the map's leading edge a bar laid over it covers (the touch
+   * shell's rail), in px: framing keeps the journey clear of it. Read when the
+   * map frames, so a change alone does not rebuild the map.
+   */
+  paddingStart?: number
   /** Open the entry a marker card names when the card is tapped, both renderers. */
   onMarkerCardClick?: (entryId: string) => void
   /** Open an entry's photos from the marker card's thumbnail strip. GL renderer only. */
@@ -51,6 +58,8 @@ interface Props {
   marks?: JourneyMapMark[]
   onMarksPick?: (marks: JourneyMapMark[]) => void
   plannedEntryIds?: ReadonlySet<string>
+  /** The reader's base layer (#2594), both renderers. */
+  baseLayer?: BaseLayer
 }
 
 function JourneyMapAuto({ ref, ...props }: Props) {

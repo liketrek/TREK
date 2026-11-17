@@ -18,7 +18,7 @@ const money = (amount: number, currency: string) => formatMoney(amount, currency
 
 vi.mock('../../../../src/utils/fileDownload', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../src/utils/fileDownload')>()),
-  openFile: vi.fn(),
+  openFile: vi.fn(() => Promise.resolve()),
 }))
 
 vi.mock('../../../../src/components/Plugins/PluginFrame', () => ({
@@ -241,6 +241,14 @@ describe('MTransportsTab', () => {
     renderTab(p)
     fireEvent.click(within(cardOf('HND to ITM')).getByRole('button', { name: 'reservations.pending' }))
     await waitFor(() => expect(p.tripActions.toggleReservationStatus).toHaveBeenCalledWith(7, 101))
+  })
+
+  it('FE-MOB-TRTAB-029: the dot inside the status button is laid out as a box, so it shows', () => {
+    renderTab(planner())
+    const toggle = within(cardOf('HND to ITM')).getByRole('button', { name: 'reservations.pending' })
+    // The dot is a bare span sized by width and height: only a flex (or block) parent gives it its box.
+    expect(toggle).toHaveClass('flex')
+    expect(toggle.querySelector('span')).toHaveClass('h-[7px]', 'w-[7px]')
   })
 
   it('FE-MOB-TRTAB-017: toasts when the status toggle fails', async () => {

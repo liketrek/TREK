@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Музеї та культура',
   'poi.cat.nature': 'Природа та парки',
   'poi.cat.activities': 'Активності',
+  'poi.cat.bakeries': 'Пекарні',
+  'poi.cat.groceries': 'Продуктові магазини',
   'poi.pluginCategories': 'Категорії з плагінів',
   'map.showAllConnections': 'Показати всі маршрути бронювань',
   'map.hideAllConnections': 'Приховати всі маршрути бронювань',
@@ -48,5 +50,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': 'Топо',
   'map.webgl2.fallback': 'Цей браузер не підтримує WebGL2, потрібний картам GL, тому карти показуються через Leaflet.',
   'map.webgl2.terrain': 'Для 3D потрібен WebGL2, а цей браузер його не підтримує. Карта залишається у 2D.',
+  'map.offlineBasemap': 'Офлайн-карта',
+  'map.offlineShowStored': 'Показати офлайн-карту',
 };
 export default map;

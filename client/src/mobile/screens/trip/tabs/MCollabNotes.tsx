@@ -5,12 +5,13 @@ import remarkBreaks from 'remark-breaks'
 import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../../../../components/shared/markdownSanitize'
 import { Check, ExternalLink, FileText, Paperclip, Pin, PinOff, Plus, StickyNote, Trash2, X } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MChipStrip from '../../../components/MChipStrip'
 import { collabApi } from '../../../../api/client'
 import { announceNoteFilesChanged, useCollabNotesData } from '../../../../components/Collab/useCollabNotesData'
 import { openFile } from '../../../../utils/fileDownload'
 import { safeExternalHref } from '../../../../utils/safeUrl'
 import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import type { TripPlanner } from '../MTripShell'
 import { TabScroller } from './tabChrome'
@@ -152,10 +153,12 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
   }
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
+      {/* The categories scroll within their own room and fade at its edges; New
+          Note stays outside that room, so it never lies over a category. */}
       <div className="flex items-center justify-between gap-2">
         {categories.length > 0 ? (
-          <div className="flex flex-1 gap-[6px] overflow-x-auto">
+          <MChipStrip className="flex-1 gap-[6px]">
             <button
               type="button"
               onClick={() => setActiveCategory(null)}
@@ -180,7 +183,7 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
                 </button>
               )
             })}
-          </div>
+          </MChipStrip>
         ) : (
           <span />
         )}
@@ -202,7 +205,10 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('collab.notes.empty')}</p>
         </div>
       ) : (
-        sorted.map(note => (
+        // A board on a wide window: the notes in as many columns as fit, each
+        // card whole in its column.
+        <div className="wide:mt-2 wide:columns-[300px] wide:gap-3">
+        {sorted.map(note => (
           <NoteCardRow
             key={note.id}
             note={note}
@@ -213,7 +219,8 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
             onDelete={() => setPendingDeleteId(note.id)}
             t={t}
           />
-        ))
+        ))}
+        </div>
       )}
 
       <NoteFormSheet
@@ -274,11 +281,11 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
   const websiteHref = safeExternalHref(note.website)
 
   return (
-    <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
+    <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] wide:mb-3 wide:mt-0 wide:inline-block wide:w-full wide:break-inside-avoid wide:align-top">
       <div className="flex items-center gap-[7px] px-3 py-[10px]" style={{ background: `${color}0d` }}>
         {!!note.pinned && <Pin size={11} strokeWidth={2.4} style={{ color }} className="flex-none" />}
         <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-[7px] text-start">
-          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{note.title}</span>
+          <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{note.title}</span>
           {note.category && (
             <span
               className="flex-none rounded-full px-2 py-[2px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.03em]"
@@ -331,7 +338,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
           <span className="flex h-4 w-4 flex-none items-center justify-center rounded-full bg-m-card font-geist text-[0.5rem] font-bold text-m-muted">
             {initial}
           </span>
-          <span className="min-w-0 flex-1 truncate font-geist text-[0.625rem] text-m-faint">{note.username}</span>
+          <span dir="auto" className="min-w-0 flex-1 truncate font-geist text-[0.625rem] text-m-faint">{note.username}</span>
           {note.attachments.length > 0 && (
             <span className="flex flex-none items-center gap-[3px] font-geist text-[0.625rem] font-semibold text-m-faint">
               <Paperclip size={10} strokeWidth={2.2} />
@@ -419,7 +426,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
   }
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={isEdit ? t('collab.notes.edit') : t('collab.notes.new')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={isEdit ? t('collab.notes.edit') : t('collab.notes.new')}>
       <FormSheetHeader
         icon={StickyNote}
         title={isEdit ? t('collab.notes.edit') : t('collab.notes.new')}
@@ -427,10 +434,11 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        <Eyebrow className="mb-[5px] uppercase">{t('collab.notes.title')} *</Eyebrow>
+      <FormSheetBody>
+        <Eyebrow className="mb-[5px] mt-2 uppercase">{t('common.title')} *</Eyebrow>
         <input
           type="text"
+          dir="auto"
           value={title}
           onChange={e => setTitle(e.target.value)}
           maxLength={200}
@@ -440,6 +448,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.notes.content')}</Eyebrow>
         <textarea
+          dir="auto"
           value={content}
           onChange={e => setContent(e.target.value)}
           rows={5}
@@ -502,6 +511,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
         <input
           type="url"
           inputMode="url"
+          dir="ltr"
           value={website}
           onChange={e => setWebsite(e.target.value)}
           placeholder={t('collab.notes.websitePlaceholder')}
@@ -569,7 +579,7 @@ function NoteFormSheet({ open, target, categories, colorMap, canUploadFiles, onC
             </div>
           </>
         )}
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={onClose}

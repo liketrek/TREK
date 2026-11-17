@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Muzea i kultura',
   'poi.cat.nature': 'Przyroda i parki',
   'poi.cat.activities': 'Aktywności',
+  'poi.cat.bakeries': 'Piekarnie',
+  'poi.cat.groceries': 'Sklepy spożywcze',
   'poi.pluginCategories': 'Kategorie z wtyczek',
   'map.showAllConnections': 'Pokaż wszystkie trasy rezerwacji',
   'map.hideAllConnections': 'Ukryj wszystkie trasy rezerwacji',
@@ -49,5 +51,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Ta przeglądarka nie obsługuje WebGL2, którego potrzebują mapy GL, więc mapy są wyświetlane za pomocą Leaflet.',
   'map.webgl2.terrain': 'Tryb 3D wymaga WebGL2, którego ta przeglądarka nie obsługuje. Mapa pozostaje w 2D.',
+  'map.offlineBasemap': 'Mapa offline',
+  'map.offlineShowStored': 'Pokaż mapę offline',
 };
 export default map;

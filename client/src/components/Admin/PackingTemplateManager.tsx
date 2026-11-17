@@ -48,7 +48,7 @@ export default function PackingTemplateManager() {
       hint={t('admin.packingTemplates.subtitle')}
       badge={!isLoading && templates.length > 0 ? <StatusPill>{templates.length}</StatusPill> : undefined}
       action={
-        <button type="button" onClick={() => setShowCreate(true)} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+        <button type="button" onClick={() => setShowCreate(true)} className={SETTINGS_BUTTON_PRIMARY}>
           <Plus size={14} strokeWidth={2.2} /> <span className="hidden sm:inline">{t('admin.packingTemplates.create')}</span>
         </button>
       }

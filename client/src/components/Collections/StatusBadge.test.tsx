@@ -1,4 +1,4 @@
-// FE-COMP-STATUSBADGE-001 to FE-COMP-STATUSBADGE-013
+// FE-COMP-STATUSBADGE-001 to FE-COMP-STATUSBADGE-014
 import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { CollectionStatus } from '@trek/shared';
@@ -49,7 +49,7 @@ describe('StatusBadge', () => {
     expect(screen.queryByText('Idea')).not.toBeInTheDocument();
   });
 
-  // ── One-tap cycle: idea → want → visited → idea ──────────────────────────────
+  // ── One-tap cycle: idea → want → visited → revisit → idea ────────────────────
 
   it('FE-COMP-STATUSBADGE-005: exposes a button role when onChange is supplied', () => {
     render(<Badge status="idea" onChange={vi.fn()} />);
@@ -73,11 +73,19 @@ describe('StatusBadge', () => {
     expect(onChange).toHaveBeenCalledWith('visited');
   });
 
-  it('FE-COMP-STATUSBADGE-008: clicking a visited badge wraps around to "idea"', async () => {
+  it('FE-COMP-STATUSBADGE-008: clicking a visited badge moves on to "revisit"', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<Badge status="visited" onChange={onChange} />);
     await user.click(screen.getByRole('button', { name: 'Visited' }));
+    expect(onChange).toHaveBeenCalledWith('revisit');
+  });
+
+  it('FE-COMP-STATUSBADGE-014: clicking a revisit badge wraps around to "idea" (#2567)', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Badge status="revisit" onChange={onChange} />);
+    await user.click(screen.getByRole('button', { name: 'Want to revisit' }));
     expect(onChange).toHaveBeenCalledWith('idea');
   });
 

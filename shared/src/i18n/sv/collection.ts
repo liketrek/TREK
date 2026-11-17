@@ -105,6 +105,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Idé',
   'collections.status.want': 'Vill besöka',
   'collections.status.visited': 'Besökt',
+  'collections.status.revisit': 'Vill tillbaka',
   'collections.status.filterAll': 'Alla',
   'collections.status.cycleHint': 'tryck för att ändra',
 
@@ -196,10 +197,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'TREK-lista',
   'collections.file.formatTrekHint': 'För en annan TREK, med etiketter och status',
   'collections.file.formatGpxHint': 'Vägpunkter för OsmAnd, Organic Maps, Garmin och andra kartappar',
+  'collections.file.formatKmlHint': 'Nålar för Google My Maps, för att se platserna i Google Maps',
   'collections.file.gpxOmitted': '{count} platser utan koordinater kom inte med i GPX-filen',
   'collections.file.gpxOmitted.one': '{count} plats utan koordinater kom inte med i GPX-filen',
   'collections.file.gpxNothing':
     'Ingen av de här platserna har koordinater, så det finns inget att lägga i en GPX-fil.',
+  'collections.file.kmlOmitted': '{count} platser utan koordinater kom inte med i KML-filen',
+  'collections.file.kmlOmitted.one': '{count} plats utan koordinater kom inte med i KML-filen',
+  'collections.file.kmlNothing':
+    'Ingen av de här platserna har koordinater, så det finns inget att lägga i en KML-fil.',
   'collections.file.reading': 'Läser filen…',
   'collections.file.gpxSkipped': '{count} vägpunkter utan användbara koordinater lämnas utanför.',
   'collections.file.gpxSkipped.one': '{count} vägpunkt utan användbara koordinater lämnas utanför.',

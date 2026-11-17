@@ -33,7 +33,8 @@ import { HttpException } from '@nestjs/common';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createBudgetItem, createPlace, createDay, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import { withoutOrigin } from '../../../src/nest/reservations/reservation-origin.contract';
+import { ReservationsService, type UpdateReservationData } from '../../../src/nest/reservations/reservations.service';
 import { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
 // Was reservations.bridge, deleted along with the other three that had no
@@ -46,7 +47,7 @@ const bridge = {
   resyncReservationDays: (tripId: string | number) => svc.resyncReservationDays(tripId),
   createReservation: (tripId: string | number, data: Parameters<ReservationsService['create']>[1]) => svc.create(tripId, data),
   getReservation: (id: string | number, tripId: string | number) => svc.getReservation(id, tripId),
-  getReservationWithJoins: (id: string | number) => svc.getReservationWithJoins(id),
+  getReservationWithJoins: (id: string | number, tripId: string | number) => svc.getReservationWithJoins(id, tripId),
   updateReservation: (
     id: string | number,
     tripId: string | number,
@@ -63,6 +64,9 @@ import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
 import { sharedTestOrm } from '../../helpers/test-uow';
 import type { TestOrm } from '../../helpers/test-orm';
 import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeReservation } from '../../helpers/factories/reservations';
+import { makeTrip, readTripDays } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -118,6 +122,28 @@ describe('ReservationsService (DI-native, real SQL)', () => {
         endpoints: [],
         travelers: [],
       });
+    });
+
+    it('RESV-SVC-002b: an import records its origin with sync off; a booking without one keeps the defaults', async () => {
+      const { trip } = ownerTrip();
+      const { reservation: imported } = await svc.create(String(trip.id), {
+        title: 'LH 716',
+        type: 'flight',
+        external_source: 'import',
+        external_id: 'ABC123|flight|2030-05-01|FRA-NRT',
+        sync_enabled: false,
+      });
+      expect(imported).toMatchObject({ external_source: 'import', external_id: 'ABC123|flight|2030-05-01|FRA-NRT', sync_enabled: 0 });
+
+      // A source without a key is no origin: the row stays a hand-made booking.
+      const { reservation: plain } = await svc.create(String(trip.id), { title: 'Dinner', external_source: 'import' });
+      expect(plain).toMatchObject({ external_source: null, external_id: null, sync_enabled: 1 });
+    });
+
+    it('RESV-SVC-002c: withoutOrigin drops the origin a client body names and keeps everything else', () => {
+      expect(
+        withoutOrigin({ title: 'Dinner', external_source: 'airtrail', external_id: '7', sync_enabled: true, notes: 'x' }),
+      ).toEqual({ title: 'Dinner', notes: 'x' });
     });
 
     it('RESV-SVC-003: derives day_id from reservation_time for non-hotel bookings', async () => {
@@ -384,7 +410,7 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(row.day_positions).toEqual({ [days[0].id]: 2 });
       expect(row.travelers).toHaveLength(1);
 
-      const single = (await svc.getReservationWithJoins(res.id))!;
+      const single = (await svc.getReservationWithJoins(res.id, trip.id))!;
       expect(single.accommodation_id).toBe(acc.id);
       expect(single.travelers).toHaveLength(1);
       expect(single.day_positions).toEqual({ [days[0].id]: 2 });
@@ -403,11 +429,14 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       const current = await svc.getReservation(String(moved.id), String(trip.id));
       const { reservation } = await svc.update(String(moved.id), String(trip.id), { notes: 'window seat' }, current as Parameters<ReservationsService['update']>[3]);
       expect(reservation.day_positions).toEqual({ [days[1].id]: 3.5 });
-      expect((await svc.getReservationWithJoins(untouched.id))?.day_positions).toBeNull();
+      expect((await svc.getReservationWithJoins(untouched.id, trip.id))?.day_positions).toBeNull();
     });
 
-    it('RESV-SVC-016: getReservationWithJoins returns undefined for a missing id', async () => {
-      expect(await svc.getReservationWithJoins(999)).toBeUndefined();
+    it('RESV-SVC-016: getReservationWithJoins returns undefined for a missing id or another trip', async () => {
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id);
+      expect(await svc.getReservationWithJoins(999, trip.id)).toBeUndefined();
+      expect(await svc.getReservationWithJoins(res.id, trip.id + 1)).toBeUndefined();
     });
   });
 
@@ -725,6 +754,34 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(broadcast).not.toHaveBeenCalled();
     });
 
+    it('RESV-SVC-044: a type change also re-files a legacy label and a cable car cost the MCP filed under transport', async () => {
+      const { trip, res, item: legacy } = await linkedItem({ name: 'Fare', category: 'Flight' });
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'transport' }));
+      // "Flight" was stored before the fixed keys; it still stands for flights.
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'train', 'X', 'flight', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(legacy.id, String(trip.id), { category: 'transport' });
+
+      budget.updateBudgetItem.mockClear();
+      const { trip: t2, res: r2, item: gondola } = await linkedItem({ name: 'Gondola', category: 'transport' });
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+      // A cable car files under transport on every path now, so the move reaches it.
+      await svc.syncBudgetOnUpdate(String(t2.id), String(r2.id), 'X', 'flight', 'X', 'cable_car', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(gondola.id, String(t2.id), { category: 'flights' });
+    });
+
+    it('RESV-SVC-045: an "other" cost filed by the old type map still moves with the type', async () => {
+      const { trip, res, item } = await linkedItem({ name: 'Ticket', category: 'other' });
+      budget.updateBudgetItem.mockImplementation((id: number) => ({ id, category: 'flights' }));
+      await svc.syncBudgetOnUpdate(String(trip.id), String(res.id), 'X', 'flight', 'X', 'event', undefined, 'sock');
+      expect(budget.updateBudgetItem).toHaveBeenCalledWith(item.id, String(trip.id), { category: 'flights' });
+
+      budget.updateBudgetItem.mockClear();
+      const { trip: t2, res: r2 } = await linkedItem({ name: 'Snacks', category: 'other' });
+      // A flight never filed under 'other': there it was picked by hand and stays.
+      await svc.syncBudgetOnUpdate(String(t2.id), String(r2.id), 'X', 'train', 'X', 'flight', undefined, 'sock');
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+    });
+
     it('updates an existing linked item when a price is provided', async () => {
       const { trip, res, item } = await linkedItem();
       budget.updateBudgetItem.mockReturnValue({ id: item.id });
@@ -1017,7 +1074,7 @@ describe('ReservationsService — the surface the deleted bridge exposed', () =>
   it('RESV-BRIDGE-006: getReservationWithJoins attaches endpoints + travelers', async () => {
     const { trip } = ownerTrip();
     const res = createReservation(testDb, trip.id);
-    expect(await bridge.getReservationWithJoins(res.id)).toMatchObject({ id: res.id, endpoints: [], travelers: [] });
+    expect(await bridge.getReservationWithJoins(res.id, trip.id)).toMatchObject({ id: res.id, endpoints: [], travelers: [] });
   });
 
   it('RESV-BRIDGE-007: updateReservation updates through the bridge', async () => {
@@ -1679,5 +1736,56 @@ describe('the day stop a hotel booking implies', () => {
     await svc.remove(String(res.id), String(mine.id));
 
     expect(await findRow(orm, DayAssignments, { id: theirStop })).toBeTruthy();
+  });
+});
+
+// A partial update (a notes-only PUT, an MCP edit) leaves a booking on its day unless it
+// names one or carries a dated time. A bare "12:00" names no day, and reading that as
+// "clear it" used to drop time-only trains off the planner on an edit of their notes.
+describe('ReservationsService — the day a partial update leaves a booking on', () => {
+  async function train(fields: { reservation_time: string; reservation_end_time?: string }, start: number | null, end: number | null = null) {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2030-05-01', end_date: '2030-05-03' });
+    const days = (await readTripDays(orm, trip.id)).map(d => d.id);
+    const pick = (i: number | null) => (i === null ? null : days[i]);
+    const booking = await makeReservation(orm, trip.id, { title: 'Shinkansen', type: 'train', ...fields, day: pick(start), endDay: pick(end) });
+    const update = async (data: UpdateReservationData) => {
+      const current = await svc.getReservation(String(booking.id), String(trip.id));
+      if (!current) throw new Error('the booking under test is gone');
+      return (await svc.update(String(booking.id), String(trip.id), data, current)).reservation;
+    };
+    return { days, update };
+  }
+
+  it('RESV-SVC-044: a notes-only update keeps the day of a time-only booking', async () => {
+    const { days, update } = await train({ reservation_time: '12:00' }, 1);
+    expect(await update({ notes: 'Car 7, seats 12A-B' }))
+      .toMatchObject({ notes: 'Car 7, seats 12A-B', reservation_time: '12:00', day_id: days[1] });
+  });
+
+  it('RESV-SVC-045: a new time-only reservation_time keeps the day as well', async () => {
+    const { days, update } = await train({ reservation_time: '12:00' }, 1);
+    expect(await update({ reservation_time: '14:30' })).toMatchObject({ reservation_time: '14:30', day_id: days[1] });
+  });
+
+  it('RESV-SVC-046: a dated time still pins the day, sent with the update or stored', async () => {
+    const sent = await train({ reservation_time: '12:00' }, 0);
+    expect(await sent.update({ reservation_time: '2030-05-03T09:00' })).toMatchObject({ day_id: sent.days[2] });
+    // Saved without a day: any edit puts it on the day its date names.
+    const stored = await train({ reservation_time: '2030-05-02T10:00' }, null);
+    expect(await stored.update({ notes: 'Window seat' })).toMatchObject({ day_id: stored.days[1] });
+  });
+
+  it('RESV-SVC-047: an explicit day_id null still clears the day', async () => {
+    const { update } = await train({ reservation_time: '12:00' }, 1);
+    expect(await update({ day_id: null, notes: 'Not planned yet' })).toMatchObject({ day_id: null });
+  });
+
+  it('RESV-SVC-048: a time-only end time keeps the end day; a dated one moves it and a cleared one clears it', async () => {
+    const { days, update } = await train({ reservation_time: '12:00', reservation_end_time: '18:00' }, 0, 1);
+    expect(await update({ reservation_end_time: '19:30' }))
+      .toMatchObject({ reservation_end_time: '19:30', day_id: days[0], end_day_id: days[1] });
+    expect(await update({ reservation_end_time: '2030-05-03T08:00' })).toMatchObject({ end_day_id: days[2] });
+    expect(await update({ reservation_end_time: '' })).toMatchObject({ reservation_end_time: null, end_day_id: null });
   });
 });

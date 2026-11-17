@@ -24,7 +24,7 @@ const CATEGORY_OPTIONS: CategoryOption[] = [
 function makeProps(overrides: Partial<HarnessProps> = {}): HarnessProps {
   return {
     statusFilter: 'all' as StatusFilter,
-    counts: { all: 3, idea: 1, want: 1, visited: 1 },
+    counts: { all: 3, idea: 1, want: 1, visited: 1, revisit: 0 },
     categoryFilter: 'all',
     categoryOptions: CATEGORY_OPTIONS,
     ratingFilter: 'all',

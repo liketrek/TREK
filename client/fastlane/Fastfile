@@ -1,0 +1,119 @@
+# iOS release signing and TestFlight upload, driven by .github/workflows/native-release.yml.
+#
+# Automatic signing cannot work on a CI runner with no registered devices: it signs
+# the archive for development and then needs a development provisioning profile, which
+# requires a device. So this signs manually for distribution instead. The distribution
+# certificate and the App Store provisioning profile are created (or reused) through the
+# App Store Connect API key, which means no certificate or profile has to be stored as a
+# secret: the key the workflow already holds is enough.
+#
+# The lane expects these in the environment (the workflow sets them):
+#   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH  — the App Store Connect API key
+#   APPLE_TEAM_ID                            — the developer team
+#   MARKETING_VERSION, CURRENT_PROJECT_VERSION — the version and build number
+#   RUNNER_TEMP                              — a writable scratch directory
+
+default_platform(:ios)
+
+APP_IDENTIFIER = "com.liketrek.trek"
+PROJECT = "ios/App/App.xcodeproj"
+
+# Every signed target with its bundle identifier: the app and its extensions
+# (ios/scripts/add-extension.rb put them in the project). Each gets its own App
+# Store profile, created or reused through the API key like the app's.
+SIGNED_TARGETS = {
+  "App" => APP_IDENTIFIER,
+  "NotificationService" => "com.liketrek.trek.notifications",
+  "TREKWidgets" => "com.liketrek.trek.widgets",
+  "ShareExtension" => "com.liketrek.trek.share",
+  "TREKWatch" => "com.liketrek.trek.watchkitapp",
+  "TREKWatchWidgets" => "com.liketrek.trek.watchkitapp.widgets",
+}
+
+platform :ios do
+  desc "Build the signed Release app and upload it to TestFlight (internal testing)."
+  lane :beta do
+    key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+      in_house: false,
+    )
+
+    # A throwaway keychain with a known password, so fastlane can unlock the imported
+    # private key for code signing (without the password it cannot set the key's access
+    # list and the certificate is never usable).
+    keychain_name = "trek_ci.keychain"
+    keychain_password = "trek-ci-#{ENV.fetch('GITHUB_RUN_ID', 'local')}"
+    create_keychain(
+      name: keychain_name,
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false,
+    )
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+
+    # Import the one distribution certificate from its stored .p12, rather than
+    # minting a new one each run — Apple caps distribution certificates at two, so
+    # a fresh one per build would quickly hit the limit. The matching App Store
+    # profile is created (or reused) through the API key.
+    import_certificate(
+      certificate_path: ENV.fetch("CERT_P12_PATH"),
+      certificate_password: ENV.fetch("CERT_P12_PASSWORD"),
+      keychain_name: keychain_name,
+      keychain_path: keychain_path,
+      keychain_password: keychain_password,
+    )
+    profiles = {}
+    SIGNED_TARGETS.each do |target, identifier|
+      get_provisioning_profile(
+        api_key: key,
+        app_identifier: identifier,
+        development: false,
+      )
+      profiles[identifier] = lane_context[SharedValues::SIGH_NAME]
+
+      # Pin each target to its profile for this build; automatic signing stays the
+      # default a developer sees when they open the project in Xcode.
+      update_code_signing_settings(
+        path: PROJECT,
+        use_automatic_signing: false,
+        team_id: ENV.fetch("APPLE_TEAM_ID"),
+        code_sign_identity: "Apple Distribution",
+        bundle_identifier: identifier,
+        profile_name: profiles[identifier],
+        targets: [target],
+      )
+    end
+
+    build_app(
+      project: PROJECT,
+      scheme: "App",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: File.join(ENV.fetch("RUNNER_TEMP"), "export"),
+      xcargs: [
+        "MARKETING_VERSION=#{ENV.fetch('MARKETING_VERSION')}",
+        "CURRENT_PROJECT_VERSION=#{ENV.fetch('CURRENT_PROJECT_VERSION')}",
+      ].join(" "),
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: profiles,
+      },
+    )
+
+    # Upload to App Store Connect; it shows up in TestFlight after Apple finishes processing.
+    # Internal testing needs no App Review, so nothing here submits the app for review.
+    # "What to Test" comes from the release tag's message (native-release.yml). Apple only
+    # takes it once the build is processed, so with notes the lane waits for that.
+    notes = ENV.fetch("TESTFLIGHT_NOTES", "").strip
+    upload_to_testflight(
+      api_key: key,
+      changelog: notes.empty? ? nil : notes,
+      skip_waiting_for_build_processing: notes.empty?,
+      skip_submission: true,
+    )
+  end
+end

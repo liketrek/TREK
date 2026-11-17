@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link2, Ticket } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
+import MWalletButton from '../../../components/MWalletButton'
 import { MBookingCodeStatus, MBookingNotes, MBookingTravelers } from './MBookingFields'
 import { useAddonStore } from '../../../../store/addonStore'
 import { useTranslation } from '../../../../i18n'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
-import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { Eyebrow, FIELD_CLS, FORM_PAIR_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader, SheetDateField } from './PlSheetChrome'
 import MBookingFilesCosts from './MBookingFilesCosts'
 import { expenseRequestAfterSave, travelerIdsOf, filesNeedConnection } from '../../../../components/Planner/bookingFormModel'
 import { useBookingFollowUp } from '../../../../components/Planner/useBookingFollowUp'
@@ -35,6 +35,9 @@ const EMPTY = {
   hotel_place_id: '' as string | number, hotel_start_day: '' as string | number, hotel_end_day: '' as string | number,
   hotel_address: '',
 }
+
+/** A booking that is saved already has an id; one being created has none. */
+const savedId = (res: { id: number } | null | undefined): number | undefined => res?.id
 
 /**
  * Add/edit booking sheet — the mobile counterpart of the desktop ReservationModal,
@@ -175,18 +178,21 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
     <MSheet
       open={showReservationModal}
       onClose={handleClose}
-      material="opaque"
+      form
       ariaLabel={res ? t('reservations.editTitle') : t('reservations.newTitle')}
       discardGuard={showReservationModal ? { form, files: pendingFiles.length, travelers: [...travelerIds] } : undefined}
     >
       <FormSheetHeader
         icon={Ticket}
         title={res ? t('reservations.editTitle') : t('reservations.newTitle')}
+        // A saved booking goes into the phone's wallet (in the iOS and Android apps).
+        trailing={<MWalletButton tripId={tripId} reservationId={savedId(res)} onError={toast.error} compact />}
         onClose={handleClose}
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]">
+      <FormSheetBody>
+
         {/* BOOKING TYPE */}
         <Eyebrow className="mb-[6px] mt-2 uppercase">{t('reservations.bookingType')}</Eyebrow>
         <div className="flex flex-wrap gap-[6px]">
@@ -212,6 +218,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.titleLabel')} *</Eyebrow>
         <input
           type="text"
+          dir="auto"
           value={form.title}
           onChange={e => set('title', e.target.value)}
           placeholder={t('reservations.titlePlaceholder')}
@@ -223,7 +230,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <div className="mt-3 flex gap-2">
               <div className="min-w-0 flex-[1.2]">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.date')}</Eyebrow>
-                <CustomDatePicker
+                <SheetDateField
                   value={startDate}
                   onChange={setStartDate}
                   min={tripMinDate}
@@ -241,7 +248,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
             <div className="mt-2 flex gap-2">
               <div className="min-w-0 flex-[1.2]">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.endDate')}</Eyebrow>
-                <CustomDatePicker value={form.end_date} onChange={d => set('end_date', d || '')} min={tripMinDate} max={tripMaxDate} />
+                <SheetDateField value={form.end_date} onChange={d => set('end_date', d || '')} min={tripMinDate} max={tripMaxDate} />
               </div>
               <div className="min-w-0 flex-1">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.endTime')}</Eyebrow>
@@ -294,8 +301,8 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
               size="sm"
             />
 
-            <div className="mt-3 flex gap-2">
-              <div className="min-w-0 flex-1">
+            <div className={`mt-3 ${FORM_PAIR_CLS}`}>
+              <div className="min-w-0">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.fromDay')}</Eyebrow>
                 <CustomSelect
                   value={form.hotel_start_day}
@@ -305,7 +312,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
                   size="sm"
                 />
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <Eyebrow className="mb-[5px] uppercase">{t('reservations.meta.toDay')}</Eyebrow>
                 <CustomSelect
                   value={form.hotel_end_day}
@@ -357,7 +364,8 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
 
         {/* LINK */}
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('reservations.urlLabel')}</Eyebrow>
-        <div className="relative">
+        {/* An address reads left to right in every language, icon and all. */}
+        <div className="relative" dir="ltr">
           <Link2 size={15} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-m-faint" />
           <input
             type="url"
@@ -398,7 +406,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
         {/* FILES + COSTS */}
         <MBookingFilesCosts
           planner={planner}
-          reservationId={res?.id}
+          reservationId={savedId(res)}
           pendingFiles={pendingFiles}
           setPendingFiles={setPendingFiles}
           canUploadFiles={canUploadFiles}
@@ -407,7 +415,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
           onCreate={expense.create}
           onEdit={item => onOpenExpense({ editItem: item })}
         />
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onCancel={handleClose}

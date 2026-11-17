@@ -307,6 +307,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Heç bir albom tapılmadı',
   'journey.picker.selectDate': 'Tarix seç',
   'journey.picker.search': 'Axtar',
+  'journey.picker.takenBetween': 'Çəkilmə tarixi aralığı',
 
   'journey.studio.title': 'TREK Studio', // same-as-en
   'journey.studio.open': 'Studio', // same-as-en

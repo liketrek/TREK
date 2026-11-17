@@ -1,4 +1,5 @@
 import { AnthropicClient } from '../../../../src/nest/llm-parse/clients/anthropic.client';
+import { ConnectionReadClient } from '../../../../src/nest/llm-parse/clients/connection-read.client';
 import { OpenAiCompatibleClient } from '../../../../src/nest/llm-parse/clients/openai-compatible.client';
 import { createLlmClient } from '../../../../src/nest/llm-parse/llm-client.factory';
 import type { ResolvedLlmConfig } from '../../../../src/nest/llm-parse/llm-config';
@@ -16,6 +17,16 @@ describe('createLlmClient', () => {
   it('returns the OpenAI-compatible client for openai and local', () => {
     expect(createLlmClient(cfg('openai'))).toBeInstanceOf(OpenAiCompatibleClient);
     expect(createLlmClient(cfg('local'))).toBeInstanceOf(OpenAiCompatibleClient);
+  });
+
+  it('reads a ChatGPT plan through the reader its connection lends', () => {
+    const plan: ResolvedLlmConfig = {
+      provider: 'chatgpt',
+      model: 'gpt-x',
+      vision: 'auto',
+      read: async () => ({ text: '' }),
+    };
+    expect(createLlmClient(plan)).toBeInstanceOf(ConnectionReadClient);
   });
 
   it('falls back to the OpenAI-compatible client for an unknown provider', () => {

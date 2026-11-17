@@ -1,4 +1,4 @@
-// FE-PLANNER-ICS-001 to FE-PLANNER-ICS-016
+// FE-PLANNER-ICS-001 to FE-PLANNER-ICS-018
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -146,6 +146,33 @@ describe.each([['phone', true], ['desktop', false]] as const)('IcsSubscribeModal
     fireEvent.click(regenerate);
     await waitFor(() => expect(regenerate).not.toBeDisabled());
     expect(screen.getByText('https://trek.example/feed/keep.ics')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-ICS-017: the day overview switch is on, and off adds days=0 to every link (#2602)', async () => {
+    server.use(http.get(TOKEN_URL, () => HttpResponse.json({ feed_url: 'https://trek.example/feed/tok.ics' })));
+    render(<IcsSubscribeModal {...defaultProps} />);
+    const toggle = await screen.findByRole('button', { name: 'Day overview events' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('link', { name: /Add to Apple Calendar \/ Outlook/i }))
+      .toHaveAttribute('href', 'webcal://trek.example/feed/tok.ics');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('https://trek.example/feed/tok.ics?days=0')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Add to Apple Calendar \/ Outlook/i }))
+      .toHaveAttribute('href', 'webcal://trek.example/feed/tok.ics?days=0');
+    expect(screen.getByRole('link', { name: /Add to Google Calendar/i }).getAttribute('href'))
+      .toContain(encodeURIComponent('webcal://trek.example/feed/tok.ics?days=0'));
+
+    fireEvent.click(toggle);
+    expect(screen.getByText('https://trek.example/feed/tok.ics')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-ICS-018: the day overview switch only shows once there is a link to change', async () => {
+    server.use(http.get(TOKEN_URL, () => HttpResponse.json({ feed_url: null })));
+    render(<IcsSubscribeModal {...defaultProps} />);
+    await screen.findByRole('button', { name: /Enable calendar subscription/i });
+    expect(screen.queryByRole('button', { name: 'Day overview events' })).not.toBeInTheDocument();
   });
 });
 

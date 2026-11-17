@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Muzea a kultura',
   'poi.cat.nature': 'Příroda a parky',
   'poi.cat.activities': 'Aktivity',
+  'poi.cat.bakeries': 'Pekárny',
+  'poi.cat.groceries': 'Potraviny',
   'poi.pluginCategories': 'Kategorie z pluginů',
   'map.showAllConnections': 'Zobrazit všechny trasy rezervací',
   'map.hideAllConnections': 'Skrýt všechny trasy rezervací',
@@ -46,5 +48,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Tento prohlížeč nenabízí WebGL2, které mapy GL potřebují, proto se mapy zobrazují pomocí Leafletu.',
   'map.webgl2.terrain': '3D potřebuje WebGL2, které tento prohlížeč nenabízí. Mapa zůstává ve 2D.',
+  'map.offlineBasemap': 'Offline mapa',
+  'map.offlineShowStored': 'Zobrazit offline mapu',
 };
 export default map;

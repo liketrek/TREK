@@ -14,8 +14,7 @@ const wandererWatch: TranslationStrings = {
   'wanderer.watch.paused': 'หยุดชั่วคราวถึง {time}',
   'wanderer.watch.pausedHint': 'wanderer ไม่ตอบกลับ หลังความล้มเหลวแต่ละครั้ง TREK จะรอนานขึ้นก่อนถามอีกครั้ง',
   'wanderer.watch.blocked': 'โทเค็นถูกปฏิเสธ',
-  'wanderer.watch.blockedHint':
-    'wanderer ปฏิเสธโทเค็น API การตรวจจะทำต่อเมื่อการทดสอบการเชื่อมต่อผ่านหรือบันทึกโทเค็นใหม่',
+  'wanderer.watch.blockedHint': 'wanderer ปฏิเสธโทเค็น API การตรวจจะทำต่อเมื่อการทดสอบการเชื่อมต่อผ่านหรือบันทึกโทเค็นใหม่',
   'wanderer.watch.hints': 'ข้อสังเกต',
   'wanderer.watch.hintsCount': 'ข้อสังเกตที่เปิดอยู่ {count} รายการ',
   'wanderer.watch.empty': 'ไม่มีข้อสังเกตที่เปิดอยู่',
@@ -28,8 +27,7 @@ const wandererWatch: TranslationStrings = {
   'wanderer.watch.state.unverifiable': 'ตรวจไม่ได้',
   'wanderer.watch.stateHint.possible_change':
     'wanderer เปลี่ยนเวลาประทับของเส้นทาง มีเพียงการตรวจแหล่งที่มาที่บอกได้ว่าเนื้อหาต่างกันหรือไม่',
-  'wanderer.watch.stateHint.changed':
-    'บันทึกใน wanderer แสดงชื่อหรือคำอธิบายอื่น การตรวจแหล่งที่มาจะแสดงทุกอย่างที่เปลี่ยน',
+  'wanderer.watch.stateHint.changed': 'บันทึกใน wanderer แสดงชื่อหรือคำอธิบายอื่น การตรวจแหล่งที่มาจะแสดงทุกอย่างที่เปลี่ยน',
   'wanderer.watch.stateHint.unverifiable': 'TREK ประเมินเส้นทางนี้ไม่ได้ จึงไม่บอกอะไรเกี่ยวกับการเปลี่ยนแปลง',
   'wanderer.watch.reason.unavailable': 'เข้าถึงเส้นทางไม่ได้',
   'wanderer.watch.reason.no_change_time': 'ไม่มีเวลาประทับ',

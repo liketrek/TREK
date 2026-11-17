@@ -1,0 +1,51 @@
+import type { TranslationStrings } from '../types';
+
+const mailAdmin: TranslationStrings = {
+  'mailAdmin.title': 'Booking mail import',
+  'mailAdmin.hint': 'Forwarded booking confirmations become bookings in the right trip.',
+  'mailAdmin.enabled': 'Import booking mails',
+  'mailAdmin.enabledHint': 'Gives everyone on this install a forwarding address. Off, no address takes mail.',
+  'mailAdmin.transport.label': 'How mail arrives',
+  'mailAdmin.transport.off': 'Upload only',
+  'mailAdmin.transport.imap': 'IMAP mailbox',
+  'mailAdmin.transport.webhook': 'Webhook',
+  'mailAdmin.transport.offInfo':
+    'No mailbox needed: people upload a saved mail as an .eml file in their settings, and TREK reads it just the same. Good for trying it out.',
+  'mailAdmin.transport.imapInfo':
+    'TREK looks into a mailbox every two minutes and picks up new mails. Use a mailbox of its own that takes plus addresses (trek+…@your-domain), not a personal one: read mails move on to TREK/processed.',
+  'mailAdmin.transport.webhookInfo':
+    'A mail service, such as a Cloudflare Email Worker, hands every mail straight to TREK and signs it with the secret below, so nobody else can slip mails in. For setups without a mailbox.',
+  'mailAdmin.aiDaily': 'AI mails per person and day',
+  'mailAdmin.aiDailyHint': 'Above it, only machine-readable booking data is read.',
+  'mailAdmin.template': 'Address template',
+  'mailAdmin.templateHint': 'The forwarding address, with {token} where each person’s code goes.',
+  'mailAdmin.imap.host': 'Server',
+  'mailAdmin.imap.port': 'Port',
+  'mailAdmin.imap.tls': 'Encryption',
+  'mailAdmin.imap.user': 'User',
+  'mailAdmin.imap.pass': 'Password',
+  'mailAdmin.imap.mailbox': 'Folder',
+  'mailAdmin.imap.mailboxHint': 'Read mails move on to TREK/processed.',
+  'mailAdmin.webhook.secret': 'Signing secret',
+  'mailAdmin.webhook.secretHint':
+    'At least 32 characters; the sender signs every mail with it. Empty switches the webhook off.',
+  'mailAdmin.inboundUrl': 'Webhook address',
+  'mailAdmin.inboundUrlHint': 'Your mail service posts each mail here, raw and signed.',
+  'mailAdmin.copyUrl': 'Copy address',
+  'mailAdmin.envHint': 'Environment variables (MAIL_INGEST_*) win over these fields.',
+  'mailAdmin.loadError': 'The mail import settings could not be loaded.',
+  'mailAdmin.problem.secretShort': 'The secret needs at least 32 characters.',
+  'mailAdmin.problem.portInvalid': 'Enter a port between 1 and 65535.',
+  'mailAdmin.problem.templateToken': 'The address needs {token} for each person’s code.',
+  'mailAdmin.problem.dailyInvalid': 'Enter a whole number from 0 to 1000.',
+  'mailAdmin.status.lastRead': 'Last read {time}',
+  'mailAdmin.status.never': 'never',
+  'mailAdmin.status.mails': 'Mails, 24 h',
+  'mailAdmin.status.added': 'Added on their own',
+  'mailAdmin.status.waiting': 'Waiting',
+  'mailAdmin.status.failed': 'Failed',
+  'mailAdmin.test.run': 'Test connection',
+  'mailAdmin.test.ok': 'Connected',
+  'mailAdmin.test.failed': 'No connection',
+};
+export default mailAdmin;

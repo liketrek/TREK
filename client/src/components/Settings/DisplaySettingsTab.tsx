@@ -1,17 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Languages, Map, ChevronDown, Rocket } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Languages, Map, Rocket } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { DEFAULT_SETTINGS } from '../../store/settingsStore'
 import CustomSelect from '../shared/CustomSelect'
 import { Segmented } from '../shared/dialogParts'
-import { fs } from '../shared/DialogShell'
-import { POPOVER } from '../Packing/packingPopoverStyles'
-import { PopoverItem } from '../Packing/PackingPopover'
 import { preferredNavAppOptions } from '../Planner/placeNavigation'
 import { SYMBOLS, currenciesWith } from '../Budget/BudgetPanel.constants'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import { ChoiceChips, SettingRow, SettingRows } from './settingsKit'
+import { SettingRow, SettingRows, SettingsColumns } from './settingsKit'
 import { useSettingSaver } from './useSettingSaver'
 import { TRIP_TAB_IDS, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB } from '../../utils/startDestination'
@@ -31,18 +28,6 @@ export default function DisplaySettingsTab(): React.ReactElement {
   const demoLocked = useDemoAccountLock()
   const [tempUnit, setTempUnit] = useState<string>(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(settings.distance_unit || DEFAULT_SETTINGS.distance_unit)
-  const [langOpen, setLangOpen] = useState(false)
-  const langDropdownRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (!langOpen) return
-    const handler = (e: MouseEvent) => {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target as Node)) setLangOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [langOpen])
-
   useEffect(() => {
     setTempUnit(settings.temperature_unit || DEFAULT_SETTINGS.temperature_unit)
   }, [settings.temperature_unit])
@@ -55,12 +40,12 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
   const startPage = settings.start_page === 'active_trip' ? 'active_trip' : DEFAULT_START_PAGE
   const startTripTab = settings.start_trip_tab || DEFAULT_START_TRIP_TAB
-  const currentLanguage = SUPPORTED_LANGUAGES.find(o => o.value === settings.language) || SUPPORTED_LANGUAGES[0]
 
   const pickLanguage = (value: string) => save('language', value)
 
   return (
-    <>
+    <SettingsColumns
+      start={<>
       <Section title={t('settings.general.startup')} icon={Rocket}>
         <SettingRows>
           {/* Where opening TREK lands */}
@@ -127,47 +112,23 @@ export default function DisplaySettingsTab(): React.ReactElement {
             }
           />
 
-          {/* Language: every option at a glance on a wide window, a compact list on a narrow one.
-              The shared demo account always runs in English. */}
+          {/* Language: a select like every other choice in this card. The shared
+              demo account always runs in English. */}
           <DemoLock locked={demoLocked} reason={t('demo.lock.language')} size="row">
-          <SettingRow label={t('settings.language')} stacked>
-            <div className="hidden sm:block">
-              <ChoiceChips
-                label={t('settings.language')}
-                value={settings.language}
-                options={SUPPORTED_LANGUAGES.map(opt => ({ value: opt.value, label: opt.label }))}
-                onChange={pickLanguage}
-              />
-            </div>
-            <div ref={langDropdownRef} className="relative sm:hidden">
-              <button
-                type="button"
-                onClick={() => setLangOpen(v => !v)}
-                aria-expanded={langOpen}
-                className="flex w-full items-center justify-between gap-2 rounded-[10px] border border-edge bg-surface-input px-3 py-2 text-start font-medium text-content"
-                style={fs(13, 'body')}
-              >
-                <span className="min-w-0 truncate">{currentLanguage?.label}</span>
-                <ChevronDown size={14} className={`flex-none text-content-faint transition-transform ${langOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {langOpen && (
-                <div className="absolute inset-x-0 top-[calc(100%+4px)] z-50 max-h-[280px] overflow-y-auto" style={POPOVER}>
-                  {SUPPORTED_LANGUAGES.map(opt => (
-                    <PopoverItem
-                      key={opt.value}
-                      icon={null}
-                      label={opt.label}
-                      active={settings.language === opt.value}
-                      onClick={async () => {
-                        setLangOpen(false)
-                        await pickLanguage(opt.value)
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </SettingRow>
+          <SettingRow
+            label={t('settings.language')}
+            control={
+              <div className={SELECT_BOX}>
+                <CustomSelect
+                  value={settings.language || SUPPORTED_LANGUAGES[0].value}
+                  onChange={v => void pickLanguage(String(v))}
+                  options={SUPPORTED_LANGUAGES.map(opt => ({ value: opt.value, label: opt.label }))}
+                  searchable
+                  ariaLabel={t('settings.language')}
+                />
+              </div>
+            }
+          />
           </DemoLock>
 
           {/* Place names (#1799): searches can answer in another language than the app. */}
@@ -286,6 +247,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
         </SettingRows>
       </Section>
 
+      </>}
+      end={
       <Section title={t('settings.general.travelMap')} icon={Map}>
         <SettingRows>
           {/* Preferred map app (#2423): opt-in, the picker stays the default */}
@@ -327,7 +290,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
           <OnOffSetting label={t('settings.optimizeFromAccommodation')} hint={t('settings.optimizeFromAccommodationHint')} on={settings.optimize_from_accommodation !== false} onChange={value => saveOnOff('optimize_from_accommodation', value)} />
         </SettingRows>
       </Section>
-    </>
+      }
+    />
   )
 }
 

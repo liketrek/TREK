@@ -1,8 +1,7 @@
 /**
  * FE-PLANNER-ENTITYLINK-001 to FE-PLANNER-ENTITYLINK-002
  *
- * The links the chat opens the planner with while it is on screen: another
- * tab of the trip switches there and leaves the URL, and the parts' own links
+ * The links the chat opens the planner with while it is on screen: the parts' own links
  * (tours, bookings, road trip) are each handed the planner, the workspace and
  * the query (each part's own test covers what it does with them).
  */
@@ -37,10 +36,10 @@ function setup(path: string) {
 }
 
 describe('useAssistantEntityLinks', () => {
-  it('FE-PLANNER-ENTITYLINK-001: another tab switches there and leaves the URL, what it reads stays', () => {
+  it('FE-PLANNER-ENTITYLINK-001: leaves tab selection to the shared planner', () => {
     const { planner, hook } = setup('/trips/5?tab=finanzplan&expense=7');
-    expect(planner.handleTabChange).toHaveBeenCalledWith('finanzplan');
-    expect(hook.result.current.search).toBe('?expense=7');
+    expect(planner.handleTabChange).not.toHaveBeenCalled();
+    expect(hook.result.current.search).toBe('?tab=finanzplan&expense=7');
   });
 
   it("FE-PLANNER-ENTITYLINK-002: each part's own link gets the planner, the workspace and the query; nothing switches without a tab", () => {

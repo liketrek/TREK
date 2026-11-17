@@ -6,6 +6,7 @@ import { A2_TO_A3 } from '../../../pages/atlas/atlasModel'
 import type { BucketItem } from '../../../pages/atlas/atlasModel'
 import type { AtlasController } from './atlasController'
 import { getIntlLanguage } from '@trek/shared'
+import { TileHeader } from '../trip/sheets/MTripSheetUi'
 
 interface MAtlasBucketSheetProps {
   atlas: AtlasController
@@ -87,18 +88,15 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
 
   return (
     <MSheet open={open} onClose={close} variant="bottom" material="glass" ariaLabel={t('atlas.bucketTab')}>
-      <div className="flex min-h-0 flex-col p-4">
-        <div className="flex items-center gap-[10px] px-1 pb-3">
-          <Star size={17} strokeWidth={2.2} className="flex-none text-[color:var(--m-st-pending)]" />
-          <div className="min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">
-            {t('atlas.bucketTab')}
-            {bucketList.length > 0 && (
-              <span className="ms-[6px] font-geist text-[0.75rem] font-semibold tabular-nums text-m-faint">{bucketList.length}</span>
-            )}
-          </div>
-          <MIconBtn variant="neutral" size={34} onClick={close} ariaLabel={t('common.close')}>
-            <X size={16} strokeWidth={2.2} />
-          </MIconBtn>
+      <div className="flex min-h-0 flex-col px-[18px] pb-4 pt-4">
+        <div className="mb-3">
+          <TileHeader
+            icon={<Star size={19} strokeWidth={1.8} className="text-[color:var(--m-st-pending)]" />}
+            title={t('atlas.bucketTab')}
+            sub={bucketList.length > 0 ? String(bucketList.length) : undefined}
+            onClose={close}
+            closeLabel={t('common.close')}
+          />
         </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">

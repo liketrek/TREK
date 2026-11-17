@@ -1,4 +1,9 @@
-import type { Collection, CollectionMembership, CollectionStatus } from '@trek/shared';
+import {
+  type Collection,
+  type CollectionMembership,
+  type CollectionStatus,
+  isVisitedCollectionStatus,
+} from '@trek/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -110,8 +115,8 @@ export function useSaveToCollection() {
   const savedByCollection = new Map<number, MembershipEntry>();
   for (const l of membership?.lists ?? []) savedByCollection.set(l.collection_id, l);
 
-  /** Lists holding this place that the viewer may edit and that are not visited yet. */
-  const unvisited = (membership?.lists ?? []).filter((l) => l.can_edit && l.status !== 'visited');
+  /** Lists holding this place that the viewer may edit and that are not visited yet; one to revisit already was. */
+  const unvisited = (membership?.lists ?? []).filter((l) => l.can_edit && !isVisitedCollectionStatus(l.status));
 
   const handleStatus = async (entry: MembershipEntry, next: CollectionStatus) => {
     if (busyId != null) return;

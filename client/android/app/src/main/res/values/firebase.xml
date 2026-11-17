@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Firebase project the app receives push through (liketrek push relay).
+     These are the strings the google-services Gradle plugin would generate from
+     google-services.json; Firebase reads them at start. None of them is a secret:
+     they identify the project, sending needs the relay's service account. -->
+<resources>
+    <string name="google_app_id" translatable="false">1:1074454522965:android:3ff2fe270a27a73051b8dc</string>
+    <string name="gcm_defaultSenderId" translatable="false">1074454522965</string>
+    <string name="google_api_key" translatable="false">AIzaSyB2VYXmZ90BZuksHhHR_n2W8naNE_vJAJA</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyB2VYXmZ90BZuksHhHR_n2W8naNE_vJAJA</string>
+    <string name="project_id" translatable="false">trek-9392e</string>
+    <string name="google_storage_bucket" translatable="false">trek-9392e.firebasestorage.app</string>
+</resources>

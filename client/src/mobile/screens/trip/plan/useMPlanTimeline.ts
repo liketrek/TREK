@@ -7,8 +7,9 @@ import { toDisplayTemp } from '../../../../components/Planner/dayDetailModel'
 import { getDayBookendHotels } from '../../../../utils/dayOrder'
 import { dayWeatherAnchor } from '../../../../utils/dayWeather'
 import { metadataWithLegPositions, planMergedOrder, withTransportPositions } from '../../../../utils/mergedOrder'
-import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay, isCarrierTransport, stopDayIds } from '../../../../utils/dayMerge'
+import { getDisplayTimeForDay, getMergedItems, getTransportForDay, hasCarrierEndpointOnDay, isCarrierTransport, stopDayIds, yieldTimedBookings } from '../../../../utils/dayMerge'
 import { dayCoMapsUrl, dayExportStops, dayGoogleMapsUrl, optimizeDayOrder, type DayCarrier } from '../../../../components/Planner/dayRoute'
+import { dayRouteTargets } from '../../../../components/Planner/dayRouteApps'
 import type { PlannedTransitLeg, TransitLeg } from '../../../../components/Planner/transitLeg'
 import { useTransitLegPlanner } from '../../../../components/Planner/useTransitLegPlanner'
 import { dayItemOverrun } from '../../../../components/Tours/tourDayTime'
@@ -33,11 +34,15 @@ const placeIdsOf = (items: Assignment[]): number[] =>
  * remove/edit place, the add bars, optimize and the Google-Maps export.
  * Reads tripStore directly only for dayNotes, which the planner doesn't expose.
  */
-export function useMPlanTimeline(planner: TripPlanner) {
+export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null) {
   const {
-    tripId, days, assignments, reservations, tripAccommodations, selectedDayId,
+    tripId, days, assignments, reservations, tripAccommodations,
     t, language, settings, toast, tripActions, pushUndo, updateRouteForDay, routeProfile,
   } = planner
+  // The day pager draws the neighbours of the selected day too, each through its
+  // own instance of this hook, so the day is a parameter. Left out, it is the
+  // planner's selection.
+  const selectedDayId = forDayId === undefined ? planner.selectedDayId : forDayId
 
   const dayNotes = useTripStore(s => s.dayNotes)
   const day = days.find(d => d.id === selectedDayId)
@@ -208,10 +213,17 @@ export function useMPlanTimeline(planner: TripPlanner) {
     const newOrder = [...merged]
     newOrder.splice(idx, 1)
     newOrder.splice(toIndex, 0, item)
-    // Same guard as the desktop arrow buttons: a TIMED item may not jump past
-    // other timed items (untimed items move freely and keep their neighbours).
+    // A TIMED item may not jump past other timed items (untimed items move freely and
+    // keep their neighbours). Bookings it passes make room when they can, as on a desktop
+    // drop (#2983); a timed stop or note in the way, or a move that leaves the day as it
+    // was, is refused.
     if (itemHasTime(item, day.id) && breaksChronology(newOrder, day.id, getDisplayTimeForDay)) {
-      toast.info(t('dayplan.cannotBreakChronology'))
+      const yielded = yieldTimedBookings(newOrder, toIndex, day.id, getDisplayTimeForDay)
+      if (!yielded || yielded.every((it, i) => it === merged[i])) {
+        toast.info(t('dayplan.cannotBreakChronology'))
+        return
+      }
+      void applyMergedOrder(day.id, yielded)
       return
     }
     void applyMergedOrder(day.id, newOrder)
@@ -305,6 +317,17 @@ export function useMPlanTimeline(planner: TripPlanner) {
     [day, days, dayAssignments, tripAccommodations, settings, dayCarrier],
   )
 
+  // The apps behind the plan's one Maps button, with the same bookended stops.
+  const routeTargets = useMemo(
+    () => (day
+      ? dayRouteTargets(
+        dayExportStops(day, days, dayAssignments, tripAccommodations, settings.optimize_from_accommodation !== false, dayCarrier),
+        day.default_transport_mode ?? routeProfile,
+      )
+      : []),
+    [day, days, dayAssignments, tripAccommodations, settings, dayCarrier, routeProfile],
+  )
+
   const exportGoogleMaps = useCallback(() => {
     if (!day) return
     // Bookend the exported route with the day's accommodation the same way the
@@ -390,7 +413,7 @@ export function useMPlanTimeline(planner: TripPlanner) {
     moveRow, removeAssignment, editAssignment, editTransport, openTransitJourney,
     moveRowTo,
     addPlace, addBooking, addTransport,
-    optimize, canExportRoute, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
+    optimize, canExportRoute, routeTargets, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
     routeModeOptions, setLegMode, transitLegFor, planTransitLeg, journeyLate, tourOverrun,
   }
 }

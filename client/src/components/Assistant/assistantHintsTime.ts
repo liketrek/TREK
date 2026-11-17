@@ -60,7 +60,7 @@ export function stopSpan(assignment: Assignment): DaySpan | null {
   if (start === null) return null;
   const end = clockMinutes(assignment.assignment_end_time ?? assignment.place.end_time);
   if (end !== null && end > start) return { start, end };
-  const duration = assignment.place.duration_minutes ?? 0;
+  const duration = assignment.stay_minutes ?? assignment.place.duration_minutes ?? 0;
   return { start, end: duration > 0 ? Math.min(start + duration, MINUTES_PER_DAY) : null };
 }
 

@@ -81,7 +81,7 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
       open={open && !!stop}
       onClose={shell.closeSheet}
       variant="bottom"
-      material="opaque"
+      material="glass"
       ariaLabel={t('roadtrip.stop.kind')}
     >
       {stop && (

@@ -17,6 +17,18 @@ const it: NotificationLocale = {
       title: `Nuova prenotazione: ${p.booking}`,
       body: `${p.actor} ha aggiunto una prenotazione "${p.booking}" (${p.type}) a "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} è decollato`,
+      body: `${p.flight} da ${p.from} a ${p.to} è in volo.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} è in ritardo`,
+      body: `${p.flight} da ${p.from} a ${p.to} ha circa ${p.delay} minuti di ritardo.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} è atterrato`,
+      body: `${p.flight} da ${p.from} è atterrato a ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Promemoria viaggio: ${p.trip}`,
       body: `Il tuo viaggio "${p.trip}" si avvicina!`,
@@ -80,6 +92,21 @@ const it: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `«${p.tour}» in «${p.trip}» non si può più controllare in wanderer. Il percorso nel tuo viaggio resta com'è.`
             : `«${p.tour}» in «${p.trip}» potrebbe essere cambiato in wanderer. Apri il percorso e controlla la sua fonte per saperlo. Nel viaggio non cambia nulla da solo.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Aggiunta da un’email: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} ha aggiunto «${p.booking}» a «${p.trip}» da un’email inoltrata.`
+          : `«${p.booking}» dalla tua email inoltrata è stata aggiunta a «${p.trip}». Puoi annullarla in TREK per 7 giorni.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Prenotazioni inoltrate da controllare',
+      body: `Prenotazioni inoltrate in attesa in TREK: ${p.count}. Ognuna indica perché non è stata aggiunta da sola.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Importazione email in pausa',
+      body: 'Per ora TREK non accetta le email di prenotazione inoltrate, quindi aspetta prima di inoltrarle. I tuoi indirizzi restano e funzioneranno di nuovo quando l’importazione tornerà, e le prenotazioni già aggiunte restano nei tuoi viaggi.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

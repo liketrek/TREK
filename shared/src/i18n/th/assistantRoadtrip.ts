@@ -46,8 +46,7 @@ const assistantRoadtrip: TranslationStrings = {
   'assistant.card.roadtrip.open': 'เปิดในโรดทริป',
   'assistant.card.roadtrip.problem.routing': 'คำนวณบางช่วงไม่ได้ ยอดรวมนี้จึงไม่ใช่ทั้งการขับ',
   'assistant.card.roadtrip.problem.coordinates': 'บางสถานที่ไม่มีตำแหน่ง การขับจึงข้ามไป',
-  'assistant.card.roadtrip.problem.dayWindow':
-    'ไม่สามารถรักษาเวลาเดินทางรายวันได้ จุดสิ้นสุดของแต่ละวันจึงยังไม่แน่นอน',
+  'assistant.card.roadtrip.problem.dayWindow': 'ไม่สามารถรักษาเวลาเดินทางรายวันได้ จุดสิ้นสุดของแต่ละวันจึงยังไม่แน่นอน',
   'assistant.card.roadtrip.setting.on': 'เปิด',
   'assistant.card.roadtrip.setting.off': 'ปิด',
   'assistant.card.roadtrip.corridor.none': 'ไม่พบสิ่งใดภายในระยะ {distance} จากเส้นทาง',

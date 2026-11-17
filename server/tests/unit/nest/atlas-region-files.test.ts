@@ -1,4 +1,4 @@
-import { getRegionGeoGz, getRegionGeoJson } from '../../../src/nest/atlas/atlas-geo';
+import { getRegionFromCoords, getRegionGeoGz, getRegionGeoJson } from '../../../src/nest/atlas/atlas-geo';
 
 import { describe, it, expect } from 'vitest';
 import zlib from 'zlib';
@@ -55,5 +55,35 @@ describe('getRegionGeoGz', () => {
   it('ATLAS-SVC-050: returns null for a country without regions and for anything that is not a two-letter code', async () => {
     const codes = ['ZZ', 'NOR', '', '../admin0', '..', 'N/'];
     expect(await Promise.all(codes.map((code) => getRegionGeoGz(code)))).toEqual(codes.map(() => null));
+  });
+});
+
+describe('Ireland resolves to its counties (#2922)', () => {
+  // Inland, coastal and near-border places, one county each. The counties come from
+  // Tailte Éireann and are simplified by the builder itself, so a point that lands in no
+  // county or in the wrong one would mean the simplification opened a gap or moved a border.
+  const places: [string, number, number, string][] = [
+    ['Dublin, Trinity College', 53.3438, -6.2546, 'IE-D'],
+    ['Howth village', 53.3866, -6.07, 'IE-D'],
+    ['Cork, St. Patrick Street', 51.8985, -8.4731, 'IE-CO'],
+    ['Galway, Eyre Square', 53.2743, -9.0491, 'IE-G'],
+    ['Killarney', 52.0599, -9.5044, 'IE-KY'],
+    ['Cliffs of Moher visitor centre', 52.9719, -9.4265, 'IE-CE'],
+    ['Kilkenny Castle', 52.6503, -7.2492, 'IE-KK'],
+    ['Letterkenny', 54.9503, -7.7334, 'IE-DL'],
+    ['Westport', 53.8008, -9.5223, 'IE-MO'],
+    ['Cashel, Rock of Cashel', 52.5201, -7.8906, 'IE-TA'],
+  ];
+
+  it.each(places)('ATLAS-SVC-051: %s lies in its county', async (_name, lat, lng, code) => {
+    expect((await getRegionFromCoords('IE', lat, lng))?.region_code).toBe(code);
+  });
+
+  it('ATLAS-SVC-052: a county comes back under its English name', async () => {
+    expect(await getRegionFromCoords('ie', 53.3438, -6.2546)).toEqual({
+      country_code: 'IE',
+      region_code: 'IE-D',
+      region_name: 'Dublin',
+    });
   });
 });

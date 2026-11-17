@@ -12,19 +12,25 @@ import { useTranslation } from '../../i18n/TranslationContext'
 import { applyBaseLayer } from './glRasterLayers'
 import { reportGlViewport } from './glViewport'
 import { isTourLayerHit, useTourMapLayersGL } from './mapRasterOverlay'
-import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_LAYER_SWITCHER_INSET, type BaseLayer, type TourBaseLayer } from './MapLayerSwitcher'
+import { MapLayerSwitcher, TourMapLayerSwitcher, type BaseLayer, type TourBaseLayer } from './MapLayerSwitcher'
+import { switcherRowStyle } from './switcherRow'
 import { MapLockPill } from './MapLockPill'
 import { useMarkerThumbs } from './useMarkerThumbs'
-import { placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
+import { placeMarkerFrame, placeMarkerLook, type PlaceMarkerFlags } from './markerLook'
+import { bottomChromePadding } from './mapChromePadding'
+import { useSelectionCameraGL } from './useSelectionCameraGL'
 import { markerPhotoHtml, placePhotoFull, placePhotoUrl } from './placePhoto'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
+import { useFlightAircraftGL } from './useFlightAircraftGL'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
-import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
-import { buildGlMap } from './glSupport'
+import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, type GlMapProvider } from './glProviders'
+import { useStandardBasemapConfig } from './useStandardBasemapConfig'
+import { buildGlMap, initialMapStyle } from './glSupport'
+import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -47,11 +53,11 @@ import { poiPinParts } from './poiMarker'
 import { addGpxTrackLayers, GPX_HIT_LAYER_ID, hasGpxTrackLayers, selectGpxTrack, setGpxTracks } from './gpxTrackLayers'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
+import { PLUGIN_TONE_COLORS, buildPluginLayerData } from './pluginLayerGeo'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { alongShortestArc, computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { onRealWorld } from '../../utils/worldCopy'
 import { bindPoiDropTarget } from './poiDropTarget'
-import { selectedPlaceTarget } from './selectedPlaceTarget'
 import {
   PLACE_CLUSTER_CIRCLE_LAYER_ID, PLACE_CLUSTER_COUNT_LAYER_ID, PLACE_CLUSTER_SOURCE_ID,
   addPlaceClusterLayers, drawClusterBubbles, expandCluster,
@@ -99,6 +105,8 @@ const NO_DAYS: Day[] = []
 /** The GL renderer: the shared map contract plus the engine it is bound to. */
 interface Props extends MapViewProps {
   glProvider?: GlMapProvider
+  /** Draws this style instead of the user's: the offline basemap (offlineBasemap.ts). */
+  styleOverride?: string
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
    * statically here, so a single 2.8 MB chunk carried mapbox-gl and maplibre-gl
@@ -124,10 +132,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const look = placeMarkerLook(place, selected)
   const { size, borderWidth } = look
   // See MapView: allow-listed rather than escaped, because this is a CSS context.
-  const borderColor = selected ? '#111827' : safeHexColor(place.category_color, 'white')
-  const shadow = selected
-    ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
-    : '0 2px 8px rgba(0,0,0,0.22)'
+  const { borderColor, shadow, className: frameClass } = placeMarkerFrame(selected, place.category_color)
   const bgColor = safeHexColor(place.category_color, '#6b7280')
 
   // The visual circle is `size` + 2*border on each side. To make the
@@ -169,7 +174,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
   const hasPhoto = look.showPhoto && photoUrl && (photoUrl.startsWith('data:') || photoUrl.startsWith('/api/maps/place-photo/') || photoUrl.startsWith('/uploads/'))
   if (hasPhoto) {
     wrap.innerHTML = `
-      <div style="
+      <div class="${frameClass}" style="
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
@@ -183,7 +188,7 @@ function createMarkerElement(place: Place & PlaceMarkerFlags & { category_color?
     `
   } else {
     wrap.innerHTML = `
-      <div style="
+      <div class="${frameClass}" style="
         position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
@@ -212,66 +217,6 @@ const PLUGIN_LINE_LAYER_IDS: Record<'solid' | 'dash' | 'dot', string> = {
   dot: 'trek-plugin-layers-line-dot',
 }
 const PLUGIN_FILL_LAYER_ID = 'trek-plugin-layers-fill'
-const PLUGIN_TONE_COLORS: Record<string, string> = {
-  default: '#4F46E5',
-  success: '#10b981',
-  warn: '#f59e0b',
-  danger: '#ef4444',
-}
-
-// GL circle layers size in screen pixels, so a metric circle has to become a
-// polygon. Equirectangular approximation — plenty for a display-only overlay.
-function circleToRing(center: [number, number], radiusM: number): [number, number][] {
-  const [lat, lng] = center
-  const dLat = radiusM / 111_320
-  const cos = Math.cos((lat * Math.PI) / 180)
-  const dLng = radiusM / (111_320 * Math.max(0.01, Math.abs(cos)))
-  const ring: [number, number][] = []
-  for (let i = 0; i <= 64; i++) {
-    const a = (i / 64) * 2 * Math.PI
-    ring.push([lng + Math.cos(a) * dLng, lat + Math.sin(a) * dLat])
-  }
-  return ring
-}
-
-interface PluginLayerGeoFeature {
-  type: 'Feature'
-  properties: { id: string; color: string; width: number; opacity: number; dash: string; fillOpacity: number; label: string }
-  geometry: { type: 'LineString'; coordinates: number[][] } | { type: 'Polygon'; coordinates: number[][][] }
-}
-
-function buildPluginLayerData(layers: PluginMapLayer[]) {
-  const features = layers.flatMap(layer => layer.features.flatMap((f, i): PluginLayerGeoFeature[] => {
-    const color = PLUGIN_TONE_COLORS[f.tone] ?? PLUGIN_TONE_COLORS.default
-    const properties = {
-      id: `${layer.pluginId}:${layer.id}:${i}`,
-      color,
-      width: f.width,
-      opacity: f.opacity,
-      dash: f.dash,
-      fillOpacity: f.fill ? Math.min(0.25, f.opacity) : 0,
-      label: f.label || '',
-    }
-    if (f.type === 'polyline' && f.points) {
-      return [{
-        type: 'Feature' as const,
-        properties,
-        geometry: { type: 'LineString' as const, coordinates: f.points.map(([lat, lng]) => [lng, lat]) },
-      }]
-    }
-    if (f.type === 'polygon' && f.points) {
-      const ring = f.points.map(([lat, lng]) => [lng, lat])
-      if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0])
-      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [ring] } }]
-    }
-    if (f.type === 'circle' && f.center && f.radiusM) {
-      return [{ type: 'Feature' as const, properties, geometry: { type: 'Polygon' as const, coordinates: [circleToRing(f.center, f.radiusM)] } }]
-    }
-    return []
-  }))
-  return { type: 'FeatureCollection' as const, features }
-}
-
 /**
  * A place pin on the map, whatever is carrying it.
  *
@@ -455,6 +400,7 @@ export function MapViewGL({
   leftWidth = 0,
   rightWidth = 0,
   hasInspector = false,
+  inspectorHeight = 0,
   hasDayDetail = false,
   reservations = NO_RESERVATIONS,
   visibleConnectionIds = NO_CONNECTION_IDS,
@@ -483,6 +429,7 @@ export function MapViewGL({
   onRemoveVia,
   onViewportChange,
   glProvider = 'mapbox-gl',
+  styleOverride,
   gl,
   onMapReady,
   ...assistant
@@ -505,9 +452,8 @@ export function MapViewGL({
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) === true
-  const mapLang = useSettingsStore(s => s.settings.language)
   const isMapLibre = glProvider === 'maplibre-gl'
-  const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
+  const glStyle = styleOverride ?? styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
   const [mapReady, setMapReady] = useState(false)
   const [readyMap, setReadyMap] = useState<FerrataGlMap | null>(null) // the ready map, read without touching mapRef
@@ -1008,7 +954,7 @@ export function MapViewGL({
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: initialMapStyle(glProvider, glStyle),
       center: [initial.center[1], initial.center[0]],
       zoom: initial.zoom,
       pitch: enableMapbox3d ? 45 : 0,
@@ -1016,6 +962,9 @@ export function MapViewGL({
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // In the iOS app, Mapbox's own resources go through the app's tile store, so
+    // what was viewed stays on the device for up to 30 days (native/tileCache.ts).
+    if (!isMapLibre && tileCacheActive()) mapOptions.transformRequest = mapboxTileCacheRequest
     // MapLibre's around-center rotate ping-pongs near mid-screen (#1545); false is mapbox-gl's dx rotate.
     if (isMapLibre) mapOptions.aroundCenter = false
 
@@ -1504,15 +1453,8 @@ export function MapViewGL({
     }
   }, [glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality]) // rebuild on provider/style changes only
 
-  // Pin the basemap label language to the UI language so labels don't fall back to the
-  // browser/OS locale and stack multiple scripts per place (e.g. "India/भारत/India", #1299).
-  // Mapbox Standard exposes this via a basemap config property; classic and MapLibre styles
-  // are left as-is. Runs on load (mapReady) and whenever the UI language changes.
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady || isMapLibre || !isStandardFamily(glStyle)) return
-    try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support the basemap language property */ }
-  }, [mapLang, mapReady, isMapLibre, glStyle])
+  // The label language (#1299) and the basemap's own points of interest (#1761) on Mapbox Standard.
+  useStandardBasemapConfig(mapRef, mapReady, !isMapLibre && isStandardFamily(glStyle))
 
   // Photo loading, shared with the Leaflet MapView.
   const photoUrls = useMarkerThumbs(places)
@@ -1897,29 +1839,26 @@ export function MapViewGL({
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
-    if (!reservationOverlayRef.current) {
-      reservationOverlayRef.current = new ReservationMapboxOverlay(map, {
-        showConnections: true,
-        showStats: showReservationStats,
-        showEndpointLabels,
-        onEndpointClick: (id) => onReservationClickRef.current?.(id),
-      }, gl.Marker as any)
-    }
-    reservationOverlayRef.current.update(visibleReservations, {
+    const options = {
       showConnections: true,
       showStats: showReservationStats,
       showEndpointLabels,
-      onEndpointClick: (id) => onReservationClickRef.current?.(id),
-    }, transportRoutes)
+      onEndpointClick: (id: number) => onReservationClickRef.current?.(id),
+    }
+    reservationOverlayRef.current ??= new ReservationMapboxOverlay(map, options, gl.Marker as any)
+    reservationOverlayRef.current.update(visibleReservations, options, transportRoutes)
   }, [visibleReservations, transportRoutes, showReservationStats, showEndpointLabels, mapReady, glProvider])
+
+  // The trip's flights in the air, as on the Leaflet map.
+  useFlightAircraftGL(mapRef, mapReady, gl?.Marker, id => onReservationClickRef.current?.(id), reservations)
 
   // Fit bounds on fitKey change — matches the Leaflet BoundsController
   const paddingOpts = useMemo(() => {
     if (isMobile) return { top: 40, right: 20, bottom: 40, left: 20 }
     const top = 60
-    const bottom = hasInspector ? 320 : hasDayDetail ? 280 : 60
+    const bottom = bottomChromePadding({ hasInspector, inspectorHeight, hasDayDetail })
     return { top, right: rightWidth + 40, bottom, left: leftWidth + 40 }
-  }, [isMobile, leftWidth, rightWidth, hasInspector, hasDayDetail])
+  }, [isMobile, leftWidth, rightWidth, hasInspector, inspectorHeight, hasDayDetail])
   useAssistantMapGL({ mapRef, mapReady, gl, pinsRef: assistantGhostPinsRef, attachPin: attachPlannerWaypointPin, markersRef, padding: paddingOpts, assistant })
 
   const prevFitKey = useRef<number | null>(-1)
@@ -2011,25 +1950,10 @@ export function MapViewGL({
     } catch { /* noop */ }
   }, [focusPoints, focusKey, fitPaddingKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // flyTo selected place
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !selectedPlaceId || !followSelection) return
-    const target = selectedPlaceTarget(selectedPlaceId, places, dayPlaces, selectedPlace)
-    if (!target?.lat || !target?.lng) return
-    try {
-      map.flyTo({
-        center: [target.lng, target.lat],
-        zoom: Math.max(map.getZoom(), 14),
-        pitch: enableMapbox3d ? 45 : 0,
-        duration: 400,
-        // Account for the side panels and the bottom inspector / day-detail panel
-        // so the selected pin lands in the centre of the *visible* map area rather
-        // than the geometric centre (where the bottom panel would cover it).
-        padding: paddingOpts,
-      })
-    } catch { /* noop */ }
-  }, [selectedPlaceId, enableMapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
+  useSelectionCameraGL({
+    mapRef, selectedPlaceId, places, dayPlaces, selectedPlace,
+    follow: followSelection, padding: paddingOpts, enableMapbox3d,
+  })
 
   // External center/zoom prop changes — jump without animation
   const jumpedToRef = useRef<[number, number] | null>(null)
@@ -2128,8 +2052,7 @@ export function MapViewGL({
           card too, and used to send the pill to the top of the map for a corner it never
           covers. */}
       <div style={{
-        position: 'absolute', left: leftWidth + MAP_LAYER_SWITCHER_INSET, zIndex: 1000, pointerEvents: 'none',
-        display: 'flex', flexDirection: 'column', gap: 8,
+        ...switcherRowStyle(leftWidth, rightWidth),
         bottom: isMobile && hasDayDetail
           ? 'calc(var(--bottom-nav-h, 0px) + 20px + var(--day-panel-h, 0px) + 12px)'
           : 'calc(var(--bottom-nav-h, 0px) + 12px)',

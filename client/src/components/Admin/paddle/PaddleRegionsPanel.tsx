@@ -1,7 +1,9 @@
 import type { PaddleRegion, PaddleRegionCatalogEntry } from '@trek/shared';
 import { Check, ChevronRight, Loader2, Plus, RefreshCw, Search, Trash2, Waves, WifiOff } from 'lucide-react';
 import { useId } from 'react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import {
   SettingRows,
   SETTINGS_BUTTON,
@@ -64,7 +66,7 @@ function Panel() {
           style={fs(12.5, 'body')}
         >
           <span className="min-w-0 flex-1 basis-48">{admin.error}</span>
-          <button type="button" onClick={admin.retry} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+          <button type="button" onClick={admin.retry} className={SETTINGS_BUTTON}>
             {t('admin.paddleRegions.retry')}
           </button>
         </div>
@@ -157,7 +159,6 @@ function CatalogSearch({ admin }: { admin: Admin }) {
                   disabled={admin.busyId !== null}
                   onClick={() => void admin.add(hit.id)}
                   className={SETTINGS_BUTTON}
-                  style={fs(12.5, 'body')}
                 >
                   {admin.busyId === hit.id ? (
                     <Loader2 size={13} className="animate-spin" />
@@ -258,9 +259,10 @@ function RegionNetwork({ region }: { region: PaddleRegion }) {
 
 function RegionRow({ region, admin }: { region: PaddleRegion; admin: Admin }) {
   const { t, language } = useTranslation();
+  const dateFormat = useDateFormat();
   const busy = admin.busyId === region.id;
   const date = region.source_timestamp
-    ? new Date(region.source_timestamp).toLocaleDateString(language, { dateStyle: 'medium' })
+    ? formatDisplayDate(new Date(region.source_timestamp), language, { dateStyle: 'medium' }, dateFormat)
     : null;
   return (
     <div

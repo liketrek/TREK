@@ -2,7 +2,7 @@ import type { Day, Reservation, ReservationEndpoint } from '../../../types'
 import { formatPriceText, formatTime, splitReservationDateTime } from '../../../utils/formatters'
 import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../../utils/flightLegs'
 import { safeExternalHref } from '../../../utils/safeUrl'
-import { daySpan, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
+import { daySpan, hotelStayTimes, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
 
 export interface FactsContext {
   t: (key: string, params?: Record<string, string | number>) => string
@@ -105,10 +105,11 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
   if (!c.hasLinkedCost && meta.price != null && meta.price !== '') {
     cells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, c.tripCurrency, locale) })
   }
-  if (meta.check_in_time) {
-    cells.push({ label: t('reservations.meta.checkIn'), value: formatTime(meta.check_in_time, locale, timeFormat) + (meta.check_in_end_time ? ` → ${formatTime(meta.check_in_end_time, locale, timeFormat)}` : '') })
+  const stay = hotelStayTimes(r, meta)
+  if (stay.checkIn) {
+    cells.push({ label: t('reservations.meta.checkIn'), value: formatTime(stay.checkIn, locale, timeFormat) + (stay.checkInEnd ? ` → ${formatTime(stay.checkInEnd, locale, timeFormat)}` : '') })
   }
-  if (meta.check_out_time) cells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
+  if (stay.checkOut) cells.push({ label: t('reservations.meta.checkOut'), value: formatTime(stay.checkOut, locale, timeFormat) })
 
   // Per-segment codes (#1943), only on a real stopover booking.
   const legs = r.type === 'flight' ? getFlightLegs(r) : usesStationRoute(r.type) ? getTrainLegs(r) : []
@@ -132,4 +133,29 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
     url: r.url ? { href: safeExternalHref(r.url), text: r.url } : null,
     isHotel,
   }
+}
+
+function nightsBetween(a: string | null, b: string | null): number {
+  if (!a || !b) return 0
+  const n = Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5)
+  return n > 0 ? n : 0
+}
+
+/**
+ * A stay's three tiles: check-in and check-out with their dates and times, and
+ * the nights between. The desktop booking dialog and the phone's booking sheet
+ * show the same ones.
+ */
+export function stayStats(
+  facts: BookingFacts,
+  meta: { check_in_time?: string | null; check_out_time?: string | null },
+  t: FactsContext['t'],
+  locale: string,
+): { value: string; label: string }[] {
+  const stats: { value: string; label: string }[] = []
+  if (facts.startDate) stats.push({ value: formatDay(facts.startDate, locale, false), label: t('reservations.meta.checkIn') + (meta.check_in_time ? ` ${meta.check_in_time}` : '') })
+  if (facts.endDate) stats.push({ value: formatDay(facts.endDate, locale, false), label: t('reservations.meta.checkOut') + (meta.check_out_time ? ` ${meta.check_out_time}` : '') })
+  const nights = nightsBetween(facts.startDate, facts.endDate)
+  if (nights) stats.push({ value: String(nights), label: t('reservations.nights', { count: nights }) })
+  return stats
 }

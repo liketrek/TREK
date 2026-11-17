@@ -219,5 +219,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Tambahkan ke Kalender Apple / Outlook',
   'dashboard.ics.copyManually': 'Atau salin tautan secara manual',
   'dashboard.ics.pasteFromUrl': 'tempel di “Dari URL”',
+  'dashboard.ics.dayEvents': 'Acara ringkasan hari',
+  'dashboard.ics.dayEventsHint':
+    'Acara sepanjang hari untuk setiap hari berisi tempat dan catatan tanpa waktu. Mengubah ini akan mengubah tautan, jadi berlangganan lagi dengan tautan baru.',
 };
 export default dashboard;

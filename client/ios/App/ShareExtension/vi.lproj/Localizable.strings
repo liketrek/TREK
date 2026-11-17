@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Thêm vào TREK";
+"share.cancel" = "Hủy";
+"share.close" = "Đóng";
+"share.trip" = "Chuyến đi";
+"share.noTrips" = "Mở TREK một lần, các chuyến đi của bạn sẽ hiện ở đây.";
+"share.hint" = "TREK đọc đặt chỗ và thêm vào chuyến đi.";
+"share.later" = "Chọn sau";
+"share.add" = "Thêm";
+"share.addTo" = "Thêm vào %@";
+"share.added" = "Đã thêm";
+"share.reading" = "Đang đọc…";
+"share.tooLarge" = "Tệp này quá lớn để nhập.";
+"share.unsupported" = "TREK không thể nhập nội dung này.";
+"share.failed" = "Không thể chuyển sang TREK. Vui lòng thử lại.";
+"share.now" = "Đang diễn ra";
+"share.past" = "Đã qua";
+"share.tomorrow" = "Ngày mai";
+"share.inDays" = "Sau %d ngày";
+"share.kind.pass" = "Thẻ Wallet";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "Email";
+"share.kind.page" = "Trang web";
+"share.kind.text" = "Văn bản";
+"share.kind.image" = "Ảnh";
+"share.kind.file" = "Tệp";

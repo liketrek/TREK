@@ -52,14 +52,14 @@ export default function MDawarichConnectionSection(): React.ReactElement {
         <MSetRow
           first
           label={t('dawarich.syncEnabled')}
-          sub={t('dawarich.syncEnabledHint')}
+          hint={t('dawarich.syncEnabledHint')}
           trailing={
             <MToggle checked={S.syncEnabled} onChange={S.toggleSync} ariaLabel={t('dawarich.syncEnabled')} />
           }
         />
         <MSetRow
           label={t('dawarich.allowInsecureTls')}
-          sub={t('dawarich.allowInsecureTlsHint')}
+          hint={t('dawarich.allowInsecureTlsHint')}
           trailing={
             <MToggle
               checked={S.allowInsecureTls}

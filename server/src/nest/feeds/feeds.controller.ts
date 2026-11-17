@@ -4,11 +4,13 @@ import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { Public } from '../auth-core/public.decorator';
+import { TripCalendarQueryDto } from '../calendar/calendar.contract';
+import { calendarOptionsFromQuery } from '../calendar/calendar.service';
 import { contentDisposition } from '../common/content-disposition';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { Trip } from '../permissions/trip.decorator';
 import { FeedsService } from './feeds.service';
-import { Controller, Delete, Get, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 
 import type { Request, Response } from 'express';
 
@@ -27,7 +29,8 @@ function resolveFeedBase(req: Request): string {
 
 /**
  * Public subscribable ICS feed endpoints — no auth required.
- * The secret token in the URL acts as the access credential.
+ * The secret token in the URL acts as the access credential. `?days=0` leaves
+ * the per-day summaries out of the feed (#2602); the subscribe dialog adds it.
  */
 @Controller('api/feed')
 @Public('the secret token in the feed URL is the credential; calendar clients never send a session')
@@ -35,8 +38,12 @@ export class FeedsPublicController {
   constructor(private readonly feeds: FeedsService) {}
 
   @Get('trip/:token.ics')
-  async tripFeed(@Param('token') token: string, @Res() res: Response): Promise<void> {
-    const result = await this.feeds.buildTripIcs(token);
+  async tripFeed(
+    @Param('token') token: string,
+    @Query() query: TripCalendarQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const result = await this.feeds.buildTripIcs(token, calendarOptionsFromQuery(query));
     if (!result) {
       res.status(404).json({ error: 'Feed not found' });
       return;
@@ -49,8 +56,12 @@ export class FeedsPublicController {
   }
 
   @Get('user/:token.ics')
-  async userFeed(@Param('token') token: string, @Res() res: Response): Promise<void> {
-    const result = await this.feeds.buildUserIcs(token);
+  async userFeed(
+    @Param('token') token: string,
+    @Query() query: TripCalendarQueryDto,
+    @Res() res: Response,
+  ): Promise<void> {
+    const result = await this.feeds.buildUserIcs(token, calendarOptionsFromQuery(query));
     if (!result) {
       res.status(404).json({ error: 'Feed not found' });
       return;

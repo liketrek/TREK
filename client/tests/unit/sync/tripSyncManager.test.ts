@@ -21,6 +21,7 @@ import {
   buildTodoItem,
   buildBudgetItem,
   buildReservation,
+  buildTag,
   buildTripFile,
 } from '../../helpers/factories';
 
@@ -292,6 +293,27 @@ describe('tripSyncManager.syncAll — bundle upsert', () => {
     expect(meta).toBeDefined();
     expect(meta!.lastSyncedAt).toBeGreaterThanOrEqual(before);
     expect(meta!.lastSyncedAt).toBeLessThanOrEqual(after);
+  });
+
+  it("keeps the trip's own tags for offline, and a trip whose tags cannot be read still syncs", async () => {
+    const tag = buildTag({ id: 7, trip_id: 302, name: 'Monument' });
+    server.use(
+      http.get('/api/trips', () =>
+        HttpResponse.json({
+          trips: [buildTrip({ id: 302, end_date: dateOffset(5) }), buildTrip({ id: 303, end_date: dateOffset(5) })],
+        }),
+      ),
+      http.get('/api/trips/302/bundle', () => HttpResponse.json(makeBundle(302))),
+      http.get('/api/trips/303/bundle', () => HttpResponse.json(makeBundle(303))),
+      http.get('/api/trips/302/tags', () => HttpResponse.json({ tags: [tag] })),
+      http.get('/api/trips/303/tags', () => HttpResponse.json({ error: 'Trip not found' }, { status: 404 })),
+    );
+
+    expect(await tripSyncManager.syncAll()).toEqual({ status: 'done', trips: 2 });
+
+    expect((await offlineDb.tripTags.get(302))?.tags).toEqual([tag]);
+    expect(await offlineDb.tripTags.get(303)).toBeUndefined();
+    expect(await offlineDb.syncMeta.get(303)).toBeDefined();
   });
 });
 

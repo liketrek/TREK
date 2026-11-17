@@ -1,7 +1,9 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-046
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// FE-MOB-JDET-001 to FE-MOB-JDET-052
+import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
+import { setSizeClass } from '../../../helpers/sizeClass';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
 import MJourneyDetail from '../../../../src/mobile/screens/journey/MJourneyDetail';
+import { setTabHeadSlot } from '../../../../src/mobile/screens/trip/tabHeadSlot';
 import { addonsApi, journeyApi, memoriesApi } from '../../../../src/api/client';
 import { useJourneyStore } from '../../../../src/store/journeyStore';
 import { useAuthStore } from '../../../../src/store/authStore';
@@ -245,9 +247,27 @@ afterEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('MJourneyDetail', () => {
-  it('FE-MOB-JDET-001: shows a spinner while the journey is loading', () => {
+  it('FE-MOB-JDET-049: a folded Duo on its side (540px high) gets the compact cards, so the map keeps its room', () => {
+    const real = window.matchMedia;
+    // Height queries answered for a window 540px high; the rest as the setup answers them.
+    const tall = (query: string): MediaQueryList => {
+      const max = /\(\s*max-height:\s*(\d+)px\s*\)/.exec(query);
+      const list = real(query);
+      return max ? ({ ...list, matches: 540 <= Number(max[1]), media: query } as MediaQueryList) : list;
+    };
+    window.matchMedia = tall;
+    onTestFinished(() => { window.matchMedia = real; });
+    // At 720 by 540 it is the wide size class too, whose large cards must not win.
+    setSizeClass('wide');
+    setup();
+    expect(document.querySelector('.h-\\[112px\\]')).toBeInTheDocument();
+    expect(document.querySelector('.h-\\[152px\\]')).not.toBeInTheDocument();
+    expect(document.querySelector('.h-\\[196px\\]')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JDET-001: shows placeholders while the journey is loading', () => {
     setup({ loading: true, current: null });
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByTestId('journey-map')).not.toBeInTheDocument();
   });
 
@@ -315,6 +335,23 @@ describe('MJourneyDetail', () => {
     expect(hook.setView).toHaveBeenCalledWith('gallery');
     fireEvent.click(screen.getByRole('button', { name: /journey.detail.journeyTab/ }));
     expect(hook.setView).toHaveBeenCalledWith('timeline');
+  });
+
+  it("FE-MOB-JDET-050: as a trip tab the switch and the menu sit in the trip shell's top row", () => {
+    const slot = document.createElement('div');
+    document.body.appendChild(slot);
+    setTabHeadSlot(slot);
+    try {
+      mocks.detail = buildHook();
+      render(<MJourneyDetail journeyId={7} embedded />);
+      expect(slot).toContainElement(screen.getByRole('button', { name: /journey.share.gallery/ }));
+      expect(slot).toContainElement(screen.getByRole('button', { name: 'files.menu' }));
+      // The view switch stands beside the back button rather than centred over the screen.
+      expect(slot.querySelector('[data-view-switch]')?.parentElement?.className).toContain('[&_[data-view-switch]]:static');
+    } finally {
+      setTabHeadSlot(null);
+      slot.remove();
+    }
   });
 
   it('FE-MOB-JDET-010: back navigates to the journey list', () => {
@@ -781,5 +818,53 @@ describe('MJourneyDetail', () => {
     expect(screen.getByRole('img', { name: 'journey.prep.dayRunning' })).toBeInTheDocument();
     expect(screen.getByTestId('day-import-sheet')).toBeInTheDocument();
     expect(mocks.captured.dayImport.prep).toBe(recordingPrep);
+  });
+
+  it('FE-MOB-JDET-047: with room for two panes the entries stand as a feed beside the map, in step with it', () => {
+    setSizeClass('split');
+    setup();
+    // Each entry once, in the feed: the strip of cards over the map is gone.
+    expect(screen.getAllByText('Arrival')).toHaveLength(1);
+    // The test's translator returns the key, so both day heads read the same.
+    expect(screen.getAllByText('journey.detail.day')).toHaveLength(2);
+
+    // A tap brings the entry to the map, a second one opens it.
+    fireEvent.click(screen.getByRole('button', { name: /Kyoto/ }));
+    expect(mocks.focusMarker).toHaveBeenCalledWith('2');
+    expect(screen.getByRole('button', { name: /Kyoto/ })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('FE-MOB-JDET-050: the feed hides what scrolls under the header pills down to their lower edge', () => {
+    setSizeClass('split');
+    setup();
+    const feed = screen.getByRole('button', { name: /Kyoto/ }).closest('.overflow-y-auto') as HTMLElement;
+    // Transparent through the 38px pills below the safe area, whole before the first day's head at +60px.
+    expect(feed.style.maskImage).toMatch(/transparent calc\(var\(--m-safe-top, 12px\) \+ 40px\)/);
+    expect(feed.style.maskImage).toMatch(/#000 calc\(var\(--m-safe-top, 12px\) \+ 60px\)/);
+  });
+
+  it('FE-MOB-JDET-048: the gallery takes the page, feed or not', () => {
+    setSizeClass('split');
+    setup({ view: 'gallery' });
+    expect(screen.queryByText('journey.detail.day')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-JDET-051: with room for two panes the header opens Studio over the journey', () => {
+    setSizeClass('split');
+    const { hook } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'journey.studio.openAria' }));
+    expect(hook.navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/journey\/\d+\/studio$/));
+  });
+
+  it("FE-MOB-JDET-053: the journal a trip links offers Studio too, on a tablet beside the map", () => {
+    setSizeClass('split');
+    mocks.detail = buildHook();
+    render(<MJourneyDetail journeyId={7} embedded />);
+    expect(screen.getByRole('button', { name: 'journey.studio.openAria' })).toBeInTheDocument();
+  });
+
+  it('FE-MOB-JDET-052: the phone and a single pane offer no Studio', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'journey.studio.openAria' })).not.toBeInTheDocument();
   });
 });

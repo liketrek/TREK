@@ -17,7 +17,7 @@ import { AssignmentsService } from '../assignments/assignments.service';
 import {
   idSchema, transportLegInputSchema, reservationUrlSchema, type TransportLegInput, bookingPriceSchema, bookingBudgetCategorySchema,
   TRANSPORT_RESERVATION_TYPES, MCP_CREATABLE_TRANSPORT_TYPES, LEG_RESERVATION_TYPES, BOOKING_RESERVATION_TYPES,
-  RESERVATION_STATUSES, type ReservationStatus,
+  RESERVATION_STATUSES, type ReservationStatus, typeToCostCategory,
 } from '@trek/shared';
 import { RESERVATION_METADATA } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
@@ -409,7 +409,7 @@ export class ReservationsMcp {
       notes, day_id, place_id, assignment_id,
       create_accommodation: createAccommodation,
       metadata,
-    }, linkedCost(price, budget_category || type), await this.guards.tripWriter(tripId, ctx.userId));
+    }, linkedCost(price, budget_category || typeToCostCategory(type)), await this.guards.tripWriter(tripId, ctx.userId));
     return ok(sameFare ? { reservation, warning: sameFareWarning(sameFare) } : { reservation });
   }
 
@@ -749,7 +749,7 @@ export class ReservationsMcp {
       metadata: Object.keys(meta).length > 0 ? meta : undefined,
       endpoints: transportEndpoints,
       needs_review,
-    }, linkedCost(price, budget_category || type), await this.guards.tripWriter(tripId, ctx.userId));
+    }, linkedCost(price, budget_category || typeToCostCategory(type)), await this.guards.tripWriter(tripId, ctx.userId));
     return ok(sameFare ? { reservation, warning: sameFareWarning(sameFare) } : { reservation });
   }
 
@@ -824,7 +824,7 @@ export class ReservationsMcp {
         type: resolvedType,
         // Endpoints the caller did not replace stay the geometry the legs run
         // over, so read them back (the row carries them) instead of guessing.
-        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId))?.endpoints ?? []).map(e => ({
+        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId, tripId))?.endpoints ?? []).map(e => ({
           role: e.role, sequence: e.sequence, name: e.name, code: e.code,
           lat: e.lat, lng: e.lng, timezone: e.timezone,
           local_time: e.local_time, local_date: e.local_date,

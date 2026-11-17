@@ -1,0 +1,28 @@
+/* The selected place pin on either map (#2991). Its static ring is inline, so a browser
+   without the animation still shows it; the pulse only widens a fading second ring
+   around it, and the pin itself never moves. */
+@keyframes trek-marker-selected-pulse {
+  0% {
+    box-shadow:
+      0 0 0 3px #0a84ff,
+      0 0 0 3px rgba(10, 132, 255, 0.55),
+      0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    box-shadow:
+      0 0 0 3px #0a84ff,
+      0 0 0 16px rgba(10, 132, 255, 0),
+      0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.trek-marker-selected {
+  animation: trek-marker-selected-pulse 1.8s ease-out infinite;
+}
+
+/* Under reduced motion the ring stays, it just stops breathing. */
+@media (prefers-reduced-motion: reduce) {
+  .trek-marker-selected {
+    animation: none;
+  }
+}

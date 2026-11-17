@@ -17,6 +17,18 @@ const nl: NotificationLocale = {
       title: `Nieuwe boeking: ${p.booking}`,
       body: `${p.actor} heeft een boeking "${p.booking}" (${p.type}) toegevoegd aan "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} is vertrokken`,
+      body: `${p.flight} van ${p.from} naar ${p.to} is in de lucht.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} heeft vertraging`,
+      body: `${p.flight} van ${p.from} naar ${p.to} loopt ongeveer ${p.delay} minuten achter op schema.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} is geland`,
+      body: `${p.flight} uit ${p.from} is geland in ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Reisherinnering: ${p.trip}`,
       body: `Je reis "${p.trip}" komt eraan!`,
@@ -83,6 +95,21 @@ const nl: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `‘${p.tour}’ in ‘${p.trip}’ kan niet meer worden gecontroleerd in wanderer. De tocht in je reis blijft zoals hij is.`
             : `‘${p.tour}’ in ‘${p.trip}’ is mogelijk gewijzigd in wanderer. Open de tocht en controleer de bron om het te zien. In de reis verandert niets vanzelf.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Toegevoegd uit een mail: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} heeft "${p.booking}" uit een doorgestuurde mail aan "${p.trip}" toegevoegd.`
+          : `"${p.booking}" uit je doorgestuurde mail is toegevoegd aan "${p.trip}". Je kunt dit 7 dagen lang in TREK ongedaan maken.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Doorgestuurde boekingen om te controleren',
+      body: `In TREK wachten doorgestuurde boekingen op je: ${p.count}. Bij elke staat waarom hij niet vanzelf is toegevoegd.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Mailimport gepauzeerd',
+      body: 'TREK neemt doorgestuurde boekingsmails voorlopig niet aan, stuur er dus even geen door. Je adressen blijven en werken weer zodra de import terug is, en boekingen die al zijn toegevoegd blijven in je reizen.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

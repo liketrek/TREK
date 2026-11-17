@@ -1,4 +1,4 @@
-import { Copy, Link2, Trash2, UserPlus } from 'lucide-react'
+import { Copy, Link2, Trash2, UserPlus, Ticket } from 'lucide-react'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import { inviteMeta, inviteStatus } from '../../../pages/admin/adminModel'
@@ -6,7 +6,8 @@ import MAdminPermissionsPanel from './MAdminPermissionsPanel'
 import MSheet from '../../components/MSheet'
 import MChip from '../../components/MChip'
 import MConfirmSheet from '../settings/MConfirmSheet'
-import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi'
+import { MAdminButton, MAdminCard, MAdminField, MAdminSelect, MAdminSheetFrame } from './MAdminUi'
+import MSkeleton from '../../components/MSkeleton'
 
 interface MAdminUsersSectionProps {
   admin: ReturnType<typeof useAdmin>
@@ -36,10 +37,14 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
   return (
     <div className="space-y-3">
       <MAdminCard>
-        <div className="mb-1 flex items-center gap-2">
-          <span className="text-[0.875rem] font-extrabold text-m-ink">{t('admin.tabs.users')}</span>
-          <span className="font-geist text-[0.625rem] font-bold text-m-faint">
-            {users.length} {t('admin.stats.users', { count: users.length })}
+        {/* Wraps rather than overflows: in a long language the button moves under
+            the title and its count, inside the card, instead of past its edge. */}
+        <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-2">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="text-[0.875rem] font-extrabold text-m-ink">{t('admin.tabs.users')}</span>
+            <span className="whitespace-nowrap font-geist text-[0.625rem] font-bold text-m-faint">
+              {users.length} {t('admin.stats.users', { count: users.length })}
+            </span>
           </span>
           <MAdminButton className="ms-auto" onClick={() => setShowCreateUser(true)}>
             <UserPlus size={12} strokeWidth={2.2} />
@@ -48,9 +53,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-6">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
-          </div>
+          <MSkeleton variant="rows" count={5} framed={false} />
         ) : (
           users.map((u) => (
             <button
@@ -77,9 +80,11 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
               </span>
               <span
                 className={`flex-none whitespace-nowrap rounded-full px-[9px] py-[3px] font-geist text-[0.5625rem] font-extrabold ${
+                  // Dark mode lifts the words towards the ink: the plain status red on a
+                  // dark red ground and grey on grey were both below 4.5:1 there.
                   u.role === 'admin'
-                    ? 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)]'
-                    : 'bg-[color:var(--m-ic)] text-m-muted'
+                    ? 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)] dark:bg-[color:color-mix(in_srgb,var(--m-st-danger)_18%,transparent)] dark:text-[color:color-mix(in_srgb,var(--m-st-danger)_55%,var(--m-ink))]'
+                    : 'bg-[color:var(--m-ic)] text-m-muted dark:text-m-ink'
                 }`}
               >
                 {u.role === 'admin' ? t('settings.roleAdmin') : t('settings.roleUser')}
@@ -167,6 +172,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
       {/* Create invite sheet */}
       <MSheet open={showCreateInvite} onClose={() => setShowCreateInvite(false)} ariaLabel={t('admin.invite.create')}>
         <MAdminSheetFrame
+          icon={<Ticket size={19} strokeWidth={1.8} />}
           title={t('admin.invite.create')}
           onClose={() => setShowCreateInvite(false)}
           footer={
@@ -207,20 +213,15 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
             </MAdminField>
             {inviteTrips.length > 0 && (
               <MAdminField label={t('admin.invite.tripLabel')} hint={t('admin.invite.tripHint')}>
-                <select
-                  value={inviteForm.trip_id}
-                  onChange={(e) =>
-                    setInviteForm((f) => ({ ...f, trip_id: e.target.value === '' ? '' : Number(e.target.value) }))
-                  }
-                  className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none"
-                >
-                  <option value="">{t('admin.invite.tripNone')}</option>
-                  {inviteTrips.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.title}
-                    </option>
-                  ))}
-                </select>
+                <MAdminSelect
+                  title={t('admin.invite.tripLabel')}
+                  value={String(inviteForm.trip_id)}
+                  onChange={(value) => setInviteForm((f) => ({ ...f, trip_id: value === '' ? '' : Number(value) }))}
+                  options={[
+                    { value: '', label: t('admin.invite.tripNone') },
+                    ...inviteTrips.map((tr) => ({ value: String(tr.id), label: tr.title })),
+                  ]}
+                />
               </MAdminField>
             )}
           </div>

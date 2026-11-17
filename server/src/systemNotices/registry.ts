@@ -59,7 +59,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     titleKey: 'system_notice.release_notes.headline',
     bodyKey: 'system_notice.release_notes.intro',
     release: {
-      version: '5.1.0',
+      version: '5.1.3',
       eyebrowKey: 'system_notice.release_notes.eyebrow',
       headlineKey: 'system_notice.release_notes.headline',
       introKey: 'system_notice.release_notes.intro',

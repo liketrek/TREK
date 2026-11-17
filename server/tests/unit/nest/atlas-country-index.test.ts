@@ -114,7 +114,31 @@ function oldLookup(old: ReturnType<typeof oldIndexes>, lat: number, lng: number)
     }
     if (oldPointInGeometry(lng, lat, poly)) return code;
   }
-  return looseBoxFallback ?? candidates[0].code;
+  if (looseBoxFallback !== null) return looseBoxFallback;
+  // Nearest border among the candidates, as country-borders.ts ranks a point no polygon holds.
+  let nearest = candidates[0].code;
+  let nearestDistance = Infinity;
+  const kx = Math.cos((lat * Math.PI) / 180);
+  for (const { code } of candidates) {
+    const poly = old.polys.get(code);
+    if (!poly) continue;
+    for (const ring of poly.rings) {
+      for (let i = 1; i < ring.length / 2; i++) {
+        const ax = (ring[2 * (i - 1)] - lng) * kx;
+        const ay = ring[2 * (i - 1) + 1] - lat;
+        const dx = (ring[2 * i] - lng) * kx - ax;
+        const dy = ring[2 * i + 1] - lat - ay;
+        const len = dx * dx + dy * dy;
+        const t = len > 0 ? Math.min(1, Math.max(0, -(ax * dx + ay * dy) / len)) : 0;
+        const d = (ax + t * dx) ** 2 + (ay + t * dy) ** 2;
+        if (d < nearestDistance) {
+          nearestDistance = d;
+          nearest = code;
+        }
+      }
+    }
+  }
+  return nearest;
 }
 
 // Deterministic points per country: about `perCountry` vertices spread over all its rings,

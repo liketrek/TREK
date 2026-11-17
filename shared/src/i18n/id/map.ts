@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museum & budaya',
   'poi.cat.nature': 'Alam & taman',
   'poi.cat.activities': 'Aktivitas',
+  'poi.cat.bakeries': 'Toko roti',
+  'poi.cat.groceries': 'Toko kelontong',
   'poi.pluginCategories': 'Kategori dari plugin',
   'map.showAllConnections': 'Tampilkan semua rute pemesanan',
   'map.hideAllConnections': 'Sembunyikan semua rute pemesanan',
@@ -43,5 +45,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Browser ini tidak menyediakan WebGL2 yang dibutuhkan peta GL, jadi peta ditampilkan dengan Leaflet.',
   'map.webgl2.terrain': '3D membutuhkan WebGL2, yang tidak disediakan browser ini. Peta tetap dalam 2D.',
+  'map.offlineBasemap': 'Peta offline',
+  'map.offlineShowStored': 'Tampilkan peta offline',
 };
 export default map;

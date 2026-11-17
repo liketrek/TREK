@@ -11,6 +11,8 @@ type GetState = StoreApi<TripStoreState>['getState']
 
 export interface AssignmentsSlice {
   setAssignmentEndDay: (tripId: number | string, dayId: number, assignmentId: number, endDay: boolean) => Promise<void>
+  /** The stay of one visit (#3092); null reads the place's duration_minutes again. */
+  setAssignmentStay: (tripId: number | string, dayId: number, assignmentId: number, stayMinutes: number | null) => Promise<void>
   setAssignmentRouteExcluded: (tripId: number | string, dayId: number, assignmentId: number, excluded: boolean) => Promise<void>
   setAssignmentTimes: (tripId: number | string, dayId: number, assignmentId: number, times: AssignmentTimes) => Promise<void>
   setAssignmentNotes: (tripId: number | string, dayId: number, assignmentId: number, notes: string | null) => Promise<void>
@@ -23,6 +25,38 @@ export interface AssignmentsSlice {
   reorderAssignments: (tripId: number | string, dayId: number | string, orderedIds: number[]) => Promise<void>
   moveAssignment: (tripId: number | string, assignmentId: number, fromDayId: number | string, toDayId: number | string, toOrderIndex?: number | null) => Promise<void>
   setAssignments: (assignments: AssignmentsMap) => void
+}
+
+/**
+ * One field of a saved visit on its day, written optimistically: shown at once, settled
+ * on what the save answers, and put back when the save is refused. `read` is how the
+ * field is read off a row, so an absent value settles the same way every time.
+ */
+async function writeVisitField<K extends keyof Assignment>(
+  set: SetState,
+  get: GetState,
+  { dayId, assignmentId, field, value, read, save }: {
+    dayId: number
+    assignmentId: number
+    field: K
+    value: Assignment[K]
+    read: (a: Assignment) => Assignment[K]
+    save: (assignment: Assignment) => Promise<Assignment>
+  },
+): Promise<void> {
+  const key = String(dayId)
+  const assignment = get().assignments[key]?.find(a => a.id === assignmentId)
+  if (!assignment || assignmentId < 0) return
+  const apply = (next: Assignment[K]) => set(state => ({
+    assignments: { ...state.assignments, [key]: (state.assignments[key] || []).map(a => a.id === assignmentId ? { ...a, [field]: next } : a) },
+  }))
+  apply(value)
+  try {
+    apply(read(await save(assignment)))
+  } catch (err: unknown) {
+    apply(read(assignment))
+    throw err
+  }
 }
 
 export const createAssignmentsSlice = (set: SetState, get: GetState): AssignmentsSlice => ({
@@ -43,21 +77,14 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       throw err
     }
   },
-  setAssignmentRouteExcluded: async (tripId, dayId, assignmentId, excluded) => {
-    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
-    if (!assignment || assignmentId < 0) return
-    const apply = (value: boolean) => set(state => ({
-      assignments: { ...state.assignments, [String(dayId)]: (state.assignments[String(dayId)] || []).map(a => a.id === assignmentId ? { ...a, route_excluded: value } : a) },
-    }))
-    apply(excluded)
-    try {
-      const saved = await assignmentRepo.setRouteExcluded(tripId, assignment, excluded)
-      apply(saved.route_excluded === true)
-    } catch (err: unknown) {
-      apply(assignment.route_excluded === true)
-      throw err
-    }
-  },
+  setAssignmentStay: (tripId, dayId, assignmentId, stayMinutes) => writeVisitField(set, get, {
+    dayId, assignmentId, field: 'stay_minutes', value: stayMinutes, read: a => a.stay_minutes ?? null,
+    save: assignment => assignmentRepo.setStay(tripId, assignment, stayMinutes),
+  }),
+  setAssignmentRouteExcluded: (tripId, dayId, assignmentId, excluded) => writeVisitField(set, get, {
+    dayId, assignmentId, field: 'route_excluded', value: excluded, read: a => a.route_excluded === true,
+    save: assignment => assignmentRepo.setRouteExcluded(tripId, assignment, excluded),
+  }),
   setAssignmentTimes: async (tripId, dayId, assignmentId, times) => {
     const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
     if (!assignment || assignmentId < 0) return

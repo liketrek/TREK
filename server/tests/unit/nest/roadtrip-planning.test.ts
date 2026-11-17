@@ -373,6 +373,7 @@ describe('Roadtrip MCP registration and search', () => {
       guards as never,
       {} as never,
       { recordImported: vi.fn(async () => undefined) } as never,
+      {} as never,
     );
     const input = {
       tripId: 1,

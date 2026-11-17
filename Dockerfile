@@ -70,12 +70,15 @@ COPY server/package.json ./server/
 # gypfile:false (npm/cli#9837). The only other install scripts among the runtime
 # deps are esbuild's binary check, redundant next to its optional platform
 # package, and a telemetry ping.
+# The upgrade takes the Debian security fixes the base image was built before
+# (zlib, 11/2026, failed the image scan until node:24-trixie-slim caught up).
 #
 # postgresql-client-17 (Debian 13's own) brings pg_dump and pg_restore to
 # /usr/lib/postgresql/17/bin, which back up an install on Postgres
 # (TREK_DB_URL). pg_dump refuses a server newer than itself, so it stays at the
 # newest major TREK supports.
 RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates \
     libkitinerary-bin libsqlite3-0 postgresql-client-17 && \
     npm ci --workspace=server --omit=dev --ignore-scripts && \

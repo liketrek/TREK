@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'متاحف وثقافة',
   'poi.cat.nature': 'طبيعة وحدائق',
   'poi.cat.activities': 'أنشطة',
+  'poi.cat.bakeries': 'مخابز',
+  'poi.cat.groceries': 'بقالة',
   'poi.pluginCategories': 'فئات من الإضافات الخارجية',
   'map.showAllConnections': 'إظهار جميع مسارات الحجوزات',
   'map.hideAllConnections': 'إخفاء جميع مسارات الحجوزات',
@@ -52,5 +54,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'لا يوفّر هذا المتصفح WebGL2 الذي تحتاجه خرائط GL، لذا تُعرض الخرائط باستخدام Leaflet بدلًا منها.',
   'map.webgl2.terrain': 'يحتاج العرض ثلاثي الأبعاد إلى WebGL2، وهذا المتصفح لا يوفّره. تبقى الخريطة ثنائية الأبعاد.',
+  'map.offlineBasemap': 'خريطة دون اتصال',
+  'map.offlineShowStored': 'عرض الخريطة دون اتصال',
 };
 export default map;

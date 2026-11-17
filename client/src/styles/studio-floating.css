@@ -1,0 +1,12 @@
+/*
+ * Studio's side panels where they float over the workbench (studio.css, under
+ * 1080px: an iPad in portrait). The docked panels' glass let the page show
+ * through there and the text washed out, so a floating panel is opaque. Higher
+ * specificity than `.st-panel`, which sets the glass after these breakpoints.
+ */
+@media (max-width: 1079px) {
+  .trek-dash .st-panel.st-inspector,
+  .trek-dash .st-panel.st-side {
+    background: var(--surface);
+  }
+}

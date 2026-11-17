@@ -14,6 +14,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': '회사 지정 휴무',
   'mobileVacay.editCalendar': '캘린더 편집',
   'mobileVacay.viewYear': '연간 보기',
+  'mobileVacay.people': '사람',
+  'mobileVacay.legend': '범례',
 };
 
 export default mobileVacay;

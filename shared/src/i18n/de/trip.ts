@@ -108,6 +108,13 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Wer auf dieser Reise ist, und Gäste ohne Konto.',
   'trip.settings.sharing': 'Teilen',
   'trip.settings.sharingHint': 'Ein Nur-Lesen-Link für alle und ein Einladungslink zum Beitreten.',
+  'trip.settings.editTripHint': 'Titel, Daten, Titelbild, Beschreibung und Währung.',
+  'trip.form.coverTitle': 'Titelbild',
+  'trip.form.coverHint': 'Erscheint auf der Karte der Reise und oben im Planer.',
+  'trip.form.aboutTitle': 'Name und Beschreibung',
+  'trip.form.aboutHint': 'Wie die Reise heißt und worum es geht.',
+  'trip.form.whenTitle': 'Daten und Währung',
+  'trip.form.whenHint': 'Wann die Reise ist, in welcher Währung bezahlt wird und wann du erinnert wirst.',
   'trip.tabs.journal': 'Journal', // same-as-en
   'trip.journal.title': 'Journal', // same-as-en
   'trip.journal.hint':
@@ -129,6 +136,7 @@ const trip: TranslationStrings = {
   'trip.journal.pickPlaceholder': 'Journal auswählen',
   'trip.journal.noMembers': 'Außer dir ist noch niemand auf dieser Reise.',
   'trip.journal.members': 'Zugriff für Reisemitglieder',
+  'trip.journal.membersHint': 'Wer von dieser Reise das Journal im Journal-Tab öffnet und ob er darin schreiben darf.',
   'trip.journal.allRead': 'Alle lesen',
   'trip.journal.allNone': 'Niemand',
   'trip.journal.roleNone': 'Kein Zugriff',

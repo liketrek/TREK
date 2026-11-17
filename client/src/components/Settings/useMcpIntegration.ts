@@ -108,8 +108,6 @@ export function useMcpIntegration({ enabled, reloadClientsAfterWrite }: McpInteg
 
   // MCP sub-tab state
   const [activeMcpTab, setActiveMcpTab] = useState<'oauth' | 'apitokens'>('oauth');
-  const [configOpenOAuth, setConfigOpenOAuth] = useState(false);
-  const [configOpenToken, setConfigOpenToken] = useState(false);
 
   // MCP state
   const [mcpTokens, setMcpTokens] = useState<McpToken[]>([]);
@@ -327,10 +325,6 @@ export function useMcpIntegration({ enabled, reloadClientsAfterWrite }: McpInteg
     setOauthIsMachine,
     activeMcpTab,
     setActiveMcpTab,
-    configOpenOAuth,
-    setConfigOpenOAuth,
-    configOpenToken,
-    setConfigOpenToken,
     mcpTokens,
     mcpModalOpen,
     setMcpModalOpen,

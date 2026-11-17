@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': '박물관 & 문화',
   'poi.cat.nature': '자연 & 공원',
   'poi.cat.activities': '액티비티',
+  'poi.cat.bakeries': '빵집',
+  'poi.cat.groceries': '식료품점',
   'poi.pluginCategories': '플러그인 카테고리',
   'map.showAllConnections': '모든 예약 경로 표시',
   'map.hideAllConnections': '모든 예약 경로 숨기기',
@@ -42,5 +44,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': '지형도',
   'map.webgl2.fallback': '이 브라우저는 GL 지도에 필요한 WebGL2를 지원하지 않아 지도를 Leaflet으로 표시합니다.',
   'map.webgl2.terrain': '3D에는 WebGL2가 필요하지만 이 브라우저는 지원하지 않습니다. 지도는 2D로 유지됩니다.',
+  'map.offlineBasemap': '오프라인 지도',
+  'map.offlineShowStored': '오프라인 지도 보기',
 };
 export default map;

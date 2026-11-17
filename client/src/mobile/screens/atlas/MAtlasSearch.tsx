@@ -50,7 +50,7 @@ export default function MAtlasSearch({
   const q = query.trim().toLowerCase()
   const rows = q ? options.filter((o) => o.label.toLowerCase().includes(q)).slice(0, 6) : suggestions
 
-  const scrimCls = 'm-fade-in fixed inset-0 z-[70] flex flex-col bg-[rgba(16,16,19,.28)] px-[18px] pt-[calc(var(--m-safe-top,12px)+12px)] backdrop-blur-[22px] backdrop-saturate-[1.6]' // theme-lint-disable — fixed scrim value from the design
+  const scrimCls = 'm-fade-in fixed inset-0 z-[70] flex flex-col bg-[rgba(16,16,19,.28)] px-[18px] pt-[calc(var(--m-safe-top,12px)+12px)] backdrop-blur-[22px] backdrop-saturate-[1.6] wide:pt-[calc(var(--m-safe-top,12px)+72px)] wide:[&>*]:mx-auto wide:[&>*]:w-full wide:[&>*]:max-w-[640px]' // theme-lint-disable — fixed scrim value from the design
 
   return (
     <div
@@ -75,7 +75,7 @@ export default function MAtlasSearch({
               if (e.key === 'Escape') onClose()
               if (e.key === 'Enter' && rows.length > 0) onSelect(rows[0].code)
             }}
-            placeholder={t('atlas.searchCountry')}
+            enterKeyHint="search" placeholder={t('atlas.searchCountry')}
             className="min-w-0 flex-1 bg-transparent font-geist text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
           />
         </label>

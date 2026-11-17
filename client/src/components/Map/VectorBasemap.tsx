@@ -10,6 +10,9 @@ import {
 import { hasWebGL, reportWebGLFailure } from '../../utils/webgl'
 import { isGpuInitFailure } from './glSupport'
 import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
+import { offlineStyle } from '../../native/offlineTiles'
+import { isNativeIos } from '../../native/platform'
+import { nativeRasterTemplate } from '../../native/tileCache'
 
 /** The Leaflet layer maplibre-gl-leaflet hands back. */
 export type GlLeafletLayer = InstanceType<typeof MaplibreGL>
@@ -45,6 +48,45 @@ async function loadLayerFactory() {
     import('@maplibre/maplibre-gl-leaflet'),
   ])
   return bridge.maplibreGL
+}
+
+interface GlLayerInternals {
+  _map: L.Map | null
+  _glMap: { _actualCanvas: HTMLElement; once(event: string, fn: () => void): void; jumpTo(view: { center: L.LatLng; zoom: number }): void }
+  _resizeContainer(): void
+  _zoomEnd(): void
+  _transitionEnd: (e?: unknown) => void
+  _trekGuarded?: boolean
+}
+
+/**
+ * The bridge answers a map resize by scheduling a frame that reads
+ * `this._map.getZoom()` without asking whether the layer is still on a map. A
+ * layer taken off before that frame (a dialog closed at once, React mounting a
+ * map twice in development) threw "Cannot read properties of null (reading
+ * 'getZoom')" from inside the frame. This is the bridge's own method (0.1.4,
+ * pinned) with that question added; patched once, on the layer's class, and
+ * only on a class that has the method itself (a test's stand-in layer has not).
+ */
+function guardTransitionEnd(layer: object): void {
+  const proto = Object.getPrototypeOf(layer) as GlLayerInternals | null
+  if (!proto || proto._trekGuarded || !Object.prototype.hasOwnProperty.call(proto, '_transitionEnd')) return
+  proto._transitionEnd = function (this: GlLayerInternals) {
+    L.Util.requestAnimFrame(() => {
+      const map = this._map
+      if (!map) return
+      const zoom = map.getZoom()
+      const center = map.getCenter()
+      const offset = map.latLngToContainerPoint(map.getBounds().getNorthWest())
+      this._resizeContainer()
+      L.DomUtil.setTransform(this._glMap._actualCanvas, offset, 1)
+      this._glMap.once('moveend', () => {
+        if (this._map) this._zoomEnd()
+      })
+      this._glMap.jumpTo({ center, zoom: zoom - 1 })
+    })
+  }
+  proto._trekGuarded = true
 }
 
 /** The factory, or null when its chunk never arrived. A dead chunk is not the basemap's problem. */
@@ -93,6 +135,7 @@ function disarmGlLayer(layer: GlLeafletLayer): void {
  * map.remove().
  */
 function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolean {
+  guardTransitionEnd(layer)
   try {
     layer.addTo(map)
   } catch (err) {
@@ -106,13 +149,43 @@ function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolea
   return true
 }
 
+/*
+ * Whether the vector basemap can draw here. In the iOS app the MapLibre layer
+ * inside Leaflet drew nothing at all, with no error to fall back on (iPhone and
+ * iPad on iOS 26 and 27, 11/2026), while raster tiles and the 3D map drew; until
+ * that is traced on a device, the app draws Leaflet's basemap as raster tiles,
+ * through its tile store so they stay offline too.
+ */
+function vectorBasemapDraws(): boolean {
+  return hasWebGL() && !isNativeIos()
+}
+
+/**
+ * Calls `fail` once when the layer's style errors before it ever loaded. Errors
+ * after that (a tile here and there) are the map's ordinary weather and leave it be.
+ */
+function onStyleFailure(layer: GlLeafletLayer, fail: () => void): void {
+  const gl = layer.getMaplibreMap?.()
+  if (!gl) return
+  let loaded = false
+  gl.once('style.load', () => {
+    loaded = true
+  })
+  const onError = () => {
+    if (loaded) return
+    gl.off('error', onError)
+    fail()
+  }
+  gl.on('error', onError)
+}
+
 /**
  * The raster stand-in, attached imperatively for the maps that build Leaflet
  * themselves. The react-leaflet callers get the same tiles through the <TileLayer>
  * below instead, the way they already draw a user's own raster template.
  */
 function attachRasterFallback(map: L.Map): L.TileLayer {
-  const layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
+  const layer = L.tileLayer(nativeRasterTemplate(RASTER_FALLBACK_TILE_URL), {
     maxZoom: RASTER_FALLBACK_MAX_ZOOM,
     referrerPolicy: 'strict-origin-when-cross-origin',
   } as L.TileLayerOptions)
@@ -145,7 +218,7 @@ export function detachBasemapLayer(layer: BasemapLayer | null | undefined): void
  */
 export function restyleBasemap(layer: BasemapLayer | null | undefined, style: string): void {
   if (!layer || !isGlLayer(layer)) return
-  layer.getMaplibreMap()?.setStyle(style)
+  layer.getMaplibreMap()?.setStyle(offlineStyle(style))
 }
 
 /**
@@ -165,7 +238,7 @@ export function restyleBasemap(layer: BasemapLayer | null | undefined, style: st
  * is no (#2288). Asking is also what keeps the maplibre chunk off the wire for a
  * browser that could never have used it.
  */
-export function VectorBasemap({ style }: { style: string }) {
+export function VectorBasemap({ style, hideLabels = false }: { style: string; hideLabels?: boolean }) {
   const map = useMap()
   const layerRef = useRef<GlLeafletLayer | null>(null)
   const styleRef = useRef(style)
@@ -173,7 +246,7 @@ export function VectorBasemap({ style }: { style: string }) {
   // State rather than a plain constant: the probe can say yes and the attach can
   // still fail once the page has spent its context budget, and that has to reach
   // the render or the raster tiles never appear.
-  const [glUsable, setGlUsable] = useState(hasWebGL)
+  const [glUsable, setGlUsable] = useState(vectorBasemapDraws)
 
   useEffect(() => {
     if (!glUsable) return
@@ -191,7 +264,7 @@ export function VectorBasemap({ style }: { style: string }) {
       // change must retile in place rather than tear the layer down, the same
       // reason the raster maps keep their template out of the build effect (#2097).
       const layer = maplibreGL({
-        style: styleRef.current,
+        style: offlineStyle(styleRef.current),
         interactive: false,
         attributionControl: false,
       })
@@ -200,6 +273,16 @@ export function VectorBasemap({ style }: { style: string }) {
         return
       }
       layerRef.current = layer
+      // Fixed per map (a small route map wants no place names), so it never rebuilds the layer.
+      if (hideLabels) hideLabelLayers(layer)
+      // A style that never loads (its server, or the iOS app's offline protocol
+      // failing) would leave the map white under its markers: raster instead.
+      onStyleFailure(layer, () => {
+        if (cancelled || layerRef.current !== layer) return
+        detachBasemapLayer(layer)
+        layerRef.current = null
+        setGlUsable(false)
+      })
     })()
 
     return () => {
@@ -207,7 +290,7 @@ export function VectorBasemap({ style }: { style: string }) {
       detachBasemapLayer(layerRef.current)
       layerRef.current = null
     }
-  }, [map, glUsable])
+  }, [map, glUsable, hideLabels])
 
   useEffect(() => {
     restyleBasemap(layerRef.current, style)
@@ -221,7 +304,7 @@ export function VectorBasemap({ style }: { style: string }) {
     return (
       <TileLayer
         key="webgl-fallback"
-        url={RASTER_FALLBACK_TILE_URL}
+        url={nativeRasterTemplate(RASTER_FALLBACK_TILE_URL)}
         attribution={attributionForTile(RASTER_FALLBACK_TILE_URL)}
         maxZoom={RASTER_FALLBACK_MAX_ZOOM}
         keepBuffer={8}
@@ -255,7 +338,7 @@ export async function attachVectorBasemap(
 ): Promise<void> {
   // Same gate as the component: a browser without WebGL never pays for the
   // maplibre chunk and gets raster tiles rather than an empty map (#2288).
-  if (!hasWebGL()) {
+  if (!vectorBasemapDraws()) {
     if (!cancelled()) ref.current = attachRasterFallback(map)
     return
   }
@@ -267,7 +350,7 @@ export async function attachVectorBasemap(
     return
   }
 
-  const layer = maplibreGL({ style, interactive: false, attributionControl: false })
+  const layer = maplibreGL({ style: offlineStyle(style), interactive: false, attributionControl: false })
   // The raster layer this replaces carried the credit, and OpenFreeMap asks for
   // one of its own; attachGlLayer adds it once the layer is actually on the map.
   if (!attachGlLayer(map, layer, style)) {

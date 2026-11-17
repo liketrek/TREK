@@ -122,8 +122,8 @@ describe('DawarichTrailLayer', () => {
 
     const [casing, line] = lines()
     expect(casing.getAttribute('data-pane')).toBe('trek-track-casing')
-    expect(casing.getAttribute('data-weight')).toBe('6')
-    expect(casing.getAttribute('data-opacity')).toBe('0.55')
+    expect(casing.getAttribute('data-weight')).toBe('7')
+    expect(casing.getAttribute('data-opacity')).toBe('0.9')
 
     // Only the casing takes the pane; the coloured line is left in Leaflet's
     // default overlay pane. Pinned as the fact it is rather than as a rule:
@@ -131,8 +131,9 @@ describe('DawarichTrailLayer', () => {
     // it, so the recorded line currently draws over the plan while the GL twin
     // puts both of its layers under it.
     expect(line.getAttribute('data-pane')).toBe('')
-    expect(line.getAttribute('data-weight')).toBe('3')
-    expect(line.getAttribute('data-dash')).toBe('6 5')
+    // Full colour, wide and long-dashed, so it reads on a busy street map.
+    expect(line.getAttribute('data-weight')).toBe('4')
+    expect(line.getAttribute('data-dash')).toBe('10 5')
     expect(line.getAttribute('data-points')).toBe(JSON.stringify([[48.2, 16.37], [48.21, 16.38]]))
 
     expect(lines().every(el => el.getAttribute('data-interactive') === 'false')).toBe(true)

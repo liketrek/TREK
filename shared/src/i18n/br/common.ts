@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'O que você inseriu aqui ainda não foi salvo.',
   'common.keepEditing': 'Continuar editando',
   'common.name': 'Nome',
+  'common.title': 'Título',
   'common.email': 'E-mail',
   'common.password': 'Senha',
   'common.saving': 'Salvando...',
@@ -81,5 +82,7 @@ const common: TranslationStrings = {
     'O TREK foi atualizado enquanto esta aba estava aberta. Recarregue para obter a nova versão.',
   'common.errorPluginTitle': 'Não foi possível exibir este plugin',
   'common.needsConnection': 'Isso precisa de conexão. Tente de novo quando o TREK voltar a ficar online.',
+  'common.errorDetails': 'Detalhes',
+  'common.share': 'Compartilhar',
 };
 export default common;

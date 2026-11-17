@@ -525,7 +525,8 @@ describe('ReservationsRepository — AC37/AC40 (listIdMetadataByStay/listIdsBySt
 describe('ReservationsRepository — Task 2 reads (listForTrip / findWithJoins / findInTrip / listResyncCandidates / listForRestamp)', () => {
   const legacyJoinedSql = `
     SELECT r.*, d.day_number as day_number, p.name as place_name, ap.place_id as accommodation_place_id,
-      acc_p.name as accommodation_name, ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id
+      acc_p.name as accommodation_name, ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id,
+      ap.check_in as accommodation_check_in, ap.check_in_end as accommodation_check_in_end, ap.check_out as accommodation_check_out
     FROM reservations r
     LEFT JOIN days d ON d.id = r.day_id
     LEFT JOIN places p ON p.id = r.place_id
@@ -562,16 +563,24 @@ describe('ReservationsRepository — Task 2 reads (listForTrip / findWithJoins /
   });
 
   it('RR1 findWithJoins — matches the legacy joined statement for one row, place/accommodation columns populated', async () => {
-    const { hotel, stay, hotelPlace } = await seed();
+    const { trip, hotel, stay, hotelPlace } = await seed();
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
     const legacy = testDb.prepare(`${legacyJoinedSql} WHERE r.id = ?`).get(hotel.id);
-    const typed = await reservationsRepo.findWithJoins(hotel.id);
+    const typed = await reservationsRepo.findWithJoins(hotel.id, trip.id);
     expect(typed).toEqual(legacy);
     expect(typed).toMatchObject({
       accommodation_place_id: hotelPlace.id,
       accommodation_name: hotelPlace.name,
       accommodation_start_day_id: stay.start_day_id,
     });
+  });
+
+  it('RR1 findWithJoins — a booking of another trip reads as missing', async () => {
+    const { trip, hotel } = await seed();
+    const { user } = createUser(testDb);
+    const other = createTrip(testDb, user.id);
+    expect(await reservationsRepo.findWithJoins(hotel.id, other.id)).toBeUndefined();
+    expect(await reservationsRepo.findWithJoins(hotel.id, String(trip.id))).toMatchObject({ id: hotel.id });
   });
 
   it('RS35 findInTrip — matches the legacy statement, scoped by trip', async () => {
@@ -1030,5 +1039,104 @@ describe('ReservationsRepository — confirmIfPending', () => {
 
     expect((await findRow(await orm(), Reservations, { id: pending.id }))?.status).toBe('confirmed');
     expect((await findRow(await orm(), Reservations, { id: cancelled.id }))?.status).toBe('cancelled');
+  });
+});
+
+describe('ReservationsRepository — findPassContext', () => {
+  it('RES-PASS-001: reads the trip title and the place of the booking, else of its stay, within the trip only', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Japan 2027', start_date: '2027-04-01', end_date: '2027-04-06' });
+    const day1 = createDay(testDb, trip.id, { date: '2027-04-01' });
+    const day2 = createDay(testDb, trip.id, { date: '2027-04-02' });
+    const restaurant = createPlace(testDb, trip.id, { name: 'Gion Karyo', lat: 35.0, lng: 135.77 });
+    const hotel = createPlace(testDb, trip.id, { name: 'Hotel Granvia Kyoto', lat: 34.985, lng: 135.758 });
+    const stay = createDayAccommodation(testDb, trip.id, hotel.id, day1.id, day2.id);
+
+    const dinner = createReservation(testDb, trip.id, { title: 'Dinner', type: 'restaurant' });
+    await setReservation(dinner.id, { place: restaurant.id });
+    const room = createReservation(testDb, trip.id, { title: 'Room', type: 'hotel' });
+    await setReservation(room.id, { accommodation_id: String(stay.id) });
+    const bare = createReservation(testDb, trip.id, { title: 'Museum', type: 'event' });
+
+    expect(await reservationsRepo.findPassContext(dinner.id, trip.id)).toEqual({
+      trip_title: 'Japan 2027',
+      place_lat: 35.0,
+      place_lng: 135.77,
+      place_name: 'Gion Karyo',
+    });
+    expect(await reservationsRepo.findPassContext(room.id, trip.id)).toMatchObject({
+      place_lat: 34.985,
+      place_name: 'Hotel Granvia Kyoto',
+    });
+    expect(await reservationsRepo.findPassContext(bare.id, trip.id)).toEqual({
+      trip_title: 'Japan 2027',
+      place_lat: null,
+      place_lng: null,
+      place_name: null,
+    });
+    const other = createTrip(testDb, user.id, { title: 'Elsewhere' });
+    expect(await reservationsRepo.findPassContext(dinner.id, other.id)).toBeUndefined();
+  });
+});
+
+describe('ReservationsRepository — the origin of an imported booking', () => {
+  const baseRow = (tripId: number) => ({
+    trip_id: tripId,
+    day_id: null,
+    end_day_id: null,
+    place_id: null,
+    assignment_id: null,
+    title: 'LH 716',
+    reservation_time: null,
+    reservation_end_time: null,
+    location: null,
+    confirmation_number: 'ABC123',
+    notes: null,
+    url: null,
+    status: 'pending',
+    type: 'flight',
+    accommodation_id: null,
+    metadata: null,
+    needs_review: 0,
+  });
+
+  it('RES-ORIGIN-001: a hand-made booking keeps the column defaults, no origin and sync on', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const id = await reservationsRepo.insertReservation(baseRow(trip.id));
+    // test-sql-allow: reads back the raw columns the insert left to their defaults.
+    const row = testDb
+      .prepare('SELECT external_source, external_id, sync_enabled FROM reservations WHERE id = ?')
+      .get(id);
+    expect(row).toEqual({ external_source: null, external_id: null, sync_enabled: 1 });
+  });
+
+  it('RES-ORIGIN-002: an imported booking records its origin and is found by it in its own trip only', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const id = await reservationsRepo.insertReservation({
+      ...baseRow(trip.id),
+      external_source: 'import',
+      external_id: 'ABC123|flight|2026-09-01|FRA-NRT',
+      sync_enabled: 0,
+    });
+    // test-sql-allow: reads back the raw origin columns the insert named.
+    const row = testDb
+      .prepare('SELECT external_source, external_id, sync_enabled FROM reservations WHERE id = ?')
+      .get(id);
+    expect(row).toEqual({
+      external_source: 'import',
+      external_id: 'ABC123|flight|2026-09-01|FRA-NRT',
+      sync_enabled: 0,
+    });
+
+    expect(await reservationsRepo.findIdByExternal(trip.id, 'import', 'ABC123|flight|2026-09-01|FRA-NRT')).toBe(id);
+    expect(
+      await reservationsRepo.findIdByExternal(other.id, 'import', 'ABC123|flight|2026-09-01|FRA-NRT'),
+    ).toBeUndefined();
+    expect(
+      await reservationsRepo.findIdByExternal(trip.id, 'mail', 'ABC123|flight|2026-09-01|FRA-NRT'),
+    ).toBeUndefined();
   });
 });

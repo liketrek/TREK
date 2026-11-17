@@ -1,11 +1,11 @@
-// FE-COSTS-EXPRECEIPT-001 to FE-COSTS-EXPRECEIPT-004
+// FE-COSTS-EXPRECEIPT-001 to FE-COSTS-EXPRECEIPT-005
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
-import { buildBudgetItem, buildTrip, buildUser } from '../../../tests/helpers/factories'
+import { buildBudgetItem, buildTrip, buildTripFile, buildUser } from '../../../tests/helpers/factories'
 import type { BudgetItem } from '../../types'
 import { ExpenseModal } from './CostsPanel'
 
@@ -77,5 +77,22 @@ describe('ExpenseModal receipts and note', () => {
     const note = screen.getByRole('textbox', { name: 'Note' })
     await user.type(note, 'Paid in cash')
     expect(note).toHaveValue('Paid in cash')
+  })
+
+  it('FE-COSTS-EXPRECEIPT-005: a file the trip already has is linked as a receipt, uploaded nothing (#2839)', async () => {
+    const user = userEvent.setup()
+    // Without trip files there is nothing to link, so the button stays away.
+    const bare = renderModal(null)
+    expect(within(receiptsCard()).queryByRole('button', { name: 'Link' })).toBeNull()
+    bare.unmount()
+
+    seedStore(useTripStore, { files: [buildTripFile({ id: 51, original_name: 'hotel-confirmation.pdf' })] })
+    renderModal(null)
+    await user.click(within(receiptsCard()).getByRole('button', { name: 'Link' }))
+    await user.click(within(receiptsCard()).getByRole('button', { name: 'hotel-confirmation.pdf' }))
+    // Now on the expense: listed like a saved receipt, and gone from what can be linked.
+    expect(within(receiptsCard()).getByRole('button', { name: 'hotel-confirmation.pdf' })).toBeInTheDocument()
+    expect(within(receiptsCard()).queryByText('No receipts attached')).toBeNull()
+    expect(within(receiptsCard()).queryByRole('button', { name: 'Link' })).toBeNull()
   })
 })

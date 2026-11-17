@@ -17,6 +17,18 @@ const cs: NotificationLocale = {
       title: `Nová rezervace: ${p.booking}`,
       body: `${p.actor} přidal rezervaci "${p.booking}" (${p.type}) k "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} odletěl`,
+      body: `${p.flight} z ${p.from} do ${p.to} je ve vzduchu.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} má zpoždění`,
+      body: `${p.flight} z ${p.from} do ${p.to} má zhruba ${p.delay} minut zpoždění.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} přistál`,
+      body: `${p.flight} z ${p.from} přistál v ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Připomínka výletu: ${p.trip}`,
       body: `Váš výlet "${p.trip}" se blíží!`,
@@ -89,6 +101,21 @@ const cs: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `„${p.tour}“ v „${p.trip}“ už nelze ve wanderer ověřit. Túra ve vaší cestě zůstává, jak je.`
             : `„${p.tour}“ v „${p.trip}“ se ve wanderer možná změnila. Otevřete túru a zkontrolujte její zdroj. V cestě se nic nezmění samo.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Přidáno z e-mailu: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} přidal(a) „${p.booking}“ do „${p.trip}“ z přeposlaného e-mailu.`
+          : `„${p.booking}“ z vašeho přeposlaného e-mailu byla přidána do „${p.trip}“. V TREK to můžete 7 dní vrátit zpět.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Přeposlané rezervace ke kontrole',
+      body: `Přeposlané rezervace čekající na vás v TREK: ${p.count}. U každé je uvedeno, proč nebyla přidána sama.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Import e-mailů pozastaven',
+      body: 'TREK zatím nepřijímá přeposlané e-maily s rezervacemi, proto je zatím nepřeposílejte. Vaše adresy zůstávají a znovu budou fungovat, až se import vrátí, a již přidané rezervace zůstávají ve vašich cestách.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

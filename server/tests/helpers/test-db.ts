@@ -182,7 +182,7 @@ export function setAddonEnabled(db: Database.Database, addonId: string, enabled:
 /** Collab's sub-feature flags are opt-out app_settings, not addon rows. */
 export function setCollabFeature(
   db: Database.Database,
-  feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
+  feature: 'chat' | 'notes' | 'polls' | 'links' | 'whatsnext',
   enabled: boolean,
 ): void {
   db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(

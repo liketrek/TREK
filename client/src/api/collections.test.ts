@@ -1,4 +1,4 @@
-// FE-API-COLLECTIONS-001 to FE-API-COLLECTIONS-034
+// FE-API-COLLECTIONS-001 to FE-API-COLLECTIONS-035
 //
 // The Collections addon wrapper is thin, but every method encodes a URL, a verb and a
 // request-body shape that the server contract depends on. These tests drive each method
@@ -350,6 +350,15 @@ describe('collectionsApi', () => {
 
     expect(requestUrl).toContain(`${BASE}/1/export/gpx`)
     expect(res).toEqual({ name: 'Tokyo', gpx: '<gpx/>', waypoints: 0, omitted: 2 })
+  })
+
+  it('FE-API-COLLECTIONS-035: exportKml() reads the KML of a list by id (#1866)', async () => {
+    server.use(http.get(`${BASE}/:id/export/kml`, record({ name: 'Tokyo', kml: '<kml/>', pins: 1, omitted: 0 })))
+
+    const res = await collectionsApi.exportKml(1)
+
+    expect(requestUrl).toContain(`${BASE}/1/export/kml`)
+    expect(res).toEqual({ name: 'Tokyo', kml: '<kml/>', pins: 1, omitted: 0 })
   })
 
   it('FE-API-COLLECTIONS-034: readGpx() posts the document and its file name', async () => {

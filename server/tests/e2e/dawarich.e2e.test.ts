@@ -78,6 +78,7 @@ function makeClientStub() {
     listVisits: boom('listVisits'),
     listTracks: boom('listTracks'),
     listPoints: boom('listPoints'),
+    listGeocodedPoints: boom('listGeocodedPoints'),
     listVisitedCities: boom('listVisitedCities'),
     findVisitsNear: boom('findVisitsNear'),
   };

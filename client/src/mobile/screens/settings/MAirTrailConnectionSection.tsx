@@ -66,7 +66,7 @@ export default function MAirTrailConnectionSection(): React.ReactElement {
         />
         <MSetRow
           label={t('settings.airtrail.writeBack')}
-          sub={t('settings.airtrail.writeBackHint')}
+          hint={t('settings.airtrail.writeBackHint')}
           trailing={
             <MToggle
               checked={writeEnabled}

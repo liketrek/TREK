@@ -191,14 +191,23 @@ export class UserCleanupService {
    */
   async deleteUserCompletely(userId: number): Promise<void> {
     const avatar = await this.usersRepo.getAvatar(userId);
-    await this.uow.transactional(async () => {
+    const photos = await this.uow.transactional(async () => {
+      // The galleries of the journeys the user owns go with the cascade below, so
+      // their photos are read first. A photo row none of the remaining trips and
+      // journeys links goes too, as when one journey is deleted: left behind, it
+      // would keep naming its file for the storage reclaim forever (#2924).
+      const gallery = await this.journeysRepo.listGalleryPhotos({ ownerId: userId });
       await this.cleanupUserReferences(userId);
+      await this.journeysRepo.deleteUnlinkedPhotos(gallery.map((photo) => photo.photo_id));
       await this.erasePluginUserData(userId);
       await this.usersRepo.deleteById(userId);
+      return gallery;
     });
-    // After the commit, the uploaded avatar goes unless another row names it.
-    // What the user's trips and journeys named is the nightly reclaim pass's:
-    // those rows are other domains' and went with the cascade.
+    // After the commit, the uploaded avatar and those photos' files go unless
+    // another row names them. What the user's trips named is the nightly
+    // reclaim pass's: those rows are other domains' and went with the cascade.
     await this.release.releaseValues([avatar], { bare: 'avatars' });
+    const photoFiles = photos.flatMap((photo) => [photo.file_path, photo.thumbnail_path]);
+    await this.release.releaseValues(photoFiles, { bare: 'journey' });
   }
 }

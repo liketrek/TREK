@@ -1,11 +1,13 @@
-import { Fragment, useCallback, useMemo, useRef } from 'react'
+import { Fragment, useCallback, useMemo } from 'react'
 import { AlertTriangle, MapPin, Navigation } from 'lucide-react'
-import { useMPlanDaySwipe } from '../plan/useMPlanDaySwipe'
+import MDayPager from '../../../components/MDayPager'
 import { showStopOnMap, useMRoadtrip } from './useMRoadtrip'
 import { useMRtCorridor } from './useMRtCorridor'
 import { useMRtAlternatives } from './useMRtAlternatives'
 import MRtCorridorBar from './MRtCorridorBar'
 import MRtAlternativesBar from './MRtAlternativesBar'
+import { MRtTrackEntry } from './MRtTrackSheet'
+import MRtRouteImport from './MRtRouteImportSheet'
 import { RtAutoRow, RtBookendRow, RtBookingChips, RtDryRow, RtLegRow, RtRideRow, RtSpillRow, RtStopRow, type RowChrome } from './MRoadtripRows'
 import MBadge from '../../../components/MBadge'
 import MDancingTrek from '../../../components/MDancingTrek'
@@ -15,7 +17,6 @@ import { navigationTargetLabel, getNavigationTargets } from '../../../../compone
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { formatDistance } from '../../../../utils/units'
 import { formatClockTime } from '../../../../utils/formatters'
-import { isRtlLanguage } from '../../../../i18n'
 import type { MTripTabPanelProps } from '../MTripShell'
 import { arrivingReroutable, legReroutable, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import { ARRIVING_DRIVE, type RailDrive } from '../../../../components/Roadtrip/useRouteAlternatives'
@@ -25,6 +26,7 @@ import { bookendBooking } from '../../../../components/Roadtrip/nightBookend'
 import { getDayOrder } from '../../../../utils/dayOrder'
 import { undatedRides } from '@trek/shared/roadtrip'
 import type { Reservation, TranslationFn } from '../../../../types'
+import { useDayPreviewStore } from '../../../dayPreviewStore'
 
 /**
  * The road trip tab: one day of the drive, as a chain or on the map.
@@ -40,9 +42,8 @@ import type { Reservation, TranslationFn } from '../../../../types'
  * scroll, the day tints, the label format and the second tap that opens the day sheet.
  */
 export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
+  const setDayPreview = useDayPreviewStore(s => s.setDayId)
   const { t, days } = planner
-  const panelRef = useRef<HTMLDivElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
   const rt = useMRoadtrip(planner)
   const corridor = useMRtCorridor(planner, shell)
   // Called once here and handed down, like `rt`: the chain's leg buttons and the bar over
@@ -52,86 +53,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
   const chrome: RowChrome = { t, unit, is12h }
 
-  // The same gesture the day timeline uses, called rather than rebuilt: 370 lines of
-  // worked-out conflict avoidance, down to the dead 24px gutter that stops iOS from
-  // reading a swipe as its own back gesture.
-  const daySwipe = useMPlanDaySwipe({
-    days,
-    selectedDayId: planner.selectedDayId,
-    // skipFit: the map underneath stays mounted, and the stage's own focus points
-    // frame it as soon as the selection moves.
-    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
-    panelRef,
-    cardRef,
-    editing: false,
-    dragging: false,
-    menuOpen: !!shell.sheet,
-    rtl: isRtlLanguage(planner.language),
-    describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
-  })
-
   const stage = rt.stage
-
-  // The map's whole-trip view leaves no day selected, and it stays that way when the
-  // list comes up: the switch here restores nothing on purpose, and the plan tab's
-  // toggle does that job only for its own timeline. The chain is one stage wide, so
-  // with routed days and no day picked it asks for one, rather than claiming there is
-  // no route while the header above prints the whole drive's distance. A day that is
-  // picked and has no drive of its own still gets the empty stage further down.
-  const noDayPicked = !stage && !rt.empty && !rt.loading && planner.selectedDayId == null
-
-  // The disc is only a control for somebody who may change a place. Read here rather than
-  // inside the row so the whole chain asks once, the way `rt` and `chrome` are handled.
-  const canEditPlaces = planner.can('place_edit', planner.trip)
-
-  const openStop = (row: StopRow) => {
-    // A terminal is the booking's, and opens it: there is no stop sheet for an airport.
-    if (row.stop.carrier) shell.openSheet('transport', { reservationId: row.stop.carrier.reservationId })
-    else if (row.bookend) openBookend(row.stop.ownerDayId, row.bookend)
-    else shell.openSheet('rtstop', { dayId: row.stop.ownerDayId, assignmentId: row.stop.assignmentId })
-  }
-
-  // Where each day stands in the trip, so a booking spanning several days is listed on
-  // the days between its ends as well.
-  const dayOrder = useCallback((dayId: number) => {
-    const stored = planner.days.find(d => d.id === dayId)
-    return stored ? getDayOrder(stored, planner.days) : null
-  }, [planner.days])
-  // The bookings under the stage's stops and the ones the stage has for no stop, keyed
-  // by the stop's assignment because the rows carry no index. Opened the way the place
-  // sheet opens its linked bookings: a transport in its sheet, anything else in its
-  // editor.
-  // A booking pinned to a stop on another day is listed at that stop only (#2604).
-  const stopDays = useMemo(() => stopDayIds(planner.assignments), [planner.assignments])
-  const bookings = useMemo(() => {
-    const byIndex = stage ? dayBookings(stage, planner.reservations, dayOrder, stopDays) : null
-    const atStop = new Map<number, Reservation[]>()
-    if (stage && byIndex) for (const [i, list] of byIndex.atStop) atStop.set(stage.stops[i]!.assignmentId, list)
-    return { atStop, loose: byIndex?.loose ?? [] }
-  }, [stage, planner.reservations, dayOrder, stopDays])
-  // The rides on no day, which the drive leaves out: listed above the stage, whichever it is.
-  const undated = useMemo(() => undatedRides(planner.reservations), [planner.reservations])
-  // A chip that may not be opened is not a button in the first place (`bookingOpens`),
-  // so nothing is turned away silently here.
-  const canEditBookings = planner.can('reservation_edit', planner.trip)
-  const openBooking = (res: Reservation) => {
-    if (planner.TRANSPORT_TYPES.has(res.type)) {
-      shell.openSheet('transport', { reservationId: res.id })
-      return
-    }
-    planner.setEditingReservation(res)
-    planner.setShowReservationModal(true)
-  }
-  // A booked night at the edge of the stage is no stop, and has no stop sheet: it opens the
-  // booking behind the night, else the stay for somebody who may edit days, else the
-  // hotel's place, the way a stay chip in the day timeline does (#2210).
-  const openBookend = (dayId: number, reading: NonNullable<StopRow['bookend']>) => {
-    const booking = bookendBooking(reading, canEditBookings)
-    const res = booking === null ? undefined : planner.reservations.find(r => r.id === booking)
-    if (res) openBooking(res)
-    else if (planner.can('day_edit', planner.trip)) shell.openSheet('accommodation', { dayId, accId: reading.accommodationId })
-    else planner.handlePlaceClick(reading.placeId)
-  }
 
   // The search bar sits in the same band on both halves, at the same offset, so the
   // list/map switch never moves it: it is one stage seen two ways, and a control that
@@ -178,16 +100,106 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   }
 
   // ── List half ────────────────────────────────────────────────────────────────
+  // The stages page like the plan tab's days (#2051): the day pager draws the stage on
+  // either side as well, so a swipe drags the next one in. The search bar stays put over
+  // the strip, because the corridor it searches is the selected stage's.
   return (
-    <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
-      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
+    <div className="absolute inset-0">
+      <MDayPager
+        days={days}
+        selectedDayId={planner.selectedDayId}
+        // skipFit: the map underneath stays mounted, and the stage's own focus points
+        // frame it as soon as the selection moves.
+        onSelectDay={dayId => planner.handleSelectDay(dayId, true)}
+        onPreview={setDayPreview}
+        locked={!!shell.sheet}
+        describeDay={(i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n })}
+        renderDay={dayId => (
+          <RoadtripStagePage planner={planner} shell={shell} dayId={dayId} alts={alts} chrome={chrome} />
+        )}
+      />
       {searchBar}
-      <div
-        ref={cardRef}
-        className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
-          searchBar ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
-        }`}
-      >
+    </div>
+  )
+}
+
+/**
+ * One stage of the list half, as the day pager draws it: the selected stage and the
+ * ones either side. Each page reads its own stage, so the one that slides in is
+ * exactly the one that lands.
+ */
+function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: Omit<MTripTabPanelProps, 'tab'> & {
+  dayId: number | null
+  alts: ReturnType<typeof useMRtAlternatives>
+  chrome: RowChrome
+}) {
+  const { t } = planner
+  const rt = useMRoadtrip(planner, pageDayId)
+  const stage = rt.stage
+  const { unit, is12h } = chrome
+
+  // The map's whole-trip view leaves no day selected, and it stays that way when the
+  // list comes up: the switch here restores nothing on purpose, and the plan tab's
+  // toggle does that job only for its own timeline. The chain is one stage wide, so
+  // with routed days and no day picked it asks for one, rather than claiming there is
+  // no route while the header above prints the whole drive's distance. A day that is
+  // picked and has no drive of its own still gets the empty stage further down.
+  const noDayPicked = !stage && !rt.empty && !rt.loading && pageDayId == null
+
+  // The disc is only a control for somebody who may change a place. Read here rather than
+  // inside the row so the whole chain asks once, the way `rt` and `chrome` are handled.
+  const canEditPlaces = planner.can('place_edit', planner.trip)
+
+  const openStop = (row: StopRow) => {
+    // A terminal is the booking's, and opens it: there is no stop sheet for an airport.
+    if (row.stop.carrier) shell.openSheet('transport', { reservationId: row.stop.carrier.reservationId })
+    else if (row.bookend) openBookend(row.stop.ownerDayId, row.bookend)
+    else shell.openSheet('rtstop', { dayId: row.stop.ownerDayId, assignmentId: row.stop.assignmentId })
+  }
+
+  // Where each day stands in the trip, so a booking spanning several days is listed on
+  // the days between its ends as well.
+  const dayOrder = useCallback((dayId: number) => {
+    const stored = planner.days.find(d => d.id === dayId)
+    return stored ? getDayOrder(stored, planner.days) : null
+  }, [planner.days])
+  // The bookings under the stage's stops and the ones the stage has for no stop, keyed
+  // by the stop's assignment because the rows carry no index. Opened the way the place
+  // sheet opens its linked bookings: a transport in its sheet, anything else in its
+  // editor.
+  // A booking pinned to a stop on another day is listed at that stop only (#2604).
+  const stopDays = useMemo(() => stopDayIds(planner.assignments), [planner.assignments])
+  const bookings = useMemo(() => {
+    const byIndex = stage ? dayBookings(stage, planner.reservations, dayOrder, stopDays) : null
+    const atStop = new Map<number, Reservation[]>()
+    if (stage && byIndex) for (const [i, list] of byIndex.atStop) atStop.set(stage.stops[i]!.assignmentId, list)
+    return { atStop, loose: byIndex?.loose ?? [] }
+  }, [stage, planner.reservations, dayOrder, stopDays])
+  // The rides on no day, which the drive leaves out: listed above the stage, whichever it is.
+  const undated = useMemo(() => undatedRides(planner.reservations), [planner.reservations])
+  // A chip that may not be opened is not a button in the first place (`bookingOpens`),
+  // so nothing is turned away silently here.
+  const canEditBookings = planner.can('reservation_edit', planner.trip)
+  // Every booking opens its detail sheet, as on the desktop; its pencil edits it there.
+  const openBooking = (res: Reservation) => shell.openSheet('transport', { reservationId: res.id })
+  // A booked night at the edge of the stage is no stop, and has no stop sheet: it opens the
+  // booking behind the night, else the stay for somebody who may edit days, else the
+  // hotel's place, the way a stay chip in the day timeline does (#2210).
+  const openBookend = (dayId: number, reading: NonNullable<StopRow['bookend']>) => {
+    const booking = bookendBooking(reading, canEditBookings)
+    const res = booking === null ? undefined : planner.reservations.find(r => r.id === booking)
+    if (res) openBooking(res)
+    else if (planner.can('day_edit', planner.trip)) shell.openSheet('accommodation', { dayId, accId: reading.accommodationId })
+    else planner.handlePlaceClick(reading.placeId)
+  }
+
+  // Room for the search bar, which only stands over a stage.
+  return (
+    <div
+      className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
+        stage ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
+      }`}
+    >
         <UndatedRides rides={undated} t={t} onOpen={openBooking} />
         {noDayPicked ? (
           <PickDay planner={planner} />
@@ -273,6 +285,12 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                   </span>
                 </div>
               )}
+              <MRtTrackEntry planner={planner} dayId={stage.dayId} />
+              <MRtRouteImport
+                tripId={planner.tripId}
+                dayId={stage.dayId > 0 ? stage.dayId : undefined}
+                canEdit={canEditPlaces && planner.can('day_edit', planner.trip)}
+              />
             </section>
 
             {rt.upNext && <UpNext planner={planner} shell={shell} rt={rt} stageDayId={stage.dayId} onOpen={openStop} />}
@@ -360,7 +378,6 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
             </section>
           </>
         )}
-      </div>
     </div>
   )
 }
@@ -389,7 +406,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
   const targets = place ? getNavigationTargets(place) : []
 
   return (
-    <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)]">
+    <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-4 py-3.5">
       <button type="button" onClick={() => onOpen(next.row)} className="w-full text-start">
         <span className="flex items-center justify-between gap-2">
           <span className="font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">

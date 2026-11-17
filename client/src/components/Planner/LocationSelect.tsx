@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { MapPin, Search } from 'lucide-react'
 import { mapsApi } from '../../api/client'
+import { textMatchesSearch } from '../../utils/placeSearch'
 import { useTranslation } from '../../i18n'
 import { useLocationBias } from '../../hooks/useLocationBias'
 import { usePlaceSuggestions } from '../../hooks/usePlaceSuggestions'
@@ -196,7 +197,7 @@ function SourceMark({ label }: { label: string | null }) {
 function pickRows<T>(value: LocationPoint | null, typed: string, places: LocationPoint[] | undefined, results: T[]) {
   const showPicks = !value && typed.length < 3 && !!places?.length
   const rows: (T | LocationPoint)[] = showPicks
-    ? (places ?? []).filter(p => !typed || p.name.toLowerCase().includes(typed.toLowerCase()))
+    ? (places ?? []).filter(p => textMatchesSearch([p.name], typed))
     : results
   return { showPicks, rows }
 }

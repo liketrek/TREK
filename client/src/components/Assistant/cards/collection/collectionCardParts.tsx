@@ -1,10 +1,16 @@
-import type { CollectionCardLabel, CollectionCardList, CollectionCardPlace, CollectionStatus } from '@trek/shared';
+import {
+  type CollectionCardLabel,
+  type CollectionCardList,
+  type CollectionCardPlace,
+  type CollectionStatus,
+  isVisitedCollectionStatus,
+} from '@trek/shared';
 import { Star } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 import { useTranslation } from '../../../../i18n';
 import { safeHexColor } from '../../../../utils/safeColor';
-import { STATUS_META } from '../../../Collections/collectionStatus';
+import { STATUS_META, STATUS_ORDER } from '../../../Collections/collectionStatus';
 import { SoftPill, tintOf, WhiteBadge } from '../../../Planner/planParts';
 import PlaceAvatar from '../../../shared/PlaceAvatar';
 import { Tooltip } from '../../../shared/Tooltip';
@@ -93,7 +99,7 @@ export function StatusPill({ status, count }: { status: CollectionStatus; count?
     <Icon size={10} strokeWidth={2.4} aria-hidden="true" className="flex-none" style={{ color: meta.color }} />
   );
   return (
-    <SoftPill tone={status === 'visited' ? 'success' : 'neutral'} icon={icon}>
+    <SoftPill tone={isVisitedCollectionStatus(status) ? 'success' : 'neutral'} icon={icon}>
       {count !== undefined && <span className="tabular-nums">{count}</span>}
       <span>{t(meta.labelKey)}</span>
     </SoftPill>
@@ -140,7 +146,7 @@ export function ListHead({ list, first = true }: { list: CollectionCardList; fir
       </div>
       {counts && (
         <CardFacts>
-          {(['idea', 'want', 'visited'] as const).map((status) => (
+          {STATUS_ORDER.map((status) => (
             <StatusPill key={status} status={status} count={counts[status]} />
           ))}
         </CardFacts>

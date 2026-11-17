@@ -110,7 +110,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggest
             }
           }}
           onBlur={() => setTimeout(() => setSuggestions([]), 150)}
-          placeholder={t('places.mapsSearchPlaceholder')}
+          enterKeyHint="search" placeholder={t('places.mapsSearchPlaceholder')}
           className={`${FIELD_CLS} flex-1`}
         />
         <button
@@ -136,9 +136,9 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggest
             >
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{s.mainText}</div>
+                  <div dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{s.mainText}</div>
                   {s.secondaryText && (
-                    <div className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
+                    <div dir="auto" className="truncate font-geist text-[0.65625rem] text-m-muted">{s.secondaryText}</div>
                   )}
                 </div>
                 <SourceMark label={sourceLabel(s, acSource)} />
@@ -159,8 +159,8 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggest
             >
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{String(result.name ?? '')}</div>
-                  <div className="truncate font-geist text-[0.65625rem] text-m-muted">{String(result.address ?? '')}</div>
+                  <div dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{String(result.name ?? '')}</div>
+                  <div dir="auto" className="truncate font-geist text-[0.65625rem] text-m-muted">{String(result.address ?? '')}</div>
                 </div>
                 <SourceMark label={sourceLabel(result, searchSource)} />
               </div>

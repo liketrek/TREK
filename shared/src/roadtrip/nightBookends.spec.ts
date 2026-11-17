@@ -232,16 +232,30 @@ describe('a transfer day', () => {
 describe('a day that starts or ends on a ride or at a hire car desk', () => {
   const hotel = stay(5, D1, D4, HOTEL);
 
-  // Landing, or at the desk the car is picked up at: the traveller was not at the hotel.
-  it.each([{ role: 'arrival' }, { role: 'pickup' }] as const)(
-    'ROADTRIP-BOOKENDS-010: no morning when $role opens the day',
-    ({ role }) => {
-      const [day] = seatNightBookends([planDay(D2, [terminal(D2, 0, role), visit(D2, 0, { name: 'P' })])], days, [
-        hotel,
-      ]);
-      expect(shape(day)).toEqual([role, 'P', 'evening:5']);
-    },
-  );
+  // Landing: the traveller was not at the hotel.
+  it('ROADTRIP-BOOKENDS-010: no morning when an arrival opens the day', () => {
+    const [day] = seatNightBookends([planDay(D2, [terminal(D2, 0, 'arrival'), visit(D2, 0, { name: 'P' })])], days, [
+      hotel,
+    ]);
+    expect(shape(day)).toEqual(['arrival', 'P', 'evening:5']);
+  });
+
+  // The desk the car is picked up at is where the first drive goes, from the hotel.
+  it('ROADTRIP-BOOKENDS-039: a hire car picked up after a night sets off from the hotel (#2993)', () => {
+    const [day] = seatNightBookends([planDay(D2, [terminal(D2, 0, 'pickup'), visit(D2, 0, { name: 'P' })])], days, [
+      hotel,
+    ]);
+    expect(shape(day)).toEqual(['morning:5', 'pickup', 'P', 'evening:5']);
+  });
+
+  it('ROADTRIP-BOOKENDS-040: on a check-out day, the pick-up comes after the stay checked out of (#2993)', () => {
+    const left = stay(1, D1, D2, GETAWAY);
+    const next = stay(2, D2, D3, WALLINGA);
+    // The desk a short drive from the hotel checked out of, like the airport of the report.
+    const desk = { ...terminal(D2, 0, 'pickup'), lat: GETAWAY[0] + 0.1, lng: GETAWAY[1] + 0.1 };
+    const [day] = seatNightBookends([planDay(D2, [desk, visit(D2, 0, { name: 'P' })])], days, [left, next]);
+    expect(shape(day)).toEqual(['morning:1', 'pickup', 'P', 'evening:2']);
+  });
 
   // At the gate, or where the car goes back: the traveller is not driving to the hotel.
   it.each([{ role: 'departure' }, { role: 'return' }] as const)(

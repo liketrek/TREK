@@ -78,14 +78,14 @@ export default function MFileMenuSheet({ planner, file, onClose, onOpenLinks }: 
         <div className="flex-none px-[18px] pt-4">
           <TileHeader
             icon={<TypeIcon size={19} strokeWidth={1.8} style={{ color: meta.color }} />}
-            title={<span className="truncate">{shown.original_name}</span>}
+            title={<span dir="auto" className="truncate">{shown.original_name}</span>}
             sub={[formatSize(shown.file_size), formatFileDate(shown.created_at, locale)].filter(Boolean).join(' · ')}
             onClose={onClose}
             closeLabel={t('common.close')}
           />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+        <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
           {canEdit && (
             <div className="mt-3">
               <Eyebrow className="mb-[6px]">{t('files.noteLabel')}</Eyebrow>

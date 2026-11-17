@@ -1179,7 +1179,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Який рушій малює карти планувальника поїздки й щоденника та в якому стилі. Leaflet це класична растрова карта, Mapbox GL додає 3D-будівлі та рельєф і потребує вашого власного токена, MapLibre GL малює векторні тайли OpenFreeMap без токена. Атлас завжди використовує Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Провайдер карти: Leaflet, Mapbox GL («Експериментально») або MapLibre GL, кожен варіант із коротким описом.',
+    'Провайдер карти: Leaflet, Mapbox GL або MapLibre GL, кожен варіант із коротким описом.',
   'help.ctx.settings-map.bullet.2':
     '«Шаблон карти» та «Ключ API CARTO» для Leaflet; «Стиль карти» для двох рушіїв GL, а також «Токен доступу Mapbox» для Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

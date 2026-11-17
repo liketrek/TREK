@@ -146,7 +146,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 #### 🗺️ Atlas, Vacay and Collections
 
 - **Atlas**: countries and regions visited on [geoBoundaries](https://www.geoboundaries.org/) outlines, a bucket list, travel stats, and a tour activities tab with planned against recorded totals
-- **Vacay**: leave calendar with half days, public holidays from date.nager.at, school holidays for 16 European countries, company holidays, carry-over between years, and joint or read-only sharing
+- **Vacay**: leave calendar with half days, public holidays from [nagerholidays.com](https://nagerholidays.com), school holidays for 16 European countries, company holidays, carry-over between years, and joint or read-only sharing
 - **Collections** (off by default): a place library outside any trip with lists, labels, ratings, a status per place, cover images, GPX and file export, copy into a trip, and sharing by invite
 - **Dawarich** (off by default): link a Dawarich instance for recorded tracks, suggested stays and countries for the Atlas
 
@@ -182,7 +182,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 #### 📱 Mobile and offline
 
-- **Installable**: iOS and Android straight from the browser, no App Store, standalone with a themed status bar
+- **Apps**: TREK Travel Planner for iPhone, iPad and Android connects to any TREK server, and the browser installs TREK as a standalone app with a themed status bar too
 - **Phone layouts**: their own screens for every part of the app, with a bottom bar and dashboard widgets the user orders
 - **Offline reads**: the app shell is precached and trips, places, tours, files and nearby places live in a per-user IndexedDB store, so a trip opens with no network
 - **Offline writes**: changes queue and replay with an `X-Idempotency-Key`, and a stale edit waits for a keep-mine or keep-theirs choice
@@ -276,6 +276,8 @@ Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine.
 
 `COOKIE_SECURE=false` is only for trying TREK over plain HTTP: without it the browser drops the session cookie and the login does not stick. Once TREK sits behind HTTPS (see [Reverse Proxy](#reverse-proxy)), remove it.
 
+**TrueNAS SCALE:** Install TREK directly from the Community catalog. See the [TrueNAS SCALE installation guide](https://github.com/liketrek/TREK/wiki/Install-TrueNAS-SCALE).
+
 > [!TIP]
 > **No server yet?** TREK's own public services run on [**dataforest cloud**](https://cloud.dataforest.net/en?mtm_campaign=trek), our infrastructure sponsor. A small seed is plenty for a TREK instance and is ready within a minute.
 
@@ -339,7 +341,7 @@ See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/READM
 
 <h2 id="install-as-app-pwa">Install as App (PWA)</h2>
 
-TREK works as a Progressive Web App — no App Store needed.
+TREK works as a Progressive Web App, and the TREK Travel Planner app for iPhone, iPad and Android connects to the same server ([Native Apps](https://github.com/liketrek/TREK/wiki/Native-Apps)). To install the web app instead:
 
 1. Open TREK in the browser (HTTPS required)
 2. **iOS**: Share ▸ *Add to Home Screen*
@@ -352,7 +354,7 @@ TREK then launches fullscreen with its own icon, just like a native app.
 ## Updating
 
 See [Updating](https://github.com/liketrek/TREK/wiki/Updating) — Docker Compose,
-Docker run, Helm, Portainer, Unraid and Proxmox, plus the encryption-key note.
+Docker run, Helm, Portainer, Unraid, TrueNAS SCALE and Proxmox, plus the encryption-key note.
 
 <br />
 
@@ -441,8 +443,9 @@ Every variable, its default and what it does: see
 
 The Atlas map's country and sub-national (province/county) boundaries come from
 [**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
-for full third-party attributions.
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); Ireland's counties come from
+[**Tailte Éireann**](https://data-osi.opendata.arcgis.com/), also CC BY 4.0. See
+[NOTICE.md](NOTICE.md) for full third-party attributions.
 
 <br />
 

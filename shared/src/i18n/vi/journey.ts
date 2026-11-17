@@ -269,6 +269,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Không tìm thấy album nào',
   'journey.picker.selectDate': 'Chọn ngày',
   'journey.picker.search': 'Tìm kiếm',
+  'journey.picker.takenBetween': 'Chụp trong khoảng',
   'journey.editor.externalPhotos': 'Ảnh bên ngoài',
   'journey.editor.externalPhotosFor': 'Ảnh cho {date}',
   'journey.editor.externalPhotosNearby': 'Ảnh gần đó trước',

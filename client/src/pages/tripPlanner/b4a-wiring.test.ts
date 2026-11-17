@@ -91,19 +91,24 @@ test('B4A Core testability debt: verify source without importing the page, hook,
   assert.equal(collect(self, node => ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword).length, 0)
 })
 
-test('B4A Tours tab is readable, desktop-only, and absent with addon OFF', () => {
+test('B4A Tours tab is readable, desktop-only off a large screen, and absent with addon OFF', () => {
   const tabs = initializer(hook, 'TRIP_TABS')
   const branches = collect(tabs, node => ts.isConditionalExpression(node)
     && node.whenTrue.getText(hook).includes("id: 'tour-planner'"))
   assert.equal(branches.length, 1)
   const branch = branches[0]
   assert.ok(ts.isConditionalExpression(branch))
-  assert.equal(branch.condition.getText(hook), 'enabledAddons.tours && !isMobile')
+  // Where the tab exists and whether the touch shell offers it: tourPlannerTabOf (tripPlannerModel.test.ts).
+  assert.equal(branch.condition.getText(hook), 'tourTab')
+  assert.equal(initializer(hook, 'tourTab').getText(hook), 'tourPlannerTabOf(!!enabledAddons.tours, isMobile, largeTouch)')
   assert.equal(branch.whenFalse.getText(hook), '[]')
-  assert.match(branch.whenTrue.getText(hook), /desktopOnly: true/)
+  assert.match(branch.whenTrue.getText(hook), /desktopOnly: tourTab\.desktopOnly/)
   assert.doesNotMatch(tabs.getText(hook), /\bcan\b|canPlaceEdit|canDayEdit/)
   assert.match(hookText, /!validTabIds\.includes\(activeTab\)[\s\S]*?setActiveTab\('plan'\)/)
   assert.match(pageText, /activeTab === 'tour-planner' && enabledAddons\.tours && !isMobile/)
+  // The app counts as a phone shell on an iPad too: the workspace follows its tab, not the phone test.
+  assert.equal(initializer(workspace, 'workspaceUp').getText(workspace), "activeTab === 'tour-planner' && (!isMobile || largeTouch)")
+  assert.doesNotMatch(workspaceText, /!isMobile(?! \|\| largeTouch)/)
 })
 
 test('B4A selectedTour is derived only from explicit place selection and addon state', () => {
@@ -135,16 +140,21 @@ test('B4A desktop page delegates Tours state and permissions to its page hook', 
   const mobileFiles = mobileSourceFiles(resolve(process.cwd(), 'src/mobile'))
   for (const file of mobileFiles) {
     const mobileSource = parse(file, readFileSync(file, 'utf8'))
+    // The touch shell holds its own planner: it may build the page's state over that
+    // one (useTripPlannerPageOf), never a second planner through useTripPlannerPage.
     const importsDesktopHook = collect(mobileSource, ts.isImportDeclaration).some(node => {
       if (!ts.isImportDeclaration(node) || !ts.isStringLiteral(node.moduleSpecifier)) return false
-      const modulePath = node.moduleSpecifier.text
-      const namedImport = node.importClause?.namedBindings
-      return /(?:^|\/)useTripPlannerPage(?:\.tsx?)?$/.test(modulePath)
-        || (namedImport && ts.isNamedImports(namedImport)
-          && namedImport.elements.some(element => element.name.text === 'useTripPlannerPage'))
+      const fromPageModule = /(?:^|\/)useTripPlannerPage(?:\.tsx?)?$/.test(node.moduleSpecifier.text)
+      const clause = node.importClause
+      const namedImport = clause?.namedBindings
+      if (fromPageModule && (clause?.name || (namedImport && ts.isNamespaceImport(namedImport)))) return true
+      return !!(namedImport && ts.isNamedImports(namedImport)
+        && namedImport.elements.some(element => (element.propertyName ?? element.name).text === 'useTripPlannerPage'))
     })
     assert.equal(importsDesktopHook, false, file)
   }
+  // And the desktop's own hook is that same state over a planner of its own.
+  assert.match(pageControllerText, /return useTripPlannerPageOf\(useTripPlanner\(\)\)/)
 
   const permissions = initializer(pageController, 'canPlaceEdit')
   const permissionCalls = collect(pageController, node => ts.isCallExpression(node)

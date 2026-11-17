@@ -12,6 +12,8 @@ const { probeNow } = vi.hoisted(() => ({
   probeNow: vi.fn(async (): Promise<'online' | 'offline' | 'proxy-wall'> => 'offline'),
 }))
 vi.mock('../sync/connectivity', () => ({ probeNow }))
+const isNativeApp = vi.hoisted(() => vi.fn(() => false))
+vi.mock('../native/platform', () => ({ isNativeApp }))
 
 const { apiClient, adminApi, mapsApi, pluginsApi, parseInDev } = await import('./client')
 
@@ -355,6 +357,24 @@ describe('client > redirect handling', () => {
     await captureError(() => apiClient.get('/auth/me'))
 
     expect(loc.href).toBe('/login?redirect=' + encodeURIComponent('/trips/7?tab=map#day-2'))
+  })
+
+  it('FE-APIWIRE-019b: in the app it waits for the first page to finish loading before it leaves', async () => {
+    isNativeApp.mockReturnValue(true)
+    const ready = Object.getOwnPropertyDescriptor(Document.prototype, 'readyState')
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true })
+    const loc = setLocation('/dashboard')
+    server.use(http.get('/api/auth/me', () => HttpResponse.json({ code: 'AUTH_REQUIRED' }, { status: 401 })))
+
+    await captureError(() => apiClient.get('/auth/me'))
+    expect(loc.href).not.toContain('/login')
+
+    window.dispatchEvent(new Event('load'))
+    expect(loc.href).toBe('/login?redirect=' + encodeURIComponent('/dashboard'))
+
+    delete (document as { readyState?: unknown }).readyState
+    if (ready) Object.defineProperty(Document.prototype, 'readyState', ready)
+    isNativeApp.mockReturnValue(false)
   })
 
   it('FE-APIWIRE-020: an MFA_REQUIRED 403 sends the user to the settings page', async () => {

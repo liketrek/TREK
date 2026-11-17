@@ -398,6 +398,35 @@ export class AdminService {
     return { success: true, email: target.email };
   }
 
+  /**
+   * Forget the SSO identity stored on another account (#3065).
+   *
+   * A sign-in that arrives with a different subject of the same provider is
+   * refused, because that is another person at the provider as far as TREK can
+   * tell. When the provider itself re-issued the subject (a migrated or rebuilt
+   * IdP, a changed `sub` format), the account owner is locked out and editing the
+   * email does not help. Clearing the link hands the decision to the admin: the
+   * next SSO sign-in links again under the same rules as a first one, so it still
+   * needs a verified email and an address the account did not set itself.
+   *
+   * Never for the caller themselves, for the same reason as resetUserMfa: a
+   * stolen admin session must not be able to loosen the login of the account it
+   * came from.
+   */
+  async unlinkUserSso(id: string, actingUserId: number): Promise<{ email: string; unlinked: boolean }> {
+    const targetId = Number(id);
+    // SECURITY: plain JS comparison, kept here like resetUserMfa's (R4).
+    if (targetId === actingUserId) {
+      throw new DomainError(400, 'You cannot remove the SSO link of your own account');
+    }
+    const target = await this.users.findById(targetId);
+    if (!target || target.is_guest) throw new DomainError(404, 'User not found');
+    if (!target.oidc_sub && !target.oidc_issuer) return { email: target.email, unlinked: false };
+
+    await this.users.linkOidcIdentity(targetId, null, null);
+    return { email: target.email, unlinked: true };
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────────────
 
   async getStats() {

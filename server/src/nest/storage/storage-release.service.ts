@@ -78,7 +78,9 @@ class ReleaseStopped extends Error {}
 
 /**
  * What a user's change left unnamed: a replaced or removed cover, place image
- * or avatar, a deleted journey photo or trip file. The owner hands the values
+ * or avatar, a deleted journey photo or trip file, and what a deleted list
+ * (its cover and saved places' images) or journey (its gallery's photos) held;
+ * a deleted trip hands on only its cover. The owner hands the values
  * its rows held to `releaseValues` once its transaction committed, and every
  * object they name is queued, which is all the request pays. Nothing goes
  * before RELEASE_DELAY_MS, so an undo or a late write that brings the value

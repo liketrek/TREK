@@ -34,7 +34,7 @@ import { usePluginStore } from '../../store/pluginStore'
 import type { Assignment, TripMember, Day, Reservation } from '../../types'
 import { OFM_POSITRON, DEFAULT_MAP_LAT, DEFAULT_MAP_LNG, DEFAULT_MAP_ZOOM } from '../../constants/mapDefaults'
 import { useTileUrl } from '../../hooks/useTileUrl'
-import { placesForDays } from './tripPlannerModel'
+import { placesForDays, tourPlannerTabOf } from './tripPlannerModel'
 import { isDeepLinkableTripTab, TRIP_TAB_LABEL_KEYS } from '../../constants/tripTabs'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import { showReservationOnMap } from '../../components/Planner/bookings/showOnMap'
@@ -50,7 +50,7 @@ import { useTripRosterSync } from './useTripRosterSync'
 import { useDayAdd } from './useDayAdd'
 import { usePlannerDialogs } from './usePlannerDialogs'
 import { usePlaceDeepLink } from './usePlaceDeepLink'
-import { useAssistantDeepLink } from './useAssistantDeepLink'
+import { useAssistantDeepLink, useAssistantTabLink } from './useAssistantDeepLink'
 import { useAssistantCompareView, useAssistantMapLink } from './useAssistantMapLink'
 import { useAssistantPlaceDraft } from './useAssistantPlaceDraft'
 import { usePlannerMapView } from './usePlannerMapView'
@@ -66,7 +66,11 @@ import { useTourDayChoice } from './useTourDayChoice'
 import { useBookingEdits } from './useBookingEdits'
 import { usePlannerTripView } from './usePlannerTripView'
 import { useIsPhone } from '../../mobile/useIsPhone'
+import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats'
+import { useFlightLiveSync } from '../../components/Planner/flightLive/useFlightLiveSync'
+import { useMailPrefillLink } from '../../components/MailIngest/useMailPrefillLink'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -118,6 +122,8 @@ export function useTripPlanner() {
   const todoItems = useTripStore(s => s.todoItems)
   const categories = useTripStore(s => s.categories)
   const reservations = useTripStore(s => s.reservations)
+  // Live flight states (status, position, delay) for the trip's flights, desktop and phone alike.
+  useFlightLiveSync(tripId, reservations.some(r => r.type === 'flight'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const files = useTripStore(s => s.files)
   const selectedDayId = useTripStore(s => s.selectedDayId)
@@ -150,6 +156,8 @@ export function useTripPlanner() {
   // road-trip mode is decided on it and the assignment and place lists below are
   // decided on that. One subscriber for the whole hook.
   const isMobile = useIsPhone()
+  // The touch shell on a tablet or an unfolded foldable, which has room for the tour editor.
+  const largeTouch = useIsWide()
   // The phone shell has no road-trip surface at all: no rail, no drive lines, and
   // no switch to turn the mode back off. Narrowing a desktop window past the
   // phone breakpoint used to carry the flag across anyway, which took the trip
@@ -220,9 +228,10 @@ export function useTripPlanner() {
   // them; 'plan' is never replaceable) and may pick where its own tab sits.
   const journal = useTripJournal(Number.isFinite(tripId) ? tripId : null)
   const replacedTabs = new Set(tripPagePlugins.flatMap(p => p.tripPage?.replaces ?? []))
+  const tourTab = tourPlannerTabOf(!!enabledAddons.tours, isMobile, largeTouch)
   const TRIP_TABS = [
     { id: 'plan', label: t(TRIP_TAB_LABEL_KEYS.plan), icon: Map },
-    ...(enabledAddons.tours && !isMobile ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, desktopOnly: true }] : []),
+    ...(tourTab ? [{ id: 'tour-planner', label: t(TRIP_TAB_LABEL_KEYS['tour-planner']), icon: Mountain, desktopOnly: tourTab.desktopOnly }] : []),
     { id: 'transports', label: t(TRIP_TAB_LABEL_KEYS.transports), icon: Train },
     { id: 'buchungen', label: t(TRIP_TAB_LABEL_KEYS.buchungen), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
     // Phone only: the desktop reaches the drive through the mode switch beside the
@@ -267,7 +276,7 @@ export function useTripPlanner() {
       setActiveTab('plan')
       sessionStorage.setItem(`trip-tab-${tripId}`, 'plan')
     }
-  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded, isMobile, journal.settled, journal.openJournalId])
+  }, [activeTab, enabledAddons, addonsLoaded, tripPluginIds, pluginsLoaded, isMobile, largeTouch, journal.settled, journal.openJournalId])
 
   const handleTabChange = (rawTabId: string): void => {
     // A core tab a plugin replaced is gone from the bar, but a programmatic jump
@@ -279,6 +288,12 @@ export function useTripPlanner() {
     if (tabId === 'finanzplan') tripActions.loadBudgetItems?.(tripId)
     if (tabId === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }
+
+  // Notifications can open a tab while this trip is already mounted, on either layout.
+  // Each link it takes is counted, so the phone shell can open the right part of the tab.
+  const [tabLink, setTabLink] = useState<{ tab: string; seq: number } | null>(null)
+  const onTabLinked = useCallback((tab: string) => setTabLink(prev => ({ tab, seq: (prev?.seq ?? 0) + 1 })), [])
+  useAssistantTabLink({ searchParams, setSearchParams, activeTab, selectTab: handleTabChange, onLinked: onTabLinked })
 
   // handleTabChange is where a tab's lazy load and its session memory happen, and
   // the tab we *start* on never goes through it — neither a ?tab= deep link nor a
@@ -295,7 +310,7 @@ export function useTripPlanner() {
   const {
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow: narrowPanels,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
   } = useResizablePanels()
   const { selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment } = usePlaceSelection()
   const toursEnabled = useAddonStore(state => state.isEnabled('tours'))
@@ -643,6 +658,7 @@ export function useTripPlanner() {
     editingReservation, setEditingReservation, setShowReservationModal,
     editingTransport, setEditingTransport, setShowTransportModal, setTransportModalDayId,
   })
+  useMailPrefillLink({ searchParams, setSearchParams, loaded: !isLoading && trip?.id === tripId, startImportReview })
 
   // ── The plan's booking detail ───────────────────────────────────────────────
   // A click on a booking in the plan shows it first; the editor is one Edit away.
@@ -694,14 +710,28 @@ export function useTripPlanner() {
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 
-  // Splash screen — show for initial load + a brief moment for photos to start loading
-  const [splashDone, setSplashDone] = useState(false)
+  // The trip's form saves alike from its own dialog and from the trip settings (#2811).
+  const saveTrip = useCallback(async (data: Parameters<typeof tripActions.updateTrip>[1]) => {
+    await tripActions.updateTrip(tripId, data)
+    loadAccommodations()
+    toast.success(t('trip.toast.tripUpdated'))
+  }, [tripActions, tripId, loadAccommodations, toast, t])
+
+  // The splash only for a slow open, as on the phone (MTripOpening): a trip that
+  // loads within TRIP_SPLASH_AFTER_MS opens straight away, with no splash and no
+  // minimum on screen.
+  const [slowOpen, setSlowOpen] = useState(false)
+  // Every open is timed afresh: a trip opened after a slow one starts without the splash too.
+  const [wasLoading, setWasLoading] = useState(isLoading)
+  if (wasLoading !== isLoading) {
+    setWasLoading(isLoading)
+    if (isLoading) setSlowOpen(false)
+  }
   useEffect(() => {
-    if (!isLoading && trip) {
-      const timer = setTimeout(() => setSplashDone(true), 1500)
-      return () => clearTimeout(timer)
-    }
-  }, [isLoading, trip])
+    if (!isLoading) return
+    const timer = setTimeout(() => setSlowOpen(true), TRIP_SPLASH_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [isLoading])
 
   return {
     tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
@@ -714,10 +744,10 @@ export function useTripPlanner() {
     dawarichTrailShown, toggleDawarichTrail, dawarichTrail, dawarichHiddenDates, dawarichEnabled: !!enabledAddons.dawarich,
     followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
-    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
+    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange, tabLink,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     toursEnabled, toursMode, setToursMode, tours, toursLoading, tourDataReady, tourPlaceIds,
     reloadTourPlaceIds, invalidateTourPlaceIds, upsertTour, selectedTour, tourStageStops,
@@ -775,7 +805,7 @@ export function useTripPlanner() {
     ...dayClear,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
-    mapTileUrl, fontStyle, splashDone,
+    mapTileUrl, fontStyle, slowOpen, saveTrip,
     // The assistant on the map, handed to MapViewAuto whole by both shells.
     assistantMap,
   }

@@ -7,7 +7,7 @@ import { noteSurface } from '../../../../components/Planner/noteSurface'
 import NoteFormatToolbar from '../../../../components/shared/NoteFormatToolbar'
 import { useTripStore } from '../../../../store/tripStore'
 import { dayNoteDraft, writeDayNote } from '../../../../hooks/useDayNotes'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import type { DayNote } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 
@@ -103,14 +103,14 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
   }
 
   return (
-    <MSheet open={open} onClose={onClose} ariaLabel={note ? t('dayplan.noteEdit') : t('dayplan.noteAdd')}>
+    <MSheet open={open} onClose={onClose} form ariaLabel={note ? t('dayplan.noteEdit') : t('dayplan.noteAdd')}>
       <FormSheetHeader
         title={note ? t('dayplan.noteEdit') : t('dayplan.noteAdd')}
         onClose={onClose}
         closeLabel={t('common.close')}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
+      <FormSheetBody>
         <Eyebrow className="mb-[7px] uppercase">{t('notes.appearance')}</Eyebrow>
         <div className="flex items-center gap-[10px]">
           {/* The chosen icon in the chosen colour: the picker and the preview
@@ -206,7 +206,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
             {detail.length}/{DAY_NOTE_DETAIL_MAX}
           </span>
         </div>
-      </div>
+      </FormSheetBody>
 
       <FormSheetFooter
         onDelete={note ? handleDelete : undefined}

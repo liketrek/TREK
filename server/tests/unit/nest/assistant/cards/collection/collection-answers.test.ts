@@ -1,5 +1,5 @@
 /**
- * ASTCOL-001 to ASTCOL-012: the cards the collections' reads draw beside the
+ * ASTCOL-001 to ASTCOL-012 and ASTCOL-036: the cards the collections' reads draw beside the
  * answer, built from the tool's raw answer through the guarded registry, so
  * every card here also passed the card union and the size cap.
  */
@@ -30,8 +30,15 @@ describe('collection answer cards', () => {
       color: '#e11d48',
       placeCount: 10,
       memberCount: 1,
-      counts: { idea: 4, want: 1, visited: 5 },
+      counts: { idea: 4, want: 1, visited: 5, revisit: 0 },
     });
+  });
+
+  it('ASTCOL-036: a place to revisit is counted under its own status (#2567)', () => {
+    const value = collectionValue();
+    value.places[1] = { ...value.places[1], status: 'revisit' };
+    const shown = places('get_collection', { collectionId: 12 }, value);
+    expect(shown?.list?.counts).toEqual({ idea: 4, want: 1, visited: 4, revisit: 1 });
   });
 
   it('ASTCOL-002: eight places are shown and the rest counted, in the order the list keeps them', () => {

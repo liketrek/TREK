@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museer och kultur',
   'poi.cat.nature': 'Natur och parker',
   'poi.cat.activities': 'Aktiviteter',
+  'poi.cat.bakeries': 'Bagerier',
+  'poi.cat.groceries': 'Livsmedelsbutiker',
   'poi.pluginCategories': 'Kategorier från tillägg',
   'map.showAllConnections': 'Visa alla bokningsvägar',
   'map.hideAllConnections': 'Dölj alla bokningsvägar',
@@ -44,5 +46,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Den här webbläsaren erbjuder inte WebGL2, som GL-kartor behöver, så kartorna visas med Leaflet i stället.',
   'map.webgl2.terrain': '3D kräver WebGL2, som den här webbläsaren inte erbjuder. Kartan stannar i 2D.',
+  'map.offlineBasemap': 'Offlinekarta',
+  'map.offlineShowStored': 'Visa offlinekarta',
 };
 export default map;

@@ -301,7 +301,7 @@ describe('TripPlannerPage', () => {
   });
 
   describe('FE-PAGE-PLANNER-002: Loading state shown while loadTrip in progress', () => {
-    it('shows loading animation when isLoading is true', () => {
+    it('shows loading animation when isLoading is true', async () => {
       seedStore(useTripStore, {
         trip: null,
         isLoading: true,
@@ -315,8 +315,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(99);
 
-      // Loading state: shows the trip-open loading splash
-      expect(screen.getByTestId('trip-loading-splash')).toBeInTheDocument();
+      // A quick open shows nothing but the page's ground; a slow one gets the splash.
+      expect(screen.queryByTestId('trip-loading-splash')).not.toBeInTheDocument();
+      expect(await screen.findByTestId('trip-loading-splash', {}, { timeout: 2000 })).toBeInTheDocument();
     });
   });
 

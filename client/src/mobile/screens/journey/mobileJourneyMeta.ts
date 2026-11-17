@@ -57,3 +57,17 @@ export function journeyCoverStyle(journey: { id: number; cover_image?: string | 
   if (src) return { backgroundImage: `url('${src}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
   return { background: pickGradient(journey.id) }
 }
+
+/**
+ * The opening of a story as plain text for the card: the reader opens the entry
+ * for the formatted story, and links inside a tappable card would compete with it.
+ */
+export function storyExcerpt(story: string | null | undefined): string {
+  if (!story) return ''
+  return story
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[#>*_`~]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}

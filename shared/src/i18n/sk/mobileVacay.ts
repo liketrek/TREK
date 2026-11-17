@@ -18,6 +18,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Firemné dni',
   'mobileVacay.editCalendar': 'Upraviť kalendár',
   'mobileVacay.viewYear': 'Zobraziť rok',
+  'mobileVacay.people': 'Ľudia',
+  'mobileVacay.legend': 'Legenda',
 };
 
 export default mobileVacay;

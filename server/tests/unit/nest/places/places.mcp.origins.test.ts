@@ -38,6 +38,7 @@ const mcp = new PlacesMcp(
   guards as never,
   {} as never,
   origins as never,
+  {} as never,
 );
 
 beforeEach(() => vi.clearAllMocks());

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, ReactNode, Suspense } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router'
+import { Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { applyAppearance } from './theme/applyAppearance'
@@ -21,6 +21,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry'
 import { reconcileAppVersion } from './utils/versionHandover'
 import { useServerVersionStore } from './store/serverVersionStore'
 import { useIsPhone } from './mobile/useIsPhone'
+import { useRouteTransition } from './mobile/routeTransition'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi, isAuthPublicPath } from './api/client'
 import { tripRepo } from './repo/tripRepo'
@@ -32,6 +33,12 @@ import { useRoadtripPreferencesSync } from './hooks/useRoadtripPreferencesSync'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
 import OfflineBanner from './components/Layout/OfflineBanner'
 import NewVersionNotice from './components/Layout/NewVersionNotice'
+import NativeUpdateNotice from './components/Layout/NativeUpdateNotice'
+import AppLockGate from './components/Layout/AppLockGate'
+import NativeImportSheet from './mobile/components/NativeImportSheet'
+import MPushPrompt from './mobile/components/MPushPrompt'
+import NativeWidgetsSync from './components/Layout/NativeWidgetsSync'
+import NativeQuickActionsSync from './components/Layout/NativeQuickActionsSync'
 import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
 import HelpPanel from './components/Help/HelpPanel'
 // Notice action registrations (side-effect imports):
@@ -45,6 +52,7 @@ import { managedRoutes } from './managed'
 // for a reload.
 const PluginPage = lazyWithRetry(() => import('./pages/PluginPage'))
 const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'))
+const NativeHandoffPage = lazyWithRetry(() => import('./pages/NativeHandoffPage'))
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'))
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'))
 const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'))
@@ -406,6 +414,9 @@ export default function App() {
   }, [settings.dark_mode, settings.appearance, isSharedPage])
 
   const isPhone = useIsPhone()
+  // On the phone, pages slide like a native navigation stack (mobile/routeTransition.ts).
+  const navigationType = useNavigationType()
+  const routedLocation = useRouteTransition(location, navigationType, isPhone)
   const keepingTour = useSaveToCollectionStore(s => s.tour !== null)
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')
@@ -441,18 +452,25 @@ export default function App() {
       )}
       <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
       <ErrorBoundary boundaryId="widget:new-version" fallback={null}><NewVersionNotice /></ErrorBoundary>
+      <ErrorBoundary boundaryId="widget:native-update" fallback={null}><NativeUpdateNotice /></ErrorBoundary>
+      <ErrorBoundary boundaryId="widget:app-lock" fallback={null}><AppLockGate /></ErrorBoundary>
+      <ErrorBoundary boundaryId="widget:native-import" fallback={null}><NativeImportSheet /></ErrorBoundary>
+      {!hideAuthedWidgets && isPhone && <ErrorBoundary boundaryId="widget:push-prompt" fallback={null}><MPushPrompt /></ErrorBoundary>}
+      <ErrorBoundary boundaryId="widget:native-widgets" fallback={null}><NativeWidgetsSync /></ErrorBoundary>
+      <ErrorBoundary boundaryId="widget:native-quick-actions" fallback={null}><NativeQuickActionsSync /></ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted
           across navigations. react-router runs location updates inside a transition,
           so a mounted boundary keeps the current page on screen instead of flashing
           a spinner on every jump — the spinner is for the first paint of a deep link. */}
       <Suspense fallback={<RouteFallback />}>
-        <Routes>
+        <Routes location={routedLocation}>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
           <Route path="/shared/:token" element={<PublicRoute><SharedTripPage /></PublicRoute>} />
           <Route path="/public/journey/:token" element={<PublicRoute><JourneyPublicPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/native-handoff" element={<PublicRoute><NativeHandoffPage /></PublicRoute>} />
           <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
           <Route path="/oauth/consent" element={<PublicRoute><OAuthAuthorizePage /></PublicRoute>} />

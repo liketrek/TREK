@@ -4,6 +4,10 @@ const mobileNav: TranslationStrings = {
   'mobileNav.journeySub': 'Reisdagboek',
   'mobileNav.collectionsSub': 'Opgeslagen plaatsen',
   'mobileNav.more': 'Meer',
+  'mobileNav.navigation': 'Navigatie',
+  'mobileNav.railSettings': 'Instellingen',
+  'mobileNav.railAdmin': 'Beheer',
+  'mobileNav.railCollections': 'Collecties',
 };
 
 export default mobileNav;

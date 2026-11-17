@@ -28,6 +28,7 @@ import { NotificationsService } from '../../src/nest/notifications/notifications
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { ReservationsModule } from '../../src/nest/reservations/reservations.module';
+import { makeReservation } from '../helpers/factories/reservations';
 import {
   countRows,
   deleteRows,
@@ -36,7 +37,7 @@ import {
   insertRow,
   insertRowIgnoringConflict,
 } from '../helpers/factories/rows';
-import { makeTrip, makeDay } from '../helpers/factories/trips';
+import { makeTrip, makeDay, readTripDays } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
@@ -500,6 +501,62 @@ describe('Reservations + accommodations e2e (real auth guard + temp SQLite, real
         .set('Cookie', sessionCookie(1))
         .send({ positions: [{ id: ownReservationId }], day_id: ownDayId });
       expect(res.status).toBe(200);
+    });
+  });
+
+  // Adding notes to two time-only Shinkansen bookings from the browser took them
+  // off their days: the stored "12:00" resolved to no day, and the day_id the PUT
+  // left out was written as null.
+  describe('a partial update keeps the day it does not name', () => {
+    let days: number[];
+    let datedTripId: number;
+
+    beforeAll(async () => {
+      datedTripId = (await makeTrip(orm, 1, { title: 'Japan', start_date: '2026-11-10', end_date: '2026-11-12' })).id;
+      days = (await readTripDays(orm, datedTripId)).map((d) => d.id);
+    });
+
+    async function seedTrain(reservationTime: string, dayId: number | null) {
+      const train = await makeReservation(orm, datedTripId, {
+        title: 'Shinkansen',
+        type: 'train',
+        reservation_time: reservationTime,
+        day: dayId,
+      });
+      return train.id;
+    }
+
+    function put(reservationId: number, body: Record<string, unknown>) {
+      return request(server)
+        .put(`/api/trips/${datedTripId}/reservations/${reservationId}`)
+        .set('Cookie', sessionCookie(1))
+        .send(body);
+    }
+
+    it('200 a notes-only update leaves a time-only booking on its day', async () => {
+      const rid = await seedTrain('12:00', days[1]);
+      const res = await put(rid, { notes: 'Car 7, seats 12A-B' });
+      expect(res.status).toBe(200);
+      expect(res.body.reservation).toMatchObject({
+        notes: 'Car 7, seats 12A-B',
+        reservation_time: '12:00',
+        day_id: days[1],
+      });
+      expect(await findRow(orm, Reservations, { id: rid })).toMatchObject({ day_id: days[1] });
+    });
+
+    it('200 a dated time still moves the booking to the day it names', async () => {
+      const rid = await seedTrain('12:00', days[0]);
+      const res = await put(rid, { reservation_time: '2026-11-12T09:00' });
+      expect(res.status).toBe(200);
+      expect(await findRow(orm, Reservations, { id: rid })).toMatchObject({ day_id: days[2] });
+    });
+
+    it('200 an explicit day_id null still takes the booking off its day', async () => {
+      const rid = await seedTrain('12:00', days[1]);
+      const res = await put(rid, { day_id: null, notes: 'Not planned yet' });
+      expect(res.status).toBe(200);
+      expect(await findRow(orm, Reservations, { id: rid })).toMatchObject({ day_id: null });
     });
   });
 });

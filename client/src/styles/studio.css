@@ -218,10 +218,13 @@
   min-height: 0;
 }
 
-/* Under 1280 the inspector floats over the workbench instead of narrowing it —
-   below roughly 700px of canvas a spread stops being legible at any zoom. */
+/* Under 1280 the inspector narrows and stays docked: floating over the workbench it
+   hid the page an iPad in landscape was editing. Under 1080 it floats after all. */
 @media (max-width: 1279px) {
-  .trek-dash .st-body { grid-template-columns: minmax(64px, min-content) 236px minmax(0, 1fr); }
+  .trek-dash .st-body { grid-template-columns: minmax(64px, min-content) 236px minmax(0, 1fr) 280px; }
+}
+@media (max-width: 1079px) {
+  .trek-dash .st-body { grid-template-columns: minmax(64px, min-content) minmax(0, 1fr); }
   .trek-dash .st-inspector {
     position: absolute;
     top: 56px;
@@ -230,9 +233,6 @@
     width: 300px;
     box-shadow: var(--sh-lg);
   }
-}
-@media (max-width: 1079px) {
-  .trek-dash .st-body { grid-template-columns: minmax(64px, min-content) minmax(0, 1fr); }
   /* The panel floats over the workbench's cell, so it starts wherever the rail ends. */
   .trek-dash .st-side, .trek-dash .st-work-wrap { grid-area: 1 / 2; }
   .trek-dash .st-side {

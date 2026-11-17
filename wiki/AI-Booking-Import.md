@@ -30,7 +30,7 @@ If none of them exists, the import fails with an error shown in the widget.
 
 Two details of the shared connection:
 
-- A **ChatGPT** sign-in is not used for parsing. It only reaches ChatGPT's chat models, not the endpoint that parsing calls. Connect an API key (or another provider) for parsing instead.
+- A **ChatGPT** sign-in reads bookings too, on the plan it is signed in with. Each file or forwarded mail is one request on that plan and counts toward its usage limits. If the sign-in has expired, parsing stops until someone signs in again under **AI connection**.
 - **Model reads images** is a setting of AI parsing itself and stays there, whichever connection reads. See [Photos](#photos).
 
 ## Choosing a provider
@@ -43,7 +43,7 @@ The shared connection of the AI assistant supports these providers:
 | **Anthropic** | Anthropic's API | Needs an API key. **Reads PDFs natively, scans included.** |
 | **Gemini** | Google's OpenAI-compatible endpoint | Needs an API key. |
 | **OpenRouter** | OpenRouter's API | **Connect OpenRouter** signs you in, so there is no key to copy. |
-| **Sign in with ChatGPT** | ChatGPT | Uses a ChatGPT plan, no key. Chat only, not used for parsing. |
+| **Sign in with ChatGPT** | ChatGPT | Uses a ChatGPT plan, no key. Reads bookings on the same plan. |
 | **Own server** | Your own hardware, or any OpenAI-compatible service | Ollama, LM Studio, vLLM, llama.cpp, a LiteLLM proxy or a hosted endpoint such as Groq, at a **Server address** you enter: the one that `/chat/completions` follows, usually ending in `/v1` (`http://localhost:11434/v1`, `https://api.groq.com/openai/v1`). Ollama is read through its own API, every other server through `/chat/completions`. The API key is optional. |
 
 To connect, pick **Sign in with ChatGPT**, **Paste an API key** or **Own server**. When you paste a key, TREK shows *Detected: {provider}*; if it cannot tell, it asks *Which provider is this key from?*. **Connect OpenRouter** is offered as its own button.

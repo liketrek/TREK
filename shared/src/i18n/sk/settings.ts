@@ -28,6 +28,9 @@ const settings: TranslationStrings = {
   'settings.pluginActivity.columns.status': 'Výsledok',
   'settings.tabs.account': 'Účet',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'Aplikácia',
+  'settings.groups.account': 'Tvoj účet',
+  'settings.groups.device': 'Toto zariadenie',
   'settings.tabs.about': 'O aplikácii',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Šablóna mapy',
@@ -71,6 +74,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Režim vysokej kvality',
   'settings.mapHighQualityHint': 'Antialiasing + zobrazenie glóbusu pre ostrejšie hrany a realistický pohľad na svet.',
   'settings.mapHighQualityWarning': 'Môže ovplyvniť výkon na slabších zariadeniach.',
+  'settings.mapHidePois': 'Skryť body záujmu',
+  'settings.mapHidePoisHint':
+    'Skryje obchody, reštaurácie a pamiatky, ktoré Mapbox označuje sám, aby vynikli len tvoje miesta. Len pre štýly Standard.',
   'settings.mapTipLabel': 'Tip:', // same-as-en
   'settings.mapTip':
     'kliknite pravým tlačidlom a ťahajte pre rotáciu/náklon mapy. Stredné tlačidlo pridá miesto (pravé tlačidlo je vyhradené pre rotáciu).',
@@ -82,6 +88,10 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Na dáta o počasí. Zadarmo na openweathermap.org/api',
   'settings.keyPlaceholder': 'Zadajte kľúč...',
   'settings.configured': 'Nastavené',
+  'settings.notSetUp': 'Nenastavené',
+  'settings.mcp.appsConnected': '{count} aplikácií pripojených',
+  'settings.mcp.appsConnected.one': '{count} aplikácia pripojená',
+  'settings.mcp.appsConnected.few': '{count} aplikácie pripojené',
   'settings.saveKeys': 'Uložiť kľúče',
   'settings.display': 'Zobrazenie',
   'settings.colorMode': 'Farebný režim',
@@ -117,7 +127,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Oznámenia',
   'settings.notifyTripInvite': 'Pozvánky na cesty',
   'settings.notifyBookingChange': 'Zmeny rezervácií',
+  'settings.notifyFlightDeparted': 'Odlety',
+  'settings.notifyFlightDelayed': 'Meškania letov',
+  'settings.notifyFlightLanded': 'Pristátia',
   'settings.notifyTripReminder': 'Pripomienky ciest',
+  'settings.notifyMailBookingAdded': 'Rezervácie pridané z e-mailov',
+  'settings.notifyMailBookingPending': 'Preposlané rezervácie na kontrolu',
+  'settings.notifyMailIngestPaused': 'Import e-mailov pozastavený',
   'settings.notifyTodoDue': 'Úloha sa blíži',
   'settings.notifyVacayInvite': 'Pozvánky na prepojenie Vacay',
   'settings.notifyVacayShare': 'Zdieľanie kalendára Vacay',
@@ -678,6 +694,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Hotovo',
   'settings.mcp.deprecated': 'Zastarané',
   'settings.offline.cache.dateRange': '{start} až {end}',
+  'settings.offline.tileStore.title': 'Zobrazené dlaždice mapy',
+  'settings.offline.tileStore.usage': '{used} z {limit} v tomto zariadení, uchováva sa až 30 dní',
+  'settings.offline.tileStore.clear': 'Vymazať',
 };
 
 export default settings;

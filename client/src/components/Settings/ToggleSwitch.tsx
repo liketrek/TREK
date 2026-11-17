@@ -1,4 +1,5 @@
 import React from 'react'
+import { selectionHaptic } from '../../native/haptics'
 
 /** The track and the knob glide with the same easing the planner's panels use. */
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
@@ -10,7 +11,7 @@ const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
  */
 export default function ToggleSwitch({ on, onToggle, label, describedBy, disabled = false }: { on: boolean; onToggle: () => void; label?: string; describedBy?: string; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onToggle} aria-pressed={on} aria-label={label} aria-describedby={describedBy}
+    <button type="button" onClick={() => { selectionHaptic(); onToggle() }} aria-pressed={on} aria-label={label} aria-describedby={describedBy}
       disabled={disabled} aria-disabled={disabled || undefined}
       // A keyboard focus ring in the text colour, like the fields; the pointer gets none.
       className="group outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--text-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg-card)]"

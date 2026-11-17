@@ -19,9 +19,7 @@ interface PlannerDialogsOptions extends Pick<PlannerBase, 'tripId' | 'tripAction
  * stop form, the stop popup, the stay release question, the trip and member dialogs,
  * the booking, transport and transit editors, the two importers and the booking detail.
  *
- * Its effects run where useTripPlanner calls it, in the order they always had. That is
- * also why the ?tab= cleanup sits here although it belongs to the tabs: it runs after
- * the ?create=place intent and before the AirTrail sync.
+ * Its effects run where useTripPlanner calls it, in the order they always had.
  */
 export function usePlannerDialogs(options: PlannerDialogsOptions) {
   const { tripId, tripActions, searchParams, setSearchParams } = options
@@ -94,14 +92,6 @@ export function usePlannerDialogs(options: PlannerDialogsOptions) {
     }
   }, [searchParams])
 
-  // ?tab= has done its job in the activeTab initializer in useTripPlanner, so drop it
-  // and the URL stops claiming a tab the user may have since switched away from. The
-  // session memory keeps the choice across a reload. It runs here, right after the
-  // ?create=place intent, because that is the order the two effects have always had.
-  useEffect(() => {
-    if (searchParams.get('tab') === null) return
-    setSearchParams(p => { p.delete('tab'); return p }, { replace: true })
-  }, [searchParams])
   const [showTripForm, setShowTripForm] = useState<boolean>(false)
   const [showMembersModal, setShowMembersModal] = useState<boolean>(false)
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)

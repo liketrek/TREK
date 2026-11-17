@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "加入 TREK";
+"share.cancel" = "取消";
+"share.close" = "關閉";
+"share.trip" = "行程";
+"share.noTrips" = "開啟一次 TREK，你的行程就會顯示在這裡。";
+"share.hint" = "TREK 會讀取訂位並加入行程。";
+"share.later" = "稍後選擇";
+"share.add" = "加入";
+"share.addTo" = "加入 %@";
+"share.added" = "已加入";
+"share.reading" = "正在讀取…";
+"share.tooLarge" = "此檔案太大，無法匯入。";
+"share.unsupported" = "TREK 無法匯入此內容。";
+"share.failed" = "無法傳給 TREK。請重試。";
+"share.now" = "進行中";
+"share.past" = "已結束";
+"share.tomorrow" = "明天";
+"share.inDays" = "%d 天後";
+"share.kind.pass" = "Wallet 票卡";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "郵件";
+"share.kind.page" = "網頁";
+"share.kind.text" = "文字";
+"share.kind.image" = "照片";
+"share.kind.file" = "檔案";

@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Μουσεία & πολιτισμός',
   'poi.cat.nature': 'Φύση & πάρκα',
   'poi.cat.activities': 'Δραστηριότητες',
+  'poi.cat.bakeries': 'Αρτοποιεία',
+  'poi.cat.groceries': 'Παντοπωλεία',
   'poi.pluginCategories': 'Κατηγορίες από πρόσθετα',
   'map.showAllConnections': 'Εμφάνιση όλων των διαδρομών κρατήσεων',
   'map.hideAllConnections': 'Απόκρυψη όλων των διαδρομών κρατήσεων',
@@ -46,5 +48,7 @@ const map: TranslationStrings = {
     'Αυτό το πρόγραμμα περιήγησης δεν προσφέρει WebGL2, που χρειάζονται οι χάρτες GL, οπότε οι χάρτες εμφανίζονται με το Leaflet.',
   'map.webgl2.terrain':
     'Το 3D χρειάζεται WebGL2, που αυτό το πρόγραμμα περιήγησης δεν προσφέρει. Ο χάρτης μένει σε 2D.',
+  'map.offlineBasemap': 'Χάρτης εκτός σύνδεσης',
+  'map.offlineShowStored': 'Εμφάνιση χάρτη εκτός σύνδεσης',
 };
 export default map;

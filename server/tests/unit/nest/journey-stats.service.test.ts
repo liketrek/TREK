@@ -108,6 +108,7 @@ beforeAll(async () => {
     await createTestJourneyPhotosRepo(testDb),
     await createTestJourneyEntryPhotosRepo(testDb),
     await createTestPlacesRepo(testDb),
+    { releaseValues: async () => 0 } as never, // StorageReleaseService
   );
 });
 

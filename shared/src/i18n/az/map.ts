@@ -14,6 +14,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Muzeylər və mədəniyyət',
   'poi.cat.nature': 'Təbiət və parklar',
   'poi.cat.activities': 'Fəaliyyətlər',
+  'poi.cat.bakeries': 'Çörəkxanalar',
+  'poi.cat.groceries': 'Ərzaq mağazaları',
   'poi.pluginCategories': 'Plaginlərdən gələn kateqoriyalar',
 
   'map.showAllConnections': 'Bütün rezervasiya marşrutlarını göstər',
@@ -50,6 +52,8 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Bu brauzer GL xəritələrinin ehtiyac duyduğu WebGL2-ni təqdim etmir, ona görə xəritələr Leaflet ilə göstərilir.',
   'map.webgl2.terrain': '3D üçün WebGL2 lazımdır, bu brauzer isə onu təqdim etmir. Xəritə 2D olaraq qalır.',
+  'map.offlineBasemap': 'Oflayn xəritə',
+  'map.offlineShowStored': 'Oflayn xəritəni göstər',
 };
 
 export default map;

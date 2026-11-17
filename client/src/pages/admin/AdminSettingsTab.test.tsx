@@ -1,4 +1,4 @@
-// FE-ADMSET-001 to FE-ADMSET-043
+// FE-ADMSET-001 to FE-ADMSET-044
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,9 +13,20 @@ import AdminSettingsTab from './AdminSettingsTab';
 type Spy = ReturnType<typeof vi.fn>;
 type Spies = Record<string, Spy> & { toast: Record<string, Spy> };
 
+/** The three tabs the settings are split into (security, services, features), on one page. */
+function AllParts({ admin, t }: { admin: AdminHook; t: ReturnType<typeof useTranslation>['t'] }) {
+  return (
+    <>
+      <AdminSettingsTab admin={admin} t={t} part="security" />
+      <AdminSettingsTab admin={admin} t={t} part="services" />
+      <AdminSettingsTab admin={admin} t={t} part="features" />
+    </>
+  );
+}
+
 function Harness({ admin }: { admin: AdminHook }) {
   const { t } = useTranslation();
-  return <AdminSettingsTab admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
 }
 
 function renderTab(overrides: Record<string, unknown> = {}) {
@@ -71,7 +82,7 @@ function OidcHarness() {
   const { t } = useTranslation();
   const [oidcConfig, setOidcConfig] = React.useState<OidcConfig>(EMPTY_OIDC);
   const admin = buildAdminHook({ oidcConfig, setOidcConfig });
-  return <AdminSettingsTab admin={admin} t={t} />;
+  return <AllParts admin={admin} t={t} />;
 }
 
 beforeEach(() => {
@@ -88,7 +99,8 @@ describe('AdminSettingsTab', () => {
 
     expect(screen.getByRole('heading', { name: 'Authentication Methods' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Passkey login' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /require two-factor/i })).toBeInTheDocument();
+    // Requiring two-factor is a switch of the sign-in card now, not a card of its own.
+    expect(screen.getByText(/require 2fa/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Allowed File Types' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'API Keys' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /single sign-on/i })).toBeInTheDocument();
@@ -143,6 +155,7 @@ describe('AdminSettingsTab', () => {
 
     expect(screen.queryByText('SSO Login')).not.toBeInTheDocument();
     expect(screen.queryByText('SSO Auto-Provisioning')).not.toBeInTheDocument();
+    expect(screen.queryByText('Go straight to SSO')).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-008: SSO login toggle sends the inverted value', () => {
@@ -165,6 +178,14 @@ describe('AdminSettingsTab', () => {
     fireEvent.click(toggleFor('SSO Auto-Provisioning'));
 
     expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith('oidc_registration', true, admin.setOidcRegistration);
+  });
+
+  it('FE-ADMSET-044: the SSO auto redirect toggle sends the inverted value (#2925)', () => {
+    const admin = renderTab({ oidcConfigured: true, oidcAutoRedirect: true });
+
+    fireEvent.click(toggleFor('Go straight to SSO'));
+
+    expect(admin.handleToggleAuthSetting).toHaveBeenCalledWith('oidc_auto_redirect', false, admin.setOidcAutoRedirect);
   });
 
   it('FE-ADMSET-011: passkey toggle sends the inverted value', () => {
@@ -215,7 +236,7 @@ describe('AdminSettingsTab', () => {
   it('FE-ADMSET-016: require-MFA toggle flips the current value', () => {
     const admin = renderTab({ requireMfa: false });
 
-    fireEvent.click(within(card(/require two-factor/i)).getByRole('button'));
+    fireEvent.click(toggleFor('Require 2FA'));
 
     expect(admin.handleToggleRequireMfa).toHaveBeenCalledWith(true);
   });
@@ -331,13 +352,11 @@ describe('AdminSettingsTab', () => {
     expect(screen.queryByRole('button', { name: 'Automatic' })).not.toBeInTheDocument();
   });
 
-  it('FE-ADMSET-022f: a managed install moves file types to the right column', () => {
-    // With place search and the keys gone the right column would stand empty.
+  it('FE-ADMSET-022f: a managed install keeps the file types card on the services tab', () => {
+    // Place search and the keys are the operator's there; the file types stay the admin's.
     renderTab({ managed: true });
 
-    const right = screen.getByRole('heading', { name: 'Allowed File Types' }).closest('.min-w-0');
-    expect(right).not.toBeNull();
-    expect(within(right as HTMLElement).queryByRole('heading', { name: /two-factor/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Allowed File Types' })).toBeInTheDocument();
   });
 
   it('FE-ADMSET-023: the maps Test button is disabled without a key', () => {
@@ -475,7 +494,8 @@ describe('AdminSettingsTab', () => {
     // A key alone does not put Google behind the search; the server ignores the
     // switch under another provider, and the row must not promise otherwise.
     renderTab({ placesGoogleOnly: true, hasMapsKey: true, placesProvider: 'openstreetmap' });
-    const hint = toggleFor('Search with Google only').closest<HTMLElement>('.flex-wrap')!.querySelector('p')!;
+    // The hint sits behind the row's info mark, in the page for a screen reader.
+    const hint = toggleFor('Search with Google only').closest<HTMLElement>('.flex-wrap')!.querySelector('.sr-only')!;
     expect(hint.textContent).not.toMatch(/Every search and every suggestion goes to Google Places/);
     expect(hint.textContent).not.toMatch(/Needs a Google Maps API key/);
     expect(hint.textContent).toMatch(/provider/i);

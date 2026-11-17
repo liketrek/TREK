@@ -6,6 +6,8 @@ import MCollabChat from './MCollabChat'
 import MCollabNotes from './MCollabNotes'
 import MCollabPolls from './MCollabPolls'
 import CollabLinks from '../../../../components/Collab/CollabLinks'
+import { useIsSplit } from '../../../../hooks/sizeClass'
+import { collabBoardFor, collabSideBySide, isCollabBoard } from './collabPanes'
 
 /**
  * Tab 6 — Collab. Routes `shell.collabTab` ('chat' | 'notes' | 'polls', the
@@ -26,10 +28,50 @@ import CollabLinks from '../../../../components/Collab/CollabLinks'
  * deliberately not handled here — see the task report for why.
  */
 export default function MCollabTab({ planner, shell }: MTabScreenProps) {
+  const split = useIsSplit()
+
+  // With room for two panes the conversation stays in view at the trailing edge
+  // while the notes, links or polls it is about fill the page beside it, the way
+  // a comments pane accompanies a document. The header's segment then switches
+  // only the board (MTripShell asks collabPanes.ts the same question).
+  //
+  // The chat keeps its place in the tree either way (a slot that stays empty
+  // still holds its index), so a rotation or a fold that crosses into or out of
+  // two panes keeps the draft and the scroll position instead of remounting it.
+  // That holds for a board picked beside it too: turning an iPad upright then
+  // leaves the board on its own and only hides the chat, with its half typed
+  // message, until the switch brings it back.
+  const sideBySide = collabSideBySide(split, planner.collabFeatures)
+  const board = sideBySide
+    ? collabBoardFor(shell.collabTab, planner.collabFeatures)
+    : isCollabBoard(shell.collabTab) ? shell.collabTab : null
+  const chat = sideBySide || shell.collabTab === 'chat'
+  const keepChat = chat || planner.collabFeatures.chat
+  if (!board && !chat) return null
+  let chatPane = 'hidden'
+  if (sideBySide) chatPane = 'm-pane-trail relative h-full flex-none border-s border-[color:var(--m-rowbr)]'
+  else if (chat) chatPane = 'relative h-full min-w-0 flex-1'
+  return (
+    <div className="flex h-full">
+      {board && (
+        <div className="relative h-full min-w-0 flex-1">
+          <CollabPanel planner={planner} tab={board} />
+        </div>
+      )}
+      {keepChat && (
+        <div className={chatPane}>
+          <CollabPanel planner={planner} tab="chat" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CollabPanel({ planner, tab }: { planner: MTabScreenProps['planner']; tab: MTabScreenProps['shell']['collabTab'] }) {
   const { t } = planner
   const label = t('mobileTrip.collabFeatureDisabled')
 
-  if (shell.collabTab === 'chat') {
+  if (tab === 'chat') {
     if (!planner.collabFeatures.chat) {
       return (
         <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
@@ -40,7 +82,7 @@ export default function MCollabTab({ planner, shell }: MTabScreenProps) {
     return <MCollabChat planner={planner} />
   }
 
-  if (shell.collabTab === 'notes') {
+  if (tab === 'notes') {
     if (!planner.collabFeatures.notes) {
       return (
         <TabScroller>
@@ -51,7 +93,7 @@ export default function MCollabTab({ planner, shell }: MTabScreenProps) {
     return <MCollabNotes planner={planner} />
   }
 
-  if (shell.collabTab === 'links') {
+  if (tab === 'links') {
     if (planner.collabFeatures.links === false) {
       return (
         <TabScroller>
@@ -59,16 +101,18 @@ export default function MCollabTab({ planner, shell }: MTabScreenProps) {
         </TabScroller>
       )
     }
+    // On a wide window the card is as tall as its links: a page-high card with
+    // four rows at its top read as a list that failed to fill.
     return (
       <TabScroller>
-        <div className="min-h-[70vh] overflow-hidden rounded-[18px] bg-[color:var(--m-card)]">
+        <div className="min-h-[70vh] overflow-hidden rounded-[18px] bg-[color:var(--m-card)] wide:min-h-0">
           <CollabLinks tripId={planner.tripId} />
         </div>
       </TabScroller>
     )
   }
 
-  if (shell.collabTab === 'polls') {
+  if (tab === 'polls') {
     if (!planner.collabFeatures.polls) {
       return (
         <TabScroller>

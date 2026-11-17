@@ -259,6 +259,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': '앨범을 찾을 수 없습니다',
   'journey.picker.selectDate': '날짜 선택',
   'journey.picker.search': '검색',
+  'journey.picker.takenBetween': '촬영 기간',
   'journey.editor.uploadingProgress': '업로드 중 {done}/{total}…',
   'journey.editor.uploadFailed': '사진 업로드 실패',
   'journey.editor.uploadPartialFailed':

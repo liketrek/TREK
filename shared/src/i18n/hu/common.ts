@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Amit itt megadtál, még nincs elmentve.',
   'common.keepEditing': 'Szerkesztés folytatása',
   'common.name': 'Név',
+  'common.title': 'Cím',
   'common.email': 'E-mail',
   'common.password': 'Jelszó',
   'common.saving': 'Mentés...',
@@ -80,5 +81,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'A TREK frissült, amíg ez a lap nyitva volt. Töltse újra az új verzióért.',
   'common.errorPluginTitle': 'Ezt a bővítményt nem sikerült megjeleníteni',
   'common.needsConnection': 'Ehhez kapcsolat kell. Próbáld újra, amint a TREK újra online lesz.',
+  'common.errorDetails': 'Részletek',
+  'common.share': 'Megosztás',
 };
 export default common;

@@ -70,11 +70,21 @@ describe('Stars', () => {
     const filled = () => Array.from(container.querySelectorAll('span > span')).filter(o => (o as HTMLElement).style.width).length
 
     expect(filled()).toBe(1)
-    fireEvent.mouseEnter(screen.getByRole('radio', { name: '4' }))
+    fireEvent.pointerEnter(screen.getByRole('radio', { name: '4' }), { pointerType: 'mouse' })
     expect(filled()).toBe(4)
 
-    fireEvent.mouseLeave(container.querySelector('[role="radiogroup"]')!)
+    fireEvent.pointerLeave(container.querySelector('[role="radiogroup"]')!, { pointerType: 'mouse' })
     expect(filled()).toBe(1)
+  })
+
+  it('FE-W4STAR-016: a finger previews nothing, so a tap cannot leave the stars filled', () => {
+    // A tap fires an enter with no leave after it: the preview used to stick,
+    // and an unrated place showed five full stars beside "Not rated yet".
+    const { container } = render(<Stars value={0} onRate={() => {}} />)
+    const filled = () => Array.from(container.querySelectorAll('span > span')).filter(o => (o as HTMLElement).style.width).length
+
+    fireEvent.pointerEnter(screen.getByRole('radio', { name: '5' }), { pointerType: 'touch' })
+    expect(filled()).toBe(0)
   })
 
   it('FE-W4STAR-008: focus previews and blur clears the preview', () => {

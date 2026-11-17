@@ -97,6 +97,18 @@ describe('MNewTripSheet', () => {
     expect(screen.getByText('Add cover image')).toBeInTheDocument();
   });
 
+  it('FE-MOB-NTSH-095: the form uses the shared form chrome: icon header, flat fields, no frame on the focused sheet', () => {
+    render(<MNewTripSheet open trip={null} onClose={() => {}} onSave={() => {}} />);
+    const dialog = screen.getByRole('dialog', { name: 'Create New Trip' });
+    expect(dialog).toHaveClass('m-form-sheet');
+    expect(dialog.querySelector('.m-fs-head')).not.toBeNull();
+    expect(dialog.querySelector('.m-fs-foot')).not.toBeNull();
+    // No section cards inside the card.
+    expect(dialog.querySelector('section')).toBeNull();
+    // Each date has its field to itself: the keyboard entry waits in the picker.
+    expect(screen.queryByRole('button', { name: /enter date manually/i })).toBeNull();
+  });
+
   it('FE-MOB-NTSH-001b: create mode defaults the currency to the user\'s default_currency (#1784)', () => {
     useSettingsStore.setState(s => ({ settings: { ...s.settings, default_currency: 'USD' } }));
     render(<MNewTripSheet open trip={null} onClose={() => {}} onSave={() => {}} />);

@@ -13,10 +13,10 @@ import { lockBodyScroll } from '../../utils/bodyScrollLock'
 import { localIsoDate } from '../../utils/localDate'
 import { journeyOpenAtEntryId } from '../../components/Journey/journeyOpenAt'
 import type { JourneyEntry } from '../../store/journeyStore'
-import { createDraftJourneyEntry, photoUrl } from './JourneyDetailPage.helpers'
+import { createDraftJourneyEntry, entryForPlace, photoUrl } from './JourneyDetailPage.helpers'
 import { useDawarichSuggestions } from '../../hooks/useDawarichSuggestions'
 import { openStaysByDate } from '../../components/Dawarich/dawarichSuggestionModel'
-import type { DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
+import type { DawarichSuggestion, DawarichSuggestionTarget, JourneyMapPlace } from '@trek/shared'
 
 import { useDawarichJournalTrail } from '../../hooks/useDawarichJournalTrail'
 import { useJourneyDetailLayers } from './useJourneyDetailLayers'
@@ -595,5 +595,8 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
     addPickedProviderPhotos: providerPhotos.addPickedPhotos,
     addEntryProviderPhotos: providerPhotos.addEntryPhotos,
+    // A planned place picked on the map that nothing was written about yet: write it up.
+    writeAboutPlace:
+      canEditEntries && current ? (place: JourneyMapPlace) => setEditingEntry(entryForPlace(current, place)) : undefined,
   }
 }

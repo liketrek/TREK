@@ -36,9 +36,10 @@ export interface SsrfResult {
  * that many hosts cannot reach on port 443 while the A record would have
  * answered at once. Every address the guard allows goes to the socket, where
  * Node tries the addresses in turn (autoSelectFamily, the default since Node
- * 20), so an unreachable family costs a quarter of a second instead of the
- * caller's whole timeout. IPv4 leads because that is the family that is
- * reachable from the containers and LXCs TREK usually runs in.
+ * 20), so an unreachable family costs at most one connect attempt per address
+ * (CONNECT_ATTEMPT_TIMEOUT_MS, 2 s, raised at startup in utils/connectAttempt.ts)
+ * instead of the caller's whole timeout. IPv4 leads because that is the family
+ * that is reachable from the containers and LXCs TREK usually runs in.
  */
 async function resolveAll(hostname: string): Promise<{ address: string; family: number }[]> {
   const result = await dns.lookup(hostname, { all: true });

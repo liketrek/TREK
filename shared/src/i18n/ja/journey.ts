@@ -261,6 +261,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'アルバムがありません',
   'journey.picker.selectDate': '日付を選択',
   'journey.picker.search': '検索',
+  'journey.picker.takenBetween': '撮影期間',
   'journey.editor.uploadingProgress': 'アップロード中 {done}/{total}…',
   'journey.editor.uploadFailed': '写真のアップロードに失敗しました',
   'journey.editor.uploadPartialFailed':

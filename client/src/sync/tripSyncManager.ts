@@ -1,5 +1,6 @@
 import { roadtripPreferencesRepo } from '../repo/roadtripPreferencesRepo'
 import { tourRepo } from '../repo/tourRepo'
+import { tripTagRepo } from '../repo/tripTagRepo'
 /**
  * Trip sync manager — seeds Dexie with trip data for offline use.
  *
@@ -153,6 +154,14 @@ async function syncTrip(tripId: number): Promise<void> {
   // trip of a dashboard load spent a request on a 404.
   if (useAddonStore.getState().isEnabled('roadtrip')) {
     await roadtripPreferencesRepo.read(tripId).catch(() => { /* optional cache */ })
+  }
+
+  // The trip's own tags, which the repo keeps as it reads them. Never fatal either.
+  try {
+    await tripTagRepo.list(tripId)
+  } catch {
+    // An optional cache: the places carry the tags they have, so without this
+    // list only the unused ones are missing offline, until the next sync.
   }
 
   // Tours, the same way: optional, and never fatal. Without them every Tour

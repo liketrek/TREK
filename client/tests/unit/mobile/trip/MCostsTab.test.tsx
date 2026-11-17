@@ -16,8 +16,9 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-053
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-059
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -253,7 +254,8 @@ describe('MCostsTab', () => {
 
   it('FE-MOB-COSTT-011: breaks the spend down by category, largest bar first', async () => {
     await renderTab()
-    const block = up(screen.getByText('costs.byCategory'), 1)
+    // The heading sits in its own row now, beside the way to count everything again (#2819).
+    const block = up(screen.getByText('costs.byCategory'), 2)
     const labels = within(block).getAllByText(/^costs\.cat\./).map(n => n.textContent)
     expect(labels).toEqual(['costs.cat.food', 'costs.cat.activities', 'costs.cat.shopping', 'costs.cat.transport'])
     expect(within(block).getByText('$60.00')).toBeInTheDocument()
@@ -298,7 +300,8 @@ describe('MCostsTab', () => {
     expect(chips).toHaveLength(2)
     expect(chips[0]).toHaveAttribute('aria-pressed', 'true')
     expect(chips[1]).toHaveAttribute('aria-pressed', 'false')
-    expect(chips.map(c => c.textContent)).toEqual(['costs.youShort$40.00', '$40.00'])
+    // Your own chip carries your initial too, not the word "You" squeezed into the circle.
+    expect(chips.map(c => c.textContent)).toEqual(['M$40.00', '$40.00'])
   })
 
   it('FE-MOB-COSTT-017: toggles a member chip to paid', async () => {
@@ -655,7 +658,7 @@ describe('MCostsTab', () => {
     expect(within(card).getAllByText('+$58.00')).toHaveLength(2)
     expect(within(card).queryByText(/60\.00/)).not.toBeInTheDocument()
     // Named by what Bob entered, as the list names it (#2525), never re-converted.
-    expect(within(card).getByText('Museum · £30.00')).toBeInTheDocument()
+    expect(within(card).getByText('Museum (£30.00)')).toBeInTheDocument()
 
     fireEvent.click(bob)
     expect(bob).toHaveAttribute('aria-expanded', 'false')
@@ -930,5 +933,97 @@ describe('MCostsTab', () => {
     await screen.findByText('+$12.50')
     expect(screen.queryByText('sheet editing 12')).not.toBeInTheDocument()
     expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-COSTT-054: with room for two panes the summary stands beside the expenses, and the search keeps to their column', async () => {
+    setSizeClass('split')
+    await renderTab()
+    const summary = screen.getByRole('complementary', { name: 'budget.title' })
+    expect(within(summary).getByText('costs.totalSpend')).toBeInTheDocument()
+    expect(within(summary).queryByPlaceholderText('costs.searchPlaceholder')).not.toBeInTheDocument()
+
+    const expenses = screen.getByRole('region', { name: 'costs.expenses' })
+    expect(within(expenses).getByPlaceholderText('costs.searchPlaceholder')).toBeInTheDocument()
+    expect(within(expenses).getByRole('heading', { name: 'costs.expenses' })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-055: in Arabic a signed balance and an amount read as one left-to-right run, and a payment names who paid whom in reading order', async () => {
+    const payment = { id: 503, from_user_id: 3, to_user_id: 1, amount: 15, currency: 'USD', created_at: '2026-06-15T09:00:00Z' }
+    serveSettlement({ ...SETTLEMENT, settlements: [payment] })
+    // The page reads right to left for the whole render (the translation provider
+    // would otherwise set it back to the test's English).
+    Object.defineProperty(document.documentElement, 'dir', { configurable: true, get: () => 'rtl', set: () => {} })
+    try {
+      await renderTab()
+      const settle = up(screen.getByText('costs.settleUp'), 3)
+      // The sign stays in front of the figure instead of trailing it.
+      expect(within(settle).getByText('+$12.50')).toHaveAttribute('dir', 'ltr')
+      expect(within(settle).getByText('−$7.25')).toHaveAttribute('dir', 'ltr')
+      expect(within(settle).getByText('$40.00')).toHaveAttribute('dir', 'ltr')
+      // Names keep their own direction, so a Latin one loses its end when cut.
+      expect(within(settle).getByText('Ghost')).toHaveAttribute('dir', 'auto')
+      // Each name isolated, the arrow pointing left from the payer to the payee.
+      expect(screen.getByText('\u2068Bob\u2069 ← \u2068costs.you\u2069')).toBeInTheDocument()
+    } finally {
+      // Back to the prototype's reflected attribute.
+      delete (document.documentElement as { dir?: string }).dir
+    }
+  })
+
+  it('FE-MOB-COSTT-056: a trip of one shows the total and the categories, nothing owed or to settle (#2689)', async () => {
+    serveSettlement({ balances: [], flows: [], settlements: [] })
+    const solo = planner({ tripMembers: [MEMBERS[0]] as unknown as TripPlanner['tripMembers'], budgetItems: [TAXI, SOUVENIR] })
+    render(<MCostsTab planner={solo} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    expect(screen.getByText('costs.totalSpend')).toBeInTheDocument()
+    expect(screen.getByText('costs.byCategory')).toBeInTheDocument()
+    for (const key of ['costs.yourShare', 'costs.youOwe', 'costs.outstanding', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    // The souvenirs nobody paid for are an expense like any other here.
+    expect(screen.getByText('Souvenirs')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-057: a trip that keeps totals only leaves out what is owed, and its switch turns splitting back on (#1714)', async () => {
+    const updateTrip = vi.fn(async () => TRIP)
+    useTripStore.setState({ updateTrip })
+    render(<MCostsTab planner={planner({ trip: { ...TRIP, costs_mode: 'totals' } as Trip })} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    for (const key of ['costs.youOwe', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    const toggle = screen.getByRole('button', { name: 'costs.mode.label' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('costs.mode.hintTotals')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(updateTrip).toHaveBeenCalledWith(7, { costs_mode: 'split' }))
+  })
+
+  it('FE-MOB-COSTT-058: a tapped category leaves the total and is named, and Count all brings it back (#2819)', async () => {
+    await renderTab()
+    const total = () => up(screen.getByText('costs.totalSpend'), 1)
+    const before = total().textContent
+    expect(screen.queryByText('costs.breakdown.countAll')).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /^costs\.breakdown\.leaveOut:/ })[0])
+    expect(total().textContent).not.toBe(before)
+    expect(within(total()).getByText(/^costs\.breakdown\.leftOut:/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^costs\.breakdown\.countIn:/ })).toHaveClass('opacity-45')
+    fireEvent.click(screen.getByText('costs.breakdown.countAll'))
+    expect(total().textContent).toBe(before)
+    expect(screen.queryByRole('button', { name: /^costs\.breakdown\.countIn:/ })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-059: the heading carries the currency the tab reads in, and a pick reads the balances again in it (#1683)', async () => {
+    localStorage.removeItem('trek:costs-currency:7')
+    try {
+      await renderTab()
+      const picker = screen.getByRole('button', { name: 'Show amounts in' })
+      expect(picker).toHaveTextContent('USD')
+      fireEvent.click(picker)
+      fireEvent.click(await screen.findByText(/^GBP\s/))
+      await waitFor(() => expect(settlementBases).toContain('GBP'))
+    } finally {
+      localStorage.removeItem('trek:costs-currency:7')
+    }
   })
 })

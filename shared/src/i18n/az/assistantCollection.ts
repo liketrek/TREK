@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': '{name} siyahısına köçür',
   'assistant.card.collection.removed': 'Siyahıdan çıxarıldı',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Xəritə qeydi',
   'assistant.card.collection.places': '{name} siyahısındakı saxlanılmış məkanlar',
   'assistant.card.collection.saved': 'Saxlanılmış məkanlar',
   'assistant.card.collection.statusSet': '{count} saxlanılmış məkan dəyişdi',

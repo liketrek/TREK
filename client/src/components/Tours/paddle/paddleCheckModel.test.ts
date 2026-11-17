@@ -1,4 +1,4 @@
-// PCM-001 to PCM-019: the check bench of a paddle tour in one pill, how the dates of the checklist read, where the
+// PCM-001 to PCM-020: the check bench of a paddle tour in one pill, how the dates of the checklist read, where the
 // camera goes for an entry and the order the checklist lists its rows in (PAD-06, PAD-09).
 import { Ban, CircleDashed, ListChecks } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
@@ -145,6 +145,13 @@ describe('formatCheckDate', () => {
     expect(formatCheckDate('last summer', 'en')).toBe('last summer');
     expect(formatCheckDate('', 'en')).toBe('');
     expect(formatCheckDate('2026-05', 'not a language')).toBe('2026-05');
+  });
+
+  it('PCM-020: a day takes the chosen date format where the language writes it in numbers, a month stays named', () => {
+    expect(formatCheckDate('2026-10-01', 'de', 'YYYY-MM-DD')).toBe('2026-10-01');
+    expect(formatCheckDate('2026-10-01', 'de', 'auto')).toBe(formatCheckDate('2026-10-01', 'de'));
+    expect(formatCheckDate('2026-10-01', 'en', 'YYYY-MM-DD')).toMatch(/Oct.*1.*2026/);
+    expect(formatCheckDate('2026-05', 'de', 'YYYY-MM-DD')).toBe(formatCheckDate('2026-05', 'de'));
   });
 });
 

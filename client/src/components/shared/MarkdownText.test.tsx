@@ -41,4 +41,23 @@ describe('MarkdownText', () => {
     expect(wrapper.className).toContain('truncate')
     expect(wrapper.className).toContain('text-m-muted')
   })
+
+  it('FE-MDTEXT-007: a clamped row takes its direction from its own text, so a Latin address in Arabic is cut at its end', () => {
+    const { container } = render(<MarkdownText clamp>{'68 Fukakusa Yabunouchicho, Fushimi Ward, Kyoto'}</MarkdownText>)
+    const wrapper = container.firstElementChild as HTMLElement
+    expect(wrapper).toHaveAttribute('dir', 'auto')
+    expect(wrapper).toHaveClass('truncate')
+    // No isolate inside: dir="auto" would not see the text through a <bdi>.
+    expect(wrapper.querySelector('bdi')).toBeNull()
+  })
+
+  it('FE-MDTEXT-008: in a full view each paragraph runs in its own direction, inside its block', () => {
+    const text = ["Kyoto's kitchen: pickles and matcha everything.", 'Second paragraph?'].join('\n\n')
+    const { container } = render(<MarkdownText>{text}</MarkdownText>)
+    expect(container.firstElementChild).not.toHaveAttribute('dir')
+    const paragraphs = container.querySelectorAll('p')
+    expect(paragraphs).toHaveLength(2)
+    paragraphs.forEach(p => expect(p.firstElementChild?.tagName).toBe('BDI'))
+    expect(paragraphs[1].textContent).toBe('Second paragraph?')
+  })
 })

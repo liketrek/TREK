@@ -7,11 +7,13 @@ import { LlmConfigResolver } from './llm-config.resolver';
 import { LlmLocalController } from './llm-local.controller';
 import { LlmLocalService } from './llm-local.service';
 import { LlmParseService } from './llm-parse.service';
+import { MailReadService } from './mail-read.service';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 
 /**
  * Provides the LLM booking-import fallback; imported by BookingImportModule.
+ * Exports MailReadService for the booking mail import (MailIngestModule).
  * Exports LlmConfigResolver for the plugin host surface (HostSurfaceRpc), and
  * LlmLocalService for the AI assistant, which lists a custom server's models
  * the same way the admin screen does.
@@ -26,7 +28,7 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [AppConfigModule, SettingsModule, AddonsModule, MikroOrmModule.forFeature([Addons])],
   controllers: [LlmLocalController, LlmCapabilitiesController],
-  providers: [LlmParseService, LlmLocalService, LlmConfigResolver],
-  exports: [LlmParseService, LlmConfigResolver, LlmLocalService],
+  providers: [LlmParseService, LlmLocalService, LlmConfigResolver, MailReadService],
+  exports: [LlmParseService, LlmConfigResolver, LlmLocalService, MailReadService],
 })
 export class LlmParseModule {}

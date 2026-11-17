@@ -3,9 +3,10 @@ import React, { useId } from 'react'
 import { useTranslation } from '../../i18n'
 import { useFormatDate } from '../../hooks/useDateFormat'
 import { useToast } from '../shared/Toast'
-import { Trash2, Copy, Terminal, Plus, Check, Key, KeyRound, ChevronRight, RefreshCw, AlertTriangle, Link2 } from 'lucide-react'
+import { Trash2, Copy, Terminal, Plus, Check, Key, KeyRound, RefreshCw, AlertTriangle, Link2 } from 'lucide-react'
 import PhotoProvidersSection from './PhotoProvidersSection'
 import AirTrailConnectionSection from './AirTrailConnectionSection'
+import MailImportSection from './MailImportSection'
 import DawarichConnectionSection from './DawarichConnectionSection'
 import LlmConnectionSection from './LlmConnectionSection'
 import AiConnectionSection from './ai/AiConnectionSection'
@@ -15,7 +16,7 @@ import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
 import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { EditorField, INPUT, Segmented, TEXTAREA } from '../shared/dialogParts'
-import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON, SettingRows, SettingsHint, StatusPill } from './settingsKit'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON, SettingRows, SettingsColumns, SettingsHint, StatusPill } from './settingsKit'
 import { OAUTH_PRESETS, useMcpIntegration, type OAuthClient } from './useMcpIntegration'
 import { useIntegrationGates } from './useIntegrationGates'
 import WandererConnectionSection from './WandererConnectionSection'
@@ -28,33 +29,43 @@ export default function IntegrationsTab(): React.ReactElement {
   const demoLocked = useDemoAccountLock()
   return (
     <>
-      {/* Immich, Synology Photos and AirTrail all connect to a server the reader
-          runs themselves. On a managed install there is none, and every one of
-          these would ask for an address that cannot be reached from here. */}
-      {!managed && <PhotoProvidersSection />}
-      {S.airtrailEnabled && !managed && <AirTrailConnectionSection />}
-      {S.dawarichEnabled && !managed && <DawarichConnectionSection />}
-      {S.wandererEnabled && !managed && <WandererConnectionSection />}
-      {/* Which model reads a booking, and what that costs, comes with the instance on
-       a managed install. The per-user fallback exists for people who supply their
-       own key, and there nobody does. */}
-      {/* The assistant in TREK, with the same managed rule as AI parsing: there the
-          operator decides which model the install talks to. */}
-      {S.aiConnectionEnabled && !managed && (
-        <AiConnectionSection assistant={S.aiAssistantEnabled} parsing={S.llmEnabled} />
-      )}
-      {S.llmEnabled && S.ownParsing && !managed && <LlmConnectionSection />}
-      {/* Above MCP on purpose: an API key needs no addon, and someone looking for
-          one should not have to read past a section about AI assistants. */}
-      <DemoLock locked={demoLocked} reason={S.t('demo.lock.apiKeys')}>
-        <ApiKeysSection />
-      </DemoLock>
-      {/* TREK inside Claude rides on the MCP server, so it follows that addon. */}
-      {S.mcpEnabled && (
-        <DemoLock locked={demoLocked} reason={S.t('demo.lock.mcp')}>
-          <IntegrationsMcpSection S={S} />
-        </DemoLock>
-      )}
+      {/* What connects your trips with other services on the left, AI and
+          developer access on the right, every card open on the page. */}
+      <SettingsColumns
+        start={
+          <>
+            {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
+            <MailImportSection />
+            {/* Immich, Synology Photos and AirTrail all connect to a server the reader
+                runs themselves. On a managed install there is none, and every one of
+                these would ask for an address that cannot be reached from here. */}
+            {!managed && <PhotoProvidersSection />}
+            {S.airtrailEnabled && !managed && <AirTrailConnectionSection />}
+            {S.dawarichEnabled && !managed && <DawarichConnectionSection />}
+            {S.wandererEnabled && !managed && <WandererConnectionSection />}
+            {/* The assistant and AI parsing: on a managed install the operator decides
+                which model the install talks to, so neither is offered there. */}
+            {S.aiConnectionEnabled && !managed && (
+              <AiConnectionSection assistant={S.aiAssistantEnabled} parsing={S.llmEnabled} />
+            )}
+            {S.llmEnabled && S.ownParsing && !managed && <LlmConnectionSection />}
+          </>
+        }
+        end={
+          <>
+            {/* An API key needs no addon, so it leads, ahead of the MCP row. */}
+            <DemoLock locked={demoLocked} reason={S.t('demo.lock.apiKeys')}>
+              <ApiKeysSection />
+            </DemoLock>
+            {/* TREK inside Claude rides on the MCP server, so it follows that addon. */}
+            {S.mcpEnabled && (
+              <DemoLock locked={demoLocked} reason={S.t('demo.lock.mcp')}>
+                <IntegrationsMcpSection S={S} />
+              </DemoLock>
+            )}
+          </>
+        }
+      />
       <McpTokenModals S={S} />
       <OAuthClientModals S={S} />
     </>
@@ -136,10 +147,8 @@ function EmptyHint({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** The mcp-remote snippet, folded away until asked for. */
-function ConfigBlock({ open, onToggle, json, hint, copied, onCopy, t }: {
-  open: boolean
-  onToggle: () => void
+/** The mcp-remote snippet, shown with its copy button. */
+function ConfigBlock({ json, hint, copied, onCopy, t }: {
   json: string
   hint: string
   copied: boolean
@@ -148,33 +157,26 @@ function ConfigBlock({ open, onToggle, json, hint, copied, onCopy, t }: {
 }) {
   return (
     <div className="overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card">
-      <button type="button" onClick={onToggle} aria-expanded={open}
-        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-start hover:bg-surface-secondary">
-        <ChevronRight size={15} strokeWidth={2.2} className={`flex-none text-content-faint transition-transform ${open ? 'rotate-90' : ''}`} />
+      <div className="flex items-center gap-2 px-3.5 py-2.5">
         <span className="flex-1 font-medium text-content" style={fs(13, 'body')}>{t('settings.mcp.clientConfig')}</span>
-      </button>
-      {open && (
-        <div className="flex flex-col gap-2 border-t border-edge-faint p-3.5">
-          <div className="flex justify-end">
-            <button type="button" onClick={onCopy} className={`${SMALL_BUTTON} hover:text-content`} style={fs(12, 'body')}>
-              {copied ? <Check size={13} strokeWidth={2.2} className="text-success" /> : <Copy size={13} strokeWidth={2} />}
-              {copied ? t('settings.mcp.copied') : t('settings.mcp.copy')}
-            </button>
-          </div>
-          <pre className="m-0 max-h-80 overflow-auto rounded-[10px] border border-edge-faint bg-surface-secondary p-3 font-mono leading-relaxed text-content" style={fs(11.5)}>
-            {json}
-          </pre>
-          <SettingsHint>{hint}</SettingsHint>
-        </div>
-      )}
+        <button type="button" onClick={onCopy} className={`${SMALL_BUTTON} hover:text-content`} style={fs(12, 'body')}>
+          {copied ? <Check size={13} strokeWidth={2.2} className="text-success" /> : <Copy size={13} strokeWidth={2} />}
+          {copied ? t('settings.mcp.copied') : t('settings.mcp.copy')}
+        </button>
+      </div>
+      <div className="flex flex-col gap-2 border-t border-edge-faint p-3.5">
+        <pre className="m-0 max-h-80 overflow-auto rounded-[10px] border border-edge-faint bg-surface-secondary p-3 font-mono leading-relaxed text-content" style={fs(11.5)}>
+          {json}
+        </pre>
+        <SettingsHint>{hint}</SettingsHint>
+      </div>
     </div>
   )
 }
 
 /** One registered OAuth client: what it is, the scopes it may use, and its two actions. */
 function OAuthClientRow({ client, S }: { client: OAuthClient; S: IntegrationsState }) {
-  const { t, formatDate, oauthScopesExpanded, setOauthScopesExpanded, setOauthRotateId, setOauthDeleteId } = S
-  const expanded = !!oauthScopesExpanded[client.id]
+  const { t, formatDate, setOauthRotateId, setOauthDeleteId } = S
   return (
     <div className={`${ROW} items-start`}>
       <span className={ROW_TILE}><KeyRound size={15} strokeWidth={2} /></span>
@@ -190,17 +192,10 @@ function OAuthClientRow({ client, S }: { client: OAuthClient; S: IntegrationsSta
           <span className="tabular-nums">{t('settings.mcp.tokenCreatedAt')} {formatDate(new Date(client.created_at))}</span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1" style={fs(10.5)}>
-          {(expanded ? client.allowed_scopes : client.allowed_scopes.slice(0, 5)).map(s => (
+          {/* Every scope the client may use, none folded behind a "+N". */}
+          {client.allowed_scopes.map(s => (
             <span key={s} className={CHIP}>{s}</span>
           ))}
-          {client.allowed_scopes.length > 5 && (
-            <button
-              type="button"
-              onClick={() => setOauthScopesExpanded(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
-              className={`${CHIP} tabular-nums hover:text-content`}>
-              {expanded ? '−' : `+${client.allowed_scopes.length - 5}`}
-            </button>
-          )}
         </div>
       </div>
       <div className="flex flex-none items-center gap-1.5">
@@ -218,13 +213,11 @@ function OAuthClientRow({ client, S }: { client: OAuthClient; S: IntegrationsSta
 /** The OAuth tab: the snippet, the registered clients and the sessions they hold. */
 function OAuthTab({ S }: { S: IntegrationsState }) {
   const {
-    t, formatDate, oauthClients, oauthSessions, setOauthCreateOpen, setOauthNewName, setOauthNewUris, setOauthNewScopes, setOauthCreatedClient, setOauthRevokeId, setOauthIsMachine, configOpenOAuth, setConfigOpenOAuth, copiedKey, mcpJsonConfigOAuth, handleCopy,
+    t, formatDate, oauthClients, oauthSessions, setOauthCreateOpen, setOauthNewName, setOauthNewUris, setOauthNewScopes, setOauthCreatedClient, setOauthRevokeId, setOauthIsMachine, copiedKey, mcpJsonConfigOAuth, handleCopy,
   } = S
   return (
     <>
       <ConfigBlock
-        open={configOpenOAuth}
-        onToggle={() => setConfigOpenOAuth(o => !o)}
         json={mcpJsonConfigOAuth}
         hint={t('settings.mcp.clientConfigHintOAuth')}
         copied={copiedKey === 'json-oauth'}
@@ -236,7 +229,7 @@ function OAuthTab({ S }: { S: IntegrationsState }) {
         <div className="flex flex-wrap items-center gap-3">
           <SettingsHint className="min-w-0 flex-1 basis-64">{t('settings.oauth.clientsHint')}</SettingsHint>
           <button type="button" onClick={() => { setOauthCreateOpen(true); setOauthCreatedClient(null); setOauthNewName(''); setOauthNewUris(''); setOauthNewScopes([]); setOauthIsMachine(false) }}
-            className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+            className={SETTINGS_BUTTON_PRIMARY}>
             <Plus size={14} strokeWidth={2.2} /> {t('settings.oauth.createClient')}
           </button>
         </div>
@@ -280,14 +273,12 @@ function OAuthTab({ S }: { S: IntegrationsState }) {
 
 /** The deprecated API tokens tab: the warning, the snippet and the tokens. */
 function ApiTokensTab({ S }: { S: IntegrationsState }) {
-  const { t, formatDate, configOpenToken, setConfigOpenToken, mcpTokens, setMcpModalOpen, setMcpNewName, setMcpCreatedToken, setMcpDeleteId, copiedKey, mcpJsonConfig, handleCopy } = S
+  const { t, formatDate, mcpTokens, setMcpModalOpen, setMcpNewName, setMcpCreatedToken, setMcpDeleteId, copiedKey, mcpJsonConfig, handleCopy } = S
   return (
     <>
       <WarningNote>{t('settings.mcp.apiTokensDeprecated')}</WarningNote>
 
       <ConfigBlock
-        open={configOpenToken}
-        onToggle={() => setConfigOpenToken(o => !o)}
         json={mcpJsonConfig}
         hint={t('settings.mcp.clientConfigHint')}
         copied={copiedKey === 'json-token'}
@@ -297,7 +288,7 @@ function ApiTokensTab({ S }: { S: IntegrationsState }) {
 
       <div className="flex justify-end">
         <button type="button" onClick={() => { setMcpModalOpen(true); setMcpCreatedToken(null); setMcpNewName('') }}
-          className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+          className={SETTINGS_BUTTON}>
           <Plus size={14} strokeWidth={2.2} /> {t('settings.mcp.createToken')}
         </button>
       </div>
@@ -331,9 +322,20 @@ function ApiTokensTab({ S }: { S: IntegrationsState }) {
 }
 
 function IntegrationsMcpSection({ S }: { S: IntegrationsState }) {
-  const { t, activeMcpTab, setActiveMcpTab, copiedKey, mcpEndpoint, handleCopy } = S
+  const { t, activeMcpTab, setActiveMcpTab, copiedKey, mcpEndpoint, handleCopy, oauthSessions } = S
+  // Connected means signed in now: an OAuth session, which is what an app holds while it reaches TREK.
+  const connected = oauthSessions.length
   return (
-    <Section title={t('settings.mcp.title')} icon={Terminal}>
+    <Section
+      id="mcp"
+      title={t('settings.mcp.title')}
+      icon={Terminal}
+      badge={
+        connected > 0
+          ? <StatusPill tone="success" icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{t('settings.mcp.appsConnected', { count: connected })}</StatusPill>
+          : <StatusPill icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>{t('settings.notSetUp')}</StatusPill>
+      }
+    >
       {/* Endpoint URL */}
       <EditorField label={t('settings.mcp.endpoint')}>
         <CopyValue value={mcpEndpoint} copied={copiedKey === 'endpoint'} label={t('settings.mcp.copy')} onCopy={() => handleCopy(mcpEndpoint, 'endpoint')} />

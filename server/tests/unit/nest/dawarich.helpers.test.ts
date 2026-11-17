@@ -25,6 +25,7 @@ import {
   localDateOf,
   mergeVisitedCountries,
   minutesBetween,
+  nameFromGeocodedPoints,
   normalizeVisit,
   offsetMinutesOf,
   parseTimeWindow,
@@ -273,6 +274,7 @@ describe('normalizeVisit', () => {
     expect(normalizeVisit(BASE_VISIT)).toEqual({
       sourceVisitId: '42',
       name: 'Cafe Kranzler',
+      named: true,
       lat: 52.5,
       lng: 13.4,
       startedAt: '2024-06-15T18:30:00+02:00',
@@ -301,6 +303,7 @@ describe('normalizeVisit', () => {
     expect(normalizeVisit(sparse)).toEqual({
       sourceVisitId: '9',
       name: 'Unnamed stay',
+      named: false,
       lat: null,
       lng: null,
       startedAt: '2024-06-15T18:30:00Z',
@@ -422,6 +425,52 @@ describe('normalizeVisit', () => {
       expect(result?.endedAt).toBe(new Date(Date.parse(result!.startedAt)).toISOString());
       expect(result?.durationMinutes).toBe(0);
     }
+  });
+
+  it("DAWARICH-VISIT-018: Dawarich's placeholder names count as no name (#3105)", () => {
+    for (const name of ['Unknown Location', 'Suggested place', ' unknown location ']) {
+      const result = normalizeVisit(visit({ name, place: { latitude: 38.18, longitude: 13.14, id: null } }));
+      expect(result).toMatchObject({ name: 'Unnamed stay', named: false });
+    }
+  });
+
+  it("DAWARICH-VISIT-019: a nameless visit takes its place's name, then the place's address", () => {
+    const place = { latitude: 52.5, longitude: 13.4, id: 7 };
+    expect(normalizeVisit(visit({ name: 'Unknown Location', place: { ...place, name: 'Lido' } }))).toMatchObject({
+      name: 'Lido',
+      named: true,
+    });
+    expect(
+      normalizeVisit(
+        visit({ name: 'Suggested place', place: { ...place, name: 'Suggested place', address: 'Via Roma 1, Cinisi' } }),
+      ),
+    ).toMatchObject({ name: 'Via Roma 1, Cinisi', named: true });
+  });
+
+  it('DAWARICH-VISIT-020: a visit without a place is placed at the middle of its points', () => {
+    const result = normalizeVisit(visit({ place: null, center: { latitude: '38.178824', longitude: 13.140629 } }));
+    expect(result?.lat).toBeCloseTo(38.178824, 6);
+    expect(result?.lng).toBeCloseTo(13.140629, 6);
+  });
+});
+
+describe('nameFromGeocodedPoints', () => {
+  it('DAWARICH-VISIT-021: names a stay after the city most of its points fall in, with the country', () => {
+    expect(
+      nameFromGeocodedPoints([
+        { city: null, country_name: null },
+        { city: 'Terrasini', country_name: 'Italy' },
+        { city: 'Cinisi', country_name: 'Italy' },
+        { city: 'Cinisi', country_name: 'Italy' },
+      ]),
+    ).toBe('Cinisi, Italy');
+  });
+
+  it('DAWARICH-VISIT-022: falls back to the country, and to nothing when no point was geocoded', () => {
+    expect(nameFromGeocodedPoints([{ city: '', country_name: 'Italy' }, { country_name: null }])).toBe('Italy');
+    expect(nameFromGeocodedPoints([{ city: 'Cinisi', country_name: null }])).toBe('Cinisi');
+    expect(nameFromGeocodedPoints([{ city: null, country_name: null }])).toBeNull();
+    expect(nameFromGeocodedPoints([])).toBeNull();
   });
 });
 

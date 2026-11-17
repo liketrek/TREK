@@ -361,6 +361,7 @@ export async function createPluginRpcHostParts(
     await createTestJourneyPhotosRepo(db),
     await createTestJourneyEntryPhotosRepo(db),
     await createTestPlacesRepo(db),
+    { releaseValues: async () => 0 } as never, // StorageReleaseService
   );
   const atlas = new AtlasService(
     await createTestBucketListRepo(db),

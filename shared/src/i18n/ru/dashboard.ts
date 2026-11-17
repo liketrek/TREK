@@ -271,5 +271,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Добавить в Календарь Apple / Outlook',
   'dashboard.ics.copyManually': 'Или скопируйте ссылку вручную',
   'dashboard.ics.pasteFromUrl': 'вставьте в поле «По URL»',
+  'dashboard.ics.dayEvents': 'События с обзором дня',
+  'dashboard.ics.dayEventsHint':
+    'Событие на весь день для каждого дня с местами и заметками без времени. При изменении этой настройки меняется ссылка, поэтому подпишитесь заново по новой ссылке.',
 };
 export default dashboard;

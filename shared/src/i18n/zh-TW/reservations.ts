@@ -35,7 +35,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': '轉乘航班',
   'reservations.layover.layover': '轉機等候',
   'reservations.needsReview': '待確認',
-  'reservations.needsReviewHint': '無法自動匹配機場 — 請確認位置。',
+  'reservations.needsReviewHint': '部分資訊是自動填入的，可能沒有讀取準確。請檢查一下。',
+  'reservations.reviewConfirm': '沒問題',
+  'reservations.reviewConfirmHint': '點擊標記為已檢查。',
+  'reservations.reviewConfirmed': '已標記為已檢查',
   'reservations.searchLocation': '搜尋車站、港口、地址...',
   'reservations.meta.trainNumber': '車次',
   'reservations.meta.platform': '站臺',
@@ -261,5 +264,9 @@ const reservations: TranslationStrings = {
   'reservations.filesNeedConnection': '上傳檔案需要網路連線。移除新檔案即可離線儲存這筆預訂，或在恢復連線後再儲存。',
   'reservations.needsConnection': '此操作需要網路連線。請在 TREK 恢復連線後再試一次。',
   'reservations.exportCsvFiltered': '匯出顯示的 {shown}/{total} 列 (CSV)',
+  'reservations.wallet.add': '加入 Apple 錢包',
+  'reservations.wallet.addGoogle': '加入 Google 錢包',
+  'reservations.wallet.failed': '無法產生錢包票卡。請重試。',
+  'reservations.wallet.undated': '請先為訂位設定日期：錢包會在那個時間前後顯示票卡。',
 };
 export default reservations;

@@ -120,8 +120,13 @@ export class AddonsService {
     return this.photoProviders.listEnabledIds();
   }
 
-  /** wanderer may be used: Tours is on and the admin allowed it under Tours. */
+  /**
+   * wanderer may be used: Tours is on and the admin allowed it under Tours. Never on a managed
+   * install, where it would send searches to a server the user picks; the admin switch is locked
+   * there, so a value stored before the install became managed must not keep it on.
+   */
   async isWandererAvailable(): Promise<boolean> {
+    if (readEnv().managed.enabled) return false;
     return (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursWanderer()).enabled;
   }
 

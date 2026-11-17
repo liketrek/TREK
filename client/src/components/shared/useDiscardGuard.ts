@@ -22,15 +22,21 @@ export function useDiscardGuard(guard: unknown, onClose: () => void) {
     if (guardRef.current !== undefined && baseline.current === null) baseline.current = snapshot(guardRef.current)
   }, [])
 
+  /** Whether a way out right now would stop to ask rather than close. */
+  const wouldAsk = useCallback(
+    () => guardRef.current !== undefined && baseline.current !== null && snapshot(guardRef.current) !== baseline.current,
+    [],
+  )
+
   const requestClose = useCallback(() => {
-    if (guardRef.current !== undefined && baseline.current !== null && snapshot(guardRef.current) !== baseline.current) setAsking(true)
+    if (wouldAsk()) setAsking(true)
     else onClose()
-  }, [onClose])
+  }, [onClose, wouldAsk])
 
   const keepEditing = useCallback(() => setAsking(false), [])
   const discard = useCallback(() => { setAsking(false); onClose() }, [onClose])
   /** Forget the starting point, for a surface that stays mounted between openings. */
   const reset = useCallback(() => { baseline.current = null; setAsking(false) }, [])
 
-  return { asking, markStart, requestClose, keepEditing, discard, reset }
+  return { asking, markStart, requestClose, wouldAsk, keepEditing, discard, reset }
 }

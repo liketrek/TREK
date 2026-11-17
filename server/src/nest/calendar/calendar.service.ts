@@ -14,7 +14,7 @@ import { addDays } from '../days/days.service';
 import { ReservationsService } from '../reservations/reservations.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { isTransportReservationType } from '@trek/shared';
+import { isTransportReservationType, type TripCalendarQuery } from '@trek/shared';
 
 /** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
 export const CALENDAR_HEADER =
@@ -30,6 +30,17 @@ export interface TripCalendar {
   timezones: Map<string, string>;
   /** One complete BEGIN:VEVENT…END:VEVENT block each, unfolded, in emission order. */
   events: string[];
+}
+
+/** What a trip's calendar holds beyond the trip itself, its timed stops and its bookings. */
+export interface TripCalendarOptions {
+  /** The all-day summary per day with untimed stops or notes ("Day 1", ...). On unless set to false (#2602). */
+  dayEvents?: boolean;
+}
+
+/** The options a calendar request asks for: `days=0` leaves out the per-day summaries. */
+export function calendarOptionsFromQuery(query: TripCalendarQuery): TripCalendarOptions {
+  return { dayEvents: query.days !== '0' };
 }
 
 // ── ICS folding ─────────────────────────────────────────────────────────────
@@ -240,7 +251,7 @@ export class CalendarService {
    * because a user-supplied SUMMARY can legitimately contain the literal
    * "END:VEVENT". Handing out the parts removes the need to reassemble them.
    */
-  async buildTripCalendar(tripId: string | number): Promise<TripCalendar> {
+  async buildTripCalendar(tripId: string | number, options: TripCalendarOptions = {}): Promise<TripCalendar> {
     const trip = await this.tripsRepo.findRaw(tripId);
     if (!trip) throw new NotFoundError('Trip not found');
 
@@ -363,8 +374,10 @@ export class CalendarService {
         events.push(ev);
       }
 
-      // Build all-day summary event if there are untimed activities or notes
-      if (untimed.length > 0 || notes.length > 0) {
+      // Build all-day summary event if there are untimed activities or notes,
+      // unless the subscriber asked for a calendar without them: the summary
+      // sits above every day and can crowd out everything else there (#2602).
+      if (options.dayEvents !== false && (untimed.length > 0 || notes.length > 0)) {
         const dayTitle = day.title || `Day ${day.day_number}`;
         const endStr = fmtDate(addDays(day.date, 1));
 
@@ -914,8 +927,11 @@ export class CalendarService {
   }
 
   /** One trip's calendar as a finished, foldable VCALENDAR document. */
-  async exportICS(tripId: string | number): Promise<{ ics: string; filename: string }> {
-    const cal = await this.buildTripCalendar(tripId);
+  async exportICS(
+    tripId: string | number,
+    options: TripCalendarOptions = {},
+  ): Promise<{ ics: string; filename: string }> {
+    const cal = await this.buildTripCalendar(tripId, options);
     const ics =
       CALENDAR_HEADER +
       `X-WR-CALNAME:${cal.calName}\r\n` +

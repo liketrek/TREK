@@ -285,6 +285,16 @@ describe('saved places + dedup', () => {
     expect(res.place!.tags?.map((t) => t.name)).toContain('food');
   });
 
+  it('COLLECTIONS-SVC-012b: savePlace leaves out a tag that belongs to a trip', async () => {
+    const u = createUser(testDb).user;
+    const own = createTag(testDb, u.id, { name: 'food' });
+    const ofTrip = createTag(testDb, u.id, { name: 'Monument' });
+    await updateRows(await orm(), Tags, { id: ofTrip.id }, { trip: createTrip(testDb, u.id).id });
+    const col = await svc.createCollection(u.id, { name: 'Tagged' });
+    const res = await svc.savePlace(u.id, { collection_id: col.id, name: 'Ramen', tag_ids: [own.id, ofTrip.id] });
+    expect(res.place?.tags?.map((t) => t.name)).toEqual(['food']);
+  });
+
   it('CL49 (Plan 3h Task 7 review, M1 coverage): updatePlace with tag_ids rewrites the tag set (CollectionPlacesRepository.deleteTags)', async () => {
     const u = createUser(testDb).user;
     const food = createTag(testDb, u.id, { name: 'food' });
@@ -699,6 +709,24 @@ describe('deleteCollection', () => {
     expect(await countRows(await orm(), Collections, { id: col.id })).toBe(0);
     expect(await placesIn(col.id)).toEqual({ n: 0 });
     expect(await membersOf(col.id)).toEqual({ n: 0 });
+  });
+
+  it('COLLECTIONS-SVC-040b: deleting a list releases its cover and the images of its saved places (#2924)', async () => {
+    const owner = createUser(testDb).user;
+    const col = await svc.createCollection(owner.id, { name: 'Doomed' });
+    const files = ['list-cover.jpg', 'list-place-a.jpg', 'list-place-b.jpg'].map((name) => {
+      const filePath = path.join(storageFx.root, name);
+      fs.writeFileSync(filePath, 'jpeg-bytes');
+      return filePath;
+    });
+    await svc.setCollectionCover(owner.id, col.id, '/uploads/covers/list-cover.jpg');
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'A', image_url: '/uploads/places/list-place-a.jpg' });
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'B', image_url: '/uploads/places/list-place-b.jpg' });
+    await svc.savePlace(owner.id, { collection_id: col.id, name: 'No image' });
+
+    await svc.deleteCollection(owner.id, col.id);
+
+    expect(files.map((file) => fs.existsSync(file))).toEqual([false, false, false]);
   });
 });
 

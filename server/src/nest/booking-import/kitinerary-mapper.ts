@@ -304,11 +304,13 @@ function mapFlightGroup(legs: KiReservation[], source: ParsedBookingItem['source
     const arrEp = makeEndpoint(f.arrivalAirport, isLast ? 'to' : 'stop', onward.time, onward.date);
     if (arrEp) endpoints.push(arrEp);
     const airline = f.airline?.name ?? f.airline?.iataCode ?? '';
+    const { seat } = segmentDetail(legs[i]);
     metaLegs.push({
       from: iataOf(f.departureAirport),
       to: iataOf(f.arrivalAirport),
       ...(airline ? { airline } : {}),
       ...(f.flightNumber ? { flight_number: f.flightNumber } : {}),
+      ...(seat != null ? { seat } : {}),
       dep_time: splitIso(f.departureTime).time,
       arr_time: arr.time,
     });
@@ -709,7 +711,12 @@ function segmentDetail(r: KiReservation): {
     }
     return undefined;
   };
-  const seat = pick('seat', 'seatNumber');
+  // KItinerary writes a flight seat as airplaneSeat and a rail seat as
+  // reservedTicket.ticketedSeat.seatNumber, and drops any other seat key.
+  const ticket = r.reservedTicket as { ticketedSeat?: { seatNumber?: unknown } } | undefined;
+  const ticketSeat = ticket?.ticketedSeat?.seatNumber;
+  const seat =
+    pick('seat', 'seatNumber', 'airplaneSeat') ?? (ticketSeat != null && ticketSeat !== '' ? ticketSeat : undefined);
   const cls = pick('class', 'bookingClass', 'fareClass', 'serviceClass', 'seatingType');
   const platform = pick('platform', 'departurePlatform');
   const price = pick('price', 'priceAmount', 'totalPrice', 'total');

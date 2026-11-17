@@ -82,7 +82,7 @@ function calendarRegionCodes(country: string, data: unknown): { region: string; 
  * `if (W)` checks, resolved by trekMcpAccessPolicy). Vacay is plan-scoped, not
  * trip-scoped, so there is no trip-permission layer; the only per-call guard is
  * the demo-user check on every write (including decline_vacay_invite, which the
- * legacy registrar missed). The nager.at- and openholidaysapi-backed lookups
+ * legacy registrar missed). The nagerholidays.com- and openholidaysapi-backed lookups
  * carry the open-world readonly annotation.
  *
  * Tools past the original 26 close REST surface the legacy registrar never had:

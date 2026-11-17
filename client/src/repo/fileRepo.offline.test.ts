@@ -1,4 +1,4 @@
-// FE-REPO-FILE-OFF-001 to FE-REPO-FILE-OFF-008
+// FE-REPO-FILE-OFF-001 to FE-REPO-FILE-OFF-009
 // Offline write paths (#2601), fileRepo.test.ts covers the reads.
 import 'fake-indexeddb/auto';
 import { http, HttpResponse } from 'msw';
@@ -158,5 +158,23 @@ describe('fileRepo — online', () => {
 
     expect(await offlineDb.tripFiles.get(12)).toMatchObject({ description: 'Seen', linked_place_ids: [7] });
     expect(await offlineDb.mutationQueue.count()).toBe(0);
+  });
+});
+
+describe('fileRepo.previewUrl', () => {
+  it('FE-REPO-FILE-OFF-009: online a preview gets a signed address, offline the plain one the cache may serve', async () => {
+    let asked = 0;
+    server.use(
+      http.post('/api/auth/resource-token', () => {
+        asked++;
+        return HttpResponse.json({ token: 'abc' });
+      })
+    );
+    expect(await fileRepo.previewUrl('/api/trips/1/files/6/download')).toBe('/api/trips/1/files/6/download');
+    expect(asked).toBe(0);
+
+    setOnline(true);
+    expect(await fileRepo.previewUrl('/api/trips/1/files/6/download')).toBe('/api/trips/1/files/6/download?token=abc');
+    expect(asked).toBe(1);
   });
 });

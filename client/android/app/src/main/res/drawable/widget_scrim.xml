@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The shade over a trip's cover in its widget: darker towards the text at the bottom. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#59000000"
+        android:centerColor="#0D000000"
+        android:endColor="#A6000000" />
+</shape>

@@ -1,4 +1,5 @@
 import { filesApi } from '../api/client'
+import { getAuthUrl } from '../api/authUrl'
 import { offlineDb, replaceTripRows } from '../db/offlineDb'
 import { mutationQueue, generateUUID } from '../sync/mutationQueue'
 import { isEffectivelyOffline } from '../sync/networkMode'
@@ -197,5 +198,15 @@ export const fileRepo = {
     const { links = [] } = (await filesApi.getLinks(tripId, id)) as { links?: FileLink[] }
     const link = links.find(matches)
     if (link) await filesApi.removeLink(tripId, id, link.id)
+  },
+
+  /**
+   * A file's address signed for showing it in place (an image tile, a document
+   * preview), good for one download. Online only: offline it answers the plain
+   * address, which the service worker serves from its cache when it has the file.
+   */
+  async previewUrl(url: string): Promise<string> {
+    if (isEffectivelyOffline()) return url
+    return getAuthUrl(url, 'download')
   },
 }

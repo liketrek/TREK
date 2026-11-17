@@ -20,7 +20,23 @@ geoBoundaries is licensed under **CC BY 4.0**
 The bundled files are simplified (coordinate-quantized) and re-tagged with the
 property names TREK consumes. Country borders (`admin0`) derive from the geoBoundaries
 CGAZ composite; sub-national regions (`admin1`) derive from the per-country open
-(gbOpen) release.
+(gbOpen) release, except for Ireland (below).
+
+## Tailte Éireann — counties of Ireland
+
+Ireland's regions in the same files (`admin1/IE.geojson.gz`, and its features in
+`admin1.geojson.gz`) are the 26 counties from Tailte Éireann's *Counties - National
+Statutory Boundaries - 2019 - Generalised 20m*, because geoBoundaries has no county
+layer for Ireland.
+
+Contains Tailte Éireann data, © Tailte Éireann, licensed under **CC BY 4.0**
+(https://creativecommons.org/licenses/by/4.0/). Source:
+https://data-osi.opendata.arcgis.com/
+
+The outlines are simplified, coordinate-quantized and re-tagged with ISO 3166-2:IE
+codes by `server/scripts/build-atlas-geo.mjs`. Tailte Éireann publishes the
+generalised boundaries for reference only; they may not match the statutory
+boundaries exactly.
 
 ## OpenStreetMap — geocoding, place details & descriptions
 

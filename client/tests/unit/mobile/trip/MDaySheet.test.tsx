@@ -315,14 +315,14 @@ describe('MDaySheet', () => {
     expect(screen.queryByText('Opera (other day)')).not.toBeInTheDocument()
     expect(screen.queryByText('Hotel Sacher booking')).not.toBeInTheDocument()
 
+    // Each booking opens its detail sheet first, with the pencil there, as on the desktop.
     fireEvent.click(screen.getByText('Train to Salzburg'))
-    expect(planner.setEditingTransport).toHaveBeenCalledWith(expect.objectContaining({ id: 22 }))
-    expect(planner.setShowTransportModal).toHaveBeenCalledWith(true)
+    expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 22 })
 
     fireEvent.click(screen.getByText('Dinner at Figlmueller'))
-    expect(planner.setEditingReservation).toHaveBeenCalledWith(expect.objectContaining({ id: 21 }))
-    expect(planner.setShowReservationModal).toHaveBeenCalledWith(true)
-    expect(shell.closeSheet).toHaveBeenCalledTimes(2)
+    expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: 21 })
+    expect(planner.setShowTransportModal).not.toHaveBeenCalled()
+    expect(planner.setShowReservationModal).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-DAYSH-021: a booking row does nothing without the matching permission', async () => {
@@ -332,7 +332,7 @@ describe('MDaySheet', () => {
     fireEvent.click(screen.getByText('Train to Salzburg'))
     expect(planner.setShowReservationModal).not.toHaveBeenCalled()
     expect(planner.setShowTransportModal).not.toHaveBeenCalled()
-    expect(shell.closeSheet).not.toHaveBeenCalled()
+    expect(shell.openSheet).not.toHaveBeenCalled()
   })
 
   it('FE-MOB-DAYSH-022: renders notes sorted, splits a leading time off the detail line, and routes taps', async () => {

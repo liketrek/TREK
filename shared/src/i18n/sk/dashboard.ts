@@ -252,5 +252,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Pridať do Kalendára Apple / Outlooku',
   'dashboard.ics.copyManually': 'Alebo skopírujte odkaz ručne',
   'dashboard.ics.pasteFromUrl': 'vložte do „Z adresy URL“',
+  'dashboard.ics.dayEvents': 'Udalosti s prehľadom dňa',
+  'dashboard.ics.dayEventsHint':
+    'Celodenná udalosť pre každý deň s miestami a poznámkami bez času. Zmena tohto nastavenia zmení odkaz, preto sa prihláste na odber znova s novým odkazom.',
 };
 export default dashboard;

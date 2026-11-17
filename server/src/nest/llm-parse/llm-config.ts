@@ -1,4 +1,5 @@
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import type { StructuredReader } from './llm-provider.interface';
 import { asLlmVision, type LlmVision } from '@trek/shared';
 
 /**
@@ -16,14 +17,31 @@ import { asLlmVision, type LlmVision } from '@trek/shared';
 
 export type LlmProvider = 'local' | 'openai' | 'anthropic';
 
-/** Fully-resolved config the clients consume. */
-export interface ResolvedLlmConfig {
+/** A provider called with a key (or none, on a local server) at an address: what an admin can configure. */
+export interface ApiLlmConfig {
   provider: LlmProvider;
   model: string;
   baseUrl?: string;
   apiKey?: string;
   vision: LlmVision;
 }
+
+/**
+ * A ChatGPT plan the AI connection lends: it signs in instead of holding a key,
+ * so it has no address or key here and is read through `read`. Never stored in
+ * the addon config, only resolved from the shared connection.
+ */
+interface PlanLlmConfig {
+  provider: 'chatgpt';
+  model: string;
+  read: StructuredReader;
+  vision: LlmVision;
+  baseUrl?: undefined;
+  apiKey?: undefined;
+}
+
+/** Fully-resolved config the clients consume. */
+export type ResolvedLlmConfig = ApiLlmConfig | PlanLlmConfig;
 
 /** Shape of the admin instance config stored in `addons.config` (apiKey encrypted). */
 export interface LlmAddonConfig {

@@ -3,6 +3,7 @@ import { ParkingSquare } from 'lucide-react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { isServiceStopType, serviceColor } from './roadtripModel'
 import { STOP_KIND_BY_KEY } from './stopKinds'
+import { SELECTED_MARKER } from '../Map/markerLook'
 
 /**
  * Smaller than a place marker on purpose.
@@ -42,10 +43,9 @@ export function serviceMarkerHtml(stopType: string | null | undefined, selected:
     color: '#fff',
     strokeWidth: 2.4,
   }))
-  const ring = selected
-    ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 12px rgba(0,0,0,0.3)'
-    : '0 2px 6px rgba(0,0,0,0.25)'
-  return `<div style="
+  // Selected, it carries the same ring as a selected place pin, so the two read alike.
+  const ring = selected ? SELECTED_MARKER.ring : '0 2px 6px rgba(0,0,0,0.25)'
+  return `<div class="${selected ? SELECTED_MARKER.className : ''}" style="
     width:${size}px;height:${size}px;border-radius:50%;
     background:${serviceColor(stopType)};
     border:${BORDER}px solid #fff;box-shadow:${ring};

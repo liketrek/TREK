@@ -2,12 +2,12 @@ import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { KiReservation } from '../booking-import/kitinerary.types';
 import { collapseRepeatedBookingTotal } from './booking-total';
 import { LlmContextOverflowError } from './clients/context-overflow';
-import { toIsoCurrency } from './currency-code';
 import { capImage, imageMimeType, renderPdfPages } from './image-input';
 import { createLlmClient } from './llm-client.factory';
 import type { ResolvedLlmConfig } from './llm-config';
 import { LlmConfigResolver } from './llm-config.resolver';
 import { LlmLocalService } from './llm-local.service';
+import { failureOutcome, foundOutcome } from './llm-outcome';
 import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
 import type { LlmExtractionFile, LlmExtractionInput } from './llm-provider.interface';
 import {
@@ -18,12 +18,8 @@ import {
   RECEIPT_USER_TEXT,
   toReceiptRead,
 } from './receipt-read';
-import {
-  routeExtraction,
-  routeImageExtraction,
-  detectFlightNumbers,
-  extractTotalPrice,
-} from './router/extraction-router';
+import { normalizeCurrency, normalizeNode } from './reservation-normalize';
+import { routeExtraction, routeImageExtraction, detectFlightNumbers } from './router/extraction-router';
 import { extractEnforced } from './router/ollama-format.client';
 import { isPdf, extractText } from './text-extract';
 import {
@@ -34,7 +30,7 @@ import {
   LOCAL_TEXT_WINDOW,
 } from './text-window';
 import { Injectable } from '@nestjs/common';
-import { kiReservationSchema, type ReceiptScanResult } from '@trek/shared';
+import { kiReservationSchema, type LlmParseOutcome, type ReceiptScanResult } from '@trek/shared';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -42,7 +38,9 @@ const MIME_BY_EXT: Record<string, string> = {
 
 export interface LlmParseResult {
   kiItems: KiReservation[];
+  /** For the person to read; `outcome` is what a caller decides on. */
   warnings: string[];
+  outcome: LlmParseOutcome;
 }
 
 /**
@@ -181,7 +179,7 @@ export class LlmParseService {
 
   async parse(file: { buffer: Buffer; originalName: string }, userId: number): Promise<LlmParseResult> {
     const config = await this.llmConfig.resolve(userId);
-    if (!config) return { kiItems: [], warnings: ['AI parsing is not configured'] };
+    if (!config) return { kiItems: [], warnings: ['AI parsing is not configured'], outcome: 'ai_disabled' };
 
     const warnings: string[] = [];
     const input: LlmExtractionInput = {
@@ -197,7 +195,11 @@ export class LlmParseService {
 
     const imageType = imageMimeType(file.originalName);
     if (imageType && !(await this.visionFor(config))) {
-      return { kiItems: [], warnings: [`${file.originalName}: the configured model does not read images`] };
+      return {
+        kiItems: [],
+        warnings: [`${file.originalName}: the configured model does not read images`],
+        outcome: 'provider_error',
+      };
     }
 
     // A photo goes as an image to every provider. Native PDF only for Anthropic
@@ -249,6 +251,7 @@ export class LlmParseService {
               warnings: [
                 `${file.originalName}: no readable text found (a scanned PDF needs a model that reads images)`,
               ],
+              outcome: 'no_text',
             };
           }
           input.text = undefined;
@@ -264,6 +267,7 @@ export class LlmParseService {
       return {
         kiItems: [],
         warnings: [`${file.originalName}: could not read file — ${err instanceof Error ? err.message : String(err)}`],
+        outcome: failureOutcome(err),
       };
     }
 
@@ -284,7 +288,7 @@ export class LlmParseService {
               ctx,
             )
           : await routeExtraction(input.text ?? '', ctx);
-        return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
+        return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings], outcome: routed.outcome };
       } catch (err) {
         console.error(
           `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
@@ -293,6 +297,7 @@ export class LlmParseService {
         return {
           kiItems: [],
           warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+          outcome: failureOutcome(err),
         };
       }
     }
@@ -316,6 +321,7 @@ export class LlmParseService {
       return {
         kiItems: [],
         warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+        outcome: failureOutcome(err),
       };
     }
 
@@ -339,7 +345,7 @@ export class LlmParseService {
 
     // The whole document, not the window the model read: a total sits at its end.
     const priced = collapseRepeatedBookingTotal(kiItems as unknown as Record<string, unknown>[], fullText);
-    return { kiItems: priced as unknown as KiReservation[], warnings };
+    return { kiItems: priced as unknown as KiReservation[], warnings, outcome: foundOutcome(priced) };
   }
 
   /**
@@ -372,68 +378,6 @@ export class LlmParseService {
       return await client.extract(input);
     }
   }
-}
-
-/** Root-level keys in the schema.org reservation shape; everything else is trip-specific. */
-const ROOT_KEYS = new Set([
-  '@type',
-  'reservationNumber',
-  'checkinTime',
-  'checkoutTime',
-  'pickupTime',
-  'dropoffTime',
-  'startTime',
-  'endTime',
-  'pickupLocation',
-  'dropoffLocation',
-  'seat',
-  'class',
-  'platform',
-  'price',
-  'priceCurrency',
-  'reservationFor',
-]);
-
-/**
- * Small models often flatten the type-specific fields (flightNumber, airline,
- * departureAirport, …) onto the reservation root instead of nesting them under
- * `reservationFor`, which is where the kitinerary mapper reads them. When
- * `reservationFor` is missing/empty, fold the non-root keys into it so the
- * existing mappers work unchanged.
- */
-function normalizeNode(node: Record<string, unknown>): Record<string, unknown> {
-  const rf = node.reservationFor;
-  if (rf && typeof rf === 'object' && Object.keys(rf as object).length > 0) return node;
-
-  const out: Record<string, unknown> = {};
-  const reservationFor: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(node)) {
-    if (ROOT_KEYS.has(k)) out[k] = v;
-    else reservationFor[k] = v;
-  }
-  // Nothing to fold (no flattened type fields) — leave the node as-is.
-  if (Object.keys(reservationFor).length === 0) return node;
-  out.reservationFor = reservationFor;
-  return out;
-}
-
-/**
- * The node with its `priceCurrency` as an ISO 4217 code, or without one.
- *
- * What the model wrote wins when it reads as a code. Otherwise, and only when
- * the node carries a price, the currency comes from the document's own total
- * (a Booking.com print shows `€ 89,35`). When neither yields a code the field
- * is dropped: an empty currency lets the cost form pick one, a made up one
- * (`EURials`, #2477) is saved and cannot be converted.
- */
-function normalizeCurrency(node: Record<string, unknown>, documentText: string | undefined): Record<string, unknown> {
-  const hasPrice = node.price != null && node.price !== '';
-  if (node.priceCurrency == null && !hasPrice) return node;
-  const code =
-    toIsoCurrency(node.priceCurrency) ??
-    (hasPrice && documentText ? toIsoCurrency(extractTotalPrice(documentText)?.currency) : undefined);
-  const { priceCurrency: _dropped, ...rest } = node;
-  return code ? { ...rest, priceCurrency: code } : rest;
 }
 
 /** JSON with every object's keys sorted, so two equal nodes give one string. */

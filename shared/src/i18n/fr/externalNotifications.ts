@@ -17,6 +17,18 @@ const fr: NotificationLocale = {
       title: `Nouvelle réservation : ${p.booking}`,
       body: `${p.actor} a ajouté une réservation "${p.booking}" (${p.type}) à "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} a décollé`,
+      body: `${p.flight} de ${p.from} à ${p.to} est en vol.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} est en retard`,
+      body: `${p.flight} de ${p.from} à ${p.to} a environ ${p.delay} minutes de retard.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} a atterri`,
+      body: `${p.flight} en provenance de ${p.from} a atterri à ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Rappel de voyage : ${p.trip}`,
       body: `Votre voyage "${p.trip}" approche !`,
@@ -83,6 +95,21 @@ const fr: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `« ${p.tour} » dans « ${p.trip} » ne peut plus être vérifié dans wanderer. Le parcours de votre voyage reste tel quel.`
             : `« ${p.tour} » dans « ${p.trip} » a peut-être changé dans wanderer. Ouvrez le parcours et vérifiez sa source pour le savoir. Rien ne change de lui-même dans le voyage.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Ajouté depuis un e-mail : ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} a ajouté « ${p.booking} » à « ${p.trip} » depuis un e-mail transféré.`
+          : `« ${p.booking} » de votre e-mail transféré a été ajouté à « ${p.trip} ». Vous pouvez l’annuler dans TREK pendant 7 jours.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Réservations transférées à vérifier',
+      body: `Réservations transférées en attente dans TREK : ${p.count}. Chacune indique pourquoi elle n’a pas été ajoutée automatiquement.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Import des e-mails en pause',
+      body: 'TREK n’accepte pas les e-mails de réservation transférés pour le moment, attendez donc avant d’en transférer. Vos adresses restent et fonctionneront de nouveau au retour de l’import, et les réservations déjà ajoutées restent dans vos voyages.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

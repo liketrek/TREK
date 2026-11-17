@@ -14,6 +14,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': '会社の休業日',
   'mobileVacay.editCalendar': 'カレンダーを編集',
   'mobileVacay.viewYear': '年間を表示',
+  'mobileVacay.people': 'メンバー',
+  'mobileVacay.legend': '凡例',
 };
 
 export default mobileVacay;

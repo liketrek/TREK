@@ -141,9 +141,19 @@ already wait, is no longer waited for: the log says so with the number of
 files, and such files are then only removed by the nightly cleanup, once
 deletion is switched on.
 
-Whatever is left over after that (files of deleted trips and users, files from
-before this check existed) is found by a check every night at 04:05 server
-time. It looks at the covers, place images, avatars, trip files and journal
+Deleting a whole list or journey works the same way for what it held: a list
+releases its cover and the images of its saved places, a journey the photos
+of its gallery that no trip or other journey shows, and deleting a user does
+this for every journey they own. Deleting a whole trip releases only its
+cover: the trip's files and its places' images are left to the nightly
+cleanup below. Journal photos of a journey deleted before your instance ran a
+version with this behaviour are the exception: their photo entries were kept,
+so TREK still counts those files as used and neither the release nor the
+nightly check removes them.
+
+Whatever is left over after that (files of deleted trips and users, files
+from before this check existed) is found by a check every night at 04:05
+server time. It looks at the covers, place images, avatars, trip files and journal
 photos for files that nothing in TREK names any more, and the **Unreferenced
 files** section shows what it found:
 

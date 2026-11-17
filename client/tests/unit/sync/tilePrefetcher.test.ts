@@ -19,17 +19,43 @@ import {
   UNPERSISTED_MAX_ZOOM,
   clearTileCache,
   MAX_TILES,
+  IOS_MAX_TILES,
   TILE_CONCURRENCY,
+  tileBudget,
+  trimTileCacheForIos,
   type TileBbox,
 } from '../../../src/sync/tilePrefetcher';
+import { isIosDevice } from '../../../src/utils/iosDevice';
 import { offlineDb, clearAll, upsertSyncMeta } from '../../../src/db/offlineDb';
 import { requestPersistentStorage, _resetPersistentStorage } from '../../../src/sync/persistentStorage';
 import { setAuthed } from '../../../src/sync/authGate';
 import { buildPlace } from '../../helpers/factories';
+import { prefetchStyleAssets, prefetchVectorForPlaces } from '../../../src/sync/glPrefetcher';
+import { isNativeIos } from '../../../src/native/platform';
+import { OFM_DARK, OFM_POSITRON } from '../../../src/constants/mapDefaults';
+
+// The vector basemap has its own tests (glPrefetcher.test.ts). Here it is a seam,
+// so the raster runs below count only their own tile requests.
+vi.mock('../../../src/sync/glPrefetcher', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../src/sync/glPrefetcher')>()),
+  prefetchVectorForPlaces: vi.fn(async () => ({ tiles: 0, template: null })),
+  prefetchStyleAssets: vi.fn(async () => null),
+}));
+vi.mock('../../../src/utils/iosDevice', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../src/utils/iosDevice')>()),
+  isIosDevice: vi.fn(() => false),
+}));
+vi.mock('../../../src/native/platform', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../src/native/platform')>()),
+  isNativeIos: vi.fn(() => false),
+}));
 
 beforeEach(async () => {
   await clearAll();
   setAuthed(true);
+  // restoreAllMocks leaves a vi.fn's return value as a test set it; the iOS case below sets true.
+  vi.mocked(isNativeIos).mockReturnValue(false);
+  vi.mocked(isIosDevice).mockReturnValue(false);
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   // Stub fetch + serviceWorker so prefetch path is exercised
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
@@ -406,6 +432,48 @@ describe('prefetchTilesForTrip', () => {
   });
 });
 
+// ── the offline basemap ───────────────────────────────────────────────────────
+
+describe('prefetchTilesForTrip — the offline basemap', () => {
+  const places = [buildPlace({ trip_id: 1, lat: 35.68, lng: 139.76 })];
+
+  beforeEach(async () => {
+    await upsertSyncMeta({ tripId: 1, lastSyncedAt: Date.now(), status: 'idle', tilesBbox: null, filesCachedCount: 0 });
+    vi.mocked(prefetchVectorForPlaces).mockClear();
+    vi.mocked(prefetchStyleAssets).mockClear();
+    vi.mocked(isNativeIos).mockReturnValue(false);
+  });
+
+  it('stores the light and dark OpenFreeMap styles for a trip on any provider', async () => {
+    await prefetchTilesForTrip(1, places, 'https://{s}.example.com/{z}/{x}/{y}.png');
+
+    expect(vi.mocked(prefetchVectorForPlaces).mock.calls.map(c => c[1])).toEqual([OFM_POSITRON]);
+    expect(vi.mocked(prefetchStyleAssets).mock.calls.map(c => c[0])).toEqual([OFM_DARK]);
+  });
+
+  it('does not walk the stored style twice when it is the configured one', async () => {
+    await prefetchTilesForTrip(1, places, OFM_POSITRON);
+
+    expect(vi.mocked(prefetchVectorForPlaces)).toHaveBeenCalledTimes(1);
+  });
+
+  it('never prefetches OpenStreetMap standard tiles, which their policy forbids', async () => {
+    await prefetchTilesForTrip(1, places, 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+
+    expect(vi.mocked(fetch).mock.calls.some(c => String(c[0]).includes('tile.openstreetmap.org'))).toBe(false);
+    expect(vi.mocked(prefetchVectorForPlaces)).toHaveBeenCalled();
+  });
+
+  it('skips raster tiles inside the iOS app, which has no service worker to serve them', async () => {
+    vi.mocked(isNativeIos).mockReturnValue(true);
+
+    await prefetchTilesForTrip(1, places, 'https://{s}.example.com/{z}/{x}/{y}.png');
+
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    expect(vi.mocked(prefetchVectorForPlaces)).toHaveBeenCalled();
+  });
+});
+
 // ── repeat runs ───────────────────────────────────────────────────────────────
 
 describe('prefetchTilesForTrip — repeat runs', () => {
@@ -670,5 +738,52 @@ describe('prefetchTiles: a refused tile is not a cached tile (#2180)', () => {
 
     expect(fetched).toBeGreaterThan(0);
     expect(fetched).toBeLessThan(calls);
+  });
+});
+
+// ── iOS tile budget (#3008) ───────────────────────────────────────────────────
+
+describe('the iOS tile budget', () => {
+  const tileKeys = (n: number) => Array.from({ length: n }, (_, i) => ({ url: `https://tile.example.com/${i}.png` }));
+
+  beforeEach(() => localStorage.clear());
+
+  it('holds a prefetch on an iPhone or iPad to IOS_MAX_TILES, and nowhere else', () => {
+    expect(tileBudget()).toBe(MAX_TILES);
+    vi.mocked(isIosDevice).mockReturnValue(true);
+    expect(tileBudget()).toBe(IOS_MAX_TILES);
+    // Inside the iOS app tiles never go through Cache Storage at all.
+    vi.mocked(isNativeIos).mockReturnValue(true);
+    expect(tileBudget()).toBe(MAX_TILES);
+  });
+
+  it('stops counting a large area at the iOS budget', () => {
+    vi.mocked(isIosDevice).mockReturnValue(true);
+    const europe: TileBbox = { minLat: 36, maxLat: 60, minLng: -10, maxLng: 30 };
+    const total = countTiles(europe, 0, 16);
+    expect(total).toBeGreaterThan(IOS_MAX_TILES);
+    expect(total).toBeLessThan(MAX_TILES);
+  });
+
+  it('trims a full cache down to the budget, oldest tiles first, once a day', async () => {
+    vi.mocked(isIosDevice).mockReturnValue(true);
+    const keys = tileKeys(IOS_MAX_TILES + 5);
+    const del = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal('caches', { open: vi.fn().mockResolvedValue({ keys: vi.fn().mockResolvedValue(keys), delete: del }) });
+
+    const now = Date.UTC(2026, 10, 8, 12);
+    expect(await trimTileCacheForIos(now)).toBe(5);
+    expect(del.mock.calls.map(([k]) => k)).toEqual(keys.slice(0, 5));
+
+    // Reading a large cache's keys is slow on iOS: not again the same day.
+    expect(await trimTileCacheForIos(now + 60 * 60 * 1000)).toBe(0);
+    expect(del).toHaveBeenCalledTimes(5);
+  });
+
+  it('leaves the cache alone off iOS', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('caches', { open });
+    expect(await trimTileCacheForIos()).toBe(0);
+    expect(open).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,10 @@ import type { ResolvedLlmConfig } from './llm-config';
 export const SHARED_AI_CONNECTION = Symbol('SHARED_AI_CONNECTION');
 
 /** A shared connection as parsing reads it; the vision setting stays parsing's own. */
-export type SharedParsingConnection = Omit<ResolvedLlmConfig, 'vision'>;
+export type SharedParsingConnection = WithoutVision<ResolvedLlmConfig>;
+
+/** Each variant of the config without its vision setting (an Omit over the union would merge them). */
+type WithoutVision<C> = C extends unknown ? Omit<C, 'vision'> : never;
 
 export interface SharedAiConnectionPort {
   /** The connection a user's booking import may read with; null when there is none it can use. */

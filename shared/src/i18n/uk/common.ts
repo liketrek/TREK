@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Введене тут ще не збережено.',
   'common.keepEditing': 'Продовжити редагування',
   'common.name': "Ім'я",
+  'common.title': 'Назва',
   'common.email': 'Ел. пошта',
   'common.password': 'Пароль',
   'common.saving': 'Збереження...',
@@ -84,5 +85,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK оновився, поки ця вкладка була відкрита. Перезавантажте, щоб отримати нову версію.',
   'common.errorPluginTitle': 'Не вдалося показати цей плагін',
   'common.needsConnection': "Для цього потрібне з'єднання. Спробуйте ще раз, коли TREK знову буде онлайн.",
+  'common.errorDetails': 'Подробиці',
+  'common.share': 'Поділитися',
 };
 export default common;

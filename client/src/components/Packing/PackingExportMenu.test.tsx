@@ -1,4 +1,4 @@
-// FE-PACKEXPORTMENU-001 to FE-PACKEXPORTMENU-006
+// FE-PACKEXPORTMENU-001 to FE-PACKEXPORTMENU-007
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { fireEvent, render, screen } from '../../../tests/helpers/render'
@@ -98,5 +98,19 @@ describe('PackingPrintPreview', () => {
     const closeButtons = screen.getAllByRole('button', { name: 'Close' })
     await user.click(closeButtons[closeButtons.length - 1])
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-PACKEXPORTMENU-007: as menu lines it offers the three ways out and reports the choice', async () => {
+    const user = userEvent.setup()
+    const onChosen = vi.fn()
+    render(<PackingExportMenu tripId={7} view="personal" variant="menu" onChosen={onChosen} />)
+    expect(screen.queryByRole('button', { name: 'Export' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'CSV for import (.csv)' }))
+    expect(packingExport.exportCsv).toHaveBeenCalledTimes(1)
+    expect(onChosen).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Print or save as PDF' }))
+    expect(packingExport.openPrint).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Markdown checklist (.md)' }))
+    expect(packingExport.exportMarkdown).toHaveBeenCalledTimes(1)
   })
 })

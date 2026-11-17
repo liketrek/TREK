@@ -16,6 +16,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Şirkət günləri',
   'mobileVacay.editCalendar': 'Təqvimi redaktə et',
   'mobileVacay.viewYear': 'İlə bax',
+  'mobileVacay.people': 'İnsanlar',
+  'mobileVacay.legend': 'İzahat',
 };
 
 export default mobileVacay;

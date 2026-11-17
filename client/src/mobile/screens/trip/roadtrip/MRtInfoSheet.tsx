@@ -14,6 +14,8 @@ import { formatDurationShort, parseAvoid } from '../../../../components/Roadtrip
 import { valhallaAvailable } from '../../../../components/Map/valhallaRoute'
 import { convertDistance, formatDistance, getDistanceUnitLabel } from '../../../../utils/units'
 import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi'
+import { useIsWide } from '../../../../hooks/sizeClass'
+import MRtLimitsEditor from './MRtLimitsEditor'
 import type { DistanceUnit } from '../../../../types'
 
 /**
@@ -104,6 +106,9 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
   const degradation = useRoadtripSettings(s => s.roadtrip_battery_degradation, tripId)
   const avoidRaw = useRoadtripSettings(s => s.roadtrip_avoid, tripId)
   const bookends = useHotelBookends(planner.saveRoadtripLimit, tripId)
+  // An iPad or an unfolded Duo is the table the figures are set at: there the limits are a
+  // form (MRtLimitsEditor). The phone and the folded Duo keep the read-out below.
+  const large = useIsWide()
 
   const electric = vehicleKind === 'electric'
   const VehicleIcon = electric ? Zap : vehicleKind === 'combustion' ? Fuel : Car
@@ -172,7 +177,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
   ]
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={t('mobileTrip.rtInfoTitle')}>
+    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="glass" ariaLabel={t('mobileTrip.rtInfoTitle')}>
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<VehicleIcon size={19} strokeWidth={1.8} />}
@@ -182,7 +187,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {/* ── Vehicle: how far it goes, drawn as the tank it leaves the factory with ── */}
         <div className="mt-[14px]">
           <InfoCard label={t('roadtrip.limit.sectionVehicle')}>
@@ -225,26 +230,41 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
         </div>
 
         {/* ── Limits: what every warning on the stage is measured against ── */}
-        <div className="mt-2.5">
-          <InfoCard label={t('roadtrip.limit.title')}>
-            <div className="mt-1">
-              {lines.map((line, i) => (
-                <LimitLine
-                  key={line.key}
-                  label={line.label}
-                  value={line.value}
-                  fallback={line.fallback}
-                  first={i === 0}
-                />
-              ))}
+        {large ? (
+          <div className="mt-2.5">
+            <MRtLimitsEditor
+              tripId={tripId}
+              // No save is the planner saying the reader may not edit days, or that the
+              // trip's settings are not in yet: the form shows its figures, disabled.
+              readOnly={!planner.saveRoadtripLimit}
+              onSave={(key, value) => void planner.saveRoadtripLimit?.(key, value)}
+              onResetDayBoundaries={planner.resetDayBoundaries}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="mt-2.5">
+              <InfoCard label={t('roadtrip.limit.title')}>
+                <div className="mt-1">
+                  {lines.map((line, i) => (
+                    <LimitLine
+                      key={line.key}
+                      label={line.label}
+                      value={line.value}
+                      fallback={line.fallback}
+                      first={i === 0}
+                    />
+                  ))}
+                </div>
+              </InfoCard>
             </div>
-          </InfoCard>
-        </div>
 
-        {/* Under the figures it speaks of, and above the switch it does not. */}
-        <p className="mt-2.5 font-geist text-[0.6875rem] leading-snug text-m-faint">
-          {t('mobileTrip.rtDesktopNote')}
-        </p>
+            {/* Under the figures it speaks of, and above the switch it does not. */}
+            <p className="mt-2.5 font-geist text-[0.6875rem] leading-snug text-m-faint">
+              {t('mobileTrip.rtDesktopNote')}
+            </p>
+          </>
+        )}
 
         {/* ── The one switch: whether a day starts and ends at the stay ── */}
         <div className="mt-3">

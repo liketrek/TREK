@@ -43,6 +43,7 @@ import { MapView } from './MapView'
 import { ContextMenu } from '../shared/ContextMenu'
 import type { Ferrata } from '@trek/shared'
 import { groupFerratas } from '../Ferratas/ferrataGroups'
+import type { Poi } from './poiCategories'
 
 // Every map this file builds, newest last, for the tests that reach past the component.
 const maps: L.Map[] = []
@@ -482,5 +483,31 @@ describe('MapView on a real Leaflet map', () => {
     await waitFor(() => expect(view.getByTestId('ferrata-leaflet-layer')).toHaveAttribute('data-count', '1'))
     expect(view.getByRole('button', { name: 'Via ferratas' })).toHaveAttribute('aria-pressed', 'true')
     expect(view.getByTestId('ferrata-count-badge')).toHaveTextContent('1')
+  })
+
+  it('draws POIs found outside the trip frame where the user is looking, not one world away (#2975)', async () => {
+    // Seattle and Los Angeles to Auckland: the trip is drawn in a frame seamed near 28 degrees east.
+    const pacific = [
+      { ...buildPlace({ id: 11, name: 'Seattle', lat: 47.6, lng: -122.3 }), category_name: null, category_color: null, category_icon: null },
+      { ...buildPlace({ id: 12, name: 'Los Angeles', lat: 34.05, lng: -118.2 }), category_name: null, category_color: null, category_icon: null },
+      { ...buildPlace({ id: 13, name: 'Auckland', lat: -36.85, lng: 174.8 }), category_name: null, category_color: null, category_icon: null },
+    ]
+    const acropolis = {
+      osm_id: 'node/1', name: 'Acropolis', lat: 37.97, lng: 23.73, category: 'sights', poi_type: 'attraction',
+      address: null, website: null, phone: null, opening_hours: null, cuisine: null,
+    } as Poi
+    render(<MapView places={pacific} center={[38, 10]} zoom={5} tileUrl={RASTER} pois={[acropolis]} />)
+    const map = maps[maps.length - 1]
+    // The user pans west past the seam to look at the Mediterranean on the real world.
+    act(() => { map.setView([38, 10], 5, { animate: false }) })
+    const marker = () => {
+      let found: L.Marker | null = null
+      map.eachLayer(layer => { if (layer instanceof L.Marker && layer.options.alt === 'Acropolis') found = layer })
+      return found as L.Marker | null
+    }
+    await waitFor(() => expect(marker()?.getLatLng().lng).toBeCloseTo(23.73, 6))
+    const drawnMarker = marker()
+    expect(drawnMarker).not.toBeNull()
+    expect(drawnMarker && map.getBounds().contains(drawnMarker.getLatLng())).toBe(true)
   })
 })

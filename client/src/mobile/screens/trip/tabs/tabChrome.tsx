@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { ReservationTraveler } from '@trek/shared'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import PluginFrame from '../../../../components/Plugins/PluginFrame'
 import { useReservationDetailPlugins } from '../../../../components/Planner/bookings/useReservationDetailPlugins'
+import { useIsSplit } from '../../../../hooks/sizeClass'
 
 /**
  * Scroll body shared by the list-style trip tabs (transports, bookings, costs,
@@ -14,14 +15,118 @@ import { useReservationDetailPlugins } from '../../../../components/Planner/book
  * the floating controls, the bottom clears the dock via --bottom-nav-h. (Collab
  * lays out its own column so its composer can sit just above the dock.)
  */
-export function TabScroller({ children }: { children: ReactNode }) {
+export function TabScroller({ children, wide = 'readable' }: { children: ReactNode; wide?: 'readable' | 'full' }) {
+  // On a wide window the list keeps a readable measure in the middle of the
+  // page, as iPadOS lists do, while the scroller itself still spans the page so
+  // a scroll anywhere on it moves the list. A grid (files) takes the page.
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+      <div
+        className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${TAB_INSETS} ${
+          wide === 'readable' ? 'wide:[&>*]:mx-auto wide:[&>*]:max-w-[760px]' : ''
+        }`}
+      >
         {children}
       </div>
     </div>
   )
+}
+
+/** The room a tab's scroll body keeps clear: the floating top controls above, the dock (or the home indicator) below. */
+const TAB_INSETS = 'px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:px-6'
+const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]'
+
+/**
+ * The cards of a list tab (transports, bookings, tasks, polls): one column on a
+ * phone; on a wide window as many columns of at least a large phone's width as
+ * the page holds, three on a 13" iPad on its side, two upright or on an unfolded
+ * foldable on its side, one on an 11" iPad upright or in a narrow Split View. The cards flow down the
+ * columns, each keeping its own height, so the columns start level and no
+ * short card ends above its neighbour in a ragged row or stretches into an
+ * empty panel. In date order that reads down the first column, then the next.
+ * The cards' own top margin gives way to an even gap under each card. Each
+ * card is an inline block, so that gap travels with it: as a plain block's
+ * bottom margin it was carried over a column break by WebKit and pushed the
+ * next column's first card down by the gap (seen on iPad).
+ */
+export function CardGrid({ children }: { children: ReactNode }) {
+  // 380px a column: one column until the page has room for two cards that keep
+  // their titles and time ranges whole (an 11" iPad upright stays at one).
+  return (
+    <div className="wide:columns-[380px] wide:gap-x-3 wide:pt-2 wide:[&>*]:mb-3 wide:[&>*]:mt-0 wide:[&>*]:inline-block wide:[&>*]:w-full wide:[&>*]:break-inside-avoid wide:[&>*]:align-top">
+      {children}
+    </div>
+  )
+}
+
+/**
+ * A list tab in two panes once the window has room for them (split size
+ * class), the iPad Mail and Settings arrangement: `aside` (a summary, the
+ * filters) in a column of its own on the leading side, `children` (the list)
+ * beside it, each scrolling on its own so the summary stays in view while the
+ * list moves. On a foldable that reports its fold, the aside ends at the fold.
+ * Narrower windows stack the two in one scroll body, the aside first, exactly
+ * as the phone shows them.
+ *
+ * Both arrangements are one element tree with other classes, so a rotation
+ * or a fold between them keeps what is typed or open in either pane, and the
+ * reader keeps their place: the row at the top of the list stays at the top.
+ */
+export function TabPanes({ aside, asideLabel, children }: { aside: ReactNode; asideLabel: string; children: ReactNode }) {
+  const split = useIsSplit()
+  const body = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  // How far the list has moved under the top edge of its scroll body, read on
+  // every scroll; 0 while its start is in view (or the summary above it,
+  // stacked). Stacked, the list starts under the summary in the one scroll
+  // body; split, it scrolls on its own. A change of arrangement puts it back.
+  const into = useRef(0)
+  useLayoutEffect(() => {
+    const el = split ? list.current : body.current
+    const top = list.current
+    if (!el || !top || into.current <= 0) return
+    el.scrollTop = split ? into.current : listStartIn(el, top) + into.current
+  }, [split])
+  const place = () => {
+    const el = split ? list.current : body.current
+    const top = list.current
+    if (!el || !top) return
+    into.current = split ? el.scrollTop : Math.max(0, el.scrollTop - listStartIn(el, top))
+  }
+  return (
+    <div className={split ? 'flex h-full' : 'flex h-full flex-col'}>
+      <div
+        ref={body}
+        onScroll={split ? undefined : place}
+        className={
+          split
+            ? 'contents'
+            : `min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${TAB_INSETS} wide:[&>*]:mx-auto wide:[&>*]:max-w-[760px]`
+        }
+      >
+        <div
+          role={split ? 'complementary' : undefined}
+          aria-label={split ? asideLabel : undefined}
+          className={split ? `m-pane-aside min-h-0 flex-none overflow-y-auto overflow-x-hidden ps-6 pe-3 ${PANE_INSETS}` : undefined}
+        >
+          {aside}
+        </div>
+        <div
+          ref={list}
+          onScroll={split ? place : undefined}
+          className={split ? `min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pe-6 ps-3 ${PANE_INSETS}` : undefined}
+        >
+          <div className={split ? 'mx-auto max-w-[760px]' : undefined}>{children}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Where the list starts in its scroll body's content, under the body's top padding. */
+function listStartIn(el: HTMLElement, top: HTMLElement): number {
+  const pad = parseFloat(getComputedStyle(el).paddingTop) || 0
+  return top.getBoundingClientRect().top - el.getBoundingClientRect().top - pad + el.scrollTop
 }
 
 /** Small count badge next to a section label / settle row (spec 03 §1.1). */
@@ -68,14 +173,16 @@ export function SectionHeader({ label, count, open, onToggle }: {
  * the transport / booking cards (spec 03 §1.1). Width is set by the caller via
  * `className` (e.g. flex weights); `tabular` aligns times and prices.
  */
-export function Field({ label, children, className = '', tabular = false }: {
+export function Field({ label, children, className = '', tabular = false, fit = false }: {
   label: string
   children: ReactNode
   className?: string
   tabular?: boolean
+  /** Never narrower than its value: the cells beside it give way instead. */
+  fit?: boolean
 }) {
   return (
-    <div className={`min-w-0 ${className}`}>
+    <div className={`${fit ? 'min-w-max' : 'min-w-0'} ${className}`}>
       <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
         {label}
       </div>
@@ -180,7 +287,7 @@ export function TravelerAvatars({ travelers, label }: {
               <span className="flex h-[20px] w-[20px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.5625rem] font-extrabold text-m-actfg">
                 {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : tv.username?.[0]?.toUpperCase()}
               </span>
-              <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{tv.username}</span>
+              <span dir="auto" className="truncate text-[0.71875rem] font-semibold text-m-ink">{tv.username}</span>
               {!!tv.is_guest && <GuestBadge size="xs" />}
             </span>
           )

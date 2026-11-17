@@ -164,7 +164,7 @@ const dashboard: TranslationStrings = {
   'dashboard.mobile.spotlightDays.one': '{count} Tag',
   'dashboard.mobile.inMonths': 'In {count} Monaten',
   'dashboard.mobile.inMonths.one': 'In {count} Monat',
-  'dashboard.mobile.completed': 'Abgeschlossen',
+  'dashboard.mobile.completed': 'Beendet',
   'dashboard.mobile.currencyConverter': 'Währungsrechner',
   'dashboard.filter.planned': 'Geplant',
   'dashboard.hero.badgeLive': 'JETZT LIVE',
@@ -239,5 +239,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Zu Apple Kalender / Outlook hinzufügen',
   'dashboard.ics.copyManually': 'Oder Link manuell kopieren',
   'dashboard.ics.pasteFromUrl': 'in „Per URL“ einfügen',
+  'dashboard.ics.dayEvents': 'Tagesübersicht als Termine',
+  'dashboard.ics.dayEventsHint':
+    'Ein ganztägiger Termin pro Tag mit den Orten und Notizen ohne Uhrzeit. Beim Umstellen entsteht ein neuer Link, mit dem neu abonniert werden muss.',
 };
 export default dashboard;

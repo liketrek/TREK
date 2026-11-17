@@ -44,6 +44,7 @@ export function SuggestionInputBox({
 }: SuggestionInputBoxProps) {
   return (
     <div
+      data-field-trigger={floating ? undefined : 'pad'}
       className={floating ? 'focus-within:ring-2 focus-within:ring-accent' : 'bg-surface-tertiary'}
       style={
         floating

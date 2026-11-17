@@ -37,7 +37,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'קונקשן',
   'reservations.layover.layover': 'עצירת ביניים',
   'reservations.needsReview': 'לבדיקה',
-  'reservations.needsReviewHint': 'לא ניתן היה להתאים את שדה התעופה אוטומטית — אשרו את המיקום.',
+  'reservations.needsReviewHint': 'חלק מהפרטים מולאו אוטומטית ולא ניתן היה לקרוא אותם בוודאות. אנא בדקו אותם.',
+  'reservations.reviewConfirm': 'נראה תקין',
+  'reservations.reviewConfirmHint': 'לחצו כדי לסמן כנבדק.',
+  'reservations.reviewConfirmed': 'סומן כנבדק',
   'reservations.searchLocation': 'חיפוש תחנה, נמל, כתובת…',
   'reservations.meta.trainNumber': 'מס׳ רכבת',
   'reservations.meta.platform': 'רציף',
@@ -277,6 +280,10 @@ const reservations: TranslationStrings = {
     'העלאת קבצים דורשת חיבור. הסירו את הקבצים החדשים כדי לשמור את ההזמנה במצב לא מקוון, או שמרו כשתחזרו לרשת.',
   'reservations.needsConnection': 'הפעולה הזו דורשת חיבור. נסו שוב כש-TREK יחזור לרשת.',
   'reservations.exportCsvFiltered': 'ייצוא {shown} מתוך {total} השורות המוצגות (CSV)',
+  'reservations.wallet.add': 'הוספה ל-Apple Wallet',
+  'reservations.wallet.addGoogle': 'הוספה ל-Google Wallet',
+  'reservations.wallet.failed': 'לא ניתן היה ליצור את כרטיס ה-Wallet. אנא נסו שוב.',
+  'reservations.wallet.undated': 'קודם תנו להזמנה תאריך: Wallet מציג את הכרטיס סביב המועד שלה.',
 };
 
 export default reservations;

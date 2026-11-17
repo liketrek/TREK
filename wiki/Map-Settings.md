@@ -133,6 +133,10 @@ Enables pitch and 3D buildings on all styles. `Mapbox Standard` and `Standard Sa
 
 Enables antialiasing and globe projection for sharper edges. May impact performance on lower-end devices.
 
+### Hide Points of Interest
+
+`Mapbox Standard` and `Standard Satellite` label shops, restaurants and sights of their own. They look like your places but are part of the basemap: they cannot be clicked, and they sit a little off the same place added from the search. With this on, the trip map and the preview leave them out, so only your places stand out. It is off by default, applies to the Standard styles only (the other styles have no such switch), and takes effect without reloading the map.
+
 ## MapLibre GL — style
 
 MapLibre GL renders OpenFreeMap vector tiles and needs **no token at all**, so there is no token field on this provider — just a style.
@@ -147,7 +151,7 @@ MapLibre GL renders OpenFreeMap vector tiles and needs **no token at all**, so t
 
 You can also type any `https://tiles.openfreemap.org/…` style URL. A style that is not an OpenFreeMap URL is rejected and replaced with Liberty when you save.
 
-The **3D Buildings & Terrain** and **High Quality Mode** toggles are Mapbox-only and are not shown for MapLibre GL.
+The **3D Buildings & Terrain**, **High Quality Mode** and **Hide Points of Interest** toggles are Mapbox-only and are not shown for MapLibre GL.
 
 ## Where a map opens
 

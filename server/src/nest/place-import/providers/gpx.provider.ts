@@ -196,9 +196,10 @@ export function buildTourGpx(tour: GpxTourExport): string | null {
  *  folded away rather than escaped. Header safety is contentDisposition()'s
  *  job since #2165, which is why the title's own script survives here —
  *  沖縄 stays 沖縄 instead of being mangled into underscores. `fallback`
- *  names a file whose title folds away to nothing. */
-export function gpxFilename(tripTitle: string, fallback = 'trip'): string {
-  const base = tripTitle
+ *  names a file whose title folds away to nothing, `extension` the format
+ *  the file is in (the KML export names its files the same way, #1866). */
+export function exportFilename(title: string, extension: string, fallback = 'trip'): string {
+  const base = title
     // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1f\x7f"\\/:*?<>|]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -206,7 +207,11 @@ export function gpxFilename(tripTitle: string, fallback = 'trip'): string {
     .replaceAll(' ', '-');
   // Codepoints, not UTF-16 units: slice() would cut an emoji in half and the
   // lone surrogate is exactly what URI-encoding chokes on.
-  return `${[...base].slice(0, 60).join('') || fallback}.gpx`;
+  return `${[...base].slice(0, 60).join('') || fallback}.${extension}`;
+}
+
+export function gpxFilename(tripTitle: string, fallback = 'trip'): string {
+  return exportFilename(tripTitle, 'gpx', fallback);
 }
 
 /** A time written with its zone (`Z` or an offset); one without is local to an unknown clock and reads as none. */

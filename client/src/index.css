@@ -769,7 +769,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --fs-scale-caption: 1;
 
   --success: #16a34a;  --success-soft: #dcfce7;
-  --danger:  #dc2626;  --danger-soft:  #fef2f2;
+  --danger:  #dc2626;  --danger-soft:  #fef2f2;  --danger-text: #ffffff;
   --warning: #d97706;  --warning-soft: #fffbeb;
   --info:    #2563eb;  --info-soft:    #eff6ff;
 
@@ -866,7 +866,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --day-tint-l-max: 0.88;
 
   --success: #22c55e;  --success-soft: rgba(34, 197, 94, 0.15);
-  --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);
+  --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);  --danger-text: #ffffff;
   --warning: #f59e0b;  --warning-soft: rgba(245, 158, 11, 0.15);
   --info:    #3b82f6;  --info-soft:    rgba(59, 130, 246, 0.15);
 
@@ -1290,7 +1290,6 @@ img[alt="TREK"] {
 
 /* ── Dark-Mode: Tailwind-Klassen ─────────────── */
 .dark .bg-slate-50 { background-color: #131316 !important; }
-.dark .bg-slate-100 { background-color: #1c1c21 !important; }
 .dark .bg-white { background-color: #09090b !important; }
 .dark .bg-gray-50 { background-color: #131316 !important; }
 .dark .bg-gray-100 { background-color: #1c1c21 !important; }
@@ -1307,12 +1306,13 @@ img[alt="TREK"] {
 .dark .bg-slate-100 { background-color: #27272a !important; }
 .dark .bg-slate-900 { background-color: #e4e4e7 !important; color: #09090b !important; }
 .dark .hover\:bg-slate-700:hover { background-color: #d4d4d8 !important; color: #09090b !important; }
-.dark input, .dark textarea, .dark select {
+/* Not in the touch shell (.m-root), whose fields set their own fill; :where() keeps the desktop's weight. */
+.dark input:not(:where(.m-root *)), .dark textarea:not(:where(.m-root *)), .dark select:not(:where(.m-root *)) {
   background-color: #1c1c21;
   color: #f4f4f5;
   border-color: #27272a;
 }
-.dark input::placeholder, .dark textarea::placeholder { color: #71717a; }
+.dark input:not(:where(.m-root *))::placeholder, .dark textarea:not(:where(.m-root *))::placeholder { color: #71717a; }
 .dark .bg-emerald-50 { background-color: rgba(16,185,129,0.15) !important; }
 .dark .bg-red-50 { background-color: rgba(239,68,68,0.15) !important; }
 

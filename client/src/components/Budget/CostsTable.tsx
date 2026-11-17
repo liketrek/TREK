@@ -316,9 +316,13 @@ function TextInput({ value, onSave, onCancel, label, numeric = false }: {
 export type CostsSummaryTab = 'category' | 'date' | 'payer' | 'status'
 
 /** The four ways the old budget summed the table up: by category, by day, by payer, paid against open. */
-export function CostsTableSummary({ items, baseTotal, toBase, fmt, personName }: Pick<CostsTableProps, 'items' | 'baseTotal' | 'toBase' | 'fmt' | 'personName'>) {
+export function CostsTableSummary({ items, baseTotal, toBase, fmt, personName, splitting = true }: Pick<CostsTableProps, 'items' | 'baseTotal' | 'toBase' | 'fmt' | 'personName'> & {
+  /** False with nothing to split (#2689): who paid and paid or open are no question then. */
+  splitting?: boolean
+}) {
   const { t, locale } = useTranslation()
-  const [tab, setTab] = useState<CostsSummaryTab>('category')
+  const [picked, setTab] = useState<CostsSummaryTab>('category')
+  const tab = splitting || picked === 'category' || picked === 'date' ? picked : 'category'
 
   const rows = useMemo((): { key: string; label: string; amount: number; color?: string }[] => {
     const sum = new Map<string, { label: string; amount: number; color?: string }>()
@@ -361,8 +365,10 @@ export function CostsTableSummary({ items, baseTotal, toBase, fmt, personName }:
         <Segmented<CostsSummaryTab> value={tab} onChange={setTab} label={t('costs.table.summary')} fill options={[
           { value: 'category', label: t('costs.table.byCategory') },
           { value: 'date', label: t('costs.table.byDate') },
-          { value: 'payer', label: t('costs.table.byPayer') },
-          { value: 'status', label: t('costs.table.byStatus') },
+          ...(splitting ? [
+            { value: 'payer' as const, label: t('costs.table.byPayer') },
+            { value: 'status' as const, label: t('costs.table.byStatus') },
+          ] : []),
         ]} />
       </div>
       <ul className="m-0 flex list-none flex-col gap-3 p-4">

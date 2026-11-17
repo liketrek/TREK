@@ -296,15 +296,14 @@ describe('useTripPlanner — bootstrap', () => {
     expect(accommodationRepo.list).toHaveBeenCalledTimes(2)
   })
 
-  it('FE-TP-HOOK-012: the splash gate opens once the trip finished loading', async () => {
+  it('FE-TP-HOOK-012: a trip that opens at once never asks for the splash, and holds no minimum', async () => {
     vi.useFakeTimers()
     seedTrip()
 
     const { result } = await renderPlanner()
-    expect(result.current.splashDone).toBe(false)
 
     await act(async () => { vi.advanceTimersByTime(1600) })
-    expect(result.current.splashDone).toBe(true)
+    expect(result.current.slowOpen).toBe(false)
 
     vi.useRealTimers()
   })

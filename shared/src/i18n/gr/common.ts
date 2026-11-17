@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Όσα καταχωρίσατε εδώ δεν έχουν αποθηκευτεί ακόμη.',
   'common.keepEditing': 'Συνέχεια επεξεργασίας',
   'common.name': 'Όνομα',
+  'common.title': 'Τίτλος',
   'common.email': 'Email',
   'common.password': 'Κωδικός',
   'common.saving': 'Αποθήκευση...',
@@ -81,5 +82,7 @@ const common: TranslationStrings = {
     'Το TREK ενημερώθηκε ενώ αυτή η καρτέλα ήταν ανοιχτή. Κάντε επαναφόρτωση για τη νέα έκδοση.',
   'common.errorPluginTitle': 'Δεν ήταν δυνατή η εμφάνιση αυτού του πρόσθετου',
   'common.needsConnection': 'Αυτό χρειάζεται σύνδεση. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
+  'common.errorDetails': 'Λεπτομέρειες',
+  'common.share': 'Κοινοποίηση',
 };
 export default common;

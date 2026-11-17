@@ -44,8 +44,9 @@
  *
  * The en keys nothing reaches are a ratchet. Besides src/, the search for
  * references reads server/src (system notice and notification channel keys
- * the server sends, *Key properties in its registries), plugin-sdk/src and
- * shared/src/book (the Studio's layout template names), so
+ * the server sends, *Key properties in its registries), plugin-sdk/src,
+ * shared/src/book (the Studio's layout template names) and the native apps'
+ * address screen in native-shell/, so
  * a key the server uses does not read as dead; those references only count as
  * reached, they are not held to the rules above. The unused keys per en
  * domain file may not rise above scripts/i18n-unused-baseline.json, and an
@@ -75,6 +76,9 @@ const UNUSED_BASELINE = join(HERE, 'i18n-unused-baseline.json');
  * its layout templates. Read only to find which en keys are reached.
  */
 export const REFERENCE_ROOTS = [
+  // The address screen the native apps ship (vite.native.config.js): its own
+  // small build outside src/, reading only the native.* strings.
+  join(HERE, '..', 'native-shell'),
   join(HERE, '..', '..', 'server', 'src'),
   join(HERE, '..', '..', 'plugin-sdk', 'src'),
   join(HERE, '..', '..', 'shared', 'src', 'book'),

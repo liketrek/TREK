@@ -285,6 +285,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'לא נמצאו אלבומים',
   'journey.picker.selectDate': 'בחירת תאריך',
   'journey.picker.search': 'חיפוש',
+  'journey.picker.takenBetween': 'צולמו בין',
   'journey.studio.title': 'TREK Studio',
   'journey.studio.open': 'סטודיו',
   'journey.studio.openAria': 'פתיחת סטודיו אלבום התמונות',

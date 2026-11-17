@@ -3,11 +3,12 @@ import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useTranslation } from '../../i18n'
 import { useElementSize } from '../../hooks/useElementSize'
 import { useElementRect } from '../../hooks/useElementRect'
+import { useMapLock } from '../../hooks/useMapLock'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../../components/shared/Toast'
 import { collectionsApi } from '../../api/collections'
-import { downloadCollectionFile, downloadCollectionGpx, type CollectionExportFormat } from '../../components/Collections/collectionFile'
+import { downloadCollectionFile, downloadCollectionGpx, downloadCollectionKml, type CollectionExportFormat } from '../../components/Collections/collectionFile'
 import { getApiErrorMessage } from '../../types'
 import { canAddToCollection, canRemoveFromCollection, collectionRoleOf } from '../../utils/collectionAccess'
 import { addListener, removeListener } from '../../api/websocket'
@@ -52,6 +53,10 @@ export function useCollections() {
   const hero = useElementSize<HTMLDivElement>()
   // Measure the split's list column so the place-detail sheet can dock over it.
   const listCol = useElementRect<HTMLDivElement>()
+  // ...and the map column, so on a full map the sheet docks on the map's own edge.
+  const mapCol = useElementRect<HTMLDivElement>()
+  // The trip map's padlock (#2010): a locked map stays put when a place is picked.
+  const [mapLocked, toggleMapLocked] = useMapLock()
 
   const store = useCollectionStore()
   const {
@@ -282,8 +287,8 @@ export function useCollections() {
    *
    * The file is fetched rather than built from what this page holds: the page
    * has the places for display, the server decides what may leave the instance.
-   * A GPX holds only places with coordinates, so the rest are counted and the
-   * count is said; a list with none at all gets no empty file (#2301).
+   * A GPX or KML holds only places with coordinates, so the rest are counted and
+   * the count is said; a list with none at all gets no empty file (#2301, #1866).
    */
   const handleExportList = useCallback(async (format: CollectionExportFormat = 'trek') => {
     if (typeof activeId !== 'number') return
@@ -291,6 +296,16 @@ export function useCollections() {
     try {
       if (format === 'trek') {
         downloadCollectionFile(await collectionsApi.exportFile(activeId))
+        return
+      }
+      if (format === 'kml') {
+        const kml = await collectionsApi.exportKml(activeId)
+        if (kml.pins === 0) {
+          toast.warning(t('collections.file.kmlNothing'))
+          return
+        }
+        downloadCollectionKml(kml.name, kml.kml)
+        if (kml.omitted > 0) toast.info(t('collections.file.kmlOmitted', { count: kml.omitted }))
         return
       }
       const result = await collectionsApi.exportGpx(activeId)
@@ -546,7 +561,8 @@ export function useCollections() {
   return {
     t, language, dark, navigate,
     isWide, heroRef: hero.ref, heroHeight: hero.height,
-    listColRef: listCol.ref, listColRect: listCol.rect, categories,
+    listColRef: listCol.ref, listColRect: listCol.rect, mapColRef: mapCol.ref, mapColRect: mapCol.rect, categories,
+    mapLocked, toggleMapLocked,
     // store data
     collections, ownedLists, sharedLists, activeCollection, isAllSaved, isOwner,
     myRole, canEdit, canDelete,

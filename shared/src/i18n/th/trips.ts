@@ -11,7 +11,6 @@ const trips: TranslationStrings = {
   'trips.reminderDays': 'วัน',
   'trips.reminderCustom': 'กำหนดเอง',
   'trips.reminderDaysBefore': 'วันก่อนออกเดินทาง',
-  'trips.reminderDisabledHint':
-    'การแจ้งเตือนการเดินทางถูกปิดใช้งาน เปิดใช้งานได้ในผู้ดูแลระบบ > การแจ้งเตือน > การแจ้งเตือนการเดินทาง',
+  'trips.reminderDisabledHint': 'การแจ้งเตือนการเดินทางถูกปิดใช้งาน เปิดใช้งานได้ในผู้ดูแลระบบ > การแจ้งเตือน > การแจ้งเตือนการเดินทาง',
 };
 export default trips;

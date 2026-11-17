@@ -17,20 +17,32 @@
       // An optional peer of tsdown, which loads shared/tsdown.config.ts through
       // it; nothing imports it by name. eslint and prettier are the workspaces'
       // own copies: the shared scripts/lib takes them handed in, and its tests
-      // import the hoisted ones the server and shared declare.
-      "ignoreDependencies": ["unrun", "eslint", "prettier"]
+      // import the hoisted ones the server and shared declare. jsdom is here
+      // only to hold one copy at the root, where vitest's built-in jsdom
+      // environment resolves it (see the comment in package.json). tsconfig-paths
+      // is the server's: test.yml loads it with `cd server && node --require`,
+      // which knip reads from the root, where the server's dependency is not listed.
+      "ignoreDependencies": ["unrun", "eslint", "prettier", "jsdom", "tsconfig-paths"]
     },
     "client": {
-      // The app, its scripts, the Playwright specs and the server launcher
+      // The app, the native apps' address screen, its scripts, the Playwright specs and the server launcher
       // playwright.config.ts starts (`node e2e/server-launch.mjs`), and the tests.
       "entry": [
         "src/main.tsx",
+        // The address screen the native apps ship, its own build (vite.native.config.js).
+        "native-shell/main.ts",
         "scripts/*.mjs",
         "e2e/**/*.{ts,mjs}",
         "src/**/*.test.{ts,tsx}",
         "tests/**/*.{ts,tsx}"
       ],
-      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{ts,tsx}", "e2e/**/*.{ts,mjs}"]
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "native-shell/**/*.ts",
+        "scripts/**/*.mjs",
+        "tests/**/*.{ts,tsx}",
+        "e2e/**/*.{ts,mjs}"
+      ]
     },
     "server": {
       "entry": [

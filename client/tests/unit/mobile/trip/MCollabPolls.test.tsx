@@ -10,7 +10,7 @@ import { buildPlanner, buildToast } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-POLLS-001 to FE-MOB-POLLS-024
+// FE-MOB-POLLS-001 to FE-MOB-POLLS-030
 
 const ME = 7
 
@@ -353,6 +353,25 @@ describe('MCollabPolls', () => {
     expect(await screen.findByText('Which hotel?')).toBeInTheDocument()
   })
 
+  it('FE-MOB-POLLS-030: a deadline whose time was cleared closes at the end of that day on the local clock', async () => {
+    const createPoll = vi.spyOn(collabApi, 'createPoll').mockResolvedValue({ poll: poll({ id: 6 }) })
+    setup([])
+
+    fireEvent.click(await screen.findByRole('button', { name: 'collab.polls.new' }))
+    fireEvent.change(await screen.findByPlaceholderText('collab.polls.questionPlaceholder'), { target: { value: 'Q' } })
+    fireEvent.change(screen.getByPlaceholderText('collab.polls.optionPlaceholder:1'), { target: { value: 'A' } })
+    fireEvent.change(screen.getByPlaceholderText('collab.polls.optionPlaceholder:2'), { target: { value: 'B' } })
+    setDeadline('2030-08-01')
+    // Emptying the time field leaves the picker with the bare day, which a plain
+    // new Date() would read as UTC midnight.
+    fireEvent.change(screen.getByPlaceholderText('00:00'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'collab.polls.create' }))
+
+    await waitFor(() => expect(createPoll).toHaveBeenCalledWith(1, expect.objectContaining({
+      deadline: new Date(2030, 7, 1, 23, 59).toISOString(),
+    })))
+  })
+
   it('FE-MOB-POLLS-023: gates the submit button on a question plus two non-blank options', async () => {
     setup([])
 
@@ -463,5 +482,26 @@ describe('MCollabPolls', () => {
       question: 'Multi\nline?',
       options: ['A', 'B'],
     })))
+  })
+
+  it('FE-MOB-POLLS-030: in Arabic the result fill grows from the start edge, and question and options keep their own direction', async () => {
+    setup([poll({
+      is_closed: true,
+      question: 'Day trip on Saturday?',
+      options: [
+        { text: 'Nara and the deer', label: 'Nara and the deer', voters: [voter(9, 'lea'), voter(10, 'tom')] },
+        { text: 'Kurama hike', label: 'Kurama hike', voters: [voter(11, 'ada')] },
+      ],
+    })])
+    const question = await screen.findByText('Day trip on Saturday?')
+    // The paragraph is isolated, so its question mark stays at its end in a right-to-left page.
+    expect(question.tagName).toBe('BDI')
+    expect(screen.getByText('Nara and the deer').tagName).toBe('BDI')
+    const option = screen.getByRole('button', { name: /Nara and the deer/ })
+    const fill = option.querySelector('span[style*="width"]') as HTMLElement
+    expect(fill.style.width).toBe('67%')
+    // Logical, not left-0: in Arabic the bar fills from the right, under the option's radio.
+    expect(fill).toHaveClass('start-0')
+    expect(fill.className).not.toMatch(/\bleft-0\b/)
   })
 })

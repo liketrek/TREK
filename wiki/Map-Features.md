@@ -99,6 +99,10 @@ Three scopes:
 
 Places carry their description and address, and their category travels along as the GPX symbol, so devices that support it can show a different icon per kind of stop. Elevation is written back for tracks that were imported with it. Exporting is a read, so every trip member can do it, not only those who may edit.
 
+### Taking the places to Google Maps
+
+Google Maps cannot take a list of places from another app, but a Google My Maps map can. Under **Google Maps**, the same dialog offers **Places for Google My Maps**: a `.kml` file with every place that has coordinates as a pin, with its name, address, description and category. In [Google My Maps](https://www.google.com/maps/d/), create a map, choose **Import** on a layer and pick the file. A place that is a track appears as a pin at its start; the line itself goes out as GPX. Places without coordinates are left out. On a phone the same download sits in the trip's **Export** sheet.
+
 ## Travel times between stops
 
 Travel times are not drawn on the map; they sit in the day plan. Switch a day's **Route** on and a slim connector row appears between each pair of consecutive stops with that leg's travel time and distance, and an icon for the mode it was routed in: a car for driving, a foot for walking, a bicycle for cycling, a bolt for a plugin route profile. On a phone the same rows sit in the day's plan timeline, where they are always shown and need no toggle. If the day has an accommodation and **Optimize route from accommodation** is on, two extra connectors frame the day, naming the hotel with the drive out in the morning and back in the evening.

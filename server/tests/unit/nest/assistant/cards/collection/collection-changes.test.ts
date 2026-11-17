@@ -1,5 +1,5 @@
 /**
- * ASTCOL-020 to ASTCOL-035: the change cards of the collections' writes, as
+ * ASTCOL-020 to ASTCOL-035 and ASTCOL-037: the change cards of the collections' writes, as
  * describeToolCall writes them (the card through the guarded registry, so it
  * passed the union), and the lookups they read first.
  */
@@ -104,6 +104,21 @@ describe('collection change cards', () => {
     expect(placesOf(removed.card).places[0]?.delta?.removed).toBe(true);
   });
 
+  it('ASTCOL-037: the provider ids, contact and price fields an update now takes are named once each (#2646)', () => {
+    const items = itemsValue([savedPlace()]);
+    const args = {
+      placeId: 34,
+      website: 'septime-charonne.fr',
+      phone: null,
+      price: 45,
+      currency: 'EUR',
+      google_place_id: 'ChIJseptime',
+      osm_id: 'node/1',
+    };
+    const card = placesOf(preview('update_collection_place', args, { items }).card);
+    expect(card.places[0]?.delta?.fields).toEqual(['website', 'phone', 'price', 'mapEntry']);
+  });
+
   it('ASTCOL-023: a change of a saved place names its fields, its labels as its own list allows them and the list it moves to', () => {
     const items = itemsValue([savedPlace()]);
     // In its own list: the labels asked for replace the ones it carries.
@@ -138,7 +153,7 @@ describe('collection change cards', () => {
         color: null,
         placeCount: null,
         memberCount: 0,
-        counts: { idea: 0, want: 0, visited: 0 },
+        counts: { idea: 0, want: 0, visited: 0, revisit: 0 },
       },
       removed: false,
     });

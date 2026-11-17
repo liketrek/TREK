@@ -266,6 +266,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Aucun album trouvé',
   'journey.picker.selectDate': 'Sélectionner une date',
   'journey.picker.search': 'Rechercher',
+  'journey.picker.takenBetween': 'Prises entre',
   'journey.detail.journeyTab': 'Journal de voyage',
   'journey.contributors.remove': 'Retirer le contributeur',
   'journey.contributors.removeConfirm': 'Retirer {username} de ce journal de voyage ?',

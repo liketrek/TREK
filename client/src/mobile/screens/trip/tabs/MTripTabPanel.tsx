@@ -1,4 +1,6 @@
 import type { MTripTabPanelProps } from '../MTripShell'
+import { lazyWithRetry } from '../../../../utils/lazyWithRetry'
+import { LazyPanel } from '../../../../pages/tripPlanner/LazyPanel'
 import { TabScroller } from './tabChrome'
 import MTransportsTab from './MTransportsTab'
 import MBookingsTab from './MBookingsTab'
@@ -9,6 +11,9 @@ import MListsTab from './MListsTab'
 import MRoadtripTab from '../roadtrip/MRoadtripTab'
 import MJourneyDetail from '../../journey/MJourneyDetail'
 import PluginFrame from '../../../../components/Plugins/PluginFrame'
+
+// The desktop's tour editor, map stage included: loaded the first time a large screen opens the tab.
+const MTourWorkspace = lazyWithRetry(() => import('../tours/MTourWorkspace'))
 
 /**
  * Routes the active non-plan trip tab to its panel. `tab` is the legacy id the
@@ -62,6 +67,13 @@ export default function MTripTabPanel({ planner, shell, tab }: MTripTabPanelProp
     // switch between them must not lose it.
     case 'roadtrip':
       return <MRoadtripTab planner={planner} shell={shell} tab={tab} />
+    // Only ever reached on a large screen: the shell sends a phone back to the plan.
+    case 'tour-planner':
+      return (
+        <LazyPanel id="m-tour-workspace">
+          <MTourWorkspace planner={planner} />
+        </LazyPanel>
+      )
     // The journal the trip links: the Journey addon's own phone screen, moved
     // below the trip's floating top controls: its bars measure from --m-safe-top.
     case 'journal':

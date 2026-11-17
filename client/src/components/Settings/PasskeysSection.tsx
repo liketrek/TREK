@@ -30,7 +30,7 @@ export default function PasskeysSection({ demoMode }: { demoMode?: boolean }): R
       badge={pk.creds.length > 0 ? <StatusPill>{pk.creds.length}</StatusPill> : undefined}
       // The way in sits on the band, like the planner's "add" actions; the step-up opens in the body.
       action={pk.canAdd && !pk.addOpen ? (
-        <button type="button" onClick={() => pk.setAddOpen(true)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+        <button type="button" onClick={() => pk.setAddOpen(true)} className={SETTINGS_BUTTON}>
           <Plus size={14} />
           {t('settings.passkey.add')}
         </button>

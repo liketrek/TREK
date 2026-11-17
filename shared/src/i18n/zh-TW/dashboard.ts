@@ -212,5 +212,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': '加入 Apple 日曆 / Outlook',
   'dashboard.ics.copyManually': '或手動複製連結',
   'dashboard.ics.pasteFromUrl': '貼到「從 URL」',
+  'dashboard.ics.dayEvents': '每日概覽事件',
+  'dashboard.ics.dayEventsHint':
+    '為每一天新增一個全天事件，列出沒有時間的地點和備註。變更此項會改變連結，請用新連結重新訂閱。',
 };
 export default dashboard;

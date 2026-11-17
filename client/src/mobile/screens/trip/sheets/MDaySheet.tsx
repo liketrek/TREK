@@ -111,19 +111,11 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     }
   }
 
+  // A booking opens its detail sheet, as on the desktop; its pencil edits it there.
   const openReservation = (r: Reservation) => {
     const isTransport = planner.TRANSPORT_TYPES.has(r.type)
-    if (isTransport && canEditDays) {
-      planner.setEditingTransport(r)
-      planner.setTransportModalDayId(r.day_id ?? null)
-      planner.setShowTransportModal(true)
-    } else if (!isTransport && canEditReservations) {
-      planner.setEditingReservation(r)
-      planner.setShowReservationModal(true)
-    } else {
-      return
-    }
-    shell.closeSheet()
+    if (isTransport ? !canEditDays : !canEditReservations) return
+    shell.openSheet('transport', { reservationId: r.id })
   }
 
   const planTransit = () => {
@@ -270,7 +262,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
             />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+          <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
             {/* ── Weather (16-day forecast, climate fallback) ── */}
             {day.date && lat != null && lng != null && (
               weatherLoading ? (
@@ -415,7 +407,7 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                         className={`flex w-full items-center gap-[10px] rounded-[13px] px-[11px] py-[9px] text-start ${INNER_CLS}`}
                       >
                         <ResIcon size={15} strokeWidth={2} className="flex-none text-m-muted" />
-                        <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{r.title}</span>
+                        <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{r.title}</span>
                         {(startTime || endTime) && (
                           <span className="flex-none font-geist text-[0.6875rem] tabular-nums text-m-muted">
                             {startTime ? displayTime(startTime, locale, timeFormat) : ''}
@@ -512,9 +504,9 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[0.875rem] font-semibold">{acc.place_name}</div>
+                          <div dir="auto" className="truncate text-[0.875rem] font-semibold">{acc.place_name}</div>
                           {acc.place_address && (
-                            <div className="truncate font-geist text-[0.65625rem] text-m-muted">{acc.place_address}</div>
+                            <div dir="auto" className="truncate font-geist text-[0.65625rem] text-m-muted">{acc.place_address}</div>
                           )}
                         </div>
                         </button>

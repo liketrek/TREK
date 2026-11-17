@@ -1166,8 +1166,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': 'Kaart',
   'help.ctx.settings-map.summary':
     'Milline mootor joonistab reisiplaneerija ja päeviku kaardid ning millises stiilis. Leaflet on klassikaline rasterkaart, Mapbox GL lisab sinu enda tõendiga 3D-hooned ja maastiku, MapLibre GL joonistab OpenFreeMapi vektorpaane ilma tõendita. Atlas kasutab alati Leafletit.',
-  'help.ctx.settings-map.bullet.1':
-    '„Kaarditeenus“: Leaflet, Mapbox GL („Eksperimentaalne“) või MapLibre GL, igaühel lühike kirjeldus.',
+  'help.ctx.settings-map.bullet.1': '„Kaarditeenus“: Leaflet, Mapbox GL või MapLibre GL, igaühel lühike kirjeldus.',
   'help.ctx.settings-map.bullet.2':
     'Leafleti jaoks „Kaardimall“ ja „CARTO API-võti“; kahe GL-mootori jaoks „Kaardi stiil“ ning Mapbox GL-i jaoks lisaks „Mapboxi pääsuvõti“.',
   'help.ctx.settings-map.bullet.3':

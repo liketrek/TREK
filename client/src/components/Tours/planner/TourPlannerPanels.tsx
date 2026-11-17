@@ -7,7 +7,8 @@ import { useSettingsStore } from '../../../store/settingsStore'
 import { useTourFerrataCrossingStore } from '../../../store/tourFerrataCrossingStore'
 import { formatDistance } from '../../../utils/units'
 import ConfirmDialog from '../../shared/ConfirmDialog'
-import { NEUTRAL_TINT, fs } from '../../shared/DialogShell'
+import { fs } from '../../shared/DialogShell'
+import { useRailHeadProps } from './railHead'
 import EmptyState from '../../shared/EmptyState'
 import { useToast } from '../../shared/Toast'
 import { Tooltip } from '../../shared/Tooltip'
@@ -74,7 +75,6 @@ import { SkiPlannerSummary } from '../ski/SkiRouteSummary'
 import { walkTimeFields } from '../walk/walkTimeFields'
 
 /** The tinted head band both rails open with, like every panel head in the planner. */
-export const RAIL_HEAD = 'flex flex-none items-start gap-2 border-b border-edge-faint px-3 py-2.5'
 
 /** The title of a rail's head band, with an optional line under it. */
 export function RailTitle({ title, sub, aside }: { title: string; sub?: ReactNode; aside?: ReactNode }) {
@@ -136,10 +136,11 @@ function NeutralRail({
   canEdit: boolean
   onOpenWanderer?: () => void
 }) {
+  const railHead = useRailHeadProps({ bare: true })
   const { t } = useTranslation()
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.title')}>
-      <div className={RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
+      <div {...railHead}>
         <button
           type="button"
           disabled={!canEdit}
@@ -207,6 +208,7 @@ function GpxViewRail({
   paddleChecklist?: PaddleChecklist
   skiClassification?: SkiClassification
 }) {
+  const railHead = useRailHeadProps()
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore((state) => state.settings.distance_unit)
   const { readOnlyGpxTour } = planner
@@ -226,7 +228,7 @@ function GpxViewRail({
   return (
     <>
       <section className="flex h-full min-h-0 flex-col" aria-label={tour.name}>
-        <div className={RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
+        <div {...railHead}>
           <BarButton
             label={t('tours.planner.backToTours')}
             onClick={() => planner.returnToNeutral({ keepView: true })}
@@ -328,6 +330,7 @@ export function TourPlannerRail({ planner,
   /** The trip's tours, never offered as a stop of another tour (PR1-10). */
   tourPlaceIds?: ReadonlySet<number>
 } & TourPermissionProps) {
+  const railHead = useRailHeadProps()
   const { canEdit } = useTourPermissions({ canEdit: editPermission ?? planner.canEdit, canAssign: assignPermission ?? planner.canAssign })
   const { t } = useTranslation()
   const [confirmDiscard, setConfirmDiscard] = useState(false)
@@ -364,7 +367,7 @@ export function TourPlannerRail({ planner,
   return (
     <>
       <section className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.title')}>
-        <div className={RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
+        <div {...railHead}>
           <BarButton label={t('tours.planner.backToTours')} onClick={() => requestClose()} disabled={isSaving} className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
             <ArrowLeft size={16} strokeWidth={2} />
           </BarButton>
@@ -673,6 +676,7 @@ function stagesFold(tour: TourListItem, rail: ReturnType<typeof useTourStageRail
 
 export function TourPlannerToursRail({ planner, tours, days, loading, onAssignToDay, onViewGpxTour, onDeleteTour,
   gpxImport, onTakenOver, canEdit: editPermission, canAssign: assignPermission }: TourPlannerToursRailProps) {
+  const railHead = useRailHeadProps()
   const { canEdit, canAssign } = useTourPermissions({ canEdit: editPermission ?? planner.canEdit, canAssign: assignPermission ?? planner.canAssign })
   const { t } = useTranslation()
   const toast = useToast()
@@ -734,7 +738,7 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
 
   return (
     <aside className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.tripTours')}>
-      <div className={RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
+      <div {...railHead}>
         <RailTitle title={t('tours.planner.tripTours')} />
         {canEdit && <TourAddMenu planner={planner} gpxImport={gpxImport} onTakenOver={onTakenOver} disabled={isSaving} />}
       </div>

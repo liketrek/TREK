@@ -27,9 +27,12 @@ import type { Place } from '../types'
 import { offlineDb, upsertSyncMeta } from '../db/offlineDb'
 import { isAuthed } from './authGate'
 import { isStoragePersisted } from './persistentStorage'
-import { isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
-import { OFM_POSITRON } from '../constants/mapDefaults'
-import { clearVectorCache, prefetchVectorForPlaces } from './glPrefetcher'
+import { isOfflineForbiddenTemplate, isVectorStyle, normalizeTileUrl, resolveTileUrl, withTileApiKey } from '../utils/tileUrl'
+import { OFM_DARK, OFM_POSITRON } from '../constants/mapDefaults'
+import { clearVectorCache, prefetchStyleAssets, prefetchVectorForPlaces } from './glPrefetcher'
+import { isNativeIos } from '../native/platform'
+import { isIosDevice } from '../utils/iosDevice'
+import { openCacheStorage } from './openCacheStorage'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -45,6 +48,21 @@ const AVG_TILE_KB = 15
  * blank — which is exactly the bug this value was raised (from ~3413) to fix.
  */
 export const MAX_TILES = Math.floor((180 * 1024) / AVG_TILE_KB) // = 12288
+
+/**
+ * The tile budget on an iPhone or iPad. WebKit reads the origin's Cache Storage
+ * before the service worker can answer the app's first request, and that read
+ * grows with the number of entries: a full cache of 12,288 tiles held a home
+ * screen app on a black screen for about 8 s on every cold start, about 0.7 ms
+ * an entry (#3008). 2,048 keeps that near a second and still covers the zooms a
+ * trip map opens at.
+ */
+export const IOS_MAX_TILES = 2048
+
+/** How many tiles a prefetch may hold here: the iOS budget in Safari and its home screen apps. */
+export function tileBudget(): number {
+  return isIosDevice() && !isNativeIos() ? IOS_MAX_TILES : MAX_TILES
+}
 
 /**
  * Tile requests in flight at once.
@@ -222,7 +240,7 @@ export function countTiles(bbox: TileBbox, minZoom: number, maxZoom: number): nu
   for (let z = minZoom; z <= maxZoom; z++) {
     const { minX, maxX, minY, maxY } = tileRange(bbox, z)
     total += (maxX - minX + 1) * (maxY - minY + 1)
-    if (total > MAX_TILES) return total
+    if (total > tileBudget()) return total
   }
   return total
 }
@@ -250,7 +268,7 @@ export function buildTileUrl(template: string, z: number, x: number, y: number, 
 
 /**
  * Enumerate the tile coordinates to prefetch, lowest zoom first, stopping at
- * the zoom level whose tiles would push the total past MAX_TILES.
+ * the zoom level whose tiles would push the total past the budget (tileBudget).
  */
 function enumerateTiles(
   bbox: TileBbox,
@@ -258,11 +276,12 @@ function enumerateTiles(
   maxZoom: number,
 ): Array<[z: number, x: number, y: number]> {
   const coords: Array<[number, number, number]> = []
+  const budget = tileBudget()
 
   for (let z = minZoom; z <= maxZoom; z++) {
     const { minX, maxX, minY, maxY } = tileRange(bbox, z)
 
-    if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > MAX_TILES) break
+    if (coords.length + (maxX - minX + 1) * (maxY - minY + 1) > budget) break
 
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) coords.push([z, x, y])
@@ -274,12 +293,7 @@ function enumerateTiles(
 
 /** Open the tile cache, or null where Cache Storage isn't available. */
 async function openTileCache(): Promise<Cache | null> {
-  try {
-    if (typeof caches === 'undefined') return null
-    return await caches.open(TILE_CACHE)
-  } catch {
-    return null
-  }
+  return openCacheStorage(TILE_CACHE)
 }
 
 /**
@@ -345,6 +359,49 @@ export async function prefetchTiles(
   return fetched
 }
 
+const TRIM_KEY = 'trek_tile_trim_at'
+const TRIM_EVERY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Brings a tile cache on an iPhone or iPad back within IOS_MAX_TILES, oldest
+ * tiles first (Cache Storage lists keys in the order they were stored). The
+ * service worker's own limit is the same on every platform, so a cache filled
+ * before this budget, or by browsing, still grows past it there (#3008).
+ *
+ * Reading the keys of a large cache is itself slow on iOS, so this runs at most
+ * once a day and only when called after the app is up. Returns how many tiles
+ * it removed.
+ */
+export async function trimTileCacheForIos(now = Date.now()): Promise<number> {
+  if (!isIosDevice() || isNativeIos()) return 0
+  try {
+    const last = Number(localStorage.getItem(TRIM_KEY) || 0)
+    if (now - last < TRIM_EVERY_MS) return 0
+    localStorage.setItem(TRIM_KEY, String(now))
+  } catch {
+    return 0
+  }
+  try {
+    const cache = await openTileCache()
+    if (!cache) return 0
+    const keys = await cache.keys()
+    const surplus = keys.slice(0, Math.max(0, keys.length - IOS_MAX_TILES))
+    for (const request of surplus) await cache.delete(request)
+    return surplus.length
+  } catch {
+    // Cache Storage refused: the tiles stay as they are and tomorrow tries again.
+    return 0
+  }
+}
+
+/** Trims the iOS tile cache once the app has started, never in the way of its first screens. */
+export function scheduleTileCacheTrim(delayMs = 15_000): void {
+  if (!isIosDevice() || isNativeIos()) return
+  window.setTimeout(() => {
+    void trimTileCacheForIos()
+  }, delayMs)
+}
+
 /**
  * Drop the pre-downloaded map-tile cache. Called when the user turns off
  * "store map tiles offline" (#1135 ask 2) so the bulk tile storage — the real
@@ -385,6 +442,28 @@ function sameBbox(a: [number, number, number, number], b: TileBbox): boolean {
   )
 }
 
+/** The OpenFreeMap styles the offline fallback draws; they share one tile set. */
+const OFFLINE_BASEMAPS: readonly string[] = [OFM_POSITRON, OFM_DARK]
+
+/**
+ * The offline basemap is a best-effort extra: a failed request leaves its tile
+ * uncached and the next sync tries again, so it stops neither the raster run
+ * nor the sync.
+ */
+function basemapFailed(): void {}
+
+/**
+ * The trip's region of the offline basemap: the light style's tiles, style,
+ * sprite and glyphs, and the dark style's own style, sprite and glyphs on top,
+ * whose tiles are the same ones.
+ */
+async function prefetchOfflineBasemap(places: Place[], template: string, cancelled: () => boolean): Promise<void> {
+  const light = template === OFM_DARK ? OFM_DARK : OFM_POSITRON
+  const other = light === OFM_DARK ? OFM_POSITRON : OFM_DARK
+  await prefetchVectorForPlaces(places, light, cancelled).catch(basemapFailed)
+  if (!cancelled()) await prefetchStyleAssets(other, computeBbox(places)).catch(basemapFailed)
+}
+
 /**
  * Full pipeline: compute bbox → guard → prefetch → update syncMeta.
  * Designed to be called fire-and-forget from tripSyncManager.
@@ -415,8 +494,16 @@ export async function prefetchTilesForTrip(
   // The default basemap is a vector style, and walking a {z}/{x}/{y} template
   // over one would fetch nothing the map ever asks for. A user who configured
   // their own raster template keeps the path below unchanged.
+  const cancelled = () => !navigator.onLine || !isAuthed()
+  // Whatever the map is set to, the trip's region of the offline basemap goes
+  // along: offline, a Mapbox map or one the device cannot serve switches to it
+  // (components/Map/offlineBasemap.ts).
+  await prefetchOfflineBasemap(places, template, cancelled)
+
   if (isVectorStyle(template)) {
-    const { tiles } = await prefetchVectorForPlaces(places, template, () => !navigator.onLine || !isAuthed())
+    const { tiles } = OFFLINE_BASEMAPS.includes(template)
+      ? { tiles: 0 }
+      : await prefetchVectorForPlaces(places, template, cancelled)
     const meta = await offlineDb.syncMeta.get(tripId)
     if (meta) {
       await upsertSyncMeta({
@@ -447,7 +534,12 @@ export async function prefetchTilesForTrip(
   // dozen tiles (#2180); the deep ones are the volume, and they are what the
   // user loses rather than the ability to start the app at all (#2228).
   const maxZoom = isStoragePersisted() ? 16 : UNPERSISTED_MAX_ZOOM
-  const fetched = await prefetchTiles(bbox, template, 0, maxZoom, cartoKey)
+  // Not for a host whose tiles may not be stored (OSM's tile usage policy), and
+  // not inside the iOS app, whose WebView runs no service worker to serve them:
+  // the offline basemap above stands in there.
+  const fetched = isOfflineForbiddenTemplate(template) || isNativeIos()
+    ? 0
+    : await prefetchTiles(bbox, template, 0, maxZoom, cartoKey)
 
   // Update syncMeta with bbox and tile count
   const meta = await offlineDb.syncMeta.get(tripId)

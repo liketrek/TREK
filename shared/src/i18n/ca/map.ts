@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museus i cultura',
   'poi.cat.nature': 'Natura i parcs',
   'poi.cat.activities': 'Activitats',
+  'poi.cat.bakeries': 'Fleques',
+  'poi.cat.groceries': 'Botigues de queviures',
   'poi.pluginCategories': 'Categories dels connectors',
   'map.showAllConnections': 'Mostra totes les rutes de reserva',
   'map.hideAllConnections': 'Amaga totes les rutes de reserva',
@@ -45,5 +47,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Aquest navegador no ofereix WebGL2, que necessiten els mapes GL, així que els mapes es mostren amb Leaflet.',
   'map.webgl2.terrain': 'El 3D necessita WebGL2, que aquest navegador no ofereix. El mapa es queda en 2D.',
+  'map.offlineBasemap': 'Mapa fora de línia',
+  'map.offlineShowStored': 'Mostra el mapa fora de línia',
 };
 export default map;

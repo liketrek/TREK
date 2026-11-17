@@ -17,7 +17,7 @@ import {
   toChatHistory,
   toThreadMessages,
 } from '../../../../src/nest/assistant/assistant-history';
-import type { AssistantMessagePart, AssistantToolApproval } from '@trek/shared';
+import { ASSISTANT_FOLLOW_UPS_TOOL, type AssistantMessagePart, type AssistantToolApproval } from '@trek/shared';
 
 import { describe, expect, it } from 'vitest';
 
@@ -651,6 +651,64 @@ describe('toChatHistory: calls the model made of the server tools (#2845)', () =
     expect(outputs).toEqual(['call_1', 'call_2']);
   });
 
+  it('ASTHIS-021: a stopped step replayed on another provider names every call it answers', () => {
+    const anthropic = stoppedMidStep({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'text', text: 'Let me look.' },
+        { type: 'tool_use', id: 'call_1', name: 'list_places', input: {} },
+        { type: 'tool_use', id: 'call_2', name: 'get_weather', input: { day: 3 } },
+      ],
+    });
+    expect(anthropic.find((message) => message.role === 'assistant')).toMatchObject({
+      toolCalls: [
+        { id: 'call_1', name: 'list_places', args: {} },
+        { id: 'call_2', name: 'get_weather', args: { day: 3 } },
+      ],
+    });
+
+    // Chat Completions: every tool message follows an assistant message whose tool_calls name it.
+    const chat = toChatMessages({ system: '', messages: anthropic, tools: [] });
+    chat.forEach((message, index) => {
+      if (message.role !== 'tool') return;
+      const before = chat
+        .slice(0, index)
+        .reverse()
+        .find((earlier) => earlier.role === 'assistant');
+      const named = ((before?.tool_calls ?? []) as Array<{ id: string }>).map((call) => call.id);
+      expect(named).toContain(message.tool_call_id);
+    });
+
+    // Responses: every function_call_output has its function_call before it.
+    const items = toResponsesInput({ system: '', messages: anthropic, tools: [] });
+    items.forEach((item, index) => {
+      if (item.type !== 'function_call_output') return;
+      const made = items
+        .slice(0, index)
+        .some((earlier) => earlier.type === 'function_call' && earlier.call_id === item.call_id);
+      expect(made).toBe(true);
+    });
+
+    // Anthropic: a step the Responses API recorded is rebuilt with every tool_use its results answer.
+    const responses = stoppedMidStep({
+      adapter: 'openai-responses',
+      items: [
+        { type: 'function_call', call_id: 'call_1', name: 'list_places', arguments: '{}' },
+        { type: 'function_call', call_id: 'call_2', name: 'get_weather', arguments: 'not json' },
+      ],
+    });
+    const messages = toAnthropicMessages(responses);
+    const uses = messages[1].content.filter((block) => block.type === 'tool_use');
+    expect(uses.map((block) => [block.id, block.input])).toEqual([
+      ['call_1', {}],
+      ['call_2', {}],
+    ]);
+    const results = messages[2].content
+      .filter((block) => block.type === 'tool_result')
+      .map((block) => block.tool_use_id);
+    expect(results).toEqual(['call_1', 'call_2']);
+  });
+
   it('ASTHIS-017: a step that only kept a note is the model call it was, answered with what was kept', () => {
     const history = toChatHistory(
       [
@@ -679,6 +737,68 @@ describe('toChatHistory: calls the model made of the server tools (#2845)', () =
       { role: 'tool', toolCallId: 'n1', name: 'remember_for_trip', output: '{"notes":"Ferry at 7"}' },
       { role: 'assistant', text: 'Noted.', toolCalls: [], providerState: null },
     ]);
+  });
+});
+
+describe('toChatHistory: the next message after an answer (#3094)', () => {
+  /**
+   * The first answer of #3094 as its rows hold it: a step that only announced
+   * its lookups (the turn pushed it on, and the push is not stored), the
+   * lookups, a step that came back blank with only its follow-ups (asked
+   * again for the answer), and the answer. Then the user writes again.
+   */
+  function secondMessage(): AiChatMessage[] {
+    return toChatHistory(
+      [
+        row('user', [{ type: 'text', text: 'Hello' }]),
+        row('assistant', [{ type: 'text', text: 'Let me look at your trip:' }]),
+        row('assistant', [
+          { type: 'tool-call', toolCallId: 'call_a', toolName: 'get_trip_summary', args: {}, result: { days: [] } },
+          { type: 'tool-call', toolCallId: 'call_b', toolName: 'list_places', args: {}, result: { places: [] } },
+        ]),
+        row('assistant', [
+          { type: 'text', text: '\n\n' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_c',
+            toolName: ASSISTANT_FOLLOW_UPS_TOOL,
+            args: { questions: ['What is on day 2?'] },
+            result: 'Write your answer now.',
+          },
+        ]),
+        row('assistant', [{ type: 'text', text: 'Your trip has no days yet.' }]),
+        row('user', [{ type: 'text', text: 'Add a day' }]),
+      ],
+      new Map(),
+    );
+  }
+
+  it('ASTHIS-022: the second message gives Anthropic every tool_use answered and no blank text block', () => {
+    const messages = toAnthropicMessages(secondMessage());
+    messages.forEach((message, index) => {
+      expect(message.role).toBe(index % 2 === 0 ? 'user' : 'assistant');
+    });
+    expect(messages.at(-1)?.content.at(-1)).toEqual({ type: 'text', text: 'Add a day' });
+    messages.forEach((message, index) => {
+      const ids = message.content.filter((block) => block.type === 'tool_use').map((block) => block.id);
+      if (ids.length === 0) return;
+      const results = messages[index + 1].content
+        .filter((block) => block.type === 'tool_result')
+        .map((block) => block.tool_use_id);
+      expect(results).toEqual(ids);
+    });
+    const texts = messages.flatMap((message) => message.content).filter((block) => block.type === 'text');
+    expect(texts.every((block) => typeof block.text === 'string' && block.text.trim() !== '')).toBe(true);
+  });
+
+  it('ASTHIS-023: the second message never has one model message follow another on Chat Completions', () => {
+    const chat = toChatMessages({ system: 'sys', messages: secondMessage(), tools: [] });
+    chat.forEach((message, index) => {
+      if (message.role !== 'assistant') return;
+      expect(['user', 'tool']).toContain(chat[index - 1]?.role);
+      if (typeof message.content === 'string') expect(message.content.trim()).not.toBe('');
+    });
+    expect(chat.at(-1)).toEqual({ role: 'user', content: 'Add a day' });
   });
 });
 

@@ -4,6 +4,7 @@ import { useTranslation } from '../../../i18n'
 import { Plus, Trash2, Edit2, Package, X, Check, ChevronDown, ChevronRight, FolderPlus } from 'lucide-react'
 import { MAdminButton, MAdminCard, MAdminCardHead, MAdminInput } from './MAdminUi'
 import MConfirmSheet from '../settings/MConfirmSheet'
+import MSkeleton from '../../components/MSkeleton'
 
 // Small round icon action button in the mobile admin idiom (flat --m-ic circle).
 function PkIconBtn({
@@ -96,9 +97,7 @@ export default function MAdminPackingTemplateManager() {
 
       {/* Template list */}
       {isLoading ? (
-        <div className="py-8 text-center">
-          <span className="inline-block h-7 w-7 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
-        </div>
+        <MSkeleton variant="rows" count={4} />
       ) : templates.length === 0 ? (
         <div className="py-8 text-center font-geist text-[0.75rem] text-m-faint">{t('admin.packingTemplates.empty')}</div>
       ) : (

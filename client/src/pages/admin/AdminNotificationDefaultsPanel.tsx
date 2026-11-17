@@ -1,4 +1,4 @@
-import { Check, Lock, Minus, UsersRound } from 'lucide-react'
+import { UsersRound } from 'lucide-react'
 import type { NotificationDefault } from '@trek/shared'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from '../../components/shared/Tooltip'
@@ -6,18 +6,12 @@ import { SettingsCard } from '../../components/Settings/settingsKit'
 import { fs } from '../../components/shared/DialogShell'
 import { EVENT_LABEL_KEYS, channelLabel } from '../../components/Settings/notificationLabels'
 import { useNotificationDefaults } from './useNotificationDefaults'
+import { DEFAULT_ICON as ICON, DEFAULT_LABEL_KEYS as LABEL_KEYS, NEXT_DEFAULT as NEXT, defaultChannels, defaultOf } from './notificationDefaultsModel'
 
-const NEXT: Record<NotificationDefault, NotificationDefault> = { on: 'off', off: 'blocked', blocked: 'on' }
-const ICON = { on: Check, off: Minus, blocked: Lock } as const
 const TONE: Record<NotificationDefault, string> = {
   on: 'bg-accent text-accent-text border-transparent',
   off: 'bg-surface-card text-content-muted border-edge',
   blocked: 'bg-danger-soft text-danger border-transparent',
-}
-const LABEL_KEYS: Record<NotificationDefault, string> = {
-  on: 'admin.notificationDefaults.on',
-  off: 'admin.notificationDefaults.off',
-  blocked: 'admin.notificationDefaults.blocked',
 }
 
 /**
@@ -30,7 +24,7 @@ export default function AdminNotificationDefaultsPanel() {
   const { matrix, saving, cycle } = useNotificationDefaults()
   if (!matrix) return null
 
-  const channels = matrix.channels.filter(ch => matrix.event_types.some(evt => matrix.implemented_combos[evt]?.includes(ch.id)))
+  const channels = defaultChannels(matrix)
   const columns = `minmax(0, 1fr) ${channels.map(() => '76px').join(' ')}`
 
   return (
@@ -63,7 +57,7 @@ export default function AdminNotificationDefaultsPanel() {
                   <span className="min-w-0 truncate font-medium text-content" style={fs(13, 'body')}>{t(EVENT_LABEL_KEYS[eventType]) || eventType}</span>
                   {channels.map(ch => {
                     if (!implemented.includes(ch.id)) return <span key={ch.id} className="text-center text-content-faint" style={fs(13, 'body')}>—</span>
-                    const state = matrix.defaults[eventType]?.[ch.id] ?? 'on'
+                    const state = defaultOf(matrix, eventType, ch.id)
                     const Icon = ICON[state]
                     const label = `${t(EVENT_LABEL_KEYS[eventType]) || eventType}, ${channelLabel(ch, t)}: ${t(LABEL_KEYS[state])}`
                     return (

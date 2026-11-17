@@ -1,6 +1,6 @@
 import type { TranslationStrings } from '../types';
 
 const airport: TranslationStrings = {
-  'airport.searchPlaceholder': 'Код аэропорта или город (напр. FRA)',
+  'airport.searchPlaceholder': 'Аэропорт или город',
 };
 export default airport;

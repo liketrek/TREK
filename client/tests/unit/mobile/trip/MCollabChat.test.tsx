@@ -11,7 +11,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-033
+// FE-MOB-CCHAT-001 to FE-MOB-CCHAT-037
 
 const ME = 7
 
@@ -174,6 +174,18 @@ describe('MCollabChat', () => {
     expect(screen.getAllByText('from the assistant')).toHaveLength(1)
     expect(screen.getByText('shared').closest('.flex-col')).toHaveTextContent('from the assistant')
     expect(screen.getByText('typed').closest('.flex-col')).not.toHaveTextContent('from the assistant')
+  })
+
+  it('FE-MOB-CCHAT-035: a message, its quote and the composer each take their direction from their own text', async () => {
+    serveMessages([
+      chatMsg(1, { text: 'Who has the JR Pass vouchers?' }),
+      chatMsg(2, { text: 'Me!', reply_to: 1, reply_text: 'Who has the JR Pass vouchers?', reply_username: 'Alice' }),
+    ])
+    await renderChat()
+    // In Arabic a Latin message keeps its question mark at its end.
+    for (const node of screen.getAllByText('Who has the JR Pass vouchers?')) expect(node).toHaveAttribute('dir', 'auto')
+    expect(screen.getByText('Me!')).toHaveAttribute('dir', 'auto')
+    expect(screen.getByPlaceholderText('collab.chat.placeholder')).toHaveAttribute('dir', 'auto')
   })
 
   it('FE-MOB-CCHAT-008: shows the quoted message above a reply bubble', async () => {
@@ -554,5 +566,36 @@ describe('MCollabChat', () => {
 
     unmount()
     expect(removeListener).toHaveBeenCalledWith(handler)
+  })
+
+  it('FE-MOB-CCHAT-036: a picture opens large on a tap, zooms on a second, and closes again', async () => {
+    serveMessages([
+      chatMsg(1, {
+        text: 'The beach',
+        attachments: [{ id: 9, url: '/uploads/collab/beach.jpg', original_name: 'beach.jpg', mime_type: 'image/jpeg' }],
+      }),
+    ])
+    await renderChat()
+    fireEvent.click(screen.getByRole('button', { name: 'beach.jpg' }))
+    const viewer = screen.getByRole('dialog', { name: 'beach.jpg' })
+    const image = viewer.querySelector('img') as HTMLImageElement
+    expect(image).toHaveAttribute('src', '/uploads/collab/beach.jpg')
+    fireEvent.click(image)
+    expect(image).toHaveClass('max-w-none')
+    expect(screen.getByRole('dialog', { name: 'beach.jpg' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close image' }))
+    expect(screen.queryByRole('dialog', { name: 'beach.jpg' })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-CCHAT-037: a picture sent alone leaves no empty bubble beside it', async () => {
+    serveMessages([
+      chatMsg(1, { text: '', attachments: [{ id: 9, url: '/uploads/collab/a.jpg', original_name: 'a.jpg' }] }),
+      chatMsg(2, { text: 'Nice' }),
+    ])
+    await renderChat()
+    expect(screen.getByRole('button', { name: 'a.jpg' })).toBeInTheDocument()
+    expect(screen.getAllByText('Nice')).toHaveLength(1)
+    expect(document.querySelectorAll('.whitespace-pre-wrap')).toHaveLength(1)
   })
 })

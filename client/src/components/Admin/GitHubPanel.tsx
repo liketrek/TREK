@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from '../../i18n';
+import { withoutDonationsInApp } from '../../utils/donations';
 import { escapeReleaseHtml as escapeHtml, parseReleaseNotes } from '../../utils/releaseNotes';
 import { fs } from '../shared/DialogShell';
 import { SETTINGS_BUTTON, SettingsCard, StatusPill } from '../Settings/settingsKit';
@@ -134,7 +135,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
     });
   };
 
-  const supportLinks: SupportLink[] = [
+  const supportLinks: SupportLink[] = withoutDonationsInApp([
     {
       href: 'https://ko-fi.com/mauriceboe',
       brand: '#ff5e5b', // theme-lint-disable: Ko-fi brand colour
@@ -177,7 +178,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
       title: 'Wiki',
       hint: t('settings.about.wikiHint'),
     },
-  ];
+  ]);
 
   const subtitle = t('admin.github.subtitle').replace('{repo}', REPO);
 
@@ -204,7 +205,6 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
             target="_blank"
             rel="noopener noreferrer"
             className={`${SETTINGS_BUTTON} no-underline`}
-            style={fs(12.5, 'body')}
           >
             <ExternalLink size={13} strokeWidth={2.2} />
             GitHub
@@ -297,7 +297,6 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
               onClick={handleLoadMore}
               disabled={loadingMore}
               className={SETTINGS_BUTTON}
-              style={fs(12.5, 'body')}
             >
               {loadingMore ? <Loader2 size={13} className="animate-spin" /> : <ChevronDown size={13} strokeWidth={2.2} />}
               {loadingMore ? t('admin.github.loading') : t('admin.github.loadMore')}

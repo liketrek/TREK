@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The trips as direct share targets: the share sheet offers the trip shortcuts
+     TrekShortcuts publishes (category TRIP_SHARE) for these types, and a tap opens
+     the share sheet with that trip already picked. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="com.liketrek.trek.share.ShareActivity">
+        <data android:mimeType="application/pdf" />
+        <data android:mimeType="application/vnd.apple.pkpass" />
+        <data android:mimeType="message/rfc822" />
+        <data android:mimeType="text/calendar" />
+        <data android:mimeType="text/html" />
+        <data android:mimeType="text/plain" />
+        <data android:mimeType="image/*" />
+        <category android:name="com.liketrek.trek.category.TRIP_SHARE" />
+    </share-target>
+</shortcuts>

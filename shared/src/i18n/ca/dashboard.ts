@@ -238,5 +238,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Afegeix a Calendari d’Apple / Outlook',
   'dashboard.ics.copyManually': 'O copia un enllaç manualment',
   'dashboard.ics.pasteFromUrl': 'enganxa’l a «Des d’URL»',
+  'dashboard.ics.dayEvents': 'Esdeveniments de resum del dia',
+  'dashboard.ics.dayEventsHint':
+    'Un esdeveniment de dia sencer per a cada dia amb els llocs i les notes sense hora. Canviar-ho canvia l’enllaç, així que torna a subscriure’t amb el nou.',
 };
 export default dashboard;

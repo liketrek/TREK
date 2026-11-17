@@ -1,6 +1,8 @@
 import type { PaddleRegionAutoMode, PaddleRegionPending } from '@trek/shared';
 import { Ban, CloudDownload, Hand, Loader2, Power, Sparkles } from 'lucide-react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import { ChoiceChips, SettingRows, SETTINGS_BUTTON, SettingsHint, StatusPill } from '../../Settings/settingsKit';
 import { LABEL, Segmented } from '../../shared/dialogParts';
 import { fs } from '../../shared/DialogShell';
@@ -71,8 +73,9 @@ export function AutoLoadSettings({ admin }: { admin: Admin }) {
 function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: Admin }) {
   const { t, language } = useTranslation();
   const megabytes = useMegabytes();
+  const dateFormat = useDateFormat();
   const busy = admin.busyId === request.id;
-  const date = new Date(request.requested_at).toLocaleDateString(language, { dateStyle: 'medium' });
+  const date = formatDisplayDate(new Date(request.requested_at), language, { dateStyle: 'medium' }, dateFormat);
   return (
     <div
       className={`flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 pe-2 ps-3 ${busy ? 'opacity-60' : ''}`}
@@ -104,7 +107,6 @@ function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: A
             disabled={admin.busyId !== null}
             onClick={() => void admin.decline(request.id)}
             className={SETTINGS_BUTTON}
-            style={fs(12.5, 'body')}
           >
             {t('admin.paddleRegions.requests.decline')}
           </button>
@@ -114,7 +116,6 @@ function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: A
           disabled={admin.busyId !== null}
           onClick={() => void admin.approve(request.id)}
           className={SETTINGS_BUTTON}
-          style={fs(12.5, 'body')}
         >
           {busy ? <Loader2 size={13} className="animate-spin" /> : <CloudDownload size={13} strokeWidth={2.2} />}
           {t('admin.paddleRegions.requests.approve')}

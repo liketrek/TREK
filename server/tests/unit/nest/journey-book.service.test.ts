@@ -77,6 +77,7 @@ beforeAll(async () => {
     await createTestJourneyPhotosRepo(testDb),
     await createTestJourneyEntryPhotosRepo(testDb),
     await createTestPlacesRepo(testDb),
+    { releaseValues: async () => 0 } as never, // StorageReleaseService
   );
   // Plan 3g Task 3: JourneyBooksRepository (JB1-JB7), not `dbs` any more.
   // task-5-fix-brief constructor-ripple (M1): `UnitOfWork`, so `saveBook`'s

@@ -1,8 +1,8 @@
-// FE-COLLAB-CHATDATA-001 to FE-COLLAB-CHATDATA-016: the trip chat logic behind the desktop
+// FE-COLLAB-CHATDATA-001 to FE-COLLAB-CHATDATA-018: the trip chat logic behind the desktop
 // Collab panel (quiet older-page errors, scroll on remote delete, upload progress) and the
 // phone's chat tab (toasted older-page errors, sending gated on the edit permission).
-import { act, renderHook, waitFor } from '@testing-library/react';
-import type { ChangeEvent } from 'react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { createElement, type ChangeEvent } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { collabApi } from '../../api/client';
@@ -283,5 +283,82 @@ describe('useCollabChatData', () => {
       await result.current.reactToMessage(1, '🔥');
     });
     expect(toast.error).toHaveBeenCalledWith('common.error');
+  });
+});
+
+describe('useCollabChatData on a box that changes size', () => {
+  // The observer reports when the test says the list's box has changed.
+  let report: () => void = () => {};
+  let observed: Element[] = [];
+  class Observer {
+    constructor(callback: ResizeObserverCallback) {
+      report = () => callback([], this as unknown as ResizeObserver);
+    }
+    observe(el: Element) {
+      observed.push(el);
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+
+  /**
+   * The list as both views draw it: only once the messages are in, so at mount there
+   * is no element yet. Its sizes are the test's to set, since jsdom lays nothing out.
+   */
+  function ChatList({ scrollHeight }: { scrollHeight: () => number }) {
+    const chat = useCollabChatData({
+      tripId: 1,
+      t,
+      toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    });
+    const setList = (el: HTMLDivElement | null) => {
+      if (el && !Object.getOwnPropertyDescriptor(el, 'scrollHeight')) {
+        let scrollTop = 0;
+        Object.defineProperty(el, 'scrollHeight', { configurable: true, get: scrollHeight });
+        Object.defineProperty(el, 'clientHeight', { configurable: true, get: () => 400 });
+        Object.defineProperty(el, 'scrollTop', {
+          configurable: true,
+          get: () => scrollTop,
+          set: (v: number) => {
+            scrollTop = v;
+          },
+        });
+        el.scrollTo = () => {};
+      }
+      (chat.scrollRef as { current: HTMLDivElement | null }).current = el;
+    };
+    if (chat.loading || chat.messages.length === 0) return createElement('p', null, 'loading');
+    return createElement('div', { 'data-testid': 'list', ref: setList, onScroll: chat.checkAtBottom });
+  }
+
+  async function mountList(height: number) {
+    let scrollHeight = height;
+    render(createElement(ChatList, { scrollHeight: () => scrollHeight }));
+    const list = await screen.findByTestId('list');
+    return { list, grow: (to: number) => (scrollHeight = to) };
+  }
+
+  beforeEach(() => {
+    observed = [];
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('FE-COLLAB-CHATDATA-017: a list at its newest message stays there when a rotation or a fold resizes it', async () => {
+    vi.stubGlobal('ResizeObserver', Observer);
+    const { list, grow } = await mountList(400);
+    expect(observed).toContain(list);
+    grow(900);
+    report();
+    expect(list.scrollTop).toBe(900);
+  });
+
+  it('FE-COLLAB-CHATDATA-018: a list read further up keeps its place', async () => {
+    vi.stubGlobal('ResizeObserver', Observer);
+    const { list, grow } = await mountList(2000);
+    list.scrollTop = 200;
+    fireEvent.scroll(list);
+    grow(2600);
+    report();
+    expect(list.scrollTop).toBe(200);
   });
 });

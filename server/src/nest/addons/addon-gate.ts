@@ -32,9 +32,9 @@ export function addonGate(addonId: string) {
 
 /**
  * Gate on one of collab's sub-feature flags. Every collab entry rides both the
- * addon toggle and its own flag — notes, polls or chat.
+ * addon toggle and its own flag — notes, polls, chat or links.
  */
-export function collabFeatureGate(feature: 'chat' | 'notes' | 'polls') {
+export function collabFeatureGate(feature: 'chat' | 'notes' | 'polls' | 'links') {
   return async (_ctx: McpContext, self: HasAddons): Promise<boolean> =>
     (await self.addons.isAddonEnabled(ADDON_IDS.COLLAB)) && (await self.addons.getCollabFeatures())[feature];
 }

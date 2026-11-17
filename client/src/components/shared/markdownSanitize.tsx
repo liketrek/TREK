@@ -32,12 +32,42 @@ export const sanitizedMarkdownPlugins: NonNullable<Options['rehypePlugins']> = [
 ]
 
 /**
+ * A paragraph or heading of user text runs in its own direction: a Latin note
+ * in the Arabic UI keeps its question mark and full stop at its end (and an
+ * Arabic one in an English UI), while the block keeps the alignment of the page
+ * around it. The isolate is inline, so the block itself stays as it was.
+ */
+export const isolatedTextBlocks: Components = {
+  p: ({ children }) => (
+    <p>
+      <bdi>{children}</bdi>
+    </p>
+  ),
+  h1: ({ children }) => (
+    <h1>
+      <bdi>{children}</bdi>
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2>
+      <bdi>{children}</bdi>
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3>
+      <bdi>{children}</bdi>
+    </h3>
+  ),
+}
+
+/**
  * Links as in markdownLinkComponents (#1629): own tab plus `rel` protection.
  * The exception is a footnote or heading link, which points inside the text
  * that is already on screen, so opening a tab for it would only reload the trip
  * somewhere else.
  */
 export const sanitizedMarkdownComponents: Components = {
+  ...isolatedTextBlocks,
   a: ({ children, href, ...rest }) =>
     href?.startsWith('#') ? (
       <a {...rest} href={href}>

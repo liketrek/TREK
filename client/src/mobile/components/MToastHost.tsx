@@ -50,7 +50,7 @@ export default function MToastHost() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottom-nav-h,84px)+16px)] z-[90] flex flex-col-reverse items-center gap-2 px-6">
+    <div className="m-span-x pointer-events-none fixed bottom-[calc(var(--bottom-nav-h,84px)+16px)] z-[90] flex flex-col-reverse items-center gap-2 px-6">
       {toasts.map((toast) => (
         <MToastPill key={toast.id} toast={toast} onDismiss={dismissToast} />
       ))}

@@ -1,6 +1,6 @@
-// FE-PLANNER-HOURS-001 to FE-PLANNER-HOURS-003
+// FE-PLANNER-HOURS-001 to FE-PLANNER-HOURS-007
 import { describe, expect, it } from 'vitest'
-import { cleanWeek, emptyWeek, hoursLines, periodsFromWeek, readWeek, weekdayNames, weekFromPeriods, writeWeek } from './placeHours'
+import { ALL_DAY, cleanWeek, emptyWeek, hoursLines, isAllDay, periodsFromWeek, readWeek, weekdayNames, weekFromPeriods, writeWeek } from './placeHours'
 
 const week = JSON.stringify([
   { closed: false, open: '09:00', close: '17:00' },
@@ -61,5 +61,27 @@ describe('typing and taking over (#2472)', () => {
     expect(weekFromPeriods(null)).toBeNull()
     expect(weekFromPeriods([])).toBeNull()
   })
-})
 
+  it('FE-PLANNER-HOURS-006: a place open around the clock reads as all day, from the lookup and by hand', () => {
+    const p = (day: number, h: number, m = 0) => ({ day, hour: h, minute: m })
+    // Google writes a place open all week as one period on Sunday that never closes.
+    expect(weekFromPeriods([{ open: p(0, 0), close: null }])).toEqual(Array.from({ length: 7 }, () => ({ closed: false, ...ALL_DAY })))
+    // A day from midnight to the next midnight is the same.
+    expect(weekFromPeriods([{ open: p(1, 0), close: p(2, 0) }])?.[0]).toEqual({ closed: false, ...ALL_DAY })
+    expect(isAllDay({ closed: false, open: '00:00', close: '23:59' })).toBe(true)
+    expect(isAllDay({ closed: false, open: '00:00', close: '00:00' })).toBe(true)
+    expect(isAllDay({ closed: false, open: '00:00', close: '22:00' })).toBe(false)
+    expect(isAllDay({ closed: true })).toBe(false)
+  })
+
+  it('FE-PLANNER-HOURS-007: the inspector names an all-day day instead of 00:00 to 23:59', () => {
+    const week = emptyWeek()
+    week[0] = { closed: false, ...ALL_DAY }
+    week[1] = { closed: false, open: '09:00', close: '17:00' }
+    const lines = hoursLines(writeWeek(week), 'en', 'Closed', 'Open 24 hours') ?? []
+    expect(lines[0]).toBe('Monday: Open 24 hours')
+    expect(lines[1]).toBe('Tuesday: 09:00 – 17:00')
+    // Without the label the times stay, as before.
+    expect(hoursLines(writeWeek(week), 'en', 'Closed')?.[0]).toBe('Monday: 00:00 – 23:59')
+  })
+})

@@ -3,6 +3,7 @@ import type { AssistantChangeEffect } from '@trek/shared';
 import { dayPoints, type LatLng } from '../../store/assistantMapModel';
 import type { Assignment, AssignmentsMap, Place } from '../../types';
 import { haversineKm } from '../../utils/geo';
+import { stayOf } from '../Roadtrip/stayReading';
 
 /**
  * A day as it would read once the waiting changes of a card ran: the stops it
@@ -91,7 +92,7 @@ function draftOf(visit: Assignment, status: StopStatus, toolCallId: string | nul
   const time = visit.assignment_time ?? place?.place_time ?? null;
   const start = minutesOf(time);
   const explicitEnd = minutesOf(visit.assignment_end_time ?? place?.end_time ?? null);
-  const duration = place?.duration_minutes;
+  const duration = stayOf(visit);
   const end = explicitEnd ?? (start !== null && typeof duration === 'number' && duration > 0 ? start + duration : null);
   return {
     stop: { key, name: place?.name ?? '', status, toolCallId, time: start === null ? null : time },

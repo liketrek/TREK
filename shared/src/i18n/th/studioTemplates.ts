@@ -4,8 +4,7 @@ const studioTemplates: TranslationStrings = {
   'studio.templates.decorated': 'หน้าที่ออกแบบไว้',
   'studio.templates.style': 'สไตล์',
   'studio.templates.all': 'ทั้งหมด',
-  'studio.templates.hint':
-    'แต่ละแบบจะแสดงด้วยรูปภาพและข้อความของหน้านี้ คลิกเดียวจัดหน้าตามแบบนั้น ส่วนที่ไม่มีที่วางจะเก็บไว้กับหน้า',
+  'studio.templates.hint': 'แต่ละแบบจะแสดงด้วยรูปภาพและข้อความของหน้านี้ คลิกเดียวจัดหน้าตามแบบนั้น ส่วนที่ไม่มีที่วางจะเก็บไว้กับหน้า',
   'studio.templates.archetype.spine-band': 'แถบสันปก',
   'studio.templates.archetype.poster-pop': 'โปสเตอร์',
   'studio.templates.archetype.cutout': 'กระดาษตัด',

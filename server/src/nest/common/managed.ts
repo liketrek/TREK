@@ -1,4 +1,6 @@
+import { readEnv } from '../../app-config';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { APP_SETTINGS, type AppSettingDef, type AppSettingKey } from './app-settings.registry';
 import { byCodeUnit } from './compare';
 import { SetMetadata } from '@nestjs/common';
 
@@ -86,8 +88,24 @@ export const MANAGED_LOCKED_SETTING_KEYS = [
   'llm_model',
   'llm_multimodal',
   'llm_provider',
+  // The booking mail import: whether a plan includes it is the operator's call (never on Start),
+  // and so is how mail reaches the install (the TREK Cloud relay) and the address it is sent to.
+  'mail_ingest_address_template',
+  'mail_ingest_ai_per_user_daily',
+  'mail_ingest_enabled',
+  'mail_ingest_imap_host',
+  'mail_ingest_imap_mailbox',
+  'mail_ingest_imap_pass',
+  'mail_ingest_imap_port',
+  'mail_ingest_imap_tls',
+  'mail_ingest_imap_user',
+  'mail_ingest_transport',
+  'mail_ingest_webhook_secret',
   'mapbox_access_token',
   'maps_api_key',
+  // Whether the login page waits or goes straight to the provider is part of the
+  // operator's single sign-on, like oidc_login itself (#2925).
+  'oidc_auto_redirect',
   'oidc_login',
   'oidc_registration',
   'openweather_api_key',
@@ -141,6 +159,7 @@ export const MANAGED_CUSTOMER_KEYS = [
   'dark_mode',
   'default_currency',
   'distance_unit',
+  'flight_live_enabled',
   'map_provider',
   'map_tile_url',
   'mapbox_3d_enabled',
@@ -188,4 +207,38 @@ export function splitManagedKeys<T extends Record<string, unknown>>(
     else (allowed as Record<string, unknown>)[key] = value;
   }
   return { allowed, blocked: blocked.sort(byCodeUnit) };
+}
+
+/**
+ * Admin form switches an environment variable holds once it is set. The
+ * variable wins over the stored value anyway (resolveAppSetting), so the form
+ * shows the variable's value and a save leaves the stored one alone instead of
+ * pretending to change what still applies. SMTP keeps its old behaviour.
+ */
+const ENV_LOCKED_ADMIN_KEYS: readonly AppSettingKey[] = ['flight_live_enabled'];
+
+/** The value the environment pins a switch to, or null while it is unset. */
+function envValue(key: AppSettingKey): string | null {
+  return (APP_SETTINGS[key] as AppSettingDef).env?.(readEnv()) || null;
+}
+
+/** The env-held switches the write body sends, which the save skips and reports like the operator's keys. */
+export function envLockedKeys(body: Record<string, unknown>): string[] {
+  return ENV_LOCKED_ADMIN_KEYS.filter((key) => body[key] !== undefined && envValue(key) !== null);
+}
+
+/**
+ * The admin form's values with every env-held switch set to the value that
+ * applies, and `env_override_<key>` beside it so the form can show the switch
+ * locked (the shape of `env_override_oidc_only` in the app config).
+ */
+export function withEnvLocks(values: Record<string, string>): Record<string, string> {
+  const out = { ...values };
+  for (const key of ENV_LOCKED_ADMIN_KEYS) {
+    const value = envValue(key);
+    if (value === null) continue;
+    out[key] = value;
+    out[`env_override_${key}`] = value;
+  }
+  return out;
 }

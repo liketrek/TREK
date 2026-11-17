@@ -1695,13 +1695,14 @@ describe('MAdminPluginsPanel — instance settings', () => {
     await openRowSheet(plugin({ instanceSettingsCount: 3 }));
     fireEvent.click(screen.getByText('Instance settings'));
 
-    const select = await screen.findByRole('combobox', {}, { timeout: 5000 });
-    expect(select).toHaveValue('slow');
+    const select = await screen.findByRole('combobox', { name: 'Mode' }, { timeout: 5000 });
+    expect(select).toHaveTextContent('Slow');
     expect(screen.getByRole('switch', { name: 'enabled' })).toBeInTheDocument(); // label falls back to the key
     expect(screen.getByRole('spinbutton')).toHaveValue(null);
     expect(screen.getByText('Pick one')).toBeInTheDocument(); // hint
 
-    fireEvent.change(select, { target: { value: 'fast' } });
+    fireEvent.click(select);
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Mode' })).getByRole('button', { name: 'Fast' }));
     fireEvent.click(screen.getByRole('switch', { name: 'enabled' }));
     fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));

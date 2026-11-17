@@ -30,6 +30,9 @@ export const INAPP_CHANNEL = 'inapp';
 export type NotifEventType =
   | 'trip_invite'
   | 'booking_change'
+  | 'flight_departed'
+  | 'flight_delayed'
+  | 'flight_landed'
   | 'trip_reminder'
   | 'todo_due'
   | 'vacay_invite'
@@ -43,12 +46,18 @@ export type NotifEventType =
   | 'paddle_region_requested'
   | 'synology_session_cleared'
   | 'wanderer_source_hint'
+  | 'mail_booking_added'
+  | 'mail_booking_pending'
+  | 'mail_ingest_paused'
   | 'plugin_notification';
 
 /** Every event, in the order the preferences UI lists them. */
 export const ALL_EVENT_TYPES: NotifEventType[] = [
   'trip_invite',
   'booking_change',
+  'flight_departed',
+  'flight_delayed',
+  'flight_landed',
   'trip_reminder',
   'todo_due',
   'vacay_invite',
@@ -62,6 +71,9 @@ export const ALL_EVENT_TYPES: NotifEventType[] = [
   'paddle_region_requested',
   'synology_session_cleared',
   'wanderer_source_hint',
+  'mail_booking_added',
+  'mail_booking_pending',
+  'mail_ingest_paused',
   'plugin_notification',
 ];
 

@@ -40,6 +40,8 @@ interface Wanted {
   only: Partial<Record<Surface, Receivers>>;
   /** The surfaces limit it differently on purpose, so their receivers are not compared. */
   onlyDiffers: boolean;
+  /** The trip room of this send, when it is not the case's. */
+  room?: (s: Scene) => number;
 }
 
 function wanted(e: Expect): Wanted {
@@ -53,7 +55,14 @@ function wanted(e: Expect): Wanted {
       : typeof e.only === 'string'
         ? { MCP: e.only, REST: e.only }
         : { MCP: e.only.mcp, REST: e.only.rest };
-  return { channel: 'trip', event: e.event, all: e.all === true, only, onlyDiffers: only.MCP !== only.REST };
+  return {
+    channel: 'trip',
+    event: e.event,
+    all: e.all === true,
+    only,
+    onlyDiffers: only.MCP !== only.REST,
+    room: e.room,
+  };
 }
 
 const signature = (r: { channel: string; event: string }) => `${r.channel} ${r.event}`;
@@ -129,7 +138,7 @@ function checkSurface(surface: Surface, c: ParityCase, records: Recorded[], s: S
       );
       if (want.user === 'others') return;
     } else {
-      expect(Number(r.to[0]), `sent to another room than the trip's: ${where}`).toBe(room);
+      expect(Number(r.to[0]), `sent to another room than the trip's: ${where}`).toBe(want.room?.(s) ?? room);
       checkLimit(want.only[surface], r, actorId, where);
     }
     const skips = surface === 'MCP' || want.all ? undefined : REST_SOCKET;

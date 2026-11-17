@@ -11,6 +11,7 @@ import { isDirectionsUrl, isGoogleListDataUrl } from '../place-import/place-impo
 import { StorageService } from '../storage/storage.service';
 import { placeImageUrl } from './place-image';
 import { TrackPlaceOrigins } from './place-origins.interceptor';
+import { PlacesKmlService } from './places-kml.service';
 import {
   PlaceBulkDeleteDto,
   PlaceBulkUpdateDto,
@@ -126,6 +127,7 @@ export class PlacesController {
     private readonly places: PlacesService,
     private readonly env: RuntimeEnvService,
     private readonly storage: StorageService,
+    private readonly kml: PlacesKmlService,
   ) {}
 
   private async requireTrip(tripId: string, user: User) {
@@ -239,6 +241,24 @@ export class PlacesController {
     res.setHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
     res.setHeader('Content-Disposition', contentDisposition(result.filename, 'attachment'));
     res.send(result.gpx);
+  }
+
+  /**
+   * The trip's places as KML, for Google My Maps (#1866): every place with
+   * coordinates as a pin. A read like the GPX export above, so viewing the
+   * trip is enough. Declared before the `:id` routes so the literal path wins.
+   */
+  // response-contract-exempt: sends the KML document through @Res() as a download, there is no JSON body to check.
+  @Get('export.kml')
+  async exportKml(@CurrentUser() user: User, @Param('tripId') tripId: string, @Res() res: Response) {
+    await this.requireTrip(tripId, user);
+    const result = await this.kml.exportKml(tripId);
+    if (!result) {
+      throw new HttpException({ error: 'Nothing to export' }, 404);
+    }
+    res.setHeader('Content-Type', 'application/vnd.google-earth.kml+xml; charset=utf-8');
+    res.setHeader('Content-Disposition', contentDisposition(result.filename, 'attachment'));
+    res.send(result.kml);
   }
 
   @Post('import/map')

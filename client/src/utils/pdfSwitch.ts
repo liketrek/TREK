@@ -1,14 +1,15 @@
 /*
- * The two switches of the trip PDF preview (a new page for every day, and the notes
- * of the transports), remembered in this browser.
+ * The switches of the trip PDF preview (a new page for every day, the notes of
+ * the transports, large text), remembered in this browser.
  */
 
-/** A preview switch that is on unless it was turned off; both default to on. */
-export function pdfSwitchOn(key: string): boolean {
+/** A preview switch as it was last left; `defaultOn` until it is first touched, or when storage is blocked. */
+export function pdfSwitchOn(key: string, defaultOn = true): boolean {
   try {
-    return localStorage.getItem(key) !== '0';
+    const stored = localStorage.getItem(key);
+    return stored === null ? defaultOn : stored !== '0';
   } catch {
-    return true;
+    return defaultOn;
   }
 }
 

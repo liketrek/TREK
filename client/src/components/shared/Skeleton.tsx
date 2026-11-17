@@ -26,13 +26,13 @@ export function Skeleton({
 
 // Trip card skeleton matching SpotlightCard layout
 export function SpotlightSkeleton(): React.ReactElement {
+  // The dashboard hero's own box (.hero-trip: 520px on desktop, 340px on a
+  // phone, and its margin), so the hero takes the place it held while loading
+  // and nothing under it moves when it arrives (#3009).
   return (
-    <div
-      className="relative rounded-3xl overflow-hidden mb-8 bg-surface-tertiary"
-      style={{ minHeight: 340 }}
-    >
-      <div className="trek-skeleton absolute inset-0" style={{ borderRadius: 24 }} />
-      <div className="relative p-6 flex flex-col justify-end" style={{ minHeight: 340 }}>
+    <div className="hero-trip hero-trip-pending" aria-hidden>
+      <div className="trek-skeleton absolute inset-0" />
+      <div className="relative flex h-full flex-col justify-end p-6">
         <Skeleton width={160} height={40} radius={8} style={{ marginBottom: 8 }} />
         <Skeleton width={220} height={16} radius={4} />
       </div>

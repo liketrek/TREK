@@ -37,6 +37,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Uwierzytelnianie dwuskładnikowe',
   'login.mfaSubtitle': 'Wprowadź 6-cyfrowy kod z aplikacji uwierzytelniającej.',
   'login.mfaCodeLabel': 'Kod weryfikacyjny',
+  'login.mfaPlaceholder': '000000 lub XXXX-XXXX',
   'login.mfaCodeRequired': 'Wprowadź kod z aplikacji uwierzytelniającej.',
   'login.mfaHint': 'Otwórz Google Authenticator, Authy lub inną aplikację TOTP.',
   'login.mfaBack': '← Powrót do logowania',

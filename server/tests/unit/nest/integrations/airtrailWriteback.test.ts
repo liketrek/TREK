@@ -10,6 +10,7 @@ import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
 import { AuditService } from '../../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
 import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
 import { createUser } from '../../../helpers/factories';
@@ -39,6 +40,7 @@ beforeAll(async () => {
     new UserAirtrailRepository(t.orm.em),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     new AirtrailClient(),
+    new UnitOfWork(t.orm.em),
   );
   getConnectionSettings = (...args) => svc.getConnectionSettings(...args);
   isAirtrailWriteEnabled = (...args) => svc.isAirtrailWriteEnabled(...args);
@@ -72,45 +74,32 @@ describe('airtrail writeback opt-in persistence (#1240)', () => {
   });
 });
 
-describe('airtrail saveSettings preserves its pre-existing NO-transaction asymmetry with Dawarich (Plan 3h Task 4, R7/Risks)', () => {
-  it('ATC-TX-001: AirtrailService is constructed with no UnitOfWork at all — saveSettings has nothing to wrap its writes in', () => {
-    // `DawarichService#saveSettings`'s equivalent DOES take a `UnitOfWork` and
-    // wraps its writes in `uow.transactional`; AirtrailService's own
-    // constructor (`UserAirtrailRepository`, `AuditService`, `AirtrailClient`) never
-    // gained one during the Plan 3h Task 4 conversion — a structural
-    // guarantee that a future edit re-introducing a transactional wrap here
-    // would have to ALSO add a new constructor param to do it, not just
-    // touch `saveSettings`'s body.
+describe('airtrail saveSettings writes in one transaction, as Dawarich does', () => {
+  it('ATC-TX-001: AirtrailService is constructed with a UnitOfWork to wrap its writes in', () => {
     const paramTypes = Reflect.getMetadata('design:paramtypes', AirtrailService) as unknown[] | undefined;
-    expect(paramTypes).toBeDefined();
-    expect(paramTypes!.map((p) => (p as { name?: string })?.name)).toEqual([
+    expect(paramTypes?.map((p) => (p as { name?: string })?.name)).toEqual([
       'UserAirtrailRepository',
       'AuditService',
       'AirtrailClient',
+      'UnitOfWork',
     ]);
   });
 
-  it('ATC-TX-002: the URL-cleared branch performs its two writes as genuinely separate repository calls, not one atomic statement', async () => {
+  it('ATC-TX-002: clearing the URL drops the key inside the same transaction as the address write', async () => {
     const { user } = createUser(db);
     await saveSettings(user.id, 'https://at.example.com', 'secret-key', false, false, null);
 
-    const airtrailRepo = (svc as unknown as { airtrailRepo: UserAirtrailRepository }).airtrailRepo;
-    const setSpy = vi.spyOn(airtrailRepo, 'setAirtrailSettings');
-    const clearSpy = vi.spyOn(airtrailRepo, 'clearAirtrailApiKey');
+    const inner = svc as unknown as { airtrailRepo: UserAirtrailRepository; uow: UnitOfWork };
+    const txSpy = vi.spyOn(inner.uow, 'transactional');
+    const setSpy = vi.spyOn(inner.airtrailRepo, 'setAirtrailSettings');
+    const clearSpy = vi.spyOn(inner.airtrailRepo, 'clearAirtrailApiKey');
     try {
-      // Clearing the URL with no key left drops the key too (ATC4 then ATC5) —
-      // TWO independent nativeUpdate calls, not a single transactional unit.
       await saveSettings(user.id, '', undefined, false, false, null);
+      expect(txSpy).toHaveBeenCalledTimes(1);
       expect(setSpy).toHaveBeenCalledTimes(1);
       expect(clearSpy).toHaveBeenCalledTimes(1);
-      // clearAirtrailApiKey only runs AFTER setAirtrailSettings's own write
-      // resolved (sequential awaits in the service body, never Promise.all
-      // or a single wrapped call) — the same "report, don't fix" asymmetry
-      // the plan's Risks section flags.
-      const setOrder = setSpy.mock.invocationCallOrder[0];
-      const clearOrder = clearSpy.mock.invocationCallOrder[0];
-      expect(clearOrder).toBeGreaterThan(setOrder);
     } finally {
+      txSpy.mockRestore();
       setSpy.mockRestore();
       clearSpy.mockRestore();
     }

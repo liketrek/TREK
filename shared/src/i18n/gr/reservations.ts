@@ -37,7 +37,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Ενδιάμεση στάση',
   'reservations.needsReview': 'Έλεγχος',
   'reservations.needsReviewHint':
-    'Δεν ήταν δυνατή η αυτόματη αντιστοίχιση του αεροδρομίου — παρακαλώ επιβεβαιώστε την τοποθεσία.',
+    'Ορισμένα στοιχεία συμπληρώθηκαν αυτόματα και δεν μπόρεσαν να διαβαστούν με βεβαιότητα. Έλεγξέ τα.',
+  'reservations.reviewConfirm': 'Φαίνεται σωστό',
+  'reservations.reviewConfirmHint': 'Κάνε κλικ για να σημειωθεί ως ελεγμένο.',
+  'reservations.reviewConfirmed': 'Σημειώθηκε ως ελεγμένο',
   'reservations.searchLocation': 'Αναζήτηση σταθμού, λιμανιού, διεύθυνσης…',
   'reservations.meta.trainNumber': 'Αρ. Τρένου',
   'reservations.meta.platform': 'Αποβάθρα',
@@ -278,5 +281,10 @@ const reservations: TranslationStrings = {
     'Τα αρχεία χρειάζονται σύνδεση για να ανέβουν. Αφαίρεσε τα νέα για να αποθηκεύσεις την κράτηση εκτός σύνδεσης ή αποθήκευσε όταν είσαι ξανά online.',
   'reservations.needsConnection': 'Αυτό χρειάζεται σύνδεση. Δοκίμασε ξανά μόλις το TREK συνδεθεί ξανά.',
   'reservations.exportCsvFiltered': 'Εξαγωγή των {shown} από {total} εμφανιζόμενων γραμμών (CSV)',
+  'reservations.wallet.add': 'Προσθήκη στο Apple Wallet',
+  'reservations.wallet.addGoogle': 'Προσθήκη στο Google Wallet',
+  'reservations.wallet.failed': 'Δεν ήταν δυνατή η δημιουργία της κάρτας Wallet. Δοκιμάστε ξανά.',
+  'reservations.wallet.undated':
+    'Δώστε πρώτα ημερομηνία στην κράτηση: το Wallet εμφανίζει την κάρτα γύρω από εκείνη την ώρα.',
 };
 export default reservations;

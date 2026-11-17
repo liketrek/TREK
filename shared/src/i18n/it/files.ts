@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} file per {trip}',
   'files.download': 'Scarica',
   'files.openError': 'Impossibile aprire il file',
+  'files.downloadError': 'Impossibile scaricare il file',
   'files.downloadPdf': 'Scarica PDF',
   'files.count': '{count} file',
   'files.count.one': '{count} file', // same-as-en
@@ -40,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Prenotazione',
   'files.sourceTransport': 'Trasporto',
   'files.attach': 'Allega',
-  'files.pasteHint': 'Puoi anche incollare immagini dagli appunti (Ctrl+V)',
   'files.trash': 'Cestino',
   'files.trashEmpty': 'Il cestino è vuoto',
   'files.emptyTrash': 'Svuota cestino',

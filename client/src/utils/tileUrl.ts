@@ -132,3 +132,16 @@ export function resolveBasemap(
   if (isVectorStyle(chosen)) return { kind: 'vector', style: chosen }
   return { kind: 'raster', url: chosen }
 }
+
+/** Hosts whose tiles may not be stored for offline use at all (OSM tile usage policy). */
+const NO_OFFLINE_HOSTS = ['tile.openstreetmap.org'];
+
+/** Whether a raster template's host forbids storing its tiles (the offline basemap stands in). */
+export function isOfflineForbiddenTemplate(template: string): boolean {
+  try {
+    const host = new URL(template.replace(/\{s\}/g, 'a')).hostname;
+    return NO_OFFLINE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+  } catch {
+    return false;
+  }
+}

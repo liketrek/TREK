@@ -28,7 +28,16 @@ vi.stubGlobal(
   'fetch',
   vi.fn().mockResolvedValue({
     ok: true,
-    json: () => Promise.resolve([{ date: '2025-01-01', name: "New Year's Day", countryCode: 'DE' }]),
+    json: () =>
+      Promise.resolve([
+        {
+          date: '2025-01-01',
+          name: "New Year's Day",
+          countryCode: 'DE',
+          nationalHoliday: true,
+          subdivisionCodes: null,
+        },
+      ]),
   }),
 );
 
@@ -448,17 +457,6 @@ describe('Vacay stats restrictions', () => {
   });
 });
 
-describe('Vacay holidays error path', () => {
-  it('VACAY-035 — GET /holidays/:year/:country returns 502 when external API fetch fails', async () => {
-    const { user } = createUser(testDb);
-    // Use an unusual country/year to avoid cache hits from other tests
-    vi.mocked(global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
-
-    const res = await request(app).get('/api/addons/vacay/holidays/2099/ZZ').set('Cookie', authCookie(user.id));
-    expect(res.status).toBe(502);
-  });
-});
-
 describe('Vacay color restriction', () => {
   it('VACAY-036 — PUT /color with target_user_id not in plan returns 403', async () => {
     const { user: owner } = createUser(testDb);
@@ -470,20 +468,6 @@ describe('Vacay color restriction', () => {
       .set('Cookie', authCookie(owner.id))
       .send({ color: '#ff0000', target_user_id: outsider.id });
     expect(res.status).toBe(403);
-  });
-});
-
-describe('Vacay holidays success path', () => {
-  it('VACAY-037 — GET /holidays/:year/:country returns data when fetch succeeds', async () => {
-    const { user } = createUser(testDb);
-    // Use unique year/country to avoid cache from other tests
-    vi.mocked(global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve([{ date: '2025-05-01', name: 'Labour Day', countryCode: 'AT' }]),
-    });
-
-    const res = await request(app).get('/api/addons/vacay/holidays/2025/AT').set('Cookie', authCookie(user.id));
-    expect(res.status).toBe(200);
   });
 });
 
@@ -645,5 +629,43 @@ describe('Vacay read-only calendar shares', () => {
       .send({ user_id: b.id });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Already shared');
+  });
+});
+
+describe('Vacay public holidays', () => {
+  it('VACAY-035 — returns 502 when the external API fetch fails', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+
+    const res = await request(app).get('/api/addons/vacay/holidays/2099/ZZ').set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(502);
+  });
+
+  it('VACAY-037 — adapts a Nager v4 record when the external API succeeds', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve([
+          {
+            date: '2025-05-01',
+            name: 'Labour Day',
+            nationalHoliday: true,
+            subdivisionCodes: null,
+          },
+        ]),
+    });
+
+    const res = await request(app).get('/api/addons/vacay/holidays/2087/AT').set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      {
+        date: '2025-05-01',
+        name: 'Labour Day',
+        localName: 'Labour Day',
+        global: true,
+        counties: null,
+      },
+    ]);
   });
 });

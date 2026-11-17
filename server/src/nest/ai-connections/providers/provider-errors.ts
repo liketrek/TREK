@@ -10,6 +10,12 @@ export const CHATGPT_USAGE_URL = 'https://chatgpt.com/settings/usage';
  * request again later can help.
  */
 export class AiProviderError extends Error {
+  /**
+   * The request field the provider named as refused (OpenAI's `param`), when
+   * it named one as a bare path. Set by `refusalOf` for an HTTP refusal.
+   */
+  refusedParam?: string;
+
   constructor(
     readonly code: AssistantErrorCode,
     readonly status: number,
@@ -119,4 +125,13 @@ export function namesImageInput(status: number, body: unknown): boolean {
 /** Whether a provider error is the refusal of an image (see IMAGE_INPUT_REFUSED). */
 export function isImageRefusal(err: unknown): boolean {
   return err instanceof AiProviderError && err.providerCode === IMAGE_INPUT_REFUSED;
+}
+
+/**
+ * Whether a provider error is the refusal of the request's reasoning effort:
+ * a reasoning model behind Chat Completions that takes function tools only
+ * with `reasoning_effort: "none"`, as Azure AI Foundry's deployments do (#3043).
+ */
+export function isReasoningEffortRefusal(err: unknown): boolean {
+  return err instanceof AiProviderError && err.status === 400 && err.refusedParam === 'reasoning_effort';
 }

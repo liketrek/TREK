@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Hozzáadás a TREK-hez";
+"share.cancel" = "Mégse";
+"share.close" = "Bezárás";
+"share.trip" = "Utazás";
+"share.noTrips" = "Nyisd meg egyszer a TREK-et, és itt megjelennek az utazásaid.";
+"share.hint" = "A TREK beolvassa a foglalást, és hozzáadja az utazáshoz.";
+"share.later" = "Később választok";
+"share.add" = "Hozzáadás";
+"share.addTo" = "Hozzáadás ehhez: %@";
+"share.added" = "Hozzáadva";
+"share.reading" = "Olvasás…";
+"share.tooLarge" = "Ez a fájl túl nagy az importáláshoz.";
+"share.unsupported" = "Ezt a TREK nem tudja importálni.";
+"share.failed" = "Nem sikerült átadni a TREK-nek. Próbáld újra.";
+"share.now" = "Most";
+"share.past" = "Elmúlt";
+"share.tomorrow" = "Holnap";
+"share.inDays" = "%d nap múlva";
+"share.kind.pass" = "Wallet-kártya";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "E-mail";
+"share.kind.page" = "Weboldal";
+"share.kind.text" = "Szöveg";
+"share.kind.image" = "Fotó";
+"share.kind.file" = "Fájl";

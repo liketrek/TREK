@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'ما أدخلته هنا لم يُحفظ بعد.',
   'common.keepEditing': 'متابعة التعديل',
   'common.name': 'الاسم',
+  'common.title': 'العنوان',
   'common.email': 'البريد الإلكتروني',
   'common.password': 'كلمة المرور',
   'common.saving': 'جارٍ الحفظ...',
@@ -88,5 +89,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'تم تحديث TREK أثناء فتح علامة التبويب هذه. أعد التحميل للحصول على الإصدار الجديد.',
   'common.errorPluginTitle': 'تعذّر عرض هذه الإضافة',
   'common.needsConnection': 'يتطلب هذا اتصالاً. حاول مرة أخرى عندما يعود TREK للاتصال.',
+  'common.errorDetails': 'التفاصيل',
+  'common.share': 'مشاركة',
 };
 export default common;

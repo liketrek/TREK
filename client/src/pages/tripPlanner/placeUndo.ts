@@ -87,6 +87,8 @@ export interface PlaceVisit {
   endTime: string | null;
   notes: string | null;
   endDay: boolean;
+  /** The visit's own stay (#3092), or null where it read the place's. */
+  stayMinutes: number | null;
   routeExcluded: boolean;
   legMode: string | null;
   incomingLegMode: string | null;
@@ -103,6 +105,7 @@ export function visitOf(dayId: number, a: Assignment): PlaceVisit {
     endTime: a.assignment_end_time ?? null,
     notes: a.notes ?? null,
     endDay: a.end_day === true,
+    stayMinutes: a.stay_minutes ?? null,
     routeExcluded: a.route_excluded === true,
     legMode: a.leg_transport_mode ?? null,
     incomingLegMode: a.incoming_leg_transport_mode ?? null,
@@ -123,6 +126,7 @@ export type RestoreActions = Pick<
   | 'setAssignmentTimes'
   | 'setAssignmentNotes'
   | 'setAssignmentEndDay'
+  | 'setAssignmentStay'
   | 'setAssignmentRouteExcluded'
   | 'setAssignmentParticipants'
   | 'setAssignmentLegMode'
@@ -153,7 +157,7 @@ export async function restorePlace(
   return restored;
 }
 
-/** Gives a visit planned again the times, note, end of day, travellers and legs it had. */
+/** Gives a visit planned again the times, note, end of day, stay, travellers and legs it had. */
 export async function restoreVisit(
   tripId: number | string,
   actions: Omit<RestoreActions, 'addPlace' | 'assignPlaceToDay' | 'ratePlace'>,
@@ -166,6 +170,7 @@ export async function restoreVisit(
   }
   if (visit.notes) await actions.setAssignmentNotes(tripId, dayId, assignmentId, visit.notes);
   if (visit.endDay) await actions.setAssignmentEndDay(tripId, dayId, assignmentId, true);
+  if (visit.stayMinutes !== null) await actions.setAssignmentStay(tripId, dayId, assignmentId, visit.stayMinutes);
   if (visit.routeExcluded) await actions.setAssignmentRouteExcluded(tripId, dayId, assignmentId, true);
   if (visit.participantIds.length > 0)
     await actions.setAssignmentParticipants(tripId, dayId, assignmentId, visit.participantIds);

@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Dvoufaktorové ověření',
   'login.mfaSubtitle': 'Zadejte 6místný kód z vaší autentizační aplikace.',
   'login.mfaCodeLabel': 'Ověřovací kód',
+  'login.mfaPlaceholder': '000000 nebo XXXX-XXXX',
   'login.mfaCodeRequired': 'Zadejte kód z aplikace.',
   'login.mfaHint': 'Otevřete Google Authenticator, Authy nebo jinou TOTP aplikaci.',
   'login.mfaBack': '← Zpět k přihlášení',

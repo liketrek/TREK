@@ -1,11 +1,11 @@
-import { ChevronDown, Eye, EyeOff, Loader2, Share2, X } from 'lucide-react'
+import { ChevronDown, Eye, EyeOff, Loader2, Share2 } from 'lucide-react'
 import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
 import MUserPickerList from '../../components/MUserPickerList'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useTranslation } from '../../../i18n'
 import { useVacayShareActions } from '../../../components/Vacay/useVacayShareActions'
 import { useVacayUserPicker } from '../../../components/Vacay/useVacayUserPicker'
+import { TileHeader } from '../trip/sheets/MTripSheetUi'
 
 interface MVacayShareSheetProps {
   open: boolean
@@ -34,12 +34,12 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
   return (
     <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('vacay.sharedCalendars')}>
       <div className="px-[18px] pb-[18px] pt-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 text-[1.0625rem] font-bold">{t('vacay.sharedCalendars')}</div>
-          <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
-            <X size={15} strokeWidth={2.2} />
-          </MIconBtn>
-        </div>
+        <TileHeader
+          icon={<Share2 size={19} strokeWidth={1.8} />}
+          title={t('vacay.sharedCalendars')}
+          onClose={onClose}
+          closeLabel={t('common.close')}
+        />
         <div className="mb-3 mt-2 font-geist text-[0.75rem] leading-normal text-m-muted">
           {t('vacay.shareCalendarHint')}
         </div>

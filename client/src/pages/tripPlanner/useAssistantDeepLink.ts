@@ -59,27 +59,33 @@ interface AssistantTabLinkOptions {
   activeTab: string;
   /** Switches the planner's tab the way its tab bar does. */
   selectTab: (tabId: string) => void;
+  /** Told about every link it took, so a shell can open the part of the tab a link means. */
+  onLinked?: (tabId: string) => void;
 }
 
 /**
- * `?tab=<id>` while the planner is already open: what a card in the chat
- * opens in another tab of this trip (`?tab=finanzplan&expense=7`). The
- * planner reads the tab once when it opens; this takes a later one live,
- * once, and then drops it from the URL. What the tab reads beside it stays
- * for that tab to take.
+ * `?tab=<id>` from a notification or a card in the chat, including while the
+ * planner is already open. Both desktop and mobile take the requested tab
+ * once and then drop it from the URL. A tab the planner does not have is
+ * dropped too, so it does not linger in the address bar. What the tab reads
+ * beside it stays for that tab to take (`?tab=finanzplan&expense=7`, for example).
  */
 export function useAssistantTabLink({
   searchParams,
   setSearchParams,
   activeTab,
   selectTab,
+  onLinked,
 }: AssistantTabLinkOptions): void {
   const requested = searchParams.get('tab');
   const linkable = requested !== null && isDeepLinkableTripTab(requested);
 
   useEffect(() => {
-    if (!linkable || requested === null) return;
-    if (requested !== activeTab) selectTab(requested);
+    if (requested === null) return;
+    if (linkable) {
+      if (requested !== activeTab) selectTab(requested);
+      onLinked?.(requested);
+    }
     setSearchParams(
       (params) => {
         params.delete('tab');
@@ -87,5 +93,5 @@ export function useAssistantTabLink({
       },
       { replace: true }
     );
-  }, [linkable, requested, activeTab, selectTab, setSearchParams]);
+  }, [linkable, requested, activeTab, selectTab, onLinked, setSearchParams]);
 }

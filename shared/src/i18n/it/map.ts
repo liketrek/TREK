@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Musei e cultura',
   'poi.cat.nature': 'Natura e parchi',
   'poi.cat.activities': 'Attività',
+  'poi.cat.bakeries': 'Panetterie',
+  'poi.cat.groceries': 'Alimentari',
   'poi.pluginCategories': 'Categorie dai plugin',
   'map.showAllConnections': 'Mostra tutti i percorsi prenotati',
   'map.hideAllConnections': 'Nascondi tutti i percorsi prenotati',
@@ -47,5 +49,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Questo browser non offre WebGL2, necessario alle mappe GL, quindi le mappe vengono mostrate con Leaflet.',
   'map.webgl2.terrain': 'Il 3D richiede WebGL2, che questo browser non offre. La mappa resta in 2D.',
+  'map.offlineBasemap': 'Mappa offline',
+  'map.offlineShowStored': 'Mostra mappa offline',
 };
 export default map;

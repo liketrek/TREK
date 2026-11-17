@@ -36,6 +36,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'To, co tu wpisano, nie zostało jeszcze zapisane.',
   'common.keepEditing': 'Kontynuuj edycję',
   'common.name': 'Nazwa',
+  'common.title': 'Tytuł',
   'common.email': 'E-mail',
   'common.password': 'Hasło',
   'common.saving': 'Zapisywanie...',
@@ -84,5 +85,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK został zaktualizowany, gdy ta karta była otwarta. Odśwież, aby pobrać nową wersję.',
   'common.errorPluginTitle': 'Nie udało się wyświetlić tej wtyczki',
   'common.needsConnection': 'To wymaga połączenia. Spróbuj ponownie, gdy TREK znów będzie online.',
+  'common.errorDetails': 'Szczegóły',
+  'common.share': 'Udostępnij',
 };
 export default common;

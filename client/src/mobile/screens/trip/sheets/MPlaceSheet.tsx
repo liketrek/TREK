@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
-  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, Navigation, Paperclip,
+  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, MapPinOff, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, RouteOff, Sparkles, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
@@ -24,11 +24,14 @@ import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
 import { filesForPlace } from '../../../../utils/placeFiles'
 import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import { getPlaceBookings } from '../../../../utils/dayMerge'
 import type { Assignment, Day, Reservation, TripMember } from '../../../../types'
 import PlacePhotoGallery from '../../../../components/Planner/PlacePhotoGallery'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
+import { FormSheetBody } from './PlSheetChrome'
+import { PlTagChips } from './PlTags'
 
 /**
  * Place inspector sheet (glass card), opened by the current place selection —
@@ -111,18 +114,11 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   )
   const openRes = (res: Reservation) => {
     if (!canOpenRes(res)) return
-    if (planner.TRANSPORT_TYPES.has(res.type)) {
-      planner.setEditingTransport(res)
-      planner.setTransportModalDayId(res.day_id ?? null)
-      planner.setTransportModalAutomated(false)
-      planner.setShowTransportModal(true)
-    } else {
-      planner.setEditingReservation(res)
-      planner.setShowReservationModal(true)
-    }
     // This sheet hangs off the place selection, not the sheet stack, so its own
-    // close() is what dismisses it — otherwise the editor opens on top of it.
+    // close() is what dismisses it; the booking's detail sheet then opens alone,
+    // with its pencil for editing, as on the desktop.
     close()
+    shell.openSheet('transport', { reservationId: res.id })
   }
 
   const participants = assignmentInDay?.participants || []
@@ -190,13 +186,14 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   }
 
   return (
-    <MSheet open={open} onClose={close} variant="card" material="glass" ariaLabel={place?.name}>
+    <MSheet open={open} onClose={close} variant="card" form ariaLabel={place?.name}>
       {place && (
         <>
           <div className="flex-none px-[18px] pt-4">
             <div className="flex items-start gap-3">
-              <div className="flex flex-none flex-col items-center gap-[5px]">
-                {/* The picture opens the place's photos; it is changed in the editor. */}
+              {/* The picture opens the place's photos; it is changed in the editor.
+                  It stands on the same leading edge as the cards below. */}
+              <div className="flex-none">
                 <PlacePhotoGallery place={place} language={language} label={t('places.openPhotos')} className="rounded-[16px]">
                   {place.image_url ? (
                     <div
@@ -209,16 +206,10 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     </div>
                   )}
                 </PlacePhotoGallery>
-                {category && (
-                  <span className="flex max-w-[76px] items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted">
-                    <CatIcon size={10} strokeWidth={2} className="flex-none" />
-                    <span className="truncate">{category.name}</span>
-                  </span>
-                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
+                  <span dir="auto" className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
                   {/* Accepted out of the traveller's own recordings — the same
                       mark the desktop inspector carries. */}
                   {place.source === 'dawarich' && (
@@ -228,8 +219,24 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   )}
                 </div>
                 {place.address && (
-                  <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted">{place.address}</div>
+                  <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted"><bdi>{place.address}</bdi></div>
                 )}
+                {/* A typed address that never got coordinates: no marker, and the sheet says why (#2837). */}
+                {addressWithoutCoordinates(place) && (
+                  <div className="mt-[3px] flex items-center gap-1 text-caption font-semibold text-[color:var(--m-st-pending)]">
+                    <MapPinOff size={12} strokeWidth={2.2} aria-hidden="true" className="flex-none" />
+                    {t('places.noCoordinates')}
+                  </div>
+                )}
+                {/* The category under the name and address, as wide as its name:
+                    squeezed under the photo it was cut to "Shoppi…". */}
+                {category && (
+                  <span className="mt-[6px] inline-flex max-w-full items-center gap-1 rounded-full border border-[color:var(--m-faint)] px-2 py-[2px] font-geist text-[0.625rem] font-semibold text-m-muted">
+                    <CatIcon size={10} strokeWidth={2} className="flex-none" />
+                    <span dir="auto" className="truncate">{category.name}</span>
+                  </span>
+                )}
+                <PlTagChips tags={place.tags} />
               </div>
               <button
                 type="button"
@@ -242,7 +249,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+          <FormSheetBody>
             {place.phone && (
               <a href={`tel:${place.phone}`} className="mt-3 flex items-center gap-[7px] text-[0.78125rem] font-medium">
                 <Phone size={13} strokeWidth={2} className="flex-none text-m-muted" />
@@ -263,7 +270,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
 
             {place.notes && (
               <>
-                <Eyebrow className="mb-[6px] mt-3">{t('mobileTrip.notes')}</Eyebrow>
+                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('mobileTrip.notes')}</Eyebrow>
                 <div className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
                   <MarkdownText className="font-geist text-[0.75rem] leading-[1.5] text-m-muted [overflow-wrap:anywhere]">{place.notes}</MarkdownText>
                 </div>
@@ -273,7 +280,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             {/* ── Track colour (#776) ── */}
             {place.route_geometry && (
               <>
-                <Eyebrow className="mb-[6px] mt-3">{t('inspector.trackColor')}</Eyebrow>
+                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('inspector.trackColor')}</Eyebrow>
                 <div className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
                   {isTourPlace ? (
                     <span aria-label={t('inspector.trackColor')} style={{ display: 'block', width: 24, height: 24, borderRadius: 12, background: resolveTrackColor(place) }} />
@@ -312,7 +319,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             )}
 
             {/* ── Day assignments ── */}
-            <Eyebrow className="mb-[6px] mt-3">{t('mobileTrip.assignedDays')}</Eyebrow>
+            <Eyebrow className="mb-[6px] mt-3 uppercase">{t('mobileTrip.assignedDays')}</Eyebrow>
             <div className="flex flex-wrap items-center gap-[6px]">
               {placeAssignments.map(({ day, assignment }) => (
                 <span
@@ -382,7 +389,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 only appears when the place sits on more than one day. ── */}
             {placeAssignments.some(r => r.assignment.notes) && (
               <>
-                <Eyebrow className="mb-[6px] mt-3">{t('mobileTrip.assignmentNotes')}</Eyebrow>
+                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('mobileTrip.assignmentNotes')}</Eyebrow>
                 <div className="flex flex-col gap-[6px]">
                   {placeAssignments.filter(r => r.assignment.notes).map(({ day, assignment }) => (
                     <div key={assignment.id} className={`rounded-[14px] px-3 py-[10px] ${INNER_CLS}`}>
@@ -401,7 +408,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             {/* ── The bookings attached to this stop (#2012, #2201) ── */}
             {linkedReservations.length > 0 && (
               <>
-                <Eyebrow className="mb-[6px] mt-3">{t('reservations.title')}</Eyebrow>
+                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('reservations.title')}</Eyebrow>
                 <div className="flex flex-col gap-[6px]">
                   {linkedReservations.map(res => (
                     <button
@@ -409,14 +416,13 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       type="button"
                       onClick={() => openRes(res)}
                       disabled={!canOpenRes(res)}
-                      aria-label={canOpenRes(res) ? t('inspector.editRes') : undefined}
                       className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-[10px] text-start ${INNER_CLS}`}
                     >
                       <span
                         className="h-2 w-2 flex-none rounded-full"
                         style={{ background: res.status === 'confirmed' ? 'var(--m-st-confirmed)' : 'var(--m-st-pending)' }}
                       />
-                      <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{res.title}</span>
+                      <span dir="auto" className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{res.title}</span>
                       <span className="flex-none font-geist text-[0.65625rem] text-m-muted">
                         {res.status === 'confirmed' ? t('reservations.confirmed') : t('reservations.pending')}
                       </span>
@@ -430,7 +436,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
             {/* ── Participants of the selected day's assignment ── */}
             {!isTourPlace && assignmentInDay && members.length > 1 && (
               <>
-                <Eyebrow className="mb-[6px] mt-3">{t('inspector.participants')}</Eyebrow>
+                <Eyebrow className="mb-[6px] mt-3 uppercase">{t('inspector.participants')}</Eyebrow>
                 <div className="flex flex-wrap items-center gap-[6px]">
                   {activeMembers.map(m => (
                     <button
@@ -473,7 +479,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                             ? <img src={m.avatar_url || avatarSrc(m.avatar)!} alt="" className="h-full w-full object-cover" />
                             : m.username?.[0]?.toUpperCase()}
                         </span>
-                        <span className="min-w-0 flex-1 truncate">{m.username}</span>
+                        <span dir="auto" className="min-w-0 flex-1 truncate">{m.username}</span>
                       </button>
                     ))}
                   </div>
@@ -518,7 +524,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       onClick={() => openFile(f.url, f.original_name)}
                       className="flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--m-ic)] px-[10px] py-[7px] text-start"
                     >
-                      <span className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
+                      <span dir="auto" className="min-w-0 flex-1 truncate text-[0.75rem] font-medium">{f.original_name}</span>
                       <ExternalLink size={11} strokeWidth={2} className="flex-none text-m-faint" />
                     </button>
                   ))}
@@ -591,7 +597,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 </ActionCircle>
               )}
             </div>
-          </div>
+          </FormSheetBody>
         </>
       )}
     </MSheet>

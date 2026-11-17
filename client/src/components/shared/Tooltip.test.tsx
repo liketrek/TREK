@@ -1,4 +1,4 @@
-// FE-W4TIP-001 to FE-W4TIP-017
+// FE-W4TIP-001 to FE-W4TIP-018
 import { createRef, useRef } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render'
@@ -211,5 +211,32 @@ describe('Tooltip — with a shortcut', () => {
     hover(screen.getByRole('button'))
 
     expect(screen.getByRole('tooltip').querySelector('kbd')).toBeNull()
+  })
+})
+
+describe('Tooltip — with content', () => {
+  it('FE-W4TIP-018: shows the content in place of the label, which still opens it', () => {
+    render(<Tooltip label="brought by Anna, Ben" content={<ul><li>Anna</li><li>Ben</li></ul>}><button>x</button></Tooltip>)
+    hover(screen.getByRole('button'))
+
+    const tip = screen.getByRole('tooltip')
+    expect(tip.querySelectorAll('li')).toHaveLength(2)
+    expect(tip).not.toHaveTextContent('brought by')
+  })
+
+  it('FE-W4TIP-017: a tap opens nothing, a pointer that comes along later still does', () => {
+    render(<Tooltip label="Add a tour" delay={0}><button>+</button></Tooltip>)
+    const button = screen.getByRole('button')
+
+    // The browser follows a tap with a mouseenter and never sends the mouseleave.
+    fireEvent.touchStart(button)
+    fireEvent.mouseEnter(button)
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(screen.queryByRole('tooltip')).toBeNull()
+
+    act(() => { vi.advanceTimersByTime(2000) })
+    fireEvent.mouseEnter(button)
+    act(() => { vi.advanceTimersByTime(10) })
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Add a tour')
   })
 })

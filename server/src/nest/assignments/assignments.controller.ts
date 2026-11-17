@@ -1,6 +1,7 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { ResponseContract } from '../common/response-contract';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   AssignmentCreateDto,
@@ -8,6 +9,7 @@ import {
   AssignmentMoveDto,
   AssignmentTimeDto,
   AssignmentEndDayDto,
+  AssignmentStayDto,
   AssignmentNotesDto,
   AssignmentTransportDto,
   AssignmentRouteDto,
@@ -15,6 +17,7 @@ import {
 } from './assignments.dto';
 import { AssignmentsService } from './assignments.service';
 import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { assignmentResponseSchema } from '@trek/shared';
 
 /**
  * /api/trips/:tripId/days/:dayId/assignments — the day's ordered itinerary items.
@@ -217,6 +220,25 @@ export class AssignmentOpsController {
       throw new HttpException({ error: 'Assignment not found' }, 404);
     }
     const assignment = await this.assignments.setEndDay(id, body.end_day);
+    this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
+    return { assignment };
+  }
+
+  // #3092: the stay of one visit, so two visits of a place can last differently.
+  // Same guard shape and 404 body as end-day; no reconcile, the stay touches
+  // neither the day's order nor the journey skeleton.
+  @RequirePermission('day_edit')
+  @Put(':id/stay')
+  @ResponseContract(assignmentResponseSchema)
+  async stay(
+    @Param('tripId') tripId: string,
+    @Param('id') id: string,
+    @Body() body: AssignmentStayDto,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const visit = await this.assignments.getAssignmentForTrip(id, tripId);
+    if (!visit) throw new HttpException({ error: 'Assignment not found' }, 404);
+    const assignment = await this.assignments.setStay(visit.id, body.stay_minutes);
     this.assignments.broadcast(tripId, 'assignment:updated', { assignment }, socketId);
     return { assignment };
   }

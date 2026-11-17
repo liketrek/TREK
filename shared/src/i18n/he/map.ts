@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'מוזיאונים ותרבות',
   'poi.cat.nature': 'טבע ופארקים',
   'poi.cat.activities': 'פעילויות',
+  'poi.cat.bakeries': 'מאפיות',
+  'poi.cat.groceries': 'מכולות וסופרמרקטים',
   'poi.pluginCategories': 'קטגוריות מתוספים',
   'map.showAllConnections': 'הצגת כל מסלולי ההזמנות',
   'map.hideAllConnections': 'הסתרת כל מסלולי ההזמנות',
@@ -45,6 +47,8 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': 'טופוגרפית',
   'map.webgl2.fallback': 'הדפדפן הזה לא תומך ב-WebGL2, שמפות GL צריכות, ולכן המפות מוצגות עם Leaflet.',
   'map.webgl2.terrain': 'תלת-ממד דורש WebGL2, והדפדפן הזה לא תומך בו. המפה נשארת בדו-ממד.',
+  'map.offlineBasemap': 'מפה לא מקוונת',
+  'map.offlineShowStored': 'הצגת מפה לא מקוונת',
 };
 
 export default map;

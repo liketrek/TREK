@@ -160,7 +160,7 @@ describe('BookingDetailHost', () => {
     await waitFor(() => expect(toasts).toContainEqual({ message: 'Failed to update', type: 'error' }));
   });
 
-  it('FE-PLANNER-BOOKINGHOST-011: On map is offered only for a booking the map can show, and closes first', async () => {
+  it('FE-PLANNER-BOOKINGHOST-011: Map is offered only for a booking the map can show, and closes first', async () => {
     const onShowOnMap = vi.fn(() => { calls.push('map'); });
     const routed = buildReservation({
       title: 'Shinkansen', type: 'train',
@@ -171,7 +171,7 @@ describe('BookingDetailHost', () => {
     });
     const { unmount } = renderHost(routed, { onShowOnMap, isOnMap: () => true });
 
-    const onMap = screen.getByRole('button', { name: 'On map' });
+    const onMap = screen.getByRole('button', { name: 'Map' });
     expect(onMap).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(onMap);
     expect(onShowOnMap).toHaveBeenCalledWith(routed);
@@ -179,7 +179,7 @@ describe('BookingDetailHost', () => {
     unmount();
 
     renderHost(buildReservation({ title: 'Nowhere', place_id: null }), { onShowOnMap });
-    expect(screen.queryByRole('button', { name: 'On map' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Map' })).toBeNull();
   });
 
   it('FE-PLANNER-BOOKINGHOST-012: Change route is offered for a transit journey only', async () => {

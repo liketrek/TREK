@@ -33,10 +33,10 @@ export async function setAddonEnabled(orm: FactoryOrm, addonId: string, enabled:
   await upsertRow(orm, Addons, { id: addonId, name: addonId, type: 'global', enabled }, ['enabled']);
 }
 
-/** Collab's chat, notes, polls and next-up panels are opt-out app settings, not addon rows. */
+/** Collab's chat, notes, polls, links and next-up panels are opt-out app settings, not addon rows. */
 export async function setCollabFeature(
   orm: FactoryOrm,
-  feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
+  feature: 'chat' | 'notes' | 'polls' | 'links' | 'whatsnext',
   enabled: boolean,
 ): Promise<void> {
   await setAppSetting(orm, `collab_${feature}_enabled`, enabled ? 'true' : 'false');

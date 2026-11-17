@@ -1216,7 +1216,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Ποια μηχανή σχεδιάζει τους χάρτες του σχεδιαστή ταξιδιών και του ημερολογίου και με ποιο στυλ. Το Leaflet είναι ο κλασικός χάρτης raster, το Mapbox GL προσθέτει τρισδιάστατα κτίρια και ανάγλυφο με δικό σας token, και το MapLibre GL σχεδιάζει vector tiles του OpenFreeMap χωρίς token. Ο Άτλας χρησιμοποιεί πάντα Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '«Πάροχος Χάρτη»: Leaflet, Mapbox GL («Πειραματικό») ή MapLibre GL, με σύντομη περιγραφή για καθένα.',
+    '«Πάροχος Χάρτη»: Leaflet, Mapbox GL ή MapLibre GL, με σύντομη περιγραφή για καθένα.',
   'help.ctx.settings-map.bullet.2':
     '«Πρότυπο Χάρτη» και «Κλειδί API CARTO» για το Leaflet. «Στυλ Χάρτη» για τις δύο μηχανές GL, καθώς και το Mapbox Access Token για το Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

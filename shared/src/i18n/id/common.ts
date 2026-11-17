@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Yang kamu masukkan di sini belum disimpan.',
   'common.keepEditing': 'Lanjut mengedit',
   'common.name': 'Nama',
+  'common.title': 'Judul',
   'common.email': 'Email', // same-as-en
   'common.password': 'Kata sandi',
   'common.saving': 'Menyimpan...',
@@ -78,5 +79,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK diperbarui saat tab ini terbuka. Muat ulang untuk mendapatkan versi baru.',
   'common.errorPluginTitle': 'Plugin ini tidak dapat ditampilkan',
   'common.needsConnection': 'Ini memerlukan koneksi. Coba lagi begitu TREK kembali online.',
+  'common.errorDetails': 'Detail',
+  'common.share': 'Bagikan',
 };
 export default common;

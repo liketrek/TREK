@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': '여기에 입력한 내용은 아직 저장되지 않았습니다.',
   'common.keepEditing': '계속 편집',
   'common.name': '이름',
+  'common.title': '제목',
   'common.email': '이메일',
   'common.password': '비밀번호',
   'common.saving': '저장 중...',
@@ -78,5 +79,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': '이 탭이 열려 있는 동안 TREK이 업데이트되었습니다. 새로고침하여 새 버전을 받으세요.',
   'common.errorPluginTitle': '이 플러그인을 표시할 수 없습니다',
   'common.needsConnection': '연결이 필요한 작업입니다. TREK가 다시 온라인이 되면 다시 시도하세요.',
+  'common.errorDetails': '세부 정보',
+  'common.share': '공유',
 };
 export default common;

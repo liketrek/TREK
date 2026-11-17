@@ -6,9 +6,10 @@ import { AppModule } from './nest/app.module';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
 import { validateBodyContracts } from './nest/common/validate-body-contracts';
 import { validateManagedRoutes } from './nest/common/validate-managed-routes';
-import { validateRouteGuards } from './nest/common/validate-route-guards';
+import { PUBLIC_ROUTE_ALLOW_LIST, validateRouteGuards } from './nest/common/validate-route-guards';
 import { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
 import { withRequestContext } from './nest/database/request-context';
+import { MANAGED_PUBLIC_ROUTES } from './nest/managed/managed-ext.module';
 import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
 import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
@@ -247,7 +248,8 @@ export async function buildApp(): Promise<INestApplication> {
   // Fail closed on the anonymous surface too: a route that answers without a
   // session must carry @Public() with a reason AND be on the reviewed list.
   // Default-deny protects what exists; this is what keeps the exemptions honest.
-  validateRouteGuards(app);
+  // The managed attachment point declares its own anonymous routes; empty in this repository.
+  validateRouteGuards(app, [...PUBLIC_ROUTE_ALLOW_LIST, ...MANAGED_PUBLIC_ROUTES]);
   // And on the other direction of the same question: a route that a centrally
   // administered install withholds from its own admin must say why, and be on a
   // list somebody reviewed. Runs in every e2e harness because they share this

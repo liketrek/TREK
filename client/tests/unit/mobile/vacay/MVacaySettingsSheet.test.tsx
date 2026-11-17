@@ -106,10 +106,12 @@ describe('MVacaySettingsSheet', () => {
   it('FE-MOB-MVACSET-004: shows the weekend-day chips only while weekends are blocked', () => {
     renderSheet();
 
-    expect(screen.getByText('Weekend days')).toBeInTheDocument();
     const sat = screen.getByRole('button', { name: 'Sat' });
-    expect(sat.className).toContain('bg-m-act');
-    expect(screen.getByRole('button', { name: 'Wed' }).className).not.toContain('bg-m-act');
+    const chips = within(sat.parentElement as HTMLElement);
+    expect(chips.getAllByRole('button')).toHaveLength(7);
+    expect(sat).toHaveClass('bg-m-act');
+    expect(chips.getByRole('button', { name: 'Sun' })).toHaveClass('bg-m-act');
+    expect(chips.getByRole('button', { name: 'Wed' })).not.toHaveClass('bg-m-act');
   });
 
   it('FE-MOB-MVACSET-005: toggling block-weekends writes the inverted flag', () => {
@@ -125,7 +127,34 @@ describe('MVacaySettingsSheet', () => {
     seedPlan(buildPlan({ block_weekends: false }));
     renderSheet();
 
-    expect(screen.queryByText('Weekend days')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sat' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wed' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MVACSET-006b: switching weekend blocking off and on preserves custom weekend days', async () => {
+    let plan = buildPlan({ weekend_days: '5,6' });
+    const updates: Partial<VacayPlan>[] = [];
+    server.use(http.put('/api/addons/vacay/plan', async ({ request }) => {
+      const update = (await request.json()) as Partial<VacayPlan>;
+      updates.push(update);
+      plan = { ...plan, ...update };
+      return HttpResponse.json({ plan });
+    }));
+    seedPlan(plan);
+    renderSheet();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Block Weekends' }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Block Weekends' })).not.toBeChecked());
+    expect(screen.queryByRole('button', { name: 'Fri' })).not.toBeInTheDocument();
+    expect(useVacayStore.getState().plan?.weekend_days).toBe('5,6');
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Block Weekends' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Fri' })).toHaveClass('bg-m-act'));
+    const sat = screen.getByRole('button', { name: 'Sat' });
+    expect(sat).toHaveClass('bg-m-act');
+    expect(within(sat.parentElement as HTMLElement).getByRole('button', { name: 'Sun' })).not.toHaveClass('bg-m-act');
+    expect(updates).toEqual([{ block_weekends: false }, { block_weekends: true }]);
+    expect(useVacayStore.getState().plan?.weekend_days).toBe('5,6');
   });
 
   it('FE-MOB-MVACSET-007: weekend chips add and remove their day from the plan', () => {

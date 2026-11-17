@@ -262,7 +262,7 @@ describe('MJourneySettingsSheet', () => {
     setup();
     fireEvent.click(await screen.findByRole('button', { name: 'Create share link' }));
 
-    expect(await screen.findByText(`${window.location.origin}/public/journey/tok-1`)).toBeInTheDocument();
+    expect(await screen.findByDisplayValue(`${window.location.origin}/public/journey/tok-1`)).toBeInTheDocument();
     expect(addToast).toHaveBeenCalledWith('Share link created', 'success', undefined);
     for (const section of ['Timeline', 'Gallery', 'Map']) {
       expect(screen.getByRole('switch', { name: section })).toBeInTheDocument();
@@ -286,7 +286,7 @@ describe('MJourneySettingsSheet', () => {
     Object.defineProperty(window, 'isSecureContext', { configurable: true, writable: true, value: true });
     setup();
 
-    expect(await screen.findByText(`${window.location.origin}/public/journey/tok-9`)).toBeInTheDocument();
+    expect(await screen.findByDisplayValue(`${window.location.origin}/public/journey/tok-9`)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/public/journey/tok-9`);
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument();

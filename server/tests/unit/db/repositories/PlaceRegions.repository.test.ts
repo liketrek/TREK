@@ -166,11 +166,26 @@ describe('PlaceRegionsRepository.listStartedTripPlaceCountriesForUser (AT44)', (
 
     const today = '2026-01-01';
     const expected = [
-      { id: cached.id, lat: 48.85, lng: 2.35, address: null, country_code: 'FR' },
-      { id: uncached.id, lat: 41.9022, lng: 12.4539, address: null, country_code: null },
+      { id: cached.id, lat: 48.85, lng: 2.35, address: null, country_code: 'FR', trip_last_date: '2020-01-10' },
+      { id: uncached.id, lat: 41.9022, lng: 12.4539, address: null, country_code: null, trip_last_date: '2020-01-10' },
     ];
     expect(await repo.listStartedTripPlaceCountriesForUser(owner.id, today)).toEqual(expected);
     expect(await repo.listStartedTripPlaceCountriesForUser(member.id, today)).toEqual(expected);
     expect(await repo.listStartedTripPlaceCountriesForUser(stranger.id, today)).toEqual([]);
+  });
+
+  it('PLACEREGREPO-010: dates each place by its own trip, the start standing in for a missing end (#2648)', async () => {
+    const { user } = createUser(testDb);
+    const ended = createTrip(testDb, user.id, { start_date: '2020-01-01', end_date: '2020-01-10' });
+    const openEnded = createTrip(testDb, user.id, { start_date: '2021-07-01' });
+    const first = createPlace(testDb, ended.id);
+    const second = createPlace(testDb, openEnded.id);
+
+    const rows = await repo.listStartedTripPlaceCountriesForUser(user.id, '2026-01-01');
+
+    expect(rows.map((row) => [row.id, row.trip_last_date])).toEqual([
+      [first.id, '2020-01-10'],
+      [second.id, '2021-07-01'],
+    ]);
   });
 });

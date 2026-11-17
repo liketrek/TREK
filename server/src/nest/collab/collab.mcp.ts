@@ -16,7 +16,12 @@ import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollabService } from './collab.service';
-import { idSchema } from '@trek/shared';
+import {
+  collabLinkCreateRequestSchema,
+  collabLinkPinnedSchema,
+  collabLinkUpdateRequestSchema,
+  idSchema,
+} from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -28,6 +33,7 @@ import { z } from 'zod';
 const collabNotesOn = collabFeatureGate('notes');
 const collabPollsOn = collabFeatureGate('polls');
 const collabChatOn = collabFeatureGate('chat');
+const collabLinksOn = collabFeatureGate('links');
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -71,7 +77,10 @@ function jsonContent(uri: string, data: unknown) {
  * matching every other collab write tool. The two note write tools have since
  * gained `website`, which the REST route has always accepted and the note card
  * renders as a link preview. list_collab_notes came later, for the assistant's
- * note cards: the notes resource as a tool, under the same gates.
+ * note cards: the notes resource as a tool, under the same gates. The four
+ * link tools came later still (#3076): the Links panel's REST routes as tools,
+ * with their body contracts, the collab_edit check and the collab:link:*
+ * broadcasts, behind the links flag.
  */
 @McpController()
 export class CollabMcp {
@@ -229,6 +238,101 @@ export class CollabMcp {
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     const notes = await this.collab.listNotes(tripId);
     return ok({ notes });
+  }
+
+  // --- COLLAB LINKS ---
+
+  @Tool({
+    name: 'list_collab_links',
+    description:
+      'List the shared links of a trip (Collab → Links), pinned first and then newest first. Read this before saving links, so a URL already on the trip is not added twice.',
+    inputSchema: {
+      tripId: idSchema,
+    },
+    annotations: TOOL_ANNOTATIONS_READONLY,
+    when: collabLinksOn,
+    access: { group: 'collab', mode: 'read' },
+  })
+  async listCollabLinks({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const links = await this.collab.listLinks(tripId);
+    return ok({ links });
+  }
+
+  @Tool({
+    name: 'create_collab_link',
+    description:
+      'Save a link on a trip (Collab → Links) for every trip member to find, e.g. a reservation, a map, a timetable or an event page.',
+    inputSchema: {
+      tripId: idSchema,
+      title: collabLinkCreateRequestSchema.shape.title.describe('What the link is, as the list shows it'),
+      url: collabLinkCreateRequestSchema.shape.url.describe('An http(s) URL'),
+      pinned: collabLinkPinnedSchema.optional().describe('Pin the link to the top of the list'),
+    },
+    annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: collabLinksOn,
+    access: { group: 'collab', mode: 'write' },
+  })
+  async createCollabLink(
+    { tripId, title, url, pinned }: { tripId: number; title: string; url: string; pinned?: boolean },
+    ctx: McpContext,
+  ) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const link = await this.collab.createLink(tripId, ctx.userId, { title, url, pinned: Boolean(pinned) });
+    this.guards.safeBroadcast(tripId, 'collab:link:created', { link });
+    return ok({ link });
+  }
+
+  @Tool({
+    name: 'update_collab_link',
+    description: "Change a shared link's title or URL, or pin or unpin it. Fields left out keep their value.",
+    inputSchema: {
+      tripId: idSchema,
+      linkId: idSchema,
+      title: collabLinkUpdateRequestSchema.shape.title.describe('What the link is, as the list shows it'),
+      url: collabLinkUpdateRequestSchema.shape.url.describe('An http(s) URL'),
+      pinned: collabLinkPinnedSchema.optional().describe('Pin the link to the top of the list, or false to unpin it'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    when: collabLinksOn,
+    access: { group: 'collab', mode: 'write' },
+  })
+  async updateCollabLink(
+    {
+      tripId,
+      linkId,
+      title,
+      url,
+      pinned,
+    }: { tripId: number; linkId: number; title?: string; url?: string; pinned?: boolean },
+    ctx: McpContext,
+  ) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const link = await this.collab.updateLink(tripId, linkId, { title, url, pinned });
+    if (!link) return errorResult('Link not found.');
+    this.guards.safeBroadcast(tripId, 'collab:link:updated', { link });
+    return ok({ link });
+  }
+
+  @Tool({
+    name: 'delete_collab_link',
+    description: 'Remove a shared link from a trip.',
+    inputSchema: {
+      tripId: idSchema,
+      linkId: idSchema,
+    },
+    annotations: TOOL_ANNOTATIONS_DELETE,
+    when: collabLinksOn,
+    access: { group: 'collab', mode: 'write' },
+  })
+  async deleteCollabLink({ tripId, linkId }: { tripId: number; linkId: number }, ctx: McpContext) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    if (!(await this.collab.deleteLink(tripId, linkId))) return errorResult('Link not found.');
+    this.guards.safeBroadcast(tripId, 'collab:link:deleted', { linkId });
+    return ok({ success: true });
   }
 
   // --- COLLAB POLLS & CHAT ---

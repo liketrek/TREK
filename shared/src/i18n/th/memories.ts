@@ -3,8 +3,7 @@ import type { TranslationStrings } from '../types';
 const memories: TranslationStrings = {
   'memories.title': 'ภาพถ่าย',
   'memories.notConnected': '{provider_name} ไม่ได้เชื่อมต่อ',
-  'memories.notConnectedHint':
-    'เชื่อมต่ออินสแตนซ์ {provider_name} ของคุณในการตั้งค่าเพื่อให้สามารถเพิ่มรูปภาพในการเดินทางครั้งนี้',
+  'memories.notConnectedHint': 'เชื่อมต่ออินสแตนซ์ {provider_name} ของคุณในการตั้งค่าเพื่อให้สามารถเพิ่มรูปภาพในการเดินทางครั้งนี้',
   'memories.notConnectedMultipleHint':
     'เชื่อมต่อผู้ให้บริการรูปภาพเหล่านี้: {provider_names} ในการตั้งค่าเพื่อให้สามารถเพิ่มรูปภาพในการเดินทางครั้งนี้',
   'memories.noDates': 'เพิ่มวันที่ในการเดินทางของคุณเพื่อโหลดรูปภาพ',
@@ -33,8 +32,7 @@ const memories: TranslationStrings = {
   'memories.connectionSuccess': 'เชื่อมต่อกับ {provider_name}',
   'memories.connectionError': 'ไม่สามารถเชื่อมต่อกับ {provider_name}',
   'memories.saved': 'บันทึกการตั้งค่า {provider_name} แล้ว',
-  'memories.providerDisconnectedBanner':
-    'การเชื่อมต่อ {provider_name} ของคุณขาดหายไป เชื่อมต่อใหม่ในการตั้งค่าเพื่อดูรูปภาพ',
+  'memories.providerDisconnectedBanner': 'การเชื่อมต่อ {provider_name} ของคุณขาดหายไป เชื่อมต่อใหม่ในการตั้งค่าเพื่อดูรูปภาพ',
   'memories.saveError': 'ไม่สามารถบันทึกการตั้งค่า {provider_name} ได้',
   'memories.addPhotos': 'เพิ่มรูปถ่าย',
   'memories.linkAlbum': 'ลิงก์อัลบั้ม',
@@ -58,8 +56,7 @@ const memories: TranslationStrings = {
   'memories.tripDates': 'วันเดินทาง',
   'memories.allPhotos': 'รูปภาพทั้งหมด',
   'memories.confirmShareTitle': 'แชร์กับสมาชิกทริป?',
-  'memories.confirmShareHint':
-    '{count} รูปภาพจะปรากฏแก่สมาชิกทุกคนของทริปนี้ คุณสามารถทำให้รูปภาพแต่ละรูปเป็นแบบส่วนตัวได้ในภายหลัง',
+  'memories.confirmShareHint': '{count} รูปภาพจะปรากฏแก่สมาชิกทุกคนของทริปนี้ คุณสามารถทำให้รูปภาพแต่ละรูปเป็นแบบส่วนตัวได้ในภายหลัง',
   'memories.confirmShareButton': 'แบ่งปันรูปถ่าย',
   'memories.error.loadAlbums': 'ไม่สามารถโหลดอัลบั้ม',
   'memories.error.linkAlbum': 'ลิงก์อัลบั้มไม่สำเร็จ',

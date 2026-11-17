@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'النقل',
   'mobileTrip.allDays': 'كل الأيام',
   'mobileTrip.today': 'اليوم',
-  'mobileTrip.jumpToToday': 'الانتقال إلى اليوم',
   'mobileTrip.assignedDays': 'الأيام المخصصة',
   'mobileTrip.assignmentNotes': 'ملاحظات خاصة باليوم',
   'mobileTrip.bookingsEmpty': 'لا توجد حجوزات بعد',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'لا توجد ملفات بعد',
   'mobileTrip.filesNext': 'الملف التالي',
   'mobileTrip.filesPrev': 'الملف السابق',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'تنزيل .ics',
   'mobileTrip.icsSubscribe': 'الاشتراك في التقويم',
   'mobileTrip.icsSubscribeSub': 'تحديث تلقائي في تطبيق التقويم لديك',
@@ -34,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'فئة جديدة',
   'mobileTrip.newReservation': 'حجز جديد',
   'mobileTrip.notes': 'الملاحظات',
-  'mobileTrip.onMap': 'على الخريطة',
+  'mobileTrip.onMap': 'الخريطة',
   'mobileTrip.profileDriving': 'بالسيارة',
   'mobileTrip.profileWalking': 'سيرًا على الأقدام',
   'mobileTrip.profileCycling': 'بالدراجة',
@@ -103,8 +100,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other':
     'في {count} مقطع كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtTruncated.zero': 'لم تتجاوز النتائج في أي مقطع ما تتسع له إجابة واحدة.',
-  'mobileTrip.rtTruncated.one':
-    'في مقطع واحد كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
+  'mobileTrip.rtTruncated.one': 'في مقطع واحد كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtTruncated.two': 'في مقطعين كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtTruncated.few':
     'في {count} مقاطع كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
@@ -112,5 +108,13 @@ const mobileTrip: TranslationStrings = {
     'في {count} مقطعًا كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtNoDay': 'لم يتم اختيار يوم',
   'mobileTrip.rtNoDayHint': 'تعرض الخريطة الرحلة كاملة. اضغط على يوم في الأعلى لعرض مسيره.',
+  'mobileTrip.maps': 'الخرائط',
+  'mobileTrip.openRouteIn': 'افتح اليوم في',
+  'mobileTrip.firstStopOnly': 'المحطة الأولى فقط',
+  'mobileTrip.sections': 'أقسام الرحلة',
+  'mobileTrip.hidePane': 'إخفاء الشريط الجانبي',
+  'mobileTrip.showPane': 'إظهار الشريط الجانبي',
+  'mobileTrip.previousDay': 'اليوم السابق',
+  'mobileTrip.nextDay': 'اليوم التالي',
 };
 export default mobileTrip;

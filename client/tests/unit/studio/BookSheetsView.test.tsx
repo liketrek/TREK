@@ -219,7 +219,9 @@ describe('what the sheets are made of', () => {
     const img = container.querySelector('img')
     expect(img).not.toBeNull()
     // `original`, not `thumbnail` — the print is the one place the big file is
-    // worth waiting for.
-    expect(img!.getAttribute('src')).toContain('/original')
+    // worth waiting for. Held back from `src` until the print view loads it a
+    // few at a time (#3102).
+    expect(img!.getAttribute('data-print-src')).toContain('/original')
+    expect(img?.hasAttribute('src')).toBe(false)
   })
 })

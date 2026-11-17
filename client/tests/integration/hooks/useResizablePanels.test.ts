@@ -50,6 +50,8 @@ describe('useResizablePanels', () => {
   });
 
   it('FE-HOOK-PANELS-004: rightWidth loaded from localStorage when set', () => {
+    // Wide enough that the map's share leaves the stored width alone.
+    setViewport(1440, false);
     localStorage.setItem('sidebarRightWidth', '350');
     const { result } = renderHook(() => useResizablePanels());
     expect(result.current.rightWidth).toBe(350);
@@ -78,7 +80,7 @@ describe('useResizablePanels', () => {
       result.current.startResizeLeft();
     });
 
-    // mousemove with clientX=350 → w = max(200, min(520, 350-10)) = 340
+    // mousemove with clientX=350 → w = 350 - 10 = 340, well inside the room the window leaves
     act(() => {
       fireEvent.mouseMove(document, { clientX: 350 });
     });
@@ -103,7 +105,7 @@ describe('useResizablePanels', () => {
       result.current.startResizeRight();
     });
 
-    // mousemove with clientX=800 → w = max(200, min(520, 1200-800-10)) = max(200, min(520, 390)) = 390
+    // mousemove with clientX=800 → w = 1200 - 800 - 10 = 390
     act(() => {
       fireEvent.mouseMove(document, { clientX: 800 });
     });
@@ -125,7 +127,7 @@ describe('useResizablePanels', () => {
       result.current.startResizeLeft();
     });
 
-    // clientX=50 → w = max(200, min(520, 50-10)) = max(200, 40) = 200
+    // clientX=50 → w = 40, held at the 200 minimum
     act(() => {
       fireEvent.mouseMove(document, { clientX: 50 });
     });
@@ -133,19 +135,78 @@ describe('useResizablePanels', () => {
     expect(result.current.leftWidth).toBe(200);
   });
 
-  it('FE-HOOK-PANELS-010: max width constraint (520) is enforced for left panel', () => {
+  it('FE-HOOK-PANELS-010: the left panel stops where the map would drop below 35% of the window next to the places list', () => {
+    setViewport(1200, false);
     const { result } = renderHook(() => useResizablePanels());
 
     act(() => {
       result.current.startResizeLeft();
     });
 
-    // clientX=600 → w = max(200, min(520, 600-10)) = min(520, 590) = 520
+    // 1200 - 420 map (35%) - 20 margins - 300 places list = 460
     act(() => {
-      fireEvent.mouseMove(document, { clientX: 600 });
+      fireEvent.mouseMove(document, { clientX: 1100 });
     });
 
-    expect(result.current.leftWidth).toBe(520);
+    expect(result.current.leftWidth).toBe(460);
+    expect(result.current.resizeMaxLeft).toBe(460);
+  });
+
+  it('FE-HOOK-PANELS-010b: a wide screen lets the day plan grow well past the old 520px ceiling', () => {
+    setViewport(1920, false);
+    const { result } = renderHook(() => useResizablePanels());
+
+    act(() => {
+      result.current.startResizeLeft();
+    });
+    act(() => {
+      fireEvent.mouseMove(document, { clientX: 910 });
+    });
+
+    expect(result.current.leftWidth).toBe(900);
+    expect(localStorage.getItem('sidebarLeftWidth')).toBe('900');
+  });
+
+  it('FE-HOOK-PANELS-010c: with the places list collapsed the day plan may take its room too', () => {
+    setViewport(1920, false);
+    const { result } = renderHook(() => useResizablePanels());
+
+    act(() => { result.current.toggleRight(); });
+    act(() => {
+      result.current.nudgeLeft(10_000);
+    });
+
+    // 1920 - 672 map (35%) - 20 margins
+    expect(result.current.leftWidth).toBe(1228);
+  });
+
+  it('FE-HOOK-PANELS-010d: a window too small for both stored widths squeezes the places list, not the day plan', () => {
+    localStorage.setItem('sidebarLeftWidth', '700');
+    localStorage.setItem('sidebarRightWidth', '600');
+    setViewport(1600, false);
+    const { result } = renderHook(() => useResizablePanels());
+
+    // room 1600 - 560 map (35%) - 20 = 1020: the day plan keeps 700, the list gets 320
+    expect(result.current.leftWidth).toBe(700);
+    expect(result.current.rightWidth).toBe(320);
+    expect(localStorage.getItem('sidebarRightWidth')).toBe('600');
+  });
+
+  it('FE-HOOK-PANELS-010e: shrinking the window shrinks the ceiling with it', () => {
+    localStorage.setItem('sidebarLeftWidth', '900');
+    setViewport(1920, false);
+    const { result } = renderHook(() => useResizablePanels());
+    expect(result.current.leftWidth).toBe(900);
+
+    act(() => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1200 });
+      window.dispatchEvent(new Event('resize'));
+    });
+
+    // room 1200 - 420 map (35%) - 20 = 760: the places list is held at its 200 minimum, the day plan gets 560
+    expect(result.current.leftWidth).toBe(560);
+    expect(result.current.rightWidth).toBe(200);
+    expect(localStorage.getItem('sidebarLeftWidth')).toBe('900');
   });
 
   it('FE-HOOK-PANELS-011: mousemove without prior startResize does nothing', () => {
@@ -201,7 +262,7 @@ describe('useResizablePanels', () => {
     act(() => {
       result.current.nudgeRight(10_000);
     });
-    expect(result.current.rightWidth).toBe(result.current.resizeMax);
+    expect(result.current.rightWidth).toBe(result.current.resizeMaxRight);
   });
 
   it('FE-HOOK-PANELS-012: body userSelect set to none during resize, cleared on mouseup', () => {
@@ -218,6 +279,21 @@ describe('useResizablePanels', () => {
     });
 
     expect(document.body.style.userSelect).toBe('');
+  });
+
+  it('FE-HOOK-PANELS-012b: a drag reports itself, so the panel can drop its width animation while it follows the pointer', () => {
+    const { result } = renderHook(() => useResizablePanels());
+    expect(result.current.resizing).toBe(false);
+
+    act(() => {
+      result.current.startResizeRight();
+    });
+    expect(result.current.resizing).toBe(true);
+
+    act(() => {
+      fireEvent.mouseUp(document);
+    });
+    expect(result.current.resizing).toBe(false);
   });
 
   it('FE-HOOK-PANELS-013: leftCollapsed and rightCollapsed default to false', () => {
@@ -308,7 +384,7 @@ describe('useResizablePanels', () => {
 
   it('FE-HOOK-PANELS-022: a wide layout leaves the stored widths alone', () => {
     localStorage.setItem('sidebarLeftWidth', '520');
-    setViewport(1100, false);
+    setViewport(1440, false);
     const { result } = renderHook(() => useResizablePanels());
     expect(result.current.leftWidth).toBe(520);
   });

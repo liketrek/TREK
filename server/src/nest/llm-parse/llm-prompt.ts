@@ -3,14 +3,12 @@ import { KI_RESERVATION_JSON_SCHEMA, KI_RESERVATION_TYPES } from '@trek/shared';
 export { KI_RESERVATION_JSON_SCHEMA };
 
 /**
- * System instructions telling the model to emit schema.org reservation JSON-LD
- * in exactly the shape the kitinerary binary produces — so the result feeds the
- * same `mapReservations()` mapper. Pure (no I/O) so it's unit-testable.
+ * How each reservation is written: in exactly the shape the kitinerary binary
+ * produces, so the result feeds the same `mapReservations()` mapper. The file
+ * import and the mail read both ask for it.
  */
-export function buildSystemPrompt(): string {
+export function reservationShapeRules(): string[] {
   return [
-    'You extract travel reservations from a document (a booking confirmation, ticket, or itinerary).',
-    'Return ONLY a JSON object of the form { "reservations": [ ... ] } — no prose, no markdown.',
     'Each reservation is a schema.org JSON-LD object whose "@type" is one of:',
     KI_RESERVATION_TYPES.map((t) => `  - ${t}`).join('\n'),
     'Put the booking/confirmation code in "reservationNumber" on each reservation.',
@@ -29,6 +27,18 @@ export function buildSystemPrompt(): string {
     'Extract EVERY flight/segment in the document, including return legs — a round trip has TWO OR MORE flights, and each row of a flight table is a separate reservation. Do NOT stop after the first.',
     "Each flight shares the booking's reservationNumber. Use the date shown for that specific flight as its departureTime; if a flight lists only one date (no separate arrival time), leave arrivalTime null — never reuse another flight's date.",
     'A total for the whole booking belongs on exactly one reservation, the first leg or segment to depart; never repeat it on each leg. Keep prices that the document states separately for each leg.',
+  ];
+}
+
+/**
+ * System instructions telling the model to emit schema.org reservation JSON-LD
+ * for one document. Pure (no I/O) so it's unit-testable.
+ */
+export function buildSystemPrompt(): string {
+  return [
+    'You extract travel reservations from a document (a booking confirmation, ticket, or itinerary).',
+    'Return ONLY a JSON object of the form { "reservations": [ ... ] } — no prose, no markdown.',
+    ...reservationShapeRules(),
     'If the document contains no recognizable reservation, return { "reservations": [] }.',
   ].join('\n');
 }

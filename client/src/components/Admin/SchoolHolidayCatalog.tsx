@@ -39,7 +39,7 @@ function Catalog() {
     {state.loading && <p role="status" className="m-0 flex items-center gap-2 text-content-muted" style={fs(12.5, 'body')}><Loader2 size={14} className="flex-none animate-spin" />{t('common.loading')}</p>}
     {state.error && !state.editor && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-[12px] bg-danger-soft px-3.5 py-2.5 text-danger" style={fs(12.5, 'body')}>
       <span className="min-w-0 flex-1 basis-48">{state.error}</span>
-      <button type="button" disabled={disabled} onClick={() => void state.refresh()} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>{t('schoolCatalog.retry')}</button>
+      <button type="button" disabled={disabled} onClick={() => void state.refresh()} className={SETTINGS_BUTTON}>{t('schoolCatalog.retry')}</button>
     </div>}
     <fieldset disabled={disabled} className={`m-0 flex min-w-0 flex-col gap-4 border-0 p-0 ${state.busy ? 'opacity-60' : ''}`}>
       {state.catalog.countries.length > 0 && <div className="flex items-end gap-2">
@@ -59,7 +59,7 @@ function Catalog() {
         </Tooltip>
       </div>}
       {!adding && state.catalog.countries.length === 0 && <div>
-        <button type="button" onClick={() => setAdding(true)} className={SETTINGS_BUTTON} style={fs(13, 'body')}><Plus size={14} strokeWidth={2.2} />{t('schoolCatalog.addCountry')}</button>
+        <button type="button" onClick={() => setAdding(true)} className={SETTINGS_BUTTON}><Plus size={14} strokeWidth={2.2} />{t('schoolCatalog.addCountry')}</button>
       </div>}
       {adding && <form className={PANEL} onSubmit={async event => {
         event.preventDefault()
@@ -74,8 +74,8 @@ function Catalog() {
           </EditorField>
         </div>
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setAdding(false)} className={SETTINGS_BUTTON} style={fs(13, 'body')}>{t('common.cancel')}</button>
-          <button type="submit" className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>{t('common.save')}</button>
+          <button type="button" onClick={() => setAdding(false)} className={SETTINGS_BUTTON}>{t('common.cancel')}</button>
+          <button type="submit" className={SETTINGS_BUTTON_PRIMARY}>{t('common.save')}</button>
         </div>
       </form>}
       {selectedCountry && <>

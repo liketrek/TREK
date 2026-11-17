@@ -190,6 +190,10 @@ export const reservationSchema = z.object({
   accommodation_name: z.string().nullable().optional(),
   accommodation_start_day_id: z.number().nullable().optional(),
   accommodation_end_day_id: z.number().nullable().optional(),
+  // The stay's check-in window and check-out, for a hotel booking whose own metadata has none.
+  accommodation_check_in: z.string().nullable().optional(),
+  accommodation_check_in_end: z.string().nullable().optional(),
+  accommodation_check_out: z.string().nullable().optional(),
   day_positions: z.record(z.string(), z.number()).nullable().optional(),
   endpoints: z.array(reservationEndpointSchema).optional(),
   // Trip members / named guests this booking is for (#1517). Joined in listReservations.
@@ -377,11 +381,36 @@ export type BookingImportPreviewItem = z.infer<typeof bookingImportPreviewItemSc
 export const bookingImportModeSchema = z.enum(['no-ai', 'fallback-on-empty', 'force-ai']);
 export type BookingImportMode = z.infer<typeof bookingImportModeSchema>;
 
+/**
+ * How the AI reading of one document ended:
+ *  - `ok`              it found at least one booking
+ *  - `empty`           it read the document and found none
+ *  - `no_text`         nothing to read: a scan, and no model that reads images
+ *  - `quota_exhausted` the TREK Cloud allowance for the period is used up (`QUOTA_SPENT`, `HARD_CAP`)
+ *  - `ai_disabled`     no AI reading is set up for this person
+ *  - `user_cap`        the person's own daily limit is reached
+ *  - `provider_error`  the provider refused or failed, or could not take this input
+ *  - `too_large`       the document is more than the model or the gate takes
+ */
+export const llmParseOutcomeSchema = z.enum([
+  'ok',
+  'empty',
+  'no_text',
+  'quota_exhausted',
+  'ai_disabled',
+  'user_cap',
+  'provider_error',
+  'too_large',
+]);
+export type LlmParseOutcome = z.infer<typeof llmParseOutcomeSchema>;
+
 /** Per-file AI report so the preview UI can offer "Try AI parsing" only where it applies. */
 export const bookingImportFileReportSchema = z.object({
   fileName: z.string(),
   aiAvailable: z.boolean(),
   aiUsed: z.boolean(),
+  /** How the AI reading ended; only where it ran. */
+  outcome: llmParseOutcomeSchema.optional(),
 });
 export type BookingImportFileReport = z.infer<typeof bookingImportFileReportSchema>;
 
@@ -398,7 +427,33 @@ export const bookingImportConfirmRequestSchema = z.object({
 });
 export type BookingImportConfirmRequest = z.infer<typeof bookingImportConfirmRequestSchema>;
 
+/**
+ * Why one confirmed item was not created: the trip already holds the booking
+ * an earlier import wrote under the same reference, or writing it failed.
+ */
+export const bookingImportFailureReasonSchema = z.enum(['duplicate', 'write_failed']);
+export type BookingImportFailureReason = z.infer<typeof bookingImportFailureReasonSchema>;
+
 export const bookingImportConfirmResponseSchema = z.object({
   created: z.array(reservationSchema),
+  /** The items that were not created, by their position in the request, each with its reason. */
+  failed: z.array(z.object({ index: z.number().int().nonnegative(), reason: bookingImportFailureReasonSchema })),
 });
 export type BookingImportConfirmResponse = z.infer<typeof bookingImportConfirmResponseSchema>;
+
+/**
+ * GET /api/trips/:tripId/reservations/:id/wallet-pass/google: the booking as a
+ * Google Wallet pass, by the save link the TREK services signed. The Android app
+ * opens it, and Google Wallet adds the pass (native/wallet.ts).
+ */
+export const googleWalletSaveResponseSchema = z.object({
+  saveUrl: z.string().url().startsWith('https://pay.google.com/gp/v/save/'),
+});
+export type GoogleWalletSaveResponse = z.infer<typeof googleWalletSaveResponseSchema>;
+
+/**
+ * GET /api/trips/:tripId/reservations/google-wallet: whether this server can make
+ * Google Wallet passes right now (passes on, and liketrek's Wallet issuer live).
+ */
+export const googleWalletAvailabilityResponseSchema = z.object({ available: z.boolean() });
+export type GoogleWalletAvailabilityResponse = z.infer<typeof googleWalletAvailabilityResponseSchema>;

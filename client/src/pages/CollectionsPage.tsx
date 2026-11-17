@@ -73,11 +73,16 @@ function CollectionsPageDesktop(): React.ReactElement {
     if (c.view !== 'map') c.setSelectedPlaceId(null)
     c.setView(c.view === 'map' ? 'list' : 'map')
   }
-  // Clicking a marker in the full-map view drops back to the split so the list
-  // + detail come into view alongside the map.
-  const onMapSelect = (id: number) => { showPlace(id); if (c.view === 'map') c.setView('list') }
+  // A marker shows its place and the map stays as it is: on the full map the
+  // detail docks on the map's edge instead of bringing the list back.
+  const onMapSelect = (id: number) => showPlace(id)
 
   const desktopSplit = c.isWide && c.hasMappable
+  // Where the place detail docks: over the list in the split, on the map's start
+  // edge when the map has the whole width, and as a centred sheet otherwise.
+  const detailDock = !desktopSplit ? null
+    : c.view === 'map' ? (c.mapColRect ? { left: c.mapColRect.left + 12, width: Math.min(420, c.mapColRect.width - 24) } : null) // rtl-lint-disable: a measured viewport position, like the list dock
+    : c.listColRect
   const mapShown = c.hasMappable && (c.view === 'map' || c.isWide)
   const mapOverlay = c.isWide && mapShown // the map carries the toggle + search
   const canAddPlace = typeof c.activeId === 'number' && c.canEdit // a real list you can edit
@@ -112,6 +117,8 @@ function CollectionsPageDesktop(): React.ReactElement {
       onToggleView={toggleView}
       search={c.search}
       onSearch={c.setSearch}
+      mapLocked={c.mapLocked}
+      onToggleMapLocked={c.toggleMapLocked}
       t={t}
     />
   )
@@ -184,7 +191,7 @@ function CollectionsPageDesktop(): React.ReactElement {
     body = (
       <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
         <div className="col-split-list" ref={c.listColRef}>{listColumn}</div>
-        <div className="col-split-map">{mapPanel(true)}</div>
+        <div className="col-split-map" ref={c.mapColRef}>{mapPanel(true)}</div>
       </div>
     )
   } else if (c.view === 'map' && c.hasMappable) {
@@ -294,24 +301,24 @@ function CollectionsPageDesktop(): React.ReactElement {
                     <span className="lbl">{t('collections.selectedCount', { count: c.selectedIds.length })}</span>
                     <div className="col-toolbar-spacer" />
                     {c.canEdit && isRealList && (
-                      <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                        <Tags size={14} /> {t('collections.labels.assign')}
+                      <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.labels.assign')}>
+                        <Tags size={14} /> <span className="col-selbar-txt">{t('collections.labels.assign')}</span>
                       </button>
                     )}
                     {c.canDelete && (
-                      <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                        <FolderInput size={14} /> {t('collections.moveToList')}
+                      <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.moveToList')}>
+                        <FolderInput size={14} /> <span className="col-selbar-txt">{t('collections.moveToList')}</span>
                       </button>
                     )}
-                    <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                      <CopyPlus size={14} /> {t('collections.duplicateToList')}
+                    <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.duplicateToList')}>
+                      <CopyPlus size={14} /> <span className="col-selbar-txt">{t('collections.duplicateToList')}</span>
                     </button>
-                    <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
-                      <Copy size={14} /> {t('collections.copyToTrip')}
+                    <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn act" title={t('collections.copyToTrip')}>
+                      <Copy size={14} /> <span className="col-selbar-txt">{t('collections.copyToTrip')}</span>
                     </button>
                     {c.canDelete && (
-                      <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn danger">
-                        <Trash2 size={14} /> {t('common.delete')}
+                      <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn act danger" title={t('common.delete')}>
+                        <Trash2 size={14} /> <span className="col-selbar-txt">{t('common.delete')}</span>
                       </button>
                     )}
                     <button type="button" onClick={() => c.setSelectMode(false)} className="col-selbar-btn" aria-label={t('common.cancel')}>
@@ -343,14 +350,14 @@ function CollectionsPageDesktop(): React.ReactElement {
             visible + interactive). On the desktop split it docks over the list
             column so the map stays clear; otherwise it's a full-width sheet.
             Clicking another place / the map background re-points the selection. */}
-        {c.selectedPlace && c.view !== 'map' && (
+        {c.selectedPlace && (c.view !== 'map' || c.hasMappable) && (
           <CollectionPlaceDetail
             place={c.selectedPlace}
             canEdit={c.canEdit}
             canDelete={c.canDelete}
             categories={c.categories}
             labels={c.labels}
-            anchorRect={desktopSplit ? c.listColRect : null}
+            anchorRect={detailDock}
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
             onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}

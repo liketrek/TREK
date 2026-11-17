@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { TripAccessGuard, TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
+import type { PlacesKmlService } from '../../../src/nest/places/places-kml.service';
 import { PlacesController } from '../../../src/nest/places/places.controller';
 import type { PlacesService } from '../../../src/nest/places/places.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
@@ -112,6 +113,7 @@ function placesFixture() {
     places as unknown as PlacesService,
     {} as RuntimeEnvService,
     {} as StorageService,
+    {} as PlacesKmlService,
   );
   return { places, controller };
 }

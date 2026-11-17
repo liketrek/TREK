@@ -39,6 +39,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'İki faktorlu autentifikasiya',
   'login.mfaSubtitle': 'Autentifikator tətbiqinizdəki 6 rəqəmli kodu daxil edin.',
   'login.mfaCodeLabel': 'Doğrulama kodu',
+  'login.mfaPlaceholder': '000000 və ya XXXX-XXXX',
   'login.mfaCodeRequired': 'Autentifikator tətbiqinizdəki kodu daxil edin.',
   'login.mfaHint': 'Google Authenticator, Authy və ya başqa TOTP tətbiqini açın.',
   'login.mfaBack': '← Girişə qayıt',

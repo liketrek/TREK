@@ -57,7 +57,11 @@ const reservations: TranslationStrings = {
   'reservations.type.train': 'Pociąg',
   'reservations.type.car': 'Samochód',
   'reservations.needsReview': 'Sprawdź',
-  'reservations.needsReviewHint': 'Nie udało się automatycznie dopasować lotniska — potwierdź lokalizację.',
+  'reservations.needsReviewHint':
+    'Niektóre dane zostały uzupełnione automatycznie i nie dało się ich odczytać z pewnością. Sprawdź je proszę.',
+  'reservations.reviewConfirm': 'Wygląda dobrze',
+  'reservations.reviewConfirmHint': 'Kliknij, aby oznaczyć jako sprawdzone.',
+  'reservations.reviewConfirmed': 'Oznaczono jako sprawdzone',
   'reservations.searchLocation': 'Szukaj stacji, portu, adresu...',
   'reservations.type.cruise': 'Rejs',
   'reservations.type.event': 'Wydarzenie',
@@ -289,5 +293,9 @@ const reservations: TranslationStrings = {
     'Pliki wymagają połączenia do przesłania. Usuń nowe, aby zapisać rezerwację offline, albo zapisz po powrocie online.',
   'reservations.needsConnection': 'To wymaga połączenia. Spróbuj ponownie, gdy TREK znów będzie online.',
   'reservations.exportCsvFiltered': 'Eksportuj wyświetlone wiersze: {shown} z {total} (CSV)',
+  'reservations.wallet.add': 'Dodaj do Apple Wallet',
+  'reservations.wallet.addGoogle': 'Dodaj do Google Wallet',
+  'reservations.wallet.failed': 'Nie udało się utworzyć karty Wallet. Spróbuj ponownie.',
+  'reservations.wallet.undated': 'Najpierw nadaj rezerwacji datę: Wallet pokazuje kartę w okolicach tego terminu.',
 };
 export default reservations;

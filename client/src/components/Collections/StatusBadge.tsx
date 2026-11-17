@@ -5,7 +5,7 @@ import { STATUS_META, nextStatus } from './collectionStatus'
 
 interface StatusBadgeProps {
   status: CollectionStatus
-  /** One-tap cycle: idea → want → visited → idea. Omit for a read-only badge. */
+  /** One-tap cycle: idea → want → visited → revisit → idea. Omit for a read-only badge. */
   onChange?: (next: CollectionStatus) => void
   showLabel?: boolean
   size?: number
@@ -15,7 +15,7 @@ interface StatusBadgeProps {
 }
 
 /**
- * Coloured per-place status pill (idea / want-to-go / visited). When `onChange`
+ * Coloured per-place status pill (idea / want-to-go / visited / revisit). When `onChange`
  * is supplied a single tap cycles the status optimistically; otherwise it is a
  * static badge. Two skins: the default surface pill (list / inspector) and the
  * `onCover` dark-glass pill that stays legible on top of a photo cover. Styled

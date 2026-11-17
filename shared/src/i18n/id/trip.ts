@@ -103,6 +103,13 @@ const trip: TranslationStrings = {
   'trip.settings.peopleHint': 'Siapa saja dalam perjalanan ini, dan tamu tanpa akun.',
   'trip.settings.sharing': 'Berbagi',
   'trip.settings.sharingHint': 'Tautan hanya-baca untuk siapa saja, dan tautan undangan untuk bergabung.',
+  'trip.settings.editTripHint': 'Judul, tanggal, sampul, deskripsi, dan mata uang.',
+  'trip.form.coverTitle': 'Gambar sampul',
+  'trip.form.coverHint': 'Tampil di kartu perjalanan dan di bagian atas perencana.',
+  'trip.form.aboutTitle': 'Nama dan deskripsi',
+  'trip.form.aboutHint': 'Apa nama perjalanan dan tentang apa.',
+  'trip.form.whenTitle': 'Tanggal dan mata uang',
+  'trip.form.whenHint': 'Kapan perjalanan berlangsung, mata uang yang dipakai, dan kapan kamu diingatkan.',
   'trip.tabs.journal': 'Jurnal',
   'trip.journal.title': 'Jurnal',
   'trip.journal.hint':
@@ -124,6 +131,8 @@ const trip: TranslationStrings = {
   'trip.journal.pickPlaceholder': 'Pilih jurnal',
   'trip.journal.noMembers': 'Belum ada orang lain dalam perjalanan ini.',
   'trip.journal.members': 'Akses untuk anggota perjalanan',
+  'trip.journal.membersHint':
+    'Siapa dari perjalanan ini yang membuka jurnal di tab Jurnal, dan apakah mereka boleh menulis di dalamnya.',
   'trip.journal.allRead': 'Semua bisa membaca',
   'trip.journal.allNone': 'Tidak ada',
   'trip.journal.roleNone': 'Tanpa akses',

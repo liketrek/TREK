@@ -1149,7 +1149,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Čím se vykreslují mapy plánovače cest a deníku a v jakém stylu. Leaflet je klasická rastrová mapa, Mapbox GL přidává 3D budovy a terén, pokud máte vlastní token, MapLibre GL vykresluje vektorové dlaždice OpenFreeMap bez tokenu. Atlas vždy používá Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '„Poskytovatel mapy“: Leaflet, Mapbox GL („Experimentální“) nebo MapLibre GL, každá volba s krátkým popisem.',
+    '„Poskytovatel mapy“: Leaflet, Mapbox GL nebo MapLibre GL, každá volba s krátkým popisem.',
   'help.ctx.settings-map.bullet.2':
     '„Šablona mapy“ a „CARTO API klíč“ pro Leaflet; „Styl mapy“ pro oba enginy GL a navíc „Mapbox přístupový token“ pro Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

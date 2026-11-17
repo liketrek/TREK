@@ -67,11 +67,11 @@ describe('MPlacesSaveToCollectionSheet', () => {
     expect(screen.getAllByText('0 places')).toHaveLength(1)
   })
 
-  it('FE-MOB-PSAVE-003: shows the spinner until the lists arrive', async () => {
+  it('FE-MOB-PSAVE-003: shows the placeholders until the lists arrive', async () => {
     let resolve!: (v: CollectionListResponse) => void
     vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r }))
     renderSheet()
-    expect(document.querySelector('.animate-spin')).not.toBeNull()
+    expect(document.querySelector('[data-skeleton]')).not.toBeNull()
     expect(screen.queryByText('You have no lists yet')).not.toBeInTheDocument()
     resolve(listResponse([FAVORITES]))
     expect(await screen.findByText('Favorites')).toBeInTheDocument()

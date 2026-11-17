@@ -23,7 +23,9 @@ import {
   regionStatusTone,
 } from '../../../components/Admin/paddle/paddleRegionsModel';
 import { usePaddleRegionsAdmin } from '../../../components/Admin/paddle/usePaddleRegionsAdmin';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import MBadge from '../../components/MBadge';
 import MChip from '../../components/MChip';
 import MConfirmSheet from '../settings/MConfirmSheet';
@@ -111,6 +113,7 @@ function AutoLoad({ admin }: { admin: Admin }) {
 
 function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: Admin }) {
   const { t, language } = useTranslation();
+  const dateFormat = useDateFormat();
   const busy = admin.busyId === request.id;
   return (
     <div data-testid="paddle-region-request" className={`px-3 py-2.5 ${busy ? 'opacity-60' : ''}`}>
@@ -134,7 +137,7 @@ function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: A
           <MBadge caps={false}>{t('admin.paddleRegions.requests.by', { user: request.requested_by })}</MBadge>
         )}
         <MBadge caps={false}>
-          {new Date(request.requested_at).toLocaleDateString(language, { dateStyle: 'medium' })}
+          {formatDisplayDate(new Date(request.requested_at), language, { dateStyle: 'medium' }, dateFormat)}
         </MBadge>
       </div>
       <div className="mt-2 flex justify-end gap-1.5">
@@ -194,6 +197,7 @@ function CatalogSearch({ admin }: { admin: Admin }) {
           onChange={(e) => search.setQuery(e.target.value)}
           autoComplete="off"
           aria-label={t('admin.paddleRegions.search')}
+          enterKeyHint="search"
           placeholder={t('admin.paddleRegions.searchPlaceholder')}
           className="h-[42px] w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] pe-3 ps-[34px] text-[length:calc(13px*var(--fs-scale-body,1))] text-m-ink outline-none placeholder:text-m-faint"
         />
@@ -269,13 +273,14 @@ function CatalogSearch({ admin }: { admin: Admin }) {
 /** What a region's read stands at: its status, where it came from, its objects, its date and its water. */
 function RegionBadges({ region }: { region: PaddleRegion }) {
   const { t, language } = useTranslation();
+  const dateFormat = useDateFormat();
   const percent = progressPercent(region);
   const status =
     region.status === 'importing' && region.progress
       ? t(`admin.paddleRegions.phase.${region.progress.phase}`)
       : t(`admin.paddleRegions.status.${region.status}`);
   const date = region.source_timestamp
-    ? new Date(region.source_timestamp).toLocaleDateString(language, { dateStyle: 'medium' })
+    ? formatDisplayDate(new Date(region.source_timestamp), language, { dateStyle: 'medium' }, dateFormat)
     : null;
   const km = region.network
     ? new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(region.network.water_km)

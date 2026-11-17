@@ -69,6 +69,8 @@ const DEFAULT_SERVICE_HOSTS = ['places.liketrek.com', 'photon.liketrek.com', 'va
 const DEFAULT_PHOTON_URL = 'https://photon.liketrek.com';
 /** The TREK services' Valhalla, asked through this server's routing relay. */
 const DEFAULT_VALHALLA_URL = 'https://valhalla.liketrek.com';
+/** Signs the Apple Wallet passes of bookings; only liketrek holds the pass certificate. */
+const DEFAULT_WALLET_PASS_URL = 'https://push.liketrek.com/v1/wallet/pass';
 
 /**
  * How this installation identifies itself to the liketrek services. Unset is
@@ -84,6 +86,28 @@ export function deriveServices(raw: RawEnv) {
     hosts: hosts?.length ? hosts : DEFAULT_SERVICE_HOSTS,
     photonUrl: stripTrailingSlashes(raw.TREK_PHOTON_URL?.trim() || DEFAULT_PHOTON_URL),
     valhallaUrl: stripTrailingSlashes(raw.TREK_VALHALLA_URL?.trim() || DEFAULT_VALHALLA_URL),
+    walletPassUrl: raw.TREK_WALLET_SIGNER_URL?.trim() || DEFAULT_WALLET_PASS_URL,
+  };
+}
+
+/**
+ * How the booking mail import takes mail in, set in the environment rather
+ * than in the admin dialog: each value wins over its stored setting when it is
+ * non-empty (MailIngestSettingsService applies them). Unset leaves the dialog
+ * in charge, so an install that sets none of them behaves as before.
+ */
+export function deriveMailIngest(raw: RawEnv) {
+  const read = (value: string | undefined) => value?.trim() || null;
+  return {
+    transport: read(raw.MAIL_INGEST_TRANSPORT)?.toLowerCase() ?? null,
+    imapHost: read(raw.MAIL_INGEST_IMAP_HOST),
+    imapPort: read(raw.MAIL_INGEST_IMAP_PORT),
+    imapTls: read(raw.MAIL_INGEST_IMAP_TLS)?.toLowerCase() ?? null,
+    imapUser: read(raw.MAIL_INGEST_IMAP_USER),
+    imapPass: read(raw.MAIL_INGEST_IMAP_PASS),
+    imapMailbox: read(raw.MAIL_INGEST_IMAP_MAILBOX),
+    addressTemplate: read(raw.MAIL_INGEST_ADDRESS_TEMPLATE),
+    webhookSecret: read(raw.MAIL_INGEST_WEBHOOK_SECRET),
   };
 }
 
@@ -94,6 +118,7 @@ export const BOOT_DERIVERS = {
   transit: deriveTransit,
   kitinerary: deriveKitinerary,
   services: deriveServices,
+  mailIngest: deriveMailIngest,
 } as const;
 
 export type BootNamespace = keyof typeof BOOT_DERIVERS;

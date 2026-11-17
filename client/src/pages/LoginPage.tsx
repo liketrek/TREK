@@ -4,7 +4,6 @@ import {
   EyeOff,
   Fingerprint,
   Globe,
-  KeyRound,
   Loader2,
   Lock,
   Mail,
@@ -17,7 +16,9 @@ import ToggleSwitch from '../components/Settings/ToggleSwitch';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
-import { clearSignedOut } from '../utils/signedOut'
+import NativeServerLink from './login/NativeServerLink';
+import MfaCodeStep from './login/MfaCodeStep';
+import { LANGUAGE_CORNER_CLASS } from './login/languageCorner';
 import PasswordChecklist from '../components/shared/PasswordChecklist';
 
 /** Fixed so the sky does not reshuffle on every render. */
@@ -85,9 +86,7 @@ export default function LoginPage(): React.ReactElement {
     configWait,
     idpSlow,
     idpName,
-    handleDemoLogin,
-    handleSubmit,
-    handlePasskeyLogin,
+    handleDemoLogin, handleSubmit, handlePasskeyLogin, handleSsoClick,
   } = useLogin();
 
   const oidcButtonShown = !!(appConfig?.oidc_configured && appConfig?.oidc_login && !oidcOnly);
@@ -230,8 +229,7 @@ export default function LoginPage(): React.ReactElement {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
-      {/* Language dropdown */}
-      <div style={{ position: 'absolute', top: 16, insetInlineEnd: 16, zIndex: 10 }}>
+      <div className={LANGUAGE_CORNER_CLASS}>
         <button type="button"
           onClick={(e) => {
             e.stopPropagation();
@@ -490,7 +488,7 @@ export default function LoginPage(): React.ReactElement {
                 {idpSlow && (
                   <a
                     href={IDP_LOGIN_URL}
-                    onClick={clearSignedOut}
+                    onClick={handleSsoClick}
                     style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: '#6b7280' }}
                   >
                     {t('login.oidcRedirectSlow', { name: idpName })}
@@ -534,7 +532,7 @@ export default function LoginPage(): React.ReactElement {
                   </div>
                 )}
                 <a
-                  onClick={clearSignedOut}
+                  onClick={handleSsoClick}
                   // No remember-me switch in OIDC-only mode: the IdP owns the session
                   // policy, so always ask for the remembered lifetime (#1927).
                   href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) + '&' : '?'}remember=1`}
@@ -741,71 +739,18 @@ export default function LoginPage(): React.ReactElement {
                   )}
 
                   {mode === 'login' && mfaStep && !passwordChangeStep && (
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: 'calc(12.5px * var(--fs-scale-body, 1))',
-                          fontWeight: 600,
-                          color: '#374151',
-                          marginBottom: 6,
-                        }}
-                      >
-                        {t('login.mfaCodeLabel')}
-                      </label>
-                      <div style={{ position: 'relative' }}>
-                        <KeyRound
-                          size={15}
-                          className="text-[#9ca3af]"
-                          style={{
-                            position: 'absolute',
-                            insetInlineStart: 13,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            pointerEvents: 'none',
-                          }}
-                        />
-                        <input
-                          type="text"
-                          inputMode="text"
-                          autoComplete="one-time-code"
-                          value={mfaCode}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            setMfaCode(e.target.value.toUpperCase().slice(0, 24))
-                          }
-                          placeholder="000000 or XXXX-XXXX"
-                          required
-                          autoFocus
-                          style={inputBase}
-                          onFocus={(e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = '#111827')}
-                          onBlur={(e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = '#e5e7eb')}
-                        />
-                      </div>
-                      <p style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: '#9ca3af', marginTop: 8 }}>
-                        {t('login.mfaHint')}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMfaStep(false);
-                          setMfaToken('');
-                          setMfaCode('');
-                          setError('');
-                        }}
-                        style={{
-                          marginTop: 8,
-                          background: 'none',
-                          border: 'none',
-                          color: '#6b7280',
-                          fontSize: 'calc(13px * var(--fs-scale-body, 1))',
-                          cursor: 'pointer',
-                          padding: 0,
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        {t('login.mfaBack')}
-                      </button>
-                    </div>
+                    <MfaCodeStep
+                      email={email}
+                      code={mfaCode}
+                      onCode={setMfaCode}
+                      inputStyle={inputBase}
+                      onBack={() => {
+                        setMfaStep(false);
+                        setMfaToken('');
+                        setMfaCode('');
+                        setError('');
+                      }}
+                    />
                   )}
 
                   {/* Username (register only) */}
@@ -1140,7 +1085,7 @@ export default function LoginPage(): React.ReactElement {
                 <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
               </div>
               <a
-                onClick={clearSignedOut}
+                onClick={handleSsoClick}
                 href={`/api/auth/oidc/login${
                   inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''
                 }${
@@ -1277,6 +1222,7 @@ export default function LoginPage(): React.ReactElement {
               {t('login.demoHint')}
             </button>
           )}
+          <NativeServerLink />
         </div>
       </div>
 

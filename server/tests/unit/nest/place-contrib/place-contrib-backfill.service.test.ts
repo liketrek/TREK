@@ -11,6 +11,7 @@ import type { AppEnv } from '../../../../src/app-config';
 import { PlaceContribLog } from '../../../../src/db/entities/PlaceContribLog.entity';
 import { PlaceContribOutbox } from '../../../../src/db/entities/PlaceContribOutbox.entity';
 import { PlaceFieldOrigin } from '../../../../src/db/entities/PlaceFieldOrigin.entity';
+import type { PlaceContribOutboxRepository } from '../../../../src/db/repositories/PlaceContribOutbox.repository';
 import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { servicesConfig } from '../../../../src/nest/app-config/tokens';
 import { valueHash } from '../../../../src/nest/common/value-hash';
@@ -133,6 +134,17 @@ async function placeWith(
     value_hash: valueHash(opts.typed ?? website),
   });
   return id;
+}
+
+/** Runs `meanwhile` once the step has read its page, before it queues anything. */
+function betweenReadAndWrite(meanwhile: () => Promise<unknown>): void {
+  const outbox = (backfill() as unknown as { outbox: PlaceContribOutboxRepository }).outbox;
+  const read = outbox.typedAfter.bind(outbox);
+  vi.spyOn(outbox, 'typedAfter').mockImplementationOnce(async (...args) => {
+    const page = await read(...args);
+    await meanwhile();
+    return page;
+  });
 }
 
 const queued = async () =>
@@ -265,5 +277,90 @@ describe('PlaceContribBackfill', () => {
     await agree();
     await service().decide(ADMIN, { action: 'decline', termsVersion: PLACE_CONTRIB_TERMS_VERSION }, NOW);
     expect(await store().backfill()).toBeNull();
+  });
+
+  it('PCB-011: a withdrawal that commits while a step reads its page brings nothing back', async () => {
+    await placeWith();
+    await agree();
+    betweenReadAndWrite(() => service().withdrawAll(NOW));
+    expect(await backfill().step(NOW)).toBe(0);
+    expect(await queued()).toEqual([]);
+    expect(await store().backfill()).toBeNull();
+  });
+
+  it('PCB-012: switching off while a step reads its page queues nothing, and leaves the catch-up ended', async () => {
+    await placeWith();
+    await agree();
+    betweenReadAndWrite(() => service().decide(ADMIN, { action: 'off' }, NOW));
+    expect(await backfill().step(NOW)).toBe(0);
+    expect(await queued()).toEqual([]);
+    expect(await store().backfill()).toBeNull();
+  });
+
+  it('PCB-013: a field switched off while a step reads its page is not queued', async () => {
+    const id = await placeWith();
+    await agree();
+    betweenReadAndWrite(() => service().decide(ADMIN, { action: 'fields', fields: { ...ALL, website: false } }, NOW));
+    expect(await backfill().step(NOW)).toBe(0);
+    expect(await queued()).toEqual([]);
+    expect(await store().backfill()).toEqual({
+      fields: ['phone', 'email', 'opening_hours', 'description', 'image'],
+      afterId: id,
+    });
+  });
+
+  it('PCB-014: after withdrawing everything, switching a field off and on again does not share its history', async () => {
+    await placeWith();
+    await agree();
+    await service().withdrawAll(NOW);
+    await service().decide(ADMIN, { action: 'fields', fields: { ...ALL, website: false } }, NOW);
+    await service().decide(ADMIN, { action: 'fields', fields: ALL }, NOW);
+    expect(await store().backfill()).toBeNull();
+    expect(await backfill().step(NOW)).toBe(0);
+    expect(await queued()).toEqual([]);
+
+    // A new agreement shares the earlier values again.
+    await agree();
+    expect((await store().consent()).withdrawnFields).toBeUndefined();
+    expect(await backfill().step(NOW)).toBe(1);
+  });
+
+  it('PCB-015: a field withdrawn on its own does not catch up when switched on again, another field still does', async () => {
+    await agree({ ...ALL, phone: false });
+    await store().writeBackfill(null);
+    await service().decide(
+      ADMIN,
+      { action: 'fields', fields: { ...ALL, phone: false, website: false }, withdraw: true },
+      NOW,
+    );
+    expect((await store().consent()).withdrawnFields).toEqual(['website']);
+    await service().decide(ADMIN, { action: 'fields', fields: ALL }, NOW);
+    expect(await store().backfill()).toEqual({ fields: ['phone'], afterId: 0 });
+  });
+
+  it('PCB-016: a field withdrawn while its catch-up is under way leaves the catch-up', async () => {
+    await agree();
+    await store().writeBackfill({ fields: ['website', 'email'], afterId: 7 });
+    await service().decide(ADMIN, { action: 'fields', fields: { ...ALL, website: false }, withdraw: true }, NOW);
+    expect(await store().backfill()).toEqual({ fields: ['email'], afterId: 7 });
+
+    await service().decide(
+      ADMIN,
+      { action: 'fields', fields: { ...ALL, website: false, email: false }, withdraw: true },
+      NOW,
+    );
+    expect(await store().backfill()).toBeNull();
+  });
+
+  it('PCB-017: sending that stops being possible while a step reads its page queues nothing, and the catch-up waits', async () => {
+    await placeWith();
+    await agree();
+    betweenReadAndWrite(async () => client.hasKey.mockReturnValue(false));
+    expect(await backfill().step(NOW)).toBe(0);
+    expect(await queued()).toEqual([]);
+    expect(await store().backfill()).toEqual({
+      fields: ['website', 'phone', 'email', 'opening_hours', 'description', 'image'],
+      afterId: 0,
+    });
   });
 });

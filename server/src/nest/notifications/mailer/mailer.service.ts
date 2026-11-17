@@ -213,6 +213,7 @@ export class MailerService {
     body: string,
     userId?: number,
     navigateTarget?: string,
+    manageTarget?: string,
   ): Promise<boolean> {
     const config = await this.getSmtpConfig();
     if (!config) return false;
@@ -227,7 +228,7 @@ export class MailerService {
         to,
         subject: `TREK — ${subject}`,
         text: body,
-        html: buildEmailHtml(subject, body, lang, navigateTarget),
+        html: buildEmailHtml(subject, body, lang, navigateTarget, false, manageTarget),
         attachments: [emailLogoAttachment()],
       });
       logInfo(`Email sent to=${to} subject="${subject}"`);

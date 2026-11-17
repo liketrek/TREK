@@ -150,7 +150,10 @@ describe('filesModel — link labels', () => {
       t,
     );
     // 11 appears in both columns but is listed once; 99 does not exist any more
-    expect(labels).toEqual(['files.sourcePlan · Louvre', 'files.sourcePlan · Eiffel Tower']);
+    expect(labels).toEqual([
+      { kind: 'files.sourcePlan', name: 'Louvre' },
+      { kind: 'files.sourcePlan', name: 'Eiffel Tower' },
+    ]);
   });
 
   it('FE-MOB-FILM-016: splits reservations into transport and booking and appends the collab note', () => {
@@ -167,11 +170,11 @@ describe('filesModel — link labels', () => {
     );
 
     expect(labels).toEqual([
-      'files.sourceTransport · LH123',
-      'files.sourceBooking · Hotel Ritz',
-      // an untitled reservation repeats its own source label
-      'files.sourceBooking · files.sourceBooking',
-      'files.sourceCollab',
+      { kind: 'files.sourceTransport', name: 'LH123' },
+      { kind: 'files.sourceBooking', name: 'Hotel Ritz' },
+      // an untitled reservation is named by its kind alone
+      { kind: 'files.sourceBooking', name: undefined },
+      { kind: 'files.sourceCollab' },
     ]);
   });
 

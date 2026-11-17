@@ -1365,7 +1365,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Which engine draws the trip planner and journal maps, and in what style. Leaflet is the classic raster map, Mapbox GL adds 3D buildings and terrain with your own token, MapLibre GL draws OpenFreeMap vector tiles without one. Atlas always uses Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Map Provider: Leaflet, Mapbox GL (Experimental) or MapLibre GL, each option with a short description.',
+    'Map Provider: Leaflet, Mapbox GL or MapLibre GL, each option with a short description.',
   'help.ctx.settings-map.bullet.2':
     'Map Template and CARTO API key for Leaflet; Map Style for the two GL engines, plus the Mapbox Access Token for Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

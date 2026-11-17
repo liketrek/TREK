@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} fail reisile {trip}',
   'files.download': 'Laadi alla',
   'files.openError': 'Faili avamine ebaõnnestus',
+  'files.downloadError': 'Faili allalaadimine ebaõnnestus',
   'files.downloadPdf': 'Laadi PDF alla',
   'files.count': '{count} faili',
   'files.count.one': '{count} fail',
@@ -40,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Broneering',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Lisa',
-  'files.pasteHint': 'Pilte saab kleepida ka lõikelaualt (Ctrl+V)',
   'files.trash': 'Prügikast',
   'files.trashEmpty': 'Prügikast on tühi',
   'files.emptyTrash': 'Tühjenda prügikast',

@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { assignmentRepo } from './assignmentRepo'
 import { offlineDb, clearAll } from '../db/offlineDb'
 import { saveAssignmentEndDay } from '../api/assignmentEndDay'
+import { saveAssignmentStay } from '../api/assignmentStay'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { mutationQueue } from '../sync/mutationQueue'
 import { apiClient, assignmentsApi } from '../api/client'
 import type { Assignment, Day } from '../types'
 
 vi.mock('../api/assignmentEndDay', () => ({ saveAssignmentEndDay: vi.fn() }))
+vi.mock('../api/assignmentStay', () => ({ saveAssignmentStay: vi.fn() }))
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn(() => true) }))
 vi.mock('../sync/authGate', () => ({ isAuthed: () => true }))
 vi.mock('../api/client', () => ({ apiClient: { request: vi.fn() }, assignmentsApi: { updateTime: vi.fn(), updateNotes: vi.fn(), clearDay: vi.fn() } }))
@@ -48,6 +50,24 @@ describe('assignment day-end persistence', () => {
     vi.mocked(saveAssignmentEndDay).mockRejectedValue(new Error('Denied'))
     await expect(assignmentRepo.setEndDay(9, assignment, true)).rejects.toThrow('Denied')
     expect((await offlineDb.days.get(1))?.assignments?.[0].end_day).toBeUndefined()
+  })
+})
+
+describe('assignment stay persistence (#3092)', () => {
+  it('stores the stay on the one visit offline with a replayable write', async () => {
+    await assignmentRepo.setStay(9, assignment, 0)
+    expect((await offlineDb.days.get(1))?.assignments?.[0]).toMatchObject({ id: 7, stay_minutes: 0 })
+    expect(await offlineDb.mutationQueue.toArray()).toEqual([expect.objectContaining({
+      url: '/trips/9/assignments/7/stay', method: 'PUT', body: { stay_minutes: 0 }, resource: 'assignments', entityId: 7,
+    })])
+  })
+
+  it('saves through the online API and caches what came back', async () => {
+    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+    vi.mocked(saveAssignmentStay).mockResolvedValue({ ...assignment, stay_minutes: 20 })
+    await assignmentRepo.setStay(9, assignment, 20)
+    expect(saveAssignmentStay).toHaveBeenCalledWith(9, 7, { stay_minutes: 20 })
+    expect((await offlineDb.days.get(1))?.assignments?.[0].stay_minutes).toBe(20)
   })
 })
 

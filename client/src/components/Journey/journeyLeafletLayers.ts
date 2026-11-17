@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import { frameLng, type LngFrame } from '../../utils/lngFrame';
 import { coveredConnectionsShown } from './journeyMapConnections';
 import type { JourneyMapLayerVisibility } from './journeyMapLayers';
 import { MARK_CLUSTER_PX, clusterPoints, markHitSvg, type JourneyMapMark, type WorldPx } from './journeyMapMarks';
@@ -51,12 +52,14 @@ export function leafletWorldPx(map: L.Map): WorldPx {
 /**
  * The plan's places and the stays as one layer: below the entry pins, above
  * the photo thumbnails, joined only where they would overlap on screen.
- * Null while there is nothing to draw or the map has no view yet.
+ * Null while there is nothing to draw or the map has no view yet. `frame` is the
+ * map's longitude frame (#3080), so a mark lands on the world copy its pins are on.
  */
 export function drawLeafletMarks(
   map: L.Map,
   marks: readonly JourneyMapMark[] | undefined,
-  onPick: (members: JourneyMapMark[]) => void
+  onPick: (members: JourneyMapMark[]) => void,
+  frame: LngFrame | null = null
 ): L.LayerGroup | null {
   if (!marks?.length) return null;
   try {
@@ -68,7 +71,7 @@ export function drawLeafletMarks(
   const group = L.layerGroup();
   for (const hit of clusterPoints(marks, leafletWorldPx(map), MARK_CLUSTER_PX)) {
     const look = markHitSvg(hit.members);
-    const marker = L.marker([hit.lat, hit.lng], {
+    const marker = L.marker([hit.lat, frameLng(frame, hit.lng)], {
       icon: L.divIcon({
         className: '',
         iconSize: [look.width, look.height],

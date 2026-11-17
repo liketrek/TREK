@@ -1,18 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, Bell, Camera, Search, X } from 'lucide-react'
+import { Archive, ArchiveRestore, Bell, Camera, Luggage, Search, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useCanDo } from '../../../store/permissionsStore'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { useAuthStore } from '../../../store/authStore'
 import MChip from '../../components/MChip'
-import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import CustomSelect from '../../../components/shared/CustomSelect'
 import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
 import { MAX_TRIP_DAYS, type Trip, type TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import MListRow from '../../components/MListRow'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader, SheetDateField } from '../trip/sheets/PlSheetChrome'
+import { SHEET_FIELD, SHEET_ROUND_PRIMARY, SHEET_SECONDARY } from '../trip/sheets/MTripSheetUi'
 import MDayImpactList from '../../components/MDayImpactList'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { useTripRangeGuard, type RangeRemoval } from '../../../hooks/useTripRangeGuard'
@@ -31,17 +30,9 @@ interface MNewTripSheetProps {
   onArchive?: () => void
 }
 
-const BOX_CLS = 'rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px_12px]'
-const INPUT_CLS = 'w-full border-none bg-transparent pt-[2px] font-[inherit] text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:text-m-faint'
-
 /** The reminder presets the desktop form offers; anything else is a custom number of days. */
 const REMINDER_PRESETS = [0, 1, 3, 9]
 
-function FieldLabel({ children }: { children: React.ReactNode }): React.ReactElement {
-  return (
-    <div className="font-geist text-[0.5625rem] font-bold uppercase tracking-[.1em] text-m-faint">{children}</div>
-  )
-}
 
 /**
  * Create/edit trip sheet — the mobile counterpart of TripFormModal's core flow:
@@ -151,153 +142,142 @@ export default function MNewTripSheet({ open, trip: tripProp, onClose, onSave, o
     }
   }
 
-  const boxCls = BOX_CLS
-  const inputCls = INPUT_CLS
 
   const removalList = pendingRemoval && pendingRemoval.removal !== 'unknown' ? pendingRemoval.removal : null
 
   return (
     <>
-    <MSheet open={open} onClose={onClose} variant="card" material="opaque" ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
-      <div className="flex items-center gap-[11px] p-[16px_16px_0]">
-        <div className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold">
-          {isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
-        </div>
-        <MIconBtn ariaLabel={t('common.cancel')} variant="neutral" size={34} onClick={onClose}>
-          <X size={16} strokeWidth={2.2} />
-        </MIconBtn>
-      </div>
+    <MSheet open={open} onClose={onClose} form ariaLabel={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}>
+      <FormSheetHeader
+        icon={Luggage}
+        title={isEditing ? t('dashboard.editTrip') : t('dashboard.createTrip')}
+        subtitle={isEditing ? trip?.title : undefined}
+        onClose={onClose}
+        closeLabel={t('common.cancel')}
+      />
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      {/* Flat fields under their labels, as in every other form sheet: no
+          cards inside the card. */}
+      <FormSheetBody>
         {error && (
-          <div className="mb-3 rounded-[14px] bg-[color:var(--m-ic)] p-[11px_12px] text-[0.75rem] font-semibold text-[color:var(--m-st-danger)]">
+          <div className="mt-2 rounded-[14px] bg-[color:var(--m-ic)] px-3 py-[10px] text-caption font-semibold text-[color:var(--m-st-danger)]">
             {error}
           </div>
         )}
 
-        <div className={boxCls}>
-          <FieldLabel>{t('dashboard.tripTitle')}</FieldLabel>
-          <input
-            value={title}
-            onChange={e => { if (canEditTrip) { setError(''); setTitle(e.target.value) } }}
-            readOnly={!canEditTrip}
-            placeholder={t('dashboard.tripTitlePlaceholder')}
-            className={inputCls}
-          />
-        </div>
+        <Eyebrow className="mb-[5px] mt-2 uppercase">{t('dashboard.tripTitle')}</Eyebrow>
+        <input
+          value={title}
+          onChange={e => { if (canEditTrip) { setError(''); setTitle(e.target.value) } }}
+          readOnly={!canEditTrip}
+          placeholder={t('dashboard.tripTitlePlaceholder')}
+          aria-label={t('dashboard.tripTitle')}
+          className={`${FIELD_CLS} font-semibold`}
+        />
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dashboard.tripDescription')}</Eyebrow>
+        <textarea
+          value={description}
+          onChange={e => { if (canEditTrip) { setError(''); setDescription(e.target.value) } }}
+          readOnly={!canEditTrip}
+          placeholder={t('dashboard.tripDescriptionPlaceholder')}
+          aria-label={t('dashboard.tripDescription')}
+          rows={2}
+          className={FIELD_AREA_CLS}
+        />
 
-        <div className={`${boxCls} mt-2`}>
-          <FieldLabel>{t('dashboard.tripDescription')}</FieldLabel>
-          <textarea
-            value={description}
-            onChange={e => { if (canEditTrip) { setError(''); setDescription(e.target.value) } }}
-            readOnly={!canEditTrip}
-            placeholder={t('dashboard.tripDescriptionPlaceholder')}
-            rows={2}
-            className={`${inputCls} resize-none text-[0.8125rem] font-medium`}
-          />
-        </div>
-
-        <div className="mt-2 flex gap-2">
-          <div className={`${boxCls} min-w-0 flex-1`}>
-            <FieldLabel>{t('dashboard.startDate')}</FieldLabel>
-            <CustomDatePicker
+        {/* Side by side. A placeholder longer than its field ("Дата окончания")
+            ends in an ellipsis inside it rather than running past its edge. */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="min-w-0">
+            <Eyebrow className="mb-[5px] truncate uppercase">{t('dashboard.startDate')}</Eyebrow>
+            <SheetDateField
               value={startDate}
               onChange={v => { if (canEditTrip) changeStart(v) }}
               placeholder={t('dashboard.startDate')}
-              borderless
-              style={{ marginTop: 3 }}
             />
           </div>
-          <div className={`${boxCls} min-w-0 flex-1`}>
-            <FieldLabel>{t('dashboard.endDate')}</FieldLabel>
-            <CustomDatePicker
+          <div className="min-w-0">
+            <Eyebrow className="mb-[5px] truncate uppercase">{t('dashboard.endDate')}</Eyebrow>
+            <SheetDateField
               value={endDate}
               onChange={v => { if (canEditTrip) { setError(''); setEndDate(v) } }}
               placeholder={t('dashboard.endDate')}
-              borderless
-              style={{ marginTop: 3 }}
             />
           </div>
         </div>
         {!startDate && !endDate && (
           <>
-            <div className={`${boxCls} mt-2`}>
-              <FieldLabel>{t('dashboard.dayCount')}</FieldLabel>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={MAX_TRIP_DAYS}
-                value={dayCount}
-                onChange={e => {
-                  if (!canEditTrip) return
-                  setError('')
-                  const raw = e.target.value
-                  setDayCount(raw === '' ? '' : Math.min(MAX_TRIP_DAYS, Math.max(1, Math.floor(Number(raw)) || 1)))
-                }}
-                readOnly={!canEditTrip}
-                className={inputCls}
-              />
-            </div>
-            {!isEditing && <div className="mt-[6px] px-1 font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] text-m-faint">{t('dashboard.noDateHint')}</div>}
+            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dashboard.dayCount')}</Eyebrow>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAX_TRIP_DAYS}
+              value={dayCount}
+              onChange={e => {
+                if (!canEditTrip) return
+                setError('')
+                const raw = e.target.value
+                setDayCount(raw === '' ? '' : Math.min(MAX_TRIP_DAYS, Math.max(1, Math.floor(Number(raw)) || 1)))
+              }}
+              readOnly={!canEditTrip}
+              aria-label={t('dashboard.dayCount')}
+              className={FIELD_CLS}
+            />
+            {!isEditing && <p className="mt-[6px] px-1 font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] text-m-faint">{t('dashboard.noDateHint')}</p>}
           </>
         )}
 
-        <div className="mt-2">
-          <FieldLabel>{t('dashboard.currency')}</FieldLabel>
-          <CustomSelect
-            value={currency}
-            onChange={v => { if (canEditTrip) { setError(''); setCurrency(String(v)) } }}
-            disabled={!canEditTrip}
-            searchable
-            size="sm"
-            options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
-            style={{ width: '100%', marginTop: 5 }}
-          />
-        </div>
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('dashboard.currency')}</Eyebrow>
+        <CustomSelect
+          value={currency}
+          onChange={v => { if (canEditTrip) { setError(''); setCurrency(String(v)) } }}
+          disabled={!canEditTrip}
+          searchable
+          size="sm"
+          options={currenciesWith(currency).map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+          style={{ width: '100%' }}
+        />
 
         {showReminder && (
-          <ReminderField
-            enabled={remindersEnabled}
-            days={reminderDays}
-            custom={customReminder}
-            onPreset={days => { setError(''); setReminderDays(days); setCustomReminder(false) }}
-            onCustom={() => { setCustomReminder(true); if (REMINDER_PRESETS.includes(reminderDays)) setReminderDays(7) }}
-            onDays={setReminderDays}
-          />
-        )}
-
-        {canUploadCover && <CoverField cover={cover} title={title} />}
-
-        {isEditing && onArchive && (
-          <div className="mt-2 rounded-[14px] bg-[color:var(--m-ic)]">
-            <MListRow
-              icon={trip?.is_archived ? ArchiveRestore : Archive}
-              label={trip?.is_archived ? t('dashboard.restore') : t('dashboard.archive')}
-              onClick={() => { onArchive(); onClose() }}
+          <div className="mt-3">
+            <ReminderField
+              enabled={remindersEnabled}
+              days={reminderDays}
+              custom={customReminder}
+              onPreset={days => { setError(''); setReminderDays(days); setCustomReminder(false) }}
+              onCustom={() => { setCustomReminder(true); if (REMINDER_PRESETS.includes(reminderDays)) setReminderDays(7) }}
+              onDays={setReminderDays}
             />
           </div>
         )}
-      </div>
 
-      <div className="flex gap-2 p-[0_16px_16px]">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 rounded-full bg-[color:var(--m-ic)] py-[10px] text-[0.8125rem] font-semibold text-m-ink"
-        >
-          {t('common.cancel')}
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={busy}
-          className="flex-1 rounded-full bg-m-act py-[10px] text-[0.8125rem] font-semibold text-m-actfg disabled:opacity-50"
-        >
-          {busy ? t('common.saving') : isEditing ? t('common.update') : t('dashboard.createTrip')}
-        </button>
-      </div>
+        {canUploadCover && (
+          <>
+            <Eyebrow className="mt-3 uppercase">{t('dashboard.coverImage')}</Eyebrow>
+            <CoverField cover={cover} title={title} />
+          </>
+        )}
+
+        {isEditing && onArchive && (
+          <button
+            type="button"
+            onClick={() => { onArchive(); onClose() }}
+            className={`${SHEET_SECONDARY} mt-4 w-full`}
+          >
+            {trip?.is_archived ? <ArchiveRestore size={14} strokeWidth={2.2} /> : <Archive size={14} strokeWidth={2.2} />}
+            {trip?.is_archived ? t('dashboard.restore') : t('dashboard.archive')}
+          </button>
+        )}
+      </FormSheetBody>
+
+      <FormSheetFooter
+        onCancel={onClose}
+        cancelLabel={t('common.cancel')}
+        onSubmit={handleSave}
+        submitLabel={busy ? t('common.saving') : isEditing ? t('common.update') : t('dashboard.createTrip')}
+        submitDisabled={busy}
+      />
     </MSheet>
 
     {/* After the sheet, so it opens on top of it. */}
@@ -340,10 +320,10 @@ function ReminderField({ enabled, days, custom, onPreset, onCustom, onDays }: {
 }): React.ReactElement {
   const { t } = useTranslation()
   return (
-    <div className={`${BOX_CLS} mt-2`}>
-      <FieldLabel>
+    <div>
+      <Eyebrow className="uppercase">
         <span className="inline-flex items-center gap-1"><Bell size={10} strokeWidth={2.4} />{t('trips.reminder')}</span>
-      </FieldLabel>
+      </Eyebrow>
       {!enabled ? (
         <p className="mt-1 font-geist text-[length:calc(11px*var(--fs-scale-caption,1))] leading-snug text-m-muted">{t('trips.reminderDisabledHint')}</p>
       ) : (
@@ -429,21 +409,20 @@ function CoverField({ cover, title }: { cover: ReturnType<typeof useTripCoverPic
       )}
 
       <div className="mt-2 flex gap-2">
-        <div className={`${BOX_CLS} min-w-0 flex-1 py-[9px]`}>
-          <input
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void cover.search() } }}
-            placeholder={t('dashboard.unsplashSearchPlaceholder')}
-            className={`${INPUT_CLS} pt-0 text-[0.8125rem] font-medium`}
-          />
-        </div>
+        <input
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void cover.search() } }}
+          enterKeyHint="search" placeholder={t('dashboard.unsplashSearchPlaceholder')}
+          aria-label={t('dashboard.unsplashSearchPlaceholder')}
+          className={SHEET_FIELD}
+        />
         <button
           type="button"
           onClick={cover.search}
           disabled={searching || (!searchQuery.trim() && !title.trim())}
           aria-label={t('dashboard.searchUnsplash')}
-          className="flex h-auto w-[42px] flex-none items-center justify-center rounded-[14px] bg-m-act text-m-actfg disabled:opacity-50"
+          className={SHEET_ROUND_PRIMARY}
         >
           <Search size={15} strokeWidth={2.2} />
         </button>

@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Prioritet',
   'todo.detail.noPriority': 'Ingen',
   'todo.detail.create': 'Skapa uppgift',
+  'todo.progressCount': '{done} av {total} klara',
+  'todo.allDone': 'Allt klart!',
+  'todo.filter.myShort': 'Mina',
 };
 export default todo;

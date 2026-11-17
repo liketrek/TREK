@@ -153,6 +153,19 @@ describe('e-bike charging along a bike tour (BIK-07)', () => {
   });
 });
 
+describe('resupply along a hike', () => {
+  it('is offered to a hike after its first three, and to no other tour', () => {
+    expect(TOUR_POI_CATEGORIES_BY_TYPE.hike.slice(0, 3)).toEqual(['viewpoint', 'shelter', 'drinking_water']);
+    for (const category of ['bakery', 'supermarket'] as const) {
+      expect(TOUR_POI_CATEGORIES_BY_TYPE.hike).toContain(category);
+      for (const [type, categories] of Object.entries(TOUR_POI_CATEGORIES_BY_TYPE))
+        if (type !== 'hike') expect(categories).not.toContain(category);
+    }
+    const search = { tour_type: 'hike', categories: ['bakery', 'supermarket'], corridor_m: 1000, line };
+    expect(tourPoiSearchRequestSchema.safeParse(search).success).toBe(true);
+  });
+});
+
 describe('city walk themes (CW-05)', () => {
   it('offers four themes, each a search a walk may ask for', () => {
     expect(WALK_THEME_KEYS).toEqual(['culture', 'parks', 'food', 'mixed']);

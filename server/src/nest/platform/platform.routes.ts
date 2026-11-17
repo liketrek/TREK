@@ -11,6 +11,7 @@ import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { withRequestContext } from '../database/request-context';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
+import { precompressedStatic } from './precompressed-static';
 import type { EntityManager } from '@mikro-orm/core';
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -290,6 +291,10 @@ export function applyPlatformSpa(app: express.Application): void {
   app.get(/.*/, (req: Request, res: Response) => answerUnmatchedGet(req, res));
 }
 
+// The optional .br is the Brotli copy the client build writes beside a hashed file
+// (precompressed-static.ts); it is as immutable as the file it was made from.
+const HASHED_ASSET = /[\\/]assets[\\/][^\\/]+-[\w-]{8,}\.\w+(?:\.br)?$/;
+
 /**
  * Production static serving of the built client (JS/CSS/assets). Split out from
  * applyPlatformSpa because the NestJS bootstrap needs the static files served
@@ -300,11 +305,17 @@ export function applyPlatformSpa(app: express.Application): void {
 export function applyPlatformStatic(app: express.Application): void {
   // Case-sensitive on purpose (legacy parity).
   if (readEnv().app.nodeEnv !== 'production') return;
+  app.use(precompressedStatic(path.join(PUBLIC_DIR, 'assets')));
   app.use(
     express.static(PUBLIC_DIR, {
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else if (HASHED_ASSET.test(filePath)) {
+          // Vite puts a content hash in every name under assets/, so a file there
+          // never changes. Without this the iOS app, which has no service worker,
+          // cannot start offline: WebKit would revalidate each script and fail.
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
       },
     }),

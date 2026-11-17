@@ -52,6 +52,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Những gì bạn nhập ở đây chưa được lưu.',
   'common.keepEditing': 'Tiếp tục chỉnh sửa',
   'common.name': 'Tên',
+  'common.title': 'Tiêu đề',
   'common.email': 'Email', // same-as-en
   'common.password': 'Mật khẩu',
   'common.saving': 'Đang lưu...',
@@ -78,5 +79,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK đã được cập nhật trong khi thẻ này đang mở. Hãy tải lại để nhận phiên bản mới.',
   'common.errorPluginTitle': 'Không thể hiển thị plugin này',
   'common.needsConnection': 'Thao tác này cần kết nối. Hãy thử lại khi TREK trực tuyến trở lại.',
+  'common.errorDetails': 'Chi tiết',
+  'common.share': 'Chia sẻ',
 };
 export default common;

@@ -4,16 +4,13 @@ const demo: TranslationStrings = {
   // The welcome dialog a demo instance opens with (components/Demo/DemoWelcome).
   'demo.welcome.eyebrow': 'เดโมสด',
   'demo.welcome.title': 'ยินดีต้อนรับสู่ TREK',
-  'demo.welcome.tagline':
-    'ตัววางแผนการเดินทางที่แชร์กันได้ วางแผนร่วมกันบนแผนที่แบบเรียลไทม์ ตั้งแต่ไอเดียแรกจนถึงโฟโต้บุ๊กหลังทริป',
+  'demo.welcome.tagline': 'ตัววางแผนการเดินทางที่แชร์กันได้ วางแผนร่วมกันบนแผนที่แบบเรียลไทม์ ตั้งแต่ไอเดียแรกจนถึงโฟโต้บุ๊กหลังทริป',
   'demo.welcome.resetTitle': 'ทุกอย่างจะถูกรีเซ็ตทุกชั่วโมง',
-  'demo.welcome.resetBody':
-    'สำรวจ แก้ไข และสร้างได้ตามต้องการ ทุกต้นชั่วโมงเดโมจะกลับสู่สถานะเริ่มต้นสำหรับผู้เยี่ยมชมคนถัดไป',
+  'demo.welcome.resetBody': 'สำรวจ แก้ไข และสร้างได้ตามต้องการ ทุกต้นชั่วโมงเดโมจะกลับสู่สถานะเริ่มต้นสำหรับผู้เยี่ยมชมคนถัดไป',
   'demo.welcome.resetIn': 'รีเซ็ตครั้งถัดไปในอีก',
   'demo.welcome.tryTitle': 'ลองใช้ได้เลย',
   'demo.feature.planner.title': 'ตัววางแผนทริป',
-  'demo.feature.planner.body':
-    'วัน สถานที่ และเส้นทางบนแผนที่ พร้อมเที่ยวบิน โรงแรม ร้านอาหาร การจอง และค่าใช้จ่ายร่วม',
+  'demo.feature.planner.body': 'วัน สถานที่ และเส้นทางบนแผนที่ พร้อมเที่ยวบิน โรงแรม ร้านอาหาร การจอง และค่าใช้จ่ายร่วม',
   'demo.feature.tours.title': 'ทัวร์และการเดินป่า',
   'demo.feature.tours.body': 'วางแผนเดินป่าบนเครือข่ายเส้นทางและติดตามบนภูมิประเทศ 3D พร้อมโปรไฟล์ความสูง',
   'demo.feature.studio.title': 'โฟโต้บุ๊กใน TREK Studio',

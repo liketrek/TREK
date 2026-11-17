@@ -1,8 +1,9 @@
-import { CalendarDays, Copy, Loader2, MapPin, Search } from 'lucide-react'
+import { CalendarDays, Copy, Loader2, MapPin, Search, Luggage } from 'lucide-react'
 import type { TranslationFn } from '../../../types'
 import { useTripCopyPicker } from '../../../components/Collections/useTripCopyPicker'
 import MSheet from '../../components/MSheet'
 import { SheetHeader } from './MCollSheetKit'
+import MSkeleton from '../../components/MSkeleton'
 
 interface MCollTripPickerSheetProps {
   open: boolean
@@ -23,22 +24,21 @@ export default function MCollTripPickerSheet({ open, count, onCopy, onClose, t }
   const title = t('collections.copyN', { count })
 
   return (
-    <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={title}>
-      <SheetHeader title={title} onClose={onClose} closeLabel={t('common.close')} />
+    <MSheet open={open} onClose={onClose} material="glass" ariaLabel={title}>
+      <SheetHeader
+        icon={<Luggage size={19} strokeWidth={1.8} />} title={title} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         <div className="mb-2 flex h-9 items-center gap-2 rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-[13px]">
           <Search size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={t('collections.copyToTripSearch')}
+            enterKeyHint="search" placeholder={t('collections.copyToTripSearch')}
             className="min-w-0 flex-1 bg-transparent font-geist text-[0.78125rem] text-m-ink outline-none placeholder:text-m-faint"
           />
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-10 text-m-faint">
-            <Loader2 size={20} className="animate-spin" />
-          </div>
+          <MSkeleton variant="rows" count={4} />
         ) : filtered.length === 0 ? (
           <div className="py-10 text-center font-geist text-[0.78125rem] text-m-faint">{t('collections.noTrips')}</div>
         ) : (
@@ -58,7 +58,7 @@ export default function MCollTripPickerSheet({ open, count, onCopy, onClose, t }
                     : <MapPin size={15} strokeWidth={2} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{trip.title}</span>
+                  <span dir="auto" className="block truncate text-[0.8125rem] font-semibold text-m-ink">{trip.title}</span>
                   {dateRange(trip) && (
                     <span className="mt-[1px] flex items-center gap-1 truncate font-geist text-[0.6875rem] text-m-muted">
                       <CalendarDays size={11} strokeWidth={2} className="flex-none" /> {dateRange(trip)}

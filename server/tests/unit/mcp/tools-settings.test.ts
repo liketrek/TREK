@@ -15,7 +15,7 @@ import { Settings } from '../../../src/db/entities/Settings.entity';
 import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
 import { MANAGED_LOCKED_SETTING_KEYS } from '../../../src/nest/common/managed';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { DISPLAY_PREFERENCE_KEYS } from '../../../src/nest/settings/settings.mcp';
+import { DISPLAY_PREFERENCE_KEYS, MAX_DASHBOARD_TIMEZONES } from '../../../src/nest/settings/settings.mcp';
 import {
   isAdminOnlyEndpointSetting,
   ENCRYPTED_SETTING_KEYS,
@@ -285,6 +285,44 @@ describe('Tool: update_display_settings', () => {
       const refused = await update(h, { week_start: 'friday' });
       expect(refused.isError).toBe(true);
       expect(await readSetting(user.id, 'week_start')).toBe('sunday');
+    });
+  });
+
+  it('writes dashboard_timezones as the stored list and reads it back (#3044)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await update(h, { dashboard_timezones: ['Europe/Madrid', 'Africa/Cairo'] })) as {
+        settings: Record<string, unknown>;
+      };
+      expect(data.settings.dashboard_timezones).toEqual(['Europe/Madrid', 'Africa/Cairo']);
+      expect(await readSetting(user.id, 'dashboard_timezones')).toBe('["Europe/Madrid","Africa/Cairo"]');
+    });
+  });
+
+  it('accepts an empty dashboard_timezones list, which shows no clocks (#3044)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(await update(h, { dashboard_timezones: [] })) as {
+        settings: Record<string, unknown>;
+      };
+      expect(data.settings.dashboard_timezones).toEqual([]);
+    });
+  });
+
+  it('refuses dashboard_timezones that are unknown, repeated, not a list or too many (#3044)', async () => {
+    const { user } = createUser(testDb);
+    const tooMany = Intl.supportedValuesOf('timeZone').slice(0, MAX_DASHBOARD_TIMEZONES + 1);
+    await withHarness(user.id, async (h) => {
+      const unknown = await update(h, { dashboard_timezones: ['Europe/Madrid', 'Mars/Olympus_Mons'] });
+      expect(unknown.isError).toBe(true);
+      expect(errorText(unknown)).toContain('IANA');
+      expect((await update(h, { dashboard_timezones: [''] })).isError).toBe(true);
+      expect((await update(h, { dashboard_timezones: ['Asia/Tokyo', 'Asia/Tokyo'] })).isError).toBe(true);
+      expect((await update(h, { dashboard_timezones: 'Europe/Madrid' })).isError).toBe(true);
+      const capped = await update(h, { dashboard_timezones: tooMany });
+      expect(capped.isError).toBe(true);
+      expect(errorText(capped)).toContain(`at most ${MAX_DASHBOARD_TIMEZONES}`);
+      expect(await countSettings(user.id)).toBe(0);
     });
   });
 

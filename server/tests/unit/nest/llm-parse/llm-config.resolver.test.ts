@@ -222,6 +222,14 @@ describe('the shared AI connection', () => {
     expect(await resolver.resolve(1)).toMatchObject({ model: 'gemini-3-flash', vision: 'auto' });
   });
 
+  it('LLMRES-SHARED-004: a lent ChatGPT plan comes through with its reader and the vision setting of parsing', async () => {
+    portRegistered = true;
+    const read = async () => ({ text: '' });
+    forParsing.mockResolvedValue({ provider: 'chatgpt', model: 'gpt-6.1-sol', read });
+    setInstanceConfig({ vision: 'on' });
+    expect(await resolver.resolve(3)).toEqual({ provider: 'chatgpt', model: 'gpt-6.1-sol', read, vision: 'on' });
+  });
+
   it('LLMRES-SHARED-003: without the port or a usable connection, the personal config answers', async () => {
     getUserSettings.mockReturnValue({ llm_provider: 'openai', llm_model: 'gpt-4o' });
     expect(await resolver.resolve(1)).toMatchObject({ provider: 'openai', model: 'gpt-4o' });

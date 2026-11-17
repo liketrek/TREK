@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-083
+// FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-085
 import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -18,6 +18,7 @@ import {
   buildAssignment,
   buildReservation,
   buildTripFile,
+  buildBudgetItem,
 } from '../../../tests/helpers/factories';
 import { TransportModal } from './TransportModal';
 import type { Day, Reservation } from '../../types';
@@ -1724,5 +1725,23 @@ describe('TransportModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const legs = onSave.mock.calls[0][0].metadata.legs as { confirmation_number?: string }[];
     expect(legs.map(l => l.confirmation_number ?? null)).toEqual([null, 'SEG-TWO']);
+  });
+
+  it('FE-PLANNER-TRANSMODAL-084: a store refresh while the dialog is open keeps what the user typed (#3069)', async () => {
+    render(<TransportModal {...defaultProps} />);
+    const title = screen.getByPlaceholderText(/e\.g\. Lufthansa/i) as HTMLInputElement;
+    await userEvent.type(title, 'LH 400');
+    // A socket reconnect re-reads the trip: the costs arrive as a new array.
+    act(() => { useTripStore.setState({ budgetItems: [buildBudgetItem()] }); });
+    expect(title).toHaveValue('LH 400');
+  });
+
+  it('FE-PLANNER-TRANSMODAL-085: opening a different transport still fills the form with it', () => {
+    const first = buildReservation({ title: 'First flight', type: 'flight' });
+    const second = buildReservation({ title: 'Second flight', type: 'flight' });
+    const { rerender } = render(<TransportModal {...defaultProps} reservation={first} />);
+    expect(screen.getByDisplayValue('First flight')).toBeInTheDocument();
+    rerender(<TransportModal {...defaultProps} reservation={second} />);
+    expect(screen.getByDisplayValue('Second flight')).toBeInTheDocument();
   });
 });

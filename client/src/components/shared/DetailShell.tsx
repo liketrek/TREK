@@ -4,7 +4,7 @@ import { NEUTRAL_TINT } from './DialogShell'
 import { Tooltip } from './Tooltip'
 import { centredMapCard } from '../Map/centredMapCard'
 
-interface DetailShellProps {
+export interface DetailShellProps {
   header: ReactNode
   children: ReactNode
   footer?: ReactNode

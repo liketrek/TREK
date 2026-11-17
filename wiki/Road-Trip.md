@@ -91,7 +91,7 @@ Every stop has a **Stay** badge. Click it to open **Time at this stop**:
 - Below it, **Arrive** and **Leave** show what the stay does to the day while you change it.
 - **No stay** clears it.
 
-**The stay belongs to the place, not to one visit.** A place planned on two days has the same stay on both.
+**The stay belongs to the visit.** A place planned twice, say once to stop and once only to lead the route past it, keeps a stay for each visit: changing one leaves the other alone. A visit you never gave a stay takes the place's own, so trips planned before this keep the stays they had.
 
 A stay may run past midnight. The clock carries into the next morning together with the drive from there, and the next stop moves to the card of the day it is actually reached on. With daily travel times set, the hours between one day's end time and the next day's start time count towards the stay, so a twelve hour night that begins at 20:00 is over at 08:00 the next morning.
 
@@ -106,7 +106,7 @@ A visit's **End** is the time the drive leaves it. Set it in the place form, whe
 - If the daily travel times close the day before the End comes, the stop is where that day ends: *The travel day ends before 14:00, so the drive goes on the next morning.*
 - Clicking the **Stay** badge of such a stop opens the End instead of the slider, with **Remove end time**. After that the stay is yours to choose again. The button is missing when you may not edit the stop, and when the End is stored on the place itself and another visit of the same place relies on it: removing it there would change that visit too.
 
-The End belongs to one visit; the stay belongs to the place. Older trips can carry an End on the place, which then applies to its visits that have none of their own.
+The End and the stay both belong to one visit. Older trips can carry an End or a stay on the place, which then applies to its visits that have none of their own.
 
 ## Pinned times and the schedule
 
@@ -310,7 +310,7 @@ With it on:
 - These rows are not stops you planned, and nothing is stored for them: they cannot be dragged, removed or given a stay. Clicking one opens the night's booking, or the hotel's place when there is no booking to open. On the phone, a night without a booking opens the stay for somebody who may edit days.
 - Only real nights count: a stay that checks in and out on the same day adds no row, and neither does a hotel without coordinates. Where two stays overlap, the choice is the one **Days** makes: the day ends at a stay checked in that day, otherwise at one that runs on past that day, and it starts at the stay checked into last before that day, the one entered first where two were checked into on the same day. A drive between two different hotels is then a real drive.
 - The stop a booking put on its check-in day gives way to that evening's row, the way **Days** hides it: the day checks out, drives its places and ends at tonight's hotel, instead of visiting the hotel in the middle of the day and coming back to it at night. It stays while it is already the day's last stop, or when the day ends at a departure terminal instead. A hotel you placed on the day yourself always stays.
-- A side of the day that already starts or ends at the hotel gets no row. Neither does a day that starts where a flight, train or ferry lands or at a hire car's pick-up desk, or ends at a departure terminal or where the hire car goes back.
+- A side of the day that already starts or ends at the hotel gets no row. Neither does a day that starts where a flight, train or ferry lands, or ends at a departure terminal or where the hire car goes back. A day that starts at a hire car's pick-up desk still sets off from the stay, so the drive from the hotel to the desk is on the route.
 - A day with one place becomes a drive from the hotel to it and back. A day between two nights in the same hotel with no place planned has no drive, and a check-out day with no places is the drive from one hotel to the next.
 - The drive from and to the hotel keeps its road. Clicking it on the map places no via point and says *No via point on the drive to or from your stay. Add a stop there instead.*, and its drive band offers no **Other ways**. Where the day drives the same road again between two of its places, a click there places the via point on that leg as usual. A place added from the search along that drive goes to the start or the end of the day.
 - With **Connect the days** on or daily travel times set, a night at one hotel is no drive between the two days. A via point on the drive from one day into the next is kept, but not used while that day ends at a hotel.

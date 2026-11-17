@@ -238,5 +238,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Toevoegen aan Apple Agenda / Outlook',
   'dashboard.ics.copyManually': 'Of kopieer een link handmatig',
   'dashboard.ics.pasteFromUrl': 'plak in “Vanaf URL”',
+  'dashboard.ics.dayEvents': 'Dagoverzicht als afspraken',
+  'dashboard.ics.dayEventsHint':
+    'Een afspraak van een hele dag per dag met de plekken en notities zonder tijd. Als je dit wijzigt verandert de link, dus abonneer je opnieuw met de nieuwe link.',
 };
 export default dashboard;

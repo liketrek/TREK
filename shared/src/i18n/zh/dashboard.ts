@@ -212,5 +212,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': '添加到 Apple 日历 / Outlook',
   'dashboard.ics.copyManually': '或手动复制链接',
   'dashboard.ics.pasteFromUrl': '粘贴到“通过 URL”',
+  'dashboard.ics.dayEvents': '每日概览事件',
+  'dashboard.ics.dayEventsHint':
+    '为每一天添加一个全天事件，列出没有时间的地点和备注。更改此项会改变链接，请用新链接重新订阅。',
 };
 export default dashboard;

@@ -9,16 +9,17 @@ import {
   Bug,
   ChevronDown,
   ChevronLeft,
+  Compass,
   Database,
   FileText,
-  Github,
+  GitBranch,
   HardDrive,
+  KeyRound,
   Map,
-  Plug,
   Puzzle,
   ScrollText,
-  Settings as SettingsIcon,
   Shield,
+  ShieldCheck,
   SlidersHorizontal,
   UserCog,
   UserPlus,
@@ -44,6 +45,9 @@ import MAdminSheets from './MAdminSheets'
 import MAdminStoragePanel from './MAdminStoragePanel'
 import MAdminUsersSection from './MAdminUsersSection'
 import { MAdminButton } from './MAdminUi'
+import { managedAdminTabs } from '../../../managed'
+import { useIsSplit } from '../../../hooks/sizeClass'
+import MSectionNav, { MSectionList, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
 
 // Stat card of the 2×2 grid (design §6.3): 34px icon tile, 19px/800 number,
 // small tracking label. Count-up animation matches the desktop stat cards.
@@ -54,18 +58,18 @@ function MAdminStat({ label, value, icon: Icon }: { label: string; value: number
       <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
         <Icon size={16} strokeWidth={2} />
       </span>
-      <div>
+      <div className="min-w-0">
         <div className="text-[1.1875rem] font-extrabold leading-none text-m-ink">{animated}</div>
-        <div className="mt-[2px] font-geist text-[0.59375rem] font-bold tracking-[0.06em] text-m-faint">{label}</div>
+        <div className="mt-[2px] truncate font-geist text-[0.59375rem] font-bold tracking-[0.06em] text-m-faint" title={label}>{label}</div>
       </div>
     </div>
   )
 }
 
 /**
- * Mobile admin screen (design §6): section switcher pill with the 11-entry
- * dropdown, update banner, stats grid and the users section; every other
- * desktop admin section stays reachable through the dropdown.
+ * Mobile admin screen (design §6): section switcher pill with the grouped
+ * dropdown of the desktop sidebar's sections, update banner, stats grid and
+ * the active section.
  */
 export default function MAdmin() {
   const { t, locale } = useTranslation()
@@ -79,33 +83,65 @@ export default function MAdmin() {
     saveDemoBaseline, toggleBagTracking, toggleCollabFeature,
   } = admin
   const [sectionsOpen, setSectionsOpen] = useState(false)
+  // With room for two panes the sections stand in a list beside the page, as in
+  // settings, instead of behind the header's dropdown.
+  const split = useIsSplit()
 
-  // Same sections and gating as the desktop sidebar, ordered and iconed like
-  // the design's dropdown (§6.1).
-  const sections: { id: string; label: string; icon: LucideIcon }[] = [
-    { id: 'users', label: t('admin.tabs.users'), icon: Users },
-    { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog },
-    { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal },
-    { id: 'settings', label: t('admin.tabs.settings'), icon: SettingsIcon },
-    { id: 'addons', label: t('admin.tabs.addons'), icon: Blocks },
-    ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Puzzle }]),
-    ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive }]),
-    { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell },
-    ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: Plug }] : []),
-    // Same two the desktop list drops: releases and backup schedule belong to
-    // whoever operates the install.
-    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: Github }]),
-    ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database }]),
-    { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
-    ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
+  // The desktop sidebar's sections, groups, order, icons and gating, so a link
+  // to a tab and a habit from the laptop land on the same place here.
+  const gUsers = t('admin.group.users')
+  const gConfig = t('admin.group.config')
+  const gMaintenance = t('admin.group.maintenance')
+  const groupOf = { users: gUsers, config: gConfig, integration: gConfig, maintenance: gMaintenance }
+  const sections: MSection[] = [
+    { id: 'users', label: t('admin.tabs.users'), icon: Users, group: gUsers },
+    { id: 'defaults', label: t('admin.tabs.defaults'), icon: UserCog, group: gUsers },
+    { id: 'security', label: t('admin.tabs.security'), icon: ShieldCheck, group: gConfig },
+    { id: 'services', label: t('admin.tabs.services'), icon: Compass, group: gConfig },
+    { id: 'addons', label: t('admin.tabs.addons'), icon: Puzzle, group: gConfig },
+    { id: 'config', label: t('admin.tabs.config'), icon: SlidersHorizontal, group: gConfig },
+    { id: 'notifications', label: t('admin.tabs.notifications'), icon: Bell, group: gConfig },
+    ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound, group: gConfig }] : []),
+    // A hosted instance offers no plugins, storage backends, backup schedule or
+    // releases: they belong to whoever operates the install.
+    ...(managed ? [] : [{ id: 'plugins', label: t('admin.tabs.plugins'), icon: Blocks, group: gConfig }]),
+    ...(managed ? [] : [{ id: 'storage', label: t('admin.tabs.storage'), icon: HardDrive, group: gMaintenance }]),
+    ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database, group: gMaintenance }]),
+    ...(managed ? [] : [{ id: 'github', label: t('admin.tabs.github'), icon: GitBranch, group: gMaintenance }]),
+    { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText, group: gMaintenance },
+    ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug, group: gMaintenance }] : []),
+    // The install's own tabs (managed/index.tsx), after the built-in ones as on the desktop.
+    ...managedAdminTabs.map(tab => ({ id: tab.id, label: tab.label, icon: tab.Icon, group: groupOf[tab.group ?? 'config'] })),
   ]
   const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0]
 
   return (
     // Flow screen: scrolls with the document (#1809), so no height and no
     // scroll container of its own.
-    <div className="px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)]">
+    <div className={SECTION_SCREEN}>
+      {split && (
+        <MSectionNav
+          title={t('admin.title')}
+          backLabel={t('common.back')}
+          onBack={() => void navigate('/dashboard')}
+          sections={sections}
+          activeId={activeSection.id}
+          onPick={setActiveTab}
+          action={
+            <button
+              type="button"
+              onClick={() => setShowCreateUser(true)}
+              className="flex h-[34px] w-full items-center justify-center gap-[7px] rounded-full bg-m-act px-3 text-[length:calc(12px*var(--fs-scale-body,1))] font-bold text-m-actfg outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--m-act)] focus-visible:ring-offset-2"
+            >
+              <UserPlus size={14} strokeWidth={2.2} className="flex-none" />
+              <span className="truncate">{t('admin.createUser')}</span>
+            </button>
+          }
+        />
+      )}
+      <div className="min-w-0">
       {/* Header: back · section switcher · create user */}
+      {!split && (
       <div className="mb-3 flex items-center gap-2">
         <button
           type="button"
@@ -113,7 +149,7 @@ export default function MAdmin() {
           onClick={() => navigate('/dashboard')}
           className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
-          <ChevronLeft size={18} strokeWidth={2.2} />
+          <ChevronLeft size={18} strokeWidth={2.2} className="rtl:-scale-x-100" />
         </button>
         <button
           type="button"
@@ -135,26 +171,19 @@ export default function MAdmin() {
           <UserPlus size={16} strokeWidth={2.2} />
         </button>
       </div>
+      )}
 
       {/* Section dropdown */}
-      {sectionsOpen && (
+      {sectionsOpen && !split && (
         <div className="-mt-[6px] mb-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => {
-                setActiveTab(section.id)
-                setSectionsOpen(false)
-              }}
-              className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start text-[0.8125rem] font-semibold text-m-ink ${
-                section.id === activeSection.id ? 'bg-[color:var(--m-ic)]' : ''
-              }`}
-            >
-              <section.icon size={15} strokeWidth={2} />
-              {section.label}
-            </button>
-          ))}
+          <MSectionList
+            sections={sections}
+            activeId={activeSection.id}
+            onPick={(id) => {
+              setActiveTab(id)
+              setSectionsOpen(false)
+            }}
+          />
         </div>
       )}
 
@@ -189,7 +218,7 @@ export default function MAdmin() {
 
       {/* Stats grid (§6.3) */}
       {stats && (
-        <div className="mb-3 grid grid-cols-2 gap-[10px]">
+        <div className="mb-3 grid grid-cols-2 gap-[10px] wide:grid-cols-4">
           <MAdminStat label={t('admin.stats.users', { count: stats.totalUsers })} value={stats.totalUsers} icon={Users} />
           <MAdminStat label={t('admin.stats.trips', { count: stats.totalTrips })} value={stats.totalTrips} icon={Briefcase} />
           <MAdminStat label={t('admin.stats.places', { count: stats.totalPlaces })} value={stats.totalPlaces} icon={Map} />
@@ -199,7 +228,8 @@ export default function MAdmin() {
 
       {/* Active section */}
       {activeTab === 'users' && <MAdminUsersSection admin={admin} t={t} locale={locale} />}
-      {activeTab === 'settings' && <MAdminSettingsSection admin={admin} t={t} />}
+      {activeTab === 'security' && <MAdminSettingsSection admin={admin} t={t} part="security" />}
+      {activeTab === 'services' && <MAdminSettingsSection admin={admin} t={t} part="services" />}
       {activeTab === 'notifications' && <MAdminNotificationsSection admin={admin} t={t} />}
       {activeTab === 'defaults' && <MAdminDefaultUserSettings />}
       {activeTab === 'config' && (
@@ -217,6 +247,8 @@ export default function MAdmin() {
             collabFeatures={collabFeatures}
             onToggleCollabFeature={toggleCollabFeature}
           />
+          {/* How the integrations reach the world (live flights, booking mails), beside the addons they serve. */}
+          <MAdminSettingsSection admin={admin} t={t} part="features" />
           <MAdminPaddleRegionsPanel />
         </div>
       )}
@@ -227,6 +259,11 @@ export default function MAdmin() {
       {activeTab === 'backup' && <MAdminBackupPanel />}
       {activeTab === 'audit' && <MAdminAuditLogPanel serverTimezone={serverTimezone} />}
       {activeTab === 'dev-notifications' && <MAdminDevNotificationsPanel />}
+      {managedAdminTabs.map(tab =>
+        activeTab === tab.id ? <div key={tab.id}>{tab.mobileElement ?? tab.element}</div> : null,
+      )}
+
+      </div>
 
       <MAdminSheets admin={admin} t={t} />
     </div>

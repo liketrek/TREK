@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'İdeya',
   'collections.status.want': 'Getmək istəyirəm',
   'collections.status.visited': 'Ziyarət edilib',
+  'collections.status.revisit': 'Yenidən getmək istəyirəm',
   'collections.status.filterAll': 'Hamısı',
   'collections.status.cycleHint': 'dəyişmək üçün toxunun',
 
@@ -199,10 +200,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'TREK siyahısı',
   'collections.file.formatTrekHint': 'Etiketlər və statuslarla başqa TREK üçün',
   'collections.file.formatGpxHint': 'OsmAnd, Organic Maps, Garmin və digər xəritə tətbiqləri üçün yol nöqtələri',
+  'collections.file.formatKmlHint': 'Məkanları Google Maps-də görmək üçün Google My Maps nişanları',
   'collections.file.gpxOmitted': '{count} məkanın koordinatları olmadığı üçün GPX faylına daxil edilmədi',
   'collections.file.gpxOmitted.one': '{count} məkanın koordinatları olmadığı üçün GPX faylına daxil edilmədi',
   'collections.file.gpxNothing':
     'Bu məkanların heç birinin koordinatları yoxdur, buna görə GPX faylına əlavə ediləcək heç nə yoxdur.',
+  'collections.file.kmlOmitted': '{count} məkanın koordinatları olmadığı üçün KML faylına daxil edilmədi',
+  'collections.file.kmlOmitted.one': '{count} məkanın koordinatları olmadığı üçün KML faylına daxil edilmədi',
+  'collections.file.kmlNothing':
+    'Bu məkanların heç birinin koordinatları yoxdur, buna görə KML faylına əlavə ediləcək heç nə yoxdur.',
   'collections.file.reading': 'Fayl oxunur…',
   'collections.file.gpxSkipped': 'İstifadəyə yararlı koordinatları olmayan {count} yol nöqtəsi daxil edilmir.',
   'collections.file.gpxSkipped.one': 'İstifadəyə yararlı koordinatları olmayan {count} yol nöqtəsi daxil edilmir.',

@@ -4,8 +4,7 @@ const wanderer: TranslationStrings = {
   'wanderer.title': 'wanderer',
   'wanderer.connected': 'เชื่อมต่อแล้ว',
   'wanderer.notConnected': 'ยังไม่ได้เชื่อมต่อ',
-  'wanderer.intro':
-    'เชื่อมต่ออินสแตนซ์ wanderer ของคุณเองเพื่อนำเข้าเส้นทางเดินเป็นทัวร์ โทเค็นจะถูกเก็บไว้บนเซิร์ฟเวอร์และจะไม่แสดงอีก',
+  'wanderer.intro': 'เชื่อมต่ออินสแตนซ์ wanderer ของคุณเองเพื่อนำเข้าเส้นทางเดินเป็นทัวร์ โทเค็นจะถูกเก็บไว้บนเซิร์ฟเวอร์และจะไม่แสดงอีก',
   'wanderer.url': 'URL ของอินสแตนซ์',
   'wanderer.token': 'โทเค็น API',
   'wanderer.tokenHint': 'อยู่ใน wanderer ที่การตั้งค่า บัญชี และโทเค็น API',
@@ -76,8 +75,7 @@ const wanderer: TranslationStrings = {
   'wanderer.preview.openSnapshotShort': 'เปิดทัวร์ในทริปนี้',
   'wanderer.preview.newHint':
     'การนำเข้าจะคัดลอกเส้นทางเดินมาไว้ในทริปนี้เป็นทัวร์แยกต่างหาก การเปลี่ยนแปลงใน wanderer ภายหลังจะไม่มีผลกับทัวร์นี้',
-  'wanderer.preview.unchanged':
-    'อยู่ในทริปนี้แล้วในชื่อ “{name}” นำเข้าเมื่อ {date} และไม่มีการเปลี่ยนแปลงใน wanderer ตั้งแต่นั้น',
+  'wanderer.preview.unchanged': 'อยู่ในทริปนี้แล้วในชื่อ “{name}” นำเข้าเมื่อ {date} และไม่มีการเปลี่ยนแปลงใน wanderer ตั้งแต่นั้น',
   'wanderer.preview.changed': 'นำเข้าเมื่อ {date} ในชื่อ “{name}” มีการเปลี่ยนแปลงใน wanderer ตั้งแต่นั้น: {parts}',
   'wanderer.preview.editedLocally': 'ทัวร์ในทริปนี้ถูกแก้ไขที่นี่ตั้งแต่นั้น',
   'wanderer.preview.newVersionHint': 'การนำเข้าอีกครั้งจะเพิ่มเวอร์ชันใหม่ไว้ข้างกัน ทัวร์ในทริปจะยังคงเหมือนเดิม',

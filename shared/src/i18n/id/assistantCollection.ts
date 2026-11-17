@@ -20,6 +20,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Pindahkan ke {name}',
   'assistant.card.collection.removed': 'Dihapus dari daftar',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Entri peta',
   'assistant.card.collection.places': 'Tempat tersimpan di {name}',
   'assistant.card.collection.saved': 'Tempat tersimpan',
   'assistant.card.collection.statusSet': '{count} tempat tersimpan diubah',

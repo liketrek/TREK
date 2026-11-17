@@ -26,12 +26,21 @@ export function weekdayNames(locale: string | undefined, width: 'long' | 'short'
  * looked-up hours (#2472): "Monday: 09:00 – 17:00", or the closed word. Null
  * when the place has no hours of its own, so the looked-up ones take over.
  */
-export function hoursLines(raw: string | null | undefined, locale: string | undefined, closedLabel: string): string[] | null {
+/** Open around the clock, written the way the editor and the lookup both store it. */
+export const ALL_DAY = { open: '00:00', close: '23:59' } as const
+
+/** A day open around the clock: 00:00 to 23:59, or to 00:00 as some sources write it. */
+export function isAllDay(day: PlaceOpeningHours[number]): boolean {
+  return !day.closed && day.open === ALL_DAY.open && (day.close === ALL_DAY.close || day.close === ALL_DAY.open)
+}
+
+export function hoursLines(raw: string | null | undefined, locale: string | undefined, closedLabel: string, allDayLabel?: string): string[] | null {
   const week = parsePlaceHours(raw)
   if (!hasPlaceHours(week)) return null
   const names = weekdayNames(locale)
   return week!.map((day, i) => {
     if (day.closed) return `${names[i]}: ${closedLabel}`
+    if (allDayLabel && isAllDay(day)) return `${names[i]}: ${allDayLabel}`
     if (!day.open && !day.close) return `${names[i]}: –`
     return `${names[i]}: ${day.open ?? '…'} – ${day.close ?? '…'}`
   })
@@ -80,11 +89,14 @@ interface Point { day: number; hour: number; minute: number }
  * column shows, so a place edited later starts from them instead of from
  * nothing. One range per day, the earliest opening to the latest closing, which
  * is what the editor can hold; a day the provider names no period for is
- * closed. A period that never closes is open around the clock. Null when the
- * provider gave no periods at all.
+ * closed. A period that never closes is open around the clock: Google writes a
+ * place open all week as one such period on Sunday, so that alone opens every
+ * day. A span of a whole day or more is open around the clock too. Null when
+ * the provider gave no periods at all.
  */
 export function weekFromPeriods(periods: { open: Point; close?: Point | null }[] | null | undefined): PlaceOpeningHours | null {
   if (!periods?.length) return null
+  if (periods.length === 1 && !periods[0].close) return Array.from({ length: PLACE_HOURS_DAYS }, () => ({ closed: false, ...ALL_DAY }))
   // Minutes after the day's own midnight; a close past midnight counts on top of 24h.
   const span: ({ open: number; close: number } | null)[] = Array.from({ length: PLACE_HOURS_DAYS }, () => null)
   for (const period of periods) {
@@ -96,6 +108,10 @@ export function weekFromPeriods(periods: { open: Point; close?: Point | null }[]
     span[i] = cur ? { open: Math.min(cur.open, open), close: Math.max(cur.close, close) } : { open, close }
   }
   const clock = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-  const week: PlaceOpeningHours = span.map(s => (s ? { closed: false, open: clock(s.open), close: clock(s.close) } : { closed: true }))
+  const week: PlaceOpeningHours = span.map(s => {
+    if (!s) return { closed: true }
+    if (s.open === 0 && s.close >= 24 * 60 - 1) return { closed: false, ...ALL_DAY }
+    return { closed: false, open: clock(s.open), close: clock(s.close) }
+  })
   return week
 }

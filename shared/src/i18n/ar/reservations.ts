@@ -35,7 +35,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'رحلة متّصلة',
   'reservations.layover.layover': 'توقف بيني',
   'reservations.needsReview': 'مراجعة',
-  'reservations.needsReviewHint': 'تعذّر مطابقة المطار تلقائياً — يرجى تأكيد الموقع.',
+  'reservations.needsReviewHint': 'عُبّئت بعض التفاصيل تلقائياً وتعذّرت قراءتها بشكل مؤكد. يُرجى التحقق منها.',
+  'reservations.reviewConfirm': 'تبدو صحيحة',
+  'reservations.reviewConfirmHint': 'اضغط لتحديدها كمراجَعة.',
+  'reservations.reviewConfirmed': 'تم تحديدها كمراجَعة',
   'reservations.searchLocation': 'ابحث عن محطة، ميناء، عنوان...',
   'reservations.meta.trainNumber': 'رقم القطار',
   'reservations.meta.platform': 'المنصة',
@@ -299,5 +302,9 @@ const reservations: TranslationStrings = {
     'يحتاج رفع الملفات إلى اتصال. أزل الملفات الجديدة لحفظ الحجز دون اتصال، أو احفظ عندما تعود متصلاً.',
   'reservations.needsConnection': 'يتطلب هذا اتصالاً. حاول مرة أخرى عندما يعود TREK للاتصال.',
   'reservations.exportCsvFiltered': 'تصدير الصفوف المعروضة ({shown} من {total}) (CSV)',
+  'reservations.wallet.add': 'إضافة إلى Apple Wallet',
+  'reservations.wallet.addGoogle': 'إضافة إلى Google Wallet',
+  'reservations.wallet.failed': 'تعذّر إنشاء بطاقة Wallet. حاول مرة أخرى.',
+  'reservations.wallet.undated': 'حدّد تاريخًا للحجز أولًا: يعرض Wallet البطاقة قرب موعده.',
 };
 export default reservations;

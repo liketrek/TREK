@@ -236,5 +236,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple Takvim / Outlook’a ekle',
   'dashboard.ics.copyManually': 'Veya bağlantıyı elle kopyalayın',
   'dashboard.ics.pasteFromUrl': '“URL’den” alanına yapıştırın',
+  'dashboard.ics.dayEvents': 'Gün özeti etkinlikleri',
+  'dashboard.ics.dayEventsHint':
+    'Her gün için saati olmayan yerleri ve notları içeren tüm gün süren bir etkinlik. Bunu değiştirmek bağlantıyı değiştirir, bu yüzden yeni bağlantıyla yeniden abone ol.',
 };
 export default dashboard;

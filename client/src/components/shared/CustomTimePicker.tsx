@@ -129,7 +129,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
   return (
     <div ref={ref} style={{ position: 'relative', ...style }}>
-      <div style={{
+      <div data-field-trigger="" style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 0,
         borderRadius: 10, border: '1px solid var(--border-primary)',
         background: 'var(--bg-input)', overflow: 'hidden',

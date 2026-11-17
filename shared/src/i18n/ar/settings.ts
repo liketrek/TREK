@@ -61,6 +61,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'وضع الجودة العالية',
   'settings.mapHighQualityHint': 'تحسين الحواف + إسقاط كروي لحواف أكثر حدة وعرض واقعي للعالم.',
   'settings.mapHighQualityWarning': 'قد يؤثر على الأداء في الأجهزة الأقل قدرة.',
+  'settings.mapHidePois': 'إخفاء نقاط الاهتمام',
+  'settings.mapHidePoisHint':
+    'يُخفي المتاجر والمطاعم والمعالم التي تضعها Mapbox من تلقاء نفسها، فتبرز أماكنك وحدها. لأنماط Standard فقط.',
   'settings.mapTipLabel': 'نصيحة:',
   'settings.mapTip':
     'انقر بزر الماوس الأيمن واسحب لتدوير/إمالة الخريطة. النقر الأوسط لإضافة مكان (النقر الأيمن مخصص للتدوير).',
@@ -72,6 +75,13 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'لبيانات الطقس.',
   'settings.keyPlaceholder': 'أدخل المفتاح...',
   'settings.configured': 'مُعدّ',
+  'settings.notSetUp': 'غير مُعدّ',
+  'settings.mcp.appsConnected': '{count} تطبيق متصل',
+  'settings.mcp.appsConnected.zero': '{count} تطبيقات متصلة',
+  'settings.mcp.appsConnected.one': '{count} تطبيق متصل',
+  'settings.mcp.appsConnected.two': '{count} تطبيقان متصلان',
+  'settings.mcp.appsConnected.few': '{count} تطبيقات متصلة',
+  'settings.mcp.appsConnected.many': '{count} تطبيقًا متصلًا',
   'settings.saveKeys': 'حفظ المفاتيح',
   'settings.display': 'العرض',
   'settings.colorMode': 'نمط الألوان',
@@ -103,7 +113,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'الإشعارات',
   'settings.notifyTripInvite': 'دعوات الرحلات',
   'settings.notifyBookingChange': 'تغييرات الحجز',
+  'settings.notifyFlightDeparted': 'إقلاع الرحلات',
+  'settings.notifyFlightDelayed': 'تأخر الرحلات',
+  'settings.notifyFlightLanded': 'هبوط الرحلات',
   'settings.notifyTripReminder': 'تذكيرات الرحلات',
+  'settings.notifyMailBookingAdded': 'حجوزات أُضيفت من رسائل البريد',
+  'settings.notifyMailBookingPending': 'حجوزات مُعاد توجيهها للمراجعة',
+  'settings.notifyMailIngestPaused': 'تم إيقاف استيراد البريد مؤقتاً',
   'settings.notifyTodoDue': 'مهمة مستحقة',
   'settings.notifyVacayInvite': 'دعوات دمج الإجازات',
   'settings.notifyVacayShare': 'مشاركات تقويم Vacay',
@@ -170,8 +186,7 @@ const settings: TranslationStrings = {
   'settings.mcp.toast.createError': 'فشل إنشاء الرمز',
   'settings.mcp.toast.deleted': 'تم حذف الرمز',
   'settings.mcp.toast.deleteError': 'فشل حذف الرمز',
-  'settings.mcp.apiTokensDeprecated':
-    'رموز API قديمة وستُزال في إصدار مستقبلي. يُرجى استخدام عملاء OAuth 2.1 بدلاً منها.',
+  'settings.mcp.apiTokensDeprecated': 'رموز API قديمة وستُزال في إصدار مستقبلي. يُرجى استخدام عملاء OAuth 2.1 بدلاً منها.',
   'settings.oauth.clients': 'عملاء OAuth 2.1',
   'settings.oauth.clientsHint':
     'سجّل عملاء OAuth 2.1 للسماح لتطبيقات MCP الخارجية (Claude Web وCursor وغيرها) بالاتصال دون رموز ثابتة.',
@@ -322,6 +337,9 @@ const settings: TranslationStrings = {
   'settings.mfa.toastEnabled': 'تم تفعيل المصادقة الثنائية',
   'settings.mfa.toastDisabled': 'تم تعطيل المصادقة الثنائية',
   'settings.tabs.offline': 'دون اتصال',
+  'settings.tabs.device': 'التطبيق',
+  'settings.groups.account': 'حسابك',
+  'settings.groups.device': 'هذا الجهاز',
   'settings.notificationPreferences.email': 'البريد الإلكتروني',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'داخل التطبيق',
@@ -686,6 +704,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'تم',
   'settings.mcp.deprecated': 'مهجور',
   'settings.offline.cache.dateRange': 'من {start} إلى {end}',
+  'settings.offline.tileStore.title': 'مربعات الخريطة المعروضة',
+  'settings.offline.tileStore.usage': '{used} من {limit} على هذا الجهاز، تُحفظ حتى 30 يومًا',
+  'settings.offline.tileStore.clear': 'مسح',
 };
 
 export default settings;

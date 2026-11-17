@@ -1,4 +1,4 @@
-// FE-DAWARICH-ACCEPT-001 to FE-DAWARICH-ACCEPT-026
+// FE-DAWARICH-ACCEPT-001 to FE-DAWARICH-ACCEPT-029
 /**
  * The review step between a detector's guess and a row in somebody's trip.
  *
@@ -94,6 +94,20 @@ const DAYS: Record<number, AcceptTargetOption[]> = {
   32: [{ id: 501, label: 'Alpine day', badge: '01 Oct' }],
 }
 const daysForTrip = (tripId: number): AcceptTargetOption[] => DAYS[tripId] ?? []
+
+// The same trips with their calendar dates, as the planner hands them over: the
+// stay fell on 10 Sept, which is day 2 of the Rhineland trip and day 1 of a
+// second trip that started that morning.
+const DATED_DAYS: Record<number, AcceptTargetOption[]> = {
+  31: [
+    { id: 401, label: 'Day 1', badge: '09 Sept', date: '2026-09-09' },
+    { id: 402, label: 'Day 2', badge: '10 Sept', date: '2026-09-10' },
+  ],
+  32: [{ id: 501, label: 'Alpine day', badge: '10 Sept', date: '2026-09-10' }],
+  33: [{ id: 601, label: 'Coast day', badge: '01 Oct', date: '2026-10-01' }],
+}
+const datedDaysForTrip = (tripId: number): AcceptTargetOption[] => DATED_DAYS[tripId] ?? []
+const DATED_TRIPS: AcceptTargetOption[] = [...TRIPS, { id: 33, label: 'Coast' }]
 
 const JOURNALS: AcceptTargetOption[] = [
   { id: 71, label: 'Rhine notebook' },
@@ -564,5 +578,50 @@ describe('DawarichAcceptDialog', () => {
     expect(screen.queryByText('Date')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Add place' }))
     expect(onConfirm).toHaveBeenLastCalledWith({ target: 'place', tripId: 31, time: '10:15', endTime: '12:40' })
+  })
+
+  it('FE-DAWARICH-ACCEPT-027: the day picker opens on the trip day the stay was recorded on (#3068)', () => {
+    const { onConfirm } = open({ trips: DATED_TRIPS, daysForTrip: datedDaysForTrip })
+
+    // Day 2 is 10 Sept, the stay's own local date: accepting with the defaults
+    // files the place where it was actually visited.
+    expect(screen.getByRole('button', { name: /Day 2/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add place' }))
+    expect(onConfirm).toHaveBeenCalledWith({ target: 'place', tripId: 31, dayId: 402, time: '10:15', endTime: '12:40' })
+  })
+
+  it("FE-DAWARICH-ACCEPT-028: switching the trip moves the preselection to that trip's day, or to none", () => {
+    const { onConfirm } = open({ trips: DATED_TRIPS, daysForTrip: datedDaysForTrip })
+
+    pick('Rhineland', 'Alps')
+    expect(screen.getByRole('button', { name: /Alpine day/ })).toBeInTheDocument()
+
+    // The coast trip has no day on 10 Sept, so nothing is guessed for it.
+    pick('Alps', 'Coast')
+    expect(screen.getByRole('button', { name: 'Not on a day yet' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add place' }))
+    expect(onConfirm).toHaveBeenCalledWith({ target: 'place', tripId: 33, time: '10:15', endTime: '12:40' })
+  })
+
+  it('FE-DAWARICH-ACCEPT-029: a preselected day can still be undone, and a new stay is matched afresh', () => {
+    const { onConfirm, update } = open({ trips: DATED_TRIPS, daysForTrip: datedDaysForTrip })
+
+    // Unplanned stays a deliberate answer next to the preselection.
+    pick(/Day 2/, 'Not on a day yet')
+    fireEvent.click(screen.getByRole('button', { name: 'Add place' }))
+    expect(onConfirm).toHaveBeenLastCalledWith({ target: 'place', tripId: 31, time: '10:15', endTime: '12:40' })
+
+    // The next stay fell on the 9th: its own day, not the one cleared above.
+    update({
+      suggestion: stay({
+        id: 4,
+        localDate: '2026-09-09',
+        startedAt: '2026-09-09T10:15:00+02:00',
+        endedAt: '2026-09-09T12:40:00+02:00',
+      }),
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add place' }))
+    expect(onConfirm).toHaveBeenLastCalledWith({ target: 'place', tripId: 31, dayId: 401, time: '10:15', endTime: '12:40' })
   })
 })

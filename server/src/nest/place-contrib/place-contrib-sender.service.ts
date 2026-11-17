@@ -36,6 +36,7 @@ import {
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import {
+  PLACE_CONTRIB_COLUMN,
   PLACE_CONTRIB_TERMS_VERSION,
   type PlaceContribField,
   type PlaceContribImageAnswer,
@@ -336,7 +337,7 @@ function staleReason(
 
 /** The column a field is stored in. */
 function columnOf(row: OutboxCurrentRow, field: PlaceContribField): string | null {
-  return field === 'image' ? row.image_url : row[field];
+  return row[PLACE_CONTRIB_COLUMN[field]];
 }
 
 /** What the index serves for a field, in the form a queued value has; null when it serves nothing. */

@@ -1,30 +1,18 @@
-import { Children, type ReactNode, isValidElement, useId, useState } from 'react'
+import { Children, type ReactNode } from 'react'
 import ToggleSwitch from '../Settings/ToggleSwitch'
+import { HintMark } from '../Settings/settingsKit'
 import { fs } from '../shared/DialogShell'
-import { ChevronDown } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-
-/** How many of the shelf's rows are switched on, read from the rows' own `enabled`. */
-function enabledRows(rows: ReactNode[]): number {
-  return rows.filter((row) => isValidElement<{ enabled?: boolean }>(row) && row.props.enabled === true).length
-}
 
 /**
- * One addon in its type's card: a row like the bag sidebar's (#2541), with the
- * icon tile on the left, name and description beside it and the switch on the
- * right. Its sub-features sit under it in a grey inset box of hairline rows.
+ * One addon in its type's card, as a settings row: the icon tile, the name with
+ * its description behind an info mark, and the switch on the right. Its
+ * sub-features follow as indented rows while it is on, in the same list and with
+ * the same hairlines: no box of their own, nothing folded away.
  *
  * The on/off state rides on the icon tile and the switch: a switched-off addon
- * greys its tile and its description, but keeps its name at full strength. The
- * name is the tile's identity, not its state; greying it out reads as "broken"
- * rather than "not enabled".
- *
- * The row is not a click target, only the switches are. No lift, no pointer
- * cursor, no `role="button"`.
- *
- * A shelf of more than one row starts folded behind a bar that says how many
- * options there are and how many are on, so a page of addons stays short and
- * the options are still plain to see.
+ * greys its tile but keeps its name at full strength. The name is the row's
+ * identity, not its state; greying it out reads as "broken" rather than "not
+ * enabled". The row is not a click target, only the switches are.
  */
 export default function AddonTile({
   icon,
@@ -32,90 +20,42 @@ export default function AddonTile({
   description,
   enabled,
   onToggle,
+  trailing,
   children,
 }: {
   icon: ReactNode
   name: string
   description?: string
   enabled: boolean
-  onToggle: () => void
-  /** The sub-shelf: `<AddonSubRow>` children. */
+  /** The addon's switch; leave it out for a row that shows a state instead (`trailing`). */
+  onToggle?: () => void
+  /** Shown in place of the switch. */
+  trailing?: ReactNode
+  /** The sub-features: `<AddonSubRow>` children. */
   children?: ReactNode
 }) {
-  const { t } = useTranslation()
-  const shelfId = useId()
-  const [open, setOpen] = useState(false)
-  const rows = Children.toArray(children)
-  const foldable = rows.length > 1
-  const active = enabledRows(rows)
-
   return (
-    <article className="px-3.5 py-3 transition-colors duration-150 focus-within:bg-surface-secondary">
-      <div className="flex items-start gap-3">
+    <article>
+      <div className="flex items-center gap-3 px-4 py-3">
         <div
           // overflow-hidden so a brand mark that fills the slot keeps the slot's
           // rounded corners instead of squaring them off.
-          className={`grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-[10px] transition-colors ${
-            enabled ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint' : 'bg-surface-tertiary text-content-faint'
+          className={`grid h-8 w-8 flex-none place-items-center overflow-hidden rounded-[10px] transition-colors ${
+            enabled ? 'bg-surface-card text-content-secondary shadow-sm ring-1 ring-edge-faint' : 'bg-surface-tertiary text-content-faint'
           }`}
         >
           {icon}
         </div>
-
-        <div className="min-w-0 flex-1 pt-px">
-          <h4 className="m-0 truncate font-semibold text-content" style={fs(13, 'body')} title={name}>
-            {name}
-          </h4>
-          <p
-            className={`m-0 mt-0.5 line-clamp-2 leading-snug ${enabled ? 'text-content-muted' : 'text-content-faint'}`}
-            style={fs(11.5)}
-            title={description}
-          >
-            {description}
-          </p>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <h4 className="m-0 truncate font-medium text-content" style={fs(13, 'body')}>{name}</h4>
+          {description && <HintMark hint={description} />}
         </div>
-
-        <div className="flex-none pt-1.5">
-          <ToggleSwitch on={enabled} onToggle={onToggle} label={name} />
+        <div className="flex flex-none items-center">
+          {trailing ?? (onToggle && <ToggleSwitch on={enabled} onToggle={onToggle} label={name} />)}
         </div>
       </div>
-
-      {rows.length > 0 && (
-        <div className="mt-3 overflow-hidden rounded-[12px] border border-edge-faint bg-surface-secondary">
-          {foldable && (
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              aria-expanded={open}
-              aria-controls={shelfId}
-              className={`flex min-h-[44px] w-full items-center gap-2.5 px-3 py-1.5 text-start transition-colors hover:bg-surface-tertiary focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${open ? 'border-b border-edge-faint' : ''}`}
-            >
-              {/* The same slot and type as a row below, so the bar reads as one more row. */}
-              <span className="grid h-6 w-6 flex-none place-items-center text-content-muted">
-                <ChevronDown
-                  size={15}
-                  strokeWidth={2.2}
-                  className={`transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
-                />
-              </span>
-              <span className="min-w-0 flex-1 truncate font-medium text-content" style={fs(12.5, 'body')}>
-                {t('admin.addons.subOptions', { count: rows.length })}
-              </span>
-              <span
-                className={`flex-none rounded-full px-2 py-0.5 font-semibold ${active > 0 ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}`}
-                style={fs(10.5, 'body')}
-              >
-                {t('admin.addons.subOptionsOn', { count: active })}
-              </span>
-            </button>
-          )}
-          {/* Sitting inside the parent on its own fill is enough to say these belong
-              to it: no rail, no indent guides. */}
-          {(!foldable || open) && (
-            <ul id={shelfId} className="m-0 list-none divide-y divide-edge-faint p-0">{children}</ul>
-          )}
-        </div>
-      )}
+      {/* An empty shelf (a tours addon without its options here) draws no line. */}
+      {Children.count(children) > 0 && <ul className="m-0 list-none divide-y divide-edge-faint border-t border-edge-faint p-0">{children}</ul>}
     </article>
   )
 }

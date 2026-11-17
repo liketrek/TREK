@@ -31,10 +31,13 @@ import demo from './demo';
 import docsync from './docsync';
 import ferratas from './ferratas';
 import files from './files';
+import flightLive from './flightLive';
 import help from './help';
 import inspector from './inspector';
 import journey from './journey';
 import login from './login';
+import mailAdmin from './mailAdmin';
+import mailInbox from './mailInbox';
 import map from './map';
 import members from './members';
 import memories from './memories';
@@ -46,6 +49,7 @@ import mobileNav from './mobileNav';
 import mobileSettings from './mobileSettings';
 import mobileTrip from './mobileTrip';
 import mobileVacay from './mobileVacay';
+import native from './native';
 import nav from './nav';
 import notif from './notif';
 import notifications from './notifications';
@@ -124,6 +128,7 @@ const locale = {
   ...collab,
   ...perm,
   ...undo,
+  ...native,
   ...notifications,
   ...todo,
   ...notif,
@@ -150,6 +155,9 @@ const locale = {
   ...dawarich,
   ...docsync,
   ...ferratas,
+  ...flightLive,
+  ...mailInbox,
+  ...mailAdmin,
   ...assistant,
   ...assistantCard,
   ...assistantTour,

@@ -47,6 +47,8 @@ interface StagePageLocals {
   poiPillEnabled: boolean
   mapPois: Poi[]
   distanceUnit: Settings['distance_unit']
+  /** The open place card's measured height, so the selected pin is panned above it. */
+  inspectorHeight?: number
 }
 
 export interface PlanMapStageProps
@@ -73,7 +75,7 @@ export function PlanMapStage({
   dawarichEnabled, dawarichTrail, dawarichHiddenDates, dawarichTrailShown, toggleDawarichTrail,
   mobileSidebarOpen, showPlaceForm, showMembersModal, showReservationModal,
   poi, tourMap, leftPanelPx, rightPanelPx, mapInsetLeft, mapInsetRight,
-  glMap, setGlMap, poiPillEnabled, mapPois, distanceUnit,
+  glMap, setGlMap, poiPillEnabled, mapPois, distanceUnit, inspectorHeight = 0,
 }: Readonly<PlanMapStageProps>): ReactElement {
   // ACT-02: a tour compared with its actual track lays the track into the day's lines, dotted.
   const compared = useActivityCompareMap({
@@ -115,6 +117,7 @@ export function PlanMapStage({
         leftWidth={leftPanelPx}
         rightWidth={rightPanelPx}
         hasInspector={!!selectedPlace}
+        inspectorHeight={selectedPlace ? inspectorHeight : 0}
         hasDayDetail={!!showDayDetail && !selectedPlace}
         reservations={reservations}
         showReservationStats={true}

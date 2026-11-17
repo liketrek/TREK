@@ -11,7 +11,7 @@ import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
-import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
 // FE-MOB-SHOST-001 to FE-MOB-SHOST-029 and FE-MOB-SHOST-032 to FE-MOB-SHOST-034 (030 and 031 live in MTripSheets.members.test.tsx)
 //
@@ -240,15 +240,8 @@ describe('MTripSheets', () => {
     }
   })
 
-  it('FE-MOB-SHOST-033: the map\'s places filter opens for its own id and closes through the shell', async () => {
-    const { shell } = renderHost({}, { sheet: { id: 'placesFilter' } })
-    const sheet = await screen.findByRole('dialog', { name: 'Filters' })
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
-    expect(shell.closeSheet).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-MOB-SHOST-033b: no places filter while another sheet is open', () => {
-    renderHost({}, { sheet: { id: 'day' } })
+  it('FE-MOB-SHOST-033: hosts no places filter of its own any more; the places tab carries it', () => {
+    renderHost({}, { sheet: { id: 'placesFilter' } })
     expect(screen.queryByRole('dialog', { name: 'Filters' })).not.toBeInTheDocument()
   })
 

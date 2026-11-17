@@ -719,6 +719,13 @@ export const STORE_REFRESHES: Partial<Record<TrekWsTripEventName, StoreRefresh>>
     const tripId = get().trip?.id
     if (tripId) void get().reloadPackingItems(tripId)
   }),
+  // A tag of the trip added, renamed or deleted elsewhere: the event says only
+  // that the list changed, and the read takes a rename or a delete into the
+  // places that carry the tag.
+  'tripTags:changed': get => refreshOncePerBurst('tripTags', () => {
+    const tripId = get().trip?.id
+    if (tripId) void get().loadTripTags(tripId)
+  }),
 }
 
 /**

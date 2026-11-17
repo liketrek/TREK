@@ -20,7 +20,7 @@ export default function MSaveToCollectionSheet() {
       {/* Header — mirrors the place detail sheet: icon + title + target name + close */}
       <div className="flex-none px-[18px] pt-4">
         <div className="flex items-start gap-3">
-          <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[14px] bg-[color:var(--m-ic)] text-m-muted">
+          <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
             <Bookmark size={18} strokeWidth={2} />
           </span>
           <div className="min-w-0 flex-1">

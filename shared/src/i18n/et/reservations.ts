@@ -37,7 +37,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Ühendus',
   'reservations.layover.layover': 'Vahepeatus',
   'reservations.needsReview': 'Vaata üle',
-  'reservations.needsReviewHint': 'Lennujaama ei õnnestunud automaatselt tuvastada — kinnita asukoht.',
+  'reservations.needsReviewHint':
+    'Osa andmeid täideti automaatselt ja neid ei saanud kindlalt lugeda. Palun kontrolli need üle.',
+  'reservations.reviewConfirm': 'Tundub õige',
+  'reservations.reviewConfirmHint': 'Klõpsa, et märkida kontrollituks.',
+  'reservations.reviewConfirmed': 'Märgitud kontrollituks',
   'reservations.searchLocation': 'Otsi jaama, sadamat, aadressi…',
   'reservations.meta.trainNumber': 'Rongi nr',
   'reservations.meta.platform': 'Platvorm',
@@ -275,5 +279,9 @@ const reservations: TranslationStrings = {
     'Failide üleslaadimiseks on vaja ühendust. Eemalda uued, et broneering võrguühenduseta salvestada, või salvesta, kui oled taas võrgus.',
   'reservations.needsConnection': 'Selleks on vaja ühendust. Proovi uuesti, kui TREK on taas võrgus.',
   'reservations.exportCsvFiltered': 'Ekspordi näidatud read, {shown} / {total} (CSV)',
+  'reservations.wallet.add': 'Lisa Apple Walletisse',
+  'reservations.wallet.addGoogle': 'Lisa Google Walletisse',
+  'reservations.wallet.failed': 'Walleti passi ei õnnestunud luua. Proovi uuesti.',
+  'reservations.wallet.undated': 'Anna broneeringule kõigepealt kuupäev: Wallet näitab passi selle aja paiku.',
 };
 export default reservations;

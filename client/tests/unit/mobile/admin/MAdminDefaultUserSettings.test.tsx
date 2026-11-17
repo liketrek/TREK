@@ -50,7 +50,7 @@ function resetLink(label: string): HTMLElement {
 
 /** The CARTO key input sits under its label inside the field's own wrapper. */
 function cartoInput(): HTMLInputElement {
-  return within(screen.getByText('Shared CARTO key').parentElement as HTMLElement).getByRole('textbox');
+  return within(screen.getByText('Shared CARTO key').closest('[data-m-field]') as HTMLElement).getByRole('textbox');
 }
 
 describe('MAdminDefaultUserSettings', () => {

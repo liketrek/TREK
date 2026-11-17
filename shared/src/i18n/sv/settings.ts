@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" krävs',
   'settings.tabs.account': 'Konto',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'Ditt konto',
+  'settings.groups.device': 'Den här enheten',
   'settings.tabs.about': 'Om',
   'settings.map': 'Karta',
   'settings.mapTemplate': 'Kartmall',
@@ -64,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Högkvalitetsläge',
   'settings.mapHighQualityHint': 'Antialiasing + globprojektion för skarpare kanter och en realistisk världsbild.',
   'settings.mapHighQualityWarning': 'Kan påverka prestandan på enheter i lägre enheter.',
+  'settings.mapHidePois': 'Dölj intressepunkter',
+  'settings.mapHidePoisHint':
+    'Döljer butiker, restauranger och sevärdheter som Mapbox märker ut på egen hand, så att bara dina platser syns. Bara för Standard-stilarna.',
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'högerklicka och dra för att rotera eller luta kartan. Mittklicka för att lägga till en plats (högerklick är reserverat för rotation).',
@@ -75,6 +81,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'För väderdata. Gratis på openweathermap.org/api',
   'settings.keyPlaceholder': 'Ange nyckel...',
   'settings.configured': 'Inställd',
+  'settings.notSetUp': 'Inte inställd',
+  'settings.mcp.appsConnected': '{count} appar anslutna',
+  'settings.mcp.appsConnected.one': '{count} app ansluten',
   'settings.saveKeys': 'Spara nycklar',
   'settings.display': 'Visning',
   'settings.colorMode': 'Färgläge',
@@ -110,7 +119,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Meddelanden',
   'settings.notifyTripInvite': 'Inbjudningar till resor',
   'settings.notifyBookingChange': 'Ändringar i bokningen',
+  'settings.notifyFlightDeparted': 'Avgångar',
+  'settings.notifyFlightDelayed': 'Förseningar',
+  'settings.notifyFlightLanded': 'Landningar',
   'settings.notifyTripReminder': 'Påminnelser inför resan',
+  'settings.notifyMailBookingAdded': 'Bokningar tillagda från mejl',
+  'settings.notifyMailBookingPending': 'Vidarebefordrade bokningar att granska',
+  'settings.notifyMailIngestPaused': 'Mejlimporten pausad',
   'settings.notifyTodoDue': 'Att göra ska göras snart',
   'settings.notifyVacayInvite': 'Vacay samanslagnings inbjudningar',
   'settings.notifyVacayShare': 'Vacay kalender delningar',
@@ -668,6 +683,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Klar',
   'settings.mcp.deprecated': 'Utfasad',
   'settings.offline.cache.dateRange': '{start} till {end}',
+  'settings.offline.tileStore.title': 'Visade kartrutor',
+  'settings.offline.tileStore.usage': '{used} av {limit} på den här enheten, sparas i upp till 30 dagar',
+  'settings.offline.tileStore.clear': 'Rensa',
 };
 
 export default settings;

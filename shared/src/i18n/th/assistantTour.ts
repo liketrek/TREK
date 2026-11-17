@@ -72,8 +72,7 @@ const assistantTour: TranslationStrings = {
   'assistant.card.tour.warn.dark_start': 'ออกเดินก่อนพระอาทิตย์ขึ้น ({time})',
   'assistant.card.tour.warn.dusk': 'กลับถึงก่อนพระอาทิตย์ตกไม่ถึงหนึ่งชั่วโมง',
   'assistant.card.tour.warn.legs_failed': 'วางแผน {count} ช่วงไม่สำเร็จ',
-  'assistant.card.tour.problem.no_valhalla':
-    'ระบบหาเส้นทางของเซิร์ฟเวอร์นี้ไม่รู้จักเส้นทางเดินป่า จึงวางแผนเดินป่าไม่ได้',
+  'assistant.card.tour.problem.no_valhalla': 'ระบบหาเส้นทางของเซิร์ฟเวอร์นี้ไม่รู้จักเส้นทางเดินป่า จึงวางแผนเดินป่าไม่ได้',
   'assistant.card.tour.problem.router_unavailable': 'ระบบหาเส้นทางไม่ตอบสนอง โปรดลองอีกครั้งในอีกสักครู่',
   'assistant.card.tour.problem.no_way': 'ไม่มีทางเดินถึงระดับ T{grade} ที่เชื่อมจุดเหล่านี้',
   'assistant.card.tour.problem.no_way_any': 'ไม่มีทางเดินที่เชื่อมจุดเหล่านี้',

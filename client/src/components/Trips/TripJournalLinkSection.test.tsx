@@ -80,7 +80,8 @@ describe('TripJournalLinkSection', () => {
   it('FE-TJL-SECTION-002: with no journal linked it offers to link one, in its own card', async () => {
     render(<TripJournalLinkSection tripId={TRIP} />);
     expect(await screen.findByText('Link a journal')).toBeInTheDocument();
-    expect(screen.getByText('Journal')).toBeInTheDocument();
+    // The phone's page is titled Journal already; the card opens with what linking does.
+    expect(screen.getByText(/^Link one of your journals/)).toBeInTheDocument();
   });
 
   it('FE-TJL-SECTION-003: picking a journal lists the trip and warns about who gets in for the first time', async () => {

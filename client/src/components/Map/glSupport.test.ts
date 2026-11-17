@@ -9,7 +9,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasWebGL, resetWebGLProbe } from '../../utils/webgl';
-import { buildGlMap, isGpuInitFailure, pickGlRenderer, useGlRenderer, useWebGL2 } from './glSupport';
+import { buildGlMap, initialMapStyle, isGpuInitFailure, pickGlRenderer, useGlRenderer, useWebGL2 } from './glSupport';
 
 const realGetContext = HTMLCanvasElement.prototype.getContext;
 
@@ -105,6 +105,88 @@ describe('buildGlMap', () => {
   });
 });
 
+describe('followContainerSize', () => {
+  type Observed = { callback: ResizeObserverCallback; target: Element | null; disconnected: boolean };
+  const observers: Observed[] = [];
+
+  function fakeMap() {
+    let onRemove: (() => void) | undefined;
+    const container = document.createElement('div');
+    return {
+      map: {
+        getContainer: () => container,
+        resize: vi.fn(),
+        once: (_type: 'remove', listener: () => void) => {
+          onRemove = listener;
+        },
+      },
+      container,
+      remove: () => onRemove?.(),
+    };
+  }
+
+  beforeEach(() => {
+    observers.length = 0;
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        private readonly entry: Observed;
+        constructor(callback: ResizeObserverCallback) {
+          this.entry = { callback, target: null, disconnected: false };
+          observers.push(this.entry);
+        }
+        observe(target: Element) {
+          this.entry.target = target;
+        }
+        disconnect() {
+          this.entry.disconnected = true;
+        }
+      }
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  const fire = () => observers[0].callback([], {} as ResizeObserver);
+
+  it('FE-MAP-GLSUP-020: resizes the canvas when its box changes size without a window resize (#3023)', () => {
+    const { map, container } = fakeMap();
+    expect(buildGlMap(() => map)).toBe(map);
+    expect(observers[0].target).toBe(container);
+
+    fire();
+    fire();
+    fire();
+    expect(map.resize).not.toHaveBeenCalled();
+    vi.advanceTimersToNextFrame();
+    expect(map.resize).toHaveBeenCalledTimes(1);
+
+    fire();
+    vi.advanceTimersToNextFrame();
+    expect(map.resize).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-MAP-GLSUP-021: stops watching once the map is removed, a pending resize included', () => {
+    const { map, remove } = fakeMap();
+    buildGlMap(() => map);
+
+    fire();
+    remove();
+    vi.advanceTimersToNextFrame();
+    expect(observers[0].disconnected).toBe(true);
+    expect(map.resize).not.toHaveBeenCalled();
+  });
+
+  it('FE-MAP-GLSUP-022: leaves a map without a container alone', () => {
+    expect(buildGlMap(() => ({ remove: vi.fn() }))).toEqual({ remove: expect.any(Function) });
+    expect(observers).toHaveLength(0);
+  });
+});
+
 describe('useGlRenderer', () => {
   it('FE-MAP-GLSUP-010: asks the canvas for webgl2 only', () => {
     const getContext = browserWithWebGL2(false);
@@ -130,5 +212,14 @@ describe('useGlRenderer', () => {
 
     expect(trip.result.current).toBeNull();
     expect(terrain.result.current).toBe(false);
+  });
+});
+
+describe('initialMapStyle', () => {
+  it('FE-MAP-GLSUP-INIT-001: leaves the style as it is outside the iOS app, and always for Mapbox', () => {
+    expect(initialMapStyle('maplibre-gl', 'https://tiles.openfreemap.org/styles/liberty')).toBe(
+      'https://tiles.openfreemap.org/styles/liberty'
+    );
+    expect(initialMapStyle('mapbox-gl', 'mapbox://styles/mapbox/standard')).toBe('mapbox://styles/mapbox/standard');
   });
 });

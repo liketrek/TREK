@@ -1,4 +1,4 @@
-// FE-PLANNER-TRIPEXPORT-001 to -013: the trip exports behind the desktop export
+// FE-PLANNER-TRIPEXPORT-001 to -014: the trip exports behind the desktop export
 // dialog and the phone's export sheet.
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -238,6 +238,24 @@ describe('useTripExport', () => {
     expect(opts.toast.error).toHaveBeenCalledWith('dayplan.gpxFailed');
     expect(opts.onExported).toHaveBeenCalledTimes(1);
     expect(result.current.anyRunning).toBe(false);
+  });
+
+  it('FE-PLANNER-TRIPEXPORT-014: the places go out as KML for Google My Maps, an empty trip and a broken download said apart (#1866)', async () => {
+    const opts = options();
+    const { result } = renderHook(() => useTripExport(opts));
+    await act(() => result.current.downloadKml());
+    expect(fetchSpy).toHaveBeenCalledWith('/api/trips/3/places/export.kml', { credentials: 'include' });
+    expect((clickSpy.mock.contexts[0] as HTMLAnchorElement).download).toBe('Alps.kml');
+    expect(opts.onExported).toHaveBeenCalledTimes(1);
+
+    fetchSpy.mockResolvedValue(response(404));
+    await act(() => result.current.downloadKml());
+    expect(opts.toast.info).toHaveBeenCalledWith('dayplan.gpxEmpty');
+
+    fetchSpy.mockResolvedValue(response(500));
+    await act(() => result.current.downloadKml());
+    expect(opts.toast.error).toHaveBeenCalledWith('dayplan.kmlFailed');
+    expect(result.current.isRunning('kml')).toBe(false);
   });
 
   it('FE-PLANNER-TRIPEXPORT-011: the PDF routes what the planner draws, counts its legs and can print without the rest', async () => {

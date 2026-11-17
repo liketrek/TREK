@@ -77,6 +77,22 @@ export function useCollabChatData({
     isAtBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
   }, []);
 
+  // A list that sat at its newest message stays there when its box changes size (a
+  // rotation, a fold, a pane opening beside it): the messages wrap anew and the list
+  // grows, which left the newest ones below the composer. Both views draw the list
+  // only once there are messages to show, so the observer attaches when it appears,
+  // not at mount, when there is nothing yet to observe.
+  const listShown = !loading && messages.length > 0;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!listShown || !el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (isAtBottom.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [listShown]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);

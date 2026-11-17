@@ -1,9 +1,10 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, Plus,
+  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPinOff, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MChipStrip from '../../../components/MChipStrip'
 import { useAddonStore } from '../../../../store/addonStore'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import MarkdownText from '../../../../components/shared/MarkdownText'
@@ -25,6 +26,7 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
 import { MCategoryFilterList, MRatingFloorChips, SquareCheck } from './MPlacesFilterControls'
 import { countActivePlacesFilters } from '../../../../utils/placesFilter'
 import { usePlacesPool } from '../../../../components/Planner/usePlacesPool'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 
 /**
  * Fullscreen places pool (mode === 'browse'): All/Unplanned/Tracks filter
@@ -116,24 +118,31 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   return (
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+        {/* ── Places/Tours, the filter chips and Import (Add sits in the search row
+            below to free space). The switch has a row of its own, except where the
+            screen is short (a phone on its side): there it shares the chips' row,
+            so the list is not left one place tall under the controls. The chips
+            share their row while their names fit, and scroll with a faded edge
+            where a long name does not (Russian "Незапланированные"). ── */}
+        <div className="flex flex-wrap items-center gap-x-[6px] gap-y-3">
         {toursEnabled && (
-          <MPlacesToursModeSwitch active={toursMode} onChange={setToursMode} />
+          <MPlacesToursModeSwitch
+            active={toursMode}
+            onChange={setToursMode}
+            className="basis-full [@media(max-height:500px)]:flex-none [@media(max-height:500px)]:basis-auto"
+          />
         )}
         {toursEnabled && toursMode ? (
-          <>
-            {/* All / Unplanned / Planned only — no Tracks chip, no Import/Add/Select
-                buttons: tours are attached here, never created or bulk-managed. */}
-            <div className="flex items-center gap-[6px]">
-              <FilterChip active={tourFilters.status === 'all'} label={t('places.all')} onClick={() => tourFilters.setStatus('all')} />
-              <FilterChip active={tourFilters.status === 'unplanned'} label={t('places.unplanned')} onClick={() => tourFilters.setStatus('unplanned')} />
-              <FilterChip active={tourFilters.status === 'planned'} label={t('places.planned')} onClick={() => tourFilters.setStatus('planned')} />
-            </div>
-            <MToursSelectionList planner={planner} shell={shell} filters={tourFilters} />
-          </>
+          // All / Unplanned / Planned only — no Tracks chip, no Import/Add/Select
+          // buttons: tours are attached here, never created or bulk-managed.
+          <MChipStrip className="flex-1 items-center gap-[6px]">
+            <FilterChip active={tourFilters.status === 'all'} label={t('places.all')} onClick={() => tourFilters.setStatus('all')} />
+            <FilterChip active={tourFilters.status === 'unplanned'} label={t('places.unplanned')} onClick={() => tourFilters.setStatus('unplanned')} />
+            <FilterChip active={tourFilters.status === 'planned'} label={t('places.planned')} onClick={() => tourFilters.setStatus('planned')} />
+          </MChipStrip>
         ) : (
         <>
-        {/* ── Filter chips + Import (Add sits in the search row below to free space) ── */}
-        <div className="flex items-center gap-[6px]">
+        <MChipStrip className="flex-1 items-center gap-[6px]">
           <FilterChip
             active={filter === 'all'}
             label={t('places.all')}
@@ -156,6 +165,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               onClick={() => pickFilter('tracks')}
             />
           )}
+        </MChipStrip>
           {canEditPlaces && (
             <button
               type="button"
@@ -166,14 +176,20 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
               <Download size={16} strokeWidth={2} />
             </button>
           )}
+        </>
+        )}
         </div>
+        {toursEnabled && toursMode ? (
+          <MToursSelectionList planner={planner} shell={shell} filters={tourFilters} />
+        ) : (
+        <>
 
         {/* ── Search + category filter + select toggle ── */}
         <div className="mt-[10px] flex items-stretch gap-2">
           <input
             value={search}
             onChange={e => updateSearch(e.target.value)}
-            placeholder={t('places.search')}
+            enterKeyHint="search" placeholder={t('places.search')}
             className="box-border min-w-0 flex-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
           />
           <button
@@ -227,6 +243,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             daysForTrip={() => days.map(day => ({
               id: day.id,
               ...formatDayOption(day.day_number, day.date, locale, t),
+              date: day.date ?? undefined,
             }))}
             // The place it just created belongs on the map and in the list
             // now, not after a reload.
@@ -324,7 +341,17 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                         />
                       )}
                       <CatIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: cat?.color || 'var(--m-muted)' }} />
-                      <span className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
+                      <span dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
+                      {/* A typed address without coordinates: this place has no marker (#2837). */}
+                      {addressWithoutCoordinates(place) && (
+                        <MapPinOff
+                          size={12}
+                          strokeWidth={2.2}
+                          role="img"
+                          aria-label={t('places.noCoordinates')}
+                          className="flex-none text-[color:var(--m-st-pending)]"
+                        />
+                      )}
                     </span>
                     {sub && (
                       <MarkdownText clamp className="mt-px font-geist text-[0.65625rem] text-m-muted">{sub}</MarkdownText>
@@ -401,13 +428,15 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
 }
 
 /** All / Unplanned / Planned / Tracks pool chip. Counts are omitted on mobile to save row
- *  space; chips flex to share the row's full width up to the import button on the right. */
+ *  space; chips flex to share the row's full width up to the import button at its end. */
 function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full px-[12px] text-[0.75rem] font-semibold ${
+      aria-pressed={active}
+      // Shares the row equally while every name fits, and is never narrower than its own name.
+      className={`flex h-10 min-w-max flex-1 items-center justify-center whitespace-nowrap rounded-full px-[12px] text-[0.75rem] font-semibold ${
         active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
       }`}
     >

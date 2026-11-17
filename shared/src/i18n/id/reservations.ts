@@ -36,7 +36,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Sambungan',
   'reservations.layover.layover': 'Transit',
   'reservations.needsReview': 'Tinjau',
-  'reservations.needsReviewHint': 'Bandara tidak dapat dicocokkan otomatis — konfirmasi lokasi.',
+  'reservations.needsReviewHint':
+    'Beberapa detail terisi otomatis dan tidak dapat dibaca dengan pasti. Silakan periksa.',
+  'reservations.reviewConfirm': 'Sudah benar',
+  'reservations.reviewConfirmHint': 'Klik untuk menandai sebagai sudah diperiksa.',
+  'reservations.reviewConfirmed': 'Ditandai sudah diperiksa',
   'reservations.searchLocation': 'Cari stasiun, pelabuhan, alamat...',
   'reservations.meta.trainNumber': 'No. Kereta',
   'reservations.meta.platform': 'Peron',
@@ -266,5 +270,9 @@ const reservations: TranslationStrings = {
     'File perlu koneksi untuk diunggah. Hapus file baru untuk menyimpan pemesanan secara offline, atau simpan saat kamu kembali online.',
   'reservations.needsConnection': 'Ini memerlukan koneksi. Coba lagi begitu TREK kembali online.',
   'reservations.exportCsvFiltered': 'Ekspor {shown} dari {total} baris yang ditampilkan (CSV)',
+  'reservations.wallet.add': 'Tambahkan ke Apple Wallet',
+  'reservations.wallet.addGoogle': 'Tambahkan ke Google Wallet',
+  'reservations.wallet.failed': 'Pass Wallet tidak dapat dibuat. Silakan coba lagi.',
+  'reservations.wallet.undated': 'Beri tanggal pada pemesanan dulu: Wallet menampilkan pass di sekitar waktunya.',
 };
 export default reservations;

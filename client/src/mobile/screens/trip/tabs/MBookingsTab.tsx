@@ -5,10 +5,10 @@ import { formatTime, formatPriceText } from '../../../../utils/formatters'
 import { useTranslation } from '../../../../i18n'
 import type { Reservation } from '../../../../types'
 import { CardActions, CardDeleteSheet, CardFiles, CardNotes, CardTitleButton, CardWhenAndCode } from './MReservationCardParts'
-import { Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
+import { CardGrid, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabScroller, TravelerAvatars, TravelerFilterRow } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
-import { cardWhen, parseTransportMeta } from './transportsModel'
-import { BOOKING_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
+import { cardWhen, parseTransportMeta, timeRange } from './transportsModel'
+import { BOOKING_TYPE_COLOR, hotelStayTimes } from '../../../../components/Planner/bookings/bookingsModel'
 import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
 import { orderedEndpoints } from '../../../../utils/flightLegs'
@@ -36,7 +36,7 @@ export default function MBookingsTab({ planner, shell }: MTabScreenProps) {
   ].filter(s => s.rows.length > 0)
 
   return (
-    <TabScroller>
+    <TabScroller wide="full">
       {showTravelerFilter && (
         <TravelerFilterRow
           members={planner.tripMembers}
@@ -60,26 +60,32 @@ export default function MBookingsTab({ planner, shell }: MTabScreenProps) {
             open={!collapsed[section.id]}
             onToggle={() => toggle(section.id)}
           />
-          {!collapsed[section.id] &&
-            section.rows.map(res => (
+          {!collapsed[section.id] && (
+            <CardGrid>
+              {section.rows.map(res => (
               <BookingCard
                 key={res.id}
                 res={res}
                 planner={planner}
                 canEdit={canEdit}
                 compact={shell.bookingsCompact}
+                onView={() => shell.openSheet('transport', { reservationId: res.id })}
               />
-            ))}
+              ))}
+            </CardGrid>
+          )}
         </div>
       ))}
     </TabScroller>
   )
 }
 
-function BookingCard({ res, planner, canEdit, compact }: {
+function BookingCard({ res, planner, canEdit, compact, onView }: {
   res: Reservation
   planner: MTabScreenProps['planner']
   canEdit: boolean
+  /** A tap on the card: the booking's detail sheet, as a transport opens, and as on the desktop. */
+  onView: () => void
   compact: boolean
 }) {
   const { t, days } = planner
@@ -113,13 +119,18 @@ function BookingCard({ res, planner, canEdit, compact }: {
   if (meta.price != null && meta.price !== '') {
     metaCells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, planner.trip?.currency, locale) })
   }
-  if (meta.check_in_time) {
-    metaCells.push({
+  const stay = hotelStayTimes(res, meta)
+  // A hotel's times are its check-in and check-out; they come first, so a price
+  // or a seat cannot push them off the card.
+  const stayCells: { label: string; value: string }[] = []
+  if (stay.checkIn) {
+    stayCells.push({
       label: t('reservations.meta.checkIn'),
-      value: formatTime(meta.check_in_time, locale, timeFormat) + (meta.check_in_end_time ? ` – ${formatTime(meta.check_in_end_time, locale, timeFormat)}` : ''),
+      value: timeRange(stay.checkIn, stay.checkInEnd, locale, timeFormat),
     })
   }
-  if (meta.check_out_time) metaCells.push({ label: t('reservations.meta.checkOut'), value: formatTime(meta.check_out_time, locale, timeFormat) })
+  if (stay.checkOut) stayCells.push({ label: t('reservations.meta.checkOut'), value: formatTime(stay.checkOut, locale, timeFormat) })
+  metaCells.unshift(...stayCells)
 
   const files = filesFor(res, planner.files || [])
 
@@ -136,7 +147,7 @@ function BookingCard({ res, planner, canEdit, compact }: {
       {/* Header */}
       <div className="flex items-center gap-[7px] border-b border-[color:var(--m-rowbr)] px-3 py-[10px]" style={{ background: tint }}>
         <StatusDot color={dotColor} />
-        <CardTitleButton res={res} TypeIcon={TypeIcon} typeColor={typeColor} onOpen={openEdit} t={t} />
+        <CardTitleButton res={res} TypeIcon={TypeIcon} typeColor={typeColor} onOpen={onView} t={t} />
         {canEdit && <CardActions onEdit={openEdit} onDelete={card.askDelete} t={t} />}
       </div>
 
@@ -151,11 +162,11 @@ function BookingCard({ res, planner, canEdit, compact }: {
             timeValue={timeValue}
             code={res.confirmation_number}
             card={card}
-            onOpen={openEdit}
+            onOpen={onView}
             t={t}
           />
 
-          <button type="button" onClick={openEdit} className="block w-full text-start">
+          <button type="button" onClick={onView} className="block w-full text-start">
             {metaCells.length > 0 && (
               <div className="mt-2 flex gap-2">
                 {metaCells.slice(0, 3).map((c, i) => (
@@ -169,14 +180,14 @@ function BookingCard({ res, planner, canEdit, compact }: {
             {res.location && (
               <div className="mt-2 flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]">
                 <MapPin size={12} strokeWidth={2} className="flex-none text-m-muted" />
-                <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
+                <span dir="auto" className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
               </div>
             )}
 
             <CardNotes notes={res.notes} />
-
-            <CardFiles files={files} card={card} t={t} />
           </button>
+
+          <CardFiles files={files} card={card} t={t} />
         </div>
       )}
       {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}

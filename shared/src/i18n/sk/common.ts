@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'To, čo ste tu zadali, ešte nie je uložené.',
   'common.keepEditing': 'Pokračovať v úpravách',
   'common.name': 'Meno',
+  'common.title': 'Názov',
   'common.email': 'E-mail',
   'common.password': 'Heslo',
   'common.saving': 'Ukladá sa...',
@@ -83,5 +84,7 @@ const common: TranslationStrings = {
     'TREK bol aktualizovaný, kým bola táto karta otvorená. Znova načítajte stránku pre novú verziu.',
   'common.errorPluginTitle': 'Tento plugin sa nepodarilo zobraziť',
   'common.needsConnection': 'Na toto je potrebné pripojenie. Skús to znova, keď bude TREK opäť online.',
+  'common.errorDetails': 'Podrobnosti',
+  'common.share': 'Zdieľať',
 };
 export default common;

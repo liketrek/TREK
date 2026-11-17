@@ -235,5 +235,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Lisa Apple’i kalendrisse / Outlooki',
   'dashboard.ics.copyManually': 'Või kopeeri link käsitsi',
   'dashboard.ics.pasteFromUrl': 'kleebi väljale „URL-ist“',
+  'dashboard.ics.dayEvents': 'Päeva ülevaate sündmused',
+  'dashboard.ics.dayEventsHint':
+    'Iga päeva kohta terve päeva sündmus kellaajata kohtade ja märkmetega. Selle muutmine muudab linki, seega telli uuesti uue lingiga.',
 };
 export default dashboard;

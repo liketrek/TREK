@@ -1,8 +1,10 @@
 import { ExternalLink, X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { useSettingsStore } from '../../../store/settingsStore';
 import type { DistanceUnit } from '../../../types';
+import { formatDisplayDate } from '../../../utils/dateFormat';
 import { formatDistance } from '../../../utils/units';
 import { MAP_CARD_GLASS } from '../../Map/mapControlShadow';
 import { SoftPill } from '../../Planner/planParts';
@@ -86,7 +88,10 @@ function AccessAndFacts({ detail, unit }: { detail: PaddleObstacleDetail; unit: 
 /** The way to the source and how current it is; a record in the data is no check on site. */
 function SourceLines({ detail }: { detail: PaddleObstacleDetail }) {
   const { t, language } = useTranslation();
-  const date = detail.dataAsOf ? new Date(detail.dataAsOf).toLocaleDateString(language, { dateStyle: 'medium' }) : null;
+  const dateFormat = useDateFormat();
+  const date = detail.dataAsOf
+    ? formatDisplayDate(new Date(detail.dataAsOf), language, { dateStyle: 'medium' }, dateFormat)
+    : null;
   return (
     <>
       <a

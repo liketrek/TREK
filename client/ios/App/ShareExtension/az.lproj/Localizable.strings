@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "TREK-ə əlavə et";
+"share.cancel" = "Ləğv et";
+"share.close" = "Bağla";
+"share.trip" = "Səyahət";
+"share.noTrips" = "TREK-i bir dəfə açın, səyahətləriniz burada görünəcək.";
+"share.hint" = "TREK rezervasiyanı oxuyur və səyahətə əlavə edir.";
+"share.later" = "Sonra seç";
+"share.add" = "Əlavə et";
+"share.addTo" = "%@ səyahətinə əlavə et";
+"share.added" = "Əlavə edildi";
+"share.reading" = "Oxunur…";
+"share.tooLarge" = "Bu fayl idxal üçün çox böyükdür.";
+"share.unsupported" = "TREK bunu idxal edə bilmir.";
+"share.failed" = "Bunu TREK-ə ötürmək alınmadı. Yenidən cəhd edin.";
+"share.now" = "İndi";
+"share.past" = "Keçib";
+"share.tomorrow" = "Sabah";
+"share.inDays" = "%d gün sonra";
+"share.kind.pass" = "Wallet kartı";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "E-poçt";
+"share.kind.page" = "Veb səhifə";
+"share.kind.text" = "Mətn";
+"share.kind.image" = "Foto";
+"share.kind.file" = "Fayl";

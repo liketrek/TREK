@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.noPriority': 'Cap',
   'todo.sortByPrio': 'Prioritat',
   'todo.emptyFiltered': 'Cap tasca coincideix amb aquest filtre',
+  'todo.progressCount': '{done} de {total} fetes',
+  'todo.allDone': 'Tot fet!',
+  'todo.filter.myShort': 'Meves',
 };
 export default todo;

@@ -1,4 +1,4 @@
-// FE-COMP-GLPREVIEW-001 to FE-COMP-GLPREVIEW-014
+// FE-COMP-GLPREVIEW-001 to FE-COMP-GLPREVIEW-015
 import { render, screen, act } from '../../../tests/helpers/render';
 
 type ClickHandler = (e: { lngLat: { lat: number; lng: number } }) => void;
@@ -20,6 +20,7 @@ const glMap = vi.hoisted(() => ({
   remove: vi.fn(),
   jumpTo: vi.fn(),
   setTerrain: vi.fn(),
+  setConfigProperty: vi.fn(),
 }));
 
 const mapboxCtor = vi.hoisted(() => vi.fn(function (_options: Record<string, unknown>) {
@@ -215,5 +216,18 @@ describe('GlMapPreview', () => {
     });
     expect(() => unmount()).not.toThrow();
     expect(glMap.remove).toHaveBeenCalled();
+  });
+
+  it('FE-COMP-GLPREVIEW-015: on a Standard style the preview hides the basemap points of interest when asked (#1761)', () => {
+    vi.mocked(isStandardFamily).mockReturnValue(true);
+    const { unmount } = render(<GlMapPreview token="pk.test" style={MAPBOX_DEFAULT_STYLE} lat={48.8} lng={2.3} zoom={16} enable3d={false} hidePois />);
+    act(() => glHandlers.load?.());
+    expect(glMap.setConfigProperty).toHaveBeenCalledWith('basemap', 'showPointOfInterestLabels', false);
+    unmount();
+
+    glMap.setConfigProperty.mockClear();
+    render(<GlMapPreview token="pk.test" style={MAPBOX_DEFAULT_STYLE} lat={48.8} lng={2.3} zoom={16} enable3d={false} />);
+    act(() => glHandlers.load?.());
+    expect(glMap.setConfigProperty).not.toHaveBeenCalled();
   });
 });

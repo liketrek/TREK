@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { useFormatDate } from '../../../hooks/useDateFormat'
 import MPluginVersionDate from './MPluginVersionDate'
-import {
-  Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud,
-  ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert,
-  SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, Database,
-  Globe, Info, History, PauseCircle, Puzzle, Bot,
-} from 'lucide-react'
+import { Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck, UploadCloud, ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search, Link2, KeyRound, ShieldAlert, SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, Database, Globe, Info, History, PauseCircle, Puzzle, Bot, ListChecks } from 'lucide-react'
 import PluginIcon from '../../../components/shared/PluginIcon'
 import { type RangeWarning } from '../../../components/Admin/useRangeBypass'
 import { deriveCaps } from '../../../components/Admin/pluginCaps'
@@ -16,7 +11,7 @@ import MToggle from '../../components/MToggle'
 import MSheet from '../../components/MSheet'
 import MSegmented from '../../components/MSegmented'
 import MConfirmSheet from '../settings/MConfirmSheet'
-import { MAdminButton, MAdminSheetFrame } from './MAdminUi'
+import { MAdminButton, MAdminSelect, MAdminSheetFrame } from './MAdminUi'
 import {
   KNOWN_TYPES, PERM_KEYS, blockIsCurrent, dependencyRows, deriveDeps, fingerprint, formatCompactCount,
   installOffer, isRegistrySourced, parseJson, signatureBlockView, sortLabel, statusLabel,
@@ -222,7 +217,7 @@ export default function MAdminPluginsPanel() {
             <Search size={15} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-m-faint" />
             <input
               value={q} onChange={e => setQ(e.target.value)} type="search"
-              placeholder={t('admin.plugins.searchPlaceholder')}
+              enterKeyHint="search" placeholder={t('admin.plugins.searchPlaceholder')}
               className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] ps-9 pe-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)]"
             />
           </div>
@@ -353,9 +348,10 @@ export default function MAdminPluginsPanel() {
 
       {/* Error-log sheet */}
       {errorsFor && (
-        <MSheet open onClose={() => setErrorsFor(null)} variant="bottom" material="opaque" ariaLabel={t('admin.plugins.errorLog')}>
+        <MSheet open onClose={() => setErrorsFor(null)} variant="bottom" material="glass" ariaLabel={t('admin.plugins.errorLog')}>
           <MAdminSheetFrame
-            title={<span className="flex items-center gap-2"><Bug size={15} /> {errorsFor.id} — {t('admin.plugins.errorLog')}</span>}
+            icon={<Bug size={19} strokeWidth={1.8} />}
+            title={<>{errorsFor.id} — {t('admin.plugins.errorLog')}</>}
             onClose={() => setErrorsFor(null)}
           >
             <div className="font-mono text-[0.6875rem]">
@@ -374,9 +370,10 @@ export default function MAdminPluginsPanel() {
 
       {/* Operator-supplied egress hosts */}
       {egressFor && (
-        <MSheet open onClose={() => setEgressFor(null)} variant="bottom" material="opaque" ariaLabel={t('admin.plugins.allowedHosts')}>
+        <MSheet open onClose={() => setEgressFor(null)} variant="bottom" material="glass" ariaLabel={t('admin.plugins.allowedHosts')}>
           <MAdminSheetFrame
-            title={<span className="flex items-center gap-2"><Globe size={15} /> {egressFor.id} — {t('admin.plugins.allowedHosts')}</span>}
+            icon={<Globe size={19} strokeWidth={1.8} />}
+            title={<>{egressFor.id} — {t('admin.plugins.allowedHosts')}</>}
             onClose={() => setEgressFor(null)}
           >
             {!egressFor.supported ? (
@@ -421,9 +418,10 @@ export default function MAdminPluginsPanel() {
 
       {/* Instance-wide settings (the admin-owned scope:'instance' fields) */}
       {settings.form && (
-        <MSheet open onClose={settings.close} variant="bottom" material="opaque" ariaLabel={t('admin.plugins.instanceSettings')}>
+        <MSheet open onClose={settings.close} variant="bottom" material="glass" ariaLabel={t('admin.plugins.instanceSettings')}>
           <MAdminSheetFrame
-            title={<span className="flex items-center gap-2"><SlidersHorizontal size={15} /> {settings.form.id} — {t('admin.plugins.instanceSettings')}</span>}
+            icon={<SlidersHorizontal size={19} strokeWidth={1.8} />}
+            title={<>{settings.form.id} — {t('admin.plugins.instanceSettings')}</>}
             onClose={settings.close}
           >
             <div className="space-y-4">
@@ -439,14 +437,12 @@ export default function MAdminPluginsPanel() {
                       ariaLabel={f.label || f.key}
                     />
                   ) : f.input_type === 'select' && f.options ? (
-                    <select
+                    <MAdminSelect
+                      title={f.label || f.key}
                       value={String(settings.form.values[f.key] ?? '')}
-                      onChange={e => settings.setValue(f.key, e.target.value)}
-                      className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]"
-                    >
-                      <option value="">—</option>
-                      {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                      onChange={value => settings.setValue(f.key, value)}
+                      options={[{ value: '', label: '—' }, ...f.options.map(o => ({ value: o.value, label: o.label }))]}
+                    />
                   ) : (
                     <input
                       type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}
@@ -602,8 +598,8 @@ function PickerSheet({ open, onClose, title, options, value, onPick }: {
   options: Array<[string, string]>; value: string; onPick: (v: string) => void
 }) {
   return (
-    <MSheet open={open} onClose={onClose} variant="bottom" material="opaque" ariaLabel={title}>
-      <MAdminSheetFrame title={title} onClose={onClose}>
+    <MSheet open={open} onClose={onClose} variant="bottom" material="glass" ariaLabel={title}>
+      <MAdminSheetFrame icon={<ListChecks size={19} strokeWidth={1.8} />} title={title} onClose={onClose}>
         <div className="space-y-1">
           {options.map(([v, lbl]) => (
             <button key={v} type="button" onClick={() => { onPick(v); onClose() }}
@@ -760,8 +756,8 @@ function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onSetti
   const linkable = p.source_repo && p.source_repo !== 'local:upload' && p.source_repo !== 'local:link'
   const rowClass = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-start text-[0.8125rem] font-semibold text-m-ink'
   return (
-    <MSheet open onClose={onClose} variant="bottom" material="opaque" ariaLabel={p.name}>
-      <MAdminSheetFrame title={p.name} onClose={onClose}>
+    <MSheet open onClose={onClose} variant="bottom" material="glass" ariaLabel={p.name}>
+      <MAdminSheetFrame icon={<Puzzle size={19} strokeWidth={1.8} />} title={p.name} onClose={onClose}>
         <div className="space-y-1">
           {p.enabled === 1 && (
             <button type="button" className={rowClass} onClick={onRestart}><RotateCw size={16} /> {t('admin.plugins.restart')}</button>
@@ -813,8 +809,8 @@ function VersionPickerSheet({ plugin, versions, failed, busy, t, onPick, onClose
   t: T; onPick: (version: string) => void; onClose: () => void
 }) {
   return (
-    <MSheet open onClose={onClose} variant="bottom" material="opaque" ariaLabel={t('admin.plugins.versionPickerTitle', { name: plugin.name })}>
-      <MAdminSheetFrame title={t('admin.plugins.versionPickerTitle', { name: plugin.name })} onClose={onClose}>
+    <MSheet open onClose={onClose} variant="bottom" material="glass" ariaLabel={t('admin.plugins.versionPickerTitle', { name: plugin.name })}>
+      <MAdminSheetFrame icon={<History size={19} strokeWidth={1.8} />} title={t('admin.plugins.versionPickerTitle', { name: plugin.name })} onClose={onClose}>
         <div className="space-y-0.5">
           {failed && <p className="px-2.5 py-2 text-xs text-[color:var(--m-st-danger)]">{t('admin.plugins.detailError')}</p>}
           {!failed && !versions && <p className="px-2.5 py-2 text-xs text-m-faint">{t('common.loading')}</p>}
@@ -973,7 +969,7 @@ function PluginDetailSheet({ item, installed, busy, onInstall, onClose, t, local
   const sectionH = 'text-[11px] font-semibold uppercase tracking-wider text-m-muted'
 
   return (
-    <MSheet open onClose={onClose} variant="card" material="opaque" ariaLabel={item.name}>
+    <MSheet open onClose={onClose} variant="card" material="glass" ariaLabel={item.name}>
       <div className="relative flex-none">
         <Screenshot url={item.screenshotUrl} className="aspect-[16/9] w-full" iconSize={36} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -1195,7 +1191,7 @@ function SignatureBlockSheet({ data, entry, busy, t, onRetrust, onClose }: {
   const offerRetrust = retrust !== null
 
   return (
-    <MSheet open onClose={onClose} variant="card" material="opaque" ariaLabel={t('admin.plugins.sig.title', { name: data.subject.name })}>
+    <MSheet open onClose={onClose} variant="card" material="glass" ariaLabel={t('admin.plugins.sig.title', { name: data.subject.name })}>
       <div className="flex-none px-[18px] pt-[18px]">
         <div className="flex items-start gap-3">
           <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${CHIP_PENDING}`}><ShieldAlert size={18} /></div>
@@ -1248,7 +1244,7 @@ function UpdateConsentSheet({ data, unsigned, t, onApprove, onLater }: {
   t: T; onApprove: () => void; onLater: () => void
 }) {
   return (
-    <MSheet open onClose={onLater} variant="card" material="opaque" ariaLabel={t('admin.plugins.updateConsentTitle')}>
+    <MSheet open onClose={onLater} variant="card" material="glass" ariaLabel={t('admin.plugins.updateConsentTitle')}>
       <div className="flex-none px-[18px] pt-[18px]">
         <div className="flex items-start gap-3">
           <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${CHIP_PENDING}`}><ShieldCheck size={18} /></div>
@@ -1305,7 +1301,7 @@ function DependencyResolveSheet({ data, t, busy, installedIds, onDownload, onClo
 }) {
   const rows = dependencyRows(data)
   return (
-    <MSheet open onClose={onClose} variant="card" material="opaque" ariaLabel={t('admin.plugins.dep.resolveTitle')}>
+    <MSheet open onClose={onClose} variant="card" material="glass" ariaLabel={t('admin.plugins.dep.resolveTitle')}>
       <div className="flex-none px-[18px] pt-[18px]">
         <div className="flex items-start gap-3">
           <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${CHIP_PENDING}`}><Puzzle size={18} /></div>

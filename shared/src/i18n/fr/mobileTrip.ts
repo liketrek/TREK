@@ -8,7 +8,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addTransportShort': 'Transport', // same-as-en
   'mobileTrip.allDays': 'Tous les jours',
   'mobileTrip.today': "Aujourd'hui",
-  'mobileTrip.jumpToToday': "Aller à aujourd'hui",
   'mobileTrip.assignedDays': 'Jours assignés',
   'mobileTrip.assignmentNotes': 'Notes propres au jour',
   'mobileTrip.bookingsEmpty': 'Aucune réservation',
@@ -20,8 +19,6 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.filesEmpty': 'Aucun fichier',
   'mobileTrip.filesNext': 'Fichier suivant',
   'mobileTrip.filesPrev': 'Fichier précédent',
-  'mobileTrip.googleMaps': 'Google Maps',
-  'mobileTrip.coMaps': 'CoMaps',
   'mobileTrip.icsDownload': 'Télécharger le .ics',
   'mobileTrip.icsSubscribe': "S'abonner au calendrier",
   'mobileTrip.icsSubscribeSub': 'Se met à jour automatiquement dans votre application calendrier',
@@ -34,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Nouvelle catégorie',
   'mobileTrip.newReservation': 'Nouvelle réservation',
   'mobileTrip.notes': 'Notes', // same-as-en
-  'mobileTrip.onMap': 'Sur la carte',
+  'mobileTrip.onMap': 'Carte',
   'mobileTrip.profileDriving': 'Voiture',
   'mobileTrip.profileWalking': 'Marche',
   'mobileTrip.profileCycling': 'Vélo',
@@ -84,5 +81,13 @@ const mobileTrip: TranslationStrings = {
     'Sur {count} tronçon, il y en avait plus que ce qu’une réponse peut contenir. Choisissez moins de types pour voir le reste.',
   'mobileTrip.rtNoDay': 'Aucun jour sélectionné',
   'mobileTrip.rtNoDayHint': 'La carte affiche tout le voyage. Touchez un jour ci-dessus pour voir son trajet.',
+  'mobileTrip.maps': 'Cartes',
+  'mobileTrip.openRouteIn': 'Ouvrir la journée dans',
+  'mobileTrip.firstStopOnly': 'Premier arrêt seulement',
+  'mobileTrip.sections': 'Sections du voyage',
+  'mobileTrip.hidePane': 'Masquer la barre latérale',
+  'mobileTrip.showPane': 'Afficher la barre latérale',
+  'mobileTrip.previousDay': 'Jour précédent',
+  'mobileTrip.nextDay': 'Jour suivant',
 };
 export default mobileTrip;

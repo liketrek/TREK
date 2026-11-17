@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { placesForDays, resolvePoolAssignmentId } from './tripPlannerModel'
+import { placesForDays, resolvePoolAssignmentId, tourPlannerTabOf } from './tripPlannerModel'
 import { buildAssignment, buildPlace } from '../../../tests/helpers/factories'
 
 describe('resolvePoolAssignmentId', () => {
@@ -53,5 +53,21 @@ describe('placesForDays', () => {
       reservations: [{ place_id: 4 }, { accommodation_place_id: 5 }, { place_id: null, accommodation_place_id: null }],
     })
     expect(kept.map(p => p.id)).toEqual([1, 2, 4, 5])
+  })
+})
+
+describe('tourPlannerTabOf', () => {
+  it('offers the editor on the desktop, as a desktop-only tab', () => {
+    expect(tourPlannerTabOf(true, false, false)).toEqual({ desktopOnly: true })
+  })
+
+  it('offers it in the touch shell of a large screen, where the rail shows it', () => {
+    expect(tourPlannerTabOf(true, true, true)).toEqual({ desktopOnly: false })
+  })
+
+  it('offers no tab on a phone, nor anywhere while the addon is off', () => {
+    expect(tourPlannerTabOf(true, true, false)).toBeNull()
+    expect(tourPlannerTabOf(false, false, false)).toBeNull()
+    expect(tourPlannerTabOf(false, true, true)).toBeNull()
   })
 })

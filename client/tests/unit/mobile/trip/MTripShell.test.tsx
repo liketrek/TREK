@@ -27,6 +27,7 @@ vi.mock('../../../../src/mobile/screens/trip/tabs/MTripTabPanel', () => ({ defau
 vi.mock('../../../../src/mobile/screens/trip/sheets/MTripSheets', () => ({ default: () => null }))
 
 import MTripShell from '../../../../src/mobile/screens/trip/MTripShell'
+import { TRIP_SPLASH_AFTER_MS } from '../../../../src/mobile/screens/trip/MTripLoadingSplash'
 
 /** Last shell api handed to a slot — the object every slot shares. */
 let shellApi!: MTripShellApi
@@ -135,15 +136,32 @@ describe('MTripShell', () => {
     )
   })
 
-  it('FE-MOB-SHELL-001: shows the loading splash with the trip title while the planner loads', () => {
-    renderShell({ isLoading: true } as Partial<TripPlanner>)
-    expect(screen.getByText('Japan 2026')).toBeInTheDocument()
-    expect(screen.queryByTestId('sheets')).not.toBeInTheDocument()
+  it('FE-MOB-SHELL-001: while the trip loads the page transition holds, and only a slow load brings the splash', async () => {
+    vi.useFakeTimers()
+    try {
+      const { container } = renderShell({ isLoading: true } as Partial<TripPlanner>)
+      expect(container.querySelector('[data-route-fallback]')).toBeInTheDocument()
+      expect(screen.queryByText('Japan 2026')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('sheets')).not.toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(TRIP_SPLASH_AFTER_MS)
+      })
+      expect(screen.getByText('Japan 2026')).toBeInTheDocument()
+      expect(container.querySelector('[data-route-fallback]')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('FE-MOB-SHELL-002: keeps the splash up until the photo warm-up finished', () => {
-    renderShell({ splashDone: false } as Partial<TripPlanner>)
-    expect(screen.getByText('Japan 2026')).toBeInTheDocument()
+  it('FE-MOB-SHELL-002: the trip shows as soon as it has loaded, whatever the desktop splash gate says', () => {
+    renderShell({ slowOpen: true } as Partial<TripPlanner>)
+    expect(screen.getByTestId('map-area')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-SHELL-002b: the trip opened before, still in the store, is never shown for the one opening', () => {
+    const { container } = renderShell({ tripId: 2 } as Partial<TripPlanner>)
+    expect(container.querySelector('[data-route-fallback]')).toBeInTheDocument()
     expect(screen.queryByTestId('map-area')).not.toBeInTheDocument()
   })
 
@@ -152,9 +170,17 @@ describe('MTripShell', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('FE-MOB-SHELL-003b: the splash falls back to the brand name before the trip arrives', () => {
-    renderShell({ isLoading: true, trip: null } as Partial<TripPlanner>)
-    expect(screen.getByText('TREK')).toBeInTheDocument()
+  it('FE-MOB-SHELL-003b: the splash falls back to the brand name before the trip arrives', async () => {
+    vi.useFakeTimers()
+    try {
+      renderShell({ isLoading: true, trip: null } as Partial<TripPlanner>)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(TRIP_SPLASH_AFTER_MS)
+      })
+      expect(screen.getByText('TREK')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('FE-MOB-SHELL-004: seeds the running trip on today rather than on day one', () => {
@@ -413,6 +439,31 @@ describe('MTripShell', () => {
     expect(shellApi.sheet).toBeNull()
   })
 
+  it('FE-MOB-SHELL-097: while More is open the dock marks More, not the tab under it', () => {
+    renderShell()
+    const more = screen.getByRole('button', { name: 'mobileTrip.more' })
+    const plan = screen.getByRole('button', { name: 'Plan' })
+    expect(plan).toHaveAttribute('aria-current', 'page')
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(more)
+    expect(more).toHaveAttribute('aria-expanded', 'true')
+    // A ring, as the main dock marks its More, not the fill of a tab.
+    expect(more).toHaveClass('ring-[1.5px]')
+    expect(more).not.toHaveClass('bg-m-act')
+    expect(plan).not.toHaveAttribute('aria-current')
+    act(() => { shellApi.closeSheet() })
+    expect(plan).toHaveAttribute('aria-current', 'page')
+    expect(more).not.toHaveClass('ring-[1.5px]')
+  })
+
+  it('FE-MOB-SHELL-098: a section reached through More marks More with the ring while it is on show', () => {
+    renderShell({ activeTab: 'dateien' } as Partial<TripPlanner>)
+    const more = screen.getByRole('button', { name: 'mobileTrip.more' })
+    expect(more).toHaveAttribute('aria-current', 'page')
+    expect(more).toHaveClass('ring-[1.5px]')
+    expect(more).not.toHaveClass('bg-m-act')
+  })
+
   it('FE-MOB-SHELL-026: a non-plan tab replaces the plan chrome with its panel', () => {
     renderShell({ activeTab: 'dateien' } as Partial<TripPlanner>)
     expect(screen.getByTestId('tab-panel')).toHaveTextContent('dateien')
@@ -542,6 +593,15 @@ describe('MTripShell', () => {
     expect(shellApi.collabTab).toBe('notes')
   })
 
+  it('FE-MOB-SHELL-036b: a message notification opens the chat, not the collab part last open', () => {
+    const { planner, rerenderShell } = renderShell({ activeTab: 'collab' } as Partial<TripPlanner>)
+    fireEvent.click(screen.getByRole('button', { name: 'collab.tabs.notes' }))
+    expect(shellApi.collabTab).toBe('notes')
+    planner.tabLink = { tab: 'collab', seq: 1 }
+    rerenderShell()
+    expect(shellApi.collabTab).toBe('chat')
+  })
+
   it('FE-MOB-SHELL-037: setTrTab from a slot routes through the planner and resets browse', () => {
     const { planner } = renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'trip.mobilePlaces' }))
@@ -592,27 +652,27 @@ describe('MTripShell', () => {
 
     // #2880: the day is seeded while the splash still covers the shell, so the
     // rail only exists after the selection has settled.
-    it('FE-MOB-SHELL-094: the active day is brought into view once the splash lifts (#2880)', () => {
+    it('FE-MOB-SHELL-094: the active day is brought into view once the trip has opened (#2880)', () => {
       const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
       scrollIntoView.mockClear()
       stubRects({ left: 480, right: 540 })
-      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, splashDone: false } as Partial<TripPlanner>)
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, isLoading: true } as Partial<TripPlanner>)
       expect(scrollIntoView).not.toHaveBeenCalled()
 
-      ;(planner as { splashDone: boolean }).splashDone = true
+      ;(planner as { isLoading: boolean }).isLoading = false
       rerenderShell()
 
       expect(scrollIntoView).toHaveBeenCalledTimes(1)
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', inline: 'center', block: 'nearest' })
     })
 
-    it('FE-MOB-SHELL-095: after the splash a chip already in view leaves the rail alone', () => {
+    it('FE-MOB-SHELL-095: once the trip has opened a chip already in view leaves the rail alone', () => {
       const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView)
       scrollIntoView.mockClear()
       stubRects({ left: 40, right: 100 })
-      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, splashDone: false } as Partial<TripPlanner>)
+      const { planner, rerenderShell } = renderShell({ selectedDayId: 12, isLoading: true } as Partial<TripPlanner>)
 
-      ;(planner as { splashDone: boolean }).splashDone = true
+      ;(planner as { isLoading: boolean }).isLoading = false
       rerenderShell()
 
       expect(scrollIntoView).not.toHaveBeenCalled()
@@ -668,31 +728,25 @@ describe('MTripShell', () => {
       { id: 22, day_number: 2, date: todayIso() },
       { id: 23, day_number: 3, date: shift(1) },
     ] as unknown as Day[]
-    const jump = () => screen.getByRole('button', { name: 'mobileTrip.jumpToToday' })
+    const jump = () => screen.queryByRole('button', { name: 'mobileTrip.jumpToToday' })
 
-    it('FE-MOB-SHELL-090: marks today and jumps back to it from another day', () => {
-      const { planner, container } = renderShell({ days: running(), selectedDayId: 21 } as Partial<TripPlanner>)
+    it('FE-MOB-SHELL-090: marks today on its chip, and puts no extra button beside the rail', () => {
+      const { container } = renderShell({ days: running(), selectedDayId: 21 } as Partial<TripPlanner>)
       const marked = container.querySelectorAll('[data-today]')
       expect(marked).toHaveLength(1)
       expect(marked[0].className).toContain('ring-inset')
       expect(marked[0]).toHaveTextContent('mobileTrip.today')
-
-      expect(jump()).toBeEnabled()
-      fireEvent.click(jump())
-      expect(planner.handleSelectDay).toHaveBeenLastCalledWith(22, true)
+      expect(jump()).toBeNull()
     })
 
-    it('FE-MOB-SHELL-091: with today open the button stays, dimmed, so the rail does not move', () => {
+    it('FE-MOB-SHELL-091: with today open the active chip keeps its own look, the dot says which day is today', () => {
       const { container } = renderShell({ days: running(), selectedDayId: 22 } as Partial<TripPlanner>)
-      expect(jump()).toBeDisabled()
-      // The active chip keeps its own look; the dot still says which day is today.
       expect(container.querySelector('[data-today]')?.className).not.toContain('ring-inset')
     })
 
-    it('FE-MOB-SHELL-092: outside the trip dates there is no today and no button', () => {
+    it('FE-MOB-SHELL-092: outside the trip dates there is no today', () => {
       const { container } = renderShell()
       expect(container.querySelector('[data-today]')).toBeNull()
-      expect(screen.queryByRole('button', { name: 'mobileTrip.jumpToToday' })).toBeNull()
     })
   })
 

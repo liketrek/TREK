@@ -65,10 +65,11 @@ describe('useAssistantTabLink', () => {
     const searchParams = new URLSearchParams(query);
     const setSearchParams = vi.fn((update: (params: URLSearchParams) => URLSearchParams) => update(searchParams));
     const selectTab = vi.fn();
+    const onLinked = vi.fn();
     renderHook(() =>
-      useAssistantTabLink({ searchParams, setSearchParams: setSearchParams as never, activeTab, selectTab })
+      useAssistantTabLink({ searchParams, setSearchParams: setSearchParams as never, activeTab, selectTab, onLinked })
     );
-    return { searchParams, setSearchParams, selectTab };
+    return { searchParams, setSearchParams, selectTab, onLinked };
   }
 
   it('FE-PLANNER-ASSISTLINK-005: a ?tab= the chat opens while the planner is open switches the tab, once', () => {
@@ -79,13 +80,20 @@ describe('useAssistantTabLink', () => {
     expect(searchParams.get('expense')).toBe('7');
   });
 
-  it('FE-PLANNER-ASSISTLINK-006: the tab on screen is not switched again; a tab it cannot open is left alone', () => {
+  it('FE-PLANNER-ASSISTLINK-006: the tab on screen is not switched again; a tab it cannot open is dropped from the URL', () => {
     const same = setupTab('tab=finanzplan', 'finanzplan');
     expect(same.selectTab).not.toHaveBeenCalled();
     expect(same.searchParams.has('tab')).toBe(false);
 
-    const unknown = setupTab('tab=nowhere', 'plan');
+    const unknown = setupTab('tab=nowhere&place=3', 'plan');
     expect(unknown.selectTab).not.toHaveBeenCalled();
-    expect(unknown.setSearchParams).not.toHaveBeenCalled();
+    expect(unknown.onLinked).not.toHaveBeenCalled();
+    expect(unknown.searchParams.has('tab')).toBe(false);
+    expect(unknown.searchParams.get('place')).toBe('3');
+  });
+
+  it('FE-PLANNER-ASSISTLINK-007: every link it takes is reported, also one to the tab already on screen', () => {
+    expect(setupTab('tab=collab', 'plan').onLinked).toHaveBeenCalledWith('collab');
+    expect(setupTab('tab=collab', 'collab').onLinked).toHaveBeenCalledWith('collab');
   });
 });

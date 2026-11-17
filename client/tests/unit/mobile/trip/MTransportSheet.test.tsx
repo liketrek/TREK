@@ -1,15 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MTransportSheet from '../../../../src/mobile/screens/trip/sheets/MTransportSheet'
-import { openFile } from '../../../../src/utils/fileDownload'
+import { downloadFile, openFile } from '../../../../src/utils/fileDownload'
 import { useSettingsStore } from '../../../../src/store/settingsStore'
+import { legKey, useFlightLiveStore } from '../../../../src/store/flightLiveStore'
+import type { FlightLiveLeg } from '@trek/shared'
 import type { Reservation, TripFile } from '../../../../src/types'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRSH-001 to FE-MOB-TRSH-035
+// FE-MOB-TRSH-001 to FE-MOB-TRSH-036
 
-vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
+vi.mock('../../../../src/utils/fileDownload', () => ({
+  openFile: vi.fn(() => Promise.resolve()),
+  downloadFile: vi.fn(() => Promise.resolve()),
+}))
 
 const FLIGHT = {
   id: 7,
@@ -181,7 +186,7 @@ describe('MTransportSheet', () => {
     const planner = makePlanner()
     const shell = makeShell({ trTab: 'transports', view: 'plan' })
     render(<MTransportSheet planner={planner} shell={shell} />)
-    const btn = screen.getByRole('button', { name: 'On map' })
+    const btn = screen.getByRole('button', { name: 'Map' })
     expect(btn).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(btn)
     expect(planner.toggleConnection).toHaveBeenCalledWith(7)
@@ -194,7 +199,7 @@ describe('MTransportSheet', () => {
     const planner = makePlanner({ visibleConnections: [7] })
     const shell = makeShell({ trTab: 'plan', view: 'map' })
     render(<MTransportSheet planner={planner} shell={shell} />)
-    const btn = screen.getByRole('button', { name: 'On map' })
+    const btn = screen.getByRole('button', { name: 'Map' })
     expect(btn).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(btn)
     expect(planner.toggleConnection).toHaveBeenCalledWith(7)
@@ -218,6 +223,17 @@ describe('MTransportSheet', () => {
 
     fireEvent.click(screen.getByText('boardingpass.pdf'))
     expect(openFile).toHaveBeenCalledWith('/api/trips/1/files/1/download', 'boardingpass.pdf')
+    fireEvent.click(screen.getByRole('button', { name: 'Download: invoice.pdf' }))
+    expect(downloadFile).toHaveBeenCalledWith('/api/trips/1/files/2/download', 'invoice.pdf')
+  })
+
+  it('FE-MOB-TRSH-016b: the action row holds icons only, named by their labels', () => {
+    render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
+    for (const name of ['Map', 'Edit', 'Delete']) {
+      const btn = screen.getByRole('button', { name })
+      expect(btn).toHaveTextContent('')
+      expect(btn).toHaveAttribute('title', name)
+    }
   })
 
   it('FE-MOB-TRSH-017: opens the transport editor for the booking', () => {
@@ -253,7 +269,7 @@ describe('MTransportSheet', () => {
     render(<MTransportSheet planner={planner} shell={makeShell()} />)
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'On map' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Map' })).toBeInTheDocument()
   })
 
   it('FE-MOB-TRSH-021: keeps the last booking on screen while the sheet animates out', () => {
@@ -323,7 +339,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'transports', view: 'plan' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
 
       expect(planner.toggleConnection).toHaveBeenCalledWith(7)
       expect(planner.handleSelectDay).toHaveBeenCalledWith(3, false)
@@ -338,7 +354,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'transports', view: 'map' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
 
       expect(shell.toggleView).not.toHaveBeenCalled()
       expect(planner.handleSelectDay).toHaveBeenCalledWith(3, false)
@@ -351,7 +367,7 @@ describe('MTransportSheet', () => {
       const planner = makePlanner({ days: DAYS, selectedDayId: 4, reservations: [overnight] })
       render(<MTransportSheet planner={planner} shell={makeShell({ trTab: 'plan', view: 'plan' })} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
 
       expect(planner.toggleConnection).toHaveBeenCalledWith(7)
       expect(planner.handleSelectDay).not.toHaveBeenCalled()
@@ -362,13 +378,13 @@ describe('MTransportSheet', () => {
       const unbound = { ...FLIGHT, day_id: null, end_day_id: null } as unknown as Reservation
       const allDays = makePlanner({ days: DAYS, selectedDayId: null })
       const { unmount } = render(<MTransportSheet planner={allDays} shell={makeShell({ trTab: 'transports', view: 'map' })} />)
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
       expect(allDays.handleSelectDay).not.toHaveBeenCalled()
       unmount()
 
       const noDay = makePlanner({ days: DAYS, selectedDayId: 5, reservations: [unbound] })
       render(<MTransportSheet planner={noDay} shell={makeShell({ trTab: 'transports', view: 'plan' })} />)
-      fireEvent.click(screen.getByRole('button', { name: 'On map' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Map' }))
       expect(noDay.toggleConnection).toHaveBeenCalledWith(7)
       expect(noDay.handleSelectDay).not.toHaveBeenCalled()
     })
@@ -381,7 +397,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'transports', view: 'plan' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      const btn = screen.getByRole('button', { name: 'On map' })
+      const btn = screen.getByRole('button', { name: 'Map' })
       expect(btn).toHaveAttribute('aria-pressed', 'false')
       fireEvent.click(btn)
 
@@ -398,7 +414,7 @@ describe('MTransportSheet', () => {
       const shell = makeShell({ trTab: 'plan', view: 'map' })
       render(<MTransportSheet planner={planner} shell={shell} />)
 
-      const btn = screen.getByRole('button', { name: 'On map' })
+      const btn = screen.getByRole('button', { name: 'Map' })
       expect(btn).toHaveAttribute('aria-pressed', 'true')
       fireEvent.click(btn)
 
@@ -471,5 +487,21 @@ describe('MTransportSheet', () => {
       expect(screen.getByText('10-4C')).toBeInTheDocument()
       expect(screen.queryByText('4-5A')).not.toBeInTheDocument()
     })
+  })
+
+  it('FE-MOB-TRSH-036: a followed flight long over has no live card and keeps its time boxes', () => {
+    const past: FlightLiveLeg = {
+      reservation_id: 7, leg_index: 0, callsign: 'DLH716', flight_number: 'LH 716', service_date: '2026-05-01',
+      origin: { code: 'FRA', name: 'Frankfurt', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin' },
+      destination: { code: 'HND', name: 'Tokyo Haneda', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo' },
+      phase: 'scheduled', scheduled_departure: '2026-05-01T06:00:00Z', scheduled_arrival: '2026-05-01T17:30:00Z',
+      departed_at: null, landed_at: null, estimated_arrival: null, departure_delay_min: null, arrival_delay_min: null,
+      progress: null, distance_total_km: null, distance_remaining_km: null, position: null, aircraft: null,
+      last_seen_at: null, fetched_at: '2026-05-01T05:00:00Z', stale: false, source: 'adsb.lol',
+    }
+    useFlightLiveStore.setState({ trips: { 1: { enabled: true, attribution: null, legs: { [legKey(7, 0)]: past } } } })
+    render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
+    expect(screen.getByText('10:20')).toBeInTheDocument()
+    expect(screen.getByText('06:45')).toBeInTheDocument()
   })
 })

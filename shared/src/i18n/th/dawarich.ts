@@ -84,8 +84,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.place': 'เพิ่มเป็นสถานที่แล้ว',
   'dawarich.suggestions.acceptedAs.journal': 'อยู่ในบันทึกแล้ว',
   'dawarich.suggestions.acceptedAs.bucket_list': 'ทำเครื่องหมายความปรารถนาแล้ว',
-  'dawarich.suggestions.sourceChanged':
-    'การพักนี้เปลี่ยนแปลงใน Dawarich หลังจากที่คุณนำไปใช้ สิ่งที่คุณเขียนใน TREK จะไม่เปลี่ยน',
+  'dawarich.suggestions.sourceChanged': 'การพักนี้เปลี่ยนแปลงใน Dawarich หลังจากที่คุณนำไปใช้ สิ่งที่คุณเขียนใน TREK จะไม่เปลี่ยน',
   'dawarich.suggestions.sourceMissing': 'การพักนี้ไม่มีอยู่ใน Dawarich แล้ว สิ่งที่คุณเขียนใน TREK จะไม่เปลี่ยน',
   'dawarich.sourceStatus.suggested': 'ตรวจพบแล้ว แต่ยังไม่ยืนยัน',
   'dawarich.confidence.high': 'ตรวจพบอย่างมั่นใจ',
@@ -116,8 +115,7 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.photosHint': 'เพิ่มรูปภาพในรายการได้หลังจากสร้างแล้ว',
   'dawarich.place.fromDawarich': 'เพิ่มจากบันทึก Dawarich ของคุณ',
   'dawarich.bucket.title': 'ตรวจสอบรายการอยากไปของคุณกับ Dawarich',
-  'dawarich.bucket.description':
-    'ค้นหาสถานที่ที่คุณอยากไปจากบันทึกของคุณ การเยี่ยมชมต้องอยู่ใกล้และใช้เวลา ณ จุดนั้น การขับผ่านไม่นับ',
+  'dawarich.bucket.description': 'ค้นหาสถานที่ที่คุณอยากไปจากบันทึกของคุณ การเยี่ยมชมต้องอยู่ใกล้และใช้เวลา ณ จุดนั้น การขับผ่านไม่นับ',
   'dawarich.bucket.scan': 'ตรวจสอบรายการอยากไป',
   'dawarich.bucket.scanning': 'กำลังตรวจสอบ…',
   'dawarich.bucket.noMatches': 'ไม่พบสถานที่จากรายการอยากไปในบันทึกของคุณ',

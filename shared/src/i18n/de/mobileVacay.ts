@@ -16,6 +16,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Betriebsferien',
   'mobileVacay.editCalendar': 'Kalender bearbeiten',
   'mobileVacay.viewYear': 'Jahr ansehen',
+  'mobileVacay.people': 'Personen',
+  'mobileVacay.legend': 'Legende',
 };
 
 export default mobileVacay;

@@ -199,5 +199,7 @@ describe('pushPayloadSchema', () => {
     expect(pushPayloadSchema.safeParse({ title: 'T' }).success).toBe(false);
     expect(pushPayloadSchema.safeParse({ body: 'B' }).success).toBe(false);
     expect(pushPayloadSchema.safeParse({ title: 'T', body: 'B', tag: 5 }).success).toBe(false);
+    expect(pushPayloadSchema.safeParse({ title: 'T', body: 'B', event: 'trip_invite' }).success).toBe(true);
+    expect(pushPayloadSchema.safeParse({ title: 'T', body: 'B', event: 1 }).success).toBe(false);
   });
 });

@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': '你在這裡輸入的內容尚未儲存。',
   'common.keepEditing': '繼續編輯',
   'common.name': '名稱',
+  'common.title': '標題',
   'common.email': '郵箱',
   'common.password': '密碼',
   'common.saving': '儲存中...',
@@ -78,5 +79,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': '此分頁開啟期間 TREK 已更新。請重新載入以取得新版本。',
   'common.errorPluginTitle': '無法顯示此外掛程式',
   'common.needsConnection': '此操作需要網路連線。請在 TREK 恢復連線後再試一次。',
+  'common.errorDetails': '詳細資訊',
+  'common.share': '分享',
 };
 export default common;

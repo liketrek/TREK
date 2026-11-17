@@ -20,6 +20,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': '{name} に移動',
   'assistant.card.collection.removed': 'リストから削除しました',
   'assistant.card.collection.photo': '写真',
+  'assistant.card.collection.mapEntry': '地図の項目',
   'assistant.card.collection.places': '{name} の保存した場所',
   'assistant.card.collection.saved': '保存した場所',
   'assistant.card.collection.statusSet': '保存した場所 {count} 件を変更',

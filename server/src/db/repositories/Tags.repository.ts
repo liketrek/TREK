@@ -4,13 +4,14 @@ import { findOwnedByUser, listForOwner } from './_shared/owned-lookup';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
-/** A `tags` row as the API emits it. */
+/** A `tags` row as the API emits it. `trip_id` is null on a personal tag and names the trip on one of its own. */
 export interface TagRow {
   id: number;
   user_id: number;
   name: string;
   color: string | null;
   created_at: string | null;
+  trip_id: number | null;
 }
 
 const _tagRowKeys: AssertRowKeys<TagRow, Tags> = true;
@@ -44,6 +45,9 @@ export interface TagForPlaceRow {
  * API that reaches it.
  */
 type PlaceTagsKyselyDB = Pick<DB, 'place_tags'>;
+
+/** `tags` alone, for the reads that name their columns. */
+type TagsKyselyDB = Pick<DB, 'tags'>;
 
 /**
  * `place_tags` joined to `places` for TP46 (`trips.service.ts::copy`'s
@@ -97,11 +101,18 @@ export class TagsRepository extends TrekRepository<Tags> {
    * `id` and the `defaultRaw` `created_at` the same way a legacy
    * INSERT-then-reselect pair did.
    */
-  async createTag(input: { user_id: number; name: string; color: string }): Promise<TagRow> {
+  async createTag(input: {
+    user_id: number;
+    name: string;
+    color: string | null;
+    /** The trip the tag is for; left out, it is `user_id`'s personal one. */
+    trip_id?: number;
+  }): Promise<TagRow> {
     const id = await this.insert({
       user: input.user_id,
       name: input.name,
       color: input.color,
+      ...(input.trip_id === undefined ? {} : { trip: input.trip_id }),
     });
     const inserted = await this.findOne({ id });
     if (!inserted) {
@@ -193,22 +204,39 @@ export class TagsRepository extends TrekRepository<Tags> {
   // ---------------------------------------------------------------------------
 
   /**
-   * PL2 (`PlacesService.tagsOnTrip`) — `` SELECT id, user_id FROM tags WHERE
-   * id IN (${…}) ``, the ownership half of tag scoping: the caller
-   * (`tagsOnTrip`) intersects these rows' `user_id` against the trip's
-   * roster, and an id belonging to nobody on the roster drops silently.
-   * `$in` for the dynamic list (rule 17b).
+   * PL2 (`PlacesService.tagsOnTrip`) — `` SELECT id, user_id, trip_id FROM tags
+   * WHERE id IN (${…}) ``, what decides whether a trip may put a tag on a
+   * place: the caller keeps a trip's own tag for that trip and a personal one
+   * (`trip_id` null) while its `user_id` is on the roster, and every other id
+   * drops silently.
    */
-  async findByIds(ids: number[]): Promise<{ id: number; user_id: number }[]> {
+  async findByIds(ids: number[]): Promise<{ id: number; user_id: number; trip_id: number | null }[]> {
     if (ids.length === 0) return [];
-    // `t.user` (unaliased, not separately joined) resolves to the physical
-    // `user_id` column and comes back keyed as `user_id` on the raw driver
-    // row — `TripsRepository.findAccessible`'s `.select(['t.id', 't.user',
-    // 't.currency'])` establishes the same shape.
-    return this.qb('t')
-      .select(['t.id', 't.user'])
-      .where({ id: { $in: ids } })
-      .execute<{ id: number; user_id: number }[]>('all', false);
+    return await this.kysely<TagsKyselyDB>()
+      .selectFrom('tags')
+      .select(['id', 'user_id', 'trip_id'])
+      .where('id', 'in', ids)
+      .execute();
+  }
+
+  // ---------------------------------------------------------------------------
+  // A trip's own tags (`trip_id` set): one list for everybody on the trip.
+  // ---------------------------------------------------------------------------
+
+  /** `SELECT * FROM tags WHERE trip_id = ? ORDER BY name ASC`: the trip's own tags, whoever created them. */
+  async listByTrip(tripId: number): Promise<TagRow[]> {
+    const tags = await this.find({ trip: tripId }, { orderBy: { name: 'asc' } });
+    return tags.map((tag) => toRow(tag) as TagRow);
+  }
+
+  /**
+   * `SELECT * FROM tags WHERE id = ? AND trip_id = ?`: one tag of the trip, or
+   * null for a personal tag and for another trip's, so a write scoped to a trip
+   * cannot reach either.
+   */
+  async findByIdAndTrip(id: number, tripId: number): Promise<TagRow | null> {
+    const tag = await this.findOne({ id, trip: tripId });
+    return tag ? (toRow(tag) as TagRow) : null;
   }
 
   // ---------------------------------------------------------------------------

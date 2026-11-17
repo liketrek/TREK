@@ -509,3 +509,71 @@ describe('personal figures on a shared trip (#1966)', () => {
     expect(a.totalDistanceKm).toBeGreaterThan(0);
   });
 });
+
+// ── The order of the passport card's countries (#2648) ──────────────────────
+
+describe('getTravelStats country order (#2648)', () => {
+  async function placeIn(tripId: number, lat: number, lng: number) {
+    await insertRow(await sharedTestOrm(testDb), Places, { trip: tripId, name: 'Stop' }, { lat, lng });
+  }
+
+  async function markByHand(userId: number, code: string) {
+    await insertRow(await sharedTestOrm(testDb), VisitedCountries, { user: userId, country_code: code });
+  }
+
+  it('lists the countries of the latest trip first, whatever the alphabet says', async () => {
+    const { user } = createUser(testDb);
+    const austria = createTrip(testDb, user.id, { title: 'Vienna', start_date: '2022-03-01', end_date: '2022-03-05' });
+    const japan = createTrip(testDb, user.id, { title: 'Tokyo', start_date: '2024-10-01', end_date: '2024-10-12' });
+    const france = createTrip(testDb, user.id, { title: 'Paris', start_date: '2023-06-01', end_date: '2023-06-04' });
+    await placeIn(austria.id, 48.2082, 16.3738);
+    await placeIn(japan.id, 35.6762, 139.6503);
+    await placeIn(france.id, 48.8606, 2.3376);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['JP', 'FR', 'AT']);
+  });
+
+  it('dates a country by its most recent visit, places and bookings alike', async () => {
+    const { user } = createUser(testDb);
+    const early = createTrip(testDb, user.id, { title: 'Paris', start_date: '2021-05-01', end_date: '2021-05-03' });
+    const middle = createTrip(testDb, user.id, { title: 'Rome', start_date: '2022-05-01', end_date: '2022-05-03' });
+    const late = createTrip(testDb, user.id, {
+      title: 'Back to France',
+      start_date: '2023-05-01',
+      end_date: '2023-05-03',
+    });
+    await placeIn(early.id, 48.8606, 2.3376);
+    await placeIn(middle.id, 41.8902, 12.4922);
+    // The return to France is a booking only: its arrival dates FR again, after Rome.
+    const flight = createReservation(testDb, late.id, { type: 'flight' });
+    await makeReservationEndpoint(await sharedTestOrm(testDb), flight.id, {
+      role: 'to',
+      sequence: 1,
+      name: 'Paris',
+      lat: 49.0097,
+      lng: 2.5479,
+    });
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['FR', 'IT']);
+  });
+
+  it('puts a country only marked by hand after every country a trip reached', async () => {
+    const { user } = createUser(testDb);
+    await markByHand(user.id, 'NZ');
+    const trip = createTrip(testDb, user.id, { title: 'Paris', start_date: '2023-06-01', end_date: '2023-06-04' });
+    await placeIn(trip.id, 48.8606, 2.3376);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['FR', 'NZ']);
+  });
+
+  it('lists a country both marked by hand and reached by a trip once, by the trip', async () => {
+    const { user } = createUser(testDb);
+    await markByHand(user.id, 'AT');
+    const austria = createTrip(testDb, user.id, { title: 'Vienna', start_date: '2024-03-01', end_date: '2024-03-05' });
+    const france = createTrip(testDb, user.id, { title: 'Paris', start_date: '2023-06-01', end_date: '2023-06-04' });
+    await placeIn(austria.id, 48.2082, 16.3738);
+    await placeIn(france.id, 48.8606, 2.3376);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['AT', 'FR']);
+  });
+});

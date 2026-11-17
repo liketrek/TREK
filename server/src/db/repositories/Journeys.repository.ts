@@ -52,6 +52,19 @@ type JourneyListKyselyDB = Pick<
 /** The `journeys`/`journey_contributors` tables {@link JourneysRepository.listRecipientUserIds} reads. */
 type JourneyRecipientsKyselyDB = Pick<DB, 'journeys' | 'journey_contributors'>;
 
+/** The tables {@link JourneysRepository.listGalleryPhotos} and {@link JourneysRepository.deleteUnlinkedPhotos} touch. */
+type JourneyPhotoFilesKyselyDB = Pick<DB, 'journeys' | 'journey_photos' | 'trek_photos' | 'trip_photos'>;
+
+/** A photo behind a journey's gallery, with the stored paths its row names. */
+export interface JourneyGalleryPhotoFiles {
+  photo_id: number;
+  file_path: string | null;
+  thumbnail_path: string | null;
+}
+
+/** Ids per DELETE, well under SQLite's bound-parameter limit. */
+const PHOTO_DELETE_BATCH = 500;
+
 /**
  * `journeys` — the root of the journey cluster (Plan 3g Task 1, R9's Part A).
  * Every method here is a Part-A-owned statement (JG1-JG29 group) or a shared
@@ -260,5 +273,50 @@ export class JourneysRepository extends TrekRepository<Journeys> {
    */
   async deleteOwnedByUser(userId: number): Promise<void> {
     await this.nativeDelete({ user: userId });
+  }
+
+  /**
+   * The photos in the gallery of one journey, or of every journey a user owns,
+   * with the paths their `trek_photos` rows store. Read before the journey is
+   * deleted: the cascade takes the gallery rows, and with them the only way
+   * back to the photos.
+   */
+  async listGalleryPhotos(scope: { journeyId: number } | { ownerId: number }): Promise<JourneyGalleryPhotoFiles[]> {
+    const [column, value] =
+      'journeyId' in scope ? (['j.id', scope.journeyId] as const) : (['j.user_id', scope.ownerId] as const);
+    return await this.kysely<JourneyPhotoFilesKyselyDB>()
+      .selectFrom('journey_photos as jp')
+      .innerJoin('journeys as j', 'j.id', 'jp.journey_id')
+      .innerJoin('trek_photos as tp', 'tp.id', 'jp.photo_id')
+      .select(['jp.photo_id', 'tp.file_path', 'tp.thumbnail_path'])
+      .distinct()
+      .where(column, '=', value)
+      .execute();
+  }
+
+  /**
+   * Deletes the `trek_photos` rows among `photoIds` that no trip and no journey
+   * links any more, after their journeys went: the same rule as
+   * `TrekPhotoRegistrationService.deleteIfOrphan` with `local`, for a whole
+   * gallery at once. A row left behind would keep naming its file, and the
+   * storage reclaim counts every row with a path as live (#2924). A photo still
+   * in another journey's gallery, or in a trip's, keeps its row. Answers how
+   * many rows went.
+   */
+  async deleteUnlinkedPhotos(photoIds: readonly number[]): Promise<number> {
+    const pages = Array.from({ length: Math.ceil(photoIds.length / PHOTO_DELETE_BATCH) }, (_unused, i) =>
+      photoIds.slice(i * PHOTO_DELETE_BATCH, (i + 1) * PHOTO_DELETE_BATCH),
+    );
+    // One page after the other: they share the caller's transaction.
+    return await pages.reduce<Promise<number>>(async (previous, page) => {
+      const deleted = await previous;
+      const result = await this.kysely<JourneyPhotoFilesKyselyDB>()
+        .deleteFrom('trek_photos')
+        .where('id', 'in', page)
+        .where('id', 'not in', (eb) => eb.selectFrom('trip_photos').select('photo_id'))
+        .where('id', 'not in', (eb) => eb.selectFrom('journey_photos').select('photo_id'))
+        .executeTakeFirst();
+      return deleted + Number(result.numDeletedRows);
+    }, Promise.resolve(0));
   }
 }

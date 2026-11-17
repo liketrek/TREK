@@ -19,6 +19,7 @@ import {
   fs, toneOf, toneTint,
 } from './bookingParts'
 import { TransitLegs, transitSummary } from './transitParts'
+import FlightLiveStrip from '../flightLive/FlightLiveStrip'
 
 export interface BookingCardProps {
   r: Reservation
@@ -71,6 +72,7 @@ export default function BookingCard(p: BookingCardProps) {
 
       <div className="flex flex-1 flex-col gap-2 px-3 pb-3 pt-2.5">
         <WhenFields facts={facts} />
+        <FlightLiveStrip tripId={p.tripId} reservationId={r.id} type={r.type} />
 
         {transit ? <TransitBody r={r} /> : (
           <>

@@ -132,6 +132,18 @@ For a transport, the tiles at the top show the departure and arrival times with 
 
 From the plan, **Edit** on a transport needs the right to edit days; on the Transports tab it needs the right to edit bookings.
 
+## Live flight status
+
+TREK follows every booked flight on its day, with no API key and at no cost: the server asks the open ADS-B networks [adsb.lol](https://www.adsb.lol/) (and [adsb.fi](https://adsb.fi/) on a self-hosted install) where the aircraft flying the booked flight number is, from three hours before departure until two hours after arrival.
+
+- **The booking detail** on the desktop and the transport sheet on the phone show a live card: where the flight stands ("Scheduled", "In the air", "Landed") with what comes next ("Lands in 5 h 40 min") and the delay, both airports with their times (the planned one struck when it moved), a small map of the real route with the aircraft on it, and altitude, speed, remaining distance and aircraft while it flies. Hover the map for the data and map credits.
+- **Booking cards and the day plan** say the same in one line, with a progress bar while the flight is in the air and the delay beside it.
+- **The trip map** draws the aircraft at its live position, turned to its heading; click it to open the booking.
+- **Notifications** report take-off, landing and a departure 15 minutes or more late, to the booking's travellers (or the whole trip), each once. Each traveller picks the channels under Settings → Notifications.
+- **The apps** have a Flight widget and turn the travel day's Live Activity into a boarding pass around a flight.
+
+Delays and the arrival estimate are worked out from the aircraft's positions. Gate, terminal and baggage belt are not part of open data; add them to the booking if you need them. A flight whose airline flies under another callsign, or a codeshare, may not be found: the booking then shows no live card and keeps its plain schedule. Only the flight's callsign leaves the server. An admin can switch the feature off under **Admin → Settings → Live flight status**, or with `FLIGHT_LIVE_ENABLED` (see [Environment-Variables](Environment-Variables#live-flight-status)).
+
 ## On the map
 
 A transport with both ends set can be drawn as a line on the trip map:

@@ -1,6 +1,6 @@
-import { MapPin, X } from 'lucide-react'
+import { MapPin, Tag } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
+import { TileHeader } from '../sheets/MTripSheetUi'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
 import { useTranslation } from '../../../../i18n'
 import type { Category } from '../../../../types'
@@ -21,17 +21,17 @@ interface MPlacesBulkCategorySheetProps {
 export default function MPlacesBulkCategorySheet({ open, count, categories, onPick, onClose }: MPlacesBulkCategorySheetProps) {
   const { t } = useTranslation()
   return (
-    <MSheet open={open} onClose={onClose} variant="card" ariaLabel={t('places.changeCategory')}>
-      <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[11px] pt-4">
-        <div className="min-w-0 flex-1">
-          <div className="text-[1.03125rem] font-bold text-m-ink">{t('places.changeCategory')}</div>
-          <div className="mt-[2px] font-geist text-[0.6875rem] text-m-muted">{t('places.selectionCount', { count })}</div>
-        </div>
-        <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.close')}>
-          <X size={15} strokeWidth={2.2} />
-        </MIconBtn>
+    <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('places.changeCategory')}>
+      <div className="flex-none px-[18px] pt-4">
+        <TileHeader
+          icon={<Tag size={19} strokeWidth={1.8} />}
+          title={t('places.changeCategory')}
+          sub={t('places.selectionCount', { count })}
+          onClose={onClose}
+          closeLabel={t('common.close')}
+        />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-[10px] pb-3 pt-[6px]">
+      <div className="m-scroll-fade mt-2 min-h-0 flex-1 overflow-y-auto px-[10px] pb-3 pt-[10px]">
         {categories.map(c => {
           const CatIcon = getCategoryIcon(c.icon)
           return (

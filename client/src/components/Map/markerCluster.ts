@@ -42,19 +42,52 @@ export interface ClusterGroupLike {
   getVisibleParent?: (marker: unknown) => unknown
 }
 
+/** The part of a cluster bubble that `revealInCluster` reads. */
+interface RevealableCluster {
+  spiderfy: () => void
+  getChildCount: () => number
+  getBounds?: () => { getNorthEast: () => L.LatLng; getSouthWest: () => L.LatLng }
+}
+
 /**
- * Fan open the bubble a stop is hidden inside, if it is in one.
+ * The most stops a selection fans open around itself. Up to here the fan stays a small
+ * ring around the bubble; a city-sized bubble from the overview would throw hundreds of
+ * legs across the whole map instead (#2990).
+ */
+export const REVEAL_FAN_MAX_CHILDREN = 12
+
+/**
+ * Whether opening this bubble shows the selection or buries the map.
+ *
+ * A small bubble always opens. A bigger one only when every stop in it sits on the same
+ * coordinate, the stack no zoom can take apart, which is the case the fan is there for.
+ * Anything else is a pile of ordinary neighbours that zooming in separates, so it stays
+ * closed and the selection is shown by the pan alone.
+ */
+function fansOpenOnSelect(cluster: RevealableCluster): boolean {
+  if (cluster.getChildCount() <= REVEAL_FAN_MAX_CHILDREN) return true
+  const bounds = cluster.getBounds?.()
+  return !!bounds && bounds.getNorthEast().equals(bounds.getSouthWest())
+}
+
+function isRevealableCluster(layer: unknown): layer is RevealableCluster {
+  const candidate = layer as Partial<RevealableCluster> | null
+  return !!candidate && typeof candidate.spiderfy === 'function' && typeof candidate.getChildCount === 'function'
+}
+
+/**
+ * Fan open the bubble a stop is hidden inside, if it is in one and small enough.
  *
  * Picking a stop from the places rail used to raise its pin out of the stack with a
  * z-index. A stop sharing its coordinates now sits in a cluster instead and has no pin
  * of its own to raise, so the bubble has to open for the selection to be visible at all.
  * Deliberately not `zoomToShowLayer`: the zoom belongs to the day fit, and the selection
- * only ever pans.
+ * only ever pans. See `fansOpenOnSelect` for which bubbles are opened.
  */
 export function revealInCluster(group: ClusterGroupLike | null | undefined, marker: unknown): boolean {
   if (!group || !marker || typeof group.getVisibleParent !== 'function') return false
-  const parent = group.getVisibleParent(marker) as { spiderfy?: () => void } | null
-  if (!parent || parent === marker || typeof parent.spiderfy !== 'function') return false
+  const parent = group.getVisibleParent(marker)
+  if (parent === marker || !isRevealableCluster(parent) || !fansOpenOnSelect(parent)) return false
   parent.spiderfy()
   return true
 }

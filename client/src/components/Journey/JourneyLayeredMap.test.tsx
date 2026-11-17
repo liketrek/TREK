@@ -1,4 +1,4 @@
-// FE-JOURNEY-LAYEREDMAP-001 to FE-JOURNEY-LAYEREDMAP-003
+// FE-JOURNEY-LAYEREDMAP-001 to FE-JOURNEY-LAYEREDMAP-005
 //
 // JRN-04: the journey map with its layers: what the renderer is handed, and a
 // picked mark's card.
@@ -109,5 +109,26 @@ describe('JourneyLayeredMap', () => {
     act(() => (last().onMarksPick as (marks: JourneyMapMark[]) => void)([MARK]));
     rerender(<JourneyLayeredMap layers={layers({ marks: [] })} onOpenEntry={onOpenEntry} checkins={[]} entries={[]} />);
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('FE-JOURNEY-LAYEREDMAP-004: the satellite switch opens on the map and swaps the base of this view (#2594)', () => {
+    render(<JourneyLayeredMap engine="leaflet" layers={layers()} checkins={[]} entries={[]} />);
+    expect(last()).toMatchObject({ baseLayer: 'default' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to satellite view' }));
+    expect(last()).toMatchObject({ baseLayer: 'satellite' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to map view' }));
+    expect(last()).toMatchObject({ baseLayer: 'default' });
+  });
+
+  it('FE-JOURNEY-LAYEREDMAP-005: the switch stays on the phone and without layers, where the shared page draws', () => {
+    const { unmount } = render(<JourneyLayeredMap layers={layers()} hideLayerControl checkins={[]} entries={[]} />);
+    expect(screen.getByRole('button', { name: 'Switch to satellite view' })).toBeInTheDocument();
+    unmount();
+
+    render(<JourneyLayeredMap engine="leaflet" checkins={[]} entries={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to satellite view' }));
+    expect(last()).toMatchObject({ baseLayer: 'satellite' });
   });
 });

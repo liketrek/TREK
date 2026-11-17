@@ -1219,7 +1219,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Le moteur qui affiche les cartes du planificateur et du journal, et son style. Leaflet est la carte raster classique, Mapbox GL ajoute les bâtiments et le relief en 3D avec votre propre jeton, MapLibre GL affiche les tuiles vectorielles OpenFreeMap sans jeton. Atlas utilise toujours Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '« Fournisseur de carte » : Leaflet, Mapbox GL (Expérimental) ou MapLibre GL, chacun avec une courte description.',
+    '« Fournisseur de carte » : Leaflet, Mapbox GL ou MapLibre GL, chacun avec une courte description.',
   'help.ctx.settings-map.bullet.2':
     "« Modèle de carte » et « Clé d'API CARTO » pour Leaflet ; « Style de carte » pour les deux moteurs GL, ainsi que le « Jeton d'accès Mapbox » pour Mapbox GL.",
   'help.ctx.settings-map.bullet.3':

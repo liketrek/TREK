@@ -1266,7 +1266,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': 'מפה',
   'help.ctx.settings-map.summary':
     'איזה מנוע מציג את המפות במתכנן הטיולים וביומן המסע, ובאיזה סגנון. Leaflet מציג את מפת הרסטר הקלאסית, Mapbox GL מוסיף בניינים ותבליט בתלת-ממד עם אסימון משלכם, ו-MapLibre GL מציג אריחי וקטור של OpenFreeMap ללא אסימון. האטלס תמיד משתמש ב-Leaflet.',
-  'help.ctx.settings-map.bullet.1': 'ספק מפות: Leaflet, Mapbox GL (ניסיוני) או MapLibre GL, עם תיאור קצר לכל אפשרות.',
+  'help.ctx.settings-map.bullet.1': 'ספק מפות: Leaflet, Mapbox GL או MapLibre GL, עם תיאור קצר לכל אפשרות.',
   'help.ctx.settings-map.bullet.2':
     'תבנית מפה ומפתח API של CARTO עבור Leaflet; סגנון מפה לשני מנועי GL, וגם אסימון גישה של Mapbox עבור Mapbox GL.',
   'help.ctx.settings-map.bullet.3':

@@ -1,0 +1,196 @@
+name: Native apps release
+
+# Builds the signed store builds of the iOS and Android apps and uploads them:
+# the Android App Bundle to a Google Play testing track, the iOS archive to
+# App Store Connect (TestFlight). Promotion to production stays a manual step
+# in both consoles.
+#
+# Runs only in liketrek/TREK, only by hand or on a version tag, and only after a
+# required reviewer approves the `store` environment, which holds every secret
+# (see wiki/Native-Apps.md for the list). Pull requests never reach it.
+#
+# Both stores get the same numbers: the version from client/package.json
+# without a prerelease suffix, and a build number that only grows. A prerelease
+# reuses its X.Y.Z with a higher build number and belongs on the internal track
+# and in TestFlight only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Google Play track
+        type: choice
+        options: [internal, alpha, beta]
+        default: internal
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-release
+  cancel-in-progress: false
+
+jobs:
+  android:
+    # Gated on a repository variable so the release can ship iOS alone while the
+    # Google Play account and its signing secrets are not yet in place. Set the
+    # repository variable NATIVE_RELEASE_ANDROID to 1 to turn the Android half on.
+    if: github.repository == 'liketrek/TREK' && vars.NATIVE_RELEASE_ANDROID == '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment: store
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Version and build number
+        id: version
+        run: |
+          echo "version=$(node -p "require('./client/package.json').version.split('-')[0]")" >> "$GITHUB_OUTPUT"
+          echo "build=$((GITHUB_RUN_NUMBER + 1000))" >> "$GITHUB_OUTPUT"
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shell
+        working-directory: client
+        run: npm run cap:sync -- android
+
+      - name: Upload key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+        run: printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build the signed App Bundle
+        working-directory: client/android
+        env:
+          ORG_GRADLE_PROJECT_trekKeystorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_trekKeyAlias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_trekKeyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: >-
+          ./gradlew bundleRelease --no-daemon
+          -PtrekVersionName=${{ steps.version.outputs.version }}
+          -PtrekVersionCode=${{ steps.version.outputs.build }}
+          -PtrekKeystore="$RUNNER_TEMP/upload.jks"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trek-android-${{ steps.version.outputs.version }}-${{ steps.version.outputs.build }}
+          path: client/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      # Play only accepts API uploads once one bundle was uploaded by hand
+      # (wiki/Native-Apps.md). `draft` until the app has left draft in the console.
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.liketrek.trek
+          releaseFiles: client/android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ inputs.track || 'internal' }}
+          status: draft
+
+      - name: Remove the upload key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"
+
+  ios:
+    if: github.repository == 'liketrek/TREK'
+    runs-on: xcode-27
+    timeout-minutes: 60
+    environment: store
+    steps:
+      - uses: actions/checkout@v6
+
+      # The iOS 27.1 SDK, on the xcode-27 image: an app built against an older SDK
+      # runs letterboxed on the inner display of an iPhone Duo.
+      - name: Select Xcode 27.1
+        run: |
+          XCODE=/Applications/Xcode_27.1.app
+          test -d "$XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          xcodebuild -showsdks | grep iphoneos27.1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Version and build number
+        id: version
+        run: |
+          echo "version=$(node -p "require('./client/package.json').version.split('-')[0]")" >> "$GITHUB_OUTPUT"
+          echo "build=$((GITHUB_RUN_NUMBER + 1000))" >> "$GITHUB_OUTPUT"
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shell
+        working-directory: client
+        run: npm run cap:sync -- ios
+
+      - name: App Store Connect API key
+        env:
+          ASC_KEY_P8_B64: ${{ secrets.ASC_KEY_P8_B64 }}
+        run: printf '%s' "$ASC_KEY_P8_B64" | base64 -d > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Distribution certificate
+        env:
+          APPLE_DIST_CERT_P12_B64: ${{ secrets.APPLE_DIST_CERT_P12_B64 }}
+        run: printf '%s' "$APPLE_DIST_CERT_P12_B64" | base64 -d > "$RUNNER_TEMP/dist.p12"
+
+      # Signs for distribution and uploads to TestFlight. Automatic signing cannot
+      # run on a device-less CI runner (it signs for development and then needs a
+      # development profile, which needs a registered device), so client/fastlane/Fastfile
+      # imports the stored distribution certificate and creates the App Store profile
+      # through the API key.
+      # The tag's message, past its subject line, is what testers read under
+      # "What to Test": one short line per change worth trying.
+      - name: TestFlight notes from the tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git fetch --force --depth=1 origin "+${GITHUB_REF}:${GITHUB_REF}"
+          {
+            echo 'TESTFLIGHT_NOTES<<TREK_NOTES_END'
+            # A signed tag carries its signature at the end of the message.
+            git for-each-ref "$GITHUB_REF" --format='%(contents:body)' | sed '/-----BEGIN .*SIGNATURE-----/,$d'
+            echo 'TREK_NOTES_END'
+          } >> "$GITHUB_ENV"
+
+      - name: Build and upload to TestFlight
+        working-directory: client
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
+          CERT_P12_PATH: ${{ runner.temp }}/dist.p12
+          CERT_P12_PASSWORD: ${{ secrets.APPLE_DIST_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MARKETING_VERSION: ${{ steps.version.outputs.version }}
+          CURRENT_PROJECT_VERSION: ${{ steps.version.outputs.build }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+          FASTLANE_HIDE_CHANGELOG: '1'
+        run: fastlane ios beta
+
+      - name: Remove secrets
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/dist.p12"

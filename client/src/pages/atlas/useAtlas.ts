@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { getIntlLanguage, getLocaleForLanguage, useTranslation } from '../../i18n'
+import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults'
@@ -19,19 +19,10 @@ import { usePlaceLanguage } from '../../hooks/usePlaceLanguage'
 import { useServerPing } from '../../sync/useServerPing'
 import type { AtlasConfirmAction, VisitedRegionMap } from './useAtlasCountryActions'
 import { createWishlistPattern, svgWishlistFill } from './atlasWishlistFill'
+import { chromeFitPadding, chromePan, NORTH_EDGE_LAT, type AtlasChromeInsets } from './atlasChrome'
+import { useCountryNames } from './useCountryNames'
 
 const PLANNED_KEY = 'trek_atlas_show_planned'
-
-function useCountryNames(language: string): (code: string) => string {
-  const [resolver, setResolver] = useState<(code: string) => string>(() => (code: string) => code)
-  useEffect(() => {
-    try {
-      const dn = new Intl.DisplayNames([getIntlLanguage(language)], { type: 'region' })
-      setResolver(() => (code: string) => { try { return dn.of(code) || code } catch { return code } })
-    } catch { /* */ }
-  }, [language])
-  return resolver
-}
 
 /**
  * Atlas page logic — the whole interactive globe lives here: atlas/bucket-list
@@ -41,7 +32,9 @@ function useCountryNames(language: string): (code: string) => string {
  * the returned state via its presentational SidebarContent helper.
  * Behaviour is identical to the previous in-component logic.
  */
-export function useAtlas() {
+export function useAtlas(options: { chromeInsets?: () => AtlasChromeInsets } = {}) {
+  const chromeInsetsRef = useRef(options.chromeInsets)
+  useLayoutEffect(() => { chromeInsetsRef.current = options.chromeInsets })
   const { t, language } = useTranslation()
   const placeLang = usePlaceLanguage()
   const { settings } = useSettingsStore()
@@ -380,6 +373,9 @@ export function useAtlas() {
     map.getPane('regionPane')!.style.zIndex = '401'
 
     mapInstance.current = map
+    // The opening view clears the touch shell's rail and header; the desktop atlas has none and opens as before.
+    const pan = chromePan(chromeInsetsRef.current?.(), () => map.latLngToContainerPoint([NORTH_EDGE_LAT, 0]).y)
+    if (pan) map.panBy(pan, { animate: false })
     // Both renderers live as long as the map does (see the note on the refs); map.remove()
     // disposes them along with every other layer it holds.
     countryRendererRef.current = L.canvas({ padding: 0.5, tolerance: 5 })
@@ -954,7 +950,8 @@ export function useAtlas() {
     const layer = country_layer_by_a2_ref.current[country_code]
     try {
       if (layer?.getBounds && mapInstance.current) {
-        mapInstance.current.fitBounds(layer.getBounds(), { padding: [24, 24], animate: true, maxZoom: 6 })
+        const padding = chromeFitPadding(chromeInsetsRef.current?.())
+        mapInstance.current.fitBounds(layer.getBounds(), { ...padding, animate: true, maxZoom: 6 })
       }
     } catch (e ) {
       console.error('Error fitting bounds', e)

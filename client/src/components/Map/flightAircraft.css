@@ -1,0 +1,84 @@
+/*
+ * A live aircraft on the trip map (flightAircraft.ts). Both renderers position
+ * the outer element themselves, so the halo animation runs on a child and
+ * never fights the position. The colour comes in as --trek-aircraft, the
+ * map's transport colour, so the aircraft matches the flight lines it rides. The marker sits on the map's own colours, not on
+ * the theme's surfaces, so it stays legible on light and dark basemaps alike.
+ */
+
+@keyframes trek-aircraft-halo {
+  from {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.trek-aircraft {
+  /* The marker is the disc alone, so the map's centre anchor sits on the aircraft;
+     the label hangs beside it out of the flow, on the right in either direction. */
+  position: relative;
+  width: 30px;
+  height: 30px;
+  direction: ltr;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.trek-aircraft__halo {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--trek-aircraft);
+  animation: trek-aircraft-halo 2.4s ease-out infinite;
+}
+
+.trek-aircraft__disc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--trek-aircraft);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+.trek-aircraft__label {
+  position: absolute;
+  inset-inline-start: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.82);
+  color: #fff;
+  font-family: var(--font-system);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.trek-aircraft.is-stale .trek-aircraft__halo {
+  animation: none;
+  opacity: 0;
+}
+
+.trek-aircraft.is-stale .trek-aircraft__disc {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trek-aircraft__halo {
+    animation: none;
+    opacity: 0;
+  }
+}

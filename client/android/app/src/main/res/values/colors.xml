@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A stop without a category colour in the travel-day progress bar. -->
+    <color name="tripday_segment">#4A7DDB</color>
+    <!-- The tint of TREK's notifications: the app's ink, readable on light and dark shades. -->
+    <color name="notification_accent">#4A7DDB</color>
+</resources>

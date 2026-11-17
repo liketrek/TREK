@@ -39,6 +39,10 @@ import { JourneyRecordedDays } from './JourneyRecordedDays.entity';
 import { JourneyRecordingPrep } from './JourneyRecordingPrep.entity';
 import { JourneyShareTokens } from './JourneyShareTokens.entity';
 import { Journeys } from './Journeys.entity';
+import { MailIngestAddresses } from './MailIngestAddresses.entity';
+import { MailIngestCandidates } from './MailIngestCandidates.entity';
+import { MailIngestMessages } from './MailIngestMessages.entity';
+import { MailIngestPrefs } from './MailIngestPrefs.entity';
 import { McpTokens } from './McpTokens.entity';
 import { NotificationChannelPreferences } from './NotificationChannelPreferences.entity';
 import { Notifications } from './Notifications.entity';
@@ -176,6 +180,10 @@ export class Users {
   journey_recording_prep_collection = new Collection<JourneyRecordingPrep>(this);
   journey_share_tokens_collection = new Collection<JourneyShareTokens>(this);
   journeys_collection = new Collection<Journeys>(this);
+  mail_ingest_addresses_collection = new Collection<MailIngestAddresses>(this);
+  mail_ingest_candidates_collection = new Collection<MailIngestCandidates>(this);
+  mail_ingest_messages_collection = new Collection<MailIngestMessages>(this);
+  mail_ingest_prefs_collection = new Collection<MailIngestPrefs>(this);
   mcp_tokens_collection = new Collection<McpTokens>(this);
   notification_channel_preferences_collection = new Collection<NotificationChannelPreferences>(this);
   notifications_collection = new Collection<Notifications>(this);
@@ -335,6 +343,10 @@ export const UsersSchema = defineEntity({
     journey_recording_prep_collection: () => p.oneToMany(JourneyRecordingPrep).mappedBy('user').hidden(),
     journey_share_tokens_collection: () => p.oneToMany(JourneyShareTokens).mappedBy('createdByRef').hidden(),
     journeys_collection: () => p.oneToMany(Journeys).mappedBy('user').hidden(),
+    mail_ingest_addresses_collection: () => p.oneToMany(MailIngestAddresses).mappedBy('user').hidden(),
+    mail_ingest_candidates_collection: () => p.oneToMany(MailIngestCandidates).mappedBy('user').hidden(),
+    mail_ingest_messages_collection: () => p.oneToMany(MailIngestMessages).mappedBy('user').hidden(),
+    mail_ingest_prefs_collection: () => p.oneToMany(MailIngestPrefs).mappedBy('user').hidden(),
     mcp_tokens_collection: () => p.oneToMany(McpTokens).mappedBy('user').hidden(),
     notification_channel_preferences_collection: () => p.oneToMany(NotificationChannelPreferences).mappedBy('user').hidden(),
     notifications_collection: () => p.oneToMany(Notifications).mappedBy('sender').hidden(),

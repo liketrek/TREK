@@ -60,10 +60,10 @@ export function toAnthropicMessages(messages: AiChatMessage[]): AnthropicMessage
     if (message.role === 'user') {
       push('user', [...(message.images ?? []).map(imageBlock), { type: 'text', text: message.text }]);
     } else if (message.role === 'assistant' && message.providerState?.adapter === 'anthropic-messages') {
-      push('assistant', message.providerState.blocks.map(replayed));
+      push('assistant', message.providerState.blocks.filter((block) => !isBlankText(block)).map(replayed));
     } else if (message.role === 'assistant') {
       push('assistant', [
-        ...(message.text ? [{ type: 'text', text: message.text }] : []),
+        ...(message.text.trim() ? [{ type: 'text', text: message.text }] : []),
         ...message.toolCalls.map((call) => ({ type: 'tool_use', id: call.id, name: call.name, input: call.args })),
       ]);
     } else {
@@ -80,6 +80,15 @@ export function toAnthropicMessages(messages: AiChatMessage[]): AnthropicMessage
     }
   }
   return out;
+}
+
+/**
+ * A text block of nothing but whitespace, which the Messages API refuses in a
+ * request. A model that came back blank streams one now and then; it is left
+ * out of the replay, which changes nothing the model said.
+ */
+function isBlankText(block: ContentBlock): boolean {
+  return block.type === 'text' && !asText(block.text).trim();
 }
 
 /**
@@ -168,6 +177,8 @@ export class AnthropicMessagesClient implements AiChatClient {
               })),
               ...(request.webSearch ? [WEB_SEARCH_TOOL] : []),
             ],
+            // `none` is allowed with extended thinking, unlike forcing a tool.
+            ...(request.toolChoice === 'none' ? { tool_choice: { type: 'none' } } : {}),
           }
         : {}),
     };

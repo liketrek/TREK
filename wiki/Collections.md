@@ -1,6 +1,6 @@
 # Collections
 
-Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered (a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday"), each place carrying an idea, want-to-go or visited status, and share a list with other users.
+Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered (a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday"), each place carrying an idea, want-to-go, visited or want-to-revisit status, and share a list with other users.
 
 > **Admin:** enable Collections in [Admin-Addons](Admin-Addons).
 
@@ -33,6 +33,7 @@ Every saved place carries a status you can cycle with one tap:
 - **Idea**: something you noted but haven't committed to.
 - **Want to go**: on the shortlist.
 - **Visited**: been there.
+- **Want to revisit**: been there and want to go back. It still counts as visited, so **Visited everywhere** leaves it as it is.
 
 Status is a Collections concept and is not carried into a trip when you copy a place.
 
@@ -108,6 +109,7 @@ Sharing works between people on the same TREK. To give a list to somebody who ru
 
 - **TREK list** downloads the open list as a `.trekcollection.json` file: the list's name, description and colour, its labels, and every place with its address, coordinates, notes, status, website, phone, category name and labels. This is the one to give to another TREK.
 - **GPX** downloads the places as waypoints in a `.gpx` file, for OsmAnd, Organic Maps, a Garmin, gpx.studio or any other app that reads GPX. Each waypoint carries the place's name, description and address, notes, website and category, which every such app shows. Labels, status, phone and the rest travel alongside in a TREK extension that other apps ignore, so a GPX made by TREK comes back into TREK complete. A place without coordinates cannot be a waypoint: it is left out, and TREK tells you how many were.
+- **KML** downloads the places as pins in a `.kml` file for Google My Maps, the way to see a list in Google Maps (see [Taking the places to Google Maps](Map-Features#taking-the-places-to-google-maps)). Each pin carries the place's name, address, phone, description and notes, and its category, status, labels and website as the columns of the layer's table. Places without coordinates are left out and counted, as for GPX.
 
 **Import** sits next to **New list** in the lists rail, as the button with the upload arrow. Pick a TREK list file or a GPX file and TREK shows what is in it before anything happens: the name, how many places, how many labels. Then choose where the places go, and you land on that list when it is done.
 

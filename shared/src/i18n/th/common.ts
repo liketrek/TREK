@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'สิ่งที่คุณกรอกไว้ที่นี่ยังไม่ได้บันทึก',
   'common.keepEditing': 'แก้ไขต่อ',
   'common.name': 'ชื่อ',
+  'common.title': 'ชื่อเรื่อง',
   'common.email': 'อีเมล',
   'common.password': 'รหัสผ่าน',
   'common.saving': 'กำลังบันทึก...',
@@ -78,5 +79,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK ได้รับการอัปเดตขณะที่แท็บนี้เปิดอยู่ โหลดซ้ำเพื่อรับเวอร์ชันใหม่',
   'common.errorPluginTitle': 'ไม่สามารถแสดงปลั๊กอินนี้ได้',
   'common.needsConnection': 'การทำงานนี้ต้องใช้การเชื่อมต่อ ลองอีกครั้งเมื่อ TREK กลับมาออนไลน์',
+  'common.errorDetails': 'รายละเอียด',
+  'common.share': 'แชร์',
 };
 export default common;

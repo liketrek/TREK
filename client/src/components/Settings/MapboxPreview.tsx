@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { isStandardFamily, supportsCustom3d, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, normalizeStyleForProvider, type GlMapProvider } from '../Map/glProviders'
 import { buildGlMap } from '../Map/glSupport'
+import { setBasemapConfig } from '../Map/useStandardBasemapConfig'
 import { fs } from '../shared/DialogShell'
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
   zoom: number
   enable3d: boolean
   quality?: boolean
+  /** Leaves out Mapbox Standard's own points of interest, as the trip map does (#1761). */
+  hidePois?: boolean
   onClick?: (latlng: { lat: number; lng: number }) => void
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
@@ -23,7 +26,7 @@ interface Props {
   gl: any
 }
 
-export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style, lat, lng, zoom, enable3d, quality = false, onClick, gl }: Props) {
+export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style, lat, lng, zoom, enable3d, quality = false, hidePois = false, onClick, gl }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any | null>(null)
@@ -67,6 +70,7 @@ export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style
       if (glStyle === MAPBOX_DEFAULT_STYLE) {
         try { map.setTerrain(null) } catch { /* noop */ }
       }
+      if (hidePois && !isMapLibre && isStandardFamily(glStyle)) setBasemapConfig(map, 'showPointOfInterestLabels', false)
     })
 
     map.on('click', (e) => {
@@ -77,7 +81,7 @@ export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [provider, token, glStyle, enableMapbox3d, quality])
+  }, [provider, token, glStyle, enableMapbox3d, quality, hidePois])
 
   // Recenter without rebuilding the map when lat/lng/zoom change externally
   useEffect(() => {

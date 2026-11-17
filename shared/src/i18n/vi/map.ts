@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Bảo tàng & văn hóa',
   'poi.cat.nature': 'Thiên nhiên & công viên',
   'poi.cat.activities': 'Các hoạt động',
+  'poi.cat.bakeries': 'Tiệm bánh',
+  'poi.cat.groceries': 'Cửa hàng tạp hóa',
   'poi.pluginCategories': 'Danh mục từ plugin',
   'map.showAllConnections': 'Hiển thị tất cả lộ trình đặt chỗ',
   'map.hideAllConnections': 'Ẩn tất cả lộ trình đặt chỗ',
@@ -44,5 +46,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': 'Địa hình',
   'map.webgl2.fallback': 'Trình duyệt này không hỗ trợ WebGL2 mà bản đồ GL cần, nên bản đồ được hiển thị bằng Leaflet.',
   'map.webgl2.terrain': 'Chế độ 3D cần WebGL2, nhưng trình duyệt này không hỗ trợ. Bản đồ vẫn ở dạng 2D.',
+  'map.offlineBasemap': 'Bản đồ ngoại tuyến',
+  'map.offlineShowStored': 'Hiện bản đồ ngoại tuyến',
 };
 export default map;

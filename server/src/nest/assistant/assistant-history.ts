@@ -26,6 +26,19 @@ import {
   type AssistantToolApproval,
 } from '@trek/shared';
 
+/** A recorded call's arguments as an object: given as one, or as JSON text; anything else is none. */
+function recordOf(value: unknown): Record<string, unknown> {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+}
+
 /**
  * A thread's stored messages, read two ways: as the conversation the
  * provider is sent, and as the messages the client shows.
@@ -45,20 +58,35 @@ const NOT_APPLIED = JSON.stringify({ applied: false, reason: 'The user did not a
 const NOT_RUN = 'This call did not run: the answer was stopped before it.';
 
 /**
+ * What stands between two steps of one answer where the first called nothing:
+ * the turn pushed the model on there (an answer that only announced its
+ * lookups, one cut off), and the push is never stored. Without it the replay
+ * has one model message follow another, which Gemini refuses for a step that
+ * makes calls, and with it every later message of the thread (#3094).
+ */
+const WENT_ON = 'Go on.';
+
+/**
  * The calls a provider's own record of a step holds, which it replays as they
  * came and wants answered: Anthropic's tool uses, the Responses API's function
  * calls. A step stopped while its calls ran (the user left the page) keeps the
- * whole record but answers only the calls that ran.
+ * whole record but answers only the calls that ran. The arguments come along,
+ * so an adapter that rebuilds the step from its calls (another provider than
+ * the one that recorded it) still finds every call an answer names.
  */
-function recordedCalls(state: AiProviderState | null): Array<{ id: string; name: string }> {
-  const entries =
+function recordedCalls(state: AiProviderState | null): AiToolCall[] {
+  const calls =
     state?.adapter === 'anthropic-messages'
-      ? state.blocks.filter((block) => block.type === 'tool_use').map((block) => [block.id, block.name])
+      ? state.blocks
+          .filter((block) => block.type === 'tool_use')
+          .map((block) => ({ id: block.id, name: block.name, args: recordOf(block.input) }))
       : state?.adapter === 'openai-responses'
-        ? state.items.filter((item) => item.type === 'function_call').map((item) => [item.call_id, item.name])
+        ? state.items
+            .filter((item) => item.type === 'function_call')
+            .map((item) => ({ id: item.call_id, name: item.name, args: recordOf(item.arguments) }))
         : [];
-  return entries.flatMap(([id, name]) =>
-    typeof id === 'string' ? [{ id, name: typeof name === 'string' ? name : '' }] : [],
+  return calls.flatMap(({ id, name, args }) =>
+    typeof id === 'string' ? [{ id, name: typeof name === 'string' ? name : '', args }] : [],
   );
 }
 
@@ -311,10 +339,24 @@ export function toChatHistory(
       name: part.toolName,
       args: part.args,
     }));
-    const text = textOf(parts);
+    // A step that wrote only blank lines wrote nothing: the turn sent it on as empty, and Anthropic refuses
+    // a text block of whitespace, so replaying it as text broke every later message of the thread (#3094).
+    const written = textOf(parts);
+    const text = written.trim() ? written : '';
     if (!text && toolCalls.length === 0) return;
+    const before = history.at(-1);
+    if (before?.role === 'assistant' && before.toolCalls.length === 0) history.push({ role: 'user', text: WENT_ON });
     const providerState = decodeJson(ASSISTANT_PROVIDER_STATE, row.provider_state, `message ${row.id}`);
-    history.push({ role: 'assistant', text, toolCalls, providerState });
+    // The recorded calls that never ran go into the step's calls as well: an adapter that does not
+    // replay this record rebuilds the step from them, and would otherwise find answers to calls it never made.
+    const answered = new Set(toolCalls.map((call) => call.id));
+    const unrun: AiToolCall[] = [];
+    for (const recorded of recordedCalls(providerState)) {
+      if (answered.has(recorded.id)) continue;
+      answered.add(recorded.id);
+      unrun.push(recorded);
+    }
+    history.push({ role: 'assistant', text, toolCalls: [...toolCalls, ...unrun], providerState });
     calls.forEach((part, index) => {
       history.push({
         role: 'tool',
@@ -324,11 +366,8 @@ export function toChatHistory(
         ...(part.isError ? { isError: true } : {}),
       });
     });
-    const answered = new Set(toolCalls.map((call) => call.id));
-    for (const recorded of recordedCalls(providerState)) {
-      if (answered.has(recorded.id)) continue;
-      answered.add(recorded.id);
-      history.push({ role: 'tool', toolCallId: recorded.id, name: recorded.name, output: NOT_RUN, isError: true });
+    for (const call of unrun) {
+      history.push({ role: 'tool', toolCallId: call.id, name: call.name, output: NOT_RUN, isError: true });
     }
   });
   return history;

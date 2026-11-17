@@ -1,6 +1,7 @@
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import { TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
+import type { PlacesKmlService } from '../../../src/nest/places/places-kml.service';
 import { PlacesController } from '../../../src/nest/places/places.controller';
 import type { PlacesService } from '../../../src/nest/places/places.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
@@ -25,6 +26,8 @@ vi.mock('../../../src/db/database', () => ({
 }));
 
 const storageStub = { put: vi.fn().mockResolvedValue(undefined) } as unknown as StorageService;
+// The KML export has its own service test; these handlers never reach it.
+const kmlStub = {} as PlacesKmlService;
 
 const user = { id: 1, role: 'user', email: 'u@example.test' } as User;
 const trip = { user_id: 1 };
@@ -70,13 +73,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
   it('GET / lists with filters', async () => {
     const list = vi.fn().mockReturnValue([{ id: 1 }]);
     expect(
-      await new PlacesController(svc({ list } as Partial<PlacesService>), new RuntimeEnvService(), storageStub).list(
-        user,
-        '5',
-        'beach',
-        'cat',
-        'tag',
-      ),
+      await new PlacesController(
+        svc({ list } as Partial<PlacesService>),
+        new RuntimeEnvService(),
+        storageStub,
+        kmlStub,
+      ).list(user, '5', 'beach', 'cat', 'tag'),
     ).toEqual({ places: [{ id: 1 }] });
     expect(list).toHaveBeenCalledWith('5', { search: 'beach', category: 'cat', tag: 'tag' });
   });
@@ -86,7 +88,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const canEdit = vi.fn().mockReturnValue(false); // would 403 if reached
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub).create(user, '5', {
+          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub, kmlStub).create(user, '5', {
             name: 'x'.repeat(201),
           }),
         ),
@@ -107,6 +109,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ canEdit: vi.fn().mockReturnValue(false) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).create(user, '5', { name: 'Spot' }),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
@@ -115,7 +118,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const onCreated = vi.fn();
       const s = svc({ create, broadcast, onCreated } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).create(user, '5', { name: 'Spot' }, 'sock'),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).create(
+          user,
+          '5',
+          { name: 'Spot' },
+          'sock',
+        ),
       ).toEqual({ place: { id: 9 } });
       expect(broadcast).toHaveBeenCalledWith('5', 'place:created', { place: { id: 9 } }, 'sock');
       expect(onCreated).toHaveBeenCalledWith('5', 9);
@@ -127,14 +135,19 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     it('400 without a file', async () => {
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc(), new RuntimeEnvService(), storageStub).importGpx(user, '5', undefined, {}),
+          new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).importGpx(
+            user,
+            '5',
+            undefined,
+            {},
+          ),
         ),
       ).toEqual({ status: 400, body: { error: 'No file uploaded' } });
     });
     it('400 when all import types are disabled', async () => {
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc(), new RuntimeEnvService(), storageStub).importGpx(user, '5', file, {
+          new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).importGpx(user, '5', file, {
             importWaypoints: 'false',
             importRoutes: 'false',
             importTracks: 'false',
@@ -152,6 +165,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ importGpx: vi.fn().mockReturnValue(null) } as Partial<PlacesService>),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).importGpx(user, '5', file, {}),
         ),
       ).toEqual({
@@ -166,7 +180,13 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         broadcast,
       } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).importGpx(user, '5', file, {}, 'sock'),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importGpx(
+          user,
+          '5',
+          file,
+          {},
+          'sock',
+        ),
       ).toEqual({ places: [{ id: 1 }, { id: 2 }], count: 2, skipped: 0 });
       expect(broadcast).toHaveBeenCalledTimes(2);
     });
@@ -182,7 +202,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         broadcast: vi.fn(),
         enrichImportedFilePlaces,
       } as Partial<PlacesService>);
-      const c = new PlacesController(s, new RuntimeEnvService(), storageStub);
+      const c = new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub);
       await c.importGpx(user, '5', file, {});
       expect(enrichImportedFilePlaces).not.toHaveBeenCalled();
       await c.importGpx(user, '5', file, { enrich: 'true' });
@@ -199,7 +219,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     it('400 without a file', async () => {
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc(), new RuntimeEnvService(), storageStub).importMap(user, '5', undefined, {}),
+          new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).importMap(
+            user,
+            '5',
+            undefined,
+            {},
+          ),
         ),
       ).toEqual({ status: 400, body: { error: 'No file uploaded' } });
     });
@@ -208,7 +233,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({ canEdit: vi.fn().mockReturnValue(false), importMapFile } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {}),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
       expect(importMapFile).not.toHaveBeenCalled();
@@ -216,7 +241,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     it('400 when both import types are disabled', async () => {
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc(), new RuntimeEnvService(), storageStub).importMap(user, '5', file, {
+          new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {
             importPoints: 'false',
             importPaths: 'false',
           }),
@@ -231,7 +256,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({ importMapFile: vi.fn().mockResolvedValue({ places: [], summary }) } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {}),
         ),
       ).toEqual({
         status: 400,
@@ -243,7 +268,13 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const result = { places: [{ id: 1 }, { id: 2 }], summary: { totalPlacemarks: 2 }, count: 2 };
       const s = svc({ importMapFile: vi.fn().mockResolvedValue(result), broadcast } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}, 'sock'),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(
+          user,
+          '5',
+          file,
+          {},
+          'sock',
+        ),
       ).toEqual(result);
       expect(broadcast).toHaveBeenCalledTimes(2);
       expect(broadcast).toHaveBeenCalledWith('5', 'place:created', { place: { id: 1 } }, 'sock');
@@ -252,14 +283,14 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const result = { places: [{ id: 7 }] };
       const s = svc({ importMapFile: vi.fn().mockResolvedValue(result), broadcast: vi.fn() } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {}),
       ).toEqual(result);
     });
     it('wraps a thrown Error from the service in a 400 with its message', async () => {
       const s = svc({ importMapFile: vi.fn().mockRejectedValue(new Error('bad kml')) } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {}),
         ),
       ).toEqual({ status: 400, body: { error: 'bad kml' } });
     });
@@ -267,7 +298,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({ importMapFile: vi.fn().mockRejectedValue('boom') } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {}),
         ),
       ).toEqual({ status: 400, body: { error: 'Failed to import map file' } });
     });
@@ -277,7 +308,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importMap(user, '5', file, {}),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importMap(user, '5', file, {}),
         ),
       ).toEqual({ status: 418, body: { error: 'teapot' } });
     });
@@ -292,7 +323,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({
         exportGpx: vi.fn().mockReturnValue({ gpx: '<gpx/>', filename: 'Alpine-week.gpx' }),
       } as Partial<PlacesService>);
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).exportGpx(
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).exportGpx(
         user,
         '5',
         exportQuery,
@@ -307,7 +338,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({
         exportGpx: vi.fn().mockReturnValue({ gpx: '<gpx/>', filename: '沖縄-4泊5日.gpx' }),
       } as Partial<PlacesService>);
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).exportGpx(
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).exportGpx(
         user,
         '5',
         exportQuery,
@@ -330,7 +361,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'http://x' }),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importGoogle(user, '5', {
+            url: 'http://x',
+          }),
         ),
       ).toEqual({ status: 400, body: { error: 'List is empty' } });
     });
@@ -340,7 +373,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         broadcast: vi.fn(),
       } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).importNaver(user, '5', { url: 'http://x' }),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importNaver(user, '5', {
+          url: 'http://x',
+        }),
       ).toEqual({ places: [{ id: 1 }], count: 1, listName: 'Trip', skipped: 2 });
     });
     it('forwards the enrich flag + userId and broadcasts each imported place', async () => {
@@ -348,7 +383,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const broadcast = vi.fn();
       const s = svc({ importGoogleList, broadcast } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importGoogle(
           user,
           '5',
           { url: 'http://x', enrich: true },
@@ -369,7 +404,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const url = 'https://www.google.com/maps/dir/Berlin/Dresden/Prague';
 
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url }),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importGoogle(user, '5', { url }),
       ).toEqual({
         places: [{ id: 9 }],
         count: 1,
@@ -389,7 +424,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const importGoogleList = vi.fn().mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
       const s = svc({ importGoogleDirections, importGoogleList, broadcast: vi.fn() } as Partial<PlacesService>);
 
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', {
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importGoogle(user, '5', {
         url: 'https://maps.app.goo.gl/abc',
       });
       expect(importGoogleList).toHaveBeenCalled();
@@ -401,7 +436,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importGoogle(user, '5', { url: 'http://x' }),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importGoogle(user, '5', {
+            url: 'http://x',
+          }),
         ),
       ).toEqual({
         status: 400,
@@ -412,7 +449,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({ importNaverList: vi.fn().mockRejectedValue('weird') } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).importNaver(user, '5', { url: 'http://x' }),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).importNaver(user, '5', {
+            url: 'http://x',
+          }),
         ),
       ).toEqual({
         status: 400,
@@ -432,6 +471,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ removeMany } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).bulkDelete(user, '5', { ids: [] }),
       ).toEqual({ deleted: [], count: 0, tourPlaceIds: [] });
       expect(removeMany).not.toHaveBeenCalled();
@@ -441,7 +481,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const s = svc({ canEdit: vi.fn().mockReturnValue(false), removeMany } as Partial<PlacesService>);
       expect(
         await thrownAsync(() =>
-          new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(user, '5', { ids: [1] }),
+          new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkDelete(user, '5', { ids: [1] }),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
       expect(removeMany).not.toHaveBeenCalled();
@@ -457,7 +497,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const scopedIds = vi.fn().mockReturnValue([1, 2]);
       const s = svc({ removeMany, onDeleted, broadcast, scopedIds } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkDelete(
           user,
           '5',
           { ids: [1, 2] },
@@ -477,7 +517,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const scopedIds = vi.fn().mockReturnValue([1]);
       const onDeleted = vi.fn();
       const s = svc({ removeMany, scopedIds, onDeleted, broadcast: vi.fn() } as Partial<PlacesService>);
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(user, '5', { ids: [1, 99] });
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkDelete(user, '5', {
+        ids: [1, 99],
+      });
       expect(scopedIds).toHaveBeenCalledWith('5', [1, 99]);
       expect(onDeleted).toHaveBeenCalledTimes(1);
       expect(onDeleted).toHaveBeenCalledWith(1);
@@ -505,7 +547,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         scopedIds: vi.fn().mockReturnValue([1]),
         broadcast: vi.fn(),
       } as Partial<PlacesService>);
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(user, '5', { ids: [1] });
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkDelete(user, '5', { ids: [1] });
       expect(order).toEqual(['hook', 'delete']);
     });
 
@@ -517,7 +559,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const linkedExpenseIds = vi.fn().mockReturnValue([77]);
       const broadcast = vi.fn();
       const s = svc({ removeMany, linkedExpenseIds, broadcast } as Partial<PlacesService>);
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkDelete(
         user,
         '5',
         { ids: [1, 2] },
@@ -537,7 +579,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         .mockReturnValue({ deleted: [1], cancelled: { reservationIds: [12], budgetItemIds: [77] } });
       const broadcast = vi.fn();
       const s = svc({ removeMany, broadcast, scopedIds: vi.fn().mockReturnValue([1]) } as Partial<PlacesService>);
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkDelete(user, '5', { ids: [1] }, 'sock');
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkDelete(
+        user,
+        '5',
+        { ids: [1] },
+        'sock',
+      );
 
       // The place is the one change the tab made itself, so that echo stays
       // filtered. The booking and its expense went on the server alone.
@@ -555,6 +602,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).bulkUpdate(user, '5', { ids: [1], category_id: 3 }),
         ),
       ).toEqual({ status: 404, body: { error: 'Trip not found' } });
@@ -564,6 +612,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ canEdit: vi.fn().mockReturnValue(false) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).bulkUpdate(user, '5', { ids: [1], category_id: 3 }),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
@@ -574,7 +623,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     it('400 when no patch field is present', async () => {
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc(), new RuntimeEnvService(), storageStub).bulkUpdate(user, '5', { ids: [1] }),
+          new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).bulkUpdate(user, '5', {
+            ids: [1],
+          }),
         ),
       ).toEqual({ status: 400, body: { error: 'Provide at least one field to update' } });
     });
@@ -585,6 +636,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ updateMany } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).bulkUpdate(user, '5', { ids: [] }),
       ).toEqual({ updated: [], count: 0 });
       expect(updateMany).not.toHaveBeenCalled();
@@ -595,7 +647,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const broadcast = vi.fn();
       const s = svc({ updateMany, onUpdated, broadcast } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkUpdate(
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkUpdate(
           user,
           '5',
           { ids: [1, 2], category_id: 3 },
@@ -610,7 +662,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const updateMany = vi.fn().mockReturnValue([{ id: 1 }]);
       const s = svc({ updateMany } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).bulkUpdate(user, '5', {
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).bulkUpdate(user, '5', {
           ids: [1],
           category_id: null,
         }),
@@ -626,11 +678,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ get: vi.fn().mockReturnValue(undefined) } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).get(user, '5', '9'),
       ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
     const s = svc({ get: vi.fn().mockReturnValue({ id: 9 }) } as Partial<PlacesService>);
-    expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).get(user, '5', '9')).toEqual({
+    expect(await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).get(user, '5', '9')).toEqual({
       place: { id: 9 },
     });
   });
@@ -642,6 +695,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ update: vi.fn().mockReturnValue(null) } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).update(user, '5', '9', { name: 'X' }),
       ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -650,7 +704,13 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     const broadcast = vi.fn();
     const s = svc({ update, onUpdated, broadcast } as Partial<PlacesService>);
     expect(
-      await new PlacesController(s, new RuntimeEnvService(), storageStub).update(user, '5', '9', { name: 'X' }, 'sock'),
+      await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).update(
+        user,
+        '5',
+        '9',
+        { name: 'X' },
+        'sock',
+      ),
     ).toEqual({ place: { id: 9 } });
     expect(onUpdated).toHaveBeenCalledWith(9);
   });
@@ -661,28 +721,28 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const err = { status: 400, body: { error: 'route_color must be a hex colour like #4f46e5' } };
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub).update(user, '5', '9', {
+          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub, kmlStub).update(user, '5', '9', {
             route_color: 'red',
           }),
         ),
       ).toEqual(err);
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub).update(user, '5', '9', {
+          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub, kmlStub).update(user, '5', '9', {
             route_color: '#12345',
           }),
         ),
       ).toEqual(err);
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub).update(user, '5', '9', {
+          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub, kmlStub).update(user, '5', '9', {
             route_color: 123,
           }),
         ),
       ).toEqual(err);
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub).create(user, '5', {
+          new PlacesController(svc({ canEdit }), new RuntimeEnvService(), storageStub, kmlStub).create(user, '5', {
             name: 'T',
             route_color: 'red',
           }),
@@ -696,7 +756,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const broadcast = vi.fn();
       const s = svc({ update, broadcast } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).update(
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).update(
           user,
           '5',
           '9',
@@ -717,6 +777,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
         svc({ update } as Partial<PlacesService>),
         new RuntimeEnvService(),
         storageStub,
+        kmlStub,
       ).update(user, '5', '9', { route_color: null });
       expect(update).toHaveBeenLastCalledWith('5', '9', expect.objectContaining({ route_color: null }), undefined);
     });
@@ -728,6 +789,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ update } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).update(user, '5', '9', { route_color: '#abc' }),
       ).toEqual({ place: { id: 9 } });
     });
@@ -745,7 +807,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     };
     const siteErr = { status: 400, body: { error: 'website must be an http or https URL' } };
     const ctl = (over: Partial<PlacesService> = {}) =>
-      new PlacesController(svc(over), new RuntimeEnvService(), storageStub);
+      new PlacesController(svc(over), new RuntimeEnvService(), storageStub, kmlStub);
 
     it('400s an image_url the marker builders were never meant to receive, before the permission check', async () => {
       const canEdit = vi.fn().mockReturnValue(false); // would 403 if it got that far
@@ -827,7 +889,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     const s = svc({ update, onUpdated, broadcast } as Partial<PlacesService>);
     expect(
       await thrownAsync(() =>
-        new PlacesController(s, new RuntimeEnvService(), storageStub).update(
+        new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).update(
           user,
           '5',
           '9',
@@ -854,6 +916,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
           svc({ remove, onDeleted } as Partial<PlacesService>),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).remove(user, '5', '9'),
       ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -867,10 +930,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       }),
       broadcast: vi.fn(),
     } as Partial<PlacesService>);
-    expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).remove(user, '5', '9')).toEqual({
-      success: true,
-      tourPlaceIds: [9],
-    });
+    expect(await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).remove(user, '5', '9')).toEqual(
+      {
+        success: true,
+        tourPlaceIds: [9],
+      },
+    );
   });
 
   it('requires place_edit for single Place/Tour deletion', () => {
@@ -893,7 +958,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       return { deleted: true, deletedTourPlaceIds: [], cancelled: { reservationIds: [], budgetItemIds: [] } };
     });
     const s = svc({ remove, onDeleted, broadcast: vi.fn() } as Partial<PlacesService>);
-    await new PlacesController(s, new RuntimeEnvService(), storageStub).remove(user, '5', '9');
+    await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).remove(user, '5', '9');
     expect(order).toEqual(['hook', 'delete']);
   });
 
@@ -904,7 +969,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     const remove = vi.fn().mockReturnValue({ deleted: true, cancelled: { reservationIds: [12], budgetItemIds: [77] } });
     const s = svc({ remove, broadcast, linkedExpenseIds: vi.fn().mockReturnValue([]) } as Partial<PlacesService>);
 
-    await new PlacesController(s, new RuntimeEnvService(), storageStub).remove(user, '5', '9', 'sock');
+    await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).remove(user, '5', '9', 'sock');
 
     // The place echo stays filtered by the socket id; the booking and the
     // expense are sent to the deleting tab as well, because that tab only
@@ -923,7 +988,9 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     const remove = vi.fn();
     const s = svc({ get: vi.fn().mockReturnValue(null), onDeleted, remove } as Partial<PlacesService>);
     expect(
-      await thrownAsync(() => new PlacesController(s, new RuntimeEnvService(), storageStub).remove(user, '5', '99')),
+      await thrownAsync(() =>
+        new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).remove(user, '5', '99'),
+      ),
     ).toEqual({ status: 404, body: { error: 'Place not found' } });
     expect(onDeleted).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
@@ -931,25 +998,31 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
 
   it('GET /:id/image maps service error + returns photos', async () => {
     const s = svc({ searchImage: vi.fn().mockResolvedValue({ photos: [{ url: 'x' }] }) } as Partial<PlacesService>);
-    expect(await new PlacesController(s, new RuntimeEnvService(), storageStub).image(user, '5', '9')).toEqual({
+    expect(await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).image(user, '5', '9')).toEqual({
       photos: [{ url: 'x' }],
     });
     const e = svc({ searchImage: vi.fn().mockRejectedValue(new DomainError(400, 'No key')) } as Partial<PlacesService>);
     expect(
-      await thrownAsync(() => new PlacesController(e, new RuntimeEnvService(), storageStub).image(user, '5', '9')),
+      await thrownAsync(() =>
+        new PlacesController(e, new RuntimeEnvService(), storageStub, kmlStub).image(user, '5', '9'),
+      ),
     ).toEqual({ status: 400, body: { error: 'No key' } });
   });
 
   it('GET /:id/image turns an unexpected throw into a 500, but re-throws an HttpException as-is', async () => {
     const boom = svc({ searchImage: vi.fn().mockRejectedValue(new Error('Unsplash down')) } as Partial<PlacesService>);
     expect(
-      await thrownAsync(() => new PlacesController(boom, new RuntimeEnvService(), storageStub).image(user, '5', '9')),
+      await thrownAsync(() =>
+        new PlacesController(boom, new RuntimeEnvService(), storageStub, kmlStub).image(user, '5', '9'),
+      ),
     ).toEqual({ status: 500, body: { error: 'Error searching for image' } });
     const http = svc({
       searchImage: vi.fn().mockRejectedValue(new HttpException({ error: 'rate limited' }, 429)),
     } as Partial<PlacesService>);
     expect(
-      await thrownAsync(() => new PlacesController(http, new RuntimeEnvService(), storageStub).image(user, '5', '9')),
+      await thrownAsync(() =>
+        new PlacesController(http, new RuntimeEnvService(), storageStub, kmlStub).image(user, '5', '9'),
+      ),
     ).toEqual({ status: 429, body: { error: 'rate limited' } });
   });
 
@@ -963,6 +1036,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).uploadImage(user, '5', '9', file),
         ),
       ).toEqual({ status: 404, body: { error: 'Trip not found' } });
@@ -972,6 +1046,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ canEdit: vi.fn().mockReturnValue(false) }),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).uploadImage(user, '5', '9', file),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
@@ -980,7 +1055,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
     it('400 when no file was uploaded', async () => {
       expect(
         await thrownAsync(() =>
-          new PlacesController(svc(), new RuntimeEnvService(), storageStub).uploadImage(user, '5', '9', undefined),
+          new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).uploadImage(
+            user,
+            '5',
+            '9',
+            undefined,
+          ),
         ),
       ).toEqual({ status: 400, body: { error: 'No image uploaded' } });
     });
@@ -992,6 +1072,7 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
             svc({ update: vi.fn().mockReturnValue(null) } as Partial<PlacesService>),
             new RuntimeEnvService(),
             storageStub,
+            kmlStub,
           ).uploadImage(user, '5', '9', file),
         ),
       ).toEqual({ status: 404, body: { error: 'Place not found' } });
@@ -1003,7 +1084,13 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       const broadcast = vi.fn();
       const s = svc({ update, onUpdated, broadcast } as Partial<PlacesService>);
       expect(
-        await new PlacesController(s, new RuntimeEnvService(), storageStub).uploadImage(user, '5', '9', file, 'sock'),
+        await new PlacesController(s, new RuntimeEnvService(), storageStub, kmlStub).uploadImage(
+          user,
+          '5',
+          '9',
+          file,
+          'sock',
+        ),
       ).toEqual({ place: { id: 9 } });
       expect(storageStub.put).toHaveBeenCalledWith('places', 'abc.jpg', { tmpPath: undefined });
       expect(update).toHaveBeenCalledWith('5', '9', { image_url: '/uploads/places/abc.jpg' });
@@ -1018,7 +1105,12 @@ describe('PlacesController (parity with the legacy /api/trips/:tripId/places rou
       try {
         expect(
           await thrownAsync(() =>
-            new PlacesController(svc(), new RuntimeEnvService(), storageStub).uploadImage(demo, '5', '9', file),
+            new PlacesController(svc(), new RuntimeEnvService(), storageStub, kmlStub).uploadImage(
+              demo,
+              '5',
+              '9',
+              file,
+            ),
           ),
         ).toEqual({
           status: 403,
@@ -1038,6 +1130,7 @@ describe('PUT /:id/image/from-file (#1242)', () => {
         svc({ setImageFromFile: vi.fn().mockResolvedValue(result), ...extra } as Partial<PlacesService>),
         new RuntimeEnvService(),
         storageStub,
+        kmlStub,
       );
     expect(await thrownAsync(() => make('not_found').imageFromFile(user, '5', '9', { file_id: 3 }))).toEqual({
       status: 404,
@@ -1077,6 +1170,7 @@ describe('PUT /:id/image/from-file (#1242)', () => {
           svc({ canEdit: vi.fn().mockReturnValue(false) }),
           new RuntimeEnvService(),
           storageStub,
+          kmlStub,
         ).imageFromFile(user, '5', '9', { file_id: 3 }),
       ),
     ).toEqual({ status: 403, body: { error: 'No permission' } });

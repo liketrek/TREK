@@ -1,5 +1,3 @@
-import { useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import TransitJourneyModal from '../../../../components/Planner/TransitJourneyModal'
 import BookingImportModal from '../../../../components/Planner/BookingImportModal'
 import AirTrailImportModal from '../../../../components/Planner/AirTrailImportModal'
@@ -7,6 +5,8 @@ import TourDetailDialog from '../../../../components/Tours/TourDetailDialog'
 import { useBookingExpenseEditor } from '../../../../pages/tripPlanner/useBookingExpenseEditor'
 import { applyTripCoverUpdate } from '../../../../pages/tripPlanner/tripCover'
 import { latestReservation } from '../../../../pages/tripPlanner/transportEditorOpeners'
+import { useTourDetailActions } from '../../../../pages/tripPlanner/useTourDetailActions'
+import { useIsWide } from '../../../../hooks/sizeClass'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MDayImpactList from '../../../components/MDayImpactList'
 import MDaySheet from './MDaySheet'
@@ -27,68 +27,57 @@ import MMehrSheet from './MMehrSheet'
 import MTripSettingsSheet from './MTripSettingsSheet'
 import MNewTripSheet from '../../dashboard/MNewTripSheet'
 import MAssistantScreen from '../assistant/MAssistantScreen'
-import MPlacesFilterSheet from '../places/MPlacesFilterSheet'
 import MRtStopSheet from '../roadtrip/MRtStopSheet'
 import MRtStaySheet from '../roadtrip/MRtStaySheet'
 import MRtKindSheet from '../roadtrip/MRtKindSheet'
 import MRtInfoSheet from '../roadtrip/MRtInfoSheet'
+import MRtTrackSheet from '../roadtrip/MRtTrackSheet'
 import MRtCorridorSheet from '../roadtrip/MRtCorridorSheet'
 import MRtDraftSheet from '../roadtrip/MRtDraftSheet'
 import type { MTripSheetsProps } from '../MTripShell'
-import { lockBodyScroll } from '../../../../utils/bodyScrollLock'
-import { focusDialog, trapTab } from '../../../../components/shared/dialogFocus'
+import MTourDetailShell from './MTourDetailShell'
+import { TourSheetOpen } from './tourSheetOpen'
+import { useLastOpen } from '../../../../components/shared/usePresence'
 
-/** The one global mobile tour-detail owner, independent of which surface selected it. */
+/**
+ * The one global mobile tour-detail owner, independent of which surface
+ * selected it. The tour shows in a sheet like every other detail
+ * (MTourDetailShell); it keeps the tour it showed last while it slides away.
+ *
+ * On the phone it reads, and plans the tour onto a day. On an iPad or an
+ * unfolded Duo it edits what the desktop's tour card edits, through the same
+ * useTourDetailActions: the name and colour, a copy saved as a new tour, the
+ * recorded tracks, the packing list it points at and its files.
+ */
 export function MSelectedTourDetail({ planner }: Pick<MTripSheetsProps, 'planner'>) {
-  const panelRef = useRef<HTMLDivElement>(null)
-  const selectedTourId = planner.selectedTour?.place_id ?? null
-  const selectedPlaceId = planner.selectedPlace?.id ?? null
-  useEffect(() => {
-    if (selectedTourId == null || selectedPlaceId == null) return
-    const previous = document.activeElement as HTMLElement | null
-    const release = lockBodyScroll()
-    const panel = panelRef.current
-    if (panel) focusDialog(panel)
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return
-      const openPanels = document.querySelectorAll('[data-m-sheet="open"]')
-      if (openPanels.length && openPanels[openPanels.length - 1] !== panel) return
-      event.preventDefault()
-      planner.setSelectedPlaceId(null)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      release()
-      if (previous?.isConnected) previous.focus()
-    }
-  }, [planner.setSelectedPlaceId, selectedPlaceId, selectedTourId])
+  const open = !!(planner.selectedTour && planner.selectedPlace)
+  const tour = useLastOpen(planner.selectedTour, open)
+  const place = useLastOpen(planner.selectedPlace, open)
+  const actions = useTourDetailActions(planner)
+  const canEdit = useIsWide() && planner.can('place_edit', planner.trip)
+  if (!tour || !place) return null
 
-  if (!planner.selectedTour || !planner.selectedPlace) return null
-
-  return createPortal(
-    <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} role="presentation" onClick={() => planner.setSelectedPlaceId(null)}>
-      <div ref={panelRef} style={{ width: '100%', maxHeight: '85vh' }} role="dialog" aria-modal="true" aria-label={planner.selectedPlace.name}
-        data-m-sheet="open"
-        tabIndex={-1} onClick={event => event.stopPropagation()} onKeyDown={event => trapTab(event, panelRef.current!)}>
-        <TourDetailDialog
-          tour={planner.selectedTour}
-          place={planner.selectedPlace}
-          days={planner.days}
-          selectedDayId={planner.selectedDayId}
-          selectedAssignmentId={planner.selectedAssignmentId}
-          assignments={planner.assignments}
-          files={planner.files}
-          readOnly
-          canEdit={false}
-          canAssign={planner.can('day_edit', planner.trip)}
-          onClose={() => planner.setSelectedPlaceId(null)}
-          onAssignToDay={planner.handleAssignToDay}
-          onRemoveAssignment={planner.handleRemoveAssignment}
-        />
-      </div>
-    </div>,
-    document.body,
+  return (
+    <TourSheetOpen.Provider value={{ open, label: place.name }}>
+      <TourDetailDialog
+        shell={MTourDetailShell}
+        tour={tour}
+        place={place}
+        days={planner.days}
+        selectedDayId={planner.selectedDayId}
+        selectedAssignmentId={planner.selectedAssignmentId}
+        assignments={planner.assignments}
+        files={planner.files}
+        {...(canEdit ? actions : {})}
+        readOnly={!canEdit}
+        canEdit={canEdit}
+        canAssign={planner.can('day_edit', planner.trip)}
+        onFileUpload={canEdit && planner.canUploadFiles ? (fd: FormData) => planner.tripActions.addFile(planner.tripId, fd) : undefined}
+        onClose={() => planner.setSelectedPlaceId(null)}
+        onAssignToDay={planner.handleAssignToDay}
+        onRemoveAssignment={planner.handleRemoveAssignment}
+      />
+    </TourSheetOpen.Provider>
   )
 }
 
@@ -132,6 +121,7 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
       <MRtStaySheet planner={planner} shell={shell} />
       <MRtKindSheet planner={planner} shell={shell} />
       <MRtInfoSheet planner={planner} shell={shell} />
+      <MRtTrackSheet planner={planner} shell={shell} />
       {/* Before the draft sheet, not after: both sit at the same z, so the one mounted
           later paints on top, and taking a hit onto the trip opens the draft OVER the
           search it came from. */}
@@ -145,13 +135,6 @@ export default function MTripSheets({ planner, shell }: MTripSheetsProps) {
         onClose={shell.closeSheet}
       />
       <MImportSheet planner={planner} open={sheet?.id === 'import'} onClose={shell.closeSheet} />
-      <MPlacesFilterSheet
-        open={sheet?.id === 'placesFilter'}
-        onClose={shell.closeSheet}
-        places={planner.places}
-        categories={planner.categories}
-        toursEnabled={planner.toursEnabled}
-      />
 
       {/* ── Planner-flag editors (also serve ?create= and the import review) ── */}
       <MPlaceEditSheet planner={planner} onOpenExpense={openBookingExpense} />

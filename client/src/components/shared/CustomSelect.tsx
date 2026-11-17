@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 import { useAnchoredPosition, scrollAnchorIntoView } from '../../hooks/useAnchoredPosition'
 import { useTranslation } from '../../i18n'
+import { selectionHaptic } from '../../native/haptics'
 
 interface SelectOption {
   // Callers use both string keys and numeric ids (e.g. day/place ids) as values, and
@@ -186,6 +187,7 @@ export default function CustomSelect({
       <button
         ref={triggerRef}
         id={id}
+        data-field-trigger=""
         type="button"
         aria-label={ariaLabel}
         aria-expanded={open}
@@ -260,7 +262,7 @@ export default function CustomSelect({
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder={t('common.search')}
+                enterKeyHint="search" placeholder={t('common.search')}
                 aria-label={t('common.search')}
                 style={{
                   width: '100%', border: '1px solid var(--border-secondary)', borderRadius: 6,
@@ -304,7 +306,7 @@ export default function CustomSelect({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => { onChange(option.value); closeMenu() }}
+                    onClick={() => { if (!isSelected) selectionHaptic(); onChange(option.value); closeMenu() }}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                       padding: '7px 10px', borderRadius: 6,

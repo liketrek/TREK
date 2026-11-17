@@ -6,7 +6,7 @@ import { useDawarichConnection } from '../../hooks/useDawarichConnection'
 import DawarichIcon from '../shared/DawarichIcon'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, StatusPill } from './settingsKit'
 import { EditorField, GRID_2, INPUT } from '../shared/dialogParts'
 import { fs } from '../shared/DialogShell'
 
@@ -29,15 +29,17 @@ export default function DawarichConnectionSection(): React.ReactElement {
 
   return (
     <Section
+      id="dawarich"
       title={t('dawarich.title')}
+      hint={t('dawarich.intro')}
       icon={DawarichIcon}
+      iconFill
       badge={
         <StatusPill tone={S.connected ? 'success' : 'neutral'} icon={<span className="h-1.5 w-1.5 rounded-full bg-current" />}>
           {S.connected ? t('dawarich.connected') : t('dawarich.notConnected')}
         </StatusPill>
       }
     >
-      <SettingsHint>{t('dawarich.intro')}</SettingsHint>
 
       <div className={GRID_2}>
         <EditorField label={t('dawarich.url')} htmlFor="dawarich-url">

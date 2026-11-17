@@ -23,6 +23,7 @@
  * standalone PWA. An overlay with a `srcdoc` iframe works everywhere.
  */
 
+import { loadPrintImages } from './printImages'
 import { whenReady } from './printReady'
 
 /*
@@ -248,7 +249,11 @@ ${singleRule(input)}
 
   iframe.addEventListener('load', () => {
     fitPreview()
-    void whenReady(iframe).then(() => {
+    const frameDoc = iframe.contentDocument
+    const photos = frameDoc ? loadPrintImages(frameDoc, {
+      onProgress: (done, total) => { save.textContent = `${input.labels.preparing} ${done}/${total}` },
+    }) : Promise.resolve()
+    void photos.then(() => whenReady(iframe)).then(() => {
       save.disabled = false
       save.textContent = input.labels.save
     })

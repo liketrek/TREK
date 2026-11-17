@@ -9,6 +9,7 @@ import { useDateFormat } from '../../hooks/useDateFormat';
 import { useRemeasureSignal } from '../../hooks/useAnchoredPosition';
 import { useWeekStartDay } from '../../hooks/useWeekStartDay';
 import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek';
+import { selectionHaptic } from '../../native/haptics';
 
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
@@ -178,6 +179,7 @@ export function CustomDatePicker({
     const d = String(day).padStart(2, '0');
     const iso = `${y}-${m}-${d}`;
     if (isOutOfRange(iso)) return;
+    if (iso !== value) selectionHaptic();
     onChange(iso);
     setOpen(false);
   };
@@ -298,6 +300,7 @@ export function CustomDatePicker({
         <div style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
           {/* Calendar trigger */}
           <button
+            data-field-trigger={compact || borderless ? undefined : ''}
             type="button"
             onClick={() => setOpen((o) => !o)}
             disabled={disabled}
@@ -345,6 +348,7 @@ export function CustomDatePicker({
           {/* Keyboard / text-input trigger (non-compact only; compact gets it in the popup footer) */}
           {!compact && !borderless && (
             <button
+              data-field-trigger=""
               type="button"
               onClick={() => {
                 setTextInput(inputValue || '');

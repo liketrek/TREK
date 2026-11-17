@@ -1,4 +1,4 @@
-import { Check, Loader2, MapPin, Search, X } from 'lucide-react'
+import { Check, Loader2, MapPin, Search, X, MapPinPlus } from 'lucide-react'
 import type { Category, TranslationFn } from '../../../types'
 import { STATUS_ORDER } from '../../../pages/collections/collectionsModel'
 import MSheet from '../../components/MSheet'
@@ -32,9 +32,10 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
   } = useAddPlaceToCollection({ variant: 'sheet', open, collectionId, collectionName, lists, t, onClose, onAdded })
 
   return (
-    <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={t('collections.addPlace')}>
-      <SheetHeader title={t('collections.addPlace')} onClose={onClose} closeLabel={t('common.close')} />
-      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-[14px]">
+    <MSheet open={open} onClose={onClose} material="glass" ariaLabel={t('collections.addPlace')}>
+      <SheetHeader
+        icon={<MapPinPlus size={19} strokeWidth={1.8} />} title={t('collections.addPlace')} onClose={onClose} closeLabel={t('common.close')} />
+      <div className="m-scroll-fade min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         {/* List picker — only when opened without a fixed target list */}
         {collectionId == null && (
           <div className="mb-[14px]">
@@ -65,20 +66,20 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
           </div>
         )}
         {/* Search — picking a result fills the location */}
-        <div className="flex items-center gap-2 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] py-1 ps-[13px] pe-[6px]">
+        <div className="flex h-[42px] items-center gap-2 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] pe-1 ps-[14px]">
           <Search size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
-            placeholder={t('collections.addPlaceSearch')}
-            className="min-w-0 flex-1 bg-transparent py-2 font-[inherit] text-[0.8125rem] text-m-ink outline-none placeholder:text-m-faint"
+            enterKeyHint="search" placeholder={t('collections.addPlaceSearch')}
+            className="min-w-0 flex-1 bg-transparent font-[inherit] text-[0.8125rem] text-m-ink outline-none placeholder:text-m-faint"
           />
           <button
             type="button"
             onClick={search}
             disabled={!query.trim() || searching}
-            className="flex h-8 flex-none items-center gap-[5px] rounded-[10px] bg-m-act px-[14px] text-[0.75rem] font-bold text-m-actfg disabled:opacity-40"
+            className="flex h-[34px] flex-none items-center gap-[5px] rounded-full bg-m-act px-[14px] text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold text-m-actfg disabled:opacity-40"
           >
             {searching ? <Loader2 size={13} className="animate-spin" /> : null}
             {t('common.search')}
@@ -98,8 +99,8 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
                   <MapPin size={14} strokeWidth={2.2} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{str(r.name)}</span>
-                  {str(r.address) && <span className="block truncate font-geist text-[0.625rem] text-m-muted">{str(r.address)}</span>}
+                  <span dir="auto" className="block truncate text-[0.8125rem] font-semibold text-m-ink">{str(r.name)}</span>
+                  {str(r.address) && <span dir="auto" className="block truncate font-geist text-[0.625rem] text-m-muted">{str(r.address)}</span>}
                 </span>
               </button>
             ))}
@@ -118,7 +119,8 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
         <MCollCategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} t={t} />
 
         <Eyebrow className="mb-[6px] mt-[14px]">{t('mobileCollections.status').toUpperCase()}</Eyebrow>
-        <div className="flex gap-[6px]">
+        {/* Two by two on a phone, so every status label keeps its room */}
+        <div className="grid grid-cols-2 gap-[6px] wide:grid-cols-4">
           {STATUS_ORDER.map(s => {
             const meta = STATUS_SPEC[s]
             const Icon = meta.icon
@@ -129,7 +131,7 @@ export default function MCollAddSheet({ open, collectionId, collectionName, list
                 type="button"
                 onClick={() => setStatus(s)}
                 aria-pressed={on}
-                className={`flex flex-1 items-center justify-center gap-[5px] rounded-full py-2 text-[0.71875rem] font-bold ${
+                className={`flex h-[42px] min-w-0 flex-1 items-center justify-center gap-[5px] rounded-full text-[0.71875rem] font-bold ${
                   on ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
                 }`}
               >

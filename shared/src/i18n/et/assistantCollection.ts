@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Teisalda nimekirja {name}',
   'assistant.card.collection.removed': 'Nimekirjast eemaldatud',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Kaardikirje',
   'assistant.card.collection.places': 'Salvestatud kohad nimekirjas {name}',
   'assistant.card.collection.saved': 'Salvestatud kohad',
   'assistant.card.collection.statusSet': '{count} salvestatud kohta muudetud',

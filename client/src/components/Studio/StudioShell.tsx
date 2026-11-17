@@ -21,6 +21,7 @@ import { NewerBookOverlay } from './SaveIndicator'
 import { StudioNotices } from './StudioNotices'
 import '../../styles/dashboard.css'
 import '../../styles/studio.css'
+import '../../styles/studio-floating.css'
 import './bookFontFaces'
 import { useWarmBookFaces } from './bookFontWarm'
 

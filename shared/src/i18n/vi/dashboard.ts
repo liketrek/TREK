@@ -219,5 +219,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Thêm vào Lịch Apple / Outlook',
   'dashboard.ics.copyManually': 'Hoặc sao chép liên kết thủ công',
   'dashboard.ics.pasteFromUrl': 'dán vào “Từ URL”',
+  'dashboard.ics.dayEvents': 'Sự kiện tóm tắt ngày',
+  'dashboard.ics.dayEventsHint':
+    'Một sự kiện cả ngày cho mỗi ngày với các địa điểm và ghi chú không có giờ. Thay đổi tùy chọn này sẽ đổi liên kết, vì vậy hãy đăng ký lại bằng liên kết mới.',
 };
 export default dashboard;

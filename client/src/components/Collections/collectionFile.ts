@@ -6,6 +6,7 @@ import {
   type CollectionGpxProblem,
   type CollectionGpxReadResult,
 } from '@trek/shared'
+import { downloadBlob } from '../../utils/fileDownload'
 
 /**
  * The browser half of list export and import (#2198, #2301).
@@ -26,9 +27,13 @@ import {
 
 export const COLLECTION_FILE_EXTENSION = '.trekcollection.json'
 export const COLLECTION_GPX_EXTENSION = '.gpx'
+export const COLLECTION_KML_EXTENSION = '.kml'
 
-/** The two ways a list can leave: whole, for another TREK, or as waypoints for everything else. */
-export type CollectionExportFormat = 'trek' | 'gpx'
+/**
+ * The ways a list can leave: whole, for another TREK, as waypoints for every
+ * other map app, or as pins for Google My Maps (#1866).
+ */
+export type CollectionExportFormat = 'trek' | 'gpx' | 'kml'
 
 /** A file name from a list name: lowercase, ascii-ish, short. */
 export function collectionFileName(name: string, extension = COLLECTION_FILE_EXTENSION): string {
@@ -37,16 +42,7 @@ export function collectionFileName(name: string, extension = COLLECTION_FILE_EXT
 }
 
 function download(content: string, type: string, fileName: string): void {
-  const url = URL.createObjectURL(new Blob([content], { type }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // Revoked on the next tick: revoking synchronously can cancel the download
-  // in some browsers before it has started reading the blob.
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  downloadBlob(new Blob([content], { type }), fileName)
 }
 
 /** Hand the file to the browser as a download. */
@@ -57,6 +53,11 @@ export function downloadCollectionFile(file: CollectionFile): void {
 /** Hand a list's GPX to the browser as a download, named like its list file would be. */
 export function downloadCollectionGpx(listName: string, gpx: string): void {
   download(gpx, 'application/gpx+xml', collectionFileName(listName, COLLECTION_GPX_EXTENSION))
+}
+
+/** Hand a list's KML to the browser as a download, named the same way. */
+export function downloadCollectionKml(listName: string, kml: string): void {
+  download(kml, 'application/vnd.google-earth.kml+xml', collectionFileName(listName, COLLECTION_KML_EXTENSION))
 }
 
 export type CollectionFileError = 'not-a-collection' | CollectionGpxProblem

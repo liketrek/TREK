@@ -2,11 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, ChevronUp, ImagePlus, Loader2, Reply, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
 import CollabAssistantBadge from '../../../../components/Collab/CollabAssistantBadge'
 import { useCollabChatData } from '../../../../components/Collab/useCollabChatData'
 import { useAuthStore } from '../../../../store/authStore'
+import { useKeyboardInset } from '../../../../hooks/useKeyboardInset'
+import MImageViewer from '../../../components/MImageViewer'
 import { useTranslation } from '../../../../i18n'
 import type { TripPlanner } from '../MTripShell'
+import { pressHaptic } from '../../../../native/haptics'
 import {
   OTHER_BUBBLE_RADIUS,
   OWN_BUBBLE_RADIUS,
@@ -53,10 +57,20 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
 
   const {
     messages, loading, hasMore, loadingMore, text, replyTo, setReplyTo, sending, images,
-    scrollRef, textareaRef, checkAtBottom, handleLoadMore, handleTextChange, addImageFiles, handleSend,
+    scrollRef, textareaRef, isAtBottom, scrollToBottom, checkAtBottom, handleLoadMore, handleTextChange, addImageFiles, handleSend,
     deleteMessage, reactToMessage,
   } = useCollabChatData({ tripId, t, toast, toastLoadMoreErrors: true, canSend: canEdit })
+  // The trip shell is a fixed layer the app's keyboard does not shrink, so the
+  // composer is lifted by the keyboard itself; reading the latest message, the
+  // list follows it up.
+  const keyboard = useKeyboardInset()
+  useEffect(() => {
+    if (keyboard > 0 && isAtBottom.current) scrollToBottom()
+  }, [keyboard, isAtBottom, scrollToBottom])
   const [popover, setPopover] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null)
+  const [viewing, setViewing] = useState<{ src: string; alt: string } | null>(null)
+  const [list, setList] = useState<HTMLDivElement | null>(null)
+  const listFade = useEdgeFade(list, 'y')
   const imageInputRef = useRef<HTMLInputElement>(null)
 
   const handleDelete = useCallback(async (msgId: number) => {
@@ -76,7 +90,10 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
   }
 
   return (
-    <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+    <div
+      className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:mx-auto wide:w-full wide:max-w-[808px] wide:px-6 wide:pb-[calc(var(--bottom-nav-h,0px)+12px)]"
+      style={keyboard > 0 ? { paddingBottom: keyboard + 8 } : undefined}
+    >
       {loading ? (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 size={22} strokeWidth={2} className="animate-spin text-m-faint" />
@@ -87,7 +104,14 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('collab.chat.empty')}</p>
         </div>
       ) : (
-        <div ref={scrollRef} onScroll={checkAtBottom} className="mt-3 min-h-0 flex-1 overflow-y-auto">
+        // The list ends under the floating controls, and a message scrolled past that
+        // edge fades out there instead of being cut through a line of its text or
+        // left as a sliver of a bubble under the controls.
+        <div
+          ref={el => { scrollRef.current = el; setList(el) }}
+          onScroll={checkAtBottom}
+          className={`mt-3 min-h-0 flex-1 overflow-y-auto [--m-fade-reach-y:32px] ${edgeFadeClass(listFade, 'y')}`}
+        >
           {hasMore && (
             <div className="flex justify-center pb-[10px]">
               <button
@@ -136,6 +160,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
                     t={t}
                     onOpenActions={(x, y) => setPopover({ msg, x, y })}
                     onReactBadgeTap={emoji => canEdit && handleReact(msg.id, emoji)}
+                    onOpenImage={setViewing}
                   />
                 )}
               </div>
@@ -181,6 +206,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
             </button>
             <textarea
               ref={textareaRef}
+              dir="auto"
               rows={1}
               value={text}
               onChange={handleTextChange}
@@ -207,6 +233,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
         )}
       </div>
 
+      {viewing && <MImageViewer src={viewing.src} alt={viewing.alt} onClose={() => setViewing(null)} />}
       {popover && (
         <MessageActionsPopover
           x={popover.x}
@@ -225,7 +252,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
 
 /* ------------------------------------------------------------------ */
 
-function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, canEdit, t, onOpenActions, onReactBadgeTap }: {
+function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, canEdit, t, onOpenActions, onReactBadgeTap, onOpenImage }: {
   msg: ChatMessage
   own: boolean
   showHeader: boolean
@@ -236,6 +263,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
   t: TripPlanner['t']
   onOpenActions: (x: number, y: number) => void
   onReactBadgeTap: (emoji: string) => void
+  onOpenImage: (image: { src: string; alt: string }) => void
 }) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const firedRef = useRef(false)
@@ -252,6 +280,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
     startRef.current = { x: e.clientX, y: e.clientY }
     pressTimer.current = setTimeout(() => {
       firedRef.current = true
+      pressHaptic()
       onOpenActions(e.clientX, e.clientY)
     }, LONG_PRESS_MS)
   }
@@ -310,7 +339,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
           </span>
         )}
 
-        <button
+        {bubbleShown(msg, bigEmoji, hasReply) && <button
           type="button"
           aria-label={canEdit ? t('collab.chat.messageOptions') : undefined}
           onPointerDown={onPointerDown}
@@ -331,16 +360,22 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
               {hasReply && (
                 <div className="mb-1 rounded-[10px] bg-[color:var(--m-card)] px-[10px] py-[5px]">
                   <div className="font-geist text-[0.625rem] font-bold opacity-70">{msg.reply_username}</div>
-                  <div className="line-clamp-2 text-[0.71875rem] opacity-80">{msg.reply_text?.slice(0, 80)}</div>
+                  <div dir="auto" className="line-clamp-2 text-[0.71875rem] opacity-80">{msg.reply_text?.slice(0, 80)}</div>
                 </div>
               )}
-              <span className="whitespace-pre-wrap break-words">{msg.text}</span>
-              {msg.attachments?.map(att => (
-                <img key={att.id} src={att.url} alt={att.original_name || ''} className="mt-2 max-h-52 w-full rounded-[10px] object-cover" />
-              ))}
+              <span dir="auto" className="whitespace-pre-wrap break-words">{msg.text}</span>
             </div>
           )}
-        </button>
+        </button>}
+
+        {/* Below the bubble rather than in it: the bubble is the long-press target,
+            and an image is tapped to be seen large (MImageViewer). */}
+        <ChatImages
+          attachments={msg.attachments}
+          t={t}
+          press={{ onPointerDown, onPointerMove, clearPress, fired: firedRef }}
+          onOpen={onOpenImage}
+        />
 
         {msg.reactions.length > 0 && (
           <div className="mt-[-4px] flex flex-wrap gap-[3px] px-1">
@@ -365,6 +400,50 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
         )}
       </div>
     </div>
+  )
+}
+
+/** A message has a bubble unless it is a picture alone. */
+function bubbleShown(msg: ChatMessage, bigEmoji: boolean, hasReply: boolean): boolean {
+  return bigEmoji || hasReply || !!msg.text?.trim()
+}
+
+/** A message's pictures, each opened large on a tap; a long press opens the message's actions, as on the bubble. */
+function ChatImages({ attachments, t, press, onOpen }: {
+  attachments: ChatMessage['attachments']
+  t: TripPlanner['t']
+  press: {
+    onPointerDown: (e: React.PointerEvent) => void
+    onPointerMove: (e: React.PointerEvent) => void
+    clearPress: () => void
+    fired: React.RefObject<boolean>
+  }
+  onOpen: (image: { src: string; alt: string }) => void
+}) {
+  if (!attachments?.length) return null
+  return (
+    <>
+      {attachments.map(att => {
+        const alt = att.original_name || t('collab.chat.attachedImage')
+        return (
+          <button
+            key={att.id}
+            type="button"
+            onPointerDown={press.onPointerDown}
+            onPointerMove={press.onPointerMove}
+            onPointerUp={press.clearPress}
+            onPointerCancel={press.clearPress}
+            onClick={() => {
+              if (!press.fired.current) onOpen({ src: att.url, alt })
+            }}
+            aria-label={alt}
+            className="mt-1 block w-full max-w-[260px] overflow-hidden rounded-[12px]"
+          >
+            <img src={att.url} alt="" className="max-h-52 w-full object-cover" />
+          </button>
+        )
+      })}
+    </>
   )
 }
 

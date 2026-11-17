@@ -33,7 +33,8 @@ export default function AddonSubRow({
   onToggle: () => void
 }) {
   return (
-    <li className="flex min-h-[44px] items-center gap-2.5 px-3 py-1.5">
+    // Indented under the addon's name (16 + 32 + 12 px), one step quieter than it.
+    <li className="flex min-h-[44px] items-center gap-2.5 py-1.5 pe-4 ps-[60px]">
       {icon
         ? <span className={`grid h-6 w-6 flex-none place-items-center ${enabled ? 'text-content-muted' : 'text-content-faint'}`}>{icon}</span>
         : <span className="w-6 flex-none" aria-hidden />}

@@ -634,3 +634,51 @@ describe('kitinerary mapper: a prompt-shaped AI lodging (#2477)', () => {
     });
   });
 });
+
+describe('kitinerary mapper: the seat as KItinerary writes it', () => {
+  it('reads a flight seat from airplaneSeat', () => {
+    const node = {
+      ...flight('CE9P8V', SFO, JFK, '2026-06-11T10:00:00', '2026-06-11T18:30:00', '450'),
+      airplaneSeat: '4D',
+    };
+    const { items } = mapReservations(legs(node), 'test.json');
+    expect(items[0].metadata).toMatchObject({ seat: '4D' });
+  });
+
+  it('reads a seat from reservedTicket.ticketedSeat.seatNumber', () => {
+    const node = {
+      ...flight('CE9P8V', SFO, JFK, '2026-06-11T10:00:00', '2026-06-11T18:30:00', '450'),
+      reservedTicket: { ticketedSeat: { seatNumber: '23A' } },
+    };
+    const { items } = mapReservations(legs(node), 'test.json');
+    expect(items[0].metadata).toMatchObject({ seat: '23A' });
+  });
+});
+
+describe('kitinerary mapper: the seat on each leg of a connecting flight', () => {
+  it('keeps every leg its own seat', () => {
+    const first = {
+      ...flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'),
+      airplaneSeat: '12C',
+    };
+    const second = {
+      ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
+      airplaneSeat: '40A',
+    };
+    const { items } = mapReservations(legs(first, second), 'test.json');
+    const legsMeta = (items[0].metadata as { legs: { seat?: string }[] }).legs;
+    expect(legsMeta.map((leg) => leg.seat)).toEqual(['12C', '40A']);
+  });
+
+  it('leaves the seat off a leg that has none', () => {
+    const first = flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100');
+    const second = {
+      ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
+      airplaneSeat: '40A',
+    };
+    const { items } = mapReservations(legs(first, second), 'test.json');
+    const legsMeta = (items[0].metadata as { legs: Record<string, unknown>[] }).legs;
+    expect(legsMeta[0]).not.toHaveProperty('seat');
+    expect(legsMeta[1]).toMatchObject({ seat: '40A' });
+  });
+});

@@ -36,17 +36,29 @@ fi
 # which on a large or network-backed one (NFS, CephFS, Longhorn) kept the
 # container busy for minutes before Node printed its first line (#2918). So only
 # the dir and what sits directly in it are looked at: a volume that is not
-# node's yet (a fresh one, or one copied in as root) shows there, and is handed
-# over once. A volume that refuses chown altogether (NFS with root_squash) is
-# said once per start instead of being walked file by file; such a pod belongs
-# under runAsUser 1000, see the Helm page of the wiki. Best effort either way: a
+# node's yet (a fresh one, or one whose top level was copied in as root) shows
+# there, and is handed over once. Files copied in as root further down, into a
+# subdirectory node already owns, do not show and are left alone; the
+# Troubleshooting page of the wiki has the one-off chown for that.
+#
+# Only the owning user has to be node, because that is what Node runs as and
+# what gosu leaves it with. The group is left to whoever set it: a Kubernetes
+# fsGroup other than 1000 gives every file its own gid, and taking that back
+# here would make the kubelet's OnRootMismatch walk the volume again on the
+# next start, and this script after it, every time. Only a root group (a fresh
+# volume under plain docker) is handed to node as well.
+#
+# A volume that refuses chown altogether (NFS with root_squash) is said once
+# per start instead of being walked file by file; such a pod belongs under
+# runAsUser 1000, see the Helm page of the wiki. Best effort either way: a
 # read-only host filesystem or a locked-down bind mount must keep booting.
 for dir in /app/data /app/uploads; do
   [ -d "$dir" ] || continue
-  if [ -n "$(find "$dir" -maxdepth 1 \( ! -user node -o ! -group node \) -print -quit 2>/dev/null)" ]; then
-    if chown node:node "$dir" 2>/dev/null; then
+  if [ -n "$(find "$dir" -maxdepth 1 \( ! -user node -o -group 0 \) -print -quit 2>/dev/null)" ]; then
+    if chown node "$dir" 2>/dev/null; then
       echo "Correcting ownership of $dir for the node user..."
-      chown -R -h node:node "$dir" 2>/dev/null || true
+      chown -R -h node "$dir" 2>/dev/null || true
+      find "$dir" -group 0 -exec chgrp -h node {} + 2>/dev/null || true
     else
       echo "WARNING: $dir cannot be handed to the node user (chown refused); run the container as uid 1000 instead."
     fi

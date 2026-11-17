@@ -284,6 +284,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Альбомів не знайдено',
   'journey.picker.selectDate': 'Оберіть дату',
   'journey.picker.search': 'Пошук',
+  'journey.picker.takenBetween': 'Зроблені між',
   'journey.editor.uploadingProgress': 'Завантаження {done}/{total}…',
   'journey.editor.uploadFailed': 'Не вдалося завантажити фото',
   'journey.editor.uploadPartialFailed':

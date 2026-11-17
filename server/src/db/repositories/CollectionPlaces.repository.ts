@@ -171,6 +171,13 @@ export class CollectionPlacesRepository extends TrekRepository<CollectionPlaces>
       category_id: number | null;
       image_url: string | null;
       links: string | null;
+      google_place_id: string | null;
+      google_ftid: string | null;
+      osm_id: string | null;
+      website: string | null;
+      phone: string | null;
+      price: number | null;
+      currency: string | null;
       collection_id: number;
       owner_id: number;
     }>,

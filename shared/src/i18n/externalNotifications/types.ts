@@ -24,6 +24,9 @@ export interface PasswordResetStrings {
 export type NotificationEventKey =
   | 'trip_invite'
   | 'booking_change'
+  | 'flight_departed'
+  | 'flight_delayed'
+  | 'flight_landed'
   | 'trip_reminder'
   | 'todo_due'
   | 'vacay_invite'
@@ -37,6 +40,9 @@ export type NotificationEventKey =
   | 'paddle_region_requested'
   | 'synology_session_cleared'
   | 'wanderer_source_hint'
+  | 'mail_booking_added'
+  | 'mail_booking_pending'
+  | 'mail_ingest_paused'
   | 'plugin_notification';
 
 export interface NotificationLocale {

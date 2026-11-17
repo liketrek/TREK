@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildPlanRows } from './planTimelineModel'
+import { buildPlanRows, hotelChipsForDay } from './planTimelineModel'
 import type { MergedItem } from '../../../../utils/dayMerge'
-import type { Place, Reservation, RouteSegment } from '../../../../types'
+import type { Accommodation, Day, Place, Reservation, RouteSegment } from '../../../../types'
 
 // FE-MOBILE-PLANROWS-001 to FE-MOBILE-PLANROWS-003
 
@@ -82,5 +82,14 @@ describe('buildPlanRows', () => {
     const rows = buildPlanRows({ merged, reservations: [], routeSegments: segments, dayId: 5, places })
     expect(rows.filter(row => row.kind === 'conn').map(row => row.seg)).toEqual(segments)
     expect(rows.some(row => row.kind === 'place' && row.invalidTour)).toBe(false)
+  })
+})
+
+describe('hotelChipsForDay', () => {
+  it('shows a stay with two linked bookings once, though the list repeats it', () => {
+    const days = [{ id: 1, day_number: 1 }, { id: 2, day_number: 2 }] as unknown as Day[]
+    const stay = { id: 7, start_day_id: 1, end_day_id: 2, place_name: 'Liège', check_in: '15:00', place_id: null } as unknown as Accommodation
+    const chips = hotelChipsForDay(days[0], days, [stay, { ...stay }])
+    expect(chips.map(c => c.key)).toEqual(['in-7'])
   })
 })

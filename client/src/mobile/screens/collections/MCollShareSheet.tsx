@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, Clock, Crown, Loader2, LogOut, UserPlus, X } from 'lucide-react'
+import { Check, ChevronDown, Clock, Crown, Loader2, LogOut, UserPlus, X, Share2 } from 'lucide-react'
 import type { CollectionMember } from '@trek/shared'
 import { COLLECTION_ROLES } from '@trek/shared'
 import type { TranslationFn } from '../../../types'
@@ -54,8 +54,9 @@ export default function MCollShareSheet({
   const badge = 'inline-flex flex-none items-center gap-[3px] font-geist text-[0.625rem] font-extrabold'
 
   return (
-    <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={t('collections.share.title')}>
-      <SheetHeader title={t('collections.share.titleNamed', { name: collectionName })} onClose={onClose} closeLabel={t('common.close')} />
+    <MSheet open={open} onClose={onClose} material="glass" ariaLabel={t('collections.share.title')}>
+      <SheetHeader
+        icon={<Share2 size={19} strokeWidth={1.8} />} title={t('collections.share.titleNamed', { name: collectionName })} onClose={onClose} closeLabel={t('common.close')} />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
         <div className="mb-2 flex items-center gap-[7px]">
           <Eyebrow>{t('collections.share.members').toUpperCase()}</Eyebrow>
@@ -140,7 +141,7 @@ export default function MCollShareSheet({
                     onClick={handleInvite}
                     disabled={selectedUserId == null || inviting}
                     aria-label={t('collections.share.sendInvite')}
-                    className="flex w-11 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
+                    className="flex h-[42px] w-[42px] flex-none items-center justify-center self-center rounded-full bg-m-act text-m-actfg disabled:opacity-40"
                   >
                     {inviting ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} strokeWidth={2.2} />}
                   </button>

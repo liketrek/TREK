@@ -20,6 +20,21 @@ export const placeContribFieldSchema = z.enum(PLACE_CONTRIB_FIELDS);
 export type PlaceContribField = z.infer<typeof placeContribFieldSchema>;
 
 /**
+ * The places column each field is stored in. The origin hash, the catch-up
+ * and the sender all read a field through this one map: a value is shared
+ * only while the column's hash matches the origin, so two copies drifting
+ * apart would skip a field without a word.
+ */
+export const PLACE_CONTRIB_COLUMN = {
+  website: 'website',
+  phone: 'phone',
+  email: 'email',
+  opening_hours: 'opening_hours',
+  description: 'description',
+  image: 'image_url',
+} as const satisfies Record<PlaceContribField, string>;
+
+/**
  * Where the current value of a field came from. Only `user` is ever shared, and
  * only while the stored hash still matches the value. The server decides
  * `agent` (MCP), `plugin` (plugin RPC), `import` (file and list imports) and
@@ -114,6 +129,13 @@ export const placeContribConsentSchema = z.object({
    * later catch up too. Absent on an agreement from 5.1.0.
    */
   includesEarlier: z.boolean().optional(),
+  /**
+   * The fields an admin withdrew under this agreement (all of them after
+   * "withdraw everything"). Switching one of them on again shares what users
+   * type from then on, not the history taken back; a new agreement clears it.
+   * Absent until something was withdrawn.
+   */
+  withdrawnFields: z.array(placeContribFieldSchema).optional(),
 });
 export type PlaceContribConsent = z.infer<typeof placeContribConsentSchema>;
 

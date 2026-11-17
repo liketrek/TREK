@@ -2,8 +2,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import {
   createDraftJourneyEntry,
+  entryForPlace,
   distanceBetweenGeoPoints,
   fetchRemainingProviderPages,
+  filterPhotosByDayRange,
   groupPhotosByDate,
   matchJourneyEntries,
   posterlessVideo,
@@ -185,6 +187,35 @@ describe('createDraftJourneyEntry', () => {
   });
 });
 
+describe('entryForPlace', () => {
+  const place = { place_id: 4, name: 'Piazza San Marco', lat: 45.434, lng: 12.3388, days: ['2026-05-14', '2026-05-15'], time: '10:00' };
+
+  it('a planned place starts a new entry on its first day, at its time and spot, named after it', () => {
+    const entry = entryForPlace({ id: 7, entries: [] }, place, new Date('2026-06-01T08:00:00'));
+    expect(entry).toMatchObject({
+      id: 0,
+      journey_id: 7,
+      entry_date: '2026-05-14',
+      entry_time: '10:00',
+      title: 'Piazza San Marco',
+      location_name: 'Piazza San Marco',
+      location_lat: 45.434,
+      location_lng: 12.3388,
+    });
+  });
+
+  it('writes up the suggestion the trip left for the place, so the entry stays linked to it', () => {
+    const suggestion = { ...createDraftJourneyEntry(7), id: 31, type: 'skeleton' as const, source_place_id: 4 };
+    const other = { ...createDraftJourneyEntry(7), id: 32, type: 'skeleton' as const, source_place_id: 5 };
+    expect(entryForPlace({ id: 7, entries: [other, suggestion] }, place)).toBe(suggestion);
+  });
+
+  it('a place without a planned time takes the time of now', () => {
+    const entry = entryForPlace({ id: 7 }, { ...place, time: null }, new Date('2026-06-01T08:05:00'));
+    expect(entry.entry_time).toBe('08:05');
+  });
+});
+
 describe('matchJourneyEntries', () => {
   const entries = [
     { id: 1, title: 'Mercado da Ribeira', story: 'Ate too much', location_name: 'Lisbon', tags: ['food'] },
@@ -358,5 +389,35 @@ describe('sortByCaptureTimeAsc (#1587)', () => {
     const items = [{ id: 'b', takenAt: '2026-03-16T00:00:00Z' }, { id: 'a', takenAt: '2026-03-15T00:00:00Z' }];
     sortByCaptureTimeAsc(items);
     expect(items.map((i) => i.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('filterPhotosByDayRange (#2859)', () => {
+  const photos = [
+    { id: 'before', takenAt: '2026-03-09T12:00:00.000Z' },
+    { id: 'first', takenAt: '2026-03-10T08:00:00.000Z' },
+    // Taken late on the 12th by the photographer's wall clock, already the 13th in UTC.
+    { id: 'wallclock', takenAt: '2026-03-13T01:00:00.000Z', localTakenAt: '2026-03-12T21:00:00.000Z' },
+    { id: 'after', takenAt: '2026-03-13T09:00:00.000Z' },
+    { id: 'undated' },
+  ];
+  const ids = (list: { id: string }[]) => list.map((p) => p.id);
+
+  it('keeps the days between both ends, both included, by the day the grid files them under', () => {
+    expect(ids(filterPhotosByDayRange(photos, '2026-03-10', '2026-03-12'))).toEqual(['first', 'wallclock']);
+  });
+
+  it('reads an empty end as open', () => {
+    expect(ids(filterPhotosByDayRange(photos, '2026-03-12', ''))).toEqual(['wallclock', 'after']);
+    expect(ids(filterPhotosByDayRange(photos, '', '2026-03-09'))).toEqual(['before']);
+  });
+
+  it('reads ends given the wrong way round as the range they mean', () => {
+    expect(ids(filterPhotosByDayRange(photos, '2026-03-12', '2026-03-10'))).toEqual(['first', 'wallclock']);
+  });
+
+  it('is no filter at all without a range, and drops undated photos once there is one', () => {
+    expect(filterPhotosByDayRange(photos, '', '')).toBe(photos);
+    expect(ids(filterPhotosByDayRange(photos, '2000-01-01', '2100-01-01'))).not.toContain('undated');
   });
 });

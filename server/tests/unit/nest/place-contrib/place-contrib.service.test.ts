@@ -273,6 +273,7 @@ describe('the admin state and the decisions', () => {
     expect((await findRows(orm(), PlaceContribOutbox, {})).map((row) => row.field)).toEqual(['website']);
     expect(client.withdraw).toHaveBeenCalledWith({ field: 'phone' });
     expect(await store().activeFields()).not.toContain('phone');
+    expect((await store().consent()).withdrawnFields).toEqual(['phone']);
   });
 
   it('PCS-017: changing the switches needs a standing agreement', async () => {
@@ -428,6 +429,7 @@ describe('withdrawAll and the log', () => {
       body: { error: 'The TREK Places API did not confirm the withdrawal', reason: 'TimeoutError' },
     });
     expect(await countRows(orm(), PlaceContribOutbox)).toBe(1);
+    expect((await store().consent()).withdrawnFields).toBeUndefined();
   });
 
   it('PCS-042: the log pages newest first and filters by result and field', async () => {
@@ -455,6 +457,17 @@ describe('withdrawAll and the log', () => {
     expect((await service().logPage({ page: 1, perPage: 50, field: 'website' })).total).toBe(1);
     expect((await service().logPage({ page: 1, perPage: 50, result: 'accepted' })).total).toBe(0);
     expect((await service().state(ADMIN, NOW)).counts.withheld).toBe(2);
+  });
+
+  it('PCS-043: a confirmed withdrawal keeps the agreement but marks every field withdrawn', async () => {
+    await agree();
+    await service().withdrawAll(NOW);
+    expect(await store().consent()).toMatchObject({
+      enabled: true,
+      decision: 'agreed',
+      includesEarlier: true,
+      withdrawnFields: ['website', 'phone', 'email', 'opening_hours', 'description', 'image'],
+    });
   });
 });
 

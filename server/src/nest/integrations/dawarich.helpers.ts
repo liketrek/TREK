@@ -1,5 +1,6 @@
 import { DomainError } from '../common/domain-error';
 import type {
+  DawarichGeocodedPoint,
   DawarichSlimPoint,
   DawarichTrackFeature,
   DawarichVisitRaw,
@@ -134,6 +135,72 @@ export function toNumber(value: unknown): number | null {
   return null;
 }
 
+/** What a stay is called when nothing names it. */
+export const UNNAMED_STAY = 'Unnamed stay';
+
+/**
+ * The names Dawarich gives a visit or a place when it knows nothing about
+ * either (`Visit::DEFAULT_NAME`, `Place::DEFAULT_NAME`). Since 1.22 the
+ * visit's `name` is its display name, so one of these arrives in place of
+ * nothing, and taken as a name it hid the address the recording does hold
+ * (#3105).
+ */
+const DAWARICH_PLACEHOLDER_NAMES = new Set(['unknown location', 'suggested place']);
+
+/** A name worth showing: set, and not one of Dawarich's placeholders. */
+function realName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || DAWARICH_PLACEHOLDER_NAMES.has(trimmed.toLowerCase())) return null;
+  return trimmed;
+}
+
+/**
+ * The best name the visit itself carries: its own, its place's, then the
+ * place's address. Null when there is none of them.
+ */
+function visitSourceName(visit: DawarichVisitRaw): string | null {
+  return realName(visit.name) ?? realName(visit.place?.name) ?? realName(visit.place?.address);
+}
+
+/**
+ * What a stay is stored as while its points are still to be read for a name:
+ * Dawarich's own placeholder, which is what the source said, and which the
+ * next sync recognises and tries again.
+ */
+export const STAY_NAME_PENDING = 'Unknown Location';
+
+/** True for a stored name that is one of Dawarich's placeholders, or none at all. */
+export function isPlaceholderName(name: string | null | undefined): boolean {
+  return realName(name) === null;
+}
+
+/**
+ * A stay named from the reverse-geocoded points recorded during it: the city
+ * most of them fall in with its country ("Cinisi, Italy"), or the country
+ * alone when no point has a city. Null when none was geocoded.
+ */
+export function nameFromGeocodedPoints(points: readonly DawarichGeocodedPoint[]): string | null {
+  const cities = new Map<string, { count: number; country: string | null }>();
+  const countries = new Map<string, number>();
+  for (const point of points) {
+    const city = realName(point.city);
+    const country = realName(point.country_name);
+    if (city) {
+      const seen = cities.get(city);
+      if (seen) seen.count++;
+      else cities.set(city, { count: 1, country });
+    }
+    if (country) countries.set(country, (countries.get(country) ?? 0) + 1);
+  }
+  let city: [string, { count: number; country: string | null }] | null = null;
+  for (const entry of cities) if (!city || entry[1].count > city[1].count) city = entry;
+  if (city) return city[1].country ? `${city[0]}, ${city[1].country}` : city[0];
+  let country: [string, number] | null = null;
+  for (const entry of countries) if (!country || entry[1] > country[1]) country = entry;
+  return country ? country[0] : null;
+}
+
 /**
  * A visit reduced to what TREK stores.
  *
@@ -144,6 +211,8 @@ export function toNumber(value: unknown): number | null {
 export function normalizeVisit(visit: DawarichVisitRaw): {
   sourceVisitId: string;
   name: string;
+  /** False when `name` is TREK's fallback because the source sent nothing that names the place. */
+  named: boolean;
   lat: number | null;
   lng: number | null;
   startedAt: string;
@@ -191,11 +260,18 @@ export function normalizeVisit(visit: DawarichVisitRaw): {
       : 0;
 
   const rawCode = visit.place?.country_code;
+  const name = visitSourceName(visit);
+  // A visit without a place or an area has no coordinate there; the middle of
+  // its own points, which newer builds send as `center`, is the next best one.
+  const placeLat = toNumber(visit.place?.latitude);
+  const placeLng = toNumber(visit.place?.longitude);
+  const fromPlace = placeLat !== null && placeLng !== null;
   return {
     sourceVisitId: String(visit.id),
-    name: (visit.name ?? '').trim() || 'Unnamed stay',
-    lat: toNumber(visit.place?.latitude),
-    lng: toNumber(visit.place?.longitude),
+    name: name ?? UNNAMED_STAY,
+    named: name !== null,
+    lat: fromPlace ? placeLat : toNumber(visit.center?.latitude),
+    lng: fromPlace ? placeLng : toNumber(visit.center?.longitude),
     startedAt: visit.started_at,
     endedAt,
     durationMinutes,

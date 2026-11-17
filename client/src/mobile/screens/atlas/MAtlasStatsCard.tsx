@@ -24,7 +24,7 @@ export default function MAtlasStatsCard({ stats }: MAtlasStatsCardProps) {
   const planned = stats.totalCountriesPlanned || 0
 
   return (
-    <div className="absolute bottom-[calc(var(--bottom-nav-h,84px)+16px)] inset-x-4 z-[5]">
+    <div className="m-bar-x absolute bottom-[calc(var(--bottom-nav-h,84px)+16px)] z-[5] wide:mx-auto wide:max-w-[720px]">
       <div className="flex w-full rounded-[22px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheet)] px-3 py-[14px] shadow-[0_18px_44px_-20px_rgba(0,0,0,.4)]">
         {cols.map(([n, l], i) => (
           <div key={l} className="flex-1 text-center">

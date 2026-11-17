@@ -473,7 +473,10 @@ jobs:
         # tsconfig.strict.json is the same program with strictNullChecks and
         # noImplicitAny; its errors per file may not rise above
         # scripts/strict-baseline.json, and a file without an entry, every new
-        # one included, has to be clean (scripts/strict-lint.mjs).
+        # one included, has to be clean (scripts/strict-lint.mjs). It holds the
+        # whole program with strict checks, past Node's default ~4 GB heap.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: cd client && npm run lint:strict
 
       - name: Page pattern check
@@ -1159,7 +1162,7 @@ jobs:
           path: plugin-sdk/coverage/
 
       - name: Scan
-        uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
         env:
           # SonarQube Cloud is the scan action's default host, so no
           # SONAR_HOST_URL — the token is a sonarcloud.io token for the
@@ -1357,10 +1360,12 @@ jobs:
           bin="$RUNNER_TEMP/bin"
           mkdir -p "$bin"
           cd "$RUNNER_TEMP"
-          curl -sSfLo helm.tgz "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz"
+          # GitHub's release downloads answer 504 now and then: retry, the checksum still decides.
+          fetch() { curl -sSfL --retry 5 --retry-delay 15 --retry-all-errors -o "$1" "$2"; }
+          fetch helm.tgz "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz"
           echo "$HELM_SHA256  helm.tgz" | sha256sum -c -
           tar -xzf helm.tgz --strip-components=1 -C "$bin" linux-amd64/helm
-          curl -sSfLo kubeconform.tgz "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          fetch kubeconform.tgz "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
           echo "$KUBECONFORM_SHA256  kubeconform.tgz" | sha256sum -c -
           tar -xzf kubeconform.tgz -C "$bin" kubeconform
           echo "$bin" >> "$GITHUB_PATH"
@@ -1395,6 +1400,10 @@ jobs:
             --set httpRoute.enabled=true \
             --set 'httpRoute.parentRefs[0].name=gateway' \
             > "$out/http-route.yaml"
+          helm template trek charts/trek \
+            --set 'persistence.data.accessModes[0]=ReadWriteMany' \
+            --set 'persistence.uploads.accessModes[0]=ReadWriteMany' \
+            > "$out/access-modes.yaml"
           helm template trek charts/trek \
             --set podSecurityContext.runAsUser=1000 \
             --set podSecurityContext.runAsGroup=1000 \

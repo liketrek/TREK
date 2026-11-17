@@ -4,7 +4,7 @@
 // to the hook. The page follows the Page pattern, so useCollections is mocked and
 // each child is stubbed with a prop-driven button.
 import React from 'react'
-import { render, screen, fireEvent } from '../../tests/helpers/render'
+import { render, screen, fireEvent, cleanup } from '../../tests/helpers/render'
 import CollectionsPage from './CollectionsPage'
 
 vi.mock('../components/Layout/Navbar', () => ({ default: () => <nav data-testid="navbar" /> }))
@@ -59,8 +59,10 @@ vi.mock('../components/Collections/CollectionFilterBar', () => ({
 }))
 
 vi.mock('../components/Collections/CollectionMapPanel', () => ({
-  default: (p: { overlay: boolean; places: { id: number }[]; onSelect: (id: number) => void; onDeselect: () => void; onToggleView: () => void; onSearch: (v: string) => void; onLabelFilter?: (ids: number[]) => void; onManageLabels?: () => void }) => (
+  default: (p: { overlay: boolean; places: { id: number }[]; onSelect: (id: number) => void; onDeselect: () => void; onToggleView: () => void; onSearch: (v: string) => void; onLabelFilter?: (ids: number[]) => void; onManageLabels?: () => void; mapLocked?: boolean; onToggleMapLocked?: () => void }) => (
     <div data-testid={p.overlay ? 'map-overlay' : 'map-plain'}>
+      <span data-testid="map-locked">{String(p.mapLocked)}</span>
+      {p.onToggleMapLocked && <button type="button" onClick={p.onToggleMapLocked}>map-lock</button>}
       <span data-testid="map-count">{p.places.length}</span>
       <span data-testid="map-has-labels">{String(p.onLabelFilter != null)}</span>
       {p.onManageLabels && <button type="button" onClick={p.onManageLabels}>map-labels</button>}
@@ -192,6 +194,10 @@ function makeHook(overrides: Hook = {}): Hook {
     heroHeight: 240,
     listColRef: () => {},
     listColRect: { left: 10, width: 400 },
+    mapColRef: () => {},
+    mapColRect: { left: 500, width: 900 },
+    mapLocked: false,
+    toggleMapLocked: vi.fn(),
     categories: [],
     collections: [list],
     ownedLists: [list, { id: 4, name: 'Other', is_owner: true }],
@@ -214,7 +220,7 @@ function makeHook(overrides: Hook = {}): Hook {
     incomingInvites: [],
     orderedInvites: [],
     routeInvite: null,
-    counts: { all: 1, idea: 0, want: 1, visited: 0 },
+    counts: { all: 1, idea: 0, want: 1, visited: 0, revisit: 0 },
     view: 'list',
     statusFilter: 'all',
     categoryFilter: 'all',
@@ -556,11 +562,18 @@ describe('CollectionsPage — child wiring', () => {
     expect(hook.setView).toHaveBeenCalledWith('map')
   })
 
-  it('FE-PAGE-COLLPAGE-028: from the map view a marker click drops back into the split', () => {
+  it('FE-PAGE-COLLPAGE-028: on the full map a marker click shows the place and the map stays', () => {
     const hook = renderPage({ view: 'map' })
     fireEvent.click(screen.getByText('map-select'))
     expect(hook.setSelectedPlaceId).toHaveBeenCalledWith(10)
-    expect(hook.setView).toHaveBeenCalledWith('list')
+    expect(hook.setView).not.toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-COLLPAGE-028b: the map carries the trip map\'s padlock, remembered by the page', () => {
+    const hook = renderPage({ mapLocked: true })
+    expect(screen.getByTestId('map-locked')).toHaveTextContent('true')
+    fireEvent.click(screen.getByText('map-lock'))
+    expect(hook.toggleMapLocked).toHaveBeenCalledTimes(1)
   })
 
   it('FE-PAGE-COLLPAGE-029: the map view toggle returns to the list without clearing the selection', () => {
@@ -637,9 +650,17 @@ describe('CollectionsPage — detail sheet and modals', () => {
     expect(screen.getByTestId('detail-anchored')).toHaveTextContent('sheet')
   })
 
-  it('FE-PAGE-COLLPAGE-034: the full-map view hides the detail sheet', () => {
+  it('FE-PAGE-COLLPAGE-034: on a narrow full map the detail opens as a sheet over the map', () => {
     renderPage({ ...withPlace, view: 'map', isWide: false })
-    expect(screen.queryByTestId('detail')).toBeNull()
+    expect(screen.getByTestId('detail-anchored')).toHaveTextContent('sheet')
+  })
+
+  it('FE-PAGE-COLLPAGE-034b: on a wide full map the detail docks on the map\'s edge, once the map is measured', () => {
+    renderPage({ ...withPlace, view: 'map' })
+    expect(screen.getByTestId('detail-anchored')).toHaveTextContent('docked')
+    cleanup()
+    renderPage({ ...withPlace, view: 'map', mapColRect: null })
+    expect(screen.getByTestId('detail-anchored')).toHaveTextContent('sheet')
   })
 
   it('FE-PAGE-COLLPAGE-035: the add-place modal is bound to the active list', () => {

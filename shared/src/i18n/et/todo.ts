@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Tähtsus',
   'todo.detail.noPriority': 'Puudub',
   'todo.detail.create': 'Loo ülesanne',
+  'todo.progressCount': '{done}/{total} tehtud',
+  'todo.allDone': 'Kõik tehtud!',
+  'todo.filter.myShort': 'Minu',
 };
 export default todo;

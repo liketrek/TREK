@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} fil för {trip}',
   'files.download': 'Ladda ner',
   'files.openError': 'Kunde inte öppna fil',
+  'files.downloadError': 'Kunde inte ladda ner filen',
   'files.downloadPdf': 'Ladda ner PDF',
   'files.count': '{count} filer',
   'files.count.one': '{count} fil',
@@ -40,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Bokning',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Bifoga',
-  'files.pasteHint': 'Du kan också klistra in foton från urklipp (Ctrl+V)',
   'files.trash': 'Papperskorgen',
   'files.trashEmpty': 'papperskorgen är tom',
   'files.emptyTrash': 'Töm papperskorgen',

@@ -1,0 +1,279 @@
+name: Native apps
+
+permissions:
+  contents: read
+
+# Builds the iOS and Android shells whenever they, their address screen or the
+# Capacitor plugins change. Nobody on the team has to own a Mac for the Swift
+# side to be compiled on every change, and every run leaves a debug APK to
+# install on a phone.
+#
+# Unsigned on purpose: signing and store uploads need secrets that fork PRs do
+# not get, and belong in a release workflow of their own.
+on:
+  pull_request:
+    paths:
+      - 'client/android/**'
+      - 'client/ios/**'
+      - 'client/native-shell/**'
+      - 'client/src/native/trekShell.ts'
+      - 'client/src/native/watch.ts'
+      - 'client/src/native/serverAddress.ts'
+      - 'client/capacitor.config.ts'
+      - 'client/vite.native.config.js'
+      - 'client/scripts/check-store-metadata.mjs'
+      - 'client/fastlane/**'
+      - 'client/package.json'
+      - 'package-lock.json'
+      - 'shared/src/i18n/*/native.ts'
+      - '.github/workflows/native.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The store texts fit their limits and every listing image has its size and
+  # no alpha channel (client/fastlane/README.md). Plain Node, no install.
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Check the store listings
+        run: node client/scripts/check-store-metadata.mjs
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shells
+        working-directory: client
+        run: npm run cap:sync -- android
+
+      # The release build runs R8 with the keep rules in proguard-rules.pro, so a
+      # rule that goes missing fails here rather than in the store build. It is
+      # unsigned: the upload key only exists in native-release.yml.
+      - name: Assemble debug and release APKs
+        working-directory: client/android
+        run: ./gradlew assembleDebug assembleRelease lintDebug testDebugUnitTest --no-daemon
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: trek-android-debug
+          path: client/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  ios:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      # The iOS 27.1 SDK, on the xcode-27 image: an app built against an older SDK
+      # runs letterboxed on the inner display of an iPhone Duo.
+      - name: Select Xcode 27.1
+        run: |
+          XCODE=/Applications/Xcode_27.1.app
+          test -d "$XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          xcodebuild -showsdks | grep iphoneos27.1
+
+      - name: Check the property lists
+        run: plutil -lint client/ios/App/App/Info.plist client/ios/ExportOptions.plist client/ios/App/NotificationService/Info.plist client/ios/App/NotificationService/NotificationService.entitlements client/ios/App/App/App.entitlements client/ios/App/TREKWidgets/Info.plist client/ios/App/TREKWidgets/TREKWidgets.entitlements client/ios/App/TREKWidgets/*.lproj/Localizable.strings client/ios/App/ShareExtension/Info.plist client/ios/App/ShareExtension/ShareExtension.entitlements client/ios/App/ShareExtension/*.lproj/Localizable.strings client/ios/App/TREKWatch/Info.plist client/ios/App/TREKWatch/TREKWatch.entitlements client/ios/App/TREKWatch/*.lproj/Localizable.strings client/ios/App/TREKWatchWidgets/Info.plist client/ios/App/TREKWatchWidgets/TREKWatchWidgets.entitlements
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Build the address screen and sync it into the shells
+        working-directory: client
+        run: npm run cap:sync -- ios
+
+      # Capacitor's xcframeworks come from GitHub release downloads, which answer
+      # 504 now and then; SwiftPM then reports the half-written file as "already
+      # exists in file system". Resolve on a clean artifact cache, a few times
+      # with growing pauses, before the build needs the packages.
+      - name: Resolve the Swift packages
+        working-directory: client/ios/App
+        run: |
+          for attempt in 1 2 3 4 5; do
+            rm -rf ~/Library/Caches/org.swift.swiftpm/artifacts
+            if xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App; then exit 0; fi
+            echo "Resolving the Swift packages failed (attempt $attempt of 5)"
+            sleep $((attempt * 30))
+          done
+          exit 1
+
+      # No -sdk: the scheme builds the embedded watch app and its complications
+      # against the watchOS simulator SDK and the rest against the iOS one.
+      - name: Build for the simulator
+        working-directory: client/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+  # The widgets drawn to PNGs (client/ios/WidgetPreviews): every size, light and
+  # dark, for a trip ahead, a trip under way and none, plus a home screen and
+  # a lock screen of them. Nobody has to install a build to see a widget change.
+  # Started by hand only (Run workflow): the apps are on TestFlight and Play now,
+  # where a change is looked at on a device; on every PR it only held the queue.
+  widget-previews:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+
+      - name: Render the widgets
+        working-directory: client/ios/WidgetPreviews
+        run: |
+          mkdir -p Sources/WidgetPreviews/Widgets
+          cp ../App/TREKWidgets/WidgetSnapshot.swift ../App/TREKWidgets/TrekStyle.swift ../App/TREKWidgets/TrekFamily.swift ../App/TREKWidgets/WorldGrid.swift \
+            ../App/TREKWidgets/*Content.swift Sources/WidgetPreviews/Widgets/
+          swift run -c release WidgetPreviews out "$PWD/../App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: widget-previews
+          path: client/ios/WidgetPreviews/out
+          retention-days: 14
+
+  # The watch's half in the UI (client/src/native/watch.ts): the snapshot it
+  # builds and the ticks it takes back, typechecked and tested here as well,
+  # so a change to the bridge is checked next to the Swift that reads it.
+  watch-bridge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Build shared
+        run: npm run build --workspace=shared
+
+      - name: Typecheck the client
+        working-directory: client
+        run: npm run typecheck
+
+      - name: Test the widget and watch snapshots
+        working-directory: client
+        run: npx vitest run src/native/watch.test.ts src/native/widgets.test.ts src/native/widgetExtras.test.ts
+
+  # The watch app on watchOS simulators in its screenshot mode (DemoMode.swift):
+  # every screen on the largest and the smallest watch, the main ones in every
+  # language, and the complications, as PNGs to look at without a watch.
+  # Started by hand only, like the widget previews: up to 90 minutes of macOS.
+  watch-screens:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          test -n "$XCODE"
+          sudo xcode-select -s "$XCODE"
+
+      # The project resolves the Capacitor packages from node_modules, even for
+      # a target that uses none of them.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci --workspace=shared --workspace=client
+
+      - name: Make sure a watchOS simulator runtime is there
+        run: |
+          xcrun simctl list runtimes | grep -q watchOS || xcodebuild -downloadPlatform watchOS
+          xcrun simctl list runtimes
+
+      # Capacitor's xcframeworks come from GitHub release downloads, which answer
+      # 504 now and then; SwiftPM then reports the half-written file as "already
+      # exists in file system". Resolve on a clean artifact cache, a few times
+      # with growing pauses, before the build needs the packages.
+      - name: Resolve the Swift packages
+        working-directory: client/ios/App
+        run: |
+          for attempt in 1 2 3 4 5; do
+            rm -rf ~/Library/Caches/org.swift.swiftpm/artifacts
+            if xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App; then exit 0; fi
+            echo "Resolving the Swift packages failed (attempt $attempt of 5)"
+            sleep $((attempt * 30))
+          done
+          exit 1
+
+      - name: Build the watch app for the simulator
+        working-directory: client/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -target TREKWatch \
+            -configuration Debug \
+            -sdk watchsimulator \
+            SYMROOT="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture the screens
+        run: bash client/ios/scripts/watch-screens.sh client/ios/App/build/Debug-watchsimulator/TREKWatch.app "$PWD/watch-screens"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: watch-screens
+          path: watch-screens
+          retention-days: 14

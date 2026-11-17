@@ -238,6 +238,23 @@ describe('AnthropicMessagesClient', () => {
     expect([0, 1, 2, 3].map((i) => dig(body, 'messages', i, 'role'))).toEqual(['user', 'assistant', 'user', undefined]);
   });
 
+  it('ANTH-009: a text-only request keeps the tools for the history and sets tool_choice none (#3016)', async () => {
+    const http = fetchAnswering(streamResponse(STREAM));
+    await run(
+      new AnthropicMessagesClient('claude-sonnet', 'sk-ant-key', http.fetcher).stream(
+        { ...REQUEST, toolChoice: 'none' },
+        signal(),
+      ),
+    );
+    const body = http.body();
+    expect(body.tool_choice).toEqual({ type: 'none' });
+    expect(dig(body, 'tools', 0, 'name')).toBe('create_place');
+
+    const plain = fetchAnswering(streamResponse(STREAM));
+    await run(new AnthropicMessagesClient('claude-sonnet', 'sk-ant-key', plain.fetcher).stream(REQUEST, signal()));
+    expect(plain.body().tool_choice).toBeUndefined();
+  });
+
   it('ANTH-006: marks the end of the history and the end of what came before the question for the cache', async () => {
     const http = fetchAnswering(streamResponse(STREAM));
     await run(new AnthropicMessagesClient('m', 'k', http.fetcher).stream(REQUEST, signal()));
@@ -458,6 +475,17 @@ describe('OpenAiChatClient', () => {
     ]);
   });
 
+  it('OACH-009: tool_choice is auto unless the request asks for text only (#3016)', async () => {
+    const client = (fetcher: AiFetch) =>
+      new OpenAiChatClient('openai', 'gpt-5-mini', 'https://api.openai.com/v1', 'sk-key', fetcher);
+    const auto = fetchAnswering(streamResponse(STREAM));
+    await run(client(auto.fetcher).stream(REQUEST, signal()));
+    expect(auto.body().tool_choice).toBe('auto');
+    const none = fetchAnswering(streamResponse(STREAM));
+    await run(client(none.fetcher).stream({ ...REQUEST, toolChoice: 'none' }, signal()));
+    expect(none.body().tool_choice).toBe('none');
+  });
+
   it('OACH-002: streams the text and assembles the tool call by its index', async () => {
     const events = await run(
       new OpenAiChatClient('openai', 'm', 'https://x', 'k', fetchAnswering(streamResponse(STREAM)).fetcher).stream(
@@ -648,6 +676,76 @@ describe('OpenAiChatClient', () => {
     expect(await parameters('http://ollama:11434/v1')).toEqual(toProviderSchema(TOOL.parameters, 'custom'));
     expect(await parameters('not a url')).toEqual(toProviderSchema(TOOL.parameters, 'custom'));
   });
+
+  // Azure AI Foundry's answer for a reasoning deployment asked for function tools on Chat Completions (#3043).
+  const REASONING_REFUSAL = {
+    error: {
+      message:
+        "Function tools with reasoning_effort are not supported for gpt-6-luna in /v1/chat/completions. To use function tools, use /v1/responses or set reasoning_effort to 'none'.",
+      type: 'invalid_request_error',
+      param: 'reasoning_effort',
+      code: null,
+    },
+  };
+  const AZURE = 'https://res.services.ai.azure.com/openai/v1';
+
+  it('OACH-010: a server that takes tools only without reasoning is asked again with reasoning_effort none (#3043)', async () => {
+    logWarn.mockClear();
+    const http = fetchAnswering(
+      jsonResponse(400, REASONING_REFUSAL),
+      streamResponse(STREAM),
+      streamResponse(STREAM),
+      streamResponse([{ choices: [{ delta: { content: 'hi' }, finish_reason: 'stop' }] }]),
+    );
+    const client = new OpenAiChatClient('custom', 'gpt-6-luna', AZURE, 'k', http.fetcher);
+
+    const events = await run(client.stream(REQUEST, signal()));
+    // Nothing of the refused request reaches the turn: it answers as if the first request had been taken.
+    expect(events.filter((event) => event.type === 'tool-call')).toHaveLength(1);
+    expect(events.at(-1)).toEqual({ type: 'finish', reason: 'tool-calls' });
+    expect(http.body(0)).not.toHaveProperty('reasoning_effort');
+    expect(http.body(1)).toMatchObject({ reasoning_effort: 'none', tool_choice: 'auto' });
+    expect(logWarn).toHaveBeenCalledWith(
+      '[ai] custom takes function tools only without reasoning: asking again with reasoning_effort none',
+    );
+
+    // The turn's next step goes out without reasoning right away; a step without tools may reason again.
+    await run(client.stream(REQUEST, signal()));
+    expect(http.body(2)).toMatchObject({ reasoning_effort: 'none' });
+    await run(client.stream({ ...REQUEST, tools: [] }, signal()));
+    expect(http.body(3)).not.toHaveProperty('reasoning_effort');
+    expect(http.calls).toHaveLength(4);
+  });
+
+  it('OACH-011: any other server, refusal or request keeps the body as it was and is not asked again (#3043)', async () => {
+    // Ollama, LM Studio, vLLM and OpenRouter never see the parameter.
+    await Promise.all(
+      (['custom', 'openrouter', 'openai', 'gemini'] as const).map(async (kind) => {
+        const plain = fetchAnswering(streamResponse(STREAM));
+        await run(
+          new OpenAiChatClient(kind, 'm', 'http://ollama:11434/v1', null, plain.fetcher).stream(REQUEST, signal()),
+        );
+        expect(plain.body()).not.toHaveProperty('reasoning_effort');
+      }),
+    );
+
+    const once = async (request: AiChatRequest, ...responses: Response[]) => {
+      const http = fetchAnswering(...responses);
+      const err = await failure(
+        new OpenAiChatClient('custom', 'm', AZURE, 'k', http.fetcher).stream(request, signal()),
+      );
+      return { err, calls: http.calls.length };
+    };
+    // A refusal of another field, of the same field with another status, or of a request without tools.
+    const other = { error: { ...REASONING_REFUSAL.error, param: 'tools[0]' } };
+    expect(await once(REQUEST, jsonResponse(400, other))).toMatchObject({ err: { code: 'generic' }, calls: 1 });
+    expect(await once(REQUEST, jsonResponse(422, REASONING_REFUSAL))).toMatchObject({ calls: 1 });
+    expect(await once({ ...REQUEST, tools: [] }, jsonResponse(400, REASONING_REFUSAL))).toMatchObject({ calls: 1 });
+    // A server that refuses `none` as well is asked only once more, and its refusal is the turn's error.
+    expect(
+      await once(REQUEST, jsonResponse(400, REASONING_REFUSAL), jsonResponse(400, REASONING_REFUSAL)),
+    ).toMatchObject({ err: { code: 'generic', status: 400 }, calls: 2 });
+  });
 });
 
 describe('OpenAiResponsesClient', () => {
@@ -687,6 +785,20 @@ describe('OpenAiResponsesClient', () => {
     expect(dig(body, 'tools', 0)).toMatchObject({ type: 'namespace', name: 'trek', description: 'TREK trip tools' });
     expect(dig(body, 'tools', 0, 'tools', 0)).toMatchObject({ type: 'function', name: 'create_place', strict: false });
     expect(dig(body, 'input', 0)).toEqual({ type: 'message', role: 'developer', content: 'Trip: Japan, 3 days' });
+  });
+
+  it('OARS-006: tool_choice is auto unless the request asks for text only (#3016)', async () => {
+    const auto = fetchAnswering(streamResponse(STREAM));
+    await run(new OpenAiResponsesClient('gpt-6.1-sol', tokens('at-1'), auto.fetcher).stream(REQUEST, signal()));
+    expect(auto.body().tool_choice).toBe('auto');
+    const none = fetchAnswering(streamResponse(STREAM));
+    await run(
+      new OpenAiResponsesClient('gpt-6.1-sol', tokens('at-1'), none.fetcher).stream(
+        { ...REQUEST, toolChoice: 'none' },
+        signal(),
+      ),
+    );
+    expect(none.body().tool_choice).toBe('none');
   });
 
   it('OARS-002: streams text, yields the call, then usage, the items to replay and the finish', async () => {

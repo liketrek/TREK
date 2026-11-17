@@ -4,11 +4,21 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore, hasStoredLanguage } from '../../store/settingsStore'
 import { useTranslation, detectBrowserLanguage } from '../../i18n'
 import { startAuthentication } from '@simplewebauthn/browser'
-import { wasSignedOut } from '../../utils/signedOut'
+import { clearSignedOut, wasSignedOut } from '../../utils/signedOut'
 import { authApi, configApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
 import { passwordErrorKey } from '../../utils/passwordError'
+import { isNativeApp } from '../../native/platform'
+import {
+  BrowserSignInCancelled,
+  isHandoffReturn,
+  rememberHandoffReturn,
+  resumeBrowserSignIn,
+  signInThroughBrowser,
+  takeHandoffReturn,
+  type BrowserSignInStart,
+} from '../../native/browserSignIn'
 
 interface AppConfig {
   has_users: boolean
@@ -23,6 +33,8 @@ interface AppConfig {
   password_registration: boolean
   oidc_login: boolean
   oidc_registration: boolean
+  /** False when the admin wants the login page shown before the IdP; absent on servers from before #2925. */
+  oidc_auto_redirect?: boolean
   passkey_login?: boolean
   passkey_configured?: boolean
   env_override_oidc_only: boolean
@@ -47,6 +59,14 @@ const isOidcOnly = (config: AppConfig | null): boolean =>
   !!config && !config.password_login && config.oidc_login && config.oidc_configured
 
 /**
+ * Whether the login page leaves for the IdP by itself: an OIDC-only instance
+ * does, unless its admin turned that off to show the page and its SSO button
+ * first (#2925). A config without the field keeps the redirect.
+ */
+const redirectsToIdp = (config: AppConfig | null): boolean =>
+  isOidcOnly(config) && config?.oidc_auto_redirect !== false
+
+/**
  * Login data hook — owns the whole auth surface: login/register/demo, the MFA
  * step-up, the must-change-password step, the OIDC code exchange + error
  * handling, the app-config probe (with cache fallback) and the language
@@ -59,7 +79,10 @@ export function useLogin() {
   const [username, setUsername] = useState<string>('')
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState<string>('')
-  const [rememberMe, setRememberMe] = useState<boolean>(false)
+  // On by default in the app: a session cookie there dies with the app process,
+  // and nobody expects to sign in again every time the phone unloads an app.
+  const [rememberMe, setRememberMe] = useState<boolean>(isNativeApp)
+  const [nativeApp] = useState(isNativeApp)
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
@@ -75,7 +98,7 @@ export function useLogin() {
   const [cachedConfig] = useState(readCachedConfig)
   const [expectRedirect] = useState(() => {
     const params = new URLSearchParams(window.location.search)
-    return isOidcOnly(cachedConfig) && !!cachedConfig?.has_users
+    return !isNativeApp() && redirectsToIdp(cachedConfig) && !!cachedConfig?.has_users
       && !params.get('invite') && !params.get('oidc_code') && !params.get('oidc_error')
   })
   const [idpRedirect, setIdpRedirect] = useState(false)
@@ -183,7 +206,9 @@ export function useLogin() {
             if (!config.has_users) setMode('register')
             // Skip auto-redirect when config is from cache — network is unreliable
             // and auto-redirecting to the IdP could loop if the proxy changed.
-            if (allowRedirect && !fromCache && isOidcOnly(config) && config.has_users && !invite && !noRedirect) {
+            // Not in the app: its WebView cannot host the IdP, and opening the
+            // system browser uninvited on every launch would be worse than a button.
+            if (allowRedirect && !fromCache && !nativeApp && redirectsToIdp(config) && config.has_users && !invite && !noRedirect) {
               setIdpRedirect(true)
               window.location.href = IDP_LOGIN_URL
             }
@@ -214,7 +239,9 @@ export function useLogin() {
           // body is never read, so it can go without breaking SSO sign-in.
           if (ok && data.success === true) {
             await loadUser()
-            const savedRedirect = sessionStorage.getItem('oidc_redirect') || START_DESTINATION_ROUTE
+            // Taken either way, so a handoff left from an abandoned sign-in cannot catch a later one.
+            const handoffReturn = takeHandoffReturn()
+            const savedRedirect = sessionStorage.getItem('oidc_redirect') || handoffReturn || START_DESTINATION_ROUTE
             sessionStorage.removeItem('oidc_redirect')
             navigate(savedRedirect, { replace: true })
           } else {
@@ -241,14 +268,21 @@ export function useLogin() {
         email_link_blocked: t('login.oidc.emailLinkBlocked'),
       }
       setError(errorMessages[oidcError] || oidcError)
-      sessionStorage.removeItem('oidc_redirect')
+      // A round trip the app's sign-in started keeps its way back. The next SSO
+      // attempt from this page is a plain web login, and without the handoff page
+      // to return to it ends in the web app inside the app's browser sheet. The
+      // handoff page asks for a tap before it passes anything on, so keeping the
+      // path hands nothing over by itself; the copy is renewed for a slow retry.
+      const stashed = sessionStorage.getItem('oidc_redirect')
+      if (isHandoffReturn(stashed)) rememberHandoffReturn(stashed)
+      else sessionStorage.removeItem('oidc_redirect')
       window.history.replaceState({}, '', '/login')
       loadConfig(false)
       return
     }
 
     loadConfig(true)
-  }, [navigate, t, noRedirect])
+  }, [navigate, t, noRedirect, nativeApp])
 
   // Language detection chain (runs once on mount, only if user has no saved preference):
   // 1. localStorage → already in store initial state, skip
@@ -289,7 +323,47 @@ export function useLogin() {
     }
   }
 
+  // In the app: a sign-in the system browser finished while Android started the
+  // app anew. Its return waited natively; redeemed here, it signs the app in.
+  useEffect(() => {
+    if (!nativeApp) return
+    resumeBrowserSignIn()
+      .then(async (signedIn) => {
+        if (!signedIn) return
+        await loadUser({ silent: true })
+        setShowTakeoff(true)
+        void loadSettings()
+        setTimeout(() => {
+          void navigate(redirectTarget)
+        }, 2600)
+      })
+      .catch(() => setError(t('native.login.failed')))
+  }, [nativeApp, loadUser, loadSettings, navigate, redirectTarget, t])
+
+  /** In the app: SSO and passkeys run in the system browser (native/browserSignIn.ts). */
+  const handleBrowserSignIn = async (start?: BrowserSignInStart): Promise<void> => {
+    setError('')
+    setIsLoading(true)
+    try {
+      await signInThroughBrowser(start)
+      await loadUser({ silent: true })
+      takeOff()
+    } catch (err: unknown) {
+      if (!(err instanceof BrowserSignInCancelled)) setError(t('native.login.failed'))
+      setIsLoading(false)
+    }
+  }
+
+  /** The SSO links: a plain navigation in a browser, the system browser in the app. */
+  const handleSsoClick = (e: React.MouseEvent<HTMLAnchorElement>): void => {
+    clearSignedOut()
+    if (!nativeApp) return
+    e.preventDefault()
+    void handleBrowserSignIn('oidc')
+  }
+
   const handlePasskeyLogin = async (): Promise<void> => {
+    if (nativeApp) return handleBrowserSignIn('passkey')
     setError('')
     setIsLoading(true)
     try {
@@ -393,5 +467,6 @@ export function useLogin() {
     noRedirect, showRegisterOption, oidcOnly,
     redirectScreen, configWait, idpSlow, idpName,
     handleDemoLogin, handleSubmit, handlePasskeyLogin,
+    handleSsoClick,
   }
 }

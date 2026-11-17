@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Musea & cultuur',
   'poi.cat.nature': 'Natuur & parken',
   'poi.cat.activities': 'Activiteiten',
+  'poi.cat.bakeries': 'Bakkerijen',
+  'poi.cat.groceries': 'Supermarkten',
   'poi.pluginCategories': 'Categorieën uit plugins',
   'map.showAllConnections': 'Alle boekingsroutes tonen',
   'map.hideAllConnections': 'Alle boekingsroutes verbergen',
@@ -46,5 +48,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Deze browser biedt geen WebGL2, dat GL-kaarten nodig hebben, dus kaarten worden met Leaflet getoond.',
   'map.webgl2.terrain': '3D heeft WebGL2 nodig, dat deze browser niet biedt. De kaart blijft in 2D.',
+  'map.offlineBasemap': 'Offline kaart',
+  'map.offlineShowStored': 'Offline kaart tonen',
 };
 export default map;

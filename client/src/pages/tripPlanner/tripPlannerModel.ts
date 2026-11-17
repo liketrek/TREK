@@ -56,3 +56,14 @@ export function resolvePoolAssignmentId(
     .filter((a) => a.place?.id === placeId)
   return matches.length === 1 ? matches[0].id : null
 }
+
+/**
+ * Where the tour editor is a tab of the trip: always on the desktop, and in the
+ * touch shell only on a large screen (an iPad, an unfolded foldable), where it is
+ * offered in the rail. A phone has no such tab and keeps its tours in the places
+ * browser. Null while the addon is off or on a phone.
+ */
+export function tourPlannerTabOf(toursOn: boolean, touchShell: boolean, largeScreen: boolean): { desktopOnly: boolean } | null {
+  if (!toursOn || (touchShell && !largeScreen)) return null
+  return { desktopOnly: !largeScreen }
+}

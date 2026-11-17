@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Sposta in {name}',
   'assistant.card.collection.removed': 'Rimosso dalla lista',
   'assistant.card.collection.photo': 'Foto',
+  'assistant.card.collection.mapEntry': 'Scheda sulla mappa',
   'assistant.card.collection.places': 'Luoghi salvati in {name}',
   'assistant.card.collection.saved': 'Luoghi salvati',
   'assistant.card.collection.statusSet': '{count} luoghi salvati modificati',

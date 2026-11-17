@@ -284,8 +284,8 @@ export class TransitMcp {
     }
     // The fare files the linked expense in the booking's own transaction and
     // rides along in the metadata, as create_transport's price does. `transit`
-    // is no Costs category (typeToCostCategory would file it under other), so a
-    // fare defaults to the one every rail and bus booking maps to.
+    // is no Costs category of its own, so a fare defaults to the one every rail
+    // and bus booking maps to (typeToCostCategory('transit') says the same).
     const linkedCost =
       price != null && price > 0 ? { total_price: price, category: budget_category || 'transport' } : undefined;
     const { reservation } = await this.writes.createBooking(

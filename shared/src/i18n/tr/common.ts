@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Buraya girdikleriniz henüz kaydedilmedi.',
   'common.keepEditing': 'Düzenlemeye devam et',
   'common.name': 'Ad',
+  'common.title': 'Başlık',
   'common.email': 'E-posta',
   'common.password': 'Şifre',
   'common.saving': 'Kaydediliyor...',
@@ -80,5 +81,7 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'Bu sekme açıkken TREK güncellendi. Yeni sürümü almak için sayfayı yenileyin.',
   'common.errorPluginTitle': 'Bu eklenti gösterilemedi',
   'common.needsConnection': 'Bunun için bağlantı gerekiyor. TREK yeniden çevrimiçi olduğunda tekrar dene.',
+  'common.errorDetails': 'Ayrıntılar',
+  'common.share': 'Paylaş',
 };
 export default common;

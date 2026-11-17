@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': '우선순위',
   'todo.detail.noPriority': '없음',
   'todo.detail.create': '작업 만들기',
+  'todo.progressCount': '{total}개 중 {done}개 완료',
+  'todo.allDone': '모두 완료!',
+  'todo.filter.myShort': '내 할 일',
 };
 export default todo;

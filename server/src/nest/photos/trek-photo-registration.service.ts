@@ -144,6 +144,21 @@ export class TrekPhotoRegistrationService {
   }
 
   /**
+   * The capture time and place a provider has confirmed for this very photo,
+   * put in over what the row holds (#3019). Coordinates stay a pair or none:
+   * a confirmed photo without GPS loses the pair a wrong lookup gave it.
+   * Answers whether the row changed.
+   */
+  async replaceCaptureMetadata(
+    photoId: number,
+    meta: { takenAt?: string | null; lat?: number | null; lng?: number | null },
+  ): Promise<boolean> {
+    const { takenAt = null, lat = null, lng = null } = meta;
+    const hasPair = Number.isFinite(lat) && Number.isFinite(lng);
+    return await this.trekPhotos.replaceCaptureMetadata(photoId, takenAt, hasPair ? lat : null, hasPair ? lng : null);
+  }
+
+  /**
    * PH10/PH11 — drop the row once no trip and no journey references it.
    * A local photo is kept unless the caller deletes it on purpose (`local`,
    * a journey photo the user deleted): its row is what keeps its bytes, and

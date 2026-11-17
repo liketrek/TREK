@@ -6,8 +6,10 @@ import { concatKysely, startsWithIsoDateKysely, substringKysely } from '../diale
 import { accommodationIdMatches } from './_shared/reservation-accommodation';
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
 import type { DayAssignmentRow } from './day-assignment-rows';
-import type { ReservationAllColumnsRow, ReservationJoinKyselyDB, ReservationJoinRow } from './reservation-rows';
 import { TrekRepository } from './_shared/trek-repository';
+import { passContextQuery, type PassContextDB } from './_shared/reservation-pass-context';
+import { originColumnValues, type ReservationOriginColumns } from './_shared/reservation-origin-columns';
+import { idByExternalQuery, joinedReservationQuery, type ReservationJoinDB } from './_shared/reservation-joined-query';
 import type { DB } from '../kysely/db';
 import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
 import type {
@@ -19,11 +21,12 @@ import type {
   PublicApiUnplannedPlaceRow,
   PublicApiUnscheduledReservationRow,
 } from './reservation-public-api-rows';
+import type { ReservationAllColumnsRow, ReservationJoinRow } from './reservation-rows';
 
-// The row types moved to their own modules; re-exported so callers keep one import path.
+// The reservation row shapes live in their own module; re-exported so callers keep one import path.
+export type { ReservationAllColumnsRow, ReservationJoinRow } from './reservation-rows';
+// The public API row types moved to their own module; re-exported so callers keep one import path.
 export type {
-  ReservationAllColumnsRow,
-  ReservationJoinRow,
   PublicApiAccommodationRow,
   PublicApiScheduledReservationRow,
   PublicApiUnplannedPlaceRow,
@@ -135,8 +138,8 @@ type CalendarReservationKyselyDB = Pick<DB, 'reservations' | 'places' | 'day_acc
 /**
  * CL4 (`CalendarService.buildTripCalendar`'s assignment read, for every dated
  * day at once) — `SELECT da.*, p.name as place_name, p.address as
- * place_address, p.lat as place_lat, p.lng as place_lng, p.duration_minutes
- * as place_duration_minutes, COALESCE(da.assignment_time, p.place_time) as
+ * place_address, p.lat as place_lat, p.lng as place_lng, COALESCE(da.stay_minutes,
+ * p.duration_minutes) as place_duration_minutes, COALESCE(da.assignment_time, p.place_time) as
  * effective_time, COALESCE(da.assignment_end_time, p.end_time) as
  * effective_end_time FROM
  * day_assignments da JOIN places p ON da.place_id = p.id WHERE da.day_id IN
@@ -342,33 +345,15 @@ export interface SharePublicAccommodationRow {
 
 type SharePublicAccommodationKyselyDB = ReservationVisibilityKyselyDB & Pick<DB, 'day_accommodations' | 'places'>;
 
-/**
- * Plan 3h Task 4 (`AirportsService.backfillFlightEndpoints`, AIR1) —
- * additive. The `reservations`/`reservation_endpoints` tables the
- * `NOT EXISTS` guard reads.
- */
+/** `AirportsService.backfillFlightEndpoints` (AIR1): the tables its `NOT EXISTS` guard reads. */
 type FlightsMissingEndpointsKyselyDB = Pick<DB, 'reservations' | 'reservation_endpoints'>;
 
 export class ReservationsRepository extends TrekRepository<Reservations> {
+  // For its Wallet pass (_shared/reservation-pass-context.ts).
+  findPassContext(id: number, tripId: number) { return passContextQuery(this.kysely<PassContextDB>(), id, tripId); }
+
   private joinedQuery() {
-    const platform = this.getEntityManager().getPlatform();
-    return this.kysely<ReservationJoinKyselyDB>()
-      .selectFrom('reservations as r')
-      .leftJoin('days as d', 'd.id', 'r.day_id')
-      .leftJoin('places as p', 'p.id', 'r.place_id')
-      .leftJoin('day_accommodations as ap', (join) =>
-        join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'ap.id')),
-      )
-      .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
-      .selectAll('r')
-      .select([
-        'd.day_number as day_number',
-        'p.name as place_name',
-        'ap.place_id as accommodation_place_id',
-        'acc_p.name as accommodation_name',
-        'ap.start_day_id as accommodation_start_day_id',
-        'ap.end_day_id as accommodation_end_day_id',
-      ]);
+    return joinedReservationQuery(this.kysely<ReservationJoinDB>(), this.getEntityManager().getPlatform());
   }
 
   /**
@@ -386,10 +371,15 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
 
   /**
    * RR1 (`ReservationsReadService.getReservationWithJoins`) — the SAME
-   * projection for one reservation, no `ORDER BY` (a single row).
+   * projection for one reservation, no `ORDER BY` (a single row), and only
+   * when it belongs to `trip_id`: every caller holds the trip it checked, so a
+   * booking id from another trip reads as missing rather than leaking its row.
    */
-  async findWithJoins(id: number | string): Promise<ReservationJoinRow | undefined> {
-    const row = await this.joinedQuery().where('r.id', '=', id as number).executeTakeFirst();
+  async findWithJoins(id: number | string, trip_id: number | string): Promise<ReservationJoinRow | undefined> {
+    const row = await this.joinedQuery()
+      .where('r.id', '=', id as number)
+      .where('r.trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row as ReservationJoinRow | undefined;
   }
 
@@ -447,12 +437,16 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * (trip_id, day_id, end_day_id, place_id, assignment_id, title,
    * reservation_time, reservation_end_time, location, confirmation_number,
    * notes, url, status, type, accommodation_id, metadata, needs_review)
-   * VALUES (?×17)`. `sync_enabled`/`ingest_state`/`day_plan_position`
-   * deliberately NOT named, so the column's own DB-level `DEFAULT` applies
-   * (`sync_enabled INTEGER DEFAULT 1`, `Migration20200101021800_…`;
-   * `ingest_state` `.default('live')`) — the caller has already resolved
-   * every value (the `|| null` coercions, `resolvedOrNull`, the numeric
-   * `accommodation_id` stringified for the TEXT column, R2).
+   * VALUES (?×17)`. `ingest_state`/`day_plan_position` deliberately NOT
+   * named, so the column's own DB-level `DEFAULT` applies (`ingest_state`
+   * `.default('live')`) — the caller has already resolved every value (the
+   * `|| null` coercions, `resolvedOrNull`, the numeric `accommodation_id`
+   * stringified for the TEXT column, R2).
+   *
+   * `external_source`/`external_id`/`sync_enabled` are named only when the
+   * caller passes them: an imported booking records where it came from, every
+   * other write leaves them to the column defaults as before (`sync_enabled
+   * INTEGER DEFAULT 1`, `Migration20200101021800_…`).
    */
   async insertReservation(input: {
     trip_id: number;
@@ -472,7 +466,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     accommodation_id: string | null;
     metadata: string | null;
     needs_review: number;
-  }): Promise<number> {
+  } & ReservationOriginColumns): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
       day: input.day_id,
@@ -491,7 +485,13 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       accommodation_id: input.accommodation_id,
       metadata: input.metadata,
       needs_review: input.needs_review,
+      ...originColumnValues(input),
     });
+  }
+
+  /** The booking an import already wrote into this trip under the same origin (_shared/reservation-joined-query.ts). */
+  findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
+    return idByExternalQuery(this.kysely<DB>(), trip_id, external_source, external_id);
   }
 
   /**
@@ -909,7 +909,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         'p.address as place_address',
         'p.lat as place_lat',
         'p.lng as place_lng',
-        'p.duration_minutes as place_duration_minutes',
+        eb.fn.coalesce('da.stay_minutes', 'p.duration_minutes').as('place_duration_minutes'),
         eb.fn.coalesce('da.assignment_time', 'p.place_time').as('effective_time'),
         eb.fn.coalesce('da.assignment_end_time', 'p.end_time').as('effective_end_time'),
       ])

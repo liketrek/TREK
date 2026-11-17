@@ -1,4 +1,4 @@
-// FE-ADMIN-STOR-RECLAIM-001 to -007: the reclaim report as both storage panels show it.
+// FE-ADMIN-STOR-RECLAIM-001 to -009: the reclaim report as both storage panels show it.
 import { STORAGE_RECLAIM_CATEGORIES, type StorageReclaimCategoryReport, type StorageReclaimReport } from '@trek/shared';
 
 import { reclaimView } from './reclaimModel';
@@ -136,5 +136,85 @@ describe('reclaimView', () => {
 
   it('FE-ADMIN-STOR-RECLAIM-007: a running check reads as running', () => {
     expect(reclaimView({ deleteEnabled: false, running: true, lastRun: null, lastDeleteRun: null }).running).toBe(true);
+  });
+
+  it('FE-ADMIN-STOR-RECLAIM-008: a category held back by a backup or a failed delete still counts what was judged and not deleted', () => {
+    const view = reclaimView({
+      deleteEnabled: true,
+      running: false,
+      lastDeleteRun: null,
+      lastRun: report(
+        {
+          covers: category({
+            skipped: 'backup_running',
+            unreferenced: { objects: 3_000, bytes: 3_000 },
+            eligible: { objects: 3_000, bytes: 3_000 },
+          }),
+          places: category({
+            skipped: 'backup_running',
+            unreferenced: { objects: 1_500, bytes: 150 },
+            eligible: { objects: 1_200, bytes: 120 },
+            deleted: { objects: 1_000, bytes: 100 },
+          }),
+          files: category({
+            skipped: 'delete_failed',
+            unreferenced: { objects: 5, bytes: 50 },
+            eligible: { objects: 4, bytes: 40 },
+            deleted: { objects: 1, bytes: 10 },
+          }),
+        },
+        'delete'
+      ),
+    });
+    const byCategory = Object.fromEntries(view.lines.map((line) => [line.category, line]));
+    expect(byCategory.covers).toMatchObject({
+      freeable: { objects: 3_000, bytes: 3_000 },
+      waiting: none,
+      skipped: 'backup_running',
+    });
+    expect(byCategory.places).toMatchObject({
+      freeable: { objects: 200, bytes: 20 },
+      waiting: { objects: 300, bytes: 30 },
+      skipped: 'backup_running',
+    });
+    expect(byCategory.files).toMatchObject({
+      freeable: { objects: 3, bytes: 30 },
+      waiting: { objects: 1, bytes: 10 },
+      skipped: 'delete_failed',
+    });
+    expect(view.freeable).toEqual({ objects: 3_203, bytes: 3_050 });
+    expect(view.waiting).toEqual({ objects: 301, bytes: 40 });
+  });
+
+  it('FE-ADMIN-STOR-RECLAIM-009: a category whose sources or listing failed shows its reason and counts nothing', () => {
+    const view = reclaimView({
+      deleteEnabled: true,
+      running: false,
+      lastDeleteRun: null,
+      lastRun: report({
+        covers: category({ skipped: 'source_failed', objects: 12 }),
+        files: category({ skipped: 'list_failed' }),
+      }),
+    });
+    expect(view.lines).toEqual([
+      {
+        category: 'files',
+        freeable: none,
+        waiting: none,
+        confirmationRequired: false,
+        unreferenced: 0,
+        skipped: 'list_failed',
+      },
+      {
+        category: 'covers',
+        freeable: none,
+        waiting: none,
+        confirmationRequired: false,
+        unreferenced: 0,
+        skipped: 'source_failed',
+      },
+    ]);
+    expect(view.freeable).toEqual(none);
+    expect(view.waiting).toEqual(none);
   });
 });

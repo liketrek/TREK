@@ -9,6 +9,7 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { formatDate } from '../../utils/formatters'
+import { textMatchesSearch } from '../../utils/placeSearch'
 import { getApiErrorMessage } from '../../types'
 import type { Category, TranslationFn } from '../../types'
 import type { CollectionImportablePlace, Trip } from '@trek/shared'
@@ -128,10 +129,9 @@ export default function ImportFromTripModal({ isOpen, collectionId, collectionNa
   const savedCount = items.length - newCount
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase()
     return items
       .filter(p => (onlyNew ? !p.already_in_list : true))
-      .filter(p => !q || p.name.toLowerCase().includes(q) || (p.address ?? '').toLowerCase().includes(q))
+      .filter(p => textMatchesSearch([p.name, p.address], query))
       .sort((a, b) => importOrder(a) - importOrder(b) || a.name.localeCompare(b.name))
   }, [items, onlyNew, query])
 

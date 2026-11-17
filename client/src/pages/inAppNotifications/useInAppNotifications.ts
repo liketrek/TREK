@@ -43,6 +43,8 @@ export function useInAppNotifications() {
   return {
     notifications, unreadCount, total: shownTotal, isLoading, hasMore,
     unreadOnly, setUnreadOnly, loaderRef, displayed,
+    // Pull-to-refresh on mobile: the first page again, with the current filter.
+    refresh: () => fetchNotifications(true, unreadOnly),
     markAllRead,
     confirmingDeleteAll,
     requestDeleteAll: () => setConfirmingDeleteAll(true),

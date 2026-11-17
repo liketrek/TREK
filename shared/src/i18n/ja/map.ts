@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': '美術館・文化施設',
   'poi.cat.nature': '自然・公園',
   'poi.cat.activities': 'アクティビティ',
+  'poi.cat.bakeries': 'パン屋',
+  'poi.cat.groceries': '食料品店',
   'poi.pluginCategories': 'プラグインのカテゴリ',
   'map.showAllConnections': 'すべての予約ルートを表示',
   'map.hideAllConnections': 'すべての予約ルートを非表示',
@@ -43,5 +45,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'このブラウザーは GL マップに必要な WebGL2 に対応していないため、地図は Leaflet で表示されます。',
   'map.webgl2.terrain': '3D には WebGL2 が必要ですが、このブラウザーは対応していません。地図は 2D のままです。',
+  'map.offlineBasemap': 'オフライン地図',
+  'map.offlineShowStored': 'オフライン地図を表示',
 };
 export default map;

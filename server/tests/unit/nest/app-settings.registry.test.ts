@@ -45,18 +45,39 @@ describe('the derived key lists', () => {
       'password_registration',
       'oidc_login',
       'oidc_registration',
+      'oidc_auto_redirect',
       'passkey_login',
       'webauthn_rp_id',
       'webauthn_origins',
       'places_provider',
+      'flight_live_enabled',
+      'mail_ingest_enabled',
+      'mail_ingest_transport',
+      'mail_ingest_imap_host',
+      'mail_ingest_imap_port',
+      'mail_ingest_imap_tls',
+      'mail_ingest_imap_user',
+      'mail_ingest_imap_pass',
+      'mail_ingest_imap_mailbox',
+      'mail_ingest_address_template',
+      'mail_ingest_webhook_secret',
+      'mail_ingest_ai_per_user_daily',
     ]);
   });
 
   it('APPSET-002: the masked and the encrypted keys', () => {
-    expect([...MASKED_ADMIN_SETTING_KEYS].sort()).toEqual(['admin_ntfy_token', 'admin_webhook_url', 'smtp_pass']);
+    expect([...MASKED_ADMIN_SETTING_KEYS].sort()).toEqual([
+      'admin_ntfy_token',
+      'admin_webhook_url',
+      'mail_ingest_imap_pass',
+      'mail_ingest_webhook_secret',
+      'smtp_pass',
+    ]);
     expect([...ENCRYPTED_APP_SETTING_KEYS].sort()).toEqual([
       'admin_ntfy_token',
       'admin_webhook_url',
+      'mail_ingest_imap_pass',
+      'mail_ingest_webhook_secret',
       'oidc_client_secret',
       'service_key',
       'smtp_pass',
@@ -82,6 +103,7 @@ describe('the derived key lists', () => {
         'places_details_enabled',
         'places_enrich_enabled',
         'place_shadow_enabled',
+        'oidc_auto_redirect',
       ].sort(),
     );
   });
@@ -131,6 +153,7 @@ describe('reading', () => {
       oidc_client_secret: ['OIDC_CLIENT_SECRET', 'oidc-env-secret'],
       oidc_display_name: ['OIDC_DISPLAY_NAME', 'Company SSO'],
       oidc_discovery_url: ['OIDC_DISCOVERY_URL', 'https://idp.env.example/.well-known/openid-configuration'],
+      flight_live_enabled: ['FLIGHT_LIVE_ENABLED', 'false'],
     };
     const withEnv = (Object.entries(APP_SETTINGS) as Array<[string, AppSettingDef]>)
       .filter(([, def]) => def.env)

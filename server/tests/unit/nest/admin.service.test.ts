@@ -998,6 +998,61 @@ describe('resetUserMfa', () => {
   });
 });
 
+// #3065: the provider re-issued a user's subject, so every sign-in hits
+// "linked to another subject of this provider" and editing the email cannot help.
+describe('unlinkUserSso', () => {
+  it('ADMIN-SVC-097 — clears sub and issuer so the next SSO sign-in links like a first one', async () => {
+    const admin = createAdmin(testDb);
+    const { user } = createUser(testDb);
+    await updateRows(orm, Users, { id: user.id }, { oidc_sub: 'sub-old', oidc_issuer: 'https://idp.example.com' });
+
+    const result = await svc.unlinkUserSso(String(user.id), admin.user.id);
+
+    expect(result).toEqual({ email: user.email, unlinked: true });
+    const row = await readUser(orm, user.id);
+    expect({ oidc_sub: row.oidc_sub, oidc_issuer: row.oidc_issuer }).toEqual({ oidc_sub: null, oidc_issuer: null });
+  });
+
+  it('ADMIN-SVC-098 — an account without an SSO link answers unlinked: false and stays as it is', async () => {
+    const admin = createAdmin(testDb);
+    const { user } = createUser(testDb);
+
+    expect(await svc.unlinkUserSso(String(user.id), admin.user.id)).toEqual({ email: user.email, unlinked: false });
+  });
+
+  it('ADMIN-SVC-099 — refuses the callers own account and keeps its link', async () => {
+    const admin = createAdmin(testDb);
+    await updateRows(
+      orm,
+      Users,
+      { id: admin.user.id },
+      { oidc_sub: 'sub-admin', oidc_issuer: 'https://idp.example.com' },
+    );
+
+    const result = (await asLegacyResult(svc.unlinkUserSso(String(admin.user.id), admin.user.id))) as {
+      error?: string;
+      status?: number;
+    };
+
+    expect(result.status).toBe(400);
+    expect(result.error).toMatch(/your own/i);
+    expect((await readUser(orm, admin.user.id)).oidc_sub).toBe('sub-admin');
+  });
+
+  it('ADMIN-SVC-100 — 404 for a user that is not there, and for a guest', async () => {
+    const admin = createAdmin(testDb);
+    const { user: guest } = createUser(testDb);
+    await updateRows(orm, Users, { id: guest.id }, { is_guest: 1 });
+
+    expect((await asLegacyResult(svc.unlinkUserSso('99999', admin.user.id))) as { status?: number }).toMatchObject({
+      status: 404,
+    });
+    expect(
+      (await asLegacyResult(svc.unlinkUserSso(String(guest.id), admin.user.id))) as { status?: number },
+    ).toMatchObject({ status: 404 });
+  });
+});
+
 describe('checkVersion on a centrally administered install', () => {
   afterEach(() => {
     vi.unstubAllEnvs();

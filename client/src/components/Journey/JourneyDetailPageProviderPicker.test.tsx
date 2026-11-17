@@ -1,4 +1,4 @@
-// FE-JRN-PICKER-001 to FE-JRN-PICKER-039
+// FE-JRN-PICKER-001 to FE-JRN-PICKER-040
 
 import { describe, it, expect, afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
@@ -153,6 +153,48 @@ describe('ProviderPicker', () => {
     await waitFor(() => expect(requested).toEqual(['pw 1']))
     const thumb = await screen.findByAltText('')
     expect(thumb.getAttribute('src')).toContain('passphrase=pw%201')
+  })
+
+  it('FE-JRN-PICKER-040: an open album can be narrowed to a date range, and Select all only takes what is shown (#2859)', async () => {
+    // The calendar opens on the current month, so the album's photos are dated
+    // in it: a fixed month would need paging the calendar there first.
+    const now = new Date()
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    server.use(
+      http.get('/api/integrations/memories/immich/albums', () => HttpResponse.json({
+        albums: [{ id: 'alb1', albumName: 'Shared', assetCount: 3 }],
+      })),
+      http.get('/api/integrations/memories/immich/albums/alb1/photos', () => HttpResponse.json({
+        assets: [
+          asset('early', { localTakenAt: `${month}-02T10:00:00.000Z` }),
+          asset('inside', { localTakenAt: `${month}-05T10:00:00.000Z` }),
+          asset('late', { localTakenAt: `${month}-20T10:00:00.000Z` }),
+        ],
+      })),
+    )
+    const user = userEvent.setup()
+    mountPicker()
+    await screen.findByText('March 15, 2026')
+
+    await user.click(screen.getByRole('button', { name: 'Albums' }))
+    // Nothing to narrow until an album is open.
+    expect(screen.queryByRole('group', { name: 'Taken between' })).toBeNull()
+    await user.click(await screen.findByRole('button', { name: 'Shared (3)' }))
+    expect(await screen.findByRole('button', { name: /Select all \(3\)/ })).toBeInTheDocument()
+
+    const range = screen.getByRole('group', { name: 'Taken between' })
+    const [fromTrigger, toTrigger] = within(range).getAllByRole('button')
+    await user.click(fromTrigger)
+    await user.click(screen.getByRole('button', { name: '3' }))
+    await user.click(toTrigger)
+    await user.click(screen.getByRole('button', { name: '9' }))
+
+    // Narrowed on the client: the album is not asked for again.
+    await user.click(await screen.findByRole('button', { name: /Select all \(1\)/ }))
+    expect(screen.getByRole('button', { name: 'Add (1)' })).toBeEnabled()
+
+    await user.click(within(range).getByRole('button', { name: 'Clear' }))
+    expect(screen.getByRole('button', { name: /Select all \(3\)/ })).toBeInTheDocument()
   })
 
   it('FE-JRN-PICKER-008: selects and deselects every selectable asset at once', async () => {

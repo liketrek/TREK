@@ -350,7 +350,7 @@ describe('MReservationSheet', () => {
   it('FE-MOB-RESSH-008: status, code, link and notes all reach the payload', async () => {
     const { planner } = setup()
     type(titleField(), 'Opera')
-    fireEvent.click(screen.getByRole('button', { name: 'reservations.confirmed' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'reservations.confirmed' }))
     type(screen.getByPlaceholderText('reservations.confirmationPlaceholder'), 'OP-7')
     type(screen.getByPlaceholderText('reservations.urlPlaceholder'), 'https://opera.test')
     type(screen.getByPlaceholderText('reservations.notesPlaceholder'), 'balcony')

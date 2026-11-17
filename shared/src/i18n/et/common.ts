@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'Siia sisestatu pole veel salvestatud.',
   'common.keepEditing': 'Jätka muutmist',
   'common.name': 'Nimi',
+  'common.title': 'Pealkiri',
   'common.email': 'E-post',
   'common.password': 'Parool',
   'common.saving': 'Salvestamine...',
@@ -81,5 +82,7 @@ const common: TranslationStrings = {
     'TREKi uuendati ajal, kui see vahekaart oli avatud. Uue versiooni kasutamiseks laadi leht uuesti.',
   'common.errorPluginTitle': 'Seda pluginat ei saanud kuvada',
   'common.needsConnection': 'Selleks on vaja ühendust. Proovi uuesti, kui TREK on taas võrgus.',
+  'common.errorDetails': 'Üksikasjad',
+  'common.share': 'Jaga',
 };
 export default common;

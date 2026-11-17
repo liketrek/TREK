@@ -1,6 +1,6 @@
 import {
   BedDouble, Bike, Bookmark, Camera, CheckCircle2, Circle, CircleSlash, Coffee,
-  Landmark, MapPin, ShoppingBag, TrainFront, Trees, Umbrella, Utensils,
+  Landmark, MapPin, RotateCcw, ShoppingBag, TrainFront, Trees, Umbrella, Utensils,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { CollectionStatus } from '@trek/shared'
@@ -61,11 +61,12 @@ export interface MStatusMeta {
   labelKey: string
 }
 
-/** Status canon: Idea → Want to go → Visited. */
+/** Status canon: Idea → Want to go → Visited → Want to revisit. */
 export const STATUS_SPEC: Record<CollectionStatus, MStatusMeta> = {
   idea: { color: '#9A9AA1', icon: Circle, labelKey: 'collections.status.idea' }, // theme-lint-disable
   want: { color: '#4A7DDB', icon: Bookmark, labelKey: 'collections.status.want' }, // theme-lint-disable
   visited: { color: '#2FA37A', icon: CheckCircle2, labelKey: 'collections.status.visited' }, // theme-lint-disable
+  revisit: { color: 'var(--m-st-pending)', icon: RotateCcw, labelKey: 'collections.status.revisit' },
 }
 
 /** Hex + alpha-suffix tints the design uses for tiles/pills (e.g. #4A7DDB1f). */

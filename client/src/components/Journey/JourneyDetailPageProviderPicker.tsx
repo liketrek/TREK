@@ -1,4 +1,4 @@
-import { Calendar, Camera, Check, ChevronRight, Images, Loader2, Play, X } from 'lucide-react';
+import { ArrowRight, Calendar, Camera, Check, ChevronRight, Images, Loader2, Play, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { memoriesApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
@@ -6,6 +6,7 @@ import { useIsPhone } from '../../mobile/useIsPhone';
 import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT } from '../shared/DialogShell';
 import {
   fetchRemainingProviderPages,
+  filterPhotosByDayRange,
   groupPhotosByDate,
   PROVIDER_SEARCH_LAST_PAGE,
   PROVIDER_SEARCH_PAGE_SIZE,
@@ -83,6 +84,10 @@ export function ProviderPicker({
   const [draining, setDraining] = useState(false);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  // The days an opened album is narrowed to (#2859). Kept across albums: the
+  // range describes the trip being looked for, not the album it is looked in.
+  const [albumFrom, setAlbumFrom] = useState('');
+  const [albumTo, setAlbumTo] = useState('');
   const [targetEntryId, setTargetEntryId] = useState<number | null>(initialEntryId ?? null);
   const [addToOpen, setAddToOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -204,9 +209,13 @@ export function ProviderPicker({
   // sort would leave the grid frozen while the caption already says "near Rome".
   // It also keeps the ranking global instead of per page, which a sort inside
   // the appending search cannot do.
+  //
+  // An open album is narrowed to its date range first. Everything downstream,
+  // "Select all" included, then only ever sees the photos in that range.
+  const albumOpen = filter === 'album' && selectedAlbum !== null;
   const sortedPhotos = useMemo(
-    () => sortProviderPhotos(photos, contextLocation),
-    [photos, contextLocation?.lat, contextLocation?.lng],
+    () => sortProviderPhotos(albumOpen ? filterPhotosByDayRange(photos, albumFrom, albumTo) : photos, contextLocation),
+    [photos, albumOpen, albumFrom, albumTo, contextLocation?.lat, contextLocation?.lng],
   );
 
   // Albums come back whole, so they never page.
@@ -478,6 +487,43 @@ export function ProviderPicker({
                     <span className="text-[12px] text-zinc-400">{t('journey.picker.noAlbums')}</span>
                   )}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* An album can hold far more than one trip, so once one is open its
+              photos can be narrowed to the days that matter (#2859). Its own row
+              under the album chips, which already fill theirs. The label only
+              fits beside the two pickers from sm up; the group still names it. */}
+          {albumOpen && (
+            <div
+              role="group"
+              aria-label={t('journey.picker.takenBetween')}
+              className="mt-2 flex min-h-[36px] items-center gap-2"
+            >
+              <span className="hidden flex-shrink-0 text-caption text-content-muted sm:inline">
+                {t('journey.picker.takenBetween')}
+              </span>
+              <div className="min-w-0 flex-1">
+                <DatePicker value={albumFrom} onChange={setAlbumFrom} />
+              </div>
+              <ArrowRight size={12} className="flex-shrink-0 text-content-faint" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <DatePicker value={albumTo} onChange={setAlbumTo} />
+              </div>
+              {(albumFrom || albumTo) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAlbumFrom('');
+                    setAlbumTo('');
+                  }}
+                  aria-label={t('common.clear')}
+                  title={t('common.clear')}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-content-faint hover:bg-surface-hover"
+                >
+                  <X size={14} />
+                </button>
               )}
             </div>
           )}

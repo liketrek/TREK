@@ -9,6 +9,9 @@ const settings: TranslationStrings = {
   'settings.tabs.integrations': 'Integracions',
   'settings.tabs.account': 'Compte',
   'settings.tabs.offline': 'Fora de línia',
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'El teu compte',
+  'settings.groups.device': 'Aquest dispositiu',
   'settings.tabs.about': 'Quant a',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Plantilla del mapa',
@@ -51,6 +54,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': "Mode d'alta qualitat",
   'settings.mapHighQualityHint': 'Antialiàsia + projecció global per a vores més nítides i una vista realista del món.',
   'settings.mapHighQualityWarning': 'Pot afectar el rendiment en dispositius menys potents.',
+  'settings.mapHidePois': "Amaga els punts d'interès",
+  'settings.mapHidePoisHint':
+    "Amaga les botigues, restaurants i llocs d'interès que Mapbox marca pel seu compte, perquè només destaquin els teus llocs. Només als estils Standard.",
   'settings.mapTipLabel': 'Consell:',
   'settings.mapTip':
     'Clic dret i arrossegar per girar/inclinar el mapa. Clic central per afegir un lloc (el clic dret està reservat per a la rotació).',
@@ -62,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Per a dades meteorològiques. Gratuïta a openweathermap.org/api',
   'settings.keyPlaceholder': 'Introdueix la clau...',
   'settings.configured': 'Configurat',
+  'settings.notSetUp': 'No configurat',
+  'settings.mcp.appsConnected': '{count} aplicacions connectades',
+  'settings.mcp.appsConnected.one': '{count} aplicació connectada',
   'settings.saveKeys': 'Desa les claus',
   'settings.display': 'Visualització',
   'settings.colorMode': 'Mode de color',
@@ -88,7 +97,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Notificacions',
   'settings.notifyTripInvite': 'Invitacions de viatge',
   'settings.notifyBookingChange': 'Canvis en reserves',
+  'settings.notifyFlightDeparted': 'Enlairaments',
+  'settings.notifyFlightDelayed': 'Retards de vols',
+  'settings.notifyFlightLanded': 'Aterratges',
   'settings.notifyTripReminder': 'Recordatoris de viatge',
+  'settings.notifyMailBookingAdded': 'Reserves afegides des de correus',
+  'settings.notifyMailBookingPending': 'Reserves reenviades per revisar',
+  'settings.notifyMailIngestPaused': 'Importació de correu en pausa',
   'settings.notifyTodoDue': 'Tasca propera',
   'settings.notifyVacayInvite': 'Invitacions de fusió Vacay',
   'settings.notifyVacayShare': 'Comparticions de calendari Vacay',
@@ -677,6 +692,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Fet',
   'settings.mcp.deprecated': 'Obsolet',
   'settings.offline.cache.dateRange': 'del {start} al {end}',
+  'settings.offline.tileStore.title': 'Tessel·les de mapa vistes',
+  'settings.offline.tileStore.usage': '{used} de {limit} en aquest dispositiu, es guarden fins a 30 dies',
+  'settings.offline.tileStore.clear': 'Buida',
 };
 
 export default settings;

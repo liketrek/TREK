@@ -15,6 +15,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { TrekPhotosModule } from '../photos/trek-photos.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
+import { SettingsModule } from '../settings/settings.module';
 import { StorageModule } from '../storage/storage.module';
 import { ImmichMemoriesController } from './immich.controller';
 import { ImmichService } from './immich.service';
@@ -28,6 +29,7 @@ import { PhotoProviderRegistry } from './photo-provider.registry';
 import { PhotoResolverService } from './photo-resolver.service';
 import { ImmichPhotoProvider } from './providers/immich.provider';
 import { SynologyPhotoProvider } from './providers/synology.provider';
+import { SynologyCaptureRepairJob } from './synology-capture-repair.job';
 import { SynologyMemoriesController } from './synology.controller';
 import { SynologyService } from './synology.service';
 import { ThumbnailService } from './thumbnail.service';
@@ -81,6 +83,7 @@ import { Module } from '@nestjs/common';
     TrekPhotosModule,
     RealtimeModule,
     SchedulingModule,
+    SettingsModule,
     StorageModule,
     UserConnectionRepositoriesModule,
     MikroOrmModule.forFeature([
@@ -109,6 +112,7 @@ import { Module } from '@nestjs/common';
     TrekPhotoCacheService,
     TrekPhotoCacheJob,
     JourneyThumbsJob,
+    SynologyCaptureRepairJob,
     ImmichPhotoProvider,
     SynologyPhotoProvider,
     PhotoProviderRegistry,

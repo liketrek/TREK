@@ -65,6 +65,19 @@ describe('planCosts (#2551)', () => {
     expect(costs.byDay.get(2)).toEqual([{ amount: 100, currency: 'USD' }, { amount: 30, currency: 'EUR' }])
   })
 
+  it('counts an expense entered in the display currency as typed, not through the trip currency (#2965)', () => {
+    // A yen trip read in euros: the flight was typed in euros, frozen at 0.008 EUR per yen.
+    const flight = buildBudgetItem({ total_price: 1000, currency: 'EUR', exchange_rate: 0.008, place_id: 51 })
+    const hotel = buildBudgetItem({ total_price: 20000, currency: null, place_id: 51 })
+    const read = { ...base, tripCurrency: 'JPY', budgetItems: [flight, hotel], costsEnabled: true }
+    expect(planCosts({ ...read, displayCurrency: 'eur' }).total).toEqual([
+      { amount: 1000, currency: 'EUR' },
+      { amount: 20000, currency: 'JPY' },
+    ])
+    // Without a display currency (the PDF), the euros still count at their frozen rate.
+    expect(planCosts(read).total).toEqual([{ amount: 1000 / 0.008 + 20000, currency: 'JPY' }])
+  })
+
   it('nets a refund against the expenses of its day', () => {
     const items = [
       buildBudgetItem({ total_price: 200, currency: null, place_id: 50 }),

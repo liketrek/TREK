@@ -407,6 +407,12 @@ export class PackingItemsRepository extends TrekRepository<PackingItems> {
     await this.nativeUpdate({ id }, { is_private, ...data, updated_at: currentTimestamp(platform) });
   }
 
+  /** `removeContributor` on a Common item's owner (#3098): the item stays on the list, nobody's in particular. */
+  async clearOwner(id: number): Promise<void> {
+    const platform = this.getEntityManager().getPlatform();
+    await this.nativeUpdate({ id }, { owner: null, updated_at: currentTimestamp(platform) });
+  }
+
   /** PK16 (`setItemSharing`'s replace-all) — `DELETE FROM packing_item_recipients WHERE item_id = ?`. */
   async deleteRecipientsForItem(item_id: number): Promise<void> {
     await this.db().deleteFrom('packing_item_recipients').where('item_id', '=', item_id).execute();

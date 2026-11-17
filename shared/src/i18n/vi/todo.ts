@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Sự ưu tiên',
   'todo.detail.noPriority': 'Không có',
   'todo.detail.create': 'Tạo nhiệm vụ',
+  'todo.progressCount': 'Xong {done}/{total}',
+  'todo.allDone': 'Đã xong hết!',
+  'todo.filter.myShort': 'Của tôi',
 };
 export default todo;

@@ -1,0 +1,51 @@
+/* Closing: the mirror of each entrance, shorter and easing in, so a dialog,
+   confirm or menu leaves as gently as it came (usePresence.ts, which imports
+   this file, keeps it mounted for EXIT_MS). Added next to the entrance class rather than
+   instead of it, because on phones the entrance class also docks the dialog. */
+@keyframes trek-modal-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes trek-drawer-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(40%);
+  }
+}
+@keyframes trek-backdrop-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.trek-modal-enter.trek-modal-exit,
+.trek-popover-enter.trek-popover-exit {
+  animation: trek-modal-exit 160ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+.trek-backdrop-enter.trek-backdrop-exit {
+  animation: trek-backdrop-exit 170ms ease-in forwards;
+}
+@media (max-width: 639px) {
+  .trek-modal-enter.trek-modal-exit {
+    animation: trek-drawer-exit 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trek-modal-enter.trek-modal-exit,
+  .trek-popover-enter.trek-popover-exit,
+  .trek-backdrop-enter.trek-backdrop-exit {
+    animation: trek-backdrop-exit 120ms ease-out forwards;
+  }
+}

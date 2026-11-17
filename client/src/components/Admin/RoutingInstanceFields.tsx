@@ -3,6 +3,7 @@ import type { ValhallaProvider } from '@trek/shared'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { fs } from '../shared/DialogShell'
 import { INPUT, LABEL } from '../shared/dialogParts'
+import CustomSelect from '../shared/CustomSelect'
 
 export interface RoutingDefaults {
   routing_base_url?: string
@@ -121,10 +122,20 @@ function RoutingProviderField({ defaults, onSave, onReset, hintClassName }: Rout
       <div className={look.head}>
         <label htmlFor={id} className={look.label}>{t('settings.valhallaProvider')}</label>
       </div>
-      <select id={id} value={defaults.routing_valhalla_provider ?? ''} disabled={saving}
-        onChange={e => void pick(e.target.value)} aria-describedby={`${id}-hint`} className={look.input}>
-        {PROVIDERS.map(option => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
-      </select>
+      {phone ? (
+        <select id={id} value={defaults.routing_valhalla_provider ?? ''} disabled={saving}
+          onChange={e => void pick(e.target.value)} aria-describedby={`${id}-hint`} className={look.input}>
+          {PROVIDERS.map(option => <option key={option.value} value={option.value}>{t(option.labelKey)}</option>)}
+        </select>
+      ) : (
+        // The desktop's own select, like every other choice on its settings pages.
+        <CustomSelect
+          value={defaults.routing_valhalla_provider ?? ''}
+          onChange={value => void pick(String(value))}
+          options={PROVIDERS.map(option => ({ value: option.value, label: t(option.labelKey) }))}
+          disabled={saving}
+        />
+      )}
       <FieldHint id={`${id}-hint`} text={t('settings.valhallaProviderHint')} hintClassName={hintClassName} />
     </div>
   )

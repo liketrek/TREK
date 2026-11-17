@@ -16,6 +16,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': 'Företagsledighet',
   'mobileVacay.editCalendar': 'Redigera kalender',
   'mobileVacay.viewYear': 'Visa år',
+  'mobileVacay.people': 'Personer',
+  'mobileVacay.legend': 'Teckenförklaring',
 };
 
 export default mobileVacay;

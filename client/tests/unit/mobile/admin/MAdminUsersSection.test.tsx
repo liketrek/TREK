@@ -7,6 +7,7 @@ import { resetAllStores } from '../../../helpers/store';
 import { buildAdminHook, buildAdminUser, type AdminHook } from '../../../helpers/mobileAdmin';
 import { useTranslation } from '../../../../src/i18n';
 import MAdminUsersSection from '../../../../src/mobile/screens/admin/MAdminUsersSection';
+import { mobileOptionLabels, pickMobileOption } from '../../../helpers/mobileSelect';
 
 // The permissions matrix self-loads and has its own suite — stub it out here.
 vi.mock('../../../../src/mobile/screens/admin/MAdminPermissionsPanel', () => ({
@@ -89,10 +90,10 @@ describe('MAdminUsersSection', () => {
     expect(screen.getByRole('presentation')).toHaveAttribute('src', '/uploads/bob.png');
   });
 
-  it('FE-MOB-AUSERS-003: the spinner replaces the list while users are loading', () => {
+  it('FE-MOB-AUSERS-003: the placeholders replaces the list while users are loading', () => {
     renderSection({ users: [ALICE], isLoading: true });
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByText('alice')).not.toBeInTheDocument();
   });
 
@@ -232,15 +233,15 @@ describe('MAdminUsersSection', () => {
       />,
     );
 
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    expect(screen.getByRole('option', { name: 'No trip' })).toBeInTheDocument();
-    expect(select.value).toBe('');
+    const select = screen.getByRole('combobox');
+    const name = select.getAttribute('aria-label') ?? '';
+    expect(select).toHaveTextContent('No trip');
+    expect(await mobileOptionLabels(user, name)).toEqual(['No trip', 'Japan 2026']);
+    await user.click(within(screen.getByRole('dialog', { name })).getByRole('button', { name: 'Japan 2026' }));
+    expect(screen.getByRole('combobox')).toHaveTextContent('Japan 2026');
 
-    fireEvent.change(select, { target: { value: '4' } });
-    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('4');
-
-    fireEvent.change(select, { target: { value: '' } });
-    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('');
+    await pickMobileOption(user, name, 'No trip');
+    expect(screen.getByRole('combobox')).toHaveTextContent('No trip');
 
     await user.click(screen.getByRole('button', { name: 'Create & Copy' }));
     expect(handleCreateInvite).toHaveBeenCalled();

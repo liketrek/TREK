@@ -1,5 +1,5 @@
 import type { JourneyMapPlace, JourneyMapStay } from '@trek/shared';
-import { CalendarRange, ChevronLeft, ChevronRight, Clock, MapPin, NotebookPen, X } from 'lucide-react';
+import { CalendarRange, ChevronLeft, ChevronRight, Clock, MapPin, NotebookPen, PenLine, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { SoftPill, WhiteBadge } from '../Planner/planParts';
@@ -14,6 +14,8 @@ interface Props {
   onOpenEntry?: (entryId: string) => void;
   /** The title of an entry the reader can see, for the stay that belongs to it. */
   entryTitleOf?: (entryId: number) => string | null;
+  /** Starts an entry about a planned place nothing was written about; absent where the reader cannot write. */
+  onWriteAbout?: (place: JourneyMapPlace) => void;
 }
 
 function dayLabel(date: string, locale: string): string {
@@ -41,7 +43,15 @@ function OpenEntry({ entryId, onOpenEntry }: { entryId: number; onOpenEntry?: (e
   );
 }
 
-function PlaceDetail({ place, onOpenEntry }: { place: JourneyMapPlace; onOpenEntry?: (entryId: string) => void }) {
+function PlaceDetail({
+  place,
+  onOpenEntry,
+  onWriteAbout,
+}: {
+  place: JourneyMapPlace;
+  onOpenEntry?: (entryId: string) => void;
+  onWriteAbout?: (place: JourneyMapPlace) => void;
+}) {
   const { t, locale } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
@@ -56,9 +66,22 @@ function PlaceDetail({ place, onOpenEntry }: { place: JourneyMapPlace; onOpenEnt
       {place.entry_id !== null ? (
         <OpenEntry entryId={place.entry_id} onOpenEntry={onOpenEntry} />
       ) : (
-        <p className="text-content-muted" style={fs(11.5, 'body')}>
-          {t('journey.map.pick.notWritten')}
-        </p>
+        <>
+          <p className="text-content-muted" style={fs(11.5, 'body')}>
+            {t('journey.map.pick.notWritten')}
+          </p>
+          {onWriteAbout && (
+            <button
+              type="button"
+              onClick={() => onWriteAbout(place)}
+              className="inline-flex items-center gap-1 self-start rounded-lg bg-accent px-2.5 py-1.5 font-semibold text-accent-text hover:opacity-90"
+              style={fs(11.5, 'body')}
+            >
+              <PenLine size={12} strokeWidth={2.2} aria-hidden />
+              {t('journey.detail.newEntry')}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
@@ -106,7 +129,7 @@ function markName(mark: JourneyMapMark): string {
  * one spot come as a list first, each with what kind it is, so overlapping
  * hits stay reachable one by one.
  */
-export default function JourneyMapPickCard({ marks, onClose, onOpenEntry, entryTitleOf }: Props) {
+export default function JourneyMapPickCard({ marks, onClose, onOpenEntry, entryTitleOf, onWriteAbout }: Props) {
   const { t, locale } = useTranslation();
   const [picked, setPicked] = useState<JourneyMapMark | null>(marks.length === 1 ? marks[0] : null);
 
@@ -150,7 +173,9 @@ export default function JourneyMapPickCard({ marks, onClose, onOpenEntry, entryT
           <X size={14} strokeWidth={2.2} />
         </button>
       </div>
-      {picked?.kind === 'plan' && <PlaceDetail place={picked.place} onOpenEntry={onOpenEntry} />}
+      {picked?.kind === 'plan' && (
+        <PlaceDetail place={picked.place} onOpenEntry={onOpenEntry} onWriteAbout={onWriteAbout} />
+      )}
       {picked?.kind === 'stay' && (
         <StayDetail stay={picked.stay} onOpenEntry={onOpenEntry} entryTitleOf={entryTitleOf} />
       )}

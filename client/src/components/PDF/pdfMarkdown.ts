@@ -24,7 +24,7 @@ export const PDF_MARKDOWN_CSS = `
   .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 { font-size: 1.1em; font-weight: 700; margin: 4px 0 2px; }
   .md table { border-collapse: collapse; }
   .md th, .md td { border: 1px solid #e2e8f0; padding: 2px 5px; text-align: start; }
-  .md code { font-family: ui-monospace, monospace; font-size: 8.5px; }
+  .md code { font-family: ui-monospace, monospace; font-size: calc(8.5px * var(--pdf-text, 1)); }
   .md a { color: inherit; text-decoration: underline; }
   .md blockquote { border-inline-start: 2px solid #e2e8f0; padding-inline-start: 6px; }
 `;

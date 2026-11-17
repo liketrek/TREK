@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from '../../../i18n'
 import MDancingTrek from '../../components/MDancingTrek'
-import { useTripSplashBeats } from '../../../components/shared/useTripSplashBeats'
+import { TRIP_SPLASH_AFTER_MS, useTripSplashBeats } from '../../../components/shared/useTripSplashBeats'
 
 /**
  * Trip-open splash — the TREK mascot acts out a little journey while the trip
@@ -10,6 +11,32 @@ import { useTripSplashBeats } from '../../../components/shared/useTripSplashBeat
  * progress dots track which beat is on. Under reduced motion it holds a single
  * frame (the real "loading photos" one) with no transitions.
  */
+// The page transition holds the page the trip was opened from for up to 350ms
+// (mobile/routeTransition.ts), so a trip that loads within TRIP_SPLASH_AFTER_MS
+// slides in whole, the way the dashboard slides back in on the way out.
+export { TRIP_SPLASH_AFTER_MS }
+
+/**
+ * While a trip opens. At first nothing but the screen's own background, marked
+ * as a route fallback, which the page transition waits on; the splash only once
+ * the load takes longer than TRIP_SPLASH_AFTER_MS.
+ */
+export function MTripOpening({ title }: { title: string }) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSlow(true), TRIP_SPLASH_AFTER_MS)
+    return () => window.clearTimeout(timer)
+  }, [])
+  if (slow) return <MTripLoadingSplash title={title} />
+  return (
+    <div
+      data-route-fallback=""
+      aria-busy="true"
+      className="fixed inset-0 z-50 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]"
+    />
+  )
+}
+
 export default function MTripLoadingSplash({ title }: { title: string }) {
   const { t } = useTranslation()
   const { reduceMotion, activeIndex, step, steps } = useTripSplashBeats({ liveReducedMotion: true })

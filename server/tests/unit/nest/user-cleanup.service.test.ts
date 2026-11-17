@@ -23,6 +23,7 @@ import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import type { BudgetItemsRepository } from '../../../src/db/repositories/BudgetItems.repository';
 import type { BudgetSettlementsRepository } from '../../../src/db/repositories/BudgetSettlements.repository';
@@ -458,5 +459,40 @@ describe('deleteUserCompletely', () => {
     });
     await svc.deleteUserCompletely(user.id);
     expect(cleanupRelease.releaseValues).toHaveBeenCalledWith(['face.png'], { bare: 'avatars' });
+  });
+
+  it('USER-CLEANUP-012: drops the photo rows only their own journeys held and releases those files', async () => {
+    const { user: victim } = createUser(testDb, { username: 'photo-victim' });
+    const { user: other } = createUser(testDb, { username: 'photo-other' });
+    const ownJourney = await createJourney(victim.id, 'Mine');
+    const otherJourney = await createJourney(other.id, 'Theirs');
+    const trip = createTrip(testDb, other.id);
+    const photo = async (file: string, thumb: string | null = null) => {
+      const row = { provider: 'local', owner: victim.id, file_path: file, thumbnail_path: thumb };
+      const id = await insertRow(orm, TrekPhotos, row);
+      await insertRow(orm, JourneyPhotos, { journey: ownJourney, photo: id, created_at: 0 });
+      return id;
+    };
+    const alone = await photo('journey/alone.jpg', 'journey/alone-poster.jpg');
+    const inOtherJourney = await photo('journey/shared.jpg');
+    const inTrip = await photo('journey/trip.jpg');
+    await insertRow(orm, JourneyPhotos, { journey: otherJourney, photo: inOtherJourney, created_at: 0 });
+    await insertRow(orm, TripPhotos, { trip: trip.id, user: other.id, photo: inTrip });
+
+    await svc.deleteUserCompletely(victim.id);
+
+    expect(await findRow(orm, TrekPhotos, { id: alone })).toBeNull();
+    expect(await findRow(orm, TrekPhotos, { id: inOtherJourney })).not.toBeNull();
+    expect(await findRow(orm, TrekPhotos, { id: inTrip })).not.toBeNull();
+    // Every file the gallery named is handed on: the release keeps what another row still names.
+    type Released = [Array<string | null>, { bare?: string }];
+    const calls = cleanupRelease.releaseValues.mock.calls as unknown as Released[];
+    const handed = calls.find(([, options]) => options.bare === 'journey')?.[0] ?? [];
+    expect(handed.filter(Boolean).sort()).toEqual([
+      'journey/alone-poster.jpg',
+      'journey/alone.jpg',
+      'journey/shared.jpg',
+      'journey/trip.jpg',
+    ]);
   });
 });

@@ -1173,7 +1173,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Który silnik rysuje mapy w planerze podróży i dzienniku oraz w jakim stylu. Leaflet to klasyczna mapa rastrowa, Mapbox GL dodaje budynki 3D i ukształtowanie terenu, ale wymaga własnego tokena, a MapLibre GL rysuje wektorowe kafelki OpenFreeMap bez tokena. Atlas zawsze korzysta z Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '„Dostawca mapy”: Leaflet, Mapbox GL („Eksperymentalne”) lub MapLibre GL, każda opcja z krótkim opisem.',
+    '„Dostawca mapy”: Leaflet, Mapbox GL lub MapLibre GL, każda opcja z krótkim opisem.',
   'help.ctx.settings-map.bullet.2':
     '„Szablon mapy” i „Klucz API CARTO” dla Leaflet; „Styl mapy” dla obu silników GL, a dla Mapbox GL także „Token dostępu Mapbox”.',
   'help.ctx.settings-map.bullet.3':

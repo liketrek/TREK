@@ -284,6 +284,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Albumeid ei leitud',
   'journey.picker.selectDate': 'Vali kuupäev',
   'journey.picker.search': 'Otsi',
+  'journey.picker.takenBetween': 'Tehtud vahemikus',
   'journey.studio.title': 'TREK Studio', // same-as-en
   'journey.studio.open': 'Stuudio',
   'journey.studio.openAria': 'Ava fotoraamatu stuudio',

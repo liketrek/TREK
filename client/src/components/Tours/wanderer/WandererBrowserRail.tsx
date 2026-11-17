@@ -24,10 +24,11 @@ import { useSettingsStore } from '../../../store/settingsStore';
 import { formatDisplayDate } from '../../../utils/dateFormat';
 import { formatDistance, formatElevation } from '../../../utils/units';
 import { BarButton, WhiteBadge } from '../../Planner/planParts';
-import { DialogButton, NEUTRAL_TINT, fs } from '../../shared/DialogShell';
+import { DialogButton, fs } from '../../shared/DialogShell';
 import EmptyState from '../../shared/EmptyState';
 import { Tooltip } from '../../shared/Tooltip';
-import { RAIL_HEAD, RailTitle } from '../planner/TourPlannerPanels';
+import { useRailHeadProps } from '../planner/railHead';
+import { RailTitle } from '../planner/TourPlannerPanels';
 import { TourDayRowAvatar } from '../TourDayRowFacts';
 import { TourListCard, TourMetricFields, TourNotice, TourSection } from '../tourParts';
 import { formatPlannedTourDuration } from '../tourPresentation';
@@ -40,11 +41,12 @@ import WandererMark from './WandererMark';
  * The trail itself shows on the map between the rails.
  */
 export default function WandererBrowserRail({ browser }: { browser: WandererBrowser }) {
+  const railHead = useRailHeadProps();
   const { t } = useTranslation();
   const inPreview = browser.selected !== null;
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t('wanderer.browser.title')}>
-      <div className={RAIL_HEAD} style={{ background: NEUTRAL_TINT }}>
+      <div {...railHead}>
         <BarButton
           label={inPreview ? t('wanderer.browser.backToList') : t('tours.planner.backToTours')}
           onClick={inPreview ? browser.backToList : browser.close}

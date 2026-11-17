@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Múzeumok és kultúra',
   'poi.cat.nature': 'Természet és parkok',
   'poi.cat.activities': 'Programok',
+  'poi.cat.bakeries': 'Pékségek',
+  'poi.cat.groceries': 'Élelmiszerboltok',
   'poi.pluginCategories': 'Pluginok kategóriái',
   'map.showAllConnections': 'Összes foglalási útvonal megjelenítése',
   'map.hideAllConnections': 'Összes foglalási útvonal elrejtése',
@@ -44,5 +46,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     'Ez a böngésző nem kínál WebGL2-t, amelyre a GL-térképeknek szükségük van, ezért a térképek Leaflettel jelennek meg.',
   'map.webgl2.terrain': 'A 3D-hez WebGL2 kell, amelyet ez a böngésző nem kínál. A térkép 2D-ben marad.',
+  'map.offlineBasemap': 'Offline térkép',
+  'map.offlineShowStored': 'Offline térkép megjelenítése',
 };
 export default map;

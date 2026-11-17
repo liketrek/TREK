@@ -106,6 +106,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Idée',
   'collections.status.want': 'À visiter',
   'collections.status.visited': 'Visité',
+  'collections.status.revisit': 'À revisiter',
   'collections.status.filterAll': 'Tous',
   'collections.status.cycleHint': 'touchez pour changer',
 
@@ -198,10 +199,15 @@ const collection: TranslationStrings = {
   'collections.file.formatTrekHint': 'Pour un autre TREK, avec étiquettes et statut',
   'collections.file.formatGpxHint':
     'Points de passage pour OsmAnd, Organic Maps, Garmin et d’autres applications cartographiques',
+  'collections.file.formatKmlHint': 'Des repères pour Google My Maps, pour voir les lieux dans Google Maps',
   'collections.file.gpxOmitted': '{count} lieux sans coordonnées ont été laissés hors du fichier GPX',
   'collections.file.gpxOmitted.one': '{count} lieu sans coordonnées a été laissé hors du fichier GPX',
   'collections.file.gpxNothing':
     'Aucun de ces lieux n’a de coordonnées, il n’y a donc rien à mettre dans un fichier GPX.',
+  'collections.file.kmlOmitted': '{count} lieux sans coordonnées ont été laissés hors du fichier KML',
+  'collections.file.kmlOmitted.one': '{count} lieu sans coordonnées a été laissé hors du fichier KML',
+  'collections.file.kmlNothing':
+    'Aucun de ces lieux n’a de coordonnées, il n’y a donc rien à mettre dans un fichier KML.',
   'collections.file.reading': 'Lecture du fichier…',
   'collections.file.gpxSkipped': '{count} points de passage sans coordonnées utilisables sont écartés.',
   'collections.file.gpxSkipped.one': '{count} point de passage sans coordonnées utilisables est écarté.',

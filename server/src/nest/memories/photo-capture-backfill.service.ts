@@ -2,7 +2,7 @@ import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.
 import { StorageService } from '../storage/storage.service';
 import { exifCaptureInstant } from './memories.helpers';
 import { PhotoResolverService } from './photo-resolver.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import exifr from 'exifr';
 
@@ -95,6 +95,8 @@ interface LookupSlots {
  */
 @Injectable()
 export class PhotoCaptureBackfillService {
+  private readonly logger = new Logger(PhotoCaptureBackfillService.name);
+
   /**
    * Open lookups per user, never above BACKFILL_CONCURRENCY for any of them. An
    * entry lives only while its user has a lookup open or waiting, so the map
@@ -212,6 +214,30 @@ export class PhotoCaptureBackfillService {
     } catch (err) {
       console.error(`[Photos] capture backfill failed for ${id}:`, err instanceof Error ? err.message : err);
       return false;
+    }
+  }
+
+  /**
+   * Asks the provider again about a photo whose stored capture time and place
+   * may belong to another one, and puts in what it confirms (#3019). Inside the
+   * owner's lookup slots like an import, so a repair over a whole library never
+   * has more than BACKFILL_CONCURRENCY calls open against one NAS. `failed` is
+   * any photo the provider did not confirm: unreachable, gone, or no item whose
+   * thumbnail matches. Its row is left as it was.
+   */
+  async reconfirm(id: number, ownerId: number): Promise<'changed' | 'same' | 'failed'> {
+    try {
+      const info = await this.withLookupSlot(ownerId, () => this.resolver.getPhotoInfo(ownerId, id));
+      if (!info.success) return 'failed';
+      const changed = await this.photos.replaceCaptureMetadata(id, {
+        takenAt: info.data.takenAt ?? null,
+        lat: info.data.lat ?? null,
+        lng: info.data.lng ?? null,
+      });
+      return changed ? 'changed' : 'same';
+    } catch (err) {
+      this.logger.warn(`capture reconfirm failed for ${id}: ${err instanceof Error ? err.message : String(err)}`);
+      return 'failed';
     }
   }
 

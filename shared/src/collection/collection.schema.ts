@@ -9,9 +9,19 @@ import { tagSchema } from '../tag/tag.schema';
 
 import { z } from 'zod';
 
-export const COLLECTION_STATUSES = ['idea', 'want', 'visited'] as const;
+/**
+ * A saved place's status, in the order the one-tap cycle walks. 'revisit' (#2567)
+ * is a place already visited that the user wants to go back to; it sits last so
+ * the stored values and the order of the first three stay as they were.
+ */
+export const COLLECTION_STATUSES = ['idea', 'want', 'visited', 'revisit'] as const;
 export const collectionStatusSchema = z.enum(COLLECTION_STATUSES).catch('idea').default('idea');
 export type CollectionStatus = (typeof COLLECTION_STATUSES)[number];
+
+/** Whether the status means "been there": a place to revisit counts as visited wherever visits are counted. */
+export function isVisitedCollectionStatus(status: CollectionStatus): boolean {
+  return status === 'visited' || status === 'revisit';
+}
 
 /** Per-member permission on a shared list. viewer = read + copy-to-trip only;
  *  editor (default) = add + edit places; admin = full incl. delete. The owner
@@ -213,6 +223,16 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   label_ids: z.array(z.number()).optional(),
   // Custom thumbnail (#1136): null clears it (falls back to the auto-fetched photo).
   image_url: placeImageUrlSchema.nullable().optional(),
+  // The fields saving accepts but editing did not (#2646), with the same checks, so
+  // a place can be corrected in place instead of re-saved, which loses its labels,
+  // ratings, position and id. Each one is left alone when absent; null clears it.
+  google_place_id: z.string().nullable().optional(),
+  google_ftid: z.string().nullable().optional(),
+  osm_id: z.string().nullable().optional(),
+  website: placeWebsiteSchema.nullable().optional(),
+  phone: z.string().nullable().optional(),
+  price: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
 });
 export type CollectionPlaceUpdateRequest = z.infer<typeof collectionPlaceUpdateRequestSchema>;
 
@@ -273,6 +293,38 @@ export const collectionItemsRequestSchema = z.object({
   labelIds: z.array(idSchema).max(20).optional(),
 });
 export type CollectionItemsRequest = z.infer<typeof collectionItemsRequestSchema>;
+
+export const COLLECTION_PLACES_PAGE_DEFAULT = 100;
+export const COLLECTION_PLACES_PAGE_MAX = 500;
+
+/**
+ * One page of a list's places for an MCP client (list_collection_places, #2647):
+ * get_collection answers a long list as one block a client cuts in the middle.
+ * Pages follow the list's own order and continue from a cursor rather than an
+ * offset, so labelling the places of one page while filtering on `unlabeled`
+ * cannot make the next page skip any.
+ */
+export const collectionPlacesPageRequestSchema = z.object({
+  collectionId: idSchema,
+  cursor: z
+    .string()
+    .max(200)
+    .optional()
+    .describe('Where to go on: the next_cursor of the page before. Leave it out for the first page.'),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(COLLECTION_PLACES_PAGE_MAX)
+    .optional()
+    .describe(
+      `How many places at most (default ${COLLECTION_PLACES_PAGE_DEFAULT}, at most ${COLLECTION_PLACES_PAGE_MAX})`,
+    ),
+  status: z.enum(COLLECTION_STATUSES).optional().describe('Only places with this status'),
+  labelId: idSchema.optional().describe('Only places carrying this label of the list'),
+  unlabeled: z.boolean().optional().describe('true: only places without any label. Not together with labelId.'),
+});
+export type CollectionPlacesPageRequest = z.infer<typeof collectionPlacesPageRequestSchema>;
 
 // Fusion invitations. user_id is NUMERIC ONLY — the UI always sends an id from availableUsers.
 export const collectionInviteRequestSchema = z.object({

@@ -37,6 +37,7 @@ export const COLLECTION_LOOK = {
   steps: {
     get_collection: { stepKey: 'assistant.step.readingList' },
     get_collection_items: { stepKey: 'assistant.step.readingList' },
+    list_collection_places: { stepKey: 'assistant.step.readingList' },
     list_collections: { stepKey: 'assistant.step.lookingAtLists' },
     available_collection_users: { stepKey: 'assistant.step.lookingAtLists' },
     find_place_in_collections: { stepKey: 'assistant.step.checkingLists' },

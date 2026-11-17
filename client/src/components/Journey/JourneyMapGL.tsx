@@ -1,15 +1,20 @@
-import { useEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
+import { useEffect, useLayoutEffect, useRef, useImperativeHandle, useCallback, type Ref } from 'react'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from '../Map/glProviders'
-import { buildGlMap } from '../Map/glSupport'
+import { buildGlMap, initialMapStyle } from '../Map/glSupport'
+import { applySatellite } from '../Map/glRasterLayers'
+import type { BaseLayer } from '../Map/MapLayerSwitcher'
+import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import type { JourneyTrack } from '@trek/shared'
 import { SHOT_INDEX_ATTR, ensureJourneyPopupStyle, formatMarkerDate, journeyPopupHtml } from './journeyMapPopup'
 import { clusterPhotos, photoMarkerHtml, type MapPhoto } from './journeyPhotoLayer'
 import { MARK_CLUSTER_PX, PLANNED_BADGE_SVG, clusterPoints, glWorldPx, markHitSvg, type JourneyMapMark } from './journeyMapMarks'
 import { isPlannedTrack, type JourneyMapLayerVisibility } from './journeyMapLayers'
 import { coveredConnectionsShown, entryConnections } from './journeyMapConnections'
+import { journeyLines } from './journeyMapLines'
+import { alongShortestArc } from '../../utils/mapViewport'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -56,11 +61,19 @@ interface Props {
   photos?: MapPhoto[]
   onPhotoClick?: (photoIds: string[]) => void
   paddingBottom?: number
+  /**
+   * How much of the map's leading edge a bar laid over it covers (the touch
+   * shell's rail), in px: framing keeps the journey clear of it. Read when the
+   * map frames, so a change alone does not rebuild the map.
+   */
+  paddingStart?: number
   /** See the Leaflet twin (JRN-04): hidden layers go off the map in place. */
   layerVisibility?: JourneyMapLayerVisibility
   marks?: JourneyMapMark[]
   onMarksPick?: (marks: JourneyMapMark[]) => void
   plannedEntryIds?: ReadonlySet<string>
+  /** See the Leaflet twin (#2594): the imagery goes on under the journey's own layers. */
+  baseLayer?: BaseLayer
   glProvider?: GlMapProvider
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
@@ -126,7 +139,12 @@ function addConnectionLayer(map: mapboxgl.Map, id: string, lines: [number, numbe
     data: {
       type: 'Feature',
       properties: {},
-      geometry: { type: 'MultiLineString', coordinates: lines.map(line => line.map(([lat, lng]) => [lng, lat])) },
+      // The short way across the antimeridian: the map repeats the world, so a
+      // continuous line is enough (#3080).
+      geometry: {
+        type: 'MultiLineString',
+        coordinates: lines.flatMap(line => journeyLines(null, line, false)).map(line => line.map(([lat, lng]) => [lng, lat])),
+      },
     },
   })
   map.addLayer({
@@ -177,16 +195,25 @@ const EMPTY_TRACKS: JourneyTrack[] = []
 /** Fallback when a track carries no colour of its own, matching the planner's default. */
 const TRACK_FALLBACK_COLOR = '#4f46e5'
 
+/**
+ * The box around `[lng, lat]` points and the marks, the short way across the
+ * antimeridian: a journey from Samoa to Fiji frames the few degrees between
+ * them, not the rest of the world (#3080).
+ */
 function markBounds(gl: Props['gl'], marks: JourneyMapMark[], points: [number, number][] = []) {
   const bounds = new gl.LngLatBounds()
-  points.forEach(point => bounds.extend(point))
-  marks.forEach(mark => bounds.extend([mark.lng, mark.lat]))
+  const latLngs = [
+    ...points.map(([lng, lat]) => [lat, lng] as [number, number]),
+    ...marks.map(mark => [mark.lat, mark.lng] as [number, number]),
+  ]
+  alongShortestArc(latLngs).forEach(([lat, lng]) => bounds.extend([lng, lat]))
   return bounds
 }
 
-function fitOptions(paddingBottom: number | undefined, tilted: boolean | undefined) {
+function fitOptions(paddingBottom: number | undefined, tilted: boolean | undefined, paddingStart = 0) {
+  const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
   return {
-    padding: { top: 50, bottom: paddingBottom || 50, left: 50, right: 50 },
+    padding: { top: 50, bottom: paddingBottom || 50, left: 50 + (rtl ? 0 : paddingStart), right: 50 + (rtl ? paddingStart : 0) },
     maxZoom: 16,
     pitch: tilted ? 45 : 0,
     duration: 0,
@@ -194,8 +221,13 @@ function fitOptions(paddingBottom: number | undefined, tilted: boolean | undefin
 }
 
 function JourneyMapGL(
-  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, glProvider = 'mapbox-gl', gl, onMarkerCardClick, onMarkerPhotoClick, photos, onPhotoClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, ref }: Props,
+  { entries, trail, tracks, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom, paddingStart = 0, glProvider = 'mapbox-gl', gl, onMarkerCardClick, onMarkerPhotoClick, photos, onPhotoClick, layerVisibility = EVERY_LAYER, marks, onMarksPick, plannedEntryIds = NO_PLANNED, baseLayer = 'default', ref }: Props,
 ) {
+  // The leading inset is read when the map frames, not a reason to rebuild it.
+  const paddingStartRef = useRef(paddingStart)
+  useLayoutEffect(() => {
+    paddingStartRef.current = paddingStart
+  })
   const onMarkerCardClickRef = useRef(onMarkerCardClick)
   onMarkerCardClickRef.current = onMarkerCardClick
   const onMarkerPhotoClickRef = useRef(onMarkerPhotoClick)
@@ -248,6 +280,13 @@ function JourneyMapGL(
   })
   const darkRef = useRef(dark)
   darkRef.current = dark
+  // Read when a rebuilt map loads, and switched in place by its own effect below.
+  const satellite = baseLayer === 'satellite'
+  const satelliteRef = useRef(satellite)
+  // Before the map effects below, like the refs above.
+  useEffect(() => {
+    satelliteRef.current = satellite
+  })
   const mapLangRef = useRef(mapLang)
   mapLangRef.current = mapLang
 
@@ -377,14 +416,13 @@ function JourneyMapGL(
     const items = buildItems(entries)
     itemsRef.current = items
 
-    const bounds = new gl.LngLatBounds()
-    items.forEach(i => bounds.extend([i.lng, i.lat]))
-    stableTrail.forEach(p => bounds.extend([p.lng, p.lat]))
+    const entryPoints = [...items.map(i => [i.lng, i.lat] as [number, number]), ...stableTrail.map(p => [p.lng, p.lat] as [number, number])]
+    const bounds = markBounds(gl, [], entryPoints)
     const hasPoints = items.length > 0 || stableTrail.length > 0
 
     const mapOptions: Record<string, unknown> = {
       container: containerRef.current,
-      style: glStyle,
+      style: initialMapStyle(glProvider, glStyle),
       center: hasPoints ? bounds.getCenter() : [0, 30],
       zoom: hasPoints ? 2 : 1,
       pitch: enableMapbox3d && fullScreen ? 45 : 0,
@@ -395,6 +433,9 @@ function JourneyMapGL(
       antialias: mapboxQuality,
     }
     if (!isMapLibre) mapOptions.projection = mapboxQuality ? 'globe' : 'mercator'
+    // In the iOS app, Mapbox's own resources go through the app's tile store, so
+    // what was viewed stays on the device for up to 30 days (native/tileCache.ts).
+    if (!isMapLibre && tileCacheActive()) mapOptions.transformRequest = mapboxTileCacheRequest
     // MapLibre's around-center mouse rotate ping-pongs near mid-screen (#1545)
     // — see MapViewGL. Keep the plain dx-based rotate everywhere.
     if (isMapLibre) mapOptions.aroundCenter = false
@@ -404,7 +445,7 @@ function JourneyMapGL(
     if (!map) return
     mapRef.current = map
     marksFramedRef.current = false
-    entryPointsRef.current = [...items.map(i => [i.lng, i.lat] as [number, number]), ...stableTrail.map(p => [p.lng, p.lat] as [number, number])]
+    entryPointsRef.current = entryPoints
     readerMovedRef.current = false
     map.on('movestart', (ev: { originalEvent?: unknown }) => {
       if (ev.originalEvent) readerMovedRef.current = true
@@ -455,7 +496,11 @@ function JourneyMapGL(
                 name: track.name,
                 planned: isPlannedTrack(track),
               },
-              geometry: { type: 'LineString' as const, coordinates: track.points.map(([lat, lng]) => [lng, lat]) },
+              // Continuous across the antimeridian, so a crossing is a short hop (#3080).
+              geometry: {
+                type: 'LineString' as const,
+                coordinates: journeyLines(null, track.points as [number, number][], false)[0].map(([lat, lng]) => [lng, lat]),
+              },
             })),
         }
         if (featureCollection.features.length > 0) {
@@ -500,6 +545,9 @@ function JourneyMapGL(
         }
       }
 
+      // After the journey's own layers, so the imagery can be slipped in under them.
+      if (satelliteRef.current) applySatellite(map, true)
+
       // markers
       items.forEach((item) => {
         const el = markerHtml(item.dayColor, item.dayLabel, false, plannedRef.current.has(item.id))
@@ -519,10 +567,9 @@ function JourneyMapGL(
       // fit bounds to all points
       const known = marksRef.current ?? []
       marksFramedRef.current = known.length > 0
-      known.forEach(mark => bounds.extend([mark.lng, mark.lat]))
       if (hasPoints || known.length > 0) {
         try {
-          map.fitBounds(bounds, fitOptions(paddingBottom, enableMapbox3d && fullScreen))
+          map.fitBounds(known.length > 0 ? markBounds(gl, known, entryPoints) : bounds, fitOptions(paddingBottom, enableMapbox3d && fullScreen, paddingStartRef.current))
         } catch { /* empty bounds */ }
       }
     })
@@ -601,6 +648,14 @@ function JourneyMapGL(
     shownRef.current = layerVisibility
   }, [layerVisibility])
 
+  // The reader's base layer switch (#2594), in place: a rebuild would drop every
+  // marker and track for a new backdrop. A map whose style is not in yet refuses
+  // the layer quietly and gets it from its load handler instead.
+  useEffect(() => {
+    const map = mapRef.current
+    if (map) applySatellite(map, satellite)
+  }, [satellite])
+
   // The plan's check on an entry pin follows the plan layer in place.
   useEffect(() => {
     const before = iconPlannedRef.current
@@ -627,7 +682,7 @@ function JourneyMapGL(
         marksFramedRef.current = true
         if (!readerMovedRef.current) {
           try {
-            map.fitBounds(markBounds(gl, marks, entryPointsRef.current), fitOptions(paddingBottom, enableMapbox3d && fullScreen))
+            map.fitBounds(markBounds(gl, marks, entryPointsRef.current), fitOptions(paddingBottom, enableMapbox3d && fullScreen, paddingStartRef.current))
           } catch { /* empty bounds */ }
         }
       }

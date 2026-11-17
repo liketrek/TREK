@@ -239,5 +239,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Ajouter à Calendrier Apple / Outlook',
   'dashboard.ics.copyManually': 'Ou copier un lien manuellement',
   'dashboard.ics.pasteFromUrl': 'à coller dans « À partir de l’URL »',
+  'dashboard.ics.dayEvents': 'Événements de résumé du jour',
+  'dashboard.ics.dayEventsHint':
+    'Un événement sur la journée entière pour chaque jour, avec les lieux et notes sans heure. Modifier ce réglage change le lien, abonnez-vous à nouveau avec le nouveau lien.',
 };
 export default dashboard;

@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Müzeler ve kültür',
   'poi.cat.nature': 'Doğa ve parklar',
   'poi.cat.activities': 'Aktiviteler',
+  'poi.cat.bakeries': 'Fırınlar',
+  'poi.cat.groceries': 'Marketler',
   'poi.pluginCategories': 'Eklentilerden gelen kategoriler',
   'map.showAllConnections': 'Tüm rezervasyon rotalarını göster',
   'map.hideAllConnections': 'Tüm rezervasyon rotalarını gizle',
@@ -44,5 +46,7 @@ const map: TranslationStrings = {
   'map.webgl2.fallback':
     "Bu tarayıcı GL haritalarının ihtiyaç duyduğu WebGL2'yi sunmuyor, bu yüzden haritalar Leaflet ile gösteriliyor.",
   'map.webgl2.terrain': '3D için WebGL2 gerekir, bu tarayıcı ise onu sunmuyor. Harita 2D olarak kalır.',
+  'map.offlineBasemap': 'Çevrimdışı harita',
+  'map.offlineShowStored': 'Çevrimdışı haritayı göster',
 };
 export default map;

@@ -1,7 +1,5 @@
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import rtlTextPluginUrl from '@mapbox/mapbox-gl-rtl-text/dist/mapbox-gl-rtl-text.js?url'
-import { registerRtlTextPlugin } from '../rtlText'
 
 /**
  * The only module in the client that pulls mapbox-gl in at runtime.
@@ -10,8 +8,8 @@ import { registerRtlTextPlugin } from '../rtlText'
  * a static import from anywhere in the tree drags 1.8 MB into the parent chunk and
  * quietly undoes the split. `npm run check:gl-split` fails on that.
  */
-// Arabic/Hebrew/Persian labels come out unjoined and reversed without this.
-// Mapbox's signature is (url, callback, deferred) — see rtlText.ts.
-registerRtlTextPlugin(() => mapboxgl.setRTLTextPlugin(rtlTextPluginUrl, null, true))
+// No RTL text plugin to register: since 3.33 Mapbox GL shapes Arabic and orders
+// bidirectional text itself, loading a small WebAssembly module from
+// api.mapbox.com the first time such a label appears (#2235).
 
 export default mapboxgl

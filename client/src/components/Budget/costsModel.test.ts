@@ -1,22 +1,27 @@
+import type { CostCategory } from '@trek/shared';
 import { describe, expect, it } from 'vitest';
 
 import { buildBudgetItem } from '../../../tests/helpers/factories';
 import type { BudgetItem } from '../../types';
 import {
   buildCostsCsv,
+  categoryBreakdown,
   computeTotals,
+  countedExpenses,
   currencyOptions,
   filterBudgetItems,
+  isPlainSplit,
   myShareOf,
   paymentAmount,
   paymentLineOf,
   settledShareOf,
+  showsSplitting,
   type CostsCtx,
   type CostsFilterState,
   type CostsSettlement,
 } from './costsModel';
 
-// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-010
+// FE-BUDGET-COSTSMODEL-001 to FE-BUDGET-COSTSMODEL-015
 // The pieces both ledgers share since the desktop panel runs on this model too;
 // the rest of the model is pinned in tests/unit/mobile/trip/costsModel.test.ts.
 
@@ -134,5 +139,76 @@ describe('costsModel: the currency picker options', () => {
     const opts = currencyOptions('bgn');
     expect(opts[opts.length - 1]).toEqual({ value: 'BGN', label: 'BGN' });
     expect(currencyOptions(null).some((o) => o.value === 'BGN')).toBe(false);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-011: pinned currencies lead in the order given, each listed once (#2807)', () => {
+    const values = currencyOptions('EUR', ['jpy', 'EUR', 'JPY']).map((o) => o.value);
+    expect(values.slice(0, 2)).toEqual(['JPY', 'EUR']);
+    expect(values.filter((v) => v === 'JPY')).toHaveLength(1);
+    expect(values).toHaveLength(currencyOptions('EUR').length);
+    // A pin the picker cannot offer is left out rather than invented.
+    expect(currencyOptions(null, ['ZZZ']).some((o) => o.value === 'ZZZ')).toBe(false);
+  });
+});
+
+describe('costsModel: when Costs shows who paid and the shares (#2689, #1714)', () => {
+  const settled = { flows: [], balances: [] };
+
+  it('FE-BUDGET-COSTSMODEL-012: a trip of one has nothing to split, unless the ledger still names someone else', () => {
+    const mine = expense({ payers: [payer(1, 20)], members: [member(1)] });
+    expect(showsSplitting('split', 2, [], null, 1)).toBe(true);
+    expect(showsSplitting(undefined, 1, [mine], settled, 1)).toBe(false);
+    expect(showsSplitting('split', 0, [], null, 1)).toBe(false);
+    // Someone who left: named on an expense, owed money, or still in a transfer.
+    expect(showsSplitting('split', 1, [expense({ members: [member(1), member(9)] })], settled, 1)).toBe(true);
+    const owed = { flows: [], balances: [{ user_id: 9, username: 'u9', avatar_url: null, balance: 5 }] };
+    expect(showsSplitting('split', 1, [mine], owed, 1)).toBe(true);
+    const flow = { from: { user_id: 9, username: 'u9' }, to: { user_id: 1, username: 'u1' }, amount: 5 };
+    expect(showsSplitting('split', 1, [mine], { flows: [flow], balances: [] }, 1)).toBe(true);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-013: a split is plain with one payer, equal shares, no receipt lines and only current members', () => {
+    expect(isPlainSplit(null, [1])).toBe(true);
+    expect(isPlainSplit(expense({ payers: [payer(1, 20)], members: [member(1)] }), [1])).toBe(true);
+    expect(isPlainSplit(expense({ payers: [payer(1, 10), payer(2, 10)], members: [] }), [1, 2])).toBe(false);
+    expect(isPlainSplit(expense({ members: [{ ...member(1), amount: 15 }] }), [1])).toBe(false);
+    expect(isPlainSplit(expense({ ticket_json: '{"items":[]}', members: [member(1)] }), [1])).toBe(false);
+    expect(isPlainSplit(expense({ payers: [payer(9, 20)], members: [] }), [1])).toBe(false);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-014: a trip that keeps totals only splits nothing, however many share it (#1714)', () => {
+    const shared = expense({ payers: [payer(1, 20)], members: [member(1), member(2)] });
+    const flow = { from: { user_id: 2, username: 'u2' }, to: { user_id: 1, username: 'u1' }, amount: 10 };
+    expect(showsSplitting('totals', 3, [shared], { flows: [flow], balances: [] }, 1)).toBe(false);
+    expect(showsSplitting('split', 3, [shared], { flows: [flow], balances: [] }, 1)).toBe(true);
+  });
+});
+
+describe('costsModel: categories left out of the totals (#2819)', () => {
+  it('FE-BUDGET-COSTSMODEL-015: they leave what was spent, paid and shared, not what is owed or open, and keep their row', () => {
+    const food = expense({
+      category: 'food',
+      total_price: 40,
+      payers: [payer(1, 40)],
+      members: [member(1), member(2)],
+    });
+    const hotel = expense({ category: 'accommodation', total_price: 100, payers: [], members: [member(1)] });
+    const flow = { from: { user_id: 2, username: 'u2' }, to: { user_id: 1, username: 'u1' }, amount: 20 };
+    const without = computeTotals([food, hotel], [flow], ctx, myShareOf, new Set<CostCategory>(['food']));
+    expect(without).toMatchObject({ totalSpend: 100, myPaid: 0, myShare: 100, owed: 20, outstanding: 100 });
+    expect(computeTotals([food, hotel], [flow], ctx).totalSpend).toBe(140);
+
+    const bars = categoryBreakdown([food, hotel], ctx, new Set<CostCategory>(['accommodation']));
+    expect(bars.map((b) => [b.key, b.leftOut, b.widthPct])).toEqual([
+      ['accommodation', true, 0],
+      ['food', false, 100],
+    ]);
+  });
+
+  it('FE-BUDGET-COSTSMODEL-016: the expense count beside the total counts what the total adds up', () => {
+    const food = expense({ category: 'food', total_price: 40 });
+    const hotel = expense({ category: 'accommodation', total_price: 100 });
+    expect(countedExpenses([food, hotel, food])).toBe(3);
+    expect(countedExpenses([food, hotel, food], new Set<CostCategory>(['food']))).toBe(1);
   });
 });

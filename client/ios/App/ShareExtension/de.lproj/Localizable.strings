@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Zu TREK hinzufügen";
+"share.cancel" = "Abbrechen";
+"share.close" = "Schließen";
+"share.trip" = "Reise";
+"share.noTrips" = "Öffne TREK einmal, dann erscheinen hier deine Reisen.";
+"share.hint" = "TREK liest die Buchung und trägt sie in die Reise ein.";
+"share.later" = "Später wählen";
+"share.add" = "Hinzufügen";
+"share.addTo" = "Zu %@ hinzufügen";
+"share.added" = "Hinzugefügt";
+"share.reading" = "Wird gelesen…";
+"share.tooLarge" = "Diese Datei ist zu groß für den Import.";
+"share.unsupported" = "Das kann TREK nicht importieren.";
+"share.failed" = "Das konnte nicht an TREK übergeben werden. Bitte versuch es erneut.";
+"share.now" = "Läuft";
+"share.past" = "Vorbei";
+"share.tomorrow" = "Morgen";
+"share.inDays" = "In %d Tagen";
+"share.kind.pass" = "Wallet-Pass";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "E-Mail";
+"share.kind.page" = "Webseite";
+"share.kind.text" = "Text";
+"share.kind.image" = "Foto";
+"share.kind.file" = "Datei";

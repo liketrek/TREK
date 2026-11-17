@@ -72,11 +72,18 @@ export function formatFileDate(dateStr: string | null | undefined, locale: strin
   return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 }
 
+/** What a file is linked to, as the row shows it: the kind of thing, and its name. */
+export interface FileLinkLabel {
+  kind: string
+  name?: string
+}
+
 /**
- * The link row's joined descriptor list (spec 03 §5.2: "Links mit '·' gejoint"):
- * one "{Kategorie} · {Name}" string per linked place / reservation (transport
- * vs. booking split like FileManagerRow.tsx's SourceBadge list) plus a
- * Collab-Notes entry when note_id is set.
+ * The link row's descriptors (spec 03 §5.2): one kind and name per linked place /
+ * reservation (transport vs. booking split like FileManagerRow.tsx's SourceBadge
+ * list) plus a Collab-Notes entry when note_id is set. The row draws each as a
+ * badge of its own; joined into one string with dots, a kind and a name and the
+ * next kind read as one run.
  */
 export function buildFileLinkLabels(
   file: TripFile,
@@ -84,15 +91,15 @@ export function buildFileLinkLabels(
   reservations: Reservation[],
   transportTypes: Set<string>,
   t: TranslationFn,
-): string[] {
+): FileLinkLabel[] {
   const linked = linkedFileTargets(file, places, reservations, transportTypes)
-  const labels = linked.places.map(place => `${t('files.sourcePlan')} · ${place.name}`)
+  const labels: FileLinkLabel[] = linked.places.map(place => ({ kind: t('files.sourcePlan'), name: place.name }))
   for (const { reservation, transport } of linked.reservations) {
     const key = transport ? 'files.sourceTransport' : 'files.sourceBooking'
-    labels.push(`${t(key)} · ${reservation.title || t(key)}`)
+    labels.push({ kind: t(key), name: reservation.title || undefined })
   }
 
-  if (file.note_id != null) labels.push(t('files.sourceCollab'))
+  if (file.note_id != null) labels.push({ kind: t('files.sourceCollab') })
 
   return labels
 }

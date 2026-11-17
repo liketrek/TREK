@@ -20,36 +20,51 @@ function setup(plannerOverrides: Partial<TripPlanner> = {}, value = '') {
   return { ...view, planner, onChange }
 }
 
+// The field names the category it holds; the list under it opens on a tap.
+const field = () => screen.getByRole('button', { name: /^places.formCategory:/ })
+const openList = () => fireEvent.click(field())
+
 describe('PlCategoryPicker', () => {
-  it('FE-MOB-PLCAT-001: renders the no-category pill plus one pill per trip category', () => {
+  it('FE-MOB-PLCAT-001: one field names the category; the list under it offers none, every category and a new one', () => {
     setup()
-    expect(screen.getByRole('button', { name: /places\.noCategory/ })).toBeInTheDocument()
+    expect(field()).toHaveAccessibleName('places.formCategory: places.noCategory')
+    expect(field()).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: /Food/ })).not.toBeInTheDocument()
+    openList()
+    expect(field()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /^places.noCategory$/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Food/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Museums/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /mobileTrip\.newCategory/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /mobileTrip.newCategory/ })).toBeInTheDocument()
   })
 
-  it('FE-MOB-PLCAT-002: marks the no-category pill active for the empty value', () => {
+  it('FE-MOB-PLCAT-002: marks "no category" picked for the empty value', () => {
     setup()
-    expect(screen.getByRole('button', { name: /places\.noCategory/ }).className).toContain('bg-m-act')
-    expect(screen.getByRole('button', { name: /Food/ }).className).not.toContain('bg-m-act')
+    openList()
+    expect(screen.getByRole('button', { name: /^places.noCategory$/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /Food/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('FE-MOB-PLCAT-003: marks the pill of the selected id active', () => {
+  it('FE-MOB-PLCAT-003: the field shows the picked category, and the list marks it', () => {
     setup({}, '4')
-    expect(screen.getByRole('button', { name: /Museums/ }).className).toContain('bg-m-act')
-    expect(screen.getByRole('button', { name: /places\.noCategory/ }).className).not.toContain('bg-m-act')
+    expect(field()).toHaveAccessibleName('places.formCategory: Museums')
+    openList()
+    expect(screen.getByRole('button', { name: 'Museums' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^places.noCategory$/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('FE-MOB-PLCAT-004: reports the picked category id as a string', () => {
+  it('FE-MOB-PLCAT-004: reports the picked category id as a string and folds the list away', () => {
     const { onChange } = setup({}, '')
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /Food/ }))
     expect(onChange).toHaveBeenCalledWith('3')
+    expect(screen.queryByRole('button', { name: /Museums/ })).not.toBeInTheDocument()
   })
 
   it('FE-MOB-PLCAT-005: reports the empty value when the category is cleared', () => {
     const { onChange } = setup({}, '3')
-    fireEvent.click(screen.getByRole('button', { name: /places\.noCategory/ }))
+    openList()
+    fireEvent.click(screen.getByRole('button', { name: /^places.noCategory$/ }))
     expect(onChange).toHaveBeenCalledWith('')
   })
 
@@ -58,6 +73,7 @@ describe('PlCategoryPicker', () => {
     tripActions.addCategory.mockResolvedValue({ id: 9, name: 'Bars' } as unknown as Category)
     const { onChange } = setup({ tripActions } as unknown as Partial<TripPlanner>)
 
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /mobileTrip\.newCategory/ }))
     const input = screen.getByPlaceholderText('places.categoryNamePlaceholder')
     fireEvent.change(input, { target: { value: '  Bars  ' } })
@@ -65,9 +81,9 @@ describe('PlCategoryPicker', () => {
 
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('9'))
     expect(tripActions.addCategory).toHaveBeenCalledWith({ name: 'Bars', color: '#6366f1', icon: 'MapPin' })
-    // The inline row collapses back to the dashed pill.
+    // The new category is picked, so the list folds away with the name field.
     await waitFor(() => expect(screen.queryByPlaceholderText('places.categoryNamePlaceholder')).not.toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /mobileTrip\.newCategory/ })).toBeInTheDocument()
+    expect(field()).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('FE-MOB-PLCAT-007: Enter in the name field creates the category', async () => {
@@ -75,6 +91,7 @@ describe('PlCategoryPicker', () => {
     tripActions.addCategory.mockResolvedValue({ id: 12, name: 'Beaches' } as unknown as Category)
     const { onChange } = setup({ tripActions } as unknown as Partial<TripPlanner>)
 
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /mobileTrip\.newCategory/ }))
     const input = screen.getByPlaceholderText('places.categoryNamePlaceholder')
     fireEvent.change(input, { target: { value: 'Beaches' } })
@@ -87,6 +104,7 @@ describe('PlCategoryPicker', () => {
     const tripActions = buildTripActions()
     setup({ tripActions } as unknown as Partial<TripPlanner>)
 
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /mobileTrip\.newCategory/ }))
     const input = screen.getByPlaceholderText('places.categoryNamePlaceholder')
     expect(screen.getByRole('button', { name: 'common.add' })).toBeDisabled()
@@ -102,6 +120,7 @@ describe('PlCategoryPicker', () => {
     tripActions.addCategory.mockReturnValue(new Promise<Category>(resolve => { release = resolve }))
     const { onChange } = setup({ tripActions } as unknown as Partial<TripPlanner>)
 
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /mobileTrip\.newCategory/ }))
     const input = screen.getByPlaceholderText('places.categoryNamePlaceholder')
     fireEvent.change(input, { target: { value: 'Bars' } })
@@ -119,6 +138,7 @@ describe('PlCategoryPicker', () => {
     tripActions.addCategory.mockRejectedValue(new Error('409'))
     const { planner, onChange } = setup({ tripActions } as unknown as Partial<TripPlanner>)
 
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /mobileTrip\.newCategory/ }))
     fireEvent.change(screen.getByPlaceholderText('places.categoryNamePlaceholder'), { target: { value: 'Bars' } })
     fireEvent.click(screen.getByRole('button', { name: 'common.add' }))
@@ -128,8 +148,9 @@ describe('PlCategoryPicker', () => {
     expect(screen.getByPlaceholderText('places.categoryNamePlaceholder')).toHaveValue('Bars')
   })
 
-  it('FE-MOB-PLCAT-011: cancelling drops the draft and restores the dashed pill', () => {
+  it('FE-MOB-PLCAT-011: cancelling drops the draft and restores the new-category row', () => {
     setup()
+    openList()
     fireEvent.click(screen.getByRole('button', { name: /mobileTrip\.newCategory/ }))
     fireEvent.change(screen.getByPlaceholderText('places.categoryNamePlaceholder'), { target: { value: 'Bars' } })
     fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
@@ -141,7 +162,8 @@ describe('PlCategoryPicker', () => {
 
   it('FE-MOB-PLCAT-012: tolerates a trip without any categories', () => {
     setup({ categories: undefined } as unknown as Partial<TripPlanner>)
-    expect(screen.getByRole('button', { name: /places\.noCategory/ })).toBeInTheDocument()
+    openList()
+    expect(screen.getByRole('button', { name: /^places\.noCategory$/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Food/ })).not.toBeInTheDocument()
   })
 })

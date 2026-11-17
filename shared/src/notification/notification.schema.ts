@@ -125,5 +125,10 @@ export const pushPayloadSchema = z.object({
   body: z.string(),
   url: z.string().optional(),
   tag: z.string().optional(),
+  /**
+   * The event it reports (trip_invite, collab_message, ...). The Android app
+   * sorts notifications into its channels by it; a browser ignores it.
+   */
+  event: z.string().optional(),
 });
 export type PushPayload = z.infer<typeof pushPayloadSchema>;

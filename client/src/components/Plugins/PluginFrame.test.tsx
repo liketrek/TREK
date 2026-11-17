@@ -939,3 +939,58 @@ describe('PluginFrame', () => {
     });
   });
 });
+
+// FE-PLUGINS-FRAME-062 to 063: visibility lifecycle + phone off-screen suspend.
+// A heavy plugin that keeps working off screen bogs down the shared WebView on a
+// phone (reported via TestFlight), so the frame tells the plugin when it is hidden
+// and, for a phone dashboard widget, unmounts the iframe entirely while off screen.
+describe('PluginFrame visibility and mobile suspend', () => {
+  let ios: Array<{ cb: IntersectionObserverCallback }>;
+  let realIO: unknown;
+  let realMM: typeof window.matchMedia;
+  beforeEach(() => {
+    ios = [];
+    realIO = (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver;
+    realMM = window.matchMedia;
+    class IO {
+      cb: IntersectionObserverCallback;
+      constructor(cb: IntersectionObserverCallback) { this.cb = cb; ios.push({ cb }); }
+      observe() {} unobserve() {} disconnect() {} takeRecords() { return []; }
+    }
+    (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = IO as unknown;
+  });
+  afterEach(() => {
+    (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = realIO;
+    window.matchMedia = realMM;
+    cleanup();
+  });
+  const asPhone = () => {
+    window.matchMedia = ((q: string) => ({
+      matches: true, media: q, onchange: null,
+      addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent() { return false; },
+    })) as unknown as typeof window.matchMedia;
+  };
+  const fire = (intersecting: boolean) =>
+    act(() => { ios[ios.length - 1].cb([{ isIntersecting: intersecting } as IntersectionObserverEntry], {} as IntersectionObserver); });
+
+  it('FE-PLUGINS-FRAME-062: tells the plugin when it leaves the screen', () => {
+    const { container } = render(<PluginFrame pluginId="demo" surface="dashboard-widget" />);
+    const iframe = container.querySelector('iframe') as HTMLIFrameElement;
+    const posted: Array<Record<string, unknown>> = [];
+    (iframe.contentWindow as unknown as { postMessage: (m: unknown) => void }).postMessage = (m) => posted.push(m as Record<string, unknown>);
+    fire(false);
+    expect(posted.find((m) => m.type === 'trek:visibility')).toMatchObject({ visible: false });
+    fire(true);
+    expect(posted.filter((m) => m.type === 'trek:visibility').pop()).toMatchObject({ visible: true });
+  });
+
+  it('FE-PLUGINS-FRAME-063: suspends a phone dashboard widget off screen and brings it back', () => {
+    asPhone();
+    const { container } = render(<PluginFrame pluginId="demo" surface="dashboard-widget" />);
+    expect(container.querySelector('iframe')).toBeTruthy();
+    fire(false);
+    expect(container.querySelector('iframe')).toBeNull();
+    fire(true);
+    expect(container.querySelector('iframe')).toBeTruthy();
+  });
+});

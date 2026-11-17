@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" gerekli',
   'settings.tabs.account': 'Hesap',
   'settings.tabs.offline': 'Çevrimdışı',
+  'settings.tabs.device': 'Uygulama',
+  'settings.groups.account': 'Hesabın',
+  'settings.groups.device': 'Bu cihaz',
   'settings.tabs.about': 'Hakkında',
   'settings.map': 'Harita',
   'settings.mapTemplate': 'Harita Şablonu',
@@ -64,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQuality': 'Yüksek Kalite Modu',
   'settings.mapHighQualityHint': 'Keskin kenarlar ve gerçekçi dünya görünümü için antialiasing + küre projeksiyonu.',
   'settings.mapHighQualityWarning': 'Düşük donanımlı cihazlarda performansı etkileyebilir.',
+  'settings.mapHidePois': 'İlgi noktalarını gizle',
+  'settings.mapHidePoisHint':
+    'Mapbox’ın kendi işaretlediği mağaza, restoran ve gezilecek yerleri gizler, böylece yalnızca senin yerlerin öne çıkar. Yalnızca Standard stillerinde.',
   'settings.mapTipLabel': 'İpucu:',
   'settings.mapTip':
     'Haritayı döndürmek/eğmek için sağ tıklayıp sürükleyin. Yer eklemek için orta tıklama (sağ tık döndürmeye ayrılmıştır).',
@@ -75,6 +81,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Hava verisi için. Ücretsiz: openweathermap.org/api',
   'settings.keyPlaceholder': 'Anahtarı girin...',
   'settings.configured': 'Yapılandırıldı',
+  'settings.notSetUp': 'Ayarlanmadı',
+  'settings.mcp.appsConnected': '{count} uygulama bağlı',
+  'settings.mcp.appsConnected.one': '{count} uygulama bağlı',
   'settings.saveKeys': 'Anahtarları Kaydet',
   'settings.display': 'Görünüm',
   'settings.colorMode': 'Renk Modu',
@@ -107,7 +116,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Bildirimler',
   'settings.notifyTripInvite': 'Seyahat davetleri',
   'settings.notifyBookingChange': 'Rezervasyon değişiklikleri',
+  'settings.notifyFlightDeparted': 'Kalkışlar',
+  'settings.notifyFlightDelayed': 'Rötarlar',
+  'settings.notifyFlightLanded': 'İnişler',
   'settings.notifyTripReminder': 'Seyahat hatırlatıcıları',
+  'settings.notifyMailBookingAdded': 'E-postalardan eklenen rezervasyonlar',
+  'settings.notifyMailBookingPending': 'İncelenecek iletilen rezervasyonlar',
+  'settings.notifyMailIngestPaused': 'E-posta içe aktarma duraklatıldı',
   'settings.notifyTodoDue': 'Yapılacak vadesi yakında',
   'settings.notifyVacayInvite': 'Vacay birleştirme davetleri',
   'settings.notifyVacayShare': 'Vacay takvim paylaşımları',
@@ -671,6 +686,9 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.done': 'Tamam',
   'settings.mcp.deprecated': 'Kullanımdan kalkıyor',
   'settings.offline.cache.dateRange': '{start} ile {end} arası',
+  'settings.offline.tileStore.title': 'Görüntülenen harita karoları',
+  'settings.offline.tileStore.usage': 'Bu cihazda {limit} içinden {used}, 30 güne kadar saklanır',
+  'settings.offline.tileStore.clear': 'Temizle',
 };
 
 export default settings;

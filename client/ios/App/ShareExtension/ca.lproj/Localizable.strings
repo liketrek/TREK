@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Afegeix a TREK";
+"share.cancel" = "Cancel·la";
+"share.close" = "Tanca";
+"share.trip" = "Viatge";
+"share.noTrips" = "Obre TREK una vegada i aquí apareixeran els teus viatges.";
+"share.hint" = "TREK llegeix la reserva i l’afegeix al viatge.";
+"share.later" = "Tria més tard";
+"share.add" = "Afegeix";
+"share.addTo" = "Afegeix a %@";
+"share.added" = "Afegit";
+"share.reading" = "Llegint…";
+"share.tooLarge" = "Aquest fitxer és massa gran per importar-lo.";
+"share.unsupported" = "TREK no pot importar això.";
+"share.failed" = "No s’ha pogut passar a TREK. Torna-ho a provar.";
+"share.now" = "Ara";
+"share.past" = "Passat";
+"share.tomorrow" = "Demà";
+"share.inDays" = "D’aquí a %d dies";
+"share.kind.pass" = "Passi de Wallet";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "Correu";
+"share.kind.page" = "Pàgina web";
+"share.kind.text" = "Text";
+"share.kind.image" = "Foto";
+"share.kind.file" = "Fitxer";

@@ -80,6 +80,11 @@ export interface MapViewProps {
   leftWidth?: number;
   rightWidth?: number;
   hasInspector?: boolean;
+  /**
+   * The place card's measured height in pixels while it is open. The selection pans the
+   * pin above it rather than above a fixed allowance the card can outgrow (#2991).
+   */
+  inspectorHeight?: number;
   hasDayDetail?: boolean;
   reservations?: Reservation[];
   visibleConnectionIds?: number[];

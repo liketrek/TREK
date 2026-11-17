@@ -14,6 +14,8 @@ const mobileVacay: TranslationStrings = {
   'mobileVacay.companyLegend': '公司假期',
   'mobileVacay.editCalendar': '编辑日历',
   'mobileVacay.viewYear': '查看年度',
+  'mobileVacay.people': '成员',
+  'mobileVacay.legend': '图例',
 };
 
 export default mobileVacay;

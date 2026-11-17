@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { isNativeApp } from '../native/platform'
 
 /**
  * The phone shell's viewport: narrower than the md breakpoint (768px), or a
@@ -12,11 +13,20 @@ import { useState, useEffect } from 'react'
  * fine.
  *
  * The phone rules in `index.css` repeat this query; keep them in step.
+ *
+ * The app is the exception: inside it the phone shell applies at every size.
+ * An iPad, an iPad in Split View or Stage Manager and a foldable unfolded all
+ * get the touch shell, laid out for their width (see `hooks/sizeClass.ts`), never
+ * the desktop pages. Only that keeps one route tree across a fold, a
+ * rotation or a window resize, so nothing open or typed is lost, and only the
+ * touch shell has the app's own features (Wallet, sharing into a trip, the
+ * edge swipe back).
  */
 export const PHONE_QUERY = '(max-width: 767px), (pointer: coarse) and (max-height: 500px)'
 
 /** Whether the phone shell applies right now, for code that is not a component. */
 export function isPhoneViewport(): boolean {
+  if (isNativeApp()) return true
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches
 }
 
@@ -28,6 +38,7 @@ export function useIsPhone(): boolean {
   const [isPhone, setIsPhone] = useState(isPhoneViewport)
 
   useEffect(() => {
+    if (isNativeApp()) return
     const mq = window.matchMedia(PHONE_QUERY)
     const handler = (e: MediaQueryListEvent) => setIsPhone(e.matches)
     setIsPhone(mq.matches)

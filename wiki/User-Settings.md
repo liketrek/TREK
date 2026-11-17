@@ -75,6 +75,7 @@ The Map tab requires an explicit **Save** action after making changes.
 - **Mapbox GL** (Experimental): Vector tiles with 3D buildings and terrain. Requires a public Mapbox access token (`pk.*`). Supports built-in style presets (Mapbox Standard, Standard Satellite, Streets, Outdoors, Light, Dark, Satellite, Satellite Streets, Navigation Day, Navigation Night) or a custom `mapbox://styles/USER/ID` URL. Additional options:
   - **3D Buildings & Terrain**: Pitch and real 3D building extrusions (works on every style including satellite).
   - **High Quality Mode** (Experimental): Antialiasing + globe projection for sharper edges. May impact performance on lower-end devices.
+  - **Hide Points of Interest**: Leaves out the shops, restaurants and sights the Mapbox Standard styles label on their own, so only your places stand out. Off by default.
 - **MapLibre GL**: Vector tiles from **OpenFreeMap**, and the reason to pick it over Mapbox GL: **it needs no access token**. Styles are OpenFreeMap Liberty, Bright, and Positron, or any `https://tiles.openfreemap.org/…` style URL. The 3D and high-quality toggles are Mapbox-only and are not shown here.
 
 Each GL provider keeps its own saved style, so switching between Mapbox GL and MapLibre GL never overwrites the other one's choice.

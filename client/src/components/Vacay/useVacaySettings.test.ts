@@ -110,6 +110,15 @@ describe('useVacaySettings', () => {
     expect(result.current.weekendDays).toEqual([5, 6]);
   });
 
+  it.each([['6'], ['5']])('keeps the last weekend day %s selected instead of saving an empty value', (only) => {
+    useVacayStore.setState({ plan: plan({ weekend_days: only }) });
+    const { result } = renderHook(() => useVacaySettings({ language: 'en', loadCountries: false }));
+    expect(result.current.weekendDays).toEqual([Number(only)]);
+
+    act(() => result.current.toggleWeekendDay(Number(only)));
+    expect(updatePlan).not.toHaveBeenCalled();
+  });
+
   it('FE-COMP-VACAYSET-005: dissolving toasts and then hands over', async () => {
     const order: string[] = [];
     toast.success.mockImplementation(() => order.push('toast'));

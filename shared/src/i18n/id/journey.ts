@@ -259,6 +259,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Tidak ada album ditemukan',
   'journey.picker.selectDate': 'Pilih tanggal',
   'journey.picker.search': 'Cari',
+  'journey.picker.takenBetween': 'Diambil antara',
   'journey.detail.journeyTab': 'Jurnal',
   'journey.contributors.remove': 'Hapus kontributor',
   'journey.contributors.removeConfirm': 'Hapus {username} dari jurnal perjalanan ini?',

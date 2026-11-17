@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react'
+import { AlertTriangle, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { isChunkLoadError, reloadOnceForChunk, reloadOntoCurrentBuild } from '../../utils/chunkReload'
 
@@ -111,6 +111,19 @@ interface FallbackProps extends FallbackState {
   label?: string
 }
 
+/** What the fallback says: an update, a plugin, a panel or the whole page that failed. */
+function fallbackText(
+  t: (key: string) => string,
+  isChunkError: boolean,
+  isPlugin: boolean,
+  isPanel: boolean
+): { title: string; body: string } {
+  if (isChunkError) return { title: t('common.errorUpdateTitle'), body: t('common.errorUpdateBody') }
+  const body = isPanel ? t('common.errorPanelBody') : t('common.errorBody')
+  if (isPlugin) return { title: t('common.errorPluginTitle'), body }
+  return { title: isPanel ? t('common.errorPanelTitle') : t('common.errorTitle'), body }
+}
+
 /**
  * The visible half. A function component so it can translate; anything mounted
  * above TranslationProvider gets RootErrorFallback instead, which has no keys to
@@ -121,65 +134,77 @@ export function ErrorFallback({ error, reset, isChunkError, level, variant, labe
   const isPanel = level === 'panel'
   const mobile = variant === 'mobile'
 
-  const title = isChunkError
-    ? t('common.errorUpdateTitle')
-    : label
-      ? t('common.errorPluginTitle')
-      : isPanel ? t('common.errorPanelTitle') : t('common.errorTitle')
-  const body = isChunkError
-    ? t('common.errorUpdateBody')
-    : isPanel ? t('common.errorPanelBody') : t('common.errorBody')
+  const { title, body } = fallbackText(t, isChunkError, !!label, isPanel)
 
   const message = error instanceof Error ? error.message : null
+  const Icon = isChunkError ? Sparkles : AlertTriangle
+  const muted = mobile ? 'text-m-muted' : 'text-content-secondary'
 
   return (
     <div
       role="alert"
       className={[
-        'flex flex-col items-center justify-center gap-3 rounded-xl border p-6 text-center',
-        isPanel ? 'h-full min-h-[180px]' : 'm-6 min-h-[240px]',
-        mobile ? 'border-[color:var(--m-rowbr)] bg-m-card text-m-ink' : 'border-edge bg-surface-card',
+        'flex flex-col items-center justify-center text-center',
+        isPanel ? 'h-full min-h-[180px] p-4' : 'min-h-[60vh] p-6',
       ].join(' ')}
     >
-      <AlertTriangle size={22} className={mobile ? 'text-m-muted' : 'text-content-muted'} aria-hidden />
-      <div className="space-y-1">
-        <p className={`text-subtitle font-semibold ${mobile ? 'text-m-ink' : 'text-content'}`}>{title}</p>
-        {label && <p className={`text-body ${mobile ? 'text-m-muted' : 'text-content-secondary'}`}>{label}</p>}
-        <p className={`text-body ${mobile ? 'text-m-muted' : 'text-content-secondary'}`}>{body}</p>
-      </div>
+      {/* One calm card, the way a native app reports it: a round symbol, a short
+          title and line, and one clear action. */}
+      <div
+        className={[
+          'flex w-full max-w-sm flex-col items-center gap-4 rounded-[24px] border px-6 py-7',
+          'shadow-[0_18px_48px_-24px_rgba(0,0,0,.35)]',
+          mobile ? 'border-[color:var(--m-rowbr)] bg-m-card text-m-ink' : 'border-edge bg-surface-card',
+        ].join(' ')}
+      >
+        <span
+          className={[
+            'flex h-14 w-14 items-center justify-center rounded-full',
+            isChunkError ? 'bg-accent text-accent-text' : mobile ? 'bg-[color:var(--m-ic)] text-m-muted' : 'bg-surface-secondary text-content-muted',
+          ].join(' ')}
+        >
+          <Icon size={24} strokeWidth={2} aria-hidden />
+        </span>
+        <div className="space-y-1.5">
+          <p className={`text-title font-semibold ${mobile ? 'text-m-ink' : 'text-content'}`}>{title}</p>
+          {label && <p className={`text-body ${muted}`}>{label}</p>}
+          <p className={`text-body ${muted}`}>{body}</p>
+        </div>
 
-      {/* Worth showing: TREK is self-hosted, so the person seeing this is often the
-          same person who will paste it into an issue. */}
-      {message && (
-        <code className={`max-w-full truncate text-caption ${mobile ? 'text-m-faint' : 'text-content-faint'}`}>
-          {message}
-        </code>
-      )}
+        <div className="flex w-full flex-col gap-2">
+          {(!isPanel || isChunkError) && (
+            <button
+              type="button"
+              onClick={() => reloadPage(isChunkError)}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-body font-semibold text-accent-text transition-transform active:scale-[.98]"
+            >
+              <RefreshCw size={16} aria-hidden />
+              {t('common.errorReload')}
+            </button>
+          )}
+          {/* No retry for a dead chunk — React.lazy would throw again immediately. */}
+          {!isChunkError && (
+            <button
+              type="button"
+              onClick={reset}
+              className={[
+                'inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-3 text-body font-semibold transition-transform active:scale-[.98]',
+                mobile ? 'border-[color:var(--m-rowbr)] text-m-ink' : 'border-edge text-content',
+              ].join(' ')}
+            >
+              <RotateCcw size={16} aria-hidden />
+              {t('common.errorRetry')}
+            </button>
+          )}
+        </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-        {/* No retry for a dead chunk — React.lazy would throw again immediately. */}
-        {!isChunkError && (
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-caption font-medium text-white"
-          >
-            <RotateCcw size={14} aria-hidden />
-            {t('common.errorRetry')}
-          </button>
-        )}
-        {(!isPanel || isChunkError) && (
-          <button
-            type="button"
-            onClick={() => reloadPage(isChunkError)}
-            className={[
-              'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-caption font-medium',
-              mobile ? 'border-[color:var(--m-rowbr)] text-m-ink' : 'border-edge text-content',
-            ].join(' ')}
-          >
-            <RefreshCw size={14} aria-hidden />
-            {t('common.errorReload')}
-          </button>
+        {/* Kept, folded away: TREK is self-hosted, so the person seeing this is
+            often the same person who will paste it into an issue. */}
+        {message && (
+          <details className={`w-full text-caption ${mobile ? 'text-m-faint' : 'text-content-faint'}`}>
+            <summary className="cursor-pointer select-none">{t('common.errorDetails')}</summary>
+            <code className="mt-2 block max-w-full break-words text-start">{message}</code>
+          </details>
         )}
       </div>
     </div>
@@ -193,30 +218,42 @@ export function ErrorFallback({ error, reset, isChunkError, level, variant, labe
  */
 export function RootErrorFallback({ error, isChunkError }: FallbackState) {
   const message = error instanceof Error ? error.message : null
+  const Icon = isChunkError ? Sparkles : AlertTriangle
   return (
     <div
       role="alert"
-      className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6 text-center"
+      className="flex min-h-dvh flex-col items-center justify-center p-6 text-center"
       style={{ fontFamily: 'var(--font-system)' }}
     >
-      <AlertTriangle size={24} className="text-content-muted" aria-hidden />
-      <p className="text-subtitle font-semibold text-content">
-        {isChunkError ? 'A new version is available' : 'TREK could not start'}
-      </p>
-      <p className="text-body text-content-secondary">
-        {isChunkError
-          ? 'TREK was updated while this tab was open. Reload to get the new version.'
-          : 'Reloading usually fixes this. Your data is safe.'}
-      </p>
-      {message && <code className="max-w-full truncate text-caption text-content-faint">{message}</code>}
-      <button
-        type="button"
-        onClick={() => reloadPage(isChunkError)}
-        className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-caption font-medium text-white"
-      >
-        <RefreshCw size={14} aria-hidden />
-        Reload page
-      </button>
+      <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-[24px] border border-edge bg-surface-card px-6 py-7 shadow-[0_18px_48px_-24px_rgba(0,0,0,.35)]">
+        <span className={`flex h-14 w-14 items-center justify-center rounded-full ${isChunkError ? 'bg-accent text-accent-text' : 'bg-surface-secondary text-content-muted'}`}>
+          <Icon size={24} strokeWidth={2} aria-hidden />
+        </span>
+        <div className="space-y-1.5">
+          <p className="text-title font-semibold text-content">
+            {isChunkError ? 'A new version is available' : 'TREK could not start'}
+          </p>
+          <p className="text-body text-content-secondary">
+            {isChunkError
+              ? 'TREK was updated while this tab was open. Reload to get the new version.'
+              : 'Reloading usually fixes this. Your data is safe.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => reloadPage(isChunkError)}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 text-body font-semibold text-accent-text transition-transform active:scale-[.98]"
+        >
+          <RefreshCw size={16} aria-hidden />
+          Reload page
+        </button>
+        {message && (
+          <details className="w-full text-caption text-content-faint">
+            <summary className="cursor-pointer select-none">Details</summary>
+            <code className="mt-2 block max-w-full break-words text-start">{message}</code>
+          </details>
+        )}
+      </div>
     </div>
   )
 }

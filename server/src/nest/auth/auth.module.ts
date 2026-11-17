@@ -39,6 +39,7 @@ import { AuthController } from './auth.controller';
 import { AVATAR_FILE_FILTER, MAX_AVATAR_SIZE } from './auth.controller';
 import { AuthMcp } from './auth.mcp';
 import { AuthService } from './auth.service';
+import { LoginSessionService } from './login-session.service';
 import { PasskeyController } from './passkey.controller';
 import { PasskeyService } from './passkey.service';
 import { RegistrationInvitesService } from './registration-invites.service';
@@ -69,7 +70,8 @@ import { MulterModule } from '@nestjs/platform-express';
  * budget.bridge). AuthService is
  * exported for the in-container consumers (VacayMcp, OidcService,
  * PasskeyEnabledGuard); PasskeyService for AdminService's passkey
- * reset; UserCleanupService for the two account-deletion paths (AdminService)
+ * reset; LoginSessionService for the native app sign-in hand-off
+ * (NativeAuthModule); UserCleanupService for the two account-deletion paths (AdminService)
  * and the guest deletion in TripsService; everything outside the container goes
  * through auth.bridge.ts.
  */
@@ -158,6 +160,7 @@ import { MulterModule } from '@nestjs/platform-express';
   controllers: [AuthPublicController, AuthController, PasskeyController, SessionsController],
   providers: [
     AuthService,
+    LoginSessionService,
     UserProfileService,
     RegistrationInvitesService,
     PasskeyService,
@@ -166,6 +169,6 @@ import { MulterModule } from '@nestjs/platform-express';
     AuthMcp,
     AuthStorageRefsService,
   ],
-  exports: [AuthService, RegistrationInvitesService, PasskeyService, UserCleanupService],
+  exports: [AuthService, LoginSessionService, RegistrationInvitesService, PasskeyService, UserCleanupService],
 })
 export class AuthModule {}

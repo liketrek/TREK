@@ -6,6 +6,7 @@
 - [[Install: Helm|Install-Helm]]
 - [[Install: Proxmox VE (LXC)|Install-Proxmox]]
 - [[Install: Unraid|Install-Unraid]]
+- [[Install: TrueNAS SCALE|Install-TrueNAS-SCALE]]
 - [[Install: Portainer|Install-Portainer]]
 - [[Reverse Proxy|Reverse-Proxy]]
 - [[Environment Variables|Environment-Variables]]
@@ -23,6 +24,7 @@
 - [[Dashboard Widgets|Dashboard-Widgets]]
 - [[Notifications Inbox|Notifications-Inbox]]
 - [[TREK on a Phone|Mobile-App]]
+- [[Native Apps|Native-Apps]]
 - [[Offline Mode and PWA|Offline-Mode-and-PWA]]
 - [[Languages]]
 
@@ -55,6 +57,7 @@
 
 ## Travel Management
 - [[Reservations and Bookings|Reservations-and-Bookings]]
+- [[Booking Mail Import|Booking-Mail-Import]]
 - [[Transport: Flights, Trains, Cars|Transport-Flights-Trains-Cars]]
 - [[Accommodations]]
 - [[Costs|Budget-Tracking]]

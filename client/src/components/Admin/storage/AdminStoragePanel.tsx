@@ -29,14 +29,7 @@ import CustomSelect from '../../shared/CustomSelect'
 import { Tooltip } from '../../shared/Tooltip'
 import { NEUTRAL_TINT, fs } from '../../shared/DialogShell'
 import Section from '../../Settings/Section'
-import {
-  SETTINGS_BUTTON,
-  SETTINGS_BUTTON_PRIMARY,
-  SETTINGS_ICON_BUTTON,
-  SettingRows,
-  SettingsHint,
-  StatusPill,
-} from '../../Settings/settingsKit'
+import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SETTINGS_ICON_BUTTON, SettingRows, SettingsHint, StatusPill, SettingsColumns } from '../../Settings/settingsKit'
 import BackendForm from './BackendForm'
 import StorageReclaimSection from './StorageReclaimSection'
 import { CACHE_CATEGORIES, primaryNameOf } from './storageModel'
@@ -142,6 +135,10 @@ export default function AdminStoragePanel(): React.ReactElement {
         </div>
       )}
 
+      {/* Two columns by length: the health and the backends on the left, which
+          category goes where on the right, its save bar at the card's foot. */}
+      <SettingsColumns
+        start={<>
       <Section title={t('storage.health.title')} icon={Activity}>
         {state.health.replicaFailures.length === 0 ? (
           <p className="m-0 flex items-center gap-2 text-content-muted" style={fs(12.5, 'body')}>
@@ -180,7 +177,6 @@ export default function AdminStoragePanel(): React.ReactElement {
             <button type="button"
               onClick={startAdd}
               className={SETTINGS_BUTTON}
-              style={fs(12.5, 'body')}
             >
               <Plus size={14} strokeWidth={2.2} />
               {t('storage.backends.add')}
@@ -486,7 +482,18 @@ export default function AdminStoragePanel(): React.ReactElement {
           </SettingRows>
         )}
       </Section>
-
+      {/* Under the backends it cleans up after, which keeps the two columns even. */}
+      <StorageReclaimSection
+        reclaim={reclaim}
+        checking={reclaimChecking}
+        saving={reclaimSaving}
+        confirming={reclaimConfirming}
+        onConfirm={(request) => void handleReclaimConfirm(request)}
+        onCheck={() => void handleReclaimCheck()}
+        onDelete={(enabled) => void handleReclaimDelete(enabled)}
+      />
+        </>}
+        end={<>
       <Section title={t('storage.categories.title')} icon={FolderTree}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {STORAGE_CATEGORIES.map((category) => {
@@ -544,26 +551,24 @@ export default function AdminStoragePanel(): React.ReactElement {
             )
           })}
         </div>
+        {/* Saving is part of the card it saves, under a hairline at its foot. */}
+          <div className="flex flex-wrap items-center gap-3 border-t border-edge-faint pt-4">
+          <button type="button"
+            onClick={save}
+            disabled={!admin.dirty || admin.saving}
+            className={SETTINGS_BUTTON_PRIMARY}
+          >
+            {admin.saving ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" /> : <Check size={14} strokeWidth={2.2} />}
+            {t('storage.save')}
+          </button>
+          {admin.dirty && <StatusPill tone="warning">{t('storage.unsaved')}</StatusPill>}
+          {migrationQueue.length > 0 && (
+            <SettingsHint className="min-w-0 flex-1">
+              {t('storage.migrate.queued', { categories: categoryNames(t, migrationQueue.map((c) => c.category)) })}
+            </SettingsHint>
+          )}
+        </div>
       </Section>
-
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-edge-faint bg-surface-secondary px-4 py-3">
-        <button type="button"
-          onClick={save}
-          disabled={!admin.dirty || admin.saving}
-          className={SETTINGS_BUTTON_PRIMARY}
-          style={fs(13, 'body')}
-        >
-          {admin.saving ? <Loader2 size={14} strokeWidth={2.2} className="animate-spin" /> : <Check size={14} strokeWidth={2.2} />}
-          {t('storage.save')}
-        </button>
-        {admin.dirty && <StatusPill tone="warning">{t('storage.unsaved')}</StatusPill>}
-        {migrationQueue.length > 0 && (
-          <SettingsHint className="min-w-0 flex-1">
-            {t('storage.migrate.queued', { categories: categoryNames(t, migrationQueue.map((c) => c.category)) })}
-          </SettingsHint>
-        )}
-      </div>
-
       {migratePromptOpen && (
         <div
           role="alertdialog"
@@ -586,7 +591,6 @@ export default function AdminStoragePanel(): React.ReactElement {
           <div className="flex flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-3">
             <button type="button"
               className={SETTINGS_BUTTON}
-              style={fs(13, 'body')}
               onClick={closeMigratePrompt}
             >
               {t('storage.migrate.promptCancel')}
@@ -594,14 +598,12 @@ export default function AdminStoragePanel(): React.ReactElement {
             <span className="flex-1" />
             <button type="button"
               className={SETTINGS_BUTTON}
-              style={fs(13, 'body')}
               onClick={() => void routeOnlySave()}
             >
               {t('storage.migrate.routeOnly')}
             </button>
             <button type="button"
               className={SETTINGS_BUTTON_PRIMARY}
-              style={fs(13, 'body')}
               onClick={() => void moveAndSave()}
             >
               {t('storage.migrate.move')}
@@ -609,6 +611,8 @@ export default function AdminStoragePanel(): React.ReactElement {
           </div>
         </div>
       )}
+        </>}
+      />
       {admin.saveError && (
         <div role="alert" className="mt-3 flex flex-wrap items-start gap-3 rounded-2xl border border-edge-faint bg-danger-soft px-4 py-3">
           <AlertTriangle size={16} strokeWidth={2.2} className="mt-0.5 flex-none text-danger" />
@@ -629,17 +633,6 @@ export default function AdminStoragePanel(): React.ReactElement {
         </div>
       )}
 
-      <div className="mt-5">
-        <StorageReclaimSection
-          reclaim={reclaim}
-          checking={reclaimChecking}
-          saving={reclaimSaving}
-          confirming={reclaimConfirming}
-          onConfirm={(request) => void handleReclaimConfirm(request)}
-          onCheck={() => void handleReclaimCheck()}
-          onDelete={(enabled) => void handleReclaimDelete(enabled)}
-        />
-      </div>
 
       {editing && (
         <BackendForm

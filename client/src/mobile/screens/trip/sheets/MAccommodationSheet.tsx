@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Hotel, MapPin, X } from 'lucide-react'
+import { ArrowRight, Check, Hotel, MapPin, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
 import CustomSelect from '../../../../components/shared/CustomSelect'
@@ -116,7 +116,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
       {/* Header — mirrors the place detail sheet's chrome */}
       <div className="flex-none px-[18px] pt-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[14px] bg-[color:var(--m-ic)] text-m-muted">
+          <span className="flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] text-m-ink">
             <Hotel size={18} strokeWidth={1.9} />
           </span>
           <div className="min-w-0 flex-1 text-[1rem] font-bold">
@@ -140,7 +140,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
               size="sm"
             />
           </div>
-          <span className="flex-none text-m-faint">→</span>
+          <ArrowRight size={14} strokeWidth={2.2} aria-hidden="true" className="flex-none text-m-faint" />
           <div className="min-w-0 flex-1">
             <CustomSelect
               value={range.end}
@@ -182,7 +182,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
           value={form.confirmation}
           onChange={e => setForm(f => ({ ...f, confirmation: e.target.value }))}
           placeholder="ABC-12345"
-          className="box-border w-full rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
+          className="box-border w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
         />
 
         {/* Category filter */}
@@ -224,8 +224,8 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
                     {p.image_url ? <img src={p.image_url} alt="" className="h-full w-full object-cover" /> : <MapPin size={14} className="text-m-faint" />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[0.8125rem] font-semibold text-m-ink">{p.name}</div>
-                    {p.address && <div className="truncate font-geist text-[0.65625rem] text-m-muted">{p.address}</div>}
+                    <div dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{p.name}</div>
+                    {p.address && <div dir="auto" className="truncate font-geist text-[0.65625rem] text-m-muted">{p.address}</div>}
                   </div>
                   {sel && (
                     <span className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full bg-m-act text-m-actfg">

@@ -304,6 +304,20 @@ describe('respondToBoolean', () => {
     expect(result.error).toMatch(/not a boolean/i);
   });
 
+  it('INOTIF-008b — runs an action a domain registered, with the payload and the person who answered', async () => {
+    const { user } = createUser(testDb);
+    const seen: Array<[Record<string, unknown>, number]> = [];
+    notifications.registerResponseAction('test_registered', async (payload, userId) => {
+      seen.push([payload, userId]);
+    });
+    const id = await insertBoolean(user.id, null, 'test_registered');
+
+    const result = await respondToBoolean(id, user.id, 'positive');
+
+    expect(result.success).toBe(true);
+    expect(seen).toEqual([[{}, user.id]]);
+  });
+
   it('INOTIF-009 — response on a non-existent notification returns error', async () => {
     const { user } = createUser(testDb);
     const result = await respondToBoolean(99999, user.id, 'positive');

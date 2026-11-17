@@ -17,6 +17,18 @@ const zhTW: NotificationLocale = {
       title: `新預訂：${p.booking}`,
       body: `${p.actor} 在「${p.trip}」中新增了預訂「${p.booking}」（${p.type}）。`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight}已起飛`,
+      body: `從${p.from}飛往${p.to}的${p.flight}已在空中。`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight}延誤`,
+      body: `從${p.from}飛往${p.to}的${p.flight}比預定晚約${p.delay}分鐘。`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight}已降落`,
+      body: `從${p.from}出發的${p.flight}已降落在${p.to}。`,
+    }),
     trip_reminder: (p) => ({
       title: `行程提醒：${p.trip}`,
       body: `您的行程「${p.trip}」即將開始！`,
@@ -77,6 +89,21 @@ const zhTW: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `「${p.trip}」中的「${p.tour}」已無法在 wanderer 中檢查。你旅行中的行程保持不變。`
             : `「${p.trip}」中的「${p.tour}」可能已在 wanderer 中變更。請開啟行程並檢查其來源。旅行中的內容不會自行改變。`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `從郵件新增：${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} 從轉寄的郵件將「${p.booking}」新增到「${p.trip}」。`
+          : `你轉寄的郵件中的「${p.booking}」已新增到「${p.trip}」。7 天內可以在 TREK 中復原。`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: '待檢查的轉寄預訂',
+      body: `TREK 中等待你處理的轉寄預訂：${p.count}。每一筆都說明了為什麼沒有自動新增。`,
+    }),
+    mail_ingest_paused: () => ({
+      title: '郵件匯入已暫停',
+      body: 'TREK 暫時不接收轉寄的預訂郵件，請先不要轉寄。你的地址會保留，匯入恢復後即可再次使用，已新增的預訂仍保留在你的行程中。',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

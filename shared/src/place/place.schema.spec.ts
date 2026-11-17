@@ -3,6 +3,7 @@ import {
   placeBulkDeleteRequestSchema,
   placeImportListRequestSchema,
   placeSchema,
+  placeTagIdsSchema,
   placeUpdateRequestSchema,
   placeWebsiteSchema,
 } from './place.schema';
@@ -126,5 +127,31 @@ describe('placeWebsiteSchema (#2483)', () => {
   it('SHARED-PLACE-034: the tool schema an MCP client reads is still a plain capped string', () => {
     const shape = z.toJSONSchema(z.object({ website: placeWebsiteSchema.optional() }), { io: 'input' });
     expect(shape.properties?.website).toEqual({ type: 'string', maxLength: 500 });
+  });
+});
+
+describe('placeTagIdsSchema', () => {
+  it('SHARED-PLACE-040: takes tag ids, none at all included, and nothing that is not an id', () => {
+    expect(placeTagIdsSchema.safeParse([3, 8]).success).toBe(true);
+    // An empty list is how a place loses its tags.
+    expect(placeTagIdsSchema.safeParse([]).success).toBe(true);
+    expect(placeTagIdsSchema.safeParse([0]).success).toBe(false);
+    expect(placeTagIdsSchema.safeParse(['3']).success).toBe(false);
+    expect(placeTagIdsSchema.safeParse([{ id: 3 }]).success).toBe(false);
+  });
+
+  it('SHARED-PLACE-041: stops at fifty tags on one place', () => {
+    const ids = Array.from({ length: 51 }, (_, i) => i + 1);
+    expect(placeTagIdsSchema.safeParse(ids.slice(0, 50)).success).toBe(true);
+    expect(placeTagIdsSchema.safeParse(ids).success).toBe(false);
+  });
+
+  it('SHARED-PLACE-042: the tool schema an MCP client reads is a plain list of integers', () => {
+    const shape = z.toJSONSchema(z.object({ tags: placeTagIdsSchema.optional() }), { io: 'input' });
+    expect(shape.properties?.tags).toMatchObject({
+      type: 'array',
+      maxItems: 50,
+      items: { type: 'integer', exclusiveMinimum: 0 },
+    });
   });
 });

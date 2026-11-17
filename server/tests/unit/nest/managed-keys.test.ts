@@ -15,12 +15,14 @@ import {
   MANAGED_LOCKED_SETTING_KEYS,
   MANAGED_LOCKED_PROFILE_KEYS,
   MANAGED_CUSTOMER_KEYS,
+  envLockedKeys,
   isManagedLockedKey,
   splitManagedKeys,
+  withEnvLocks,
 } from '../../../src/nest/common/managed';
 import { DEFAULTABLE_USER_SETTING_KEYS } from '../../../src/nest/settings/settings.service';
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 
 const SOURCE_KEYS: string[] = [...ADMIN_FORM_SETTING_KEYS, ...DEFAULTABLE_USER_SETTING_KEYS];
 const locked = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);
@@ -63,8 +65,20 @@ describe('managed key assignment', () => {
       'llm_model',
       'llm_multimodal',
       'llm_provider',
+      'mail_ingest_address_template',
+      'mail_ingest_ai_per_user_daily',
+      'mail_ingest_enabled',
+      'mail_ingest_imap_host',
+      'mail_ingest_imap_mailbox',
+      'mail_ingest_imap_pass',
+      'mail_ingest_imap_port',
+      'mail_ingest_imap_tls',
+      'mail_ingest_imap_user',
+      'mail_ingest_transport',
+      'mail_ingest_webhook_secret',
       'mapbox_access_token',
       'maps_api_key',
+      'oidc_auto_redirect',
       'oidc_login',
       'oidc_registration',
       'openweather_api_key',
@@ -126,5 +140,30 @@ describe('splitManagedKeys', () => {
 
     expect(allowed).toEqual({ not_a_setting: '1' });
     expect(blocked).toEqual([]);
+  });
+});
+
+describe('env-held admin switches', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('MANAGED-ENV-001: unset, the form answers the stored value and a save writes it', () => {
+    vi.stubEnv('FLIGHT_LIVE_ENABLED', '');
+    expect(withEnvLocks({ flight_live_enabled: 'true', require_mfa: 'false' })).toEqual({
+      flight_live_enabled: 'true',
+      require_mfa: 'false',
+    });
+    expect(envLockedKeys({ flight_live_enabled: 'false' })).toEqual([]);
+  });
+
+  it('MANAGED-ENV-002: set, the form shows the variable and env_override_flight_live_enabled, and a save skips it', () => {
+    vi.stubEnv('FLIGHT_LIVE_ENABLED', 'off');
+    expect(withEnvLocks({ flight_live_enabled: 'true', require_mfa: 'false' })).toEqual({
+      flight_live_enabled: 'false',
+      env_override_flight_live_enabled: 'false',
+      require_mfa: 'false',
+    });
+    expect(withEnvLocks({})).toEqual({ flight_live_enabled: 'false', env_override_flight_live_enabled: 'false' });
+    expect(envLockedKeys({ flight_live_enabled: 'true', require_mfa: 'true' })).toEqual(['flight_live_enabled']);
+    expect(envLockedKeys({ require_mfa: 'true' })).toEqual([]);
   });
 });

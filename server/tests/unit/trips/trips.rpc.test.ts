@@ -3,7 +3,7 @@
  * the two cross-trip feeds, the roster, the update, the create and the two member
  * operations.
  *
- * Two things get their own cases. trips.update gates two individual FIELDS behind
+ * Two things get their own cases. trips.update gates three individual FIELDS behind
  * permissions of their own on top of trip_edit, and adding a member GRANTS TRIP
  * ACCESS, which is why it sits behind its own permission rather than any other write.
  */
@@ -271,9 +271,29 @@ describe('TripsRpc writes', () => {
     expect(res.error.message).toBe('no permission to change the cover of trip 1');
   });
 
-  it('TRIPS-RPC-008 a plain edit is unaffected by those two field permissions', async () => {
-    const f = build({ allow: (a) => a !== 'trip_archive' && a !== 'trip_cover_upload' });
+  it('TRIPS-RPC-008 a plain edit is unaffected by those field permissions', async () => {
+    const f = build({ allow: (a) => a !== 'trip_archive' && a !== 'trip_cover_upload' && a !== 'budget_edit' });
     expect((await f.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'New' } }), 42)).ok).toBe(true);
+  });
+
+  it('TRIPS-RPC-022 switching the costs mode needs budget_edit on top of trip_edit', async () => {
+    const f = build({ allow: (a) => a !== 'budget_edit' });
+    const res = (await f
+      .host()
+      .dispatch(req('trips.update', { tripId: 1, input: { costs_mode: 'totals' } }), 42)) as RpcError;
+    expect(res.error).toMatchObject({
+      code: 'RESOURCE_FORBIDDEN',
+      message: 'no permission to change how trip 1 keeps its costs',
+    });
+    expect(f.trips.updateTrip).not.toHaveBeenCalled();
+  });
+
+  it('TRIPS-RPC-023 with budget_edit the costs mode reaches the service', async () => {
+    const f = build();
+    expect((await f.host().dispatch(req('trips.update', { tripId: 1, input: { costs_mode: 'totals' } }), 42)).ok).toBe(
+      true,
+    );
+    expect(f.trips.updateTrip).toHaveBeenCalledWith(1, 42, { costs_mode: 'totals' }, 'user');
   });
 
   it('TRIPS-RPC-009 service errors map onto the right RPC codes', async () => {

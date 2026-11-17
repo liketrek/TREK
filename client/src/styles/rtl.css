@@ -1,0 +1,63 @@
+/*
+ * Right to left (Arabic). Layout already follows the reading direction through
+ * the logical utilities (ms-, ps-, start-, text-start); what is here are the
+ * three things a logical utility cannot say.
+ */
+
+/*
+ * User text in its own direction. A name, title or address carries dir="auto",
+ * so a Latin one in an Arabic row keeps its punctuation at its own end and, when
+ * it is cut, loses its end rather than its beginning. Cut, clamped or typed into
+ * a field, it still lines up with the row and the form: on the UI's start edge,
+ * wherever its own start is (an empty field reads as left to right, so without
+ * this its placeholder would jump to the far side). A free paragraph shown on
+ * its own (a note, a chat message) keeps the alignment of its own language.
+ * Zero specificity, so an explicit text-center or text-end on the element wins.
+ */
+:where(
+  :root[dir='rtl'] [dir='auto']:dir(ltr):is(.truncate, [class*='line-clamp-'], input, textarea),
+  :root[dir='ltr'] [dir='auto']:dir(rtl):is(.truncate, [class*='line-clamp-'], input, textarea)
+) {
+  text-align: end;
+}
+
+/*
+ * Arrows and chevrons that point along the reading direction (back, forward, a
+ * disclosure row, a date range, a payment from one person to another) turn
+ * round in a right-to-left language. The touch shell draws them all with
+ * lucide, so the shell (and the sheets it portals, which carry m-root too)
+ * mirrors them here instead of every icon carrying its own class. An icon that
+ * names its own RTL treatment keeps it: rtl:-scale-x-100 already turns it, and
+ * rtl:scale-x-100 marks an arrow that is physical on purpose. `scale` is its
+ * own property, so it composes with a rotation the icon carries (an open
+ * disclosure pointing down) instead of replacing it.
+ */
+:root[dir='rtl']
+  .m-root
+  :is(
+    .lucide-chevron-left,
+    .lucide-chevron-right,
+    .lucide-chevrons-left,
+    .lucide-chevrons-right,
+    .lucide-arrow-left,
+    .lucide-arrow-right,
+    .lucide-move-left,
+    .lucide-move-right
+  ):not([class*='rtl:']) {
+  scale: -1 1;
+}
+
+/*
+ * Arabic (and Hebrew) has no capitals, so the touch shell's small uppercase
+ * eyebrows (field labels, stat labels, status pills) lose the weight capitals
+ * give a Latin label and read as grey specks. There they grow by a fifth (about
+ * 2px, padding and pill with them), drop the tracking that pulls joined letters
+ * apart, and take the muted ink instead of the faint one.
+ */
+:root:is(:lang(ar), :lang(he)) .m-root .uppercase {
+  zoom: 1.2;
+  letter-spacing: 0;
+}
+:root:is(:lang(ar), :lang(he)) .m-root .uppercase.text-m-faint {
+  color: var(--m-muted);
+}

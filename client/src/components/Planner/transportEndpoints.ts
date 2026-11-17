@@ -548,8 +548,12 @@ export function buildTransportPayload(
   const dayDate = (id: string | number): string | null => days.find((d) => d.id === Number(id))?.date ?? null;
   // Flight route as an ordered list of airports (origin .. stops .. destination).
   const flightWps = form.type === 'flight' ? waypoints.filter((w) => w.airport) : [];
-  const firstWp = flightWps[0];
-  const lastWp = flightWps[flightWps.length - 1];
+  // A flight without a single airport (one created over MCP with a day and times
+  // but no endpoints) takes its day, times, airline and seat from the raw rows, as
+  // a train without stations does; otherwise a save wiped them (#3070).
+  const flightAnchors = flightWps.length > 0 || form.type !== 'flight' ? flightWps : waypoints;
+  const firstWp = flightAnchors[0];
+  const lastWp = flightAnchors[flightAnchors.length - 1];
   // Only geocoded stations become map endpoints and legs.
   const trainWps = stationRoute ? trainWaypoints : [];
   const trainStations = trainWps.filter((w) => w.location);

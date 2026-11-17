@@ -2,8 +2,9 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
-import { rtlTextAlias, plyrSpriteAlias } from './rtlTextAlias.js';
+import { plyrSpriteAlias } from './plyrSpriteAlias.js';
 import { withoutRuntimeFonts } from './bookFontPrecache.js';
+import { ICON_CHUNK } from './iconChunk.js';
 import { readFileSync } from 'node:fs';
 
 // The version this bundle is built as, baked in at build time. The Docker build
@@ -70,7 +71,8 @@ export default defineConfig(({ mode }) => ({
         // offline-first travel planner a route the user never opened before losing
         // signal still has to work. The trade is that splitting buys first paint and
         // not install size: 107 entries / 17,795 KiB before any of it, 463 /
-        // 23,292 KiB now (measured, not estimated).
+        // 23,292 KiB after it, and 460 / 59,426 KiB as of 5.1.2 with the icons in
+        // one chunk (iconChunk.js; 652 entries without it). All measured, not estimated.
         //
         // Keep this figure honest. #2228 traced PWA boot failures to the browser
         // evicting this origin's whole bucket, precached shell included, and this
@@ -301,12 +303,16 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
-  resolve: { alias: [rtlTextAlias, plyrSpriteAlias] },
+  resolve: { alias: [plyrSpriteAlias] },
   build: {
     // Pin the output level instead of inheriting whatever the current Vite default
     // is, so a toolchain bump can't silently change which browsers still work.
     target: 'es2022',
     sourcemap: false,
+    // Served as /asset-manifest.json. The iOS app, which runs no service worker,
+    // walks it to pull every chunk into WebKit's cache so TREK can start offline
+    // (src/native/offlineShell.ts).
+    manifest: 'asset-manifest.json',
     modulePreload: { polyfill: true },
     // Vite 8 bundles with rolldown, not rollup. `rollupOptions` is only an alias
     // onto `rolldownOptions`, and both `manualChunks` and `advancedChunks` are
@@ -346,6 +352,7 @@ export default defineConfig(({ mode }) => ({
               tags: ['$initial'],
               test: /[\\/]node_modules[\\/](zustand|dexie|axios|zod|dompurify|isomorphic-dompurify)[\\/]/,
             },
+            ICON_CHUNK,
           ],
         },
       },

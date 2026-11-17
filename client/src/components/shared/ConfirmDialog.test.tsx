@@ -1,7 +1,11 @@
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { waitFor } from '@testing-library/react';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
+import { askNatively, canAskNatively } from '../../native/nativeDialogs';
+
+vi.mock('../../native/nativeDialogs', () => ({ canAskNatively: vi.fn(() => false), askNatively: vi.fn() }));
 
 describe('ConfirmDialog', () => {
   const onClose = vi.fn();
@@ -179,6 +183,53 @@ describe('ConfirmDialog', () => {
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(onClose).toHaveBeenCalledOnce();
       expect(onConfirm).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('in the app, the system asks', () => {
+    afterEach(() => {
+      vi.mocked(canAskNatively).mockReturnValue(false);
+      vi.mocked(askNatively).mockReset();
+    });
+
+    it('FE-COMP-CONFIRM-NATIVE-001: asks once through the system, with the action in red, and confirms on yes', async () => {
+      vi.mocked(canAskNatively).mockReturnValue(true);
+      vi.mocked(askNatively).mockResolvedValue(true);
+      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} title="Delete place" message="Gone for good." />);
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+      expect(onConfirm).toHaveBeenCalledOnce();
+      expect(askNatively).toHaveBeenCalledTimes(1);
+      expect(askNatively).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Delete place', message: 'Gone for good.', danger: true }),
+      );
+      expect(screen.queryByText('Gone for good.')).toBeNull();
+    });
+
+    it('FE-COMP-CONFIRM-NATIVE-002: a no only closes', async () => {
+      vi.mocked(canAskNatively).mockReturnValue(true);
+      vi.mocked(askNatively).mockResolvedValue(false);
+      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} message="Sure?" />);
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+      expect(onConfirm).not.toHaveBeenCalled();
+    });
+
+    it('FE-COMP-CONFIRM-NATIVE-003: falls back to the HTML card when the system cannot ask', async () => {
+      vi.mocked(canAskNatively).mockReturnValue(true);
+      vi.mocked(askNatively).mockResolvedValue(null);
+      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} message="Sure?" />);
+      expect(await screen.findByText('Sure?')).toBeTruthy();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it('FE-COMP-CONFIRM-NATIVE-004: keeps a question with a list under it in HTML', () => {
+      vi.mocked(canAskNatively).mockReturnValue(true);
+      render(
+        <ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} message="Sure?">
+          <ul><li>three places</li></ul>
+        </ConfirmDialog>,
+      );
+      expect(screen.getByText('three places')).toBeTruthy();
+      expect(askNatively).not.toHaveBeenCalled();
     });
   });
 });

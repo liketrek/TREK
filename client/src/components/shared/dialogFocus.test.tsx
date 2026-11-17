@@ -1,10 +1,10 @@
-// FE-SHARED-DIALOGFOCUS-001 to FE-SHARED-DIALOGFOCUS-009
+// FE-SHARED-DIALOGFOCUS-001 to FE-SHARED-DIALOGFOCUS-010
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useState } from 'react'
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
 import { DialogShell } from './DialogShell'
 import Modal from './Modal'
-import { firstTextField } from './dialogFocus'
+import { firstTextField, focusDialog } from './dialogFocus'
 
 /** A desktop with a mouse: the only case the first field takes the focus. */
 function asDesktop() {
@@ -137,5 +137,19 @@ describe('Modal focus (#1302)', () => {
     save.focus()
     fireEvent.keyDown(save, { key: 'Tab' })
     expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus()
+  })
+
+  it('FE-SHARED-DIALOGFOCUS-010: a field marked as the start wins over the first one, a focus inside stays', () => {
+    restore = asDesktop()
+    const panel = document.createElement('div')
+    panel.tabIndex = -1
+    panel.innerHTML = '<input id="first" type="text"><input id="start" type="text" data-initial-focus>'
+    document.body.appendChild(panel)
+    focusDialog(panel)
+    expect(document.activeElement?.id).toBe('start')
+    ;(panel.querySelector('#first') as HTMLElement).focus()
+    focusDialog(panel)
+    expect(document.activeElement?.id).toBe('first')
+    panel.remove()
   })
 })

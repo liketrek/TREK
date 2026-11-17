@@ -97,7 +97,8 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
             aria-label={t('mobileTrip.filesPrev')}
             className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white/80"
           >
-            <ChevronLeft size={22} strokeWidth={2} />
+            {/* The buttons sit on physical sides, so their arrows stay put in Arabic. */}
+            <ChevronLeft size={22} strokeWidth={2} className="rtl:scale-x-100" />
           </button>
         )}
         {fileIsVideo ? (
@@ -124,7 +125,7 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
             aria-label={t('mobileTrip.filesNext')}
             className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white/80"
           >
-            <ChevronRight size={22} strokeWidth={2} />
+            <ChevronRight size={22} strokeWidth={2} className="rtl:scale-x-100" />
           </button>
         )}
       </div>

@@ -11,6 +11,7 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { useTripStore } from '../../../../store/tripStore'
 import ChargingInfo from '../../../../components/Roadtrip/ChargingInfo'
+import StopPhoto from '../../../../components/Roadtrip/StopPhoto'
 import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
 import { roadtripRows, stageOf, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
 import { readStay, shownStay } from '../../../../components/Roadtrip/stayReading'
@@ -290,7 +291,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
   const tiles = (navTargets.length > 0 ? 1 : 0) + 1
 
   return (
-    <MSheet open={open && !!live} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={stop.name}>
+    <MSheet open={open && !!live} onClose={shell.closeSheet} variant="bottom" material="glass" ariaLabel={stop.name}>
       {/* ── Header: the disc the chain draws, the name, the way to the editor and the way out ── */}
       <div className="flex-none px-[18px] pt-4">
         {/* Centred, not top-aligned: one line of the name is shorter than the 34px disc, so
@@ -336,6 +337,11 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+        {/* ── The place's picture, which is often what decides whether a stop is worth it
+            when the day runs short (#2629). Full width under the name, where the eye lands
+            first; a tap opens the rest of its photos. Absent when the place has none. ── */}
+        <StopPhoto place={place} className="mt-[14px] h-[140px] w-full rounded-[16px] bg-[color:var(--m-ic)]" />
+
         {/* ── The two clock readings, and where they come from ── */}
         {(arrive || leave) && (
           <div className="mt-[14px] rounded-[16px] bg-[color:var(--m-inner)] px-3.5 py-3">

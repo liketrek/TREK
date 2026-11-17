@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Προσθήκη στο TREK";
+"share.cancel" = "Ακύρωση";
+"share.close" = "Κλείσιμο";
+"share.trip" = "Ταξίδι";
+"share.noTrips" = "Ανοίξτε το TREK μία φορά και τα ταξίδια σας θα εμφανιστούν εδώ.";
+"share.hint" = "Το TREK διαβάζει την κράτηση και την προσθέτει στο ταξίδι.";
+"share.later" = "Επιλογή αργότερα";
+"share.add" = "Προσθήκη";
+"share.addTo" = "Προσθήκη στο %@";
+"share.added" = "Προστέθηκε";
+"share.reading" = "Ανάγνωση…";
+"share.tooLarge" = "Το αρχείο είναι πολύ μεγάλο για εισαγωγή.";
+"share.unsupported" = "Το TREK δεν μπορεί να το εισαγάγει.";
+"share.failed" = "Δεν ήταν δυνατή η μεταφορά στο TREK. Δοκιμάστε ξανά.";
+"share.now" = "Τώρα";
+"share.past" = "Παρελθόν";
+"share.tomorrow" = "Αύριο";
+"share.inDays" = "Σε %d ημέρες";
+"share.kind.pass" = "Κάρτα Wallet";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "Email";
+"share.kind.page" = "Ιστοσελίδα";
+"share.kind.text" = "Κείμενο";
+"share.kind.image" = "Φωτογραφία";
+"share.kind.file" = "Αρχείο";

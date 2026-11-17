@@ -1,9 +1,15 @@
 import MPhotoProvidersSection from './MPhotoProvidersSection'
 import MAirTrailConnectionSection from './MAirTrailConnectionSection'
+import MMailImportSection from './MMailImportSection'
 import MDawarichConnectionSection from './MDawarichConnectionSection'
+import MWandererConnectionSection from './MWandererConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MAiConnectionSection from './MAiConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
+import MApiKeysSection from './MApiKeysSection'
+import DemoLock from '../../../components/Demo/DemoLock'
+import { useDemoAccountLock } from '../../../components/Demo/useDemoLock'
+import { useTranslation } from '../../../i18n'
 import { useIntegrationGates } from '../../../components/Settings/useIntegrationGates'
 
 /**
@@ -13,21 +19,31 @@ import { useIntegrationGates } from '../../../components/Settings/useIntegration
  * function audit is rebuilt natively in the mobile design language.
  */
 export default function MSettingsIntegrations() {
-  const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, managed } = useIntegrationGates({ reloadAddons: true })
+  const { mcpEnabled, airtrailEnabled, llmEnabled, aiAssistantEnabled, aiConnectionEnabled, ownParsing, dawarichEnabled, wandererEnabled, managed } = useIntegrationGates({ reloadAddons: true })
+
+  const { t } = useTranslation()
+  const demoLocked = useDemoAccountLock()
 
   return (
     <>
+      {/* Forwarded booking mails: hides itself where this server or plan has no import. */}
+      <MMailImportSection />
       {/* Immich, Synology Photos, AirTrail and Dawarich all reach a server the reader
           runs themselves, which a managed install has no route to: the same gate the
           desktop shell puts on them. */}
       {!managed && <MPhotoProvidersSection />}
       {airtrailEnabled && !managed && <MAirTrailConnectionSection />}
       {dawarichEnabled && !managed && <MDawarichConnectionSection />}
+      {wandererEnabled && !managed && <MWandererConnectionSection />}
       {aiConnectionEnabled && !managed && <MAiConnectionSection assistant={aiAssistantEnabled} parsing={llmEnabled} />}
       {/* Which model reads a booking, and what that costs, comes with the instance on
        a managed install. The per-user fallback exists for people who supply their
        own key, and there nobody does. */}
       {llmEnabled && ownParsing && !managed && <MLlmConnectionSection />}
+      {/* An API key needs no addon, so it comes ahead of MCP, as on the desktop. */}
+      <DemoLock locked={demoLocked} reason={t('demo.lock.apiKeys')}>
+        <MApiKeysSection />
+      </DemoLock>
       {mcpEnabled && <MSettingsMcp />}
     </>
   )

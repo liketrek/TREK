@@ -217,5 +217,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple 캘린더 / Outlook에 추가',
   'dashboard.ics.copyManually': '또는 링크를 직접 복사',
   'dashboard.ics.pasteFromUrl': '“URL에서”에 붙여넣기',
+  'dashboard.ics.dayEvents': '일별 개요 일정',
+  'dashboard.ics.dayEventsHint':
+    '시간이 없는 장소와 메모를 담은 종일 일정을 하루마다 추가합니다. 이 설정을 바꾸면 링크가 바뀌므로 새 링크로 다시 구독하세요.',
 };
 export default dashboard;

@@ -206,7 +206,7 @@ describe('the rail', () => {
     const columns = [...STUDIO_CSS.matchAll(/\.st-body \{[^}]*?grid-template-columns:\s*([^;]+);/g)].map((m) => m[1]);
     expect(columns).toEqual([
       'minmax(64px, min-content) 236px minmax(0, 1fr) 300px',
-      'minmax(64px, min-content) 236px minmax(0, 1fr)',
+      'minmax(64px, min-content) 236px minmax(0, 1fr) 280px',
       'minmax(64px, min-content) minmax(0, 1fr)',
     ]);
 

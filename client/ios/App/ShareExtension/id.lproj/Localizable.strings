@@ -1,0 +1,26 @@
+/* The share sheet ("TREK" in the share menu): ShareExtension/ShareView.swift. */
+"share.title" = "Tambahkan ke TREK";
+"share.cancel" = "Batal";
+"share.close" = "Tutup";
+"share.trip" = "Perjalanan";
+"share.noTrips" = "Buka TREK sekali dan perjalanan Anda akan muncul di sini.";
+"share.hint" = "TREK membaca pemesanan dan menambahkannya ke perjalanan.";
+"share.later" = "Pilih nanti";
+"share.add" = "Tambahkan";
+"share.addTo" = "Tambahkan ke %@";
+"share.added" = "Ditambahkan";
+"share.reading" = "Membaca…";
+"share.tooLarge" = "File ini terlalu besar untuk diimpor.";
+"share.unsupported" = "TREK tidak dapat mengimpor ini.";
+"share.failed" = "Tidak dapat diteruskan ke TREK. Silakan coba lagi.";
+"share.now" = "Sekarang";
+"share.past" = "Lewat";
+"share.tomorrow" = "Besok";
+"share.inDays" = "Dalam %d hari";
+"share.kind.pass" = "Pass Wallet";
+"share.kind.pdf" = "PDF";
+"share.kind.mail" = "Email";
+"share.kind.page" = "Halaman web";
+"share.kind.text" = "Teks";
+"share.kind.image" = "Foto";
+"share.kind.file" = "File";

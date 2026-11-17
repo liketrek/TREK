@@ -40,6 +40,7 @@ const common: TranslationStrings = {
   'common.unsavedMessage': 'מה שהזנתם כאן עדיין לא נשמר.',
   'common.keepEditing': 'להמשיך לערוך',
   'common.name': 'שם',
+  'common.title': 'כותרת',
   'common.email': 'אימייל',
   'common.password': 'סיסמה',
   'common.saving': 'שומר...',
@@ -82,6 +83,8 @@ const common: TranslationStrings = {
   'common.errorUpdateBody': 'TREK עודכן בזמן שהלשונית הייתה פתוחה. רעננו כדי לקבל את הגרסה החדשה.',
   'common.errorPluginTitle': 'לא ניתן להציג את התוסף הזה',
   'common.needsConnection': 'הפעולה הזו דורשת חיבור. נסו שוב כש-TREK יחזור לרשת.',
+  'common.errorDetails': 'פרטים',
+  'common.share': 'שיתוף',
 };
 
 export default common;

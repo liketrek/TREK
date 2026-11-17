@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': '博物馆与文化',
   'poi.cat.nature': '自然与公园',
   'poi.cat.activities': '活动',
+  'poi.cat.bakeries': '面包店',
+  'poi.cat.groceries': '超市和便利店',
   'poi.pluginCategories': '来自插件的分类',
   'map.showAllConnections': '显示所有预订路线',
   'map.hideAllConnections': '隐藏所有预订路线',
@@ -40,5 +42,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': '地形图',
   'map.webgl2.fallback': '此浏览器不支持 GL 地图所需的 WebGL2，因此地图改用 Leaflet 显示。',
   'map.webgl2.terrain': '3D 需要 WebGL2，而此浏览器不支持。地图保持 2D。',
+  'map.offlineBasemap': '离线地图',
+  'map.offlineShowStored': '显示离线地图',
 };
 export default map;

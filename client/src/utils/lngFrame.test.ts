@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { frameLine, frameLng, tripLngFrame } from './lngFrame';
+import { frameLine, frameLng, tripLngFrame, viewLngFrame } from './lngFrame';
 
 const LA = -118.4;
 const AUCKLAND = 174.8;
@@ -81,5 +81,34 @@ describe('frameLine', () => {
       [0, 20],
     ]);
     expect(drawn.map(([, lng]) => lng)).toEqual([30, 20]);
+  });
+});
+
+describe('viewLngFrame', () => {
+  it('keeps the plain world while the view looks at the real world', () => {
+    expect(viewLngFrame(null, 0)).toBeNull();
+    expect(viewLngFrame(null, 10)).toBeNull();
+    expect(viewLngFrame(null, -90)).toBeNull();
+  });
+
+  it('keeps the frame in use while the view stays near its middle, so a pan redraws nothing', () => {
+    const frame = { seam: 28.4 };
+    expect(viewLngFrame(frame, 208.4)).toBe(frame);
+    expect(viewLngFrame(frame, 130)).toBe(frame);
+  });
+
+  it('centres the frame on a view outside the trip frame, so places found there are drawn there', () => {
+    // A trip from Los Angeles to Auckland, seamed at 28.4, with the user looking at Europe.
+    const frame = viewLngFrame({ seam: 28.4 }, 10);
+    expect(frame).toEqual({ seam: -170 });
+    expect(frameLng(frame, 12)).toBeCloseTo(12, 6);
+    expect(frameLng(frame, 23.7)).toBeCloseTo(23.7, 6);
+    expect(frameLng(frame, -5)).toBeCloseTo(-5, 6);
+  });
+
+  it('centres the frame on a view of a world copy', () => {
+    const frame = viewLngFrame(null, 495);
+    expect(frame).toEqual({ seam: 315 });
+    expect(frameLng(frame, 139.7)).toBeCloseTo(499.7, 6);
   });
 });

@@ -4,6 +4,7 @@ import { CATEGORY_ICON_MAP, ICON_LABELS, getCategoryIcon } from '../../../compon
 import { useTranslation } from '../../../i18n'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { MAdminButton, MAdminCard, MAdminCardHead } from './MAdminUi'
+import MSkeleton from '../../components/MSkeleton'
 
 export default function MAdminCategoryManager() {
   const {
@@ -126,9 +127,7 @@ export default function MAdminCategoryManager() {
       {showForm && <div className="mb-3 mt-1">{categoryForm}</div>}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-8 text-m-faint">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-[color:var(--m-ink)]" />
-        </div>
+        <MSkeleton variant="rows" count={5} />
       ) : categories.length === 0 ? (
         <div className="py-8 text-center text-m-faint">
           <p className="text-[0.8125rem]">{t('categories.empty')}</p>

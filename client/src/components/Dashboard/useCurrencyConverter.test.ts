@@ -1,4 +1,4 @@
-// FE-COMP-FXHOOK-001 to -008: the currency converter both dashboards share.
+// FE-COMP-FXHOOK-001 to -010: the currency converter both dashboards share.
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { useSettingsStore } from '../../store/settingsStore';
@@ -13,7 +13,7 @@ const RATES = [
 const updateSetting = vi.fn<(key: string, value: unknown) => Promise<void>>();
 let fetchMock: ReturnType<typeof vi.fn>;
 
-function seedSettings(over: Record<string, unknown> = {}, isLoaded = false) {
+function seedSettings(over: Record<string, unknown> = {}, isLoaded = true) {
   useSettingsStore.setState((s) => ({
     isLoaded,
     updateSetting: updateSetting as unknown as typeof s.updateSetting,
@@ -132,5 +132,34 @@ describe('useCurrencyConverter', () => {
       await Promise.resolve();
     });
     expect(result.current.rate).toBe(1.3);
+  });
+
+  it('FE-COMP-FXHOOK-009: #3009 waits for the saved pair before it fetches or shows a pair', async () => {
+    seedSettings({}, false);
+    const { result } = renderHook(() => useCurrencyConverter());
+    expect(result.current.pairPending).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    act(() => seedSettings({ dashboard_fx_from: 'JPY', dashboard_fx_to: 'EUR' }));
+    expect(result.current.pairPending).toBe(false);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock.mock.calls[0][0]).toContain('base=JPY');
+  });
+
+  it('FE-COMP-FXHOOK-010: #3009 never prices a new pair with the previous base and says it is still loading', async () => {
+    fetchMock = vi.fn((url: string) =>
+      respond(url.endsWith('base=JPY') ? [{ quote: 'EUR', rate: 0.0056 }] : [{ quote: 'USD', rate: 1.1 }])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useCurrencyConverter());
+    await waitFor(() => expect(result.current.rate).toBe(1.1));
+
+    act(() => seedSettings({ dashboard_fx_from: 'JPY', dashboard_fx_to: 'EUR' }));
+    // EUR's map holds EUR at 1, which used to show as "1 JPY = 1.0000 EUR".
+    expect(result.current.rate).toBeNull();
+    expect(result.current.ratePending).toBe(true);
+
+    await waitFor(() => expect(result.current.rate).toBe(0.0056));
+    expect(result.current.ratePending).toBe(false);
   });
 });

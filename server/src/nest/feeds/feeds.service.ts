@@ -2,7 +2,7 @@ import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { CalendarService, CALENDAR_HEADER, foldICS } from '../calendar/calendar.service';
+import { CalendarService, CALENDAR_HEADER, foldICS, type TripCalendarOptions } from '../calendar/calendar.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
@@ -96,11 +96,14 @@ export class FeedsService {
 
   // ── ICS generation ───────────────────────────────────────────────────────
 
-  async buildTripIcs(token: string): Promise<{ ics: string; filename: string } | null> {
+  async buildTripIcs(
+    token: string,
+    options: TripCalendarOptions = {},
+  ): Promise<{ ics: string; filename: string } | null> {
     const tripId = await this.tripsRepo.findIdByFeedToken(token);
     if (tripId === undefined) return null;
     try {
-      const cal = await this.calendar.buildTripCalendar(tripId);
+      const cal = await this.calendar.buildTripCalendar(tripId, options);
       // Same document as the one-time download, plus the subscription refresh
       // hints so clients re-fetch hourly. Assembled from the calendar's parts
       // rather than string-surgeried into the finished text.
@@ -118,7 +121,10 @@ export class FeedsService {
     }
   }
 
-  async buildUserIcs(token: string): Promise<{ ics: string; calName: string } | null> {
+  async buildUserIcs(
+    token: string,
+    options: TripCalendarOptions = {},
+  ): Promise<{ ics: string; calName: string } | null> {
     const user = await this.usersRepo.findIdAndUsernameByFeedToken(token);
     if (!user) return null;
 
@@ -144,7 +150,7 @@ export class FeedsService {
     let events = '';
     for (const id of tripIds) {
       try {
-        const cal = await this.calendar.buildTripCalendar(id);
+        const cal = await this.calendar.buildTripCalendar(id, options);
         for (const [tzid, block] of cal.timezones) {
           if (!zones.has(tzid)) zones.set(tzid, block);
         }

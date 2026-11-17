@@ -236,6 +236,25 @@ optional (for unauthenticated relays).
 
 ---
 
+## Booking mail import
+
+How forwarded booking mails reach TREK ([Booking mail import](Booking-Mail-Import)). Every variable overrides its field
+in the admin dialog; unset, the dialog decides.
+
+| Variable                       | Description                                                                                                 | Default |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------|---------|
+| `MAIL_INGEST_TRANSPORT`        | `off` (uploads only), `imap` or `webhook`.                                                                  | `off`   |
+| `MAIL_INGEST_IMAP_HOST`        | The mailbox TREK reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   |         |
+| `MAIL_INGEST_IMAP_PORT`        | `993` for TLS, `143` for STARTTLS.                                                                          | `993`   |
+| `MAIL_INGEST_IMAP_TLS`         | `tls` (encrypted from the first byte) or `starttls`.                                                        | `tls`   |
+| `MAIL_INGEST_IMAP_USER`        | IMAP login.                                                                                                 |         |
+| `MAIL_INGEST_IMAP_PASS`        | IMAP password.                                                                                              |         |
+| `MAIL_INGEST_IMAP_MAILBOX`     | The folder the mails arrive in. Read mails move on to `TREK/processed`; nothing is deleted.                 | `INBOX` |
+| `MAIL_INGEST_ADDRESS_TEMPLATE` | The forwarding address, each person's token where `{token}` stands, e.g. `trek+{token}@example.com`.        |         |
+| `MAIL_INGEST_WEBHOOK_SECRET`   | The key the webhook sender signs each mail with (HMAC-SHA256), at least 32 characters.                      |         |
+
+---
+
 ## Web Push
 
 [Web Push](Notifications#web-push) signs every message with a VAPID key pair. None of these variables is needed:
@@ -365,6 +384,18 @@ When left at the default, using the transit feature makes the TREK **server** se
 
 ---
 
+## Live Flight Status
+
+Booked flights are followed live through the keyless open ADS-B networks adsb.lol and, on a self-hosted install, adsb.fi. See [Transport: Flights, Trains, Cars](Transport-Flights-Trains-Cars#live-flight-status).
+
+| Variable              | Description                                                                                                                                                                  | Default |
+|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `FLIGHT_LIVE_ENABLED` | `false` switches live flight status off, `true` keeps it on; either way it wins over **Admin → Settings → Live flight status**, which then shows the value locked. Unset leaves the choice to the admin switch. | unset   |
+
+While on, the TREK **server** asks `api.adsb.lol` (and `opendata.adsb.fi` on a self-hosted install) for the callsign of each booked flight in its watch window, at most once a second and 200 times an hour. Nothing else about the trip or its travellers is sent.
+
+---
+
 ## Image Search (Unsplash)
 
 TREK can search [Unsplash](https://unsplash.com/) for **trip cover images** and **place images**. By default the server queries Unsplash's public web endpoint **without an API key**, so no configuration is needed on most installs.
@@ -398,6 +429,7 @@ TREK's own place index, the [TREK Places API](TREK-Places-API), answers the sugg
 | `TREK_SERVICES_HOSTS` | Comma-separated hosts that receive the installation key over https. | `places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com` |
 | `TREK_PHOTON_URL`     | The address search of the TREK services, a [Photon](https://github.com/komoot/photon) instance. Once the installation holds a key it is the geocoder in place of Nominatim: the OpenStreetMap half of search and suggestions, import geocoding, the right-click on the map and pasted map links, matching a Google place to its OpenStreetMap record and naming an opened OpenStreetMap place. An empty answer is the answer, and so is a miss (an error, a timeout, a refused key or a spent allowance): Nominatim is not asked in its place. It is never asked with `TREK_SERVICES=off`, without a key, or when `NOMINATIM_URL` is set. See [Address search](TREK-Places-API#address-search). | `https://photon.liketrek.com` |
 | `TREK_VALHALLA_URL`   | The Valhalla of the TREK services. Routes, elevation and the description of a line go there unless the admin picks another routing service under Admin, Default user settings; this server relays them with the installation key, so the browser never talks to it. A trailing slash is stripped, and a value that is not a full URL aborts startup. | `https://valhalla.liketrek.com` |
+| `TREK_WALLET_SIGNER_URL` | Signs a booking's Apple Wallet pass when someone taps **Add to Apple Wallet** in the iOS app. Only liketrek holds the pass certificate, so the pass's texts (the booking's name, times, places, seat or room and confirmation code, nothing else) go there once per tap and are not stored. Never asked with `TREK_SERVICES=off`; a value that is not a full URL aborts startup. | `https://push.liketrek.com/v1/wallet/pass` |
 
 On Helm these go under `env:` in `values.yaml`, except `TREK_SERVICES_KEY`, which goes under `secretEnv:`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
 

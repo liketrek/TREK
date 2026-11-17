@@ -267,6 +267,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nenhum álbum encontrado',
   'journey.picker.selectDate': 'Selecionar data',
   'journey.picker.search': 'Pesquisar',
+  'journey.picker.takenBetween': 'Tennet etre',
   'journey.detail.journeyTab': 'Jornada',
   'journey.contributors.remove': 'Remover colaborador',
   'journey.contributors.removeConfirm': 'Remover {username} desta jornada?',

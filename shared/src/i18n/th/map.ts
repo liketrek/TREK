@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'พิพิธภัณฑ์และวัฒนธรรม',
   'poi.cat.nature': 'ธรรมชาติและอุทยาน',
   'poi.cat.activities': 'กิจกรรม',
+  'poi.cat.bakeries': 'ร้านเบเกอรี่',
+  'poi.cat.groceries': 'ร้านขายของชำ',
   'poi.pluginCategories': 'หมวดหมู่จากปลั๊กอิน',
   'map.showAllConnections': 'แสดงเส้นทางการจองทั้งหมด',
   'map.hideAllConnections': 'ซ่อนเส้นทางการจองทั้งหมด',
@@ -41,5 +43,7 @@ const map: TranslationStrings = {
   'map.baseLayer.topo': 'ภูมิประเทศ',
   'map.webgl2.fallback': 'เบราว์เซอร์นี้ไม่รองรับ WebGL2 ที่แผนที่ GL ต้องใช้ จึงแสดงแผนที่ด้วย Leaflet แทน',
   'map.webgl2.terrain': 'โหมด 3D ต้องใช้ WebGL2 ซึ่งเบราว์เซอร์นี้ไม่รองรับ แผนที่จึงยังคงเป็น 2D',
+  'map.offlineBasemap': 'แผนที่ออฟไลน์',
+  'map.offlineShowStored': 'แสดงแผนที่ออฟไลน์',
 };
 export default map;

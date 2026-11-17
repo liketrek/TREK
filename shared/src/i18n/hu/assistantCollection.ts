@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Áthelyezés ide: {name}',
   'assistant.card.collection.removed': 'Eltávolítva a listából',
   'assistant.card.collection.photo': 'Fotó',
+  'assistant.card.collection.mapEntry': 'Térképes bejegyzés',
   'assistant.card.collection.places': 'Mentett helyek itt: {name}',
   'assistant.card.collection.saved': 'Mentett helyek',
   'assistant.card.collection.statusSet': '{count} mentett hely módosítva',

@@ -438,7 +438,7 @@ describe('costsModel — breakdown and presentation', () => {
     const bars = categoryBreakdown(items, ctx);
 
     expect(bars.map(b => b.key)).toEqual(['accommodation', 'food']);
-    expect(bars[0]).toEqual({ key: 'accommodation', amount: 300, widthPct: 100 });
+    expect(bars[0]).toEqual({ key: 'accommodation', amount: 300, widthPct: 100, leftOut: false });
     expect(bars[1].amount).toBe(200);
     expect(bars[1].widthPct).toBeCloseTo(66.667, 3);
   });
@@ -460,14 +460,14 @@ describe('costsModel — breakdown and presentation', () => {
     // category keeps its own row at the bottom, without a bar — a negative CSS
     // width would be dropped and paint a full one.
     expect(bars).toEqual([
-      { key: 'food', amount: 60, widthPct: 100 },
-      { key: 'activities', amount: -20, widthPct: 0 },
+      { key: 'food', amount: 60, widthPct: 100, leftOut: false },
+      { key: 'activities', amount: -20, widthPct: 0, leftOut: false },
     ]);
   });
 
   it('FE-MOB-CMOD-032: an all-negative breakdown renders rows but no bars (#2176)', () => {
     const bars = categoryBreakdown([expense({ category: 'food', total_price: -20 })], ctx);
-    expect(bars).toEqual([{ key: 'food', amount: -20, widthPct: 0 }]);
+    expect(bars).toEqual([{ key: 'food', amount: -20, widthPct: 0, leftOut: false }]);
   });
 
   it('FE-MOB-CMOD-021: tint turns a hex colour into rgba, with or without the leading hash', () => {

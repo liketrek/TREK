@@ -442,7 +442,10 @@ export const POI_CATEGORY_TO_TREK: Record<string, string[]> = {
     'sports_and_recreation>park>water_park',
   ],
   shopping: ['shopping'],
-  supermarket: ['shopping>food_and_beverage_store', 'shopping>convenience_store'],
+  // The grocers alone: the whole food and beverage branch brought tobacconists and wine shops too.
+  supermarket: ['shopping>food_and_beverage_store>grocery_store', 'shopping>convenience_store'],
+  // Overture files a bakery under the casual eateries, beside the cafe.
+  bakery: ['food_and_drink>casual_eatery>bakery'],
   // What a drive needs rather than what a city visit does (#1797). The corridor
   // search asks for these by name, and without them every corridor query fell
   // through to Overpass — the one path where that hurts most, because a single

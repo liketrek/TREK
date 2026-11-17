@@ -25,6 +25,8 @@ import '@fontsource/geist-sans/600.css'
 // several .leaflet-* styles.
 import 'leaflet/dist/leaflet.css'
 import './index.css'
+import './native/nativeApp.css'
+import './styles/rtl.css'
 import './styles/ferratas.css'
 import './styles/paddle.css'
 import './styles/walkRoute.css'
@@ -39,15 +41,22 @@ import './styles/hike.css'
 // double-tap zooms (#1440). See utils/touchDragPolyfill.ts.
 import { maybeInstallTouchDragPolyfill } from './utils/touchDragPolyfill'
 import { startConnectivityProbe } from './sync/connectivity'
+import { startNativeApp } from './native/nativeApp'
 import { requestPersistentStorage } from './sync/persistentStorage'
+import { isIosDevice } from './utils/iosDevice'
 import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBoundary'
 import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
 import { schedulePrecacheRepair } from './utils/serviceWorkerShell'
 
 void maybeInstallTouchDragPolyfill()
 startConnectivityProbe()
+// Inside the iOS/Android app: splash, back button, status bar, offline start (iOS).
+startNativeApp()
 // Keep offline data (map tiles, file blobs, IndexedDB) exempt from eviction.
 void requestPersistentStorage()
+// A tile cache past the iOS budget slows every cold start of the home screen app (#3008).
+// Loaded on iOS only, so the prefetcher stays out of everyone's first chunk.
+if (isIosDevice()) void import('./sync/tilePrefetcher').then((m) => m.scheduleTileCacheTrim())
 // Event handlers and async code never reach a boundary; this is where they land.
 installGlobalErrorHandlers()
 // A page the precache keeps under a stylesheet's or a script's name would be

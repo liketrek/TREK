@@ -28,6 +28,9 @@ interface CollectionMapPanelProps {
   onLabelFilter?: (ids: number[]) => void
   canManageLabels?: boolean
   onManageLabels?: () => void
+  /** The padlock on the desktop map (#2010); the phone has no hover to look around with. */
+  mapLocked?: boolean
+  onToggleMapLocked?: () => void
   t: TranslationFn
 }
 
@@ -39,7 +42,7 @@ interface CollectionMapPanelProps {
 export default function CollectionMapPanel({
   places, selectedPlaceId, onSelect, onDeselect, dark, overlay, view, onToggleView,
   search, onSearch, labelOptions = [], labelFilter = [], onLabelFilter, canManageLabels = false,
-  onManageLabels, t,
+  onManageLabels, mapLocked = false, onToggleMapLocked, t,
 }: CollectionMapPanelProps): React.ReactElement {
   const showLabels = onLabelFilter != null && (labelOptions.length > 0 || canManageLabels)
   return (
@@ -51,6 +54,8 @@ export default function CollectionMapPanel({
         onDeselect={onDeselect}
         dark={dark}
         underBar={overlay}
+        locked={overlay && mapLocked}
+        onToggleLock={overlay ? onToggleMapLocked : undefined}
       />
       {overlay && (
         <div className="col-map-topbar">

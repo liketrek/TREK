@@ -162,6 +162,10 @@ env:
   # TREK_VALHALLA_URL: ""
   # The Valhalla of the TREK services, which this server relays routing to unless the admin picks another
   # routing service. The browser never talks to it. Defaults to https://valhalla.liketrek.com.
+  # TREK_WALLET_SIGNER_URL: ""
+  # Signs the Apple Wallet pass of a booking when someone taps "Add to Apple Wallet" in the iOS app.
+  # Only the pass's texts go there, once per tap. Never asked with TREK_SERVICES=off.
+  # Defaults to https://push.liketrek.com/v1/wallet/pass.
   # AMAP_API_BASE: ""
   # Send the Amap (高德地图) calls through an egress proxy, a cache or a gateway that speaks the same API instead of
   # restapi.amap.com directly. The key itself is a credential and goes under secretEnv.AMAP_API_KEY, or into
@@ -259,12 +263,21 @@ persistence:
     size: 1Gi
     # Leave empty to use the cluster's default StorageClass; set to bind a specific class.
     storageClassName: ""
-    # Bind an existing PVC. The other values (size, storageClassName, annotations) are then ignored.
+    # Access modes of the claim. ReadWriteMany lets another pod mount the volume, for
+    # example a backup sidecar, but only for reading: SQLite needs every writer on one
+    # host, so two pods writing travel.db over a network filesystem corrupt it.
+    accessModes:
+      - ReadWriteOnce
+    # Bind an existing PVC. The other values (size, storageClassName, accessModes,
+    # annotations) are then ignored.
     existingClaim: ""
     annotations: {}
   uploads:
     size: 1Gi
     storageClassName: ""
+    # Access modes of the claim; ReadWriteMany lets other pods read or add uploads.
+    accessModes:
+      - ReadWriteOnce
     # Specify an existing PVC to bind. The other values are then ignored.
     existingClaim: ""
     annotations: {}

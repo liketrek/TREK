@@ -116,8 +116,25 @@ export default {
         subtitle: ['calc(18px * var(--fs-scale-subtitle, 1))', '1.35'],
         body: ['calc(14px * var(--fs-scale-body, 1))', '1.5'],
         caption: ['calc(12px * var(--fs-scale-caption, 1))', '1.4'],
+        // Buttons and segmented controls on the settings pages: between caption and body.
+        control: ['calc(13px * var(--fs-scale-body, 1))', '1.3'],
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // The touch shell's size classes (src/hooks/sizeClass.ts) as the `wide:` and
+    // `split:` variants. They key on the class MobileShell writes to the shell's
+    // root (data-size), not on media queries of their own, so the CSS follows the
+    // hooks exactly: compact in a browser, and unmoved by Android's soft keyboard.
+    // Asked from <html>, so a sheet portalled outside the shell follows too, and
+    // inside :where() so a variant weighs what a media query did.
+    ({ addVariant }) => {
+      addVariant('wide', ':where(html:has(.m-shell[data-size="wide"], .m-shell[data-size="split"])) &')
+      addVariant('split', ':where(html:has(.m-shell[data-size="split"])) &')
+      // A window as short as a phone on its side, where a form sheet takes the full
+      // height (MSheet's `form`). A media query on purpose: a soft keyboard that
+      // shrinks the window below it changes only CSS, so nothing remounts.
+      addVariant('short', '@media (max-height: 500px)')
+    },
+  ],
 }

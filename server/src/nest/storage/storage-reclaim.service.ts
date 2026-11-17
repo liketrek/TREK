@@ -14,6 +14,7 @@ import { DatabaseLifecycle } from '../database/database-lifecycle.service';
 import { withRequestContext } from '../database/request-context';
 import { StorageInstallService } from './storage-install.service';
 import { StorageJobsService } from './storage-jobs.service';
+import { isValidKey } from './storage-keys';
 import { StorageReclaimGuardService } from './storage-reclaim-guard.service';
 import { StorageReclaimRegistryService } from './storage-reclaim-registry.service';
 import { inReclaimScope, RECLAIM_LEDGER, reclaimableCategories, sharedLocationsOf } from './storage-reclaim.ledger';
@@ -435,7 +436,10 @@ export class StorageReclaimService implements OnModuleInit {
     for await (const stat of this.storage.list(category, '', { shallow: true })) {
       seen += 1;
       if (seen % LIST_CHECK_EVERY === 0) this.assertSameDatabase(ctx);
-      if (!inReclaimScope(stat.key)) continue;
+      // A name the storage layer refuses (a backslash or a control character in a
+      // local file put there by hand) can never be stat'ed or deleted: judging it
+      // would fail its whole delete batch every night, so it is left alone.
+      if (!inReclaimScope(stat.key) || !isValidKey(stat.key)) continue;
       const owner = storageOwnerMarkerInstall(stat.key);
       if (owner !== null) {
         owners.add(owner);

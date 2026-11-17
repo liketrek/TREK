@@ -20,6 +20,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Chuyển sang {name}',
   'assistant.card.collection.removed': 'Đã xoá khỏi danh sách',
   'assistant.card.collection.photo': 'Ảnh',
+  'assistant.card.collection.mapEntry': 'Mục trên bản đồ',
   'assistant.card.collection.places': 'Địa điểm đã lưu trong {name}',
   'assistant.card.collection.saved': 'Địa điểm đã lưu',
   'assistant.card.collection.statusSet': 'Đã thay đổi {count} địa điểm đã lưu',

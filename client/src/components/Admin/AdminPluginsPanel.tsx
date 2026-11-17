@@ -184,7 +184,7 @@ export default function AdminPluginsPanel() {
                     <input id="plugin-dev-link" value={linkPath} onChange={(e) => setLinkPath(e.target.value)} spellCheck={false}
                       placeholder={t('admin.plugins.devLinkPathPlaceholder')} className={`${INPUT} font-mono`} />
                   </EditorField>
-                  <button type="submit" disabled={!linkPath.trim() || busy === '__link'} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+                  <button type="submit" disabled={!linkPath.trim() || busy === '__link'} className={SETTINGS_BUTTON_PRIMARY}>
                     <Link2 size={14} /> {t('admin.plugins.devLinkButton')}
                   </button>
                 </div>
@@ -223,7 +223,7 @@ export default function AdminPluginsPanel() {
                 surface="var(--bg-secondary)"
                 size={88}
                 action={(
-                  <button type="button" onClick={openDiscover} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+                  <button type="button" onClick={openDiscover} className={SETTINGS_BUTTON_PRIMARY}>
                     <Download size={14} /> {t('admin.plugins.tabDiscover')}
                   </button>
                 )}
@@ -627,7 +627,7 @@ function EgressDialog({ data, draft, setDraft, saving, error, onSave, onClose, t
               className={`${INPUT} flex-1 font-mono`}
             />
             <button type="button" disabled={saving || !draft.trim()} onClick={() => onSave([...data.hosts, draft.trim()])}
-              className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+              className={SETTINGS_BUTTON_PRIMARY}>
               {t('common.add')}
             </button>
           </div>

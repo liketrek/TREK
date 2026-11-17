@@ -236,7 +236,7 @@ describe('MTransportFormSheet', () => {
     setValue(timeInputs()[1], '11:00')
     setValue(screen.getByPlaceholderText('reservations.confirmationPlaceholder'), 'BUS-4711')
     setValue(screen.getByPlaceholderText('reservations.notesPlaceholder'), 'Seat 4 reserved')
-    fireEvent.click(screen.getByRole('button', { name: 'reservations.confirmed' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'reservations.confirmed' }))
 
     await submit()
 
@@ -618,7 +618,7 @@ describe('MTransportFormSheet', () => {
     expect(screen.getByPlaceholderText('reservations.titlePlaceholder')).toHaveValue('LH 716')
     expect(screen.getByPlaceholderText('reservations.confirmationPlaceholder')).toHaveValue('ABC123')
     expect(screen.getByPlaceholderText('reservations.notesPlaceholder')).toHaveValue('Exit row')
-    expect(screen.getByRole('button', { name: 'reservations.confirmed' }).className).toContain('bg-m-act')
+    expect(screen.getByRole('radio', { name: 'reservations.confirmed' }).className).toContain('bg-m-act')
     // Endpoints are read in sequence order, not array order.
     expect(airportInputs().map(i => i.value)).toEqual(['FRA', 'HND'])
     expect(daySelects().map(s => s.value)).toEqual(['11', '12'])

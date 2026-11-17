@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Стыковка',
   'reservations.layover.layover': 'Пересадка',
   'reservations.needsReview': 'Проверить',
-  'reservations.needsReviewHint': 'Аэропорт не удалось определить автоматически — подтвердите местоположение.',
+  'reservations.needsReviewHint':
+    'Часть данных заполнена автоматически и считана не со стопроцентной уверенностью. Пожалуйста, проверьте их.',
+  'reservations.reviewConfirm': 'Всё верно',
+  'reservations.reviewConfirmHint': 'Нажмите, чтобы отметить как проверенное.',
+  'reservations.reviewConfirmed': 'Отмечено как проверенное',
   'reservations.searchLocation': 'Искать станцию, порт, адрес...',
   'reservations.meta.trainNumber': 'Номер поезда',
   'reservations.meta.platform': 'Платформа',
@@ -287,5 +291,9 @@ const reservations: TranslationStrings = {
     'Для загрузки файлов нужно подключение. Удалите новые, чтобы сохранить бронирование офлайн, или сохраните, когда снова будете онлайн.',
   'reservations.needsConnection': 'Для этого нужно подключение. Попробуйте ещё раз, когда TREK снова будет онлайн.',
   'reservations.exportCsvFiltered': 'Экспортировать показанные строки: {shown} из {total} (CSV)',
+  'reservations.wallet.add': 'Добавить в Apple Wallet',
+  'reservations.wallet.addGoogle': 'Добавить в Google Wallet',
+  'reservations.wallet.failed': 'Не удалось создать карту Wallet. Повторите попытку.',
+  'reservations.wallet.undated': 'Сначала укажите дату брони: Wallet показывает карту ближе к этому времени.',
 };
 export default reservations;

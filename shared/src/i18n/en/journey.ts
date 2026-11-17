@@ -282,6 +282,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'No albums found',
   'journey.picker.selectDate': 'Select date',
   'journey.picker.search': 'Search',
+  'journey.picker.takenBetween': 'Taken between',
   'journey.studio.title': 'TREK Studio',
   'journey.studio.open': 'Studio',
   'journey.studio.openAria': 'Open the photo book studio',

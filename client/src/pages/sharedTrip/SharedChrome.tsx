@@ -80,9 +80,9 @@ export function SharedHero({ trip, stats }: HeroProps) {
             {dates}
           </span>
         )}
-        <h1 className="max-w-4xl text-balance font-bold leading-[1.1] tracking-tight" style={{ fontSize: 'calc(32px * var(--fs-scale-title, 1))' }}>{trip.title}</h1>
+        <h1 className="max-w-4xl text-balance font-bold leading-[1.1] tracking-tight [overflow-wrap:anywhere]" style={{ fontSize: 'calc(32px * var(--fs-scale-title, 1))' }}>{trip.title}</h1>
         {trip.description && (
-          <p className="max-w-2xl whitespace-pre-line text-white/80" style={fs(14.5, 'body')}>{trip.description}</p> // theme-lint-disable: white type over a photo
+          <p className="max-w-2xl whitespace-pre-line text-white/80 [overflow-wrap:anywhere]" style={fs(14.5, 'body')}>{trip.description}</p> // theme-lint-disable: white type over a photo
         )}
         {stats.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-2">
