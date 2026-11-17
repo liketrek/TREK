@@ -110,41 +110,41 @@ describe('plugin data on Postgres', () => {
     const store = data.open('pg-alpha');
     // Unqualified, the name finds nothing: only the plugin's schema is on the search_path.
     await expect(store.query('SELECT email FROM users')).rejects.toThrow(/does not exist/);
-    for (const sql of [
-      'SELECT email FROM public.users',
-      'SELECT email FROM "public"."users"',
-      'SELECT email FROM PUBLIC . users',
-      'SELECT email FROM public/* x */.users',
-      "SELECT query_to_xml('select email from public.users', true, true, '')",
-      "SELECT ts_stat('select to_tsvector(email) from public.users')",
-      'SELECT * FROM pg_catalog.pg_tables',
-      'SELECT * FROM pg_stats',
-      'SELECT * FROM information_schema.tables',
-      "SELECT set_config('search_path', 'public', true)",
-      "SELECT setval('public.users_id_seq', 1)",
-      "SELECT 'public.users'::regclass",
-      'SELECT database_to_xml(true, true, $$x$$)',
-      "SELECT E'\\'' || 'x'",
-    ]) {
-      await expect(store.query(sql), sql).rejects.toThrow(/not allowed for plugin databases/);
-    }
-    for (const sql of [
-      'CREATE TEMP TABLE t (x int)',
-      'SELECT 1 AS x INTO t2',
-      'CREATE FUNCTION f() RETURNS int LANGUAGE sql AS $$ SELECT 1 $$',
-      'ALTER TABLE notes SET SCHEMA public',
-      'ALTER TABLE notes OWNER TO postgres',
-      'CREATE SCHEMA mine',
-      'DROP SCHEMA trek_plugin_pg_alpha CASCADE',
-      'SET search_path TO public',
-      "COPY notes TO '/tmp/x'",
-      'CREATE TABLE copy AS SELECT * FROM public.users',
-      'CREATE VIEW v AS SELECT email FROM public.users',
-      'GRANT SELECT ON notes TO PUBLIC',
-      'DROP OWNED BY CURRENT_USER',
-    ]) {
-      await expect(store.exec(sql), sql).rejects.toThrow(/not allowed/);
-    }
+    await Promise.all(
+      [
+        'SELECT email FROM public.users',
+        'SELECT email FROM "public"."users"',
+        'SELECT email FROM PUBLIC . users',
+        'SELECT email FROM public/* x */.users',
+        "SELECT query_to_xml('select email from public.users', true, true, '')",
+        "SELECT ts_stat('select to_tsvector(email) from public.users')",
+        'SELECT * FROM pg_catalog.pg_tables',
+        'SELECT * FROM pg_stats',
+        'SELECT * FROM information_schema.tables',
+        "SELECT set_config('search_path', 'public', true)",
+        "SELECT setval('public.users_id_seq', 1)",
+        "SELECT 'public.users'::regclass",
+        'SELECT database_to_xml(true, true, $$x$$)',
+        "SELECT E'\\'' || 'x'",
+      ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/not allowed for plugin databases/)),
+    );
+    await Promise.all(
+      [
+        'CREATE TEMP TABLE t (x int)',
+        'SELECT 1 AS x INTO t2',
+        'CREATE FUNCTION f() RETURNS int LANGUAGE sql AS $$ SELECT 1 $$',
+        'ALTER TABLE notes SET SCHEMA public',
+        'ALTER TABLE notes OWNER TO postgres',
+        'CREATE SCHEMA mine',
+        'DROP SCHEMA trek_plugin_pg_alpha CASCADE',
+        'SET search_path TO public',
+        "COPY notes TO '/tmp/x'",
+        'CREATE TABLE copy AS SELECT * FROM public.users',
+        'CREATE VIEW v AS SELECT email FROM public.users',
+        'GRANT SELECT ON notes TO PUBLIC',
+        'DROP OWNED BY CURRENT_USER',
+      ].map((sql) => expect(store.exec(sql), sql).rejects.toThrow(/not allowed/)),
+    );
     // Nothing of TREK's was touched along the way.
     const [{ n }] = await withRequestContext(orm, () =>
       orm.em.getConnection().execute<Array<{ n: number }>>('select count(*) as n from users', [], 'all'),
@@ -160,13 +160,13 @@ describe('plugin data on Postgres', () => {
 
     expect(await alpha.query('SELECT body FROM notes ORDER BY id')).toEqual([{ body: 'a' }, { body: 'b' }]);
     expect(await beta.query('SELECT body FROM notes')).toEqual([{ body: 'beta secret' }]);
-    for (const sql of [
-      'SELECT body FROM trek_plugin_pg_beta.notes',
-      'SELECT body FROM "trek_plugin_pg_beta".notes',
-      'SELECT body FROM trek_plugin_not_yet_installed.notes',
-    ]) {
-      await expect(alpha.query(sql), sql).rejects.toThrow(/another schema/);
-    }
+    await Promise.all(
+      [
+        'SELECT body FROM trek_plugin_pg_beta.notes',
+        'SELECT body FROM "trek_plugin_pg_beta".notes',
+        'SELECT body FROM trek_plugin_not_yet_installed.notes',
+      ].map((sql) => expect(alpha.query(sql), sql).rejects.toThrow(/another schema/)),
+    );
     // Its own schema, qualified, is fine.
     expect(await alpha.query('SELECT count(*) AS n FROM trek_plugin_pg_alpha.notes')).toEqual([{ n: 2 }]);
   });
