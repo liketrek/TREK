@@ -44,6 +44,7 @@ import type { PluginRpcRegistryService } from '../../../src/nest-rpc/rpc-kit/reg
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AuditService } from '../../../src/nest/audit/audit.service';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { SqlitePluginDataBackend } from '../../../src/nest/plugins/host/plugin-data.backend';
 import { PluginRpcHostFactory } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
@@ -131,6 +132,7 @@ describe('plugin boot vs registry scan ordering', () => {
     const hostFactory = new PluginRpcHostFactory(
       t.repo(PluginCapabilityAudit),
       registry as unknown as PluginRpcRegistryService,
+      new SqlitePluginDataBackend(),
     );
     const userSettings = new PluginUserSettingsService(
       (t as TestOrm).repo(PluginSettingsFields),
@@ -256,6 +258,7 @@ describe('plugin boot vs registry scan ordering', () => {
       const hostFactory2 = new PluginRpcHostFactory(
         t2.repo(PluginCapabilityAudit),
         registry2 as unknown as PluginRpcRegistryService,
+        new SqlitePluginDataBackend(),
       );
       // Built directly on t2 (not createTestAddonsService's sharedTestOrm) so
       // its repositories share t2's allowGlobalContext: false ORM.

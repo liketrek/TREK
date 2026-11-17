@@ -28,6 +28,7 @@ import type { LlmConfigResolver } from '../../../src/nest/llm-parse/llm-config.r
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { verifyChain } from '../../../src/nest/plugins/host/plugin-audit';
+import { SqlitePluginDataBackend } from '../../../src/nest/plugins/host/plugin-data.backend';
 import { getPluginDataDb, closePluginDataDb } from '../../../src/nest/plugins/host/plugin-host-state';
 import { PluginRpcHostFactory, type PluginCallRouter } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
@@ -416,7 +417,8 @@ const registry = createTestPluginRegistry([
     uow,
   ),
 ]);
-const factory = new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService);
+const sqliteData = new SqlitePluginDataBackend();
+const factory = new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService, sqliteData);
 const stubRouter: PluginCallRouter = { callPlugin: async () => undefined, emitPluginEvent: async () => {} };
 const makeHost = (id: string, ...perms: string[]) => factory.create(id, new Set(perms), stubRouter);
 /**
@@ -457,7 +459,7 @@ afterAll(() => {
 
 describe("DbRpc — the plugin's own sqlite", () => {
   it('HOSTRPC-001 caches one data db per plugin id', () => {
-    expect(getPluginDataDb('wired')).toBe(getPluginDataDb('wired'));
+    expect(getPluginDataDb('wired', sqliteData)).toBe(getPluginDataDb('wired', sqliteData));
   });
 
   it('HOSTRPC-002 a granted db:own call runs against the plugin db', async () => {
@@ -482,11 +484,17 @@ describe("DbRpc — the plugin's own sqlite", () => {
     closePluginDataDb('wtx');
   });
 
-  it('HOSTRPC-004 without db:own not one of the four is reachable', async () => {
+  it('HOSTRPC-004 without db:own not one of the five is reachable', async () => {
     const host = makeHost('wnogrant');
-    for (const method of ['db.query', 'db.exec', 'db.migrate', 'db.tx']) {
+    for (const method of ['db.query', 'db.exec', 'db.migrate', 'db.tx', 'db.engine']) {
       expect((await call(host, method, { sql: 'SELECT 1', id: '1', ops: [] })).error?.code).toBe('PERMISSION_DENIED');
     }
+  });
+
+  it('HOSTRPC-004b db.engine names the engine the plugin SQL runs on', async () => {
+    const host = makeHost('wengine', 'db:own');
+    expect((await call(host, 'db.engine', {})).result).toEqual({ engine: 'sqlite' });
+    closePluginDataDb('wengine');
   });
 
   it("HOSTRPC-005 two plugins never see each other's tables", async () => {
@@ -508,20 +516,20 @@ describe("DbRpc — the plugin's own sqlite", () => {
   });
 
   it('HOSTRPC-006 a handle closed WITHOUT eviction is recreated, not reused dead', () => {
-    const a = getPluginDataDb('closedcache');
+    const a = getPluginDataDb('closedcache', sqliteData);
     expect(a.isOpen()).toBe(true);
     // The supervisor's dispose() path: close the handle but leave it cached.
     a.close();
-    const b = getPluginDataDb('closedcache');
+    const b = getPluginDataDb('closedcache', sqliteData);
     expect(b).not.toBe(a);
     expect(b.isOpen()).toBe(true);
     closePluginDataDb('closedcache');
   });
 
   it('HOSTRPC-007 closePluginDataDb drops the cached handle', () => {
-    const a = getPluginDataDb('transient');
+    const a = getPluginDataDb('transient', sqliteData);
     closePluginDataDb('transient');
-    const b = getPluginDataDb('transient');
+    const b = getPluginDataDb('transient', sqliteData);
     expect(a).not.toBe(b);
     closePluginDataDb('transient');
   });

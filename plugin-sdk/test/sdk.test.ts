@@ -511,6 +511,12 @@ describe('createMockHost', () => {
     await expect(ctx.db.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).rejects.toThrow(/at most 100/);
   });
 
+  it('db.engine says SQLite unless the mock is told the host runs Postgres, and needs db:own', async () => {
+    await expect(createMockHost({ grants: ['db:own'] }).ctx.db.engine()).resolves.toBe('sqlite');
+    await expect(createMockHost({ grants: ['db:own'], dbEngine: 'postgres' }).ctx.db.engine()).resolves.toBe('postgres');
+    await expect(createMockHost({ grants: [] }).ctx.db.engine()).rejects.toThrow(/PERMISSION_DENIED/);
+  });
+
   it('member writes need member_manage + protect the owner; users.getById serves only public fields', async () => {
     const host = createMockHost({
       grants: ['db:write:members', 'db:read:users'],

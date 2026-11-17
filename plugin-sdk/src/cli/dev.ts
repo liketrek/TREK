@@ -203,6 +203,8 @@ function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: Plu
     query: (sql: string, ...a: unknown[]) => { need('db:own', 'db.query'); return db.query(sql, ...a); },
     exec: (sql: string, ...a: unknown[]) => { need('db:own', 'db.exec'); return db.exec(sql, ...a); },
     migrate: (mid: string, sql: string) => { need('db:own', 'db.migrate'); return db.migrate(mid, sql); },
+    // `dev` always runs your plugin on SQLite; test the Postgres dialect against a TREK on Postgres.
+    engine: async () => { need('db:own', 'db.engine'); return 'sqlite' as const; },
     // A functional (not strictly atomic) tx over the real dev db so read-modify-write
     // batches work in dev; production runs it in one better-sqlite3 transaction.
     tx: async (ops: Array<{ sql: string; args?: unknown[] }>) => {

@@ -4,7 +4,8 @@ import { asArgs, asTxOps, str } from '../../../../nest-rpc/rpc-params';
 import { PluginUserSettingsService } from '../../plugin-user-settings.service';
 
 /**
- * A plugin's OWN sqlite, plus the three methods the router registers unconditionally.
+ * A plugin's OWN database (a SQLite file, or a schema of its own when TREK runs on
+ * Postgres), plus the three methods the router registers unconditionally.
  *
  * Every method reads `ctx.data` fresh. It must never be captured in a field or a
  * closure: the handle is per plugin, and disable()/re-enable builds a new host while
@@ -34,6 +35,12 @@ export class DbRpc {
   @PluginMethod('db.tx', { permission: 'db:own' })
   tx(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     return ctx.data.tx(asTxOps(params.ops));
+  }
+
+  /** The engine the plugin's SQL runs on, so a plugin can write the dialect it takes. */
+  @PluginMethod('db.engine', { permission: 'db:own' })
+  engine(_params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+    return { engine: ctx.data.engine };
   }
 
   /**
