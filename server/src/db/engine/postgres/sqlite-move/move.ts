@@ -187,7 +187,8 @@ async function copyAll(
     copied.push(result);
   };
   await inOrder(plan.specs, copyOne(source));
-  await inOrder(copied, (table) => applyDeferred(trx, table));
+  // Once a value was refused nothing more is inserted, so there are no rows to point at each other.
+  if (refused === 0) await inOrder(copied, (table) => applyDeferred(trx, table));
 
   const sequences: CopiedSequence[] = [...plan.sequences];
   const pluginTables = new Map<string, CopiedTable[]>();
