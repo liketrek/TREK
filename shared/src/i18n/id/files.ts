@@ -38,7 +38,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Pemesanan',
   'files.sourceTransport': 'Transportasi',
   'files.attach': 'Lampirkan',
-  'files.pasteHint': 'Kamu juga bisa menempel gambar dari clipboard (Ctrl+V)',
   'files.trash': 'Sampah',
   'files.trashEmpty': 'Sampah kosong',
   'files.emptyTrash': 'Kosongkan Sampah',

@@ -38,7 +38,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': '予約',
   'files.sourceTransport': '移動',
   'files.attach': '添付',
-  'files.pasteHint': 'クリップボードから画像を貼り付けることもできます（Ctrl+V）',
   'files.trash': 'ゴミ箱',
   'files.trashEmpty': 'ゴミ箱は空です',
   'files.emptyTrash': 'ゴミ箱を空にする',

@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Réservation',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Joindre',
-  'files.pasteHint': 'Vous pouvez aussi coller des images depuis le presse-papiers (Ctrl+V)',
   'files.trash': 'Corbeille',
   'files.trashEmpty': 'La corbeille est vide',
   'files.emptyTrash': 'Vider la corbeille',

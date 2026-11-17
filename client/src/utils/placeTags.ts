@@ -33,11 +33,22 @@ export function placeTagIds(carried: readonly PlaceTag[] | undefined): number[] 
 }
 
 // What a new tag is coloured with, one after the other, so the tags of a trip tell apart at a glance.
-const NEW_TAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b'];
+export const TAG_COLORS = [
+  '#6366f1',
+  '#ec4899',
+  '#f97316',
+  '#10b981',
+  '#06b6d4',
+  '#8b5cf6',
+  '#ef4444',
+  '#f59e0b',
+  '#84cc16',
+  '#64748b',
+];
 
 /** The colour the next new tag of a trip gets. */
 export function nextTagColor(tripTags: readonly unknown[]): string {
-  return NEW_TAG_COLORS[tripTags.length % NEW_TAG_COLORS.length];
+  return TAG_COLORS[tripTags.length % TAG_COLORS.length];
 }
 
 /** The trip's tags with one more, or with the one of that id as it is now, by name as the server lists them. */

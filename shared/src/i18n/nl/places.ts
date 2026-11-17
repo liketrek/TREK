@@ -110,6 +110,7 @@ const places: TranslationStrings = {
   'places.formEmail': 'E-mail', // same-as-en
   'places.hoursAdd': 'Openingstijden toevoegen',
   'places.hoursClosed': 'Gesloten',
+  'places.hoursAllDay': '24 uur geopend',
   'places.hoursOpens': 'opent',
   'places.hoursCloses': 'sluit',
   'places.hoursCopyFirst': 'Tijden van {day} voor alle dagen gebruiken',
@@ -122,6 +123,17 @@ const places: TranslationStrings = {
   'places.formNotesPlaceholder': 'Persoonlijke notities...',
   'places.assignmentNotes': 'Notities voor deze dag',
   'places.assignmentNotesPlaceholder': 'Notities voor deze plek alleen op deze dag...',
+  'places.textsLabel': 'Beschrijving & notities',
+  'places.notesKind': 'Te bewerken tekst',
+  'places.notesTabAbout': 'Over de plek',
+  'places.notesTabDay': 'Alleen deze dag',
+  'places.notesTabDayN': 'Alleen dag {day}',
+  'places.notesHintDescription':
+    'Staat onder de naam in de plekkenlijst en het dagplan, bovenaan in de details en in de PDF. Zoeken en Wikipedia vullen hem vaak al in.',
+  'places.notesHintNotes':
+    'Je eigen tekst over de plek, zoals tips of boekingsgegevens. Staat alleen in de details en de PDF, op elke dag. Iedereen in de reis ziet hem.',
+  'places.notesHintDay':
+    'Alleen voor dit ene bezoek. Staat in zijn regel van het dagplan; andere dagen tonen hem niet.',
   'places.formReservation': 'Reservering',
   'places.reservationNotesPlaceholder': 'Reserveringsnotities, bevestigingsnummer...',
   'places.mapsSearchPlaceholder': 'Plaatsen zoeken...',
@@ -163,6 +175,12 @@ const places: TranslationStrings = {
   'places.newTag': 'Nieuwe tag',
   'places.addTag': 'Tag toevoegen',
   'places.tagCreateError': 'Tag aanmaken mislukt',
+  'places.tagColor': 'Kleur van {name}',
+  'places.newTagColor': 'Kleur van de nieuwe tag',
+  'places.tagColorCustom': 'Eigen kleur',
+  'places.tagColorHue': 'Tint',
+  'places.tagColorHex': 'Kleurcode',
+  'places.tagColorError': 'Kleur wijzigen mislukt',
   'places.nameRequired': 'Voer een naam in',
   'places.saveError': 'Opslaan mislukt',
   'places.createExpenseHint': 'Slaat de plaats op en opent daarna de kosten-editor.',

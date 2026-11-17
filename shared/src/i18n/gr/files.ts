@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Κράτηση',
   'files.sourceTransport': 'Μεταφορά',
   'files.attach': 'Επισύναψη',
-  'files.pasteHint': 'Μπορείτε επίσης να επικολλήσετε εικόνες από το πρόχειρο (Ctrl+V)',
   'files.trash': 'Κάδος',
   'files.trashEmpty': 'Ο κάδος είναι άδειος',
   'files.emptyTrash': 'Άδειασμα Κάδου',

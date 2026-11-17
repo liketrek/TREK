@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Foglalás',
   'files.sourceTransport': 'Közlekedés',
   'files.attach': 'Csatolás',
-  'files.pasteHint': 'Képeket a vágólapról is beillesztheted (Ctrl+V)',
   'files.trash': 'Kuka',
   'files.trashEmpty': 'A kuka üres',
   'files.emptyTrash': 'Kuka ürítése',

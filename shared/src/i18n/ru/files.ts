@@ -47,7 +47,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Бронирование',
   'files.sourceTransport': 'Транспорт',
   'files.attach': 'Прикрепить',
-  'files.pasteHint': 'Также можно вставить изображения из буфера обмена (Ctrl+V)',
   'files.trash': 'Корзина',
   'files.trashEmpty': 'Корзина пуста',
   'files.emptyTrash': 'Очистить корзину',

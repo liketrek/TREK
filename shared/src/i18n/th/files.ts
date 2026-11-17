@@ -38,7 +38,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'การจอง',
   'files.sourceTransport': 'ขนส่ง',
   'files.attach': 'แนบ',
-  'files.pasteHint': 'คุณยังสามารถวางรูปภาพจากคลิปบอร์ดได้ (Ctrl+V)',
   'files.trash': 'ถังขยะ',
   'files.trashEmpty': 'ถังขยะว่างเปล่า',
   'files.emptyTrash': 'ถังขยะเปล่า',

@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Broneering',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Lisa',
-  'files.pasteHint': 'Pilte saab kleepida ka lõikelaualt (Ctrl+V)',
   'files.trash': 'Prügikast',
   'files.trashEmpty': 'Prügikast on tühi',
   'files.emptyTrash': 'Tühjenda prügikast',

@@ -1,4 +1,4 @@
-import type { Tag, TripTagCreateRequest, TripTagListResponse } from '@trek/shared';
+import type { Tag, TripTagCreateRequest, TripTagListResponse, TripTagUpdateRequest } from '@trek/shared';
 
 import { tripTagsApi } from '../api/tripTags';
 import { cachedTripTags, cacheTripTags } from '../db/cacheTripTags';
@@ -31,6 +31,15 @@ export const tripTagRepo = {
     requireOnline();
     const id = Number(tripId);
     const { tag } = await tripTagsApi.create(id, body);
+    await cacheTripTags(id, withTripTag(await cachedTripTags(id), tag));
+    return tag;
+  },
+
+  /** Renames or recolours a tag of the trip. Online only, like adding one: the tag is the trip's, not a place's own write. */
+  async update(tripId: number | string, tagId: number, body: TripTagUpdateRequest): Promise<Tag> {
+    requireOnline();
+    const id = Number(tripId);
+    const { tag } = await tripTagsApi.update(id, tagId, body);
     await cacheTripTags(id, withTripTag(await cachedTripTags(id), tag));
     return tag;
   },

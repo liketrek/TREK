@@ -330,7 +330,7 @@ export default function PlaceInspector({
   // periods next to them, in the place's own timezone. open_now stays the fallback.
   // Hours the traveller typed in win over looked-up ones (#2472): they are what
   // somebody actually checked, and a place nobody listed has no other source.
-  const ownHours = hoursLines(place.opening_hours, locale, t('places.hoursClosed'))
+  const ownHours = hoursLines(place.opening_hours, locale, t('places.hoursClosed'), t('places.hoursAllDay'))
   const openingHours = ownHours ?? googleDetails?.opening_hours ?? null
   const detailLat = place.lat ?? googleDetails?.lat
   const detailLng = place.lng ?? googleDetails?.lng

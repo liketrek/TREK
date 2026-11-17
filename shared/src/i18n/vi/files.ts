@@ -38,7 +38,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Đặt chỗ',
   'files.sourceTransport': 'Chuyên chở',
   'files.attach': 'Gắn',
-  'files.pasteHint': 'Bạn cũng có thể dán hình ảnh từ clipboard (Ctrl+V)',
   'files.trash': 'Rác',
   'files.trashEmpty': 'Thùng rác trống rỗng',
   'files.emptyTrash': 'Dọn sạch thùng rác',

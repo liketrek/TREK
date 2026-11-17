@@ -1,4 +1,4 @@
-// FE-MOB-PLTAGS-001 to FE-MOB-PLTAGS-005: the phone's tag markup, which is the picker of the
+// FE-MOB-PLTAGS-001 to FE-MOB-PLTAGS-007: the phone's tag markup, which is the picker of the
 // place form (its state is usePlaceTags', tested on its own) and the chips of the place sheet.
 import { describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +17,9 @@ function field(overrides: Partial<PlaceTagsField> = {}): PlaceTagsField {
     toggle: vi.fn(),
     name: '',
     setName: vi.fn(),
+    newColor: '#ec4899',
+    setNewColor: vi.fn(),
+    recolor: vi.fn(() => Promise.resolve()),
     saving: false,
     canAdd: false,
     addNew: vi.fn(() => Promise.resolve()),
@@ -58,6 +61,29 @@ describe('PlTagPicker', () => {
     expect(screen.getByRole('textbox', { name: 'places.newTag' })).toHaveValue('Viewpoint');
     fireEvent.click(screen.getByRole('button', { name: 'places.addTag' }));
     expect(ready.addNew).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PlTagPicker colours', () => {
+  it("FE-MOB-PLTAGS-006: a chip's dot opens the palette in the sheet, and a swatch recolours that tag", () => {
+    const tags = field();
+    render(<PlTagPicker tags={tags} t={t} />);
+    const dot = screen.getAllByRole('button', { name: 'places.tagColor' })[1];
+    fireEvent.click(dot);
+    expect(dot).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('button', { name: '#10b981' }));
+    expect(tags.recolor).toHaveBeenCalledWith(8, '#10b981');
+    expect(screen.queryByRole('button', { name: '#10b981' })).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-PLTAGS-007: the dot in front of the new tag picks its colour, and the add button takes it on', () => {
+    const tags = field({ name: 'Food', canAdd: true });
+    render(<PlTagPicker tags={tags} t={t} />);
+    fireEvent.click(screen.getByRole('button', { name: 'places.newTagColor' }));
+    fireEvent.click(screen.getByRole('button', { name: '#f97316' }));
+    expect(tags.setNewColor).toHaveBeenCalledWith('#f97316');
+    expect(tags.recolor).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'places.addTag' }).style.background).toContain('236, 72, 153');
   });
 });
 

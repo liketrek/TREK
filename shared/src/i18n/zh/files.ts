@@ -38,7 +38,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': '预订',
   'files.sourceTransport': '交通',
   'files.attach': '附加',
-  'files.pasteHint': '也可以从剪贴板粘贴图片 (Ctrl+V)',
   'files.trash': '回收站',
   'files.trashEmpty': '回收站为空',
   'files.emptyTrash': '清空回收站',

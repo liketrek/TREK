@@ -47,7 +47,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Rezerwacje',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Załącz',
-  'files.pasteHint': 'Możesz również wkleić obrazki ze schowka (Ctrl+V)',
   'files.trash': 'Kosz',
   'files.trashEmpty': 'Kosz jest pusty',
   'files.emptyTrash': 'Opróżnij kosz',

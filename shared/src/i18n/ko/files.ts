@@ -38,7 +38,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': '예약',
   'files.sourceTransport': '교통',
   'files.attach': '첨부',
-  'files.pasteHint': '클립보드에서 이미지를 붙여넣을 수도 있습니다 (Ctrl+V)',
   'files.trash': '휴지통',
   'files.trashEmpty': '휴지통이 비어 있습니다',
   'files.emptyTrash': '휴지통 비우기',

@@ -111,6 +111,7 @@ const places: TranslationStrings = {
   'places.formEmail': 'E-mail', // same-as-en
   'places.hoursAdd': 'Nyitvatartás hozzáadása',
   'places.hoursClosed': 'Zárva',
+  'places.hoursAllDay': 'Éjjel-nappal nyitva',
   'places.hoursOpens': 'nyit',
   'places.hoursCloses': 'zár',
   'places.hoursCopyFirst': 'A(z) {day} nyitvatartása minden napra',
@@ -123,6 +124,17 @@ const places: TranslationStrings = {
   'places.formNotesPlaceholder': 'Személyes jegyzetek...',
   'places.assignmentNotes': 'Jegyzetek erre a napra',
   'places.assignmentNotesPlaceholder': 'Jegyzetek ehhez a helyhez csak erre a napra...',
+  'places.textsLabel': 'Leírás és jegyzetek',
+  'places.notesKind': 'Szerkesztendő szöveg',
+  'places.notesTabAbout': 'A helyről',
+  'places.notesTabDay': 'Csak ez a nap',
+  'places.notesTabDayN': 'Csak a(z) {day}. nap',
+  'places.notesHintDescription':
+    'A név alatt jelenik meg a helyek listájában és a napi tervben, a részletek tetején és a PDF-ben. A keresés és a Wikipédia gyakran kitölti.',
+  'places.notesHintNotes':
+    'Saját szöveg a helyről, például tippek vagy foglalási adatok. Csak a részletekben és a PDF-ben jelenik meg, minden napon. Az út minden résztvevője látja.',
+  'places.notesHintDay':
+    'Csak ehhez az egy látogatáshoz. A napi terv saját sorában jelenik meg, a többi nap nem mutatja.',
   'places.formReservation': 'Foglalás',
   'places.reservationNotesPlaceholder': 'Foglalási jegyzetek, visszaigazolási szám...',
   'places.mapsSearchPlaceholder': 'Helyek keresése...',
@@ -164,6 +176,12 @@ const places: TranslationStrings = {
   'places.newTag': 'Új címke',
   'places.addTag': 'Címke hozzáadása',
   'places.tagCreateError': 'Nem sikerült létrehozni a címkét',
+  'places.tagColor': '{name} színe',
+  'places.newTagColor': 'Az új címke színe',
+  'places.tagColorCustom': 'Egyéni szín',
+  'places.tagColorHue': 'Színárnyalat',
+  'places.tagColorHex': 'Színkód',
+  'places.tagColorError': 'Nem sikerült módosítani a színt',
   'places.nameRequired': 'Kérjük, adj meg egy nevet',
   'places.saveError': 'Nem sikerült menteni',
   'places.createExpenseHint': 'Menti a helyet, majd megnyitja a költségszerkesztőt.',

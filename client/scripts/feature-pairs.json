@@ -705,6 +705,18 @@
       "mobile": ["src/mobile/screens/trip/sheets/MPlaceEditSheet.tsx"]
     },
     {
+      "feature": "Place add/edit form: description, notes and the day note as tabs",
+      "hooks": ["src/components/Planner/usePlaceTextTabs.ts"],
+      "desktop": ["src/components/Planner/PlaceFormTexts.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/PlPlaceTexts.tsx"]
+    },
+    {
+      "feature": "Place add/edit form: phone, e-mail and opening hours",
+      "hooks": ["src/components/Planner/usePlaceHours.ts"],
+      "desktop": ["src/components/Planner/PlaceContactFields.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/PlContactFields.tsx"]
+    },
+    {
       "feature": "Place detail actions",
       "hooks": ["src/components/Planner/usePlaceActions.ts"],
       "desktop": [

@@ -46,7 +46,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Rezervasiya',
   'files.sourceTransport': 'Nəqliyyat',
   'files.attach': 'Əlavə et',
-  'files.pasteHint': 'Şəkilləri mübadilə buferindən də yapışdıra bilərsiniz (Ctrl+V)',
 
   'files.trash': 'Zibil qutusu',
   'files.trashEmpty': 'Zibil qutusu boşdur',

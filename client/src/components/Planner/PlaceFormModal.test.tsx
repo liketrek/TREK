@@ -66,7 +66,7 @@ describe('PlaceFormModal', () => {
 
   it('FE-COMP-PLACEFORM-005: shows Description field', () => {
     render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.getByPlaceholderText(/Short description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Description')).toBeInTheDocument();
   });
 
   it('FE-COMP-PLACEFORM-006: shows Address field', () => {
@@ -1486,8 +1486,10 @@ describe('PlaceFormModal', () => {
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} categories={[cat]} />);
     await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Louvre');
-    await user.type(screen.getByPlaceholderText(/Short description/i), 'Glass pyramid');
-    await user.type(screen.getByPlaceholderText(/Personal notes/i), 'Book ahead');
+    await user.type(screen.getByLabelText('Description'), 'Glass pyramid');
+    // The notes sit behind their own tab in the texts card.
+    await user.click(within(screen.getByRole('group', { name: 'Text to edit' })).getByRole('button', { name: 'Notes' }));
+    await user.type(screen.getByLabelText('Notes'), 'Book ahead');
     await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
     await user.type(screen.getByPlaceholderText(/Longitude/i), '2.3376');
     await user.type(screen.getByPlaceholderText('https://...'), 'https://louvre.fr');
@@ -2438,8 +2440,8 @@ describe('PlaceFormModal on the dialog frame', () => {
     // The icon button beside it carries the same name.
     expect(within(screen.getByPlaceholderText('Search places...').closest('.flex') as HTMLElement).getByRole('button', { name: 'Search' })).toBeInTheDocument();
     expect(screen.getByLabelText('Name *')).toHaveValue('Louvre');
-    expect(screen.getByLabelText('Description')).toBe(screen.getByPlaceholderText(/Short description/i));
-    expect(screen.getByLabelText('Notes')).toBe(screen.getByPlaceholderText(/Personal notes/i));
+    expect(screen.getByLabelText('Description').tagName).toBe('TEXTAREA');
+    expect(screen.getByLabelText('Notes').tagName).toBe('TEXTAREA');
     expect(screen.getByLabelText('Address')).toBe(screen.getByPlaceholderText(/Street, City, Country/i));
     expect(screen.getByLabelText('Notes for this day')).toBeInTheDocument();
     expect(screen.getByLabelText('Website')).toBe(screen.getByPlaceholderText('https://...'));

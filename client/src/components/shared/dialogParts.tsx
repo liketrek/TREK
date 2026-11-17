@@ -174,12 +174,24 @@ export function PopoverListPanel({ list, label, className = '', children }: {
 }
 
 /** The dashed full-width button that adds a row: a stop, a leg. */
-export function AddRowButton({ onClick, disabled, children }: { onClick: () => void; disabled?: boolean; children: ReactNode }) {
+export function AddRowButton({ onClick, disabled, raised = false, children }: {
+  onClick: () => void
+  disabled?: boolean
+  /**
+   * On a PANEL: the white raised button of the cards (the costs' "Create expense"),
+   * at its size, instead of a dashed outline on grey.
+   */
+  raised?: boolean
+  children: ReactNode
+}) {
+  const look = raised
+    ? 'gap-2 border-transparent bg-surface-card px-[13px] text-content shadow-sm ring-1 ring-edge-faint hover:bg-surface-hover'
+    : 'gap-1.5 border-dashed border-edge px-3 text-content-muted hover:border-content-faint hover:text-content'
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-      className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-edge px-3 py-2 font-semibold text-content-muted hover:border-content-faint hover:text-content disabled:cursor-default disabled:opacity-50"
-      style={fs(12, 'body')}>
-      <Plus size={13} strokeWidth={2.2} />{children}
+      className={`flex w-full items-center justify-center rounded-[10px] border py-2 font-semibold transition-colors disabled:cursor-default disabled:opacity-50 ${look}`}
+      style={fs(raised ? 13 : 12, 'body')}>
+      <Plus size={raised ? 14 : 13} strokeWidth={2.2} />{children}
     </button>
   )
 }

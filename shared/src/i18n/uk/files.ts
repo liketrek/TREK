@@ -46,7 +46,6 @@ const files: TranslationStrings = {
   'files.sourcePlan': 'План дня',
   'files.sourceBooking': 'Бронювання',
   'files.attach': 'Прикріпити',
-  'files.pasteHint': 'Також можна вставити зображення з буфера обміну (Ctrl+V)',
   'files.trash': 'Кошик',
   'files.trashEmpty': 'Кошик порожній',
   'files.emptyTrash': 'Очистити кошик',

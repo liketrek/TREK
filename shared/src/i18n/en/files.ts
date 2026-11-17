@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Booking',
   'files.sourceTransport': 'Transport',
   'files.attach': 'Attach',
-  'files.pasteHint': 'You can also paste images from clipboard (Ctrl+V)',
   'files.trash': 'Trash',
   'files.trashEmpty': 'Trash is empty',
   'files.emptyTrash': 'Empty Trash',

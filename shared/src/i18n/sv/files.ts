@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Bokning',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Bifoga',
-  'files.pasteHint': 'Du kan också klistra in foton från urklipp (Ctrl+V)',
   'files.trash': 'Papperskorgen',
   'files.trashEmpty': 'papperskorgen är tom',
   'files.emptyTrash': 'Töm papperskorgen',

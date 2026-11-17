@@ -238,7 +238,7 @@ export default function PlaceDetailsColumn({
     // tiles, which is too small to tell a facade from a foyer. The column is
     // stretched to the form's height by the row it sits in, so the extra room
     // costs nothing that was being used.
-    <aside className={dialog ? `${SIDE_COLUMN} ${fluid ? '' : 'sm:w-80'}` : `w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col rounded-[18px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] overflow-hidden self-stretch`}>
+    <aside className={dialog ? `${SIDE_COLUMN} ${fluid ? '' : 'sm:w-80'}` : `w-full ${fluid ? '' : 'sm:w-80'} shrink-0 flex flex-col self-stretch`}>
       {dialog ? (
         <ColumnHead icon={<Landmark size={13} strokeWidth={2.2} />}>{t('places.details.title')}</ColumnHead>
       ) : (
@@ -247,16 +247,15 @@ export default function PlaceDetailsColumn({
           aria-expanded={open}
           aria-controls={bodyId}
           onClick={() => setOpen(o => !o)}
-          className={`flex w-full shrink-0 items-center gap-2.5 px-3 py-2.5 text-start ${open ? 'border-b border-[color:var(--m-rowbr)]' : ''}`}
+          // A badge over the column's blocks: what they are, and the fold.
+          className="flex h-[36px] w-full shrink-0 items-center gap-2 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] pe-3 ps-3.5 text-start"
         >
-          <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-ink">
-            <Landmark size={15} strokeWidth={2} />
-          </span>
-          <span className="min-w-0 flex-1 text-body font-semibold text-m-ink">{t('places.details.title')}</span>
+          <Landmark size={13} strokeWidth={2.2} className="flex-none text-m-muted" />
+          <span className="min-w-0 flex-1 truncate font-geist text-[0.75rem] font-semibold text-m-ink">{t('places.details.title')}</span>
           <ChevronDown
-            size={16}
+            size={13}
             strokeWidth={2.2}
-            className={`flex-none text-m-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`flex-none text-m-faint transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
         </button>
       )}
@@ -267,7 +266,7 @@ export default function PlaceDetailsColumn({
         className={dialog ? 'contents' : `grid transition-[grid-template-rows] duration-300 ease-out ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
       >
       <div className={dialog ? 'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 pb-3' : `min-h-0 overflow-hidden ${open ? '' : 'invisible'}`}>
-      <div className={dialog ? 'contents' : 'p-3 space-y-3'}>
+      <div className={dialog ? 'contents' : 'space-y-3 pt-3'}>
         {/* The place's picture first: its own ones are there whatever the sources answer. */}
         <PictureBlock
           photos={state === 'ready' && !data?.disabled ? (data?.photos ?? []) : []}

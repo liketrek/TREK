@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Buchung',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Anhängen',
-  'files.pasteHint': 'Du kannst auch Bilder aus der Zwischenablage einfügen (Strg+V)',
   'files.trash': 'Papierkorb',
   'files.trashEmpty': 'Papierkorb ist leer',
   'files.emptyTrash': 'Papierkorb leeren',

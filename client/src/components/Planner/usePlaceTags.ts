@@ -31,6 +31,7 @@ interface PlaceTagsOptions {
 export function usePlaceTags({ tripId, place, tags, setForm, t, toast }: PlaceTagsOptions) {
   const tripTags = useTripStore((s) => s.tripTags);
   const addTripTag = useTripStore((s) => s.addTripTag);
+  const updateTripTag = useTripStore((s) => s.updateTripTag);
   const carried = place?.tags;
   const saved = useMemo(() => placeTagIds(carried), [carried]);
   const selected = tags ?? saved;
@@ -40,6 +41,9 @@ export function usePlaceTags({ tripId, place, tags, setForm, t, toast }: PlaceTa
   );
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
+  // The colour picked for the next new tag; until one is picked, the trip's next one in turn.
+  const [pickedColor, setNewColor] = useState<string | null>(null);
+  const newColor = pickedColor ?? nextTagColor(tripTags);
 
   /** Changes the ticked set from what it is when the change lands, not from what it was when it was asked for. */
   const change = (next: (ids: number[]) => number[]) =>
@@ -54,13 +58,23 @@ export function usePlaceTags({ tripId, place, tags, setForm, t, toast }: PlaceTa
     if (!wanted || saving) return;
     setSaving(true);
     try {
-      const tag = await addTripTag(tripId, { name: wanted, color: nextTagColor(tripTags) });
+      const tag = await addTripTag(tripId, { name: wanted, color: newColor });
       change((ids) => (ids.includes(tag.id) ? ids : [...ids, tag.id]));
       setName('');
+      setNewColor(null);
     } catch {
       toast.error(offlineOr(t, t('places.tagCreateError')));
     } finally {
       setSaving(false);
+    }
+  };
+
+  /** A new colour for one of the trip's tags, for every place that carries it. */
+  const recolor = async (id: number, color: string) => {
+    try {
+      await updateTripTag(tripId, id, { color });
+    } catch {
+      toast.error(offlineOr(t, t('places.tagColorError')));
     }
   };
 
@@ -71,7 +85,19 @@ export function usePlaceTags({ tripId, place, tags, setForm, t, toast }: PlaceTa
     void addNew();
   };
 
-  return { options, toggle, name, setName, saving, canAdd: !!name.trim() && !saving, addNew, handleNameKey };
+  return {
+    options,
+    toggle,
+    name,
+    setName,
+    newColor,
+    setNewColor,
+    recolor,
+    saving,
+    canAdd: !!name.trim() && !saving,
+    addNew,
+    handleNameKey,
+  };
 }
 
 export type PlaceTagsField = ReturnType<typeof usePlaceTags>;

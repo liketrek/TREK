@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildPlace, buildTag } from '../../tests/helpers/factories';
-import { nextTagColor, placeTagIds, tagChanges, tagChoices, withTagChanges, withTripTag } from './placeTags';
+import {
+  TAG_COLORS,
+  nextTagColor,
+  placeTagIds,
+  tagChanges,
+  tagChoices,
+  withTagChanges,
+  withTripTag,
+} from './placeTags';
 
 describe('placeTags', () => {
   it('FE-UTIL-PLTAGS-001: offers each tag once and by name, as the first list that has it says', () => {
@@ -46,7 +54,7 @@ describe('placeTags', () => {
     expect(second).toMatch(/^#[0-9a-f]{6}$/);
     expect(second).not.toBe(first);
     // Past the last colour it starts over.
-    expect(nextTagColor(Array.from({ length: 8 }, () => buildTag()))).toBe(first);
+    expect(nextTagColor(Array.from({ length: TAG_COLORS.length }, () => buildTag()))).toBe(first);
   });
 
   it('FE-UTIL-PLTAGS-005: adds a tag to the list by name, and replaces the one of the same id', () => {

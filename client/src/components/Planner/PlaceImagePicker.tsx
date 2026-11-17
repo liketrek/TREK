@@ -169,7 +169,7 @@ function UploadTile({
           disabled={reading}
           aria-pressed={selected}
           aria-label={t('places.uploadImage')}
-          className={`${TILE} ${ring(selected, dialog)} ${preview ? '' : 'border border-dashed border-edge bg-surface-card'}`}
+          className={`${TILE} ${ring(selected, dialog)} ${preview ? '' : dialog ? 'border border-edge-faint bg-surface-secondary hover:bg-surface-tertiary' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]'}`}
           onMouseEnter={() => onHover(!!preview)}
           onMouseLeave={() => onHover(false)}
         >
@@ -179,13 +179,15 @@ function UploadTile({
               {selected && <Picked />}
             </>
           ) : (
-            <span className="flex h-full w-full flex-col items-center justify-center gap-1 px-1 text-center text-caption leading-tight text-content-muted group-hover:text-content">
-              {reading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ImagePlus className="h-4 w-4" strokeWidth={2} />
-              )}
-              {t('places.uploadImage')}
+            // Icon only: the tooltip and the button's name say what it does.
+            <span className="flex h-full w-full items-center justify-center">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-surface-card text-content-muted shadow-sm transition-transform duration-150 group-hover:scale-105 group-hover:text-content">
+                {reading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-5 w-5" strokeWidth={1.9} />
+                )}
+              </span>
             </span>
           )}
         </button>

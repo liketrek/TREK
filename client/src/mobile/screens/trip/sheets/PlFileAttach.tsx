@@ -4,14 +4,13 @@ import { openFile } from '../../../../utils/fileDownload'
 import { isWalletPass } from '../../../../components/Files/FileManager.helpers'
 import type { TripFile } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
+import { AddFieldButton, Eyebrow } from './PlSheetChrome'
 
 interface PlFileAttachProps {
   planner: TripPlanner
   files: File[]
   onAdd: (files: File[]) => void
   onRemove: (index: number) => void
-  /** Hide the "you can also paste…" subline (booking/transport sheets keep it terse). */
-  hideHint?: boolean
   /** False hides the picker pill (no upload permission); the row still lists and links files. */
   canAttach?: boolean
   /** Files already on the record, listed above the pending ones and opened on tap. */
@@ -31,41 +30,23 @@ const ITEM_CLS = 'flex w-full items-center gap-2 rounded-[10px] bg-[color:var(--
  * Clipboard paste is handled by the sheet's onPaste so it works from any
  * focused field.
  */
-export default function PlFileAttach({ planner, files, onAdd, onRemove, hideHint = false, canAttach = true, attached = [], linkable = [], onLink }: PlFileAttachProps) {
+export default function PlFileAttach({ planner, files, onAdd, onRemove, canAttach = true, attached = [], linkable = [], onLink }: PlFileAttachProps) {
   const { t } = planner
   const inputRef = useRef<HTMLInputElement>(null)
   const [picking, setPicking] = useState(false)
   const canLink = !!onLink && linkable.length > 0
 
   return (
-    <div className="mt-3 rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px]">
-      <div className="flex items-center gap-[10px]">
-        <div className="min-w-0 flex-1">
-          <div className="text-[0.78125rem] font-semibold text-m-ink">{t('files.title')}</div>
-          {!hideHint && <div className="truncate font-geist text-[0.65625rem] text-m-faint">{t('files.pasteHint')}</div>}
+    <div>
+      <Eyebrow className="mb-[5px] mt-3 uppercase">{t('files.title')}</Eyebrow>
+      {(canAttach || canLink) && (
+        <div className={`grid gap-2 ${canAttach && canLink ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {canAttach && <AddFieldButton icon={Paperclip} label={t('files.attach')} onClick={() => inputRef.current?.click()} />}
+          {canLink && (
+            <AddFieldButton icon={Link2} label={t('files.link')} onClick={() => setPicking(v => !v)} pressed={picking} ariaExpanded={picking} />
+          )}
         </div>
-        {canLink && (
-          <button
-            type="button"
-            onClick={() => setPicking(v => !v)}
-            aria-expanded={picking}
-            className={`flex flex-none items-center gap-[5px] rounded-full border px-3 py-[5px] text-[0.6875rem] font-semibold ${picking ? 'border-transparent bg-m-act text-m-actfg' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'}`}
-          >
-            <Link2 size={12} strokeWidth={2.2} />
-            {t('files.link')}
-          </button>
-        )}
-        {canAttach && (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="flex flex-none items-center gap-[5px] rounded-full bg-m-act px-3 py-[6px] text-[0.6875rem] font-semibold text-m-actfg"
-          >
-            <Paperclip size={12} strokeWidth={2.2} />
-            {t('files.attach')}
-          </button>
-        )}
-      </div>
+      )}
       <input
         ref={inputRef}
         type="file"

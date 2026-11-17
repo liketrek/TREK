@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Prenotazione',
   'files.sourceTransport': 'Trasporto',
   'files.attach': 'Allega',
-  'files.pasteHint': 'Puoi anche incollare immagini dagli appunti (Ctrl+V)',
   'files.trash': 'Cestino',
   'files.trashEmpty': 'Il cestino è vuoto',
   'files.emptyTrash': 'Svuota cestino',

@@ -111,6 +111,7 @@ const places: TranslationStrings = {
   'places.formEmail': 'E-mail', // same-as-en
   'places.hoursAdd': 'Ajouter les horaires',
   'places.hoursClosed': 'Fermé',
+  'places.hoursAllDay': 'Ouvert 24 h/24',
   'places.hoursOpens': 'ouvre',
   'places.hoursCloses': 'ferme',
   'places.hoursCopyFirst': 'Appliquer les horaires du {day} à tous les jours',
@@ -123,6 +124,17 @@ const places: TranslationStrings = {
   'places.formNotesPlaceholder': 'Notes personnelles…',
   'places.assignmentNotes': 'Notes pour ce jour',
   'places.assignmentNotesPlaceholder': 'Notes pour ce lieu uniquement ce jour-là...',
+  'places.textsLabel': 'Description et notes',
+  'places.notesKind': 'Texte à modifier',
+  'places.notesTabAbout': 'À propos du lieu',
+  'places.notesTabDay': 'Ce jour seulement',
+  'places.notesTabDayN': 'Jour {day} seulement',
+  'places.notesHintDescription':
+    'Affiché sous le nom dans la liste des lieux et le plan du jour, en haut des détails et dans le PDF. La recherche et Wikipédia la remplissent souvent.',
+  'places.notesHintNotes':
+    'Votre propre texte sur le lieu, comme des conseils ou des détails de réservation. Affiché seulement dans les détails et le PDF, chaque jour. Tous les membres du voyage le voient.',
+  'places.notesHintDay':
+    "Uniquement pour cette visite. Affiché dans sa ligne du plan du jour ; les autres jours ne l'affichent pas.",
   'places.formReservation': 'Réservation',
   'places.reservationNotesPlaceholder': 'Notes de réservation, numéro de confirmation…',
   'places.mapsSearchPlaceholder': 'Rechercher des lieux…',
@@ -164,6 +176,12 @@ const places: TranslationStrings = {
   'places.newTag': 'Nouvelle étiquette',
   'places.addTag': 'Ajouter une étiquette',
   'places.tagCreateError': "Impossible de créer l'étiquette",
+  'places.tagColor': 'Couleur de {name}',
+  'places.newTagColor': 'Couleur de la nouvelle étiquette',
+  'places.tagColorCustom': 'Couleur personnalisée',
+  'places.tagColorHue': 'Teinte',
+  'places.tagColorHex': 'Code couleur',
+  'places.tagColorError': 'Impossible de changer la couleur',
   'places.nameRequired': 'Veuillez saisir un nom',
   'places.saveError': "Échec de l'enregistrement",
   'places.createExpenseHint': 'Enregistre le lieu, puis ouvre l’éditeur de dépenses.',

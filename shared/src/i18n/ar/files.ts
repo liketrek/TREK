@@ -53,7 +53,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'الحجز',
   'files.sourceTransport': 'النقل',
   'files.attach': 'إرفاق',
-  'files.pasteHint': 'يمكنك أيضًا لصق الصور من الحافظة (Ctrl+V)',
   'files.trash': 'سلة المهملات',
   'files.trashEmpty': 'سلة المهملات فارغة',
   'files.emptyTrash': 'إفراغ السلة',

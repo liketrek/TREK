@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Reserva',
   'files.sourceTransport': 'Transporte',
   'files.attach': 'Adjuntar',
-  'files.pasteHint': 'También puedes pegar imágenes desde el portapapeles (Ctrl+V)',
   'files.trash': 'Papelera',
   'files.trashEmpty': 'La papelera está vacía',
   'files.emptyTrash': 'Vaciar papelera',

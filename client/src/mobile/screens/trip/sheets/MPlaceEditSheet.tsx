@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from 'react'
-import { MapPin, MapPinOff } from 'lucide-react'
+import { Globe, MapPin, MapPinOff } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import {
   DEFAULT_FORM,
@@ -14,12 +14,16 @@ import {
 import { usePlaceForm } from '../../../../components/Planner/usePlaceForm'
 import { usePlaceTags } from '../../../../components/Planner/usePlaceTags'
 import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
+import { AMOUNT_FIELD_CLS, Eyebrow, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
 import { useAddonStore } from '../../../../store/addonStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
 import { PlTagPicker } from './PlTags'
+import { PlPlaceTexts } from './PlPlaceTexts'
+import { PlContactFields } from './PlContactFields'
+import { weekFromPeriods } from '../../../../components/Planner/placeHours'
+import type { PlaceOpeningHours } from '@trek/shared'
 import PlTimeFields from './PlTimeFields'
 import PlFileAttach from './PlFileAttach'
 import MLinkedCosts from './MLinkedCosts'
@@ -83,6 +87,8 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     place: editingPlace, imageUrl: form.image_url, pendingImage, canUploadFiles, stageUpload, stageAttached, removeImage,
   })
   const [resolvingPick, setResolvingPick] = useState(false)
+  // The hours the details looked up, offered to the hours editor as on the desktop.
+  const [detailsHours, setDetailsHours] = useState<PlaceOpeningHours | null>(null)
   const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   // Set right before submit: the place has to exist before an expense can point
   // at it, exactly like MReservationSheet does it.
@@ -129,6 +135,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     else if (prefillCoords) next = prefillForm(prefillCoords)
     else next = DEFAULT_FORM
     openForm(next, editingPlace, prefillCoords)
+    setDetailsHours(null)
     setDeleteArmed(false)
     // storedAssignments is a fresh map each load, so it is read at open time only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,6 +187,9 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
       handleChange('lng', pair[1])
     }
   }
+
+  // The day the visit under edit is on, to name its note's tab after it.
+  const dayNumber = ctxAssignment ? planner.days.find(d => d.id === ctxAssignment.day_id)?.day_number ?? null : null
 
   // End before start blocks the save — tied to the values, not to which entry
   // point opened the sheet.
@@ -265,6 +275,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
               onPickImage={pickImage}
               image={image}
               onAdoptDescription={adoptDescription}
+              onHours={hours => setDetailsHours(weekFromPeriods(hours.periods))}
               hasDescription={!!form.description.trim()}
               language={language}
               timeFormat={timeFormat}
@@ -289,25 +300,6 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
           className={`${FIELD_CLS} ${resolvingPick ? 'opacity-60' : ''}`}
         />
 
-        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formDescription')}</Eyebrow>
-        <textarea
-          value={form.description}
-          onChange={e => handleChange('description', e.target.value)}
-          rows={2}
-          placeholder={t('places.formDescriptionPlaceholder')}
-          className={FIELD_AREA_CLS}
-        />
-
-        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formNotes')}</Eyebrow>
-        <textarea
-          value={form.notes}
-          onChange={e => handleChange('notes', e.target.value)}
-          rows={2}
-          maxLength={2000}
-          placeholder={t('places.formNotesPlaceholder')}
-          className={FIELD_AREA_CLS}
-        />
-
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formAddress')}</Eyebrow>
         <input
           type="text"
@@ -323,7 +315,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
             value={form.lat}
             onChange={e => handleChange('lat', e.target.value.replace(/[^0-9.-]/g, ''))}
             onPaste={handleCoordPaste}
-            placeholder={t('places.formLat')}
+            placeholder={t('places.formLatLabel')}
             className={`${FIELD_CLS} flex-1 text-[0.8125rem] [font-variant-numeric:tabular-nums]`}
           />
           <input
@@ -331,7 +323,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
             inputMode="decimal"
             value={form.lng}
             onChange={e => handleChange('lng', e.target.value.replace(/[^0-9.-]/g, ''))}
-            placeholder={t('places.formLng')}
+            placeholder={t('places.formLngLabel')}
             className={`${FIELD_CLS} flex-1 text-[0.8125rem] [font-variant-numeric:tabular-nums]`}
           />
         </div>
@@ -343,42 +335,56 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
           </p>
         )}
 
-        <Eyebrow className="mb-[6px] mt-3 uppercase">{t('places.formCategory')}</Eyebrow>
+        <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formCategory')}</Eyebrow>
         <PlCategoryPicker planner={planner} value={form.category_id} onChange={id => handleChange('category_id', id)} />
         <PlTagPicker tags={tagField} t={t} />
 
-        {/* Times live per day-assignment — only editable when one is in context.
-            Same for the day-specific note (#2163). */}
+        {/* Times live per day-assignment, only editable when one is in context (#2163). */}
         {sheetPlace && sheetAssignmentId && (
-          <>
-            <PlTimeFields
-              planner={planner}
-              startTime={form.place_time}
-              endTime={form.end_time}
-              onChange={handleChange}
-              assignmentId={sheetAssignmentId}
-              dayAssignments={dayAssignments}
-              hasTimeError={hasTimeError}
-            />
-            <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.assignmentNotes')}</Eyebrow>
-            <textarea
-              value={form.assignment_notes ?? ''}
-              onChange={e => handleChange('assignment_notes', e.target.value)}
-              rows={2}
-              placeholder={t('places.assignmentNotesPlaceholder')}
-              className={FIELD_AREA_CLS}
-            />
-          </>
+          <PlTimeFields
+            planner={planner}
+            startTime={form.place_time}
+            endTime={form.end_time}
+            onChange={handleChange}
+            assignmentId={sheetAssignmentId}
+            dayAssignments={dayAssignments}
+            hasTimeError={hasTimeError}
+          />
         )}
 
+        {/* Description, notes and the note for this visit, one at a time; the day's
+            tab follows the times and is only there with a visit in context. */}
+        <PlPlaceTexts
+          description={form.description}
+          notes={form.notes}
+          dayNotes={sheetPlace && sheetAssignmentId ? (form.assignment_notes ?? '') : null}
+          dayNumber={dayNumber}
+          onChange={(field, value) => handleChange(field, value)}
+          t={t}
+        />
+
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('places.formWebsite')}</Eyebrow>
-        <input
-          type="url"
-          dir="ltr"
-          value={form.website}
-          onChange={e => handleChange('website', e.target.value)}
-          placeholder="https://"
-          className={FIELD_CLS}
+        <label className={AMOUNT_FIELD_CLS}>
+          <Globe size={14} strokeWidth={2} aria-hidden="true" className="flex-none text-m-faint" />
+          <input
+            type="url"
+            dir="ltr"
+            value={form.website}
+            onChange={e => handleChange('website', e.target.value)}
+            placeholder="https://"
+            aria-label={t('places.formWebsite')}
+            className="min-w-0 flex-1 bg-transparent font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
+          />
+        </label>
+
+        <PlContactFields
+          phone={form.phone ?? ''}
+          email={form.email ?? ''}
+          openingHours={form.opening_hours ?? ''}
+          suggestedHours={detailsHours}
+          onChange={(field, value, origin) => handleChange(field, value, origin)}
+          locale={locale}
+          t={t}
         />
 
         {canUploadFiles && (

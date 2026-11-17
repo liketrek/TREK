@@ -110,6 +110,7 @@ const places: TranslationStrings = {
   'places.formEmail': 'E-mail', // same-as-en
   'places.hoursAdd': 'Aggiungi orari di apertura',
   'places.hoursClosed': 'Chiuso',
+  'places.hoursAllDay': 'Aperto 24 ore su 24',
   'places.hoursOpens': 'apre',
   'places.hoursCloses': 'chiude',
   'places.hoursCopyFirst': 'Usa gli orari di {day} per tutti i giorni',
@@ -122,6 +123,17 @@ const places: TranslationStrings = {
   'places.formNotesPlaceholder': 'Note personali...',
   'places.assignmentNotes': 'Note per questo giorno',
   'places.assignmentNotesPlaceholder': 'Note per questo luogo solo in questo giorno...',
+  'places.textsLabel': 'Descrizione e note',
+  'places.notesKind': 'Testo da modificare',
+  'places.notesTabAbout': 'Sul luogo',
+  'places.notesTabDay': 'Solo questo giorno',
+  'places.notesTabDayN': 'Solo il giorno {day}',
+  'places.notesHintDescription':
+    'Compare sotto il nome nella lista dei luoghi e nel piano del giorno, in cima ai dettagli e nel PDF. La ricerca e Wikipedia spesso la compilano.',
+  'places.notesHintNotes':
+    'Il tuo testo sul luogo, come consigli o dettagli della prenotazione. Compare solo nei dettagli e nel PDF, ogni giorno. Tutti nel viaggio lo vedono.',
+  'places.notesHintDay':
+    'Solo per questa visita. Compare nella sua riga del piano del giorno; gli altri giorni non lo mostrano.',
   'places.formReservation': 'Prenotazione',
   'places.reservationNotesPlaceholder': 'Note della prenotazione, numero di conferma...',
   'places.mapsSearchPlaceholder': 'Cerca luoghi...',
@@ -163,6 +175,12 @@ const places: TranslationStrings = {
   'places.newTag': 'Nuovo tag',
   'places.addTag': 'Aggiungi tag',
   'places.tagCreateError': 'Impossibile creare il tag',
+  'places.tagColor': 'Colore di {name}',
+  'places.newTagColor': 'Colore del nuovo tag',
+  'places.tagColorCustom': 'Colore personalizzato',
+  'places.tagColorHue': 'Tonalità',
+  'places.tagColorHex': 'Codice colore',
+  'places.tagColorError': 'Impossibile cambiare il colore',
   'places.nameRequired': 'Inserisci un nome',
   'places.saveError': 'Impossibile salvare',
   'places.createExpenseHint': 'Salva il luogo e poi apre l’editor dei costi.',

@@ -44,7 +44,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'הזמנה',
   'files.sourceTransport': 'תחבורה',
   'files.attach': 'צירוף',
-  'files.pasteHint': 'אפשר גם להדביק תמונות מהלוח (Ctrl+V)',
   'files.trash': 'סל מחזור',
   'files.trashEmpty': 'סל המחזור ריק',
   'files.emptyTrash': 'ריקון סל המחזור',

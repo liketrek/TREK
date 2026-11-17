@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Rezervasyon',
   'files.sourceTransport': 'Ulaşım',
   'files.attach': 'Ekle',
-  'files.pasteHint': 'Panodan görsel de yapıştırabilirsiniz (Ctrl+V)',
   'files.trash': 'Çöp kutusu',
   'files.trashEmpty': 'Çöp kutusu boş',
   'files.emptyTrash': 'Çöp kutusunu boşalt',

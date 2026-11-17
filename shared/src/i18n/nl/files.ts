@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Boeking',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Bijvoegen',
-  'files.pasteHint': 'Je kunt ook afbeeldingen plakken vanuit het klembord (Ctrl+V)',
   'files.trash': 'Prullenbak',
   'files.trashEmpty': 'Prullenbak is leeg',
   'files.emptyTrash': 'Prullenbak legen',

@@ -1,4 +1,4 @@
-import type { Tag, TripTagCreateRequest } from '@trek/shared';
+import type { Tag, TripTagCreateRequest, TripTagUpdateRequest } from '@trek/shared';
 import type { StoreApi } from 'zustand';
 
 import { tripTagRepo } from '../../repo/tripTagRepo';
@@ -16,6 +16,8 @@ export interface TripTagsSlice {
   loadTripTags: (tripId: number | string) => Promise<void>;
   /** Adds a tag to the trip, or hands back the one it already has under that name. Needs a connection. */
   addTripTag: (tripId: number | string, data: TripTagCreateRequest) => Promise<Tag>;
+  /** Renames or recolours one of the trip's tags, and takes the change into the places carrying it. Needs a connection. */
+  updateTripTag: (tripId: number | string, tagId: number, data: TripTagUpdateRequest) => Promise<Tag>;
 }
 
 /**
@@ -59,6 +61,12 @@ export const createTripTagsSlice = (set: SetState, get: GetState): TripTagsSlice
   addTripTag: async (tripId, data) => {
     const tag = await tripTagRepo.create(tripId, data);
     set((state) => ({ tripTags: withTripTag(state.tripTags, tag) }));
+    return tag;
+  },
+
+  updateTripTag: async (tripId, tagId, data) => {
+    const tag = await tripTagRepo.update(tripId, tagId, data);
+    set((state) => withTripTags(state, withTripTag(state.tripTags, tag)));
     return tag;
   },
 });

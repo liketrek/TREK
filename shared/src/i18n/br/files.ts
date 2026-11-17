@@ -41,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Reserva',
   'files.sourceTransport': 'Transporte',
   'files.attach': 'Anexar',
-  'files.pasteHint': 'Você também pode colar imagens da área de transferência (Ctrl+V)',
   'files.trash': 'Lixeira',
   'files.trashEmpty': 'A lixeira está vazia',
   'files.emptyTrash': 'Esvaziar lixeira',

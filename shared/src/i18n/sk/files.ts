@@ -44,7 +44,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Rezervácia',
   'files.sourceTransport': 'Doprava',
   'files.attach': 'Priložiť',
-  'files.pasteHint': 'Môžete tiež vložiť obrázky zo schránky (Ctrl+V)',
   'files.trash': 'Kôš',
   'files.trashEmpty': 'Kôš je prázdny',
   'files.emptyTrash': 'Vyprázdniť kôš',

@@ -71,11 +71,11 @@ describe('MPlaceEditSheet', () => {
     setup({ editingPlace: EDITED })
     expect(screen.getByRole('dialog', { name: 'places.editPlace' })).toBeInTheDocument()
     expect(nameField()).toHaveValue('Senso-ji')
-    expect(screen.getByPlaceholderText('places.formDescriptionPlaceholder')).toHaveValue('Oldest temple')
-    expect(screen.getByPlaceholderText('places.formNotesPlaceholder')).toHaveValue('Go early')
+    expect(screen.getByLabelText('places.formDescription')).toHaveValue('Oldest temple')
+    expect(screen.getByLabelText('places.formNotes')).toHaveValue('Go early')
     expect(screen.getByPlaceholderText('places.formAddressPlaceholder')).toHaveValue('2-3-1 Asakusa')
-    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7148')
-    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7967')
+    expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('35.7148')
+    expect(screen.getByPlaceholderText('places.formLngLabel')).toHaveValue('139.7967')
     expect(screen.getByPlaceholderText('https://')).toHaveValue('https://senso-ji.jp')
     expect(screen.getByRole('button', { name: /Food/ }).className).toContain('bg-m-act')
     expect(submit()).toHaveTextContent('common.save')
@@ -85,8 +85,8 @@ describe('MPlaceEditSheet', () => {
     const bare = { id: 43, trip_id: 1, name: 'Nameless' } as unknown as Place
     setup({ editingPlace: bare })
     expect(nameField()).toHaveValue('Nameless')
-    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('')
-    expect(screen.getByPlaceholderText('places.formNotesPlaceholder')).toHaveValue('')
+    expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('')
+    expect(screen.getByLabelText('places.formNotes')).toHaveValue('')
   })
 
   it('FE-MOB-PLEDIT-005: reads the times off the in-context assignment, not off the place', () => {
@@ -110,8 +110,8 @@ describe('MPlaceEditSheet', () => {
       },
     })
     expect(nameField()).toHaveValue('Tokyo Tower')
-    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.6586')
-    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7454')
+    expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('35.6586')
+    expect(screen.getByPlaceholderText('places.formLngLabel')).toHaveValue('139.7454')
     expect(screen.getByPlaceholderText('places.formAddressPlaceholder')).toHaveValue('4-2-8 Shibakoen')
     expect(screen.getByPlaceholderText('https://')).toHaveValue('https://tokyotower.co.jp')
   })
@@ -119,7 +119,7 @@ describe('MPlaceEditSheet', () => {
   it('FE-MOB-PLEDIT-007: falls back to bare coordinates when the pick carries no metadata', () => {
     setup({ prefillCoords: { lat: 1.5, lng: 2.5 } })
     expect(nameField()).toHaveValue('')
-    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('1.5')
+    expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('1.5')
   })
 
   it('FE-MOB-PLEDIT-008: refuses to save without a name', () => {
@@ -133,8 +133,8 @@ describe('MPlaceEditSheet', () => {
   it('FE-MOB-PLEDIT-009: saves the parsed form and clears every editor flag', async () => {
     const { planner } = setup()
     fireEvent.change(nameField(), { target: { value: 'Nakamise' } })
-    fireEvent.change(screen.getByPlaceholderText('places.formLat'), { target: { value: '35.71' } })
-    fireEvent.change(screen.getByPlaceholderText('places.formLng'), { target: { value: '139.79' } })
+    fireEvent.change(screen.getByPlaceholderText('places.formLatLabel'), { target: { value: '35.71' } })
+    fireEvent.change(screen.getByPlaceholderText('places.formLngLabel'), { target: { value: '139.79' } })
     fireEvent.click(screen.getByRole('button', { name: /Food/ }))
     fireEvent.click(submit())
 
@@ -151,8 +151,8 @@ describe('MPlaceEditSheet', () => {
   it('FE-MOB-PLEDIT-009b: carries the free-text fields into the save payload', async () => {
     const { planner } = setup()
     fireEvent.change(nameField(), { target: { value: 'Nakamise' } })
-    fireEvent.change(screen.getByPlaceholderText('places.formDescriptionPlaceholder'), { target: { value: 'Shopping street' } })
-    fireEvent.change(screen.getByPlaceholderText('places.formNotesPlaceholder'), { target: { value: 'Cash only' } })
+    fireEvent.change(screen.getByLabelText('places.formDescription'), { target: { value: 'Shopping street' } })
+    fireEvent.change(screen.getByLabelText('places.formNotes'), { target: { value: 'Cash only' } })
     fireEvent.change(screen.getByPlaceholderText('places.formAddressPlaceholder'), { target: { value: '1-36-3 Asakusa' } })
     fireEvent.change(screen.getByPlaceholderText('https://'), { target: { value: 'https://asakusa.example' } })
     fireEvent.click(submit())
@@ -176,17 +176,17 @@ describe('MPlaceEditSheet', () => {
 
   it('FE-MOB-PLEDIT-011: strips non-numeric characters from the coordinate fields', () => {
     setup()
-    const lat = screen.getByPlaceholderText('places.formLat')
+    const lat = screen.getByPlaceholderText('places.formLatLabel')
     fireEvent.change(lat, { target: { value: '3a5.7N' } })
     expect(lat).toHaveValue('35.7')
   })
 
   it('FE-MOB-PLEDIT-012: a pasted "lat, lng" pair fills both coordinate fields', () => {
     setup()
-    const lat = screen.getByPlaceholderText('places.formLat')
+    const lat = screen.getByPlaceholderText('places.formLatLabel')
     fireEvent.paste(lat, { clipboardData: { getData: () => ' 35.6895, 139.6917 ' } })
     expect(lat).toHaveValue('35.6895')
-    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.6917')
+    expect(screen.getByPlaceholderText('places.formLngLabel')).toHaveValue('139.6917')
   })
 
   it('FE-MOB-PLEDIT-047: a pasted "lat, lng" pair counts as typed, so a later pick without a position keeps it', async () => {
@@ -205,7 +205,7 @@ describe('MPlaceEditSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
     fireEvent.click(await screen.findByText('Ueno Koen'))
 
-    const lat = screen.getByPlaceholderText('places.formLat')
+    const lat = screen.getByPlaceholderText('places.formLatLabel')
     fireEvent.paste(lat, { clipboardData: { getData: () => '35.7101, 139.7745' } })
 
     fireEvent.change(search, { target: { value: 'ameyoko' } })
@@ -214,12 +214,12 @@ describe('MPlaceEditSheet', () => {
 
     expect(nameField()).toHaveValue('Ameyoko')
     expect(lat).toHaveValue('35.7101')
-    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7745')
+    expect(screen.getByPlaceholderText('places.formLngLabel')).toHaveValue('139.7745')
   })
 
   it('FE-MOB-PLEDIT-013: an unparseable paste is left to the browser', () => {
     setup()
-    const lat = screen.getByPlaceholderText('places.formLat')
+    const lat = screen.getByPlaceholderText('places.formLatLabel')
     fireEvent.paste(lat, { clipboardData: { getData: () => 'Tokyo Tower' } })
     expect(lat).toHaveValue('')
   })
@@ -274,7 +274,7 @@ describe('MPlaceEditSheet', () => {
     fireEvent.change(search, { target: { value: 'ueno koen' } })
     fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
     fireEvent.click(await screen.findByText('Ueno Koen'))
-    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7')
+    expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('35.7')
 
     fireEvent.change(search, { target: { value: 'Lou' } })
     fireEvent.click(await screen.findByText('Louvre'))
@@ -283,8 +283,8 @@ describe('MPlaceEditSheet', () => {
     // The same as the desktop dialog: the name is the suggestion's, the rest is what the last pick wrote.
     expect(nameField()).toHaveValue('Louvre')
     expect(screen.getByPlaceholderText('places.formAddressPlaceholder')).toHaveValue('Taito')
-    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7')
-    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7')
+    expect(screen.getByPlaceholderText('places.formLatLabel')).toHaveValue('35.7')
+    expect(screen.getByPlaceholderText('places.formLngLabel')).toHaveValue('139.7')
     expect(screen.getByPlaceholderText('https://')).toHaveValue('https://ueno.example')
   })
 
@@ -599,7 +599,7 @@ describe('MPlaceEditSheet', () => {
       openOnNight()
       const times = screen.getAllByDisplayValue(/^1[01]:00$/) as HTMLInputElement[]
       expect(times.map(el => el.value)).toEqual(['10:00', '11:00'])
-      expect(screen.getByPlaceholderText('places.assignmentNotesPlaceholder')).toHaveValue('Late check-in')
+      expect(screen.getByLabelText('places.assignmentNotes')).toHaveValue('Late check-in')
     })
 
     it('FE-MOB-PLEDIT-037: saving it untouched keeps the pinned time and sends no note', async () => {
@@ -613,7 +613,7 @@ describe('MPlaceEditSheet', () => {
 
     it('FE-MOB-PLEDIT-038: an edited day note on it travels with the save', async () => {
       const { planner } = openOnNight()
-      fireEvent.change(screen.getByPlaceholderText('places.assignmentNotesPlaceholder'), { target: { value: 'Key box at the door' } })
+      fireEvent.change(screen.getByLabelText('places.assignmentNotes'), { target: { value: 'Key box at the door' } })
       fireEvent.click(submit())
       await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledTimes(1))
       expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ assignment_notes: 'Key box at the door' }))
@@ -726,8 +726,8 @@ describe('MPlaceEditSheet', () => {
     fireEvent.change(screen.getByPlaceholderText('places.formAddressPlaceholder'), { target: { value: '1-36-3 Asakusa' } })
     expect(screen.getByText('places.noCoordinatesFormHint')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByPlaceholderText('places.formLat'), { target: { value: '35.71' } })
-    fireEvent.change(screen.getByPlaceholderText('places.formLng'), { target: { value: '139.79' } })
+    fireEvent.change(screen.getByPlaceholderText('places.formLatLabel'), { target: { value: '35.71' } })
+    fireEvent.change(screen.getByPlaceholderText('places.formLngLabel'), { target: { value: '139.79' } })
     expect(screen.queryByText('places.noCoordinatesFormHint')).not.toBeInTheDocument()
   })
 
