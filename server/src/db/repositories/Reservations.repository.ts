@@ -1,7 +1,7 @@
 import type { Reservations } from '../entities/Reservations.entity';
 import { DayAssignments } from '../entities/DayAssignments.entity';
 import { Days } from '../entities/Days.entity';
-import { coalesceOverride, columnRef, dayDistance } from '../dialect/sql-functions';
+import { coalesceOverride, columnRef, dayDistance, isCalendarDate } from '../dialect/sql-functions';
 import { concatKysely, startsWithIsoDateKysely, substringKysely } from '../dialect/kysely-functions';
 import { accommodationIdMatches, reservationStayIs } from './_shared/reservation-accommodation';
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
@@ -640,12 +640,11 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   /**
    * RS11 (`resolveDayIdFromTime`'s nearest-day fallback) — `SELECT id FROM
    * days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC,
-   * date ASC LIMIT 1`. `dayDistance`, through `DaysRepository`'s own QB (the
-   * same cross-repository-read shape as `getAssignmentTripId` above —
-   * `DaysRepository` stays Task 1's additive-method territory; no new
-   * method is added there).
+   * date ASC LIMIT 1`, through `DaysRepository`'s own QB. A date the calendar does
+   * not have (`2024-02-30`) finds no day on either engine (`isCalendarDate`).
    */
   async findNearestDayId(trip_id: number, iso_date: string): Promise<number | undefined> {
+    if (!isCalendarDate(iso_date)) return undefined;
     const platform = this.getEntityManager().getPlatform();
     const days = this.getEntityManager().getRepository(Days);
     const row = await days

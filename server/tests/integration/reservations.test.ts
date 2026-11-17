@@ -226,6 +226,20 @@ describe('Update reservation', () => {
     expect(res.body.reservation.end_day_id).toBe(day3.id);
   });
 
+  it('RESV-004d — a reservation_time on a date the calendar does not have lands on no day, on every engine', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeDay(orm, trip.id, { date: '2024-03-01' });
+
+    // SQLite's JULIANDAY rolls 2024-02-30 over into March; Postgres refuses to cast it.
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Event', type: 'event', reservation_time: '2024-02-30T10:00' });
+    expect(res.status).toBe(201);
+    expect(res.body.reservation.day_id).toBeNull();
+  });
+
   it('RESV-004 — PUT on non-existent reservation returns 404', async () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);

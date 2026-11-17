@@ -27,6 +27,7 @@ import {
   dateOf,
   dayDistance,
   foundAgainState,
+  isCalendarDate,
   lower,
   lowerParam,
   lowerTrim,
@@ -48,6 +49,7 @@ import { createJourney, createJourneyEntry } from '../../../helpers/factories';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { Platform } from '@mikro-orm/core';
+import { BasePostgreSqlPlatform, SqlitePlatform } from '@mikro-orm/sql';
 
 import { expressionBuilder, type ExpressionBuilder } from 'kysely';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -980,6 +982,26 @@ describe('sql-functions (sqlite)', () => {
     class FakePlatform extends Platform {}
     const foreign = new FakePlatform();
     expect(() => dayDistance(foreign, 'u.date', '2026-01-01')).toThrow(/no implementation for platform FakePlatform/);
+  });
+
+  it('SQLF-100: dayDistance refuses a date the calendar does not have, on every engine, which SQLite would roll over', () => {
+    expect(isCalendarDate('2024-02-29')).toBe(true);
+    expect(isCalendarDate('2026-12-31')).toBe(true);
+    for (const text of [
+      '2024-02-30',
+      '2023-02-29',
+      '2024-13-01',
+      '2024-00-10',
+      '2024-04-31',
+      '2024-1-01',
+      '2024-01-01T10:00',
+      '',
+    ]) {
+      expect(isCalendarDate(text), text).toBe(false);
+    }
+    for (const platform of [new SqlitePlatform(), new BasePostgreSqlPlatform()]) {
+      expect(() => dayDistance(platform, 'u.created_at', '2024-02-30')).toThrow(/needs a calendar date/);
+    }
   });
 
   // Plan 3d Task 0 review (H1/L1): the five helpers above return a MikroORM
