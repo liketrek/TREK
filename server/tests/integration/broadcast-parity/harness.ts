@@ -13,6 +13,7 @@ import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 import { createLocalMcpServer, McpRegistryService } from '../../../src/nest-mcp';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { withRequestContext } from '../../../src/nest/database/request-context';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { SchoolHolidaysService } from '../../../src/nest/school-holidays/school-holidays.service';
 import { authCookie } from '../../helpers/auth';
@@ -209,6 +210,12 @@ export interface ParityHarness {
   listTools(userId: number): Promise<ListedTool[]>;
   /** The REST twin, as `userId`, with the session cookie and X-Socket-Id 'sock-rest'. */
   rest(userId: number, call: RestCall, s: Scene): Promise<{ status: number; text: string }>;
+  /**
+   * Resolves once every notification send started so far has finished. A
+   * write starts most of them without waiting, and on Postgres one still runs
+   * after the answer, so the case reads its recording only after this.
+   */
+  notificationsSettled(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -296,6 +303,7 @@ export async function openHarness(): Promise<ParityHarness> {
       const res = call.body ? await req.send(call.body(s)) : await req;
       return { status: res.status, text: res.text };
     },
+    notificationsSettled: () => app.get(NotificationsService).settled(),
     close: async () => {
       vi.restoreAllMocks();
       await app.close();

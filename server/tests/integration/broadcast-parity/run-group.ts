@@ -169,6 +169,16 @@ function nothingSentYet(h: ParityHarness, before: string): void {
 
 const nextMacrotask = () => new Promise<void>((resolve) => setImmediate(resolve));
 
+/**
+ * What a write left running once it answered: a send one macrotask later when
+ * the case says so, then every notification send it started, so each send is
+ * read with the case that caused it.
+ */
+async function writeSettled(h: ParityHarness, settle: boolean | undefined): Promise<void> {
+  if (settle) await nextMacrotask();
+  await h.notificationsSettled();
+}
+
 async function runCase(h: ParityHarness, c: ParityCase): Promise<void> {
   const restore = c.stub?.(h.app);
   try {
@@ -176,7 +186,7 @@ async function runCase(h: ParityHarness, c: ParityCase): Promise<void> {
     await c.setup?.(mcpScene, h.app);
     nothingSentYet(h, `${c.tool} ran over MCP`);
     const outcome = await h.callTool(actorOf(c, mcpScene).id, c.tool, c.args(mcpScene));
-    if (c.settle) await nextMacrotask();
+    await writeSettled(h, c.settle);
     const mcp = h.recorder.take();
     expect(outcome.isError, `${c.tool} failed over MCP: ${outcome.text}`).toBe(false);
     checkSurface('MCP', c, mcp, mcpScene);
@@ -186,7 +196,7 @@ async function runCase(h: ParityHarness, c: ParityCase): Promise<void> {
     await c.setup?.(restScene, h.app);
     nothingSentYet(h, `the REST twin of ${c.tool} ran`);
     const res = await h.rest(actorOf(c, restScene).id, c.rest, restScene);
-    if (c.settle) await nextMacrotask();
+    await writeSettled(h, c.settle);
     const rest = h.recorder.take();
     expect(res.status, `the REST twin of ${c.tool} answered ${res.status}: ${res.text}`).toBeGreaterThanOrEqual(200);
     expect(res.status, `the REST twin of ${c.tool} answered ${res.status}: ${res.text}`).toBeLessThan(300);
@@ -208,7 +218,7 @@ async function runExempt(h: ParityHarness, e: ExemptTool): Promise<void> {
     expect(before.isError, `${e.first.tool}, run before ${e.tool}, failed: ${before.text}`).toBe(false);
   }
   const outcome = await h.callTool(actor.id, e.tool, e.args(s));
-  await nextMacrotask();
+  await writeSettled(h, true);
   const sent = h.recorder.take();
   expect(outcome.isError, `${e.tool} failed over MCP: ${outcome.text}`).toBe(false);
   expect(sent, `${e.tool} is exempt as silent, yet sent:\n${trace(sent)}`).toEqual([]);
