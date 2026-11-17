@@ -187,7 +187,10 @@ env:
 # its own Secret as TREK_DB_URL; with existingSecret, TREK reads TREK_DB_URL from that Secret
 # under existingSecretKey and the chart writes nothing. existingSecret wins over url. The
 # variable is required when either is set: a missing Secret key stops the pod instead of
-# starting it on SQLite.
+# starting it on SQLite. The role in the URL owns TREK's database and must not be a superuser
+# (nor hold pg_execute_server_program or pg_write_server_files): a restore runs the backup's
+# SQL as that role and refuses one that could reach the database host. The wiki page shows the
+# SQL that creates such a role. PostgreSQL 14 to 18 is supported.
 #   url: "postgres://trek:<password>@postgres.example.internal:5432/trek?sslmode=require"
 database:
   url: ""
