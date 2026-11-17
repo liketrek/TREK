@@ -12,6 +12,7 @@ import { pgDump, pgDumpMigrations, pgRestore } from '../../../../../src/db/engin
 import { hasRestrictFix } from '../../../../../src/db/engine/postgres/restore-safety';
 import {
   answersSchema,
+  appendsOutputOf,
   copiesFileEndingWith,
   failsWith,
   flagValues,
@@ -149,7 +150,7 @@ describe('pg-tools', () => {
   it('PGTOOLS-005b: the restore script is checked line by line, so its COPY data is never read whole', async () => {
     const source = path.join(out, 'in.pgdump');
     installFakeTool(bin, 'pg_restore', {
-      snippets: [writesRestrictedScript(), 'seq 1 200000 >> "$(fake_file_target "$@")"'],
+      snippets: [writesRestrictedScript(), appendsOutputOf('seq 1 200000')],
     });
     installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
     const readWhole = vi.spyOn(fs, 'readFileSync');
@@ -278,7 +279,7 @@ describe('pg-tools', () => {
 
   it('PGTOOLS-014: a script past the limit stops pg_restore, replaces nothing and leaves no work file', async () => {
     installFakeTool(bin, 'pg_restore', {
-      snippets: [writesRestrictedScript(), 'seq 1 200000 >> "$(fake_file_target "$@")"'],
+      snippets: [writesRestrictedScript(), appendsOutputOf('seq 1 200000')],
     });
     const psqlLog = installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
     await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, 64 * 1024)).rejects.toThrow(
@@ -378,9 +379,9 @@ describe('pg-tools', () => {
 
   it("PGTOOLS-020: a plugin's own table named mikro_orm_migrations never passes for TREK's history", async () => {
     const forged =
-      'COPY trek_plugin_notes.mikro_orm_migrations (id, name) FROM stdin;\n1\tMigration29990101000000_forged\n\.\n';
+      'COPY trek_plugin_notes.mikro_orm_migrations (id, name) FROM stdin;\n1\tMigration29990101000000_forged\n\\.\n';
     const real =
-      'COPY public.mikro_orm_migrations (id, name, executed_at) FROM stdin;\n1\tMigration20200101000000_baseline_schema\tx\n\.\n';
+      'COPY public.mikro_orm_migrations (id, name, executed_at) FROM stdin;\n1\tMigration20200101000000_baseline_schema\tx\n\\.\n';
     installFakeTool(bin, 'pg_restore', { snippets: [printsWhen('--data-only', forged + real)] });
     await expect(pgDumpMigrations('/data/in.pgdump', bin)).resolves.toEqual([
       'Migration20200101000000_baseline_schema',

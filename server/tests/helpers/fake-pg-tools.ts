@@ -66,7 +66,12 @@ export function answersTables(names: readonly string[]): string {
 
 /** Writes `content` to the output file the call names with `--file=`. */
 export function writesFile(content: string): string {
-  return `printf '%s' ${shellWord(content)} > "$(fake_file_target "$@")"`;
+  return `printf '%s' ${shellWord(content)} | fake_write "$@"`;
+}
+
+/** Appends what the shell `command` prints to the output the call names with `--file=`. */
+export function appendsOutputOf(command: string): string {
+  return `${command} | fake_append "$@"`;
 }
 
 /** Writes the start of a restore script that restricts psql (CVE-2025-8714) and creates TREK's migration table. */
@@ -80,7 +85,7 @@ export function writesRestrictedScript(table = 'public.mikro_orm_migrations'): s
  */
 export function listsSchemas(schemas: readonly string[]): string {
   const toc = schemas.map((name, i) => `${i + 4}; 2615 ${16000 + i} SCHEMA - ${name} trek\n`).join('');
-  return `case "$*" in *--list*) printf '%s' ${shellWord(toc)} > "$(fake_file_target "$@")"; exit 0;; esac`;
+  return `case "$*" in *--list*) printf '%s' ${shellWord(toc)} | fake_write "$@"; exit 0;; esac`;
 }
 
 /** Answers a `--data-only` call with the COPY block of `mikro_orm_migrations`, one row per name. */
@@ -106,12 +111,17 @@ export function copiesFileEndingWith(suffix: string, destination: string): strin
 }
 
 /**
- * The function every stand-in uses to find its `--file=` argument, wherever it
- * sits. `--file=-` is stdout, as the real tools read it.
+ * The functions every stand-in writes its output with: fake_file_target finds
+ * the `--file=` argument wherever it sits, fake_write (replacing) and
+ * fake_append copy their stdin there. `--file=-` is the tool's own stdout, as
+ * the real tools read it, written as such: /dev/stdout cannot be opened when
+ * stdout is a socket, as it is under the CI runner.
  */
-const FILE_TARGET_FUNCTION =
-  'fake_file_target() { for a in "$@"; do case "$a" in --file=-) printf /dev/stdout;; ' +
-  '--file=*) printf \'%s\' "${a#--file=}";; esac; done; }';
+const FILE_TARGET_FUNCTION = [
+  'fake_file_target() { for a in "$@"; do case "$a" in --file=*) printf \'%s\' "${a#--file=}";; esac; done; }',
+  'fake_write() { t="$(fake_file_target "$@")"; if [ "$t" = - ]; then cat; else cat > "$t"; fi; }',
+  'fake_append() { t="$(fake_file_target "$@")"; if [ "$t" = - ]; then cat; else cat >> "$t"; fi; }',
+].join('\n');
 
 /**
  * Installs the stand-in `name` in `bin` and returns the path of its call log.
