@@ -1,10 +1,6 @@
 [
-  "tests/integration/security.test.ts",
-  "tests/integration/settings.test.ts",
   "tests/integration/share.test.ts",
   "tests/integration/systemNotices.test.ts",
-  "tests/integration/tags.test.ts",
-  "tests/integration/todo.test.ts",
   "tests/integration/trip-access-primitives.test.ts",
   "tests/integration/trips.test.ts",
   "tests/integration/vacay.test.ts",

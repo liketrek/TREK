@@ -8,15 +8,16 @@
  * - These tests focus on HTTP-level security: headers, auth, injection protection, etc.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { TripFiles } from '../../src/db/entities/TripFiles.entity';
 import { authCookie, authHeader, generateToken } from '../helpers/auth';
-import { createUser, createTrip } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { findRows, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
 import { readUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -25,42 +26,37 @@ import type { Application } from 'express';
 import fs from 'fs';
 import path from 'path';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
 /** The app's own ORM, which the factories seed and read through. */
-const orm = (): FactoryOrm => nestApp.get(MikroORM);
+let orm: FactoryOrm;
 const FIXTURE_IMG = path.join(__dirname, '../fixtures/small-image.jpg');
 const uploadsDir = path.join(__dirname, '../../uploads/files');
 
 beforeAll(async () => {
   nestApp = await buildApp();
+  orm = nestApp.get(MikroORM);
   app = nestApp.getHttpAdapter().getInstance();
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-  await setAppSetting(orm(), 'allowed_file_types', '*');
+  await setAppSetting(orm, 'allowed_file_types', '*');
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
-  await setAppSetting(orm(), 'allowed_file_types', '*');
+  await setAppSetting(orm, 'allowed_file_types', '*');
 });
 
 afterAll(async () => {
   await nestApp.close();
   fs.rmSync(uploadsDir, { recursive: true, force: true });
-  testDb.close();
 });
 
 describe('Authentication security', () => {
   it('SEC-007 — invalid JWT in Authorization Bearer header is rejected', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const token = generateToken(user.id);
 
     // The file download endpoint accepts bearer auth
@@ -96,19 +92,19 @@ describe('Security headers', () => {
 
 describe('API key encryption', () => {
   it('SEC-008 — encrypted API keys are stored with enc:v1: prefix', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     await request(app)
       .put('/api/auth/me/api-keys')
       .set('Cookie', authCookie(user.id))
       .send({ openweather_api_key: 'test-api-key-12345' });
 
-    const row = await readUser(orm(), user.id);
+    const row = await readUser(orm, user.id);
     expect(row.openweather_api_key).toMatch(/^enc:v1:/);
   });
 
   it('SEC-008 — saving keys audits the names and never the values (#1939)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const save = () =>
       request(app)
@@ -121,7 +117,7 @@ describe('API key encryption', () => {
     // changedKeys is internal: the client body is what it always was.
     expect(first.body).not.toHaveProperty('changedKeys');
 
-    const rows = () => findRows(orm(), AuditLog, { action: 'settings.api_keys_update' });
+    const rows = () => findRows(orm, AuditLog, { action: 'settings.api_keys_update' });
     expect(await rows()).toHaveLength(1);
     expect((await rows())[0].details).toContain('openweather_api_key');
     expect((await rows())[0].details).not.toContain('test-api-key-12345');
@@ -134,7 +130,7 @@ describe('API key encryption', () => {
   });
 
   it('SEC-008 — GET /api/auth/me does not return plaintext API key', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await request(app)
       .put('/api/auth/me/api-keys')
       .set('Cookie', authCookie(user.id))
@@ -147,7 +143,7 @@ describe('API key encryption', () => {
 
 describe('MFA secret protection', () => {
   it('SEC-009 — GET /api/auth/me does not expose mfa_secret', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(res.body.user.mfa_secret).toBeUndefined();
@@ -168,8 +164,8 @@ describe('Request body size limit', () => {
 
 describe('File download path traversal', () => {
   it('SEC-005 — path traversal in file download is blocked', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const upload = await request(app)
       .post(`/api/trips/${trip.id}/files`)
@@ -178,7 +174,7 @@ describe('File download path traversal', () => {
     expect(upload.status).toBe(201);
     const fileId = upload.body.file.id;
 
-    await updateRows(orm(), TripFiles, { id: fileId }, { filename: '../../etc/passwd' });
+    await updateRows(orm, TripFiles, { id: fileId }, { filename: '../../etc/passwd' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/files/${fileId}/download`).set(authHeader(user.id));
     // path.basename() strips traversal in the download controller; the normalized
