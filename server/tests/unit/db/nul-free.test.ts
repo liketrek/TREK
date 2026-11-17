@@ -4,7 +4,6 @@
  * tests/integration/places-nul.test.ts runs a write and a search through the
  * whole app on SQLite and on Postgres.
  */
-import { extendedQuery, unmarkedValues } from '../../../src/db/engine/postgres/extended-query';
 import { TrekPostgreSqlPlatform } from '../../../src/db/engine/postgres/postgres-driver';
 import { nulFreeJson, nulFreeParameter, stripNul, withNulFreeParameters } from '../../../src/db/nul-free';
 
@@ -86,8 +85,6 @@ describe('NUL-free values', () => {
     expect(nulFreeParameter(numbers)).toBe(numbers);
     const bytes = Buffer.from([0, 1]);
     expect(nulFreeParameter(bytes)).toBe(bytes);
-    const marker = { trekExtendedProtocol: true };
-    expect(nulFreeParameter(marker)).toBe(marker);
     expect(nulFreeParameter(null)).toBeNull();
   });
 
@@ -118,13 +115,9 @@ describe('NUL-free values', () => {
     }
     expect(connection.sent[2].parameters).toEqual(['s']);
 
-    // The extended-protocol marker survives by identity.
-    await acquired.executeQuery(extendedQuery('select $1', ['m\u0000']));
-    expect(unmarkedValues(connection.sent[3].parameters)).toEqual(['m']);
-
     // The driver's own methods get the wrapped connection and still reach its private state.
     await driver.beginTransaction(acquired, {});
-    expect(connection.sent[4].sql).toBe('begin');
+    expect(connection.sent[3].sql).toBe('begin');
     await driver.releaseConnection(acquired);
     expect(connection.released).toBe(true);
   });

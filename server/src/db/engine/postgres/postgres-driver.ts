@@ -1,13 +1,7 @@
 import { nulFreeJson, stripNul, withNulFreeParameters } from '../../nul-free';
-import { sendMarkedQueriesExtended } from './extended-query';
 import { SqliteNullOrderPlatform, withSqliteNullOrder } from './null-order';
 import { type Configuration, type TransformContext } from '@mikro-orm/core';
 import { PostgreSqlConnection, PostgreSqlDriver } from '@mikro-orm/postgresql';
-
-/** The `pg` pool event a new client is handed to before anyone uses it. */
-interface ClientEvents {
-  on(event: 'connect', listener: (client: { query: (...args: unknown[]) => unknown }) => void): void;
-}
 
 /** `int8` (bigint), a `pg_type.oid`: every integer column and every `count(*)` on Postgres. */
 const INT8_OID = 20;
@@ -60,18 +54,11 @@ class NumberTypesConnection extends PostgreSqlConnection {
 
   /**
    * The pool's Kysely dialect, compiling every ORDER BY with SQLite's NULL
-   * position (`null-order.ts`), sending every parameter without NUL
-   * (`nul-free.ts`), on a pool whose every client sends the queries
-   * `extendedQuery` builds over the extended protocol (`extended-query.ts`).
+   * position (`null-order.ts`) and sending every parameter without NUL
+   * (`nul-free.ts`).
    */
   override createKyselyDialect(overrides: Parameters<PostgreSqlConnection['createKyselyDialect']>[0]) {
-    const given = (overrides ?? {}) as { onPoolCreated?: (pool: unknown) => unknown };
-    const onPoolCreated = (pool: unknown) => {
-      (pool as ClientEvents).on('connect', sendMarkedQueriesExtended);
-      return given.onPoolCreated?.(pool);
-    };
-    const withHook = { ...given, onPoolCreated } as Parameters<PostgreSqlConnection['createKyselyDialect']>[0];
-    return withNulFreeParameters(withSqliteNullOrder(super.createKyselyDialect(withHook))) as ReturnType<
+    return withNulFreeParameters(withSqliteNullOrder(super.createKyselyDialect(overrides))) as ReturnType<
       PostgreSqlConnection['createKyselyDialect']
     >;
   }

@@ -14,7 +14,7 @@
 import { buildApp } from '../../src/bootstrap';
 import { buildOrmConfig, resolveEngine } from '../../src/db/engine';
 import { readPostgresBaseline } from '../../src/db/engine/postgres/baseline';
-import { PluginDataSlots, PostgresPluginDataStore } from '../../src/db/engine/postgres/plugin-data-store';
+import { PluginDataSlots, poolClients, PostgresPluginDataStore } from '../../src/db/engine/postgres/plugin-data-store';
 import { MoveRefusal, moveSqliteToPostgres, type MoveSummary } from '../../src/db/engine/postgres/sqlite-move/move';
 import { SqliteEngine } from '../../src/db/engine/sqlite/sqlite-engine';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
@@ -45,7 +45,6 @@ import { makeTrip, readTripDays } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { databaseUrl, withAdmin } from './databases';
 import { MikroORM, type EntityClass, type Options } from '@mikro-orm/core';
-import type { AbstractSqlConnection } from '@mikro-orm/sql';
 import type { INestApplication } from '@nestjs/common';
 
 import Database from 'better-sqlite3';
@@ -270,8 +269,7 @@ describe('moving a SQLite install to Postgres', () => {
     const highest = Math.max(...(await findRows(sqliteOrm, Users)).map((row) => row.id));
     expect(user.id).toBeGreaterThan(highest);
 
-    const client = (pgOrm.em.getConnection() as AbstractSqlConnection).getClient<object>();
-    const store = new PostgresPluginDataStore(PLUGIN_ID, client, new PluginDataSlots(1));
+    const store = new PostgresPluginDataStore(PLUGIN_ID, poolClients(pgOrm.em.getConnection()), new PluginDataSlots(1));
     expect(await store.query('select id, body, score from notes order by id')).toEqual([
       { id: 1, body: 'first', score: 1.5 },
       { id: 2, body: 'second', score: null },

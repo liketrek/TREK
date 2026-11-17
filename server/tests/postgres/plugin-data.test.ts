@@ -1,27 +1,32 @@
 /**
- * PGPLUG-001..011 — a plugin's own data (`db:own`) on Postgres, against the
+ * PGPLUG-001..012 — a plugin's own data (`db:own`) on Postgres, against the
  * real app on the lane's database: each plugin gets a schema of its own and no
  * SQLite file, its SQL keeps the SQLite store's semantics (migrate once per
  * id, a script's statements committed one by one, an atomic tx, the row cap,
  * the time budget, the quota), it cannot reach TREK's tables or another
- * plugin's schema however it spells the name, and erasing a plugin drops its
- * schema and nothing else.
+ * plugin's schema however it spells the name, every statement runs alone,
+ * the pool client a call used goes back without anything the call set, and
+ * erasing a plugin drops its schema and nothing else.
  */
 import { buildApp } from '../../src/bootstrap';
-import { extendedQuery } from '../../src/db/engine/postgres/extended-query';
-import { PluginDataSlots, PostgresPluginDataStore } from '../../src/db/engine/postgres/plugin-data-store';
+import {
+  type ConnectPluginClient,
+  PluginDataSlots,
+  type PluginSqlClient,
+  poolClients,
+  PostgresPluginDataStore,
+} from '../../src/db/engine/postgres/plugin-data-store';
 import { withRequestContext } from '../../src/nest/database/request-context';
 import { PLUGIN_DATA, type PluginDataBackend } from '../../src/nest/plugins/host/plugin-data.backend';
 import { closePluginDataDb } from '../../src/nest/plugins/host/plugin-host-state';
 import { PluginRpcHostFactory } from '../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { MikroORM } from '@mikro-orm/core';
-import type { AbstractSqlConnection } from '@mikro-orm/sql';
 import type { INestApplication } from '@nestjs/common';
 
-import { CompiledQuery } from 'kysely';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import Cursor from 'pg-cursor';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 let app: INestApplication;
@@ -57,10 +62,48 @@ async function pluginSchemas(): Promise<string[]> {
   return rows.map((row) => row.nspname);
 }
 
+/** Clients of the app's pool, as the backend hands them to a store. */
+function appClients(): ConnectPluginClient {
+  return poolClients(orm.em.getConnection());
+}
+
 /** A store on the app's pool with limits small enough to reach in a test. */
 function cappedStore(id: string, limits: { maxRows?: number; timeBudgetMs?: number; quotaBytes?: number }) {
-  const client = (orm.em.getConnection() as AbstractSqlConnection).getClient<object>();
-  return new PostgresPluginDataStore(id, client, new PluginDataSlots(1), limits);
+  return new PostgresPluginDataStore(id, appClients(), new PluginDataSlots(1), limits);
+}
+
+/** `client` for every call of a store, kept checked out by the test: a release only records whether it would close it. */
+function keep(client: PluginSqlClient, released: boolean[] = []): ConnectPluginClient {
+  return async () =>
+    ({
+      query: (arg: never) => client.query(arg),
+      release: (destroy?: boolean) => released.push(destroy === true),
+    }) as unknown as PluginSqlClient;
+}
+
+/**
+ * Pool clients that hand Postgres `swap[text]` in place of a plugin statement
+ * whose text is `text`, as a store would if the guard let a second statement
+ * through: as an extended query or as a cursor, whichever the store sends.
+ */
+function smuggling(swap: Record<string, string>): ConnectPluginClient {
+  const connect = appClients();
+  return async () => {
+    const client = await connect();
+    const query = (arg: unknown): unknown => {
+      if (arg instanceof Cursor) {
+        const cursor = arg as unknown as { text: string };
+        cursor.text = swap[cursor.text] ?? cursor.text;
+        return client.query(arg);
+      }
+      const config = arg as { text?: unknown; values: unknown[] };
+      if (typeof config.text === 'string' && swap[config.text]) {
+        return client.query({ ...config, text: swap[config.text] });
+      }
+      return client.query(arg as never);
+    };
+    return { query, release: (destroy?: boolean) => client.release(destroy) } as unknown as PluginSqlClient;
+  };
 }
 
 describe('plugin data on Postgres', () => {
@@ -275,24 +318,36 @@ describe('plugin data on Postgres', () => {
     expect(await store.query('SELECT body FROM notes')).toEqual([{ body: 'x' }]);
   });
 
-  it('PGPLUG-010: a statement extendedQuery builds runs alone: a second one in its text is refused by Postgres, not run', async () => {
+  it('PGPLUG-010: every plugin statement runs alone: a second one smuggled into its text is refused by Postgres, not run', async () => {
     const store = data.open('pg-proto');
     await store.migrate('001', 'CREATE TABLE t (x int)');
-    const client = (orm.em.getConnection() as AbstractSqlConnection).getClient<object>();
     const two = 'insert into trek_plugin_pg_proto.t values (1); insert into trek_plugin_pg_proto.t values (2)';
 
-    // What a guard that let a second statement through would hand the pool: Postgres parses one statement only.
-    await expect(client.executeQuery(extendedQuery(two, []))).rejects.toThrow(
+    // What the store would hand Postgres if the guard let a second statement through, as a write and as a read.
+    const fooled = new PostgresPluginDataStore(
+      'pg-proto',
+      smuggling({ 'INSERT INTO t VALUES (7)': two, 'SELECT x FROM t': `select x from t; ${two}` }),
+      new PluginDataSlots(1),
+    );
+    await expect(fooled.exec('INSERT INTO t VALUES (7)')).rejects.toThrow(
       /cannot insert multiple commands into a prepared statement/,
     );
+    await expect(fooled.exec('INSERT INTO t VALUES (7)', [])).rejects.toThrow(/cannot insert multiple commands/);
+    await expect(fooled.tx([{ sql: 'INSERT INTO t VALUES (7)' }])).rejects.toThrow(/cannot insert multiple commands/);
+    await expect(fooled.query('SELECT x FROM t')).rejects.toThrow(/cannot insert multiple commands/);
     expect(await store.query('SELECT count(*) AS n FROM t')).toEqual([{ n: 0 }]);
-    // The same text without the marker goes over the simple protocol and runs both, which is what the marker prevents.
-    await client.executeQuery(CompiledQuery.raw(two, []));
+
+    // The same text over the simple protocol runs both, which is what sending each statement extended prevents.
+    const client = await appClients()();
+    try {
+      await client.query(two);
+    } finally {
+      client.release();
+    }
     expect(await store.query('SELECT count(*) AS n FROM t')).toEqual([{ n: 2 }]);
 
     // A single statement runs and reports its rows, with or without args.
-    const one = await client.executeQuery(extendedQuery('delete from trek_plugin_pg_proto.t where x = $1', [1]));
-    expect(one.numAffectedRows).toBe(1n);
+    expect(await store.exec('DELETE FROM t WHERE x = $1', [1])).toEqual({ changes: 1 });
     expect(await store.exec('DELETE FROM t')).toEqual({ changes: 0 });
     expect(await store.exec('INSERT INTO t VALUES (5)', [])).toEqual({ changes: 0 });
     expect(await store.tx([{ sql: 'INSERT INTO t VALUES (6)' }, { sql: 'DELETE FROM t' }])).toEqual({
@@ -316,23 +371,49 @@ describe('plugin data on Postgres', () => {
     const store = data.open('pg-shadow');
     await store.migrate('001', 'CREATE TABLE notes (body text)');
     await store.exec('INSERT INTO notes VALUES ($1)', ['real']);
-    const client = (orm.em.getConnection() as AbstractSqlConnection).getClient<object>();
-    // One pool connection holding temporary tables named like TREK's and the plugin's, as one left behind would.
-    await client.connection().execute(async (conn) => {
-      try {
-        await conn.executeQuery(CompiledQuery.raw("create temp table users as select 'forged'::text as email"));
-        await conn.executeQuery(CompiledQuery.raw("create temp table notes as select 'forged'::text as body"));
-        const resolved = await conn.executeQuery<{ ns: string }>(
-          CompiledQuery.raw(
-            "select relnamespace::regnamespace::text as ns from pg_class where oid = 'users'::regclass",
-          ),
-        );
-        expect(resolved.rows).toEqual([{ ns: 'public' }]);
-        const onConnection = new PostgresPluginDataStore('pg-shadow', conn, new PluginDataSlots(1));
-        expect(await onConnection.query('SELECT body FROM notes')).toEqual([{ body: 'real' }]);
-      } finally {
-        await conn.executeQuery(CompiledQuery.raw('drop table if exists pg_temp.users, pg_temp.notes'));
-      }
-    });
+    // A pool client holding temporary tables named like TREK's and the plugin's, as one left behind would.
+    const client = await appClients()();
+    try {
+      await client.query("create temp table users as select 'forged'::text as email");
+      await client.query("create temp table notes as select 'forged'::text as body");
+      const released: boolean[] = [];
+      const onClient = new PostgresPluginDataStore('pg-shadow', keep(client, released), new PluginDataSlots(1));
+      expect(await onClient.query('SELECT body FROM notes')).toEqual([{ body: 'real' }]);
+      // The call dropped them with the rest of the session's state before it gave the client back.
+      const temps = await client.query(
+        "select count(*)::int as n from pg_class where relpersistence = 't' and relnamespace = pg_my_temp_schema()",
+      );
+      expect(temps.rows).toEqual([{ n: 0 }]);
+      expect(released).toEqual([false]);
+    } finally {
+      await client.query('drop table if exists pg_temp.users, pg_temp.notes');
+      client.release();
+    }
+  });
+
+  it('PGPLUG-012: a call leaves nothing it set on the pool client it used, a cancelled one neither', async () => {
+    const store = data.open('pg-session');
+    await store.migrate('001', 'CREATE TABLE notes (body text)');
+    const settings =
+      "select current_setting('search_path') as path, current_setting('statement_timeout') as timeout, " +
+      "current_setting('standard_conforming_strings') as strings, now() = statement_timestamp() as outside";
+    const client = await appClients()();
+    try {
+      const before = await client.query(settings);
+      const released: boolean[] = [];
+      const onClient = new PostgresPluginDataStore('pg-session', keep(client, released), new PluginDataSlots(1), {
+        timeBudgetMs: 300,
+      });
+      await onClient.tx([{ sql: "INSERT INTO notes VALUES ('a')" }, { sql: 'SELECT body FROM notes' }]);
+      await expect(onClient.query('SELECT count(*) FROM generate_series(1, 2000000000)')).rejects.toThrow(
+        'query exceeded its 300 ms time budget',
+      );
+      await onClient.migrate('002', 'CREATE INDEX notes_body ON notes (body)');
+      // Same search_path and settings as before, and no transaction left open (now() moves with each statement).
+      expect((await client.query(settings)).rows).toEqual(before.rows);
+      expect(released).toEqual([false, false, false]);
+    } finally {
+      client.release();
+    }
   });
 });
