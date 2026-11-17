@@ -5,7 +5,7 @@
     "no-console": 88,
     "complexity": 217,
     "@typescript-eslint/no-explicit-any": 143,
-    "trek/no-swallowed-catch": 128,
+    "trek/no-swallowed-catch": 127,
     "max-params": 31,
     "trek/store-without-selector": 66,
     "react-hooks/refs": 534,

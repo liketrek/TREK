@@ -19,8 +19,10 @@
       // own copies: the shared scripts/lib takes them handed in, and its tests
       // import the hoisted ones the server and shared declare. jsdom is here
       // only to hold one copy at the root, where vitest's built-in jsdom
-      // environment resolves it (see the comment in package.json).
-      "ignoreDependencies": ["unrun", "eslint", "prettier", "jsdom"]
+      // environment resolves it (see the comment in package.json). tsconfig-paths
+      // is the server's: test.yml loads it with `cd server && node --require`,
+      // which knip reads from the root, where the server's dependency is not listed.
+      "ignoreDependencies": ["unrun", "eslint", "prettier", "jsdom", "tsconfig-paths"]
     },
     "client": {
       // The app, the native apps' address screen, its scripts, the Playwright specs and the server launcher
