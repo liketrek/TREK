@@ -5,20 +5,19 @@
  * Starts a real HTTP server on a random port and connects via the `ws` library.
  */
 import { buildApp, getHttpServer } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Users } from '../../src/db/entities/Users.entity';
-import { EphemeralTokenService } from '../../src/nest/auth-core/ephemeral-token.service';
 import { createEphemeralToken } from '../../src/nest/auth-core/ephemeral-tokens';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { broadcastToUser, getOnlineUserIds } from '../../src/nest/realtime/ws-state';
 import { TokenService } from '../../src/nest/tokens/token.service';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { deleteRows, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { readUser } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createTestMcpTokensRepo, createTestUnitOfWork, createTestUsersRepo } from '../helpers/test-uow';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser, readUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -29,34 +28,18 @@ import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import WebSocket from 'ws';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-// The gateway consumes ws-tokens through its injected TokenService; the
-// ephemeral store is module-scoped on purpose, so a directly-constructed
-// instance mints tokens the app under test accepts (TokenService is a leaf —
-// its own unit suite constructs it the same way). `createSnapshotTestDb`
-// (behind the `../../src/db/database` mock above) already carries the full
-// migrated schema, so the repositories can build immediately — no
-// `createTables`/`runMigrations` step needed first, unlike suites that start
-// from a bare `:memory:` handle.
-let tokenService: TokenService;
-const createWsToken = (...args: Parameters<TokenService['createWsToken']>) => tokenService.createWsToken(...args);
-
 let server: http.Server;
 let wsUrl: string;
 let nestApp: INestApplication;
 const orm = (): FactoryOrm => nestApp.get(MikroORM);
 
+// The gateway consumes ws-tokens through its injected TokenService, so the
+// suite mints them through the container's own instance, inside a request
+// context of their own as any caller outside an HTTP request does.
+const createWsToken = (userId: number) =>
+  withRequestContext(orm(), () => nestApp.get(TokenService, { strict: false }).createWsToken(userId));
+
 beforeAll(async () => {
-  tokenService = new TokenService(
-    await createTestMcpTokensRepo(testDb),
-    await createTestUsersRepo(testDb),
-    new EphemeralTokenService(),
-    await createTestUnitOfWork(testDb),
-  );
   // Real WebSocket against the unified NestJS app (Express is gone). buildApp owns
   // the same composition production uses; we attach the real ws server to it.
   nestApp = await buildApp();
@@ -72,11 +55,10 @@ beforeAll(async () => {
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
   await nestApp.close();
-  testDb.close();
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm());
   await resetRateLimits(nestApp);
 });
 
@@ -168,7 +150,7 @@ function connectWs(token?: string): Promise<WsClient> {
 
 describe('WS connection', () => {
   it('WS-001 — connects with valid ephemeral token and receives welcome', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -206,8 +188,8 @@ describe('WS connection', () => {
 
 describe('WS rooms', () => {
   it('WS-004 — join trip room receives joined confirmation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -224,9 +206,9 @@ describe('WS rooms', () => {
   });
 
   it('WS-005 — join trip without access receives error', async () => {
-    const { user } = createUser(testDb);
-    const { user: otherUser } = createUser(testDb);
-    const trip = createTrip(testDb, otherUser.id); // trip owned by otherUser
+    const { user } = await makeUser(orm());
+    const { user: otherUser } = await makeUser(orm());
+    const trip = await makeTrip(orm(), otherUser.id); // trip owned by otherUser
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -256,7 +238,7 @@ describe('WS rooms', () => {
    * with no access), not just "does not throw".
    */
   it('WS-005b — join with a non-numeric tripId receives the same error frame as no access (rule 22 / A-H1)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -290,8 +272,8 @@ describe('WS rooms', () => {
   it("WS-SEAM-001 — handleJoin's repository read runs inside the WS request context (no cannotUseGlobalContext)", async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
+      const { user } = await makeUser(orm());
+      const trip = await makeTrip(orm(), user.id);
       const token = createEphemeralToken(user.id, 'ws')!;
 
       const client = await connectWs(token);
@@ -314,8 +296,8 @@ describe('WS rooms', () => {
   });
 
   it('WS-006 — leave room receives left confirmation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -337,7 +319,7 @@ describe('WS rooms', () => {
 
 describe('WS rate limiting', () => {
   it('WS-008 — exceeding 30 messages per window triggers rate-limit error', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -361,8 +343,8 @@ describe('WS rate limiting', () => {
 
 describe('WS real-time broadcast', () => {
   it('WS-009 — POST /api/trips/:id/places broadcasts place:created to room members', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -402,7 +384,7 @@ describe('WS real-time broadcast', () => {
   });
 
   it('WS-010 — ephemeral WS token is single-use (second connection is rejected)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     // First connection: should succeed
@@ -421,9 +403,9 @@ describe('WS real-time broadcast', () => {
   });
 
   it('WS-011 — client not in trip room does not receive broadcast', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: other } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id);
 
     // Connect `other` user but do NOT join the trip room
     const tokenOther = createEphemeralToken(other.id, 'ws')!;
@@ -454,7 +436,7 @@ describe('WS real-time broadcast', () => {
 describe('WS auth edge cases', () => {
   it('WS-012 — token for non-existent user closes with code 4001', async () => {
     // Insert a user, grab an ephemeral token, then delete the user before connecting
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
     // Remove the user so the DB lookup returns undefined
     await deleteRows(orm(), Users, { id: user.id });
@@ -472,7 +454,7 @@ describe('WS auth edge cases', () => {
     await setAppSetting(orm(), 'require_mfa', 'true');
 
     // Create a regular user without MFA
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const closeCode = await new Promise<number>((resolve) => {
@@ -488,7 +470,7 @@ describe('WS auth edge cases', () => {
     await setAppSetting(orm(), 'require_mfa', 'true');
 
     // Create a user with MFA enabled
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     await updateRows(orm(), Users, { id: user.id }, { mfa_enabled: 1, mfa_secret: 'JBSWY3DPEHPK3PXP' });
 
     const token = createEphemeralToken(user.id, 'ws')!;
@@ -503,7 +485,7 @@ describe('WS auth edge cases', () => {
 
   it('WS-027 — ws-token minted before a password change is rejected (session gate)', async () => {
     // createWsToken stamps the user's current password_version (0) into the token.
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const result = await createWsToken(user.id);
     const token = result.token!;
 
@@ -520,7 +502,7 @@ describe('WS auth edge cases', () => {
   });
 
   it('WS-028 — ws-token whose password_version still matches connects successfully', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     // Bump the version first, THEN mint — the token captures the current pv.
     await updateRows(orm(), Users, { id: user.id }, { password_version: 3 });
     const result = await createWsToken(user.id);
@@ -535,7 +517,7 @@ describe('WS auth edge cases', () => {
 
   it('WS-029 — legacy token without a pv is rejected once the user resets their password', async () => {
     // Tokens minted via createEphemeralToken carry no pv (treated as version 0).
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
     await updateRows(orm(), Users, { id: user.id }, { password_version: 1 });
 
@@ -597,7 +579,7 @@ function waitForMessages(received: any[], n = 1, timeoutMs = 3000): Promise<void
 
 describe('WS message processing edge cases', () => {
   it('WS-015 — malformed JSON is silently ignored (no crash, no error response)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
     const { ws: rawWs, received } = await connectRawWs(token);
 
@@ -620,7 +602,7 @@ describe('WS message processing edge cases', () => {
   });
 
   it('WS-015b — message with non-object payload is silently ignored', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
     const { ws: rawWs, received } = await connectRawWs(token);
 
@@ -642,7 +624,7 @@ describe('WS message processing edge cases', () => {
   });
 
   it('WS-015c — message object missing type field is silently ignored', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
     const { ws: rawWs, received } = await connectRawWs(token);
 
@@ -701,7 +683,7 @@ describe('WS message processing edge cases', () => {
       expect(uncaught.map((e) => (e as { code?: string }).code)).not.toContain('WS_ERR_INVALID_CLOSE_CODE');
 
       // And the server is still serving: a fresh connection still gets a welcome.
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm());
       const token = createEphemeralToken(user.id, 'ws')!;
       const client = await connectWs(token);
       try {
@@ -720,8 +702,8 @@ describe('WS message processing edge cases', () => {
     //   (a) msg 31 triggers the rate-limit error (current window),
     //   (b) a trip join in the same window is blocked,
     //   (c) after the rate-limit trip-join is blocked we verify the counter path was reached.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
     const token = createEphemeralToken(user.id, 'ws')!;
     const { ws: rawWs, received } = await connectRawWs(token);
 
@@ -751,8 +733,8 @@ describe('WS message processing edge cases', () => {
 
 describe('WS disconnect and room cleanup', () => {
   it('WS-017 — disconnecting cleans up room membership so broadcast stops reaching the client', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
     const token1 = createEphemeralToken(user.id, 'ws')!;
 
     // Connect and join the room
@@ -792,8 +774,8 @@ describe('WS disconnect and room cleanup', () => {
   });
 
   it('WS-018 — leaving a room the client was never in is a no-op (no crash, no error)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -818,7 +800,7 @@ describe('WS disconnect and room cleanup', () => {
 
 describe('broadcastToUser and getOnlineUserIds', () => {
   it('WS-019 — broadcastToUser sends payload to all connected sockets for that user', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -837,7 +819,7 @@ describe('broadcastToUser and getOnlineUserIds', () => {
   });
 
   it('WS-020 — broadcastToUser with excludeSid does not send to the excluded socket', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     // Connect two sockets for the same user
     const token1 = createEphemeralToken(user.id, 'ws')!;
@@ -868,8 +850,8 @@ describe('broadcastToUser and getOnlineUserIds', () => {
   });
 
   it('WS-021 — broadcastToUser does not send to sockets belonging to a different user', async () => {
-    const { user: userA } = createUser(testDb);
-    const { user: userB } = createUser(testDb);
+    const { user: userA } = await makeUser(orm());
+    const { user: userB } = await makeUser(orm());
 
     const tokenA = createEphemeralToken(userA.id, 'ws')!;
     const tokenB = createEphemeralToken(userB.id, 'ws')!;
@@ -898,8 +880,8 @@ describe('broadcastToUser and getOnlineUserIds', () => {
   });
 
   it('WS-022 — getOnlineUserIds returns IDs of all connected authenticated users', async () => {
-    const { user: userA } = createUser(testDb);
-    const { user: userB } = createUser(testDb);
+    const { user: userA } = await makeUser(orm());
+    const { user: userB } = await makeUser(orm());
 
     const tokenA = createEphemeralToken(userA.id, 'ws')!;
     const tokenB = createEphemeralToken(userB.id, 'ws')!;
@@ -920,7 +902,7 @@ describe('broadcastToUser and getOnlineUserIds', () => {
   });
 
   it('WS-023 — getOnlineUserIds excludes disconnected users', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
 
     const client = await connectWs(token);
@@ -940,7 +922,7 @@ describe('broadcastToUser and getOnlineUserIds', () => {
   it('WS-024 — broadcastToUser delivers custom payload to the correct connected socket', async () => {
     // This directly exercises the broadcastToUser code path end-to-end through the
     // exported function, verifying that the correct socket receives the message.
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const token = createEphemeralToken(user.id, 'ws')!;
     const client = await connectWs(token);
     try {
@@ -961,8 +943,8 @@ describe('broadcastToUser and getOnlineUserIds', () => {
     // Exercises line 180: `if (!room || room.size === 0) return`
     // A REST mutation on a trip with no connected WS clients triggers broadcast()
     // with a room that doesn't exist — must not throw.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     // No WebSocket clients join the trip room before the REST call
     const res = await request(server)
@@ -979,8 +961,8 @@ describe('broadcastToUser and getOnlineUserIds', () => {
     // We join a room with two clients, forcefully terminate one (so its readyState becomes
     // CLOSED while still transiently in the room map), then trigger a broadcast and confirm
     // the surviving client receives it without errors.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     const token1 = createEphemeralToken(user.id, 'ws')!;
     const token2 = createEphemeralToken(user.id, 'ws')!;
