@@ -11,6 +11,7 @@ import {
   applyDeferred,
   copyTable,
   inOrder,
+  listLines,
   MAX_LISTED_PROBLEMS,
   readBack,
   run,
@@ -36,17 +37,26 @@ import type { Kysely } from 'kysely';
  * 1. The SQLite file must be at this build's migration level: an older one is
  *    migrated by starting this TREK on it once, a newer one belongs to the
  *    TREK that wrote it. Nothing else is checked by guess.
- * 2. The Postgres database must hold no table and no plugin schema.
- * 3. The schema is created exactly as a first boot creates it (the engine's
+ * 2. Every plugin's data must move unchanged (`PLUGIN_RULES` in `values.ts`):
+ *    a value Postgres cannot hand back to the plugin as it is (a NUL, a
+ *    column whose values mix types) is listed, before anything is written.
+ * 3. The Postgres database must hold no table and no plugin schema.
+ * 4. The schema is created exactly as a first boot creates it (the engine's
  *    bootstrap: the baseline and the migrations after its cut), without the
  *    seeders, since every row comes from the file.
- * 4. In one transaction: the rows the bootstrap seeded are cleared, every
+ * 5. In one transaction: the rows the bootstrap seeded are cleared, every
  *    table is filled in foreign key order, each plugin's `plugin.db` goes into
  *    its schema, the sequences are moved past the copied ids, and every table
- *    is read back and compared with what was sent (row count and a checksum
- *    over all rows). Only a copy that matches is committed.
- * 5. Anything that fails leaves the database as it was found: the
+ *    is read back and compared with the SQLite file (row count and a checksum
+ *    over all rows, built from the values read from SQLite). Only a copy that
+ *    matches is committed.
+ * 6. Anything that fails leaves the database as it was found: the
  *    transaction rolls back and the schema the bootstrap created is dropped.
+ *
+ * Nothing is changed silently. A NUL character in TREK's own text, which TREK
+ * no longer stores and drops on its next write, refuses the move unless the
+ * operator passes `dropNul` (`--drop-nul`); then each value that lost one is
+ * listed in the summary.
  *
  * The SQLite files are opened read-only and never written. Uploads are not
  * the database's: they stay where the storage driver keeps them.
@@ -67,6 +77,8 @@ export interface MoveOptions {
   baseline: () => PostgresBaseline;
   /** Where progress lines go. */
   log: (line: string) => void;
+  /** Drop NUL characters from TREK's own text and JSON instead of refusing them (`--drop-nul`). */
+  dropNul?: boolean;
 }
 
 interface MovedTable {
@@ -80,9 +92,23 @@ export interface MoveSummary {
   tables: MovedTable[];
   plugins: Array<{ pluginId: string; schema: string; tables: MovedTable[]; notCarried: string[] }>;
   sequences: number;
+  /** Every value of TREK's own tables from which `--drop-nul` removed NUL characters: table, row and column. */
+  nulDropped: string[];
   warnings: string[];
   seconds: number;
 }
+
+/** What the operator can do about a NUL in TREK's own data, for a refusal that lists one. */
+const TREK_NUL_REMEDY =
+  'TREK no longer stores this character and drops it on its next write. Run the move again with --drop-nul ' +
+  'to drop it now; the summary then lists every value it changed.';
+
+/** What the operator can do about plugin data that cannot move unchanged. */
+const PLUGIN_DATA_REMEDY =
+  "A plugin's own data moves exactly as the plugin stored it, or not at all: Postgres text cannot hold a NUL " +
+  'character (U+0000), and each column becomes one Postgres type, which hands every value back to the plugin as ' +
+  "that type. Change those values in the plugin's plugin.db (through the plugin, or with the sqlite3 tool while " +
+  'TREK is stopped), or uninstall the plugin and remove its data directory, then run the move again.';
 
 /**
  * Why the SQLite file is not at this build's migration level, or null when it
@@ -107,12 +133,6 @@ export function migrationLevelProblem(recorded: readonly string[] | null, known:
     return `the SQLite file is ${missing.length} migration(s) behind this TREK version. ${startOnce}`;
   }
   return null;
-}
-
-function listed(problems: readonly string[], total: number): string {
-  const lines = problems.map((problem) => `  - ${problem}`);
-  if (total > problems.length) lines.push(`  - and ${total - problems.length} more`);
-  return lines.join('\n');
 }
 
 /** Refuses a database that holds a table or a plugin schema: the move fills an empty database only. */
@@ -147,6 +167,27 @@ function planPlugins(root: string, warnings: string[]): Array<{ source: SqliteSo
   return plugins;
 }
 
+/**
+ * Reads every plugin table and checks that each value moves unchanged, before
+ * anything is written: a refusal lists plugin, table, row and column of each
+ * value that would not.
+ */
+async function checkPluginData(plugins: ReadonlyArray<{ source: SqliteSource; plan: PluginPlan }>): Promise<void> {
+  const checked: CopiedTable[] = [];
+  await inOrder(plugins, (plugin) =>
+    inOrder(plugin.plan.specs, async (spec) => {
+      checked.push(await copyTable(null, plugin.source, spec));
+    }),
+  );
+  const total = checked.reduce((sum, table) => sum + table.problemCount, 0);
+  if (total === 0) return;
+  const problems = checked.flatMap((table) => table.problems).slice(0, MAX_LISTED_PROBLEMS);
+  throw new MoveRefusal(
+    `${total} value(s) in plugin data cannot move to Postgres unchanged; nothing was written:\n` +
+      `${listLines(problems, total)}\n${PLUGIN_DATA_REMEDY}`,
+  );
+}
+
 /** Compares a copied table with what Postgres holds now: the SQLite count, the rows sent and the checksum. */
 async function verify(trx: Trx, copied: CopiedTable, sqliteCount: number): Promise<string | null> {
   const back = await readBack(trx, copied.spec);
@@ -154,7 +195,7 @@ async function verify(trx: Trx, copied: CopiedTable, sqliteCount: number): Promi
     return `${copied.spec.label}: the SQLite file holds ${sqliteCount} rows, ${copied.rows} were sent, Postgres holds ${back.rows}`;
   }
   if (back.checksum !== copied.checksum)
-    return `${copied.spec.label}: the rows Postgres holds differ from the rows sent`;
+    return `${copied.spec.label}: the rows Postgres holds differ from the rows of the SQLite file`;
   return null;
 }
 
@@ -173,7 +214,7 @@ async function copyAll(
   const plan = planTrekTables(await readTargetSchema(trx), sourceTables);
   if (plan.problems.length > 0) {
     throw new MoveRefusal(
-      `The SQLite file and this TREK's Postgres schema differ:\n${listed(plan.problems, plan.problems.length)}`,
+      `The SQLite file and this TREK's Postgres schema differ:\n${listLines(plan.problems, plan.problems.length)}`,
     );
   }
   // The bootstrap's own rows (default settings, addons, providers) give way to the file's.
@@ -181,10 +222,12 @@ async function copyAll(
 
   const copied: CopiedTable[] = [];
   let refused = 0;
+  let nulRefused = 0;
   const copyOne = (from: SqliteSource) => async (spec: CopiedTable['spec']) => {
     options.log(`Copying ${spec.label}`);
-    const result = await copyTable(trx, from, spec, { insert: refused === 0 });
+    const result = await copyTable(trx, from, spec, { insert: refused === 0, dropNul: options.dropNul });
     refused += result.problemCount;
+    nulRefused += result.nulRefused;
     copied.push(result);
   };
   await inOrder(plan.specs, copyOne(source));
@@ -202,9 +245,11 @@ async function copyAll(
   });
   if (refused > 0) {
     const problems = copied.flatMap((table) => table.problems).slice(0, MAX_LISTED_PROBLEMS);
+    const nul = nulRefused > 0 ? `${nulRefused} of them hold a NUL character (U+0000). ${TREK_NUL_REMEDY}\n` : '';
     throw new MoveRefusal(
       `${refused} value(s) in the SQLite file cannot be stored in Postgres exactly; nothing was written:\n` +
-        `${listed(problems, refused)}\nCorrect those rows (or ask for help with them), then run the move again.`,
+        `${listLines(problems, refused)}\n${nul}` +
+        'Correct those rows (or ask for help with them), then run the move again.',
     );
   }
 
@@ -228,7 +273,7 @@ async function copyAll(
   });
   if (mismatches.length > 0) {
     throw new Error(
-      `The copy does not match the SQLite file; nothing was written:\n${listed(mismatches, mismatches.length)}`,
+      `The copy does not match the SQLite file; nothing was written:\n${listLines(mismatches, mismatches.length)}`,
     );
   }
 
@@ -245,6 +290,7 @@ async function copyAll(
     tables: (pluginTables.get(pluginPlan.pluginId) ?? []).map(moved),
     notCarried: pluginPlan.notCarried,
   }));
+  summary.nulDropped = copied.flatMap((table) => table.nulDropped.map((value) => value.where));
   const unsafe = copied.filter((table) => table.unsafeIntegers > 0);
   for (const table of unsafe) {
     summary.warnings.push(
@@ -279,6 +325,7 @@ export async function moveSqliteToPostgres(options: MoveOptions): Promise<MoveSu
     tables: [],
     plugins: [],
     sequences: 0,
+    nulDropped: [],
     warnings: [],
     seconds: 0,
   };
@@ -300,13 +347,14 @@ export async function moveSqliteToPostgres(options: MoveOptions): Promise<MoveSu
     if (orphans.length > 0) {
       throw new MoveRefusal(
         `${options.sqliteFile} holds rows whose reference points at nothing, which Postgres refuses:\n` +
-          listed(
+          listLines(
             orphans.map((row) => `${row.table} row ${String(row.rowid)} refers to a missing row of ${row.parent}`),
             orphans.length,
           ),
       );
     }
     plugins.push(...planPlugins(options.pluginsDataDir, summary.warnings));
+    await checkPluginData(plugins);
     await refuseNonEmptyTarget(db);
 
     try {
@@ -349,6 +397,10 @@ export function renderSummary(summary: MoveSummary, target: string): string {
       `  Plugin ${plugin.pluginId}: ${plugin.tables.length} table(s), ${pluginRows} rows, into schema ${plugin.schema}.`,
     );
     for (const item of plugin.notCarried) lines.push(`    not carried over: ${item}`);
+  }
+  if (summary.nulDropped.length > 0) {
+    lines.push(`  --drop-nul removed NUL characters (U+0000) from ${summary.nulDropped.length} value(s):`);
+    for (const value of summary.nulDropped) lines.push(`    ${value}`);
   }
   for (const warning of summary.warnings) lines.push(`  Warning: ${warning}`);
   lines.push(

@@ -14,12 +14,18 @@ import path from 'node:path';
  * The command around the move (`src/move-to-postgres.ts` runs it): reads
  * TREK_DB_URL as the server does, takes the SQLite file from the data
  * directory or `--from=<file>`, the plugin data from the plugins' data
- * directory, runs the move and prints its summary. Answers the exit code.
+ * directory, runs the move and prints its summary. `--drop-nul` lets the move
+ * drop NUL characters from TREK's own text instead of refusing them. Answers
+ * the exit code.
  */
 
 export const USAGE =
-  'Usage: move-to-postgres [--from=<SQLite file>]\n' +
-  'Copies a TREK SQLite database (data/travel.db by default) into the empty Postgres database TREK_DB_URL names.';
+  'Usage: move-to-postgres [--from=<SQLite file>] [--drop-nul]\n' +
+  'Copies a TREK SQLite database (data/travel.db by default) into the empty Postgres database TREK_DB_URL names.\n' +
+  '  --from=<file>  the SQLite file to copy\n' +
+  "  --drop-nul     drop NUL characters (U+0000) from TREK's own text, which Postgres cannot hold and TREK drops on\n" +
+  '                 its next write anyway, instead of refusing the move; the summary lists every value changed.\n' +
+  "                 A plugin's own data is never changed: a NUL there refuses the move either way.";
 
 export interface MoveCommandIo {
   env: () => AppEnv;
@@ -51,13 +57,14 @@ const defaultIo: MoveCommandIo = {
 };
 
 const FROM = '--from=';
+const DROP_NUL = '--drop-nul';
 
 async function run(argv: readonly string[], io: MoveCommandIo): Promise<number> {
   if (argv.includes('--help') || argv.includes('-h')) {
     io.out(USAGE);
     return 0;
   }
-  const unknown = argv.find((arg) => !arg.startsWith(FROM));
+  const unknown = argv.find((arg) => !arg.startsWith(FROM) && arg !== DROP_NUL);
   if (unknown !== undefined) throw new MoveRefusal(`Unknown argument ${unknown}.\n${USAGE}`);
   const env = io.env();
   if (env.db.engine !== 'postgres')
@@ -77,6 +84,7 @@ async function run(argv: readonly string[], io: MoveCommandIo): Promise<number> 
       known: knownMigrationNames(),
       baseline: readPostgresBaseline,
       log: (line) => io.out(`  ${line}`),
+      dropNul: argv.includes(DROP_NUL),
     });
     io.out('');
     io.out(renderSummary(summary, target));

@@ -63,7 +63,12 @@ describe('planCopyOrder', () => {
 describe('planTrekTables', () => {
   const target: TargetSchema = {
     tables: [
-      { name: 'mikro_orm_migrations', columns: [{ name: 'name', dataType: 'text', nullable: false }], primaryKey: [] },
+      {
+        name: 'mikro_orm_migrations',
+        columns: [{ name: 'name', dataType: 'text', nullable: false }],
+        primaryKey: [],
+        uniqueKeys: [],
+      },
       {
         name: 'messages',
         columns: [
@@ -71,6 +76,7 @@ describe('planTrekTables', () => {
           { name: 'reply_to', dataType: 'bigint', nullable: true },
         ],
         primaryKey: ['id'],
+        uniqueKeys: [{ name: 'messages_pkey', columns: ['id'] }],
       },
       {
         name: 'users',
@@ -79,6 +85,7 @@ describe('planTrekTables', () => {
           { name: 'avatar', dataType: 'bytea', nullable: true },
         ],
         primaryKey: ['id'],
+        uniqueKeys: [],
       },
     ],
     foreignKeys: [{ table: 'messages', columns: ['reply_to'], references: 'messages' }],
@@ -96,7 +103,13 @@ describe('planTrekTables', () => {
     );
     expect(plan.problems).toEqual([]);
     expect(plan.specs.map((spec) => spec.target)).toEqual(['"messages"', '"users"']);
-    expect(plan.specs[0]).toMatchObject({ deferred: ['reply_to'], primaryKey: ['id'], label: 'messages' });
+    expect(plan.specs[0]).toMatchObject({
+      deferred: ['reply_to'],
+      primaryKey: ['id'],
+      label: 'messages',
+      exact: false,
+      uniqueKeys: [{ name: 'messages_pkey', columns: ['id'] }],
+    });
     expect(plan.specs[1].columns).toEqual([
       { name: 'id', kind: 'integer' },
       { name: 'avatar', kind: 'bytes' },
@@ -119,8 +132,9 @@ describe('planTrekTables', () => {
             { name: 'sent_at', dataType: 'timestamp with time zone', nullable: true },
           ],
           primaryKey: ['id'],
+          uniqueKeys: [],
         },
-        { name: 'extra', columns: [], primaryKey: [] },
+        { name: 'extra', columns: [], primaryKey: [], uniqueKeys: [] },
       ],
     };
     const plan = planTrekTables(
@@ -143,7 +157,7 @@ describe('planTrekTables', () => {
 });
 
 describe('readTargetSchema', () => {
-  it('MOVEORD-007: reads the columns, keys and sequences of the current schema', async () => {
+  it('MOVEORD-007: reads the columns, keys, unique keys and sequences of the current schema', async () => {
     const pg = new FakePostgres([
       {
         name: 'trips',
@@ -154,6 +168,7 @@ describe('readTargetSchema', () => {
         primaryKey: ['id'],
         foreignKeys: [{ columns: ['user_id'], references: 'users' }],
         serial: ['id'],
+        unique: [{ name: 'trips_user_id_unique', columns: ['user_id'] }],
       },
       { name: 'users', columns: [{ name: 'id', dataType: 'bigint', nullable: false }], primaryKey: ['id'] },
     ]);
@@ -166,8 +181,17 @@ describe('readTargetSchema', () => {
           { name: 'id', dataType: 'bigint', nullable: false },
           { name: 'user_id', dataType: 'bigint', nullable: true },
         ],
+        uniqueKeys: [
+          { name: 'trips_pkey', columns: ['id'] },
+          { name: 'trips_user_id_unique', columns: ['user_id'] },
+        ],
       },
-      { name: 'users', primaryKey: ['id'], columns: [{ name: 'id', dataType: 'bigint', nullable: false }] },
+      {
+        name: 'users',
+        primaryKey: ['id'],
+        columns: [{ name: 'id', dataType: 'bigint', nullable: false }],
+        uniqueKeys: [{ name: 'users_pkey', columns: ['id'] }],
+      },
     ]);
     expect(schema.foreignKeys).toEqual([{ table: 'trips', columns: ['user_id'], references: 'users' }]);
     expect(schema.sequences).toEqual([{ table: 'trips', column: 'id', sequence: 'public.trips_id_seq' }]);

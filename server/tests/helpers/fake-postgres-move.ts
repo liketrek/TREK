@@ -25,6 +25,8 @@ export interface FakeTableDef {
   foreignKeys?: Array<{ columns: string[]; references: string }>;
   /** Columns a sequence fills. */
   serial?: string[];
+  /** Unique indexes besides the primary key's (`<table>_pkey`). */
+  unique?: Array<{ name: string; columns: string[] }>;
 }
 
 interface FakeTable {
@@ -55,6 +57,8 @@ export class FakePostgres {
   pluginSchemas: string[] = [];
   /** A statement matching this fails, as Postgres would refuse it. */
   failOn: RegExp | null = null;
+  /** What the refusal of `failOn` carries besides its message: by default a broken key without a SQLSTATE. */
+  failWith: Record<string, unknown> = { detail: 'Key (id)=(1)', constraint: 'fake_key' };
   /** Rows the read-back answers in place of the stored ones, by table: a copy that came out wrong. */
   tamper = new Map<string, (rows: unknown[][]) => unknown[][]>();
   private cursor: Array<Record<string, string | null>> = [];
@@ -81,7 +85,7 @@ export class FakePostgres {
     const params = [...query.parameters];
     this.statements.push(sql);
     if (this.failOn?.test(sql)) {
-      throw Object.assign(new Error('refused by the fake'), { detail: 'Key (id)=(1)', constraint: 'fake_key' });
+      throw Object.assign(new Error('refused by the fake'), this.failWith);
     }
     return { rows: this.answer(sql, params) as R[] };
   }
@@ -121,6 +125,14 @@ export class FakePostgres {
           target_name: fk.references,
           columns: fk.columns,
         })),
+      ]);
+    }
+    if (sql.includes('from pg_index')) {
+      return this.schema.flatMap((table) => [
+        ...(table.primaryKey.length > 0
+          ? [{ table_name: table.name, index_name: `${table.name}_pkey`, columns: table.primaryKey }]
+          : []),
+        ...(table.unique ?? []).map((key) => ({ table_name: table.name, index_name: key.name, columns: key.columns })),
       ]);
     }
     if (sql.includes("pg_get_serial_sequence(format('%I'")) {

@@ -2,10 +2,13 @@ import type { SqliteSource } from '../../sqlite/sqlite-source';
 import {
   beyondSafeInteger,
   canonicalFromPostgres,
-  canonicalFromSent,
+  canonicalFromSource,
   convertValue,
+  NUL_REASON,
+  PLUGIN_RULES,
   TableChecksum,
   type ColumnKind,
+  type ConvertRules,
   type PostgresValue,
   type SqliteValue,
 } from './values';
@@ -17,7 +20,7 @@ import { CompiledQuery, type Kysely, type Transaction } from 'kysely';
  * inside the move's transaction. The same steps serve TREK's own tables and a
  * plugin's: read the rows one at a time, convert each value to its column's
  * type, insert in batches, then read the table back and compare its row count
- * and checksum with what was sent.
+ * and checksum with the rows read from the SQLite file.
  */
 
 export type Trx = Transaction<object>;
@@ -29,6 +32,8 @@ const MAX_BATCH_PARAMS = 30_000;
 const FETCH_ROWS = 2_000;
 /** The most refused values a refusal lists one by one. */
 export const MAX_LISTED_PROBLEMS = 20;
+/** Postgres's SQLSTATE for a row that would break a unique key. */
+const UNIQUE_VIOLATION = '23505';
 
 /** One column of a table the move copies. */
 interface CopyColumn {
@@ -49,6 +54,17 @@ export interface TableSpec {
   deferred: string[];
   /** The primary key's columns, which the deferred update finds a row by. */
   primaryKey: string[];
+  /** A plugin's own table, whose values must arrive exactly as stored (`PLUGIN_RULES` in `values.ts`). */
+  exact: boolean;
+  /** The unique keys of the Postgres table (the primary key among them), by constraint or index name. */
+  uniqueKeys: Array<{ name: string; columns: string[] }>;
+}
+
+/** A value from which `--drop-nul` removed NUL characters, for the summary. */
+interface DroppedNul {
+  /** The table, row and column, named as a refusal names a value. */
+  where: string;
+  column: string;
 }
 
 /** A row's deferred values, kept until every table is in. */
@@ -65,6 +81,10 @@ export interface CopiedTable {
   /** Values the Postgres column cannot hold exactly, listed up to `MAX_LISTED_PROBLEMS`; the move refuses on any. */
   problems: string[];
   problemCount: number;
+  /** How many of the refused values hold a NUL character. */
+  nulRefused: number;
+  /** Every value `--drop-nul` changed. */
+  nulDropped: DroppedNul[];
   /** Integer values beyond 2^53, which TREK's Postgres driver refuses to read back. */
   unsafeIntegers: number;
   deferredRows: DeferredRow[];
@@ -120,26 +140,64 @@ export function insertSql(spec: Pick<TableSpec, 'target' | 'columns'>, rows: num
   return `insert into ${spec.target} (${names}) values ${tuples.join(', ')}`;
 }
 
-async function insertBatch(trx: Trx, spec: TableSpec, batch: PostgresValue[][]): Promise<void> {
+/** Lines as a refusal lists them, and how many more there are when `total` is above what is listed. */
+export function listLines(lines: readonly string[], total = lines.length): string {
+  const shown = lines.map((line) => `  - ${line}`);
+  if (total > lines.length) shown.push(`  - and ${total - lines.length} more`);
+  return shown.join('\n');
+}
+
+/**
+ * Why Postgres refused rows of a table. A unique key broken in a table whose
+ * values lost NUL characters to `--drop-nul` is named as that: two values
+ * that differed only by a NUL are equal once it is gone, which the SQLite
+ * file's own key never saw.
+ */
+export function refusedRowsMessage(spec: TableSpec, err: unknown, dropped: readonly DroppedNul[]): string {
+  const message = `Postgres refused rows of ${spec.label}: ${describePgError(err)}`;
+  const { code, constraint } = (err ?? {}) as { code?: unknown; constraint?: unknown };
+  if (code !== UNIQUE_VIOLATION || dropped.length === 0) return message;
+  const key = spec.uniqueKeys.find((candidate) => candidate.name === constraint);
+  const suspects = key ? dropped.filter((value) => key.columns.includes(value.column)) : dropped;
+  if (suspects.length === 0) return message;
+  const where = key ? `its column(s) ${key.columns.join(', ')}` : spec.label;
+  return (
+    `${message}\nThe key is broken because --drop-nul removed NUL characters (U+0000) from ${suspects.length} ` +
+    `value(s) of ${where}, and a value that differed from another only by a NUL equals it once the NUL is gone:\n` +
+    `${listLines(
+      suspects.slice(0, MAX_LISTED_PROBLEMS).map((value) => value.where),
+      suspects.length,
+    )}\n` +
+    'Change or remove one of the two rows in the SQLite file (with TREK stopped), then run the move again.'
+  );
+}
+
+async function insertBatch(
+  trx: Trx,
+  spec: TableSpec,
+  batch: PostgresValue[][],
+  dropped: readonly DroppedNul[],
+): Promise<void> {
   if (batch.length === 0) return;
   try {
     await run(trx, insertSql(spec, batch.length), batch.flat());
   } catch (err) {
-    throw new Error(`Postgres refused rows of ${spec.label}: ${describePgError(err)}`, { cause: err });
+    throw new Error(refusedRowsMessage(spec, err, dropped), { cause: err });
   }
 }
 
 /**
  * Copies the rows of one table. Every value is converted first; once one
  * cannot be, nothing more is inserted, but the rest of the table is still read
- * so the refusal can list every problem at once. With `insert: false` it only
- * reads and converts, once an earlier table was refused.
+ * so the refusal can list every problem at once. Without a transaction, or
+ * with `insert: false` (once an earlier table was refused), it only reads and
+ * converts, which is how the checks before anything is written run it.
  */
 export async function copyTable(
-  trx: Trx,
+  trx: Trx | null,
   source: SqliteSource,
   spec: TableSpec,
-  options: { insert: boolean } = { insert: true },
+  options: { insert?: boolean; dropNul?: boolean } = {},
 ): Promise<CopiedTable> {
   const result: CopiedTable = {
     spec,
@@ -147,18 +205,26 @@ export async function copyTable(
     checksum: '',
     problems: [],
     problemCount: 0,
+    nulRefused: 0,
+    nulDropped: [],
     unsafeIntegers: 0,
     deferredRows: [],
   };
+  const rules: ConvertRules = spec.exact ? PLUGIN_RULES : { exact: false, dropNul: options.dropNul === true };
   const checksum = new TableChecksum();
   const deferredAt = spec.deferred.map((name) => spec.columns.findIndex((column) => column.name === name));
   const keyAt = spec.primaryKey.map((name) => spec.columns.findIndex((column) => column.name === name));
   const size = batchRows(spec.columns.length);
 
-  /** How a refusal names a row: by its primary key, or by its place in the table without one. */
+  /**
+   * How a refusal names a row: by its primary key, or by its place in the
+   * table without one. A NUL in a key is spelled `\u0000`, so the line can be
+   * read and copied.
+   */
   const rowName = (raw: unknown[]): string => {
     if (keyAt.length === 0 || keyAt.includes(-1)) return `row ${result.rows}`;
-    return `row ${spec.primaryKey.map((name, index) => `${name}=${String(raw[keyAt[index]])}`).join(', ')}`;
+    const key = (index: number) => String(raw[keyAt[index]]).replaceAll('\u0000', '\\u0000');
+    return `row ${spec.primaryKey.map((name, index) => `${name}=${key(index)}`).join(', ')}`;
   };
 
   /** One SQLite row as the values sent to Postgres, or null once a value was refused. */
@@ -166,21 +232,25 @@ export async function copyTable(
     result.rows++;
     const values: PostgresValue[] = [];
     spec.columns.forEach((column, index) => {
-      const converted = convertValue(raw[index] as SqliteValue, column.kind);
+      const converted = convertValue(raw[index] as SqliteValue, column.kind, rules);
+      const where = `${spec.label} ${rowName(raw)}, column ${column.name}`;
       // Narrowed by `in`: the server compiles without strictNullChecks, where `ok` does not narrow the union.
       if (!('reason' in converted)) {
         values.push(converted.value);
         if (column.kind === 'integer' && beyondSafeInteger(converted.value)) result.unsafeIntegers++;
+        if (converted.droppedNul) result.nulDropped.push({ where, column: column.name });
         return;
       }
       values.push(null);
       result.problemCount++;
-      if (result.problems.length < MAX_LISTED_PROBLEMS) {
-        result.problems.push(`${spec.label} ${rowName(raw)}, column ${column.name}: ${converted.reason}`);
-      }
+      if (converted.reason.includes(NUL_REASON)) result.nulRefused++;
+      if (result.problems.length < MAX_LISTED_PROBLEMS) result.problems.push(`${where}: ${converted.reason}`);
     });
     if (result.problemCount > 0) return null;
-    checksum.add(values.map((value, index) => canonicalFromSent(value, spec.columns[index].kind)));
+    // From the SQLite values, not the converted ones, so a conversion that changed a value cannot verify itself.
+    checksum.add(
+      spec.columns.map((column, index) => canonicalFromSource(raw[index] as SqliteValue, column.kind, rules)),
+    );
     if (deferredAt.length > 0) {
       const later = deferredAt.map((index) => values[index]);
       if (later.some((value) => value !== null)) {
@@ -209,7 +279,9 @@ export async function copyTable(
   const pump = async (): Promise<void> => {
     const { batch, done } = nextBatch();
     // Always awaited, so the next batch starts on a fresh stack even when nothing is inserted.
-    await (options.insert && result.problemCount === 0 ? insertBatch(trx, spec, batch) : Promise.resolve());
+    await (trx && options.insert !== false && result.problemCount === 0
+      ? insertBatch(trx, spec, batch, result.nulDropped)
+      : Promise.resolve());
     if (!done) await pump();
   };
   try {
@@ -243,7 +315,7 @@ export async function applyDeferred(trx: Trx, copied: CopiedTable): Promise<void
 
 /**
  * Reads a table back through a cursor, every column as text, and answers its
- * row count and checksum, which must equal what `copyTable` sent.
+ * row count and checksum, which must equal what `copyTable` read from SQLite.
  */
 export async function readBack(trx: Trx, spec: TableSpec): Promise<{ rows: number; checksum: string }> {
   const checksum = new TableChecksum();

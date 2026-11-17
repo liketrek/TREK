@@ -23,6 +23,8 @@ interface TargetTable {
   name: string;
   columns: TargetColumn[];
   primaryKey: string[];
+  /** Every unique index (the primary key's among them) over plain columns, by name. */
+  uniqueKeys: Array<{ name: string; columns: string[] }>;
 }
 
 export interface TargetSchema {
@@ -57,15 +59,33 @@ export async function readTargetSchema(trx: Trx): Promise<TargetSchema> {
       "and pg_get_serial_sequence(format('%I', table_name), column_name) is not null order by table_name, column_name",
   );
 
+  // A unique constraint is backed by an index of its name, so the index names what a refusal reports.
+  const uniqueIndexes = await run<{ table_name: string; index_name: string; columns: string[] }>(
+    trx,
+    'select t.relname as table_name, i.relname as index_name, array_agg(a.attname::text order by k.ord) as columns ' +
+      'from pg_index x join pg_class i on i.oid = x.indexrelid join pg_class t on t.oid = x.indrelid ' +
+      'cross join lateral unnest(x.indkey) with ordinality as k(attnum, ord) ' +
+      'join pg_attribute a on a.attrelid = x.indrelid and a.attnum = k.attnum ' +
+      'where x.indisunique and t.relnamespace = current_schema()::regnamespace group by t.relname, i.relname',
+  );
+
   const tables = new Map<string, TargetTable>();
   for (const column of columns) {
-    const table = tables.get(column.table_name) ?? { name: column.table_name, columns: [], primaryKey: [] };
+    const table = tables.get(column.table_name) ?? {
+      name: column.table_name,
+      columns: [],
+      primaryKey: [],
+      uniqueKeys: [],
+    };
     table.columns.push({
       name: column.column_name,
       dataType: column.data_type,
       nullable: column.is_nullable === 'YES',
     });
     tables.set(column.table_name, table);
+  }
+  for (const index of uniqueIndexes) {
+    tables.get(index.table_name)?.uniqueKeys.push({ name: index.index_name, columns: index.columns });
   }
   const foreignKeys: ForeignKey[] = [];
   for (const constraint of constraints) {
@@ -154,6 +174,8 @@ export function planTrekTables(target: TargetSchema, source: SourceTables): Trek
       columns,
       deferred,
       primaryKey: table.primaryKey,
+      exact: false,
+      uniqueKeys: table.uniqueKeys,
     });
   }
   const sequences = target.sequences

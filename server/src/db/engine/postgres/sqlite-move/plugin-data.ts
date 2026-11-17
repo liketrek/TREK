@@ -22,6 +22,11 @@ import path from 'node:path';
  * here (foreign keys between its tables, views, triggers, partial or
  * expression indexes, other defaults) is not created and is listed in the
  * summary. The file itself stays where it is, untouched.
+ *
+ * The rows are the plugin's, so none is changed on the way: every value must
+ * come back from the Postgres store with the type and bytes it has in the
+ * file, or the move refuses before it writes anything and lists the value
+ * (`PLUGIN_RULES` in `values.ts`, checked by `checkPluginData` in `move.ts`).
  */
 
 /** The plugin store's own record of the migrations it ran, created exactly as the store creates it. */
@@ -40,21 +45,27 @@ const PG_TYPE: Record<ColumnKind, string> = {
 /**
  * The kind of a plugin's column, by SQLite's affinity rules (the declared
  * type's text decides, in this order: INT, then CHAR/CLOB/TEXT, then BLOB or
- * none, then REAL/FLOA/DOUB, else NUMERIC). Where the affinity leaves the
- * storage open (none, or NUMERIC), the values the column holds decide, and
- * text is the answer that holds every one of them.
+ * none, then REAL/FLOA/DOUB, else NUMERIC). An INTEGER, TEXT or REAL affinity
+ * names the type the plugin asked for. Where the affinity leaves the storage
+ * open (BLOB or none, or NUMERIC), the values the column holds decide: the
+ * kind that hands every one of them back to the plugin as it reads it from
+ * SQLite (an INTEGER or a REAL as a number, TEXT as a string, a BLOB as a
+ * Buffer). A column whose values no single kind hands back like that still
+ * gets one, and the move refuses each value it would change
+ * (`PLUGIN_RULES` in `values.ts`); nothing is converted to fit.
  */
 export function pluginColumnKind(declaredType: string, storage: ReadonlySet<string>): ColumnKind {
   const declared = declaredType.toUpperCase();
   const only = (...classes: string[]) => storage.size > 0 && [...storage].every((value) => classes.includes(value));
   if (declared.includes('INT')) return 'integer';
   if (/CHAR|CLOB|TEXT/.test(declared)) return 'text';
-  if (declared.includes('BLOB')) return only('blob', 'text') ? 'bytes' : 'text';
-  if (/REAL|FLOA|DOUB/.test(declared)) return only('integer', 'real') || storage.size === 0 ? 'float' : 'text';
+  const blob = declared.includes('BLOB') || declared.trim() === '';
+  if (!blob && /REAL|FLOA|DOUB/.test(declared)) return 'float';
   if (only('integer')) return 'integer';
   if (only('integer', 'real')) return 'float';
   if (only('blob')) return 'bytes';
-  return 'text';
+  // Empty, or text, or a mix: a column declared BLOB with no values keeps bytes for what the plugin writes later.
+  return storage.size === 0 && declared.includes('BLOB') ? 'bytes' : 'text';
 }
 
 const NUMBER_LITERAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
@@ -143,6 +154,8 @@ export function planPluginData(pluginId: string, source: SqliteSource): PluginPl
         ],
         deferred: [],
         primaryKey: ['id'],
+        exact: true,
+        uniqueKeys: [],
       });
       continue;
     }
@@ -168,6 +181,9 @@ export function planPluginData(pluginId: string, source: SqliteSource): PluginPl
       columns: columns.map((column, index) => ({ name: column.name, kind: kinds[index] })),
       deferred: [],
       primaryKey: keys.map((key) => key.name),
+      // A plugin's values are never changed (`PLUGIN_RULES`), so no key of its tables can break on the way.
+      exact: true,
+      uniqueKeys: [],
     });
     // The identity's sequence is named by Postgres; resolveIdentitySequences reads it once the table exists.
     if (rowid) plan.sequences.push({ table, target, column: rowid, sequence: '' });
