@@ -9,6 +9,7 @@ import type {
   McpEntry,
   McpEntryKind,
   McpErrorMapper,
+  McpInputMapper,
   McpRegistryListing,
   McpToolGate,
   PromptOptions,
@@ -44,6 +45,8 @@ export interface McpRegistryOptions {
   toolGate?: McpToolGate;
   /** Turns an error a registered tool handler threw into its result; see `McpErrorMapper`. */
   errorMapper?: McpErrorMapper;
+  /** Rewrites what a client sends before any handler sees it; see `McpInputMapper`. */
+  inputMapper?: McpInputMapper;
 }
 
 type AnyHandler = (this: unknown, ...handlerArgs: unknown[]) => unknown;
@@ -115,6 +118,7 @@ export class McpRegistry {
   private readonly validateAccess?: McpAccessValidator;
   private readonly toolGate?: McpToolGate;
   private readonly errorMapper?: McpErrorMapper;
+  private readonly inputMapper: McpInputMapper;
   /** Memoised `reservedNames()`; dropped by register() so it can never go stale. */
   private reserved?: ReadonlySet<string>;
 
@@ -123,6 +127,7 @@ export class McpRegistry {
     this.validateAccess = options.validateAccess;
     this.toolGate = options.toolGate;
     this.errorMapper = options.errorMapper;
+    this.inputMapper = options.inputMapper ?? ((input) => input);
   }
 
   /**
@@ -386,11 +391,14 @@ export class McpRegistry {
     // The SDK invokes the callback as (args, extra) when inputSchema is
     // present (even an empty shape) and as (extra) otherwise — normalize so
     // the decorated method always receives (args, ctx).
+    // The arguments go through the host's input mapper first.
     const cb =
       options.inputSchema !== undefined
         ? (args: unknown, _extra: unknown) => {
             opts?.onInvoke?.({ kind: 'tool', name: options.name });
-            return invoke(opts, { kind: 'tool', name: options.name }, () => handler.call(instance, args, ctx));
+            return invoke(opts, { kind: 'tool', name: options.name }, () =>
+              handler.call(instance, this.inputMapper(args), ctx),
+            );
           }
         : (_extra: unknown) => {
             opts?.onInvoke?.({ kind: 'tool', name: options.name });
@@ -440,7 +448,7 @@ export class McpRegistry {
       (uri: unknown, variables: unknown, _extra: unknown) => {
         opts?.onInvoke?.({ kind: 'resourceTemplate', name: options.name });
         return invoke(opts, { kind: 'resourceTemplate', name: options.name }, () =>
-          handler.call(instance, uri, variables, ctx),
+          handler.call(instance, uri, this.inputMapper(variables), ctx),
         );
       },
     );
@@ -469,7 +477,9 @@ export class McpRegistry {
       argsSchema !== undefined
         ? (args: unknown, _extra: unknown) => {
             opts?.onInvoke?.({ kind: 'prompt', name: options.name });
-            return invoke(opts, { kind: 'prompt', name: options.name }, () => handler.call(instance, args, ctx));
+            return invoke(opts, { kind: 'prompt', name: options.name }, () =>
+              handler.call(instance, this.inputMapper(args), ctx),
+            );
           }
         : (_extra: unknown) => {
             opts?.onInvoke?.({ kind: 'prompt', name: options.name });

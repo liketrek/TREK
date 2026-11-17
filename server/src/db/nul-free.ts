@@ -31,6 +31,11 @@ import type { AbortableOperationOptions, CompiledQuery, DatabaseConnection, Dial
  * A filter is stripped as well as a write, so a lookup finds what the write
  * stored. Text that spells the character as the six characters `\u0000`
  * (JSON already encoded to a string) is left alone: it holds no NUL.
+ *
+ * What a client sends loses the character earlier still, before any logic
+ * runs ({@link nulFreeInput}), so the application never holds a value the
+ * database would store differently. The stripping here is the backstop for
+ * everything that does not arrive through a request.
  */
 
 const NUL = '\u0000';
@@ -57,6 +62,55 @@ export function nulFreeJson(value: unknown): unknown {
     );
   }
   return value;
+}
+
+/** A key whose string value is a password: hashed or handed on as sent, never stored or compared as text. */
+const PASSWORD_KEY = /password/i;
+
+/**
+ * A request's input as the application handles it: every string in it, object
+ * keys included, without NUL. The HTTP layer, the websocket adapter and the
+ * MCP input mapper pass what a client sends through this before any logic runs
+ * (`nest/common/nul-free-input.ts`), so a throttle, a rate-limit key, a
+ * uniqueness check or an audit line sees the same value the database later
+ * stores and filters by. Without it `victim@x.test\u0000` was a new key for
+ * the per-email reset throttle while the lookup found the victim's row.
+ *
+ * A string under a key that names a password is left exactly as sent. A
+ * password never reaches the database as text, only as its bcrypt hash, so
+ * the stores above never meet it, and bcryptjs hashes a NUL like any other
+ * byte. Stripping it here would change the hash input and lock out an account
+ * whose password was set with a NUL before this rule existed; left alone,
+ * signup, login and a password change all hash the same string.
+ *
+ * Returns the same value, by identity, when it holds no NUL. Arrays and plain
+ * objects (null-prototype ones too, the shape a query or multipart parser
+ * builds) are walked; any other value is returned as it is.
+ */
+export function nulFreeInput(value: unknown): unknown {
+  return nulFreeInputValue(value, false);
+}
+
+function nulFreeInputValue(value: unknown, password: boolean): unknown {
+  if (typeof value === 'string') return password ? value : stripNul(value);
+  if (Array.isArray(value)) {
+    const items = value.map((item: unknown) => nulFreeInputValue(item, password));
+    return items.some((item, i) => item !== value[i]) ? items : value;
+  }
+  if (value === null || typeof value !== 'object') return value;
+  const prototype: unknown = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return value;
+  const entries = Object.entries(value as Record<string, unknown>);
+  const cleaned = entries.map(
+    ([key, item]) => [stripNul(key), nulFreeInputValue(item, PASSWORD_KEY.test(key))] as const,
+  );
+  if (cleaned.every(([key, item], i) => key === entries[i][0] && item === entries[i][1])) return value;
+  // Defined, not assigned, so a key named `__proto__` stays a plain property.
+  const copy = Object.create(prototype as object | null) as Record<string, unknown>;
+  for (const [key, item] of cleaned) {
+    Object.defineProperty(copy, key, { value: item, enumerable: true, writable: true, configurable: true });
+  }
+  return copy;
 }
 
 /** `query` with its parameters passed through {@link nulFreeParameter}; the same object when none holds a NUL. */

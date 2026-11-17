@@ -291,6 +291,15 @@ export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
 export type McpErrorMapper = (err: unknown) => unknown;
 
 /**
+ * Rewrites what a client sends before a handler receives it: the arguments of
+ * every tool (registered and dynamic) and prompt, and the variables of every
+ * resource template. The host's normalisation seam (TREK drops NUL characters
+ * here, as from every HTTP request); nest-mcp attaches no semantics to it.
+ * Omitted, the input reaches the handler as the SDK parsed it.
+ */
+export type McpInputMapper = (input: unknown) => unknown;
+
+/**
  * How the module builds its `McpToolGate`: a factory with the providers it
  * needs, resolved from the container like any other provider. A gate that
  * reads the database has to come from DI, and `forRoot` options are static.
@@ -308,6 +317,8 @@ export interface McpModuleOptions {
   toolGate?: McpToolGateProvider;
   /** See `McpErrorMapper`. Static: it needs nothing from the container. */
   errorMapper?: McpErrorMapper;
+  /** See `McpInputMapper`. Static, like the error mapper. */
+  inputMapper?: McpInputMapper;
 }
 
 /** Injection token for the resolved `McpToolGate` (null when none was configured). */

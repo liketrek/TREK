@@ -6,6 +6,7 @@ import {
   trekDemoToolGate,
   trekMcpAccessPolicy,
   trekMcpErrorMapper,
+  trekMcpInputMapper,
   trekMcpValidateAccess,
 } from '../mcp/nest-mcp-policy';
 import mikroOrmConfig from '../mikro-orm.config';
@@ -35,6 +36,7 @@ import { DemoService } from './common/demo.service';
 import { IdempotencyCleanupJob } from './common/idempotency-cleanup.job';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { ManagedGuard } from './common/managed.guard';
+import { NulFreeInputPipe } from './common/nul-free-input';
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 import { ZodValidationPipe } from './common/zod-validation.pipe';
 import { ConfigModule } from './config/config.module';
@@ -133,6 +135,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
         useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)),
       },
       errorMapper: trekMcpErrorMapper,
+      inputMapper: trekMcpInputMapper,
     }),
     HealthModule,
     PlatformModule,
@@ -264,6 +267,10 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     { provide: APP_INTERCEPTOR, useClass: SessionRenewalInterceptor },
     // Its nightly TTL purge — a provider here because common/ has no module.
     IdempotencyCleanupJob,
+    // First of the global pipes: every handler argument without NUL, which
+    // after the nulFreeRequest middleware only changes what a route parsed
+    // itself, a multipart body (common/nul-free-input.ts).
+    { provide: APP_PIPE, useClass: NulFreeInputPipe },
     // Global Zod validation: any parameter typed with a createZodDto class
     // (the <domain>.dto.ts wrappers over @trek/shared schemas) is validated;
     // everything else passes through untouched. Paired with the boot gate in

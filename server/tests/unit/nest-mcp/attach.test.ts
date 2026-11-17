@@ -233,6 +233,23 @@ describe('McpRegistry.attach', () => {
     expect(JSON.parse(textOf(result))).toEqual({ args: {}, userId: 42 });
   });
 
+  it('hands every tool, prompt and resource template input through the input mapper first', async () => {
+    const mapped: unknown[] = [];
+    const inputMapper = (input: unknown) => {
+      mapped.push(input);
+      return JSON.parse(JSON.stringify(input).replaceAll('!', '')) as unknown;
+    };
+    const registry = createTestRegistry([new FixtureMcp(new Greeter())], { accessPolicy: policy, inputMapper });
+    harness = await createAttachHarness(registry, { userId: 5, canRead: true });
+    const tool = await harness.client.callTool({ name: 'loose_tool', arguments: { name: 'tr!ek' } });
+    expect(JSON.parse(textOf(tool))).toEqual({ args: { name: 'trek' }, userId: 5 });
+    const prompt = await harness.client.getPrompt({ name: 'fixture_prompt', arguments: { topic: 'pack!ing' } });
+    expect(prompt.messages[0]?.content).toMatchObject({ text: 'packing for 5' });
+    const item = await harness.client.readResource({ uri: 'test://item/4!2' });
+    expect(item.contents[0]).toMatchObject({ text: 'item 42 for 5' });
+    expect(mapped).toEqual([{ name: 'tr!ek' }, { topic: 'pack!ing' }, { id: '4!2' }]);
+  });
+
   it('serves fixed resources with (uri, ctx)', async () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 9, canRead: true });
     const result = await harness.client.readResource({ uri: 'test://doc' });
