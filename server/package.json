@@ -39,6 +39,7 @@
     "check:db-types": "node --import tsx scripts/generate-db-types.ts --check",
     "gen:pg-baseline": "node --import tsx scripts/generate-pg-baseline.ts",
     "check:pg-baseline": "node --import tsx scripts/generate-pg-baseline.ts --check",
+    "gen:pg-migration": "node --import tsx scripts/generate-pg-migration.ts",
     "probe:pg": "node --import tsx scripts/pg-probe.ts",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
