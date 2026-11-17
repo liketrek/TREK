@@ -50,11 +50,11 @@ describe('plugin schema names', () => {
   });
 
   it("PGSCHEMA-005: a restore drops only the role's own plugin schemas, then creates the dump's", () => {
-    const sql = pluginSchemasSql(['trek_plugin_a', 'trek_plugin_b']);
+    const sql = pluginSchemasSql(['trek_plugin_alpha', 'trek_plugin_beta']);
     expect(sql).toContain("starts_with(nspname, 'trek_plugin_')");
     expect(sql).toContain('pg_get_userbyid(nspowner) = current_user');
     expect(sql).toContain("EXECUTE format('DROP SCHEMA %I CASCADE', r.nspname);");
-    expect(sql.endsWith('CREATE SCHEMA "trek_plugin_a";\nCREATE SCHEMA "trek_plugin_b";\n')).toBe(true);
+    expect(sql.endsWith('CREATE SCHEMA "trek_plugin_alpha";\nCREATE SCHEMA "trek_plugin_beta";\n')).toBe(true);
     expect(pluginSchemasSql([])).not.toContain('CREATE SCHEMA');
     expect(() => pluginSchemasSql(['auth'])).toThrow(/is not a plugin schema name/);
   });
