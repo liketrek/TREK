@@ -38,17 +38,11 @@ const ENV_SELECTORS = [
   },
 ];
 
+const RAW_SQL_MESSAGE =
+  'Dialect SQL goes through src/db/dialect/sql-functions.ts, which dispatches on the live MikroORM platform. Code outside src/db/dialect/ and src/db/engine/ must not spell raw SQL: build the statement in a repository with the query builder, where the Postgres probe runs it.';
 const RAW_SQL_SELECTORS = [
-  {
-    selector: "CallExpression[callee.name='raw']",
-    message:
-      'Dialect SQL goes through src/db/dialect/sql-functions.ts, which dispatches on the live MikroORM platform. A repository must not spell raw SQL.',
-  },
-  {
-    selector: "TaggedTemplateExpression[tag.name='sql']",
-    message:
-      'Dialect SQL goes through src/db/dialect/sql-functions.ts, which dispatches on the live MikroORM platform. A repository must not spell raw SQL.',
-  },
+  { selector: "CallExpression[callee.name='raw']", message: RAW_SQL_MESSAGE },
+  { selector: "TaggedTemplateExpression[tag.name='sql']", message: RAW_SQL_MESSAGE },
 ];
 
 // Kysely fills InsertResult.insertId from SQLite's last_insert_rowid. Postgres
@@ -109,7 +103,37 @@ const FETCH_SELECTORS = [
 // the method name keeps `qb.execute('run')` (a result mode, not SQL) legal.
 const SQL_TEXT = String.raw`/^\s*(SELECT|INSERT|UPDATE|DELETE|REPLACE|WITH|PRAGMA|VACUUM|CREATE|DROP|ALTER|ATTACH|BEGIN|COMMIT)\b/i`;
 const SQL_STRING_MESSAGE =
-  'A SQL string handed to the connection is raw SQL too. Build it with the query builder (this.kysely(), em.createQueryBuilder) and route dialect functions through src/db/dialect/sql-functions.ts.';
+  'A SQL string handed to the connection is raw SQL too. Build it in a repository with the query builder (this.kysely(), the entity methods), where the Postgres probe runs it, and route dialect functions through src/db/dialect/sql-functions.ts.';
+
+// Where raw SQL may be spelled under src/: the dialect layer and the engines
+// (each engine's own SQL), the migrations (frozen, and held by lint:dialect),
+// and the boot-time lifecycle files named here, which run before or beside the
+// migrator on the raw connection. tests/unit/eslint-rules/restricted-syntax-selectors.test.ts
+// pins how many SQL strings each named file holds, so the list can only shrink.
+// The repositories and seeders have blocks of their own below.
+const RAW_SQL_HOMES = ['src/db/dialect/**', 'src/db/engine/**', 'src/db/migrations/**'];
+const RAW_SQL_LIFECYCLE_FILES = [
+  'src/db/email-case-index.ts',
+  'src/db/legacy-baseline.ts',
+  'src/db/migration-utils.ts',
+  'src/db/pre-migrate-snapshot.ts',
+];
+
+// The files the config-access guard leaves out (see the src/** block below).
+const ENV_EXEMPT_FILES = [
+  // The config layer itself.
+  'src/app-config/**',
+  'src/nest/app-config/**',
+  // Key-material resolution (file persistence + runtime rotation), not env config.
+  'src/config.ts',
+  // Scrubbed plugin child process — must not import app-config.
+  'src/nest/plugins/runtime/plugin-host-entry.ts',
+  // Child-env whitelist block: the env there is an IPC channel to the sandbox.
+  'src/nest/plugins/supervisor/plugin-supervisor.ts',
+  // Dynamic-key caps (process.env[name] with a computed name).
+  'src/nest/plugins/host/daily-budget.ts',
+  'src/nest/plugins/host/plugin-audit.ts',
+];
 
 const STRING_SQL_SELECTORS = [
   {
@@ -271,23 +295,53 @@ export default tseslint.config(
     // (readEnv() / derive functions / registerAs tokens). Direct process.env
     // access is banned outside the documented exemptions below — see
     // src/app-config/README.md for the rationale behind each.
+    //
+    // The same block holds the raw-SQL wall for all of src/: SQL text outside a
+    // repository reaches Postgres unchecked, since the probe only runs what the
+    // repositories send.
     files: ['src/**/*.ts'],
-    ignores: [
-      // The config layer itself.
-      'src/app-config/**',
-      'src/nest/app-config/**',
-      // Key-material resolution (file persistence + runtime rotation), not env config.
-      'src/config.ts',
-      // Scrubbed plugin child process — must not import app-config.
-      'src/nest/plugins/runtime/plugin-host-entry.ts',
-      // Child-env whitelist block: the env there is an IPC channel to the sandbox.
-      'src/nest/plugins/supervisor/plugin-supervisor.ts',
-      // Dynamic-key caps (process.env[name] with a computed name).
-      'src/nest/plugins/host/daily-budget.ts',
-      'src/nest/plugins/host/plugin-audit.ts',
-    ],
+    ignores: ENV_EXEMPT_FILES,
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...ENV_SELECTORS,
+        ...FETCH_SELECTORS,
+        ...APP_SETTING_SELECTORS,
+        ...RAW_SQL_SELECTORS,
+        ...STRING_SQL_SELECTORS,
+      ],
+    },
+  },
+  {
+    // The homes of raw SQL (RAW_SQL_HOMES, RAW_SQL_LIFECYCLE_FILES): the block
+    // above restated without the raw-SQL wall.
+    files: [...RAW_SQL_HOMES, ...RAW_SQL_LIFECYCLE_FILES],
+    ignores: ENV_EXEMPT_FILES,
     rules: {
       'no-restricted-syntax': ['error', ...ENV_SELECTORS, ...FETCH_SELECTORS, ...APP_SETTING_SELECTORS],
+    },
+  },
+  {
+    // The files the config-access guard leaves out still hold no raw SQL.
+    files: ENV_EXEMPT_FILES,
+    rules: {
+      'no-restricted-syntax': ['error', ...RAW_SQL_SELECTORS, ...STRING_SQL_SELECTORS],
+    },
+  },
+  {
+    // The two seeders that still write their rows as SQL text (see the
+    // repository and seeder block below, which leaves them out): the block
+    // above without the SQL string rule, raw() and the sql tag still refused.
+    files: ['src/db/seeders/AdminSeeder.ts', 'src/db/seeders/CategorySeeder.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...ENV_SELECTORS,
+        ...FETCH_SELECTORS,
+        ...APP_SETTING_SELECTORS,
+        ...RAW_SQL_SELECTORS,
+        ...INSERT_ID_SELECTORS,
+      ],
     },
   },
   {
@@ -311,8 +365,8 @@ export default tseslint.config(
     },
   },
   {
-    // Restates the config-access and app-setting guards above for *.mcp.ts
-    // (a later block's options replace an earlier one's) and adds the
+    // Restates the config-access, app-setting and raw-SQL guards above for
+    // *.mcp.ts (a later block's options replace an earlier one's) and adds the
     // demo-gate wall.
     files: ['src/**/*.mcp.ts'],
     rules: {
@@ -321,6 +375,8 @@ export default tseslint.config(
         ...ENV_SELECTORS,
         ...FETCH_SELECTORS,
         ...APP_SETTING_SELECTORS,
+        ...RAW_SQL_SELECTORS,
+        ...STRING_SQL_SELECTORS,
         ...MCP_DEMO_SELECTORS,
       ],
     },
