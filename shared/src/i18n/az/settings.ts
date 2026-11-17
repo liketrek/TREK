@@ -470,7 +470,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.apiKey': 'API açarı',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API açarı',
   'settings.airtrail.apiKeyHint':
-    'AirTrail-də Tənzimləmələr → Təhlükəsizlik bölməsindən yaradılır. Şifrələnmiş şəkildə saxlanılır.',
+    'AirTrail-də Tənzimləmələr → Təhlükəsizlik bölməsindən yaradılır. Şifrələnmiş şəkildə saxlanılır. Açarı AirTrail 3.13 və ya daha yeni versiyada yaratsanız, oxumaq üçün ona flight.read.own icazəsi lazımdır. Dəyişiklikləri geri yazmaq üçün həmçinin flight.update.own, flight.passengers.manage.own, reference_data.read və profile.read lazımdır.',
   'settings.airtrail.allowInsecureTls': 'Öz-özünə imzalanmış sertifikatlara icazə ver',
   'settings.airtrail.allowInsecureTlsHint': 'Yalnız öz şəbəkənizdəki etibarlı instansiya üçün aktivləşdirin.',
   'settings.airtrail.writeBack': 'Dəyişiklikləri AirTrail-ə geri yaz',

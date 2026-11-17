@@ -3988,7 +3988,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '卡片下方的“恢复默认”会把整个“外观”标签页恢复为初始设置。',
   'help.guide.web-push-device.result': '卡片显示“已为此设备开启”，在“推送”下开启的事件，即使 TREK 没有打开也会送达。',
   'help.guide.connect-airtrail.step.1':
-    '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。',
+    '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。若在 AirTrail 3.13 或更高版本中创建密钥，读取需要范围 flight.read.own。若要将更改写回，还需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在“集成”下找到 Dawarich，输入它的“实例地址”，以及在 Dawarich 的“账户”、“API 密钥”中获取的 API 密钥。',
   'help.guide.tour-connect-wanderer.step.1':

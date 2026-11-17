@@ -4656,7 +4656,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'O cartão mostra “Ativado neste dispositivo”, e os eventos ativados em Push chegam mesmo com o TREK fechado.',
   'help.guide.connect-airtrail.step.1':
-    'Em Integrações, procure o AirTrail e informe a “URL da instância” e uma chave de API. A chave é criada no AirTrail, em Settings, Security.',
+    'Em Integrações, procure o AirTrail e informe a “URL da instância” e uma chave de API. A chave é criada no AirTrail, em Settings, Security. Se você criar a chave no AirTrail 3.13 ou posterior, ela precisa do escopo flight.read.own para leitura. Para gravar alterações de volta, também precisa de flight.update.own, flight.passengers.manage.own, reference_data.read e profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Em Integrações, procure o Dawarich e informe o “Endereço da instância” e a chave de API, que fica no Dawarich em Account, API key.',
   'help.guide.tour-connect-wanderer.step.1':

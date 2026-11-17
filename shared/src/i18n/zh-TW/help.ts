@@ -4025,7 +4025,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '卡片下方的「恢復預設」會讓整個「外觀」分頁恢復為出廠狀態。',
   'help.guide.web-push-device.result': '卡片會顯示「已為此裝置開啟」，在「推播」下開啟的事件即使 TREK 已關閉也會送達。',
   'help.guide.connect-airtrail.step.1':
-    '在「整合」下找到 AirTrail，輸入它的「執行個體網址」和 API 金鑰。金鑰需要在 AirTrail 的「設定」、「安全性」中建立。',
+    '在「整合」下找到 AirTrail，輸入它的「執行個體網址」和 API 金鑰。金鑰需要在 AirTrail 的「設定」、「安全性」中建立。若在 AirTrail 3.13 或更新版本中建立金鑰，讀取需要範圍 flight.read.own。若要將變更寫回，還需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在「整合」下找到 Dawarich，輸入它的「執行個體位址」，以及 Dawarich 中「帳戶」、「API 金鑰」裡的 API 金鑰。',
   'help.guide.tour-connect-wanderer.step.1':

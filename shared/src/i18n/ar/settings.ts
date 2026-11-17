@@ -412,7 +412,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'رابط النسخة',
   'settings.airtrail.apiKey': 'مفتاح API',
   'settings.airtrail.apiKeyPlaceholder': 'مفتاح API من نوع Bearer',
-  'settings.airtrail.apiKeyHint': 'يُنشأ في AirTrail ضمن الإعدادات ← الأمان. يُخزَّن مشفّرًا.',
+  'settings.airtrail.apiKeyHint':
+    'يُنشأ في AirTrail ضمن الإعدادات ← الأمان. يُخزَّن مشفّرًا. إذا أنشأت المفتاح في AirTrail 3.13 أو أحدث، فإنه يحتاج إلى النطاق flight.read.own للقراءة. ولكتابة التغييرات إلى AirTrail يحتاج أيضًا إلى flight.update.own و flight.passengers.manage.own و reference_data.read و profile.read.',
   'settings.airtrail.allowInsecureTls': 'السماح بالشهادات الموقّعة ذاتيًا',
   'settings.airtrail.allowInsecureTlsHint': 'فعّل هذا فقط لنسخة موثوقة على شبكتك الخاصة.',
   'settings.airtrail.writeBack': 'كتابة التغييرات إلى AirTrail',

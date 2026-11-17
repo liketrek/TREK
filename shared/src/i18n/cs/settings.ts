@@ -417,7 +417,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'URL instance',
   'settings.airtrail.apiKey': 'API klíč',
   'settings.airtrail.apiKeyPlaceholder': 'API klíč Bearer',
-  'settings.airtrail.apiKeyHint': 'Vygenerován v AirTrail v Nastavení → Zabezpečení. Uložen šifrovaně.',
+  'settings.airtrail.apiKeyHint':
+    'Vygenerován v AirTrail v Nastavení → Zabezpečení. Uložen šifrovaně. Pokud klíč vytvoříte v AirTrail 3.13 nebo novějším, potřebuje oprávnění flight.read.own pro čtení. Pro zápis změn zpět potřebuje také flight.update.own, flight.passengers.manage.own, reference_data.read a profile.read.',
   'settings.airtrail.allowInsecureTls': 'Povolit certifikáty podepsané sebou samým',
   'settings.airtrail.allowInsecureTlsHint': 'Povolte pouze pro důvěryhodnou instanci ve vlastní síti.',
   'settings.airtrail.writeBack': 'Zapisovat změny zpět do AirTrail',

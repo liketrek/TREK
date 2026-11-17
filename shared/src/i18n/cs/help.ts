@@ -4568,7 +4568,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Karta ukazuje „Zapnuto pro toto zařízení“ a události zapnuté ve sloupci Push vám přijdou, i když je TREK zavřený.',
   'help.guide.connect-airtrail.step.1':
-    'V části „Integrace“ najděte AirTrail a zadejte jeho „URL instance“ a API klíč. Klíč vytvoříte v AirTrail v části Nastavení, Zabezpečení.',
+    'V části „Integrace“ najděte AirTrail a zadejte jeho „URL instance“ a API klíč. Klíč vytvoříte v AirTrail v části Nastavení, Zabezpečení. Pokud klíč vytvoříte v AirTrail 3.13 nebo novějším, potřebuje oprávnění flight.read.own pro čtení. Pro zápis změn zpět potřebuje také flight.update.own, flight.passengers.manage.own, reference_data.read a profile.read.',
   'help.guide.connect-dawarich.step.1':
     'V části „Integrace“ najděte Dawarich a zadejte jeho „Adresa instance“ a API klíč, který najdete v Dawarich v části Účet, API klíč.',
   'help.guide.tour-connect-wanderer.step.1':

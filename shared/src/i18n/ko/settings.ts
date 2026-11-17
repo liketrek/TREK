@@ -412,7 +412,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': '인스턴스 URL',
   'settings.airtrail.apiKey': 'API 키',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API 키',
-  'settings.airtrail.apiKeyHint': 'AirTrail의 설정 → 보안에서 생성됩니다. 암호화하여 저장됩니다.',
+  'settings.airtrail.apiKeyHint':
+    'AirTrail의 설정 → 보안에서 생성됩니다. 암호화하여 저장됩니다. AirTrail 3.13 이상에서 키를 만드는 경우, 읽기에는 flight.read.own 범위가 필요합니다. 변경 사항을 다시 기록하려면 flight.update.own, flight.passengers.manage.own, reference_data.read, profile.read 범위도 필요합니다.',
   'settings.airtrail.allowInsecureTls': '자체 서명 인증서 허용',
   'settings.airtrail.allowInsecureTlsHint': '자체 네트워크의 신뢰할 수 있는 인스턴스에서만 활성화하세요.',
   'settings.airtrail.writeBack': '변경 사항을 AirTrail에 다시 기록',

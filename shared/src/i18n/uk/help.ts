@@ -4642,7 +4642,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Картка показує «Увімкнено на цьому пристрої», а події, увімкнені в Push, надходять, навіть коли TREK закрито.',
   'help.guide.connect-airtrail.step.1':
-    'У «Інтеграції» знайдіть AirTrail і введіть його «URL екземпляра» та ключ API. Ключ створюється в AirTrail: «Налаштування», «Безпека».',
+    'У «Інтеграції» знайдіть AirTrail і введіть його «URL екземпляра» та ключ API. Ключ створюється в AirTrail: «Налаштування», «Безпека». Якщо ви створюєте ключ в AirTrail 3.13 або новішому, для читання йому потрібна область flight.read.own. Для запису змін назад також потрібні flight.update.own, flight.passengers.manage.own, reference_data.read і profile.read.',
   'help.guide.connect-dawarich.step.1':
     'У «Інтеграції» знайдіть Dawarich і введіть його «Адреса сервера» та ключ API з Dawarich: «Обліковий запис», «Ключ API».',
   'help.guide.tour-connect-wanderer.step.1':

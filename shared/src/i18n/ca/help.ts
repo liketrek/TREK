@@ -4704,7 +4704,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     "La targeta mostra «Activat en aquest dispositiu», i els esdeveniments activats a Push t'arriben encara que TREK estigui tancat.",
   'help.guide.connect-airtrail.step.1':
-    'A «Integracions», busca AirTrail i introdueix la «URL de la instància» i una clau API. La clau es crea a AirTrail, a «Settings», «Security».',
+    "A «Integracions», busca AirTrail i introdueix la «URL de la instància» i una clau API. La clau es crea a AirTrail, a «Settings», «Security». Si crees la clau a AirTrail 3.13 o posterior, necessita l'abast flight.read.own per llegir. Per sincronitzar els canvis cap a AirTrail, també necessita flight.update.own, flight.passengers.manage.own, reference_data.read i profile.read.",
   'help.guide.connect-dawarich.step.1':
     "A «Integracions», busca Dawarich i introdueix l'«Adreça de la instància» i la clau API que trobaràs a Dawarich, a «Account», «API key».",
   'help.guide.tour-connect-wanderer.step.1':

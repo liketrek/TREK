@@ -4,7 +4,11 @@ import type { ReservationsRepository } from '../../../../src/db/repositories/Res
 import type { AddonsService } from '../../../../src/nest/addons/addons.service';
 import { AirtrailLinkService } from '../../../../src/nest/integrations/airtrail-link.service';
 import { AirtrailSyncService } from '../../../../src/nest/integrations/airtrail-sync.service';
-import { AirtrailAuthError } from '../../../../src/nest/integrations/airtrail.client';
+import {
+  AirtrailAuthError,
+  AirtrailRequestError,
+  AirtrailScopeError,
+} from '../../../../src/nest/integrations/airtrail.client';
 import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
 import type { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
 import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
@@ -184,6 +188,14 @@ describe('pushReservationToAirtrail write gate (#1240)', () => {
     expect(detachSpy).toHaveBeenCalledWith(5);
   });
 
+  it('keeps the link when the key only lacks a scope, because the key still works', async () => {
+    isAirtrailWriteEnabled.mockReturnValue(true);
+    getFlight.mockRejectedValue(new AirtrailScopeError('flight.read.own'));
+    await svc.link.pushReservationToAirtrail(5, 9);
+    expect(saveFlight).not.toHaveBeenCalled();
+    expect(detachSpy).not.toHaveBeenCalled();
+  });
+
   it('detaches when the flight is gone from AirTrail — the same as a remote delete', async () => {
     isAirtrailWriteEnabled.mockReturnValue(true);
     getFlight.mockResolvedValue(null);
@@ -232,6 +244,19 @@ describe('inbound sync multi-leg guard (#1535)', () => {
     expect(updateReservation).not.toHaveBeenCalled();
     expect(detachSpy).toHaveBeenCalledWith(5);
     expect(changed).toBe(1);
+  });
+
+  it.each([
+    ['the page limit', new AirtrailRequestError('AirTrail has more than 5000 flights')],
+    ['a missing scope', new AirtrailScopeError('flight.read.own')],
+    ['a 5xx', new AirtrailRequestError('AirTrail list failed (HTTP 502)', 502)],
+  ])('detaches nothing when the list fails on %s', async (_, error) => {
+    withLinkedRow(2);
+    listFlights.mockRejectedValue(error);
+    const { changed } = await svc.sync.runAirtrailSyncForUser(7);
+    expect(updateReservation).not.toHaveBeenCalled();
+    expect(detachSpy).not.toHaveBeenCalled();
+    expect(changed).toBe(0);
   });
 
   it('leaves a disconnected owner alone rather than detaching their rows', async () => {

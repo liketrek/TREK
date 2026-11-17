@@ -4577,7 +4577,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kaardil on kirjas „Selles seadmes sisse lülitatud“ ja jaotises „Tõuketeavitus“ sisse lülitatud sündmused jõuavad sinuni ka siis, kui TREK on suletud.',
   'help.guide.connect-airtrail.step.1':
-    'Leia jaotisest „Integratsioonid“ AirTrail ja sisesta selle „Serveri URL“ ja API-võti. Võtme lood AirTrailis jaotises „Settings“, „Security“.',
+    'Leia jaotisest „Integratsioonid“ AirTrail ja sisesta selle „Serveri URL“ ja API-võti. Võtme lood AirTrailis jaotises „Settings“, „Security“. Kui lood võtme AirTraili versioonis 3.13 või uuemas, vajab see lugemiseks õigust flight.read.own. Muudatuste tagasi kirjutamiseks vajab see ka õigusi flight.update.own, flight.passengers.manage.own, reference_data.read ja profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Leia jaotisest „Integratsioonid“ Dawarich ja sisesta selle „Serveri aadress“ ning API-võti, mille leiad Dawarichis jaotisest „Account“, „API key“.',
   'help.guide.tour-connect-wanderer.step.1':

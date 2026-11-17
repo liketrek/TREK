@@ -435,7 +435,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'URL της εγκατάστασης',
   'settings.airtrail.apiKey': 'Κλειδί API',
   'settings.airtrail.apiKeyPlaceholder': 'Κλειδί API τύπου Bearer',
-  'settings.airtrail.apiKeyHint': 'Δημιουργείται στο AirTrail από Ρυθμίσεις → Ασφάλεια. Αποθηκεύεται κρυπτογραφημένο.',
+  'settings.airtrail.apiKeyHint':
+    'Δημιουργείται στο AirTrail από Ρυθμίσεις → Ασφάλεια. Αποθηκεύεται κρυπτογραφημένο. Αν δημιουργήσετε το κλειδί στο AirTrail 3.13 ή νεότερο, χρειάζεται το δικαίωμα flight.read.own για ανάγνωση. Για εγγραφή αλλαγών πίσω χρειάζεται επίσης flight.update.own, flight.passengers.manage.own, reference_data.read και profile.read.',
   'settings.airtrail.allowInsecureTls': 'Να επιτρέπονται αυτο-υπογεγραμμένα πιστοποιητικά',
   'settings.airtrail.allowInsecureTlsHint': 'Ενεργοποιήστε το μόνο για μια αξιόπιστη εγκατάσταση στο δικό σας δίκτυο.',
   'settings.airtrail.writeBack': 'Εγγραφή αλλαγών πίσω στο AirTrail',

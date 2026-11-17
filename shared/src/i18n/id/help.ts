@@ -4674,7 +4674,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kartu menampilkan “Aktif untuk perangkat ini”, dan peristiwa yang diaktifkan di kolom Push tetap sampai meskipun TREK sedang ditutup.',
   'help.guide.connect-airtrail.step.1':
-    'Di bawah “Integrasi”, cari AirTrail, lalu isi “URL Instans” dan kunci API-nya. Kunci itu kamu buat di AirTrail, di Settings, Security.',
+    'Di bawah “Integrasi”, cari AirTrail, lalu isi “URL Instans” dan kunci API-nya. Kunci itu kamu buat di AirTrail, di Settings, Security. Jika kamu membuat kunci di AirTrail 3.13 atau yang lebih baru, kunci memerlukan cakupan flight.read.own untuk membaca. Untuk menulis perubahan kembali, kunci juga memerlukan flight.update.own, flight.passengers.manage.own, reference_data.read, dan profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Di bawah “Integrasi”, cari Dawarich, lalu isi “Alamat instans” dan kunci API dari Dawarich, yang ada di Account, API key.',
   'help.guide.tour-connect-wanderer.step.1':

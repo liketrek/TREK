@@ -421,7 +421,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'URL Instans',
   'settings.airtrail.apiKey': 'Kunci API',
   'settings.airtrail.apiKeyPlaceholder': 'Kunci API Bearer',
-  'settings.airtrail.apiKeyHint': 'Dibuat di AirTrail pada Pengaturan → Keamanan. Disimpan terenkripsi.',
+  'settings.airtrail.apiKeyHint':
+    'Dibuat di AirTrail pada Pengaturan → Keamanan. Disimpan terenkripsi. Jika kamu membuat kunci di AirTrail 3.13 atau yang lebih baru, kunci memerlukan cakupan flight.read.own untuk membaca. Untuk menulis perubahan kembali, kunci juga memerlukan flight.update.own, flight.passengers.manage.own, reference_data.read, dan profile.read.',
   'settings.airtrail.allowInsecureTls': 'Izinkan sertifikat yang ditandatangani sendiri',
   'settings.airtrail.allowInsecureTlsHint': 'Aktifkan hanya untuk instans tepercaya di jaringanmu sendiri.',
   'settings.airtrail.writeBack': 'Tulis perubahan kembali ke AirTrail',

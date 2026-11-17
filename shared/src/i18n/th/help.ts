@@ -3975,7 +3975,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '“รีเซ็ตเป็นค่าเริ่มต้น” ใต้การ์ดจะคืนแท็บ “ลักษณะที่ปรากฏ” ทั้งหมดเป็นค่าเดิม',
   'help.guide.web-push-device.result': 'การ์ดจะแสดง “เปิดอยู่สำหรับอุปกรณ์นี้” และเหตุการณ์ที่เปิดไว้ใต้ “พุช” จะส่งมาถึงแม้ปิด TREK อยู่',
   'help.guide.connect-airtrail.step.1':
-    'ใต้ “การเชื่อมต่อ” หา AirTrail แล้วกรอก “URL ของอินสแตนซ์” และคีย์ API คุณสร้างคีย์ได้ใน AirTrail ที่ “การตั้งค่า” แล้วไปที่ความปลอดภัย',
+    'ใต้ “การเชื่อมต่อ” หา AirTrail แล้วกรอก “URL ของอินสแตนซ์” และคีย์ API คุณสร้างคีย์ได้ใน AirTrail ที่ “การตั้งค่า” แล้วไปที่ความปลอดภัย หากคุณสร้างคีย์ใน AirTrail 3.13 ขึ้นไป คีย์ต้องมีขอบเขต flight.read.own เพื่ออ่าน หากต้องการเขียนการเปลี่ยนแปลงกลับ คีย์ต้องมี flight.update.own, flight.passengers.manage.own, reference_data.read และ profile.read ด้วย',
   'help.guide.connect-dawarich.step.1':
     'ใต้ “การเชื่อมต่อ” หา Dawarich แล้วกรอก “ที่อยู่ของอินสแตนซ์” และคีย์ API จาก Dawarich ที่ “บัญชี” แล้วไปที่ “คีย์ API”',
   'help.guide.tour-connect-wanderer.step.1':

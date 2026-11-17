@@ -4500,7 +4500,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'カードに「このデバイスでオン」と表示され、「プッシュ」でオンにしたイベントがTREKを閉じていても届きます。',
   'help.guide.connect-airtrail.step.1':
-    '「連携」でAirTrailを探し、「インスタンス URL」とAPIキーを入力します。キーはAirTrailの「設定」の「セキュリティ」で作成します。',
+    '「連携」でAirTrailを探し、「インスタンス URL」とAPIキーを入力します。キーはAirTrailの「設定」の「セキュリティ」で作成します。AirTrail 3.13 以降でキーを作成する場合、読み取りにはスコープ flight.read.own が必要です。変更を書き戻すには、flight.update.own、flight.passengers.manage.own、reference_data.read、profile.read も必要です。',
   'help.guide.connect-dawarich.step.1':
     '「連携」でDawarichを探し、「インスタンスのアドレス」と、Dawarichの「アカウント」の「APIキー」にあるAPIキーを入力します。',
   'help.guide.tour-connect-wanderer.step.1':

@@ -397,7 +397,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'インスタンス URL',
   'settings.airtrail.apiKey': 'API キー',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API キー',
-  'settings.airtrail.apiKeyHint': 'AirTrail の「設定 → セキュリティ」で生成します。暗号化して保存されます。',
+  'settings.airtrail.apiKeyHint':
+    'AirTrail の「設定 → セキュリティ」で生成します。暗号化して保存されます。AirTrail 3.13 以降でキーを作成する場合、読み取りにはスコープ flight.read.own が必要です。変更を書き戻すには、flight.update.own、flight.passengers.manage.own、reference_data.read、profile.read も必要です。',
   'settings.airtrail.allowInsecureTls': '自己署名証明書を許可する',
   'settings.airtrail.allowInsecureTlsHint':
     '自分のネットワーク内の信頼できるインスタンスの場合にのみ有効にしてください。',

@@ -4715,7 +4715,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'La tarjeta muestra «Activado en este dispositivo», y los eventos activados en Push te llegan aunque TREK esté cerrado.',
   'help.guide.connect-airtrail.step.1':
-    'En «Integraciones», busca AirTrail e introduce su «URL de la instancia» y una clave de API. La clave se crea en AirTrail, en «Ajustes», «Seguridad».',
+    'En «Integraciones», busca AirTrail e introduce su «URL de la instancia» y una clave de API. La clave se crea en AirTrail, en «Ajustes», «Seguridad». Si creas la clave en AirTrail 3.13 o posterior, necesita el ámbito flight.read.own para leer. Para escribir cambios de vuelta, también necesita flight.update.own, flight.passengers.manage.own, reference_data.read y profile.read.',
   'help.guide.connect-dawarich.step.1':
     'En «Integraciones», busca Dawarich e introduce su «Dirección de la instancia» y la clave de API que encontrarás en Dawarich, en «Cuenta», «Clave de API».',
   'help.guide.tour-connect-wanderer.step.1':

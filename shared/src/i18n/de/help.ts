@@ -4744,7 +4744,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Auf der Karte steht „Für dieses Gerät eingeschaltet“, und die Ereignisse, die du unter „Push“ eingeschaltet hast, kommen auch an, wenn TREK geschlossen ist.',
   'help.guide.connect-airtrail.step.1':
-    'Such unter „Integrationen“ AirTrail und gib die „Instanz-URL“ und einen API-Schlüssel ein. Den Schlüssel erstellst du in AirTrail unter „Einstellungen“, „Sicherheit“.',
+    'Such unter „Integrationen“ AirTrail und gib die „Instanz-URL“ und einen API-Schlüssel ein. Den Schlüssel erstellst du in AirTrail unter „Einstellungen“, „Sicherheit“. Wenn du den Schlüssel in AirTrail 3.13 oder neuer erstellst, braucht er den Scope flight.read.own zum Lesen. Zum Zurückschreiben braucht er zusätzlich flight.update.own, flight.passengers.manage.own, reference_data.read und profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Such unter „Integrationen“ Dawarich und gib die „Adresse der Instanz“ und den API-Schlüssel ein, den du in Dawarich unter „Konto“, „API-Schlüssel“ findest.',
   'help.guide.tour-connect-wanderer.step.1':

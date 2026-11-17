@@ -4295,7 +4295,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     '카드에 ‘이 기기에서 켜짐’이 보이고, ‘푸시’에서 켠 이벤트는 TREK를 닫아 둬도 알림이 와요.',
   'help.guide.connect-airtrail.step.1':
-    '‘통합’에서 AirTrail을 찾아 ‘인스턴스 URL’과 API 키를 입력하세요. 키는 AirTrail의 ‘Settings’, ‘Security’에서 만들어요.',
+    '‘통합’에서 AirTrail을 찾아 ‘인스턴스 URL’과 API 키를 입력하세요. 키는 AirTrail의 ‘Settings’, ‘Security’에서 만들어요. AirTrail 3.13 이상에서 키를 만드는 경우, 읽기에는 flight.read.own 범위가 필요합니다. 변경 사항을 다시 기록하려면 flight.update.own, flight.passengers.manage.own, reference_data.read, profile.read 범위도 필요합니다.',
   'help.guide.connect-dawarich.step.1':
     '‘통합’에서 Dawarich를 찾아 ‘인스턴스 주소’와 API 키를 입력하세요. API 키는 Dawarich의 ‘Account’, ‘API key’에 있어요.',
   'help.guide.tour-connect-wanderer.step.1':

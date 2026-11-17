@@ -4638,7 +4638,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Karta pokazuje „Włączone na tym urządzeniu”, a zdarzenia włączone w kolumnie „Push” docierają do ciebie nawet wtedy, gdy TREK jest zamknięty.',
   'help.guide.connect-airtrail.step.1':
-    'W „Integracjach” znajdź AirTrail i wpisz „Adres URL instancji” oraz klucz API. Klucz utworzysz w AirTrail w „Settings”, „Security”.',
+    'W „Integracjach” znajdź AirTrail i wpisz „Adres URL instancji” oraz klucz API. Klucz utworzysz w AirTrail w „Settings”, „Security”. Jeśli tworzysz klucz w AirTrail 3.13 lub nowszym, do odczytu potrzebuje on zakresu flight.read.own. Do zapisywania zmian z powrotem potrzebuje też flight.update.own, flight.passengers.manage.own, reference_data.read i profile.read.',
   'help.guide.connect-dawarich.step.1':
     'W „Integracjach” znajdź Dawarich i wpisz „Adres instancji” oraz klucz API z Dawarich (w „Account”, „API key”).',
   'help.guide.tour-connect-wanderer.step.1':

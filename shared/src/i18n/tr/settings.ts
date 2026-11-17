@@ -422,7 +422,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': "Örnek URL'si",
   'settings.airtrail.apiKey': 'API anahtarı',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API anahtarı',
-  'settings.airtrail.apiKeyHint': "AirTrail'de Ayarlar → Güvenlik altında oluşturulur. Şifreli olarak saklanır.",
+  'settings.airtrail.apiKeyHint':
+    "AirTrail'de Ayarlar → Güvenlik altında oluşturulur. Şifreli olarak saklanır. Anahtarı AirTrail 3.13 veya sonraki bir sürümde oluşturursanız, okumak için flight.read.own kapsamı gerekir. Değişiklikleri geri yazmak için ayrıca flight.update.own, flight.passengers.manage.own, reference_data.read ve profile.read gerekir.",
   'settings.airtrail.allowInsecureTls': 'Kendinden imzalı sertifikalara izin ver',
   'settings.airtrail.allowInsecureTlsHint': 'Yalnızca kendi ağınızdaki güvenilir bir örnek için etkinleştirin.',
   'settings.airtrail.writeBack': 'Değişiklikleri AirTrail’e geri yaz',

@@ -4627,7 +4627,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kartta Bu cihaz için açık yazar. Anlık bildirim altında açtığınız olaylar TREK kapalıyken bile size ulaşır.',
   'help.guide.connect-airtrail.step.1':
-    "Entegrasyonlar altında AirTrail'i bulun ve Örnek URL'sini ile bir API anahtarını girin. Anahtarı AirTrail'de Ayarlar, Güvenlik bölümünden oluşturursunuz.",
+    "Entegrasyonlar altında AirTrail'i bulun ve Örnek URL'sini ile bir API anahtarını girin. Anahtarı AirTrail'de Ayarlar, Güvenlik bölümünden oluşturursunuz. Anahtarı AirTrail 3.13 veya sonraki bir sürümde oluşturursanız, okumak için flight.read.own kapsamı gerekir. Değişiklikleri geri yazmak için ayrıca flight.update.own, flight.passengers.manage.own, reference_data.read ve profile.read gerekir.",
   'help.guide.connect-dawarich.step.1':
     "Entegrasyonlar altında Dawarich'i bulun ve Sunucu adresi ile Dawarich'te Hesap, API anahtarı bölümündeki API anahtarını girin.",
   'help.guide.tour-connect-wanderer.step.1':

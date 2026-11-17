@@ -424,7 +424,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'URL da instância',
   'settings.airtrail.apiKey': 'Chave de API',
   'settings.airtrail.apiKeyPlaceholder': 'Chave de API Bearer',
-  'settings.airtrail.apiKeyHint': 'Gerada no AirTrail em Configurações → Segurança. Armazenada de forma criptografada.',
+  'settings.airtrail.apiKeyHint':
+    'Gerada no AirTrail em Configurações → Segurança. Armazenada de forma criptografada. Se você criar a chave no AirTrail 3.13 ou posterior, ela precisa do escopo flight.read.own para leitura. Para gravar alterações de volta, também precisa de flight.update.own, flight.passengers.manage.own, reference_data.read e profile.read.',
   'settings.airtrail.allowInsecureTls': 'Permitir certificados autoassinados',
   'settings.airtrail.allowInsecureTlsHint': 'Ative apenas para uma instância confiável na sua própria rede.',
   'settings.airtrail.writeBack': 'Gravar alterações de volta no AirTrail',

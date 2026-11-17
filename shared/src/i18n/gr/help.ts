@@ -4765,7 +4765,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Η κάρτα γράφει «Ενεργό για αυτή τη συσκευή», και τα συμβάντα που ενεργοποιήσατε στη στήλη Push σάς έρχονται ακόμη κι όταν το TREK είναι κλειστό.',
   'help.guide.connect-airtrail.step.1':
-    'Στις «Ενσωματώσεις», βρείτε το AirTrail και συμπληρώστε το «URL της εγκατάστασης» και ένα κλειδί API. Το κλειδί το δημιουργείτε στο AirTrail, στις ρυθμίσεις ασφαλείας (Settings, Security).',
+    'Στις «Ενσωματώσεις», βρείτε το AirTrail και συμπληρώστε το «URL της εγκατάστασης» και ένα κλειδί API. Το κλειδί το δημιουργείτε στο AirTrail, στις ρυθμίσεις ασφαλείας (Settings, Security). Αν δημιουργήσετε το κλειδί στο AirTrail 3.13 ή νεότερο, χρειάζεται το δικαίωμα flight.read.own για ανάγνωση. Για εγγραφή αλλαγών πίσω χρειάζεται επίσης flight.update.own, flight.passengers.manage.own, reference_data.read και profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Στις «Ενσωματώσεις», βρείτε το Dawarich και συμπληρώστε τη «Διεύθυνση εγκατάστασης» και το κλειδί API που θα βρείτε στο Dawarich, στο Account, API key.',
   'help.guide.tour-connect-wanderer.step.1':

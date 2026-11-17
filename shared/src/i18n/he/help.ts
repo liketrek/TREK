@@ -1456,7 +1456,7 @@ const help: TranslationStrings = {
   'help.guide.connect-airtrail.title': 'חיבור ל-AirTrail שלכם',
   'help.guide.connect-airtrail.goal': 'אפשרו ל-TREK לייבא ולסנכרן את הטיסות ממופע ה-AirTrail שלכם.',
   'help.guide.connect-airtrail.step.1':
-    'תחת שילובים, מצאו את AirTrail והזינו את כתובת המופע ומפתח API. את המפתח יוצרים ב-AirTrail תחת הגדרות, אבטחה.',
+    'תחת שילובים, מצאו את AirTrail והזינו את כתובת המופע ומפתח API. את המפתח יוצרים ב-AirTrail תחת הגדרות, אבטחה. אם יוצרים את המפתח ב-AirTrail 3.13 ואילך, הוא צריך את ההרשאה flight.read.own כדי לקרוא. כדי לכתוב שינויים בחזרה, הוא צריך גם את flight.update.own, flight.passengers.manage.own, reference_data.read ו-profile.read.',
   'help.guide.connect-airtrail.step.2':
     'אפשור תעודות בחתימה עצמית מיועד רק למופע מהימן ברשת שלכם. כתיבת שינויים בחזרה ל-AirTrail כבויה כברירת מחדל, כך ש-TREK רק קורא נתונים; הפעילו אותה כדי לשלוח בחזרה את העריכות שלכם.',
   'help.guide.connect-airtrail.step.3': 'לחצו על שמירה ואז על בדיקת חיבור. יוצג מספר הטיסות שנמצאו, והתג ישתנה למחובר.',

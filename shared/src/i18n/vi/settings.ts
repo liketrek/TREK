@@ -425,7 +425,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'Ví dụ URL',
   'settings.airtrail.apiKey': 'API Key',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API Key',
-  'settings.airtrail.apiKeyHint': 'Được tạo trong AirTrail trong Cài đặt → Bảo mật. Được lưu trữ được mã hóa.',
+  'settings.airtrail.apiKeyHint':
+    'Được tạo trong AirTrail trong Cài đặt → Bảo mật. Được lưu trữ được mã hóa. Nếu bạn tạo khóa trong AirTrail 3.13 trở lên, khóa cần phạm vi flight.read.own để đọc. Để ghi các thay đổi trở lại, khóa cũng cần flight.update.own, flight.passengers.manage.own, reference_data.read và profile.read.',
   'settings.airtrail.allowInsecureTls': 'Cho phép chứng chỉ tự ký',
   'settings.airtrail.allowInsecureTlsHint': 'Chỉ kích hoạt cho một phiên bản đáng tin cậy trên mạng của riêng bạn.',
   'settings.airtrail.writeBack': 'Viết các thay đổi trở lại AirTrail',
