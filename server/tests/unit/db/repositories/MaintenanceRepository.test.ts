@@ -47,12 +47,19 @@ describe('MaintenanceRepository', () => {
     }
   });
 
-  it('MAINTREPO-005: deletePluginUserData skips an absent table and rethrows any other failure', async () => {
+  it('MAINTREPO-005: deletePluginUserData empties the three plugin tables and rethrows any failure, a missing table included', async () => {
     const spy = vi.spyOn(t.em.getConnection(), 'execute');
     try {
-      // The first statement is the user_config delete, so the one-shot rejection lands on it.
-      spy.mockRejectedValueOnce(new TableNotFoundException(new Error('no such table: plugin_user_config')));
       await expect(maintenance.deletePluginUserData(1)).resolves.toBeUndefined();
+      expect(spy.mock.calls.map((call) => call[0]).filter((sql) => String(sql).startsWith('DELETE'))).toEqual([
+        'DELETE FROM plugin_user_config WHERE user_id = ?',
+        'DELETE FROM plugin_oauth_tokens WHERE user_id = ?',
+        'DELETE FROM plugin_oauth_state WHERE user_id = ?',
+      ]);
+
+      // No savepoint swallows it: the erasure's transaction rolls back instead.
+      spy.mockRejectedValueOnce(new TableNotFoundException(new Error('no such table: plugin_user_config')));
+      await expect(maintenance.deletePluginUserData(1)).rejects.toThrow('no such table');
 
       spy.mockRejectedValueOnce(new Error('connection lost'));
       await expect(maintenance.deletePluginUserData(1)).rejects.toThrow('connection lost');

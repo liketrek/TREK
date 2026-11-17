@@ -1,4 +1,6 @@
 import { currentTimestampKysely } from '../dialect/kysely-functions';
+import { resolveEngine } from '../engine';
+import { writeTransaction } from '../engine/write-transaction';
 import { Addons } from '../entities/Addons.entity';
 import { AppSettings } from '../entities/AppSettings.entity';
 import { DocumentProviders } from '../entities/DocumentProviders.entity';
@@ -420,7 +422,10 @@ export class DemoRepository {
 
   /**
    * Writes the demo's addon states in one transaction, so a reset that fails
-   * halfway does not leave half the shelf switched. One UPDATE per shelf and
+   * halfway does not leave half the shelf switched. The transaction takes the
+   * engine's write lock (`writeTransaction`), as a `UnitOfWork` one does: the
+   * seed and the reset run outside the Nest container, so the engine is the
+   * one the environment names. One UPDATE per shelf and
    * state (generic inherited `nativeUpdate` over `id IN (...)`, the statement
    * `setEnabled` issues for one row) and one upsert for all the switches
    * (`AppSettingsRepository#setValue`'s), however long the lists are. A named
@@ -430,7 +435,7 @@ export class DemoRepository {
   async applyAddonStates(states: DemoAddonStates): Promise<void> {
     this.validateRequestContext();
     const switches = Object.entries(states.appSettings).map(([key, value]) => ({ key, value }));
-    await this.em.transactional(async () => {
+    await writeTransaction(this.em, resolveEngine(), async () => {
       const addons = this.em.getRepository(Addons);
       await addons.nativeUpdate({ id: { $in: [...states.addons.on] } }, { enabled: true });
       await addons.nativeUpdate({ id: { $in: [...states.addons.off] } }, { enabled: false });
