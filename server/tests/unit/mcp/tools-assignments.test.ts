@@ -15,6 +15,7 @@ import { makeDay, makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { oneByOne } from '../../helpers/one-by-one';
 import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
 import { MikroORM } from '@mikro-orm/core';
@@ -34,6 +35,13 @@ beforeAll(async () => {
 /** The day's assignment ids in order_index order. */
 async function dayOrder(dayId: number): Promise<number[]> {
   return (await findRows(orm, DayAssignments, { day: dayId }, { order_index: 'asc' })).map((r) => r.id);
+}
+
+/** `count` stops of the place on the day, order_index 0 upwards; their ids in that order. */
+async function stops(dayId: number, placeId: number, count: number): Promise<number[]> {
+  const indexes = Array.from({ length: count }, (_, i) => i);
+  const rows = await oneByOne(indexes, (i) => makeDayAssignment(orm, dayId, placeId, { order_index: i }));
+  return rows.map((row) => row.id);
 }
 
 async function viaAfterIndex(id: number) {
@@ -85,13 +93,13 @@ describe('Tool: assign_place_to_day', () => {
     const place = await makePlace(orm, trip.id);
     const visit = await makeDayAssignment(orm, day.id, place.id);
     await withHarness(user.id, async (h) => {
-      for (const end_day of [true, false]) {
+      await oneByOne([true, false], async (end_day) => {
         const changed = await h.client.callTool({
           name: 'set_assignment_end_day',
           arguments: { tripId: trip.id, assignmentId: visit.id, end_day },
         });
         expect(parseToolResult(changed)).toMatchObject({ assignment: { end_day } });
-      }
+      });
       const other = await makeTrip(orm, user.id);
       const refused = await h.client.callTool({
         name: 'set_assignment_end_day',
@@ -579,9 +587,7 @@ describe('Tool: update_assignment_time', () => {
     const trip = await makeTrip(orm, user.id);
     const day = await makeDay(orm, trip.id);
     const place = await makePlace(orm, trip.id);
-    const ids: number[] = [];
-    for (const i of [0, 1, 2, 3]) ids.push((await makeDayAssignment(orm, day.id, place.id, { order_index: i })).id);
-    const [a, b, c, d] = ids;
+    const [a, b, c, d] = await stops(day.id, place.id, 4);
     await updateRows(orm, DayAssignments, { id: b }, { assignment_time: '15:00' });
     const via = await insertRow(orm, RoadtripVias, {
       day: day.id,
@@ -624,9 +630,7 @@ describe('Tool: update_assignment_time', () => {
     const trip = await makeTrip(orm, user.id);
     const day = await makeDay(orm, trip.id);
     const place = await makePlace(orm, trip.id);
-    const ids: number[] = [];
-    for (const i of [0, 1, 2]) ids.push((await makeDayAssignment(orm, day.id, place.id, { order_index: i })).id);
-    const [a, b, c] = ids;
+    const [a, b, c] = await stops(day.id, place.id, 3);
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -646,9 +650,7 @@ describe('Tool: update_assignment_time', () => {
     const day = await makeDay(orm, trip.id);
     const place = await makePlace(orm, trip.id);
     // B starts before A and was put behind it on purpose.
-    const ids: number[] = [];
-    for (const i of [0, 1]) ids.push((await makeDayAssignment(orm, day.id, place.id, { order_index: i })).id);
-    const [a, b] = ids;
+    const [a, b] = await stops(day.id, place.id, 2);
     await updateRows(orm, DayAssignments, { id: a }, { assignment_time: '14:00' });
     await updateRows(orm, DayAssignments, { id: b }, { assignment_time: '10:00' });
     const via = await insertRow(orm, RoadtripVias, {

@@ -32,6 +32,7 @@ import { Categories } from '../../src/db/entities/Categories.entity';
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { inContext, type FactoryOrm } from './factories/context';
 import { insertRowIgnoringConflict } from './factories/rows';
+import { oneByOne } from './one-by-one';
 import { DEFAULT_ADDONS, DEFAULT_CATEGORIES, DEFAULT_PHOTO_PROVIDERS, KEEP_TABLES } from './test-db';
 import type { EntityManager } from '@mikro-orm/core';
 
@@ -80,7 +81,7 @@ async function clearUserTables(em: EntityManager, restartUsers: boolean): Promis
     const tables = rows.map((r) => r.name).filter((name) => !name.startsWith('sqlite_') && !KEEP_TABLES.has(name));
     await connection.execute('PRAGMA foreign_keys = OFF', [], 'run');
     try {
-      for (const table of tables) await connection.execute(`DELETE FROM ${quote(table)}`, [], 'run');
+      await oneByOne(tables, (table: string) => connection.execute(`DELETE FROM ${quote(table)}`, [], 'run'));
       if (restartUsers) await connection.execute("DELETE FROM sqlite_sequence WHERE name = 'users'", [], 'run');
     } finally {
       await connection.execute('PRAGMA foreign_keys = ON', [], 'run');
@@ -109,7 +110,8 @@ async function clearUserTables(em: EntityManager, restartUsers: boolean): Promis
     await em.transactional(async (tx) => {
       const run = (sql: string) => tx.getConnection().execute(sql, [], 'run', tx.getTransactionContext());
       if (truncated.length > 0) await run(`TRUNCATE ${truncated.map(quote).join(', ')}`);
-      for (const table of deleted) await run(`DELETE FROM ${quote(table)}`);
+      // One after another: a held table may reference another held table.
+      await oneByOne(deleted, (table: string) => run(`DELETE FROM ${quote(table)}`));
       if (restartUsers) await run("select setval(pg_get_serial_sequence('users', 'id'), 1, false)");
     });
     return;
@@ -125,32 +127,36 @@ async function clearUserTables(em: EntityManager, restartUsers: boolean): Promis
  * an addon a test switched off included.
  */
 async function seedDefaultRows(orm: FactoryOrm): Promise<void> {
-  await inContext(orm, async (em) => {
-    for (const cat of DEFAULT_CATEGORIES) {
+  // The categories in list order, so a fresh database numbers them as
+  // seedDefaults does; addons and providers carry their own ids.
+  await inContext(orm, (em) =>
+    oneByOne(DEFAULT_CATEGORIES, async (cat) => {
       if ((await em.count(Categories, { name: cat.name })) === 0) {
         await em.insert(Categories, { name: cat.name, color: cat.color, icon: cat.icon });
       }
-    }
-  });
-  for (const a of DEFAULT_ADDONS) {
-    await insertRowIgnoringConflict(orm, Addons, {
-      id: a.id,
-      name: a.name,
-      description: a.description,
-      type: a.type,
-      icon: a.icon,
-      enabled: a.enabled === 1,
-      sort_order: a.sort_order,
-    });
-  }
-  for (const p of DEFAULT_PHOTO_PROVIDERS) {
-    await insertRowIgnoringConflict(orm, PhotoProviders, {
-      id: p.id,
-      name: p.name,
-      description: p.id,
-      icon: 'Image',
-      enabled: p.enabled,
-      sort_order: 0,
-    });
-  }
+    }),
+  );
+  await Promise.all([
+    ...DEFAULT_ADDONS.map((a) =>
+      insertRowIgnoringConflict(orm, Addons, {
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        type: a.type,
+        icon: a.icon,
+        enabled: a.enabled === 1,
+        sort_order: a.sort_order,
+      }),
+    ),
+    ...DEFAULT_PHOTO_PROVIDERS.map((p) =>
+      insertRowIgnoringConflict(orm, PhotoProviders, {
+        id: p.id,
+        name: p.name,
+        description: p.id,
+        icon: 'Image',
+        enabled: p.enabled,
+        sort_order: 0,
+      }),
+    ),
+  ]);
 }

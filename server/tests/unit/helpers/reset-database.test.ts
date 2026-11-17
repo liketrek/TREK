@@ -82,9 +82,15 @@ describe('resetDatabase', () => {
 
     await resetDatabase(orm);
     await resetDatabase(orm);
-    for (const cat of DEFAULT_CATEGORIES) expect(await countRows(orm, Categories, { name: cat.name })).toBe(1);
-    for (const addon of DEFAULT_ADDONS) expect(await countRows(orm, Addons, { id: addon.id })).toBe(1);
-    for (const p of DEFAULT_PHOTO_PROVIDERS) expect(await countRows(orm, PhotoProviders, { id: p.id })).toBe(1);
+    const once = (keys: readonly string[]) => Object.fromEntries(keys.map((key) => [key, 1]));
+    const counted = async (keys: readonly string[], count: (key: string) => Promise<number>) =>
+      Object.fromEntries(await Promise.all(keys.map(async (key) => [key, await count(key)])));
+    const categories = DEFAULT_CATEGORIES.map((cat) => cat.name);
+    const addons = DEFAULT_ADDONS.map((addon) => addon.id);
+    const providers = DEFAULT_PHOTO_PROVIDERS.map((p) => p.id);
+    expect(await counted(categories, (name) => countRows(orm, Categories, { name }))).toEqual(once(categories));
+    expect(await counted(addons, (id) => countRows(orm, Addons, { id }))).toEqual(once(addons));
+    expect(await counted(providers, (id) => countRows(orm, PhotoProviders, { id }))).toEqual(once(providers));
     const addon = await findRow(orm, Addons, { id: DEFAULT_ADDONS[0].id });
     expect(addon?.name).toBe(DEFAULT_ADDONS[0].name);
     expect(Boolean(addon?.enabled)).toBe(DEFAULT_ADDONS[0].enabled === 1);
