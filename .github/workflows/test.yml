@@ -292,6 +292,7 @@ jobs:
         # lands after its cut it must match them exactly; after, it is frozen,
         # its list of migrations is checked and the migrations after the cut are
         # listed: lint:dialect holds their engineDdl and PARITY-PG their result.
+        # Either way every SQLite trigger needs its Postgres port.
         run: cd server && npm run check:pg-baseline
 
   server-lint-checks:
