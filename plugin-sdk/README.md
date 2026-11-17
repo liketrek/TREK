@@ -206,7 +206,16 @@ What changes on Postgres:
   temporary tables, `SELECT ... INTO`, `COPY`, `SET`, transaction control (`tx()` makes a
   batch atomic), `WITH RECURSIVE`, and no `ALTER` of a schema, owner or tablespace.
   Dollar-quoted strings, `E'...'` and `U&'...'` are refused; write plain single-quoted
-  strings.
+  strings. The words `TEMP` and `TEMPORARY` are refused anywhere outside a string (quote a
+  column named `"temp"`), and so is `INTO` anywhere but `INSERT INTO` and `MERGE INTO`.
+  Numbers are decimal: `0x1F`, `0o17`, `0b1` and `1_000` are refused, because Postgres
+  before 16 reads them differently. Outside strings, quoted names and comments, whitespace is
+  space, tab, newline, carriage return or form feed; any other control character or non-ASCII
+  whitespace (a no-break space, a byte order mark) is refused. A `--` comment ends at a
+  newline or a carriage return.
+- **One statement at a time.** Each statement goes to Postgres on its own, over the protocol
+  that runs exactly one: `query` and each `tx` entry take one statement, and an `exec`
+  script is split at its semicolons and sent statement by statement.
 - **Limits**: the same row cap and quota as on SQLite. The 2 s budget is a
   `statement_timeout` here, so it also stops a single long statement, and an `exec` with
   bound args is held to it too; `migrate` stays untimed. A write that takes your schema past
