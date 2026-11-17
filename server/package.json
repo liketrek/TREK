@@ -11,6 +11,7 @@
     "build": "node scripts/build.mjs",
     "start:prod": "node --require tsconfig-paths/register dist/index.js",
     "reset-admin": "node reset-admin.js",
+    "db:move-to-postgres": "node --import tsx src/move-to-postgres.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json --noEmit",
