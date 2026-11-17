@@ -1,4 +1,5 @@
 import { columnNamesSql, tableExistsSql } from './dialect/catalog';
+import { forEngine, type EngineColumn, type EngineDdl } from './dialect/ddl';
 import { TableNotFoundException } from '@mikro-orm/core';
 import type { Migration } from '@mikro-orm/migrations';
 
@@ -25,16 +26,37 @@ interface ColumnRow {
  * name"; this checks first instead, so a genuine failure still propagates.
  *
  * `definition` is the full column spec, e.g. `status TEXT DEFAULT 'pending'`.
+ * A migration after the Postgres baseline's cut runs on both engines and
+ * passes one per engine instead (`{ sqlite: 'status TEXT', postgres: 'status text' }`),
+ * so Postgres never gets a SQLite spelling; `lint:dialect` refuses a plain
+ * string there.
  */
 export async function addColumnIfMissing(
   migration: Migration,
   table: string,
   column: string,
-  definition: string,
+  definition: string | EngineColumn,
 ): Promise<void> {
   if ((await columnNames(migration, table)).has(column)) return;
   const platform = migration.getEntityManager().getPlatform();
-  await migration.execute(`alter table ${platform.quoteIdentifier(table)} add column ${definition}`);
+  const spec = typeof definition === 'string' ? definition : forEngine(platform, definition);
+  await migration.execute(`alter table ${platform.quoteIdentifier(table)} add column ${spec}`);
+}
+
+/**
+ * Queues a schema change written once per engine, the way `addSql` queues a
+ * statement: the statements for the engine the migration runs on, in order,
+ * after whatever the migration queued before. Every migration after the
+ * Postgres baseline's cut writes its DDL through this (`lint:dialect` refuses
+ * it anywhere else in such a migration): the SQLite statements by hand, the
+ * Postgres ones as `npm run gen:pg-migration` prints them.
+ *
+ * Like `addSql`, nothing runs before `up()` returns, so a statement the
+ * migration sends with `this.execute` runs first; send data statements that
+ * need the new schema with `addSql` after this call.
+ */
+export function engineDdl(migration: Migration, ddl: EngineDdl): void {
+  for (const statement of forEngine(migration.getEntityManager().getPlatform(), ddl)) migration.addSql(statement);
 }
 
 /** True when `table` exists in the current database. */
