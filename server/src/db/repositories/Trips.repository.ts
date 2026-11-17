@@ -800,12 +800,12 @@ export class TripsRepository extends TrekRepository<Trips> {
     const owner = this.kysely<TravellerUsernameKyselyDB>()
       .selectFrom('trips as t')
       .innerJoin('users as u', 'u.id', 't.user_id')
-      .select((eb) => ['u.username as username', eb.lit(1).as('is_owner')])
+      .select((eb) => ['u.username as username', eb.lit(1).$castTo<number>().as('is_owner')])
       .where('t.id', '=', trip_id);
     const member = this.kysely<TravellerUsernameKyselyDB>()
       .selectFrom('trip_members as m')
       .innerJoin('users as u', 'u.id', 'm.user_id')
-      .select((eb) => ['u.username as username', eb.lit(0).as('is_owner')])
+      .select((eb) => ['u.username as username', eb.lit(0).$castTo<number>().as('is_owner')])
       .where('m.trip_id', '=', trip_id);
     const rows = await owner.unionAll(member).orderBy('is_owner', 'desc').execute();
     return rows as TravellerUsernameRow[];
