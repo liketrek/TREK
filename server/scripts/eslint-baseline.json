@@ -6,7 +6,7 @@
     "@typescript-eslint/no-unsafe-function-type": 1,
     "@typescript-eslint/no-unused-vars": 35,
     "no-await-in-loop": 556,
-    "no-console": 232,
+    "no-console": 231,
     "no-empty": 6
   },
   "suppressed": {
