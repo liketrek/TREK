@@ -396,6 +396,15 @@ describe('deriveDb: the pre-migration snapshot', () => {
   });
 });
 
+describe('deriveDb: starting on Postgres beside a SQLite install', () => {
+  it('keeps the refusal unless TREK_DB_IGNORE_SQLITE_FILE is an explicit true', () => {
+    expect(deriveDb({}).ignoreSqliteFile).toBe(false);
+    expect(deriveDb({ TREK_DB_IGNORE_SQLITE_FILE: 'false' }).ignoreSqliteFile).toBe(false);
+    expect(deriveDb({ TREK_DB_IGNORE_SQLITE_FILE: 'yes' }).ignoreSqliteFile).toBe(true);
+    expect(deriveDb({ TREK_DB_IGNORE_SQLITE_FILE: 'true' }).ignoreSqliteFile).toBe(true);
+  });
+});
+
 describe('deriveDb: the engine', () => {
   it('DB-ENGINE-001: SQLite unless TREK_DB_URL names a database', () => {
     expect(deriveDb({})).toMatchObject({ engine: 'sqlite' });

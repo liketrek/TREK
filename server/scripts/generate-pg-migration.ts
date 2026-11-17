@@ -135,7 +135,12 @@ async function bootstrapBefore(url: string, before: readonly string[]): Promise<
     migrations: { ...config.migrations, silent: true, migrationsList: await loadMigrations(before) },
   });
   try {
-    await bootstrapPostgresSchema(orm, { ...defaultPostgresBootstrapDeps(url), safetyNet: NO_SAFETY_NET });
+    await bootstrapPostgresSchema(orm, {
+      ...defaultPostgresBootstrapDeps(url),
+      safetyNet: NO_SAFETY_NET,
+      // A scratch database of its own: a SQLite install in the developer's data directory is beside the point.
+      sqliteLeftBehind: () => null,
+    });
   } finally {
     await orm.close(true);
   }

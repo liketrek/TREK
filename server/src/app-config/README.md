@@ -168,6 +168,7 @@ OIDC_*, SMTP_*, FORCE_HTTPS, COOKIE_SECURE,
 ALLOWED_ORIGINS, UNSPLASH_ACCESS_KEY, WEBAUTHN_*, TZ, ADMIN_EMAIL,
 TREK_DB_PRE_MIGRATE_SNAPSHOT(_KEEP) (read when a migration run starts; the
 legacy-upgrade suites set it per file),
+TREK_DB_IGNORE_SQLITE_FILE (read when a Postgres boot finds no TREK data),
 ADMIN_PASSWORD, IDEMPOTENCY_TTL_SECONDS, MCP_RATE_LIMIT (request-path check),
 LLM_TIMEOUT_MS, LLM_MAX_OUTPUT_TOKENS, NOMINATIM_URL, VAPID_* (resolved per use by the Web Push key
 service, which the notification suites build without the container).

@@ -5,14 +5,10 @@ import { knownMigrationNames } from '../../known-migrations';
 import { migrationLabel, REFUSAL, refuseNewerDatabase, type MigrationSafetyNet } from '../../legacy-baseline';
 import type { AnyOrm } from '../../orm';
 import { listSnapshots, PREFIX, pruneSnapshots, stamp } from '../../pre-migrate-snapshot';
+import { sqliteInstallHoldsAccounts } from '../sqlite/sqlite-source';
 import { readPostgresBaseline, type PostgresBaseline } from './baseline';
 import { pgDump } from './pg-tools';
-import {
-  PRIVILEGED_ROLE_SQL,
-  PRIVILEGED_ROLE_WARNING,
-  refuseUnsupportedServer,
-  serverMajor,
-} from './server-checks';
+import { PRIVILEGED_ROLE_SQL, PRIVILEGED_ROLE_WARNING, refuseUnsupportedServer, serverMajor } from './server-checks';
 import type { Connection } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 import { Logger } from '@nestjs/common';
@@ -30,6 +26,50 @@ export interface PostgresBootstrapDeps {
   baseline: () => PostgresBaseline;
   known: Set<string>;
   safetyNet: MigrationSafetyNet;
+  /**
+   * The SQLite install a boot on a database without TREK data would leave
+   * behind: the path of a SQLite file in the data directory that holds
+   * accounts, or null when there is none (or the operator said to start
+   * anyway). Read only when the database holds no TREK data, so a boot on a
+   * database in use never opens the file.
+   */
+  sqliteLeftBehind: () => string | null;
+}
+
+/** The command that moves a SQLite install into Postgres, as the refusal names it. */
+const MOVE_COMMAND_HINT =
+  'docker compose run --rm --user node -w /app/server app node --require tsconfig-paths/register ' +
+  'dist/move-to-postgres.js (npm run db:move-to-postgres in server/ outside Docker)';
+
+/**
+ * The refusal of a boot that would come up empty on Postgres while `file`
+ * holds the install's data.
+ */
+function leftBehindRefusal(file: string): string {
+  return (
+    `${REFUSAL} TREK_DB_URL points at a Postgres database that holds no TREK data, while ${file} holds an ` +
+    'existing SQLite install with accounts. Starting would bring up a new, empty TREK beside it. To move that ' +
+    `install to Postgres, stop TREK and run the move command: ${MOVE_COMMAND_HINT}. The wiki page ` +
+    'Database-Postgres ("Moving an existing install to Postgres") has the steps. To start on the empty ' +
+    'database on purpose, set TREK_DB_IGNORE_SQLITE_FILE=true; to keep running on SQLite, unset TREK_DB_URL.'
+  );
+}
+
+/**
+ * Whether the database holds an account. A database TREK created always does
+ * once its first boot finished; one without is what a move that stopped part
+ * of the way, or a first boot that died before seeding, leaves.
+ */
+async function holdsAccounts(connection: Connection, tables: readonly string[]): Promise<boolean> {
+  if (!tables.includes('users')) return false;
+  const rows: unknown[] = await connection.execute('select 1 as present from users limit 1');
+  return rows.length > 0;
+}
+
+/** Refuses the boot when `sqliteLeftBehind` names a SQLite install this boot would leave behind. */
+function refuseLeavingSqliteBehind(deps: PostgresBootstrapDeps): void {
+  const file = deps.sqliteLeftBehind();
+  if (file !== null) throw new Error(leftBehindRefusal(file));
 }
 
 /**
@@ -147,9 +187,13 @@ export async function bootstrapPostgresSchema(orm: AnyOrm, deps: PostgresBootstr
   const executed = tables.includes(historyTable) ? (await migrator.getExecuted()).map((row) => row.name) : [];
 
   if (executed.length === 0) {
+    // An empty database (a database holding other tables is refused below, with its own message).
+    if (tables.every((table) => table === historyTable)) refuseLeavingSqliteBehind(deps);
     await createFromBaseline(connection, migrator.getStorage(), tables, historyTable, deps.baseline);
   } else {
     await refuseNewerHistory(executed, deps);
+    // A schema without a single account holds no TREK data either; only then is the SQLite file looked at.
+    if (!(await holdsAccounts(connection, tables))) refuseLeavingSqliteBehind(deps);
   }
 
   const pending = await migrator.getPending();
@@ -229,7 +273,37 @@ export function postgresSafetyNet(
   };
 }
 
-/** What a production boot passes: the committed baseline, the migrations on disk, the safety net above. */
+/**
+ * The SQLite install a Postgres boot would leave behind (`PostgresBootstrapDeps.sqliteLeftBehind`):
+ * the SQLite file the data directory resolves to (`data/travel.db`), when it
+ * holds accounts. A file that cannot be read counts as holding them, so the
+ * check fails closed. `TREK_DB_IGNORE_SQLITE_FILE=true` lets the boot through
+ * with a warning. Off under NODE_ENV=test, where the data directory is the
+ * developer's own.
+ */
+export function sqliteLeftBehindCheck(
+  env: () => AppEnv = readEnv,
+  holdsAccounts: (file: string) => boolean = sqliteInstallHoldsAccounts,
+): () => string | null {
+  return () => {
+    const current = env();
+    if (current.app.isTest) return null;
+    const file = resolveDataPaths(current).dbFile;
+    if (!holdsAccounts(file)) return null;
+    if (current.db.ignoreSqliteFile) {
+      logger.warn(`TREK_DB_IGNORE_SQLITE_FILE is set: starting on Postgres beside the SQLite install in ${file}`);
+      return null;
+    }
+    return file;
+  };
+}
+
+/** What a production boot passes: the committed baseline, the migrations on disk, the safety net and the check above. */
 export function defaultPostgresBootstrapDeps(url: string): PostgresBootstrapDeps {
-  return { baseline: readPostgresBaseline, known: knownMigrationNames(), safetyNet: postgresSafetyNet(url) };
+  return {
+    baseline: readPostgresBaseline,
+    known: knownMigrationNames(),
+    safetyNet: postgresSafetyNet(url),
+    sqliteLeftBehind: sqliteLeftBehindCheck(),
+  };
 }
