@@ -3,7 +3,7 @@ import { DayAssignments } from '../entities/DayAssignments.entity';
 import { Days } from '../entities/Days.entity';
 import { coalesceOverride, columnRef, dayDistance } from '../dialect/sql-functions';
 import { concatKysely, startsWithIsoDateKysely, substringKysely } from '../dialect/kysely-functions';
-import { accommodationIdMatches } from './_shared/reservation-accommodation';
+import { accommodationIdMatches, reservationStayIs } from './_shared/reservation-accommodation';
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
 import type { DayAssignmentRow } from './day-assignment-rows';
 import { TrekRepository } from './_shared/trek-repository';
@@ -609,7 +609,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
           .else(concatKysely(platform, eb, { value: date }, { expression: substringKysely(platform, eb, 'reservation_time', 11) }))
           .end(),
       }))
-      .where('accommodation_id', '=', accommodation_id)
+      .where((eb) => reservationStayIs(this.getEntityManager().getPlatform(), eb, 'accommodation_id', accommodation_id))
       .where('type', '=', 'hotel')
       .execute();
   }
@@ -715,7 +715,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ReservationsByAccommodationKyselyDB>()
       .selectFrom('reservations')
       .select(['id', 'metadata'])
-      .where('accommodation_id', '=', accommodation_id)
+      .where((eb) => reservationStayIs(this.getEntityManager().getPlatform(), eb, 'accommodation_id', accommodation_id))
       .execute();
     return rows as { id: number; metadata: string | null }[];
   }
@@ -759,7 +759,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ReservationsByAccommodationKyselyDB>()
       .selectFrom('reservations')
       .select(['id'])
-      .where('accommodation_id', '=', accommodation_id)
+      .where((eb) => reservationStayIs(this.getEntityManager().getPlatform(), eb, 'accommodation_id', accommodation_id))
       .execute();
     return rows as { id: number }[];
   }
