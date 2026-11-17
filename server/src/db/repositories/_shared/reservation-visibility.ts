@@ -1,4 +1,5 @@
 import { coalesceParam } from '../../dialect/sql-functions';
+import { accommodationIdMatches } from './reservation-accommodation';
 import type { DB } from '../../kysely/db';
 import type { Platform } from '@mikro-orm/core';
 
@@ -137,8 +138,10 @@ export type ReservationVisibilityKyselyDB = Pick<DB, 'day_accommodations' | 'res
 
 /**
  * RV2 as a Kysely predicate: `(NOT EXISTS (…) OR EXISTS (… AND <RV1>))`,
- * correlated on `CAST(vr.accommodation_id AS INTEGER) = a.id`. Call inside
- * a `.where((eb) => publicStayExists(eb))` on a query already
+ * correlated through `accommodationIdMatches` (the stored `'14.0'` matches
+ * the stay 14 on both engines; Postgres refuses a bare cast of it to
+ * integer). Call inside a `.where((eb) => publicStayExists(platform, eb))`
+ * on a query already
  * `.selectFrom('day_accommodations as a')` against a `Kysely<DB>` whose
  * `DB` satisfies `ReservationVisibilityKyselyDB`. The parameter type is
  * fixed to exactly the shape `.selectFrom('day_accommodations as a')`
@@ -151,11 +154,14 @@ export type ReservationVisibilityKyselyDB = Pick<DB, 'day_accommodations' | 'res
  * structurally"); this function accepts exactly one contract instead,
  * proven end-to-end by this file's own parity-harness test.
  */
-export function publicStayExists(eb: ExpressionBuilder<ReservationVisibilityKyselyDB & { a: { id: number } }, 'a'>) {
+export function publicStayExists(
+  platform: Platform,
+  eb: ExpressionBuilder<ReservationVisibilityKyselyDB & { a: { id: number } }, 'a'>,
+) {
   const linkedTo = eb
     .selectFrom('reservations as vr')
     .select('vr.id')
-    .where((eb2) => eb2(eb2.cast(eb2.ref('vr.accommodation_id'), 'integer'), '=', eb2.ref('a.id')));
+    .where((eb2) => accommodationIdMatches(platform, eb2, 'vr.accommodation_id', 'a.id'));
 
   return eb.or([
     eb.not(eb.exists(linkedTo)),
