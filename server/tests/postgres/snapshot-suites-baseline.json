@@ -1,8 +1,6 @@
 [
   "tests/integration/admin.test.ts",
-  "tests/integration/atlas.test.ts",
   "tests/integration/auth.test.ts",
-  "tests/integration/backup.test.ts",
   "tests/integration/collab.test.ts",
   "tests/integration/files.test.ts",
   "tests/integration/journey-place-order.test.ts",

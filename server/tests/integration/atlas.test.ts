@@ -3,25 +3,21 @@
  * Covers ATLAS-001 to ATLAS-008.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { makePlace } from '../helpers/factories/places';
 import { findRow } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -55,19 +51,18 @@ beforeAll(async () => {
 }, 60_000);
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm());
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   vi.unstubAllGlobals();
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Atlas stats', () => {
   it('ATLAS-001 — GET /api/atlas/stats returns stats object', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -76,11 +71,19 @@ describe('Atlas stats', () => {
   });
 
   it('ATLAS-014 — a future trip is returned as planned and excluded from totalCountries (#1048)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     // Offsets from today rather than literal dates, so this cannot expire.
     const iso = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
-    const past = createTrip(testDb, user.id, { title: 'Rome, last month', start_date: iso(-40), end_date: iso(-30) });
-    const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
+    const past = await makeTrip(orm(), user.id, {
+      title: 'Rome, last month',
+      start_date: iso(-40),
+      end_date: iso(-30),
+    });
+    const future = await makeTrip(orm(), user.id, {
+      title: 'Tokyo, next month',
+      start_date: iso(30),
+      end_date: iso(40),
+    });
     // No coordinates and no category: the country has to come from the address.
     const unplaced = { lat: null, lng: null, category: null };
     await makePlace(orm(), past.id, { ...unplaced, name: 'Colosseum', address: 'Piazza del Colosseo, Rome, Italy' });
@@ -99,7 +102,7 @@ describe('Atlas stats', () => {
   });
 
   it('ATLAS-002 — GET /api/atlas/country/:code returns places in country', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/addons/atlas/country/FR').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -109,7 +112,7 @@ describe('Atlas stats', () => {
 
 describe('Mark/unmark country', () => {
   it('ATLAS-003 — POST /country/:code/mark marks country as visited', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).post('/api/addons/atlas/country/DE/mark').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -122,7 +125,7 @@ describe('Mark/unmark country', () => {
   });
 
   it('ATLAS-004 — DELETE /country/:code/mark unmarks country', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app).post('/api/addons/atlas/country/IT/mark').set('Cookie', authCookie(user.id));
 
@@ -134,7 +137,7 @@ describe('Mark/unmark country', () => {
 
 describe('Bucket list', () => {
   it('ATLAS-005 — POST /bucket-list creates a bucket list item', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/addons/atlas/bucket-list')
@@ -145,7 +148,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-005 — POST without name returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/addons/atlas/bucket-list')
@@ -155,7 +158,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-005 — POST the same item twice returns 409 and keeps one row (#1898)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const body = { name: 'Japan', country_code: 'JP' };
 
     const first = await request(app)
@@ -176,7 +179,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-005 — POST the same item for another target date is allowed (#1898)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const undated = await request(app)
       .post('/api/addons/atlas/bucket-list')
@@ -195,7 +198,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-006 — GET /bucket-list returns items', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/bucket-list')
@@ -208,7 +211,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-007 — PUT /bucket-list/:id updates item', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const create = await request(app)
       .post('/api/addons/atlas/bucket-list')
@@ -225,7 +228,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-007 — PUT onto an existing wish returns 409 and leaves the row alone (#1898)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     await request(app)
       .post('/api/addons/atlas/bucket-list')
       .set('Cookie', authCookie(user.id))
@@ -247,7 +250,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-008 — DELETE /bucket-list/:id removes item', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const create = await request(app)
       .post('/api/addons/atlas/bucket-list')
@@ -264,7 +267,7 @@ describe('Bucket list', () => {
   });
 
   it('ATLAS-008 — DELETE non-existent item returns 404', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).delete('/api/addons/atlas/bucket-list/99999').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
@@ -273,7 +276,7 @@ describe('Bucket list', () => {
 
 describe('Mark/unmark region', () => {
   it('ATLAS-009 — POST /region/:code/mark marks a region as visited', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -285,7 +288,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-009 — POST /region/:code/mark without name returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -296,7 +299,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-009 — POST /region/:code/mark without country_code returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -307,7 +310,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-009 — marking a region also auto-marks the parent country', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -321,7 +324,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-009 — marking the same region twice is idempotent', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -337,7 +340,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-010 — GET /regions returns marked regions grouped by country', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -361,7 +364,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-011 — DELETE /region/:code/mark unmarks a region', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -381,7 +384,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-011 — unmark last region in country also unmarks the parent country', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -397,7 +400,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-011 — unmark one region keeps country when another region remains', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -418,7 +421,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-011: unmark last region keeps a country the user marked visited itself (#2597)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const cookie = authCookie(user.id);
 
     await request(app).post('/api/addons/atlas/country/NO/mark').set('Cookie', cookie);
@@ -437,7 +440,7 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-011: a country first reached through a region stays once it is marked itself (#2597)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const cookie = authCookie(user.id);
 
     await request(app)
@@ -455,8 +458,8 @@ describe('Mark/unmark region', () => {
   });
 
   it('ATLAS-011 — regions are isolated between users', async () => {
-    const { user: user1 } = createUser(testDb);
-    const { user: user2 } = createUser(testDb);
+    const { user: user1 } = await makeUser(orm());
+    const { user: user2 } = await makeUser(orm());
 
     await request(app)
       .post('/api/addons/atlas/region/DE-NW/mark')
@@ -473,7 +476,7 @@ describe('Mark/unmark region', () => {
 
 describe('Regions geo', () => {
   it('ATLAS-012 — GET /regions/geo without countries param returns empty FeatureCollection', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/addons/atlas/regions/geo').set('Cookie', authCookie(user.id));
 
@@ -482,7 +485,7 @@ describe('Regions geo', () => {
   });
 
   it('ATLAS-013 — GET /regions/geo?countries=DE,FR returns FeatureCollection', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .get('/api/addons/atlas/regions/geo?countries=DE,FR')
@@ -496,7 +499,7 @@ describe('Regions geo', () => {
   });
 
   it('ATLAS-016 — GET /regions/geo/:code serves that country gzipped, cached for a day', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .get('/api/addons/atlas/regions/geo/no')
@@ -514,7 +517,7 @@ describe('Regions geo', () => {
   });
 
   it('ATLAS-017 — GET /regions/geo/:code answers a country without regions with an empty FeatureCollection', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/addons/atlas/regions/geo/ZZ').set('Cookie', authCookie(user.id));
 
@@ -523,7 +526,7 @@ describe('Regions geo', () => {
   });
 
   it('ATLAS-018 — GET /regions/geo/:code refuses a code that is not two letters with a 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const codes = ['NOR', '..%2Fadmin0'];
     const answers = await Promise.all(
@@ -560,8 +563,8 @@ describe('A place that moves takes its Atlas country with it (#2527)', () => {
   }
 
   it('ATLAS-015: correcting a place from France to Germany moves it on the Atlas', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, {
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, {
       title: 'Wrongly imported',
       start_date: '2025-05-01',
       end_date: '2025-05-05',
@@ -597,8 +600,8 @@ describe('A place that moves takes its Atlas country with it (#2527)', () => {
   });
 
   it('ATLAS-015: an edit that leaves the location alone keeps the cached country', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris', start_date: '2025-05-01', end_date: '2025-05-05' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Paris', start_date: '2025-05-01', end_date: '2025-05-05' });
     const place = await makePlace(orm(), trip.id, {
       name: 'Louvre',
       lat: 48.8606,
