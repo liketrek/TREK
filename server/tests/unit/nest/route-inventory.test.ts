@@ -16,12 +16,7 @@ import {
 } from '../../../src/nest/common/validate-route-guards';
 import { Test } from '@nestjs/testing';
 
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect } from 'vitest';
 
 async function buildApp() {
   // Plan 4 Task 4: `DatabaseService` is gone — nothing left in the graph
