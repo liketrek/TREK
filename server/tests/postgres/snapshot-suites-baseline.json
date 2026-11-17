@@ -1,6 +1,4 @@
 [
-  "tests/integration/trips.test.ts",
-  "tests/integration/vacay.test.ts",
   "tests/unit/mcp/demo-tool-gate.test.ts",
   "tests/unit/mcp/tools-addon-gating.test.ts",
   "tests/unit/mcp/tools-airtrail.test.ts",
