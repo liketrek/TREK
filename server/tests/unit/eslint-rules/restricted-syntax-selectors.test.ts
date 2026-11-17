@@ -233,25 +233,28 @@ void safeFetch(url);`,
   };
 
   it('leaves out exactly the homes of raw SQL and the pinned lifecycle files, and keeps the other guards there', async () => {
-    const exempt: string[] = [];
     const outside = filesUnder('src').filter(
       (file) => !file.startsWith('src/db/repositories/') && !file.startsWith('src/db/seeders/'),
     );
-    for (const file of outside) {
-      // A file ESLint ignores altogether (generated, gitignored) is linted by nothing.
-      if (await eslint.isPathIgnored(path.join(serverRoot, file))) continue;
-      const options = (await selectorsFor(file)) as { message?: string }[];
-      if (!options.some((o) => o.message?.startsWith(SQL_MESSAGE_PREFIX))) exempt.push(file);
-    }
+    const walled = await Promise.all(
+      outside.map(async (file) => {
+        // A file ESLint ignores altogether (generated, gitignored) is linted by nothing.
+        if (await eslint.isPathIgnored(path.join(serverRoot, file))) return true;
+        const options = (await selectorsFor(file)) as { message?: string }[];
+        return options.some((o) => o.message?.startsWith(SQL_MESSAGE_PREFIX));
+      }),
+    );
+    const exempt = outside.filter((_file, i) => !walled[i]);
     const unexpected = exempt.filter(
       (file) => !SQL_HOMES.some((home) => file.startsWith(home)) && !(file in LIFECYCLE_SQL_STRINGS),
     );
     expect(unexpected).toEqual([]);
-    for (const file of Object.keys(LIFECYCLE_SQL_STRINGS)) {
+    const lifecycle = Object.keys(LIFECYCLE_SQL_STRINGS);
+    const lifecycleOptions = await Promise.all(lifecycle.map((file) => selectorsFor(file)));
+    lifecycle.forEach((file, i) => {
       expect(exempt, file).toContain(file);
-      const options = await selectorsFor(file);
-      expect(messages(options, `${PRELUDE}\nvoid safeFetch(url);`), file).toContain(TIMEOUT);
-    }
+      expect(messages(lifecycleOptions[i], `${PRELUDE}\nvoid safeFetch(url);`), file).toContain(TIMEOUT);
+    });
   });
 
   it('holds each lifecycle file to the SQL strings it has today', async () => {
