@@ -13,23 +13,21 @@
  * path rather than a stand-in.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { Categories } from '../../src/db/entities/Categories.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { closeMcpSessions } from '../../src/mcp/index';
 import { authCookie, generateToken } from '../helpers/auth';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  addTripMember,
-  createDayAssignment,
-} from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makeDayAssignment } from '../helpers/factories/itinerary';
+import { makePlace } from '../helpers/factories/places';
 import { findRow, updateRows } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember } from '../helpers/factories/trips';
+import { makeDay } from '../helpers/factories/trips';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -37,20 +35,9 @@ import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-// task-0a-review F4: this mock no longer intercepts any of the four
-// primitives — `db/database.ts` holds none of their bodies any more, so
-// `buildDbMock`'s own `canAccessTrip`/`isOwner`/`getPlaceWithTags`
-// properties are dead code for this file's purposes. It stays only for what
-// every other integration/e2e/WS suite in this program uses it for: an
-// isolated snapshot db that `getRawConnection`/`db` swap the shared
-// better-sqlite3 handle to, which the REAL `MikroORM` binds to underneath
-// (`db/orm-driver.ts`) — so `TripsRepository`/`TripMembersRepository`
-// /`PlacesRepository` read the SAME rows this file seeds through `testDb`.
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
+// The suite seeds through the booted app's own ORM, the one
+// `TripsRepository`/`TripMembersRepository`/`PlacesRepository` read through,
+// on whichever engine the app runs.
 let nestApp: INestApplication;
 let app: Application;
 let orm: FactoryOrm;
@@ -61,13 +48,12 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 afterAll(async () => {
   closeMcpSessions();
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -76,8 +62,8 @@ afterAll(async () => {
 
 describe('canAccessTrip (async) — TripAccessGuard on GET /api/trips/:tripId/days', () => {
   it('PRIM-CAT-001 — owner: 200 with the trip days', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { start_date: '2026-06-01', end_date: '2026-06-02' });
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { start_date: '2026-06-01', end_date: '2026-06-02' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(owner.id));
     expect(res.status).toBe(200);
@@ -85,10 +71,10 @@ describe('canAccessTrip (async) — TripAccessGuard on GET /api/trips/:tripId/da
   });
 
   it('PRIM-CAT-002 — member: 200 with the trip days', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { start_date: '2026-06-01', end_date: '2026-06-01' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { start_date: '2026-06-01', end_date: '2026-06-01' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
@@ -96,9 +82,9 @@ describe('canAccessTrip (async) — TripAccessGuard on GET /api/trips/:tripId/da
   });
 
   it('PRIM-CAT-003 — non-member: 404 { error: "Trip not found" } — never 403 (never confirms the id exists)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(stranger.id));
     expect(res.status).toBe(404);
@@ -106,8 +92,8 @@ describe('canAccessTrip (async) — TripAccessGuard on GET /api/trips/:tripId/da
   });
 
   it('PRIM-CAT-004 — anonymous: 401', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`);
     expect(res.status).toBe(401);
@@ -158,8 +144,8 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
   });
 
   it('PRIM-ISOWN-001 — owner: 200, deletes the trip', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     const sessionId = await mcpSession(owner.id);
 
     const res = await request(app)
@@ -192,8 +178,8 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
   it('PRIM-ISOWN-005 — the repository read inside isOwner runs inside the /mcp request context (MCP-CTX style, no cannotUseGlobalContext)', async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      const { user: owner } = createUser(testDb);
-      const trip = createTrip(testDb, owner.id);
+      const { user: owner } = await makeUser(orm);
+      const trip = await makeTrip(orm, owner.id);
       const sessionId = await mcpSession(owner.id);
 
       const res = await request(app)
@@ -214,10 +200,10 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
   });
 
   it('PRIM-ISOWN-002 — member (not owner): refused with the same "no access" message as a stranger, trip untouched', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
     const sessionId = await mcpSession(member.id);
 
     const res = await request(app)
@@ -235,9 +221,9 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
   });
 
   it('PRIM-ISOWN-003 — non-member/stranger: the identical refusal isOwner gives a member, trip untouched', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     const sessionId = await mcpSession(stranger.id);
 
     const res = await request(app)
@@ -255,8 +241,8 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
   });
 
   it('PRIM-ISOWN-004 — anonymous: 401, no session established', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app).post('/mcp').send(deleteTripBody(trip.id));
     expect(res.status).toBe(401);
@@ -269,12 +255,12 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
 
 describe('rosterUserIds (async) — PUT .../assignments/:id/participants', () => {
   it('PRIM-ROSTER-001 — owner: 200, off-roster ids are dropped silently (no 400)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/assignments/${assignment.id}/participants`)
@@ -286,14 +272,14 @@ describe('rosterUserIds (async) — PUT .../assignments/:id/participants', () =>
   });
 
   it('PRIM-ROSTER-002 — member with edit rights: 200, keeps only roster ids (owner + member)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/assignments/${assignment.id}/participants`)
@@ -307,12 +293,12 @@ describe('rosterUserIds (async) — PUT .../assignments/:id/participants', () =>
   });
 
   it('PRIM-ROSTER-003 — non-member: 404 { error: "Trip not found" }, guard refuses before rosterUserIds runs', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/assignments/${assignment.id}/participants`)
@@ -324,11 +310,11 @@ describe('rosterUserIds (async) — PUT .../assignments/:id/participants', () =>
   });
 
   it('PRIM-ROSTER-004 — anonymous: 401', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/assignments/${assignment.id}/participants`)
@@ -344,13 +330,13 @@ describe('rosterUserIds (async) — PUT .../assignments/:id/participants', () =>
 
 describe('getPlaceWithTags (async) — GET /api/trips/:tripId/places/:id', () => {
   it('PRIM-GPWT-001 — owner: 200 with the hydrated place (category/tags/ratings shape)', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     // createPlace defaults category_id to the first seeded category when no
     // override is given (tests/helpers/factories.ts) — read back whatever it
     // actually assigned rather than assuming none, so this pins the real
     // production shape instead of a factory default that happens to be null.
-    const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+    const place = await makePlace(orm, trip.id, { name: 'Eiffel Tower' });
     const category = place.category_id ? await findRow(orm, Categories, { id: place.category_id }) : null;
     const expectedCategory = category
       ? { id: category.id, name: category.name, color: category.color, icon: category.icon }
@@ -359,11 +345,8 @@ describe('getPlaceWithTags (async) — GET /api/trips/:tripId/places/:id', () =>
     const res = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`).set('Cookie', authCookie(owner.id));
     expect(res.status).toBe(200);
     // Plan 3c Task 0b: `getPlaceWithTags` is `PlacesRepository
-    // .findWithTagsAndRatings` now, reached for real (this file's `vi.mock`
-    // of `src/db/database` only swaps the underlying connection to an
-    // isolated snapshot db — see the top-of-file note — it no longer stands
-    // in for the primitive itself, which db/database.ts doesn't hold any
-    // more). The full production shape, including the ratings aggregate the
+    // .findWithTagsAndRatings` now, reached for real on the app's own
+    // database. The full production shape, including the ratings aggregate the
     // old mocked stand-in omitted, is asserted directly rather than only a
     // subset.
     expect(res.body.place).toMatchObject({
@@ -378,11 +361,11 @@ describe('getPlaceWithTags (async) — GET /api/trips/:tripId/places/:id', () =>
   });
 
   it('PRIM-GPWT-002 — member: 200 with the same hydrated place', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const place = createPlace(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const place = await makePlace(orm, trip.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
@@ -390,10 +373,10 @@ describe('getPlaceWithTags (async) — GET /api/trips/:tripId/places/:id', () =>
   });
 
   it('PRIM-GPWT-003 — non-member: 404 { error: "Trip not found" } from the guard, before getPlaceWithTags runs', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const place = createPlace(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const place = await makePlace(orm, trip.id);
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/places/${place.id}`)
@@ -403,9 +386,9 @@ describe('getPlaceWithTags (async) — GET /api/trips/:tripId/places/:id', () =>
   });
 
   it('PRIM-GPWT-004 — anonymous: 401', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const place = createPlace(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const place = await makePlace(orm, trip.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`);
     expect(res.status).toBe(401);

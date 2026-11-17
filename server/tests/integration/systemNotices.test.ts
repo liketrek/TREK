@@ -4,7 +4,6 @@
  */
 import { ADDON_IDS } from '../../src/addons';
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { UserNoticeDismissals } from '../../src/db/entities/UserNoticeDismissals.entity';
 import { Users } from '../../src/db/entities/Users.entity';
@@ -12,25 +11,18 @@ import { SYSTEM_NOTICES } from '../../src/systemNotices/registry';
 import { getCurrentAppVersion } from '../../src/systemNotices/service';
 import type { SystemNotice } from '../../src/systemNotices/types';
 import { authCookie } from '../helpers/auth';
-import { createUser, createAdmin } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { insertRow, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { resetTestDb } from '../helpers/test-db';
+import { makeAdmin } from '../helpers/factories/users';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Bare in-memory DB — schema applied in beforeAll after mocks register
-// ─────────────────────────────────────────────────────────────────────────────
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -70,13 +62,12 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,7 +81,7 @@ describe('GET /api/system-notices/active', () => {
   });
 
   it('returns no login/version-gated notices for an established user', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // login_count > 1 means firstLogin does not match; first_seen_version >= 3.0.0 means
     // existingUserBeforeVersion('3.0.0') does not match either. Notices that gate on
     // nothing but the install being self-hosted still apply, and which ones those are
@@ -108,7 +99,7 @@ describe('GET /api/system-notices/active', () => {
   it('returns firstLogin notice for user with login_count <= 1', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       // Set login_count to 1 (first login)
       await updateRows(orm, Users, { id: user.id }, { login_count: 1 });
 
@@ -131,7 +122,7 @@ describe('GET /api/system-notices/active', () => {
   it('an addonEnabled-gated notice appears only while the addon is on', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE_ADDON);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       await updateRows(orm, Addons, { id: ADDON_IDS.JOURNEY }, { enabled: false });
 
       const off = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
@@ -152,7 +143,7 @@ describe('GET /api/system-notices/active', () => {
   it('does not return firstLogin notice for user with login_count > 1', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
       const res = await request(app).get('/api/system-notices/active').set('Cookie', authCookie(user.id));
@@ -167,7 +158,7 @@ describe('GET /api/system-notices/active', () => {
   it('filters out dismissed notices', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       await updateRows(orm, Users, { id: user.id }, { login_count: 1 });
 
       // Dismiss the notice directly in DB
@@ -206,7 +197,7 @@ describe('GET /api/system-notices/active', () => {
     };
     SYSTEM_NOTICES.push(RECURRING);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
       const shows = async () => {
@@ -246,7 +237,7 @@ describe('GET /api/system-notices/active', () => {
   // reload of the same version. Driven through the real registry entry and the real
   // dismiss route, so neither half can drift away from the other unnoticed.
   it('shows the release notes once per update, however often they were closed before', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
     // The client announces the release layout and the version it was built as; a
@@ -295,7 +286,7 @@ describe('GET /api/system-notices/active', () => {
   // version. So the notice waits for a client that announces the release layout AND
   // was built for the version now running; the reload brings one.
   it('keeps the release notes from a client that does not announce the release layout for this version', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
 
     const fetchActive = (query: Record<string, string>) =>
@@ -329,7 +320,7 @@ describe('POST /api/system-notices/:id/dismiss', () => {
   });
 
   it('returns 404 for unknown notice id', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/system-notices/nonexistent-id/dismiss')
       .set('Cookie', authCookie(user.id));
@@ -340,7 +331,7 @@ describe('POST /api/system-notices/:id/dismiss', () => {
   it('returns 204 for valid notice id', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       const res = await request(app)
         .post(`/api/system-notices/${TEST_NOTICE.id}/dismiss`)
         .set('Cookie', authCookie(user.id));
@@ -354,7 +345,7 @@ describe('POST /api/system-notices/:id/dismiss', () => {
   it('is idempotent — second dismiss also returns 204', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       const first = await request(app)
         .post(`/api/system-notices/${TEST_NOTICE.id}/dismiss`)
         .set('Cookie', authCookie(user.id));
@@ -373,7 +364,7 @@ describe('POST /api/system-notices/:id/dismiss', () => {
   it('dismiss appears in GET /active as filtered out', async () => {
     SYSTEM_NOTICES.push(TEST_NOTICE);
     try {
-      const { user } = createUser(testDb);
+      const { user } = await makeUser(orm);
       await updateRows(orm, Users, { id: user.id }, { login_count: 1 });
 
       // Confirm TEST_NOTICE is visible before dismiss
@@ -404,7 +395,7 @@ describe('POST /api/system-notices/:id/dismiss', () => {
  * high enough to suppress the firstLogin and v3-upgrade notice conditions.
  */
 async function setupCollisionAdmin() {
-  const { user } = createAdmin(testDb);
+  const { user } = await makeAdmin(orm);
   await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
   return user;
 }
@@ -455,7 +446,7 @@ describe('v3014-whitespace-collision notice', () => {
   });
 
   it('SN-COLLISION-4 — hidden for non-admin user even when collision flag is set', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.0' });
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 
@@ -466,7 +457,7 @@ describe('v3014-whitespace-collision notice', () => {
   });
 
   it('SN-COLLISION-5 — hidden for user whose first_seen_version is >= 3.0.14 (new account)', async () => {
-    const { user } = createAdmin(testDb);
+    const { user } = await makeAdmin(orm);
     await updateRows(orm, Users, { id: user.id }, { login_count: 5, first_seen_version: '3.0.14' });
     await setAppSetting(orm, 'whitespace_migration_collision', 'true');
 

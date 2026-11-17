@@ -1,7 +1,4 @@
 [
-  "tests/integration/share.test.ts",
-  "tests/integration/systemNotices.test.ts",
-  "tests/integration/trip-access-primitives.test.ts",
   "tests/integration/trips.test.ts",
   "tests/integration/vacay.test.ts",
   "tests/unit/mcp/demo-tool-gate.test.ts",
