@@ -1,9 +1,5 @@
 [
-  "tests/unit/mcp/tools-days-accommodations.test.ts",
-  "tests/unit/mcp/tools-days.test.ts",
   "tests/unit/mcp/tools-feeds-invite.test.ts",
-  "tests/unit/mcp/tools-files.test.ts",
-  "tests/unit/mcp/tools-help-addons.test.ts",
   "tests/unit/mcp/tools-journey.test.ts",
   "tests/unit/mcp/tools-leg-transport-mode.test.ts",
   "tests/unit/mcp/tools-memories.test.ts",

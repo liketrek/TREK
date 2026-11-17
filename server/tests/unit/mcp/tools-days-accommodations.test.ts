@@ -6,7 +6,6 @@
  * resource (moved from resources.test.ts when the legacy registrar was
  * ported to the DI-discovered DaysMcp).
  */
-import { db as testDb } from '../../../src/db/database';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -17,36 +16,28 @@ import { Trips } from '../../../src/db/entities/Trips.entity';
 import { legacyBoundIntegerText } from '../../../src/nest/common/row-id';
 import { DayRemovalService } from '../../../src/nest/days/day-removal.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  createDayAccommodation,
-  addTripMember,
-} from '../../helpers/factories';
+import { makeDayAccommodation } from '../../helpers/factories/itinerary';
+import { makePlace } from '../../helpers/factories/places';
 import { makeReservation } from '../../helpers/factories/reservations';
 import { countRows, deleteRows, findRow, findRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
+import { addTripMember, makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 async function placeWebsite(id: number) {
@@ -54,15 +45,14 @@ async function placeWebsite(id: number) {
   return row ? { website: row.website } : undefined;
 }
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -80,8 +70,8 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: create_day', () => {
   it('creates a day with a date', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day',
@@ -95,8 +85,8 @@ describe('Tool: create_day', () => {
   });
 
   it('creates a dateless day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day',
@@ -112,9 +102,9 @@ describe('Tool: create_day', () => {
     // The validator returns a list and the tool joins it. Without a case that
     // produces more than zero errors, that join is never executed, and a tool
     // that silently created a stay against a foreign place would look fine.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2025-06-15' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-06-15' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_accommodation',
@@ -130,9 +120,9 @@ describe('Tool: create_day', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
@@ -141,8 +131,8 @@ describe('Tool: create_day', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
@@ -163,8 +153,8 @@ describe('Tool: delete_day', () => {
     }));
 
   it('deletes a day the way REST does: the gap closes, the dates stay on their slots, and every screen hears it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2026-01-01', end_date: '2026-01-03' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-01-01', end_date: '2026-01-03' });
     const [d1, d2, d3] = await dayRows(trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -196,12 +186,12 @@ describe('Tool: delete_day', () => {
   });
 
   it('cancels a stay checking in on the day with its booking, and says so', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const d1 = createDay(testDb, trip.id);
-    const d2 = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id, { name: 'Harbour Hotel' });
-    const stay = createDayAccommodation(testDb, trip.id, place.id, d2.id, d2.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const d1 = await makeDay(orm, trip.id);
+    const d2 = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: 'Harbour Hotel' });
+    const stay = await makeDayAccommodation(orm, trip.id, place.id, d2.id, d2.id);
     const { id: reservationId } = await makeReservation(orm, trip.id, {
       day: d2.id,
       title: 'Harbour Hotel',
@@ -228,9 +218,9 @@ describe('Tool: delete_day', () => {
   });
 
   it('refuses the last day of a trip with the REST sentence and leaves it in place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_day', arguments: { tripId: trip.id, dayId: day.id } });
       expect(result.isError).toBe(true);
@@ -241,10 +231,10 @@ describe('Tool: delete_day', () => {
   });
 
   it('lets an unexpected failure surface as one, not as the last-day refusal', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    await makeDay(orm, trip.id);
     const boom = vi.spyOn(DayRemovalService.prototype, 'remove').mockImplementation(() => {
       throw new Error('disk full');
     });
@@ -261,9 +251,9 @@ describe('Tool: delete_day', () => {
   });
 
   it('reports a day that is not on the trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_day', arguments: { tripId: trip.id, dayId: 999999 } });
       expect(result.isError).toBe(true);
@@ -272,10 +262,10 @@ describe('Tool: delete_day', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_day', arguments: { tripId: trip.id, dayId: day.id } });
       expect(result.isError).toBe(true);
@@ -283,12 +273,12 @@ describe('Tool: delete_day', () => {
   });
 
   it('refuses a member without day_edit, the same right the REST route asks for', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const day = createDay(testDb, trip.id);
-    createDay(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const day = await makeDay(orm, trip.id);
+    await makeDay(orm, trip.id);
     await setAppSetting(orm, 'perm_day_edit', 'trip_owner');
     await invalidatePermissionsCache();
     try {
@@ -305,10 +295,10 @@ describe('Tool: delete_day', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    createDay(testDb, trip.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_day', arguments: { tripId: trip.id, dayId: day.id } });
       expect(result.isError).toBe(true);
@@ -323,11 +313,11 @@ describe('Tool: delete_day', () => {
 
 describe('Tool: create_accommodation', () => {
   it('creates an accommodation and broadcasts', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Hotel du Louvre' });
-    const day1 = createDay(testDb, trip.id, { date: '2025-06-15' });
-    const day2 = createDay(testDb, trip.id, { date: '2025-06-17' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Hotel du Louvre' });
+    const day1 = await makeDay(orm, trip.id, { date: '2025-06-15' });
+    const day2 = await makeDay(orm, trip.id, { date: '2025-06-17' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_accommodation',
@@ -350,11 +340,11 @@ describe('Tool: create_accommodation', () => {
   });
 
   it('MCP-ACCOM-EVT-01: announces the partner hotel reservation, as the REST route does', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const day1 = createDay(testDb, trip.id);
-    const day2 = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const day1 = await makeDay(orm, trip.id);
+    const day2 = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'create_accommodation',
@@ -367,11 +357,11 @@ describe('Tool: create_accommodation', () => {
   });
 
   it('MCP-ACCOM-EVT-02: a place from another trip is refused with every miss listed, nothing written', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const foreign = createPlace(testDb, otherTrip.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const foreign = await makePlace(orm, otherTrip.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_accommodation',
@@ -384,11 +374,11 @@ describe('Tool: create_accommodation', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const place = createPlace(testDb, trip.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const place = await makePlace(orm, trip.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_accommodation',
@@ -401,10 +391,10 @@ describe('Tool: create_accommodation', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_accommodation',
@@ -421,12 +411,12 @@ describe('Tool: create_accommodation', () => {
 
 describe('Tool: update_accommodation', () => {
   it('updates accommodation fields and broadcasts', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const day1 = createDay(testDb, trip.id);
-    const day2 = createDay(testDb, trip.id);
-    const acc = createDayAccommodation(testDb, trip.id, place.id, day1.id, day2.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const day1 = await makeDay(orm, trip.id);
+    const day2 = await makeDay(orm, trip.id);
+    const acc = await makeDayAccommodation(orm, trip.id, place.id, day1.id, day2.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_accommodation',
@@ -439,8 +429,8 @@ describe('Tool: update_accommodation', () => {
   });
 
   it('returns error for non-existent accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_accommodation',
@@ -453,13 +443,13 @@ describe('Tool: update_accommodation', () => {
 
   it('MCP-ACCOM-EVT-03: moving a stay onto a place of another trip is refused and changes nothing', async () => {
     // The tool used to write whatever place id it was given; REST has always 404ed it.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const foreign = createPlace(testDb, createTrip(testDb, user.id).id);
-    const day1 = createDay(testDb, trip.id);
-    const day2 = createDay(testDb, trip.id);
-    const acc = createDayAccommodation(testDb, trip.id, place.id, day1.id, day2.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const foreign = await makePlace(orm, (await makeTrip(orm, user.id)).id);
+    const day1 = await makeDay(orm, trip.id);
+    const day2 = await makeDay(orm, trip.id);
+    const acc = await makeDayAccommodation(orm, trip.id, place.id, day1.id, day2.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_accommodation',
@@ -472,9 +462,9 @@ describe('Tool: update_accommodation', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_accommodation',
@@ -491,12 +481,12 @@ describe('Tool: update_accommodation', () => {
 
 describe('Tool: delete_accommodation', () => {
   it('deletes accommodation and broadcasts', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const day1 = createDay(testDb, trip.id);
-    const day2 = createDay(testDb, trip.id);
-    const acc = createDayAccommodation(testDb, trip.id, place.id, day1.id, day2.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const day1 = await makeDay(orm, trip.id);
+    const day2 = await makeDay(orm, trip.id);
+    const acc = await makeDayAccommodation(orm, trip.id, place.id, day1.id, day2.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_accommodation',
@@ -514,11 +504,11 @@ describe('Tool: delete_accommodation', () => {
   });
 
   it('MCP-ACCOM-EVT-04: cancelling a booked stay announces the reservation it took along, then the stay', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
-    const day1 = createDay(testDb, trip.id);
-    const day2 = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
+    const day1 = await makeDay(orm, trip.id);
+    const day2 = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -548,9 +538,9 @@ describe('Tool: delete_accommodation', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_accommodation',
@@ -569,9 +559,9 @@ describe('Tool: create_place_accommodation', () => {
   // #2483: the place it creates takes its website through the same contract as
   // create_place, so a bare host from search_place lands as https.
   it('MCP-ACCOM-2483-01: a website without a scheme is stored with https', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -593,9 +583,9 @@ describe('Tool: create_place_accommodation', () => {
   // went through before fails now; a value the place contract refuses is left
   // off rather than stored, and '' stays "no website" as it is on REST.
   it('MCP-ACCOM-2483-02: a website that is empty, free text or a script link books the stay without one', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       for (const [name, website] of [
         ['Empty', ''],
@@ -619,9 +609,9 @@ describe('Tool: create_place_accommodation', () => {
   });
 
   it('creates the place and the accommodation atomically and broadcasts both', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_place_accommodation',
@@ -661,8 +651,8 @@ describe('Tool: create_place_accommodation', () => {
   });
 
   it('reports the day-validation errors without creating anything', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_place_accommodation',
@@ -678,9 +668,9 @@ describe('Tool: create_place_accommodation', () => {
     // all. A category that is not there is the cheapest way to make the first insert
     // fail on a foreign key; what matters is that the tool answers with an error
     // instead of a half-written trip.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_place_accommodation',
@@ -708,12 +698,12 @@ describe('Tool: create_place_accommodation', () => {
 
 describe('Resource: trek://trips/{tripId}/accommodations', () => {
   it('returns accommodations for a trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id, { day_number: 1 });
-    const day2 = createDay(testDb, trip.id, { day_number: 2 });
-    const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
-    createDayAccommodation(testDb, trip.id, place.id, day1.id, day2.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id, { day_number: 1 });
+    const day2 = await makeDay(orm, trip.id, { day_number: 2 });
+    const place = await makePlace(orm, trip.id, { name: 'Grand Hotel' });
+    await makeDayAccommodation(orm, trip.id, place.id, day1.id, day2.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/accommodations` });
@@ -724,9 +714,9 @@ describe('Resource: trek://trips/{tripId}/accommodations', () => {
   });
 
   it('returns access denied for unauthorized trip', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/accommodations` });
