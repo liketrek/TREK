@@ -1,4 +1,3 @@
-import { legacyBoundIntegerText } from '../../../nest/common/row-id';
 import { integerTextEqualsKysely } from '../../dialect/kysely-functions';
 import type { Platform } from '@mikro-orm/core';
 
@@ -37,5 +36,6 @@ export function reservationStayIs<DB, TB extends keyof DB>(
   accommodationId: StringReference<DB, TB>,
   stayId: number,
 ): ExpressionWrapper<DB, TB, SqlBool> {
-  return eb(accommodationId, '=', legacyBoundIntegerText(stayId));
+  // The '<id>.0' shape of row-id.ts's legacyBoundIntegerText, spelled here because src/db sits below src/nest.
+  return eb(eb.ref(accommodationId).$castTo<string>(), '=', `${stayId}.0`);
 }
