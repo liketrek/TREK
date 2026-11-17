@@ -29,9 +29,7 @@ export function resolveEngine(db: DbEngineSettings = readEnv().db): DatabaseEngi
  * plugin data stores, which share the pool, and must not read them from the
  * environment again.
  */
-export function postgresTarget(
-  db: DbSettings,
-): { url: string; binDir: string | undefined; poolMax: number } | null {
+export function postgresTarget(db: DbSettings): { url: string; binDir: string | undefined; poolMax: number } | null {
   if (db.engine !== 'postgres') return null;
   return { url: db.url, binDir: db.pgBinDir, poolMax: db.poolMax };
 }
