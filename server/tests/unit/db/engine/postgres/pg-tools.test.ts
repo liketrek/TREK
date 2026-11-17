@@ -17,6 +17,7 @@ import {
   flagValues,
   installFakeTool,
   listsMigrations,
+  listsSchemas,
   printsWhen,
   readToolCall,
   touches,
@@ -264,7 +265,9 @@ describe('pg-tools', () => {
   it('PGTOOLS-013: a restore refuses a role that could reach the database host, before it writes a script', async () => {
     const ran = path.join(bin, 'ran');
     installFakeTool(bin, 'pg_restore', { snippets: [touches(ran)] });
-    const psqlLog = installFakeTool(bin, 'psql', { snippets: [answersSchema('public', 'public', { privileged: true })] });
+    const psqlLog = installFakeTool(bin, 'psql', {
+      snippets: [answersSchema('public', 'public', { privileged: true })],
+    });
     await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT)).rejects.toThrow(
       /connects as a superuser, or as a role that may run programs or write files on the database server/,
     );
@@ -326,7 +329,8 @@ describe('pg-tools', () => {
 
   it('PGTOOLS-017: a failed tool leaves the rows it quoted out of the error, its cause included', async () => {
     installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
-    const stderr = 'pg_dump: error: COPY failed\nDETAIL: Key (email)=(a@b.c)\nCONTEXT: COPY users, line 2: "secret-row"';
+    const stderr =
+      'pg_dump: error: COPY failed\nDETAIL: Key (email)=(a@b.c)\nCONTEXT: COPY users, line 2: "secret-row"';
     installFakeTool(bin, 'pg_dump', { snippets: [failsWith(stderr)] });
     const failure = await pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), bin).catch((err: unknown) => err);
     const printed = inspect(failure, { depth: null });
@@ -334,5 +338,55 @@ describe('pg-tools', () => {
     expect(printed).toContain('pg_dump ended with code 1');
     expect(printed).not.toContain('secret-row');
     expect(printed).not.toContain('a@b.c');
+  });
+
+  it("PGTOOLS-018: a dump holds the plugin schemas TREK's role owns beside its own schema, and nothing else", async () => {
+    const plugins = ['trek_plugin_notes', 'trek_plugin_trip_weather'];
+    const psqlLog = installFakeTool(bin, 'psql', {
+      snippets: [answersSchema('public', 'public', { pluginSchemas: [...plugins, 'auth'] })],
+    });
+    const dumpLog = installFakeTool(bin, 'pg_dump', { snippets: [writesFile('dump')] });
+    await pgDump(URL_WITH_SECRET, path.join(out, 'x.pgdump'), bin);
+
+    const args = readToolCall(dumpLog).args;
+    expect(flagValues(args, '--schema=')).toEqual(['"public"', ...plugins]);
+    const sql = readToolCall(psqlLog).args.join(' ');
+    expect(sql).toContain("starts_with(nspname, 'trek_plugin_')");
+    expect(sql).toContain('pg_get_userbyid(nspowner) = current_user');
+  });
+
+  it("PGTOOLS-019: a restore loads the dump's plugin schemas, after dropping the role's own and creating the dump's", async () => {
+    const clearCopy = path.join(bin, 'clear.sql');
+    const restoreLog = installFakeTool(bin, 'pg_restore', {
+      snippets: [listsSchemas(['trek_plugin_notes', 'auth', 'public']), writesRestrictedScript()],
+    });
+    installFakeTool(bin, 'psql', {
+      snippets: [answersSchema(), copiesFileEndingWith('clear-schema.sql', clearCopy)],
+    });
+    const source = path.join(out, 'in.pgdump');
+    await pgRestore(URL_WITH_SECRET, source, bin, LIMIT);
+
+    expect(flagValues(readToolCall(restoreLog).args, '--schema=')).toEqual(['public', 'trek_plugin_notes']);
+    const clear = readFileSync(clearCopy, 'utf8');
+    expect(clear).toMatch(/DROP %s IF EXISTS %s CASCADE/);
+    expect(clear).toContain("EXECUTE format('DROP SCHEMA %I CASCADE', r.nspname);");
+    expect(clear).toContain('pg_get_userbyid(nspowner) = current_user');
+    expect(clear.endsWith('CREATE SCHEMA "trek_plugin_notes";\n')).toBe(true);
+    expect(clear).not.toContain('CREATE SCHEMA "auth"');
+    expect(readdirSync(out)).toEqual([]);
+  });
+
+  it("PGTOOLS-020: a plugin's own table named mikro_orm_migrations never passes for TREK's history", async () => {
+    const forged =
+      'COPY trek_plugin_notes.mikro_orm_migrations (id, name) FROM stdin;\n1\tMigration29990101000000_forged\n\.\n';
+    const real =
+      'COPY public.mikro_orm_migrations (id, name, executed_at) FROM stdin;\n1\tMigration20200101000000_baseline_schema\tx\n\.\n';
+    installFakeTool(bin, 'pg_restore', { snippets: [printsWhen('--data-only', forged + real)] });
+    await expect(pgDumpMigrations('/data/in.pgdump', bin)).resolves.toEqual([
+      'Migration20200101000000_baseline_schema',
+    ]);
+
+    installFakeTool(bin, 'pg_restore', { snippets: [printsWhen('--data-only', forged)] });
+    await expect(pgDumpMigrations('/data/in.pgdump', bin)).resolves.toEqual([]);
   });
 });

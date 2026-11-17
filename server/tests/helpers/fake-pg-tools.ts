@@ -44,16 +44,19 @@ interface FakeServer {
   versionNum?: string;
   /** Whether TREK's role could reach the database host. */
   privileged?: boolean;
+  /** The plugin data schemas the role owns; none by default. */
+  pluginSchemas?: readonly string[];
 }
 
 /**
  * psql's answer about the server, as pgServer reads it: the schema's name, its
- * quote_ident spelling, the server's version number and whether the role is
- * privileged, tab-separated.
+ * quote_ident spelling, the server's version number, whether the role is
+ * privileged and the plugin schemas it owns, tab-separated.
  */
 export function answersSchema(name = 'public', quoted = name, server: FakeServer = {}): string {
-  const { versionNum = '170000', privileged = false } = server;
-  return printsWhen('quote_ident', `${name}\t${quoted}\t${versionNum}\t${String(privileged)}\n`);
+  const { versionNum = '170000', privileged = false, pluginSchemas = [] } = server;
+  const plugins = pluginSchemas.join(',');
+  return printsWhen('quote_ident', `${name}\t${quoted}\t${versionNum}\t${String(privileged)}\t${plugins}\n`);
 }
 
 /** psql's table listing, one name per line, as pgTableNames reads it. */
@@ -69,6 +72,15 @@ export function writesFile(content: string): string {
 /** Writes the start of a restore script that restricts psql (CVE-2025-8714) and creates TREK's migration table. */
 export function writesRestrictedScript(table = 'public.mikro_orm_migrations'): string {
   return writesFile(`\\restrict k1\nCREATE TABLE ${table} (\n);\n`);
+}
+
+/**
+ * Answers a `--list` call with a table of contents holding a SCHEMA line for
+ * each of `schemas`, written to its `--file=`, as `pg_restore --list` does.
+ */
+export function listsSchemas(schemas: readonly string[]): string {
+  const toc = schemas.map((name, i) => `${i + 4}; 2615 ${16000 + i} SCHEMA - ${name} trek\n`).join('');
+  return `case "$*" in *--list*) printf '%s' ${shellWord(toc)} > "$(fake_file_target "$@")"; exit 0;; esac`;
 }
 
 /** Answers a `--data-only` call with the COPY block of `mikro_orm_migrations`, one row per name. */
