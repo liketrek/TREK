@@ -14,6 +14,7 @@ import { AuthController } from '../../../src/nest/auth/auth.controller';
 import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { UserProfileService } from '../../../src/nest/auth/user-profile.service';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import type { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
 import { grantedScopes, narrowToGrant, requireScope } from '../../../src/nest/public-api/public-api-request';
 import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
@@ -24,7 +25,12 @@ import type { User } from '../../../src/types';
 import { createUser } from '../../helpers/factories';
 import { findRow, updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
-import { createTestMcpTokensRepo, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
+import {
+  createTestMcpTokensRepo,
+  createTestUnitOfWork,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
 import { HttpException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import {
@@ -398,6 +404,7 @@ describe('TokenService — storing and resolving a grant', () => {
       await createTestMcpTokensRepo(testDb),
       await createTestUsersRepo(testDb),
       new EphemeralTokenService(),
+      await createTestUnitOfWork(testDb),
     );
   });
 
@@ -472,6 +479,7 @@ describe('TokenService — storing and resolving a grant', () => {
       } as unknown as McpTokensRepository,
       {} as UsersRepository,
       new EphemeralTokenService(),
+      {} as UnitOfWork,
     );
     expect((await noColumns.verifyApiTokenWithGrant('trek_legacy'))?.grant).toEqual({
       mode: 'all',

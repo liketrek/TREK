@@ -4,6 +4,7 @@ import type { MailIngestAddressRow } from '../../db/repositories/MailIngestAddre
 import type { MailIngestCandidatesRepository } from '../../db/repositories/MailIngestCandidates.repository';
 import type { MailIngestMessagesRepository } from '../../db/repositories/MailIngestMessages.repository';
 import { dbNow } from '../../db/types';
+import { UnitOfWork } from '../database/unit-of-work';
 import { MailReadService } from '../llm-parse/mail-read.service';
 import type { WalkedMail } from '../llm-parse/mail-read.types';
 import { MailIngestAddressService } from './mail-ingest-address.service';
@@ -54,6 +55,7 @@ export class MailIngestIntakeService {
     private readonly settings: MailIngestSettingsService,
     private readonly addresses: MailIngestAddressService,
     private readonly reader: MailReadService,
+    private readonly uow: UnitOfWork,
   ) {}
 
   /**
@@ -135,30 +137,37 @@ export class MailIngestIntakeService {
     if (known !== null) return { status: 'duplicate', messageId: known };
 
     const now = new Date();
-    const today = await this.messages.countForAddressSince(address.id, dbNow(new Date(now.getTime() - DAY_MS)));
-    if (today >= MAIL_INGEST_LIMITS.mailsPerAddressPerDay) return { status: 'refused', reason: 'address_daily_limit' };
-    if ((await this.candidates.countPending(address.user_id)) >= MAIL_INGEST_LIMITS.pendingPerUser) {
-      return { status: 'refused', reason: 'inbox_full' };
-    }
-
-    const id = await this.messages.insertIfNew({
-      transport,
-      messageIdHdr: messageIdHdr?.slice(0, 500) ?? null,
-      dedupeHash,
-      addressId: address.id,
-      userId: address.user_id,
-      tripId: address.trip_id,
-      size: raw.length,
-      rawEnc: sealMail(raw),
-      receivedAt: dbNow(now),
+    const rawEnc = sealMail(raw);
+    // The limits are counted in the transaction that stores, so mails arriving at
+    // once cannot all pass them on the same count.
+    const stored = await this.uow.transactional(async (): Promise<MailIntakeResult | { id: number | null }> => {
+      const today = await this.messages.countForAddressSince(address.id, dbNow(new Date(now.getTime() - DAY_MS)));
+      if (today >= MAIL_INGEST_LIMITS.mailsPerAddressPerDay)
+        return { status: 'refused', reason: 'address_daily_limit' };
+      if ((await this.candidates.countPending(address.user_id)) >= MAIL_INGEST_LIMITS.pendingPerUser) {
+        return { status: 'refused', reason: 'inbox_full' };
+      }
+      const id = await this.messages.insertIfNew({
+        transport,
+        messageIdHdr: messageIdHdr?.slice(0, 500) ?? null,
+        dedupeHash,
+        addressId: address.id,
+        userId: address.user_id,
+        tripId: address.trip_id,
+        size: raw.length,
+        rawEnc,
+        receivedAt: dbNow(now),
+      });
+      if (id !== null) await this.addresses.touch(address.id);
+      return { id };
     });
+    if ('status' in stored) return stored;
     // Another delivery of the same mail won the insert in between: it is in, once.
-    if (id === null) {
+    if (stored.id === null) {
       const winner = await this.messages.findIdByDedupeHash(dedupeHash);
       return winner === null ? { status: 'refused', reason: 'not_a_mail' } : { status: 'duplicate', messageId: winner };
     }
-    await this.addresses.touch(address.id);
-    return { status: 'accepted', messageId: id };
+    return { status: 'accepted', messageId: stored.id };
   }
 }
 

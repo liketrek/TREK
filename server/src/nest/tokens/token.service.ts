@@ -12,6 +12,7 @@ import { decodeJson } from '../../utils/json-column';
 import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 import { DomainError } from '../common/domain-error';
 import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import { PUBLIC_API_SCOPES, type PublicApiGrant, type PublicApiScope } from '@trek/shared';
@@ -49,6 +50,7 @@ export class TokenService {
     @InjectRepository(McpTokens) private readonly tokens: McpTokensRepository,
     @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly ephemeral: EphemeralTokenService,
+    private readonly uow: UnitOfWork,
   ) {}
 
   async listMcpTokens(userId: number) {
@@ -116,9 +118,6 @@ export class TokenService {
     if (!name?.trim()) throw new DomainError(400, 'Token name is required');
     if (name.trim().length > 100) throw new DomainError(400, 'Token name must be 100 characters or less');
 
-    const tokenCount = await this.tokens.countByUserAndKind(userId, kind);
-    if (tokenCount >= 10) throw new DomainError(400, 'Maximum of 10 tokens per user reached');
-
     const rawToken = 'trek_' + randomBytes(24).toString('hex');
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
     const tokenPrefix = rawToken.slice(0, 13);
@@ -127,14 +126,20 @@ export class TokenService {
     // the column default — rather than being handed a list it would ignore.
     const narrowed = kind === 'api' ? sanitizeScopes(scopes) : null;
 
-    const inserted = await this.tokens.insertToken({
-      user_id: userId,
-      name: name.trim(),
-      token_hash: tokenHash,
-      token_prefix: tokenPrefix,
-      kind,
-      scope_mode: narrowed ? 'limited' : 'all',
-      api_scopes: narrowed ? JSON.stringify(narrowed) : null,
+    // The cap is counted in the transaction that inserts, so two requests at once
+    // cannot both pass it on the same count.
+    const inserted = await this.uow.transactional(async () => {
+      const tokenCount = await this.tokens.countByUserAndKind(userId, kind);
+      if (tokenCount >= 10) throw new DomainError(400, 'Maximum of 10 tokens per user reached');
+      return await this.tokens.insertToken({
+        user_id: userId,
+        name: name.trim(),
+        token_hash: tokenHash,
+        token_prefix: tokenPrefix,
+        kind,
+        scope_mode: narrowed ? 'limited' : 'all',
+        api_scopes: narrowed ? JSON.stringify(narrowed) : null,
+      });
     });
 
     // A separate re-select, matching the legacy INSERT-then-SELECT shape
