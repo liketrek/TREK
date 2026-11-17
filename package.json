@@ -68,7 +68,7 @@
   "optionalDependencies": {
     "@img/sharp-linuxmusl-arm64": "0.35.5",
     "@img/sharp-linuxmusl-x64": "0.35.5",
-    "@rollup/rollup-linux-arm64-musl": "4.68.3",
-    "@rollup/rollup-linux-x64-musl": "4.68.3"
+    "@rollup/rollup-linux-arm64-musl": "4.62.0",
+    "@rollup/rollup-linux-x64-musl": "4.62.0"
   }
 }
