@@ -48,6 +48,8 @@
       "entry": [
         "src/index.ts",
         "src/bootstrap.ts",
+        // The move of a SQLite install into Postgres, run by hand (npm run db:move-to-postgres, dist/ in the image).
+        "src/move-to-postgres.ts",
         // Read by the MikroORM CLI and at boot, by path.
         "src/mikro-orm.config.ts",
         // Started with child_process.fork() by the plugin supervisor (nest/plugins/paths.ts).
