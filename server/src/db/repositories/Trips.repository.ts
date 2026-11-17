@@ -792,20 +792,21 @@ export class TripsRepository extends TrekRepository<Trips> {
    * FROMs has no single alias to chain a `.select()`/`.where()` off (unlike
    * `accessibleTripsQuery`'s single-FROM join), so this is Kysely
    * (`this.kysely()`, the same escape hatch `tripSelectQuery`'s own
-   * docstring documents) — `eb.val<number>(1)`/`eb.val<number>(0)` for the
-   * two literal branches, the same construct `tripSelectQuery`'s `NULL AS
-   * feed_token` already uses in this file.
+   * docstring documents). The two literal branches are `eb.lit(1)`/`eb.lit(0)`,
+   * written into the statement as integers: a bound `eb.val(1)` reaches
+   * Postgres untyped, and a UNION column of untyped values comes back as
+   * text ('1'), which the public API's `is_owner === 1` never matched.
    */
   async listTravellerUsernames(trip_id: number): Promise<TravellerUsernameRow[]> {
     const owner = this.kysely<TravellerUsernameKyselyDB>()
       .selectFrom('trips as t')
       .innerJoin('users as u', 'u.id', 't.user_id')
-      .select((eb) => ['u.username as username', eb.val<number>(1).as('is_owner')])
+      .select((eb) => ['u.username as username', eb.lit(1).as('is_owner')])
       .where('t.id', '=', trip_id);
     const member = this.kysely<TravellerUsernameKyselyDB>()
       .selectFrom('trip_members as m')
       .innerJoin('users as u', 'u.id', 'm.user_id')
-      .select((eb) => ['u.username as username', eb.val<number>(0).as('is_owner')])
+      .select((eb) => ['u.username as username', eb.lit(0).as('is_owner')])
       .where('m.trip_id', '=', trip_id);
     const rows = await owner.unionAll(member).orderBy('is_owner', 'desc').execute();
     return rows as TravellerUsernameRow[];
