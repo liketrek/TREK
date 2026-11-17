@@ -7,12 +7,13 @@
  *       but the service should handle gracefully.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import * as backupService from '../../src/nest/backup/backup.impl';
 import { DEFAULT_BACKUPS_ROOT } from '../../src/nest/storage/storage-paths';
 import { authCookie } from '../helpers/auth';
-import { createAdmin, createUser } from '../helpers/factories';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
@@ -21,11 +22,6 @@ import os from 'os';
 import path from 'path';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 // Mock filesystem-dependent service functions to avoid real disk I/O in tests
 vi.mock('../../src/nest/backup/backup.impl', async () => {
@@ -71,25 +67,26 @@ vi.mock('../../src/nest/backup/auto-backup.settings', async () => {
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: MikroORM;
 
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Backup access control', () => {
   it('non-admin cannot access backup routes', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/backup/list').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
@@ -98,7 +95,7 @@ describe('Backup access control', () => {
 
 describe('Backup list', () => {
   it('BACKUP-001 — GET /backup/list returns backups array', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/backup/list').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -108,7 +105,7 @@ describe('Backup list', () => {
 
 describe('Backup creation', () => {
   it('BACKUP-001 — POST /backup/create creates a backup', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).post('/api/backup/create').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -120,7 +117,7 @@ describe('Backup creation', () => {
 
 describe('Auto-backup settings', () => {
   it('BACKUP-008 — GET /backup/auto-settings returns current config', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/backup/auto-settings').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -129,7 +126,7 @@ describe('Auto-backup settings', () => {
   });
 
   it('BACKUP-008 — PUT /backup/auto-settings updates settings', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .put('/api/backup/auto-settings')
@@ -144,7 +141,7 @@ describe('Auto-backup settings', () => {
 
 describe('Backup security', () => {
   it('BACKUP-007 — Download with path traversal filename is rejected', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/backup/download/../../etc/passwd').set('Cookie', authCookie(admin.id));
     // Express normalises the URL before routing; path traversal gets resolved
@@ -153,7 +150,7 @@ describe('Backup security', () => {
   });
 
   it('BACKUP-007 — Delete with path traversal filename is rejected', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/backup/../../../etc/passwd').set('Cookie', authCookie(admin.id));
     // Express normalises the URL, stripping traversal → no route match → 404
@@ -183,7 +180,7 @@ describe('Backup download', () => {
   });
 
   it('BACKUP-INT-001 — GET /backup/download/:filename returns 200 with content-disposition', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     // (Re)write the fixture immediately before the request that serves it.
     fs.mkdirSync(DEFAULT_BACKUPS_ROOT, { recursive: true });
     fs.writeFileSync(downloadFixturePath, 'fake zip content');
@@ -199,7 +196,7 @@ describe('Backup download', () => {
   });
 
   it('BACKUP-INT-002 — GET /backup/download/:filename returns 400 for invalid filename', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     vi.mocked(backupService.backupFileExists).mockResolvedValue(false);
 
     const res = await request(app)
@@ -211,7 +208,7 @@ describe('Backup download', () => {
   });
 
   it('BACKUP-INT-003 — GET /backup/download/:filename returns 404 when file not found', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     vi.mocked(backupService.backupFileExists).mockResolvedValue(false);
 
     const res = await request(app)
@@ -229,7 +226,7 @@ describe('Backup download', () => {
 
 describe('Backup restore', () => {
   it('BACKUP-INT-004 — POST /backup/restore/:filename returns 200 on success', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const filename = 'backup-2026-04-06T12-00-00.zip';
 
     vi.mocked(backupService.backupFileExists).mockResolvedValue(true);
@@ -243,7 +240,7 @@ describe('Backup restore', () => {
   });
 
   it('BACKUP-INT-005 — POST /backup/restore/:filename returns 404 when backup not found', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     vi.mocked(backupService.backupFileExists).mockResolvedValue(false);
 
@@ -256,7 +253,7 @@ describe('Backup restore', () => {
   });
 
   it('BACKUP-INT-006 — POST /backup/restore/:filename returns 400 for invalid filename', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).post('/api/backup/restore/../../evil.zip').set('Cookie', authCookie(admin.id));
 
@@ -265,7 +262,7 @@ describe('Backup restore', () => {
   });
 
   it('BACKUP-INT-007 — POST /backup/restore/:filename returns 400 when the restore reports failure', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const filename = 'backup-2026-04-06T12-00-00.zip';
 
     vi.mocked(backupService.backupFileExists).mockResolvedValue(true);
@@ -288,7 +285,7 @@ describe('Backup restore', () => {
 
 describe('Backup delete', () => {
   it('BACKUP-INT-008 — DELETE /backup/:filename returns 200 on success', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const filename = 'backup-2026-04-06T12-00-00.zip';
 
     vi.mocked(backupService.backupFileExists).mockResolvedValue(true);
@@ -303,7 +300,7 @@ describe('Backup delete', () => {
   });
 
   it('BACKUP-INT-009 — DELETE /backup/:filename returns 404 when not found', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     vi.mocked(backupService.backupFileExists).mockResolvedValue(false);
 
@@ -316,7 +313,7 @@ describe('Backup delete', () => {
   });
 
   it('BACKUP-INT-010 — DELETE /backup/:filename returns 400 for invalid filename', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/backup/not-a-backup.tar.gz').set('Cookie', authCookie(admin.id));
 
@@ -331,7 +328,7 @@ describe('Backup delete', () => {
 
 describe('Backup rate limiter', () => {
   it('BACKUP-INT-011 — POST /backup/create returns 429 after 3 requests', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     // Allow first 3 calls, then block
     let callCount = 0;
@@ -359,7 +356,7 @@ describe('Backup rate limiter', () => {
 
 describe('Backup upload-restore', () => {
   it('BACKUP-INT-012 — POST /backup/upload-restore with zip file returns 200', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     vi.mocked(backupService.restoreFromZip).mockResolvedValue({ success: true });
 
@@ -377,7 +374,7 @@ describe('Backup upload-restore', () => {
   });
 
   it('BACKUP-INT-013 — POST /backup/upload-restore with no file returns 400', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).post('/api/backup/upload-restore').set('Cookie', authCookie(admin.id));
 
@@ -386,7 +383,7 @@ describe('Backup upload-restore', () => {
   });
 
   it('BACKUP-INT-014 — POST /backup/upload-restore returns 400 when restore fails', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     vi.mocked(backupService.restoreFromZip).mockResolvedValue({
       success: false,
