@@ -6,26 +6,24 @@
  * safeFetch is mocked to return fake Immich API responses based on URL patterns.
  * No real HTTP calls are made.
  */
+import { readEnv } from '../../src/app-config';
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
+import { postgresTarget } from '../../src/db/engine';
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { safeFetch } from '../../src/utils/ssrfGuard';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createTrip,
-  addTripMember,
-  addTripPhoto,
-  addAlbumLink,
-  setImmichCredentials,
-} from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
 import { findRow, findRows, insertRow, updateRows } from '../helpers/factories/rows';
+import { setAddonEnabled } from '../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser, setImmichCredentials } from '../helpers/factories/users';
 import { readUser } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -68,11 +66,6 @@ const DEFAULT_ALBUM_ASSETS = [
   { id: 'asset-hidden', type: 'VIDEO', fileCreatedAt: '2024-06-03T10:00:00.000Z', visibility: 'hidden' },
   { id: 'asset-legacy-hidden', type: 'VIDEO', fileCreatedAt: '2024-06-04T10:00:00.000Z', isVisible: false },
 ];
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 // ── SSRF guard mock — routes all Immich API calls to fake responses ───────────
 vi.mock('../../src/utils/ssrfGuard', async () => {
@@ -260,6 +253,9 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
   };
 });
 
+/** The lane runs this file on Postgres when TREK_DB_URL names one (vitest.pg.config.ts). */
+const ON_POSTGRES = postgresTarget(readEnv().db) !== null;
+
 let nestApp: INestApplication;
 let app: Application;
 let orm: FactoryOrm;
@@ -288,10 +284,10 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
-  setAddonEnabled(testDb, 'journey', true);
+  await setAddonEnabled(orm, 'journey', true);
   // The migrated snapshot seeds photo_providers.immich.enabled = 0 (an admin must
   // configure it before it's usable in production); the legacy test helper always
   // seeded it enabled, which is what these tests assume. Same convention
@@ -305,14 +301,13 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ── Connection status ─────────────────────────────────────────────────────────
 
 describe('Immich connection status', () => {
   it('IMMICH-030 — GET /status when not configured returns { connected: false }', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get(`${IMMICH}/status`).set('Cookie', authCookie(user.id));
 
@@ -321,8 +316,8 @@ describe('Immich connection status', () => {
   });
 
   it('IMMICH-031 — GET /status when configured returns connected + user info', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/status`).set('Cookie', authCookie(user.id));
 
@@ -336,7 +331,7 @@ describe('Immich connection status', () => {
 
 describe('Immich test connection', () => {
   it('IMMICH-032 — POST /test with missing fields returns { connected: false }', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post(`${IMMICH}/test`)
@@ -348,7 +343,7 @@ describe('Immich test connection', () => {
   });
 
   it('IMMICH-033 — POST /test with valid credentials returns { connected: true }', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post(`${IMMICH}/test`)
@@ -365,7 +360,7 @@ describe('Immich test connection', () => {
 
 describe('Immich browse and search', () => {
   it('IMMICH-040 — GET /browse when not configured returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get(`${IMMICH}/browse`).set('Cookie', authCookie(user.id));
 
@@ -373,8 +368,8 @@ describe('Immich browse and search', () => {
   });
 
   it('IMMICH-041 — GET /browse returns timeline buckets', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/browse`).set('Cookie', authCookie(user.id));
 
@@ -384,8 +379,8 @@ describe('Immich browse and search', () => {
   });
 
   it('IMMICH-042 — POST /search returns mapped assets with hasMore flag', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app)
       .post(`${IMMICH}/search`)
@@ -406,8 +401,8 @@ describe('Immich browse and search', () => {
   });
 
   it('IMMICH-043 — POST /search when upstream throws returns 502', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     vi.mocked(safeFetch).mockRejectedValueOnce(new Error('upstream unreachable'));
 
@@ -422,10 +417,10 @@ describe('Immich browse and search', () => {
 
 describe('Immich asset proxy', () => {
   it('IMMICH-050 — GET /assets/info returns asset metadata for own photo', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    addTripPhoto(testDb, trip.id, user.id, 'asset-info-1', 'immich', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    await addTripPhoto(orm, trip.id, user.id, 'asset-info-1', 'immich', { shared: false });
 
     const res = await request(app)
       .get(`${IMMICH}/assets/${trip.id}/asset-info-1/${user.id}/info`)
@@ -436,8 +431,8 @@ describe('Immich asset proxy', () => {
   });
 
   it('IMMICH-051 — GET /assets/info with invalid assetId (special chars) returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // ID contains characters outside [a-zA-Z0-9_-] → fails isValidAssetId()
     const invalidId = 'asset!@#$%';
 
@@ -449,13 +444,13 @@ describe('Immich asset proxy', () => {
   });
 
   it('IMMICH-052 — GET /assets/info by non-owner of unshared photo returns 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    setImmichCredentials(testDb, owner.id, 'https://immich.example.com', 'test-api-key');
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await setImmichCredentials(orm, owner.id, 'https://immich.example.com', 'test-api-key');
     // private photo — shared = false
-    addTripPhoto(testDb, trip.id, owner.id, 'asset-private', 'immich', { shared: false });
+    await addTripPhoto(orm, trip.id, owner.id, 'asset-private', 'immich', { shared: false });
 
     const res = await request(app)
       .get(`${IMMICH}/assets/${trip.id}/asset-private/${owner.id}/info`)
@@ -465,13 +460,13 @@ describe('Immich asset proxy', () => {
   });
 
   it('IMMICH-053 — GET /assets/info by trip member for shared photo returns 200', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    setImmichCredentials(testDb, owner.id, 'https://immich.example.com', 'test-api-key');
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await setImmichCredentials(orm, owner.id, 'https://immich.example.com', 'test-api-key');
     // shared photo
-    addTripPhoto(testDb, trip.id, owner.id, 'asset-shared', 'immich', { shared: true });
+    await addTripPhoto(orm, trip.id, owner.id, 'asset-shared', 'immich', { shared: true });
 
     const res = await request(app)
       .get(`${IMMICH}/assets/${trip.id}/asset-shared/${owner.id}/info`)
@@ -481,10 +476,10 @@ describe('Immich asset proxy', () => {
   });
 
   it('IMMICH-054 — GET /assets/thumbnail for own photo streams image data', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    addTripPhoto(testDb, trip.id, user.id, 'asset-thumb', 'immich', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    await addTripPhoto(orm, trip.id, user.id, 'asset-thumb', 'immich', { shared: false });
 
     const res = await request(app)
       .get(`${IMMICH}/assets/${trip.id}/asset-thumb/${user.id}/thumbnail`)
@@ -496,11 +491,11 @@ describe('Immich asset proxy', () => {
   });
 
   it("IMMICH-055 — GET /assets/thumbnail for other's unshared photo returns 403", async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    addTripPhoto(testDb, trip.id, owner.id, 'asset-noshare', 'immich', { shared: false });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await addTripPhoto(orm, trip.id, owner.id, 'asset-noshare', 'immich', { shared: false });
 
     const res = await request(app)
       .get(`${IMMICH}/assets/${trip.id}/asset-noshare/${owner.id}/thumbnail`)
@@ -510,12 +505,12 @@ describe('Immich asset proxy', () => {
   });
 
   it('IMMICH-056 — GET /assets/original for shared photo streams image data', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    setImmichCredentials(testDb, owner.id, 'https://immich.example.com', 'test-api-key');
-    addTripPhoto(testDb, trip.id, owner.id, 'asset-orig', 'immich', { shared: true });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await setImmichCredentials(orm, owner.id, 'https://immich.example.com', 'test-api-key');
+    await addTripPhoto(orm, trip.id, owner.id, 'asset-orig', 'immich', { shared: true });
 
     const res = await request(app)
       .get(`${IMMICH}/assets/${trip.id}/asset-orig/${owner.id}/original`)
@@ -525,17 +520,21 @@ describe('Immich asset proxy', () => {
     expect(res.headers['content-type']).toContain('image/');
   });
 
-  it('IMMICH-057 — GET /assets/info where trip does not exist returns 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
+  // A shared photo row whose trip is gone: the foreign key's cascade makes that
+  // impossible on a database that enforces it, so the row is written with
+  // SQLite's foreign keys off, which Postgres has no equivalent of.
+  it.skipIf(ON_POSTGRES)('IMMICH-057 — GET /assets/info where trip does not exist returns 403', async () => {
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
     // Insert a shared photo referencing a trip that doesn't exist (FK disabled temporarily)
-    testDb.exec('PRAGMA foreign_keys = OFF');
+    // test-sql-allow: the orphaned row this case needs exists only with SQLite's foreign keys switched off.
+    await orm.em.getConnection().execute('PRAGMA foreign_keys = OFF');
     const known = await findRow(orm, TrekPhotos, { provider: 'immich', asset_id: 'asset-notrip', owner: owner.id });
     const photoId =
       known?.id ??
       (await insertRow(orm, TrekPhotos, { provider: 'immich', asset_id: 'asset-notrip', owner: owner.id }));
     await insertRow(orm, TripPhotos, { trip: 9999, user: owner.id, photo: photoId, shared: 1 });
-    testDb.exec('PRAGMA foreign_keys = ON');
+    await orm.em.getConnection().execute('PRAGMA foreign_keys = ON');
 
     const res = await request(app)
       .get(`${IMMICH}/assets/9999/asset-notrip/${owner.id}/info`)
@@ -546,10 +545,10 @@ describe('Immich asset proxy', () => {
   });
 
   it('IMMICH-058 — GET /assets/info when upstream returns error propagates status', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    addTripPhoto(testDb, trip.id, user.id, 'asset-upstream-err', 'immich', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    await addTripPhoto(orm, trip.id, user.id, 'asset-upstream-err', 'immich', { shared: false });
 
     vi.mocked(safeFetch).mockResolvedValueOnce({
       ok: false,
@@ -571,7 +570,7 @@ describe('Immich asset proxy', () => {
 
 describe('Immich albums', () => {
   it('IMMICH-060 — GET /albums when not configured returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get(`${IMMICH}/albums`).set('Cookie', authCookie(user.id));
 
@@ -579,8 +578,8 @@ describe('Immich albums', () => {
   });
 
   it('IMMICH-061 — GET /albums returns album list', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/albums`).set('Cookie', authCookie(user.id));
 
@@ -594,8 +593,8 @@ describe('Immich albums', () => {
 
 describe('Immich album photos', () => {
   it('IMMICH-062 — GET /albums/:id/photos returns photos even though the album detail body has no `assets` (Immich v3)', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
 
@@ -606,8 +605,8 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-063 — GET /albums/:id/photos filters hidden assets (both visibility and legacy isVisible markers)', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
 
@@ -617,8 +616,8 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-064 — GET /albums/:id/photos maps exif and media type', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
 
@@ -638,8 +637,8 @@ describe('Immich album photos', () => {
   // #1614 — the album mapping used to drop lat/lng even though the search path
   // kept them, so a photo picked from an album could never reach a map.
   it('IMMICH-064b — album photos carry their capture coordinates, and tolerate their absence', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     const res = await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
 
@@ -652,8 +651,8 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-065 — album photos are fetched via search/metadata with albumIds and withExif', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
 
@@ -671,8 +670,8 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-066 — GET /albums/:id/photos pages through albums larger than one page', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     // Page 1 is exactly `size` long, so the service must ask for page 2.
     const pageOne = Array.from({ length: 1000 }, (_, i) => ({
@@ -698,8 +697,8 @@ describe('Immich album photos', () => {
   // v2's searchMetadata unconditionally scopes to `[self, ...partners]`, so an
   // albumIds search there returns nothing for an album shared by a non-partner.
   it('IMMICH-069a — on Immich v2 album photos come from the album detail body, with no search call', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
     immichState.albumDetailHasAssets = true;
 
     const res = await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
@@ -710,8 +709,8 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-069b — on Immich v2 an empty album stays empty and does not fall back to search', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
     immichState.albumDetailHasAssets = true;
     immichState.albumAssets = [];
 
@@ -723,10 +722,10 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-069c — on Immich v2 sync reads the album detail body', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
     immichState.albumDetailHasAssets = true;
 
     const res = await request(app)
@@ -739,7 +738,7 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-067 — GET /albums/:id/photos when not configured returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get(`${IMMICH}/albums/album-uuid-1/photos`).set('Cookie', authCookie(user.id));
 
@@ -747,8 +746,8 @@ describe('Immich album photos', () => {
   });
 
   it('IMMICH-068 — GET /albums/:id/photos when Immich is unreachable returns 502', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     vi.mocked(safeFetch).mockRejectedValueOnce(new Error('network failure'));
 
@@ -798,10 +797,10 @@ describe('Immich auth checks', () => {
 
 describe('Immich syncAlbumAssets', () => {
   it('IMMICH-080 — POST sync happy path: trip owner with album link saves photos to DB', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     const res = await request(app)
       .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
@@ -821,10 +820,10 @@ describe('Immich syncAlbumAssets', () => {
   });
 
   it('IMMICH-087 — POST sync does not persist hidden assets (#1474)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     // A hidden IMAGE slips past the `type === 'IMAGE'` filter. Persisting it
     // yields a permanently broken tile: nothing re-checks visibility on the
@@ -847,10 +846,10 @@ describe('Immich syncAlbumAssets', () => {
   });
 
   it('IMMICH-086 — POST sync fetches album contents via search/metadata with albumIds', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     await request(app)
       .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
@@ -860,11 +859,11 @@ describe('Immich syncAlbumAssets', () => {
   });
 
   it('IMMICH-081 — POST sync when user is not a trip member returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    setImmichCredentials(testDb, owner.id, 'https://immich.example.com', 'test-api-key');
-    const link = addAlbumLink(testDb, trip.id, owner.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const { user: owner } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await setImmichCredentials(orm, owner.id, 'https://immich.example.com', 'test-api-key');
+    const link = await addAlbumLink(orm, trip.id, owner.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     // outsider is not a trip member — getAlbumIdFromLink checks canAccessTrip
     const res = await request(app)
@@ -875,10 +874,10 @@ describe('Immich syncAlbumAssets', () => {
   });
 
   it('IMMICH-082 — POST sync when Immich is not configured returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // No Immich credentials set — but still need a valid album link owned by user
-    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     const res = await request(app)
       .post(`${IMMICH}/trips/${trip.id}/album-links/${link.id}/sync`)
@@ -889,10 +888,10 @@ describe('Immich syncAlbumAssets', () => {
   });
 
   it('IMMICH-083 — POST sync when safeFetch throws returns 502', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    const link = addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     vi.mocked(safeFetch).mockRejectedValueOnce(new Error('network failure during sync'));
 
@@ -905,13 +904,13 @@ describe('Immich syncAlbumAssets', () => {
   });
 
   it('IMMICH-084 — POST sync when album link does not belong to requesting user returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    setImmichCredentials(testDb, member.id, 'https://immich.example.com', 'test-api-key');
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await setImmichCredentials(orm, member.id, 'https://immich.example.com', 'test-api-key');
     // Album link is owned by owner, not member
-    const link = addAlbumLink(testDb, trip.id, owner.id, 'immich', 'album-uuid-1', 'Vacation 2024');
+    const link = await addAlbumLink(orm, trip.id, owner.id, 'immich', 'album-uuid-1', 'Vacation 2024');
 
     // member is a trip member but the album link belongs to owner — getAlbumIdFromLink checks user_id
     const res = await request(app)
@@ -930,8 +929,8 @@ describe('Immich syncAlbumAssets', () => {
 
 describe('Immich searchPhotos pagination pass-through', () => {
   it('IMMICH-090 — POST /search proxies client page param and returns hasMore', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     // Return a full page so hasMore=true (items.length >= size)
     const fullPageResponse = {
@@ -972,8 +971,8 @@ describe('Immich searchPhotos pagination pass-through', () => {
   });
 
   it('IMMICH-091 — POST /search returns hasMore=false on last page', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     // Partial page → hasMore=false
     const partialPageResponse = {
@@ -1006,8 +1005,8 @@ describe('Immich searchPhotos pagination pass-through', () => {
   });
 
   it('IMMICH-094: POST /search reaches a date-filtered page past the twentieth at the picker page size (#1587)', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     // Every raw page is 200 photos of the searched day, so answered page 21
     // needs raw pages 1 to 21. The old flat budget of 20 answered it empty with
@@ -1056,8 +1055,8 @@ describe('Immich searchPhotos pagination pass-through', () => {
   });
 
   it('IMMICH-093 — POST /search requests timeline visibility so Immich v3 never returns hidden assets (#1474)', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     // A sibling test installs a permanent mockResolvedValue on safeFetch, so
     // assert on the spy's recorded call rather than immichState.searchCalls.
@@ -1084,8 +1083,8 @@ describe('Immich searchPhotos pagination pass-through', () => {
   });
 
   it('IMMICH-092 — POST /search filters hidden Live Photo motion assets (#1474)', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
 
     // A Live Photo pair (visible still + hidden motion video) plus a legacy
     // hidden asset — only the still should survive, but hasMore reflects the
@@ -1136,8 +1135,8 @@ describe('Immich searchPhotos pagination pass-through', () => {
 
 describe('Immich saveImmichSettings clearing URL', () => {
   it('IMMICH-095 — PUT /settings with no URL clears immich_url but preserves (updates) api key', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'old-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'old-key');
 
     // Send without immich_url to trigger the else branch (clear URL path)
     const res = await request(app)
@@ -1152,8 +1151,8 @@ describe('Immich saveImmichSettings clearing URL', () => {
   });
 
   it('IMMICH-096 — PUT /settings with empty string URL clears immich_url', async () => {
-    const { user } = createUser(testDb);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'old-key');
+    const { user } = await makeUser(orm);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'old-key');
 
     const res = await request(app)
       .put(`${IMMICH}/settings`)
@@ -1171,7 +1170,7 @@ describe('Immich saveImmichSettings clearing URL', () => {
 
 describe('Immich testConnection canonical URL detection', () => {
   it('IMMICH-100 — POST /test with http URL that gets upgraded to https returns canonicalUrl', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     // Mock safeFetch so the response.url reflects https upgrade
     vi.mocked(safeFetch).mockResolvedValueOnce({
@@ -1194,7 +1193,7 @@ describe('Immich testConnection canonical URL detection', () => {
   });
 
   it('IMMICH-101 — POST /test with https URL that stays https does not return canonicalUrl', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     // The default mock returns a response without .url property — no upgrade
     const res = await request(app)
@@ -1239,7 +1238,7 @@ describe('Immich self-signed certificate switch (#2475)', () => {
   });
 
   it('IMMICH-102: PUT /settings stores the switch and GET /settings reports it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const put = await request(app)
       .put(`${IMMICH}/settings`)
@@ -1253,7 +1252,7 @@ describe('Immich self-signed certificate switch (#2475)', () => {
   });
 
   it('IMMICH-103: a save without the switch keeps it for the same server, a new server or disconnecting clears it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const put = (body: Record<string, unknown>) =>
       request(app).put(`${IMMICH}/settings`).set('Cookie', authCookie(user.id)).send(body);
 
@@ -1275,10 +1274,10 @@ describe('Immich self-signed certificate switch (#2475)', () => {
   });
 
   it('IMMICH-104: browse, search and the thumbnail proxy follow the stored switch', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
-    addTripPhoto(testDb, trip.id, user.id, 'asset-tls', 'immich', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setImmichCredentials(orm, user.id, 'https://immich.example.com', 'test-api-key');
+    await addTripPhoto(orm, trip.id, user.id, 'asset-tls', 'immich', { shared: false });
     const cookie = authCookie(user.id);
 
     const hitEveryPath = async () => {
@@ -1305,7 +1304,7 @@ describe('Immich self-signed certificate switch (#2475)', () => {
   });
 
   it('IMMICH-105: POST /test probes with the switch in the form, and refuses a value that is not a boolean', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const test = (allow_insecure_tls: unknown) =>
       request(app)
         .post(`${IMMICH}/test`)
