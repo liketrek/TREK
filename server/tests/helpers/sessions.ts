@@ -1,6 +1,7 @@
 import { UserSessions } from '../../src/db/entities/UserSessions.entity';
 import type { UserSessionsRepository } from '../../src/db/repositories/UserSessions.repository';
 import { SessionsService } from '../../src/nest/sessions/sessions.service';
+import type { FactoryOrm } from './factories/context';
 import { findRows } from './factories/rows';
 import { sharedTestOrm } from './test-uow';
 
@@ -26,12 +27,15 @@ export async function sessionRows(
   db: Database.Database,
   userId: number,
 ): Promise<{ id: string; revoked_at: string | null; expires_at: string; user_agent: string | null }[]> {
-  const rows = await findRows(
-    await sharedTestOrm(db),
-    UserSessions,
-    { user: userId },
-    { created_at: 'asc', id: 'asc' },
-  );
+  return sessionRowsOf(await sharedTestOrm(db), userId);
+}
+
+/** The session rows of a user, oldest first, read through the given ORM (a booted app's, on either engine). */
+export async function sessionRowsOf(
+  orm: FactoryOrm,
+  userId: number,
+): Promise<{ id: string; revoked_at: string | null; expires_at: string; user_agent: string | null }[]> {
+  const rows = await findRows(orm, UserSessions, { user: userId }, { created_at: 'asc', id: 'asc' });
   return rows.map(({ id, revoked_at, expires_at, user_agent }) => ({
     id,
     revoked_at: revoked_at ?? null,

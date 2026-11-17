@@ -5,18 +5,11 @@
  * live within a single app's lifetime.
  */
 import { buildApp, getHttpServer } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { httpConfig, RuntimeEnvService } from '../../src/nest/app-config';
-import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 
-import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 
 describe('AppConfigModule in the real buildApp()', () => {
   let app: INestApplication | undefined;
@@ -24,7 +17,6 @@ describe('AppConfigModule in the real buildApp()', () => {
   let prevDemo: string | undefined;
 
   beforeAll(() => {
-    resetTestDb(testDb);
     prevHsts = process.env.HSTS_INCLUDE_SUBDOMAINS;
     prevDemo = process.env.DEMO_MODE;
   });
