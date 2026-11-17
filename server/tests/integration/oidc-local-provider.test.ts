@@ -14,9 +14,10 @@
  * reach; the admin lane OIDC rides on treats the two alike.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
-import { createUser } from '../helpers/factories';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
@@ -28,10 +29,6 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } 
 
 const { answers } = vi.hoisted(() => ({ answers: new Map<string, { address: string; family: number }[]>() }));
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 // The provider's names are answered here; every other name goes to the real resolver.
 vi.mock('dns/promises', async (importOriginal) => {
   const real = await importOriginal<typeof import('dns/promises')>();
@@ -137,6 +134,7 @@ function handle(req: http.IncomingMessage, res: http.ServerResponse) {
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: MikroORM;
 
 beforeAll(async () => {
   provider = http.createServer(handle);
@@ -144,10 +142,11 @@ beforeAll(async () => {
   port = (provider.address() as AddressInfo).port;
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   seen.length = 0;
   answers.clear();
@@ -167,7 +166,6 @@ afterEach(() => {
 afterAll(async () => {
   await nestApp.close();
   await new Promise((resolve) => provider.close(resolve));
-  testDb.close();
 });
 
 /** Point TREK at the provider under `host`, answering the name with `answer`. */
@@ -180,7 +178,7 @@ function useIssuer(host: string, answer: { address: string; family: number }[]):
 
 describe('OIDC login against a provider whose name has an fe80:: record (#2506)', () => {
   it('OIDC-LAN-001: signs in end to end, and every provider request lands on the vetted address', async () => {
-    const { user } = createUser(testDb, { email: EMAIL });
+    const { user } = await makeUser(orm, { email: EMAIL });
     // Link-local first, the order Windows and some LAN resolvers hand it out in.
     const issuer = useIssuer('idp.home.test', [
       { address: 'fe80::1', family: 6 },
