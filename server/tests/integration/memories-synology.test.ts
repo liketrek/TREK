@@ -969,112 +969,75 @@ describe('Synology syncSynologyAlbumLink', () => {
 // ── Session retry logic ───────────────────────────────────────────────────────
 
 describe('Synology session retry on error codes 106/107/119', () => {
+  // The album list asks three sources at once (personal, shared, shared with
+  // me), so the order in which their calls reach safeFetch depends on how the
+  // database reads interleave, which differs between the engines. The fake
+  // therefore answers by API and category, not by call position: logins hand
+  // out a new session id each time, the personal album list fails once with the
+  // given code and then succeeds, and the other two sources fail, which the
+  // service reports as a partial failure.
+  let savedImpl: ((...args: any[]) => any) | undefined;
+  beforeEach(() => {
+    savedImpl = vi.mocked(safeFetch).getMockImplementation();
+  });
+  afterEach(() => {
+    if (savedImpl) vi.mocked(safeFetch).mockImplementation(savedImpl);
+  });
+
+  function sessionExpiringSynology(code: number, album: { id: number; name: string; item_count: number }) {
+    const calls = { logins: 0, personal: [] as string[] };
+    const json = (body: unknown) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => body,
+        body: null,
+      } as any);
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+      const params: URLSearchParams =
+        init?.body instanceof URLSearchParams ? init.body : new URLSearchParams(String(init?.body ?? ''));
+      const api = params.get('api') || '';
+      if (api === 'SYNO.API.Auth') {
+        calls.logins++;
+        return json({ success: true, data: { sid: `sid-${calls.logins}` } });
+      }
+      if (api === 'SYNO.Foto.Browse.Album' && !params.get('category')) {
+        calls.personal.push(params.get('_sid') || '');
+        if (calls.personal.length === 1) return json({ success: false, error: { code } });
+        return json({ success: true, data: { list: [album] } });
+      }
+      return json({ success: false, error: { code: 400 } });
+    });
+    return calls;
+  }
+
   it('SYNO-060 — request retries with fresh session when API returns error code 119', async () => {
     const { user } = await makeUser(orm);
     await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
-
-    // Clear previous call history so the count only reflects this test's calls
-    vi.mocked(safeFetch).mockClear();
-
-    // Call sequence:
-    //   1. Auth login (fresh session — no cached SID) → success with sid
-    //   2. SYNO.Foto.Browse.Album call → returns { success: false, error: { code: 119 } }
-    //   3. Auth login again (retry session after clearing SID) → success with new sid
-    //   4. SYNO.Foto.Browse.Album retry call → success
-    vi.mocked(safeFetch)
-      .mockResolvedValueOnce({
-        // call 1: initial login
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'first-sid' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        // call 2: album list → session expired (119)
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: false, error: { code: 119 } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        // call 3: retry login after clearing SID
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'second-sid' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        // call 4: retry album list → success
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({
-          success: true,
-          data: {
-            list: [{ id: 99, name: 'Retry Album', item_count: 5 }],
-          },
-        }),
-        body: null,
-      } as any);
+    const calls = sessionExpiringSynology(119, { id: 99, name: 'Retry Album', item_count: 5 });
 
     const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.albums)).toBe(true);
     expect(res.body.albums[0]).toMatchObject({ albumName: 'Retry Album' });
-    // Five safeFetch calls: login, failed album list (119), re-login, successful album list retry,
-    // plus one additional call for the shared or shared-with-me source (handled by default mock)
-    expect(vi.mocked(safeFetch)).toHaveBeenCalledTimes(5);
+    // The personal list was asked twice: with the session that expired, then with one from a fresh login.
+    expect(calls.personal).toHaveLength(2);
+    expect(calls.personal[1]).not.toBe(calls.personal[0]);
   });
 
   it('SYNO-061 — request retries with fresh session when API returns error code 106', async () => {
     const { user } = await makeUser(orm);
     await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
-
-    vi.mocked(safeFetch).mockClear();
-    vi.mocked(safeFetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'sid-one' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: false, error: { code: 106 } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'sid-two' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({
-          success: true,
-          data: { list: [{ id: 3, name: 'Timeout Album', item_count: 2 }] },
-        }),
-        body: null,
-      } as any);
+    const calls = sessionExpiringSynology(106, { id: 3, name: 'Timeout Album', item_count: 2 });
 
     const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.albums[0]).toMatchObject({ albumName: 'Timeout Album' });
-    // Five safeFetch calls: login, failed album list (106), re-login, successful album list retry,
-    // plus one additional call for the shared or shared-with-me source (handled by default mock)
-    expect(vi.mocked(safeFetch)).toHaveBeenCalledTimes(5);
+    expect(calls.personal).toHaveLength(2);
+    expect(calls.personal[1]).not.toBe(calls.personal[0]);
   });
 });
 
