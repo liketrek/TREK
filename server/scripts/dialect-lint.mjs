@@ -20,8 +20,17 @@
  * Not scanned: src/db/dialect/ (the dialect layer itself) and
  * the migrations that have shipped (append-only, never edited again; the last
  * one is FROZEN_MIGRATIONS_THROUGH). A newer migration is scanned for the
- * DML rules; its DDL may still be engine specific. PRAGMA is allowed in the
- * src/db/ lifecycle files (src/db/*.ts and the migrations), nowhere else.
+ * DML rules. PRAGMA is allowed in the src/db/ lifecycle files (src/db/*.ts
+ * and the migrations), nowhere else.
+ *
+ * A migration after the Postgres baseline's cut (`through` in
+ * assets/postgres/baseline.json) runs on both engines, so its schema
+ * statements are held too (POST_CUT_RULES): each one goes through
+ * engineDdl(this, { sqlite: [...], postgres: [...] }), each column handed to
+ * addColumnIfMissing is { sqlite, postgres }, the SQLite-only helpers of
+ * migration-utils are not called, and a postgres member holds no SQLite
+ * spelling. These rules have no allowance: the baseline file may not hold an
+ * entry for them.
  *
  *   npm run lint:dialect              check against the baseline (CI)
  *   npm run lint:dialect -- --update  lower the baseline to what the files hold now;
@@ -39,6 +48,9 @@ const ts = require('typescript');
 
 /** The last migration that shipped before this check existed. Later ones are scanned. */
 export const FROZEN_MIGRATIONS_THROUGH = 'Migration20200101042400';
+
+/** Where the cut is read from: the migrations after its `through` run on Postgres too. */
+export const POSTGRES_BASELINE_MANIFEST = 'assets/postgres/baseline.json';
 
 /** The dialect layer: the one place that may spell an engine's own SQL. */
 const DIALECT_LAYER = 'src/db/dialect/';
@@ -112,16 +124,101 @@ export const RULES = [
 /** `.insertId` reads, the JS face of last_insert_rowid. */
 const INSERT_ID_RULE = 'insert-id';
 
+/** What every post-cut rule's advice ends with: the two steps that satisfy it. */
+const POST_CUT_ROUTINE =
+  '(1) write the schema change as engineDdl(this, { sqlite: [...], postgres: [] }) from src/db/migration-utils.ts ' +
+  "with the SQLite statements by hand (a column for addColumnIfMissing as { sqlite: '...', postgres: '...' }); " +
+  '(2) fill postgres with what npm run gen:pg-migration prints (server/CLAUDE.md, SQL dialect, Migrations)';
+
+/** A schema statement: CREATE/ALTER/DROP of a table, index, trigger or view, or a RENAME. */
+const DDL_STATEMENT =
+  /\b(?:CREATE|ALTER|DROP)\s+(?:UNIQUE\s+)?(?:TEMP(?:ORARY)?\s+)?(?:TABLE|INDEX|TRIGGER|VIEW)\b|\bRENAME\s+(?:TO|COLUMN)\b/i;
+
+/** SQLite's own column types and clauses, which Postgres refuses or reads differently. */
+const SQLITE_ONLY_DDL = /\bDATETIME\b|\bAUTOINCREMENT\b|\bINTEGER\s+PRIMARY\s+KEY\b|\bWITHOUT\s+ROWID\b|\bPRAGMA\b/i;
+
+/** The migration-utils helpers that only speak SQLite. */
+const SQLITE_ONLY_HELPERS = new Set(['tableSql', 'createPlaceRegionsFollowPlaceTrigger']);
+
+/** The calls whose { sqlite, postgres } argument holds the DDL of each engine. */
+const ENGINE_DDL_CALLS = new Set(['engineDdl', 'addColumnIfMissing']);
+
+/**
+ * The rules for a migration after the Postgres baseline's cut. A new
+ * migration starts at zero: the baseline file may not hold an entry for them.
+ */
+export const POST_CUT_RULES = [
+  {
+    name: 'ddl',
+    label: 'schema statement(s) outside engineDdl',
+    advice: `a migration after the Postgres baseline's cut runs on both engines: ${POST_CUT_ROUTINE}`,
+  },
+  {
+    name: 'sqlite-ddl',
+    label: 'SQLite spelling(s) in an engineDdl postgres member',
+    advice:
+      'the postgres member is what Postgres runs, and DATETIME, AUTOINCREMENT, INTEGER PRIMARY KEY, WITHOUT ROWID, ' +
+      'PRAGMA and the SQLite-only functions are not Postgres: replace it with what npm run gen:pg-migration prints',
+  },
+];
+const POST_CUT_RULE_NAMES = new Set(POST_CUT_RULES.map((rule) => rule.name));
+
 const SOURCE = /\.ts$/;
 const TEST = /\.(?:test|spec)\./;
 
-/** 'skip', 'migration' (a newer one, DML rules only) or 'source'. */
-export function classify(file) {
+/** The `Migration<timestamp>` a migration's class name starts with, or null. */
+function migrationId(name) {
+  return /^(Migration\d+)(?:_|$)/.exec(name)?.[1] ?? null;
+}
+
+/**
+ * 'skip', 'migration' (a newer one, DML rules only), 'post-cut' (one after
+ * the Postgres baseline's `through`: the DML rules and POST_CUT_RULES) or
+ * 'source'.
+ */
+export function classify(file, through) {
   if (file.startsWith(DIALECT_LAYER)) return 'skip';
   const migration = /^src\/db\/migrations\/(Migration\d+)_/.exec(file);
-  if (migration) return migration[1] <= FROZEN_MIGRATIONS_THROUGH ? 'skip' : 'migration';
+  if (migration) {
+    if (migration[1] <= FROZEN_MIGRATIONS_THROUGH) return 'skip';
+    return migration[1] > migrationId(through) ? 'post-cut' : 'migration';
+  }
   if (file.startsWith('src/db/migrations/')) return 'skip';
   return 'source';
+}
+
+/**
+ * The Postgres baseline's cut, from its manifest. A missing or malformed one
+ * stops the run: without it no migration would be held to POST_CUT_RULES.
+ */
+export function readThrough(serverDir) {
+  let through;
+  try {
+    through = JSON.parse(readFileSync(join(serverDir, POSTGRES_BASELINE_MANIFEST), 'utf8')).through;
+  } catch (err) {
+    throw new Error(`${POSTGRES_BASELINE_MANIFEST} cannot be read: ${err.message}`);
+  }
+  if (typeof through !== 'string' || migrationId(through) === null) {
+    throw new Error(`${POSTGRES_BASELINE_MANIFEST} must name the last migration it stands for in "through"`);
+  }
+  return through;
+}
+
+/** The name a call is made by: `engineDdl(...)` and `utils.engineDdl(...)` alike. */
+function calleeName(node) {
+  const callee = node.expression;
+  if (ts.isIdentifier(callee)) return callee.text;
+  if (ts.isPropertyAccessExpression(callee)) return callee.name.text;
+  return null;
+}
+
+/** Whether `node` is an object literal naming both engines, the shape engineDdl and addColumnIfMissing take. */
+function isPerEngineObject(node) {
+  if (!node || !ts.isObjectLiteralExpression(node)) return false;
+  const names = node.properties
+    .filter((property) => ts.isPropertyAssignment(property) && ts.isIdentifier(property.name))
+    .map((property) => property.name.text);
+  return names.includes('sqlite') && names.includes('postgres');
 }
 
 /**
@@ -142,34 +239,72 @@ function isSqlTag(node) {
   return ts.isIdentifier(tag) && tag.text === 'sql';
 }
 
-/** Hits per rule in one file's source. */
-export function scanSource(file, text) {
-  const kind = classify(file);
+/**
+ * Hits per rule in one file's source. `through` is the Postgres baseline's
+ * cut; a migration after it is held to POST_CUT_RULES as well.
+ */
+export function scanSource(file, text, through) {
+  const kind = classify(file, through);
   const counts = {};
   if (kind === 'skip') return counts;
+  const postCut = kind === 'post-cut';
   const add = (rule) => {
     counts[rule] = (counts[rule] ?? 0) + 1;
   };
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 
-  const checkText = (literal, inSqlTag) => {
+  // `engine` is the member of an engineDdl or addColumnIfMissing argument a
+  // literal sits in: 'sqlite' (SQLite's own DDL, held to nothing), 'postgres'
+  // (no SQLite spelling) or null (anywhere else).
+  const checkText = (literal, inSqlTag, engine) => {
+    if (engine === 'sqlite') return;
+    if (engine === 'postgres') {
+      // Postgres spells `||` itself; every other rule names a form only SQLite has.
+      const sqliteOnly =
+        SQLITE_ONLY_DDL.test(literal) || RULES.some((rule) => rule.name !== 'concat' && rule.test(literal, inSqlTag));
+      if (sqliteOnly) add('sqlite-ddl');
+      return;
+    }
+    if (postCut && DDL_STATEMENT.test(literal)) add('ddl');
     for (const rule of RULES) {
-      if (kind === 'migration' && !rule.migrations) continue;
+      if (kind !== 'source' && !rule.migrations) continue;
       if (rule.name === 'pragma' && pragmaAllowed(file)) continue;
       if (rule.test(literal, inSqlTag)) add(rule.name);
     }
   };
 
-  const visit = (node, inSqlTag) => {
+  const visitPerEngine = (object, inSqlTag) => {
+    for (const property of object.properties) {
+      const name = ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) ? property.name.text : null;
+      if (name === 'sqlite' || name === 'postgres') visit(property.initializer, inSqlTag, name);
+      else visit(property, inSqlTag, null);
+    }
+  };
+
+  const visit = (node, inSqlTag, engine) => {
     if (ts.isTaggedTemplateExpression(node) && isSqlTag(node)) {
-      ts.forEachChild(node, (child) => visit(child, true));
+      ts.forEachChild(node, (child) => visit(child, true, engine));
       return;
     }
+    if (postCut && engine === null && ts.isCallExpression(node)) {
+      const name = calleeName(node);
+      if (SQLITE_ONLY_HELPERS.has(name)) add('ddl');
+      // A plain string would hand Postgres the SQLite spelling of the column.
+      if (name === 'addColumnIfMissing' && !isPerEngineObject(node.arguments[3])) add('ddl');
+      if (ENGINE_DDL_CALLS.has(name)) {
+        visit(node.expression, inSqlTag, null);
+        for (const argument of node.arguments) {
+          if (isPerEngineObject(argument)) visitPerEngine(argument, inSqlTag);
+          else visit(argument, inSqlTag, null);
+        }
+        return;
+      }
+    }
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      checkText(node.text, inSqlTag);
+      checkText(node.text, inSqlTag, engine);
     } else if (ts.isTemplateExpression(node)) {
       // The literal parts only: an interpolated value is code, scanned on its own.
-      checkText([node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join(' '), inSqlTag);
+      checkText([node.head.text, ...node.templateSpans.map((span) => span.literal.text)].join(' '), inSqlTag, engine);
     } else if (ts.isPropertyAccessExpression(node) && node.name.text === 'insertId') {
       add(INSERT_ID_RULE);
     } else if (
@@ -179,9 +314,9 @@ export function scanSource(file, text) {
     ) {
       add(INSERT_ID_RULE);
     }
-    ts.forEachChild(node, (child) => visit(child, inSqlTag));
+    ts.forEachChild(node, (child) => visit(child, inSqlTag, engine));
   };
-  visit(sf, false);
+  visit(sf, false, null);
   return counts;
 }
 
@@ -201,10 +336,11 @@ export function scan(serverDir) {
   if (!existsSync(src) || !statSync(src).isDirectory()) {
     throw new Error(`src/ does not exist under ${serverDir}: the check would pass without looking at anything`);
   }
+  const through = readThrough(serverDir);
   const result = {};
   for (const path of walk(src)) {
     const file = relative(serverDir, path).split('\\').join('/');
-    const counts = scanSource(file, readFileSync(path, 'utf8'));
+    const counts = scanSource(file, readFileSync(path, 'utf8'), through);
     if (Object.keys(counts).length > 0) result[file] = sortKeys(counts);
   }
   return sortKeys(result);
@@ -232,6 +368,12 @@ export function readBaseline(path) {
       throw new Error(`scripts/dialect-baseline.json: ${file} must map rule names to counts`);
     }
     for (const [rule, n] of Object.entries(rules)) {
+      if (POST_CUT_RULE_NAMES.has(rule)) {
+        throw new Error(
+          `scripts/dialect-baseline.json: ${file} holds an allowance for ${rule}, which a migration after the ` +
+            "Postgres baseline's cut never gets",
+        );
+      }
       if (!RULE_NAMES.has(rule))
         throw new Error(`scripts/dialect-baseline.json: ${file} names an unknown rule "${rule}"`);
       if (!Number.isInteger(n) || n <= 0) {
@@ -280,7 +422,11 @@ export function compare(baseline, counts) {
 
 function adviceFor(rule) {
   if (rule === INSERT_ID_RULE) return "read the new id with .returning('id'); insertId is undefined on Postgres";
-  return RULES.find((r) => r.name === rule).advice;
+  return [...RULES, ...POST_CUT_RULES].find((r) => r.name === rule).advice;
+}
+
+function labelFor(rule) {
+  return POST_CUT_RULES.find((r) => r.name === rule)?.label ?? `SQLite-only ${rule} hit(s)`;
 }
 
 function main(argv) {
@@ -298,7 +444,7 @@ function main(argv) {
 
   const { grown, stale } = compare(baseline, counts);
   for (const { file, rule, n, allowed } of grown) {
-    console.error(`FAIL  ${file}: ${n} SQLite-only ${rule} hit(s), ${allowed} allowed. ${adviceFor(rule)}.`);
+    console.error(`FAIL  ${file}: ${n} ${labelFor(rule)}, ${allowed} allowed. ${adviceFor(rule)}.`);
   }
   for (const { file, rule, allowed, now } of stale) {
     console.error(
