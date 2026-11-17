@@ -177,7 +177,6 @@
     "tests/unit/plugins/settings-isolation.test.ts": 1,
     "tests/unit/plugins/trip-card-contributions.controller.test.ts": 1,
     "tests/unit/plugins/trip-warnings.controller.test.ts": 1,
-    "tests/unit/plugins/view-contributions.controller.test.ts": 1,
-    "tests/websocket/wire-envelope.test.ts": 1
+    "tests/unit/plugins/view-contributions.controller.test.ts": 1
   }
 }

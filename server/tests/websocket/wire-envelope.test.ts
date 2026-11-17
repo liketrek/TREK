@@ -16,28 +16,26 @@
  * these fail, it is a breaking change for every deployed client.
  */
 import { buildApp, getHttpServer } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { createEphemeralToken } from '../../src/nest/auth-core/ephemeral-tokens';
 import { broadcast, broadcastToUser } from '../../src/nest/realtime/ws-state';
-import { createUser, createTrip } from '../helpers/factories';
-import { resetTestDb } from '../helpers/test-db';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import http from 'http';
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import WebSocket from 'ws';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 let server: http.Server;
 let wsUrl: string;
 let nestApp: INestApplication;
+let orm: MikroORM;
 
 beforeAll(async () => {
   nestApp = await buildApp();
+  orm = nestApp.get(MikroORM);
   // buildApp binds /ws to the server it creates, before app.init().
   server = getHttpServer();
   await new Promise<void>((resolve) => server.listen(0, resolve));
@@ -48,10 +46,11 @@ beforeAll(async () => {
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
   await nestApp.close();
-  testDb.close();
 });
 
-beforeEach(() => resetTestDb(testDb));
+beforeEach(async () => {
+  await resetDatabase(orm);
+});
 
 /** Minimal buffered client — same idea as connection.test.ts, kept local. */
 class Frames {
@@ -117,7 +116,7 @@ async function connectAndJoin(userId: number, tripId: number) {
 
 describe('WS wire envelope', () => {
   it('WS-030 — the welcome frame carries socketId at the top level', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const frames = await connect(createEphemeralToken(user.id, 'ws')!);
     try {
       const msg = await frames.next();
@@ -138,8 +137,8 @@ describe('WS wire envelope', () => {
   });
 
   it('WS-031 — join and leave are answered flat, keyed by type', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const frames = await connect(createEphemeralToken(user.id, 'ws')!);
     try {
       await frames.next();
@@ -157,8 +156,8 @@ describe('WS wire envelope', () => {
   });
 
   it('WS-032 — the server dispatches on `type`, not on `event`', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const frames = await connect(createEphemeralToken(user.id, 'ws')!);
     try {
       await frames.next();
@@ -176,8 +175,8 @@ describe('WS wire envelope', () => {
   });
 
   it('WS-033 — a trip broadcast spreads its payload flat next to type and tripId', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const frames = await connectAndJoin(user.id, trip.id);
     try {
       broadcast(trip.id, 'place_created', { place: { id: 7 }, source: 'test' });
@@ -193,8 +192,8 @@ describe('WS wire envelope', () => {
   });
 
   it('WS-034 — a payload key cannot be shadowed by the envelope', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const frames = await connectAndJoin(user.id, trip.id);
     try {
       // The spread runs last, so payload wins over the envelope's tripId. Pinning
@@ -209,7 +208,7 @@ describe('WS wire envelope', () => {
   });
 
   it('WS-035 — a user broadcast is the payload verbatim, with no tripId added', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const frames = await connect(createEphemeralToken(user.id, 'ws')!);
     try {
       await frames.next();
@@ -223,8 +222,8 @@ describe('WS wire envelope', () => {
   });
 
   it('WS-036 — the sender is excluded by socket id, not by connection identity', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const a = await connect(createEphemeralToken(user.id, 'ws')!);
     const b = await connect(createEphemeralToken(user.id, 'ws')!);
     try {
