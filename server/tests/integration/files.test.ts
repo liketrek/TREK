@@ -8,12 +8,15 @@
  * - FILE-009 (ephemeral token download) is covered via the /api/auth/resource-token endpoint
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { authCookie, generateToken } from '../helpers/auth';
-import { createUser, createTrip, createReservation, createPlace, addTripMember } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makePlace } from '../helpers/factories/places';
+import { makeReservation } from '../helpers/factories/reservations';
 import { setAppSetting } from '../helpers/factories/settings';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -21,12 +24,7 @@ import type { Application } from 'express';
 import fs from 'fs';
 import path from 'path';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -47,7 +45,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   // Re-seed allowed_file_types after reset
   await setAppSetting(orm, 'allowed_file_types', '*');
@@ -55,7 +53,6 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
   fs.rmSync(uploadsDir, { recursive: true, force: true });
 });
 
@@ -74,8 +71,8 @@ async function uploadFile(tripId: number, userId: number, fixturePath = FIXTURE_
 
 describe('Upload file', () => {
   it('FILE-001 — POST uploads a file and returns file metadata', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     expect(res.status).toBe(201);
@@ -85,8 +82,8 @@ describe('Upload file', () => {
   });
 
   it('FILE-002 — uploading a blocked extension (.svg) is rejected', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     // Create a temp .svg file
     const svgPath = path.join(uploadsDir, 'test_blocked.svg');
@@ -105,8 +102,8 @@ describe('Upload file', () => {
   });
 
   it('FILE-P01 — stored filename is a bare uuid name and the bytes land in uploads/files', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     expect(res.status).toBe(201);
@@ -120,8 +117,8 @@ describe('Upload file', () => {
   });
 
   it('FILE-P02 — non-video over 50 MB is rejected with no bytes left anywhere', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const BIG = 51 * 1024 * 1024;
     // Other suites share the real uploads/ tree when the whole tier runs in
@@ -148,8 +145,8 @@ describe('Upload file', () => {
   });
 
   it('FILE-P03 — non-ASCII original filenames are preserved (defParamCharset utf8)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/files`)
@@ -160,9 +157,9 @@ describe('Upload file', () => {
   });
 
   it('FILE-021 — non-member cannot upload file', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/files`)
@@ -178,8 +175,8 @@ describe('Upload file', () => {
 
 describe('List files', () => {
   it('FILE-006 — GET returns all non-trashed files', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await uploadFile(trip.id, user.id, FIXTURE_PDF);
     await uploadFile(trip.id, user.id, FIXTURE_IMG);
 
@@ -189,8 +186,8 @@ describe('List files', () => {
   });
 
   it('FILE-007 — GET ?trash=true returns only trashed files', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -210,8 +207,8 @@ describe('List files', () => {
 
 describe('Star/unstar file', () => {
   it('FILE-011 — PATCH /:id/star toggles starred status', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -235,8 +232,8 @@ describe('Star/unstar file', () => {
 
 describe('Soft delete, restore, permanent delete', () => {
   it('FILE-012 — DELETE moves file to trash', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -251,8 +248,8 @@ describe('Soft delete, restore, permanent delete', () => {
   });
 
   it('FILE-013 — POST /:id/restore restores from trash', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -266,8 +263,8 @@ describe('Soft delete, restore, permanent delete', () => {
   });
 
   it('FILE-014 — DELETE /:id/permanent permanently deletes from trash', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -281,8 +278,8 @@ describe('Soft delete, restore, permanent delete', () => {
   });
 
   it('FILE-015 — DELETE /:id/permanent on non-trashed file returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -294,8 +291,8 @@ describe('Soft delete, restore, permanent delete', () => {
   });
 
   it('FILE-016 — DELETE /trash/empty empties all trash', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const f1 = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const f2 = await uploadFile(trip.id, user.id, FIXTURE_IMG);
 
@@ -318,8 +315,8 @@ describe('Soft delete, restore, permanent delete', () => {
 
 describe('Update file metadata', () => {
   it('FILE-017 — PUT updates description', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -338,9 +335,9 @@ describe('Update file metadata', () => {
 
 describe('File links', () => {
   it('FILE-018/019/020 — link file to reservation, list links, unlink', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const resv = createReservation(testDb, trip.id, { title: 'My Flight', type: 'flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'My Flight', type: 'flight' });
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -380,11 +377,11 @@ describe('File links', () => {
 
 describe('Cross-trip link isolation', () => {
   it('SEC-FILE-LINK-001 — linking a file to a reservation from another trip is rejected (no title leak)', async () => {
-    const { user: attacker } = createUser(testDb);
-    const { user: victim } = createUser(testDb);
-    const attackerTrip = createTrip(testDb, attacker.id, { title: 'Attacker Trip' });
-    const victimTrip = createTrip(testDb, victim.id, { title: 'Victim Trip' });
-    const victimReservation = createReservation(testDb, victimTrip.id, {
+    const { user: attacker } = await makeUser(orm);
+    const { user: victim } = await makeUser(orm);
+    const attackerTrip = await makeTrip(orm, attacker.id, { title: 'Attacker Trip' });
+    const victimTrip = await makeTrip(orm, victim.id, { title: 'Victim Trip' });
+    const victimReservation = await makeReservation(orm, victimTrip.id, {
       title: 'Victim Secret Flight',
       type: 'flight',
     });
@@ -407,11 +404,11 @@ describe('Cross-trip link isolation', () => {
   });
 
   it('SEC-FILE-LINK-002 — uploading a file with a foreign reservation_id is rejected (no title leak)', async () => {
-    const { user: attacker } = createUser(testDb);
-    const { user: victim } = createUser(testDb);
-    const attackerTrip = createTrip(testDb, attacker.id);
-    const victimTrip = createTrip(testDb, victim.id);
-    const victimReservation = createReservation(testDb, victimTrip.id, {
+    const { user: attacker } = await makeUser(orm);
+    const { user: victim } = await makeUser(orm);
+    const attackerTrip = await makeTrip(orm, attacker.id);
+    const victimTrip = await makeTrip(orm, victim.id);
+    const victimReservation = await makeReservation(orm, victimTrip.id, {
       title: 'Victim Secret Flight',
       type: 'flight',
     });
@@ -426,11 +423,11 @@ describe('Cross-trip link isolation', () => {
   });
 
   it('SEC-FILE-LINK-003 — updating a file with a foreign reservation_id is rejected (no title leak)', async () => {
-    const { user: attacker } = createUser(testDb);
-    const { user: victim } = createUser(testDb);
-    const attackerTrip = createTrip(testDb, attacker.id);
-    const victimTrip = createTrip(testDb, victim.id);
-    const victimReservation = createReservation(testDb, victimTrip.id, {
+    const { user: attacker } = await makeUser(orm);
+    const { user: victim } = await makeUser(orm);
+    const attackerTrip = await makeTrip(orm, attacker.id);
+    const victimTrip = await makeTrip(orm, victim.id);
+    const victimReservation = await makeReservation(orm, victimTrip.id, {
       title: 'Victim Secret Flight',
       type: 'flight',
     });
@@ -446,11 +443,11 @@ describe('Cross-trip link isolation', () => {
   });
 
   it('SEC-FILE-LINK-004 — linking a file to a place from another trip is rejected', async () => {
-    const { user: attacker } = createUser(testDb);
-    const { user: victim } = createUser(testDb);
-    const attackerTrip = createTrip(testDb, attacker.id);
-    const victimTrip = createTrip(testDb, victim.id);
-    const victimPlace = createPlace(testDb, victimTrip.id, { name: 'Victim Secret Place' });
+    const { user: attacker } = await makeUser(orm);
+    const { user: victim } = await makeUser(orm);
+    const attackerTrip = await makeTrip(orm, attacker.id);
+    const victimTrip = await makeTrip(orm, victim.id);
+    const victimPlace = await makePlace(orm, victimTrip.id, { name: 'Victim Secret Place' });
     const upload = await uploadFile(attackerTrip.id, attacker.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -467,9 +464,9 @@ describe('Cross-trip link isolation', () => {
   });
 
   it('SEC-FILE-LINK-005 — same-trip reservation links and uploads still succeed', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const resv = createReservation(testDb, trip.id, { title: 'My Own Flight', type: 'flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'My Own Flight', type: 'flight' });
 
     // Upload carrying the trip's own reservation id is accepted.
     const upload = await request(app)
@@ -495,8 +492,8 @@ describe('Cross-trip link isolation', () => {
 
 describe('File download', () => {
   it('FILE-010 — GET /:id/download without auth returns 401', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -505,8 +502,8 @@ describe('File download', () => {
   });
 
   it('FILE-008 — GET /:id/download with Bearer JWT downloads file', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -520,8 +517,8 @@ describe('File download', () => {
   });
 
   it('FILE-011 — GET /:id/download with trek_session cookie downloads file', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
 
@@ -534,8 +531,8 @@ describe('File download', () => {
   });
 
   it('FILE-P04 — download serves the exact bytes with Content-Type, ETag, and Range support', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
     const fixtureBytes = fs.readFileSync(FIXTURE_PDF);
@@ -557,8 +554,8 @@ describe('File download', () => {
   });
 
   it('FILE-P05 — Apple Wallet passes are served inline with the canonical MIME types', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     for (const [ext, mime] of [
       ['pkpass', 'application/vnd.apple.pkpass'],
@@ -580,8 +577,8 @@ describe('File download', () => {
   });
 
   it('FILE-P06 — a DB row whose bytes are gone answers 404 File not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const upload = await uploadFile(trip.id, user.id, FIXTURE_PDF);
     const fileId = upload.body.file.id;
     fs.rmSync(path.join(uploadsDir, upload.body.file.filename), { force: true });
