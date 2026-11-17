@@ -31,7 +31,6 @@ import {
   checkEntities,
   dumpEntities,
   fixDbTimestampClassFieldTypes,
-  fixFlagClassFieldTypes,
   fixJsonClassFieldTypes,
   generateEntities,
   injectJoinColumns,
@@ -46,6 +45,7 @@ import {
   writeRepositoriesIfMissing,
   type DefaultFixup,
 } from '../../../scripts/generate-entities';
+import { fixFlagClassFieldTypes } from '../../../scripts/generate-entities-flags';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
@@ -207,7 +207,7 @@ describe('RULE1c_markBooleanColumns', () => {
     const plain = 'export class Addons {\n  enabled?: boolean | null;\n}\n';
     expect(fixFlagClassFieldTypes(plain, fixups)).toBe(plain);
     expect(() => fixFlagClassFieldTypes('export class Addons {\n  enabled?: number | null;\n}\n', fixups)).toThrow(
-      /no IType<boolean, number> to simplify/,
+      /typed IType<boolean, number> to simplify/,
     );
   });
 });

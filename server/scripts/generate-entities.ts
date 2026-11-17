@@ -63,6 +63,7 @@ import {
   type ImportsResolver,
   type Platform,
 } from '@mikro-orm/core';
+import { fixFlagClassFieldTypes } from './generate-entities-flags';
 import { EntityGenerator } from '@mikro-orm/entity-generator';
 import { Migrator } from '@mikro-orm/migrations';
 import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
@@ -292,22 +293,17 @@ export function RULE1b_markJsonColumns(metadata: EntityMetadata[]): JsonColumnFi
   return fixups;
 }
 
-/** Rule 1c (metadata level): mark known boolean columns so they render `p.type(IntegerFlagType)` (see BOOLEAN_COLUMNS above). */
+/** Rule 1c (metadata level): mark known boolean columns so they render `p.type(IntegerFlagType)` (BOOLEAN_COLUMNS). */
 export function RULE1c_markBooleanColumns(metadata: EntityMetadata[]): RetypedScalarFixup[] {
   const fixups: RetypedScalarFixup[] = [];
   for (const meta of metadata) {
     for (const prop of Object.values(meta.properties)) {
       if (prop.kind !== undefined && prop.kind !== ReferenceKind.SCALAR) continue;
       if (!BOOLEAN_COLUMNS.has(`${meta.tableName}.${prop.fieldNames[0]}`)) continue;
-      // `IntegerFlagType` (src/db/types), not `p.boolean()`: MikroORM's own
-      // boolean declares a `boolean` column on Postgres and writes true/false,
-      // where every other flag, and this one on SQLite, is the integer 0/1.
+      // `IntegerFlagType` (src/db/types) stores 0/1 on both engines; `p.boolean()` is a boolean column on Postgres.
+      // The renderer wraps the class field in `IType<boolean, number>` and adds `.columnType('INTEGER')`;
+      // `fixFlagClassFieldTypes` and `stripRedundantColumnType` undo both.
       prop.type = 'IntegerFlagType';
-      // `runtimeType` moves with `type`: the class field is a boolean. The
-      // renderer still wraps it in `IType<boolean, number>` (the column's own
-      // type is a number) and adds a `.columnType('INTEGER')`; the fixups
-      // returned here drive the text passes that undo both
-      // (`fixFlagClassFieldTypes`, `stripRedundantColumnType`).
       prop.runtimeType = 'boolean';
       // The introspected DB default is always the raw SQLite value (`0`/`1`,
       // a number, since SQLite has no boolean storage class either) —
@@ -1660,33 +1656,6 @@ export function fixJsonClassFieldTypes(source: string, fixups: readonly JsonColu
       if (line.includes(typeName) && !line.includes('any')) continue; // already the plain type — nothing to fix
       throw new Error(
         `generate-entities: fixJsonClassFieldTypes found the class field for "${className}.${propName}" but no IType<${typeName}, any> to simplify — check the renderer shape.`,
-      );
-    }
-    result = result.slice(0, match.index) + newLine + result.slice(match.index + line.length);
-  }
-  return result;
-}
-
-/**
- * A Rule 1c flag's class field renders as `IType<boolean, number>`: the
- * renderer sees a boolean runtime type over a number column and marks it
- * ambiguous. The entity's field is a plain boolean (`IntegerFlagType` does the
- * conversion), so the wrapper is taken off here, as `fixJsonClassFieldTypes`
- * does for a JSON column.
- */
-export function fixFlagClassFieldTypes(source: string, fixups: readonly RetypedScalarFixup[]): string {
-  let result = source;
-  for (const { className, propName } of fixups) {
-    const match = findClassFieldLine(result, propName);
-    if (!match) {
-      throw new Error(`generate-entities: fixFlagClassFieldTypes could not find the class field line for "${className}.${propName}".`);
-    }
-    const line = match[1];
-    const newLine = line.replace(/IType<boolean\s*,\s*number>/, 'boolean');
-    if (newLine === line) {
-      if (/:\s*boolean\b/.test(line)) continue; // already the plain type
-      throw new Error(
-        `generate-entities: fixFlagClassFieldTypes found the class field for "${className}.${propName}" but no IType<boolean, number> to simplify — check the renderer shape.`,
       );
     }
     result = result.slice(0, match.index) + newLine + result.slice(match.index + line.length);
