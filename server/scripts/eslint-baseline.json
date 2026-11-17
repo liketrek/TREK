@@ -16,7 +16,7 @@
     "no-misleading-character-class": 1
   },
   "tests": {
-    "@typescript-eslint/no-explicit-any": 1549,
+    "@typescript-eslint/no-explicit-any": 1545,
     "@typescript-eslint/no-non-null-assertion": 1747,
     "@typescript-eslint/no-require-imports": 25,
     "@typescript-eslint/no-unsafe-function-type": 7,

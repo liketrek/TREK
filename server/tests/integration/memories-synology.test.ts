@@ -418,7 +418,7 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
     const { user } = await makeUser(orm);
     await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       // Always read both URL params and body params; body takes precedence for request-specific fields.
       const urlParams = (() => {
         try {
@@ -485,7 +485,7 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
     const { user } = await makeUser(orm);
     await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       const urlParams = (() => {
         try {
           return new URL(String(_url)).searchParams;
@@ -572,7 +572,7 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
     const { user } = await makeUser(orm);
     await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       const urlParams = (() => {
         try {
           return new URL(String(_url)).searchParams;
@@ -994,7 +994,7 @@ describe('Synology session retry on error codes 106/107/119', () => {
         json: async () => body,
         body: null,
       } as any);
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       const params: URLSearchParams =
         init?.body instanceof URLSearchParams ? init.body : new URLSearchParams(String(init?.body ?? ''));
       const api = params.get('api') || '';
@@ -1269,7 +1269,7 @@ describe('Synology SSRF blocked error handling', () => {
     // reaches the fake first depends on how database reads interleave on each engine: the
     // fake answers by API and category, not by call position.
     const savedImpl = vi.mocked(safeFetch).getMockImplementation();
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       const params: URLSearchParams =
         init?.body instanceof URLSearchParams ? init.body : new URLSearchParams(String(init?.body ?? ''));
       if (params.get('api') === 'SYNO.API.Auth') {
