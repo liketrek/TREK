@@ -1,4 +1,4 @@
-import { isMissingTableError } from '../migration-utils';
+import { isMissingTableError } from '../dialect/driver-errors';
 import type { EntityManager } from '@mikro-orm/core';
 
 /**

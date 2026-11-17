@@ -2,7 +2,7 @@ import { Users } from '../entities/Users.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { coalesce, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
-import { UniqueConstraintViolationException } from '@mikro-orm/core';
+import { uniqueViolationKey } from '../dialect/driver-errors';
 
 /**
  * The three third-party keys that belong to the instance rather than to a
@@ -264,15 +264,23 @@ export class UserIdentityTakenError extends Error {
   }
 }
 
+/**
+ * The keys that name the email and the username in a unique violation: SQLite
+ * names the column (`users.email`) or the index, Postgres the constraint
+ * (`users_email_unique`, `users_username_unique`) or the index
+ * (`idx_users_email_lower`).
+ */
+const EMAIL_KEY = /users\.email|users_email_unique|idx_users_email/;
+const USERNAME_KEY = /users\.username|users_username_unique/;
+
 /** Runs a users write, turning a unique violation on email or username into {@link UserIdentityTakenError}. */
 async function guardIdentity<T>(write: () => Promise<T>): Promise<T> {
   try {
     return await write();
   } catch (err) {
-    if (err instanceof UniqueConstraintViolationException) {
-      if (/users\.email|idx_users_email/.test(err.message)) throw new UserIdentityTakenError('email');
-      if (/users\.username/.test(err.message)) throw new UserIdentityTakenError('username');
-    }
+    const key = uniqueViolationKey(err);
+    if (key !== null && EMAIL_KEY.test(key)) throw new UserIdentityTakenError('email');
+    if (key !== null && USERNAME_KEY.test(key)) throw new UserIdentityTakenError('username');
     throw err;
   }
 }

@@ -1,6 +1,6 @@
 import { columnNamesSql, tableExistsSql } from './dialect/catalog';
 import { forEngine, type EngineColumn, type EngineDdl } from './dialect/ddl';
-import { TableNotFoundException } from '@mikro-orm/core';
+import { isMissingTableError } from './dialect/driver-errors';
 import type { Migration } from '@mikro-orm/migrations';
 
 /**
@@ -104,16 +104,6 @@ export async function execUnlessTableMissing(migration: Migration, sql: string, 
   } catch (err: unknown) {
     if (!isMissingTableError(err)) throw err;
   }
-}
-
-/**
- * True when a statement failed because its table does not exist. The ORM maps
- * SQLite's "no such table" and Postgres's SQLSTATE 42P01 to
- * `TableNotFoundException`; the raw SQLite message is checked too, for an error
- * that reached the caller unconverted.
- */
-export function isMissingTableError(err: unknown): boolean {
-  return err instanceof TableNotFoundException || (err instanceof Error && err.message.includes('no such table'));
 }
 
 /**
