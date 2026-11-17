@@ -135,6 +135,11 @@ Restoring a backup on Postgres follows these rules:
 
 `RESTORE_FROM_BACKUP` works on Postgres too. On the first start, TREK loads the archive's dump into the database when that database holds no tables. When the database already has tables, the variable is ignored and TREK logs a warning. See [Backups: Restoring on a new install, before setup](Backups#restoring-on-a-new-install-before-setup).
 
+## Maintenance tools
+
+- **Resetting the admin account** works as on SQLite: `docker exec -it -u node trek node server/reset-admin.js` resets or creates the account in the Postgres database, with the server's connection settings and its write lock. It never opens or creates a `travel.db`, and it refuses to run when `TREK_DB_FILE` is set beside `TREK_DB_URL`. See [Troubleshooting](Troubleshooting).
+- **Rotating the encryption key** is not available on Postgres yet. `scripts/migrate-encryption.ts` stops before it changes anything when `TREK_DB_URL` is set. Keep the current `ENCRYPTION_KEY`. See [Encryption Key Rotation](Encryption-Key-Rotation).
+
 ## Limitations
 
 - **No migration from SQLite to Postgres** in this first release. Start a new install on Postgres, or keep the SQLite install.

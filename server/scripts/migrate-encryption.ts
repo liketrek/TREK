@@ -141,6 +141,19 @@ async function main() {
   console.log('This script re-encrypts all stored secrets under a new ENCRYPTION_KEY.');
   console.log('A backup of the database will be created before any changes are made.\n');
 
+  // A Postgres install keeps its secrets in the database TREK_DB_URL names,
+  // which this script cannot rotate yet. It stops before it opens, creates or
+  // backs up any file: rotating a SQLite file left over from before the move
+  // would rewrite the key file while the secrets in Postgres stay under the
+  // old key.
+  if (process.env.TREK_DB_URL?.trim()) {
+    rl.close();
+    console.error('TREK_DB_URL is set: this install keeps its secrets in Postgres, which this script cannot');
+    console.error('re-encrypt yet. Nothing was changed. Keep the current ENCRYPTION_KEY; see the wiki page');
+    console.error('Encryption-Key-Rotation.');
+    process.exit(1);
+  }
+
   // Resolve DB path
   const dbPath = path.resolve(process.env.DB_PATH ?? path.join(__dirname, '../data/travel.db'));
 

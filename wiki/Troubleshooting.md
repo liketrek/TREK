@@ -43,7 +43,7 @@ Log in with what it shows; you will be asked to set a new password.
 docker exec -it -u node trek node server/reset-admin.js
 ```
 
-This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login. Resetting an existing account also signs it out of every session it still had.
+This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login. Resetting an existing account also signs it out of every session it still had. On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) the same command resets the account in the Postgres database, through the same connection settings as the server; it does not open or create a `travel.db`.
 
 **Start over with chosen credentials** (fresh install, no data to keep):
 
