@@ -19,10 +19,10 @@ export class CollectionsStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const covers = await this.em
       .getRepository(Collections)
-      .find(likeAny<Collections>(['cover_image'], containing), { fields: ['cover_image'] });
+      .find(likeAny<Collections>(this.em.getPlatform(), ['cover_image'], containing), { fields: ['cover_image'] });
     const images = await this.em
       .getRepository(CollectionPlaces)
-      .find(likeAny<CollectionPlaces>(['image_url'], containing), { fields: ['image_url'] });
+      .find(likeAny<CollectionPlaces>(this.em.getPlatform(), ['image_url'], containing), { fields: ['image_url'] });
     return [...covers.map((row) => row.cover_image), ...images.map((row) => row.image_url)];
   }
 }
