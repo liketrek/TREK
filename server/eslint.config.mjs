@@ -1,13 +1,18 @@
+import noPromiseAsValue from './eslint-rules/no-promise-as-value.mjs';
+import transactionsThroughUnitOfWork from './eslint-rules/transactions-through-unit-of-work.mjs';
 import js from '@eslint/js';
 
 import gitignore from 'eslint-config-flat-gitignore';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import tseslint from 'typescript-eslint';
 
-import noPromiseAsValue from './eslint-rules/no-promise-as-value.mjs';
-
 // Local rules live in eslint-rules/ and are exposed under the `trek/` prefix.
-const trek = { rules: { 'no-promise-as-value': noPromiseAsValue } };
+const trek = {
+  rules: {
+    'no-promise-as-value': noPromiseAsValue,
+    'transactions-through-unit-of-work': transactionsThroughUnitOfWork,
+  },
+};
 
 // The calls the outbound-timeout selectors below look at: the platform fetch and
 // the SSRF-guarded wrappers whose init is passed on to it. safeFetchLlm is not
@@ -126,8 +131,15 @@ const STRING_SQL_SELECTORS = [
 const APP_SETTING_MESSAGE =
   "Read an app setting through readAppSetting()/resolveAppSetting() from src/nest/common/app-settings.registry.ts, not getValue('<key>'): the register types the key and owns its env override.";
 const APP_SETTING_SELECTORS = [
-  { selector: "CallExpression[callee.property.name='getValue'] > Literal.arguments:first-child", message: APP_SETTING_MESSAGE },
-  { selector: "CallExpression[callee.property.name='getValue'] > TemplateLiteral.arguments:first-child[expressions.length=0]", message: APP_SETTING_MESSAGE },
+  {
+    selector: "CallExpression[callee.property.name='getValue'] > Literal.arguments:first-child",
+    message: APP_SETTING_MESSAGE,
+  },
+  {
+    selector:
+      "CallExpression[callee.property.name='getValue'] > TemplateLiteral.arguments:first-child[expressions.length=0]",
+    message: APP_SETTING_MESSAGE,
+  },
 ];
 
 // The demo-mode write block runs once, in the MCP registry (trekDemoToolGate in
@@ -136,7 +148,7 @@ const APP_SETTING_SELECTORS = [
 const DEMO_GATE_MESSAGE =
   'MCP tools do not check demo mode themselves: the registry gate (trekDemoToolGate) refuses every tool not annotated read-only. Annotate the tool instead.';
 const MCP_DEMO_SELECTORS = [
-  { selector: "CallExpression[callee.property.name=/^isDemoUser(Id)?$/]", message: DEMO_GATE_MESSAGE },
+  { selector: 'CallExpression[callee.property.name=/^isDemoUser(Id)?$/]', message: DEMO_GATE_MESSAGE },
   { selector: "CallExpression[callee.name='demoDenied']", message: DEMO_GATE_MESSAGE },
 ];
 
@@ -279,12 +291,38 @@ export default tseslint.config(
     },
   },
   {
+    // Every transaction goes through UnitOfWork.transactional (or writeTransaction,
+    // which it wraps), the only ones that take the engine's write lock: on
+    // Postgres a transaction opened any other way runs beside the others, and a
+    // check read inside it can be raced. See eslint-rules/transactions-through-unit-of-work.mjs.
+    files: ['src/**/*.ts'],
+    ignores: [
+      // The engine: writeTransaction itself, the schema bootstrap, the parity
+      // diff, the move from SQLite and the plugin data schemas, each on a
+      // connection or database of its own.
+      'src/db/engine/**',
+      // Boot-time schema steps on the raw connection, before the server takes a request.
+      'src/db/email-case-index.ts',
+      'src/db/legacy-baseline.ts',
+    ],
+    plugins: { trek },
+    rules: {
+      'trek/transactions-through-unit-of-work': 'error',
+    },
+  },
+  {
     // Restates the config-access and app-setting guards above for *.mcp.ts
     // (a later block's options replace an earlier one's) and adds the
     // demo-gate wall.
     files: ['src/**/*.mcp.ts'],
     rules: {
-      'no-restricted-syntax': ['error', ...ENV_SELECTORS, ...FETCH_SELECTORS, ...APP_SETTING_SELECTORS, ...MCP_DEMO_SELECTORS],
+      'no-restricted-syntax': [
+        'error',
+        ...ENV_SELECTORS,
+        ...FETCH_SELECTORS,
+        ...APP_SETTING_SELECTORS,
+        ...MCP_DEMO_SELECTORS,
+      ],
     },
   },
   {
