@@ -82,5 +82,3 @@ export function usePlaceHours({ openingHours, onChange, suggestedHours }: PlaceH
     takeOver,
   };
 }
-
-export type PlaceHoursField = ReturnType<typeof usePlaceHours>;

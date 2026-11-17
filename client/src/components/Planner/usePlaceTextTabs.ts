@@ -4,7 +4,7 @@ type Translate = (key: string, params?: Record<string, string | number>) => stri
 
 export type PlaceTextField = 'description' | 'notes' | 'assignment_notes';
 
-export interface PlaceTextTab {
+interface PlaceTextTab {
   field: PlaceTextField;
   /** The tab's own short name. */
   label: string;
