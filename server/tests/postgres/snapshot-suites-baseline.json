@@ -1,9 +1,6 @@
 [
-  "tests/e2e/session-revocation.e2e.test.ts",
   "tests/integration/admin.test.ts",
   "tests/integration/airtrail-sync-request-context.test.ts",
-  "tests/integration/api-docs.test.ts",
-  "tests/integration/app-config.test.ts",
   "tests/integration/assignments.test.ts",
   "tests/integration/async-closure-truthiness-guards.test.ts",
   "tests/integration/atlas-geocode-request-context.test.ts",
@@ -19,7 +16,6 @@
   "tests/integration/doc-sync-webhook-request-context.test.ts",
   "tests/integration/feeds-request-context.test.ts",
   "tests/integration/files.test.ts",
-  "tests/integration/help.test.ts",
   "tests/integration/immich.test.ts",
   "tests/integration/journey-place-order.test.ts",
   "tests/integration/journey.test.ts",
