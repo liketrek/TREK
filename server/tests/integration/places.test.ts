@@ -1304,8 +1304,8 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
 // ─────────────────────────────────────────────────────────────────────────────
 // M1 / program rule 22 (task-4-review.md) — control characters in a user
-// string round-trip on every engine. The NUL byte itself is SQLite's case and
-// lives in places-nul-sqlite.test.ts: Postgres text cannot hold U+0000.
+// string round-trip on every engine. The NUL byte, which neither engine
+// stores, has its own suite: places-nul.test.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('M1 — control characters in a place name (rule 22)', () => {
@@ -1313,7 +1313,7 @@ describe('M1 — control characters in a place name (rule 22)', () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);
 
-    // 0x00 is covered by places-nul-sqlite.test.ts; this sweeps the rest
+    // 0x00 is covered by places-nul.test.ts; this sweeps the rest
     // of the control-character range the review's fuzz asked for.
     for (let code = 0x01; code <= 0x1f; code++) {
       const name = `ctrl${String.fromCharCode(code)}char`;

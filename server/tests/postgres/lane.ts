@@ -73,10 +73,6 @@ export const SQLITE_ONLY: Readonly<Record<string, string>> = {
   'tests/integration/legacy-upgrade-v205.test.ts': LEGACY_UPGRADE,
   'tests/integration/legacy-upgrade-v242.test.ts': LEGACY_UPGRADE,
   'tests/integration/legacy-upgrade-v244.test.ts': LEGACY_UPGRADE,
-  'tests/integration/places-nul-sqlite.test.ts':
-    'About SQLite value quoting of a NUL byte (U+0000) in a user string; Postgres text cannot hold that ' +
-    'character, so the round-trip it asserts does not exist there. The other control characters run on ' +
-    'both engines in places.test.ts.',
 };
 
 const SNAPSHOT_BASELINE_FILE = path.join(__dirname, 'snapshot-suites-baseline.json');

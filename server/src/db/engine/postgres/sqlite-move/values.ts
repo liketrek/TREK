@@ -1,3 +1,5 @@
+import { nulFreeJson, stripNul } from '../../../nul-free';
+
 import { createHash } from 'node:crypto';
 
 /**
@@ -7,7 +9,9 @@ import { createHash } from 'node:crypto';
  * SQLite stores a value by what it is, not by the column's declared type, so
  * a column may hold text where the schema says integer. The move never
  * guesses: a value the Postgres column cannot hold exactly is refused with
- * the reason, and the move stops before it commits anything.
+ * the reason, and the move stops before it commits anything. The one
+ * exception is a NUL character in text or JSON, which TREK stores on neither
+ * engine (`db/nul-free.ts`): the move drops it, as every write does.
  *
  * The SQLite side is read with better-sqlite3's safe integers, so an integer
  * arrives as a `bigint` and keeps all 64 bits.
@@ -29,7 +33,6 @@ const INT64_MAX = 2n ** 63n - 1n;
 const SAFE_MAX = BigInt(Number.MAX_SAFE_INTEGER);
 const DECIMAL_INTEGER = /^[+-]?\d+$/;
 const DECIMAL_NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
-const NUL = '\u0000';
 
 /**
  * The kind of a Postgres column, from `information_schema.columns.data_type`.
@@ -100,11 +103,7 @@ function toFloat(value: Exclude<SqliteValue, null>): Converted {
 }
 
 function toText(value: Exclude<SqliteValue, null>): Converted {
-  if (typeof value === 'string') {
-    return value.includes(NUL)
-      ? refuse('the text holds a NUL character, which Postgres text cannot store')
-      : { ok: true, value };
-  }
+  if (typeof value === 'string') return { ok: true, value: stripNul(value) };
   if (typeof value === 'bigint' || typeof value === 'number') return { ok: true, value: String(value) };
   return refuse(`${describe(value)} is not text`);
 }
@@ -112,15 +111,14 @@ function toText(value: Exclude<SqliteValue, null>): Converted {
 function toJson(value: Exclude<SqliteValue, null>): Converted {
   if (typeof value === 'bigint' || typeof value === 'number') return { ok: true, value: String(value) };
   if (typeof value !== 'string') return refuse(`${describe(value)} is not JSON text`);
+  let parsed: unknown;
   try {
-    JSON.parse(value);
+    parsed = JSON.parse(value);
   } catch {
     return refuse(`${describe(value)} is not valid JSON`);
   }
-  // jsonb refuses the escaped NUL character as well as the raw one.
-  if (value.includes(NUL) || value.includes('\\u0000'))
-    return refuse('the JSON holds a NUL character, which jsonb cannot store');
-  return { ok: true, value };
+  // Valid JSON holds a NUL only escaped, which jsonb refuses as well: the value is written again without it.
+  return { ok: true, value: value.includes('\\u0000') ? JSON.stringify(nulFreeJson(parsed)) : value };
 }
 
 function toBytes(value: Exclude<SqliteValue, null>): Converted {
