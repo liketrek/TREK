@@ -82,7 +82,6 @@ const places: TranslationStrings = {
   'places.formName': 'Nom',
   'places.formNamePlaceholder': 'p. ex. Torre Eiffel',
   'places.formDescription': 'Descripció',
-  'places.formDescriptionPlaceholder': 'Descripció breu...',
   'places.formAddress': 'Adreça',
   'places.formAddressPlaceholder': 'Carrer, ciutat, país',
   'places.formLat': 'Latitud (p. ex. 48.8566)',
@@ -118,9 +117,7 @@ const places: TranslationStrings = {
   'places.searchNothingHint': 'Afegeix-lo tu: adreça, telèfon, correu i horari tenen un camp a sota.',
   'places.addByHand': 'Afegeix a mà',
   'places.formNotes': 'Notes', // same-as-en
-  'places.formNotesPlaceholder': 'Notes personals...',
   'places.assignmentNotes': 'Notes per a aquest dia',
-  'places.assignmentNotesPlaceholder': 'Notes per a aquest lloc només aquest dia...',
   'places.textsLabel': 'Descripció i notes',
   'places.notesKind': 'Text a editar',
   'places.notesTabAbout': 'Sobre el lloc',

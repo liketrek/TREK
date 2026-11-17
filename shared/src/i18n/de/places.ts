@@ -84,7 +84,6 @@ const places: TranslationStrings = {
   'places.formName': 'Name', // same-as-en
   'places.formNamePlaceholder': 'z.B. Eiffelturm',
   'places.formDescription': 'Beschreibung',
-  'places.formDescriptionPlaceholder': 'Kurze Beschreibung...',
   'places.formAddress': 'Adresse',
   'places.formAddressPlaceholder': 'Straße, Stadt, Land',
   'places.formLat': 'Breitengrad (z.B. 48.8566)',
@@ -121,9 +120,7 @@ const places: TranslationStrings = {
   'places.searchNothingHint': 'Leg ihn selbst an: Adresse, Telefon, E-Mail und Öffnungszeiten haben unten ein Feld.',
   'places.addByHand': 'Selbst anlegen',
   'places.formNotes': 'Notizen',
-  'places.formNotesPlaceholder': 'Persönliche Notizen...',
   'places.assignmentNotes': 'Notizen für diesen Tag',
-  'places.assignmentNotesPlaceholder': 'Notizen für diesen Ort nur an diesem Tag...',
   'places.textsLabel': 'Beschreibung & Notizen',
   'places.notesKind': 'Welcher Text',
   'places.notesTabAbout': 'Über den Ort',
