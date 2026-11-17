@@ -256,15 +256,15 @@ async function copyAll(
  * empty before it, so everything in its schema is the move's). When even that
  * fails, the error says so, since the database then needs dropping by hand.
  */
-async function emptyAgain(db: Kysely<object>, cause: unknown): Promise<void> {
+async function emptyAgain(db: Kysely<object>, failure: unknown): Promise<void> {
   try {
     await run(db, CLEAR_SCHEMA_SQL);
   } catch (err) {
     throw new Error(
-      `The move failed (${cause instanceof Error ? cause.message : String(cause)}), and the schema it had created ` +
+      `The move failed (${failure instanceof Error ? failure.message : String(failure)}), and the schema it had created ` +
         `could not be dropped (${err instanceof Error ? err.message : String(err)}). Drop the Postgres database and ` +
         'create it again before the next attempt.',
-      { cause },
+      { cause: err },
     );
   }
 }
