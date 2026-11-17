@@ -31,6 +31,7 @@ import {
   checkEntities,
   dumpEntities,
   fixDbTimestampClassFieldTypes,
+  fixFlagClassFieldTypes,
   fixJsonClassFieldTypes,
   generateEntities,
   injectJoinColumns,
@@ -161,7 +162,7 @@ describe('RULE1b_markJsonColumns', () => {
 });
 
 describe('RULE1c_markBooleanColumns', () => {
-  it('RULE1C-001: marks a known boolean column type=boolean, runtimeType=boolean, coerces a falsy numeric default (I4)', () => {
+  it('RULE1C-001: marks a known boolean column type=IntegerFlagType, runtimeType=boolean, coerces a falsy numeric default (I4)', () => {
     const p = fixtureProp({
       name: 'enabled',
       type: 'integer',
@@ -173,7 +174,7 @@ describe('RULE1c_markBooleanColumns', () => {
     });
     const meta = fixtureMeta('Addons', 'addons', [p]);
     const fixups = RULE1c_markBooleanColumns([meta]);
-    expect(p.type).toBe('boolean');
+    expect(p.type).toBe('IntegerFlagType');
     expect(p.runtimeType).toBe('boolean');
     expect(p.default).toBe(false);
     expect(p.defaultRaw).toBe('false');
@@ -197,6 +198,17 @@ describe('RULE1c_markBooleanColumns', () => {
 
   it('BOOLEAN_COLUMNS-001: contains addons.enabled, grepped from the current hand-written entities', () => {
     expect(BOOLEAN_COLUMNS.has('addons.enabled')).toBe(true);
+  });
+
+  it("RULE1C-004: a flag's class field loses the IType wrapper the renderer gives it, and a plain one is left alone", () => {
+    const fixups = [{ className: 'Addons', propName: 'enabled' }];
+    const rendered = 'export class Addons {\n  enabled?: IType<boolean, number> | null;\n}\n';
+    expect(fixFlagClassFieldTypes(rendered, fixups)).toBe('export class Addons {\n  enabled?: boolean | null;\n}\n');
+    const plain = 'export class Addons {\n  enabled?: boolean | null;\n}\n';
+    expect(fixFlagClassFieldTypes(plain, fixups)).toBe(plain);
+    expect(() => fixFlagClassFieldTypes('export class Addons {\n  enabled?: number | null;\n}\n', fixups)).toThrow(
+      /no IType<boolean, number> to simplify/,
+    );
   });
 });
 
@@ -1365,6 +1377,7 @@ describe('applyTextPasses', () => {
       defaults: [],
       timestamps: [],
       jsonColumns: [],
+      flags: [],
       retypedScalars: [],
       repositoryMarkers: [{ className: 'X', repositoryClassName: 'XRepository' }],
       referencedColumns: [{ className: 'X', propName: 'countryRef', referencedColumnNames: ['code'] }],
