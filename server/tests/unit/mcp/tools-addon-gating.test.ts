@@ -2,36 +2,40 @@
  * Unit tests for MCP addon gating and scope enforcement in tools.
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
-import { createUser, createTrip } from '../../helpers/factories';
+import { setAddonEnabled } from '../../helpers/factories/settings';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { setAddonEnabled } from '../../helpers/test-db';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-beforeEach(() => {
-  resetTestDb(testDb);
+// The booted container's own ORM, the one the tools write through.
+let orm: MikroORM;
+
+beforeAll(async () => {
+  orm = (await bootTestApp(realtime)).get(MikroORM);
+});
+
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   // The summary reads these three off the injected AddonsService, so the case
-  // that wants one off writes the row the admin panel writes. resetTestDb
-  // leaves the addons table alone, so each case restates what it needs.
+  // that wants one off writes the row the admin panel writes. resetDatabase
+  // puts back the default addon rows, so each case restates what it needs.
   for (const id of [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB]) {
-    setAddonEnabled(testDb, id, true);
+    await setAddonEnabled(orm, id, true);
   }
 });
 
-afterAll(() => {
-  testDb.close();
+afterAll(async () => {
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
@@ -49,8 +53,8 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>,
 
 describe('get_trip_summary — addon gating', () => {
   it('when all addons enabled: packing, budget, collab_notes, todos are present', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Full Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Full Trip' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -64,10 +68,10 @@ describe('get_trip_summary — addon gating', () => {
   });
 
   it('when budget disabled: budget is undefined in response', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'No Budget Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'No Budget Trip' });
 
-    setAddonEnabled(testDb, ADDON_IDS.BUDGET, false);
+    await setAddonEnabled(orm, ADDON_IDS.BUDGET, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -81,10 +85,10 @@ describe('get_trip_summary — addon gating', () => {
   });
 
   it('when packing disabled: packing is undefined and todos is empty array', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'No Packing Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'No Packing Trip' });
 
-    setAddonEnabled(testDb, ADDON_IDS.PACKING, false);
+    await setAddonEnabled(orm, ADDON_IDS.PACKING, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -97,10 +101,10 @@ describe('get_trip_summary — addon gating', () => {
   });
 
   it('when collab disabled: collab_notes is empty array, pollCount is 0, messageCount is 0', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'No Collab Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'No Collab Trip' });
 
-    setAddonEnabled(testDb, ADDON_IDS.COLLAB, false);
+    await setAddonEnabled(orm, ADDON_IDS.COLLAB, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_trip_summary', arguments: { tripId: trip.id } });
@@ -120,9 +124,9 @@ describe('get_trip_summary — addon gating', () => {
 
 describe('Budget tools — addon gating', () => {
   it('when budget addon disabled, create_budget_item is not registered', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    setAddonEnabled(testDb, ADDON_IDS.BUDGET, false);
+    await setAddonEnabled(orm, ADDON_IDS.BUDGET, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -140,9 +144,9 @@ describe('Budget tools — addon gating', () => {
 
 describe('Packing tools — addon gating', () => {
   it('when packing addon disabled, create_packing_item is not registered', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    setAddonEnabled(testDb, ADDON_IDS.PACKING, false);
+    await setAddonEnabled(orm, ADDON_IDS.PACKING, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -160,9 +164,9 @@ describe('Packing tools — addon gating', () => {
 
 describe('Collab tools — addon gating', () => {
   it('when collab addon disabled, create_collab_note is not registered', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    setAddonEnabled(testDb, ADDON_IDS.COLLAB, false);
+    await setAddonEnabled(orm, ADDON_IDS.COLLAB, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -180,9 +184,9 @@ describe('Collab tools — addon gating', () => {
 
 describe('Atlas tools — addon gating', () => {
   it('when atlas addon disabled, mark_country_visited is not registered', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    setAddonEnabled(testDb, ADDON_IDS.ATLAS, false);
+    await setAddonEnabled(orm, ADDON_IDS.ATLAS, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'FR' } });
@@ -191,9 +195,9 @@ describe('Atlas tools — addon gating', () => {
   });
 
   it('when atlas addon disabled, create_bucket_list_item is not registered', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    setAddonEnabled(testDb, ADDON_IDS.ATLAS, false);
+    await setAddonEnabled(orm, ADDON_IDS.ATLAS, false);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_bucket_list_item', arguments: { name: 'Paris' } });
@@ -208,7 +212,7 @@ describe('Atlas tools — addon gating', () => {
 
 describe('Scope enforcement in tools', () => {
   it('with scopes trips:read, create_trip is not registered (write not in scopes)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     await withHarness(
       user.id,
@@ -221,7 +225,7 @@ describe('Scope enforcement in tools', () => {
   });
 
   it('with scopes trips:write, create_trip is registered and works', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     await withHarness(
       user.id,
@@ -236,7 +240,7 @@ describe('Scope enforcement in tools', () => {
   });
 
   it('with scopes null (full access), create_trip is registered', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     await withHarness(
       user.id,
@@ -249,7 +253,7 @@ describe('Scope enforcement in tools', () => {
   });
 
   it('with scopes trips:read, create_budget_item is not registered (budget:write not in scopes)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     await withHarness(
       user.id,
@@ -265,8 +269,8 @@ describe('Scope enforcement in tools', () => {
   });
 
   it('with scopes budget:write and trips:read, create_budget_item is registered (budget addon enabled)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Budget Trip' });
 
     await withHarness(
       user.id,
