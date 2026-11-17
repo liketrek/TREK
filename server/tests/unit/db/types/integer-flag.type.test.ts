@@ -23,6 +23,7 @@ describe('IntegerFlagType', () => {
     expect(flag.convertToJSValue(0)).toBe(false);
     expect(flag.convertToJSValue(true)).toBe(true);
     expect(flag.convertToJSValue(null)).toBeNull();
+    expect(flag.convertToJSValue(undefined)).toBeUndefined();
   });
 
   it('INTFLAG-003: declares the integer column of the platform, which the Postgres schema widens to bigint', () => {
