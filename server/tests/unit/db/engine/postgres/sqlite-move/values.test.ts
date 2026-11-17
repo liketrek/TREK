@@ -80,14 +80,13 @@ describe('convertValue', () => {
     expect(convertValue('', 'float')).toMatchObject({ ok: false });
   });
 
-  it('MOVEVAL-005: text takes strings and numbers, and refuses a NUL Postgres cannot store or a BLOB', () => {
+  it('MOVEVAL-005: text takes strings and numbers, drops a NUL as every write does, and refuses a BLOB', () => {
     expect(convertValue('Lisboa', 'text')).toEqual(ok('Lisboa'));
     expect(convertValue(7n, 'text')).toEqual(ok('7'));
     expect(convertValue(2.5, 'text')).toEqual(ok('2.5'));
-    expect(convertValue('a\u0000b', 'text')).toMatchObject({
-      ok: false,
-      reason: expect.stringMatching(/NUL character/),
-    });
+    expect(convertValue('a\u0000b\u0000', 'text')).toEqual(ok('ab'));
+    // The six characters of an escape are text like any other.
+    expect(convertValue('a\\u0000b', 'text')).toEqual(ok('a\\u0000b'));
     expect(convertValue(new Uint8Array([0]), 'text')).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/is not text/),
@@ -98,17 +97,17 @@ describe('convertValue', () => {
     });
   });
 
-  it('MOVEVAL-006: JSON must parse and hold no NUL, escaped or not', () => {
+  it('MOVEVAL-006: JSON must parse, and loses the NUL characters it escapes', () => {
     expect(convertValue('{"a":1}', 'json')).toEqual(ok('{"a":1}'));
     expect(convertValue(5n, 'json')).toEqual(ok('5'));
     expect(convertValue('{broken', 'json')).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/is not valid JSON/),
     });
-    expect(convertValue('"\\u0000"', 'json')).toMatchObject({
-      ok: false,
-      reason: expect.stringMatching(/jsonb cannot store/),
-    });
+    expect(convertValue('"\\u0000"', 'json')).toEqual(ok('""'));
+    expect(convertValue('{"a\\u0000":["x\\u0000y",1]}', 'json')).toEqual(ok('{"a":["xy",1]}'));
+    // A raw NUL is not valid JSON in the first place.
+    expect(convertValue('"\u0000"', 'json')).toMatchObject({ ok: false, reason: expect.stringMatching(/valid JSON/) });
     expect(convertValue(new Uint8Array([1]), 'json')).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/is not JSON text/),

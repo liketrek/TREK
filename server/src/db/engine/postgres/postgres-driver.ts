@@ -1,6 +1,7 @@
+import { nulFreeJson, stripNul, withNulFreeParameters } from '../../nul-free';
 import { sendMarkedQueriesExtended } from './extended-query';
 import { SqliteNullOrderPlatform, withSqliteNullOrder } from './null-order';
-import { type Configuration } from '@mikro-orm/core';
+import { type Configuration, type TransformContext } from '@mikro-orm/core';
 import { PostgreSqlConnection, PostgreSqlDriver } from '@mikro-orm/postgresql';
 
 /** The `pg` pool event a new client is handed to before anyone uses it. */
@@ -59,7 +60,8 @@ class NumberTypesConnection extends PostgreSqlConnection {
 
   /**
    * The pool's Kysely dialect, compiling every ORDER BY with SQLite's NULL
-   * position (`null-order.ts`), on a pool whose every client sends the queries
+   * position (`null-order.ts`), sending every parameter without NUL
+   * (`nul-free.ts`), on a pool whose every client sends the queries
    * `extendedQuery` builds over the extended protocol (`extended-query.ts`).
    */
   override createKyselyDialect(overrides: Parameters<PostgreSqlConnection['createKyselyDialect']>[0]) {
@@ -69,16 +71,31 @@ class NumberTypesConnection extends PostgreSqlConnection {
       return given.onPoolCreated?.(pool);
     };
     const withHook = { ...given, onPoolCreated } as Parameters<PostgreSqlConnection['createKyselyDialect']>[0];
-    return withSqliteNullOrder(super.createKyselyDialect(withHook)) as ReturnType<
+    return withNulFreeParameters(withSqliteNullOrder(super.createKyselyDialect(withHook))) as ReturnType<
       PostgreSqlConnection['createKyselyDialect']
     >;
   }
 }
 
 /**
+ * The Postgres platform TREK runs on: ORDER BY with SQLite's NULL position
+ * (`null-order.ts`), and no NUL in a string it inlines into a statement or a
+ * JSON value it serializes, which Postgres text cannot hold (`nul-free.ts`).
+ */
+export class TrekPostgreSqlPlatform extends SqliteNullOrderPlatform {
+  override escape(value: unknown): string {
+    return super.escape(typeof value === 'string' ? stripNul(value) : value);
+  }
+
+  override convertJsonToDatabaseValue(value: unknown, context?: TransformContext): unknown {
+    return super.convertJsonToDatabaseValue(nulFreeJson(value), context);
+  }
+}
+
+/**
  * MikroORM's Postgres driver on a connection that reads `bigint` and `numeric`
- * as numbers, and on a platform and a query compiler that sort NULLs where
- * SQLite does (`null-order.ts`). The parsers belong to this pool only:
+ * as numbers, and on the platform above with a query compiler that sorts NULLs
+ * where SQLite does (`null-order.ts`). The parsers belong to this pool only:
  * nothing global in `pg` changes.
  */
 export class TrekPostgreSqlDriver extends PostgreSqlDriver {
@@ -89,6 +106,6 @@ export class TrekPostgreSqlDriver extends PostgreSqlDriver {
     // fields, which are not public, so they are replaced here, before anything
     // connects and before the configuration reads the platform.
     (this as unknown as { connection: PostgreSqlConnection }).connection = new NumberTypesConnection(config);
-    (this as unknown as { platform: SqliteNullOrderPlatform }).platform = new SqliteNullOrderPlatform();
+    (this as unknown as { platform: TrekPostgreSqlPlatform }).platform = new TrekPostgreSqlPlatform();
   }
 }

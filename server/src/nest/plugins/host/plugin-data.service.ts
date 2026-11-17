@@ -1,5 +1,6 @@
 import { openDatabase } from '../../../db/connection';
 import { PLUGIN_DATA_CAPS, type PluginDataStore } from '../../../db/engine/plugin-data';
+import { nulFreeParameter } from '../../../db/nul-free';
 import { pluginDataDir, pluginDbFile, pluginsDataRoot } from '../paths';
 import { splitAfterSemicolons } from './sql-script';
 
@@ -9,6 +10,19 @@ import path from 'node:path';
 
 // The port, re-exported for the RPC kit, which may import from this file only (eslint.config.mjs).
 export type { PluginDataStore };
+
+/**
+ * A plugin's bound arguments without NUL, as TREK binds its own and as a
+ * plugin's schema on Postgres receives them (`db/nul-free.ts`): positional
+ * values, or the values of an object of named ones.
+ */
+function nulFreeArgs(args: readonly unknown[]): never[] {
+  return args.map((arg) =>
+    arg !== null && typeof arg === 'object' && Object.getPrototypeOf(arg) === Object.prototype
+      ? Object.fromEntries(Object.entries(arg).map(([name, value]) => [name, nulFreeParameter(value)]))
+      : nulFreeParameter(arg),
+  ) as never[];
+}
 
 /**
  * A plugin's own sqlite database (#plugins, db:own): the SQLite side of the
@@ -142,7 +156,7 @@ export class PluginDataDb implements PluginDataStore {
     // clock is read between rows. It is read only once another row has come back, so
     // a result that has been read to its end is returned, however long that took.
     const rows: unknown[] = [];
-    for (const row of this.db.prepare(sql).iterate(...(args as never[]))) {
+    for (const row of this.db.prepare(sql).iterate(...nulFreeArgs(args))) {
       if (rows.length > 0) checkTime();
       rows.push(row);
       if (rows.length > maxRows) throw new Error(`query returned more than ${maxRows} rows`);
@@ -158,7 +172,7 @@ export class PluginDataDb implements PluginDataStore {
   exec(sql: string, args: unknown[] = []): { changes: number } {
     this.guard(sql);
     if (args.length > 0) {
-      const info = this.db.prepare(sql).run(...(args as never[]));
+      const info = this.db.prepare(sql).run(...nulFreeArgs(args));
       return { changes: info.changes };
     }
     this.runScript(sql, this.startBudget('exec'));
@@ -242,7 +256,7 @@ export class PluginDataDb implements PluginDataStore {
       const results: Array<{ changes?: number; rows?: unknown[] }> = [];
       for (const op of batch) {
         const stmt = this.db.prepare(op.sql);
-        const args = (op.args ?? []) as never[];
+        const args = nulFreeArgs(op.args ?? []);
         if (stmt.reader) {
           const rows: unknown[] = [];
           for (const row of stmt.iterate(...args)) {
