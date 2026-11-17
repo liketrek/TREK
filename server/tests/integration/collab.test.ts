@@ -6,13 +6,14 @@
  *       Link preview (COLLAB-025/026) would need fetch mocking — skipped here.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { StorageReleaseQueue } from '../../src/db/entities/StorageReleaseQueue.entity';
 import { CollabService } from '../../src/nest/collab/collab.service';
 import { authCookie, generateToken } from '../helpers/auth';
-import { createUser, createTrip, addTripMember } from '../helpers/factories';
 import { findRow } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -21,11 +22,6 @@ import fs from 'fs';
 import path from 'path';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 // Spy on the DI-native service's linkPreview so the SSRF-guarded fetch never
 // runs; the rest of CollabService exercises its real SQL through the container.
@@ -38,6 +34,7 @@ const linkPreviewSpy = vi
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: MikroORM;
 const FIXTURE_PDF = path.join(__dirname, '../fixtures/test.pdf');
 
 // Ensure uploads/files dir exists for collab file uploads
@@ -46,17 +43,17 @@ const uploadsDir = path.join(__dirname, '../../uploads/files');
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,8 +62,8 @@ afterAll(async () => {
 
 describe('Collab notes', () => {
   it('COLLAB-001 — POST /collab/notes creates a note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -78,8 +75,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-001 — POST without title returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -89,9 +86,9 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-001 — non-member cannot create collab note', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -101,8 +98,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-002 — GET /collab/notes returns all notes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -119,8 +116,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-003 — PUT /collab/notes/:id updates a note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -138,8 +135,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-003 — PUT non-existent note returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/collab/notes/99999`)
@@ -149,8 +146,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-004 — DELETE /collab/notes/:id removes note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -169,8 +166,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-005 — POST /collab/notes/:id/files uploads a file to a note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -187,8 +184,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-006 — uploading blocked extension to note is rejected', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -211,8 +208,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-007 — DELETE /collab/notes/:noteId/files/:fileId removes file from note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -234,8 +231,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-P01 — attachment filename is stored bare (category + name; no files/ prefix)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -258,8 +255,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-P02 — deleting a note file hands its bytes to the release queue', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -287,8 +284,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-P03 — deleting a note hands its attachments’ bytes to the release queue', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -314,8 +311,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-028 — uploaded note file URL uses authenticated download path, not /uploads/', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -335,8 +332,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-029 — note attachments in listing use authenticated download URLs', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -359,8 +356,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-030 — note file is downloadable via files endpoint with ephemeral token', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -388,8 +385,8 @@ describe('Collab notes', () => {
   });
 
   it('COLLAB-031 — note file download without auth returns 401', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/notes`)
@@ -415,8 +412,8 @@ describe('Collab notes', () => {
 
 describe('Polls', () => {
   it('COLLAB-008 — POST /collab/polls creates a poll', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -428,8 +425,8 @@ describe('Polls', () => {
   });
 
   it('COLLAB-008 — POST without question returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -439,8 +436,8 @@ describe('Polls', () => {
   });
 
   it('COLLAB-009 — GET /collab/polls returns polls', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -453,8 +450,8 @@ describe('Polls', () => {
   });
 
   it('COLLAB-010 — POST /collab/polls/:id/vote casts a vote', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -471,8 +468,8 @@ describe('Polls', () => {
   });
 
   it('COLLAB-011 — PUT /collab/polls/:id/close closes a poll', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -488,8 +485,8 @@ describe('Polls', () => {
   });
 
   it('COLLAB-012 — cannot vote on closed poll', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -507,8 +504,8 @@ describe('Polls', () => {
   });
 
   it('COLLAB-013 — DELETE /collab/polls/:id removes poll', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -530,8 +527,8 @@ describe('Polls', () => {
 
 describe('Messages', () => {
   it('COLLAB-014 — POST /collab/messages sends a message', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -542,8 +539,8 @@ describe('Messages', () => {
   });
 
   it('COLLAB-014 — POST without text returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -553,9 +550,9 @@ describe('Messages', () => {
   });
 
   it('COLLAB-014 — non-member cannot send message', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -565,8 +562,8 @@ describe('Messages', () => {
   });
 
   it('COLLAB-015 — GET /collab/messages returns messages in order', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -583,8 +580,8 @@ describe('Messages', () => {
   });
 
   it('COLLAB-016 — POST /collab/messages with reply_to links reply', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const parent = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -601,8 +598,8 @@ describe('Messages', () => {
   });
 
   it('COLLAB-017 — DELETE /collab/messages/:id removes own message', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const msg = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -618,10 +615,10 @@ describe('Messages', () => {
   });
 
   it("COLLAB-017 — cannot delete another user's message", async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
 
     const msg = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -642,8 +639,8 @@ describe('Messages', () => {
 
 describe('Message reactions', () => {
   it('COLLAB-018 — POST /collab/messages/:id/react adds a reaction', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const msg = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -660,8 +657,8 @@ describe('Message reactions', () => {
   });
 
   it('COLLAB-018 — POST react without emoji returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const msg = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -683,8 +680,8 @@ describe('Message reactions', () => {
 
 describe('Collab validation', () => {
   it('COLLAB-018 — message text exceeding 5000 chars is rejected', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -694,8 +691,8 @@ describe('Collab validation', () => {
   });
 
   it('COLLAB-008 — poll with fewer than 2 options returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/collab/polls`)
@@ -711,9 +708,9 @@ describe('Collab validation', () => {
 
 describe('Link preview', () => {
   it('COLLAB-025 — GET /collab/link-preview as a non-member returns 404 (trip-access check added post-migration)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/collab/link-preview?url=https://example.com`)
@@ -724,8 +721,8 @@ describe('Link preview', () => {
   });
 
   it('COLLAB-025 — GET /collab/link-preview without url returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/collab/link-preview`).set('Cookie', authCookie(user.id));
 
@@ -734,8 +731,8 @@ describe('Link preview', () => {
   });
 
   it('COLLAB-025 — GET /collab/link-preview returns preview for valid URL', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     linkPreviewSpy.mockResolvedValueOnce({
       title: 'Example Domain',
@@ -753,8 +750,8 @@ describe('Link preview', () => {
   });
 
   it('COLLAB-026 — GET /collab/link-preview returns 400 when fetchLinkPreview returns error', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     linkPreviewSpy.mockResolvedValueOnce({
       title: null,
@@ -783,8 +780,8 @@ describe('Link preview', () => {
     // pass the guard: it is not '::1', and it does not start with '0.'.
     ['the unspecified address', 'http://[::]:9/'],
   ])('COLLAB-032 — GET /collab/link-preview refuses %s (%s) through the real guard', async (_label, url) => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     linkPreviewSpy.mockImplementationOnce(realLinkPreview);
 
     const res = await request(app)
@@ -798,8 +795,8 @@ describe('Link preview', () => {
   });
 
   it('COLLAB-027 — GET /collab/link-preview catches thrown errors and returns fallback', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     linkPreviewSpy.mockRejectedValueOnce(new Error('Unexpected error'));
 
@@ -814,8 +811,8 @@ describe('Link preview', () => {
 
 describe('Message reactions toggle', () => {
   it('COLLAB-028 — POST /collab/messages/:msgId/react adds a reaction', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const msgRes = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)
@@ -837,8 +834,8 @@ describe('Message reactions toggle', () => {
   });
 
   it('COLLAB-029 — POST /collab/messages/:msgId/react on same emoji removes it (toggle)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const msgRes = await request(app)
       .post(`/api/trips/${trip.id}/collab/messages`)

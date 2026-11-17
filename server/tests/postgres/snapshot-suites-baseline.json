@@ -1,8 +1,6 @@
 [
   "tests/integration/admin.test.ts",
   "tests/integration/auth.test.ts",
-  "tests/integration/collab.test.ts",
-  "tests/integration/files.test.ts",
   "tests/integration/journey-place-order.test.ts",
   "tests/integration/journey.test.ts",
   "tests/integration/leg-mode-incoming.test.ts",
