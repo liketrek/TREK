@@ -9,7 +9,6 @@
  * touch: a stored mapbox_access_token must not appear in a read, and neither
  * that key nor llm_api_key nor an unknown name may be written.
  */
-import { db as testDb } from '../../../src/db/database';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Settings } from '../../../src/db/entities/Settings.entity';
 import { encrypt_api_key } from '../../../src/nest/common/crypto/apiKeyCrypto';
@@ -21,37 +20,31 @@ import {
   ENCRYPTED_SETTING_KEYS,
   MASKED_SETTING_KEYS,
 } from '../../../src/nest/settings/settings.service';
-import { createUser } from '../../helpers/factories';
 import { countRows, findRow, insertRow } from '../../helpers/factories/rows';
 import { setUserSetting } from '../../helpers/factories/settings';
+import { makeUser } from '../../helpers/factories/users';
 import type { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { MikroORM } from '@mikro-orm/core';
 import { MASKED_SETTING_VALUE } from '@trek/shared';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   delete process.env.DEMO_MODE;
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp()).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp()).close();
 });
 
 // ---------------------------------------------------------------------------
@@ -104,7 +97,7 @@ function errorText(result: any): string {
 
 describe('Tool: get_display_settings', () => {
   it('returns an empty object for a user who has set nothing', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_display_settings', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -113,7 +106,7 @@ describe('Tool: get_display_settings', () => {
   });
 
   it('returns the display preferences the user has stored', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setSetting(user.id, 'temperature_unit', '"fahrenheit"');
     await setSetting(user.id, 'distance_unit', '"imperial"');
     await setSetting(user.id, 'time_format', '"12h"');
@@ -138,7 +131,7 @@ describe('Tool: get_display_settings', () => {
   });
 
   it('falls back to the admin-set instance default for a key the user has not set', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await insertRow(orm, AppSettings, { key: 'default_user_setting_temperature_unit', value: '"fahrenheit"' });
 
     await withHarness(user.id, async (h) => {
@@ -149,7 +142,7 @@ describe('Tool: get_display_settings', () => {
   });
 
   it('does not return stored credentials, not even to a settings:read token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // mapbox_access_token and carto_api_key are encrypted-but-NOT-masked, so
     // getUserSettings hands them back in cleartext. That is the leak this
     // surface must not have: store them the way the real write path does and
@@ -178,7 +171,7 @@ describe('Tool: get_display_settings', () => {
   });
 
   it('leaves out settings that are neither display preferences nor credentials', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setSetting(user.id, 'map_tile_url', '"https://tiles.example/{z}/{x}/{y}.png"');
     await setSetting(user.id, 'dashboard_fx_from', '"EUR"');
     await setSetting(user.id, 'time_format', '"24h"');
@@ -191,8 +184,8 @@ describe('Tool: get_display_settings', () => {
   });
 
   it("does not leak another user's preferences", async () => {
-    const { user: mine } = createUser(testDb);
-    const { user: theirs } = createUser(testDb);
+    const { user: mine } = await makeUser(orm);
+    const { user: theirs } = await makeUser(orm);
     await setSetting(theirs.id, 'temperature_unit', '"fahrenheit"');
 
     await withHarness(mine.id, async (h) => {
@@ -209,7 +202,7 @@ describe('Tool: get_display_settings', () => {
 
 describe('Tool: update_display_settings', () => {
   it('writes several preferences at once and reports what changed', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { temperature_unit: 'fahrenheit', distance_unit: 'imperial' });
       const data = parseToolResult(result) as any;
@@ -222,7 +215,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('leaves untouched keys alone', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setSetting(user.id, 'time_format', '"12h"');
     await withHarness(user.id, async (h) => {
       await update(h, { temperature_unit: 'celsius' });
@@ -231,7 +224,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('accepts every non-boolean display preference in one call', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, {
         start_page: 'active_trip',
@@ -252,7 +245,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('writes place_language, clears it with "", and refuses a language TREK does not offer (#1799)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const set = parseToolResult(await update(h, { place_language: 'en' })) as any;
       expect(set.settings.place_language).toBe('en');
@@ -265,7 +258,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('writes date_format and refuses a format the app does not offer (#2971)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const ok = parseToolResult(await update(h, { date_format: 'DD.MM.YYYY' })) as {
         settings: Record<string, unknown>;
@@ -278,7 +271,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('writes week_start and refuses a day outside the three the app offers (#2029)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const ok = parseToolResult(await update(h, { week_start: 'sunday' })) as any;
       expect(ok.settings.week_start).toBe('sunday');
@@ -289,7 +282,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('writes dashboard_timezones as the stored list and reads it back (#3044)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(await update(h, { dashboard_timezones: ['Europe/Madrid', 'Africa/Cairo'] })) as {
         settings: Record<string, unknown>;
@@ -300,7 +293,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('accepts an empty dashboard_timezones list, which shows no clocks (#3044)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(await update(h, { dashboard_timezones: [] })) as {
         settings: Record<string, unknown>;
@@ -310,7 +303,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('refuses dashboard_timezones that are unknown, repeated, not a list or too many (#3044)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const tooMany = Intl.supportedValuesOf('timeZone').slice(0, MAX_DASHBOARD_TIMEZONES + 1);
     await withHarness(user.id, async (h) => {
       const unknown = await update(h, { dashboard_timezones: ['Europe/Madrid', 'Mars/Olympus_Mons'] });
@@ -327,7 +320,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('accepts every boolean display preference', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, {
         map_booking_labels: true,
@@ -349,7 +342,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('accepts a boolean dark_mode, the pre-auto form still sitting in older rows', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { dark_mode: false });
       const data = parseToolResult(result) as any;
@@ -359,7 +352,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it("accepts an empty default_currency, which falls back to each trip's own", async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setSetting(user.id, 'default_currency', '"USD"');
     await withHarness(user.id, async (h) => {
       const result = await update(h, { default_currency: '' });
@@ -370,7 +363,7 @@ describe('Tool: update_display_settings', () => {
   });
 
   it('reads back the admin default rather than echoing the input', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await insertRow(orm, AppSettings, { key: 'default_user_setting_distance_unit', value: '"imperial"' });
     await withHarness(user.id, async (h) => {
       const result = await update(h, { temperature_unit: 'celsius' });
@@ -386,7 +379,7 @@ describe('Tool: update_display_settings', () => {
 
 describe('Tool: update_display_settings, refusals', () => {
   it('refuses a credential key and stores nothing', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { mapbox_access_token: 'pk.attacker-token' });
       expect(result.isError).toBe(true);
@@ -396,7 +389,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses llm_api_key and stores nothing, even for a settings:write token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withScopedHarness(user.id, ['settings:write'], async (h) => {
       const result = await update(h, { llm_api_key: 'sk-attacker' });
       expect(result.isError).toBe(true);
@@ -405,7 +398,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses the two admin-only LLM endpoint keys the REST route answers 403 for', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       for (const settings of [{ llm_base_url: 'http://127.0.0.1:11434' }, { llm_provider: 'local' }]) {
         const result = await update(h, settings);
@@ -416,7 +409,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses a key nobody has heard of rather than storing it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { made_up_preference: 'whatever' });
       expect(result.isError).toBe(true);
@@ -427,7 +420,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses an inherited Object property name, which a plain `in` check would wave through', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { toString: 'gotcha' });
       expect(result.isError).toBe(true);
@@ -436,7 +429,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('writes nothing at all when one key of a multi-key call is refused', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { temperature_unit: 'fahrenheit', llm_api_key: 'sk-attacker' });
       expect(result.isError).toBe(true);
@@ -445,7 +438,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('writes nothing when one value of a multi-key call is invalid', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { temperature_unit: 'fahrenheit', time_format: '36h' });
       expect(result.isError).toBe(true);
@@ -454,7 +447,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses a value outside the allowed set and names the key', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { temperature_unit: 'kelvin' });
       expect(result.isError).toBe(true);
@@ -464,7 +457,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses an unsupported language code', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const bad = await update(h, { language: 'xx' });
       expect(bad.isError).toBe(true);
@@ -475,7 +468,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses a currency that is not a three-letter uppercase code', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       for (const value of ['eur', 'EUROS', 'E']) {
         const result = await update(h, { default_currency: value });
@@ -486,7 +479,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses a non-boolean for a boolean preference', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { blur_booking_codes: 'yes' });
       expect(result.isError).toBe(true);
@@ -495,7 +488,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses a start_trip_tab that is empty or absurdly long', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       expect((await update(h, { start_trip_tab: '' })).isError).toBe(true);
       expect((await update(h, { start_trip_tab: 'x'.repeat(65) })).isError).toBe(true);
@@ -504,7 +497,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses the redaction placeholder instead of silently skipping it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { start_trip_tab: MASKED_SETTING_VALUE });
       expect(result.isError).toBe(true);
@@ -514,7 +507,7 @@ describe('Tool: update_display_settings, refusals', () => {
   });
 
   it('refuses an empty settings object and says what it takes', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await update(h, {});
       expect(result.isError).toBe(true);
@@ -525,7 +518,7 @@ describe('Tool: update_display_settings, refusals', () => {
 
   it('blocks the demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user } = await makeUser(orm, { email: 'demo@trek.app' });
     await withHarness(user.id, async (h) => {
       const result = await update(h, { temperature_unit: 'fahrenheit' });
       expect(result.isError).toBe(true);
@@ -535,7 +528,7 @@ describe('Tool: update_display_settings, refusals', () => {
 
   it('lets the demo user read', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user } = await makeUser(orm, { email: 'demo@trek.app' });
     await setSetting(user.id, 'temperature_unit', '"celsius"');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_display_settings', arguments: {} });
@@ -601,28 +594,28 @@ describe('Settings tools, scope gating', () => {
   }
 
   it('registers both tools with null scopes (full access)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, null);
     expect(names).toContain('get_display_settings');
     expect(names).toContain('update_display_settings');
   });
 
   it('registers only the read tool with settings:read', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['settings:read']);
     expect(names).toContain('get_display_settings');
     expect(names).not.toContain('update_display_settings');
   });
 
   it('registers both with settings:write, since write implies read', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['settings:write']);
     expect(names).toContain('get_display_settings');
     expect(names).toContain('update_display_settings');
   });
 
   it('registers neither for a token without a settings scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['trips:read']);
     expect(names).not.toContain('get_display_settings');
     expect(names).not.toContain('update_display_settings');
@@ -631,7 +624,7 @@ describe('Settings tools, scope gating', () => {
 
 describe('update_display_settings reaches every tab', () => {
   it('MCP-SETTINGS-001: tells every tab of the user which keys changed, never their values', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // The fake the harness container was booted with, which records every user message.
     const realtime = (await bootTestApp()).get(RealtimeService) as FakeRealtimeService;
     realtime.broadcastToUserMock.mockClear();
@@ -644,7 +637,7 @@ describe('update_display_settings reaches every tab', () => {
   });
 
   it('MCP-SETTINGS-002: a refused change sends nothing', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const realtime = (await bootTestApp()).get(RealtimeService) as FakeRealtimeService;
     realtime.broadcastToUserMock.mockClear();
     await withHarness(user.id, async (h) => {
