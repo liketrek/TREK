@@ -59,9 +59,14 @@ export function answersSchema(name = 'public', quoted = name, server: FakeServer
   return printsWhen('quote_ident', `${name}\t${quoted}\t${versionNum}\t${String(privileged)}\t${plugins}\n`);
 }
 
-/** psql's table listing, one name per line, as pgTableNames reads it. */
+/** psql's table listing, one name per line, as pgTablesInUse reads it. */
 export function answersTables(names: readonly string[]): string {
   return printsWhen('table_name', names.map((name) => `${name}\n`).join(''));
+}
+
+/** psql's row count of the migration history, as pgTablesInUse reads it when that table stands alone. */
+export function answersHistoryRows(count: number): string {
+  return printsWhen('history_rows', `${count}\n`);
 }
 
 /** Writes `content` to the output file the call names with `--file=`. */

@@ -10,6 +10,7 @@ import { knownMigrationNames } from '../../../src/db/known-migrations';
 import { BootRestoreError, restoreOnFirstBoot } from '../../../src/nest/backup/boot-restore';
 import {
   answersSchema,
+  answersHistoryRows,
   answersTables,
   installFakeTool,
   listsMigrations,
@@ -141,11 +142,16 @@ describe('restoreOnFirstBoot', () => {
      * known migration as the dump's history, or writes a restricted script.
      * Their arguments are pinned in pg-tools.test.ts.
      */
-    const postgresPlan = (archivePath: string, tables: string[] = []) => {
+    const postgresPlan = (archivePath: string, tables: string[] = [], historyRows = 0) => {
       const bin = path.join(root, 'bin');
       fs.mkdirSync(bin, { recursive: true });
       installFakeTool(bin, 'psql', {
-        snippets: [answersSchema(), answersTables(tables), touches(path.join(root, 'loaded'))],
+        snippets: [
+          answersSchema(),
+          answersTables(tables),
+          answersHistoryRows(historyRows),
+          touches(path.join(root, 'loaded')),
+        ],
       });
       const migration = [...knownMigrationNames()][0];
       installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations([migration]), writesRestrictedScript()] });
@@ -177,6 +183,21 @@ describe('restoreOnFirstBoot', () => {
       expect(fs.readFileSync(path.join(dataDir, '.encryption_key'), 'utf8')).toBe('b'.repeat(64));
       expect(fs.existsSync(reclaimResetFile)).toBe(true);
       expect(fs.existsSync(dbFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004e: a lone migration history that records nothing (a first boot cut short) is loaded over', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), ['mikro_orm_migrations']);
+      const out = await restoreOnFirstBoot(plan);
+      expect(out.restored).toBe(true);
+      expect(loaded()).toBe(true);
+    });
+
+    it('BOOT-RESTORE-004f: a migration history with rows is a database in use and left alone', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const recorded = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), ['mikro_orm_migrations'], 3);
+      expect(await restoreOnFirstBoot(recorded)).toEqual({ restored: false, reason: 'database-exists' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('the Postgres database (1 table(s))'));
+      expect(loaded()).toBe(false);
     });
 
     it('BOOT-RESTORE-004d: a SQLite backup is refused before anything is loaded, leaving no scratch', async () => {

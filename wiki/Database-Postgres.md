@@ -96,7 +96,7 @@ The database already exists, so the new init script does not run again, and TREK
 
 On the first start against an empty database, TREK:
 
-1. Creates the schema from its baseline and records every migration the baseline covers as applied, in one transaction.
+1. Creates the schema from its baseline and records every migration the baseline covers as applied, in one transaction, the table of the migration history included. A first start that fails there (a server without ICU, a dropped connection) leaves the database as empty as it was.
 2. Applies any migrations after the baseline.
 3. Seeds its default data and creates the admin account, from `ADMIN_EMAIL` and `ADMIN_PASSWORD` when set. Otherwise it prints a random password to the log.
 
@@ -180,7 +180,7 @@ Restoring a backup on Postgres follows these rules:
 - **The role must not be a superuser.** The restore refuses a role that is a superuser or a member of one, holds `pg_execute_server_program`, `pg_read_server_files` or `pg_write_server_files`, or has CREATEROLE on PostgreSQL 14 or 15. See [A role that is not a superuser](#a-role-that-is-not-a-superuser).
 - **The restore needs free space in the data directory.** `pg_restore` writes the dump out as a SQL script next to the unpacked archive before `psql` runs it, and the script is several times larger than the dump. It may grow to `BACKUP_MAX_DECOMPRESSED_MB` (5 GB by default); a larger one is stopped, nothing is replaced, and the work files are removed. Raise the limit for a genuine backup that needs more.
 
-`RESTORE_FROM_BACKUP` works on Postgres too. On the first start, TREK loads the archive's dump into the database when that database holds no tables. When the database already has tables, the variable is ignored and TREK logs a warning. See [Backups: Restoring on a new install, before setup](Backups#restoring-on-a-new-install-before-setup).
+`RESTORE_FROM_BACKUP` works on Postgres too. On the first start, TREK loads the archive's dump into the database when that database holds no tables. An empty migration history with no other table beside it counts as no tables. When the database already has tables, the variable is ignored and TREK logs a warning. See [Backups: Restoring on a new install, before setup](Backups#restoring-on-a-new-install-before-setup).
 
 ## Plugin data
 
