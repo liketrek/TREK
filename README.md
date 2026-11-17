@@ -323,7 +323,8 @@ for the full walkthrough.
 
 TREK stores its data in SQLite by default. Set `TREK_DB_URL` to run it on a PostgreSQL 14 to 18 database instead. The
 [`docker-compose.postgres.yml`](docker-compose.postgres.yml) example starts one beside TREK, and the
-[Postgres guide](https://github.com/liketrek/TREK/wiki/Database-Postgres) covers the requirements and the backups.
+[Postgres guide](https://github.com/liketrek/TREK/wiki/Database-Postgres) covers the requirements, the backups and
+how to move an existing SQLite install to Postgres with the command TREK ships for it.
 
 <br />
 
