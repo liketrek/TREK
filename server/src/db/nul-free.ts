@@ -1,4 +1,4 @@
-import type { CompiledQuery, DatabaseConnection, Dialect, Driver } from 'kysely';
+import type { AbortableOperationOptions, CompiledQuery, DatabaseConnection, Dialect, Driver } from 'kysely';
 
 /**
  * TREK stores no U+0000 (NUL) in text, on either engine.
@@ -87,9 +87,10 @@ function nulFreeDriver(driver: Driver): Driver {
     let proxy = wrapped.get(connection);
     if (!proxy) {
       proxy = overriding(connection, {
-        executeQuery: <R>(query: CompiledQuery) => connection.executeQuery<R>(nulFreeQuery(query)),
-        streamQuery: <R>(query: CompiledQuery, chunkSize?: number) =>
-          connection.streamQuery<R>(nulFreeQuery(query), chunkSize),
+        executeQuery: <R>(query: CompiledQuery, options?: AbortableOperationOptions) =>
+          connection.executeQuery<R>(nulFreeQuery(query), options),
+        streamQuery: <R>(query: CompiledQuery, chunkSize: number, options?: AbortableOperationOptions) =>
+          connection.streamQuery<R>(nulFreeQuery(query), chunkSize, options),
       });
       wrapped.set(connection, proxy);
     }
