@@ -350,7 +350,9 @@ type FlightsMissingEndpointsKyselyDB = Pick<DB, 'reservations' | 'reservation_en
 
 export class ReservationsRepository extends TrekRepository<Reservations> {
   // For its Wallet pass (_shared/reservation-pass-context.ts).
-  findPassContext(id: number, tripId: number) { return passContextQuery(this.kysely<PassContextDB>(), id, tripId); }
+  findPassContext(id: number, tripId: number) {
+    return passContextQuery(this.kysely<PassContextDB>(), this.getEntityManager().getPlatform(), id, tripId);
+  }
 
   private joinedQuery() {
     return joinedReservationQuery(this.kysely<ReservationJoinDB>(), this.getEntityManager().getPlatform());
@@ -928,7 +930,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<CalendarStayKyselyDB>()
       .selectFrom('day_accommodations as a')
       .where('a.trip_id', '=', trip_id as number)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(this.getEntityManager().getPlatform(), eb))
       .leftJoin('days as sd', 'sd.id', 'a.start_day_id')
       .leftJoin('days as ed', 'ed.id', 'a.end_day_id')
       .leftJoin('places as p', 'p.id', 'a.place_id')
@@ -1164,7 +1166,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<SharePublicAccommodationKyselyDB>()
       .selectFrom('day_accommodations as a')
       .where('a.trip_id', '=', trip_id as number)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(this.getEntityManager().getPlatform(), eb))
       .innerJoin('places as p', 'p.id', 'a.place_id')
       .select([
         'a.id', 'a.trip_id', 'a.place_id', 'a.start_day_id', 'a.end_day_id',
@@ -1185,7 +1187,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<SharePublicAccommodationKyselyDB>()
       .selectFrom('day_accommodations as a')
       .where('a.trip_id', '=', trip_id as number)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(this.getEntityManager().getPlatform(), eb))
       .select('a.place_id')
       .distinct()
       .execute();

@@ -2,6 +2,7 @@ import {
   castIntegerKysely,
   concatKysely,
   currentTimestampKysely,
+  integerTextEqualsKysely,
   nowPlusSecondsKysely,
   startsWithIsoDateKysely,
   substringKysely,
@@ -228,6 +229,22 @@ describe('kysely-functions (postgres)', () => {
       .compile();
     expect(compiled.sql).toBe('select cast(trunc(cast("display_name" as numeric)) as integer) as "v" from "users"');
     expect(compiled.parameters).toEqual([]);
+  });
+
+  it("SQLFPG-026: integerTextEqualsKysely compares the truncated text with the integer, so '14.0' meets 14", () => {
+    const compiled = db
+      .selectFrom('users')
+      .select('id')
+      .where((eb) => integerTextEqualsKysely(pg, eb, 'display_name', 'id'))
+      .compile();
+    expect(compiled.sql).toBe(
+      'select "id" from "users" where cast(trunc(cast("display_name" as numeric)) as integer) = "id"',
+    );
+    expect(compiled.parameters).toEqual([]);
+    class FakePlatform extends Platform {}
+    expect(() =>
+      integerTextEqualsKysely(new FakePlatform(), expressionBuilder<ProbeDB, 'users'>(), 'username', 'id'),
+    ).toThrow(/no implementation for platform FakePlatform/);
   });
 
   it('SQLFPG-023: unixEpochToIsoKysely renders UTC ISO text from epoch milliseconds', () => {

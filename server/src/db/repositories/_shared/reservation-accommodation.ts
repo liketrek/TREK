@@ -1,4 +1,4 @@
-import { castIntegerKysely } from '../../dialect/kysely-functions';
+import { integerTextEqualsKysely } from '../../dialect/kysely-functions';
 import type { Platform } from '@mikro-orm/core';
 
 import type { ExpressionBuilder, ExpressionWrapper, SqlBool, StringReference } from 'kysely';
@@ -7,10 +7,11 @@ import type { ExpressionBuilder, ExpressionWrapper, SqlBool, StringReference } f
  * The join condition between a reservation and the stay it is booked against.
  *
  * `reservations.accommodation_id` is TEXT with no foreign key, while
- * `day_accommodations.id` is INTEGER, so the comparison is written as
- * `CAST(<reservation ref> AS INTEGER) = <stay ref>`. SQLite coerces a bare
- * text-to-integer comparison and Postgres refuses it (42883), so the cast is
- * needed on both engines. A stored `'14.0'` casts to 14 on both.
+ * `day_accommodations.id` is INTEGER, and the services store the id as
+ * `'14.0'` (`legacyBoundIntegerText`). The dialect helper
+ * `integerTextEqualsKysely` compares the two so that `'14'`, `'14.0'` and 14
+ * match the stay 14 on both engines. Every join and correlation on this pair
+ * goes through here, so the comparison has one spelling.
  */
 export function accommodationIdMatches<DB, TB extends keyof DB>(
   platform: Platform,
@@ -18,5 +19,5 @@ export function accommodationIdMatches<DB, TB extends keyof DB>(
   reservationAccommodationId: StringReference<DB, TB>,
   stayId: StringReference<DB, TB>,
 ): ExpressionWrapper<DB, TB, SqlBool> {
-  return eb(castIntegerKysely(platform, eb, reservationAccommodationId), '=', eb.ref(stayId).$castTo<number>());
+  return integerTextEqualsKysely(platform, eb, reservationAccommodationId, stayId);
 }

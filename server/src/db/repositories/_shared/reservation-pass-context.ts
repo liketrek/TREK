@@ -1,4 +1,6 @@
 import type { DB } from '../../kysely/db';
+import { accommodationIdMatches } from './reservation-accommodation';
+import type { Platform } from '@mikro-orm/core';
 
 import type { Kysely } from 'kysely';
 
@@ -21,6 +23,7 @@ export interface ReservationPassContext {
  */
 export async function passContextQuery(
   kysely: Kysely<PassContextDB>,
+  platform: Platform,
   id: number,
   trip_id: number,
 ): Promise<ReservationPassContext | undefined> {
@@ -28,9 +31,8 @@ export async function passContextQuery(
     .selectFrom('reservations as r')
     .innerJoin('trips as t', 't.id', 'r.trip_id')
     .leftJoin('places as p', 'p.id', 'r.place_id')
-    // accommodation_id is TEXT; compared as a number so Postgres takes it as well as SQLite ("14" and "14.0" alike).
     .leftJoin('day_accommodations as ap', (join) =>
-      join.on((eb) => eb(eb.cast<number>('r.accommodation_id', 'numeric'), '=', eb.ref('ap.id'))),
+      join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'ap.id')),
     )
     .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
     .where('r.id', '=', id)
