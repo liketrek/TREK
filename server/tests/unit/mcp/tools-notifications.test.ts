@@ -9,39 +9,32 @@
  * harness here keeps withTools on (the resource is NOT registered by the
  * legacy registerResources fan-out anymore).
  */
-import { db as testDb } from '../../../src/db/database';
 import { Notifications } from '../../../src/db/entities/Notifications.entity';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createUser } from '../../helpers/factories';
 import { makeNotification } from '../../helpers/factories/notifications';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { makeUser } from '../../helpers/factories/users';
 import type { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp()).get(MikroORM);
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   delete process.env.DEMO_MODE;
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp()).close();
 });
 
 // ---------------------------------------------------------------------------
@@ -88,7 +81,7 @@ async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promis
 
 describe('Tool: list_notifications', () => {
   it('returns empty array initially', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_notifications', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -97,7 +90,7 @@ describe('Tool: list_notifications', () => {
   });
 
   it('returns notifications when they exist', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createNotification(user.id, { title_key: 'notif.first' });
     await createNotification(user.id, { title_key: 'notif.second' });
     await withHarness(user.id, async (h) => {
@@ -108,7 +101,7 @@ describe('Tool: list_notifications', () => {
   });
 
   it('returns only unread notifications when unread_only is true', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createNotification(user.id);
     const read = await createNotification(user.id);
     await updateRows(orm, Notifications, { id: read.id }, { is_read: 1 });
@@ -126,7 +119,7 @@ describe('Tool: list_notifications', () => {
 
 describe('Tool: get_unread_notification_count', () => {
   it('returns 0 initially', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_unread_notification_count', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -135,7 +128,7 @@ describe('Tool: get_unread_notification_count', () => {
   });
 
   it('returns 1 after inserting one unread notification', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_unread_notification_count', arguments: {} });
@@ -151,7 +144,7 @@ describe('Tool: get_unread_notification_count', () => {
 
 describe('Tool: mark_notification_read', () => {
   it('flips is_read to 1 and returns success', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const notif = await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -166,7 +159,7 @@ describe('Tool: mark_notification_read', () => {
   });
 
   it('returns isError for non-existent notification', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'mark_notification_read',
@@ -178,7 +171,7 @@ describe('Tool: mark_notification_read', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     const notif = await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -196,7 +189,7 @@ describe('Tool: mark_notification_read', () => {
 
 describe('Tool: mark_notification_unread', () => {
   it('flips is_read to 0', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const notif = await createNotification(user.id);
     await updateRows(orm, Notifications, { id: notif.id }, { is_read: 1 });
     await withHarness(user.id, async (h) => {
@@ -212,7 +205,7 @@ describe('Tool: mark_notification_unread', () => {
   });
 
   it('returns isError for non-existent notification', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'mark_notification_unread',
@@ -229,7 +222,7 @@ describe('Tool: mark_notification_unread', () => {
 
 describe('Tool: mark_all_notifications_read', () => {
   it('marks all notifications read and returns count', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createNotification(user.id);
     await createNotification(user.id);
     await createNotification(user.id);
@@ -244,7 +237,7 @@ describe('Tool: mark_all_notifications_read', () => {
   });
 
   it('returns count 0 when nothing to mark', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_all_notifications_read', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -259,7 +252,7 @@ describe('Tool: mark_all_notifications_read', () => {
 
 describe('Resource: trek://notifications/in-app', () => {
   it('returns notifications list', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createNotification(user.id, { title_key: 'notif.test' });
     await withResourceHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: 'trek://notifications/in-app' });
@@ -271,7 +264,7 @@ describe('Resource: trek://notifications/in-app', () => {
   });
 
   it('returns empty notifications for user with none', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withResourceHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: 'trek://notifications/in-app' });
       const data = parseResourceResult(result) as any;
@@ -289,7 +282,7 @@ describe('Read state reaches every tab of the user', () => {
   }
 
   it('MCP-NOTIF-001: mark_notification_read and _unread send the row as it now reads, to every tab', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const notif = await createNotification(user.id);
     const sent = await userMessages();
     await withHarness(user.id, async (h) => {
@@ -308,7 +301,7 @@ describe('Read state reaches every tab of the user', () => {
   });
 
   it('MCP-NOTIF-002: mark_all_notifications_read pings once when something changed, and not for nothing', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createNotification(user.id);
     const sent = await userMessages();
     await withHarness(user.id, async (h) => {
@@ -319,8 +312,8 @@ describe('Read state reaches every tab of the user', () => {
   });
 
   it("MCP-NOTIF-003: marking somebody else's notification is refused and sends nothing to either user", async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
     const notif = await createNotification(owner.id);
     const sent = await userMessages();
     await withHarness(stranger.id, async (h) => {
