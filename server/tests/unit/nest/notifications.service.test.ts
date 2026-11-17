@@ -896,6 +896,41 @@ describe('send() reports what it delivered', () => {
       }),
     ).resolves.toEqual({ attempted: 0, delivered: 0 });
   });
+
+  it('NSVC-025: settled() waits for a send its caller left running', async () => {
+    const { user } = createUser(testDb);
+    setSmtp();
+    setNotificationChannels(testDb, 'email');
+    await setRecipientEmail(user.id);
+    const tripId = await newTrip('Trip', user.id);
+    let release = () => {};
+    sendMailMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ accepted: ['test@test.com'] });
+        }),
+    );
+
+    const running = send({
+      event: 'trip_reminder',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Trip', tripId: String(tripId) },
+    });
+    let settled = false;
+    const waiting = notifications.settled().then(() => {
+      settled = true;
+    });
+    await vi.waitFor(() => expect(sendMailMock).toHaveBeenCalledTimes(1));
+    expect(settled).toBe(false);
+
+    release();
+    await waiting;
+    await expect(running).resolves.toEqual({ attempted: 2, delivered: 2 });
+    // Nothing left running: it resolves at once.
+    await expect(notifications.settled()).resolves.toBeUndefined();
+  });
 });
 
 // ── Ntfy dispatch ─────────────────────────────────────────────────────────────
