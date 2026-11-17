@@ -1,3 +1,5 @@
+import { PLUGIN_SCHEMA_PREFIX, quotePluginSchema } from './plugin-schema';
+
 /**
  * Drops every table, view, sequence, routine, collation and standalone type in
  * the current schema, except an extension's, before a dump is loaded: a dump
@@ -39,3 +41,25 @@ BEGIN
 END
 $clear$;
 `;
+
+/**
+ * Drops every plugin data schema TREK's role owns, then creates the ones
+ * `schemas` names (a dump's) empty, for the restore script to fill: the script
+ * holds what is in them, never the schemas themselves. Runs right after
+ * CLEAR_SCHEMA_SQL, in the same transaction. A schema another role owns is
+ * never dropped, whatever its name.
+ */
+export function pluginSchemasSql(schemas: readonly string[]): string {
+  const drop = `DO $plugins$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT nspname FROM pg_namespace
+    WHERE starts_with(nspname, '${PLUGIN_SCHEMA_PREFIX}') AND pg_get_userbyid(nspowner) = current_user
+  LOOP
+    EXECUTE format('DROP SCHEMA %I CASCADE', r.nspname);
+  END LOOP;
+END
+$plugins$;
+`;
+  return drop + schemas.map((name) => `CREATE SCHEMA ${quotePluginSchema(name)};\n`).join('');
+}
