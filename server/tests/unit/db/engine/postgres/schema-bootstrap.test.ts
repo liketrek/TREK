@@ -41,10 +41,15 @@ interface FakeDb {
   migrations: { tableName?: string };
   /** Whether the users table holds a row: a database in use does. */
   accounts: boolean;
+  /** The transaction the history table was created in, when it was created in one. */
+  historyCreatedIn: unknown;
+  /** A baseline statement that fails, as on a server without ICU. */
+  failingBaseline?: boolean;
 }
 
 type FakeState = Pick<FakeDb, 'executed' | 'pending' | 'tables'> & {
   history?: boolean;
+  failingBaseline?: boolean;
   server?: Partial<FakeDb['server']>;
   accounts?: boolean;
 };
@@ -59,15 +64,20 @@ function fakeOrm(state: FakeState): {
     migrations: { tableName: 'mikro_orm_migrations' },
     history: state.history ?? state.executed.length > 0,
     accounts: state.accounts ?? true,
+    // Like MikroORM's: created on the storage's master transaction, and
+    // committed on its own when there is none.
     ensureTable: vi.fn(async () => {
       db.history = true;
+      db.historyCreatedIn = master;
     }),
+    historyCreatedIn: undefined,
     sql: [],
     logged: [],
     inTransaction: [],
     up: vi.fn(async () => undefined),
   };
   const trx = { trx: true };
+  let master: unknown;
   const connection = {
     execute: vi.fn(async (sql: string, _params?: unknown[], _method?: string, ctx?: unknown) => {
       if (sql.includes('server_version_num')) return [db.server];
@@ -77,12 +87,27 @@ function fakeOrm(state: FakeState): {
       }
       db.sql.push(sql);
       db.inTransaction.push(ctx === trx);
+      if (db.failingBaseline) throw new Error('collation provider "icu" is not supported on this platform');
       return [];
     }),
-    transactional: vi.fn(async (work: (ctx: unknown) => Promise<void>) => work(trx)),
+    // A failed transaction takes back what was created in it.
+    transactional: vi.fn(async (work: (ctx: unknown) => Promise<void>) => {
+      try {
+        await work(trx);
+      } catch (err) {
+        if (db.historyCreatedIn === trx) db.history = false;
+        throw err;
+      }
+    }),
   };
   const storage = {
     ensureTable: db.ensureTable,
+    setMasterMigration: (ctx: unknown) => {
+      master = ctx;
+    },
+    unsetMasterMigration: () => {
+      master = undefined;
+    },
     logMigration: vi.fn(async ({ name }: { name: string }, ctx?: unknown) => {
       db.logged.push(name);
       db.inTransaction.push(ctx === trx);
@@ -155,6 +180,19 @@ describe('bootstrapPostgresSchema', () => {
     expect(db.sql).toEqual([]);
     expect(db.logged).toEqual([]);
     expect(db.ensureTable).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-009: the history table is created inside the baseline transaction, so a failed first boot leaves no table', async () => {
+    const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], failingBaseline: true });
+    await expect(bootstrapPostgresSchema(orm, deps())).rejects.toThrow('collation provider "icu"');
+    expect(db.ensureTable).toHaveBeenCalledTimes(1);
+    expect(db.historyCreatedIn).toEqual({ trx: true });
+    // Nothing is left that would make RESTORE_FROM_BACKUP take it for a database in use.
+    expect(db.history).toBe(false);
+
+    const fresh = fakeOrm({ executed: [], pending: [M1, M2], tables: [] });
+    await bootstrapPostgresSchema(fresh.orm, deps());
+    expect(fresh.db.historyCreatedIn).toEqual({ trx: true });
   });
 
   it('PGBOOT-008: an empty history table beside no other table is a fresh database (a first boot cut short)', async () => {

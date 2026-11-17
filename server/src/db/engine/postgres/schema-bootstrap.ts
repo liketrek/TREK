@@ -84,9 +84,10 @@ async function currentTables(connection: Connection): Promise<string[]> {
 }
 
 /**
- * Creates the schema in an empty Postgres database: the baseline's statements
- * and the record of every migration it stands for, in one transaction (DDL is
- * transactional on Postgres, so the database ends with all of it or none). A
+ * Creates the schema in an empty Postgres database: the migration history's
+ * table, the baseline's statements and the record of every migration it
+ * stands for, in one transaction (DDL is transactional on Postgres, so the
+ * database ends with all of it or none, not even an empty history table). A
  * database holding tables beside no TREK history is refused before anything is
  * written.
  */
@@ -104,12 +105,21 @@ async function createFromBaseline(
         'migration history. Point TREK_DB_URL at an empty database.',
     );
   }
-  await storage.ensureTable();
   const schema = baseline();
   logger.log(`Creating the schema in an empty Postgres database (through ${migrationLabel(schema.through)})`);
   await connection.transactional(async (trx) => {
-    await connection.execute(schema.statements.join(';\n'), [], 'run', trx);
-    await Promise.all(schema.migrations.map((name) => storage.logMigration({ name }, trx)));
+    // The history table is created inside the transaction too: MikroORM
+    // creates it on the storage's master transaction, and without one it would
+    // commit on its own, so a baseline that fails would leave it behind and a
+    // later RESTORE_FROM_BACKUP would take the database for one in use.
+    storage.setMasterMigration(trx);
+    try {
+      await storage.ensureTable();
+      await connection.execute(schema.statements.join(';\n'), [], 'run', trx);
+      await Promise.all(schema.migrations.map((name) => storage.logMigration({ name }, trx)));
+    } finally {
+      storage.unsetMasterMigration();
+    }
   });
 }
 

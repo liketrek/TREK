@@ -243,7 +243,7 @@ async function dumpPluginSchemas(source: string, toc: string, binDir: string | u
 }
 
 /** The tables in the current schema of the database at `url`, read before TREK opens it. */
-export async function pgTableNames(url: string, binDir: string | undefined): Promise<string[]> {
+async function pgTableNames(url: string, binDir: string | undefined): Promise<string[]> {
   const out = await run(
     'psql',
     binDir,
@@ -251,6 +251,30 @@ export async function pgTableNames(url: string, binDir: string | undefined): Pro
     pgConnectionEnv(url),
   );
   return out.split('\n').filter((line) => line !== '');
+}
+
+/** The migration history's table, the first one a boot creates. */
+const HISTORY_TABLE = 'mikro_orm_migrations';
+
+/**
+ * The tables that make the current schema of the database at `url` a
+ * database in use, read before TREK opens it: every table, except a
+ * migration history that is the only table and records nothing. A first boot
+ * that failed while it created the schema left such a table behind before
+ * the bootstrap created it in the schema's own transaction, and it holds
+ * nothing a restore, which clears the schema first, could lose. Any answer
+ * but a count of 0 keeps the table, so the check fails closed.
+ */
+export async function pgTablesInUse(url: string, binDir: string | undefined): Promise<string[]> {
+  const tables = await pgTableNames(url, binDir);
+  if (tables.length !== 1 || tables[0] !== HISTORY_TABLE) return tables;
+  const out = await run(
+    'psql',
+    binDir,
+    ['--no-psqlrc', '--no-align', '--tuples-only', `--command=select count(*) as history_rows from ${HISTORY_TABLE}`],
+    pgConnectionEnv(url),
+  );
+  return out.trim() === '0' ? [] : tables;
 }
 
 /**

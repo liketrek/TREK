@@ -1,4 +1,4 @@
-import { pgRestore, pgTableNames } from '../../db/engine/postgres/pg-tools';
+import { pgRestore, pgTablesInUse } from '../../db/engine/postgres/pg-tools';
 import { stageExtractedPluginTrees } from '../plugins/plugin-backup';
 import {
   checkBackupDatabase,
@@ -68,10 +68,14 @@ export type BootRestoreOutcome =
 
 export class BootRestoreError extends Error {}
 
-/** A database is there already: on a file, the file; on Postgres, any table in its schema. */
+/**
+ * A database is there already: on a file, the file; on Postgres, any table in
+ * its schema but a lone migration history that records nothing, which a first
+ * boot cut short leaves (pgTablesInUse).
+ */
 async function existingDatabase(plan: BootRestorePlan): Promise<string | null> {
   if (!plan.postgres) return fs.existsSync(plan.dbFile) ? plan.dbFile : null;
-  const tables = await pgTableNames(plan.postgres.url, plan.postgres.binDir);
+  const tables = await pgTablesInUse(plan.postgres.url, plan.postgres.binDir);
   return tables.length > 0 ? `the Postgres database (${tables.length} table(s))` : null;
 }
 
