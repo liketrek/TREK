@@ -120,16 +120,27 @@ TREK ships a command that copies a SQLite install into an empty Postgres databas
 
 1. It checks that the SQLite file is at the migration level of the TREK version that runs the command. An older file is refused with the advice to start this version on it once, which migrates it; a file a newer TREK migrated is refused too.
 2. It checks that every row's references point at a row that exists, since Postgres enforces them, and lists the rows that do not.
-3. It refuses a Postgres database that holds any table or plugin schema, so it never mixes two installs.
-4. It creates the schema exactly as a first start on an empty database does.
-5. In one transaction it copies every table in the order of their references, converts each value to its Postgres column type, moves the id sequences past the copied ids, and reads every table back to compare its row count and a checksum over all its rows with the SQLite file. A value Postgres cannot store exactly (text in a number column, a fraction in a whole-number column) stops the copy and is listed by table, row and column. A NUL character in text, which TREK no longer stores on either engine, is dropped instead.
-6. Only a copy that matches is committed. If anything fails, the transaction is rolled back and the schema the command created is dropped again, so the database is empty as before.
+3. It reads every plugin's data and checks that each value can move unchanged (see **Plugin data** below). Before anything is written, it lists the values that cannot.
+4. It refuses a Postgres database that holds any table or plugin schema, so it never mixes two installs.
+5. It creates the schema exactly as a first start on an empty database does.
+6. In one transaction it copies every table in the order of their references, converts each value to its Postgres column type and moves the id sequences past the copied ids. It then reads every table back and compares its row count and a checksum over all its rows with the SQLite file. The checksum is built from the values read from the SQLite file, not from the converted ones, so a value that changed on the way fails the check. A value Postgres cannot store exactly (text in a number column, a fraction in a whole-number column) stops the copy and is listed by table, row and column.
+7. Only a copy that matches is committed. If anything fails, the transaction is rolled back and the schema the command created is dropped again, so the database is empty as before.
 
-It prints a summary: the tables and rows it copied, the plugin schemas it filled, and anything it could not carry over.
+It prints a summary: the tables and rows it copied, the plugin schemas it filled, every value it changed with `--drop-nul`, and anything it could not carry over.
+
+**NUL characters in TREK's data.** Postgres text cannot hold the character U+0000 (NUL). TREK no longer stores it on either engine and drops it on its next write, but a `travel.db` from an older version may still hold one. The command changes nothing silently, so by default it refuses such a value and lists it by table, row and column. To drop the character during the move, the way TREK would on its next write, run the command again with `--drop-nul`. The summary then lists every value it changed. If two values in a unique column differed only by a NUL, dropping it makes them equal. The command then stops, names the key and lists the values it changed in that column. Change or remove one of the two rows in the SQLite file, with TREK stopped, and run the command again.
 
 **Uploads are not moved and need not be.** Files, covers, photos and avatars stay where the storage driver keeps them (the `uploads` directory, or your S3 bucket), and the rows the command copies point at them as before. The key files in the data directory (`.encryption_key`, `.jwt_secret`) stay where they are too. Keep the same `ENCRYPTION_KEY`, or the same data directory, for the Postgres install: the stored secrets are copied as they are, encrypted with that key.
 
 **Plugin data.** A plugin's `plugin.db` in `data/plugins-data/<plugin id>/` goes into the plugin's schema `trek_plugin_<plugin id>` (see [Plugin data](#plugin-data)). Each table is created from the SQLite one: the column types follow SQLite's type rules, with NOT NULL, the primary key, an INTEGER PRIMARY KEY as an identity column, defaults that have a Postgres spelling, and indexes over plain columns. The plugin's record of the migrations it ran is copied, so the plugin does not run them again. Foreign keys between a plugin's tables, its views and triggers, and partial or expression indexes are not created; the summary lists them. The plugin's own SQL has to be written for Postgres for it to keep working, as for any plugin on Postgres.
+
+A plugin's data is the plugin's, so the command never changes it: every value has to come back to the plugin from Postgres exactly as it does from its SQLite file. An integer or a decimal number comes back as a number, text as text and a BLOB as bytes. Where SQLite's type rules leave a column's type open (a column declared `BLOB` or without a type), the values it holds decide. The command refuses the move, before it writes anything, for each value that would come back changed, and lists the plugin, table, row and column:
+
+- text holding a NUL character, which the Postgres plugin store cannot hold (`--drop-nul` never applies to plugin data);
+- a value of another type than its column, such as a number in a column that also holds text, which Postgres would hand back as text;
+- an integer beyond 2^53, which the Postgres plugin store refuses to read.
+
+Change those values in the plugin's `plugin.db`, through the plugin or with the `sqlite3` tool while TREK is stopped, or uninstall the plugin and remove its data directory. Then run the command again.
 
 ### Steps with Docker Compose
 
@@ -144,11 +155,11 @@ It prints a summary: the tables and rows it copied, the plugin schemas it filled
      node --require tsconfig-paths/register dist/move-to-postgres.js
    ```
 
-   It reads `data/travel.db` and `data/plugins-data`, and writes into the database `TREK_DB_URL` names. For a SQLite file elsewhere in the container, add `--from=/app/data/<file>`. A refusal or an error says what to fix and leaves the Postgres database empty, so you can run the command again.
+   It reads `data/travel.db` and `data/plugins-data`, and writes into the database `TREK_DB_URL` names. For a SQLite file elsewhere in the container, add `--from=/app/data/<file>`; to drop NUL characters from TREK's data, add `--drop-nul` (see above). A refusal or an error says what to fix and leaves the Postgres database empty, so you can run the command again.
 6. **Start TREK**: `docker compose -f docker-compose.postgres.yml up -d`.
 7. **Check**: the log reports the Postgres engine and no schema creation. Sign in, open a few trips, open a file and a photo, and look at your plugins.
 
-Outside Docker, run `npm run db:move-to-postgres` in the server directory, with `TREK_DB_URL` set in the environment or in the server's `.env` file, and `--from=<file>` when the SQLite file is not the server's `data/travel.db`.
+Outside Docker, run `npm run db:move-to-postgres` in the server directory, with `TREK_DB_URL` set in the environment or in the server's `.env` file, and `--from=<file>` when the SQLite file is not the server's `data/travel.db`. `--help` prints the options.
 
 ### Going back
 
