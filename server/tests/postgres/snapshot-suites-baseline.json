@@ -1,11 +1,6 @@
 [
-  "tests/unit/mcp/demo-tool-gate.test.ts",
-  "tests/unit/mcp/tools-addon-gating.test.ts",
   "tests/unit/mcp/tools-airtrail.test.ts",
-  "tests/unit/mcp/tools-assignments-reservations-extra.test.ts",
-  "tests/unit/mcp/tools-assignments.test.ts",
   "tests/unit/mcp/tools-atlas-expanded.test.ts",
-  "tests/unit/mcp/tools-atlas.test.ts",
   "tests/unit/mcp/tools-budget-advanced.test.ts",
   "tests/unit/mcp/tools-budget.test.ts",
   "tests/unit/mcp/tools-categories.test.ts",
