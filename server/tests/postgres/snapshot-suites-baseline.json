@@ -13,7 +13,6 @@
   "tests/integration/boot-sweeps-request-context.test.ts",
   "tests/integration/bootstrap.test.ts",
   "tests/integration/budget.test.ts",
-  "tests/integration/categories.test.ts",
   "tests/integration/collab.test.ts",
   "tests/integration/collections.test.ts",
   "tests/integration/dayNotes.test.ts",
