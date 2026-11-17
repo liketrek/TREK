@@ -65,8 +65,23 @@ export function nulFreeJson(value: unknown): unknown {
   return value;
 }
 
-/** A key whose string value is a password: hashed or handed on as sent, never stored or compared as text. */
-const PASSWORD_KEY = /password/i;
+/**
+ * The keys whose string value is a password TREK only ever hashes with bcrypt
+ * or compares with a bcrypt hash: signup and login (`password`), the password
+ * change (`current_password`, `new_password`), the reset (`new_password`),
+ * an admin creating or editing an account (`password`), and the re-entry
+ * that guards MFA and passkey changes (`password`). Matched exactly, on the
+ * key without its NUL characters, at any depth, so the `password` of a
+ * document connection's `credentials` stays as sent too; that one is stored
+ * only encrypted, never as text. Every other key loses its NUL like any
+ * other input, however it is named: the settings
+ * `password_login` and `password_registration` are flags, a Synology
+ * password or an OIDC client secret is stored encrypted and handed to
+ * another server. `tests/unit/db/nul-free.test.ts` fails on a field of the
+ * shared schemas named like a secret that is neither listed here nor
+ * decided against in its list there.
+ */
+export const HASHED_PASSWORD_KEYS: ReadonlySet<string> = new Set(['password', 'current_password', 'new_password']);
 
 /**
  * A request's input as the application handles it: every string in it, object
@@ -77,12 +92,12 @@ const PASSWORD_KEY = /password/i;
  * stores and filters by. Without it `victim@x.test\u0000` was a new key for
  * the per-email reset throttle while the lookup found the victim's row.
  *
- * A string under a key that names a password is left exactly as sent. A
- * password never reaches the database as text, only as its bcrypt hash, so
- * the stores above never meet it, and bcryptjs hashes a NUL like any other
- * byte. Stripping it here would change the hash input and lock out an account
- * whose password was set with a NUL before this rule existed; left alone,
- * signup, login and a password change all hash the same string.
+ * A string under one of {@link HASHED_PASSWORD_KEYS} is left exactly as
+ * sent. Such a password never reaches the database as text, only as its
+ * bcrypt hash, so the stores above never meet it, and bcryptjs hashes a NUL
+ * like any other byte. Stripping it here would change the hash input and lock
+ * out an account whose password was set with a NUL before this rule existed;
+ * left alone, signup, login and a password change all hash the same string.
  *
  * Returns the same value, by identity, when it holds no NUL. Arrays and plain
  * objects (null-prototype ones too, the shape a query or multipart parser
@@ -102,9 +117,10 @@ function nulFreeInputValue(value: unknown, password: boolean): unknown {
   const prototype: unknown = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) return value;
   const entries = Object.entries(value as Record<string, unknown>);
-  const cleaned = entries.map(
-    ([key, item]) => [stripNul(key), nulFreeInputValue(item, PASSWORD_KEY.test(key))] as const,
-  );
+  const cleaned = entries.map(([key, item]) => {
+    const name = stripNul(key);
+    return [name, nulFreeInputValue(item, HASHED_PASSWORD_KEYS.has(name))] as const;
+  });
   if (cleaned.every(([key, item], i) => key === entries[i][0] && item === entries[i][1])) return value;
   // Defined, not assigned, so a key named `__proto__` stays a plain property.
   const copy = Object.create(prototype as object | null) as Record<string, unknown>;

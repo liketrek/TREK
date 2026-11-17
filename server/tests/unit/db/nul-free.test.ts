@@ -5,7 +5,14 @@
  * whole app on SQLite and on Postgres.
  */
 import { TrekPostgreSqlPlatform } from '../../../src/db/engine/postgres/postgres-driver';
-import { nulFreeInput, nulFreeJson, nulFreeParameter, stripNul, withNulFreeParameters } from '../../../src/db/nul-free';
+import {
+  HASHED_PASSWORD_KEYS,
+  nulFreeInput,
+  nulFreeJson,
+  nulFreeParameter,
+  stripNul,
+  withNulFreeParameters,
+} from '../../../src/db/nul-free';
 
 import {
   type AbortableOperationOptions,
@@ -18,6 +25,8 @@ import {
   SqliteIntrospector,
   SqliteQueryCompiler,
 } from 'kysely';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const RELEASE = Symbol('release');
@@ -162,21 +171,43 @@ describe('nulFreeInput: a request value as the application handles it', () => {
     expect(nulFreeInput(list)).toBe(list);
   });
 
-  it('leaves a password exactly as sent, under any key that names one', () => {
+  it('leaves a password TREK only hashes exactly as sent, at any depth', () => {
     const body = {
       email: 'a@b.c\u0000',
       password: 'pa\u0000ss',
       new_password: 'n\u0000ew',
       current_password: 'c\u0000ur',
-      user: { synology_password: 's\u0000y' },
+      credentials: { password: 'na\u0000s' },
     };
     expect(nulFreeInput(body)).toEqual({
       email: 'a@b.c',
       password: 'pa\u0000ss',
       new_password: 'n\u0000ew',
       current_password: 'c\u0000ur',
-      user: { synology_password: 's\u0000y' },
+      credentials: { password: 'na\u0000s' },
     });
+  });
+
+  it('cleans every other key that only mentions a password, so a check sees the value the database stores', () => {
+    expect(
+      nulFreeInput({
+        password_login: 'true\u0000',
+        password_registration: 'false\u0000',
+        password_hint: 'h\u0000int',
+        synology_password: 's\u0000y',
+        Password: 'P\u0000w',
+      }),
+    ).toEqual({
+      password_login: 'true',
+      password_registration: 'false',
+      password_hint: 'hint',
+      synology_password: 'sy',
+      Password: 'Pw',
+    });
+  });
+
+  it('decides on the key as the application reads it, without its NUL', () => {
+    expect(nulFreeInput({ 'pass\u0000word': 'pa\u0000ss' })).toEqual({ password: 'pa\u0000ss' });
   });
 
   it('still walks an object under a password key, only its strings stay as sent', () => {
@@ -207,5 +238,67 @@ describe('nulFreeInput: a request value as the application handles it', () => {
     expect(nulFreeInput(undefined)).toBeUndefined();
     const file = { originalname: 'pho\u0000to.jpg', buffer };
     expect(nulFreeInput(file)).toEqual({ originalname: 'photo.jpg', buffer });
+  });
+});
+
+/**
+ * Every field of the shared schemas and every instance setting whose name
+ * looks like a secret, with the reason it is not one of
+ * {@link HASHED_PASSWORD_KEYS}: it loses its NUL like any other input.
+ */
+const NOT_HASHED: Record<string, string> = {
+  password_login: 'an instance setting holding the flag true or false',
+  password_registration: 'an instance setting holding the flag true or false',
+  synology_password: 'stored encrypted and sent to the Synology API, like every other provider credential',
+  passphrase: "a Synology shared album's passphrase, stored and sent to the Synology API",
+  client_secret: "an OAuth client's or the OIDC provider's secret, stored or compared as text",
+  oidc_client_secret: 'stored encrypted and sent to the OIDC provider',
+  mail_ingest_webhook_secret: 'compared with the secret a mail webhook presents',
+  secret: "a plugin setting's flag that marks a field as secret",
+};
+
+/** The object keys named like a secret in `files` and in the TypeScript under `dir` (specs and locales left out). */
+function secretLikeKeys(dir: string | null, files: string[] = []): Set<string> {
+  const visit = (at: string) => {
+    for (const entry of fs.readdirSync(at, { withFileTypes: true })) {
+      const full = path.join(at, entry.name);
+      if (entry.isDirectory() && entry.name !== 'i18n') visit(full);
+      else if (entry.isFile() && entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')) files.push(full);
+    }
+  };
+  if (dir !== null) visit(dir);
+  const keys = new Set<string>();
+  for (const file of files) {
+    for (const match of fs.readFileSync(file, 'utf8').matchAll(/^\s*['"]?([A-Za-z_]\w*)['"]?\??\s*:/gm)) {
+      if (/password|passphrase|secret/i.test(match[1])) keys.add(match[1]);
+    }
+  }
+  return keys;
+}
+
+describe('which secrets keep a NUL: a decision for every field named like one', () => {
+  const server = path.join(__dirname, '..', '..', '..');
+  const keys = new Set([
+    ...secretLikeKeys(path.join(server, '..', 'shared', 'src')),
+    ...secretLikeKeys(null, [path.join(server, 'src', 'nest', 'common', 'app-settings.registry.ts')]),
+  ]);
+
+  it('reads the fields of the shared schemas and the instance settings', () => {
+    expect(keys.has('new_password')).toBe(true);
+    expect(keys.has('password_login')).toBe(true);
+  });
+
+  it('has each one either hashed or decided against, so a new one joins neither rule unseen', () => {
+    const undecided = [...keys].filter((key) => !HASHED_PASSWORD_KEYS.has(key) && !(key in NOT_HASHED));
+    expect(
+      undecided,
+      'A field named like a secret has no decision. If TREK only ever hashes it with bcrypt, add it to ' +
+        'HASHED_PASSWORD_KEYS in src/db/nul-free.ts; otherwise add it to NOT_HASHED here with the reason.',
+    ).toEqual([]);
+  });
+
+  it('keeps no decision for a field that is gone', () => {
+    const stale = [...HASHED_PASSWORD_KEYS, ...Object.keys(NOT_HASHED)].filter((key) => !keys.has(key));
+    expect(stale).toEqual([]);
   });
 });
