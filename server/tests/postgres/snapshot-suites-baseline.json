@@ -91,7 +91,6 @@
   "tests/unit/mcp/tools-settings.test.ts",
   "tests/unit/mcp/tools-share.test.ts",
   "tests/unit/mcp/tools-tags-maps-weather.test.ts",
-  "tests/unit/mcp/tools-todos.test.ts",
   "tests/unit/mcp/tools-transit.test.ts",
   "tests/unit/mcp/tools-transports.test.ts",
   "tests/unit/mcp/tools-trip-members.test.ts",
