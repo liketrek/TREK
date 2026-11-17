@@ -106,9 +106,55 @@ A database migrated by a newer TREK is refused, and the log says to run that ver
 
 **Start one TREK process for the first boot and for every upgrade.** Two processes that start at the same time on the same new database are not coordinated. The second one fails its boot, because the first one's schema transaction wins. Once the database is up to date and running, a single container is the supported setup. See [Limitations](#limitations).
 
-### Moving an existing SQLite install
+### An existing SQLite install beside an empty database
 
-This first Postgres release has no tool that copies a SQLite install into Postgres. A SQLite backup cannot be restored into a Postgres database, and a Postgres backup cannot be restored into SQLite. Moving an existing install to Postgres means starting a new install on Postgres and recreating the data there, or keeping the SQLite install running.
+When `TREK_DB_URL` points at a database that holds no TREK data while the data directory still holds a `travel.db` with accounts, TREK refuses to start. Starting would bring up a new, empty TREK next to your data, which looks as if everything was lost. The log names the file and the move command. Move the install as described in [Moving an existing install to Postgres](#moving-an-existing-install-to-postgres), or unset `TREK_DB_URL` to keep running on SQLite. To start on the empty database on purpose, set `TREK_DB_IGNORE_SQLITE_FILE=true`; TREK then logs a warning and starts.
+
+A SQLite backup cannot be restored into a Postgres database, and a Postgres backup cannot be restored into SQLite. The move below is the way from one to the other.
+
+## Moving an existing install to Postgres
+
+TREK ships a command that copies a SQLite install into an empty Postgres database: every table, the data of plugins that keep their own database, and the id sequences. It checks the copy before it keeps it and never changes the SQLite file, so the way back is to start TREK on SQLite again.
+
+### What the command does
+
+1. It checks that the SQLite file is at the migration level of the TREK version that runs the command. An older file is refused with the advice to start this version on it once, which migrates it; a file a newer TREK migrated is refused too.
+2. It checks that every row's references point at a row that exists, since Postgres enforces them, and lists the rows that do not.
+3. It refuses a Postgres database that holds any table or plugin schema, so it never mixes two installs.
+4. It creates the schema exactly as a first start on an empty database does.
+5. In one transaction it copies every table in the order of their references, converts each value to its Postgres column type, moves the id sequences past the copied ids, and reads every table back to compare its row count and a checksum over all its rows with the SQLite file. A value Postgres cannot store exactly (text in a number column, a NUL character in text) stops the copy and is listed by table, row and column.
+6. Only a copy that matches is committed. If anything fails, the transaction is rolled back and the schema the command created is dropped again, so the database is empty as before.
+
+It prints a summary: the tables and rows it copied, the plugin schemas it filled, and anything it could not carry over.
+
+**Uploads are not moved and need not be.** Files, covers, photos and avatars stay where the storage driver keeps them (the `uploads` directory, or your S3 bucket), and the rows the command copies point at them as before. The key files in the data directory (`.encryption_key`, `.jwt_secret`) stay where they are too. Keep the same `ENCRYPTION_KEY`, or the same data directory, for the Postgres install: the stored secrets are copied as they are, encrypted with that key.
+
+**Plugin data.** A plugin's `plugin.db` in `data/plugins-data/<plugin id>/` goes into the plugin's schema `trek_plugin_<plugin id>` (see [Plugin data](#plugin-data)). Each table is created from the SQLite one: the column types follow SQLite's type rules, with NOT NULL, the primary key, an INTEGER PRIMARY KEY as an identity column, defaults that have a Postgres spelling, and indexes over plain columns. The plugin's record of the migrations it ran is copied, so the plugin does not run them again. Foreign keys between a plugin's tables, its views and triggers, and partial or expression indexes are not created; the summary lists them. The plugin's own SQL has to be written for Postgres for it to keep working, as for any plugin on Postgres.
+
+### Steps with Docker Compose
+
+1. **Update first.** Run the TREK version you want to keep, on SQLite, and let it start once, so the SQLite file is at that version's level. The command must come from the same image.
+2. **Take a backup.** Create one under **Admin > Backup** and download it. Then stop TREK and copy the data directory somewhere safe as well.
+3. **Stop TREK**: `docker compose down`. The SQLite file must not change while it is copied.
+4. **Prepare the database.** Switch to [`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml), set `POSTGRES_ADMIN_PASSWORD` and `POSTGRES_PASSWORD` in `.env` as described in [Compose example](#compose-example), keep the same `./data` and `./uploads` mounts and the same `ENCRYPTION_KEY`, and start only the database: `docker compose -f docker-compose.postgres.yml up -d db`.
+5. **Run the move**:
+
+   ```bash
+   docker compose -f docker-compose.postgres.yml run --rm --user node -w /app/server app \
+     node --require tsconfig-paths/register dist/move-to-postgres.js
+   ```
+
+   It reads `data/travel.db` and `data/plugins-data`, and writes into the database `TREK_DB_URL` names. For a SQLite file elsewhere in the container, add `--from=/app/data/<file>`. A refusal or an error says what to fix and leaves the Postgres database empty, so you can run the command again.
+6. **Start TREK**: `docker compose -f docker-compose.postgres.yml up -d`.
+7. **Check**: the log reports the Postgres engine and no schema creation. Sign in, open a few trips, open a file and a photo, and look at your plugins.
+
+Outside Docker, run `npm run db:move-to-postgres` in the server directory, with `TREK_DB_URL` set in the environment or in the server's `.env` file, and `--from=<file>` when the SQLite file is not the server's `data/travel.db`.
+
+### Going back
+
+The command never changes `travel.db`. To return to SQLite, stop TREK and start it again with the SQLite compose file, without `TREK_DB_URL`: it runs on the file as it was before the move. What was written on Postgres in the meantime is not in it. To try the move again, drop the Postgres database and create it empty, or use a new one.
+
+The `travel.db` that stays in the data directory does not stop a Postgres install that holds your data. Keep it as a copy, or move it out of the data directory once you are sure.
 
 ## Upgrades
 
@@ -154,7 +200,7 @@ A plugin with the `db:own` permission keeps its own database. On SQLite that is 
 
 ## Limitations
 
-- **No migration from SQLite to Postgres** in this first release. Start a new install on Postgres, or keep the SQLite install.
+- **Moving from SQLite goes one way.** The [move command](#moving-an-existing-install-to-postgres) copies a SQLite install into an empty Postgres database. The way back is to start TREK on the untouched SQLite file again; nothing copies Postgres data back into SQLite.
 - **No more than one TREK replica.** TREK keeps state in memory: rate limits, pending one-time codes, the permission cache and the WebSocket connections. Each process has its own copy, so two replicas would disagree with each other. Keep `replicas: 1` in the Helm chart and one `trek` container. Postgres does not change that.
 - **Two processes booting on one database at once are not coordinated.** Start one process for the first boot and for each upgrade, then continue with one.
 - **PostgreSQL 14 to 18 only.** A newer server is refused until a TREK release supports it, because the image's client tools would not be able to back it up.

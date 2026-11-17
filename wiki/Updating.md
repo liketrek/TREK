@@ -194,6 +194,10 @@ Two things change with 4.3.1. Neither needs a manual step on Docker, but they ar
 - **Remove any `APP_VERSION` override.** The version now comes from the image itself. A leftover `APP_VERSION=` line in your compose file, `.env` or Portainer stack only gets in the way.
 - **Tours asks the TREK Places API first.** The grades, surfaces and kinds of way under a planned tour and the horse routes around the map are read from `https://places.liketrek.com`, and the Overpass mirrors are asked only when it has no answer. An `OVERPASS_URL` pointed at an internal Overpass therefore no longer keeps these lookups inside your network: set `TREK_PLACES_ENABLED=false`, or point `TREK_PLACES_URL` at a copy you run yourself. [TREK-Places-API](TREK-Places-API#what-leaves-your-instance) lists what is sent.
 
+## Moving to PostgreSQL
+
+An update never switches the database. To move an existing SQLite install to PostgreSQL, update first and let TREK start once on SQLite, then follow [Database: Postgres: Moving an existing install to Postgres](Database-Postgres#moving-an-existing-install-to-postgres). The move copies the database only; the uploads stay where they are. Setting `TREK_DB_URL` alone, without the move, is refused while `data/travel.db` holds your data, so an update cannot leave you on an empty instance by accident.
+
 ## Encryption Key Note
 
 If you are upgrading from a version that predates the dedicated `ENCRYPTION_KEY` (i.e. you have no `ENCRYPTION_KEY` environment variable set), TREK automatically falls back to `./data/.jwt_secret` on startup and immediately promotes it to `./data/.encryption_key`. No manual steps are required — the transition is handled at first boot after the upgrade.
