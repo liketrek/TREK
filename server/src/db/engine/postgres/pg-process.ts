@@ -197,8 +197,9 @@ export async function refuseClientOlderThanServer(
   binDir: string | undefined,
   serverMajor: number,
 ): Promise<void> {
-  for (const tool of tools) {
-    const major = await pgToolMajor(tool, binDir);
+  const majors = await Promise.all(tools.map((tool) => pgToolMajor(tool, binDir)));
+  for (const [i, tool] of tools.entries()) {
+    const major = majors[i];
     if (major !== null && major >= serverMajor) continue;
     throw new Error(
       `${tool} is version ${major ?? 'unknown'}, older than the PostgreSQL ${serverMajor} server, which it cannot ` +
