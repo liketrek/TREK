@@ -5,7 +5,7 @@
  * whole app on SQLite and on Postgres.
  */
 import { TrekPostgreSqlPlatform } from '../../../src/db/engine/postgres/postgres-driver';
-import { nulFreeJson, nulFreeParameter, stripNul, withNulFreeParameters } from '../../../src/db/nul-free';
+import { nulFreeInput, nulFreeJson, nulFreeParameter, stripNul, withNulFreeParameters } from '../../../src/db/nul-free';
 
 import {
   type AbortableOperationOptions,
@@ -141,5 +141,71 @@ describe('NUL-free values', () => {
     expect(platform.escape("o\u0000'k")).toBe("'o''k'");
     expect(platform.formatQuery('select ?', ['x\u0000y'])).toBe("select 'xy'");
     expect(platform.convertJsonToDatabaseValue({ k: 'v\u0000' })).toBe('{"k":"v"}');
+  });
+});
+
+describe('nulFreeInput: a request value as the application handles it', () => {
+  it('drops NUL from every string and key, in arrays and nested objects', () => {
+    expect(nulFreeInput('victim@x.test\u0000')).toBe('victim@x.test');
+    expect(nulFreeInput({ 'na\u0000me': ['a\u0000', { deep: 'b\u0000c' }], n: 1, ok: true, none: null })).toEqual({
+      name: ['a', { deep: 'bc' }],
+      n: 1,
+      ok: true,
+      none: null,
+    });
+  });
+
+  it('returns the very same value when nothing holds a NUL', () => {
+    const body = { email: 'a@b.c', tags: ['x', 'y'], nested: { k: 'v' } };
+    expect(nulFreeInput(body)).toBe(body);
+    const list = ['a', 'b'];
+    expect(nulFreeInput(list)).toBe(list);
+  });
+
+  it('leaves a password exactly as sent, under any key that names one', () => {
+    const body = {
+      email: 'a@b.c\u0000',
+      password: 'pa\u0000ss',
+      new_password: 'n\u0000ew',
+      current_password: 'c\u0000ur',
+      user: { synology_password: 's\u0000y' },
+    };
+    expect(nulFreeInput(body)).toEqual({
+      email: 'a@b.c',
+      password: 'pa\u0000ss',
+      new_password: 'n\u0000ew',
+      current_password: 'c\u0000ur',
+      user: { synology_password: 's\u0000y' },
+    });
+  });
+
+  it('still walks an object under a password key, only its strings stay as sent', () => {
+    expect(nulFreeInput({ passwordReset: { note: 'x\u0000' } })).toEqual({ passwordReset: { note: 'x' } });
+  });
+
+  it('keeps a null prototype, and a `__proto__` key stays a plain property', () => {
+    const fields = Object.create(null) as Record<string, unknown>;
+    fields.title = 't\u0000';
+    const cleaned = nulFreeInput(fields) as Record<string, unknown>;
+    expect(Object.getPrototypeOf(cleaned)).toBeNull();
+    expect(cleaned.title).toBe('t');
+
+    const hostile = JSON.parse('{"__proto__": {"polluted": "y\\u0000"}, "a": "b\\u0000"}') as object;
+    const out = nulFreeInput(hostile) as Record<string, unknown>;
+    expect(Object.getPrototypeOf(out)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(out, '__proto__')).toBe(true);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(out.a).toBe('b');
+  });
+
+  it('leaves anything that is not a string, an array or a plain object alone', () => {
+    const buffer = Buffer.from('a\u0000b');
+    const date = new Date(0);
+    expect(nulFreeInput(buffer)).toBe(buffer);
+    expect(nulFreeInput(date)).toBe(date);
+    expect(nulFreeInput(5)).toBe(5);
+    expect(nulFreeInput(undefined)).toBeUndefined();
+    const file = { originalname: 'pho\u0000to.jpg', buffer };
+    expect(nulFreeInput(file)).toEqual({ originalname: 'photo.jpg', buffer });
   });
 });

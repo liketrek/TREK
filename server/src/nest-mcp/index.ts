@@ -33,6 +33,7 @@ export {
   type McpEntry,
   type McpEntryKind,
   type McpErrorMapper,
+  type McpInputMapper,
   type McpModuleOptions,
   type McpRegistryListing,
   type McpToolGate,
