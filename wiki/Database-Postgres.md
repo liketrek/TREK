@@ -196,7 +196,7 @@ A plugin with the `db:own` permission keeps its own database. On SQLite that is 
 ## Maintenance tools
 
 - **Resetting the admin account** works as on SQLite: `docker exec -it -u node trek node server/reset-admin.js` resets or creates the account in the Postgres database, with the server's connection settings and its write lock. It never opens or creates a `travel.db`, and it refuses to run when `TREK_DB_FILE` is set beside `TREK_DB_URL`. See [Troubleshooting](Troubleshooting).
-- **Rotating the encryption key** is not available on Postgres yet. `server/scripts/migrate-encryption.ts` stops before it changes anything when `TREK_DB_URL` is set. Keep the current `ENCRYPTION_KEY`. See [Encryption Key Rotation](Encryption-Key-Rotation).
+- **Rotating the encryption key** works as on SQLite: `docker exec -it -u node -w /app/server trek node --import tsx scripts/migrate-encryption.ts` re-encrypts the secrets in the Postgres database, through the server's connection settings and in one transaction that holds its write lock. It first writes a `pg_dump` copy to `data/pre-key-rotation-<time>.pgdump`, and it refuses to run when `DB_PATH` or `TREK_DB_FILE` is set beside `TREK_DB_URL`. See [Encryption Key Rotation](Encryption-Key-Rotation).
 
 ## Limitations
 

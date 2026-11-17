@@ -537,7 +537,7 @@ from the next boot onward. The startup log prints what is actually in effect:
 [DB] journal_mode=DELETE, synchronous=FULL
 ```
 
-The maintenance tools that open the same file (on SQLite; with `TREK_DB_URL` they never open it) — `reset-admin.js` and `scripts/migrate-encryption.ts` — read the same two
+The maintenance tools that open the same file (on SQLite; with `TREK_DB_URL` they work on the Postgres database and never open a file) — `reset-admin.js` and `scripts/migrate-encryption.ts` — read the same two
 variables, so run them with the same environment (`docker exec` into the container does this for you). Otherwise the
 next key rotation or admin reset would quietly switch the file back to WAL.
 
