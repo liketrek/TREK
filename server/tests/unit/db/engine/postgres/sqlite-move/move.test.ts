@@ -32,6 +32,7 @@ import {
 import { sqliteInstallHoldsAccounts, SqliteSource } from '../../../../../../src/db/engine/sqlite/sqlite-source';
 import type { AnyOrm } from '../../../../../../src/db/orm';
 import { FakePostgres, fakeMoveOrm, type FakeTableDef } from '../../../../../helpers/fake-postgres-move';
+import { PostgreSqlPlatform } from '@mikro-orm/postgresql';
 
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
@@ -451,5 +452,27 @@ describe('runMoveCommand', () => {
     expect(await runMoveCommand([], failing.io)).toBe(1);
     expect(failing.err[0]).toMatch(/The move failed; .*connection lost/s);
     expect(failing.close).toHaveBeenCalled();
+  });
+
+  it("MOVE-020: by default it prints to stdout and stderr and opens the target with the Postgres engine's config", async () => {
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    try {
+      // Opening the ORM connects nothing yet, so no server has to answer at the URL.
+      let platform: unknown = null;
+      const move = vi.fn(async (options: MoveOptions) => {
+        platform = options.orm.em.getPlatform();
+        return summary;
+      });
+      expect(await runMoveCommand([], { env: postgres, move })).toBe(0);
+      expect(platform).toBeInstanceOf(PostgreSqlPlatform);
+      expect(stdout).toHaveBeenCalledWith(expect.stringContaining('into postgres://trek:***@db:5432/trek\n'));
+
+      expect(await runMoveCommand(['--to=x'], { env: postgres })).toBe(1);
+      expect(stderr).toHaveBeenCalledWith(expect.stringMatching(/The move was refused: Unknown argument --to=x/));
+    } finally {
+      stdout.mockRestore();
+      stderr.mockRestore();
+    }
   });
 });
