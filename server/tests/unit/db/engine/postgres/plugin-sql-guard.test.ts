@@ -34,7 +34,7 @@ describe('plugin SQL guard', () => {
     'VALUES (1), (2)',
     'TABLE notes',
     '(SELECT 1) UNION (SELECT 2)',
-    'CREATE TABLE notes (id bigserial PRIMARY KEY, body text, temp real, schema text)',
+    'CREATE TABLE notes (id bigserial PRIMARY KEY, body text, "temp" real, schema text)',
     'CREATE UNIQUE INDEX notes_body ON notes (body)',
     'CREATE UNLOGGED TABLE cache (k text)',
     'CREATE OR REPLACE VIEW v AS SELECT body FROM notes',
@@ -50,8 +50,19 @@ describe('plugin SQL guard', () => {
     "SELECT 'public.users -- not code' AS text",
     'SELECT 1 -- public.users\n',
     'SELECT /* public.users */ 1',
-    'SELECT 1.5e3, .5, 0x1F',
+    'SELECT 1.5e3, .5, 1e-3, 10',
     'INSERT INTO kv VALUES ($1, $2) ON CONFLICT (k) DO NOTHING',
+    // A line comment ends at CR as well as LF, as in Postgres; what follows is read as SQL.
+    'SELECT 1 -- public.users\r',
+    'SELECT 1 -- public.users\r\nFROM notes',
+    'SELECT\t1\f',
+    // Characters JavaScript reads differently are fine inside strings, quoted names and comments.
+    "SELECT 'a b c\u000bd'",
+    'SELECT 1 AS "a b"',
+    'SELECT 1 /*  ﻿ */',
+    'WITH gone AS (DELETE FROM notes RETURNING id) INSERT INTO trash SELECT id FROM gone',
+    'MERGE INTO notes n USING incoming i ON n.id = i.id WHEN NOT MATCHED THEN INSERT (body) VALUES (i.body)',
+    'SELECT body AS "into", "temporary" FROM notes',
   ])('lets through %s', (sql) => {
     expect(() => check(sql)).not.toThrow();
   });
@@ -114,9 +125,73 @@ describe('plugin SQL guard', () => {
     ['SELECT ""', /a quoted name may not be empty/],
     ['SELECT `x`', /unexpected character/],
     ['SELECT 1; SELECT * FROM public.users', /another schema/],
+    ['SELECT 1 FROM notes INTO TEMP copy', /SELECT \.\.\. INTO/],
+    ['SELECT * FROM notes WHERE temp > 1', /TEMP/],
+    ['SELECT 0x1F', /hexadecimal/],
+    ['SELECT 0o17, 0b1', /hexadecimal/],
+    ['SELECT 1_000', /digit separators/],
   ])('refuses %s', (sql, reason) => {
     expect(() => check(sql)).toThrow(PluginSqlRefused);
     expect(() => check(sql)).toThrow(reason);
+  });
+
+  // The two bypasses of the final review, with their variants: each was let through, and Postgres ran it.
+  it.each([
+    // A `--` comment ended by a bare CR hid the rest from the guard, which Postgres then ran.
+    ['select 1 --\rfrom public.users', /another schema/],
+    ['select 1 --x\rfrom public.users', /another schema/],
+    ['select 1 --\r, email, password_hash from public.users', /another schema/],
+    ["select 1 --\r; reset search_path; update users set role='admin'", /may not start with RESET/],
+    ['select 1 --\r; create function f() returns int', /CREATE FUNCTION is not allowed/],
+    ['insert into notes (body) values (1) --x\r; update public.users set role = 1', /another schema/],
+    ['select 1 -- x\r\u000b; select 1', /U\+000B/],
+    // A parenthesized SELECT ... INTO, at any depth, made a temporary table that shadowed TREK's own.
+    ["(select 1 as id, 'admin' as role into temp users)", /TEMP|SELECT \.\.\. INTO/],
+    ["(select 99 as id, 'forged'::text as name into temp users)", /TEMP|SELECT \.\.\. INTO/],
+    ['(select 1 into temp t)', /TEMP|SELECT \.\.\. INTO/],
+    ['((select 1 into t))', /SELECT \.\.\. INTO/],
+    ['(select 1) into t', /SELECT \.\.\. INTO/],
+    ['(select 1 into trek_r_tmp_x)', /SELECT \.\.\. INTO/],
+    ['select * from (select 1 into t) s', /SELECT \.\.\. INTO/],
+    ['WITH x AS (SELECT 1) SELECT * INTO t FROM x', /SELECT \.\.\. INTO/],
+    ['WITH x AS (SELECT 1 INTO t) SELECT 1', /SELECT \.\.\. INTO/],
+    ['VALUES (1) INTO t', /SELECT \.\.\. INTO/],
+    ['TABLE notes INTO t', /SELECT \.\.\. INTO/],
+    ['select 1 into temporary t', /TEMPORARY|SELECT \.\.\. INTO/],
+    ['select 1 into unlogged t', /SELECT \.\.\. INTO/],
+    ['CREATE TABLE t AS SELECT 1 INTO u', /SELECT \.\.\. INTO/],
+    ['CREATE GLOBAL TEMP TABLE t (x int)', /CREATE GLOBAL is not allowed|TEMP/],
+    ['CREATE LOCAL TEMPORARY TABLE t (x int)', /CREATE LOCAL is not allowed|TEMPORARY/],
+    ['CREATE TEMP VIEW v AS SELECT 1', /CREATE TEMP is not allowed/],
+    ['CREATE OR REPLACE TEMP VIEW v AS SELECT 1', /CREATE TEMP is not allowed/],
+    ['CREATE TEMPORARY SEQUENCE s', /CREATE TEMPORARY is not allowed/],
+    ['select temp from notes', /TEMP/],
+    ['select 1 from notes as temporary', /TEMPORARY/],
+  ])('refuses the bypass %j', (sql, reason) => {
+    expect(() => check(sql)).toThrow(PluginSqlRefused);
+    expect(() => check(sql)).toThrow(reason);
+  });
+
+  it.each([
+    ['NO-BREAK SPACE', ' ', 'U+00A0'],
+    ['BYTE ORDER MARK', '﻿', 'U+FEFF'],
+    ['LINE SEPARATOR', ' ', 'U+2028'],
+    ['PARAGRAPH SEPARATOR', ' ', 'U+2029'],
+    ['IDEOGRAPHIC SPACE', '　', 'U+3000'],
+    ['vertical tab', '\u000b', 'U+000B'],
+    ['NUL', '\u0000', 'U+0000'],
+    ['escape', '\u001b', 'U+001B'],
+    ['DEL', '\u007f', 'U+007F'],
+  ])('refuses a %s outside a string, which JavaScript and Postgres read differently', (_name, ch, code) => {
+    for (const sql of [
+      `SELECT 1${ch}FROM public.users`,
+      `SELECT x${ch}FROM notes`,
+      `${ch}SELECT 1`,
+      `SELECT public${ch}.users`,
+    ]) {
+      expect(() => check(sql), JSON.stringify(sql)).toThrow(PluginSqlRefused);
+      expect(() => check(sql), JSON.stringify(sql)).toThrow(code);
+    }
   });
 
   it('reads nested block comments as Postgres does, so code after the inner close is still a comment', () => {
@@ -140,6 +215,8 @@ describe('plugin SQL guard', () => {
     const statements = parsePluginSql("CREATE TABLE a (x text);;\n-- note\nINSERT INTO a VALUES ('a;b');");
     expect(statements.map((s) => s.text)).toEqual(['CREATE TABLE a (x text)', "INSERT INTO a VALUES ('a;b')"]);
     expect(parsePluginSql('-- nothing\n;')).toEqual([]);
+    // What follows a CR is a statement of its own, as Postgres reads it, and is checked like any other.
+    expect(parsePluginSql('select 1 --x\r; select 42').map((s) => s.text)).toEqual(['select 1 --x', 'select 42']);
   });
 
   it('says whether a statement returns rows, may write, qualifies a name and how many placeholders it has', () => {
