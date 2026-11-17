@@ -12,12 +12,12 @@ Postgres does not make TREK scale out. TREK still runs as one process. See [Limi
 
 ## Requirements
 
-- **PostgreSQL 14 to 17.**
+- **PostgreSQL 14 to 18.** TREK refuses to start on any other server version, before it writes anything.
 - **An empty database dedicated to TREK.** TREK creates its schema in an empty database. It refuses a database that holds tables it did not create, and a restore replaces everything in the schema it loads into. Do not share the database with another application.
-- **A role that is not a superuser,** which owns the database or can create objects in its schema. A backup archive is a SQL script run by this role during a restore, so a role with fewer privileges limits what a crafted archive can do.
+- **A role that is not a superuser,** which owns the database or can create objects in its schema. A backup archive is a SQL script run by this role during a restore, so a role with fewer privileges limits what a crafted archive can do. A restore refuses a superuser and a role that holds `pg_execute_server_program` or `pg_write_server_files`, and TREK warns about such a role when it starts. See [A role that is not a superuser](#a-role-that-is-not-a-superuser).
 - **ICU support in the server.** The schema creates the collation `nocase` with `provider = icu`, so the server must be built with ICU. The official `postgres` images include it.
-- **PostgreSQL client tools** (`pg_dump`, `pg_restore`, `psql`) for backups, restores and the copy TREK takes before a migration. The Docker image installs the version 17 client. The client cannot dump a server newer than 17, so a PostgreSQL 18 server needs a client of the same major version, installed on the host or in a custom image, and pointed at with `TREK_DB_PG_BIN_DIR`. See [Configuration](#configuration).
-- **Client tool versions that carry the CVE-2025-8714 fix.** A restore refuses `pg_restore` or `psql` older than 17.6, 16.10, 15.14 or 14.19.
+- **PostgreSQL client tools** (`pg_dump`, `pg_restore`, `psql`) for backups, restores and the copy TREK takes before a migration. The Docker image installs the version 18 client, which works with every supported server. A client works with servers up to its own major version, so a client outside the image must be at least as new as the server; TREK refuses an older one with a message that names both versions. See [Configuration](#configuration).
+- **Client tool versions that carry the CVE-2025-8714 fix.** A restore refuses `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19.
 
 ## Configuration
 
@@ -45,24 +45,52 @@ The `sslmode` parameter in the URL selects how the connection is secured:
 
 Without `sslmode`, the connection pool uses no SSL. The client tools use the libpq default for an unset `sslmode`, so set `sslmode` explicitly. For the backup and restore tools, every mode other than `disable` verifies the server, including its host name.
 
-`sslrootcert=` names the file holding the certificate authority that signs the server's certificate. It is needed when the server uses a certificate from a private CA, and it is valid only together with one of the verifying modes. The file must be readable inside the container, so mount it into the container and point the URL at the path inside the container. Without `sslrootcert`, the system's trusted certificate authorities are used.
+`sslrootcert=` names the file holding the certificate authority that signs the server's certificate. It is needed when the server uses a certificate from a private CA, and it is valid only together with one of the verifying modes. The file must be readable inside the container, so mount it into the container and point the URL at the path inside the container. Without `sslrootcert`, the system's trusted certificate authorities are used. The client tools read the system's authorities only from version 16 on, so with an older client (outside the Docker image) set `sslrootcert`; TREK refuses a backup or restore with such a client otherwise and says so.
 
 ### Where the client tools are found
 
 TREK runs the tools by their absolute path. It does not search `PATH`. When `TREK_DB_PG_BIN_DIR` is unset, TREK looks in these directories, in order, and uses the first one that holds the tool:
 
-1. `/usr/lib/postgresql/17/bin`
-2. `/usr/lib/postgresql/16/bin`
-3. `/usr/lib/postgresql/15/bin`
-4. `/usr/lib/postgresql/14/bin`
-5. `/usr/local/bin`
-6. `/usr/bin`
+1. `/usr/lib/postgresql/18/bin`
+2. `/usr/lib/postgresql/17/bin`
+3. `/usr/lib/postgresql/16/bin`
+4. `/usr/lib/postgresql/15/bin`
+5. `/usr/lib/postgresql/14/bin`
+6. `/usr/local/bin`
+7. `/usr/bin`
+
+The newest version comes first, because a client works with every server up to its own major version and refuses a newer one.
 
 The password is passed to the tools in the `PGPASSWORD` environment variable of their process. It never appears on a command line, where other processes could read it.
 
 ### Compose example
 
-[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs a `postgres:17` service beside TREK, on a named volume, with the TREK container waiting for the database to pass its health check. Set `POSTGRES_PASSWORD` in a `.env` file beside it before the first start. See [Install: Docker Compose](Install-Docker-Compose#running-on-postgres).
+[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs a `postgres:17` service beside TREK, on a named volume, with the TREK container waiting for the database to pass its health check. Set two passwords in a `.env` file beside it before the first start: `POSTGRES_ADMIN_PASSWORD` for the database's superuser `postgres`, and `POSTGRES_PASSWORD` for the role `trek` that TREK connects as. On the database's first start, the superuser creates the role `trek`, which owns TREK's database and is not a superuser. See [Install: Docker Compose](Install-Docker-Compose#running-on-postgres).
+
+### A role that is not a superuser
+
+TREK connects as the role in `TREK_DB_URL`. That role creates TREK's schema, and during a restore it runs the backup's SQL, so it should own TREK's database and nothing more. On a server you administer, create it as a superuser once:
+
+```sql
+CREATE ROLE trek LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD '<a long random value>';
+CREATE DATABASE trek OWNER trek;
+\c trek
+ALTER SCHEMA public OWNER TO trek;
+```
+
+Then use `postgres://trek:<password>@<host>:5432/trek` as `TREK_DB_URL`. A restore refuses a role that is a superuser, or that holds `pg_execute_server_program` or `pg_write_server_files`, because a crafted archive could use those to run commands or write files on the database server. TREK also logs a warning about such a role when it starts.
+
+TREK creates its tables in the role's current schema, normally `public`. A role whose `search_path` points at a schema of its own works too: TREK keeps its tables and its migration history there, and backups and restores cover that schema.
+
+### Moving a compose install off the superuser
+
+An install that started from an older `docker-compose.postgres.yml` connects as `trek`, which the `postgres` image created as the superuser. Its backups work, but restores are refused until TREK runs as a role that is not a superuser. With the containers running:
+
+1. Create a second superuser for administration, so the database keeps one: `docker exec -it trek-db psql -U trek -d trek -c "CREATE ROLE postgres LOGIN SUPERUSER PASSWORD '<a long random value>'"`.
+2. Take the superuser right from `trek`: `docker exec -it trek-db psql -U postgres -d trek -c "ALTER ROLE trek NOSUPERUSER NOCREATEDB NOCREATEROLE"`.
+3. Update `docker-compose.postgres.yml` to the current version. Set `POSTGRES_ADMIN_PASSWORD` to the password from step 1 in `.env`, and keep `POSTGRES_PASSWORD` as it is (it stays the password of `trek`). Then run `docker compose -f docker-compose.postgres.yml up -d`.
+
+The database already exists, so the new init script does not run again, and TREK keeps its data.
 
 ## First boot
 
@@ -101,7 +129,9 @@ Restoring a backup on Postgres follows these rules:
 
 - **The current database is replaced.** TREK first keeps a copy of it as `data/pre-restore-<time>.pgdump`. `pg_restore` then turns the archive's dump into a SQL script, and `psql` clears the current schema, which drops its tables, views, sequences, functions, types and collations, and runs the script. Both steps run in one transaction, so a restore that fails leaves the database as it was.
 - **TREK checks the archive before it replaces anything.** The archive must hold a Postgres dump, not a SQLite file. The dump must carry TREK's migration history, and it must not come from a newer TREK. TREK refuses the restore with a message saying which check failed.
-- **The client tools must be recent enough.** The restore refuses `pg_restore` or `psql` older than 17.6, 16.10, 15.14 or 14.19.
+- **The client tools must be recent enough.** The restore refuses `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19, and tools older than the server.
+- **The role must not be a superuser.** The restore refuses a role that is a superuser or holds `pg_execute_server_program` or `pg_write_server_files`. See [A role that is not a superuser](#a-role-that-is-not-a-superuser).
+- **The restore needs free space in the data directory.** `pg_restore` writes the dump out as a SQL script next to the unpacked archive before `psql` runs it, and the script is several times larger than the dump. It may grow to `BACKUP_MAX_DECOMPRESSED_MB` (5 GB by default); a larger one is stopped, nothing is replaced, and the work files are removed. Raise the limit for a genuine backup that needs more.
 
 `RESTORE_FROM_BACKUP` works on Postgres too. On the first start, TREK loads the archive's dump into the database when that database holds no tables. When the database already has tables, the variable is ignored and TREK logs a warning. See [Backups: Restoring on a new install, before setup](Backups#restoring-on-a-new-install-before-setup).
 
@@ -110,7 +140,7 @@ Restoring a backup on Postgres follows these rules:
 - **No migration from SQLite to Postgres** in this first release. Start a new install on Postgres, or keep the SQLite install.
 - **No more than one TREK replica.** TREK keeps state in memory: rate limits, pending one-time codes, the permission cache and the WebSocket connections. Each process has its own copy, so two replicas would disagree with each other. Keep `replicas: 1` in the Helm chart and one `trek` container. Postgres does not change that.
 - **Two processes booting on one database at once are not coordinated.** Start one process for the first boot and for each upgrade, then continue with one.
-- **Client tools for server version 18 and later.** The Docker image's client is version 17, which cannot dump a newer server. Point `TREK_DB_PG_BIN_DIR` at a matching client.
+- **PostgreSQL 14 to 18 only.** A newer server is refused until a TREK release supports it, because the image's client tools would not be able to back it up.
 - **Writes are serialized.** TREK takes a database-wide advisory lock for each write transaction, as the SQLite engine does with its single writer. Heavy concurrent writes wait on that lock.
 
 ## Supabase
@@ -120,7 +150,7 @@ Supabase runs PostgreSQL and can host TREK's database. The checklist below has b
 - **Use the direct connection or the session pooler.** The direct connection uses port 5432. Its host resolves only to IPv6 unless the project has the IPv4 add-on. A container on a network without IPv6 (Docker Desktop's default network, for example) cannot reach it; use the session pooler there, which also listens on port 5432 on its own host.
 - **Do not use the transaction pooler** (port 6543) for TREK. `pg_dump` and `psql` need a session that lasts for the whole run, and the transaction pooler does not give one.
 - **Verify the server with Supabase's CA.** Supabase's certificate is signed by its own certificate authority, which the system's trusted authorities do not include, so `sslmode=require` alone fails for the backup and restore tools. Download the CA certificate from the project's database settings, mount it into the container, and use `sslmode=verify-full&sslrootcert=/certs/<file>.crt` with the path inside the container.
-- **The `postgres` role works as TREK's role.** It is not a superuser, and it can create the schema and the `nocase` collation.
+- **The `postgres` role works as TREK's role.** It is not a superuser, and it can create the schema and the `nocase` collation. If a restore refuses it because it holds `pg_execute_server_program` or `pg_write_server_files`, create a dedicated role as in [A role that is not a superuser](#a-role-that-is-not-a-superuser) (the `postgres` role may create roles) and connect TREK as that one.
 - **The database's `public` schema must hold no tables** when TREK first starts, because TREK refuses a database with tables it did not create. A new project's `public` schema is empty.
 - **Backups hold only TREK's schema.** The project's own schemas (`auth`, `storage` and the others Supabase manages) are left out of every backup, and a restore replaces only TREK's schema.
 - **Pick a region close to the TREK server.** Every statement crosses the network, so a distant region makes the first boot and a restore take minutes. During a restore, scheduled jobs that touch the database can log statement timeouts; they run again on their next schedule.

@@ -216,8 +216,9 @@ export function postgresSafetyNet(
       const match = snapshots.find((snapshot) => path.basename(snapshot).startsWith(`${PREFIX}${thisRelease}-`));
       if (match) {
         return (
-          `The copy taken right before the newer TREK migrated it is ${match}: stop TREK, empty the database ` +
-          '(drop and recreate it), and restore it with pg_restore --no-owner --no-privileges --single-transaction.'
+          `The copy taken right before the newer TREK migrated it is ${match}: stop TREK and load it as the wiki ` +
+          'page Updating describes ("Rolling back a Postgres update"), which clears the schema and runs ' +
+          'pg_restore --no-owner --no-privileges in one transaction with psql.'
         );
       }
       if (snapshots.length > 0) {
