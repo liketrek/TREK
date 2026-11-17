@@ -246,6 +246,8 @@ export function fakeMoveOrm(pg: FakePostgres, options: { pending?: string[]; kno
   const migrator = {
     getStorage: () => ({
       ensureTable: vi.fn(async () => undefined),
+      setMasterMigration: vi.fn(),
+      unsetMasterMigration: vi.fn(),
       logMigration: vi.fn(async ({ name }: { name: string }) => {
         executed.push(name);
       }),
