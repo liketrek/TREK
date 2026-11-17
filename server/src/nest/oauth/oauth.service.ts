@@ -228,7 +228,7 @@ export class OauthService {
         }),
       };
     });
-    if ('refused' in inserted) return inserted.refused;
+    if ('refused' in inserted && inserted.refused) return inserted.refused;
     const row = inserted.row;
 
     await this.audit.writeAudit({
