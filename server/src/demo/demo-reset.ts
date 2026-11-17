@@ -8,7 +8,7 @@ import {
 } from '../db/repositories/DemoRepository';
 import type { CarriedUserSessionRow } from '../db/repositories/UserSessions.repository';
 import { dbNow } from '../db/types';
-import { logError } from '../nest/audit/audit-log.logger';
+import { logError, logWarn } from '../nest/audit/audit-log.logger';
 import { DatabaseConnectionLostError, type DatabaseBackupStrategy } from '../nest/database/database-backup.interface';
 import { applyDemoAddonPolicy } from './demo-addon-policy';
 import { RequestContext, type EntityManager } from '@mikro-orm/core';
@@ -74,7 +74,7 @@ async function resetDemoUser(database: DatabaseBackupStrategy): Promise<void> {
   // replaced by the current database once, with the reason in the log.
   const refusal = await database.checkCopy(baselinePath);
   if (refusal) {
-    console.warn(
+    logWarn(
       `[Demo Reset] The baseline cannot be restored here (${refusal}); saving the current database as the baseline.`,
     );
     await saveBaseline(database);
