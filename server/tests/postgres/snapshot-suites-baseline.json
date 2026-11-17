@@ -1,12 +1,9 @@
 [
   "tests/integration/admin.test.ts",
-  "tests/integration/assignments.test.ts",
-  "tests/integration/async-closure-truthiness-guards.test.ts",
   "tests/integration/atlas.test.ts",
   "tests/integration/auth.test.ts",
   "tests/integration/backup.test.ts",
   "tests/integration/collab.test.ts",
-  "tests/integration/dayNotes.test.ts",
   "tests/integration/files.test.ts",
   "tests/integration/journey-place-order.test.ts",
   "tests/integration/journey.test.ts",
