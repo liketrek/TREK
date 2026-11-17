@@ -57,6 +57,10 @@ export const SQLITE_ONLY: Readonly<Record<string, string>> = {
   'tests/integration/demo-reset-connection-swap.spike.test.ts':
     'Closes and reopens the better-sqlite3 handle in src/db/database.ts mid request context; the Postgres ' +
     'engine has no such handle.',
+  'tests/integration/places-nul-sqlite.test.ts':
+    'About SQLite value quoting of a NUL byte (U+0000) in a user string; Postgres text cannot hold that ' +
+    'character, so the round-trip it asserts does not exist there. The other control characters run on ' +
+    'both engines in places.test.ts.',
 };
 
 const SNAPSHOT_BASELINE_FILE = path.join(__dirname, 'snapshot-suites-baseline.json');

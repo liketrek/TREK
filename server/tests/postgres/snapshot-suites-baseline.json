@@ -1,5 +1,4 @@
 [
-  "tests/integration/leg-mode-incoming.test.ts",
   "tests/integration/legacy-upgrade-v066.test.ts",
   "tests/integration/legacy-upgrade-v082.test.ts",
   "tests/integration/legacy-upgrade-v205.test.ts",
@@ -11,7 +10,6 @@
   "tests/integration/memories-unified.test.ts",
   "tests/integration/oauth-authorize.test.ts",
   "tests/integration/oauth.test.ts",
-  "tests/integration/places.test.ts",
   "tests/integration/scheduler-gate.test.ts",
   "tests/integration/security.test.ts",
   "tests/integration/settings.test.ts",
