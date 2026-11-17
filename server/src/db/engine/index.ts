@@ -2,6 +2,7 @@ import { readEnv } from '../../app-config';
 import type { DbEngineSettings } from '../../app-config/db-settings';
 import type { DbSettings } from '../../app-config/derive';
 import { ALL_ENTITIES } from '../entities';
+import { SharedSqliteDriver } from '../orm-driver';
 import type { DatabaseEngine } from './engine';
 import { PostgresEngine } from './postgres/postgres-engine';
 import { SqliteEngine } from './sqlite/sqlite-engine';
@@ -32,6 +33,17 @@ export function resolveEngine(db: DbEngineSettings = readEnv().db): DatabaseEngi
 export function postgresTarget(db: DbSettings): { url: string; binDir: string | undefined; poolMax: number } | null {
   if (db.engine !== 'postgres') return null;
   return { url: db.url, binDir: db.pgBinDir, poolMax: db.poolMax };
+}
+
+/**
+ * Refuses an ORM config that does not run on the SQLite engine, with
+ * `refusal` as the error. For the code that exists only for SQLite (the test
+ * schema snapshot), which must say so instead of starting a SQLite ORM on
+ * another engine's options; the check on the driver stays here, in the
+ * engine port, like every other question about the engine.
+ */
+export function assertSqliteOrmConfig(config: Options, refusal: string): void {
+  if (config.driver !== SharedSqliteDriver) throw new Error(refusal);
 }
 
 /**

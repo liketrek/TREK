@@ -63,6 +63,26 @@ describe('lint:engine-dispatch', () => {
     expect(countEngineDispatch(`// ${IS_SQLITE}\n/* ${INSTANCE} */\nconst ok = 1;`)).toBe(0);
   });
 
+  it.each([
+    ['a destructured name', ["const { engine } = readEnv().db; if (engine === 'post", "gres') a();"].join('')],
+    ['the literal on the left', ["if ('sql", "ite' !== kind) a();"].join('')],
+    ['a switch', ["switch (readEnv().db.engine) { case 'post", "gres': a(); }"].join('')],
+    ['instanceof on a driver', ['if (em.getDriver() instanceof PostgreSql', 'Driver) a();'].join('')],
+    ['instanceof on our own driver', ['if (d instanceof TrekPostgreSql', 'Driver) a();'].join('')],
+    ['a comparison with a driver class', ['if (config.driver !== SharedSqlite', 'Driver) a();'].join('')],
+  ])('ENGDISP-005: counts an engine check spelled as %s', (_what, code) => {
+    expect(countEngineDispatch(code)).toBe(1);
+    const domain = run(serverRoot({ 'src/nest/trips/trips.service.ts': `${code}\n` }));
+    expect(domain.status).toBe(1);
+    expect(domain.out).toContain('src/nest/trips/trips.service.ts');
+    expect(domain.out).toContain('src/db/engine/');
+  });
+
+  it('ENGDISP-006: leaves names that only look like an engine alone', () => {
+    expect(countEngineDispatch("if (format === 'sqlite3') a(); const label = 'postgres';")).toBe(0);
+    expect(countEngineDispatch('if (driver === LocalDriver) a(); if (x instanceof S3Driver) b();')).toBe(0);
+  });
+
   it('ENGDISP-002: the dialect layer and the engine port may dispatch, any other file may not', () => {
     const text = `export const x = ${IS_SQLITE};\n`;
     expect(run(serverRoot({ 'src/db/dialect/a.ts': text, 'src/db/engine/sqlite/b.ts': text })).status).toBe(0);

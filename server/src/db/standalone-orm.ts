@@ -1,6 +1,6 @@
 import mikroOrmConfig from '../mikro-orm.config';
+import { assertSqliteOrmConfig } from './engine';
 import type { AnyOrm } from './orm';
-import { SharedSqliteDriver } from './orm-driver';
 import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
 
 /**
@@ -12,9 +12,10 @@ import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
  * SQLite driver's, so a config that names another engine is refused.
  */
 export function createStandaloneOrm(): Promise<AnyOrm> {
-  if (mikroOrmConfig.driver !== SharedSqliteDriver) {
-    throw new Error('createStandaloneOrm builds the SQLite schema snapshot; unset TREK_DB_URL to run it.');
-  }
+  assertSqliteOrmConfig(
+    mikroOrmConfig,
+    'createStandaloneOrm builds the SQLite schema snapshot; unset TREK_DB_URL to run it.',
+  );
   return SqliteMikroORM.init({
     ...mikroOrmConfig,
     // Entity discovery is skipped deliberately. Migrations and seeders are raw

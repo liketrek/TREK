@@ -6,24 +6,39 @@
  * What differs between SQLite and Postgres has two homes: the SQL helpers in
  * src/db/dialect/ and the engine implementations in src/db/engine/ (the
  * driver, the schema bootstrap, maintenance, backups). Anywhere else, an
- * `isSqlite(`/`isPostgres(` check, an `instanceof` on a platform class or a
- * comparison on the engine's name (`readEnv().db.engine === 'postgres'`) is a
- * branch a third engine would have to find by searching, so each file is held
- * to its entry in scripts/engine-dispatch-baseline.json and a file without one
- * holds none (scripts/lib/count-ratchet.mjs has the rules). Comments do not
- * count.
+ * `isSqlite(`/`isPostgres(` check, an `instanceof` on a driver or platform
+ * class, a comparison with a driver class (`config.driver !==
+ * SharedSqliteDriver`), and any comparison with or `case` on an engine's name
+ * (`db.engine === 'postgres'`, `engine !== 'sqlite'`, `case 'postgres':`) is
+ * a branch a third engine would have to find by searching, so each file is
+ * held to its entry in scripts/engine-dispatch-baseline.json and a file
+ * without one holds none (scripts/lib/count-ratchet.mjs has the rules).
+ * Comments do not count.
  *
  *   npm run lint:engine-dispatch              check against the baseline (CI)
  *   npm run lint:engine-dispatch -- --update  lower the counts; never raises or adds an entry
  */
 import { cliMain, stripComments } from './lib/count-ratchet.mjs';
 
+/** An engine's name as a string literal. */
+const ENGINE_NAME = String.raw`['"\x60](?:sqlite|postgres)['"\x60]`;
+
+/** A driver or platform class of either engine: MikroORM's (PostgreSqlPlatform) and ours (SharedSqliteDriver). */
+const ENGINE_CLASS = String.raw`\b\w*(?:Sqlite|PostgreSql)\w*(?:Driver|Platform)\b`;
+
 const DISPATCH = new RegExp(
   [
-    /\bis(?:Sqlite|Postgres)\s*\(/.source,
-    /\binstanceof\s+(?:Sqlite|BasePostgreSql|PostgreSql)Platform\b/.source,
-    // A comparison on the engine's name: `db.engine === 'postgres'`, `engine.id !== 'sqlite'`.
-    /\.(?:engine|id)\s*[!=]==?\s*['"](?:sqlite|postgres)['"]/.source,
+    String.raw`\bis(?:Sqlite|Postgres)\s*\(`,
+    String.raw`\binstanceof\s+` + ENGINE_CLASS,
+    // A comparison with an engine's name, whatever stands on the other side
+    // (`db.engine === 'postgres'`, `engine !== 'sqlite'`, `'postgres' == kind`),
+    // and a switch over it.
+    String.raw`[!=]==?\s*` + ENGINE_NAME,
+    ENGINE_NAME + String.raw`\s*[!=]==?`,
+    String.raw`\bcase\s+` + ENGINE_NAME + String.raw`\s*:`,
+    // A comparison with a driver or platform class.
+    String.raw`[!=]==?\s*` + ENGINE_CLASS,
+    ENGINE_CLASS + String.raw`\s*[!=]==?`,
   ].join('|'),
   'g',
 );
@@ -42,7 +57,9 @@ export const check = {
   root: 'src',
   baseline: 'scripts/engine-dispatch-baseline.json',
   unit: 'engine check(s)',
-  advice: 'Dispatch through a helper in src/db/dialect/ or the DatabaseEngine in src/db/engine/ instead.',
+  advice:
+    'Move the check into src/db/dialect/ (SQL that differs per engine) or the DatabaseEngine in src/db/engine/ ' +
+    '(anything else, such as a guard that refuses an engine), and call that helper here instead.',
   include: (file) => file.endsWith('.ts') && !ENGINE_HOMES.some((home) => file.startsWith(home)),
   count: (text) => countEngineDispatch(text),
 };

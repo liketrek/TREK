@@ -29,7 +29,7 @@ npm run db:call-graph -- --sync --tx [--domains nest/days,…]  # sync DB-touchi
 npm run lint:size         # no file in src/ or scripts/ past 1000 lines, none in tests/ past 2000, longer ones only shrink (CI gate)
 npm run lint:boundaries   # import cycles and cross-domain reach-ins may only shrink (CI gate)
 npm run lint:dialect      # SQLite-only SQL spellings under src/ may only shrink (CI gate)
-npm run lint:engine-dispatch # isSqlite(/isPostgres(/platform instanceof outside src/db/dialect/ and src/db/engine/ may only shrink (CI gate)
+npm run lint:engine-dispatch # engine checks (isSqlite(/isPostgres(, instanceof or a comparison on a driver or platform class, a comparison with or case on 'sqlite'/'postgres') outside src/db/dialect/ and src/db/engine/ may only shrink (CI gate)
 npm run probe:pg          # dialect helpers + the repository statements it reaches against Postgres (CI job server-postgres; needs TREK_PG_PROBE_URL)
 npm run test:pg           # the Postgres lane (CI job server-postgres, on 14 and 18; needs TREK_TEST_DB_URL)
 npm run lint:tx           # methods writing more than once outside one transaction may only shrink (CI gate)
