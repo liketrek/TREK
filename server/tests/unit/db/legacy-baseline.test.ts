@@ -112,6 +112,7 @@ const UNNUMBERED = [
   'Migration20200101046420_a_visit_keeps_its_own_stay',
   'Migration20200101046430_a_paused_mail_import_can_tell_its_address_holders',
   'Migration20200101046440_a_trip_owns_its_tags',
+  'Migration20200101046450_a_carried_over_half_day_stays_half',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.
