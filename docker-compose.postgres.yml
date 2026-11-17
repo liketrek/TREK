@@ -1,12 +1,21 @@
 # TREK on a Postgres database instead of the SQLite file. See the wiki page
 # Database-Postgres for what this changes, the requirements and the backups.
 #
-# Set the database password in a .env file beside this file (or in the
-# shell) before the first start:
-#   POSTGRES_PASSWORD=<a long random value>
-# The password goes into TREK_DB_URL below, so keep it to URL-safe characters
-# or percent-encode it. Without POSTGRES_PASSWORD the postgres image refuses to
-# initialize its database, and TREK does not start.
+# Set two passwords in a .env file beside this file (or in the shell) before
+# the first start:
+#   POSTGRES_ADMIN_PASSWORD=<a long random value>   the database's superuser, postgres
+#   POSTGRES_PASSWORD=<another long random value>   TREK's own role, trek
+# TREK connects as the role trek, which owns its database but is not a
+# superuser: a backup TREK restores is a SQL script run by that role, and a
+# superuser would let a crafted one run commands in the database container.
+# The superuser only creates that role, on the database's first start
+# (configs.trek-db-role below). TREK's password goes into TREK_DB_URL, so keep
+# it to URL-safe characters or percent-encode it. Without either password the
+# first start fails instead of creating a database nobody can reach.
+#
+# An install that started from an older version of this file runs TREK as the
+# superuser trek; the wiki page Database-Postgres ("Moving a compose install
+# off the superuser") shows how to move it to this layout.
 services:
   db:
     image: postgres:17
@@ -14,15 +23,21 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-trek}
-      - POSTGRES_USER=${POSTGRES_USER:-trek}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD:-}
+      - TREK_DB_PASSWORD=${POSTGRES_PASSWORD:-}
+    configs:
+      - source: trek-db-role
+        target: /docker-entrypoint-initdb.d/10-trek-role.sh
+        # Executable, so the image runs it in a shell of its own instead of sourcing it.
+        mode: 0555
     security_opt:
       - no-new-privileges:true
     # No ports are published: only the trek service on the compose network reaches the database.
     volumes:
       - trek-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -62,10 +77,10 @@ services:
       - TZ=${TZ:-UTC}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
-      # The database URL. Its host is the service name above; sslmode=disable is
-      # right on the compose network. Use sslmode=verify-full with sslrootcert=
-      # for a database reached over a network you do not control.
-      - TREK_DB_URL=postgres://${POSTGRES_USER:-trek}:${POSTGRES_PASSWORD:-}@db:5432/${POSTGRES_DB:-trek}?sslmode=disable
+      # The database URL, as the role trek. Its host is the service name above;
+      # sslmode=disable is right on the compose network. Use sslmode=verify-full
+      # with sslrootcert= for a database reached over a network you do not control.
+      - TREK_DB_URL=postgres://trek:${POSTGRES_PASSWORD:-}@db:5432/${POSTGRES_DB:-trek}?sslmode=disable
       # Scale-out is not supported: keep one trek container (see Database-Postgres).
     volumes:
       - ./data:/app/data
@@ -82,6 +97,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+# Run once by the postgres image, on the database's first start, as the
+# superuser: creates the role trek, which owns TREK's database and its public
+# schema, so it can create TREK's tables and its collation there, and nothing
+# more. The password reaches psql as a variable, never spliced into the SQL.
+configs:
+  trek-db-role:
+    content: |
+      #!/bin/sh
+      set -eu
+      if [ -z "$${TREK_DB_PASSWORD:-}" ]; then
+        echo 'POSTGRES_PASSWORD (the password of the role trek) is not set.' >&2
+        exit 1
+      fi
+      psql -v ON_ERROR_STOP=1 --no-psqlrc --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" \
+        --set=password="$$TREK_DB_PASSWORD" --set=database="$$POSTGRES_DB" <<'SQL'
+      CREATE ROLE trek LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD :'password';
+      ALTER DATABASE :"database" OWNER TO trek;
+      ALTER SCHEMA public OWNER TO trek;
+      SQL
 
 volumes:
   trek-pgdata:
