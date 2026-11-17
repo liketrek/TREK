@@ -80,47 +80,47 @@
  *   reference").
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { generateToken } from '../helpers/auth';
-import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../helpers/factories';
+import { makeDayAssignment } from '../helpers/factories/itinerary';
+import { makePlace } from '../helpers/factories/places';
 import { setAddonEnabled } from '../helpers/factories/settings';
+import { makeDay, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('R1 async-closure truthiness guards (RB2/RS21/RS23) — driven through the real routes', () => {
   let app: INestApplication;
   let httpApp: Application;
+  let orm: MikroORM;
 
   beforeAll(async () => {
     app = await buildApp();
     httpApp = app.getHttpAdapter().getInstance() as Application;
-    await setAddonEnabled(app.get(MikroORM), 'roadtrip', true);
+    orm = app.get(MikroORM);
+    await resetDatabase(orm);
+    await setAddonEnabled(orm, 'roadtrip', true);
   });
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('RB2-001: DayBoundariesService.save refuses a from_assignment_id that belongs to a DIFFERENT trip (404 "Stop not found") — the direction an un-awaited `belongs` would silently accept', async () => {
-    const { user: owner } = createUser(testDb);
-    const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
-    createDay(testDb, tripA.id);
+    const { user: owner } = await makeUser(orm);
+    const tripA = await makeTrip(orm, owner.id, { title: 'Trip A' });
+    await makeDay(orm, tripA.id);
 
-    const { user: otherOwner } = createUser(testDb);
-    const tripB = createTrip(testDb, otherOwner.id, { title: 'Trip B' });
-    const dayB = createDay(testDb, tripB.id);
-    const placeB = createPlace(testDb, tripB.id);
-    const foreignAssignment = createDayAssignment(testDb, dayB.id, placeB.id);
+    const { user: otherOwner } = await makeUser(orm);
+    const tripB = await makeTrip(orm, otherOwner.id, { title: 'Trip B' });
+    const dayB = await makeDay(orm, tripB.id);
+    const placeB = await makePlace(orm, tripB.id);
+    const foreignAssignment = await makeDayAssignment(orm, dayB.id, placeB.id);
 
     const res = await request(httpApp)
       .put(`/api/trips/${tripA.id}/roadtrip/day-boundaries`)
@@ -132,12 +132,12 @@ describe('R1 async-closure truthiness guards (RB2/RS21/RS23) — driven through 
   });
 
   it('RS21-001: POST .../reservations refuses a day_id that belongs to a DIFFERENT trip (400 "Not part of this trip: day_id") — baseline', async () => {
-    const { user: owner } = createUser(testDb);
-    const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
+    const { user: owner } = await makeUser(orm);
+    const tripA = await makeTrip(orm, owner.id, { title: 'Trip A' });
 
-    const { user: otherOwner } = createUser(testDb);
-    const tripB = createTrip(testDb, otherOwner.id, { title: 'Trip B' });
-    const dayB = createDay(testDb, tripB.id);
+    const { user: otherOwner } = await makeUser(orm);
+    const tripB = await makeTrip(orm, otherOwner.id, { title: 'Trip B' });
+    const dayB = await makeDay(orm, tripB.id);
 
     const res = await request(httpApp)
       .post(`/api/trips/${tripA.id}/reservations`)
@@ -149,9 +149,9 @@ describe('R1 async-closure truthiness guards (RB2/RS21/RS23) — driven through 
   });
 
   it('RS21-002 (the load-bearing direction): POST .../reservations SUCCEEDS for a day_id genuinely on the SAME trip — an un-awaited `elsewhere` would flag every id, including this one, as foreign', async () => {
-    const { user: owner } = createUser(testDb);
-    const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
-    const dayA = createDay(testDb, tripA.id);
+    const { user: owner } = await makeUser(orm);
+    const tripA = await makeTrip(orm, owner.id, { title: 'Trip A' });
+    const dayA = await makeDay(orm, tripA.id);
 
     const res = await request(httpApp)
       .post(`/api/trips/${tripA.id}/reservations`)
@@ -163,8 +163,8 @@ describe('R1 async-closure truthiness guards (RB2/RS21/RS23) — driven through 
   });
 
   it('RS23-001 (the load-bearing direction): POST .../reservations refuses a day_id that resolves to NOTHING (400 "Unknown reference: day_id") — an un-awaited `onTrip` would never flag it', async () => {
-    const { user: owner } = createUser(testDb);
-    const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
+    const { user: owner } = await makeUser(orm);
+    const tripA = await makeTrip(orm, owner.id, { title: 'Trip A' });
 
     const res = await request(httpApp)
       .post(`/api/trips/${tripA.id}/reservations`)
