@@ -55,25 +55,24 @@ describe('Postgres answers as SQLite does', () => {
     const { user } = await makeUser(orm);
     const linked = await makeTrip(orm, user.id, { start_date: '2026-09-01', end_date: '2026-09-03' });
     const other = await makeTrip(orm, user.id, { start_date: '2026-10-01', end_date: '2026-10-03' });
-    const stays: number[] = [];
-    for (const trip of [linked, other]) {
-      const place = await makePlace(orm, trip.id);
-      const days = await readTripDays(orm, trip.id);
-      const stay = await makeDayAccommodation(orm, trip.id, place.id, days[0].id, days[1].id);
-      stays.push(stay.id);
-    }
-    await makeReservation(orm, linked.id, { type: 'hotel', title: 'Hotel', accommodation_id: `${stays[0]}.0` });
+    const stayOn = async (trip: number): Promise<number> => {
+      const place = await makePlace(orm, trip);
+      const days = await readTripDays(orm, trip);
+      return (await makeDayAccommodation(orm, trip, place.id, days[0].id, days[1].id)).id;
+    };
+    const linkedStay = await stayOn(linked.id);
+    const otherStay = await stayOn(other.id);
+    await makeReservation(orm, linked.id, { type: 'hotel', title: 'Hotel', accommodation_id: `${linkedStay}.0` });
 
-    for (const [trip, stay] of [
-      [linked.id, stays[0]],
-      [other.id, stays[1]],
-    ] as const) {
+    const expectPublicStay = async (trip: number, stay: number): Promise<void> => {
       const calendar = await inRequest(() => reservations().listPublicStaysForCalendar(trip));
       expect(calendar.map((row) => row.id)).toEqual([stay]);
       const shared = await inRequest(() => reservations().listPublicAccommodationsForShare(trip));
       expect(shared.map((row) => row.id)).toEqual([stay]);
       await expect(inRequest(() => reservations().listPublicStayPlaceIdsForShare(trip))).resolves.toHaveLength(1);
-    }
+    };
+    await expectPublicStay(linked.id, linkedStay);
+    await expectPublicStay(other.id, otherStay);
   });
 
   it('PGSEM-102: the traveller list reports the owner flag as the numbers 1 and 0', async () => {

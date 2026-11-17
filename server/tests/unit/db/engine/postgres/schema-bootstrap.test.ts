@@ -209,13 +209,14 @@ describe('bootstrapPostgresSchema', () => {
     expect(db.ensureTable).not.toHaveBeenCalled();
   });
 
-  it('PGBOOT-021: the oldest and the newest supported servers boot', async () => {
-    for (const version of ['140019', '180001']) {
+  it.each(['140019', '180001'])(
+    'PGBOOT-021: the oldest and the newest supported servers boot (%s)',
+    async (version) => {
       const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], server: { version } });
       await bootstrapPostgresSchema(orm, deps());
       expect(db.logged).toEqual([M1, M2]);
-    }
-  });
+    },
+  );
 
   it('PGBOOT-022: the migration history is looked for in the current schema, where the tables are', async () => {
     const { orm, db } = fakeOrm({ executed: [M1, M2, M3], pending: [], tables: ['users'], server: { schema: 'trek' } });
