@@ -30,6 +30,8 @@ describe('resolveEngine', () => {
       clientUrl: PG_URL,
       pool: { min: 0, max: 7 },
       driverOptions: {},
+      // Puts pg_temp last on every new connection's search_path (session-search-path.ts).
+      onCreateConnection: expect.any(Function),
     });
   });
 

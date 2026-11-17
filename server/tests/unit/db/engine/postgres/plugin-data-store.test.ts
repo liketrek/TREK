@@ -7,6 +7,7 @@
  * tx and migrate shapes, and one call at a time per plugin. The same store on
  * a real database is the Postgres lane's tests/postgres/plugin-data.test.ts.
  */
+import { unmarkedValues } from '../../../../../src/db/engine/postgres/extended-query';
 import {
   dropPluginSchema,
   PluginDataSlots,
@@ -38,6 +39,8 @@ interface FakeOptions {
 /** A Kysely client that records each statement, and `begin`/`commit`/`rollback` around each transaction. */
 function fakeDb(options: FakeOptions = {}) {
   const log: string[] = [];
+  /** Every statement handed to executeQuery, with its parameters as Kysely passes them to pg. */
+  const executed: Array<{ sql: string; parameters: readonly unknown[] }> = [];
   let size = 0;
   const run = (sql: string) => {
     log.push(sql);
@@ -46,6 +49,7 @@ function fakeDb(options: FakeOptions = {}) {
   };
   const trx = {
     executeQuery: async (query: { sql: string; parameters: readonly unknown[] }) => {
+      executed.push(query);
       run(query.sql);
       if (query.sql.startsWith('select nspname'))
         return { rows: (options.schemas ?? []).map((nspname) => ({ nspname })) };
@@ -81,7 +85,7 @@ function fakeDb(options: FakeOptions = {}) {
     }),
     executeQuery: trx.executeQuery,
   };
-  return { db: db as unknown as Kysely<object>, log };
+  return { db: db as unknown as Kysely<object>, log, executed };
 }
 
 function store(options: FakeOptions = {}, limits = {}) {
@@ -106,7 +110,7 @@ describe('Postgres plugin data store', () => {
       [
         'create schema if not exists "trek_plugin_notes"',
         'create table if not exists "trek_plugin_notes"._plugin_migrations (id text primary key, applied_at bigint)',
-        'set local search_path to "trek_plugin_notes"',
+        'set local search_path to "trek_plugin_notes", pg_temp',
         'set local standard_conforming_strings to on',
         'set local statement_timeout to 2000',
       ].join(';\n'),
@@ -250,6 +254,23 @@ describe('Postgres plugin data store', () => {
     release();
     await Promise.all([first, second]);
     expect(log.filter((sql) => sql === 'begin' || sql === 'commit')).toEqual(['begin', 'commit', 'begin', 'commit']);
+  });
+
+  it('PGSTORE-012: every plugin statement it executes goes over the extended protocol, alone and with its own args', async () => {
+    const { store: s, executed } = store({ changes: 1 });
+    await s.exec('INSERT INTO a VALUES (1); UPDATE a SET x = 2 -- note\rWHERE x = 1');
+    await s.exec('INSERT INTO a VALUES ($1)', ['x']);
+    await s.tx([{ sql: 'DELETE FROM a WHERE x = $1', args: [3] }]);
+    await s.migrate('002', 'CREATE TABLE b (y int); CREATE INDEX b_y ON b (y)');
+    const plugin = executed.filter((q) => /^(INSERT|UPDATE|DELETE|CREATE)/.test(q.sql));
+    expect(plugin.map((q) => [q.sql, unmarkedValues(q.parameters)])).toEqual([
+      ['INSERT INTO a VALUES (1)', []],
+      ['UPDATE a SET x = 2 -- note\rWHERE x = 1', []],
+      ['INSERT INTO a VALUES ($1)', ['x']],
+      ['DELETE FROM a WHERE x = $1', [3]],
+      ['CREATE TABLE b (y int)', []],
+      ['CREATE INDEX b_y ON b (y)', []],
+    ]);
   });
 
   it('PGSTORE-011: dropping a plugin schema names it quoted, and an id no schema comes from drops nothing', async () => {

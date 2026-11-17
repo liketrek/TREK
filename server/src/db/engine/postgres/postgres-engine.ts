@@ -5,8 +5,11 @@ import type { DatabaseEngine } from '../engine';
 import { redactUrl } from '../redact-url';
 import { TrekPostgreSqlDriver } from './postgres-driver';
 import { bootstrapPostgresSchema, defaultPostgresBootstrapDeps, type PostgresBootstrapDeps } from './schema-bootstrap';
+import { putTempSchemaLast } from './session-search-path';
 import { sslOptionFor } from './ssl';
 import type { EntityManager } from '@mikro-orm/core';
+
+import type { DatabaseConnection } from 'kysely';
 
 /** What `TREK_DB_URL` and `TREK_DB_POOL_MAX` resolve to, when they name a Postgres database. */
 type PostgresSettings = Extract<DbEngineSettings, { engine: 'postgres' }>;
@@ -78,6 +81,7 @@ export class PostgresEngine implements DatabaseEngine {
     return `Postgres ${redactUrl(this.settings.url)}`;
   }
 
+  /** Every new pool connection first puts `pg_temp` last on its `search_path` (`session-search-path.ts`). */
   ormOptions() {
     const ssl = sslOptionFor(this.settings.url);
     return {
@@ -85,6 +89,7 @@ export class PostgresEngine implements DatabaseEngine {
       clientUrl: this.settings.url,
       pool: { min: 0, max: this.settings.poolMax },
       driverOptions: ssl === undefined ? {} : { ssl },
+      onCreateConnection: (connection: unknown) => putTempSchemaLast(connection as DatabaseConnection),
     };
   }
 }
