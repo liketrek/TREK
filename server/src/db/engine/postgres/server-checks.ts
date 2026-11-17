@@ -8,7 +8,7 @@ import { REFUSAL } from '../../legacy-baseline';
  */
 
 /** The PostgreSQL majors TREK supports and CI runs: the oldest and the newest. */
-export const SUPPORTED_SERVER_MAJORS = { oldest: 14, newest: 18 } as const;
+const SUPPORTED_SERVER_MAJORS = { oldest: 14, newest: 18 } as const;
 
 /**
  * True when the current role is a superuser or may run programs or write

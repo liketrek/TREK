@@ -39,7 +39,7 @@ export function printsWhen(pattern: string, text: string): string {
 }
 
 /** What the server says about itself beside its current schema. */
-export interface FakeServer {
+interface FakeServer {
   /** `server_version_num`; 170000 by default, which the default tool version (17.11) reaches. */
   versionNum?: string;
   /** Whether TREK's role could reach the database host. */

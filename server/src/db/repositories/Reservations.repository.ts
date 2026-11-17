@@ -7,7 +7,7 @@ import { accommodationIdMatches } from './_shared/reservation-accommodation';
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
 import type { DayAssignmentRow } from './day-assignment-rows';
 import { TrekRepository } from './_shared/trek-repository';
-import { passContextQuery, type PassContextDB } from './_shared/reservation-pass-context';
+import { passContextQuery } from './_shared/reservation-pass-context';
 import { originColumnValues, type ReservationOriginColumns } from './_shared/reservation-origin-columns';
 import { idByExternalQuery, joinedReservationQuery, type ReservationJoinDB } from './_shared/reservation-joined-query';
 import type { DB } from '../kysely/db';
@@ -350,9 +350,7 @@ type FlightsMissingEndpointsKyselyDB = Pick<DB, 'reservations' | 'reservation_en
 
 export class ReservationsRepository extends TrekRepository<Reservations> {
   // For its Wallet pass (_shared/reservation-pass-context.ts).
-  findPassContext(id: number, tripId: number) {
-    return passContextQuery(this.kysely<PassContextDB>(), this.getEntityManager().getPlatform(), id, tripId);
-  }
+  findPassContext(id: number, tripId: number) { return passContextQuery(this.getEntityManager(), id, tripId); }
 
   private joinedQuery() {
     return joinedReservationQuery(this.kysely<ReservationJoinDB>(), this.getEntityManager().getPlatform());

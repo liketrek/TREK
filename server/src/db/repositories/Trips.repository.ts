@@ -792,10 +792,9 @@ export class TripsRepository extends TrekRepository<Trips> {
    * FROMs has no single alias to chain a `.select()`/`.where()` off (unlike
    * `accessibleTripsQuery`'s single-FROM join), so this is Kysely
    * (`this.kysely()`, the same escape hatch `tripSelectQuery`'s own
-   * docstring documents). The two literal branches are `eb.lit(1)`/`eb.lit(0)`,
-   * written into the statement as integers: a bound `eb.val(1)` reaches
-   * Postgres untyped, and a UNION column of untyped values comes back as
-   * text ('1'), which the public API's `is_owner === 1` never matched.
+   * docstring documents). The literals are `eb.lit(1)`/`eb.lit(0)`, inline integers: a bound
+   * `eb.val(1)` reaches Postgres untyped, and a UNION column of untyped values comes back
+   * as text ('1'), which the public API's `is_owner === 1` never matched.
    */
   async listTravellerUsernames(trip_id: number): Promise<TravellerUsernameRow[]> {
     const owner = this.kysely<TravellerUsernameKyselyDB>()
