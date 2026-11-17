@@ -7,12 +7,26 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  * TREK's tables at all. On Postgres its schema sits in TREK's database and
  * its statements run as TREK's role, which may read every table TREK has: a
  * role per plugin would need CREATEROLE, which TREK's role is not given. So
- * the statement itself is held to what cannot leave the schema, before it
- * runs, and the transaction it runs in names only that schema on its
- * `search_path`, so an unqualified name finds nothing else.
+ * three layers keep it in, each enough on its own for what it covers:
+ *
+ * 1. This guard holds the statement to what cannot leave the schema, before
+ *    it runs.
+ * 2. The store sends every statement on its own over the extended query
+ *    protocol (`extended-query.ts`), which runs exactly one statement, so a
+ *    second statement the guard missed is an error, never run.
+ * 3. The transaction puts the plugin's schema on the `search_path` with
+ *    `pg_temp` explicitly last, and TREK's own pool connections put `pg_temp`
+ *    last too (`session-search-path.ts`), so a temporary table never stands
+ *    in for a table of TREK's or of the plugin's.
  *
  * The SQL is split into tokens the way Postgres's own lexer splits it (string
- * and identifier quoting, comments, dollar signs), and refused when it holds:
+ * and identifier quoting, comments, dollar signs). Where JavaScript and the
+ * Postgres lexer would read a character differently, the guard refuses it
+ * instead of guessing: whitespace is exactly what Postgres skips (space, tab,
+ * CR, LF, form feed), a `--` comment ends at CR or LF as it does there, and
+ * any other control character, or whitespace past ASCII (U+00A0, U+FEFF,
+ * U+2028, ...), outside a string, a quoted name or a comment is refused. The
+ * SQL is refused when it holds:
  *
  * - a statement other than SELECT, INSERT, UPDATE, DELETE, MERGE, WITH,
  *   VALUES, TABLE, TRUNCATE, REFRESH, or a CREATE, ALTER or DROP of a table,
@@ -28,13 +42,16 @@ import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
  *   `ts_rewrite`), reads or changes settings (`set_config`,
  *   `current_setting`), reaches objects by a name in a string (`nextval`,
  *   `setval`, the `reg*` casts), large objects (`lo_*`) or `dblink`;
- * - a temporary table (`CREATE TEMP`, `SELECT ... INTO`), which would outlive
- *   the call on a pooled connection another plugin uses next, and
- *   `WITH RECURSIVE`, refused on SQLite too;
+ * - the words TEMP and TEMPORARY anywhere outside a string or a quoted name,
+ *   and INTO anywhere but right after INSERT or MERGE, at any depth of
+ *   parentheses: a temporary table outlives the call on a pooled connection,
+ *   and `SELECT ... INTO` creates a table outside what CREATE is held to;
+ * - `WITH RECURSIVE`, refused on SQLite too;
  * - in an ALTER, a change of a table's schema, owner or tablespace;
  * - escape strings (`E'...'`), Unicode escapes (`U&'...'`), dollar-quoted
- *   strings and a number running straight into a name, whose reading
- *   differs between Postgres versions and settings.
+ *   strings, hexadecimal, octal and binary numbers, digit separators (`1_000`)
+ *   and a number running straight into a name, whose reading differs between
+ *   Postgres versions and settings (before 16, Postgres reads `0x1F` as `0 AS x1F`).
  *
  * An alias that happens to share a schema's name (`auth.id` on a database
  * that has an `auth` schema) is refused too; the plugin renames the alias.
@@ -142,6 +159,34 @@ const NAME_START = /[A-Za-z_\u0080-￿]/;
 const NAME_PART = /[A-Za-z0-9_$\u0080-￿]/;
 /** The single-character punctuation and operator characters. */
 const PUNCT = new Set([...'.,()[];+-*/<>=~!@#%^&|?']);
+/**
+ * What the Postgres lexer skips as whitespace (`space` in scan.l). Vertical
+ * tab is whitespace only from Postgres 16 on, so it is refused instead.
+ */
+const WHITESPACE = new Set([' ', '\t', '\n', '\r', '\f']);
+/** The keywords INTO may follow. Anywhere else it makes a table (`SELECT ... INTO`). */
+const INTO_AFTER = new Set(['insert', 'merge']);
+
+/**
+ * Whether JavaScript and the Postgres lexer read `ch` differently: a control
+ * character Postgres does not skip, or whitespace past ASCII, which
+ * JavaScript's `\s` skips and Postgres reads as part of a name.
+ */
+function divergent(ch: string): boolean {
+  if (WHITESPACE.has(ch)) return false;
+  const code = ch.charCodeAt(0);
+  return code < 0x20 || code === 0x7f || /\s/.test(ch);
+}
+
+/** Refuses `ch` when {@link divergent}. */
+function refuseDivergent(ch: string): void {
+  if (divergent(ch)) {
+    const code = ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0');
+    throw new PluginSqlRefused(
+      `the character U+${code} is read differently by Postgres; outside a string use plain spaces, tabs and newlines`,
+    );
+  }
+}
 
 /** `name` lower-cased the way Postgres folds an unquoted name: ASCII letters only. */
 function fold(name: string): string {
@@ -168,10 +213,12 @@ export function tokenize(sql: string): Token[] {
     const at = i;
     const c = sql[i];
     const next = sql[i + 1];
-    if (/\s/.test(c)) {
+    refuseDivergent(c);
+    if (WHITESPACE.has(c)) {
       i++;
     } else if (c === '-' && next === '-') {
-      while (i < n && sql[i] !== '\n') i++;
+      // Postgres ends a line comment at either newline character (`non_newline` in scan.l).
+      while (i < n && sql[i] !== '\n' && sql[i] !== '\r') i++;
     } else if (c === '/' && next === '*') {
       i = skipBlockComment(sql, i);
     } else if (c === "'") {
@@ -191,7 +238,16 @@ export function tokenize(sql: string): Token[] {
       while (i < n && /[0-9]/.test(sql[i])) i++;
       tokens.push({ kind: 'param', at });
     } else if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(next ?? ''))) {
+      if (c === '0' && /[xXoObB]/.test(next ?? '')) {
+        throw new PluginSqlRefused(
+          'hexadecimal, octal and binary numbers are not accepted: Postgres before 16 reads 0x1F as 0 AS x1F; write it in decimal',
+        );
+      }
       i = skipNumber(sql, i);
+      if (sql[i] === '_') {
+        throw new PluginSqlRefused('digit separators (1_000) are not accepted: Postgres before 16 does not read them');
+      }
+      if (i < n) refuseDivergent(sql[i]);
       if (i < n && NAME_PART.test(sql[i])) {
         throw new PluginSqlRefused('a number may not run straight into a name; put a space between them');
       }
@@ -203,7 +259,10 @@ export function tokenize(sql: string): Token[] {
       if ((c === 'u' || c === 'U') && next === '&' && (sql[i + 2] === "'" || sql[i + 2] === '"')) {
         throw new PluginSqlRefused('Unicode escapes (U&) are not accepted');
       }
-      while (i < n && NAME_PART.test(sql[i])) i++;
+      while (i < n && NAME_PART.test(sql[i])) {
+        refuseDivergent(sql[i]);
+        i++;
+      }
       tokens.push({ kind: 'word', value: truncateName(fold(sql.slice(at, i))), quoted: false, at });
     } else if (c === ':' && next === ':') {
       tokens.push({ kind: 'punct', value: '::', at });
@@ -253,13 +312,9 @@ function skipQuoted(sql: string, start: number, quote: string, what: string): nu
   throw new PluginSqlRefused(`${what} is not closed`);
 }
 
-/** The index past a numeric constant starting at `start`: decimal, with a fraction and an exponent, or 0x/0o/0b. */
+/** The index past a decimal numeric constant starting at `start`, with a fraction and an exponent. */
 function skipNumber(sql: string, start: number): number {
-  const rest = sql.slice(start);
-  const match =
-    /^0[xX][0-9a-fA-F_]+|^0[oO][0-7_]+|^0[bB][01_]+|^(?:[0-9][0-9_]*(?:\.[0-9_]*)?|\.[0-9][0-9_]*)(?:[eE][+-]?[0-9]+)?/.exec(
-      rest,
-    );
+  const match = /^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?/.exec(sql.slice(start));
   return start + (match ? match[0].length : 1);
 }
 
@@ -302,7 +357,6 @@ function describe(text: string, tokens: Token[]): PluginStatement {
   let depth = 0;
   let main: string | null = verb === 'with' ? null : verb;
   let returning = false;
-  let selectInto = false;
   let params = 0;
   let qualifies = false;
   for (const [index, token] of tokens.entries()) {
@@ -314,17 +368,14 @@ function describe(text: string, tokens: Token[]): PluginStatement {
     const after = tokens[index + 1];
     if (after?.kind === 'punct' && after.value === '.') qualifies = true;
     if (token.quoted) continue;
-    if (token.value === 'recursive') throw new PluginSqlRefused('WITH RECURSIVE is not allowed');
-    if (token.value === 'tablespace') throw new PluginSqlRefused('a tablespace may not be named');
+    checkKeyword(token.value, keyword(tokens[index - 1]));
     if (verb === 'alter' && (token.value === 'schema' || token.value === 'owner')) {
       throw new PluginSqlRefused(`an ALTER may not change the ${token.value}`);
     }
     if (depth !== 0) continue;
     if (main === null && VERBS.has(token.value)) main = token.value;
     if (token.value === 'returning') returning = true;
-    if (token.value === 'into' && main === 'select') selectInto = true;
   }
-  if (selectInto) throw new PluginSqlRefused('SELECT ... INTO is not allowed; use CREATE TABLE ... AS');
 
   const reads = main !== null && READ_VERBS.has(main);
   const writesInside = tokens.some((t) => {
@@ -352,6 +403,27 @@ function checkObject(verb: string, tokens: readonly Token[]): void {
   const allowed = verb === 'refresh' ? object === 'materialized' : object !== null && OBJECTS.has(object);
   if (!allowed) {
     throw new PluginSqlRefused(`${verb.toUpperCase()} ${describeToken(tokens[at])} is not allowed`);
+  }
+}
+
+/**
+ * Refuses an unquoted keyword that is never safe, at whatever depth of
+ * parentheses it sits: `previous` is the unquoted keyword before it, if any.
+ * TEMP and TEMPORARY make an object that outlives the call on a pooled
+ * connection. INTO anywhere but after INSERT or MERGE is `SELECT ... INTO`,
+ * which makes a table (a temporary one with TEMP) past what CREATE is held to;
+ * `(SELECT ... INTO t)` and `WITH x AS (...) SELECT ... INTO t` included.
+ */
+function checkKeyword(word: string, previous: string | null): void {
+  if (word === 'recursive') throw new PluginSqlRefused('WITH RECURSIVE is not allowed');
+  if (word === 'tablespace') throw new PluginSqlRefused('a tablespace may not be named');
+  if (word === 'temp' || word === 'temporary') {
+    throw new PluginSqlRefused(
+      `temporary objects are not allowed (${word.toUpperCase()}); quote a name spelled "${word}"`,
+    );
+  }
+  if (word === 'into' && (previous === null || !INTO_AFTER.has(previous))) {
+    throw new PluginSqlRefused('SELECT ... INTO is not allowed; use CREATE TABLE ... AS');
   }
 }
 

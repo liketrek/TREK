@@ -1,5 +1,5 @@
 /**
- * PGPLUG-001..008 — a plugin's own data (`db:own`) on Postgres, against the
+ * PGPLUG-001..011 — a plugin's own data (`db:own`) on Postgres, against the
  * real app on the lane's database: each plugin gets a schema of its own and no
  * SQLite file, its SQL keeps the SQLite store's semantics (migrate once per
  * id, a script's statements committed one by one, an atomic tx, the row cap,
@@ -8,6 +8,7 @@
  * schema and nothing else.
  */
 import { buildApp } from '../../src/bootstrap';
+import { extendedQuery } from '../../src/db/engine/postgres/extended-query';
 import { PluginDataSlots, PostgresPluginDataStore } from '../../src/db/engine/postgres/plugin-data-store';
 import { withRequestContext } from '../../src/nest/database/request-context';
 import { PLUGIN_DATA, type PluginDataBackend } from '../../src/nest/plugins/host/plugin-data.backend';
@@ -17,6 +18,7 @@ import { MikroORM } from '@mikro-orm/core';
 import type { AbstractSqlConnection } from '@mikro-orm/sql';
 import type { INestApplication } from '@nestjs/common';
 
+import { CompiledQuery } from 'kysely';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -230,5 +232,107 @@ describe('plugin data on Postgres', () => {
     });
     expect(await pluginSchemas()).toContain('trek_plugin_pg_rpc');
     closePluginDataDb('pg-rpc');
+  });
+
+  it("PGPLUG-009: the review's bypasses are refused before they run: SQL hidden behind a CR, and SELECT ... INTO TEMP", async () => {
+    const store = data.open('pg-bypass');
+    await store.migrate('001', 'CREATE TABLE notes (id bigserial PRIMARY KEY, body text NOT NULL)');
+    const reads = [
+      'select 1 --\rfrom public.users',
+      'select 1 --x\rfrom public.users',
+      'select 1 --\r, email, password_hash from public.users',
+      "(select 1 as id, 'admin' as role into temp users)",
+      "(select 99 as id, 'forged'::text as name into temp users)",
+      '((select 1 into t))',
+      '(select 1) into t',
+      'select * from (select 1 into t) s',
+      'select 1 from public.users',
+    ];
+    await Promise.all(reads.map((sql) => expect(store.query(sql), sql).rejects.toThrow(/not allowed for plugin/)));
+    const scripts = [
+      "select 1 --\r; reset search_path; update users set role = 'admin' where id = 1",
+      "insert into notes (body) values ('x') --x\r; update public.users set role = 1",
+      "select 1 --x\r; create function f() returns int language sql as 'select 1'",
+      "select 1 --\r; copy notes to program 'id'",
+      '(select 1 into temp t)',
+      'select 1 into temporary t',
+    ];
+    await Promise.all(scripts.map((sql) => expect(store.exec(sql), sql).rejects.toThrow(/not allowed for plugin/)));
+
+    // Nothing hidden ran: no temporary table anywhere in the database, no function. The insert in front of the
+    // CR is a statement of its own, which a script commits before the next one is refused, as on SQLite.
+    const [{ temps, functions }] = await withRequestContext(orm, () =>
+      orm.em
+        .getConnection()
+        .execute<Array<{ temps: number; functions: number }>>(
+          "select (select count(*) from pg_class where relpersistence = 't') as temps, " +
+            "(select count(*) from pg_proc where proname = 'f') as functions",
+          [],
+          'all',
+        ),
+    );
+    expect({ temps, functions }).toEqual({ temps: 0, functions: 0 });
+    expect(await store.query('SELECT body FROM notes')).toEqual([{ body: 'x' }]);
+  });
+
+  it('PGPLUG-010: a statement extendedQuery builds runs alone: a second one in its text is refused by Postgres, not run', async () => {
+    const store = data.open('pg-proto');
+    await store.migrate('001', 'CREATE TABLE t (x int)');
+    const client = (orm.em.getConnection() as AbstractSqlConnection).getClient<object>();
+    const two = 'insert into trek_plugin_pg_proto.t values (1); insert into trek_plugin_pg_proto.t values (2)';
+
+    // What a guard that let a second statement through would hand the pool: Postgres parses one statement only.
+    await expect(client.executeQuery(extendedQuery(two, []))).rejects.toThrow(
+      /cannot insert multiple commands into a prepared statement/,
+    );
+    expect(await store.query('SELECT count(*) AS n FROM t')).toEqual([{ n: 0 }]);
+    // The same text without the marker goes over the simple protocol and runs both, which is what the marker prevents.
+    await client.executeQuery(CompiledQuery.raw(two, []));
+    expect(await store.query('SELECT count(*) AS n FROM t')).toEqual([{ n: 2 }]);
+
+    // A single statement runs and reports its rows, with or without args.
+    const one = await client.executeQuery(extendedQuery('delete from trek_plugin_pg_proto.t where x = $1', [1]));
+    expect(one.numAffectedRows).toBe(1n);
+    expect(await store.exec('DELETE FROM t')).toEqual({ changes: 0 });
+    expect(await store.exec('INSERT INTO t VALUES (5)', [])).toEqual({ changes: 0 });
+    expect(await store.tx([{ sql: 'INSERT INTO t VALUES (6)' }, { sql: 'DELETE FROM t' }])).toEqual({
+      results: [{ changes: 1 }, { changes: 2 }],
+    });
+  });
+
+  it("PGPLUG-011: pg_temp is searched last, so a temporary table never stands in for TREK's tables or a plugin's", async () => {
+    const [{ path, schema }] = await withRequestContext(orm, () =>
+      orm.em
+        .getConnection()
+        .execute<Array<{ path: string; schema: string }>>(
+          "select current_setting('search_path') as path, current_schema() as schema",
+          [],
+          'all',
+        ),
+    );
+    expect(path).toMatch(/, pg_temp$/);
+    expect(schema).toBe('public');
+
+    const store = data.open('pg-shadow');
+    await store.migrate('001', 'CREATE TABLE notes (body text)');
+    await store.exec('INSERT INTO notes VALUES ($1)', ['real']);
+    const client = (orm.em.getConnection() as AbstractSqlConnection).getClient<object>();
+    // One pool connection holding temporary tables named like TREK's and the plugin's, as one left behind would.
+    await client.connection().execute(async (conn) => {
+      try {
+        await conn.executeQuery(CompiledQuery.raw("create temp table users as select 'forged'::text as email"));
+        await conn.executeQuery(CompiledQuery.raw("create temp table notes as select 'forged'::text as body"));
+        const resolved = await conn.executeQuery<{ ns: string }>(
+          CompiledQuery.raw(
+            "select relnamespace::regnamespace::text as ns from pg_class where oid = 'users'::regclass",
+          ),
+        );
+        expect(resolved.rows).toEqual([{ ns: 'public' }]);
+        const onConnection = new PostgresPluginDataStore('pg-shadow', conn, new PluginDataSlots(1));
+        expect(await onConnection.query('SELECT body FROM notes')).toEqual([{ body: 'real' }]);
+      } finally {
+        await conn.executeQuery(CompiledQuery.raw('drop table if exists pg_temp.users, pg_temp.notes'));
+      }
+    });
   });
 });
