@@ -12,7 +12,7 @@ import { z } from 'zod';
  * bodies. The bespoke 400/403/404 controller messages pin the rest.
  */
 
-const nullableIdField = z.union([z.string(), z.number()]).nullable().optional();
+const nullableIdField = z.union([z.string(), z.number().int()]).nullable().optional();
 
 /**
  * Multipart text fields riding along with the upload — always strings on the

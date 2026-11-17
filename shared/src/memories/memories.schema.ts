@@ -25,6 +25,8 @@ const looseBoolean = z.union([z.boolean(), z.literal('true'), z.literal('false')
 
 /** `Number(x) || fallback` — the client sends these as strings from query-ish forms. */
 const looseNumber = z.union([z.number(), z.string()]).optional();
+/** A row id the same loose way: a whole number, or a string the service converts. */
+const looseId = z.union([z.number().int(), z.string()]).optional();
 
 /**
  * The UTC offset the caller means its calendar days in, in minutes east of UTC
@@ -119,7 +121,7 @@ export const synologySearchSchema = z.looseObject({
 export const photoSelectionSchema = z.looseObject({
   provider: z.string(),
   asset_ids: z.array(z.string()),
-  owner_id: z.number().optional(),
+  owner_id: z.number().int().optional(),
   passphrase: z.string().optional(),
 });
 
@@ -131,13 +133,13 @@ export const addTripPhotosSchema = z.looseObject({
 });
 
 export const setTripPhotoSharingSchema = z.looseObject({
-  photo_id: looseNumber,
+  photo_id: looseId,
   shared: z.unknown().optional(),
 });
 
 /** The photo to unlink from the trip. Same shape the sharing toggle takes. */
 export const removeTripPhotoSchema = z.looseObject({
-  photo_id: looseNumber,
+  photo_id: looseId,
 });
 
 export const createAlbumLinkSchema = z.looseObject({

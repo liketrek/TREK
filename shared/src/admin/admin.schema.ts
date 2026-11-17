@@ -40,12 +40,12 @@ export type AdminPermissionsRequest = z.infer<typeof adminPermissionsRequestSche
 export const adminInviteCreateRequestSchema = z.object({
   // string | number: the service parses with parseInt(String(x)), and the
   // admin UI sends numbers while older clients sent strings.
-  max_uses: z.union([z.number(), z.string()]).optional(),
+  max_uses: z.union([z.number().int(), z.string()]).optional(),
   expires_in_days: z.union([z.number(), z.string()]).optional(),
   role: z.enum(['user', 'admin']).optional(),
   // Optional trip binding (#1402): a user who registers via the link is
   // auto-added to this trip. Nullable/absent = a plain registration invite.
-  trip_id: z.union([z.number(), z.string()]).nullable().optional(),
+  trip_id: z.union([z.number().int(), z.string()]).nullable().optional(),
 });
 export type AdminInviteCreateRequest = z.infer<typeof adminInviteCreateRequestSchema>;
 

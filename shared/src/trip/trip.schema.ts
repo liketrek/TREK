@@ -108,7 +108,7 @@ export const tripCreateRequestSchema = z.object({
   start_date: z.string().nullable().optional(),
   end_date: z.string().nullable().optional(),
   currency: z.string().optional(),
-  reminder_days: z.number().optional(),
+  reminder_days: z.number().int().optional(),
   day_count: z.number().optional(),
 });
 export type TripCreateRequest = z.infer<typeof tripCreateRequestSchema>;
@@ -127,9 +127,9 @@ export const tripUpdateRequestSchema = z.object({
    */
   date_shift_mode: z.enum(['keep_bookings', 'shift_all']).optional(),
   currency: z.string().optional(),
-  reminder_days: z.number().optional(),
+  reminder_days: z.number().int().optional(),
   day_count: z.number().optional(),
-  is_archived: z.union([z.boolean(), z.number()]).optional(),
+  is_archived: z.union([z.boolean(), z.number().int()]).optional(),
   // Bounded like a place's image url: a replaced cover is queued for release,
   // and every upload path the old value spells out is one queued object.
   cover_image: z.string().max(2048).nullable().optional(),

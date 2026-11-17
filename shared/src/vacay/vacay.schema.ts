@@ -29,7 +29,7 @@ export const vacayUpdatePlanRequestSchema = z.object({
   company_holidays_enabled: z.boolean().optional(),
   carry_over_enabled: z.boolean().optional(),
   weekend_days: z.string().optional(),
-  week_start: z.number().optional(),
+  week_start: z.number().int().optional(),
 });
 export type VacayUpdatePlanRequest = z.infer<typeof vacayUpdatePlanRequestSchema>;
 
@@ -60,17 +60,17 @@ export const vacaySetColorRequestSchema = z.object({
 export type VacaySetColorRequest = z.infer<typeof vacaySetColorRequestSchema>;
 
 export const vacayInviteRequestSchema = z.object({
-  user_id: z.union([z.number(), z.string()]),
+  user_id: z.union([z.number().int(), z.string()]),
 });
 export type VacayInviteRequest = z.infer<typeof vacayInviteRequestSchema>;
 
 export const vacayInviteActionRequestSchema = z.object({
-  plan_id: z.number().optional(),
+  plan_id: z.number().int().optional(),
 });
 export type VacayInviteActionRequest = z.infer<typeof vacayInviteActionRequestSchema>;
 
 export const vacayAddYearRequestSchema = z.object({
-  year: z.union([z.number(), z.string()]),
+  year: z.union([z.number().int(), z.string()]),
 });
 export type VacayAddYearRequest = z.infer<typeof vacayAddYearRequestSchema>;
 
@@ -110,7 +110,7 @@ export const vacayCompanyHolidayRequestSchema = z.object({
 export type VacayCompanyHolidayRequest = z.infer<typeof vacayCompanyHolidayRequestSchema>;
 
 export const vacayUpdateStatsRequestSchema = z.object({
-  vacation_days: z.number().optional(),
+  vacation_days: z.number().int().optional(),
   target_user_id: z.union([z.number(), z.string()]).optional(),
 });
 export type VacayUpdateStatsRequest = z.infer<typeof vacayUpdateStatsRequestSchema>;
@@ -118,7 +118,7 @@ export type VacayUpdateStatsRequest = z.infer<typeof vacayUpdateStatsRequestSche
 // Read-only calendar sharing (#444/#667): grant another user view access to
 // your vacation calendar without fusing plans.
 export const vacayShareRequestSchema = z.object({
-  user_id: z.union([z.number(), z.string()]),
+  user_id: z.union([z.number().int(), z.string()]),
 });
 export type VacayShareRequest = z.infer<typeof vacayShareRequestSchema>;
 
