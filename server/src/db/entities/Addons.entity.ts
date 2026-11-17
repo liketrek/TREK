@@ -1,5 +1,6 @@
 import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { AddonsRepository } from '../repositories/Addons.repository';
+import { IntegerFlagType } from '../types';
 
 export interface AddonConfig {
   [key: string]: unknown;
@@ -12,7 +13,7 @@ export class Addons {
   description?: string | null;
   type: string & Opt = 'global';
   icon?: string | null = 'Puzzle';
-  enabled?: boolean | null = false;
+  enabled?: boolean | null;
   config?: AddonConfig | null;
   sort_order?: number | null = 0;
 }
@@ -26,7 +27,7 @@ export const AddonsSchema = defineEntity({
     description: p.text().nullable(),
     type: p.text().default('global'),
     icon: p.text().nullable(),
-    enabled: p.boolean().nullable(),
+    enabled: p.type(IntegerFlagType).nullable().default(false),
     config: p.json<AddonConfig>().nullable().default('{}'),
     sort_order: p.integer().nullable(),
   },
