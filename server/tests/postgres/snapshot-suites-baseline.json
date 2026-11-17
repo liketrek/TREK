@@ -1,10 +1,6 @@
 [
-  "tests/unit/mcp/tools-airtrail.test.ts",
-  "tests/unit/mcp/tools-atlas-expanded.test.ts",
   "tests/unit/mcp/tools-budget-advanced.test.ts",
   "tests/unit/mcp/tools-budget.test.ts",
-  "tests/unit/mcp/tools-categories.test.ts",
-  "tests/unit/mcp/tools-collab-polls-chat.test.ts",
   "tests/unit/mcp/tools-collections.test.ts",
   "tests/unit/mcp/tools-days-accommodations.test.ts",
   "tests/unit/mcp/tools-days.test.ts",
