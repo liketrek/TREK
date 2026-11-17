@@ -609,7 +609,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
           .else(concatKysely(platform, eb, { value: date }, { expression: substringKysely(platform, eb, 'reservation_time', 11) }))
           .end(),
       }))
-      .where((eb) => reservationStayIs(this.getEntityManager().getPlatform(), eb, 'accommodation_id', accommodation_id))
+      .where((eb) => reservationStayIs(eb, 'accommodation_id', accommodation_id))
       .where('type', '=', 'hotel')
       .execute();
   }
@@ -715,7 +715,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ReservationsByAccommodationKyselyDB>()
       .selectFrom('reservations')
       .select(['id', 'metadata'])
-      .where((eb) => reservationStayIs(this.getEntityManager().getPlatform(), eb, 'accommodation_id', accommodation_id))
+      .where((eb) => reservationStayIs(eb, 'accommodation_id', accommodation_id))
       .execute();
     return rows as { id: number; metadata: string | null }[];
   }
@@ -759,7 +759,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ReservationsByAccommodationKyselyDB>()
       .selectFrom('reservations')
       .select(['id'])
-      .where((eb) => reservationStayIs(this.getEntityManager().getPlatform(), eb, 'accommodation_id', accommodation_id))
+      .where((eb) => reservationStayIs(eb, 'accommodation_id', accommodation_id))
       .execute();
     return rows as { id: number }[];
   }
