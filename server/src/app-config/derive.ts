@@ -383,6 +383,11 @@ export function deriveDb(raw: RawEnv) {
     preMigrateSnapshot: parseBool(raw.TREK_DB_PRE_MIGRATE_SNAPSHOT),
     /** How many pre-migration snapshots stay in the data dir, newest first. */
     preMigrateSnapshotKeep: Math.min(positiveIntOr(raw.TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP, 3), 100),
+    /**
+     * Start on Postgres although data/travel.db holds a SQLite install with
+     * accounts. Only an explicit true: anything else keeps the refusal.
+     */
+    ignoreSqliteFile: parseBool(raw.TREK_DB_IGNORE_SQLITE_FILE) === true,
   };
 }
 

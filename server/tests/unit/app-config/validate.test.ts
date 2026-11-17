@@ -342,6 +342,13 @@ describe('validateEnvAtBoot: the pre-migration snapshot switches', () => {
   });
 });
 
+describe('validateEnvAtBoot: TREK_DB_IGNORE_SQLITE_FILE', () => {
+  it('refuses a misspelt value instead of letting the refusal through', () => {
+    expect(() => validateEnvAtBoot({ TREK_DB_IGNORE_SQLITE_FILE: 'true' })).not.toThrow();
+    expect(bootReport({ TREK_DB_IGNORE_SQLITE_FILE: 'ture' }).thrown).toMatch(/Invalid environment configuration/);
+  });
+});
+
 describe('validateEnvAtBoot: the database engine', () => {
   afterEach(() => {
     vi.restoreAllMocks();

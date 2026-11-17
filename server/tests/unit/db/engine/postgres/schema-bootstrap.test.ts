@@ -7,6 +7,7 @@ import type { AppEnv } from '../../../../../src/app-config';
 import {
   bootstrapPostgresSchema,
   postgresSafetyNet,
+  sqliteLeftBehindCheck,
   type PostgresBootstrapDeps,
 } from '../../../../../src/db/engine/postgres/schema-bootstrap';
 import type { MigrationSafetyNet } from '../../../../../src/db/legacy-baseline';
@@ -38,11 +39,14 @@ interface FakeDb {
   server: { schema: string | null; version: string; privileged: boolean };
   /** The ORM's migrations option, which the bootstrap points at the current schema. */
   migrations: { tableName?: string };
+  /** Whether the users table holds a row: a database in use does. */
+  accounts: boolean;
 }
 
 type FakeState = Pick<FakeDb, 'executed' | 'pending' | 'tables'> & {
   history?: boolean;
   server?: Partial<FakeDb['server']>;
+  accounts?: boolean;
 };
 
 function fakeOrm(state: FakeState): {
@@ -54,6 +58,7 @@ function fakeOrm(state: FakeState): {
     server: { schema: 'public', version: '170004', privileged: false, ...state.server },
     migrations: { tableName: 'mikro_orm_migrations' },
     history: state.history ?? state.executed.length > 0,
+    accounts: state.accounts ?? true,
     ensureTable: vi.fn(async () => {
       db.history = true;
     }),
@@ -66,6 +71,7 @@ function fakeOrm(state: FakeState): {
   const connection = {
     execute: vi.fn(async (sql: string, _params?: unknown[], _method?: string, ctx?: unknown) => {
       if (sql.includes('server_version_num')) return [db.server];
+      if (sql.includes('from users')) return db.accounts ? [{ present: 1 }] : [];
       if (sql.includes('information_schema.tables')) {
         return [...db.tables, ...(db.history ? ['mikro_orm_migrations'] : [])].map((table_name) => ({ table_name }));
       }
@@ -99,6 +105,7 @@ function fakeOrm(state: FakeState): {
 
 function deps(
   safetyNet: MigrationSafetyNet = { beforeMigrate: vi.fn(async () => undefined), restoreHint: async () => null },
+  sqliteLeftBehind: () => string | null = () => null,
 ) {
   const value: PostgresBootstrapDeps = {
     baseline: () => ({
@@ -108,6 +115,7 @@ function deps(
     }),
     known: new Set([M1, M2, M3]),
     safetyNet,
+    sqliteLeftBehind,
   };
   return value;
 }
@@ -227,11 +235,82 @@ describe('bootstrapPostgresSchema', () => {
     expect(db.ensureTable).not.toHaveBeenCalled();
   });
 
+  const LEFT_BEHIND = '/app/data/travel.db';
+  const noNet = () => ({ beforeMigrate: vi.fn(async () => undefined), restoreHint: async () => null });
+
+  it('PGBOOT-030: an empty database beside a SQLite install with accounts is refused before anything is written', async () => {
+    const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [] });
+    await expect(
+      bootstrapPostgresSchema(
+        orm,
+        deps(noNet(), () => LEFT_BEHIND),
+      ),
+    ).rejects.toThrow(
+      /Refusing to boot: TREK_DB_URL points at a Postgres database that holds no TREK data, while \/app\/data\/travel\.db .*move-to-postgres.*TREK_DB_IGNORE_SQLITE_FILE=true/s,
+    );
+    expect(db.sql).toEqual([]);
+    expect(db.ensureTable).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-031: a schema without a single account (a move cut short) beside such an install is refused too', async () => {
+    const { orm, db } = fakeOrm({ executed: [M1, M2], pending: [M3], tables: ['users'], accounts: false });
+    const net = deps(noNet(), () => LEFT_BEHIND);
+    await expect(bootstrapPostgresSchema(orm, net)).rejects.toThrow(/holds no TREK data/);
+    expect(db.up).not.toHaveBeenCalled();
+    expect(net.safetyNet.beforeMigrate).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-032: a database in use never looks at the SQLite file', async () => {
+    const { orm, db } = fakeOrm({ executed: [M1, M2, M3], pending: [], tables: ['users'] });
+    const leftBehind = vi.fn(() => LEFT_BEHIND);
+    await bootstrapPostgresSchema(orm, deps(noNet(), leftBehind));
+    expect(leftBehind).not.toHaveBeenCalled();
+    expect(db.up).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-033: a database with foreign tables keeps its own refusal; without a SQLite install an empty one boots', async () => {
+    const foreign = fakeOrm({ executed: [], pending: [M1], tables: ['customers'] });
+    await expect(
+      bootstrapPostgresSchema(
+        foreign.orm,
+        deps(noNet(), () => LEFT_BEHIND),
+      ),
+    ).rejects.toThrow(/no TREK migration history/);
+    const empty = fakeOrm({ executed: [], pending: [M1, M2], tables: [] });
+    await bootstrapPostgresSchema(
+      empty.orm,
+      deps(noNet(), () => null),
+    );
+    expect(empty.db.logged).toEqual([M1, M2]);
+  });
+
   it('PGBOOT-024: a role that could reach the database host boots with a warning', async () => {
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     const { orm } = fakeOrm({ executed: [M1, M2, M3], pending: [], tables: ['users'], server: { privileged: true } });
     await bootstrapPostgresSchema(orm, deps());
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/Restores are refused for such a role/));
+  });
+});
+
+describe('sqliteLeftBehindCheck', () => {
+  const envWith = (isTest: boolean, ignoreSqliteFile: boolean) => () =>
+    ({ db: { trekDbFile: '/data/travel.db', ignoreSqliteFile }, app: { isTest } }) as unknown as AppEnv;
+
+  it('PGBOOT-034: names the SQLite file when it holds accounts, and nothing when it holds none', () => {
+    expect(sqliteLeftBehindCheck(envWith(false, false), () => true)()).toBe('/data/travel.db');
+    expect(sqliteLeftBehindCheck(envWith(false, false), () => false)()).toBeNull();
+  });
+
+  it('PGBOOT-035: TREK_DB_IGNORE_SQLITE_FILE lets the boot through with a warning', () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    expect(sqliteLeftBehindCheck(envWith(false, true), () => true)()).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('TREK_DB_IGNORE_SQLITE_FILE is set'));
+  });
+
+  it('PGBOOT-036: stays out of the way under test, without opening the file', () => {
+    const holds = vi.fn(() => true);
+    expect(sqliteLeftBehindCheck(envWith(true, false), holds)()).toBeNull();
+    expect(holds).not.toHaveBeenCalled();
   });
 });
 

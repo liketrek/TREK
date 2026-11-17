@@ -197,6 +197,10 @@ export const envSchema = z.object({
   // or a misspelt "on" turn it off.
   TREK_DB_PRE_MIGRATE_SNAPSHOT: boolStr,
   TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP: integer(1, 100),
+  // Starts on an empty Postgres database although the data directory holds a
+  // SQLite install with accounts, which the boot otherwise refuses. Strict like
+  // the switch above: a misspelt value must not let the refusal through.
+  TREK_DB_IGNORE_SQLITE_FILE: boolStr,
   TREK_WIKI_DIR: anyString,
   TREK_PLACE_PHOTO_DIR: anyString,
   BACKUP_UPLOAD_LIMIT_MB: positiveNumber,
