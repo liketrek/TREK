@@ -155,7 +155,7 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
    Put the password in the `PGPASSWORD` environment variable rather than in the URL, which keeps it out of the command line. Delete `restore.sql` afterwards: it holds the whole database in plain text.
 5. Start the previous image with the same `TREK_DB_URL`.
 
-On a server you administer, dropping the database and creating it again with the same owner, then loading the copy with `pg_restore --no-owner --no-privileges --single-transaction -d <url> <copy>`, works as well.
+Loading the copy with `pg_restore -d` into a database you dropped and created again does not work: the copy holds TREK's schema by name, so `pg_restore` creates `public` again, stops at `schema "public" already exists` and rolls the whole load back. Use the steps above, which clear the schema instead of the database.
 
 A TREK image without PostgreSQL support cannot read this database at all. It would start on a new SQLite file instead. An image from 5.0 on that refuses a newer database names the copy it can run, if one is in the data directory.
 
