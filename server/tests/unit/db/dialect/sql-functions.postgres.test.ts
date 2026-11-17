@@ -64,7 +64,7 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * The Postgres branches of the dialect layer, pinned as compiled text. Nothing
- * here talks to a Postgres server: the CI `postgres-probe` job
+ * here talks to a Postgres server: the CI `server-postgres` job
  * (`scripts/pg-probe.ts`) runs every one of these spellings against a real
  * one and compares the values with what SQLite returns. This file holds the
  * text, so a change to a spelling is a visible diff in review.
