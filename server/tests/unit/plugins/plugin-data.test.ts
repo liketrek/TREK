@@ -264,6 +264,32 @@ describe('PluginDataDb', () => {
     db.close();
   });
 
+  it("binds a plugin's NUL exactly: stored rows stay findable and NUL-separated keys never collide", () => {
+    const db = new PluginDataDb('nul-keys');
+    db.exec('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT)');
+    // A row a plugin wrote with a NUL in its key, through its own SQL as well as through a bound arg.
+    db.exec("INSERT INTO kv VALUES ('q' || char(0) || 'r', 'spelled')");
+    db.exec('INSERT INTO kv VALUES (?, ?)', ['trip-1\u0000slug', 'bound']);
+    // Keys that differ only in where the NUL sits are two keys.
+    db.exec('INSERT INTO kv VALUES (?, ?)', ['a\u0000bc', 'one']);
+    db.exec('INSERT INTO kv VALUES (?, ?)', ['ab\u0000c', 'two']);
+    db.tx([{ sql: 'INSERT INTO kv VALUES (?, ?)', args: ['x\u0000', 'tx'] }]);
+
+    expect(db.query('SELECT v FROM kv WHERE k = ?', ['q\u0000r'])).toEqual([{ v: 'spelled' }]);
+    expect(db.query('SELECT v FROM kv WHERE k = ?', ['trip-1\u0000slug'])).toEqual([{ v: 'bound' }]);
+    expect(db.query('SELECT v FROM kv WHERE k = ?', ['trip-1slug'])).toEqual([]);
+    expect(db.query('SELECT v FROM kv WHERE k IN (?, ?) ORDER BY v', ['a\u0000bc', 'ab\u0000c'])).toEqual([
+      { v: 'one' },
+      { v: 'two' },
+    ]);
+    expect(db.tx([{ sql: 'SELECT v FROM kv WHERE k = ?', args: ['x\u0000'] }])).toEqual({
+      results: [{ rows: [{ v: 'tx' }] }],
+    });
+    // Stored whole: SQLite's length() of text stops at a NUL, the bytes do not.
+    expect(db.query('SELECT length(CAST(k AS BLOB)) AS n FROM kv WHERE v = ?', ['bound'])).toEqual([{ n: 11 }]);
+    db.close();
+  });
+
   it('removePluginData deletes the whole data dir', () => {
     const db = new PluginDataDb('temp');
     db.migrate('001', 'CREATE TABLE t (id INTEGER)');
