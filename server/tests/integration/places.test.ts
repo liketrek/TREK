@@ -464,7 +464,7 @@ describe('Search places', () => {
     expect(res.body.places[0].name).toBe('Scenic Place');
   });
 
-  it('PLACE-017c — GET ?category= or ?tag= with an id that is not a number matches nothing', async () => {
+  it('PLACE-017c: GET ?category= or ?tag= with an id that is not a number matches nothing', async () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);
     await makePlace(orm, trip.id, { name: 'Somewhere' });
@@ -1065,8 +1065,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app).get(`/api/trips/${hexTripId}/places/${place.id}`).set('Cookie', authCookie(user.id));
+    // TripAccessGuard reads :tripId through toRowId, so the hex spelling is no trip.
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Place not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
   it('PUT with tags by the hex-spelled trip id 404s "Trip not found" (Task 9 fix wave: `verifyTripAccess` now gates BEFORE the place-id read, so the string changed from "Place not found") and leaves the tags untouched (H1 live: they used to be wiped)', async () => {
@@ -1135,7 +1136,7 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
       .delete(`/api/trips/${hexTripId}/places/${place.id}`)
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Place not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
     expect(await findRow(orm, Places, { id: place.id })).toBeTruthy();
     expect(await findRow(orm, BudgetItems, { place: place.id })).toBeTruthy();
     expect(broadcast).not.toHaveBeenCalled();
@@ -1303,18 +1304,17 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// M1 / program rule 22 (task-4-review.md) — control characters in a user
-// string round-trip on every engine. The NUL byte, which neither engine
+// Control characters in a user string round-trip on every engine. The NUL byte, which neither engine
 // stores, has its own suite: places-nul.test.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('M1 — control characters in a place name (rule 22)', () => {
+describe('control characters in a place name', () => {
   it('fuzzes every 0x01-0x1F control character in a created place name: none 500 and every one round-trips', async () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);
 
     // 0x00 is covered by places-nul.test.ts; this sweeps the rest
-    // of the control-character range the review's fuzz asked for.
+    // of the control-character range.
     for (let code = 0x01; code <= 0x1f; code++) {
       const name = `ctrl${String.fromCharCode(code)}char`;
       const res = await request(app)

@@ -5,6 +5,7 @@ import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { tripAccessExpr } from './_shared/trip-access';
 import type { DB } from '../kysely/db';
+import { toRowId } from '../row-id';
 
 /** What a trip-scoped request learns about the trip once access is verified. */
 export interface TripAccess {
@@ -110,19 +111,16 @@ export class TripsRepository extends TrekRepository<Trips> {
    *   LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
    *   WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
    *
-   * `trip_id: number | string` (Plan 3c Task 0b): the legacy free function
-   * bound whatever `req.params.tripId` resolved to straight into the
-   * statement with no `Number()`/`toRowId` conversion first — the raw-bind
-   * seam. `TripAccessGuard` still does `Number(tripId)` before calling this
-   * (unchanged), but `DatabaseService.canAccessTrip`/`isOwner` and every
-   * other of the 41 in-cluster callers pass a `number | string` through
-   * unconverted, so this method (and `isOwner` below) must accept and bind
-   * that raw value rather than coerce it — a coercion here would silently
-   * change the `'0x10'`/`'007'`-shaped id parity the boot matrix pins
-   * (`Number('0x10') === 16`, a real trip id, where SQLite's own text/integer
-   * affinity comparison of the unconverted string never matches one).
+   * `trip_id: number | string`: most of its callers hand over a route or
+   * tool id as it came. The legacy statement bound it raw, which SQLite
+   * compared by affinity (`'0x10'` matched nothing) while Postgres 14 and 15
+   * refused the cast with an error and 16 and later read `'0x10'` as 16. So
+   * this method and the other `number | string` reads below parse the id
+   * with `toRowId` first: a spelling it refuses is no trip on every engine.
    */
   async findAccessible(trip_id: number | string, user_id: number): Promise<TripAccess | undefined> {
+    const id = toRowId(trip_id);
+    if (id === null) return undefined;
     const row = await this.accessibleTripsQuery(user_id)
       .select(['t.id', 't.user', 't.currency'])
       // Raw condition (D4's T5 escape hatch), not `.where({ 't.id': trip_id })`:
@@ -132,7 +130,7 @@ export class TripsRepository extends TrekRepository<Trips> {
       // `t.id`/`t.user_id` are the physical column names (not translated
       // through the entity's `trip`/`user` property aliasing the way a typed
       // filter object is), so the raw text names them directly.
-      .andWhere('t.id = ?', [trip_id])
+      .andWhere('t.id = ?', [id])
       // `mapResults: false` leaves the driver's row alone: the keys are the
       // column names, which is why the result type is spelled out here rather
       // than inferred from the entity's properties.
@@ -187,9 +185,11 @@ export class TripsRepository extends TrekRepository<Trips> {
 
   /** `SELECT id FROM trips WHERE id = ? AND user_id = ?` */
   async isOwner(trip_id: number | string, user_id: number): Promise<boolean> {
+    const id = toRowId(trip_id);
+    if (id === null) return false;
     const row = await this.qb('t')
       .select(['t.id'])
-      .where('t.id = ?', [trip_id])
+      .where('t.id = ?', [id])
       .andWhere({ user: user_id })
       .execute<{ id: number } | undefined>('get', false);
     return !!row;
@@ -199,13 +199,13 @@ export class TripsRepository extends TrekRepository<Trips> {
    * `SELECT user_id FROM trips WHERE id = ?` (`trip-membership.service.ts:23`,
    * TB1) — `row ? row.user_id : null` stays the caller's decision to make
    * ("owner id for budget/MCP guards"); this returns exactly that shape.
-   * Raw-bind (D4's T5 escape hatch), same `number | string` seam as
-   * `findAccessible`/`isOwner` above.
    */
   async getOwnerId(trip_id: number | string): Promise<number | null> {
+    const id = toRowId(trip_id);
+    if (id === null) return null;
     const row = await this.qb('t')
       .select(['t.user'])
-      .where('t.id = ?', [trip_id])
+      .where('t.id = ?', [id])
       .execute<{ user_id: number } | undefined>('get', false);
     return row ? row.user_id : null;
   }
@@ -215,8 +215,7 @@ export class TripsRepository extends TrekRepository<Trips> {
    * TB4) — `joinTripAsMember`'s first check-then-act read (§18.4: the
    * sequence stays non-transactional, unchanged by this conversion). The
    * only caller (`TripMembershipService.joinTripAsMember(tripId: number, …)`)
-   * always passes a real `number`, so this takes one too — no raw-bind seam
-   * to preserve here, unlike `findAccessible`/`isOwner`/`getOwnerId`.
+   * always passes a real `number`, so this takes one too.
    */
   async findIdAndOwner(trip_id: number): Promise<{ id: number; user_id: number } | undefined> {
     return this.qb('t')
@@ -290,13 +289,14 @@ export class TripsRepository extends TrekRepository<Trips> {
   /**
    * `SELECT title FROM trips WHERE id = ?` (`trip-members.service.ts:156`,
    * TM7) — `addMember`'s notification-body read; the caller applies its own
-   * `?? 'Untitled'` fallback (D4). Raw-bind (D4's T5 escape hatch), the same
-   * `number | string` seam `findAccessible` documents.
+   * `?? 'Untitled'` fallback (D4).
    */
   async getTitle(trip_id: number | string): Promise<string | null> {
+    const id = toRowId(trip_id);
+    if (id === null) return null;
     const row = await this.qb('t')
       .select(['t.title'])
-      .where('t.id = ?', [trip_id])
+      .where('t.id = ?', [id])
       .execute<{ title: string } | undefined>('get', false);
     return row?.title ?? null;
   }
@@ -306,12 +306,13 @@ export class TripsRepository extends TrekRepository<Trips> {
    * (`trip-members.service.ts:180`, TM9) — `transferOwnership`'s first
    * check-then-act read (miss → 404 `'Trip not found'`; wrong owner → 400
    * `'Only the owner can transfer ownership'`, both decided by the caller).
-   * Raw-bind, the same seam as `getTitle` above.
    */
   async findIdTitleOwner(trip_id: number | string): Promise<{ id: number; title: string; user_id: number } | undefined> {
+    const id = toRowId(trip_id);
+    if (id === null) return undefined;
     return this.qb('t')
       .select(['t.id', 't.title', 't.user'])
-      .where('t.id = ?', [trip_id])
+      .where('t.id = ?', [id])
       .execute<{ id: number; title: string; user_id: number } | undefined>('get', false);
   }
 
@@ -341,13 +342,14 @@ export class TripsRepository extends TrekRepository<Trips> {
    * `.select(['t.*'])` — MikroORM's QueryBuilder recognises the bare
    * `<alias>.*` marker (verified against `QueryBuilder.js`'s own
    * `prepareFields`, not assumed) and emits every column unprefixed, the
-   * same `SELECT t.*` shape the legacy statement used. Raw-bind, the same
-   * `number | string` seam `getTitle`/`findIdTitleOwner` above preserve.
+   * same `SELECT t.*` shape the legacy statement used.
    */
   async findRaw(trip_id: number | string): Promise<TripRawRow | null> {
+    const id = toRowId(trip_id);
+    if (id === null) return null;
     const row = await this.qb('t')
       .select(['t.*'])
-      .where('t.id = ?', [trip_id])
+      .where('t.id = ?', [id])
       .execute<TripRawRow | undefined>('get', false);
     return row ?? null;
   }
@@ -400,7 +402,9 @@ export class TripsRepository extends TrekRepository<Trips> {
    * same apart from `is_owner`.
    */
   async findListShapeById(trip_id: number | string, user_id: number): Promise<TripSelectRow | undefined> {
-    const row = await this.tripSelectQuery(user_id).where('t.id', '=', trip_id as number).executeTakeFirst();
+    const id = toRowId(trip_id);
+    if (id === null) return undefined;
+    const row = await this.tripSelectQuery(user_id).where('t.id', '=', id).executeTakeFirst();
     return row as TripSelectRow | undefined;
   }
 
@@ -418,15 +422,14 @@ export class TripsRepository extends TrekRepository<Trips> {
    * `TripMembersService.getTripForViewer` (TM1, Task 6 review's "for Task
    * 7" note) — same reasoning: every caller already holds access.
    *
-   * Raw-bind (`number | string`, D4's T5 escape hatch — `TripSelectKyselyDB`'s
-   * `trips.id` is typed `number | string` for exactly this): the legacy
-   * statement bound the route's unconverted `tripId` with no `Number()`/
-   * `toRowId` conversion, matching `findAccessible`'s documented seam.
+   * `trip_id` is read through `toRowId`, as in `findAccessible`.
    */
   async findForViewer(trip_id: number | string, user_id: number): Promise<TripSelectRow | undefined> {
+    const id = toRowId(trip_id);
+    if (id === null) return undefined;
     const row = await this.tripSelectQuery(user_id)
       .leftJoin('trip_members as m', (join) => join.onRef('m.trip_id', '=', 't.id').on('m.user_id', '=', user_id))
-      .where('t.id', '=', trip_id as number)
+      .where('t.id', '=', id)
       .where((eb) => tripAccessExpr(eb, 't.user_id', 'm.user_id', user_id))
       .executeTakeFirst();
     return row as TripSelectRow | undefined;
@@ -769,14 +772,9 @@ export class TripsRepository extends TrekRepository<Trips> {
    * access check here, matching the legacy statement — the caller's own
    * `verifyTripAccess`/token validity gates this read.
    *
-   * `id: number` (Plan 4 Task 8a, rule 23): unlike `findAccessible`/
-   * `isOwner`, this is never on the guard's raw-`req.params` path — its one
-   * caller (`share.service.ts#getSharedTripData`) passes `shareRow.trip_id`,
-   * a `number` straight off a Kysely-typed `share_tokens` row, never an
-   * unconverted URL param — so the `number | string` raw-bind seam those
-   * two methods' own docstrings describe does not apply here, and this one
-   * narrows to a typed filter now rather than waiting on that seam's guard-
-   * level parse (deferred, out of this task's scope).
+   * `id: number` (Plan 4 Task 8a, rule 23): its one caller
+   * (`share.service.ts#getSharedTripData`) passes `shareRow.trip_id`, a
+   * `number` straight off a Kysely-typed `share_tokens` row.
    */
   async findPublicForShare(id: number): Promise<TripPublicShareRow | undefined> {
     return await this.qb('t')
@@ -817,11 +815,13 @@ export class TripsRepository extends TrekRepository<Trips> {
   // ---------------------------------------------------------------------------
 
   /** BG15/BG16/BGM2/BGM3 — `SELECT currency FROM trips WHERE id = ?`, four legacy call sites, one statement. */
-  async getCurrency(id: number | string): Promise<string | null | undefined> {
+  async getCurrency(trip_id: number | string): Promise<string | null | undefined> {
+    const id = toRowId(trip_id);
+    if (id === null) return undefined;
     const row = await this.kysely<Pick<DB, 'trips'>>()
       .selectFrom('trips')
       .select('currency')
-      .where('id', '=', id as number)
+      .where('id', '=', id)
       .executeTakeFirst();
     return row?.currency;
   }

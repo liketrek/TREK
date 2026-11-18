@@ -670,17 +670,17 @@ describe('Accommodations', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (Task 9 fix wave)', () => {
-  it("GET /days by the hex-spelled trip id answers the legacy-shaped miss ({ days: [] }), not the real trip's days", async () => {
+  it("GET /days by the hex-spelled trip id answers the guard's 404, not the real trip's days (TripAccessGuard reads :tripId through toRowId)", async () => {
     const { user } = await makeUser(orm());
     const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-03' });
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app).get(`/api/trips/${hexTripId}/days`).set('Cookie', authCookie(user.id));
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ days: [] });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
-  it('PUT /days/:id by the hex-spelled trip id 404s "Day not found" (getDay\'s own toRowId gate), not the real trip\'s day', async () => {
+  it('PUT /days/:id by the hex-spelled trip id 404s "Trip not found" at the guard, not the real trip\'s day', async () => {
     const { user } = await makeUser(orm());
     const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
     const day = await makeDay(orm(), trip.id, { title: 'Original' });
@@ -691,7 +691,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
       .set('Cookie', authCookie(user.id))
       .send({ title: 'Renamed' });
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Day not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
     const row = await findRow(orm(), Days, { id: day.id });
     expect(row?.title).toBe('Original');
   });
@@ -841,7 +841,7 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     expect(after).toBe(before);
   });
 
-  it('PUT /days/reorder by the hex-spelled trip id 400s "orderedIds must be a permutation…" and writes NOTHING — the live H2 bug: it used to 200 and invert a real accommodation', async () => {
+  it('PUT /days/reorder by the hex-spelled trip id 404s "Trip not found" at the guard and writes NOTHING, where it used to answer 200 and invert a real accommodation', async () => {
     const { user } = await makeUser(orm());
     const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
     const days = await dayList(trip.id);
@@ -859,8 +859,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
       .put(`/api/trips/${hexTripId}/days/reorder`)
       .set('Cookie', authCookie(user.id))
       .send({ orderedIds: [d2.id, d1.id, d3.id] });
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'orderedIds must be a permutation of the trip day ids.' });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
 
     // Nothing renumbered.
     const after = await dayList(trip.id);

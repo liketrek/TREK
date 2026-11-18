@@ -1,5 +1,6 @@
 import type { PackingTemplateItems } from '../entities/PackingTemplateItems.entity';
 import type { DB } from '../kysely/db';
+import { toRowId } from '../row-id';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -133,12 +134,16 @@ export class PackingTemplateItemsRepository extends TrekRepository<PackingTempla
    * `updateTemplateItem` and `deleteTemplateItem` (two call sites).
    */
   async findScoped(id: number | string, template_id: number | string): Promise<PackingTemplateItemRow | undefined> {
+    // Route ids: a spelling toRowId refuses is no item, on every engine.
+    const itemId = toRowId(id);
+    const templateId = toRowId(template_id);
+    if (itemId === null || templateId === null) return undefined;
     return await this.db()
       .selectFrom('packing_template_items as ti')
       .innerJoin('packing_template_categories as tc', 'tc.id', 'ti.category_id')
       .selectAll('ti')
-      .where('ti.id', '=', id as number)
-      .where('tc.template_id', '=', template_id as number)
+      .where('ti.id', '=', itemId)
+      .where('tc.template_id', '=', templateId)
       .executeTakeFirst();
   }
 

@@ -481,7 +481,7 @@ describe('Roadtrip e2e (real guard chain + temp SQLite)', () => {
     // raw-bind statement's affinity never converts a hex string, so it
     // always answered empty. Every one of these three now answers the
     // legacy empty shape for the same hex id, not the real trip's rows.
-    it("L1 — vias/tracks by a hex-spelled trip id answer the legacy empty shape, not trip 5's real rows", async () => {
+    it("vias/tracks by a hex-spelled trip id answer the guard's 404, not trip 5's real rows", async () => {
       const created = await request(server)
         .post('/api/trips/5/roadtrip/days/3/vias')
         .set('Cookie', cookie())
@@ -490,8 +490,9 @@ describe('Roadtrip e2e (real guard chain + temp SQLite)', () => {
 
       const hexTripId = '0x' + (5).toString(16);
       const res = await request(server).get(`/api/trips/${hexTripId}/roadtrip/vias`).set('Cookie', cookie());
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({ vias: [], tracks: [] });
+      // TripAccessGuard reads :tripId through toRowId, so the hex spelling is no trip at all.
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Trip not found' });
 
       const hexDayId = '0x' + (3).toString(16);
       const dayRes = await request(server).get(`/api/trips/5/roadtrip/days/${hexDayId}/vias`).set('Cookie', cookie());

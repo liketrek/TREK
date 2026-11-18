@@ -458,7 +458,7 @@ describe('Assignment participants', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('H1 — trip id parsed once at the gate (rule 21)', () => {
-  it('POST create-assignment by the hex-spelled trip id 404s "Day not found" (legacy: 404, not 201)', async () => {
+  it('POST create-assignment by the hex-spelled trip id 404s "Trip not found" at the guard (legacy: 404, not 201)', async () => {
     const { user } = await makeUser(orm);
     const { trip, day, place } = await setupAssignmentFixtures(user.id);
     const hexTripId = '0x' + trip.id.toString(16);
@@ -467,8 +467,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
       .post(`/api/trips/${hexTripId}/days/${day.id}/assignments`)
       .set('Cookie', authCookie(user.id))
       .send({ place_id: place.id });
+    // TripAccessGuard reads :tripId through toRowId, so the hex spelling is no trip.
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Day not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
     expect(await countRows(orm, DayAssignments, { day: day.id })).toBe(0);
   });
 });
