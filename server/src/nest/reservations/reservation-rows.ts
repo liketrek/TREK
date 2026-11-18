@@ -18,7 +18,7 @@ export interface ReservationTraveler {
   is_guest?: number | null;
 }
 
-/** A reservation row as the joined list/get queries return it (open record —
+/** A reservation row as the joined list/get queries return it (an open record:
  *  the legacy queries selected `r.*` and callers pass the row through; the
  *  named fields are the columns consumers read in a typed position). */
 export type ReservationRow = Record<string, unknown> & {

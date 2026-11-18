@@ -1,5 +1,5 @@
 /**
- * PGROLE-001..006 — the check that refuses a restore (and warns at boot) for a
+ * PGROLE-001..006: the check that refuses a restore (and warns at boot) for a
  * role that could reach the database host from SQL
  * (src/db/engine/postgres/server-checks.ts), evaluated by the real server as
  * each kind of role. Roles belong to the whole server, so this suite creates

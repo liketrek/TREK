@@ -1221,7 +1221,7 @@ export interface RuleFixups {
   jsonColumns: JsonColumnFixup[];
   /** Rule 1c's flags, whose class field `fixFlagClassFieldTypes` turns back into a plain boolean. */
   flags: RetypedScalarFixup[];
-  /** Rule 1's + Rule 1b's + Rule 1c's + Rule 2's retyped scalars together — all need the same `.columnType()` strip (see `stripRedundantColumnType`). */
+  /** Rule 1's + Rule 1b's + Rule 1c's + Rule 2's retyped scalars together, which all need the same `.columnType()` strip (see `stripRedundantColumnType`). */
   retypedScalars: RetypedScalarFixup[];
   /** Rule 10's repository-type markers — one per entity class. */
   repositoryMarkers: RepositoryTypeMarkerFixup[];

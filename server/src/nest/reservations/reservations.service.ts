@@ -613,7 +613,7 @@ export class ReservationsService {
     // the two together would bend one of them out of shape. The day stop is the
     // part that must not exist twice, so it comes from AccommodationsService.
     // The payload's accommodation_id is untrusted input and goes through
-    // `toRowId` the way update() reads it (L2): a `'0x1'` or an `'abc'` used to
+    // `toRowId` the way update() reads it: a `'0x1'` or an `'abc'` used to
     // be stored as `'0x1.0'`, which Postgres cannot cast back for the join.
     let resolvedAccommodationId: number | null = toRowId(accommodation_id) || null;
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {

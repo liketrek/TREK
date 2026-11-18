@@ -1,5 +1,5 @@
 /**
- * PARITY-PG — the schema a Postgres database ends with after its bootstrap
+ * PARITY-PG-001: the schema a Postgres database ends with after its bootstrap
  * (the baseline, then every migration after its cut) is the schema the
  * entities describe, as scripts/generate-pg-baseline.ts writes it for
  * Postgres (src/db/engine/postgres/schema-adjust.ts). MikroORM's comparator

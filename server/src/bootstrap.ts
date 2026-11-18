@@ -50,7 +50,7 @@ import nodeHttp from 'node:http';
  *   4b. setupApiDocs — Swagger UI/spec at /api/docs* when TREK_API_DOCS_ENABLED.
  *   4c. the named body-parser wrappers — the global 100kb JSON/urlencoded
  *      parsers, exempting /mcp so the MCP SDK reads the raw stream.
- *   4d. nulFreeRequest — drops NUL from the path, query, body and cookies.
+ *   4d. nulFreeRequest, which drops NUL from the path, query, body and cookies.
  *   5. app.init() — every domain controller, including the transport surface
  *      that used to live pre-init: /api/health (FeaturesController), OAuth
  *      discovery documents (DiscoveryController), the /oauth/consent COOP

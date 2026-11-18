@@ -202,7 +202,7 @@ describe('Vacay entries', () => {
 });
 
 describe('Vacay carry-over', () => {
-  it('VACAY-046 — a half day left over carries as a half day into the next year, on every engine', async () => {
+  it('VACAY-046: a half day left over carries as a half day into the next year, on every engine', async () => {
     const { user } = await makeUser(orm);
     const cookie = authCookie(user.id);
     await request(app).get('/api/addons/vacay/plan').set('Cookie', cookie);

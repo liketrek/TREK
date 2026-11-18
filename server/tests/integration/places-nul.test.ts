@@ -5,9 +5,8 @@
  * answer a 500 there while SQLite stored it. TREK stores no NUL on either
  * engine now (src/db/nul-free.ts): every string a statement carries loses it,
  * so the same request answers the same status and leaves the same row on both
- * engines (M1 / program rule 22 first made it a 201 on SQLite). The control
- * characters 0x01-0x1F, which both engines store, are swept in
- * places.test.ts.
+ * engines. The control characters 0x01-0x1F, which both engines store, are
+ * swept in places.test.ts.
  */
 import { buildApp } from '../../src/bootstrap';
 import { Places } from '../../src/db/entities/Places.entity';

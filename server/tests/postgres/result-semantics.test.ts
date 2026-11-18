@@ -1,5 +1,5 @@
 /**
- * PGSEM-101..105 — answers that differ by engine although every statement is
+ * PGSEM-101..105: answers that differ by engine although every statement is
  * accepted, so the probe cannot see them; checked here against the real app
  * on the lane's Postgres database:
  * a booking linked to a stay as '14.0' still shows the stay in the public

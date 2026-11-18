@@ -120,7 +120,7 @@ COPY --chown=node:node wiki ./wiki
 # tsconfig-paths/register reads this at runtime to resolve MCP SDK paths.
 COPY --chown=node:node server/tsconfig.json ./server/
 # Encryption-key rotation is run on demand via tsx (a prod dep) straight from the
-# raw .ts source (the command and its stores module) — they never enter dist, so they must be copied in explicitly or
+# raw .ts source (the command and its stores module). They never enter dist, so they must be copied in explicitly or
 # `node --import tsx scripts/migrate-encryption.ts` fails with module-not-found.
 COPY --chown=node:node server/scripts/migrate-encryption.ts server/scripts/migrate-encryption-stores.ts ./server/scripts/
 # Admin recovery script (node server/reset-admin.js) for locked-out installs.

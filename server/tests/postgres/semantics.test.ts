@@ -1,5 +1,5 @@
 /**
- * PGSEM-001..002 — what SQLite gives for free and Postgres only through the
+ * PGSEM-001..002: what SQLite gives for free and Postgres only through the
  * engine, against the real app on the lane's Postgres database:
  * writes in a UnitOfWork run one at a time, as on SQLite's single writer, so
  * a read-then-insert never races; counts come back as numbers; and a search
