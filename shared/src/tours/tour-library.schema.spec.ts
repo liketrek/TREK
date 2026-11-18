@@ -34,6 +34,10 @@ describe('tour library contracts (LIB-02)', () => {
     });
     expect(tourLibraryQuerySchema.safeParse({ type: 'car' }).success).toBe(false);
     expect(tourLibraryQuerySchema.safeParse({ trip_id: '0' }).success).toBe(false);
+    // A trip id is the decimal spelling or nothing, as the server's toRowId reads it.
+    for (const spelling of ['0x3', '3e0', '3.0', '+3']) {
+      expect(tourLibraryQuerySchema.safeParse({ trip_id: spelling }).success, spelling).toBe(false);
+    }
     expect(tourLibraryQuerySchema.safeParse({ sort: 'name' }).success).toBe(false);
   });
 

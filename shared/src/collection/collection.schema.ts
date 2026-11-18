@@ -88,7 +88,7 @@ export const collectionPlaceSchema = z.object({
   category: placeCategorySchema.optional(),
   tags: z.array(tagSchema.partial()).optional(),
   /** Ids of the per-collection labels assigned to this place. */
-  label_ids: z.array(z.number()).optional(),
+  label_ids: z.array(z.number().int()).optional(),
   // Collaborative ratings (#1435): every member's vote + the displayed aggregate.
   ratings: z.array(placeRatingVoteSchema).optional(),
   rating_avg: z.number().nullable().optional(),
@@ -148,10 +148,10 @@ export const collectionUpdateRequestSchema = collectionCreateRequestSchema.parti
 export type CollectionUpdateRequest = z.infer<typeof collectionUpdateRequestSchema>;
 
 /** Reorder the caller's lists — every visible collection id in the desired order.
- *  Plain z.number() (no .min/.int) mirrors the legacy hand-rolled check the DTO
- *  ratchet replaced: any array of numbers, empty included. */
+ *  No .min mirrors the legacy hand-rolled check the DTO ratchet replaced: any
+ *  array, empty included; .int() keeps a fractional id from reaching SQL. */
 export const collectionReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type CollectionReorderRequest = z.infer<typeof collectionReorderRequestSchema>;
 
@@ -177,7 +177,7 @@ export const collectionSavePlaceRequestSchema = z.object({
   phone: z.string().nullable().optional(),
   status: collectionStatusSchema.optional(),
   links: collectionLinksSchema.optional(),
-  tag_ids: z.array(z.number()).optional(),
+  tag_ids: z.array(z.number().int()).optional(),
   force: z.boolean().optional(), // "add anyway" over a dedup match
 });
 export type CollectionSavePlaceRequest = z.infer<typeof collectionSavePlaceRequestSchema>;
@@ -195,7 +195,7 @@ export type CollectionSaveFromTripRequest = z.infer<typeof collectionSaveFromTri
 export const collectionSaveFromTripManyRequestSchema = z.object({
   collection_id: z.number().int(),
   source_trip_id: z.number().int(),
-  source_place_ids: z.array(z.number()).min(1).max(1000),
+  source_place_ids: z.array(z.number().int()).min(1).max(1000),
   force: z.boolean().optional(),
 });
 export type CollectionSaveFromTripManyRequest = z.infer<typeof collectionSaveFromTripManyRequestSchema>;
@@ -218,9 +218,9 @@ export const collectionPlaceUpdateRequestSchema = z.object({
   category_id: z.number().int().nullable().optional(),
   collection_id: z.number().int().optional(), // move to another list
   links: collectionLinksSchema.optional(),
-  tag_ids: z.array(z.number()).optional(),
+  tag_ids: z.array(z.number().int()).optional(),
   // Replace the place's per-collection label assignments (omit to leave unchanged).
-  label_ids: z.array(z.number()).optional(),
+  label_ids: z.array(z.number().int()).optional(),
   // Custom thumbnail (#1136): null clears it (falls back to the auto-fetched photo).
   image_url: placeImageUrlSchema.nullable().optional(),
   // The fields saving accepts but editing did not (#2646), with the same checks, so
@@ -242,7 +242,7 @@ export type CollectionSetStatusRequest = z.infer<typeof collectionSetStatusReque
 /** Set one status on several saved places at once — the place dialog's "mark
  *  visited everywhere it is saved" (#1469). Ids are collection_places ids. */
 export const collectionSetStatusManyRequestSchema = z.object({
-  ids: z.array(z.number()).min(1).max(1000),
+  ids: z.array(z.number().int()).min(1).max(1000),
   status: collectionStatusSchema,
 });
 export type CollectionSetStatusManyRequest = z.infer<typeof collectionSetStatusManyRequestSchema>;
@@ -251,7 +251,7 @@ export type CollectionSetStatusManyRequest = z.infer<typeof collectionSetStatusM
  *  the lists it is saved in. Drives the planner's bulk "mark as visited" (#1469). */
 export const collectionSetStatusFromTripRequestSchema = z.object({
   trip_id: z.number().int(),
-  place_ids: z.array(z.number()).min(1).max(1000),
+  place_ids: z.array(z.number().int()).min(1).max(1000),
   status: collectionStatusSchema,
 });
 export type CollectionSetStatusFromTripRequest = z.infer<typeof collectionSetStatusFromTripRequestSchema>;
@@ -264,17 +264,17 @@ export const collectionSetStatusManyResponseSchema = z.object({
 });
 export type CollectionSetStatusManyResponse = z.infer<typeof collectionSetStatusManyResponseSchema>;
 
-/** Bulk-delete saved places. Plain z.number() (no .min/.int) mirrors the legacy
- *  hand-rolled check the DTO ratchet replaced (same shape as placeBulkDeleteRequestSchema). */
+/** Bulk-delete saved places. No .min mirrors the legacy hand-rolled check the
+ *  DTO ratchet replaced (same shape as placeBulkDeleteRequestSchema). */
 export const collectionDeleteManyRequestSchema = z.object({
-  ids: z.array(z.number()),
+  ids: z.array(z.number().int()),
 });
 export type CollectionDeleteManyRequest = z.infer<typeof collectionDeleteManyRequestSchema>;
 
 /** Copy one or many saved places INTO a trip (dedup precheck on server). */
 export const collectionCopyToTripRequestSchema = z.object({
   trip_id: z.number().int(),
-  place_ids: z.array(z.number()).min(1),
+  place_ids: z.array(z.number().int()).min(1),
   force: z.boolean().optional(),
 });
 export type CollectionCopyToTripRequest = z.infer<typeof collectionCopyToTripRequestSchema>;
@@ -379,8 +379,8 @@ export type CollectionLabelUpdateRequest = z.infer<typeof collectionLabelUpdateR
 
 /** Bulk add or remove one/several labels across many selected places. */
 export const collectionLabelAssignRequestSchema = z.object({
-  label_ids: z.array(z.number()).min(1).max(50),
-  place_ids: z.array(z.number()).min(1).max(1000),
+  label_ids: z.array(z.number().int()).min(1).max(50),
+  place_ids: z.array(z.number().int()).min(1).max(1000),
 });
 export type CollectionLabelAssignRequest = z.infer<typeof collectionLabelAssignRequestSchema>;
 

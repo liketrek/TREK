@@ -1,3 +1,4 @@
+import { rowIdInputSchema } from '../common/primitives.schema';
 import { RESERVATION_STATUSES, RESERVATION_TYPE_KEYS } from './reservation-types';
 
 import { z } from 'zod';
@@ -275,7 +276,7 @@ export type ReservationUpdateRequest = z.infer<typeof reservationUpdateRequestSc
 
 /** Assign trip members/guests to a reservation (mirrors budget's PUT :id/members). */
 export const reservationTravelersRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type ReservationTravelersRequest = z.infer<typeof reservationTravelersRequestSchema>;
 
@@ -284,14 +285,14 @@ export const reservationPositionsRequestSchema = z.object({
   // validated position items, and an absent value binds NULL (clears the
   // stored position) — pinned by the server integration suite (RESV-006).
   positions: z.array(z.object({ id: z.number().int(), day_plan_position: z.number().optional() })),
-  day_id: z.union([z.number().int(), z.string()]).nullable().optional(),
+  day_id: rowIdInputSchema.nullable().optional(),
 });
 export type ReservationPositionsRequest = z.infer<typeof reservationPositionsRequestSchema>;
 
 export const accommodationCreateRequestSchema = z.object({
-  place_id: z.union([z.number().int(), z.string()]),
-  start_day_id: z.union([z.number().int(), z.string()]),
-  end_day_id: z.union([z.number().int(), z.string()]),
+  place_id: rowIdInputSchema,
+  start_day_id: rowIdInputSchema,
+  end_day_id: rowIdInputSchema,
   check_in: z.string().nullable().optional(),
   check_in_end: z.string().nullable().optional(),
   check_out: z.string().nullable().optional(),

@@ -226,7 +226,7 @@ describe('Update reservation', () => {
     expect(res.body.reservation.end_day_id).toBe(day3.id);
   });
 
-  it('RESV-004d — a reservation_time on a date the calendar does not have lands on no day, on every engine', async () => {
+  it('RESV-004d: a reservation_time on a date the calendar does not have lands on no day, on every engine', async () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);
     await makeDay(orm, trip.id, { date: '2024-03-01' });
@@ -317,7 +317,7 @@ describe('Update reservation', () => {
     expect(row.accommodation_id).toBeNull();
   });
 
-  it('L2 — POST with a hex-spelled accommodation_id stores NULL, the same as PUT', async () => {
+  it('POST with a hex-spelled accommodation_id stores NULL, the same as PUT', async () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);
     const day = await makeDay(orm, trip.id);
@@ -596,12 +596,12 @@ describe('Batch update positions', () => {
     expect(res.body.success).toBe(true);
   });
 
-  // M4 (Plan 3d Task 7 review): `updatePositions`' `dayId` parsed with
-  // `toRowId`, not the `Number()`-fallback `rowIdNum` — a hex-spelled
-  // `day_id` used to coerce to a real day and reach the per-day upsert,
-  // where the legacy raw-bind statement's affinity never converts a hex
-  // string, so the join matched no row (a quiet no-op, not a write). Rule 21.
-  it('M4 — PUT /positions with a hex-spelled day_id is the legacy quiet no-op (no day-scoped row written)', async () => {
+  // M4 (Plan 3d Task 7 review): a hex-spelled `day_id` used to coerce to a
+  // real day and reach the per-day upsert. It was then a quiet 200 that wrote
+  // nothing; the request schema now takes only the decimal spelling of a row
+  // id, so it is the 400 every body id toRowId refuses gets, and still writes
+  // nothing.
+  it('M4: PUT /positions with a hex-spelled day_id is a 400 and writes no day-scoped row', async () => {
     const { user } = await makeUser(orm);
     const trip = await makeTrip(orm, user.id);
     const day = await makeDay(orm, trip.id, { date: '2026-01-01' });
@@ -612,10 +612,8 @@ describe('Batch update positions', () => {
       .put(`/api/trips/${trip.id}/reservations/positions`)
       .set('Cookie', authCookie(user.id))
       .send({ positions: [{ id: resv.id, day_plan_position: 0 }], day_id: hexDayId });
-    // Same success shape the legacy statement's own no-op miss returns —
-    // this is not a validation error, it silently writes nothing.
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'day_id: Invalid id' });
 
     const row = await findRow(orm, ReservationDayPositions, { reservation: resv.id });
     expect(row).toBeNull();

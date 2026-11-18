@@ -1,3 +1,5 @@
+import { rowIdInputSchema, rowIdStringSchema } from '../common/primitives.schema';
+
 import { z } from 'zod';
 
 /**
@@ -12,17 +14,17 @@ import { z } from 'zod';
  * bodies. The bespoke 400/403/404 controller messages pin the rest.
  */
 
-const nullableIdField = z.union([z.string(), z.number().int()]).nullable().optional();
+const nullableIdField = rowIdInputSchema.nullable().optional();
 
 /**
  * Multipart text fields riding along with the upload — always strings on the
  * wire (multipart/form-data has no other type), so no numeric coercion here.
  */
 export const fileUploadRequestSchema = z.object({
-  place_id: z.string().optional(),
+  place_id: rowIdStringSchema.optional(),
   description: z.string().optional(),
-  reservation_id: z.string().optional(),
-  budget_item_id: z.string().optional(),
+  reservation_id: rowIdStringSchema.optional(),
+  budget_item_id: rowIdStringSchema.optional(),
 });
 export type FileUploadRequest = z.infer<typeof fileUploadRequestSchema>;
 

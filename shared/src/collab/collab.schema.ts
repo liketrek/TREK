@@ -1,3 +1,5 @@
+import { rowIdInputSchema } from '../common/primitives.schema';
+
 import { z } from 'zod';
 
 /**
@@ -73,7 +75,7 @@ export type CollabLinkUpdateRequest = z.infer<typeof collabLinkUpdateRequestSche
 export const collabMessageCreateRequestSchema = z.object({
   text: z.string().max(5000).optional(),
   // Multipart fields arrive as strings; JSON chat still sends a number/null.
-  reply_to: z.union([z.number().int(), z.string(), z.null()]).optional(),
+  reply_to: z.union([rowIdInputSchema, z.literal(''), z.null()]).optional(),
 });
 export type CollabMessageCreateRequest = z.infer<typeof collabMessageCreateRequestSchema>;
 

@@ -37,12 +37,12 @@ export const todoUpdateItemRequestSchema = z.object({
 export type TodoUpdateItemRequest = z.infer<typeof todoUpdateItemRequestSchema>;
 
 export const todoReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type TodoReorderRequest = z.infer<typeof todoReorderRequestSchema>;
 
 export const todoCategoryAssigneesRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type TodoCategoryAssigneesRequest = z.infer<typeof todoCategoryAssigneesRequestSchema>;
 

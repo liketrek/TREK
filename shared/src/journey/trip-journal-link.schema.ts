@@ -1,4 +1,4 @@
-import { idSchema } from '../common/primitives.schema';
+import { idParamSchema, idSchema } from '../common/primitives.schema';
 
 import { z } from 'zod';
 
@@ -36,7 +36,7 @@ export type TripJournalLinkMembersRequest = z.infer<typeof tripJournalLinkMember
 
 /** GET …/candidates: whose access a journal would change, before it is linked. */
 export const tripJournalCandidatesQuerySchema = z.object({
-  journey_id: z.coerce.number().int().positive(),
+  journey_id: idParamSchema,
 });
 export type TripJournalCandidatesQuery = z.infer<typeof tripJournalCandidatesQuerySchema>;
 

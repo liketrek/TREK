@@ -1,3 +1,4 @@
+import { rowIdInputSchema } from '../common/primitives.schema';
 import { assignmentPlaceSchema } from '../place/place.schema';
 import { stationKeySchema } from '../tours/tours.schema';
 
@@ -74,7 +75,7 @@ export const assignmentSchema = z.object({
 export type Assignment = z.infer<typeof assignmentSchema>;
 
 export const assignmentCreateRequestSchema = z.object({
-  place_id: z.union([z.number().int(), z.string()]),
+  place_id: rowIdInputSchema,
   notes: z.string().nullable().optional(),
   /**
    * MDT-02: puts one stage of a multi-day tour on the day instead of the whole
@@ -86,12 +87,12 @@ export const assignmentCreateRequestSchema = z.object({
 export type AssignmentCreateRequest = z.infer<typeof assignmentCreateRequestSchema>;
 
 export const assignmentReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type AssignmentReorderRequest = z.infer<typeof assignmentReorderRequestSchema>;
 
 export const assignmentMoveRequestSchema = z.object({
-  new_day_id: z.union([z.number(), z.string()]),
+  new_day_id: rowIdInputSchema,
   // The client api types this `number | null` (assignmentsApi.move) and the
   // legacy route accepted null (`orderIndex || 0`) — keep null on the wire.
   order_index: z.number().int().nullable().optional(),
@@ -157,6 +158,6 @@ export const assignmentRouteRequestSchema = z.object({
 export type AssignmentRouteRequest = z.infer<typeof assignmentRouteRequestSchema>;
 
 export const assignmentParticipantsRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type AssignmentParticipantsRequest = z.infer<typeof assignmentParticipantsRequestSchema>;

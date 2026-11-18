@@ -110,14 +110,14 @@ export const packingCreateItemRequestSchema = z.object({
   // Three-tier sharing (#858): which list the item belongs to, and — for 'shared' —
   // the people it covers ("taken care of by you").
   visibility: packingVisibilitySchema.optional(),
-  recipient_ids: z.array(z.number()).optional(),
+  recipient_ids: z.array(z.number().int()).optional(),
 });
 export type PackingCreateItemRequest = z.infer<typeof packingCreateItemRequestSchema>;
 
 // Re-set an item's sharing tier + the people a 'shared' item covers (#858).
 export const packingSetSharingRequestSchema = z.object({
   visibility: packingVisibilitySchema,
-  recipient_ids: z.array(z.number()).optional(),
+  recipient_ids: z.array(z.number().int()).optional(),
 });
 export type PackingSetSharingRequest = z.infer<typeof packingSetSharingRequestSchema>;
 
@@ -150,7 +150,7 @@ export const packingImportRequestSchema = z.object({
 export type PackingImportRequest = z.infer<typeof packingImportRequestSchema>;
 
 export const packingReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type PackingReorderRequest = z.infer<typeof packingReorderRequestSchema>;
 
@@ -171,7 +171,7 @@ export const packingUpdateBagRequestSchema = z.object({
 export type PackingUpdateBagRequest = z.infer<typeof packingUpdateBagRequestSchema>;
 
 export const packingBagMembersRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type PackingBagMembersRequest = z.infer<typeof packingBagMembersRequestSchema>;
 
@@ -202,7 +202,7 @@ export const packingTemplatesResponseSchema = z.object({
 export type PackingTemplatesResponse = z.infer<typeof packingTemplatesResponseSchema>;
 
 export const packingCategoryAssigneesRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type PackingCategoryAssigneesRequest = z.infer<typeof packingCategoryAssigneesRequestSchema>;
 

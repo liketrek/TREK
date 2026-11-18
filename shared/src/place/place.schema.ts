@@ -287,7 +287,7 @@ export const placeRatingRequestSchema = z.object({
 export type PlaceRatingRequest = z.infer<typeof placeRatingRequestSchema>;
 
 export const placeBulkDeleteRequestSchema = z.object({
-  ids: z.array(z.number()),
+  ids: z.array(z.number().int()),
 });
 export type PlaceBulkDeleteRequest = z.infer<typeof placeBulkDeleteRequestSchema>;
 
@@ -295,7 +295,7 @@ export const placeBulkUpdateRequestSchema = z.object({
   // Deliberately unbounded: the endpoint answers an empty list with
   // `{ updated: [], count: 0 }` rather than a 400, so a `.min(1)` here would
   // change that contract once the body validates through the Zod pipe.
-  ids: z.array(z.number()),
+  ids: z.array(z.number().int()),
   // null clears the category ("No category"); a number sets it. Optional so the
   // field can be omitted, but the endpoint requires it to be present to act.
   category_id: z.number().int().nullable().optional(),

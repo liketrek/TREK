@@ -1,3 +1,5 @@
+import { rowIdInputSchema } from '../common/primitives.schema';
+
 import { z } from 'zod';
 
 /**
@@ -55,12 +57,12 @@ export type VacayUpdateHolidayCalendarRequest = z.infer<typeof vacayUpdateHolida
 
 export const vacaySetColorRequestSchema = z.object({
   color: z.string().optional(),
-  target_user_id: z.union([z.number(), z.string()]).optional(),
+  target_user_id: rowIdInputSchema.optional(),
 });
 export type VacaySetColorRequest = z.infer<typeof vacaySetColorRequestSchema>;
 
 export const vacayInviteRequestSchema = z.object({
-  user_id: z.union([z.number().int(), z.string()]),
+  user_id: rowIdInputSchema,
 });
 export type VacayInviteRequest = z.infer<typeof vacayInviteRequestSchema>;
 
@@ -76,7 +78,7 @@ export type VacayAddYearRequest = z.infer<typeof vacayAddYearRequestSchema>;
 
 export const vacayToggleEntryRequestSchema = z.object({
   date: z.string().min(1),
-  target_user_id: z.union([z.number(), z.string()]).optional(),
+  target_user_id: rowIdInputSchema.optional(),
   // Half vacation days (#552): 0.5 logs a half day, 1 (or omitted) a full day.
   fraction: z.union([z.literal(0.5), z.literal(1)]).optional(),
   // Leave type (#1074): 'comp' logs a flex/comp day (does not touch the
@@ -111,14 +113,14 @@ export type VacayCompanyHolidayRequest = z.infer<typeof vacayCompanyHolidayReque
 
 export const vacayUpdateStatsRequestSchema = z.object({
   vacation_days: z.number().int().optional(),
-  target_user_id: z.union([z.number(), z.string()]).optional(),
+  target_user_id: rowIdInputSchema.optional(),
 });
 export type VacayUpdateStatsRequest = z.infer<typeof vacayUpdateStatsRequestSchema>;
 
 // Read-only calendar sharing (#444/#667): grant another user view access to
 // your vacation calendar without fusing plans.
 export const vacayShareRequestSchema = z.object({
-  user_id: z.union([z.number().int(), z.string()]),
+  user_id: rowIdInputSchema,
 });
 export type VacayShareRequest = z.infer<typeof vacayShareRequestSchema>;
 
