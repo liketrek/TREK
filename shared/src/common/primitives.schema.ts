@@ -18,7 +18,8 @@ export type Id = z.infer<typeof idSchema>;
  */
 export const idParamSchema = z
   .union([z.number().int(), z.string().regex(/^\d+$/)])
-  .pipe(z.coerce.number().int().positive());
+  .transform(Number)
+  .pipe(z.number().int().positive());
 
 /**
  * A row id written as text: decimal digits naming a safe integer, kept as the
