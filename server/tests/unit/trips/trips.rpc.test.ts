@@ -46,12 +46,22 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const ALL_TRIP_GRANTS = ['db:read:trips', 'db:write:trips', 'db:create:trips', 'db:write:members'];
 
 /** Trip 1 belongs to user 42. `allow` decides each individual permission check. */
-export function build(opts: { allow?: (action: string) => boolean; updateThrows?: Error; createThrows?: Error } = {}) {
+export function build(
+  opts: {
+    allow?: (action: string) => boolean;
+    updateThrows?: Error;
+    createThrows?: Error;
+    updateBoundaries?: unknown[];
+  } = {},
+) {
   const trips = {
     list: vi.fn(() => [{ id: 1, title: 'Japan' }]),
     updateTrip: vi.fn(() => {
       if (opts.updateThrows) throw opts.updateThrows;
-      return { updatedTrip: { id: 1, title: 'Japan' } };
+      return {
+        updatedTrip: { id: 1, title: 'Japan' },
+        ...(opts.updateBoundaries ? { boundaries: opts.updateBoundaries } : {}),
+      };
     }),
     create: vi.fn((userId: number) => {
       if (opts.createThrows) throw opts.createThrows;
@@ -294,6 +304,14 @@ describe('TripsRpc writes', () => {
       true,
     );
     expect(f.trips.updateTrip).toHaveBeenCalledWith(1, 42, { costs_mode: 'totals' }, 'user');
+  });
+
+  it('TRIPS-RPC-024 road trip day boundaries that moved with their days go out with the trip (#3119)', async () => {
+    const boundaries = [{ day_number: 4, from_assignment_id: 8, to_assignment_id: null, fraction: 0.5 }];
+    const f = build({ updateBoundaries: boundaries });
+    const input = { start_date: '2026-05-09', end_date: '2026-05-14' };
+    expect((await f.host().dispatch(req('trips.update', { tripId: 1, input }), 42)).ok).toBe(true);
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'roadtripBoundary:changed', { boundaries });
   });
 
   it('TRIPS-RPC-009 service errors map onto the right RPC codes', async () => {

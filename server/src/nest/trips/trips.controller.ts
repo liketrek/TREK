@@ -226,6 +226,9 @@ export class TripsController {
         else logInfo(`${user.email} removed reminder for trip "${result.newTitle}"`);
       }
       this.trips.broadcast(id, 'trip:updated', { trip: result.updatedTrip }, socketId);
+      // To every screen, the saving one included: it holds the boundaries outside the trip.
+      if (result.boundaries)
+        this.trips.broadcast(id, 'roadtripBoundary:changed', { boundaries: result.boundaries }, undefined);
       return { trip: result.updatedTrip };
     } catch (e: unknown) {
       if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);

@@ -100,7 +100,7 @@ const dashboard: TranslationStrings = {
     'Kamu mengubah tanggal mulai perjalanan ini. Bagaimana rencanamu harus mengikuti tanggal baru?',
   'dashboard.dateShiftKeepBookings': 'Pertahankan pesanan pada tanggalnya',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Rencana harian ikut berpindah ke tanggal baru, sementara reservasi dan akomodasi tetap pada tanggal aslinya selama tanggal tersebut masih termasuk dalam perjalanan.',
+    'Hari yang ditambahkan tetap kosong dan tidak ada hal lain yang berpindah. Jika perjalanan bergeser, rencana harian ikut berpindah ke tanggal baru, sementara reservasi dan akomodasi tetap pada tanggal aslinya selama tanggal tersebut masih termasuk dalam perjalanan.',
   'dashboard.dateShiftAll': 'Geser semuanya',
   'dashboard.dateShiftAllDesc':
     'Seluruh rencana perjalanan berpindah ke tanggal baru, termasuk reservasi dan akomodasi.',

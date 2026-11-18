@@ -106,7 +106,7 @@ const dashboard: TranslationStrings = {
     'Bạn đã thay đổi thời điểm bắt đầu chuyến đi. Các kế hoạch của bạn nên theo ngày mới như thế nào?',
   'dashboard.dateShiftKeepBookings': 'Giữ đặt chỗ theo ngày ban đầu',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Kế hoạch theo ngày sẽ dời theo ngày mới, trong khi đặt chỗ và chỗ ở vẫn giữ nguyên ngày ban đầu miễn là những ngày đó vẫn nằm trong chuyến đi.',
+    'Các ngày được thêm vẫn trống và không có gì khác bị dời. Nếu chuyến đi bị dời, kế hoạch theo ngày sẽ dời theo ngày mới, trong khi đặt chỗ và chỗ ở vẫn giữ nguyên ngày ban đầu miễn là những ngày đó vẫn nằm trong chuyến đi.',
   'dashboard.dateShiftAll': 'Dời tất cả',
   'dashboard.dateShiftAllDesc': 'Toàn bộ lịch trình sẽ dời theo ngày mới, bao gồm cả đặt chỗ và chỗ ở.',
   'dashboard.dateShiftHint':

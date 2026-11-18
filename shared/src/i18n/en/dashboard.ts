@@ -121,7 +121,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'You changed when this trip starts. How should your plans follow the new dates?',
   'dashboard.dateShiftKeepBookings': 'Keep bookings on their dates',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Day plans move with the new dates, while reservations and accommodations stay on their original dates as long as those are still part of the trip.',
+    'Days you add stay empty and nothing else moves. If the trip moves, day plans move with the new dates, while reservations and accommodations stay on their original dates as long as those are still part of the trip.',
   'dashboard.dateShiftAll': 'Shift everything',
   'dashboard.dateShiftAllDesc':
     'The entire itinerary moves with the new dates, including reservations and accommodations.',

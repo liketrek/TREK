@@ -108,7 +108,7 @@ const dashboard: TranslationStrings = {
     'Je hebt gewijzigd wanneer deze reis begint. Hoe moeten je plannen de nieuwe datums volgen?',
   'dashboard.dateShiftKeepBookings': 'Boekingen op hun datums houden',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Dagplannen verschuiven mee met de nieuwe datums, terwijl reserveringen en accommodaties op hun oorspronkelijke datums blijven zolang die nog binnen de reis vallen.',
+    'Toegevoegde dagen blijven leeg en verder verschuift er niets. Als de reis verschuift, verschuiven dagplannen mee met de nieuwe datums, terwijl reserveringen en accommodaties op hun oorspronkelijke datums blijven zolang die nog binnen de reis vallen.',
   'dashboard.dateShiftAll': 'Alles verschuiven',
   'dashboard.dateShiftAllDesc':
     'De volledige reisplanning verschuift mee met de nieuwe datums, inclusief reserveringen en accommodaties.',

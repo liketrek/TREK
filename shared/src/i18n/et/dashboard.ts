@@ -121,7 +121,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Muutsid reisi algust. Kuidas peaksid plaanid uute kuupäevadega kohanema?',
   'dashboard.dateShiftKeepBookings': 'Jäta broneeringud oma kuupäevadele',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Päevaplaanid liiguvad uutele kuupäevadele, kuid broneeringud ja majutused jäävad algsetele kuupäevadele, kui need jäävad endiselt reisi sisse.',
+    'Lisatud päevad jäävad tühjaks ja midagi muud ei liigu. Kui reis nihkub, liiguvad päevaplaanid uutele kuupäevadele, kuid broneeringud ja majutused jäävad algsetele kuupäevadele, kui need jäävad endiselt reisi sisse.',
   'dashboard.dateShiftAll': 'Nihuta kõike',
   'dashboard.dateShiftAllDesc': 'Kogu reisiplaan, sealhulgas broneeringud ja majutused, liigub uutele kuupäevadele.',
   'dashboard.dateShiftHint': 'Vihje: ainult osa reisiplaani nihutamiseks kasuta planeerijas valikut „Lisa päev“.',

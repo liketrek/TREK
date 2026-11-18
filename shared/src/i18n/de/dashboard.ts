@@ -109,7 +109,7 @@ const dashboard: TranslationStrings = {
     'Du hast den Beginn dieser Reise geändert. Wie sollen deine Pläne den neuen Daten folgen?',
   'dashboard.dateShiftKeepBookings': 'Buchungen auf ihren Terminen belassen',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Tagespläne wandern mit den neuen Daten, während Reservierungen und Unterkünfte auf ihren ursprünglichen Terminen bleiben, solange diese noch Teil der Reise sind.',
+    'Hinzugefügte Tage bleiben leer, sonst verschiebt sich nichts. Wird die Reise verschoben, wandern Tagespläne mit den neuen Daten, während Reservierungen und Unterkünfte auf ihren ursprünglichen Terminen bleiben, solange diese noch Teil der Reise sind.',
   'dashboard.dateShiftAll': 'Alles verschieben',
   'dashboard.dateShiftAllDesc':
     'Der gesamte Reiseplan wandert mit den neuen Daten, einschließlich Reservierungen und Unterkünften.',

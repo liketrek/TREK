@@ -109,7 +109,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Megváltoztattad az út kezdetét. Hogyan kövessék a terveid az új dátumokat?',
   'dashboard.dateShiftKeepBookings': 'A foglalások maradjanak a saját dátumaikon',
   'dashboard.dateShiftKeepBookingsDesc':
-    'A napi tervek az új dátumokkal együtt mozognak, míg a foglalások és szállások az eredeti dátumaikon maradnak, amíg azok még az út részei.',
+    'A hozzáadott napok üresek maradnak, és semmi más nem mozdul. Ha az út eltolódik, a napi tervek az új dátumokkal együtt mozognak, míg a foglalások és szállások az eredeti dátumaikon maradnak, amíg azok még az út részei.',
   'dashboard.dateShiftAll': 'Minden eltolása',
   'dashboard.dateShiftAllDesc':
     'A teljes útiterv az új dátumokkal együtt mozog, beleértve a foglalásokat és a szállásokat is.',

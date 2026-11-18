@@ -107,7 +107,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Você alterou o início desta viagem. Como seus planos devem acompanhar as novas datas?',
   'dashboard.dateShiftKeepBookings': 'Manter reservas em suas datas',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Os planos diários acompanham as novas datas, enquanto reservas e hospedagens permanecem nas datas originais, desde que ainda façam parte da viagem.',
+    'Os dias adicionados ficam vazios e nada mais muda de lugar. Se a viagem mudar de data, os planos diários acompanham as novas datas, enquanto reservas e hospedagens permanecem nas datas originais, desde que ainda façam parte da viagem.',
   'dashboard.dateShiftAll': 'Mover tudo',
   'dashboard.dateShiftAllDesc': 'Todo o itinerário acompanha as novas datas, incluindo reservas e hospedagens.',
   'dashboard.dateShiftHint':

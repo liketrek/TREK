@@ -121,7 +121,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Du har ändrat när resan börjar. Hur ska dina planer följa de nya datumen?',
   'dashboard.dateShiftKeepBookings': 'Behåll bokningar på sina datum',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Dagsplanerna flyttas med de nya datumen, medan bokningar och boenden ligger kvar på sina ursprungliga datum så länge dessa fortfarande ingår i resan.',
+    'Tillagda dagar förblir tomma och inget annat flyttas. Om resan flyttas, flyttas dagsplanerna med de nya datumen, medan bokningar och boenden ligger kvar på sina ursprungliga datum så länge dessa fortfarande ingår i resan.',
   'dashboard.dateShiftAll': 'Flytta allt',
   'dashboard.dateShiftAllDesc': 'Hela resplanen flyttas med de nya datumen, inklusive bokningar och boenden.',
   'dashboard.dateShiftHint':

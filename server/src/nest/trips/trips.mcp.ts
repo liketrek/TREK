@@ -251,7 +251,7 @@ export class TripsMcp {
         .enum(['keep_bookings', 'shift_all'])
         .optional()
         .describe(
-          'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
+          'When changing dates: keep_bookings (default) leaves everything on its date when days are only added before the start or after the end, and when the trip moves keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
         ),
       costs_mode: tripUpdateRequestSchema.shape.costs_mode.describe(
         'How the trip keeps its costs: split (who paid and who shares each expense, with settling up) or totals (what the trip costs, nothing split). Who paid and the shares stay stored either way. Needs the budget_edit permission rather than trip_edit',
@@ -336,13 +336,14 @@ export class TripsMcp {
     // role, as REST hands it on, so an admin's edit of a trip they do not own is one.
     const { role } = await this.guards.tripWriter(tripId, ctx.userId);
     try {
-      const { updatedTrip, removedDays } = await this.trips.update(
+      const { updatedTrip, removedDays, boundaries } = await this.trips.update(
         tripId,
         ctx.userId,
         { ...fields, date_shift_mode },
         role,
       );
       this.guards.safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
+      if (boundaries) this.guards.safeBroadcast(tripId, 'roadtripBoundary:changed', { boundaries });
       // Only when days went, so the answer to a rename or a longer trip stays as it was.
       return ok({ trip: updatedTrip, ...(removedDays.length > 0 ? { removed_days: removedDays } : {}) });
     } catch (err) {

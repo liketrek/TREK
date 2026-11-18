@@ -123,7 +123,7 @@ const dashboard: TranslationStrings = {
     'Səyahətin başlama tarixini dəyişdiniz. Planlarınız yeni tarixlərə necə uyğunlaşdırılsın?',
   'dashboard.dateShiftKeepBookings': 'Rezervasiyaların tarixlərini saxla',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Günlük planlar yeni tarixlərə köçürülür, rezervasiya və yaşayış yerləri isə tarixləri hələ də səyahət müddətinə daxil olduğu halda ilkin tarixlərində qalır.',
+    'Əlavə etdiyiniz günlər boş qalır və başqa heç nə yerini dəyişmir. Səyahət köçürülərsə, günlük planlar yeni tarixlərə köçürülür, rezervasiya və yaşayış yerləri isə tarixləri hələ də səyahət müddətinə daxil olduğu halda ilkin tarixlərində qalır.',
   'dashboard.dateShiftAll': 'Hər şeyi yeni tarixlərə köçür',
   'dashboard.dateShiftAllDesc':
     'Rezervasiya və yaşayış yerləri də daxil olmaqla bütün səyahət planı yeni tarixlərə köçürülür.',

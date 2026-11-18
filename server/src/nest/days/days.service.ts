@@ -738,6 +738,50 @@ export class DaysService {
   }
 
   /**
+   * After the trip's days were laid out again (TripsService.generateDays), each
+   * road trip day boundary follows its day to the number the day now has: they
+   * are keyed by day number, not by day (#3119). `before` is the days as they
+   * were, `rows` the new order. One on a day that went applies to no day and
+   * goes; one on a number no day held stays, unless a day takes that number now.
+   * Two steps, through numbers above every old and new one, since the number is
+   * the primary key and a CHECK keeps it at 1 or above. Returns the list after
+   * the move, or null when nothing changed. Runs inside the caller's transaction.
+   */
+  async followDayNumbers(
+    tripId: number,
+    before: readonly { id: number; day_number: number }[],
+    rows: readonly { id: number | null }[],
+  ): Promise<RoadtripDayBoundary[] | null> {
+    const dayAt = new Map(before.map((d) => [d.day_number, d.id]));
+    const numberOf = new Map<number, number>();
+    rows.forEach((row, i) => {
+      if (row.id !== null) numberOf.set(row.id, i + 1);
+    });
+    // RB6
+    const numbers = await this.roadtripDayBoundariesRepo.listDayNumbers(tripId);
+    const moves: { from: number; to: number }[] = [];
+    const dropped: number[] = [];
+    for (const from of numbers) {
+      const dayId = dayAt.get(from);
+      const to = dayId === undefined ? from : numberOf.get(dayId);
+      if (to === undefined) dropped.push(from);
+      else if (to !== from) moves.push({ from, to });
+    }
+    const taken = new Set(moves.map((m) => m.to));
+    dropped.push(...numbers.filter((n) => !dayAt.has(n) && taken.has(n)));
+    if (moves.length === 0 && dropped.length === 0) return null;
+    // RB4
+    await this.roadtripDayBoundariesRepo.deleteForDays(tripId, dropped);
+    const parked = Math.max(...numbers, ...taken) + 1;
+    // RB7, twice. Within each step every target is distinct, so the order of
+    // the moves does not matter; the second step starts once all are parked.
+    await Promise.all(moves.map((m) => this.roadtripDayBoundariesRepo.moveDayNumber(tripId, m.from, m.from + parked)));
+    await Promise.all(moves.map((m) => this.roadtripDayBoundariesRepo.moveDayNumber(tripId, m.from + parked, m.to)));
+    // RB1
+    return await this.roadtripDayBoundariesRepo.listForTrip(tripId);
+  }
+
+  /**
    * Boundaries are keyed by day number, so the ones on the days that moved back
    * move back with them. One at a time and from the last one down: the key is
    * the primary key, and a CHECK keeps it at 1 or above, so the negative two-step

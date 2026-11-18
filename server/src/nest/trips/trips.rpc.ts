@@ -173,6 +173,8 @@ export class TripsRpc {
         role ?? 'user',
       );
       this.realtime.broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
+      if (result.boundaries)
+        this.realtime.broadcast(tripId, 'roadtripBoundary:changed', { boundaries: result.boundaries });
       return result.updatedTrip;
     } catch (e) {
       if (e instanceof ValidationError) throw new BadParams(e.message);

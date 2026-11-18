@@ -1,5 +1,5 @@
 import { ValidationError } from '../common/domain-errors';
-import { MAX_TRIP_DAYS, tripSpanDays, type PermissionKey } from '@trek/shared';
+import { addIsoDays, MAX_TRIP_DAYS, tripSpanDays, type PermissionKey } from '@trek/shared';
 
 /**
  * Pure helpers of the trips domain, moved out of trips.service.ts. Nothing
@@ -60,4 +60,24 @@ export function tripUpdatePermissions(body: object): { action: PermissionKey; re
   }
   if (TRIP_EDIT_FIELDS.some(sent)) needed.push({ action: 'trip_edit', refusal: 'No permission to edit this trip' });
   return needed;
+}
+
+/**
+ * The start the owner's leave days move to when the trip's dates change: the
+ * old start moved by as far as the trip's first dated day moved. When the days
+ * move with a new start, that is the new start; when days were only added
+ * around the plan, the first day kept its date and the leave stays (#3119).
+ * Without a dated day to go by, the new start as it always was.
+ */
+export function leaveStartFor(
+  oldStart: string | null | undefined,
+  daysBefore: readonly { id: number; date: string | null }[],
+  dateNow: ReadonlyMap<number, string | null>,
+  newStart: string | null | undefined,
+): string | null | undefined {
+  const first = daysBefore.find((d) => d.date);
+  const firstNow = first ? dateNow.get(first.id) : null;
+  if (!oldStart || !first?.date || !firstNow) return newStart;
+  const moved = Math.round((Date.parse(`${firstNow}T00:00:00Z`) - Date.parse(`${first.date}T00:00:00Z`)) / 86_400_000);
+  return addIsoDays(oldStart, moved);
 }

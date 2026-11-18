@@ -8,6 +8,7 @@
  * trips:write markers + the canReadTrips/canDeleteTrips predicates).
  */
 import { Days } from '../../../src/db/entities/Days.entity';
+import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { VacayEntries } from '../../../src/db/entities/VacayEntries.entity';
 import { VacayUserYears } from '../../../src/db/entities/VacayUserYears.entity';
@@ -304,6 +305,36 @@ describe('Tool: update_trip', () => {
       await h.client.callTool({ name: 'update_trip', arguments: { tripId: trip.id, title: 'Updated' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'trip:updated', expect.any(Object));
     });
+  });
+
+  it('a day added before the start moves the road trip day boundaries with their days and announces them (#3119)', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-05-10', end_date: '2026-05-12' });
+    const day2 = await findRow(orm, Days, { trip: trip.id, day_number: 2 });
+    if (!day2) throw new Error('the trip has no second day');
+    const place = await makePlace(orm, trip.id, { name: 'Viewpoint' });
+    const stop = await makeDayAssignment(orm, day2.id, place.id);
+    await insertRow(orm, RoadtripDayBoundaries, {
+      trip: trip.id,
+      day_number: 2,
+      fromAssignment: stop.id,
+      fraction: 0.5,
+    });
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'update_trip',
+        arguments: { tripId: trip.id, start_date: '2026-05-09', end_date: '2026-05-12' },
+      });
+    });
+    const boundaries = await findRows(orm, RoadtripDayBoundaries, { trip: trip.id });
+    expect(boundaries.map((b) => b.day_number)).toEqual([3]);
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id,
+      'roadtripBoundary:changed',
+      expect.objectContaining({
+        boundaries: [expect.objectContaining({ day_number: 3, from_assignment_id: stop.id })],
+      }),
+    );
   });
 
   it('returns access denied for non-member', async () => {

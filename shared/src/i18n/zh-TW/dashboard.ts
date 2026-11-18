@@ -99,7 +99,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': '你變更了旅行的開始時間。你的計劃要如何配合新日期？',
   'dashboard.dateShiftKeepBookings': '預訂保留在原日期',
   'dashboard.dateShiftKeepBookingsDesc':
-    '每日計劃會隨新日期移動，而預訂和住宿只要仍在旅行期間內，就會保留在原本的日期。',
+    '新增的日期會保持空白，其他內容都不會移動。如果旅行日期整體移動，每日計劃會隨新日期移動，而預訂和住宿只要仍在旅行期間內，就會保留在原本的日期。',
   'dashboard.dateShiftAll': '全部移動',
   'dashboard.dateShiftAllDesc': '整個行程都會隨新日期移動，包括預訂和住宿。',
   'dashboard.dateShiftHint':
