@@ -1,0 +1,146 @@
+name: Set up Node and the workspaces
+description: >-
+  Node from .nvmrc, the workspace dependencies from an exact cache or npm ci,
+  and optionally shared/dist from a cache or a build. Runs after checkout.
+
+# A local action, so it is versioned with the workflow that calls it and needs
+# no SHA pin. scripts/ci/changed-areas.mjs counts .github/actions/ like
+# test.yml: a change here runs everything.
+#
+# node_modules is restored only on an exact key: the runner image, the scope,
+# the Node ABI, the lockfile and every workspace package.json. There are no
+# restore-keys, so a hit is the tree npm ci would build and a miss is a plain
+# npm ci. The package.json files are in the key because npm ci is also the
+# check that they agree with the lockfile: an edited range without a fresh
+# lockfile misses the cache and fails the install, as it did when every job
+# ran npm ci. Only pushes to dev and main save, the npm download cache
+# included, so pull requests read what their base left and cannot evict it or
+# fill the repository's cache quota with entries of their own.
+
+inputs:
+  scope:
+    description: >-
+      Which workspaces to install: full (npm ci), client (shared and client)
+      or shared (shared alone).
+    required: true
+  build-shared:
+    description: "'true' to restore shared/dist, or build it on a miss."
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .nvmrc
+
+    # ImageOS and ImageVersion name the runner image, whose system libraries
+    # the native modules were built against. They live in the runner's
+    # environment, not in the env context, so the key is put together here. A
+    # job in a container has neither; the container's OS release stands in,
+    # and that job's tree is kept apart from the runner's.
+    - name: Work out the cache keys
+      id: keys
+      shell: bash
+      env:
+        SCOPE: ${{ inputs.scope }}
+        DEPS: ${{ hashFiles('.nvmrc', 'package-lock.json', 'package.json', 'client/package.json', 'server/package.json', 'shared/package.json') }}
+        SHARED: ${{ hashFiles('shared/src/**', 'shared/package.json', 'shared/tsconfig*.json', 'shared/tsdown.config.ts', 'package-lock.json') }}
+      run: |
+        set -euo pipefail
+        case "$SCOPE" in
+          full | client | shared) ;;
+          *) echo "::error::scope must be full, client or shared, not '$SCOPE'"; exit 1 ;;
+        esac
+        if [ -n "${ImageOS:-}" ]; then
+          image="$ImageOS-${ImageVersion:-unknown}"
+        else
+          image="container-$(. /etc/os-release && echo "$ID$VERSION_ID")"
+        fi
+        abi="$(node -p process.versions.modules)"
+        echo "nm=nm-$RUNNER_OS-$image-$SCOPE-node$abi-$DEPS" >> "$GITHUB_OUTPUT"
+        echo "sd=sd-$RUNNER_OS-$SHARED" >> "$GITHUB_OUTPUT"
+        echo "save=${{ github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') }}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore node_modules
+      id: nm
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          node_modules
+          server/node_modules
+          client/node_modules
+          shared/node_modules
+        key: ${{ steps.keys.outputs.nm }}
+
+    # The npm download cache only matters when npm ci runs, so it is restored
+    # only then. It may fall back to an older lockfile's cache: npm ci checks
+    # every tarball against the lockfile's integrity hash and fetches what is
+    # missing, so a stale entry only costs downloads.
+    - name: Restore the npm download cache
+      id: npm
+      if: steps.nm.outputs.cache-hit != 'true'
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.npm
+        key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: npm-${{ runner.os }}-
+
+    - name: Install dependencies
+      if: steps.nm.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        SCOPE: ${{ inputs.scope }}
+      run: |
+        set -euo pipefail
+        case "$SCOPE" in
+          full) npm ci ;;
+          # The scoped install keeps @testing-library/dom (a peer of
+          # @testing-library/react) in the tree.
+          client) npm ci --workspace shared --workspace client ;;
+          shared) npm ci --workspace shared ;;
+        esac
+
+    - name: Save node_modules
+      if: steps.nm.outputs.cache-hit != 'true' && steps.keys.outputs.save == 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          node_modules
+          server/node_modules
+          client/node_modules
+          shared/node_modules
+        key: ${{ steps.keys.outputs.nm }}
+
+    # Only a full install saves the download cache, so the entry holds every
+    # tarball; a scoped job that finished first would otherwise claim the key
+    # with part of the tree and no later run would fill it.
+    - name: Save the npm download cache
+      if: steps.nm.outputs.cache-hit != 'true' && steps.keys.outputs.save == 'true' && steps.npm.outputs.cache-hit != 'true' && inputs.scope == 'full'
+      uses: actions/cache/save@v6
+      with:
+        path: ~/.npm
+        key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+    # The key holds every input of the build: the sources, the package and
+    # build configs, and the lockfile that pins tsdown and zod.
+    - name: Restore shared/dist
+      id: sd
+      if: inputs.build-shared == 'true'
+      uses: actions/cache/restore@v6
+      with:
+        path: shared/dist
+        key: ${{ steps.keys.outputs.sd }}
+
+    - name: Build shared
+      if: inputs.build-shared == 'true' && steps.sd.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm run build --workspace=shared
+
+    - name: Save shared/dist
+      if: inputs.build-shared == 'true' && steps.sd.outputs.cache-hit != 'true' && steps.keys.outputs.save == 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: shared/dist
+        key: ${{ steps.keys.outputs.sd }}

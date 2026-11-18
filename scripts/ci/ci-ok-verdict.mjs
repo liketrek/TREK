@@ -67,7 +67,7 @@ export function verdict(response, sha) {
     `${run.status === 'completed' ? run.conclusion : run.status} ${run.html_url ?? `check run ${run.id}`}`;
 
   if (runs.length === 0) {
-    return { ok: false, lines: [`::error::ci-ok never ran on ${sha}. Run Tests & SonarQube on it and dispatch again.`] };
+    return { ok: false, lines: [`::error::ci-ok never ran on ${sha}. Run CI on it and dispatch again.`] };
   }
 
   const lines = runs.map((run) => `ci-ok on ${sha}: ${describe(run)}`);
@@ -82,7 +82,7 @@ export function verdict(response, sha) {
     return diff > 0 || (diff === 0 && b.id > a.id) ? b : a;
   });
   if (newest.conclusion !== 'success') {
-    lines.push(`::error::The newest ci-ok on ${sha} is not green: ${describe(newest)}. Re-run that run, or run Tests & SonarQube on it again, then dispatch again.`);
+    lines.push(`::error::The newest ci-ok on ${sha} is not green: ${describe(newest)}. Re-run that run, or run CI on it again, then dispatch again.`);
     return { ok: false, lines };
   }
   for (const run of runs) {

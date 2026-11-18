@@ -95,6 +95,13 @@ describe('classify', () => {
     assert.deepEqual(classify(['scripts/ci/changed-areas.mjs']), every);
   });
 
+  it('runs everything when a local action the jobs set up with changes', () => {
+    assert.deepEqual(classify(['.github/actions/setup/action.yml']), every);
+    assert.deepEqual(classify(['.github/actions/other/action.yaml']), every);
+    // Another workflow is not one of them.
+    assert.deepEqual(classify(['.github/workflows/security.yml']), none);
+  });
+
   it('matches whole file names, not prefixes of them', () => {
     assert.deepEqual(classify(['package.json.bak', 'Dockerfile.old', 'serverless/x.ts', 'wikis/x.png']), none);
   });

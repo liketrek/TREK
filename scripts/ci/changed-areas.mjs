@@ -23,9 +23,9 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// The workflow file and this script decide what runs, so a change to either
-// runs everything.
-const ALWAYS = ['.github/workflows/test.yml', 'scripts/ci/'];
+// The workflow file, the local actions its jobs set up with and this script
+// decide what runs and how, so a change to any of them runs everything.
+const ALWAYS = ['.github/workflows/test.yml', '.github/actions/', 'scripts/ci/'];
 
 // Files the test suites read straight from disk, outside the packages:
 // config-templates.test.ts pins docker-compose.yml and the Helm chart to the
@@ -49,7 +49,7 @@ export const AREAS = {
     'package-lock.json',
     '.nvmrc',
     'sonar-project.properties',
-    // lint:knip in server-lint-checks reads it.
+    // lint:knip in server-lint reads it.
     'knip.jsonc',
     'Dockerfile',
     ...READ_BY_TESTS,
