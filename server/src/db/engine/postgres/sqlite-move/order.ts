@@ -36,7 +36,7 @@ function defer(plan: CopyPlan, fk: ForeignKey): void {
 export function planCopyOrder(tables: readonly string[], foreignKeys: readonly ForeignKey[]): CopyPlan {
   const plan: CopyPlan = { order: [], deferred: new Map() };
   const known = new Set(tables);
-  const pending = new Set([...tables].sort());
+  const pending = new Set([...tables].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)));
   const keys = foreignKeys.filter((fk) => known.has(fk.table) && known.has(fk.references));
   for (const fk of keys) if (fk.table === fk.references) defer(plan, fk);
   const between = keys.filter((fk) => fk.table !== fk.references);

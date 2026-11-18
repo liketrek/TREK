@@ -166,7 +166,7 @@ export function migrationLevelProblem(recorded: readonly string[] | null, known:
   if (unknown.length > 0) {
     return (
       `a newer TREK migrated the SQLite file (${unknown.length} migration(s) this version does not know, ` +
-      `the last ${[...unknown].sort().at(-1)}). Run the move with the TREK version that last ran on it.`
+      `the last ${[...unknown].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).at(-1)}). Run the move with the TREK version that last ran on it.`
     );
   }
   const have = new Set(recorded);

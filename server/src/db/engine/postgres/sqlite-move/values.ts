@@ -332,7 +332,7 @@ export function stableJson(text: string): string {
     if (value !== null && typeof value === 'object') {
       return Object.fromEntries(
         Object.keys(value)
-          .sort()
+          .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
           .map((key) => [key, sort((value as Record<string, unknown>)[key])]),
       );
     }

@@ -135,7 +135,7 @@ async function createFromBaseline(
  * that migration, when there is one.
  */
 async function refuseNewerHistory(executed: string[], deps: PostgresBootstrapDeps): Promise<void> {
-  const thisRelease = migrationLabel([...deps.known].sort().at(-1) ?? '');
+  const thisRelease = migrationLabel([...deps.known].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).at(-1) ?? '');
   refuseNewerDatabase(executed, deps.known, await deps.safetyNet.restoreHint(thisRelease));
 }
 
@@ -216,7 +216,7 @@ export async function bootstrapPostgresSchema(orm: AnyOrm, deps: PostgresBootstr
   if (pending.length === 0) return;
   // Only a database with history has a last migration to label its copy by; a
   // database the baseline just created has nothing yet to lose.
-  const latest = [...executed].sort().at(-1);
+  const latest = [...executed].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).at(-1);
   if (latest !== undefined) await deps.safetyNet.beforeMigrate(migrationLabel(latest));
   logger.log(`Applying ${pending.length} pending migration(s)`);
   await migrator.up();
