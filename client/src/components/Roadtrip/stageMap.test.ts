@@ -125,14 +125,15 @@ describe('stageMapData with a stage', () => {
     expect(stageMapData(routes(), stage, true).lines).toEqual([LINES[1], LINES[2]])
   })
 
-  it('FE-RTSTAGE-016: the drive into the next day is left off the stage', () => {
-    // With "connect the days" on, that leg is drawn in the colour of the day it leaves, so
+  it('FE-RTSTAGE-016: the drive in from the day before is left off the stage', () => {
+    // With "connect the days" on, that leg is drawn as the day it arrives on (#3123), so
     // filtering by day number alone handed the stage a line running off it to a place the
     // day never visits. On a phone, where the stage IS the map, it was the longest thing
-    // on screen and read as the day's own route.
-    const withJoin = routes({ lineJoins: [false, false, true, false] })
+    // on screen and read as the day's own route. The assembler emits it first among the
+    // lines of the day it reaches, ahead of that day's own legs.
+    const withJoin = routes({ lineJoins: [false, true, false, false] })
 
-    expect(stageMapData(withJoin, stage, true).lines).toEqual([LINES[1]])
+    expect(stageMapData(withJoin, stage, true).lines).toEqual([LINES[2]])
   })
 
   it('FE-RTSTAGE-020: a day that is nothing but driving keeps its connection rather than going blank', () => {
@@ -144,7 +145,7 @@ describe('stageMapData with a stage', () => {
   })
 
   it('FE-RTSTAGE-017: the colours still line up once a join has been dropped', () => {
-    const data = stageMapData(routes({ lineJoins: [false, false, true, false] }), stage, true)
+    const data = stageMapData(routes({ lineJoins: [false, true, false, false] }), stage, true)
 
     expect(data.lineColors).toHaveLength(data.lines.length)
     expect(data.lineColors).toEqual([dayColor(2)])
@@ -153,7 +154,7 @@ describe('stageMapData with a stage', () => {
   it('FE-RTSTAGE-018: the all-days view keeps the joins, which is the view they are for', () => {
     // The setting draws the whole drive as one connected line; that is what it is for, and
     // on this map the connection has the other days beside it.
-    expect(stageMapData(routes({ lineJoins: [false, false, true, false] }), null, true).lines).toEqual(LINES)
+    expect(stageMapData(routes({ lineJoins: [false, true, false, false] }), null, true).lines).toEqual(LINES)
   })
 
   it('FE-RTSTAGE-019: routes from before the flag existed are drawn as they were', () => {

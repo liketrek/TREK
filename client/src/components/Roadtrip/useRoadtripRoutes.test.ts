@@ -631,7 +631,7 @@ describe('useRoadtripRoutes', () => {
       expect(result.current.totalDistance).toBe(300000)
     })
 
-    it('FE-ROADTRIP-ROUTES-022: the joining stroke wears the day it leaves, its kilometres the day it reaches', async () => {
+    it('FE-ROADTRIP-ROUTES-022: the joining stroke wears the day it reaches, like its kilometres (#3123)', async () => {
       setting({ roadtrip_connect_days: true })
       const { days: daysList, assignments } = twoDays()
       const { result } = renderHook(() => useRoadtripRoutes(7, daysList, assignments))
@@ -639,10 +639,9 @@ describe('useRoadtripRoutes', () => {
 
       // Same length and same order as `lines`, or a colour lands on the wrong day.
       expect(result.current.lineDays).toHaveLength(result.current.lines.length)
-      // The stroke starts at a stop on day 1, so drawing it as day 2 would make day 2
-      // look like it begins somewhere it has no stop.
-      expect(result.current.lineDays).toEqual([1, 1, 2])
-      // The kilometres go the other way: they are driven on the day they arrive.
+      // Day 1 ends at its last stop, so the drive on to day 2 is driven on day 2: its
+      // kilometres are counted there, and drawn in day 1's colour the map said otherwise.
+      expect(result.current.lineDays).toEqual([1, 2, 2])
       expect(result.current.days.map(d => d.distance)).toEqual([100000, 200000])
     })
 
@@ -666,7 +665,8 @@ describe('useRoadtripRoutes', () => {
 
       setting({ roadtrip_connect_days: true })
       expect(result.current.lines).toHaveLength(3)
-      expect(result.current.lineDays).toEqual([1, 2, 2])
+      // The drive past midnight lands on day 2 and is drawn there, like day 2's own legs.
+      expect(result.current.lineDays).toEqual([2, 2, 2])
       expect(result.current.days[0].distance).toBe(300000)
     })
 
