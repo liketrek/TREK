@@ -111,14 +111,16 @@ export class TripMembersController {
     if (!access) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
-    const targetId = Number.parseInt(userId);
+    // A user id toRowId refuses names nobody, so it removes nobody, like an id no member holds.
+    const targetId = toRowId(userId);
     if (
       targetId !== user.id &&
       !(await this.roster.can('member_manage', user.role, access.user_id, user.id, access.user_id !== user.id))
     ) {
       throw new HttpException({ error: 'No permission to remove members' }, 403);
     }
-    await this.writes.removeMember(tripId, targetId, this.writes.restWriter(tripId, user, socketId));
+    if (targetId !== null)
+      await this.writes.removeMember(tripId, targetId, this.writes.restWriter(tripId, user, socketId));
     return { success: true };
   }
 
@@ -185,7 +187,8 @@ export class TripMembersController {
   ) {
     try {
       const writer = this.writes.restWriter(id, user, socketId);
-      if (!(await this.writes.renameGuest(id, Number.parseInt(userId), body.name, writer))) {
+      const guestId = toRowId(userId);
+      if (guestId === null || !(await this.writes.renameGuest(id, guestId, body.name, writer))) {
         throw new HttpException({ error: 'Guest not found' }, 404);
       }
       return { success: true };
@@ -206,7 +209,8 @@ export class TripMembersController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const writer = this.writes.restWriter(id, user, socketId);
-    if (!(await this.writes.deleteGuest(id, Number.parseInt(userId), writer))) {
+    const guestId = toRowId(userId);
+    if (guestId === null || !(await this.writes.deleteGuest(id, guestId, writer))) {
       throw new HttpException({ error: 'Guest not found' }, 404);
     }
     return { success: true };

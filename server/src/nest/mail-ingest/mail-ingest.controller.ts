@@ -4,6 +4,7 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { DomainError } from '../common/domain-error';
 import { ResponseContract } from '../common/response-contract';
+import { toRowId } from '../common/row-id';
 import { MailIngestActionsService } from './mail-ingest-actions.service';
 import { MailIngestInboxService } from './mail-ingest-inbox.service';
 import { MAIL_INGEST_LIMITS } from './mail-ingest.constants';
@@ -30,7 +31,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  idParamSchema,
   mailIngestAddressResponseSchema,
   mailIngestCandidateResponseSchema,
   mailIngestInboxCountResponseSchema,
@@ -199,9 +199,10 @@ export class MailIngestController {
 
 /** An id from the path; one that is no id names nothing, like an id nobody holds. */
 function idOf(raw: string, missing: string): number {
-  const parsed = idParamSchema.safeParse(raw);
-  if (!parsed.success) throw new DomainError(404, missing);
-  return parsed.data;
+  // toRowId, not a coercing schema: Number() reads '0x1', '1e0' and '+1' as id 1.
+  const id = toRowId(raw);
+  if (id === null || id <= 0) throw new DomainError(404, missing);
+  return id;
 }
 
 function entryId(raw: string): number {

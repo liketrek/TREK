@@ -3,6 +3,7 @@ import { AdminGuard } from '../auth-core/admin.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ManagedForbidden } from '../common/managed';
+import { toRowId } from '../common/row-id';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import {
   PreferencesUpdateDto,
@@ -138,8 +139,9 @@ export class NotificationsController {
     @Query('unread_only') unreadOnly?: string,
   ) {
     return this.notifications.listInApp(user.id, {
-      limit: Math.min(Number.parseInt(limit as string) || 20, 50),
-      offset: Number.parseInt(offset as string) || 0,
+      // toRowId, not parseInt: a negative LIMIT or OFFSET is no limit on SQLite and an error on Postgres.
+      limit: Math.min(toRowId(limit) || 20, 50),
+      offset: toRowId(offset) ?? 0,
       unreadOnly: unreadOnly === 'true',
     });
   }
@@ -212,10 +214,10 @@ export class NotificationsController {
     return { success: true, notification: result.notification };
   }
 
-  /** parseInt + the legacy "Invalid id" 400 guard, shared by the /:id handlers. */
+  /** toRowId + the legacy "Invalid id" 400 guard, shared by the /:id handlers. parseInt read '1e0' as 1. */
   private parseId(idParam: string): number {
-    const id = Number.parseInt(idParam);
-    if (Number.isNaN(id)) {
+    const id = toRowId(idParam);
+    if (id === null) {
       throw new HttpException({ error: 'Invalid id' }, 400);
     }
     return id;

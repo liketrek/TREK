@@ -1,6 +1,7 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { toRowId } from '../common/row-id';
 import { AddTripPhotosDto, CreateAlbumLinkDto, RemoveTripPhotoDto, SetTripPhotoSharingDto } from './memories.dto';
 import type { Selection } from './memories.helpers';
 import { MemoriesService } from './memories.service';
@@ -58,10 +59,11 @@ export class UnifiedMemoriesController {
     @Body() body: SetTripPhotoSharingDto,
     @Res() res: Response,
   ): Promise<void> {
+    // toRowId, not Number(): '0x1' and '1e0' named photo 1 and NaN reached SQL, which Postgres refused.
     const result = await this.memories.setTripPhotoSharing(
       tripId,
       user.id,
-      Number(body?.photo_id),
+      toRowId(body?.photo_id),
       body?.shared as boolean,
     );
     if ('error' in result) {
@@ -78,7 +80,7 @@ export class UnifiedMemoriesController {
     @Body() body: RemoveTripPhotoDto,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.memories.removeTripPhoto(tripId, user.id, Number(body?.photo_id));
+    const result = await this.memories.removeTripPhoto(tripId, user.id, toRowId(body?.photo_id));
     if ('error' in result) {
       res.status(result.error.status).json({ error: result.error.message });
       return;

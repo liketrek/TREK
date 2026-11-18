@@ -53,6 +53,7 @@ import { DomainError } from '../common/domain-error';
 import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 import { validatePassword } from '../common/passwordPolicy';
 import { getPhotoProviderConfig } from '../common/photo-provider-config';
+import { toRowId } from '../common/row-id';
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { UnitOfWork } from '../database/unit-of-work';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
@@ -228,13 +229,14 @@ export class AdminService {
   }
 
   async updateUser(id: string, data: { username?: string; email?: string; role?: string; password?: string }) {
-    const userId = Number(id);
+    // toRowId, not Number(): '0x2' or '2e0' named user 2.
+    const userId = toRowId(id);
     const username = typeof data.username === 'string' ? data.username.trim() : data.username;
     const email = typeof data.email === 'string' ? data.email.trim() : data.email;
     const { role, password } = data;
-    const user = await this.users.findById(userId);
+    const user = userId === null ? undefined : await this.users.findById(userId);
 
-    if (!user) throw new DomainError(404, 'User not found');
+    if (!user || userId === null) throw new DomainError(404, 'User not found');
 
     if (role && !['user', 'admin'].includes(role)) {
       throw new DomainError(400, 'Invalid role');
@@ -348,11 +350,15 @@ export class AdminService {
   async deleteUser(id: string, currentUserId: number) {
     // SECURITY: plain JS comparison, deliberately kept exactly here — never
     // folded into a repository method's WHERE clause (R4).
-    if (Number.parseInt(id) === currentUserId) {
+    // One parse for the check and the delete: parseInt('0x2') is 0 where
+    // Number('0x2') is 2, so the two used to disagree and an admin could
+    // delete their own account by spelling its id in hex.
+    const targetId = toRowId(id);
+    if (targetId === currentUserId) {
       throw new DomainError(400, 'Cannot delete own account');
     }
 
-    const userToDel = await this.users.findIdAndEmail(Number(id));
+    const userToDel = targetId === null ? undefined : await this.users.findIdAndEmail(targetId);
     if (!userToDel) throw new DomainError(404, 'User not found');
 
     await this.userCleanup.deleteUserCompletely(userToDel.id);
@@ -360,8 +366,10 @@ export class AdminService {
     return { email: userToDel.email };
   }
 
-  resetUserPasskeys(id: string) {
-    return this.passkeys.adminResetPasskeys(Number(id));
+  async resetUserPasskeys(id: string) {
+    const userId = toRowId(id);
+    if (userId === null) throw new DomainError(404, 'User not found');
+    return this.passkeys.adminResetPasskeys(userId);
   }
 
   /**
@@ -378,14 +386,14 @@ export class AdminService {
    * way to strip the second factor off the very account it came from.
    */
   async resetUserMfa(id: string, actingUserId: number): Promise<{ success?: boolean; email?: string }> {
-    const targetId = Number(id);
+    const targetId = toRowId(id);
     // SECURITY: plain JS comparison, deliberately kept exactly here — never
     // folded into a repository method's WHERE clause (R4).
     if (targetId === actingUserId) {
       throw new DomainError(400, 'Use Settings to change your own two-factor setup');
     }
-    const target = await this.users.findIdEmailMfaEnabled(targetId);
-    if (!target) throw new DomainError(404, 'User not found');
+    const target = targetId === null ? undefined : await this.users.findIdEmailMfaEnabled(targetId);
+    if (!target || targetId === null) throw new DomainError(404, 'User not found');
 
     // Same three columns disableMfa clears, so an admin reset and a self-service
     // disable leave the account in exactly one state rather than two; the
@@ -414,13 +422,13 @@ export class AdminService {
    * came from.
    */
   async unlinkUserSso(id: string, actingUserId: number): Promise<{ email: string; unlinked: boolean }> {
-    const targetId = Number(id);
+    const targetId = toRowId(id);
     // SECURITY: plain JS comparison, kept here like resetUserMfa's (R4).
     if (targetId === actingUserId) {
       throw new DomainError(400, 'You cannot remove the SSO link of your own account');
     }
-    const target = await this.users.findById(targetId);
-    if (!target || target.is_guest) throw new DomainError(404, 'User not found');
+    const target = targetId === null ? undefined : await this.users.findById(targetId);
+    if (!target || target.is_guest || targetId === null) throw new DomainError(404, 'User not found');
     if (!target.oidc_sub && !target.oidc_issuer) return { email: target.email, unlinked: false };
 
     await this.users.linkOidcIdentity(targetId, null, null);

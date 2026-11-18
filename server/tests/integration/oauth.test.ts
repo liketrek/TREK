@@ -12,6 +12,7 @@ import { OauthService } from '../../src/nest/oauth/oauth.service';
 import { authCookie } from '../helpers/auth';
 import { updateRows, upsertRow } from '../helpers/factories/rows';
 import { makeUser } from '../helpers/factories/users';
+import { oneByOne } from '../helpers/one-by-one';
 import { resetDatabase } from '../helpers/reset-database';
 import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
@@ -1098,6 +1099,42 @@ describe('Sessions — /api/oauth/sessions', () => {
     const res = await request(app).delete('/api/oauth/sessions/abc').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Session not found' });
+  });
+
+  it('OAUTH-043C: DELETE /sessions/:id by a hex or exponent spelling of a real session id is 404 and revokes nothing', async () => {
+    const { user } = await makeUser(orm);
+    const { client } = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
+    if (!client) throw new Error('the OAuth client was not created');
+    const { verifier, challenge } = makePkce();
+    const code = await createAuthCode({
+      clientId: client.client_id as string,
+      userId: user.id,
+      redirectUri: 'https://app.example.com/cb',
+      scopes: ['trips:read'],
+      codeChallenge: challenge,
+      codeChallengeMethod: 'S256',
+      resource: null,
+    });
+    await request(app).post('/oauth/token').send({
+      grant_type: 'authorization_code',
+      client_id: client.client_id,
+      client_secret: client.client_secret,
+      code,
+      redirect_uri: 'https://app.example.com/cb',
+      code_verifier: verifier,
+    });
+    const sessionId = (await request(app).get('/api/oauth/sessions').set('Cookie', authCookie(user.id))).body
+      .sessions[0].id as number;
+
+    // Number() read both as the session itself, so this route revoked it where every other answers 404.
+    const spellings = [`0x${sessionId.toString(16)}`, `${sessionId}e0`];
+    const answers = await oneByOne(spellings, async (spelling) => {
+      const res = await request(app).delete(`/api/oauth/sessions/${spelling}`).set('Cookie', authCookie(user.id));
+      return [res.status, res.body as unknown];
+    });
+    expect(answers).toEqual(spellings.map(() => [404, { error: 'Session not found' }]));
+    const after = await request(app).get('/api/oauth/sessions').set('Cookie', authCookie(user.id));
+    expect(after.body.sessions).toHaveLength(1);
   });
 
   it('OAUTH-044 — DELETE /sessions/:id returns 403 when addon disabled', async () => {

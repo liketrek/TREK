@@ -325,8 +325,9 @@ export class AssignmentsService {
    */
   async assignmentExistsInDay(id: string | number, dayId: string | number, tripId: string | number) {
     const rowId = toRowId(id);
-    if (rowId === null) return false;
-    return await this.dayAssignmentsRepo.existsInDay(rowId, dayId, tripId);
+    const day = toRowId(dayId);
+    if (rowId === null || day === null) return false;
+    return await this.dayAssignmentsRepo.existsInDay(rowId, day, tripId);
   }
 
   /** AS10 — `DayAssignmentsRepository.deleteById`. */

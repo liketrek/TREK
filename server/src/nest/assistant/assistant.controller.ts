@@ -7,6 +7,7 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ManagedForbidden } from '../common/managed';
 import { ResponseContract } from '../common/response-contract';
+import { toRowId } from '../common/row-id';
 import { onClientGone, openSseStream } from '../common/sse-stream';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { AssistantFoundPlacesService } from './assistant-found-places.service';
@@ -36,10 +37,10 @@ import {
 
 import type { Response } from 'express';
 
-/** A route id: a positive integer, or the 404 an unknown one gets. */
+/** A route id: a positive integer as toRowId reads it, or the 404 an unknown one gets. */
 export function idParam(value: string): number {
-  const id = Number(value);
-  if (!Number.isInteger(id) || id <= 0) throw aiRefusal('not_found', 'Conversation not found');
+  const id = toRowId(value);
+  if (id === null || id <= 0) throw aiRefusal('not_found', 'Conversation not found');
   return id;
 }
 

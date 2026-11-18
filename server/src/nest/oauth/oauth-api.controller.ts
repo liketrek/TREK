@@ -212,7 +212,7 @@ export class OauthApiController {
   async revokeSession(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
     await this.requireMcp403();
     refuseForDemoAccount(user, DEMO_ACCOUNT_REFUSAL.mcp);
-    const result = await this.oauth.revokeSession(user.id, Number(id), getClientIp(req));
+    const result = await this.oauth.revokeSession(user.id, id, getClientIp(req));
     if (result.error) {
       throw new HttpException({ error: result.error }, result.status || 400);
     }

@@ -4,6 +4,7 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { DEMO_WRITE_ERROR, isDemoWriteBlocked } from '../common/demo-write';
 import { ResponseContract } from '../common/response-contract';
+import { toRowId } from '../common/row-id';
 import { SpoolCleanupInterceptor } from '../common/spool-cleanup.interceptor';
 import { BLOCKED_EXTENSIONS, MAX_FILE_SIZE } from '../files/files.constants';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
@@ -534,13 +535,14 @@ export class CollabController {
       for (const name of committed) await this.storage.delete('files', name).catch(() => {});
       throw err;
     }
+    // The schema took a whole number or its digits; '' is the multipart form's "no reply".
     const replyTo =
-      body.reply_to === undefined || body.reply_to === '' || body.reply_to === null ? null : Number(body.reply_to);
+      body.reply_to === undefined || body.reply_to === '' || body.reply_to === null ? null : toRowId(body.reply_to);
     const result = await this.collab.postMessage(
       tripId,
       {
         text,
-        replyTo: Number.isFinite(replyTo as number) ? replyTo : null,
+        replyTo,
         files: uploaded.map((file) => ({
           filename: file.filename,
           originalname: file.originalname,
