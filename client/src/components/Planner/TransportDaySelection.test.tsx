@@ -570,6 +570,26 @@ describe.each<Surface>(['desktop', 'phone'])('Automated transport day selection:
     expect(inputs()[0]).toHaveValue('');
   });
 
+  it('keeps the newest search results when an older lookup answers last', async () => {
+    type Answer = { results: { name: string; lat: number; lng: number; area: null }[] };
+    const pending: ((value: Answer) => void)[] = [];
+    geocode.mockImplementation(() => new Promise<Answer>((resolve) => pending.push(resolve)));
+    render(<Harness surface={surface} data={fixture()} />);
+    fireEvent.focus(inputs()[0]);
+    fireEvent.change(inputs()[0], { target: { value: 'Old' } });
+    await waitFor(() => expect(geocode).toHaveBeenCalledTimes(1));
+    fireEvent.change(inputs()[0], { target: { value: 'New' } });
+    await waitFor(() => expect(geocode).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      pending[1]({ results: [{ name: 'New station', lat: 52.5, lng: 13.4, area: null }] });
+    });
+    await act(async () => {
+      pending[0]({ results: [{ name: 'Old station', lat: 52.6, lng: 13.5, area: null }] });
+    });
+    expect(screen.getByRole('button', { name: 'New station' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Old station' })).not.toBeInTheDocument();
+  });
+
   it('ignores a superseded geocoder response after a saved place is picked', async () => {
     const user = userEvent.setup();
     let finish: (value: { results: { name: string; lat: number; lng: number; area: null }[] }) => void = () => {
