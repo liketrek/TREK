@@ -3,6 +3,7 @@ import { runDemoSeed } from './database';
 import { ensureEmailCaseIndex } from './email-case-index';
 import { migrateToHead, NO_SAFETY_NET } from './legacy-baseline';
 import { preMigrateSnapshot } from './pre-migrate-snapshot';
+import { warnAboutSchemaGaps } from './schema-gaps';
 import type { AnyEntity, EntityClass, EntityManager, EntitySchema, IDatabaseDriver, MikroORM } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 
@@ -51,11 +52,14 @@ export async function runSchemaBootstrap(orm: AnyOrm, { snapshot }: { snapshot: 
 
 /**
  * What every engine does once its schema is at head: the deferred index, the
- * seeders, the demo seed. Idempotent, like the migration step before it.
+ * check for tables and columns the history left out, the seeders, the demo
+ * seed. Idempotent, like the migration step before it.
  */
 export async function finishSchemaBootstrap(orm: AnyOrm): Promise<void> {
   // The one index a migration may have had to defer (see email-case-index.ts).
   await ensureEmailCaseIndex(orm.em.getConnection());
+  // Names what the entities map and the database lacks (see schema-gaps.ts).
+  await warnAboutSchemaGaps(orm);
 
   const defaultSeeder = orm.config.get('seeder').defaultSeeder;
   if (defaultSeeder) await orm.seeder.seedString(defaultSeeder);

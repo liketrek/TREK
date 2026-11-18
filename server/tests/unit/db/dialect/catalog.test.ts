@@ -3,7 +3,7 @@
  * helpers built on it (src/db/migration-utils.ts), so a migration after the
  * Postgres baseline's cut can ask what exists on either engine.
  */
-import { columnNamesSql, tableExistsSql } from '../../../../src/db/dialect/catalog';
+import { columnNamesSql, tableColumnsSql, tableExistsSql } from '../../../../src/db/dialect/catalog';
 import {
   addColumnIfMissing,
   columnNames,
@@ -33,10 +33,20 @@ describe('catalog statements', () => {
     );
   });
 
+  it('CATALOG-003: every column of every table in one statement, on both engines', () => {
+    expect(tableColumnsSql(sqlite)).toBe(
+      "select m.name as table_name, p.name as name from sqlite_master m join pragma_table_info(m.name) p where m.type = 'table'",
+    );
+    expect(tableColumnsSql(postgres)).toBe(
+      'select table_name, column_name as name from information_schema.columns where table_schema = current_schema()',
+    );
+  });
+
   it('CATALOG-002: any other engine is refused', () => {
     class OtherPlatform extends Platform {}
     expect(() => columnNamesSql(new OtherPlatform())).toThrow();
     expect(() => tableExistsSql(new OtherPlatform())).toThrow();
+    expect(() => tableColumnsSql(new OtherPlatform())).toThrow();
   });
 });
 

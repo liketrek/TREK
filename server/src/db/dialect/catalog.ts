@@ -35,3 +35,19 @@ export function tableExistsSql(platform: Platform): string {
  */
 export const CURRENT_SCHEMA_TABLES_SQL =
   'select table_name from information_schema.tables where table_schema = current_schema() order by table_name';
+
+/**
+ * Every column of every table, one `table_name` and `name` per row: the
+ * whole schema in one statement, for the boot's check that each column the
+ * entities map exists (`db/schema-gaps.ts`). Postgres reads the current
+ * schema only, as above.
+ */
+export function tableColumnsSql(platform: Platform): string {
+  if (isSqlite(platform)) {
+    return "select m.name as table_name, p.name as name from sqlite_master m join pragma_table_info(m.name) p where m.type = 'table'";
+  }
+  if (isPostgres(platform)) {
+    return 'select table_name, column_name as name from information_schema.columns where table_schema = current_schema()';
+  }
+  return unsupported(platform);
+}
