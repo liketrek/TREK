@@ -16,9 +16,18 @@
 # An install that started from an older version of this file runs TREK as the
 # superuser trek; the wiki page Database-Postgres ("Moving a compose install
 # off the superuser") shows how to move it to this layout.
+#
+# The database runs PostgreSQL 18. TREK supports 14 to 18: to run 14 to 17,
+# change the image tag and mount the volume at /var/lib/postgresql/data
+# instead, where those images keep their data (the 18 image refuses that
+# path). An existing database stays on the major it was created with: when
+# you update this file, keep your image tag and volume path. Moving to
+# another major needs pg_upgrade, or a dump and restore (a TREK backup
+# restored into a new, empty database works across majors), never just a
+# new image tag.
 services:
   db:
-    image: postgres:17
+    image: postgres:18
     container_name: trek-db
     restart: unless-stopped
     environment:
@@ -29,13 +38,13 @@ services:
     configs:
       - source: trek-db-role
         target: /docker-entrypoint-initdb.d/10-trek-role.sh
-        # Executable, so the image runs it in a shell of its own instead of sourcing it.
-        mode: 0555
     security_opt:
       - no-new-privileges:true
     # No ports are published: only the trek service on the compose network reaches the database.
     volumes:
-      - trek-pgdata:/var/lib/postgresql/data
+      # The path the postgres:18 image expects. Images 14 to 17 need
+      # /var/lib/postgresql/data here (see the top of this file).
+      - trek-pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
       interval: 10s
@@ -102,21 +111,28 @@ services:
 # superuser: creates the role trek, which owns TREK's database and its public
 # schema, so it can create TREK's tables and its collation there, and nothing
 # more. The password reaches psql as a variable, never spliced into the SQL.
+#
+# Outside Swarm, compose cannot set a config's file mode, so the file is not
+# executable and the image sources it into its own shell instead of running
+# it. All the work runs in a subshell, so set -eu and exit stay inside it,
+# and a failure there fails the database's first start either way.
 configs:
   trek-db-role:
     content: |
       #!/bin/sh
-      set -eu
-      if [ -z "$${TREK_DB_PASSWORD:-}" ]; then
-        echo 'POSTGRES_PASSWORD (the password of the role trek) is not set.' >&2
-        exit 1
-      fi
-      psql -v ON_ERROR_STOP=1 --no-psqlrc --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" \
-        --set=password="$$TREK_DB_PASSWORD" --set=database="$$POSTGRES_DB" <<'SQL'
+      (
+        set -eu
+        if [ -z "$${TREK_DB_PASSWORD:-}" ]; then
+          echo 'POSTGRES_PASSWORD (the password of the role trek) is not set.' >&2
+          exit 1
+        fi
+        psql -v ON_ERROR_STOP=1 --no-psqlrc --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" \
+          --set=password="$$TREK_DB_PASSWORD" --set=database="$$POSTGRES_DB" <<'SQL'
       CREATE ROLE trek LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD :'password';
       ALTER DATABASE :"database" OWNER TO trek;
       ALTER SCHEMA public OWNER TO trek;
       SQL
+      )
 
 volumes:
   trek-pgdata:
