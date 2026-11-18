@@ -719,9 +719,10 @@ describe('the scope picker', () => {
       data: { scopeKey: 'tag:9', label: 'Norway', remoteRootId: '9', remoteRootPath: '/TREK/norway' },
     } as never);
 
-    await expect(
-      controller.createScope(String(tripId), conn.id, owner, { name: 'Norway' }),
-    ).resolves.toMatchObject({ scopeKey: 'tag:9', label: 'Norway' });
+    await expect(controller.createScope(String(tripId), conn.id, owner, { name: 'Norway' })).resolves.toMatchObject({
+      scopeKey: 'tag:9',
+      label: 'Norway',
+    });
     expect(paperless.createScope).toHaveBeenCalledWith(expect.objectContaining({ connectionId: conn.id }), 'Norway');
   });
 
@@ -729,9 +730,7 @@ describe('the scope picker', () => {
     // The connection comes from the path and nowhere else, so the path is what
     // has to match the trip the caller was admitted to.
     const conn = await storedPaperless();
-    const err = await thrown(() =>
-      controller.createScope(String(otherTripId), conn.id, admin, { name: 'Norway' }),
-    );
+    const err = await thrown(() => controller.createScope(String(otherTripId), conn.id, admin, { name: 'Norway' }));
     expect(err.getStatus()).toBe(404);
     expect(paperless.createScope).not.toHaveBeenCalled();
   });
@@ -855,13 +854,7 @@ describe('changing a binding', () => {
       id: number;
     };
 
-    const res = (await controller.updateLink(
-      String(tripId),
-      created.id,
-      owner,
-      { syncEnabled: false },
-      makeReq(),
-    )) as {
+    const res = (await controller.updateLink(String(tripId), created.id, owner, { syncEnabled: false }, makeReq())) as {
       syncEnabled: boolean;
       direction: string;
       remoteLabel: string;
