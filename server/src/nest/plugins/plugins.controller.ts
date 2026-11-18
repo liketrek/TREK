@@ -8,6 +8,7 @@ import { AdminGuard } from '../auth-core/admin.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { rowId } from '../common/row-id.pipe';
 import { DependencyCycleError } from './dependencies';
 import { devLinkEnabled } from './dev-link';
 import { pluginsEnabled } from './kill-switch';
@@ -430,9 +431,8 @@ export class PluginsController {
    * user, for an admin fulfilling a data-access request. Literal-prefixed path, so it
    * never collides with the :id routes. */
   @Get('user-data/:userId/export')
-  async exportUserData(@Param('userId') userId: string) {
-    const id = Number(userId);
-    if (!Number.isInteger(id) || id <= 0) throw new HttpException({ error: 'invalid user id' }, 400);
+  async exportUserData(@Param('userId', rowId('invalid user id', 400)) id: number) {
+    if (id <= 0) throw new HttpException({ error: 'invalid user id' }, 400);
     return { userId: id, plugins: await this.runtime.exportUserData(id) };
   }
 

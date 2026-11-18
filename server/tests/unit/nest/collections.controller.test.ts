@@ -83,10 +83,10 @@ describe('CollectionsController', () => {
     expect(await c.list(user)).toEqual({ collections: [], incomingInvites: [] });
     expect(await c.create(user, { name: 'Italy' } as never, 'sock')).toEqual({ id: 7 });
     expect(svc.createCollection).toHaveBeenCalledWith(1, { name: 'Italy' }, 'sock');
-    expect(await c.get(user, '3')).toEqual({ collection: { id: 3 }, places: [] });
-    expect(await c.update(user, '3', { name: 'x' } as never, 'sock')).toEqual({ id: 3 });
+    expect(await c.get(user, 3)).toEqual({ collection: { id: 3 }, places: [] });
+    expect(await c.update(user, 3, { name: 'x' } as never, 'sock')).toEqual({ id: 3 });
     expect(svc.updateCollection).toHaveBeenCalledWith(1, 3, { name: 'x' }, 'sock');
-    expect(await c.remove(user, '3', 'sock')).toEqual({ success: true });
+    expect(await c.remove(user, 3, 'sock')).toEqual({ success: true });
     expect(svc.deleteCollection).toHaveBeenCalledWith(1, 3, 'sock');
   });
 
@@ -113,11 +113,11 @@ describe('CollectionsController', () => {
       const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
       await c.savePlace(user, { collection_id: 3, name: 'A' } as never, 'sid');
       expect(svc.savePlace).toHaveBeenCalledWith(1, { collection_id: 3, name: 'A' }, 'sid');
-      await c.updatePlace(user, '9', { name: 'B' } as never, 'sid');
+      await c.updatePlace(user, 9, { name: 'B' } as never, 'sid');
       expect(svc.updatePlace).toHaveBeenCalledWith(1, 9, { name: 'B' }, 'sid');
-      await c.setStatus(user, '9', { status: 'want' } as never, 'sid');
+      await c.setStatus(user, 9, { status: 'want' } as never, 'sid');
       expect(svc.setStatus).toHaveBeenCalledWith(1, 9, 'want', 'sid');
-      expect(await c.deletePlace(user, '9', 'sid')).toEqual({ success: true });
+      expect(await c.deletePlace(user, 9, 'sid')).toEqual({ success: true });
       expect(svc.deletePlace).toHaveBeenCalledWith(1, 9, 'sid');
       await c.saveFromTrip(user, { collection_id: 3, source_trip_id: 5, source_place_id: 8 } as never, 'sid');
       expect(svc.saveFromTripPlace).toHaveBeenCalledWith(1, 3, 5, 8, undefined, 'sid');
@@ -287,11 +287,11 @@ describe('CollectionsController', () => {
       const notOwner = makeService({ isOwner: vi.fn().mockResolvedValue(false) });
       expect(
         await thrownAsync(() =>
-          new CollectionsController(notOwner, new RuntimeEnvService(), storageStub).availableUsers(user, '3'),
+          new CollectionsController(notOwner, new RuntimeEnvService(), storageStub).availableUsers(user, 3),
         ),
       ).toEqual({ status: 403, body: { error: 'Only the owner can manage members' } });
       expect(
-        await new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).availableUsers(user, '3'),
+        await new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).availableUsers(user, 3),
       ).toEqual({ users: [{ id: 2 }] });
     });
   });
@@ -303,7 +303,7 @@ describe('CollectionsController', () => {
       const demo = { ...user, email: 'demo@trek.app' } as User;
       expect(
         await thrownAsync(() =>
-          new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).uploadCover(demo, '3', file),
+          new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).uploadCover(demo, 3, file),
         ),
       ).toEqual({
         status: 403,
@@ -315,7 +315,7 @@ describe('CollectionsController', () => {
         await thrownAsync(() =>
           new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).uploadCover(
             user,
-            '3',
+            3,
             undefined,
           ),
         ),
@@ -324,7 +324,7 @@ describe('CollectionsController', () => {
     it('commits + stores the cover and forwards the socket id', async () => {
       const svc = makeService();
       expect(
-        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).uploadCover(user, '3', file, 'sid'),
+        await new CollectionsController(svc, new RuntimeEnvService(), storageStub).uploadCover(user, 3, file, 'sid'),
       ).toEqual({ id: 3 });
       expect(storageStub.put).toHaveBeenCalledWith('covers', 'x.jpg', { tmpPath: undefined });
       expect(svc.setCollectionCover).toHaveBeenCalledWith(1, 3, '/uploads/covers/x.jpg', 'sid');
@@ -340,7 +340,7 @@ describe('CollectionsController', () => {
         await thrownAsync(() =>
           new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).uploadPlaceImage(
             demo,
-            '9',
+            9,
             file,
           ),
         ),
@@ -354,7 +354,7 @@ describe('CollectionsController', () => {
         await thrownAsync(() =>
           new CollectionsController(makeService(), new RuntimeEnvService(), storageStub).uploadPlaceImage(
             user,
-            '9',
+            9,
             undefined,
           ),
         ),
@@ -365,7 +365,7 @@ describe('CollectionsController', () => {
       expect(
         await new CollectionsController(svc, new RuntimeEnvService(), storageStub).uploadPlaceImage(
           user,
-          '9',
+          9,
           file,
           'sid',
         ),
@@ -383,10 +383,10 @@ describe('CollectionsController', () => {
       await c.createLabel(user, { collection_id: 3, name: 'Berlin', color: '#ff0000' } as never, 'sock');
       expect(svc.createLabel).toHaveBeenCalledWith(1, 3, 'Berlin', '#ff0000', 'sock');
 
-      await c.updateLabel(user, '5', { name: 'Hamburg' } as never, 'sock');
+      await c.updateLabel(user, 5, { name: 'Hamburg' } as never, 'sock');
       expect(svc.updateLabel).toHaveBeenCalledWith(1, 5, { name: 'Hamburg' }, 'sock');
 
-      expect(await c.deleteLabel(user, '5', 'sock')).toEqual({ success: true });
+      expect(await c.deleteLabel(user, 5, 'sock')).toEqual({ success: true });
       expect(svc.deleteLabel).toHaveBeenCalledWith(1, 5, 'sock');
 
       await c.assignLabels(user, { label_ids: [5], place_ids: [9, 10] } as never, 'sock');
@@ -403,7 +403,7 @@ describe('CollectionsController', () => {
       const svc = makeService({ exportCollectionGpx: vi.fn().mockResolvedValue(exported) });
       const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
 
-      expect(await c.exportCollectionGpx(user, '3')).toBe(exported);
+      expect(await c.exportCollectionGpx(user, 3)).toBe(exported);
       expect(svc.exportCollectionGpx).toHaveBeenCalledWith(1, 3);
     });
 
@@ -412,7 +412,7 @@ describe('CollectionsController', () => {
       const svc = makeService({ exportCollectionKml: vi.fn().mockResolvedValue(exported) });
       const c = new CollectionsController(svc, new RuntimeEnvService(), storageStub);
 
-      expect(await c.exportCollectionKml(user, '3')).toBe(exported);
+      expect(await c.exportCollectionKml(user, 3)).toBe(exported);
       expect(svc.exportCollectionKml).toHaveBeenCalledWith(1, 3);
     });
 

@@ -270,23 +270,23 @@ async function storedPaperless(credentials: Record<string, string> = { api_token
 
 describe('who may change a trip binding', () => {
   it('lets the trip owner through', async () => {
-    await expect(controller.resolve(String(tripId), '1', owner, { keep: 'trek' })).resolves.toEqual({ success: true });
+    await expect(controller.resolve(String(tripId), 1, owner, { keep: 'trek' })).resolves.toEqual({ success: true });
   });
 
   it('lets an instance admin through on a trip they neither own nor joined', async () => {
-    await expect(controller.resolve(String(otherTripId), '1', admin, { keep: 'trek' })).resolves.toEqual({
+    await expect(controller.resolve(String(otherTripId), 1, admin, { keep: 'trek' })).resolves.toEqual({
       success: true,
     });
   });
 
   it('refuses a plain member with the message the client renders', async () => {
-    const err = await thrown(() => controller.resolve(String(tripId), '1', member, { keep: 'trek' }));
+    const err = await thrown(() => controller.resolve(String(tripId), 1, member, { keep: 'trek' }));
     expect(err.getStatus()).toBe(403);
     expect(err.message).toBe('Only the trip owner can change document sync');
   });
 
   it('answers 404 for a trip that does not exist, rather than the 403 that would confirm it', async () => {
-    const err = await thrown(() => controller.resolve('999999', '1', member, { keep: 'trek' }));
+    const err = await thrown(() => controller.resolve('999999', 1, member, { keep: 'trek' }));
     expect(err.getStatus()).toBe(404);
     expect(err.message).toBe('Trip not found');
   });
@@ -997,7 +997,7 @@ describe('the document list', () => {
 describe('resolving a conflict', () => {
   it('refuses an item that is not in conflict rather than pretending it did something', async () => {
     sync.resolveConflict.mockResolvedValueOnce(false);
-    const err = await thrown(() => controller.resolve(String(tripId), '5', owner, { keep: 'provider' }));
+    const err = await thrown(() => controller.resolve(String(tripId), 5, owner, { keep: 'provider' }));
     expect(err.getStatus()).toBe(400);
     expect(err.message).toBe('Item is not in conflict');
   });
@@ -1161,7 +1161,7 @@ describe('a manual run and the shelved rows', () => {
 describe('resolving a conflict carries its trip', () => {
   it('passes the trip from the URL to the service', async () => {
     sync.resolveConflict.mockClear();
-    await controller.resolve(String(tripId), '42', owner, { keep: 'trek' } as never);
+    await controller.resolve(String(tripId), 42, owner, { keep: 'trek' } as never);
     expect(sync.resolveConflict).toHaveBeenCalledWith(42, 'trek', tripId);
   });
 });

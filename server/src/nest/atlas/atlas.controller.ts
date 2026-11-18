@@ -1,6 +1,7 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { rowId } from '../common/row-id.pipe';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { getRegionGeoGz, getRegionGeoJson } from './atlas-geo';
 import { AtlasWritesService } from './atlas-writes.service';
@@ -227,7 +228,7 @@ export class AtlasController {
   @Put('bucket-list/:id')
   async updateBucketItem(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Item not found')) id: number,
     @Body() body: AtlasUpdateBucketItemDto,
     @Headers('x-socket-id') socketId?: string,
   ): Promise<{ item: unknown }> {
@@ -253,7 +254,7 @@ export class AtlasController {
   @Delete('bucket-list/:id')
   async deleteBucketItem(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Item not found')) id: number,
     @Headers('x-socket-id') socketId?: string,
   ): Promise<{ success: boolean }> {
     if (!(await this.writes.deleteBucketItem(user.id, id, socketId))) {

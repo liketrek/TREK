@@ -8,6 +8,8 @@ import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { PLACE_IMAGE_FILE_FILTER } from '../common/place-image-upload';
 import { ResponseContract } from '../common/response-contract';
+import { rowId } from '../common/row-id.pipe';
+import { SpoolCleanupInterceptor } from '../common/spool-cleanup.interceptor';
 import { CollectionGpxError } from '../place-import/place-import.types';
 import { placeImageUrl } from '../places/place-image';
 import { PlaceRatingDto } from '../places/places.dto';
@@ -193,45 +195,49 @@ export class CollectionsController {
   @Patch('places/:pid')
   updatePlace(
     @CurrentUser() user: User,
-    @Param('pid') pid: string,
+    @Param('pid', rowId('Place not found')) pid: number,
     @Body() body: CollectionPlaceUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.updatePlace(user.id, Number(pid), body, socketId);
+    return this.collections.updatePlace(user.id, pid, body, socketId);
   }
 
   @Post('places/:pid/status')
   @HttpCode(200)
   setStatus(
     @CurrentUser() user: User,
-    @Param('pid') pid: string,
+    @Param('pid', rowId('Place not found')) pid: number,
     @Body() body: CollectionSetStatusDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.setStatus(user.id, Number(pid), body.status, socketId);
+    return this.collections.setStatus(user.id, pid, body.status, socketId);
   }
 
   @Put('places/:pid/rating')
   setRating(
     @CurrentUser() user: User,
-    @Param('pid') pid: string,
+    @Param('pid', rowId('Place not found')) pid: number,
     @Body() body: PlaceRatingDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.setRating(user.id, Number(pid), body.rating, socketId);
+    return this.collections.setRating(user.id, pid, body.rating, socketId);
   }
 
   @Delete('places/:pid/rating')
-  clearRating(@CurrentUser() user: User, @Param('pid') pid: string, @Headers('x-socket-id') socketId?: string) {
-    return this.collections.setRating(user.id, Number(pid), null, socketId);
+  clearRating(
+    @CurrentUser() user: User,
+    @Param('pid', rowId('Place not found')) pid: number,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    return this.collections.setRating(user.id, pid, null, socketId);
   }
 
   @Post('places/:pid/image')
   @HttpCode(200)
-  @UseInterceptors(FileInterceptor('image', { fileFilter: PLACE_IMAGE_FILE_FILTER }))
+  @UseInterceptors(FileInterceptor('image', { fileFilter: PLACE_IMAGE_FILE_FILTER }), SpoolCleanupInterceptor)
   async uploadPlaceImage(
     @CurrentUser() user: User,
-    @Param('pid') pid: string,
+    @Param('pid', rowId('Place not found')) pid: number,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Headers('x-socket-id') socketId?: string,
   ) {
@@ -242,12 +248,16 @@ export class CollectionsController {
     // Commit the spooled upload to its final storage location (atomic
     // same-volume rename) before the DB row references the final path.
     await this.storage.put('places', file.filename, { tmpPath: file.path });
-    return this.collections.setPlaceImage(user.id, Number(pid), placeImageUrl(file.filename), socketId);
+    return this.collections.setPlaceImage(user.id, pid, placeImageUrl(file.filename), socketId);
   }
 
   @Delete('places/:pid')
-  async deletePlace(@CurrentUser() user: User, @Param('pid') pid: string, @Headers('x-socket-id') socketId?: string) {
-    await this.collections.deletePlace(user.id, Number(pid), socketId);
+  async deletePlace(
+    @CurrentUser() user: User,
+    @Param('pid', rowId('Place not found')) pid: number,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    await this.collections.deletePlace(user.id, pid, socketId);
     return { success: true };
   }
 
@@ -309,16 +319,20 @@ export class CollectionsController {
   @Patch('labels/:lid')
   updateLabel(
     @CurrentUser() user: User,
-    @Param('lid') lid: string,
+    @Param('lid', rowId('Label not found')) lid: number,
     @Body() body: CollectionLabelUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.updateLabel(user.id, Number(lid), body, socketId);
+    return this.collections.updateLabel(user.id, lid, body, socketId);
   }
 
   @Delete('labels/:lid')
-  async deleteLabel(@CurrentUser() user: User, @Param('lid') lid: string, @Headers('x-socket-id') socketId?: string) {
-    await this.collections.deleteLabel(user.id, Number(lid), socketId);
+  async deleteLabel(
+    @CurrentUser() user: User,
+    @Param('lid', rowId('Label not found')) lid: number,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    await this.collections.deleteLabel(user.id, lid, socketId);
     return { success: true };
   }
 
@@ -450,19 +464,19 @@ export class CollectionsController {
 
   // ── /:id (declared last so static prefixes win) ─────────────────────────────
   @Get(':id/available-users')
-  async availableUsers(@CurrentUser() user: User, @Param('id') id: string) {
-    await this.collections.assertAccess(user.id, Number(id)); // 404 if not visible (no enumeration)
-    if (!(await this.collections.isOwner(user.id, Number(id)))) {
+  async availableUsers(@CurrentUser() user: User, @Param('id', rowId('Collection not found')) id: number) {
+    await this.collections.assertAccess(user.id, id); // 404 if not visible (no enumeration)
+    if (!(await this.collections.isOwner(user.id, id))) {
       throw new HttpException({ error: 'Only the owner can manage members' }, 403);
     }
-    return { users: await this.collections.availableUsers(user.id, Number(id)) };
+    return { users: await this.collections.availableUsers(user.id, id) };
   }
 
   @Post(':id/cover')
-  @UseInterceptors(FileInterceptor('cover', { fileFilter: COVER_FILE_FILTER }))
+  @UseInterceptors(FileInterceptor('cover', { fileFilter: COVER_FILE_FILTER }), SpoolCleanupInterceptor)
   async uploadCover(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Collection not found')) id: number,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Headers('x-socket-id') socketId?: string,
   ) {
@@ -474,7 +488,7 @@ export class CollectionsController {
     // same-volume rename) before the DB row references the final path.
     await this.storage.put('covers', file.filename, { tmpPath: file.path });
     const coverUrl = `/uploads/covers/${file.filename}`;
-    return this.collections.setCollectionCover(user.id, Number(id), coverUrl, socketId);
+    return this.collections.setCollectionCover(user.id, id, coverUrl, socketId);
   }
 
   /** Preview for the bulk trip import: the trip's places plus, per place, the same
@@ -486,8 +500,8 @@ export class CollectionsController {
    * filename decided by the server.
    */
   @Get(':id/export')
-  exportCollection(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.collections.exportCollection(user.id, Number(id));
+  exportCollection(@CurrentUser() user: User, @Param('id', rowId('Collection not found')) id: number) {
+    return this.collections.exportCollection(user.id, id);
   }
 
   /**
@@ -497,15 +511,15 @@ export class CollectionsController {
    * no coordinates and were left out.
    */
   @Get(':id/export/gpx')
-  exportCollectionGpx(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.collections.exportCollectionGpx(user.id, Number(id));
+  exportCollectionGpx(@CurrentUser() user: User, @Param('id', rowId('Collection not found')) id: number) {
+    return this.collections.exportCollectionGpx(user.id, id);
   }
 
   /** The list as KML for Google My Maps (#1866), wrapped in JSON like the GPX above, for the same reasons. */
   @Get(':id/export/kml')
   @ResponseContract(collectionKmlExportSchema)
-  exportCollectionKml(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.collections.exportCollectionKml(user.id, Number(id));
+  exportCollectionKml(@CurrentUser() user: User, @Param('id', rowId('Collection not found')) id: number) {
+    return this.collections.exportCollectionKml(user.id, id);
   }
 
   /**
@@ -519,36 +533,44 @@ export class CollectionsController {
   @HttpCode(200)
   importIntoCollection(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Collection not found')) id: number,
     @Body() body: CollectionImportIntoDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.importIntoCollection(user.id, Number(id), body, socketId);
+    return this.collections.importIntoCollection(user.id, id, body, socketId);
   }
 
   @Get(':id/importable/:tripId')
-  importable(@CurrentUser() user: User, @Param('id') id: string, @Param('tripId') tripId: string) {
-    return this.collections.importablePlaces(user.id, Number(id), Number(tripId));
+  importable(
+    @CurrentUser() user: User,
+    @Param('id', rowId('Collection not found')) id: number,
+    @Param('tripId', rowId('Trip not found')) tripId: number,
+  ) {
+    return this.collections.importablePlaces(user.id, id, tripId);
   }
 
   @Get(':id')
-  get(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.collections.getCollection(user.id, Number(id));
+  get(@CurrentUser() user: User, @Param('id', rowId('Collection not found')) id: number) {
+    return this.collections.getCollection(user.id, id);
   }
 
   @Patch(':id')
   update(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Collection not found')) id: number,
     @Body() body: CollectionUpdateDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return this.collections.updateCollection(user.id, Number(id), body, socketId);
+    return this.collections.updateCollection(user.id, id, body, socketId);
   }
 
   @Delete(':id')
-  async remove(@CurrentUser() user: User, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
-    await this.collections.deleteCollection(user.id, Number(id), socketId);
+  async remove(
+    @CurrentUser() user: User,
+    @Param('id', rowId('Collection not found')) id: number,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    await this.collections.deleteCollection(user.id, id, socketId);
     return { success: true };
   }
 }
