@@ -14,7 +14,8 @@ import { useIsDark } from '../../hooks/useIsDark'
 import { OFM_POSITRON } from '../../constants/mapDefaults'
 import { glWorksOffline, leafletWorksOffline, offlineStyleFor } from './offlineBasemap'
 import { glTileStoreActive, tileCacheActive } from '../../native/tileCache'
-import { MapLoadStatusProvider, useMapLoadStatus } from './MapLoadStatus'
+import { MapLoadStatusProvider } from './MapLoadStatus'
+import { useMapLoadStatus } from './useMapLoadStatus'
 import { isVectorStyle } from '../../utils/tileUrl'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing

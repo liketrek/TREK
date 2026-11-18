@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { render } from '../../../tests/helpers/render'
-import { act, fireEvent, waitFor } from '@testing-library/react'
+import { act, fireEvent, waitFor, within } from '@testing-library/react'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
 import { server } from '../../../tests/helpers/msw/server'
@@ -328,7 +328,7 @@ describe('MapViewGL', () => {
     await act(async () => { onError() })
 
     const alert = await findByRole('alert')
-    fireEvent.click(alert.querySelector('button')!)
+    fireEvent.click(within(alert).getByRole('button'))
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
 

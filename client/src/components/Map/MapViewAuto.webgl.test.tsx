@@ -7,13 +7,13 @@
  */
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
 import { resetWebGLProbe } from '../../utils/webgl';
 import { buildGlMap } from './glSupport';
 import { MapViewAuto } from './MapViewAuto';
-import { useMapLoadStatus } from './MapLoadStatus';
+import { useMapLoadStatus } from './useMapLoadStatus';
 
 const gl = vi.hoisted(() => ({ refuse: false, suspend: false, crash: false, failFirst: false, mounts: 0 }));
 
@@ -130,7 +130,7 @@ describe('MapViewAuto without WebGL2', () => {
 
     const alert = await screen.findByRole('alert');
     expect(gl.mounts).toBe(1);
-    fireEvent.click(alert.querySelector('button')!);
+    fireEvent.click(within(alert).getByRole('button'));
 
     await waitFor(() => expect(gl.mounts).toBe(2));
     expect(await screen.findByTestId('gl-map')).toBeInTheDocument();

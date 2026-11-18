@@ -13,7 +13,7 @@ import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
 import { offlineStyle } from '../../native/offlineTiles'
 import { isNativeIos } from '../../native/platform'
 import { nativeRasterTemplate } from '../../native/tileCache'
-import { useMapLoadStatus } from './MapLoadStatus'
+import { useMapLoadStatus } from './useMapLoadStatus'
 
 /** The Leaflet layer maplibre-gl-leaflet hands back. */
 export type GlLeafletLayer = InstanceType<typeof MaplibreGL>

@@ -13,7 +13,7 @@ import { OFM_DARK, OFM_POSITRON } from '../../constants/mapDefaults';
 import { useSettingsStore } from '../../store/settingsStore';
 import { resetWebGLProbe } from '../../utils/webgl';
 import { MapViewAuto } from './MapViewAuto';
-import { useMapLoadStatus } from './MapLoadStatus';
+import { useMapLoadStatus } from './useMapLoadStatus';
 
 const env = vi.hoisted(() => ({ offline: false, dark: false, tileStore: false }));
 const seen = vi.hoisted(() => ({
@@ -27,15 +27,27 @@ vi.mock('./MapView', () => ({
     return <div data-testid="leaflet-map" />;
   },
 }));
-function FakeGlMap({ engine, ...props }: { engine: string; glProvider?: string; styleOverride?: string }) {
+function FakeGlMap({
+  engine,
+  glProvider,
+  styleOverride,
+}: {
+  engine: string;
+  glProvider?: string;
+  styleOverride?: string;
+}) {
   const report = useMapLoadStatus();
-  useEffect(() => { report?.('ready'); }, [report]);
-  seen.gl = { engine, ...props };
+  useEffect(() => {
+    seen.gl = { engine, glProvider, styleOverride };
+    report?.('ready');
+  }, [engine, glProvider, styleOverride, report]);
   return <div data-testid="gl-map" />;
 }
 
 vi.mock('./glLazy', () => ({
-  MapViewGLMaplibre: (props: { glProvider?: string; styleOverride?: string }) => <FakeGlMap engine="maplibre" {...props} />,
+  MapViewGLMaplibre: (props: { glProvider?: string; styleOverride?: string }) => (
+    <FakeGlMap engine="maplibre" {...props} />
+  ),
   MapViewGLMapbox: (props: { glProvider?: string; styleOverride?: string }) => <FakeGlMap engine="mapbox" {...props} />,
 }));
 vi.mock('./useRoadtripHazards', () => ({ useRoadtripHazards: () => ({ feed: null }) }));
