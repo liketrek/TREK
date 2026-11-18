@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TREK 中国版 MVP 开发看板</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --ink: #1f2328;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --accent: #2f6feb;
+    --done: #1f9d55;
+    --doing: #d97706;
+    --todo: #6b7280;
+    --backlog: #8b5cf6;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 28px 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: .2px; }
+  .sub { margin: 0; color: var(--muted); font-size: 12.5px; }
+  .progress-wrap { min-width: 260px; }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .progress {
+    height: 8px;
+    background: #e9edf2;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress > div {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #2f6feb, #4f8ef7);
+    border-radius: 99px;
+    transition: width .25s ease;
+  }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 12px 28px;
+    align-items: center;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: rgba(244, 245, 247, .92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+  .toolbar input, .toolbar select {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 13px;
+    outline: none;
+  }
+  .toolbar input { flex: 1 1 260px; max-width: 420px; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--accent); }
+  .toolbar button {
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .toolbar button:hover { color: #b91c1c; border-color: #fca5a5; }
+  .spacer { flex: 1; }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
+    gap: 16px;
+    padding: 18px 28px 40px;
+    align-items: start;
+  }
+  .column {
+    background: #eceff3;
+    border: 1px solid #e3e7ec;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: calc(100vh - 170px);
+  }
+  .column-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px 8px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--todo); }
+  .column[data-status="doing"] .dot { background: var(--doing); }
+  .column[data-status="done"] .dot { background: var(--done); }
+  .column[data-status="backlog"] .dot { background: var(--backlog); }
+  .count {
+    margin-left: auto;
+    font-weight: 500;
+    color: var(--muted);
+    font-size: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    padding: 0 8px;
+  }
+  .cards {
+    padding: 6px 10px 12px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+  .cards.dragover { background: #e3edff; border-radius: 0 0 12px 12px; }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 10px 9px;
+    box-shadow: var(--shadow);
+    display: flex;
+    gap: 8px;
+    cursor: grab;
+    position: relative;
+    transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: #c7d2fe; }
+  .card.dragging { opacity: .45; }
+  .card.done { background: #f7fbf8; }
+  .card.done .card-title { color: var(--muted); text-decoration: line-through; text-decoration-color: #9ca3af; }
+  .check { flex: 0 0 auto; padding-top: 1px; }
+  .check input { width: 15px; height: 15px; accent-color: var(--done); cursor: pointer; }
+  .card-main { min-width: 0; flex: 1; }
+  .card-title { font-size: 13px; font-weight: 600; line-height: 1.35; word-break: break-word; }
+  .id {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  .card-desc { margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.45; word-break: break-word; }
+  .card-meta { margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; }
+  .badge {
+    font-size: 10.5px;
+    line-height: 18px;
+    padding: 0 7px;
+    border-radius: 99px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .ms { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
+  .g-cmp { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .g-map { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .g-plan { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .g-shr { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+  .g-fe { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
+  .g-col { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+  .g-ops { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+  .g-qat { background: #f8fafc; color: #334155; border-color: #e2e8f0; }
+  .g-beta { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+  .g-post { background: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
+  .card-actions {
+    position: absolute;
+    right: 8px;
+    bottom: 7px;
+    display: none;
+    gap: 4px;
+  }
+  .card:hover .card-actions, .card:focus-within .card-actions { display: flex; }
+  .card-actions button {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--muted);
+    font-size: 11px;
+    border-radius: 6px;
+    padding: 1px 6px;
+    cursor: pointer;
+  }
+  .card-actions button:hover { color: var(--accent); border-color: #bfdbfe; }
+  .empty {
+    color: #9ca3af;
+    font-size: 12px;
+    text-align: center;
+    padding: 26px 8px;
+  }
+  .foot {
+    padding: 0 28px 26px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .foot code { background: #e9edf2; padding: 1px 5px; border-radius: 4px; }
+  @media (max-width: 1180px) {
+    .board { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+    .column { max-height: none; }
+  }
+  @media (max-width: 700px) {
+    .topbar, .toolbar, .board, .foot { padding-left: 14px; padding-right: 14px; }
+    .board { grid-template-columns: 1fr; }
+    .toolbar input { max-width: none; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>TREK 中国版 MVP 开发看板</h1>
+    <p class="sub">62 项任务 · 6 个里程碑 · 勾选即完成，进度保存在本机浏览器</p>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-meta"><span id="progressText">0 / 55</span><span id="progressPct">0%</span></div>
+    <div class="progress"><div id="progressBar"></div></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input id="search" type="search" placeholder="搜索任务编号或关键词…" aria-label="搜索任务">
+  <select id="groupFilter" aria-label="按分组筛选"></select>
+  <select id="milestoneFilter" aria-label="按里程碑筛选"></select>
+  <span class="spacer"></span>
+  <button id="resetBtn" type="button">重置进度</button>
+</div>
+
+<main class="board">
+  <section class="column" data-status="todo">
+    <div class="column-head"><span class="dot"></span>待启动<span class="count" id="count-todo">0</span></div>
+    <div class="cards" id="col-todo" data-status="todo"></div>
+  </section>
+  <section class="column" data-status="doing">
+    <div class="column-head"><span class="dot"></span>进行中<span class="count" id="count-doing">0</span></div>
+    <div class="cards" id="col-doing" data-status="doing"></div>
+  </section>
+  <section class="column" data-status="done">
+    <div class="column-head"><span class="dot"></span>已完成<span class="count" id="count-done">0</span></div>
+    <div class="cards" id="col-done" data-status="done"></div>
+  </section>
+  <section class="column" data-status="backlog">
+    <div class="column-head"><span class="dot"></span>超出 MVP<span class="count" id="count-backlog">0</span></div>
+    <div class="cards" id="col-backlog" data-status="backlog"></div>
+  </section>
+</main>
+
+<div class="foot">
+  数据来源：<code>docs/TREK中国版MVP开发任务清单.md</code>。完成度按 55 项 MVP 任务计算，超出 MVP 的 7 项不计入分母。状态仅保存在当前浏览器的 <code>localStorage</code>。
+</div>
+
+<script>
+const GROUPS = {
+  CMP:  { name: '合规基础', cls: 'g-cmp' },
+  MAP:  { name: '国内数据', cls: 'g-map' },
+  PLAN: { name: '规划域',   cls: 'g-plan' },
+  SHR:  { name: '共享契约', cls: 'g-shr' },
+  FE:   { name: '前端',     cls: 'g-fe' },
+  COL:  { name: '协作离线', cls: 'g-col' },
+  OPS:  { name: '观测安全', cls: 'g-ops' },
+  QAT:  { name: '测试门禁', cls: 'g-qat' },
+  BETA: { name: '内测',     cls: 'g-beta' },
+  POST: { name: '超出MVP',  cls: 'g-post' }
+};
+
+const MILESTONES = {
+  M0: 'M0 立项冻结',
+  M1: 'M1 国内基础',
+  M2: 'M2 规划域骨架',
+  M3: 'M3 草案闭环',
+  M4: 'M4 协作体验',
+  M5: 'M5 内测发布',
+  POST: '超出 MVP'
+};
+
+const TASKS = [
+  { id: 'CMP-01', group: 'CMP', milestone: 'M0', title: '许可证与商标结论', desc: '产出 AGPL/商标审查结论与品牌替换清单' },
+  { id: 'CMP-02', group: 'CMP', milestone: 'M0', title: '数据出境清单', desc: '盘点模型、地图、天气、图片、邮件、监控链路' },
+  { id: 'CMP-03', group: 'CMP', milestone: 'M0', title: '品牌替换', desc: '站点名称、Logo、静态资源、README' },
+  { id: 'CMP-04', group: 'CMP', milestone: 'M0', title: '合规开关矩阵', desc: 'TREK_PLACES_ENABLED、Provider 开关、Helm values' },
+  { id: 'CMP-05', group: 'CMP', milestone: 'M5', title: '隐私与账号流程', desc: '隐私政策、注销、导出、删除' },
+
+  { id: 'MAP-01', group: 'MAP', milestone: 'M1', title: '境内强制高德策略', desc: 'places-provider.selector.ts 按境内/城市白名单强制 amap' },
+  { id: 'MAP-02', group: 'MAP', milestone: 'M1', title: '高德配额与缓存', desc: 'amap.provider.ts / place-details.resolver.ts 超时、限流、缓存' },
+  { id: 'MAP-03', group: 'MAP', milestone: 'M1', title: '路线估算统一封装', desc: 'routing-relay.service.ts 统一驾车/步行/骑行返回' },
+  { id: 'MAP-04', group: 'MAP', milestone: 'M1', title: '天气 Provider 抽象', desc: 'weather.service.ts / weather.impl.ts 可插拔，Open-Meteo 降为默认实现' },
+  { id: 'MAP-05', group: 'MAP', milestone: 'M1', title: 'GCJ-02 回归', desc: '坐标转换测试，确保高德出入无肉眼偏移' },
+  { id: 'MAP-06', group: 'MAP', milestone: 'M1', title: '图片授权与来源展示', desc: 'place-photos / amap-photo 记录来源、授权与缓存' },
+
+  { id: 'PLAN-01', group: 'PLAN', milestone: 'M2', title: '实体与迁移', desc: 'AiTravelPlans / AiTravelPlanRevisions 实体与 migration' },
+  { id: 'PLAN-02', group: 'PLAN', milestone: 'M2', title: '仓储与事务', desc: 'AiTravelPlan.repository.ts，只经 UnitOfWork 访问' },
+  { id: 'PLAN-03', group: 'PLAN', milestone: 'M2', title: '模块骨架', desc: 'ai-travel-plan module/controller/service/dto 并在 app.module 注册' },
+  { id: 'PLAN-04', group: 'PLAN', milestone: 'M2', title: 'API 契约', desc: '创建、读取、修订、应用、丢弃 5 个端点' },
+  { id: 'PLAN-05', group: 'PLAN', milestone: 'M2', title: '权限与审计', desc: '复用 permissions/audit，仅所有者可访问' },
+  { id: 'PLAN-06', group: 'PLAN', milestone: 'M2', title: '需求解析', desc: '自然语言转 TravelPlanRequest，缺字段追问，Zod 校验' },
+  { id: 'PLAN-07', group: 'PLAN', milestone: 'M2', title: 'POI 检索与筛选', desc: '仅调用白名单 Provider，保留来源，禁止编造地点' },
+  { id: 'PLAN-08', group: 'PLAN', milestone: 'M3', title: '排程器', desc: '开放时段、游玩时长、午餐窗口、每日上限、交通耗时' },
+  { id: 'PLAN-09', group: 'PLAN', milestone: 'M3', title: '预算估算', desc: '交通、活动、用户录入费用；缺价格标待确认' },
+  { id: 'PLAN-10', group: 'PLAN', milestone: 'M3', title: '确定性校验器', desc: '冲突、超时、预算超限、重复、缺坐标' },
+  { id: 'PLAN-11', group: 'PLAN', milestone: 'M3', title: '流式生成与版本', desc: 'SSE 输出，每次修订生成新 revision' },
+  { id: 'PLAN-12', group: 'PLAN', milestone: 'M3', title: '应用服务', desc: '复用 trip-writes/days/assignments/budget，事务与幂等' },
+  { id: 'PLAN-13', group: 'PLAN', milestone: 'M3', title: '撤销路径', desc: '应用结果保留 ID，可回滚或列出手动恢复步骤' },
+
+  { id: 'SHR-01', group: 'SHR', milestone: 'M2', title: 'Request Schema', desc: 'shared/src/ai-travel-plan/request.schema.ts' },
+  { id: 'SHR-02', group: 'SHR', milestone: 'M2', title: 'Draft Schema', desc: '逐日 items、交通、费用区间、来源、warnings' },
+  { id: 'SHR-03', group: 'SHR', milestone: 'M2', title: '警告与来源模型', desc: 'severity 与 provider/checkedAt/freshness' },
+  { id: 'SHR-04', group: 'SHR', milestone: 'M2', title: 'DTO 与前端类型共用', desc: '服务端 DTO 与 client API 均从 shared schema 推导' },
+
+  { id: 'FE-01', group: 'FE', milestone: 'M4', title: '路由与入口', desc: 'App.tsx 新增 /plan，Dashboard 增加 AI 规划入口' },
+  { id: 'FE-02', group: 'FE', milestone: 'M4', title: '需求表单', desc: '自然语言 + 结构化字段，展示追问与校验' },
+  { id: 'FE-03', group: 'FE', milestone: 'M4', title: '草案时间线', desc: '逐日时间轴、地点、交通耗时、预计费用' },
+  { id: 'FE-04', group: 'FE', milestone: 'M4', title: '来源与警告', desc: '每条事实可见来源与查询时间，blocking 不可应用' },
+  { id: 'FE-05', group: 'FE', milestone: 'M4', title: '应用确认卡', desc: '展示新增/变更，新建与已有行程文案区分' },
+  { id: 'FE-06', group: 'FE', milestone: 'M4', title: '页面与状态', desc: '页面、hook、store、API 客户端全流程可用' },
+  { id: 'FE-07', group: 'FE', milestone: 'M4', title: '地图联动', desc: '复用 tripPlanner 地图展示点位与路线' },
+  { id: 'FE-08', group: 'FE', milestone: 'M4', title: '中文文案', desc: 'i18n 资源补全，无英文残留' },
+  { id: 'FE-09', group: 'FE', milestone: 'M4', title: '响应式', desc: '移动浏览器可用，关键操作可达' },
+
+  { id: 'COL-01', group: 'COL', milestone: 'M4', title: '应用后实时广播', desc: '事务提交后广播，另一成员无需刷新' },
+  { id: 'COL-02', group: 'COL', milestone: 'M4', title: '分享与成员', desc: '复用 share/trip-members/trip-invite' },
+  { id: 'COL-03', group: 'COL', milestone: 'M4', title: '离线恢复', desc: 'mutationQueue 恢复不产生重复地点/日程' },
+  { id: 'COL-04', group: 'COL', milestone: 'M4', title: '幂等与重复提交', desc: '双击、重试、刷新只产生一次结果' },
+
+  { id: 'OPS-01', group: 'OPS', milestone: 'M5', title: '限流与费用上限', desc: '按用户/实例限制生成次数与 Token 成本' },
+  { id: 'OPS-02', group: 'OPS', milestone: 'M5', title: '脱敏与日志', desc: '模型请求、位置、同行人信息脱敏，链路日志含 planId' },
+  { id: 'OPS-03', group: 'OPS', milestone: 'M5', title: '错误分类与降级', desc: '模型/地图/天气/Schema 失败可重试或降级' },
+  { id: 'OPS-04', group: 'OPS', milestone: 'M5', title: '运营开关', desc: '城市白名单、模型开关、灰度、紧急停用' },
+  { id: 'OPS-05', group: 'OPS', milestone: 'M5', title: 'SSRF 与 Provider 白名单', desc: '模型不可触发任意 URL，仅允许登记 Provider' },
+
+  { id: 'QAT-01', group: 'QAT', milestone: 'M3', title: '单元测试', desc: 'schema 边界、解析、排程、校验、权限、事务、前端组件' },
+  { id: 'QAT-02', group: 'QAT', milestone: 'M3', title: '集成测试', desc: '创建→修订→应用→重复应用，Provider 失败路径' },
+  { id: 'QAT-03', group: 'QAT', milestone: 'M3', title: 'E2E', desc: '一句需求到保存、邀请成员、离线恢复全链路' },
+  { id: 'QAT-04', group: 'QAT', milestone: 'M5', title: '评估集', desc: '30 组标准需求，覆盖亲子、老人、雨天、低预算、自驾' },
+  { id: 'QAT-05', group: 'QAT', milestone: 'M5', title: '质量脚本', desc: 'typecheck、lint、lint:* 门禁与 npm test 全绿' },
+
+  { id: 'BETA-01', group: 'BETA', milestone: 'M5', title: '内测招募', desc: '30–50 名目标用户，覆盖情侣/朋友、亲子、首次自由行' },
+  { id: 'BETA-02', group: 'BETA', milestone: 'M5', title: '指标体系', desc: '生成成功率、三次内保存率、邀请比例、付费意愿' },
+  { id: 'BETA-03', group: 'BETA', milestone: 'M5', title: '反馈闭环', desc: '每周评审失败原因 Top3，只修闭环问题' },
+  { id: 'BETA-04', group: 'BETA', milestone: 'M5', title: '成功标准', desc: '≥30 人完成生成，≥70% 三次内保存，≥60% 邀请同行者，0 未确认写入' },
+
+  { id: 'POST-01', group: 'POST', milestone: 'POST', title: '会员与支付', desc: 'server/src/nest/billing：订阅、订单、回调验签、权益' },
+  { id: 'POST-02', group: 'POST', milestone: 'POST', title: 'AI 增值计费', desc: '按次/积分、成本核算' },
+  { id: 'POST-03', group: 'POST', milestone: 'POST', title: '交易佣金', desc: '联盟渠道、归因、对账' },
+  { id: 'POST-04', group: 'POST', milestone: 'POST', title: '商家供给', desc: '商户/商品模型、审核、风控' },
+  { id: 'POST-05', group: 'POST', milestone: 'POST', title: '国内身份', desc: '手机号/微信登录' },
+  { id: 'POST-06', group: 'POST', milestone: 'POST', title: '独立 AI 编排服务', desc: 'Java/Spring AI Alibaba，仅规模验证后启动' },
+  { id: 'POST-07', group: 'POST', milestone: 'POST', title: '多端发布', desc: '小程序、原生 App' }
+];
+
+const STORAGE_KEY = 'trek-cn-mvp-kanban-v1';
+const STATUSES = ['todo', 'doing', 'done', 'backlog'];
+const COLUMNS = {
+  todo: document.getElementById('col-todo'),
+  doing: document.getElementById('col-doing'),
+  done: document.getElementById('col-done'),
+  backlog: document.getElementById('col-backlog')
+};
+
+function defaultStatus(task) {
+  return task.group === 'POST' ? 'backlog' : 'todo';
+}
+
+function loadState() {
+  const base = {};
+  TASKS.forEach(t => { base[t.id] = defaultStatus(t); });
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    TASKS.forEach(t => {
+      if (STATUSES.includes(saved[t.id])) base[t.id] = saved[t.id];
+    });
+  } catch (e) { /* ignore broken storage */ }
+  return base;
+}
+
+let state = loadState();
+let filters = { search: '', group: 'all', milestone: 'all' };
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function matches(task) {
+  if (filters.group !== 'all' && task.group !== filters.group) return false;
+  if (filters.milestone !== 'all' && task.milestone !== filters.milestone) return false;
+  if (!filters.search) return true;
+  const q = filters.search.toLowerCase();
+  return (task.id + ' ' + task.title + ' ' + task.desc).toLowerCase().includes(q);
+}
+
+function cardEl(task) {
+  const el = document.createElement('article');
+  el.className = 'card' + (state[task.id] === 'done' ? ' done' : '');
+  el.draggable = true;
+  el.dataset.id = task.id;
+
+  const check = document.createElement('div');
+  check.className = 'check';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = state[task.id] === 'done';
+  input.setAttribute('aria-label', task.id + ' ' + task.title);
+  input.addEventListener('change', () => {
+    state[task.id] = input.checked ? 'done' : (task.group === 'POST' ? 'backlog' : 'todo');
+    saveState();
+    render();
+  });
+  check.appendChild(input);
+
+  const main = document.createElement('div');
+  main.className = 'card-main';
+  const title = document.createElement('div');
+  title.className = 'card-title';
+  const id = document.createElement('span');
+  id.className = 'id';
+  id.textContent = task.id;
+  title.appendChild(id);
+  title.appendChild(document.createTextNode(task.title));
+
+  const desc = document.createElement('div');
+  desc.className = 'card-desc';
+  desc.textContent = task.desc;
+
+  const meta = document.createElement('div');
+  meta.className = 'card-meta';
+  const g = GROUPS[task.group];
+  const gb = document.createElement('span');
+  gb.className = 'badge ' + g.cls;
+  gb.textContent = g.name;
+  const mb = document.createElement('span');
+  mb.className = 'badge ms';
+  mb.textContent = task.milestone;
+  meta.appendChild(gb);
+  meta.appendChild(mb);
+
+  main.appendChild(title);
+  main.appendChild(desc);
+  main.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  const status = state[task.id];
+  if (status === 'todo' || status === 'backlog') {
+    actions.appendChild(actionButton('开始', () => setStatus(task.id, 'doing')));
+  }
+  if (status === 'doing') {
+    actions.appendChild(actionButton('完成', () => setStatus(task.id, 'done')));
+    actions.appendChild(actionButton('退回', () => setStatus(task.id, defaultStatus(task))));
+  }
+  if (status === 'done') {
+    actions.appendChild(actionButton('退回', () => setStatus(task.id, defaultStatus(task))));
+  }
+
+  el.appendChild(check);
+  el.appendChild(main);
+  el.appendChild(actions);
+
+  el.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', task.id);
+    e.dataTransfer.effectAllowed = 'move';
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+  return el;
+}
+
+function actionButton(label, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = label;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function setStatus(id, status) {
+  state[id] = status;
+  saveState();
+  render();
+}
+
+function render() {
+  STATUSES.forEach(s => { COLUMNS[s].innerHTML = ''; });
+
+  const visible = TASKS.filter(matches);
+  const byStatus = { todo: [], doing: [], done: [], backlog: [] };
+  visible.forEach(t => byStatus[state[t.id]].push(t));
+
+  STATUSES.forEach(s => {
+    const list = byStatus[s];
+    document.getElementById('count-' + s).textContent = list.length;
+    if (list.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = '暂无任务';
+      COLUMNS[s].appendChild(empty);
+      return;
+    }
+    list.forEach(t => COLUMNS[s].appendChild(cardEl(t)));
+  });
+
+  const mvp = TASKS.filter(t => t.group !== 'POST');
+  const done = mvp.filter(t => state[t.id] === 'done').length;
+  const pct = mvp.length ? Math.round((done / mvp.length) * 100) : 0;
+  document.getElementById('progressText').textContent = done + ' / ' + mvp.length;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function setupDropZones() {
+  STATUSES.forEach(s => {
+    const zone = COLUMNS[s];
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const id = e.dataTransfer.getData('text/plain');
+      if (!id || !state.hasOwnProperty(id)) return;
+      state[id] = s;
+      saveState();
+      render();
+    });
+  });
+}
+
+function setupFilters() {
+  const groupSelect = document.getElementById('groupFilter');
+  groupSelect.innerHTML = '<option value="all">全部分组</option>' +
+    Object.entries(GROUPS).map(([k, v]) => '<option value="' + k + '">' + v.name + '</option>').join('');
+
+  const msSelect = document.getElementById('milestoneFilter');
+  msSelect.innerHTML = '<option value="all">全部里程碑</option>' +
+    Object.entries(MILESTONES).map(([k, v]) => '<option value="' + k + '">' + v + '</option>').join('');
+
+  document.getElementById('search').addEventListener('input', (e) => {
+    filters.search = e.target.value.trim();
+    render();
+  });
+  groupSelect.addEventListener('change', (e) => {
+    filters.group = e.target.value;
+    render();
+  });
+  msSelect.addEventListener('change', (e) => {
+    filters.milestone = e.target.value;
+    render();
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('确定重置全部任务状态吗？')) return;
+    state = {};
+    TASKS.forEach(t => { state[t.id] = defaultStatus(t); });
+    saveState();
+    render();
+  });
+}
+
+setupFilters();
+setupDropZones();
+render();
+</script>
+</body>
+</html>
