@@ -1,6 +1,8 @@
 import { wallClockInstant } from '../common/timezoneService';
 import type { AirtrailAirport, AirtrailFlightRaw, AirtrailSavePayload } from './airtrail.client';
 
+import { z } from 'zod';
+
 /**
  * The translation between AirTrail's `/api/v1` and the shapes the rest of TREK
  * uses (AirtrailFlightRaw, AirtrailSavePayload), which are the shapes of the
@@ -14,47 +16,48 @@ import type { AirtrailAirport, AirtrailFlightRaw, AirtrailSavePayload } from './
  */
 
 /** An airport as v1 returns it, on a flight and from `GET /api/v1/airports`. */
-export interface AirtrailV1Airport {
-  id: number;
-  icao: string | null;
-  iata: string | null;
-  name: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  timezone: string | null;
-  country: string | null;
-}
+/*
+ * The v1 bodies, read at the boundary. A field TREK does not need may be absent
+ * or null; a body of another shape (a list that is not a list, a flight without
+ * an id) is refused as a request error instead of failing deeper down.
+ */
+const optText = z.string().nullish();
+const optNumber = z.number().nullish();
 
-/** An airline or aircraft as v1 returns it. Aircraft have no IATA code. */
-export interface AirtrailV1Entity {
-  id: number;
-  name: string | null;
-  icao: string | null;
-  iata?: string | null;
-}
+export const airtrailV1AirportSchema = z.object({
+  id: z.number(),
+  icao: optText,
+  iata: optText,
+  name: optText,
+  latitude: optNumber,
+  longitude: optNumber,
+  timezone: optText,
+  country: optText,
+});
+export type AirtrailV1Airport = z.infer<typeof airtrailV1AirportSchema>;
 
-interface AirtrailV1Passenger {
-  id: number;
-  user: { id: string } | null;
-  guestName: string | null;
-  seat: string | null;
-  seatNumber: string | null;
-  seatClass: string | null;
-  flightReason: string | null;
-}
+export const airtrailV1EntitySchema = z.object({ id: z.number(), name: optText, icao: optText, iata: optText });
 
-/** A flight as `GET /api/v1/flights` and `GET /api/v1/flights/{id}` return it. */
-export interface AirtrailV1Flight {
-  id: number;
-  from: AirtrailV1Airport | null;
-  to: AirtrailV1Airport | null;
-  airline: AirtrailV1Entity | null;
-  aircraft: AirtrailV1Entity | null;
-  passengers: AirtrailV1Passenger[];
-  [key: string]: unknown;
-}
+const airtrailV1PassengerSchema = z.object({
+  user: z.object({ id: z.string() }).nullish(),
+  guestName: optText,
+  seat: optText,
+  seatNumber: optText,
+  seatClass: optText,
+  flightReason: optText,
+});
 
-/** What a v1 write needs that a code-based payload does not carry. */
+/** A flight keeps every other field as AirTrail sent it: the sync reads the times and the rest from it. */
+export const airtrailV1FlightSchema = z.looseObject({
+  id: z.number(),
+  from: airtrailV1AirportSchema.nullish(),
+  to: airtrailV1AirportSchema.nullish(),
+  airline: airtrailV1EntitySchema.nullish(),
+  aircraft: airtrailV1EntitySchema.nullish(),
+  passengers: z.array(airtrailV1PassengerSchema).nullish(),
+});
+type AirtrailV1Flight = z.infer<typeof airtrailV1FlightSchema>;
+
 export interface AirtrailV1References {
   from: AirtrailV1Airport;
   to: AirtrailV1Airport;
@@ -75,17 +78,17 @@ export class AirtrailV1InputError extends Error {
 /** The placeholder the legacy save resolved to the key owner. */
 export const AIRTRAIL_SELF_USER_PLACEHOLDER = '<USER_ID>';
 
-function toAirport(a: AirtrailV1Airport | null): AirtrailAirport | null {
+function toAirport(a: AirtrailV1Airport | null | undefined): AirtrailAirport | null {
   if (!a) return null;
   return {
     id: a.id,
-    icao: a.icao,
-    iata: a.iata,
-    name: a.name,
-    lat: a.latitude,
-    lon: a.longitude,
-    tz: a.timezone,
-    country: a.country,
+    icao: a.icao ?? null,
+    iata: a.iata ?? null,
+    name: a.name ?? null,
+    lat: a.latitude ?? null,
+    lon: a.longitude ?? null,
+    tz: a.timezone ?? null,
+    country: a.country ?? null,
   };
 }
 
@@ -103,11 +106,11 @@ export function fromAirtrailV1Flight(f: AirtrailV1Flight): AirtrailFlightRaw {
     to: toAirport(f.to),
     passengers: (f.passengers ?? []).map((p) => ({
       userId: p.user?.id ?? null,
-      guestName: p.guestName,
-      seat: p.seat,
-      seatNumber: p.seatNumber,
-      seatClass: p.seatClass,
-      flightReason: p.flightReason,
+      guestName: p.guestName ?? null,
+      seat: p.seat ?? null,
+      seatNumber: p.seatNumber ?? null,
+      seatClass: p.seatClass ?? null,
+      flightReason: p.flightReason ?? null,
     })),
   };
 }
@@ -171,7 +174,7 @@ function carriedInstant(p: Record<string, unknown>, key: string, zone: string | 
  *  - Departure and its scheduled time are the local wall clock at the origin,
  *    arrival and its scheduled time at the destination. A date without a time
  *    gives no instant. An arrival time without an arrival date takes the
- *    departure date.
+ *    departure date, and an arrival before the departure is refused.
  *  - `date` is the departure date, else the scheduled departure date.
  *  - A precision other than `day` keeps only the departure, at 10:00 UTC.
  *  - A flight-level reason fills each passenger that has none.
@@ -188,8 +191,8 @@ export function toAirtrailV1FlightInput(
   refs: AirtrailV1References,
 ): Record<string, unknown> {
   const p = payload as unknown as Record<string, unknown>;
-  const fromTz = refs.from.timezone;
-  const toTz = refs.to.timezone;
+  const fromTz = refs.from.timezone ?? null;
+  const toTz = refs.to.timezone ?? null;
 
   const depDate = datePart(p.departure);
   const date = depDate ?? datePart(p.departureScheduled);
@@ -243,8 +246,9 @@ export function toAirtrailV1FlightInput(
 
   const known =
     times.departure && times.arrival ? (Date.parse(times.arrival) - Date.parse(times.departure)) / 1000 : null;
-  const duration =
-    known !== null && known >= 0 ? Math.round(known) : typeof p.duration === 'number' ? p.duration : null;
+  // The legacy save refuses this; v1 would store it, for example an overnight arrival time without its date.
+  if (known !== null && known < 0) throw new AirtrailV1InputError('Arrival must be after departure');
+  const duration = known !== null ? Math.round(known) : typeof p.duration === 'number' ? p.duration : null;
 
   return {
     date,

@@ -1,15 +1,17 @@
 import { safeFetch } from '../../utils/ssrfGuard';
 import {
   AirtrailV1InputError,
+  airtrailV1AirportSchema,
+  airtrailV1EntitySchema,
+  airtrailV1FlightSchema,
   fromAirtrailV1Flight,
   pickAirtrailByCode,
   AIRTRAIL_SELF_USER_PLACEHOLDER,
   toAirtrailV1FlightInput,
-  type AirtrailV1Airport,
-  type AirtrailV1Entity,
-  type AirtrailV1Flight,
 } from './airtrail-v1';
 import { Injectable } from '@nestjs/common';
+
+import { z } from 'zod';
 
 /**
  * Thin HTTP client for the AirTrail REST API (github.com/johanohly/AirTrail).
@@ -233,6 +235,21 @@ async function parseJson<T>(resp: Response): Promise<T> {
   }
 }
 
+/** A v1 body in the shape `schema` describes; any other shape is a request error, not a crash further down. */
+async function parseV1<T>(resp: Response, schema: z.ZodType<T>, what: string): Promise<T> {
+  const parsed = schema.safeParse(await parseJson<unknown>(resp));
+  if (!parsed.success) throw new AirtrailRequestError(`AirTrail answered the ${what} in an unexpected shape`);
+  return parsed.data;
+}
+
+const v1FlightAnswer = z.object({ data: airtrailV1FlightSchema.nullish() });
+const v1FlightPage = z.object({
+  data: z.array(airtrailV1FlightSchema),
+  page: z.object({ nextCursor: z.string().nullish() }).nullish(),
+});
+const v1Created = z.object({ data: z.object({ id: z.number() }).nullish() });
+const v1Me = z.object({ data: z.object({ id: z.string() }) });
+
 /** The error of a v1 error body (`{error:{code,message,details}}`), when the response holds one. */
 async function airtrailV1Error(resp: Response): Promise<{ code: string | null; message: string } | null> {
   try {
@@ -326,7 +343,7 @@ export class AirtrailClient {
     if (resp.status === 404) return null;
     if (!resp.ok) throw new AirtrailRequestError(`AirTrail get failed (HTTP ${resp.status})`, resp.status);
     if (v1) {
-      const data = await parseJson<{ data?: AirtrailV1Flight }>(resp);
+      const data = await parseV1(resp, v1FlightAnswer, 'flight');
       return data.data ? fromAirtrailV1Flight(data.data) : null;
     }
     const data = await parseJson<{ flight?: AirtrailFlightRaw }>(resp);
@@ -416,8 +433,8 @@ export class AirtrailClient {
     if (cursor) query.set('cursor', cursor);
     const resp = await request(creds, `/v1/flights?${query}`, { method: 'GET' });
     if (!resp.ok) throw new AirtrailRequestError(`AirTrail list failed (HTTP ${resp.status})`, resp.status);
-    const body = await parseJson<{ data?: AirtrailV1Flight[]; page?: { nextCursor?: string | null } }>(resp);
-    for (const f of body.data ?? []) flights.push(fromAirtrailV1Flight(f));
+    const body = await parseV1(resp, v1FlightPage, 'flight list');
+    for (const f of body.data) flights.push(fromAirtrailV1Flight(f));
     const next = body.page?.nextCursor ?? null;
     if (!next) return flights;
     // A cursor that came before makes an endless loop. AirTrail does not send one, but a caching proxy can.
@@ -430,11 +447,13 @@ export class AirtrailClient {
 
   private async saveFlightV1(creds: AirtrailCreds, payload: AirtrailSavePayload): Promise<{ id?: number }> {
     const [from, to, airline, aircraft] = await Promise.all([
-      this.findByCode<AirtrailV1Airport>(creds, 'airports', payload.from, false, 'departure airport'),
-      this.findByCode<AirtrailV1Airport>(creds, 'airports', payload.to, false, 'arrival airport'),
-      payload.airline ? this.findByCode<AirtrailV1Entity>(creds, 'airlines', payload.airline, true, 'airline') : null,
+      this.findByCode(creds, 'airports', payload.from, false, 'departure airport', airtrailV1AirportSchema),
+      this.findByCode(creds, 'airports', payload.to, false, 'arrival airport', airtrailV1AirportSchema),
+      payload.airline
+        ? this.findByCode(creds, 'airlines', payload.airline, true, 'airline', airtrailV1EntitySchema)
+        : null,
       payload.aircraft
-        ? this.findByCode<AirtrailV1Entity>(creds, 'aircraft', payload.aircraft, true, 'aircraft')
+        ? this.findByCode(creds, 'aircraft', payload.aircraft, true, 'aircraft', airtrailV1EntitySchema)
         : null,
     ]);
     const people = payload.passengers ?? payload.seats ?? [];
@@ -465,7 +484,7 @@ export class AirtrailClient {
     if (!resp.ok) throw await airtrailV1Failure(resp, 'save');
     // The legacy save answers an id only for a new flight. This method does the same.
     if (update) return {};
-    const data = await parseJson<{ data?: { id?: number } }>(resp);
+    const data = await parseV1(resp, v1Created, 'saved flight');
     return { id: data.data?.id };
   }
 
@@ -479,13 +498,14 @@ export class AirtrailClient {
     code: string,
     icaoOnly: boolean,
     label: string,
+    schema: z.ZodType<T>,
   ): Promise<T> {
     const resp = await request(creds, `/v1/${kind}?${new URLSearchParams({ query: code.trim() })}`, {
       method: 'GET',
     });
     if (!resp.ok) throw await airtrailV1Failure(resp, `${label} lookup`);
-    const body = await parseJson<{ data?: T[] }>(resp);
-    const row = pickAirtrailByCode(body.data ?? [], code, icaoOnly);
+    const body = await parseV1(resp, z.object({ data: z.array(schema) }), `${label} lookup`);
+    const row = pickAirtrailByCode(body.data, code, icaoOnly);
     if (!row) throw new AirtrailRequestError(`Invalid ${label}: ${code}`, 400);
     return row;
   }
@@ -494,8 +514,8 @@ export class AirtrailClient {
   private async selfUserId(creds: AirtrailCreds): Promise<string> {
     const resp = await request(creds, '/v1/me', { method: 'GET' });
     if (!resp.ok) throw await airtrailV1Failure(resp, 'profile read');
-    const body = await parseJson<{ data?: { id?: unknown } }>(resp);
-    if (typeof body.data?.id !== 'string') throw new AirtrailRequestError('AirTrail did not name the key owner');
-    return body.data.id;
+    const parsed = v1Me.safeParse(await parseJson<unknown>(resp));
+    if (!parsed.success) throw new AirtrailRequestError('AirTrail did not name the key owner');
+    return parsed.data.data.id;
   }
 }

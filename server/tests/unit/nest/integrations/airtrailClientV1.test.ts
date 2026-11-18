@@ -159,6 +159,15 @@ describe('AirtrailClient picks the API the instance speaks', () => {
     );
   });
 
+  it('refuses a flight page of another shape with a request error, and lists nothing', async () => {
+    v1Instance();
+    on('GET', '/api/v1/flights', () => json({ data: { flights: [v1Flight(1)] }, page: { nextCursor: null } }));
+
+    await expect(new AirtrailClient().listFlights(creds)).rejects.toThrow(
+      new AirtrailRequestError('AirTrail answered the flight list in an unexpected shape'),
+    );
+  });
+
   it('uses the legacy routes when the instance has no /api/v1', async () => {
     on('GET', '/api/flight/list', () => json({ success: true, flights: [{ id: 9 }] }));
 
@@ -691,7 +700,7 @@ describe('toAirtrailV1FlightInput keeps the rules of the legacy save', () => {
   });
 
   it('puts an arrival time without an arrival date on the departure date', () => {
-    const body = toAirtrailV1FlightInput({ ...base, departureTime: '06:00', arrivalTime: '23:00' }, refs);
+    const body = toAirtrailV1FlightInput({ ...base, departureTime: '01:00', arrivalTime: '23:00' }, refs);
     expect(body.arrival).toBe('2026-10-04T12:00:00.000+00:00');
   });
 
@@ -789,15 +798,13 @@ describe('toAirtrailV1FlightInput converts the local wall clock to UTC', () => {
     expect(body.departure).toBe('2026-10-04T23:30:00.000+00:00');
   });
 
-  it('keeps the stored duration for an arrival before the departure', () => {
-    const body = toAirtrailV1FlightInput(
-      // `duration` is not a payload field; it passes through from the AirTrail flight.
-      {
-        ...flight({ departure: '2026-10-05', departureTime: '10:00', arrival: '2026-10-05', arrivalTime: '09:00' }),
-        duration: 600,
-      } as AirtrailSavePayload,
-      refs(LHR, LHR),
-    );
-    expect(body.duration).toBe(600);
+  it('refuses an arrival before the departure, as the legacy save does, instead of storing it', () => {
+    // An overnight arrival time without its date lands on the departure date and before the departure.
+    expect(() =>
+      toAirtrailV1FlightInput(
+        flight({ departure: '2026-10-05', departureTime: '22:00', arrivalTime: '06:00' }),
+        refs(LHR, LHR),
+      ),
+    ).toThrow('Arrival must be after departure');
   });
 });
