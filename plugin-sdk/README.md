@@ -217,8 +217,12 @@ What changes on Postgres:
   `varchar(20)`, `int8`, ...), JSON and JSONB (`jsonb_build_object`, `jsonb_set`,
   `jsonb_path_query`, ...), arrays (`unnest`, `array_agg`, `generate_series`, ...),
   aggregates and window functions (`count`, `sum`, `string_agg`, `row_number`, `lag`, ...),
-  UUIDs (`gen_random_uuid`), ranges, geometry, network addresses and full text search
-  (`to_tsvector`, `ts_rank`, ...). Any other function of Postgres's catalog is refused
+  UUIDs (`gen_random_uuid`), ranges, geometry, network addresses, and full text search over
+  vectors you build yourself (`array_to_tsvector`, `'a & b'::tsquery`, `ts_rank`, `@@`). The
+  text search functions that take a configuration (`to_tsvector`, `to_tsquery`,
+  `plainto_tsquery`, `websearch_to_tsquery`, `ts_headline`, ...) are refused: Postgres looks
+  the configuration up by its name, which would tell you what else the database holds. Any
+  other function of Postgres's catalog is refused
   however you spell the call (`f(...)`, `"f"(...)`, the column notation `(x).f`, `t.f`,
   `$1.f`): the ones that read the catalogs or the server rather than their arguments
   (`obj_description`, `col_description`, `format_type`, `version`, `current_database`,
@@ -232,8 +236,33 @@ What changes on Postgres:
   call (`INSERT INTO version (...)`, `CREATE TABLE version (...)`, `REFERENCES version (id)`);
   as the table of `CREATE INDEX ... ON` it cannot, so name it differently. Postgres reads
   `t.f` as the call `f(t)` when `t` has no column `f`, so a column named like a refused
-  function cannot follow a table's name and a dot either (`name`, `version`, `money`, `oid`,
-  `xid` and `xml` can); write it without the table's name, or name it differently.
+  function cannot follow a table's name and a dot either (`name`, `version`, `money`, `oid`
+  and `xml` can); write it without the table's name, or name it differently.
+- **No system columns.** Reading `xmin`, `xmax`, `cmin`, `cmax`, `ctid` or `tableoid` is
+  refused, quoted or not, after a table's name or alone: they show the server's transaction
+  ids or where a row is stored, and SQLite has none of them. For optimistic locking keep a
+  version or `updated_at` column of your own. A value of yours may still carry such a name
+  where you give it, after `AS` or in a `WITH` query's or an alias's column list
+  (`SELECT min(lng) AS xmin, max(lng) AS xmax FROM places`), and you read it from the
+  result; the SQL itself cannot refer to it by that name (`ORDER BY xmin` is refused).
+- **No transaction ids.** The types `xid` and `xid8` (and their arrays) are refused where the
+  word stands for the type: `'3'::xid`, `CAST(x AS xid)`, `xid '3'`, `xid(x)`, a column
+  declared `xid`, and `x.xid`, which Postgres reads as the cast `xid(x)` when `x` has no
+  column `xid`. `age()` of one is how many transactions the server ran. A column of yours
+  may be called `xid` (`CREATE TABLE payments (id bigserial PRIMARY KEY, xid text)`, `SELECT
+  xid FROM payments WHERE xid = $1`); name it without its table, and rename it where you
+  need `t.xid` or `excluded.xid` in an upsert.
+- **Collations and access methods every server has.** After `COLLATE` only `"C"`,
+  `"POSIX"`, `"default"` and `ucs_basic` are accepted, and after `USING` (or `SET ACCESS
+  METHOD`) only `btree`, `hash`, `gist`, `gin`, `spgist`, `brin` and, for a table, `heap`:
+  which others exist depends on the server's locales, ICU and extensions. Text sorts by the
+  database's collation; `ORDER BY name COLLATE "C"` sorts by code point, as SQLite does.
+- **Values print the same on every server.** Each call runs with the time zone UTC and with
+  Postgres's built-in defaults for the date style, the interval style, the money, number and
+  month name formats (`lc_monetary`, `lc_numeric`, `lc_time` are `C`), float, bytea and xml
+  output and the text search configuration (`simple`), whatever the server is set to:
+  `now()::text` ends in `+00`, `date_trunc('day', now())` cuts at UTC midnight, and
+  `12.5::money` prints `$12.50`.
 - **You change your own objects only.** Right before an `ALTER`, `DROP`, `REFRESH`,
   `TRUNCATE` or `CREATE INDEX ... ON` runs, Postgres resolves the object it names (and the
   tables a `CREATE`/`ALTER TABLE` ties to with `REFERENCES`, `INHERITS`, `PARTITION OF`,
@@ -260,13 +289,17 @@ What changes on Postgres:
 - **One statement at a time.** Each statement goes to Postgres on its own, over the protocol
   that runs exactly one: `query` and each `tx` entry take one statement, and an `exec`
   script is split at its semicolons and sent statement by statement.
-- **No NUL in text.** Postgres text cannot hold the character U+0000. A bound argument
-  holding one (a string, or a string in an array) and a `migrate` id holding one are refused
-  with an error that names it, and so is SQL text with one anywhere, a string literal
-  included; TREK never drops or changes the character, since `'a\0b'` and `'ab'` are
-  different keys. Bind binary data as a `Buffer` into a `bytea` column, and use another
-  separator for composite keys. On SQLite your arguments are bound exactly as you send
-  them, NUL included, as they always were.
+- **No NUL in text, on either engine.** Postgres text cannot hold the character U+0000, so
+  TREK refuses it on SQLite as well, and `trek-plugin dev` and the mock host refuse it the
+  same way. A bound argument holding one (a string, or a string in an array or an object)
+  and a `migrate` id holding one are refused with an error that names it, and so is SQL text
+  with one anywhere, a string literal included; TREK never drops or changes the character,
+  since `'a\0b'` and `'ab'` are different keys. Bind binary data as a `Buffer` (a `BLOB` on
+  SQLite, `bytea` on Postgres), and use another separator for composite keys. TREK does not
+  see a NUL your SQL builds itself: on SQLite `char(0)` or a BLOB cast to text still stores
+  one, while Postgres refuses `chr(0)`, and moving such an install to Postgres refuses the
+  row. Keep binary data in a `BLOB`. Rows an older TREK stored in your SQLite file with a
+  NUL are still read as they are.
 - **Limits**: the same row cap and quota as on SQLite. The 2 s budget is a
   `statement_timeout` here, so it also stops a single long statement, and an `exec` with
   bound args is held to it too; `migrate` stays untimed. The quota counts every relation of
@@ -360,7 +393,7 @@ for a legitimate plugin and only bite a runaway or abusive one — build against
 | `ctx.ai` | 200 calls/day per plugin (UTC midnight rollover); past it throws `"daily AI budget exhausted (resets at UTC midnight)"` |
 | `ctx.notify` | 100 calls/day per plugin (UTC midnight rollover); past it throws `"daily notification budget exhausted (resets at UTC midnight)"` |
 | RPC (every `ctx.*` call) | burst 60, sustained 20/s, 16 in-flight per plugin; a throttled call is refused with `HOST_ERROR: rate limit exceeded — slow down ctx.* calls` |
-| `ctx.db` (your own database) | 256 MB per plugin; a `query` or `tx` returns at most 100,000 rows (a whole `tx` batch shares one count). A `query`, a whole `tx` batch and an `exec` script without bound args each have 2 s of wall-clock time, checked between the rows a statement reads and between the statements of a batch or script; past either limit the call throws (`query exceeded its 2000 ms time budget`), a `tx` rolls back, and an `exec` script stops before its next statement once the time is up (the statements that ran stay applied, as they always did, and a transaction the script opened itself is rolled back; a script whose last statement has run counts as done, however long it took). Split a longer script over several calls, or batch it with `tx`. `migrate` has no time budget, since a migration stopped part of the way would fail again on every start. `ATTACH`, `DETACH`, `VACUUM`, `PRAGMA`, `WITH RECURSIVE` and `load_extension` are refused. The budget cannot stop a single statement, because SQLite runs it on TREK's main thread in one step: a write runs to its end (an `INSERT ... SELECT` over a cross join of large tables), and a read runs until its first row (an aggregate over one). Keep your statements indexed and bounded. On a TREK running on Postgres the same caps hold, and the budget also stops a single statement (see [Your own database on Postgres](#your-own-database-on-postgres)) |
+| `ctx.db` (your own database) | 256 MB per plugin; a `query` or `tx` returns at most 100,000 rows (a whole `tx` batch shares one count). A `query`, a whole `tx` batch and an `exec` script without bound args each have 2 s of wall-clock time, checked between the rows a statement reads and between the statements of a batch or script; past either limit the call throws (`query exceeded its 2000 ms time budget`), a `tx` rolls back, and an `exec` script stops before its next statement once the time is up (the statements that ran stay applied, as they always did; a script whose last statement has run counts as done, however long it took). Split a longer script over several calls, or batch it with `tx`. `migrate` has no time budget, since a migration stopped part of the way would fail again on every start. `ATTACH`, `DETACH`, `VACUUM`, `PRAGMA`, `WITH RECURSIVE` and `load_extension` are refused. Transaction control (`BEGIN`, `START`, `COMMIT`, `END`, `ROLLBACK`, `ABORT`, `SAVEPOINT`, `RELEASE`) is refused in every statement of every call, on both engines and in `dev`, with the error `PLUGIN_DATA_ERRORS.txControl`: each call runs in a transaction of its own, and `tx` makes a batch atomic. A named parameter written directly before a parenthesis (`$a(1)`) is refused too (`PLUGIN_DATA_ERRORS.parameterBeforeParenthesis`): the SQLite under `dev` reads it as one token up to the closing parenthesis, and TREK's engines refuse it anyway. The budget cannot stop a single statement, because SQLite runs it on TREK's main thread in one step: a write runs to its end (an `INSERT ... SELECT` over a cross join of large tables), and a read runs until its first row (an aggregate over one). Keep your statements indexed and bounded. On a TREK running on Postgres the same caps hold, and the budget also stops a single statement (see [Your own database on Postgres](#your-own-database-on-postgres)) |
 | `ctx.meta` | 64 KB per value, 256 chars per key, 100 keys per (plugin, entity) |
 | Plugin process | 300 MB RSS ceiling; auto-disabled after 5 crashes in 5 minutes |
 | Event redelivery buffer | 200 events held per plugin, dropped unreplayed after 15 minutes |

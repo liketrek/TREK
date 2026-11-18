@@ -696,7 +696,7 @@ See [Notifications](Notifications#web-push) for the details.
 
 ## Postgres: a restore is refused because of the database role
 
-**Cause:** `TREK_DB_URL` connects as a superuser, or as a role that holds `pg_execute_server_program` or `pg_write_server_files`. A backup is a SQL script that runs as this role, so TREK refuses to restore it with a role that could run commands or write files on the database server. TREK also logs a warning about such a role at startup.
+**Cause:** `TREK_DB_URL` connects as a role that could reach the database server from SQL: a superuser or a member of one, a role that holds `pg_execute_server_program`, `pg_read_server_files` or `pg_write_server_files` or may run a server file function such as `lo_export`, from PostgreSQL 15 on a role granted ALTER SYSTEM or a superuser-only setting, or on PostgreSQL 14 and 15 a role with CREATEROLE or a member of one. A backup is a SQL script that runs as this role, so TREK refuses to restore it with a role that could run commands or read or write files on the database server. Plugin databases (`db:own`) are refused for the same roles. TREK also logs a warning about such a role at startup.
 
 **Fix:** Connect TREK as a role that owns its database and is not a superuser. See [Database-Postgres](Database-Postgres#a-role-that-is-not-a-superuser), which also shows how to move an install made with an older `docker-compose.postgres.yml`.
 
