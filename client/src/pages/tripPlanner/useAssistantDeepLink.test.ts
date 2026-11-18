@@ -96,4 +96,47 @@ describe('useAssistantTabLink', () => {
     expect(setupTab('tab=collab', 'plan').onLinked).toHaveBeenCalledWith('collab');
     expect(setupTab('tab=collab', 'collab').onLinked).toHaveBeenCalledWith('collab');
   });
+
+  it('FE-PLANNER-ASSISTLINK-008: a link is taken once while the cleaned URL is still on its way', () => {
+    // React Router lands the URL without the link as a transition: until then
+    // the hook keeps reading the link, with a new selectTab on every render.
+    const searchParams = new URLSearchParams('tab=collab');
+    const setSearchParams = vi.fn();
+    const onLinked = vi.fn();
+    const selects: ReturnType<typeof vi.fn>[] = [];
+    const { rerender } = renderHook(() => {
+      const selectTab = vi.fn();
+      selects.push(selectTab);
+      useAssistantTabLink({
+        searchParams,
+        setSearchParams: setSearchParams as never,
+        activeTab: 'plan',
+        selectTab,
+        onLinked,
+      });
+    });
+    rerender();
+    rerender();
+    expect(selects.filter((select) => select.mock.calls.length > 0)).toHaveLength(1);
+    expect(onLinked).toHaveBeenCalledTimes(1);
+    expect(setSearchParams).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-PLANNER-ASSISTLINK-009: the same link in a new URL is taken again', () => {
+    const setSearchParams = vi.fn();
+    const onLinked = vi.fn();
+    const { rerender } = renderHook(
+      ({ query }) =>
+        useAssistantTabLink({
+          searchParams: new URLSearchParams(query),
+          setSearchParams: setSearchParams as never,
+          activeTab: 'plan',
+          selectTab: vi.fn(),
+          onLinked,
+        }),
+      { initialProps: { query: 'tab=collab' } }
+    );
+    rerender({ query: 'tab=collab' });
+    expect(onLinked).toHaveBeenCalledTimes(2);
+  });
 });
