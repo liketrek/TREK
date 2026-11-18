@@ -5,7 +5,8 @@ import type { AnyOrm } from '../../../orm';
 import { buildOrmConfig, resolveEngine } from '../../index';
 import { redactUrl } from '../../redact-url';
 import { readPostgresBaseline } from '../baseline';
-import { MoveRefusal, moveSqliteToPostgres, renderSummary, type MoveOptions } from './move';
+import { moveSqliteToPostgres, renderSummary, type MoveOptions } from './move';
+import { MoveRefusal } from './refusal';
 import { MikroORM } from '@mikro-orm/core';
 
 import path from 'node:path';
@@ -23,8 +24,9 @@ export const USAGE =
   'Usage: move-to-postgres [--from=<SQLite file>] [--drop-nul]\n' +
   'Copies a TREK SQLite database (data/travel.db by default) into the empty Postgres database TREK_DB_URL names.\n' +
   '  --from=<file>  the SQLite file to copy\n' +
-  "  --drop-nul     drop NUL characters (U+0000) from TREK's own text, which Postgres cannot hold and TREK drops on\n" +
-  '                 its next write anyway, instead of refusing the move; the summary lists every value changed.\n' +
+  "  --drop-nul     drop NUL characters (U+0000) from TREK's own text and JSON (raw or escaped as \\u0000), which\n" +
+  '                 Postgres cannot hold and TREK drops on its next write anyway, instead of refusing the move;\n' +
+  '                 the summary lists every value changed.\n' +
   "                 A plugin's own data is never changed: a NUL there refuses the move either way.";
 
 export interface MoveCommandIo {

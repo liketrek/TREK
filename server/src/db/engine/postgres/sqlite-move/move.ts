@@ -26,6 +26,7 @@ import {
   resolveIdentitySequences,
   type PluginPlan,
 } from './plugin-data';
+import { FIX_IN_SQLITE_FILE, MoveRefusal } from './refusal';
 import type { AbstractSqlConnection } from '@mikro-orm/sql';
 
 import type { Kysely } from 'kysely';
@@ -62,9 +63,6 @@ import type { Kysely } from 'kysely';
  * The SQLite files are opened read-only and never written. Uploads are not
  * the database's: they stay where the storage driver keeps them.
  */
-
-/** A refusal the operator can act on: printed without a stack. */
-export class MoveRefusal extends Error {}
 
 export interface MoveOptions {
   /** The SQLite file to move: `data/travel.db` by default. */
@@ -247,10 +245,11 @@ async function copyAll(
   if (refused > 0) {
     const problems = copied.flatMap((table) => table.problems).slice(0, MAX_LISTED_PROBLEMS);
     const nul = nulRefused > 0 ? `${nulRefused} of them hold a NUL character (U+0000). ${TREK_NUL_REMEDY}\n` : '';
+    const others =
+      refused > nulRefused ? `${nulRefused > 0 ? 'Correct the others' : 'Correct them'} ${FIX_IN_SQLITE_FILE}` : '';
     throw new MoveRefusal(
       `${refused} value(s) in the SQLite file cannot be stored in Postgres exactly; nothing was written:\n` +
-        `${listLines(problems, refused)}\n${nul}` +
-        'Correct those rows (or ask for help with them), then run the move again.',
+        `${listLines(problems, refused)}\n${nul}${others}`.trimEnd(),
     );
   }
 

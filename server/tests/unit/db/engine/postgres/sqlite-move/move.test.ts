@@ -1,5 +1,5 @@
 /**
- * MOVE-001..026: the move of a SQLite install into Postgres
+ * MOVE-001..032: the move of a SQLite install into Postgres
  * (src/db/engine/postgres/sqlite-move/), over real SQLite files and a
  * stand-in for Postgres that keeps what it is sent (tests/helpers/fake-postgres-move.ts):
  * the refusals before anything is written, the copy in foreign key order with
@@ -24,7 +24,6 @@ import {
 } from '../../../../../../src/db/engine/postgres/sqlite-move/copy';
 import {
   migrationLevelProblem,
-  MoveRefusal,
   moveSqliteToPostgres,
   renderSummary,
   type MoveOptions,
@@ -35,6 +34,7 @@ import {
   pluginColumnKind,
   pluginDefault,
 } from '../../../../../../src/db/engine/postgres/sqlite-move/plugin-data';
+import { MoveRefusal } from '../../../../../../src/db/engine/postgres/sqlite-move/refusal';
 import {
   InvalidUtf8Text,
   sqliteInstallHoldsAccounts,
@@ -404,7 +404,7 @@ describe('nothing is changed silently', () => {
     );
   });
 
-  it('MOVE-024: a unique key that dropping a NUL broke is named as that, never as a bare duplicate', async () => {
+  it('MOVE-024: a unique key a dropped NUL may have broken lists that value, never asserting the cause', async () => {
     sqlite(path.join(dir, 'travel.db'), "update users set name = 'Ad' || char(0) || 'a' where id = 2;");
     pg.failOn = /^insert into "users"/;
     pg.failWith = {
@@ -412,17 +412,200 @@ describe('nothing is changed silently', () => {
       constraint: 'users_name_unique',
       detail: 'Key (name)=(Ada) already exists.',
     };
-    await expect(moveSqliteToPostgres(options({ dropNul: true }))).rejects.toThrow(
+    const broken = moveSqliteToPostgres(options({ dropNul: true }));
+    await expect(broken).rejects.toBeInstanceOf(MoveRefusal);
+    await expect(broken).rejects.toThrow(
       'Postgres refused rows of users: refused by the fake; constraint users_name_unique; Key (name)=(Ada) already ' +
-        'exists.\nThe key is broken because --drop-nul removed NUL characters (U+0000) from 1 value(s) of its ' +
-        'column(s) name, and a value that differed from another only by a NUL equals it once the NUL is gone:\n' +
+        'exists.\nTwo rows of users share a value of its column(s) name, which Postgres holds unique and the SQLite ' +
+        'file did not (it may lack that index). The detail above names the value.\n' +
+        '--drop-nul removed NUL characters (U+0000) from 1 value(s) of its column(s) name that may hold it; a value ' +
+        'that differed from another only by a NUL equals it once the NUL is gone, so check these first:\n' +
         '  - users row id=2, column name\n' +
-        'Change or remove one of the two rows in the SQLite file (with TREK stopped), then run the move again.',
+        'Change or remove one of those rows ' +
+        'in the SQLite file (through TREK while it still runs on SQLite, or with the sqlite3 tool while TREK is ' +
+        'stopped), then run the move again.',
     );
-    // A broken key whose columns lost no NUL is reported as Postgres reported it.
+    // A broken key whose columns lost no NUL is a duplicate the SQLite file held apart: named, with what to do.
     pg.failWith = { code: '23505', constraint: 'users_pkey', detail: 'Key (id)=(2) already exists.' };
-    await expect(moveSqliteToPostgres(options({ dropNul: true }))).rejects.toThrow(
-      /^Postgres refused rows of users: refused by the fake; constraint users_pkey; Key \(id\)=\(2\) already exists\.$/,
+    const duplicate = moveSqliteToPostgres(options({ dropNul: true }));
+    await expect(duplicate).rejects.toBeInstanceOf(MoveRefusal);
+    await expect(duplicate).rejects.toThrow(
+      'Postgres refused rows of users: refused by the fake; constraint users_pkey; Key (id)=(2) already exists.\n' +
+        'Two rows of users share a value of its column(s) id, which Postgres holds unique and the SQLite file did ' +
+        'not (it may lack that index). The detail above names the value.\nChange or remove one of those rows in the ' +
+        'SQLite file (through TREK',
+    );
+    expect(pg.statements.at(-1)).toBe(CLEAR_SCHEMA_SQL);
+  });
+
+  it('MOVE-029: a key over an expression lists exactly the dropped values of the columns its expression reads', () => {
+    const spec = {
+      source: 'users',
+      target: '"users"',
+      label: 'users',
+      columns: [],
+      deferred: [],
+      primaryKey: ['id'],
+      exact: false,
+      uniqueKeys: [
+        { name: 'users_pkey', key: 'id', columns: ['id'], expression: false },
+        { name: 'idx_users_email_lower', key: 'lower(email)', columns: ['email'], expression: true },
+      ],
+    };
+    const dropped = [
+      { where: 'users row id=1, column username', column: 'username', text: 'ab@x.test' },
+      { where: 'users row id=2, column email', column: 'email', text: 'Ab@x.test' },
+      { where: 'users row id=3, column bio', column: 'bio', text: 'ab@x.test' },
+    ];
+    const err = Object.assign(new Error('duplicate key value violates unique constraint "idx_users_email_lower"'), {
+      code: '23505',
+      constraint: 'idx_users_email_lower',
+      detail: 'Key (lower(email))=(ab@x.test) already exists.',
+    });
+    expect(refusedRowsMessage(spec, err, dropped)).toBe(
+      'Postgres refused rows of users: duplicate key value violates unique constraint "idx_users_email_lower"; ' +
+        'constraint idx_users_email_lower; Key (lower(email))=(ab@x.test) already exists.\n' +
+        'Two rows of users share a value of its column(s) email (read by its unique key lower(email)), which ' +
+        "Postgres holds unique and the SQLite file did not (it may lack that index, or compare differently: SQLite's " +
+        'lower() changes only A to Z). The detail above names the value.\n' +
+        '--drop-nul removed NUL characters (U+0000) from 1 value(s) of its column(s) email (read by its unique key ' +
+        'lower(email)) that may hold it; a value that differed from another only by a NUL equals it once the NUL is ' +
+        'gone, so check these first:\n' +
+        '  - users row id=2, column email\n' +
+        'Change or remove one of those rows ' +
+        'in the SQLite file (through TREK while it still runs on SQLite, or with the sqlite3 tool while TREK is ' +
+        'stopped), then run the move again.',
+    );
+    // Without a dropped value in that column, it is a duplicate the SQLite file held apart.
+    expect(refusedRowsMessage(spec, err, dropped.slice(0, 1))).toContain(
+      'Two rows of users share a value of its column(s) email (read by its unique key lower(email)), which Postgres ' +
+        "holds unique and the SQLite file did not (it may lack that index, or compare differently: SQLite's lower() " +
+        'changes only A to Z). The detail above names the value.\nChange or remove one of those rows',
+    );
+  });
+
+  it('MOVE-033: a dropped NUL in a column the key reads is not blamed when the duplicate value does not hold it', () => {
+    const spec = {
+      source: 'users',
+      target: '"users"',
+      label: 'users',
+      columns: [],
+      deferred: [],
+      primaryKey: ['id'],
+      exact: false,
+      uniqueKeys: [{ name: 'idx_users_email_lower', key: 'lower(email)', columns: ['email'], expression: true }],
+    };
+    // Two accounts differ only in case (the pending index); an unrelated address lost a NUL.
+    const unrelated = { where: 'users row id=3, column email', column: 'email', text: 'other@x.test' };
+    const err = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'idx_users_email_lower',
+      detail: 'Key (lower(email))=(dup@x.test) already exists.',
+    });
+    const message = refusedRowsMessage(spec, err, [unrelated]);
+    expect(message).not.toContain('--drop-nul');
+    expect(message).not.toContain('row id=3');
+    expect(message).toContain("compare differently: SQLite's lower() changes only A to Z). The detail above names");
+    // A value whose NUL-free text the duplicate holds is listed, whatever its case.
+    const related = { where: 'users row id=4, column email', column: 'email', text: 'DUP@x.test' };
+    expect(refusedRowsMessage(spec, err, [unrelated, related])).toMatch(
+      /from 1 value\(s\) of its column\(s\) email .*check these first:\n {2}- users row id=4, column email\nChange/,
+    );
+    // JSON, which jsonb reformats, and a detail of another shape cannot rule a value out: it is listed.
+    const json = { where: 'users row id=5, column email', column: 'email', text: null };
+    expect(refusedRowsMessage(spec, err, [json])).toContain('  - users row id=5, column email\n');
+    const localized = Object.assign(new Error('doppelter Schlüsselwert'), {
+      code: '23505',
+      constraint: 'idx_users_email_lower',
+      detail: 'Schlüssel »(lower(email))=(dup@x.test)« existiert bereits.',
+    });
+    expect(refusedRowsMessage(spec, localized, [unrelated])).toContain('  - users row id=3, column email\n');
+  });
+
+  it('MOVE-034: a plain key over a quoted column is named by its column, without the hint about lower()', () => {
+    const spec = {
+      source: 'p',
+      target: '"trek_plugin_p"."p"',
+      label: 'plugin p: p',
+      columns: [],
+      deferred: [],
+      primaryKey: [],
+      exact: true,
+      uniqueKeys: [{ name: 'p_user', key: '"userId"', columns: ['userId'], expression: false }],
+    };
+    const err = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'p_user',
+      detail: 'Key ("userId")=(7) already exists.',
+    });
+    expect(refusedRowsMessage(spec, err, [])).toBe(
+      'Postgres refused rows of plugin p: p: duplicate key; constraint p_user; Key ("userId")=(7) already exists.\n' +
+        'Two rows of plugin p: p share a value of its column(s) userId, which Postgres holds unique and the SQLite ' +
+        'file did not (it may lack that index). The detail above names the value.\n' +
+        "Change or remove one of those rows in the plugin's plugin.db (through the plugin, or with the sqlite3 tool " +
+        'while TREK is stopped), then run the move again.',
+    );
+  });
+
+  it('MOVE-035: a value Postgres refuses at insert is a failure reported as a gap in the move, not a refusal', async () => {
+    pg.failOn = /^insert into "trips"/;
+    pg.failWith = { code: '22P02' };
+    const failure = moveSqliteToPostgres(options());
+    await expect(failure).rejects.not.toBeInstanceOf(MoveRefusal);
+    await expect(failure).rejects.toThrow(
+      /^Postgres refused rows of trips: refused by the fake\nThe move let through a value of trips that Postgres refuses\. It should have refused that value by table, row and column before writing anything, so this is a bug in TREK: please report it with this message\.$/,
+    );
+    expect(pg.statements.at(-1)).toBe(CLEAR_SCHEMA_SQL);
+  });
+
+  it('MOVE-030: a row breaking a constraint is a refusal that says what to do; anything else stays a failure', async () => {
+    pg.failOn = /^insert into "trips"/;
+    pg.failWith = {
+      code: '23514',
+      constraint: 'trips_score_check',
+      detail: 'Failing row contains (2, 2, Porto, null, null, null).',
+    };
+    const check = moveSqliteToPostgres(options());
+    await expect(check).rejects.toBeInstanceOf(MoveRefusal);
+    await expect(check).rejects.toThrow(
+      'Postgres refused rows of trips: refused by the fake; constraint trips_score_check; Failing row contains ' +
+        '(2, 2, Porto, null, null, null).\nA row of trips breaks a rule of its Postgres table that the SQLite file ' +
+        'did not hold it to; the detail above names the failing row or the value it refers to. Correct or remove ' +
+        'that row ' +
+        'in the SQLite file (through TREK while it still runs on SQLite, or with the sqlite3 tool while TREK is ' +
+        'stopped), then run the move again.',
+    );
+    // A connection or a statement of the move's own is not the file's: no remedy for the file, no refusal.
+    pg.failWith = { code: '08006', detail: 'connection lost' };
+    const lost = moveSqliteToPostgres(options());
+    await expect(lost).rejects.toThrow(/^Postgres refused rows of trips: refused by the fake; connection lost$/);
+    await expect(lost).rejects.not.toBeInstanceOf(MoveRefusal);
+  });
+
+  it("MOVE-031: a raw NUL in TREK's JSON is refused as a NUL with --drop-nul named, and with it dropped and listed", async () => {
+    sqlite(path.join(dir, 'travel.db'), `update trips set meta = '{"k":"a' || char(0) || 'b"}' where id = 1;`);
+    const failure = moveSqliteToPostgres(options());
+    await expect(failure).rejects.toBeInstanceOf(MoveRefusal);
+    await expect(failure).rejects.toThrow(
+      '1 value(s) in the SQLite file cannot be stored in Postgres exactly; nothing was written:\n' +
+        '  - trips row id=1, column meta: the text "{\\"k\\":\\"a\\u0000b\\"}" holds a NUL character (U+0000), ' +
+        'which Postgres text cannot hold\n' +
+        '1 of them hold a NUL character (U+0000). TREK no longer stores this character and drops it on its next ' +
+        'write. Run the move again with --drop-nul to drop it now; the summary then lists every value it changed.',
+    );
+    const summary = await moveSqliteToPostgres(options({ dropNul: true }));
+    expect(pg.rowsOf('"trips"')[0][3]).toBe('{"k":"ab"}');
+    expect(summary.nulDropped).toEqual(['trips row id=1, column meta']);
+  });
+
+  it('MOVE-032: a refusal of other values says how to correct them, after the NUL remedy when both occur', async () => {
+    sqlite(path.join(dir, 'travel.db'), "update trips set score = 'high' where id = 2;");
+    await expect(moveSqliteToPostgres(options())).rejects.toThrow(
+      /column score: the text "high" is not a number\nCorrect them in the SQLite file \(through TREK while it still runs on SQLite, or with the sqlite3 tool while TREK is stopped\), then run the move again\.$/,
+    );
+    sqlite(path.join(dir, 'travel.db'), "update users set name = 'Ad' || char(0) || 'a' where id = 1;");
+    await expect(moveSqliteToPostgres(options())).rejects.toThrow(
+      /lists every value it changed\.\nCorrect the others in the SQLite file \(through TREK/,
     );
   });
 
@@ -437,13 +620,19 @@ describe('nothing is changed silently', () => {
       exact: false,
       uniqueKeys: [],
     };
-    const dropped = [{ where: 't row 1, column a', column: 'a' }];
+    const dropped = [{ where: 't row 1, column a', column: 'a', text: 'x' }];
     const err = Object.assign(new Error('duplicate key'), { code: '23505', constraint: 'gone' });
     expect(refusedRowsMessage(spec, err, dropped)).toMatch(
-      /from 1 value\(s\) of t, and a value .*\n {2}- t row 1, column a\n/,
+      /from 1 value\(s\) of t that may hold it; a value .*\n {2}- t row 1, column a\n/,
     );
     expect(refusedRowsMessage(spec, new Error('other'), dropped)).toBe('Postgres refused rows of t: other');
-    expect(refusedRowsMessage(spec, err, [])).toBe('Postgres refused rows of t: duplicate key; constraint gone');
+    expect(refusedRowsMessage(spec, err, [])).toBe(
+      'Postgres refused rows of t: duplicate key; constraint gone\nTwo rows of t share a unique key, which Postgres ' +
+        'holds unique and the SQLite file did not (it may lack that index). The detail above names the value.\n' +
+        'Change or remove one of those rows ' +
+        'in the SQLite file (through TREK while it still runs on SQLite, or with the sqlite3 tool while TREK is ' +
+        'stopped), then run the move again.',
+    );
   });
 });
 

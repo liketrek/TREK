@@ -1,4 +1,4 @@
-import { quoteIdentifier, run, type CopiedSequence, type TableSpec, type Trx } from './copy';
+import { quoteIdentifier, run, type CopiedSequence, type TableSpec, type Trx, type UniqueKey } from './copy';
 import { planCopyOrder, type ForeignKey } from './order';
 import { columnKind } from './values';
 
@@ -23,8 +23,8 @@ interface TargetTable {
   name: string;
   columns: TargetColumn[];
   primaryKey: string[];
-  /** Every unique index (the primary key's among them) over plain columns, by name. */
-  uniqueKeys: Array<{ name: string; columns: string[] }>;
+  /** Every unique index (the primary key's among them), by name, expression indexes included. */
+  uniqueKeys: UniqueKey[];
 }
 
 export interface TargetSchema {
@@ -59,14 +59,30 @@ export async function readTargetSchema(trx: Trx): Promise<TargetSchema> {
       "and pg_get_serial_sequence(format('%I', table_name), column_name) is not null order by table_name, column_name",
   );
 
-  // A unique constraint is backed by an index of its name, so the index names what a refusal reports.
-  const uniqueIndexes = await run<{ table_name: string; index_name: string; columns: string[] }>(
+  // A unique constraint is backed by an index of its name, so the index names what a refusal reports. Its key
+  // is read as Postgres spells it. `indkey` holds 0 for a key that is an expression (`lower(email)`), which
+  // marks the index as an expression index; the columns an expression reads are the Var nodes of `indexprs`,
+  // listed after the plain key columns. The partial index's predicate and the INCLUDE columns are left out,
+  // since neither decides whether two rows collide.
+  const uniqueIndexes = await run<{
+    table_name: string;
+    index_name: string;
+    keys: string[];
+    columns: string[];
+    expression: boolean;
+  }>(
     trx,
-    'select t.relname as table_name, i.relname as index_name, array_agg(a.attname::text order by k.ord) as columns ' +
+    'select t.relname as table_name, i.relname as index_name, ' +
+      '0 = any ((x.indkey::int2[])[0:x.indnkeyatts - 1]) as expression, ' +
+      'array(select pg_get_indexdef(x.indexrelid, k, true) from generate_series(1, x.indnkeyatts::int) as k ' +
+      'order by k) as keys, ' +
+      'array(select a.attname::text from pg_attribute a where a.attrelid = x.indrelid and a.attnum > 0 and (' +
+      'a.attnum = any ((x.indkey::int2[])[0:x.indnkeyatts - 1]) or a.attnum::text in (select m[1] from ' +
+      "regexp_matches(coalesce(x.indexprs::text, ''), ':varattno ([0-9]+)', 'g') as m)) " +
+      'order by coalesce(array_position((x.indkey::int2[])[0:x.indnkeyatts - 1], a.attnum), ' +
+      'x.indnkeyatts + a.attnum)) as columns ' +
       'from pg_index x join pg_class i on i.oid = x.indexrelid join pg_class t on t.oid = x.indrelid ' +
-      'cross join lateral unnest(x.indkey) with ordinality as k(attnum, ord) ' +
-      'join pg_attribute a on a.attrelid = x.indrelid and a.attnum = k.attnum ' +
-      'where x.indisunique and t.relnamespace = current_schema()::regnamespace group by t.relname, i.relname',
+      'where x.indisunique and t.relnamespace = current_schema()::regnamespace order by t.relname, i.relname',
   );
 
   const tables = new Map<string, TargetTable>();
@@ -85,7 +101,12 @@ export async function readTargetSchema(trx: Trx): Promise<TargetSchema> {
     tables.set(column.table_name, table);
   }
   for (const index of uniqueIndexes) {
-    tables.get(index.table_name)?.uniqueKeys.push({ name: index.index_name, columns: index.columns });
+    tables.get(index.table_name)?.uniqueKeys.push({
+      name: index.index_name,
+      key: index.keys.join(', '),
+      columns: index.columns,
+      expression: index.expression,
+    });
   }
   const foreignKeys: ForeignKey[] = [];
   for (const constraint of constraints) {

@@ -76,7 +76,7 @@ describe('planTrekTables', () => {
           { name: 'reply_to', dataType: 'bigint', nullable: true },
         ],
         primaryKey: ['id'],
-        uniqueKeys: [{ name: 'messages_pkey', columns: ['id'] }],
+        uniqueKeys: [{ name: 'messages_pkey', key: 'id', columns: ['id'], expression: false }],
       },
       {
         name: 'users',
@@ -108,7 +108,7 @@ describe('planTrekTables', () => {
       primaryKey: ['id'],
       label: 'messages',
       exact: false,
-      uniqueKeys: [{ name: 'messages_pkey', columns: ['id'] }],
+      uniqueKeys: [{ name: 'messages_pkey', key: 'id', columns: ['id'], expression: false }],
     });
     expect(plan.specs[1].columns).toEqual([
       { name: 'id', kind: 'integer' },
@@ -168,7 +168,10 @@ describe('readTargetSchema', () => {
         primaryKey: ['id'],
         foreignKeys: [{ columns: ['user_id'], references: 'users' }],
         serial: ['id'],
-        unique: [{ name: 'trips_user_id_unique', columns: ['user_id'] }],
+        unique: [
+          { name: 'trips_user_id_unique', columns: ['user_id'] },
+          { name: 'trips_user_id_abs', columns: ['user_id'], keys: ['abs(user_id)'], expression: true },
+        ],
       },
       { name: 'users', columns: [{ name: 'id', dataType: 'bigint', nullable: false }], primaryKey: ['id'] },
     ]);
@@ -182,15 +185,16 @@ describe('readTargetSchema', () => {
           { name: 'user_id', dataType: 'bigint', nullable: true },
         ],
         uniqueKeys: [
-          { name: 'trips_pkey', columns: ['id'] },
-          { name: 'trips_user_id_unique', columns: ['user_id'] },
+          { name: 'trips_pkey', key: 'id', columns: ['id'], expression: false },
+          { name: 'trips_user_id_unique', key: 'user_id', columns: ['user_id'], expression: false },
+          { name: 'trips_user_id_abs', key: 'abs(user_id)', columns: ['user_id'], expression: true },
         ],
       },
       {
         name: 'users',
         primaryKey: ['id'],
         columns: [{ name: 'id', dataType: 'bigint', nullable: false }],
-        uniqueKeys: [{ name: 'users_pkey', columns: ['id'] }],
+        uniqueKeys: [{ name: 'users_pkey', key: 'id', columns: ['id'], expression: false }],
       },
     ]);
     expect(schema.foreignKeys).toEqual([{ table: 'trips', columns: ['user_id'], references: 'users' }]);

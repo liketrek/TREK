@@ -1,4 +1,5 @@
 import type { SqliteSource } from '../../sqlite/sqlite-source';
+import { FIX_IN_PLUGIN_DB, FIX_IN_SQLITE_FILE, MoveRefusal } from './refusal';
 import {
   beyondSafeInteger,
   canonicalFromPostgres,
@@ -35,6 +36,20 @@ export const MAX_LISTED_PROBLEMS = 20;
 /** Postgres's SQLSTATE for a row that would break a unique key. */
 const UNIQUE_VIOLATION = '23505';
 
+/**
+ * A unique index of a Postgres table. `key` is its key as Postgres spells it
+ * (`username`, or `lower(email)` for an expression), `columns` every column
+ * the key reads, so a broken key can be traced to the values that changed.
+ * `expression` is whether any part of the key is an expression rather than a
+ * plain column.
+ */
+export interface UniqueKey {
+  name: string;
+  key: string;
+  columns: string[];
+  expression: boolean;
+}
+
 /** One column of a table the move copies. */
 interface CopyColumn {
   name: string;
@@ -57,7 +72,7 @@ export interface TableSpec {
   /** A plugin's own table, whose values must arrive exactly as stored (`PLUGIN_RULES` in `values.ts`). */
   exact: boolean;
   /** The unique keys of the Postgres table (the primary key among them), by constraint or index name. */
-  uniqueKeys: Array<{ name: string; columns: string[] }>;
+  uniqueKeys: UniqueKey[];
 }
 
 /** A value from which `--drop-nul` removed NUL characters, for the summary. */
@@ -65,6 +80,12 @@ interface DroppedNul {
   /** The table, row and column, named as a refusal names a value. */
   where: string;
   column: string;
+  /**
+   * The text without its NUL characters, as Postgres spells it in a broken
+   * key's detail, or null where it spells it otherwise (JSON, which jsonb
+   * reformats).
+   */
+  text: string | null;
 }
 
 /** A row's deferred values, kept until every table is in. */
@@ -147,29 +168,106 @@ export function listLines(lines: readonly string[], total = lines.length): strin
   return shown.join('\n');
 }
 
+/** The SQLSTATE of a Postgres error, when it carries one. */
+function sqlState(err: unknown): string {
+  const { code } = (err ?? {}) as { code?: unknown };
+  return typeof code === 'string' ? code : '';
+}
+
 /**
- * Why Postgres refused rows of a table. A unique key broken in a table whose
- * values lost NUL characters to `--drop-nul` is named as that: two values
- * that differed only by a NUL are equal once it is gone, which the SQLite
- * file's own key never saw.
+ * Whether Postgres refused rows over a constraint (SQLSTATE class 23: a
+ * unique, check, not-null or foreign key violation). Its detail names the
+ * key or the failing row, which the operator corrects in the SQLite file.
+ */
+function brokeConstraint(err: unknown): boolean {
+  return sqlState(err).startsWith('23');
+}
+
+/**
+ * Whether Postgres refused a value its column cannot hold (SQLSTATE class
+ * 22). `values.ts` refuses every such value by table, row and column before
+ * anything is written, so one that reaches Postgres is a gap in the move, not
+ * something the operator can find in the file: Postgres does not say which
+ * row of a batch it was.
+ */
+function valueRefused(err: unknown): boolean {
+  return sqlState(err).startsWith('22');
+}
+
+/**
+ * The key value of a unique violation's detail (`Key (lower(email))=(ab@x.test)
+ * already exists.`), lower-cased, or null when the detail has another shape
+ * (none, or the server's messages are in another language).
+ */
+function duplicateKeyValue(err: unknown): string | null {
+  const { detail } = (err ?? {}) as { detail?: unknown };
+  if (typeof detail !== 'string') return null;
+  const match = /^Key \(.*?\)=\((.*)\) already exists\.$/s.exec(detail);
+  return match ? match[1].toLowerCase() : null;
+}
+
+/** A unique key as a refusal names it: its columns, and for an expression also the key as Postgres spells it. */
+function describeKey(key: UniqueKey): string {
+  const columns = `column(s) ${key.columns.join(', ')}`;
+  return key.expression ? `${columns} (read by its unique key ${key.key})` : columns;
+}
+
+/**
+ * Why Postgres refused rows of a table, and what to do. A broken unique key
+ * is two rows the SQLite file held apart: it may lack that index, compare
+ * differently, or have held two values that differed only by a NUL until
+ * `--drop-nul` removed it. Only Postgres's detail tells which, so the refusal
+ * never asserts a cause: it names the key and the value, and lists the values
+ * `--drop-nul` changed in the columns the key reads (for an expression index,
+ * the columns its expression reads) whose text the duplicate value holds.
+ * That test ignores case, so a key over lower() still finds them; it may keep
+ * a value that is not one of the two rows, but never leaves out one that is.
+ * Any other broken constraint is a row Postgres names in its detail. A value
+ * its column refuses is a gap in the move, reported as one.
  */
 export function refusedRowsMessage(spec: TableSpec, err: unknown, dropped: readonly DroppedNul[]): string {
   const message = `Postgres refused rows of ${spec.label}: ${describePgError(err)}`;
-  const { code, constraint } = (err ?? {}) as { code?: unknown; constraint?: unknown };
-  if (code !== UNIQUE_VIOLATION || dropped.length === 0) return message;
+  if (valueRefused(err)) {
+    return (
+      `${message}\nThe move let through a value of ${spec.label} that Postgres refuses. It should have refused ` +
+      'that value by table, row and column before writing anything, so this is a bug in TREK: please report it ' +
+      'with this message.'
+    );
+  }
+  if (!brokeConstraint(err)) return message;
+  const fix = spec.exact ? FIX_IN_PLUGIN_DB : FIX_IN_SQLITE_FILE;
+  if (sqlState(err) !== UNIQUE_VIOLATION) {
+    return (
+      `${message}\nA row of ${spec.label} breaks a rule of its Postgres table that the SQLite file did not hold ` +
+      `it to; the detail above names the failing row or the value it refers to. Correct or remove that row ${fix}`
+    );
+  }
+  const { constraint } = (err ?? {}) as { constraint?: unknown };
   const key = spec.uniqueKeys.find((candidate) => candidate.name === constraint);
-  const suspects = key ? dropped.filter((value) => key.columns.includes(value.column)) : dropped;
-  if (suspects.length === 0) return message;
-  const where = key ? `its column(s) ${key.columns.join(', ')}` : spec.label;
-  return (
-    `${message}\nThe key is broken because --drop-nul removed NUL characters (U+0000) from ${suspects.length} ` +
-    `value(s) of ${where}, and a value that differed from another only by a NUL equals it once the NUL is gone:\n` +
-    `${listLines(
-      suspects.slice(0, MAX_LISTED_PROBLEMS).map((value) => value.where),
-      suspects.length,
-    )}\n` +
-    'Change or remove one of the two rows in the SQLite file (with TREK stopped), then run the move again.'
+  const keyValue = duplicateKeyValue(err);
+  const suspects = (key ? dropped.filter((value) => key.columns.includes(value.column)) : dropped).filter(
+    (value) => keyValue === null || value.text === null || keyValue.includes(value.text.toLowerCase()),
   );
+  const differently = key?.expression ? ", or compare differently: SQLite's lower() changes only A to Z" : '';
+  const lines = [
+    message,
+    `Two rows of ${spec.label} share ${key ? `a value of its ${describeKey(key)}` : 'a unique key'}, which ` +
+      `Postgres holds unique and the SQLite file did not (it may lack that index${differently}). The detail ` +
+      'above names the value.',
+  ];
+  if (suspects.length > 0) {
+    lines.push(
+      `--drop-nul removed NUL characters (U+0000) from ${suspects.length} value(s) of ` +
+        `${key ? `its ${describeKey(key)}` : spec.label} that may hold it; a value that differed from another ` +
+        'only by a NUL equals it once the NUL is gone, so check these first:',
+      listLines(
+        suspects.slice(0, MAX_LISTED_PROBLEMS).map((value) => value.where),
+        suspects.length,
+      ),
+    );
+  }
+  lines.push(`Change or remove one of those rows ${fix}`);
+  return lines.join('\n');
 }
 
 async function insertBatch(
@@ -182,7 +280,8 @@ async function insertBatch(
   try {
     await run(trx, insertSql(spec, batch.length), batch.flat());
   } catch (err) {
-    throw new Error(refusedRowsMessage(spec, err, dropped), { cause: err });
+    const message = refusedRowsMessage(spec, err, dropped);
+    throw brokeConstraint(err) ? new MoveRefusal(message, { cause: err }) : new Error(message, { cause: err });
   }
 }
 
@@ -238,7 +337,10 @@ export async function copyTable(
       if (!('reason' in converted)) {
         values.push(converted.value);
         if (column.kind === 'integer' && beyondSafeInteger(converted.value)) result.unsafeIntegers++;
-        if (converted.droppedNul) result.nulDropped.push({ where, column: column.name });
+        if (converted.droppedNul) {
+          const text = column.kind === 'text' ? String(converted.value) : null;
+          result.nulDropped.push({ where, column: column.name, text });
+        }
         return;
       }
       values.push(null);

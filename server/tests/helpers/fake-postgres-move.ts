@@ -25,8 +25,12 @@ export interface FakeTableDef {
   foreignKeys?: Array<{ columns: string[]; references: string }>;
   /** Columns a sequence fills. */
   serial?: string[];
-  /** Unique indexes besides the primary key's (`<table>_pkey`). */
-  unique?: Array<{ name: string; columns: string[] }>;
+  /**
+   * Unique indexes besides the primary key's (`<table>_pkey`): the columns the
+   * key reads, and for an expression index its key as Postgres spells it and
+   * `expression`.
+   */
+  unique?: Array<{ name: string; columns: string[]; keys?: string[]; expression?: boolean }>;
 }
 
 interface FakeTable {
@@ -130,9 +134,23 @@ export class FakePostgres {
     if (sql.includes('from pg_index')) {
       return this.schema.flatMap((table) => [
         ...(table.primaryKey.length > 0
-          ? [{ table_name: table.name, index_name: `${table.name}_pkey`, columns: table.primaryKey }]
+          ? [
+              {
+                table_name: table.name,
+                index_name: `${table.name}_pkey`,
+                keys: table.primaryKey,
+                columns: table.primaryKey,
+                expression: false,
+              },
+            ]
           : []),
-        ...(table.unique ?? []).map((key) => ({ table_name: table.name, index_name: key.name, columns: key.columns })),
+        ...(table.unique ?? []).map((key) => ({
+          table_name: table.name,
+          index_name: key.name,
+          keys: key.keys ?? key.columns,
+          columns: key.columns,
+          expression: key.expression ?? false,
+        })),
       ]);
     }
     if (sql.includes("pg_get_serial_sequence(format('%I'")) {
