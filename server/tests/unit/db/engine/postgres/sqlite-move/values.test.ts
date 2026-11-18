@@ -1,5 +1,5 @@
 /**
- * MOVEVAL-001..017: how a SQLite value becomes the value a Postgres column of
+ * MOVEVAL-001..019: how a SQLite value becomes the value a Postgres column of
  * the move's target takes, under TREK's rules and under a plugin's, the text
  * both sides are compared in, and the order-free table checksum
  * (src/db/engine/postgres/sqlite-move/values.ts).
@@ -124,8 +124,6 @@ describe('convertValue', () => {
     });
     // An escaped backslash followed by u0000 holds no NUL, and stays exactly as it is.
     expect(convertValue('"\\\\u0000"', 'json', DROP_NUL)).toEqual(ok('"\\\\u0000"'));
-    // A raw NUL is not valid JSON in the first place.
-    expect(convertValue('"\u0000"', 'json')).toMatchObject({ ok: false, reason: expect.stringMatching(/valid JSON/) });
     expect(convertValue(new Uint8Array([1]), 'json')).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/is not JSON text/),
@@ -282,6 +280,32 @@ describe('values a conversion could change unseen', () => {
     const dropped = '{"a":"xy","big":12345678901234567890,"ratio":1.0,"kept":"\\\\u0000"}';
     expect(convertValue(written, 'json', DROP_NUL)).toEqual({ ok: true, value: dropped, droppedNul: true });
     expect(canonicalFromSource(written, 'json', DROP_NUL)).toBe(canonicalFromPostgres(dropped, 'json'));
+  });
+
+  it('MOVEVAL-018: a raw NUL in JSON text is named as a NUL, and --drop-nul drops it like an escaped one', () => {
+    // Inside a string and between tokens: JSON allows neither, so the text alone would not even parse.
+    const written = '{"note":"a\u0000b",\u0000"esc":"c\\u0000d","ratio":1.0}';
+    const reason = `the text ${JSON.stringify(`${written.slice(0, 40)}...`)} holds a NUL character (U+0000), which Postgres text cannot hold`;
+    expect(convertValue(written, 'json')).toEqual({ ok: false, reason });
+    // A plugin's JSON is never changed: refused for the NUL, whatever the operator asked for.
+    expect(convertValue(written, 'json', PLUGIN_RULES)).toEqual({ ok: false, reason });
+    const dropped = '{"note":"ab","esc":"cd","ratio":1.0}';
+    expect(convertValue(written, 'json', DROP_NUL)).toEqual({ ok: true, value: dropped, droppedNul: true });
+    expect(canonicalFromSource(written, 'json', DROP_NUL)).toBe(canonicalFromPostgres(dropped, 'json'));
+    // Text that is not JSON even without its NUL is refused as that: --drop-nul would not help.
+    expect(convertValue('{broken\u0000', 'json', DROP_NUL)).toEqual({
+      ok: false,
+      reason: 'the text "{broken\\u0000" is not valid JSON, even without its NUL characters (U+0000)',
+    });
+  });
+
+  it('MOVEVAL-019: an escape of half a surrogate pair, which jsonb refuses, is named instead of failing the insert', () => {
+    const reason = 'holds a \\u escape of half a UTF-16 surrogate pair, which Postgres JSON refuses';
+    for (const text of ['"\\ud800"', '"\\udc00x"', '{"\\ud83d":1}', '["a\\ud83d"]']) {
+      expect(convertValue(text, 'json')).toEqual({ ok: false, reason: `the text ${JSON.stringify(text)} ${reason}` });
+    }
+    // A whole pair is one character, which jsonb takes.
+    expect(convertValue('"\\ud83d\\ude00"', 'json')).toEqual(ok('"\\ud83d\\ude00"'));
   });
 
   it('MOVEVAL-017: text whose bytes are not UTF-8 is refused under either rules, for every column kind', () => {

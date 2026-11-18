@@ -181,19 +181,59 @@ function dropJsonNul(text: string): string {
   return text.replace(/\\(?:u0000|[\s\S])/g, (escape) => (escape === '\\u0000' ? '' : escape));
 }
 
+/** JSON text without its NUL characters, raw or escaped, as `--drop-nul` stores it; see {@link toJson}. */
+function jsonWithoutNul(text: string): string {
+  return dropJsonNul(stripNul(text));
+}
+
+/** Half a UTF-16 surrogate pair: a high one without a low one after it, or a low one without a high one before. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+/** Whether a parsed JSON value holds a string, object keys included, with half a surrogate pair. */
+function jsonHoldsLoneSurrogate(value: unknown): boolean {
+  if (typeof value === 'string') return LONE_SURROGATE.test(value);
+  if (Array.isArray(value)) return value.some(jsonHoldsLoneSurrogate);
+  if (value !== null && typeof value === 'object') {
+    return Object.entries(value).some(([key, item]) => LONE_SURROGATE.test(key) || jsonHoldsLoneSurrogate(item));
+  }
+  return false;
+}
+
+/** The text parsed as JSON, or undefined when it is not valid JSON. */
+function parseJson(text: string): { parsed: unknown } | undefined {
+  try {
+    return { parsed: JSON.parse(text) as unknown };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * JSON text for a `jsonb` column. A NUL can sit in it two ways: escaped
+ * (`\u0000`), which is valid JSON that jsonb refuses, or raw, which is not
+ * valid JSON at all (JSON escapes every control character inside a string and
+ * allows none outside one) and which TREK's own writes drop like any NUL in
+ * text (`db/nul-free.ts`). Both are a NUL: refused with the NUL reason, and
+ * under `--drop-nul` removed, the raw characters and the escapes and nothing
+ * else. Text that is not valid JSON even without its NUL characters is
+ * refused as that. An escape of half a surrogate pair (`\ud800` alone) parses
+ * in JavaScript but not in jsonb, so it is named here instead of failing the
+ * insert without a row.
+ */
 function toJson(value: Exclude<SqliteValue, null>, dropNul: boolean): Converted {
   if (typeof value === 'bigint' || typeof value === 'number') return { ok: true, value: String(value) };
   if (typeof value !== 'string') return refuse(`${describe(value)} is not JSON text`);
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    return refuse(`${describe(value)} is not valid JSON`);
+  const rawNul = value.includes(NUL);
+  const json = parseJson(rawNul ? stripNul(value) : value);
+  if (!json) {
+    return refuse(`${describe(value)} is not valid JSON${rawNul ? ', even without its NUL characters (U+0000)' : ''}`);
   }
-  // Valid JSON holds a NUL only escaped, which jsonb refuses as well.
-  if (!jsonHoldsNul(parsed)) return { ok: true, value };
-  if (!dropNul) return refuse(`${describe(value)} ${NUL_REASON} (escaped as \\u0000)`);
-  return { ok: true, value: dropJsonNul(value), droppedNul: true };
+  if (jsonHoldsLoneSurrogate(json.parsed)) {
+    return refuse(`${describe(value)} holds a \\u escape of half a UTF-16 surrogate pair, which Postgres JSON refuses`);
+  }
+  if (!rawNul && !jsonHoldsNul(json.parsed)) return { ok: true, value };
+  if (!dropNul) return refuse(`${describe(value)} ${NUL_REASON}${rawNul ? '' : ' (escaped as \\u0000)'}`);
+  return { ok: true, value: jsonWithoutNul(value), droppedNul: true };
 }
 
 function toBytes(value: Exclude<SqliteValue, null>): Converted {
@@ -335,7 +375,7 @@ export function canonicalFromSource(
       return typeof value === 'string' && dropNul ? stripNul(value) : String(value);
     case 'json':
       if (typeof value !== 'string') return stableJson(String(value));
-      return stableJson(dropNul ? dropJsonNul(value) : value);
+      return stableJson(dropNul ? jsonWithoutNul(value) : value);
     case 'bytes':
       return typeof value === 'string' ? Buffer.from(value, 'utf8').toString('hex') : `number:${String(value)}`;
   }
