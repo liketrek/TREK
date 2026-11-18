@@ -36,10 +36,16 @@ export interface PostgresBootstrapDeps {
   sqliteLeftBehind: () => string | null;
 }
 
-/** The command that moves a SQLite install into Postgres, as the refusal names it. */
-const MOVE_COMMAND_HINT =
-  'docker compose run --rm --user node -w /app/server app node --require tsconfig-paths/register ' +
-  'dist/move-to-postgres.js (npm run db:move-to-postgres in server/ outside Docker)';
+/**
+ * The commands that move a SQLite install into Postgres, as the refusal names
+ * them: the one the wiki page Database-Postgres gives for a compose install,
+ * and the one outside Docker. A test keeps both the same as the page.
+ */
+export const MOVE_COMMAND_DOCKER =
+  'docker compose -f docker-compose.postgres.yml run --rm --user node -w /app/server app ' +
+  'node --require tsconfig-paths/register dist/move-to-postgres.js';
+export const MOVE_COMMAND_NPM = 'npm run db:move-to-postgres';
+const MOVE_COMMAND_HINT = `${MOVE_COMMAND_DOCKER} (${MOVE_COMMAND_NPM} in server/ outside Docker)`;
 
 /**
  * The refusal of a boot that would come up empty on Postgres while `file`

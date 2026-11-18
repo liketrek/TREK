@@ -8,7 +8,7 @@ import { runMoveCommand } from './db/engine/postgres/sqlite-move/command';
 /**
  * Moves a SQLite install into an empty Postgres database, with TREK stopped:
  *
- *   docker compose run --rm --user node -w /app/server app \
+ *   docker compose -f docker-compose.postgres.yml run --rm --user node -w /app/server app \
  *     node --require tsconfig-paths/register dist/move-to-postgres.js
  *   npm run db:move-to-postgres   (in server/, outside Docker)
  *

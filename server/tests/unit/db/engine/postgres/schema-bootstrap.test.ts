@@ -6,6 +6,8 @@
 import type { AppEnv } from '../../../../../src/app-config';
 import {
   bootstrapPostgresSchema,
+  MOVE_COMMAND_DOCKER,
+  MOVE_COMMAND_NPM,
   postgresSafetyNet,
   sqliteLeftBehindCheck,
   type PostgresBootstrapDeps,
@@ -15,7 +17,7 @@ import type { AnyOrm } from '../../../../../src/db/orm';
 import { answersSchema, failsWith, installFakeTool, writesFile } from '../../../../helpers/fake-pg-tools';
 import { Logger } from '@nestjs/common';
 
-import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -289,6 +291,26 @@ describe('bootstrapPostgresSchema', () => {
     );
     expect(db.sql).toEqual([]);
     expect(db.ensureTable).not.toHaveBeenCalled();
+  });
+
+  it('PGBOOT-037: the refusal names the move commands the wiki gives, word for word', async () => {
+    const repoRoot = path.resolve(__dirname, '../../../../../..');
+    const page = readFileSync(path.join(repoRoot, 'wiki', 'Database-Postgres.md'), 'utf8').replace(/\r\n?/g, '\n');
+    const steps = page.slice(page.indexOf('### Steps with Docker Compose'), page.indexOf('### Going back'));
+    // The page breaks the command over lines with a trailing backslash; the shell joins them.
+    const bashBlocks = [...steps.matchAll(/^ *```bash\n([\s\S]*?)\n *```$/gm)].map((match) =>
+      match[1].replace(/\\\n\s*/g, '').trim(),
+    );
+    expect(bashBlocks).toContain(MOVE_COMMAND_DOCKER);
+    expect(steps).toContain(`\`${MOVE_COMMAND_NPM}\``);
+
+    const { orm } = fakeOrm({ executed: [], pending: [M1], tables: [] });
+    const refusal = bootstrapPostgresSchema(
+      orm,
+      deps(noNet(), () => LEFT_BEHIND),
+    );
+    await expect(refusal).rejects.toThrow(MOVE_COMMAND_DOCKER);
+    await expect(refusal).rejects.toThrow(MOVE_COMMAND_NPM);
   });
 
   it('PGBOOT-031: a schema without a single account (a move cut short) beside such an install is refused too', async () => {
