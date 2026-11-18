@@ -121,6 +121,8 @@ export function TileHeader({ icon, title, sub, subWrap = false, onClose, closeLa
 interface StatBoxProps {
   value: ReactNode
   label: ReactNode
+  /** A line above the value, such as the calendar date a time falls on. */
+  caption?: ReactNode
   blurred?: boolean
   onClick?: () => void
   /** Colours the label, so a check-in or check-out time carries its own state. */
@@ -133,10 +135,11 @@ const LABEL_TONE: Record<NonNullable<StatBoxProps['labelTone']>, string> = {
 }
 
 /** Small stat box (check-in / times / code): value 700 tabular over a faint Geist label. */
-export function StatBox({ value, label, blurred = false, onClick, labelTone }: StatBoxProps) {
+export function StatBox({ value, label, caption, blurred = false, onClick, labelTone }: StatBoxProps) {
   const box = 'min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center'
   const inner = (
     <>
+      {caption && <div className="truncate font-geist text-caption leading-tight text-m-muted">{caption}</div>}
       <div
         className={`truncate text-[0.8125rem] font-bold tabular-nums leading-tight ${blurred ? 'blur-[4px] select-none' : ''}`}
       >

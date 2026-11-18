@@ -2,7 +2,7 @@ import type { Day, Reservation, ReservationEndpoint } from '../../../types'
 import { formatPriceText, formatTime, splitReservationDateTime } from '../../../utils/formatters'
 import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../../utils/flightLegs'
 import { safeExternalHref } from '../../../utils/safeUrl'
-import { daySpan, hotelStayTimes, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
+import { bookingDates, daySpan, hotelStayTimes, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
 
 export interface FactsContext {
   t: (key: string, params?: Record<string, string | number>) => string
@@ -84,6 +84,7 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
   const eps = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
   const from = eps.find(e => e.role === 'from')
   const to = eps.find(e => e.role === 'to')
+  const dates = bookingDates(r, c.days)
   const startTime = startDt.time || from?.local_time || null
   const endTime = endDt.time || to?.local_time || null
   // A stay backed by an accommodation says its times as check-in and check-out;
@@ -124,8 +125,8 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
 
   return {
     day, time, startTime, endTime,
-    startDate: startDt.date || from?.local_date || span.start?.date || null,
-    endDate: endDt.date || to?.local_date || span.end?.date || null,
+    startDate: dates.start,
+    endDate: dates.end,
     cells, endpoints: eps.length >= 2 ? eps : [], legCodes,
     place: r.location || r.place_name || null,
     accommodation: r.accommodation_name || null,

@@ -9,7 +9,7 @@ import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen } from '../../../helpers/render'
 
-// FE-MOB-TRSH-001 to FE-MOB-TRSH-036
+// FE-MOB-TRSH-001 to FE-MOB-TRSH-044
 
 vi.mock('../../../../src/utils/fileDownload', () => ({
   openFile: vi.fn(() => Promise.resolve()),
@@ -503,5 +503,109 @@ describe('MTransportSheet', () => {
     render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
     expect(screen.getByText('10:20')).toBeInTheDocument()
     expect(screen.getByText('06:45')).toBeInTheDocument()
+  })
+  // #3122: opened from the compact Transports list, the sheet showed the times
+  // but not the day they fall on.
+  describe('calendar dates beside the times (#3122)', () => {
+    const DAYS = [
+      { id: 3, trip_id: 1, day_number: 1, date: '2026-05-01' },
+      { id: 4, trip_id: 1, day_number: 2, date: '2026-05-02' },
+    ]
+
+    it('FE-MOB-TRSH-037: a flight with a route shows the departure and the arrival date beside their times', () => {
+      render(<MTransportSheet planner={makePlanner({ days: DAYS })} shell={makeShell()} />)
+      const dep = screen.getByText('10:20').parentElement as HTMLElement
+      const arr = screen.getByText('06:45').parentElement as HTMLElement
+      expect(dep).toHaveTextContent('Fri, May 1')
+      expect(arr).toHaveTextContent('Sat, May 2')
+    })
+
+    it('FE-MOB-TRSH-038: a transport holding only times reads its date off the linked day, not "Day 1"', () => {
+      const res = {
+        ...FLIGHT, type: 'ferry', title: 'Ferry to Naxos', day_id: 4, end_day_id: null,
+        reservation_time: '08:15', reservation_end_time: '13:40', metadata: null,
+        endpoints: [
+          { id: 1, reservation_id: 7, role: 'from', sequence: 0, name: 'Piraeus', lat: 37.94, lng: 23.64, local_date: null, local_time: null },
+          { id: 2, reservation_id: 7, role: 'to', sequence: 1, name: 'Naxos', lat: 37.1, lng: 25.37, local_date: null, local_time: null },
+        ],
+      } as unknown as Reservation
+      render(<MTransportSheet planner={makePlanner({ days: DAYS, reservations: [res] })} shell={makeShell()} />)
+      expect(screen.getByText('08:15').parentElement).toHaveTextContent('Sat, May 2')
+      expect(screen.queryByText(/Day 1/)).not.toBeInTheDocument()
+    })
+
+    it("FE-MOB-TRSH-039: a leg opened from its row shows that leg's own dates", () => {
+      const res = {
+        ...FLIGHT, type: 'train', title: 'Night train', endpoints: [], reservation_time: null, reservation_end_time: null,
+        metadata: JSON.stringify({
+          legs: [
+            { from: 'Vienna', to: 'Munich', dep_day_id: 3, dep_time: '22:10', arr_day_id: 3, arr_time: '23:50' },
+            { from: 'Munich', to: 'Paris', dep_day_id: 3, dep_time: '23:58', arr_day_id: 4, arr_time: '09:30' },
+          ],
+        }),
+      } as unknown as Reservation
+      render(<MTransportSheet planner={makePlanner({ days: DAYS, reservations: [res] })} shell={makeShell({ sheet: { id: 'transport', payload: { reservationId: 7, legIndex: 1 } } })} />)
+      expect(screen.getByText('23:58').parentElement).toHaveTextContent('Fri, May 1')
+      expect(screen.getByText('09:30').parentElement).toHaveTextContent('Sat, May 2')
+    })
+
+    it('FE-MOB-TRSH-040: names a date once, beside the time, and not again in the subline', () => {
+      const res = { ...FLIGHT, endpoints: [], metadata: null } as unknown as Reservation
+      render(<MTransportSheet planner={makePlanner({ days: DAYS, reservations: [res] })} shell={makeShell()} />)
+      expect(screen.getAllByText('Fri, May 1')).toHaveLength(1)
+    })
+
+    it('FE-MOB-TRSH-041: a flight with an airline but no route and no time names its date in the subline', () => {
+      const res = { ...FLIGHT, endpoints: [], reservation_time: '2026-05-01', reservation_end_time: null } as unknown as Reservation
+      render(<MTransportSheet planner={makePlanner({ days: DAYS, reservations: [res] })} shell={makeShell()} />)
+      expect(screen.getByText('Lufthansa · LH 716 · Fri, May 1')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-TRSH-042: a transport with a route but no times yet names the date of its linked day', () => {
+      const res = {
+        ...FLIGHT, type: 'ferry', title: 'Ferry to Naxos', day_id: 4, end_day_id: null,
+        reservation_time: null, reservation_end_time: null, metadata: null,
+        endpoints: [
+          { id: 1, reservation_id: 7, role: 'from', sequence: 0, name: 'Piraeus', lat: 37.94, lng: 23.64, local_date: null, local_time: null },
+          { id: 2, reservation_id: 7, role: 'to', sequence: 1, name: 'Naxos', lat: 37.1, lng: 25.37, local_date: null, local_time: null },
+        ],
+      } as unknown as Reservation
+      render(<MTransportSheet planner={makePlanner({ days: DAYS, reservations: [res] })} shell={makeShell()} />)
+      expect(screen.getByText('Piraeus → Naxos · Sat, May 2')).toBeInTheDocument()
+    })
+
+    it('FE-MOB-TRSH-043: with the live card in place of the time boxes, the subline names the date', () => {
+      const now = Date.now()
+      const soon: FlightLiveLeg = {
+        reservation_id: 7, leg_index: 0, callsign: 'DLH716', flight_number: 'LH 716', service_date: '2026-05-01',
+        origin: { code: 'FRA', name: 'Frankfurt', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin' },
+        destination: { code: 'HND', name: 'Tokyo Haneda', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo' },
+        phase: 'scheduled', scheduled_departure: new Date(now + 3_600_000).toISOString(), scheduled_arrival: new Date(now + 7_200_000).toISOString(),
+        departed_at: null, landed_at: null, estimated_arrival: null, departure_delay_min: null, arrival_delay_min: null,
+        progress: null, distance_total_km: null, distance_remaining_km: null, position: null, aircraft: null,
+        last_seen_at: null, fetched_at: new Date(now).toISOString(), stale: false, source: 'adsb.lol',
+      }
+      useFlightLiveStore.setState({ trips: { 1: { enabled: true, attribution: null, legs: { [legKey(7, 0)]: soon } } } })
+      render(<MTransportSheet planner={makePlanner({ days: DAYS })} shell={makeShell()} />)
+      expect(screen.queryByText('10:20')).not.toBeInTheDocument()
+      expect(screen.getByText(/Frankfurt \(FRA\) → Tokyo \(HND\) · Fri, May 1/)).toBeInTheDocument()
+    })
+
+    // Each box stands on its own in the row, so a same-day trip keeps the date on both
+    // rather than leaving one box a line shorter than the other.
+    it('FE-MOB-TRSH-044: a same-day trip shows its date on both time boxes', () => {
+      const res = {
+        ...FLIGHT, type: 'train', title: 'ICE to Munich', metadata: null,
+        reservation_time: '2026-05-01T10:20', reservation_end_time: '2026-05-01T12:05',
+        endpoints: [
+          { id: 1, reservation_id: 7, role: 'from', sequence: 0, name: 'Frankfurt Hbf', lat: 50.1, lng: 8.66, local_date: '2026-05-01', local_time: '10:20' },
+          { id: 2, reservation_id: 7, role: 'to', sequence: 1, name: 'München Hbf', lat: 48.14, lng: 11.56, local_date: '2026-05-01', local_time: '12:05' },
+        ],
+      } as unknown as Reservation
+      render(<MTransportSheet planner={makePlanner({ days: DAYS, reservations: [res] })} shell={makeShell()} />)
+      expect(screen.getByText('10:20').parentElement).toHaveTextContent('Fri, May 1')
+      expect(screen.getByText('12:05').parentElement).toHaveTextContent('Fri, May 1')
+      expect(screen.getAllByText('Fri, May 1')).toHaveLength(2)
+    })
   })
 })

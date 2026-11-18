@@ -16,7 +16,7 @@ import { useSearchParams } from 'react-router'
 import { isTransportReservationType } from '@trek/shared'
 import { useBookingLink } from '../../../../hooks/useBookingLink'
 import { bookingFacts, stayStats } from '../../../../components/Planner/bookings/bookingFacts'
-import { parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
+import { bookingDates, parseMeta } from '../../../../components/Planner/bookings/bookingsModel'
 import { ActionCircle, Eyebrow, INNER_CLS, StatBox, TileHeader, displayTime } from './MTripSheetUi'
 import { CardFiles } from '../tabs/MReservationCardParts'
 import { downloadAttachment, openAttachment } from '../../../../components/Planner/bookings/openAttachment'
@@ -131,9 +131,10 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const canEdit = liveRes != null && (isTransportReservationType(liveRes.type) ? canEditDays : canEditBookings)
   const ResIcon = RES_ICONS[res.type as keyof typeof RES_ICONS] || RES_ICONS.other
 
-  const from = (res.endpoints || []).find(e => e.role === 'from')
-  const to = (res.endpoints || []).find(e => e.role === 'to')
-  const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
+  const endpoints = res.endpoints || []
+  const from = endpoints.find(e => e.role === 'from')
+  const to = endpoints.find(e => e.role === 'to')
+  const { time: startTime } = splitReservationDateTime(res.reservation_time)
   const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
   const bookingDepTime = from?.local_time || startTime
   const bookingArrTime = to?.local_time || endTime
@@ -151,6 +152,12 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   const arrTime = leg ? leg.arr_time || '' : bookingArrTime
   const depLabel = (leg ? leg.from : from?.name) || t('reservations.time')
   const arrLabel = (leg ? leg.to : to?.name) || t('reservations.time')
+  // The calendar date each time falls on (#3122): a time alone cannot be placed
+  // when the sheet is opened from a compact list that shows nothing else.
+  const legDate = (dayId?: number | null) => (dayId != null ? planner.days.find(d => d.id === dayId)?.date : null) || null
+  const dates = leg ? { start: legDate(leg.dep_day_id), end: legDate(leg.arr_day_id) } : bookingDates(res, planner.days)
+  const depDate = dates.start ? bookingDayLabel(dates.start, locale) : null
+  const arrDate = dates.end ? bookingDayLabel(dates.end, locale) : null
 
   const subParts: string[] = []
   const airline = leg ? legDetail.airline : meta.airline
@@ -161,7 +168,6 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   if (trainNumber) subParts.push(trainNumber)
   if (leg && (leg.from || leg.to)) subParts.push(flowText([leg.from, leg.to].filter((n): n is string => !!n)))
   else if (from?.name && to?.name) subParts.push(flowText([from.name, to.name]))
-  else if (date) subParts.push(bookingDayLabel(date, locale))
 
   // A flight's legs carry no seat or platform of their own, so those stay the booking's.
   const seat = leg && !isFlight ? legDetail.seat : meta.seat
@@ -170,6 +176,11 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   // Opened from one leg's row, only that leg's live card; from the booking, every followed leg.
   const shownLive = leg ? liveLegs.filter(l => l.leg_index === payload.legIndex) : liveLegs
+  const showTimes = shownLive.length === 0
+  // A shown time box carries its own date. Without one (no time entered yet, or the
+  // live card in its place) the subline names the day, route and airline or not.
+  const datedTime = showTimes && ((depTime && depDate) || (arrTime && arrDate))
+  if (depDate && !datedTime) subParts.push(depDate)
 
   const resFiles = filesFor(res, planner.files || [])
 
@@ -263,13 +274,13 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
         ))}
 
         {/* ── Times / seat stats (the live card already shows the times) ── */}
-        {hotelStats.length === 0 && ((shownLive.length === 0 && (depTime || arrTime)) || seat || platform) && (
+        {hotelStats.length === 0 && ((showTimes && (depTime || arrTime)) || seat || platform) && (
           <div className="mt-[14px] flex gap-[6px]">
-            {shownLive.length === 0 && depTime && (
-              <StatBox value={displayTime(depTime, locale, timeFormat)} label={depLabel} />
+            {showTimes && depTime && (
+              <StatBox caption={depDate} value={displayTime(depTime, locale, timeFormat)} label={depLabel} />
             )}
-            {shownLive.length === 0 && arrTime && (
-              <StatBox value={displayTime(arrTime, locale, timeFormat)} label={arrLabel} />
+            {showTimes && arrTime && (
+              <StatBox caption={arrDate} value={displayTime(arrTime, locale, timeFormat)} label={arrLabel} />
             )}
             {platform && <StatBox value={platform} label={t('reservations.meta.platform')} />}
             {seat && <StatBox value={seat} label={t('reservations.meta.seat')} />}
