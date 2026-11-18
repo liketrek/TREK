@@ -65,7 +65,22 @@ The password is passed to the tools in the `PGPASSWORD` environment variable of 
 
 ### Compose example
 
-[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs a `postgres:17` service beside TREK, on a named volume, with the TREK container waiting for the database to pass its health check. Set two passwords in a `.env` file beside it before the first start: `POSTGRES_ADMIN_PASSWORD` for the database's superuser `postgres`, and `POSTGRES_PASSWORD` for the role `trek` that TREK connects as. On the database's first start, the superuser creates the role `trek`, which owns TREK's database and is not a superuser. See [Install: Docker Compose](Install-Docker-Compose#running-on-postgres).
+[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs a `postgres:18` service beside TREK, on a named volume, with the TREK container waiting for the database to pass its health check. Set two passwords in a `.env` file beside it before the first start: `POSTGRES_ADMIN_PASSWORD` for the database's superuser `postgres`, and `POSTGRES_PASSWORD` for the role `trek` that TREK connects as. On the database's first start, the superuser creates the role `trek`, which owns TREK's database and is not a superuser. See [Install: Docker Compose](Install-Docker-Compose#running-on-postgres).
+
+If that first start fails because a password is missing, the database is already created but without the role `trek`, and a restart does not create it any more. Set the password and start again on a new volume: `docker compose -f docker-compose.postgres.yml down -v` removes the database volume with it, so run it only while that database is still empty.
+
+#### Postgres versions and the volume path
+
+The file uses PostgreSQL 18, the newest version TREK supports, which matches the client tools in the TREK image. The `postgres` image keeps its data in a different place before and from version 18, so the volume is mounted at another path:
+
+| Image | Volume mounted at |
+|---|---|
+| `postgres:18` | `/var/lib/postgresql` |
+| `postgres:14` to `postgres:17` | `/var/lib/postgresql/data` |
+
+To run 14 to 17, change both the image tag and the volume path in the `db` service. The 18 image refuses a volume at `/var/lib/postgresql/data`, and a 14 to 17 image with its volume one level up would keep the data in an anonymous volume, which `docker compose down` leaves behind, so the next start comes up on an empty database.
+
+A database stays on the major version it was created with. When you update `docker-compose.postgres.yml`, keep the image tag and the volume path of your existing database. A new image tag on the old volume does not bring the data along: the 18 image refuses a volume that holds an older database, and an older image does not find the data of a newer one. To move a database to another major, use `pg_upgrade`, or dump and restore it: take a backup under **Admin > Backup** and download it, start the new major on a new, empty volume, and restore the backup there, on the first start with `RESTORE_FROM_BACKUP` (see [Backups and restore](#backups-and-restore)) or under **Admin > Backup**. TREK's backups restore across majors.
 
 ### A role that is not a superuser
 
@@ -88,7 +103,7 @@ An install that started from an older `docker-compose.postgres.yml` connects as 
 
 1. Create a second superuser for administration, so the database keeps one: `docker exec -it trek-db psql -U trek -d trek -c "CREATE ROLE postgres LOGIN SUPERUSER PASSWORD '<a long random value>'"`.
 2. Take the superuser right from `trek`: `docker exec -it trek-db psql -U postgres -d trek -c "ALTER ROLE trek NOSUPERUSER NOCREATEDB NOCREATEROLE"`.
-3. Update `docker-compose.postgres.yml` to the current version. Set `POSTGRES_ADMIN_PASSWORD` to the password from step 1 in `.env`, and keep `POSTGRES_PASSWORD` as it is (it stays the password of `trek`). Then run `docker compose -f docker-compose.postgres.yml up -d`.
+3. Update `docker-compose.postgres.yml` to the current version, but keep the `db` service's image tag and volume path from your old file (see [Postgres versions and the volume path](#postgres-versions-and-the-volume-path)). Set `POSTGRES_ADMIN_PASSWORD` to the password from step 1 in `.env`, and keep `POSTGRES_PASSWORD` as it is (it stays the password of `trek`). Then run `docker compose -f docker-compose.postgres.yml up -d`.
 
 The database already exists, so the new init script does not run again, and TREK keeps its data.
 
@@ -128,6 +143,8 @@ TREK ships a command that copies a SQLite install into an empty Postgres databas
 
 It prints a summary: the tables and rows it copied, the plugin schemas it filled, every value it changed with `--drop-nul`, and anything it could not carry over.
 
+**Tables that differ from the Postgres schema.** At the same migration level, the SQLite file's tables match the schema the command creates on Postgres, column for column. An install that was upgraded through a version before 5.0 can lack a column that an upgrade step back then skipped, such as `users.mfa_backup_codes`, which MFA needs. Starting the current version on the file once (step 1 below) adds every such column, and from then on TREK names any table or column it still lacks in its start log, in a line that begins with `[DB] The database lacks`. If the file still differs, the command refuses the move, lists each table or column that only one side has, and writes nothing. A table or column only Postgres has is one the install never got; one only the SQLite file has was added outside TREK's migrations, by hand or by a development build. TREK cannot correct either on its own: keep running on SQLite, which still works, and report the message, with the `[DB] The database lacks` line if your log has one.
+
 **NUL characters in TREK's data.** Postgres text cannot hold the character U+0000 (NUL). TREK no longer stores it on either engine and drops it on its next write, but a `travel.db` from an older version may still hold one. The command changes nothing silently, so by default it refuses such a value and lists it by table, row and column. To drop the character during the move, the way TREK would on its next write, run the command again with `--drop-nul`. The summary then lists every value it changed. If two values in a unique column differed only by a NUL, dropping it makes them equal. The command then stops and names the key and the value the two rows share. It lists the values it changed in the columns that key reads (for a key over an expression such as `lower(email)`, the columns the expression reads) whose text that value holds, so you can check those rows first; a key can also break for a reason that has nothing to do with a NUL (see below). Change or remove one of the two rows in the SQLite file, with TREK stopped, and run the command again. JSON holds a NUL either escaped (`\u0000`) or, in a value written by hand, as the raw character; the command refuses both as a NUL, and `--drop-nul` removes both, the way TREK drops it on its next write. Everything else in the value stays as it was written. A JSON value that is not valid even without its NUL characters is refused as invalid JSON.
 
 **Values the SQLite file accepted and Postgres does not.** A few values pass SQLite's checks but not Postgres's: two rows that a unique key on Postgres holds equal while the SQLite file kept them apart (an install whose case-insensitive email index is still pending holds two accounts whose addresses differ only in case; SQLite's `lower()` changes only the letters A to Z), a value outside a column's allowed set, or JSON holding an escape of half a UTF-16 surrogate pair (`\ud800` alone). The command refuses the move, names the table and the key or value Postgres reports, and says what to do: correct or remove the row in the SQLite file, with TREK stopped, and run the command again. For a plugin's table, that row is in the plugin's `plugin.db`. A value Postgres refuses by its type once the command has let it through is a gap in the command, not in your data: the command stops, writes nothing, and asks you to report it.
@@ -148,10 +165,16 @@ Change those values in the plugin's `plugin.db`, through the plugin or with the 
 
 ### Steps with Docker Compose
 
-1. **Update first.** Run the TREK version you want to keep, on SQLite, and let it start once, so the SQLite file is at that version's level. The command must come from the same image.
+1. **Update first.** Run the TREK version you want to keep, on SQLite, and let it start once, so the SQLite file is at that version's level and has every column that version expects (see **Tables that differ from the Postgres schema** above). The command must come from the same image.
 2. **Take a backup.** Create one under **Admin > Backup** and download it. Then stop TREK and copy the data directory somewhere safe as well.
 3. **Stop TREK**: `docker compose down`. The SQLite file must not change while it is copied.
-4. **Prepare the database.** Switch to [`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml), set `POSTGRES_ADMIN_PASSWORD` and `POSTGRES_PASSWORD` in `.env` as described in [Compose example](#compose-example), keep the same `./data` and `./uploads` mounts and the same `ENCRYPTION_KEY`, and start only the database: `docker compose -f docker-compose.postgres.yml up -d db`.
+4. **Prepare the database.** Switch to [`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) and add `POSTGRES_ADMIN_PASSWORD`, `POSTGRES_PASSWORD` and `COMPOSE_FILE=docker-compose.postgres.yml` to your existing `.env` as described in [Compose example](#compose-example). Append them; do not replace the file, which holds settings such as `ENCRYPTION_KEY`. Then carry your install's own settings over from the old compose file:
+   - Keep the same `./data` and `./uploads` mounts and the same `ENCRYPTION_KEY`.
+   - `COMPOSE_FILE` makes every later `docker compose` command in this directory use the Postgres file, including `docker compose pull && docker compose up -d` from [Updating](Updating). Without it, those commands read `docker-compose.yml` and start TREK on the old `travel.db` again, which stays in `./data` on purpose: what was written on Postgres disappears from view, and new writes go to the SQLite file.
+   - Copy every environment variable you set for TREK into the `app` service's `environment` list. A value in `.env` reaches TREK only where that list names it, as it does for `ENCRYPTION_KEY` and `ALLOWED_ORIGINS`. The new file sets only a few; the rest of yours, such as `APP_URL`, `FORCE_HTTPS`, `TRUST_PROXY`, the `OIDC_*` and `SMTP_*` settings, `ADMIN_EMAIL`, the API keys and the proxy settings, are lost otherwise.
+   - The `app` service keeps the container name `trek` and publishes port `3000`, as the default `docker-compose.yml` does. Change them to match your old file if you changed them there, for example for your reverse proxy.
+
+   Start only the database: `docker compose -f docker-compose.postgres.yml up -d db`.
 5. **Run the move**:
 
    ```bash
@@ -167,7 +190,7 @@ Outside Docker, run `npm run db:move-to-postgres` in the server directory, with 
 
 ### Going back
 
-The command never changes `travel.db`. To return to SQLite, stop TREK and start it again with the SQLite compose file, without `TREK_DB_URL`: it runs on the file as it was before the move. What was written on Postgres in the meantime is not in it. To try the move again, drop the Postgres database and create it empty, or use a new one.
+The command never changes `travel.db`. To return to SQLite, stop TREK, remove the `COMPOSE_FILE` line from `.env` and start it again with the SQLite compose file, without `TREK_DB_URL`: it runs on the file as it was before the move. What was written on Postgres in the meantime is not in it. To try the move again, drop the Postgres database and create it empty, or use a new one.
 
 The `travel.db` that stays in the data directory does not stop a Postgres install that holds your data. Keep it as a copy, or move it out of the data directory once you are sure.
 

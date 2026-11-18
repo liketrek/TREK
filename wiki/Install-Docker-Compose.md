@@ -118,14 +118,18 @@ See [Reverse-Proxy](Reverse-Proxy) for complete proxy configuration examples.
 
 ## Running on Postgres
 
-[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs TREK beside a `postgres:17` service instead of the SQLite file. Its `db` service keeps the database in a named volume and publishes no port, and the `trek` service waits for the database's health check before it starts.
+[`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs TREK beside a `postgres:18` service instead of the SQLite file. Its `db` service keeps the database in a named volume and publishes no port, and the `app` service (container `trek`) waits for the database's health check before it starts. The `app` service sets only a few environment variables; add the others you need (`APP_URL`, `FORCE_HTTPS`, OIDC, SMTP and so on) as in `docker-compose.yml`.
 
-Put two passwords in a `.env` file beside the compose file, then start it:
+The volume path depends on the Postgres major version: `postgres:18` keeps its data under `/var/lib/postgresql`, the images for 14 to 17 under `/var/lib/postgresql/data`. Change the image tag and the volume path together, and only for a new database. A database stays on the major it was created with, so when you update the compose file later, keep your image tag and volume path; moving to another major needs `pg_upgrade` or a backup and restore, never just a new tag. See [Database: Postgres](Database-Postgres#postgres-versions-and-the-volume-path).
+
+Add two passwords to the `.env` file beside the compose file, together with `COMPOSE_FILE`, then start it:
 
 ```bash
-printf 'POSTGRES_ADMIN_PASSWORD=%s\nPOSTGRES_PASSWORD=%s\n' '<a long random value>' '<another long random value>' > .env
-docker compose -f docker-compose.postgres.yml up -d
+printf '\nCOMPOSE_FILE=docker-compose.postgres.yml\nPOSTGRES_ADMIN_PASSWORD=%s\nPOSTGRES_PASSWORD=%s\n' '<a long random value>' '<another long random value>' >> .env
+docker compose up -d
 ```
+
+The command appends to `.env`, so the values already in it, such as `ENCRYPTION_KEY`, stay. `COMPOSE_FILE` makes every later `docker compose` command in this directory use `docker-compose.postgres.yml` without `-f`, including the ones in [Updating](Updating). Without it, a plain `docker compose up -d` reads `docker-compose.yml` and starts TREK on the SQLite file instead.
 
 `POSTGRES_ADMIN_PASSWORD` is the password of the database's superuser `postgres`, which on the first start only creates the role `trek`. `POSTGRES_PASSWORD` is the password of `trek`, the role TREK connects as: it owns TREK's database and is not a superuser, so a crafted backup restored into it cannot reach the database container. That password goes into `TREK_DB_URL`, so use URL-safe characters or percent-encode it. Without either password the database does not initialize and TREK does not start. An install made with an older version of the compose file connects as a superuser; [Database: Postgres](Database-Postgres#moving-a-compose-install-off-the-superuser) shows how to move it. To run it against a database that already exists elsewhere, use the plain `docker-compose.yml` and set `TREK_DB_URL` yourself.
 

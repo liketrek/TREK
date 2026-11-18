@@ -28,6 +28,8 @@ docker compose pull && docker compose up -d
 
 This pulls the newest matching image and recreates the container with your existing volumes. Your data is untouched.
 
+On Postgres with `docker-compose.postgres.yml`, these commands use that file only when `.env` holds `COMPOSE_FILE=docker-compose.postgres.yml`, as [Install: Docker Compose](Install-Docker-Compose#running-on-postgres) sets it up. Otherwise add `-f docker-compose.postgres.yml` to each of them: without it they read `docker-compose.yml` and start TREK on the SQLite file.
+
 **Pinned full-version tag:**
 
 Edit `docker-compose.yml`, update the tag in the `image:` line (e.g. `5.0.0` → `5.0.1`), then redeploy:
