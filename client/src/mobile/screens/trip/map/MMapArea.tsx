@@ -457,7 +457,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         <div
           // Beside the trip's pane nothing lies over the map, so the bar takes the
           // top edge, level with the pane's own top row.
-          className={`pointer-events-none absolute end-4 start-[calc(var(--trip-map-inset,0px)+16px)] z-[25] flex flex-col items-center gap-2 ${
+          className={`m-corner-beside pointer-events-none absolute end-4 start-[calc(var(--trip-map-inset,0px)+16px)] z-[25] flex flex-col items-center gap-2 ${
             shell.paneOpen ? 'top-[var(--m-safe-top,12px)]' : 'top-[calc(var(--m-safe-top,12px)+96px)]'
           }`}
         >

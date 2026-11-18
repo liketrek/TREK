@@ -265,12 +265,12 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   if (split && picked) {
     return (
       <div className="flex h-full">
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(var(--bottom-nav-h,84px)+22px)] pe-3 ps-6 pt-[calc(var(--m-safe-top,12px)+58px)]">
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(var(--bottom-nav-h,84px)+22px)] pe-3 ps-6 pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]">
           {body}
         </div>
         <aside
           aria-label={t('common.preview')}
-          className="m-pane-trail min-h-0 flex-none overflow-y-auto overflow-x-hidden border-s border-[color:var(--m-rowbr)] px-5 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]"
+          className="m-pane-trail min-h-0 flex-none overflow-y-auto overflow-x-hidden border-s border-[color:var(--m-rowbr)] px-5 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]"
         >
           <FilePreviewPane
             file={picked}

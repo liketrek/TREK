@@ -37,7 +37,7 @@ export default function MTripTabPanel({ planner, shell, tab }: MTripTabPanelProp
   if (tab.startsWith('plugin:')) {
     return (
       <div
-        className="absolute inset-0 pt-[calc(var(--m-safe-top,12px)+58px)] pb-[calc(var(--bottom-nav-h,84px)+22px)]"
+        className="absolute inset-0 pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))] pb-[calc(var(--bottom-nav-h,84px)+22px)]"
       >
         <PluginFrame
           pluginId={tab.slice('plugin:'.length)}

@@ -86,11 +86,11 @@ type MSheetWideAnchor = 'center' | 'rail-foot'
  * docked sheet just above the dock; neither lies across the dock.
  */
 const REGION: Record<MSheetVariant, string> = {
-  card: 'inset-x-[14px] top-[var(--m-safe-top,12px)] bottom-[calc(var(--bottom-nav-h,84px)+12px)] justify-center',
+  card: 'inset-x-[14px] top-[max(var(--m-safe-top,12px),var(--m-corner-clear,0px))] bottom-[calc(var(--bottom-nav-h,84px)+12px)] justify-center',
   // On a phone on its side the gap it keeps at the top would leave it a strip
   // of a few rows, so there it may rise nearly to the top.
   bottom:
-    'inset-x-4 top-[calc(var(--m-safe-top,12px)+56px)] bottom-[calc(var(--bottom-nav-h,84px)+16px)] justify-end short:top-[calc(var(--m-safe-top,12px)+8px)]',
+    'inset-x-4 top-[max(calc(var(--m-safe-top,12px)+56px),var(--m-corner-clear,0px))] bottom-[calc(var(--bottom-nav-h,84px)+16px)] justify-end short:top-[calc(var(--m-safe-top,12px)+8px)]',
   drawer: 'start-0 top-0 bottom-0 w-[78%] max-w-[320px]',
 }
 
@@ -116,7 +116,8 @@ const SHORT_FORM_BOX = 'short:max-w-[640px] short:flex-1'
 function regionClass(variant: MSheetVariant, anchor: MSheetWideAnchor = 'center', form = false): string {
   const base = 'pointer-events-none absolute flex flex-col'
   if (variant === 'drawer') return `${base} ${REGION.drawer}`
-  return `${base} ${REGION[variant]} ${WIDE_REGION[anchor]}${form ? ` ${SHORT_FORM_REGION}` : ''}`
+  // m-corner-side: on a wide window the sheet keeps off a corner element's side (a Duo's status capsule).
+  return `${base} m-corner-side ${REGION[variant]} ${WIDE_REGION[anchor]}${form ? ` ${SHORT_FORM_REGION}` : ''}`
 }
 
 /** The sheet's own box inside the region: its width, and the arrow when it has one. */

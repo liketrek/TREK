@@ -122,7 +122,7 @@ export default function MAtlas() {
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden">
+    <div ref={rootRef} className="m-bleed m-corner-own relative h-dvh overflow-hidden">
       <div ref={mapRef} className="absolute inset-0 z-[1] bg-[color:var(--m-mapb)] [&_.leaflet-control-zoom]:hidden" />
       {/* Region hover tooltip — positioned imperatively by useAtlas. */}
       <div

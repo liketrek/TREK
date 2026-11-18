@@ -507,7 +507,7 @@ describe('MSheet', () => {
           <span>body</span>
         </MSheet>,
       );
-      expect(region().className).toContain('top-[var(--m-safe-top,12px)]');
+      expect(region().className).toContain('top-[max(var(--m-safe-top,12px),var(--m-corner-clear,0px))]');
       expect(region().className).toContain('bottom-[calc(var(--bottom-nav-h,84px)+12px)]');
       expect(panel().className).toContain('max-h-full');
     });
