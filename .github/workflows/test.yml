@@ -31,7 +31,7 @@ permissions:
 #                            thresholds, uploads lcov
 #   Server: S3 Contract (MinIO)
 #                            the storage driver against MinIO
-#   Server: Postgres 14/18   per supported major, in three slices: the probe
+#   Server: Postgres 14/18   per supported major, in two slices: the probe
 #                            (the repository SQL against Postgres, first slice
 #                            only), then a slice of the lane (every suite that
 #                            boots the app on the real database module, plus
@@ -67,18 +67,26 @@ permissions:
 #     thresholds against the whole and upload lcov. A red shard is usually a
 #     failing test, a red merge job usually a threshold. None of the other
 #     test jobs feeds the scan.
-#   - Job count: GitHub runs at most 20 jobs of the organisation at once and
-#     does not say in which order it starts queued ones. A code change starts
-#     the 14 shards, the six Postgres slices and about a dozen other jobs; six
-#     of those (parity, the SDK, the bundle, S3, shared coverage, the chart)
-#     are done in a few minutes, so what queues at the start waits about that
-#     long. The jobs that run for minutes (shards, Postgres slices, gates,
-#     e2e, the image) should not outnumber the 20 slots, or one of them waits
-#     for another to finish and the run grows by a whole job: a layout with
-#     six gate jobs did exactly that. The Postgres slices go past that count
-#     because the lane needs the runner time either way: fewer slices would
-#     not shorten the run, only push each slice past its timeout. Check the
-#     count before adding a long job or a shard.
+#   - Job count: GitHub runs at most 20 jobs of the organisation at once,
+#     the other workflows of the same push and other PRs included, and does
+#     not say in which order it starts queued ones. A code change starts up
+#     to 30 jobs at once: 24 that run for minutes (the 14 test shards, the
+#     four Postgres slices, the four gates, e2e and the image) and six that
+#     are done in a minute or two (parity, the SDK, the bundle, S3, shared
+#     coverage, the chart). The long jobs alone are more than the slots, so
+#     at least four of them start only after a long job has ended, four to
+#     five minutes in, when the first gates end; more while other workflows
+#     hold slots (in the run below only 16 of this workflow's jobs started at
+#     once). Whichever jobs wait, the run grows by that wait when one of them
+#     is a test shard, since its coverage job waits for it: in run
+#     44200029312 (first attempt, with six Postgres slices, 26 long jobs)
+#     nine long jobs started four to five and a half minutes in, five client
+#     shards among them, and Client: Coverage ended at 23:46, eight minutes
+#     after the last client shard that started on time. A layout with six
+#     gate jobs did the same. Every long job more makes that wait likelier,
+#     so the lane runs in as few slices as keep each one no longer than a
+#     test shard, and a new long job, shard or slice needs a reason that
+#     outweighs it.
 #   - Scan `needs:` the gates and the four coverage jobs. A coverage job
 #     failing must stop the scan — a missing lcov file would make every line
 #     of that package report as uncovered, and the dashboard would show a
@@ -779,16 +787,34 @@ jobs:
   # without TREK_TEST_DB_URL, and TREK_TEST_PG_MAJOR makes it refuse a service
   # of another major. It runs after a red probe too, so one run shows both.
   #
-  # The lane runs the whole server suite that boots the app, about ten
-  # minutes on 18 and well past the job's twenty on 14, so each major runs it
-  # in three slices (--shard=<i>/3), each on a runner and a service of its
-  # own; each slice builds its own template in global setup. The probe runs
-  # once per major, in the first slice. ci-ok needs this job, and a matrix
-  # job's result is failure when any one slice fails or is cancelled, so
-  # every slice is required. Once a slice nears the timeout, add one to the
-  # shard axis and to the --shard divisor together.
+  # The lane runs the whole server suite that boots the app. Each file
+  # copies the template with CREATE DATABASE, one copy at a time, and before
+  # Postgres 15 a copy is two checkpoints, each waiting for fsync. With fsync
+  # on, the lane's test step took 20 to 23 minutes on 14 and about 12 on 18,
+  # summed over the slices (runs 44194202635 and 44200029312). The service
+  # runs with fsync off (the first step): a test database has nothing to
+  # keep through a crash. Measured in Docker on a workstation, 30 copies of
+  # a 120-table template took 24.9 s on 14 with fsync and 3.5 s without,
+  # and 5.3 s on 17 with it.
+  #
+  # Each major runs the lane in two slices (--shard=<i>/2), each on a runner
+  # and a service of its own; each slice builds its own template in global
+  # setup, and a slice spends a little over a minute before the lane starts
+  # (checkout, install, the shared build). Two is the fewest that keeps a
+  # slice of 18 about as long as a test shard (six to eight minutes), and of
+  # 14 too once fsync off brings it to 18's time: every slice is a long job
+  # (see Job count at the top), and one slice more is one more job that may
+  # wait for a slot. If a slice of 14 still runs longer than a test shard,
+  # give 14 one slice more rather than both majors; that needs a count per
+  # major (a matrix include), which scripts/ci/workflow-jobs.test.mjs does
+  # not read yet and fails on until it is taught to. The probe runs once
+  # per major, in the first slice. ci-ok needs this job, and a matrix job's
+  # result is failure when any one slice fails or is cancelled, so every
+  # slice is required. The shard axis, the --shard divisor and the "(i/n)"
+  # in the name must agree; scripts/ci/workflow-jobs.test.mjs fails when
+  # they do not.
   server-postgres:
-    name: 'Server: Postgres ${{ matrix.postgres }} (${{ matrix.shard }}/3)'
+    name: 'Server: Postgres ${{ matrix.postgres }} (${{ matrix.shard }}/2)'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: changes
@@ -797,7 +823,7 @@ jobs:
       fail-fast: false
       matrix:
         postgres: [14, 18]
-        shard: [1, 2, 3]
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:${{ matrix.postgres }}
@@ -812,6 +838,20 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     steps:
+      # A service container takes no server arguments, so fsync is turned off
+      # through ALTER SYSTEM; it is a reload setting, no restart needed. Why
+      # it is off: see the comment above the job.
+      - name: Turn fsync off on the service
+        env:
+          SERVICE: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          docker exec "$SERVICE" psql -U postgres -d trek_probe -c 'ALTER SYSTEM SET fsync = off' -c 'SELECT pg_reload_conf()'
+          if [ "$(docker exec "$SERVICE" psql -U postgres -d trek_probe -Atc 'SHOW fsync')" != off ]; then
+            echo "::error::fsync is still on after the reload; the lane would pass but take about twice as long on 14."
+            exit 1
+          fi
+
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
@@ -855,7 +895,7 @@ jobs:
         env:
           TREK_TEST_DB_URL: postgres://postgres:lane@127.0.0.1:5432/postgres
           TREK_TEST_PG_MAJOR: ${{ matrix.postgres }}
-        run: npm run test:pg --workspace=server -- --shard=${{ matrix.shard }}/3
+        run: npm run test:pg --workspace=server -- --shard=${{ matrix.shard }}/2
 
   # The server suite in seven slices. vitest.shard.config.ts is vitest.config.ts
   # without the thresholds and the coverage reports: a slice's blob carries

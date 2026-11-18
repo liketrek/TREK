@@ -18,7 +18,7 @@ import { defineConfig } from 'vitest/config';
  * instead of the real database module.
  *
  * CI runs the lane once per supported Postgres major (the server-postgres job
- * in test.yml), each in three slices (`--shard=i/3`) like the SQLite suite;
+ * in test.yml), each in two slices (`--shard=i/2`) like the SQLite suite;
  * every slice builds its own template in global setup.
  */
 export default defineConfig({
