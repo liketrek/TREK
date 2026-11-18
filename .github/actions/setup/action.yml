@@ -94,6 +94,16 @@ runs:
         SCOPE: ${{ inputs.scope }}
       run: |
         set -euo pipefail
+        # better-sqlite3 ships no prebuilt binary and compiles on install. The
+        # hosted runners carry a compiler; the Playwright container of the e2e
+        # jobs does not, so on a cache miss there it gets one first. A hit,
+        # the usual case once a push to dev has saved the container's key,
+        # never reaches this step.
+        if ! command -v make >/dev/null || ! command -v g++ >/dev/null; then
+          export DEBIAN_FRONTEND=noninteractive
+          timeout 300 apt-get update -qq
+          timeout 300 apt-get install -y -qq --no-install-recommends make g++
+        fi
         case "$SCOPE" in
           full) npm ci ;;
           # The scoped install keeps @testing-library/dom (a peer of
