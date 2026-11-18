@@ -14,8 +14,9 @@ import { resolveDataPaths } from './app-config/data-paths';
 // keeping the require after the restore keeps that true by construction.
 import type * as Bootstrap from './bootstrap';
 import { resolveDbPath } from './db/db-path';
-import { postgresTarget } from './db/engine';
+import { postgresTarget, type DatabaseEngine } from './db/engine';
 import { flushLogFileSync, logError } from './nest/audit/audit-log.logger';
+import { DATABASE_ENGINE } from './nest/database/database-engine.module';
 import type { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
 import { ReadinessService } from './nest/health/readiness.service';
 import { createFatalHandler } from './shutdown';
@@ -61,6 +62,10 @@ const onListen = () => {
     `  Container Port: ${PORT}`,
     `  App URL:        ${appUrl}`,
     `  Environment:    ${env.app.nodeEnv || 'development'}`,
+    // Which database this process runs on, so an operator sees after a move
+    // to Postgres (or back) that the start picked the engine they meant. The
+    // engine's own description masks a password in the URL.
+    ...(databaseLabel ? [`  Database:       ${databaseLabel}`] : []),
     `  Timezone:       ${tz}`,
     `  Origins:        ${origins}`,
     `  Log level:      ${LOG_LVL}`,
@@ -103,6 +108,7 @@ const onListen = () => {
 let server: http.Server;
 let nestApp: INestApplication;
 let database: DatabaseLifecycle | undefined;
+let databaseLabel: string | undefined;
 
 // Strangler toggle: prefixes served by Nest (env-overridable, instant rollback).
 async function bootstrap(): Promise<void> {
@@ -114,6 +120,7 @@ async function bootstrap(): Promise<void> {
   const { buildApp, getHttpServer, DatabaseLifecycle: Lifecycle } = require('./bootstrap') as typeof Bootstrap;
   nestApp = await buildApp();
   database = nestApp.get(Lifecycle);
+  databaseLabel = nestApp.get<DatabaseEngine>(DATABASE_ENGINE).describe();
   if (restore.restored) await finishFirstBootRestore(nestApp, restore);
   // The server buildApp created and bound /ws to. Creating a second one here
   // would serve the REST API fine and leave the gateway attached to a socket

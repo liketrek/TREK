@@ -184,7 +184,7 @@ Change those values in the plugin's `plugin.db`, through the plugin or with the 
 
    It reads `data/travel.db` and `data/plugins-data`, and writes into the database `TREK_DB_URL` names. For a SQLite file elsewhere in the container, add `--from=/app/data/<file>`; to drop NUL characters from TREK's data, add `--drop-nul` (see above). A refusal or an error says what to fix and leaves the Postgres database empty, so you can run the command again.
 6. **Start TREK**: `docker compose -f docker-compose.postgres.yml up -d`.
-7. **Check**: the log reports the Postgres engine and no schema creation. Sign in, open a few trips, open a file and a photo, and look at your plugins.
+7. **Check**: the start banner in the log shows `Database:       Postgres postgres://trek:***@db:5432/trek`, and the log shows no schema creation. Sign in, open a few trips, open a file and a photo, and look at your plugins.
 
 Outside Docker, run `npm run db:move-to-postgres` in the server directory, with `TREK_DB_URL` set in the environment or in the server's `.env` file, and `--from=<file>` when the SQLite file is not the server's `data/travel.db`. `--help` prints the options.
 
@@ -273,7 +273,7 @@ Supabase runs PostgreSQL and can host TREK's database. The checklist below has b
 Run it against a throwaway database before an install relies on this page. On Supabase, steps 1 to 6 have been run over the direct connection, and step 7 by marking the last applied migration as pending instead of starting an older image; step 8 and the session pooler have not.
 
 1. Create an empty database and a non-superuser role that owns it. Set `TREK_DB_URL` with a verifying `sslmode` (on Supabase, `verify-full` with `sslrootcert`), or with the server's own setting otherwise.
-2. Start one TREK process. Confirm the log reports the Postgres engine, the schema is created, and the admin account exists.
+2. Start one TREK process. Confirm the start banner names the Postgres database (`Database:       Postgres ...`), the schema is created, and the admin account exists.
 3. Sign in, create a trip, and confirm it appears after a page reload.
 4. Create a backup from the Backup tab. Confirm the archive holds `travel.pgdump` and no `travel.db`.
 5. Restore that backup from the Backup tab. Confirm the trip is still there, and that `data/pre-restore-<time>.pgdump` exists.
