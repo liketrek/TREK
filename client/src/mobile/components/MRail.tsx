@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { edgeFadeClass, useEdgeFade } from './useEdgeFade';
 
 /**
@@ -30,6 +30,13 @@ export function MRail({
   useEvenLines(listRef);
   // On a short window the entries scroll; the cut edge fades, so the foot's entries read as more below.
   const [list, setList] = useState<HTMLDivElement | null>(null);
+  // One function for the rail's lifetime: React 19 detaches and attaches a ref
+  // whose function changed, so an inline one set the state to null and back on
+  // every render and the trip's rail rendered itself into React's update limit.
+  const listNode = useCallback((node: HTMLDivElement | null) => {
+    listRef.current = node;
+    setList(node);
+  }, []);
   const fade = useEdgeFade(list, 'y');
   return (
     <nav
@@ -38,10 +45,7 @@ export function MRail({
     >
       {head && <div className="mb-2 flex flex-none justify-center">{head}</div>}
       <div
-        ref={(node) => {
-          listRef.current = node;
-          setList(node);
-        }}
+        ref={listNode}
         className={`flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1 [scrollbar-width:none] ${edgeFadeClass(fade, 'y')}`}
       >
         {children}
