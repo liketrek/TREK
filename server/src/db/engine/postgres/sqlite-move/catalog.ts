@@ -135,22 +135,26 @@ interface TrekCopyPlan {
   /** The tables in the order they are filled. */
   specs: TableSpec[];
   sequences: CopiedSequence[];
-  /** Why the two schemas do not match; the move refuses when there is any. */
+  /** The tables and columns only one of the two has; the move refuses when there is any. */
+  differences: string[];
+  /** What this TREK's own schema holds that the move cannot copy (a bug in TREK); the move refuses on any. */
   problems: string[];
 }
 
 /**
  * Pairs every table of the target with the SQLite table of the same name and
- * puts them in foreign key order. Anything the two do not share, or a column
- * type the move has no rule for, is a problem: copying around it would lose
- * data or guess.
+ * puts them in foreign key order. Anything the two do not share is a
+ * difference, and a column type the move has no rule for, or a deferred
+ * reference that cannot be NULL meanwhile, is a problem of the schema itself:
+ * copying around either would lose data or guess.
  */
 export function planTrekTables(target: TargetSchema, source: SourceTables): TrekCopyPlan {
+  const differences: string[] = [];
   const problems: string[] = [];
   const tables = target.tables.filter((table) => table.name !== HISTORY_TABLE);
   const names = new Set(tables.map((table) => table.name));
   for (const name of source.keys()) {
-    if (name !== HISTORY_TABLE && !names.has(name)) problems.push(`the SQLite table ${name} has no Postgres table`);
+    if (name !== HISTORY_TABLE && !names.has(name)) differences.push(`the SQLite table ${name} has no Postgres table`);
   }
   const plan = planCopyOrder(
     tables.map((table) => table.name),
@@ -163,18 +167,18 @@ export function planTrekTables(target: TargetSchema, source: SourceTables): Trek
     const sourceColumns = source.get(name);
     if (!table) continue;
     if (!sourceColumns) {
-      problems.push(`the Postgres table ${name} has no SQLite table`);
+      differences.push(`the Postgres table ${name} has no SQLite table`);
       continue;
     }
     for (const column of sourceColumns) {
       if (!table.columns.some((candidate) => candidate.name === column)) {
-        problems.push(`the SQLite column ${name}.${column} has no Postgres column`);
+        differences.push(`the SQLite column ${name}.${column} has no Postgres column`);
       }
     }
     const columns = table.columns.flatMap((column) => {
       const kind = columnKind(column.dataType);
       if (!sourceColumns.includes(column.name))
-        problems.push(`the Postgres column ${name}.${column.name} has no SQLite column`);
+        differences.push(`the Postgres column ${name}.${column.name} has no SQLite column`);
       else if (kind === null)
         problems.push(
           `the Postgres column ${name}.${column.name} has the type ${column.dataType}, which the move does not know`,
@@ -202,5 +206,5 @@ export function planTrekTables(target: TargetSchema, source: SourceTables): Trek
   const sequences = target.sequences
     .filter((entry) => names.has(entry.table))
     .map((entry) => ({ ...entry, target: quoteIdentifier(entry.table) }));
-  return { specs, sequences, problems };
+  return { specs, sequences, differences, problems };
 }

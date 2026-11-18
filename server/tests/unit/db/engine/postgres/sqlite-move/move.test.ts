@@ -1,5 +1,5 @@
 /**
- * MOVE-001..032: the move of a SQLite install into Postgres
+ * MOVE-001..037: the move of a SQLite install into Postgres
  * (src/db/engine/postgres/sqlite-move/), over real SQLite files and a
  * stand-in for Postgres that keeps what it is sent (tests/helpers/fake-postgres-move.ts):
  * the refusals before anything is written, the copy in foreign key order with
@@ -26,6 +26,9 @@ import {
   migrationLevelProblem,
   moveSqliteToPostgres,
   renderSummary,
+  SCHEMA_BUG_REMEDY,
+  SCHEMA_DIFFERENCE_REMEDY,
+  schemaRefusal,
   type MoveOptions,
   type MoveSummary,
 } from '../../../../../../src/db/engine/postgres/sqlite-move/move';
@@ -246,6 +249,44 @@ describe('moveSqliteToPostgres', () => {
     await expect(moveSqliteToPostgres(options({ sqliteFile: path.join(dir, 'missing.db') }))).rejects.toThrow(
       /Cannot read the SQLite file .*missing\.db: There is no SQLite file/,
     );
+  });
+
+  it('MOVE-036: a SQLite file whose tables differ from the schema is refused with what that means and what to do', async () => {
+    sqlite(
+      path.join(dir, 'travel.db'),
+      'alter table trips drop column score; alter table users add column nickname text;',
+    );
+    const failure = moveSqliteToPostgres(options());
+    await expect(failure).rejects.toBeInstanceOf(MoveRefusal);
+    await expect(failure).rejects.toThrow(
+      "The SQLite file and this TREK's Postgres schema differ; nothing was written:\n" +
+        '  - the SQLite column users.nickname has no Postgres column\n' +
+        '  - the Postgres column trips.score has no SQLite column\n' +
+        SCHEMA_DIFFERENCE_REMEDY,
+    );
+    expect(SCHEMA_DIFFERENCE_REMEDY).toContain('[DB] The database lacks');
+    expect(SCHEMA_DIFFERENCE_REMEDY).toContain('keep running TREK on SQLite');
+    expect(pg.statements.some((sql) => sql.startsWith('insert into'))).toBe(false);
+    expect(pg.statements.at(-1)).toBe(CLEAR_SCHEMA_SQL);
+  });
+
+  it('MOVE-037: what the schema itself cannot copy is named apart, as a bug in TREK, not as the file lacking it', () => {
+    const typeProblem = 'the Postgres column trips.when has the type interval, which the move does not know';
+    expect(schemaRefusal([], [])).toBeNull();
+    expect(schemaRefusal([], [typeProblem])).toBe(
+      "This TREK's Postgres schema holds what the move cannot copy; nothing was written:\n" +
+        `  - ${typeProblem}\n` +
+        SCHEMA_BUG_REMEDY,
+    );
+    expect(schemaRefusal(['the Postgres column trips.score has no SQLite column'], [typeProblem])).toBe(
+      "The SQLite file and this TREK's Postgres schema differ; nothing was written:\n" +
+        '  - the Postgres column trips.score has no SQLite column\n' +
+        `${SCHEMA_DIFFERENCE_REMEDY}\n` +
+        "This TREK's Postgres schema holds what the move cannot copy; nothing was written:\n" +
+        `  - ${typeProblem}\n` +
+        SCHEMA_BUG_REMEDY,
+    );
+    expect(SCHEMA_BUG_REMEDY).not.toContain('[DB] The database lacks');
   });
 
   it('MOVE-011: a plugin database goes into its schema with its migration record, ids and indexes', async () => {

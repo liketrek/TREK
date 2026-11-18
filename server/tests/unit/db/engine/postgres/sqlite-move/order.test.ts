@@ -101,6 +101,7 @@ describe('planTrekTables', () => {
         ['users', ['id', 'avatar']],
       ]),
     );
+    expect(plan.differences).toEqual([]);
     expect(plan.problems).toEqual([]);
     expect(plan.specs.map((spec) => spec.target)).toEqual(['"messages"', '"users"']);
     expect(plan.specs[0]).toMatchObject({
@@ -145,13 +146,16 @@ describe('planTrekTables', () => {
         ['leftover', ['id']],
       ]),
     );
-    expect(plan.problems).toEqual([
+    expect(plan.differences).toEqual([
       'the SQLite table leftover has no Postgres table',
       'the Postgres table extra has no SQLite table',
       'the SQLite column messages.legacy has no Postgres column',
+      'the Postgres column users.avatar has no SQLite column',
+    ]);
+    // What the schema itself holds that the move cannot copy is kept apart from what the file lacks.
+    expect(plan.problems).toEqual([
       'the Postgres column messages.sent_at has the type timestamp with time zone, which the move does not know',
       'messages.reply_to refers back to a table filled later and cannot be NULL meanwhile',
-      'the Postgres column users.avatar has no SQLite column',
     ]);
   });
 });

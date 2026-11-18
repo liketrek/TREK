@@ -110,6 +110,49 @@ const PLUGIN_DATA_REMEDY =
   'TREK is stopped), or uninstall the plugin and remove its data directory, then run the move again.';
 
 /**
+ * What a difference between the two schemas means and what the operator can
+ * do, for a file already at this build's migration level (the level is
+ * checked first, so the start that brought it there ran every migration,
+ * including the one that adds the columns an old upgrade skipped).
+ */
+export const SCHEMA_DIFFERENCE_REMEDY =
+  "The SQLite file is at this TREK version's migration level, so its tables should match this schema exactly. " +
+  'A table or column only Postgres has is one the SQLite install never got: an install upgraded before 5.0 can ' +
+  'have skipped some, and the start that brought the file to this level added every column it could; TREK names ' +
+  'the rest in its start log ("[DB] The database lacks ..."). A table or column only the SQLite file has was ' +
+  "added outside TREK's migrations, by hand or by a development build. TREK cannot correct either on its own: " +
+  'keep running TREK on SQLite, which still works, and please report this message, with that line of the start ' +
+  'log if there is one.';
+
+/** What a column of this TREK's own Postgres schema that the move cannot copy means: the file is not at fault. */
+export const SCHEMA_BUG_REMEDY =
+  "These come from this TREK version's own Postgres schema, not from the SQLite file, so this is a bug in TREK. " +
+  'Keep running TREK on SQLite, which still works, and please report this message.';
+
+/**
+ * The refusal for a SQLite file whose tables do not pair with the schema, or
+ * null when they do: the tables and columns only one side has, with what
+ * that means, and apart from them what the schema itself holds that the move
+ * cannot copy, which is TREK's own fault.
+ */
+export function schemaRefusal(differences: readonly string[], problems: readonly string[]): string | null {
+  const parts: string[] = [];
+  if (differences.length > 0) {
+    parts.push(
+      `The SQLite file and this TREK's Postgres schema differ; nothing was written:\n` +
+        `${listLines(differences, differences.length)}\n${SCHEMA_DIFFERENCE_REMEDY}`,
+    );
+  }
+  if (problems.length > 0) {
+    parts.push(
+      `This TREK's Postgres schema holds what the move cannot copy; nothing was written:\n` +
+        `${listLines(problems, problems.length)}\n${SCHEMA_BUG_REMEDY}`,
+    );
+  }
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+/**
  * Why the SQLite file is not at this build's migration level, or null when it
  * is: it must have recorded exactly the migrations this build ships.
  */
@@ -211,11 +254,8 @@ async function copyAll(
     source.tables().map((table) => [table, source.columns(table).map((column) => column.name)]),
   );
   const plan = planTrekTables(await readTargetSchema(trx), sourceTables);
-  if (plan.problems.length > 0) {
-    throw new MoveRefusal(
-      `The SQLite file and this TREK's Postgres schema differ:\n${listLines(plan.problems, plan.problems.length)}`,
-    );
-  }
+  const refusal = schemaRefusal(plan.differences, plan.problems);
+  if (refusal) throw new MoveRefusal(refusal);
   // The bootstrap's own rows (default settings, addons, providers) give way to the file's.
   await run(trx, `truncate table ${plan.specs.map((spec) => spec.target).join(', ')}`);
 
