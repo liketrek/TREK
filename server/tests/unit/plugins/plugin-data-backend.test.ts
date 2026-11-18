@@ -10,13 +10,13 @@ import type { DatabaseEngine } from '../../../src/db/engine';
 import { PRIVILEGED_ROLE_PLUGIN_REFUSAL } from '../../../src/db/engine/postgres/plugin-data-checks';
 import { PostgresPluginDataStore } from '../../../src/db/engine/postgres/plugin-data-store';
 import { PRIVILEGED_ROLE_DESCRIPTION } from '../../../src/db/engine/postgres/server-checks';
+import { SqlitePluginDataStore } from '../../../src/db/engine/sqlite/plugin-data-store';
 import {
   PLUGIN_DATA,
   PLUGIN_DATA_PROVIDERS,
   PostgresPluginDataBackend,
   SqlitePluginDataBackend,
 } from '../../../src/nest/plugins/host/plugin-data.backend';
-import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
 import type { MikroORM } from '@mikro-orm/core';
 import type { FactoryProvider } from '@nestjs/common';
 
@@ -88,7 +88,7 @@ describe('plugin data port', () => {
   it("PLUGDATA-002: on SQLite a plugin's data is a file of its own, and erasing removes its directory", async () => {
     const backend = new SqlitePluginDataBackend();
     const store = backend.open('sqlite-one');
-    expect(store).toBeInstanceOf(PluginDataDb);
+    expect(store).toBeInstanceOf(SqlitePluginDataStore);
     expect(store.engine).toBe('sqlite');
     store.close();
     expect(fs.existsSync(path.join(tmp, 'sqlite-one', 'plugin.db'))).toBe(true);

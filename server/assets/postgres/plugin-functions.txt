@@ -399,25 +399,24 @@ netmask
 network
 set_masklen
 
-# Full text search. ts_stat and ts_rewrite run SQL handed to them as text and stay refused.
+# Full text search on vectors and queries a plugin builds itself (array_to_tsvector,
+# 'a & b'::tsquery). The functions that parse text into them (to_tsvector, to_tsquery,
+# plainto_tsquery, phraseto_tsquery, websearch_to_tsquery, json_to_tsvector,
+# jsonb_to_tsvector, ts_headline) take a text search configuration, a regconfig looked up
+# by a name in a string, so to_tsvector('schema.cfg', ...) tells whether a schema or a
+# configuration exists; they stay refused, as do ts_stat and ts_rewrite, which run SQL
+# handed to them as text. No function here may take or return a type that looks an object
+# up by name (the Postgres lane checks every overload).
 array_to_tsvector
-json_to_tsvector
-jsonb_to_tsvector
 numnode
-phraseto_tsquery
-plainto_tsquery
 querytree
 setweight
 strip
-to_tsquery
-to_tsvector
 ts_delete
 ts_filter
-ts_headline
 ts_rank
 ts_rank_cd
 tsvector_to_array
-websearch_to_tsquery
 
 # The TABLESAMPLE methods (`TABLESAMPLE SYSTEM (10)`).
 bernoulli

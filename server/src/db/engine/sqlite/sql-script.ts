@@ -8,7 +8,7 @@
  * it prepares the pieces it has gathered so far and keeps gathering while SQLite
  * reports them as incomplete input.
  *
- * Pure, no imports: plugin-data.service.ts runs a plugin's exec() script through it,
+ * Pure, no imports: plugin-data-store.ts runs a plugin's exec() script through it,
  * one statement at a time, so the time budget can be checked between statements.
  */
 export function splitAfterSemicolons(sql: string): string[] {

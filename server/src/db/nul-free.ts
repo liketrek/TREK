@@ -26,10 +26,11 @@ import type { AbortableOperationOptions, CompiledQuery, DatabaseConnection, Dial
  *   (`--drop-nul`) and lists each value it changed; by default it refuses
  *   such a value, since the move changes nothing silently.
  *
- * A plugin's own data (`db:own`) is not TREK's to change: its SQLite file
- * (`nest/plugins/host/plugin-data.service.ts`) binds a NUL exactly, so keys
- * it stored with one stay findable, and its schema on Postgres refuses an
- * argument holding one with an error (`engine/postgres/plugin-data-checks.ts`).
+ * A plugin's own data (`db:own`) is not TREK's to change: the stores of both
+ * engines (`engine/sqlite/plugin-data-store.ts`,
+ * `engine/postgres/plugin-data-store.ts`) refuse SQL, an argument or a
+ * migration id holding one with the same error (`engine/plugin-data-contract.ts`)
+ * instead of dropping it, so a key never changes meaning.
  *
  * A filter is stripped as well as a write, so a lookup finds what the write
  * stored. Text that spells the character as the six characters `\u0000`

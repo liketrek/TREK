@@ -2,11 +2,14 @@ import type { EngineId } from '../../app-config/db-settings';
 
 /**
  * A plugin's own database (`db:own`), as the host's RPC handlers reach it.
- * One implementation per engine: on SQLite a file of the plugin's own
- * (`nest/plugins/host/plugin-data.service.ts`), on Postgres a schema of the
- * plugin's own (`postgres/plugin-data-store.ts`). The plugin's SQL is its
- * own, written for the engine `engine` names; neither implementation
- * translates it.
+ * One implementation per engine, each in its engine's folder: on SQLite a
+ * file of the plugin's own (`SqlitePluginDataStore`,
+ * `sqlite/plugin-data-store.ts`), on Postgres a schema of the plugin's own
+ * (`PostgresPluginDataStore`, `postgres/plugin-data-store.ts`). The plugin's
+ * SQL is its own, written for the engine `engine` names; neither
+ * implementation translates it. Both hold a plugin to the caps and refuse a
+ * call that breaks the contract with the same words, from
+ * `plugin-data-contract.ts`.
  *
  * The SQLite handle answers synchronously, the Postgres one with a promise,
  * so every method may return either. The caller awaits the result.
@@ -40,20 +43,3 @@ export interface PluginTxOp {
 export interface PluginTxResult {
   results: Array<{ changes?: number; rows?: unknown[] }>;
 }
-
-/**
- * The limits every plugin database is held to, whatever the engine. The
- * plugin-sdk README's "Runtime limits" table documents them.
- */
-export const PLUGIN_DATA_CAPS = {
-  /** The longest SQL text one call may carry. */
-  maxSqlLength: 100_000,
-  /** The most rows a query, or a whole tx batch, returns. */
-  maxRows: 100_000,
-  /** The most statements one tx batch holds. */
-  maxTxOps: 100,
-  /** Wall-clock time for one query, one tx batch or one exec script. */
-  timeBudgetMs: 2_000,
-  /** The most a plugin's data may take on disk. */
-  quotaBytes: 256 * 1024 * 1024,
-} as const;

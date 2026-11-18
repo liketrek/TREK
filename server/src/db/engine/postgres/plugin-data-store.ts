@@ -1,14 +1,21 @@
-import { PLUGIN_DATA_CAPS, type PluginDataStore, type PluginTxOp, type PluginTxResult } from '../plugin-data';
+import type { PluginDataStore, PluginTxOp, PluginTxResult } from '../plugin-data';
+import {
+  PLUGIN_DATA_CAPS,
+  PLUGIN_DATA_ERRORS,
+  refuseNulSql,
+  refuseNulValues,
+  type PluginDataBudgetedCall,
+} from '../plugin-data-contract';
 import {
   PLUGIN_SCHEMA_MAX_OBJECTS,
   PrivilegedRoleGate,
   refuseForeignTargets,
-  refuseNulValues,
   schemaUsage,
   type PluginRoleGate,
   type SchemaUsage,
 } from './plugin-data-checks';
 import { isPluginId, pluginSchemaName, quotePluginSchema } from './plugin-schema';
+import { pluginSessionSql } from './plugin-session';
 import { checkPlaceholders, checkQualifiers, parsePluginSql, type PluginStatement } from './plugin-sql-guard';
 
 import { CompiledQuery, type Kysely } from 'kysely';
@@ -25,8 +32,11 @@ import Cursor from 'pg-cursor';
  * once per connection). The transaction first makes sure the schema and its
  * migration table exist, then puts only that schema on the `search_path`,
  * with `pg_temp` explicitly last so a temporary table is never found before
- * the plugin's own, and sets `statement_timeout` to the call's time budget;
- * every setting is `local` and ends with the transaction. The plugin's SQL is
+ * the plugin's own, sets `statement_timeout` to the call's time budget, and
+ * pins the settings that decide how values print and parse
+ * (`plugin-session.ts`: the time zone, the locale, ...), so what a plugin
+ * reads does not depend on the server's configuration; every setting is
+ * `local` and ends with the transaction. The plugin's SQL is
  * checked by `plugin-sql-guard.ts` before it runs, so it cannot name another
  * schema; right before each statement, the existing objects it changes are
  * resolved by Postgres and must lie in the plugin's schema
@@ -34,8 +44,9 @@ import Cursor from 'pg-cursor';
  * over the extended query protocol, which runs one statement and no more: a
  * write as a query with `queryMode: 'extended'`, which `pg` honours even
  * without values, and a read through a `pg-cursor`, which always uses that
- * protocol. A bound value or a migration id holding U+0000 is refused before
- * anything runs, since Postgres text cannot hold it and changing it would
+ * protocol. SQL, a bound value or a migration id holding U+0000 is refused
+ * before anything runs, on this engine as on SQLite (`refuseNulValues` in
+ * `../plugin-data-contract.ts`): Postgres text cannot hold it, and changing it would
  * change the plugin's data. Reads stop at the row cap. A call that may write
  * measures the schema before and after (`schemaUsage`: the bytes of every
  * relation with its TOAST table, and the catalog objects), and rolls back one
@@ -50,12 +61,15 @@ import Cursor from 'pg-cursor';
  * (`pluginDataSlots`), so a busy plugin never takes the connections TREK's
  * own requests need.
  *
- * The SQLite store's semantics carry over: `query` and `tx` are held to the
- * row cap, `query`, a `tx` batch and an `exec` script to the time budget, a
- * script's statements each commit on their own, and `migrate` runs once per
- * id with no time budget. What Postgres adds is that the budget also stops a
- * single statement (`statement_timeout`), which SQLite cannot, and that an
- * `exec` with bound args is held to it as well.
+ * The SQLite store's semantics (`../sqlite/plugin-data-store.ts`) carry
+ * over: `query` and `tx` are held to the row cap, `query`, a `tx` batch and
+ * an `exec` script to the time budget, a script's statements each commit on
+ * their own, and `migrate` runs once per id with no time budget. What
+ * Postgres adds is that the budget also stops a single statement
+ * (`statement_timeout`), which SQLite cannot, and that an `exec` with bound
+ * args is held to it as well. A call that breaks the contract is refused
+ * with the words the SQLite store uses (`PLUGIN_DATA_ERRORS`),
+ * better-sqlite3's own among them.
  */
 
 /** The limits one store enforces. Overridable for tests; production uses `PLUGIN_DATA_CAPS`. */
@@ -81,8 +95,6 @@ const DEFAULT_LIMITS: PostgresPluginDataLimits = {
 const QUERY_CANCELED = '57014';
 /** Rows a cursor fetches at once. */
 const CHUNK_ROWS = 500;
-/** What better-sqlite3 says about a closed handle, which the host recognizes. */
-const CLOSED = 'The database connection is not open';
 
 /**
  * What a client runs before it goes back to the pool, outside any
@@ -206,7 +218,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
     const { maxRows } = this.limits;
     return this.call('query', (budget) =>
       this.transaction(budget.ms, [statement], (client) => {
-        const rows = { count: 0, max: maxRows, message: `query returned more than ${maxRows} rows` };
+        const rows = { count: 0, max: maxRows, message: PLUGIN_DATA_ERRORS.queryTooManyRows(maxRows) };
         return this.stream(client, statement, args, rows, budget.check);
       }),
     );
@@ -222,6 +234,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       );
     }
     const statements = this.parse(sql);
+    this.refuseIfClosed();
     return this.call('exec', async (budget) => {
       // A script runs as SQLite runs one: each statement commits on its own, and
       // the clock is read before every statement but the first.
@@ -234,16 +247,19 @@ export class PostgresPluginDataStore implements PluginDataStore {
   }
 
   async tx(ops: PluginTxOp[]): Promise<PluginTxResult> {
-    if (!Array.isArray(ops)) throw new Error('tx requires an array of { sql, args }');
-    if (ops.length === 0) return { results: [] };
+    if (!Array.isArray(ops)) throw new Error(PLUGIN_DATA_ERRORS.txNotArray);
+    if (ops.length === 0) {
+      this.refuseIfClosed();
+      return { results: [] };
+    }
     if (ops.length > PLUGIN_DATA_CAPS.maxTxOps) {
-      throw new Error(`tx allows at most ${PLUGIN_DATA_CAPS.maxTxOps} statements`);
+      throw new Error(PLUGIN_DATA_ERRORS.txTooManyOps(PLUGIN_DATA_CAPS.maxTxOps));
     }
     const statements = ops.map((op) => this.single(op?.sql, op?.args ?? []));
     const { maxRows } = this.limits;
     return this.call('tx', (budget) =>
       this.transaction(budget.ms, statements, async (client) => {
-        const rows = { count: 0, max: maxRows, message: `tx returned more than ${maxRows} rows in total` };
+        const rows = { count: 0, max: maxRows, message: PLUGIN_DATA_ERRORS.txTooManyRows(maxRows) };
         const results = await inOrder(statements, async (statement, index) => {
           const args = ops[index].args ?? [];
           // One budget for the whole batch: each statement after the first gets what is left of it.
@@ -263,6 +279,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
   async migrate(id: string, sql: string): Promise<{ applied: boolean }> {
     const statements = this.parse(sql);
     refuseNulValues([id]);
+    this.refuseIfClosed();
     return this.enqueue(() =>
       this.transaction(null, statements, async (client) => {
         const seen = await client.query({
@@ -280,23 +297,37 @@ export class PostgresPluginDataStore implements PluginDataStore {
     );
   }
 
-  /** `sql` as exactly one statement, checked against `args`. */
+  /**
+   * `sql` as exactly one statement, checked against `args`. The checks run in
+   * the order the SQLite store meets them (the text, the args, then what
+   * better-sqlite3's prepare says: a closed handle, no statement, more than
+   * one), so a call that breaks several rules is told the same on both.
+   */
   private single(sql: unknown, args: readonly unknown[]): PluginStatement {
     const statements = this.parse(sql);
-    if (statements.length !== 1) throw new Error('sql must hold exactly one statement here; use exec() for a script');
-    checkPlaceholders(statements[0], args);
     refuseNulValues(args);
+    this.refuseIfClosed();
+    if (statements.length === 0) throw new Error(PLUGIN_DATA_ERRORS.noStatement);
+    if (statements.length > 1) throw new Error(PLUGIN_DATA_ERRORS.moreThanOneStatement);
+    checkPlaceholders(statements[0], args);
     return statements[0];
   }
 
-  /** The statements of `sql`, refused when the guard does not allow one or none is there. */
+  /**
+   * The statements of `sql`, refused when it is no string, too long, holds NUL
+   * or holds a statement the guard does not allow. A script may hold none,
+   * as on SQLite, where an empty script runs nothing.
+   */
   private parse(sql: unknown): PluginStatement[] {
-    if (!this.open) throw new Error(CLOSED);
-    if (typeof sql !== 'string') throw new Error('sql must be a string');
-    if (sql.length > PLUGIN_DATA_CAPS.maxSqlLength) throw new Error('sql too long');
-    const statements = parsePluginSql(sql);
-    if (statements.length === 0) throw new Error('The supplied SQL string contains no statements');
-    return statements;
+    if (typeof sql !== 'string') throw new Error(PLUGIN_DATA_ERRORS.sqlNotString);
+    if (sql.length > PLUGIN_DATA_CAPS.maxSqlLength) throw new Error(PLUGIN_DATA_ERRORS.sqlTooLong);
+    refuseNulSql(sql);
+    return parsePluginSql(sql);
+  }
+
+  /** Refuses a call once {@link close} ran, with better-sqlite3's words for a closed handle. */
+  private refuseIfClosed(): void {
+    if (!this.open) throw new Error(PLUGIN_DATA_ERRORS.closed);
   }
 
   /**
@@ -304,7 +335,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
    * turn comes, and reports a statement Postgres cancelled at
    * `statement_timeout` as the budget running out.
    */
-  private call<T>(what: string, work: (budget: Budget) => Promise<T>): Promise<T> {
+  private call<T>(what: PluginDataBudgetedCall, work: (budget: Budget) => Promise<T>): Promise<T> {
     const { now, timeBudgetMs } = this.limits;
     return this.enqueue(async () => {
       const startedAt = now();
@@ -312,14 +343,14 @@ export class PostgresPluginDataStore implements PluginDataStore {
         ms: timeBudgetMs,
         remaining: () => Math.max(1, timeBudgetMs - (now() - startedAt)),
         check: () => {
-          if (now() - startedAt > timeBudgetMs) throw new Error(`${what} exceeded its ${timeBudgetMs} ms time budget`);
+          if (now() - startedAt > timeBudgetMs) throw new Error(PLUGIN_DATA_ERRORS.overBudget(what, timeBudgetMs));
         },
       };
       try {
         return await work(budget);
       } catch (err) {
         if (sqlState(err) === QUERY_CANCELED) {
-          throw new Error(`${what} exceeded its ${timeBudgetMs} ms time budget`, { cause: err });
+          throw new Error(PLUGIN_DATA_ERRORS.overBudget(what, timeBudgetMs), { cause: err });
         }
         throw err;
       }
@@ -382,7 +413,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       `create schema if not exists ${this.quoted}`,
       `create table if not exists ${this.quoted}._plugin_migrations (id text primary key, applied_at bigint)`,
       `set local search_path to ${this.quoted}, pg_temp`,
-      'set local standard_conforming_strings to on',
+      pluginSessionSql(),
     ];
     if (timeoutMs !== null) setup.push(`set local statement_timeout to ${Math.max(1, Math.floor(timeoutMs))}`);
     await client.query(setup.join(';\n'));

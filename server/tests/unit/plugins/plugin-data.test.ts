@@ -1,13 +1,16 @@
 /**
- * The per-plugin sqlite file (#plugins, M1, db:own). Proves migrations are
+ * The per-plugin SQLite store (src/db/engine/sqlite/plugin-data-store.ts, db:own). Proves migrations are
  * idempotent, reads/writes work against the plugin's OWN file, and the guard
  * blocks statements that would let a plugin escape its file (ATTACH/PRAGMA).
  */
 import {
-  PluginDataDb,
-  removePluginData,
-  snapshotAllPluginDataDbs,
-} from '../../../src/nest/plugins/host/plugin-data.service';
+  PLUGIN_DATA_ERRORS,
+  PLUGIN_SQL_NUL_REFUSAL,
+  PLUGIN_VALUE_NUL_REFUSAL,
+} from '../../../src/db/engine/plugin-data-contract';
+import { SqlitePluginDataStore } from '../../../src/db/engine/sqlite/plugin-data-store';
+import { removePluginData, snapshotAllPluginDataDbs } from '../../../src/nest/plugins/host/plugin-data.service';
+import { pluginDbFile } from '../../../src/nest/plugins/paths';
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -24,9 +27,14 @@ afterAll(() => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-describe('PluginDataDb', () => {
+/** The plugin `id`'s store, at the file the host opens it at. */
+function openStore(id: string, limits: ConstructorParameters<typeof SqlitePluginDataStore>[2] = {}) {
+  return new SqlitePluginDataStore(id, pluginDbFile(id), limits);
+}
+
+describe('SqlitePluginDataStore', () => {
   it('migrates once (idempotent by id), then reads and writes its own data', () => {
-    const db = new PluginDataDb('notes');
+    const db = openStore('notes');
     expect(db.migrate('001', 'CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT)').applied).toBe(true);
     expect(db.migrate('001', 'CREATE TABLE notes (x)').applied).toBe(false); // same id -> skipped
 
@@ -42,10 +50,10 @@ describe('PluginDataDb', () => {
   });
 
   it('rejects statements that would escape the plugin file, DoS, or exceed limits', () => {
-    const db = new PluginDataDb('guard');
+    const db = openStore('guard');
     expect(() => db.exec("ATTACH DATABASE 'trek.db' AS core")).toThrow(/not allowed/);
     expect(() => db.query('PRAGMA table_info(x)')).toThrow(/not allowed/);
-    // WITH RECURSIVE is the unbounded-CPU vector on the synchronous host — refused
+    // WITH RECURSIVE is the unbounded-CPU vector on the synchronous host, so it is refused
     expect(() => db.query('WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM r) SELECT x FROM r')).toThrow(
       /not allowed/,
     );
@@ -58,7 +66,7 @@ describe('PluginDataDb', () => {
   });
 
   it('row-caps a query so it cannot materialize an unbounded result set', () => {
-    const db = new PluginDataDb('rowcap');
+    const db = openStore('rowcap');
     db.exec('CREATE TABLE seq (n INTEGER)');
     // Insert a modest table and a self-cross-join that would explode past the cap.
     const insert = 'INSERT INTO seq (n) VALUES ' + Array.from({ length: 400 }, (_, i) => `(${i})`).join(',');
@@ -68,8 +76,8 @@ describe('PluginDataDb', () => {
     db.close();
   });
 
-  it('tx runs a batch atomically — reads see earlier writes, and any error rolls the whole batch back', () => {
-    const db = new PluginDataDb('txn');
+  it('tx runs a batch atomically: reads see earlier writes, and any error rolls the whole batch back', () => {
+    const db = openStore('txn');
     db.migrate('001', 'CREATE TABLE acct (id INTEGER PRIMARY KEY, bal INTEGER)');
     db.exec('INSERT INTO acct (id, bal) VALUES (1, 100), (2, 0)');
 
@@ -135,7 +143,7 @@ describe('PluginDataDb', () => {
   };
 
   it('stops a query at the first row past its time budget', () => {
-    const db = new PluginDataDb('budget-query', { timeBudgetMs: 100, now: steppingClock(30) });
+    const db = openStore('budget-query', { timeBudgetMs: 100, now: steppingClock(30) });
     db.exec('CREATE TABLE seq (n INTEGER)');
     db.exec('INSERT INTO seq (n) VALUES ' + Array.from({ length: 50 }, (_, i) => `(${i})`).join(','));
     // The start reads the clock and every row after the first reads it again, 30 ms
@@ -147,7 +155,7 @@ describe('PluginDataDb', () => {
   });
 
   it('holds a whole tx batch to one time budget and rolls it back when it runs out', () => {
-    const db = new PluginDataDb('budget-tx', { timeBudgetMs: 80, now: steppingClock(30) });
+    const db = openStore('budget-tx', { timeBudgetMs: 80, now: steppingClock(30) });
     db.exec('CREATE TABLE acct (id INTEGER PRIMARY KEY, bal INTEGER)');
     db.exec('INSERT INTO acct (id, bal) VALUES (1, 100)');
     // The clock is read at the start and after each statement: 30 ms, 60 ms, then
@@ -167,7 +175,7 @@ describe('PluginDataDb', () => {
   });
 
   it('holds an exec script to the time budget between its statements', () => {
-    const db = new PluginDataDb('budget-exec', { timeBudgetMs: 80, now: steppingClock(30) });
+    const db = openStore('budget-exec', { timeBudgetMs: 80, now: steppingClock(30) });
     db.exec('CREATE TABLE log (n INTEGER)');
     // Start, then one read before each statement after the first: 30, 60, then 90 ms
     // before the fourth insert. The script stops there and the fourth insert never
@@ -180,11 +188,10 @@ describe('PluginDataDb', () => {
     ).toThrow('exec exceeded its 80 ms time budget');
     // One row back, so the check itself reads the clock only at its start.
     expect(db.query('SELECT group_concat(n) AS ns FROM (SELECT n FROM log ORDER BY n)')).toEqual([{ ns: '1,2,3' }]);
-    // A script that opened its own transaction and ran out of time inside it is rolled
-    // back, so the connection is not left in that transaction.
+    // A script that would open its own transaction is refused before any of it runs.
     expect(() =>
-      db.exec('BEGIN; INSERT INTO log VALUES (5); INSERT INTO log VALUES (6); INSERT INTO log VALUES (7); COMMIT;'),
-    ).toThrow(/time budget/);
+      db.exec('INSERT INTO log VALUES (5); BEGIN; INSERT INTO log VALUES (6); INSERT INTO log VALUES (7); COMMIT;'),
+    ).toThrow(PLUGIN_DATA_ERRORS.txControl);
     expect(db.query('SELECT count(*) AS c FROM log WHERE n > 4')).toEqual([{ c: 0 }]);
     db.exec('INSERT INTO log VALUES (8)');
     expect(db.query('SELECT count(*) AS c FROM log WHERE n > 4')).toEqual([{ c: 1 }]);
@@ -193,22 +200,24 @@ describe('PluginDataDb', () => {
 
   it('reports a call whose last statement or row ran past the budget as done', () => {
     const clock = scriptedClock();
-    const db = new PluginDataDb('budget-last', { timeBudgetMs: 100, now: clock.now });
+    const db = openStore('budget-last', { timeBudgetMs: 100, now: clock.now });
     db.exec('CREATE TABLE log (n INTEGER)');
     // A single statement without args: the clock is read at the start only, so a
     // slow insert that has run and committed is not reported as failed.
     clock.reads = [0, 1000];
     expect(db.exec('INSERT INTO log VALUES (1)')).toEqual({ changes: 0 });
-    // A script whose closing COMMIT is what takes the time: the reads before the
-    // INSERT and before the COMMIT are in budget, and nothing is read after it.
-    clock.reads = [0, 0, 0, 1000];
-    expect(db.exec('BEGIN; INSERT INTO log VALUES (2); COMMIT;')).toEqual({ changes: 0 });
+    // A script whose last statement is what takes the time: the reads at the start
+    // and before the last statement are in budget, and nothing is read after it.
+    clock.reads = [0, 0, 1000];
+    expect(db.exec('INSERT INTO log VALUES (2); DELETE FROM log WHERE n > 2;')).toEqual({ changes: 0 });
     clock.reads = [0];
     expect(db.query('SELECT n FROM log ORDER BY n')).toEqual([{ n: 1 }, { n: 2 }]);
-    // The same budget running out before the COMMIT still stops the script and rolls
-    // the transaction back.
-    clock.reads = [0, 0, 1000];
-    expect(() => db.exec('BEGIN; INSERT INTO log VALUES (3); COMMIT;')).toThrow('exec exceeded its 100 ms time budget');
+    // The same budget running out before the last statement still stops the script
+    // there: the insert never runs.
+    clock.reads = [0, 1000];
+    expect(() => db.exec('UPDATE log SET n = n WHERE n = 1; INSERT INTO log VALUES (3);')).toThrow(
+      'exec exceeded its 100 ms time budget',
+    );
     clock.reads = [0];
     expect(db.query('SELECT count(*) AS c FROM log')).toEqual([{ c: 2 }]);
     // A query read to its end is returned, even when its last row came in late: the
@@ -226,7 +235,7 @@ describe('PluginDataDb', () => {
   });
 
   it('runs an exec script statement by statement with the semantics Database#exec had', () => {
-    const db = new PluginDataDb('exec-script');
+    const db = openStore('exec-script');
     db.exec(`
       -- a setup script: comments, a semicolon in a string, and a trigger body
       CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT); /* one; two */
@@ -251,11 +260,20 @@ describe('PluginDataDb', () => {
     expect(db.query('SELECT count(*) AS n FROM notes')).toEqual([{ n: 3 }]);
     // A statement left open at the end reports what Database#exec reported.
     expect(() => db.exec('CREATE TRIGGER t AFTER INSERT ON notes BEGIN SELECT 1;')).toThrow('incomplete input');
+    // The END that closes a trigger body (after a CASE ... END too) is no transaction
+    // control, a COMMIT after the trigger is, and refusing it runs nothing.
+    db.exec('CREATE TEMP TRIGGER t2 AFTER UPDATE ON notes BEGIN SELECT CASE WHEN 1 THEN 1 END; END; SELECT 1;');
+    expect(() =>
+      db.exec(
+        'CREATE TRIGGER t3 AFTER DELETE ON notes BEGIN UPDATE audit SET what = CASE WHEN 1 THEN what END; END; COMMIT;',
+      ),
+    ).toThrow(PLUGIN_DATA_ERRORS.txControl);
+    expect(db.query("SELECT count(*) AS n FROM sqlite_master WHERE name = 't3'")).toEqual([{ n: 0 }]);
     db.close();
   });
 
   it('applies an overridden row cap to query and tx alike', () => {
-    const db = new PluginDataDb('budget-rows', { maxRows: 3 });
+    const db = openStore('budget-rows', { maxRows: 3 });
     db.exec('CREATE TABLE seq (n INTEGER)');
     db.exec('INSERT INTO seq (n) VALUES (1), (2), (3), (4)');
     expect(() => db.query('SELECT n FROM seq')).toThrow('query returned more than 3 rows');
@@ -264,34 +282,40 @@ describe('PluginDataDb', () => {
     db.close();
   });
 
-  it("binds a plugin's NUL exactly: stored rows stay findable and NUL-separated keys never collide", () => {
-    const db = new PluginDataDb('nul-keys');
+  it("refuses NUL in SQL, an argument or a migration id with the Postgres store's error, and stores nothing", () => {
+    const db = openStore('nul-keys');
     db.exec('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT)');
-    // A row a plugin wrote with a NUL in its key, through its own SQL as well as through a bound arg.
-    db.exec("INSERT INTO kv VALUES ('q' || char(0) || 'r', 'spelled')");
-    db.exec('INSERT INTO kv VALUES (?, ?)', ['trip-1\u0000slug', 'bound']);
-    // Keys that differ only in where the NUL sits are two keys.
-    db.exec('INSERT INTO kv VALUES (?, ?)', ['a\u0000bc', 'one']);
-    db.exec('INSERT INTO kv VALUES (?, ?)', ['ab\u0000c', 'two']);
-    db.tx([{ sql: 'INSERT INTO kv VALUES (?, ?)', args: ['x\u0000', 'tx'] }]);
-
-    expect(db.query('SELECT v FROM kv WHERE k = ?', ['q\u0000r'])).toEqual([{ v: 'spelled' }]);
-    expect(db.query('SELECT v FROM kv WHERE k = ?', ['trip-1\u0000slug'])).toEqual([{ v: 'bound' }]);
-    expect(db.query('SELECT v FROM kv WHERE k = ?', ['trip-1slug'])).toEqual([]);
-    expect(db.query('SELECT v FROM kv WHERE k IN (?, ?) ORDER BY v', ['a\u0000bc', 'ab\u0000c'])).toEqual([
-      { v: 'one' },
-      { v: 'two' },
-    ]);
-    expect(db.tx([{ sql: 'SELECT v FROM kv WHERE k = ?', args: ['x\u0000'] }])).toEqual({
-      results: [{ rows: [{ v: 'tx' }] }],
-    });
-    // Stored whole: SQLite's length() of text stops at a NUL, the bytes do not.
-    expect(db.query('SELECT length(CAST(k AS BLOB)) AS n FROM kv WHERE v = ?', ['bound'])).toEqual([{ n: 11 }]);
+    const refusals: Array<[() => unknown, string]> = [
+      [() => db.exec('INSERT INTO kv VALUES (?, ?)', ['trip-1\u0000slug', 'bound']), PLUGIN_VALUE_NUL_REFUSAL],
+      [() => db.query('SELECT v FROM kv WHERE k = ?', ['a\u0000bc']), PLUGIN_VALUE_NUL_REFUSAL],
+      [() => db.query('SELECT v FROM kv WHERE k = :k', [{ k: 'x\u0000' }]), PLUGIN_VALUE_NUL_REFUSAL],
+      [() => db.exec('INSERT INTO kv VALUES (?, ?)', [['a', '\u0000'], 'nested']), PLUGIN_VALUE_NUL_REFUSAL],
+      [
+        () =>
+          db.tx([
+            { sql: "INSERT INTO kv VALUES ('first', 'tx')" },
+            { sql: 'INSERT INTO kv VALUES (?, ?)', args: ['x\u0000', 'tx'] },
+          ]),
+        PLUGIN_VALUE_NUL_REFUSAL,
+      ],
+      [() => db.migrate('002\u0000', 'CREATE TABLE more (x INTEGER)'), PLUGIN_VALUE_NUL_REFUSAL],
+      [() => db.exec("INSERT INTO kv VALUES ('a\u0000b', 'literal')"), PLUGIN_SQL_NUL_REFUSAL],
+      [() => db.query("SELECT v FROM kv WHERE k = 'q\u0000'"), PLUGIN_SQL_NUL_REFUSAL],
+    ];
+    for (const [call, reason] of refusals) expect(call).toThrow(reason);
+    expect(db.query('SELECT count(*) AS n FROM kv')).toEqual([{ n: 0 }]);
+    expect(db.query("SELECT count(*) AS n FROM sqlite_master WHERE name = 'more'")).toEqual([{ n: 0 }]);
+    // Binary data with a zero byte is a BLOB, and a row an older TREK stored with a NUL is still read.
+    db.exec('CREATE TABLE raw (b BLOB)');
+    db.exec('INSERT INTO raw VALUES (?)', [Buffer.from([1, 0, 2])]);
+    expect(db.query('SELECT length(b) AS n FROM raw')).toEqual([{ n: 3 }]);
+    db.exec("INSERT INTO kv VALUES ('q' || char(0) || 'r', 'older')");
+    expect(db.query('SELECT length(CAST(k AS BLOB)) AS n FROM kv WHERE v = ?', ['older'])).toEqual([{ n: 3 }]);
     db.close();
   });
 
   it('removePluginData deletes the whole data dir', () => {
-    const db = new PluginDataDb('temp');
+    const db = openStore('temp');
     db.migrate('001', 'CREATE TABLE t (id INTEGER)');
     db.close();
     expect(fs.existsSync(path.join(tmp, 'temp'))).toBe(true);
@@ -300,7 +324,7 @@ describe('PluginDataDb', () => {
   });
 
   it('snapshots a closed plugin.db together with its -wal/-shm sidecars (no data loss after an unclean shutdown)', () => {
-    const srcDir = path.join(tmp, 'wal-plugin'); // no open PluginDataDb handle → treated as closed
+    const srcDir = path.join(tmp, 'wal-plugin'); // no open store → treated as closed
     fs.mkdirSync(srcDir, { recursive: true });
     fs.writeFileSync(path.join(srcDir, 'plugin.db'), 'DB');
     fs.writeFileSync(path.join(srcDir, 'plugin.db-wal'), 'WAL-committed');
@@ -310,7 +334,7 @@ describe('PluginDataDb', () => {
       snapshotAllPluginDataDbs(dest);
       const outDir = path.join(dest, 'wal-plugin');
       expect(fs.existsSync(path.join(outDir, 'plugin.db'))).toBe(true);
-      // No writer, so the WAL is a consistent set with the .db and must be copied —
+      // No writer, so the WAL is a consistent set with the .db and must be copied:
       // otherwise committed-but-uncheckpointed rows in the WAL are lost from the backup.
       expect(fs.readFileSync(path.join(outDir, 'plugin.db-wal'), 'utf8')).toBe('WAL-committed');
       expect(fs.existsSync(path.join(outDir, 'plugin.db-shm'))).toBe(true);

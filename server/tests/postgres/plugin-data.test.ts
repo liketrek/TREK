@@ -1,5 +1,5 @@
 /**
- * PGPLUG-001..021 — a plugin's own data (`db:own`) on Postgres, against the
+ * PGPLUG-001..024: a plugin's own data (`db:own`) on Postgres, against the
  * real app on the lane's database: each plugin gets a schema of its own and no
  * SQLite file, its SQL keeps the SQLite store's semantics (migrate once per
  * id, a script's statements committed one by one, an atomic tx, the row cap,
@@ -16,6 +16,7 @@
  */
 import type { DbSettings } from '../../src/app-config';
 import { buildApp } from '../../src/bootstrap';
+import { PLUGIN_SQL_NUL_REFUSAL, PLUGIN_VALUE_NUL_REFUSAL } from '../../src/db/engine/plugin-data-contract';
 import { PRIVILEGED_ROLE_PLUGIN_REFUSAL, type PluginRoleGate } from '../../src/db/engine/postgres/plugin-data-checks';
 import {
   type ConnectPluginClient,
@@ -24,7 +25,12 @@ import {
   poolClients,
   PostgresPluginDataStore,
 } from '../../src/db/engine/postgres/plugin-data-store';
-import { catalogFunctionNames, COLUMN_NAMES } from '../../src/db/engine/postgres/plugin-sql-functions';
+import { PLUGIN_SESSION_SETTINGS } from '../../src/db/engine/postgres/plugin-session';
+import {
+  catalogFunctionNames,
+  COLUMN_NAMES,
+  pluginFunctionNames,
+} from '../../src/db/engine/postgres/plugin-sql-functions';
 import { TrekPostgreSqlDriver } from '../../src/db/engine/postgres/postgres-driver';
 import { putTempSchemaLast } from '../../src/db/engine/postgres/session-search-path';
 import { DATABASE_SETTINGS } from '../../src/nest/database/database-engine.module';
@@ -375,7 +381,7 @@ describe('plugin data on Postgres', () => {
     closePluginDataDb('pg-rpc');
   });
 
-  it("PGPLUG-009: the review's bypasses are refused before they run: SQL hidden behind a CR, and SELECT ... INTO TEMP", async () => {
+  it('PGPLUG-009: bypasses an earlier guard let through are refused before they run: SQL hidden behind a CR, and SELECT ... INTO TEMP', async () => {
     const store = data.open('pg-bypass');
     await store.migrate('001', 'CREATE TABLE notes (id bigserial PRIMARY KEY, body text NOT NULL)');
     const reads = [
@@ -525,7 +531,7 @@ describe('plugin data on Postgres', () => {
     expect(schemas).not.toContain('trek_plugin_pg_files');
   });
 
-  // The re-review's escape: an unqualified ALTER TYPE renamed pg_catalog's types for the whole database.
+  // An unqualified ALTER TYPE could rename pg_catalog's types for the whole database.
   const CATALOG_TARGETS = [
     'alter type int4 rename to int4x',
     'alter type text rename to evil',
@@ -679,12 +685,12 @@ describe('plugin data on Postgres', () => {
   it('PGPLUG-020: a NUL in an argument or in the SQL is refused with the reason, and nothing is stored', async () => {
     const store = data.open('pg-nul');
     await store.migrate('001', 'CREATE TABLE kv (k text PRIMARY KEY)');
-    const reason = /U\+0000 \(NUL\), which Postgres text cannot store/;
+    const reason = PLUGIN_VALUE_NUL_REFUSAL;
     await expect(store.exec('INSERT INTO kv VALUES ($1)', ['a\u0000b'])).rejects.toThrow(reason);
     await expect(store.query('SELECT k FROM kv WHERE k = $1', ['ab\u0000'])).rejects.toThrow(reason);
     await expect(store.tx([{ sql: 'INSERT INTO kv VALUES ($1)', args: [['x', '\u0000']] }])).rejects.toThrow(reason);
     await expect(store.migrate('002\u0000', 'CREATE TABLE more (x int)')).rejects.toThrow(reason);
-    await expect(store.exec("INSERT INTO kv VALUES ('a\u0000b')")).rejects.toThrow(/U\+0000 \(NUL\)/);
+    await expect(store.exec("INSERT INTO kv VALUES ('a\u0000b')")).rejects.toThrow(PLUGIN_SQL_NUL_REFUSAL);
     expect(await store.query('SELECT count(*) AS n FROM kv')).toEqual([{ n: 0 }]);
     // Binary data with a zero byte goes to bytea.
     await store.migrate('003', 'CREATE TABLE raw (b bytea)');
@@ -757,5 +763,265 @@ describe('plugin data on Postgres', () => {
       { name: null, e: 'x' },
     ]);
     await asSuper('comment on table users is null');
+  });
+
+  it('PGPLUG-022: no allowed function looks an object up by a name, and system columns and transaction ids stay out', async () => {
+    const names = [...pluginFunctionNames()].map((name) => `'${name}'`).join(', ');
+    const lookups = await asSuper<{ f: string }>(
+      'with lookup as (select t.oid from pg_type t where t.typnamespace = ' +
+        "'pg_catalog'::regnamespace and (t.typname ~ '^_?reg' or t.typname in ('aclitem', '_aclitem'))) " +
+        'select p.oid::regprocedure::text as f from pg_proc p ' +
+        `where p.pronamespace = 'pg_catalog'::regnamespace and p.proname in (${names}) ` +
+        'and (p.prorettype in (select oid from lookup) or exists (select 1 from ' +
+        'unnest(coalesce(p.proallargtypes, p.proargtypes::oid[])) a(t) where a.t in (select oid from lookup))) ' +
+        'order by 1',
+    );
+    expect(
+      lookups.map((row) => row.f),
+      'These functions of server/assets/postgres/plugin-functions.txt take or return a type that looks an ' +
+        'object up by a name (a reg* type or aclitem): Postgres turns a text argument into a catalog lookup, so ' +
+        'the call tells a plugin which schemas and objects exist. Remove each name from the allowlist.',
+    ).toEqual([]);
+    // min(xid8) and max(xid8) return what they are given; a function that makes a transaction id
+    // out of anything else is the leak.
+    const xids = await asSuper<{ f: string }>(
+      "with xid as (select t.oid from pg_type t where t.typname in ('xid', 'xid8', '_xid', '_xid8')) " +
+        'select p.oid::regprocedure::text as f from pg_proc p ' +
+        `where p.pronamespace = 'pg_catalog'::regnamespace and p.proname in (${names}) ` +
+        'and p.prorettype in (select oid from xid) and not exists (select 1 from ' +
+        'unnest(coalesce(p.proallargtypes, p.proargtypes::oid[])) a(t) where a.t in (select oid from xid)) ' +
+        'order by 1',
+    );
+    expect(
+      xids.map((row) => row.f),
+      'These functions of server/assets/postgres/plugin-functions.txt make a transaction id out of other ' +
+        'values: age() of one is how many transactions the server ran, and the guard keeps xid values out only by ' +
+        "refusing the type's name and the system columns. Remove each name from the allowlist.",
+    ).toEqual([]);
+
+    const stores = [data.open('pg-lookup'), superuserStore('pg-lookup-su')];
+    await Promise.all(
+      stores.map(async (store) => {
+        await store.migrate('001', 'CREATE TABLE t (id bigserial PRIMARY KEY, tags text[])');
+        await store.exec("INSERT INTO t (tags) VALUES (array['a', 'b'])");
+        await Promise.all(
+          [
+            "select to_tsvector('trek_plugin_other.cfg', 'a')",
+            "select to_tsvector('public.x', 'a')",
+            "select plainto_tsquery('english', 'a')",
+            "select ts_headline('a', 'a'::tsquery)",
+          ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/a plugin may not call/)),
+        );
+        await expect(store.query('select websearch_to_tsquery($1, $2)', ['english', 'a'])).rejects.toThrow(
+          /a plugin may not call/,
+        );
+        await Promise.all(
+          [
+            'select xmin from t',
+            'select t.xmax, t.cmin, t.cmax from t',
+            'select ctid from t',
+            'select "tableoid" from t',
+            "update t set tags = '{}' where xmin = '1'",
+          ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/reads a Postgres system column/)),
+        );
+        await Promise.all(
+          [
+            "select age('3'::xid)",
+            "select cast('3' as xid8)",
+            "select age(xid('3'))",
+            "select age(u.xid) from unnest(array['3']) u",
+            'select age(x.a) from json_to_record(\'{"a": "3"}\') as x(a xid)',
+          ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/stands for a transaction id type/)),
+        );
+        await expect(store.query('select age($1.xid)', ['3'])).rejects.toThrow(/stands for a transaction id type/);
+        await Promise.all(
+          [
+            `select 'a' collate "de_DE.utf8"`,
+            `select 'a' collate "und-x-icu"`,
+            'create index i on t using bloom (id)',
+            'create table c (x int) using columnar',
+          ].map((sql) => expect(store.query(sql), sql).rejects.toThrow(/a collation other than|built-in access/)),
+        );
+        // A value of the plugin's own may carry a system column's name, and a column of its own be called xid.
+        expect(
+          await store.query(
+            'SELECT min(id) AS xmin, max(id) AS xmax FROM t UNION ALL ' +
+              'SELECT * FROM (WITH b(xmin, xmax) AS (SELECT 5, 6) SELECT * FROM b) AS b(cmin, ctid)',
+          ),
+        ).toEqual([
+          { xmin: 1, xmax: 1 },
+          { xmin: 5, xmax: 6 },
+        ]);
+        await store.migrate(
+          '002',
+          'CREATE TABLE pay (id bigserial PRIMARY KEY, xid text NOT NULL UNIQUE); ' +
+            'CREATE INDEX pay_xid ON pay USING btree (xid COLLATE "C")',
+        );
+        await store.exec('INSERT INTO pay (xid) VALUES ($1) ON CONFLICT (xid) DO NOTHING', ['b']);
+        await store.exec("INSERT INTO pay (xid) VALUES ('a'), ('B')");
+        expect(await store.query('SELECT xid FROM pay WHERE xid <> $1 ORDER BY xid COLLATE "C"', ['zzz'])).toEqual([
+          { xid: 'B' },
+          { xid: 'a' },
+          { xid: 'b' },
+        ]);
+        // Text search on vectors a plugin builds itself needs no configuration and still works.
+        expect(
+          await store.query(
+            "SELECT ts_rank(array_to_tsvector(tags), 'a & b'::tsquery) > 0 AS hit, " +
+              "array_to_tsvector(tags) @@ 'b'::tsquery AS b FROM t",
+          ),
+        ).toEqual([{ hit: true, b: true }]);
+      }),
+    );
+  });
+
+  /**
+   * The settings a client may change in the categories that decide how values
+   * print and parse and how statements behave, that a plugin transaction
+   * leaves as the server has them, with the reason each cannot change what a
+   * plugin reads. Every other one must be pinned in PLUGIN_SESSION_SETTINGS.
+   */
+  const UNPINNED: Record<string, string> = {
+    client_encoding: 'pg sets UTF8 when it connects, and a plugin cannot SET it',
+    search_path: "set by the store per call to the plugin's schema",
+    statement_timeout: "set by the store per call to the call's time budget",
+    check_function_bodies: 'a plugin cannot create functions',
+    client_min_messages: 'notices never reach the plugin',
+    createrole_self_grant: 'a plugin cannot create roles',
+    icu_validation_level: 'a plugin cannot create collations',
+    row_security: 'a plugin cannot create policies',
+    local_preload_libraries: 'read when a connection starts',
+    default_table_access_method: 'where rows are stored, not what a query answers',
+    default_tablespace: 'where rows are stored, not what a query answers',
+    temp_tablespaces: 'where rows are stored, not what a query answers',
+    default_toast_compression: 'how rows are stored, not what a query answers',
+    gin_pending_list_limit: 'when an index is maintained, not what it finds',
+    restrict_nonsystem_relation_kind: 'TREK sets no restriction a plugin could see',
+    synchronize_seqscans: 'rows without ORDER BY have no order on Postgres in any case',
+    escape_string_warning: 'a warning, never an answer',
+    default_transaction_deferrable: "the transaction is TREK's",
+    default_transaction_isolation: "the transaction is TREK's",
+    default_transaction_read_only: "the transaction is TREK's",
+    transaction_deferrable: "the transaction is TREK's",
+    transaction_isolation: "the transaction is TREK's",
+    transaction_read_only: "the transaction is TREK's",
+    transaction_timeout: "the transaction is TREK's",
+    idle_in_transaction_session_timeout: "the connection is TREK's",
+    idle_session_timeout: "the connection is TREK's",
+    lock_timeout: "the connection is TREK's",
+    vacuum_failsafe_age: 'maintenance, not an answer',
+    vacuum_freeze_min_age: 'maintenance, not an answer',
+    vacuum_freeze_table_age: 'maintenance, not an answer',
+    vacuum_multixact_failsafe_age: 'maintenance, not an answer',
+    vacuum_multixact_freeze_min_age: 'maintenance, not an answer',
+    vacuum_multixact_freeze_table_age: 'maintenance, not an answer',
+  };
+
+  it('PGPLUG-023: a plugin reads values formatted the same on every server, and its settings end with its call', async () => {
+    const settings = await asSuper<{ name: string }>(
+      "select name from pg_settings where context = 'user' and (category like 'Client Connection Defaults%' " +
+        "or category like 'Version and Platform Compatibility%') order by name",
+    );
+    const known = new Set(settings.map((row) => row.name));
+    expect(
+      settings.map((row) => row.name).filter((name) => !(name in PLUGIN_SESSION_SETTINGS) && !(name in UNPINNED)),
+      'These settings of this Postgres may change how a value prints or a statement behaves. Pin each in ' +
+        'PLUGIN_SESSION_SETTINGS (server/src/db/engine/postgres/plugin-session.ts) to its built-in default, or add ' +
+        'it to UNPINNED in this test with the reason it cannot change what a plugin reads.',
+    ).toEqual([]);
+    expect(Object.keys(PLUGIN_SESSION_SETTINGS).filter((name) => !known.has(name))).toEqual([]);
+
+    const store = data.open('pg-settings');
+    await store.migrate('001', 'CREATE TABLE notes (id bigserial PRIMARY KEY)');
+    // A server set up far from the defaults: the session of the very client the plugin call uses.
+    const odd = [
+      "set timezone to 'Pacific/Chatham'",
+      "set datestyle to 'German, DMY'",
+      "set intervalstyle to 'iso_8601'",
+      "set lc_monetary to 'en_US.utf8'",
+      "set lc_numeric to 'en_US.utf8'",
+      "set lc_time to 'en_US.utf8'",
+      'set extra_float_digits to 0',
+      "set bytea_output to 'escape'",
+      "set default_text_search_config to 'pg_catalog.english'",
+      'set quote_all_identifiers to on',
+      'set transform_null_equals to on',
+      'set array_nulls to off',
+    ];
+    const read =
+      "SELECT '2024-01-02 03:04:05+00'::timestamptz::text AS ts, '2024-01-02'::date::text AS d, " +
+      "'1 day 02:00'::interval::text AS i, 12.5::money::text AS m, to_char(1234.5, 'FM9G999D9') AS n, " +
+      "to_char('2024-03-01'::date, 'TMMonth') AS month, 0.1::float8::text AS f, '\\x01'::bytea::text AS b, " +
+      "quote_ident('a') AS q, 'The Cats' @@ 'cat' AS fts, (null = null) IS NULL AS nulls, " +
+      "('{NULL}'::text[])[1] IS NULL AS arr, date_trunc('day', '2024-01-01 23:00:00+00'::timestamptz)::text AS day";
+    const pinned = {
+      ts: '2024-01-02 03:04:05+00',
+      d: '2024-01-02',
+      i: '1 day 02:00:00',
+      m: '$12.50',
+      n: '1,234.5',
+      month: 'March',
+      f: '0.1',
+      b: '\\x01',
+      q: 'a',
+      fts: false,
+      nulls: true,
+      arr: true,
+      day: '2024-01-01 00:00:00+00',
+    };
+    const client = await appClients()();
+    try {
+      await inSequence(odd, (sql) => client.query(sql));
+      const show = 'select current_setting($1) as v';
+      const current = () =>
+        Promise.all(
+          ['TimeZone', 'DateStyle', 'default_text_search_config'].map(
+            async (name) => (await client.query({ text: show, values: [name] })).rows,
+          ),
+        );
+      const before = await current();
+      const onClient = new PostgresPluginDataStore('pg-settings', keep(client), new PluginDataSlots(1));
+      expect(await onClient.query(read)).toEqual([pinned]);
+      expect(await onClient.tx([{ sql: read }])).toEqual({ results: [{ rows: [pinned] }] });
+      // The session still answers as it was set: the plugin's settings were local to its transaction.
+      const session = (await client.query(read)).rows[0] as Record<string, unknown>;
+      expect(session.ts).not.toBe(pinned.ts);
+      expect(session.fts).toBe(true);
+      expect(await current()).toEqual(before);
+    } finally {
+      // The test changed this client's session, so it is closed rather than handed back.
+      client.release(true);
+    }
+  });
+
+  it('PGPLUG-024: the SQL plugins commonly write runs unchanged', async () => {
+    const store = data.open('pg-common');
+    await store.migrate(
+      '001',
+      'CREATE TABLE t (id bigserial PRIMARY KEY, name text UNIQUE NOT NULL, n int NOT NULL DEFAULT 0, ' +
+        'at timestamptz NOT NULL DEFAULT now(), uid uuid NOT NULL DEFAULT gen_random_uuid())',
+    );
+    await store.exec('INSERT INTO t (name, n) VALUES ($1, $2), ($3, $4)', ['a', 1, 'b', 2]);
+    await store.exec('INSERT INTO t (name, n) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET n = t.n + excluded.n', [
+      'a',
+      10,
+    ]);
+    await store.exec('INSERT INTO t (name) VALUES ($1) ON CONFLICT DO NOTHING', ['b']);
+    expect(
+      await store.query(
+        'WITH ranked AS (SELECT t.name, t.n, row_number() OVER (ORDER BY t.n DESC) AS r FROM t) ' +
+          "SELECT name, n, r, coalesce(nullif(name, 'a'), 'first') AS c FROM ranked ORDER BY r",
+      ),
+    ).toEqual([
+      { name: 'a', n: 11, r: 1, c: 'first' },
+      { name: 'b', n: 2, r: 2, c: 'b' },
+    ]);
+    expect(
+      await store.query(
+        "SELECT count(*) AS total, string_agg(name, ',' ORDER BY name) AS names, " +
+          "bool_and(at <= now()) AS past, bool_and(date_trunc('day', at) <= at) AS trunc, " +
+          'min(extract(year FROM at)) >= 2024 AS year, count(DISTINCT uid) AS uids FROM t',
+      ),
+    ).toEqual([{ total: 2, names: 'a,b', past: true, trunc: true, year: true, uids: 2 }]);
   });
 });

@@ -5,6 +5,7 @@
  * the way Postgres does, and what it tells the store about a statement. The
  * same rules against a real database are PGPLUG-003/004 in the Postgres lane.
  */
+import { PLUGIN_SQL_NUL_REFUSAL } from '../../../../../src/db/engine/plugin-data-contract';
 import {
   checkPlaceholders,
   checkQualifiers,
@@ -57,6 +58,31 @@ describe('plugin SQL guard', () => {
     'SELECT 1 -- public.users\r',
     'SELECT 1 -- public.users\r\nFROM notes',
     'SELECT\t1\f',
+    // A value of the plugin's own may carry a system column's name where it is given.
+    'SELECT min(lat) AS ymin, min(lng) AS xmin, max(lng) AS xmax FROM places',
+    'SELECT min(lng) AS "xmin" FROM places',
+    'WITH b(xmin, ymin) AS (SELECT 1, 2) SELECT * FROM b',
+    'WITH a AS (SELECT 1), b(ctid) AS NOT MATERIALIZED (SELECT 1) SELECT * FROM b',
+    'SELECT * FROM (SELECT 1, 2) AS b(xmin, xmax)',
+    // A column of the plugin's own may be called xid, without its table.
+    'CREATE TABLE payments (id bigserial PRIMARY KEY, xid text NOT NULL UNIQUE)',
+    'ALTER TABLE payments ADD COLUMN xid text',
+    'SELECT xid, count(*) FROM payments WHERE xid = $1 AND NOT xid IS NULL GROUP BY xid ORDER BY xid',
+    'INSERT INTO payments (id, xid) VALUES (1, $1) ON CONFLICT (xid) DO NOTHING',
+    'UPDATE payments SET xid = $1 WHERE id = $2 RETURNING xid',
+    'SELECT id AS xid FROM payments',
+    "SELECT CASE WHEN xid = 'a' THEN xid ELSE NULL END, coalesce(xid, '') FROM payments",
+    // The collations and access methods every server has.
+    'SELECT body FROM notes ORDER BY body COLLATE "C", body COLLATE "POSIX", body COLLATE "default"',
+    'SELECT body COLLATE ucs_basic FROM notes',
+    'CREATE INDEX i ON notes USING gin (tags)',
+    'CREATE INDEX i ON notes USING brin (id)',
+    'CREATE TABLE t (x int) USING heap',
+    'ALTER TABLE notes ADD EXCLUDE USING gist (r WITH &&)',
+    'ALTER TABLE notes ALTER id TYPE int USING id::int',
+    'SELECT * FROM notes JOIN tags USING (id)',
+    'DELETE FROM notes USING trash WHERE notes.id = trash.note_id',
+    "SELECT collation FROM notes WHERE collation = 'x'",
     // Characters JavaScript reads differently are fine inside strings, quoted names and comments.
     "SELECT 'a b c\u000bd'",
     'SELECT 1 AS "a b"',
@@ -149,7 +175,7 @@ describe('plugin SQL guard', () => {
     expect(() => check(sql)).toThrow(reason);
   });
 
-  // The two bypasses of the final review, with their variants: each was let through, and Postgres ran it.
+  // Bypasses an earlier guard let through and Postgres ran, with their variants.
   it.each([
     // A `--` comment ended by a bare CR hid the rest from the guard, which Postgres then ran.
     ['select 1 --\rfrom public.users', /another schema/],
@@ -179,7 +205,7 @@ describe('plugin SQL guard', () => {
     ['CREATE TEMP VIEW v AS SELECT 1', /CREATE TEMP is not allowed/],
     ['CREATE OR REPLACE TEMP VIEW v AS SELECT 1', /CREATE TEMP is not allowed/],
     ['CREATE TEMPORARY SEQUENCE s', /CREATE TEMPORARY is not allowed/],
-    // The re-review's bypasses. A column alias named insert or merge in front of INTO made a table.
+    // A column alias named insert or merge in front of INTO made a table.
     ['select 1 insert into t1', /SELECT \.\.\. INTO/],
     ['select 1 merge into t9', /SELECT \.\.\. INTO/],
     ['select 1 insert into unlogged t10', /SELECT \.\.\. INTO/],
@@ -187,6 +213,53 @@ describe('plugin SQL guard', () => {
     ['WITH x AS (SELECT 1) SELECT 1 insert INTO t', /SELECT \.\.\. INTO/],
     ['insert into notes select 1 insert into t', /SELECT \.\.\. INTO/],
     ['select 1 insert into temp t', /SELECT \.\.\. INTO TEMP/],
+    // A read of a system column, quoted or not, wherever it stands.
+    ['select xmin, xmax from notes', /"xmin" reads a Postgres system column/],
+    ['select n.xmax from notes n', /"xmax" reads a Postgres system column/],
+    ['select cmin, cmax from notes', /"cmin" reads a Postgres system column/],
+    ['select ctid from notes order by 1', /"ctid" reads a Postgres system column/],
+    ['select "tableoid" from notes', /"tableoid" reads a Postgres system column/],
+    ['update notes set body = $1 where id = $2 and xmin = $3', /"xmin" reads a Postgres system column/],
+    ['delete from notes returning ctid', /"ctid" reads a Postgres system column/],
+    ['select min(id) xmin from notes', /"xmin" reads a Postgres system column/],
+    ['WITH b(xmin) AS (SELECT 1) SELECT xmin FROM b', /"xmin" reads a Postgres system column/],
+    ['select * from notes n, f(xmin) as (a int)', /"xmin" reads a Postgres system column/],
+    ['select * from notes n, f(xmin, ctid) as (a int)', /"xmin" reads a Postgres system column/],
+    // A transaction id type where the word stands for the type.
+    ["select age('3'::xid)", /"xid" stands for a transaction id type/],
+    ["select cast('3' as xid8)", /"xid8" stands for a transaction id type/],
+    ["select treat('3' as xid)", /"xid" stands for a transaction id type/],
+    ["select age(xid '3')", /"xid" stands for a transaction id type/],
+    ["select age(xid('3'))", /"xid" stands for a transaction id type/],
+    ['select age($1.xid)', /"xid" stands for a transaction id type/],
+    ["select age(u.xid) from unnest(array['3']) u", /"xid" stands for a transaction id type/],
+    ["select age(('3').xid)", /"xid" stands for a transaction id type/],
+    ['CREATE TABLE t (x _xid)', /"_xid" stands for a transaction id type/],
+    ['CREATE TABLE t ("x" xid)', /"xid" stands for a transaction id type/],
+    ["select '{}'::xid8[]", /"xid8" stands for a transaction id type/],
+    ['select * from notes n, json_to_record(n.j) as x(a xid)', /"xid" stands for a transaction id type/],
+    ['ALTER TABLE t ALTER COLUMN c TYPE xid', /"xid" stands for a transaction id type/],
+    ['ALTER TABLE t ADD COLUMN c xid', /"xid" stands for a transaction id type/],
+    ["select json_value('3', '$' returning xid)", /"xid" stands for a transaction id type/],
+    ['CREATE TYPE r AS RANGE (subtype = xid8)', /"xid8" stands for a transaction id type/],
+    ['CREATE TYPE c AS (a xid)', /"xid" stands for a transaction id type/],
+    [
+      'insert into pay (id, xid) values (1, $1) on conflict (id) do update set xid = excluded.xid',
+      /"xid" stands for a transaction id type.*excluded\.xid in an upsert/,
+    ],
+    // A collation or an access method whose presence depends on the server.
+    [`select 'a' collate "de-x-icu"`, /a collation other than "C"/],
+    [`select body from notes order by body collate "de_DE.utf8"`, /a collation other than "C"/],
+    ['select body from notes order by body collate C', /a collation other than "C"/],
+    [`select 'a' collate trek_plugin_notes."C"`, /a collation other than "C"/],
+    [`CREATE TABLE t (a text COLLATE "und-x-icu")`, /a collation other than "C"/],
+    [`CREATE TYPE r AS RANGE (subtype = text, collation = "de-x-icu")`, /a collation other than "C"/],
+    ['CREATE INDEX i ON notes USING bloom (body)', /built-in access methods/],
+    ['CREATE INDEX i ON notes USING "BTREE" (body)', /built-in access methods/],
+    ['CREATE TABLE t (x int) USING columnar', /built-in access methods/],
+    ['CREATE MATERIALIZED VIEW mv USING columnar AS SELECT 1', /built-in access methods/],
+    ['ALTER TABLE notes SET ACCESS METHOD columnar', /built-in access methods/],
+    ['ALTER TABLE notes ADD EXCLUDE USING bloom (body WITH =)', /built-in access methods/],
     // The reg* types and functions that look an object up by a name in a string, in every spelling.
     ["select 'public.users'::regtype::oid", /"regtype" may not be named/],
     ["select cast('int4' as regtype)", /"regtype" may not be named/],
@@ -208,8 +281,6 @@ describe('plugin SQL guard', () => {
     ['CREATE TABLE grants (a aclitem)', /"aclitem" may not be named/],
     // A base type is built from C functions, which only a superuser may do.
     ['CREATE TYPE fake (INPUT = int4in, OUTPUT = int4out, INTERNALLENGTH = 1000)', /composite, enum or range/],
-    // The protocol ends a statement's text at a NUL, in a string as anywhere else.
-    ["select 'a\u0000' -- then\nfrom public.users", /U\+0000/],
     ['CREATE INDEX i (x)', /must name its table with ON/],
     ['ALTER TABLE', /could not be read/],
   ])('refuses the bypass %j', (sql, reason) => {
@@ -224,7 +295,6 @@ describe('plugin SQL guard', () => {
     ['PARAGRAPH SEPARATOR', ' ', 'U+2029'],
     ['IDEOGRAPHIC SPACE', '　', 'U+3000'],
     ['vertical tab', '\u000b', 'U+000B'],
-    ['NUL', '\u0000', 'U+0000'],
     ['escape', '\u001b', 'U+001B'],
     ['DEL', '\u007f', 'U+007F'],
   ])('refuses a %s outside a string, which JavaScript and Postgres read differently', (_name, ch, code) => {
@@ -236,6 +306,19 @@ describe('plugin SQL guard', () => {
     ]) {
       expect(() => check(sql), JSON.stringify(sql)).toThrow(PluginSqlRefused);
       expect(() => check(sql), JSON.stringify(sql)).toThrow(code);
+    }
+  });
+
+  it('refuses a NUL anywhere, in a string too, with the words the stores of both engines use', () => {
+    // The protocol ends a statement's text at a NUL, so what Postgres would read is not what was checked.
+    for (const sql of [
+      "select 'a\u0000' -- then\nfrom public.users",
+      'SELECT 1\u0000FROM public.users',
+      '\u0000SELECT 1',
+      'SELECT "a\u0000b" FROM notes',
+    ]) {
+      expect(() => tokenize(sql), JSON.stringify(sql)).toThrow(PLUGIN_SQL_NUL_REFUSAL);
+      expect(() => check(sql), JSON.stringify(sql)).toThrow(PLUGIN_SQL_NUL_REFUSAL);
     }
   });
 

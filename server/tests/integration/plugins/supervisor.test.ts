@@ -7,10 +7,11 @@
  *   - disable() tears the child down.
  * The child runs its own process — its crash/throw can never reach this test.
  */
+import { SqlitePluginDataStore } from '../../../src/db/engine/sqlite/plugin-data-store';
 import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
-import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
 import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import { pluginDbFile } from '../../../src/nest/plugins/paths';
 import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 import {
   PluginSupervisor,
@@ -51,7 +52,7 @@ function makeSupervisor(
 ): PluginSupervisor {
   const createRpcHost = (id: string, granted: ReadonlySet<string>): PluginRpcHost => {
     const deps: HostDeps = {
-      data: new PluginDataDb(id),
+      data: new SqlitePluginDataStore(id, pluginDbFile(id)),
       callPlugin: async () => undefined,
       emitPluginEvent: async (event, payload) => {
         broadcasts.push({ id, event, payload });
@@ -74,7 +75,7 @@ function makeSupervisor(
   // through PluginSupervisor.onMessage's 'req' branch over real child-process
   // IPC, which now THROWS without a resolveOrm thunk rather than dispatching
   // unwrapped — so this double needs a real (if otherwise unused) ORM, even
-  // though PluginDataDb/DbRpc here are raw better-sqlite3, not MikroORM.
+  // though the plugin store and DbRpc here are raw better-sqlite3, not MikroORM.
   return new PluginSupervisor(createRpcHost, hooks, tuning, () => ormHandle.orm);
 }
 

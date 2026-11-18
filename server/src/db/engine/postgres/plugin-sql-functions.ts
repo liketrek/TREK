@@ -19,9 +19,18 @@ import path from 'node:path';
  * refused unless its name is in {@link PLUGIN_FUNCTIONS_FILE}, the string, math,
  * date and time, JSON, array, range, aggregate, window, UUID and text search
  * functions a data plugin plausibly needs, each of which works only on its
- * arguments. A name counts as called when `(` follows it (`version()`,
- * `"version" ()`) or when it follows a dot, Postgres's column notation for
- * a call (`(16386::oid).obj_description`, `u.obj_description` over `FROM
+ * arguments. None of them takes or returns a type that looks an object up by
+ * a name (`regconfig`, `regclass`, ..., `aclitem`): such a parameter turns a
+ * text argument into a catalog lookup, so `to_tsvector('schema.cfg', ...)`
+ * would tell whether a schema exists. None returns a transaction id type
+ * either, so the only ways to an `xid` value, which `age(xid)` turns into
+ * the server's transaction counter, are the system columns and the type's
+ * name, which the guard refuses. PGPLUG-022 checks every overload of every
+ * listed name on the lane's server.
+ *
+ * A name counts as called when `(` follows it (`version()`, `"version" ()`)
+ * or when it follows a dot, Postgres's column notation for a call
+ * (`(16386::oid).obj_description`, `u.obj_description` over `FROM
  * unnest(...) u`, `$1.obj_description`), unless it is one of
  * {@link COLUMN_NAMES}. A plugin's own table or type may still carry such a
  * name where it cannot be a call: after INTO, TABLE, VIEW, REFERENCES or IF
@@ -63,12 +72,13 @@ export const SESSION_KEYWORDS: ReadonlySet<string> = new Set([
  * returns a single value (`FROM unnest(...) u`, `FROM generate_series(...)
  * g`) or a parameter (`$1.f`), that value is the argument. None of these
  * reads anything called that way: `version` takes no argument, so the
- * notation never calls it, and `money`, `name`, `oid`, `xid` and `xml` only
+ * notation never calls it, and `money`, `name`, `oid` and `xml` only
  * convert their argument to the type of that name. Every other refused name
- * is refused after a dot too. PGPLUG-021 holds each name here to that on the
- * lane's server.
+ * is refused after a dot too. `xid` is not here: `u.xid` casts `u` to the
+ * transaction id type, whose `age()` reads the server's transaction counter.
+ * PGPLUG-021 holds each name here to that on the lane's server.
  */
-export const COLUMN_NAMES: ReadonlySet<string> = new Set(['money', 'name', 'oid', 'version', 'xid', 'xml']);
+export const COLUMN_NAMES: ReadonlySet<string> = new Set(['money', 'name', 'oid', 'version', 'xml']);
 
 /** The function names of `pg_catalog` on every supported major, one per line, sorted. */
 export const CATALOG_FUNCTIONS_FILE = path.join(

@@ -1,3 +1,4 @@
+import { PLUGIN_DATA_ERRORS, PLUGIN_TRANSACTION_CONTROL, refuseNulSql } from '../plugin-data-contract';
 import { PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
 import { refusedCatalogCall, refusedCatalogField, SESSION_KEYWORDS } from './plugin-sql-functions';
 
@@ -83,6 +84,24 @@ import { refusedCatalogCall, refusedCatalogField, SESSION_KEYWORDS } from './plu
  *   `regcollation`, and their array types `_regclass`, ...), in every
  *   spelling: `'x'::regtype`, `CAST('x' AS regtype)`, `regtype 'x'`, quoted;
  *   and `aclitem`, whose input and output name roles;
+ * - a read of a system column every Postgres table has (`xmin`, `xmax`,
+ *   `cmin`, `cmax`, `ctid`, `tableoid`), quoted or not: they show the
+ *   server's transaction ids, where a row sits on disk and the table's OID,
+ *   and SQLite has none of them. Nothing of TREK's reads them either; a
+ *   plugin that wants optimistic locking keeps a version column of its own.
+ *   The name may still be given to a value of the plugin's own, after AS or
+ *   in the column list of a WITH query or an alias (`min(lng) AS xmin`);
+ * - the transaction id types `xid` and `xid8` (and `_xid`, `_xid8`) where
+ *   the word stands for the type: `age('3'::xid)` is how many transactions
+ *   the cluster ran since. That is after `::`, before a string, as a call
+ *   or after a dot (`xid(x)` and `x.xid` are casts when `x` has no such
+ *   column), after AS in a CAST, and after any word but the keywords that
+ *   precede a column (`c xid` in a column definition, `TYPE xid`). A column
+ *   of the plugin's own may be called `xid` (`SELECT xid FROM payments`);
+ * - a collation other than `"C"`, `"POSIX"`, `"default"` and `ucs_basic`,
+ *   and an access method other than the built-in ones (`USING bloom`): which
+ *   others exist depends on the server's locales, ICU and extensions, so
+ *   naming one would tell a plugin about the server;
  * - a temporary object: CREATE TEMP or TEMPORARY (also after OR REPLACE,
  *   LOCAL or GLOBAL), and SELECT ... INTO TEMP; a temporary table outlives
  *   the call on a pooled connection. Elsewhere `temp` is an ordinary name;
@@ -104,8 +123,20 @@ import { refusedCatalogCall, refusedCatalogField, SESSION_KEYWORDS } from './plu
 /** Why a plugin's SQL is refused. The message is the plugin's to read, so it says what to change. */
 export class PluginSqlRefused extends Error {
   constructor(reason: string) {
-    super(`statement type not allowed for plugin databases: ${reason}`);
+    super(`${PLUGIN_DATA_ERRORS.statementNotAllowed}: ${reason}`);
     this.name = 'PluginSqlRefused';
+  }
+}
+
+/**
+ * Transaction control, refused with the contract's whole sentence
+ * (`PLUGIN_DATA_ERRORS.txControl`), which the SQLite store and the SDK throw
+ * too, so a plugin reads the same words on both engines.
+ */
+class TransactionControlRefused extends PluginSqlRefused {
+  constructor() {
+    super('');
+    this.message = PLUGIN_DATA_ERRORS.txControl;
   }
 }
 
@@ -177,9 +208,6 @@ const STATEMENTS = new Set([
   'drop',
 ]);
 
-/** Transaction control: every call already runs in a transaction of the host's. */
-const TRANSACTION_CONTROL = new Set(['begin', 'start', 'commit', 'end', 'rollback', 'abort', 'savepoint', 'release']);
-
 /** What a CREATE, ALTER or DROP may act on. */
 const OBJECTS = new Set(['table', 'index', 'view', 'materialized', 'sequence', 'type']);
 
@@ -216,6 +244,48 @@ const NAME_LOOKUP_TYPES = [
  * first superuser and `'x=r/x'::aclitem` tells whether a role exists.
  */
 const ROLE_LOOKUP_TYPES = ['aclitem', '_aclitem'];
+
+/** The system columns of every Postgres table, refused where they are read ({@link checkSystemColumn}). */
+const SYSTEM_COLUMNS = new Set(['xmin', 'xmax', 'cmin', 'cmax', 'ctid', 'tableoid']);
+
+/**
+ * The transaction id types and their array types, refused where the word
+ * stands for the type ({@link checkXidType}): an `xid` value is all
+ * `age(xid)` needs to show the server's transaction counter.
+ */
+const XID_TYPES = new Set(['xid', '_xid', 'xid8', '_xid8']);
+
+/**
+ * The keywords after which a word names a column, a table or an alias and
+ * never a type: `SELECT xid`, `WHERE xid = $1`, `ORDER BY xid`, `ADD xid
+ * text`, `INSERT INTO xid`. After AS and RETURNING it depends on what
+ * encloses them ({@link namesType}); after any other word the word is a type
+ * (`c xid` in a column definition, `TYPE xid`) or a bare alias, which a
+ * plugin then writes with AS.
+ */
+const NAME_AFTER = new Set(
+  (
+    'select distinct where and or not by set on then else when case between like ilike having from join into ' +
+    'update table column add alter drop rename to with index view exists only lateral over window constraint ' +
+    'references using'
+  ).split(' '),
+);
+
+/** The calls in which AS is followed by a type: `CAST(x AS xid)`. */
+const CAST_CALLS = new Set(['cast', 'treat', 'xmlserialize']);
+
+/** The words a WITH query's body starts with, after `AS (`. */
+const QUERY_START = new Set(['select', 'values', 'table', 'insert', 'update', 'delete', 'merge', 'with']);
+
+/**
+ * The collations every Postgres server has. Which others exist depends on
+ * the server's locales and on ICU, so naming one tells a plugin whether the
+ * server has it. `"C"` sorts by code point, as SQLite's BINARY does.
+ */
+const COLLATIONS = new Set(['C', 'POSIX', 'default', 'ucs_basic']);
+
+/** The built-in access methods. Another one comes from an extension, whose presence it would tell. */
+const ACCESS_METHODS = new Set(['btree', 'hash', 'gist', 'gin', 'spgist', 'brin', 'heap']);
 
 /** Functions and types refused under any spelling, quoted or not. */
 const REFUSED_NAMES = new Set([
@@ -317,12 +387,10 @@ function truncateName(name: string): string {
 
 /** Splits `sql` into tokens, or refuses what this guard does not read the way Postgres would. */
 export function tokenize(sql: string): Token[] {
-  if (sql.includes('\u0000')) {
-    // The protocol ends a statement's text at a NUL, so what Postgres would read is not what was checked.
-    throw new PluginSqlRefused(
-      'the SQL holds the character U+0000 (NUL), which Postgres cannot read in a statement or store in text',
-    );
-  }
+  // The protocol ends a statement's text at a NUL, so what Postgres would read
+  // is not what was checked. The store refuses it before the guard runs, with
+  // the words every engine uses; the guard refuses it too, so it holds on its own.
+  refuseNulSql(sql);
   const tokens: Token[] = [];
   let i = 0;
   const n = sql.length;
@@ -466,11 +534,8 @@ function describe(text: string, tokens: Token[]): PluginStatement {
   const first = tokens[0];
   const opensWithParen = first.kind === 'punct' && first.value === '(';
   const verb = opensWithParen ? 'select' : keyword(first);
-  if (verb !== null && TRANSACTION_CONTROL.has(verb)) {
-    throw new PluginSqlRefused(
-      'transaction-control statements are not allowed: each call runs in its own transaction, and tx() makes a batch atomic',
-    );
-  }
+  // Transaction control: every call already runs in a transaction of the host's.
+  if (verb !== null && PLUGIN_TRANSACTION_CONTROL.has(verb)) throw new TransactionControlRefused();
   if (verb === null || !STATEMENTS.has(verb)) {
     throw new PluginSqlRefused(`a statement may not start with ${describeToken(first)}`);
   }
@@ -490,11 +555,14 @@ function describe(text: string, tokens: Token[]): PluginStatement {
     if (token.kind === 'punct' && token.value === ')') depth--;
     if (token.kind !== 'word') continue;
     checkName(token.value);
+    checkSystemColumn(tokens, index);
+    checkXidType(tokens, index);
     checkCall(tokens, index);
     const after = tokens[index + 1];
     if (after?.kind === 'punct' && after.value === '.') qualifies = true;
     if (token.quoted) continue;
     checkKeyword(token.value);
+    checkServerNames(verb, tokens, index);
     if (token.value === 'into') checkInto(tokens, index, mainAt);
     if (verb === 'alter' && (token.value === 'schema' || token.value === 'owner')) {
       throw new PluginSqlRefused(`an ALTER may not change the ${token.value}`);
@@ -718,6 +786,132 @@ function depthAt(tokens: readonly Token[], index: number): number {
     if (token.kind === 'punct' && token.value === ')') depth--;
   }
   return depth;
+}
+
+/** The token before the `(` that encloses the token at `index`, the name of a call: `cast` in `CAST(x AS t)`. */
+function opener(tokens: readonly Token[], index: number): Token | undefined {
+  let depth = 0;
+  for (let i = index - 1; i >= 0; i--) {
+    if (isPunct(tokens[i], ')')) depth++;
+    if (isPunct(tokens[i], '(')) {
+      if (depth === 0) return tokens[i - 1];
+      depth--;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Refuses a read of a system column ({@link SYSTEM_COLUMNS}): the word
+ * anywhere but where it gives a name ({@link givesName}). `t.xmin`, `xmin`
+ * in WHERE or RETURNING and `"xmin"` read the column of the table in FROM.
+ */
+function checkSystemColumn(tokens: readonly Token[], index: number): void {
+  const token = tokens[index];
+  if (token.kind !== 'word' || !SYSTEM_COLUMNS.has(token.value) || givesName(tokens, index)) return;
+  throw new PluginSqlRefused(
+    `"${token.value}" reads a Postgres system column, which a plugin may not read: xmin, xmax, cmin, cmax, ` +
+      "ctid and tableoid show the server's transaction ids and where rows are stored, and SQLite has none of " +
+      'them. Keep a column of your own (a version number, an updated_at) for optimistic locking. A value of ' +
+      `your own may carry the name where you give it (min(lng) AS ${token.value}) and be read from the result, ` +
+      'but the SQL may not refer to it by that name',
+  );
+}
+
+/**
+ * Whether the word at `index` gives a name rather than reads one: right
+ * after AS (`min(lng) AS xmin`, `FROM t AS xmin`), or in the column list of
+ * an alias (`AS b(xmin, xmax)`) or of a WITH query (`WITH b(xmin) AS
+ * (SELECT ...)`). A word read wrongly here as a reference is only refused; a
+ * reference read wrongly as a name would let the column through, so a list
+ * counts only when it holds names alone and stands where a list of names
+ * does. `f(xmin) AS (a int)` is a call with a column definition list.
+ */
+function givesName(tokens: readonly Token[], index: number): boolean {
+  if (keyword(tokens[index - 1]) === 'as') return true;
+  let first = index;
+  while (isPunct(tokens[first - 1], ',') && tokens[first - 2]?.kind === 'word') first -= 2;
+  let last = index;
+  while (isPunct(tokens[last + 1], ',') && tokens[last + 2]?.kind === 'word') last += 2;
+  if (!isPunct(tokens[first - 1], '(') || !isPunct(tokens[last + 1], ')') || tokens[first - 2]?.kind !== 'word') {
+    return false;
+  }
+  if (keyword(tokens[first - 3]) === 'as') return true;
+  if (keyword(tokens[first - 3]) !== 'with' && !isPunct(tokens[first - 3], ',')) return false;
+  const as = last + 2;
+  if (keyword(tokens[as]) !== 'as') return false;
+  const body = skip(tokens, skip(tokens, as + 1, 'not'), 'materialized');
+  return (
+    isPunct(tokens[body], '(') && (isPunct(tokens[body + 1], '(') || QUERY_START.has(keyword(tokens[body + 1]) ?? ''))
+  );
+}
+
+/** Refuses a transaction id type ({@link XID_TYPES}) where the word stands for the type ({@link namesType}). */
+function checkXidType(tokens: readonly Token[], index: number): void {
+  const token = tokens[index];
+  if (token.kind !== 'word' || !XID_TYPES.has(token.value) || !namesType(tokens, index)) return;
+  throw new PluginSqlRefused(
+    `"${token.value}" stands for a transaction id type here, which a plugin may not use: age() of one shows ` +
+      `how many transactions the server ran. A column of your own may be called ${token.value}, but only ` +
+      `without its table: Postgres reads x.${token.value} as the cast ${token.value}(x) when x has no such ` +
+      `column, so where you need x.${token.value} (excluded.${token.value} in an upsert) rename the column`,
+  );
+}
+
+/**
+ * Whether the word at `index` stands for a type: after `::`, before a string
+ * (`xid '3'`), as a call or after a dot (both casts: `xid(x)`, `x.xid`),
+ * after `subtype =` (a range type), after AS in a CAST, after RETURNING in
+ * a JSON function, and after any word but {@link NAME_AFTER} (`c xid`,
+ * `TYPE xid`). Anywhere else, after a comma, a parenthesis or an operator,
+ * it is a column.
+ */
+function namesType(tokens: readonly Token[], index: number): boolean {
+  const before = tokens[index - 1];
+  const after = tokens[index + 1];
+  if (isPunct(before, '::') || isPunct(before, '.') || after?.kind === 'string') return true;
+  if (isPunct(after, '(')) return !namesObject(tokens, index);
+  if (isPunct(before, '=')) return keyword(tokens[index - 2]) === 'subtype';
+  if (before?.kind !== 'word') return false;
+  const word = keyword(before);
+  if (word === 'as') return CAST_CALLS.has(keyword(opener(tokens, index)) ?? '');
+  if (word === 'returning') return (keyword(opener(tokens, index)) ?? '').startsWith('json');
+  return word === null || !NAME_AFTER.has(word);
+}
+
+/**
+ * Refuses a collation or an access method a plugin may not name: the word
+ * after COLLATE, after `collation =` in a CREATE TYPE, after USING where it
+ * names an index's or a table's access method, and after ACCESS METHOD. Only
+ * {@link COLLATIONS} and {@link ACCESS_METHODS}, unqualified, pass.
+ */
+function checkServerNames(verb: string, tokens: readonly Token[], index: number): void {
+  const word = keyword(tokens[index]);
+  const before = keyword(tokens[index - 1]);
+  let collation = -1;
+  if (word === 'collate') collation = index + 1;
+  else if (word === 'collation' && verb === 'create' && isPunct(tokens[index + 1], '=')) collation = index + 2;
+  if (collation >= 0 && !named(tokens, collation, COLLATIONS)) {
+    throw new PluginSqlRefused(
+      'a collation other than "C", "POSIX", "default" or ucs_basic may not be named: which others exist ' +
+        'depends on the server\'s locales and ICU. COLLATE "C" sorts by code point, as SQLite does',
+    );
+  }
+  const method =
+    (word === 'using' && (before === 'exclude' || (verb === 'create' && tokens[index + 1]?.kind === 'word'))) ||
+    (word === 'method' && before === 'access');
+  if (method && !named(tokens, index + 1, ACCESS_METHODS)) {
+    throw new PluginSqlRefused(
+      'only the built-in access methods may be named (btree, hash, gist, gin, spgist and brin for an index, ' +
+        'heap for a table): whether another exists depends on the extensions installed on the server',
+    );
+  }
+}
+
+/** Whether the token at `at` is one of `names`, unqualified. */
+function named(tokens: readonly Token[], at: number, names: ReadonlySet<string>): boolean {
+  const token = tokens[at];
+  return token?.kind === 'word' && names.has(token.value) && !isPunct(tokens[at + 1], '.');
 }
 
 /** Refuses a name that reaches past the plugin's schema whatever qualifies it. */

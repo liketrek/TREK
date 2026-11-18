@@ -10,6 +10,11 @@
  * store on a real database is the Postgres lane's
  * tests/postgres/plugin-data.test.ts.
  */
+import {
+  PLUGIN_DATA_ERRORS,
+  PLUGIN_SQL_NUL_REFUSAL,
+  PLUGIN_VALUE_NUL_REFUSAL,
+} from '../../../../../src/db/engine/plugin-data-contract';
 import { PRIVILEGED_ROLE_PLUGIN_REFUSAL } from '../../../../../src/db/engine/postgres/plugin-data-checks';
 import {
   dropPluginSchema,
@@ -19,6 +24,7 @@ import {
   PostgresPluginDataStore,
   type PluginSqlClient,
 } from '../../../../../src/db/engine/postgres/plugin-data-store';
+import { PLUGIN_SESSION_SETTINGS } from '../../../../../src/db/engine/postgres/plugin-session';
 import { PRIVILEGED_ROLE_SQL } from '../../../../../src/db/engine/postgres/server-checks';
 
 import type { Kysely } from 'kysely';
@@ -144,7 +150,7 @@ function pgError(code: string, message: string): Error {
 }
 
 describe('Postgres plugin data store', () => {
-  it('PGSTORE-001: a query runs in a transaction that makes the schema, scopes the search_path and sets the budget', async () => {
+  it('PGSTORE-001: a query runs in a transaction that makes the schema, scopes the search_path, pins the settings and sets the budget', async () => {
     const { store: s, log } = store({
       rows: { 'SELECT body FROM notes': [{ body: 'a' }, { body: 'b' }, { body: 'c' }] },
     });
@@ -157,13 +163,37 @@ describe('Postgres plugin data store', () => {
         'create schema if not exists "trek_plugin_notes"',
         'create table if not exists "trek_plugin_notes"._plugin_migrations (id text primary key, applied_at bigint)',
         'set local search_path to "trek_plugin_notes", pg_temp',
-        'set local standard_conforming_strings to on',
+        "set local TimeZone to 'UTC'",
+        "set local DateStyle to 'ISO, MDY'",
+        "set local IntervalStyle to 'postgres'",
+        "set local timezone_abbreviations to 'Default'",
+        "set local lc_monetary to 'C'",
+        "set local lc_numeric to 'C'",
+        "set local lc_time to 'C'",
+        "set local extra_float_digits to '1'",
+        "set local bytea_output to 'hex'",
+        "set local xmlbinary to 'base64'",
+        "set local xmloption to 'content'",
+        "set local default_text_search_config to 'pg_catalog.simple'",
+        "set local standard_conforming_strings to 'on'",
+        "set local backslash_quote to 'safe_encoding'",
+        "set local array_nulls to 'on'",
+        "set local transform_null_equals to 'off'",
+        "set local quote_all_identifiers to 'off'",
+        "set local gin_fuzzy_search_limit to '0'",
         'set local statement_timeout to 2000',
       ].join(';\n'),
       'SELECT body FROM notes',
       'commit',
       END_SESSION,
     ]);
+  });
+
+  it('PGSTORE-020: every pinned setting is a plain name and value, set with SET LOCAL', () => {
+    for (const [name, value] of Object.entries(PLUGIN_SESSION_SETTINGS)) {
+      expect(name).toMatch(/^[A-Za-z_]+$/);
+      expect(value).not.toMatch(/['\\]/);
+    }
   });
 
   it("PGSTORE-002: a qualified name is checked against the database's schemas before the statement runs", async () => {
@@ -252,7 +282,7 @@ describe('Postgres plugin data store', () => {
 
     await expect(s.tx([])).resolves.toEqual({ results: [] });
     await expect(s.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).rejects.toThrow(/at most 100/);
-    await expect(s.tx([{ sql: '/* x */ COMMIT' }])).rejects.toThrow(/transaction-control/);
+    await expect(s.tx([{ sql: '/* x */ COMMIT' }])).rejects.toThrow(PLUGIN_DATA_ERRORS.txControl);
     await expect(s.tx('nope' as never)).rejects.toThrow(/requires an array/);
   });
 
@@ -281,7 +311,7 @@ describe('Postgres plugin data store', () => {
     await expect(s.query(42 as never)).rejects.toThrow('sql must be a string');
     await expect(s.query('x'.repeat(100_001))).rejects.toThrow('sql too long');
     await expect(s.query('-- only a comment')).rejects.toThrow('contains no statements');
-    await expect(s.query('SELECT 1; SELECT 2')).rejects.toThrow(/exactly one statement/);
+    await expect(s.query('SELECT 1; SELECT 2')).rejects.toThrow(PLUGIN_DATA_ERRORS.moreThanOneStatement);
     await expect(s.exec('DO $$ BEGIN END $$')).rejects.toThrow(/dollar-quoted/);
     expect(log).toEqual([]);
     expect(releases).toEqual([]);
@@ -342,9 +372,12 @@ describe('Postgres plugin data store', () => {
     expect(configs.find((q) => q.text.startsWith('INSERT'))?.values).toEqual(['cd']);
   });
 
-  it('PGSTORE-016: an argument or a migration id holding NUL is refused before a client is taken, never altered', async () => {
+  it('PGSTORE-016: SQL, an argument or a migration id holding NUL is refused before a client is taken, never altered', async () => {
     const { store: s, log, releases } = store();
-    const nul = /U\+0000 \(NUL\), which Postgres text cannot store/;
+    const nul = PLUGIN_VALUE_NUL_REFUSAL;
+    // The same refusal as on SQLite, before the guard reads the SQL.
+    await expect(s.exec("INSERT INTO t VALUES ('a\u0000')")).rejects.toThrow(PLUGIN_SQL_NUL_REFUSAL);
+    await expect(s.query('SELECT 1 FROM t WHERE k = $1', [{ nested: ['\u0000'] }])).rejects.toThrow(nul);
     await expect(s.query('SELECT 1 FROM t WHERE k = $1', ['a\u0000b'])).rejects.toThrow(nul);
     await expect(s.exec('INSERT INTO t VALUES ($1)', [['x', 'c\u0000d']])).rejects.toThrow(nul);
     await expect(s.tx([{ sql: 'SELECT 1' }, { sql: 'DELETE FROM t WHERE k = $1', args: ['\u0000'] }])).rejects.toThrow(
@@ -416,7 +449,7 @@ describe('Postgres plugin data store', () => {
   it('PGSTORE-014: each transaction checks out a client of its own and gives it back clean, or closes it', async () => {
     const ok = store({ changes: 1 });
     await ok.store.exec('INSERT INTO a VALUES (1); INSERT INTO b VALUES (2)');
-    await expect(ok.store.query('SELECT 1; SELECT 2')).rejects.toThrow(/exactly one statement/);
+    await expect(ok.store.query('SELECT 1; SELECT 2')).rejects.toThrow(PLUGIN_DATA_ERRORS.moreThanOneStatement);
     // One client per statement of the script, each after its session state was dropped; the refused read took none.
     expect(ok.releases).toEqual([false, false]);
     expect(ok.log.filter((sql) => sql === END_SESSION)).toHaveLength(2);

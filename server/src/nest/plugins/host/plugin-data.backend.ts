@@ -10,10 +10,11 @@ import {
   poolClients,
   PostgresPluginDataStore,
 } from '../../../db/engine/postgres/plugin-data-store';
+import { SqlitePluginDataStore } from '../../../db/engine/sqlite/plugin-data-store';
 import { logWarn } from '../../audit/audit-log.logger';
 import { DATABASE_ENGINE, DATABASE_SETTINGS } from '../../database/database-engine.module';
-import { pluginDataDir } from '../paths';
-import { PluginDataDb, removePluginData } from './plugin-data.service';
+import { pluginDataDir, pluginDbFile } from '../paths';
+import { removePluginData } from './plugin-data.service';
 import { MikroORM } from '@mikro-orm/core';
 import type { AbstractSqlConnection } from '@mikro-orm/sql';
 import { Inject, Injectable, type OnApplicationBootstrap, type Provider } from '@nestjs/common';
@@ -39,13 +40,13 @@ export interface PluginDataBackend {
 
 export const PLUGIN_DATA = Symbol('PLUGIN_DATA');
 
-/** Each plugin's own SQLite file under the plugin data directory (`plugin-data.service.ts`). */
+/** Each plugin's own SQLite file under the plugin data directory (`db/engine/sqlite/plugin-data-store.ts`). */
 @Injectable()
 export class SqlitePluginDataBackend implements PluginDataBackend {
   readonly engine = 'sqlite' as const;
 
   open(pluginId: string): PluginDataStore {
-    return new PluginDataDb(pluginId);
+    return new SqlitePluginDataStore(pluginId, pluginDbFile(pluginId));
   }
 
   async erase(pluginId: string): Promise<void> {

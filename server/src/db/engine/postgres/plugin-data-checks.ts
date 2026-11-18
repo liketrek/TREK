@@ -138,24 +138,3 @@ export async function schemaUsage(client: PluginSqlClient, schema: string): Prom
   const [row] = result.rows as Array<{ bytes?: number | string; objects?: number | string }>;
   return { bytes: Number(row?.bytes ?? 0), objects: Number(row?.objects ?? 0) };
 }
-
-/**
- * Refuses a plugin's bound value that holds U+0000 (NUL): Postgres text
- * cannot store the character, and TREK will not change what a plugin asked
- * to store or compare (`'a\0b'` and `'ab'` are different keys on SQLite).
- * A string, or a string anywhere in an array, is checked; a Buffer goes to
- * `bytea`, which holds any byte.
- */
-export function refuseNulValues(values: readonly unknown[]): void {
-  if (values.some(holdsNul)) {
-    throw new Error(
-      'a plugin argument holds the character U+0000 (NUL), which Postgres text cannot store; ' +
-        'TREK refuses it instead of changing the value. Remove it, or bind binary data as a Buffer (bytea)',
-    );
-  }
-}
-
-function holdsNul(value: unknown): boolean {
-  if (typeof value === 'string') return value.includes('\u0000');
-  return Array.isArray(value) && value.some(holdsNul);
-}

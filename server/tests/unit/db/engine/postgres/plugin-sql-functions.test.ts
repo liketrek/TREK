@@ -60,6 +60,12 @@ describe('functions a plugin may call on Postgres', () => {
     "select has_largeobject_privilege(1, 'select')",
     'select acldefault(1, 10)',
     'select setseed(0.5)',
+    // A text search configuration is a regconfig, looked up by a name in a string.
+    "select to_tsvector('trek_plugin_other.cfg', 'a')",
+    "select to_tsvector('english', body) @@ plainto_tsquery('english', $1) from notes",
+    "select to_tsquery('a'), phraseto_tsquery('a'), websearch_to_tsquery('a')",
+    "select ts_headline('a', 'a'::tsquery)",
+    "select jsonb_to_tsvector('{}'::jsonb, '[\"all\"]')",
     // Every spelling of the call.
     'SELECT OBJ_DESCRIPTION(16386)',
     'select "obj_description"(16386)',
@@ -93,6 +99,15 @@ describe('functions a plugin may call on Postgres', () => {
   });
 
   it.each([
+    // xid is the transaction id type age() reads the server's counter with; after a dot it is a cast.
+    "select age('3'::xid)",
+    'select n.xid from notes n',
+    'select $1.xid',
+  ])('refuses %s as a transaction id', (sql) => {
+    expect(() => parsePluginSql(sql)).toThrow(/stands for a transaction id type/);
+  });
+
+  it.each([
     "select lower(body), substring(body from 2 for 3), regexp_replace(body, 'a', 'b') from notes",
     "select now(), date_trunc('day', now()), extract(epoch from now()), to_char(now(), 'YYYY')",
     "select jsonb_build_object('a', 1), jsonb_set('{}'::jsonb, '{a}', '1'), json_agg(body) from notes",
@@ -100,7 +115,9 @@ describe('functions a plugin may call on Postgres', () => {
     'select gen_random_uuid(), md5(body), sha256(body::bytea) from notes',
     'select x from generate_series(1, 5) as g(x)',
     'select unnest(array[1, 2]), cardinality(array[1])',
-    "select to_tsvector('english', body) @@ plainto_tsquery('english', $1) from notes",
+    // Text search on vectors a plugin builds itself, with no configuration to look up.
+    "select ts_rank(array_to_tsvector(tags), 'a & b'::tsquery), setweight(array_to_tsvector(tags), 'A') from notes",
+    'select body from notes where array_to_tsvector(tags) @@ $1::tsquery',
     'select coalesce(a, b), nullif(a, 0), greatest(a, b), least(a, b) from notes',
     "select cast(n as numeric(10, 2)), body::varchar(20), 'now'::timestamp(3) from notes",
     'select current_date, current_timestamp, localtimestamp',
@@ -115,7 +132,7 @@ describe('functions a plugin may call on Postgres', () => {
     'CREATE VIEW version (a) AS SELECT 1',
     'select n.version, n.user_id, "user", "current_user" from notes n',
     // The refused names a table may well have as a column, after a dot.
-    'select n.name, n.money, n.oid, n.xid, n.xml, n.version from notes n',
+    'select n.name, n.money, n.oid, n.xml, n.version from notes n',
     'select (n).name, $1.name from notes n',
     "insert into notes (id, name) values (1, 'a') on conflict (id) do update set name = excluded.name",
     'select n.body from trek_plugin_notes.notes n join trek_plugin_notes.version v on v.id = n.id',
