@@ -223,7 +223,7 @@ describe('ROUTEID: every route answers a malformed path id like an unknown one',
     orm = app.get(MikroORM);
     await app.listen(0, '127.0.0.1');
     baseUrl = `http://127.0.0.1:${(app.getHttpServer().address() as AddressInfo).port}`;
-    await updateRows(orm, Addons, {}, { enabled: 1 });
+    await updateRows(orm, Addons, {}, { enabled: true });
 
     const { user: admin } = await makeAdmin(orm);
     const { user: other } = await makeUser(orm);

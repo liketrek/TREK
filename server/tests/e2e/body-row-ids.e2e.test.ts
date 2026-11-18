@@ -71,7 +71,7 @@ function not400(got: Answer[], error: string): Answer[] {
 beforeAll(async () => {
   app = await buildApp();
   orm = app.get(MikroORM);
-  await updateRows(orm, Addons, {}, { enabled: 1 });
+  await updateRows(orm, Addons, {}, { enabled: true });
 }, 60_000);
 
 afterAll(async () => {
