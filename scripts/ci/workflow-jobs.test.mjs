@@ -245,6 +245,213 @@ describe('test.yml', () => {
   }
 });
 
+/** A job's if: condition on one line, without its comments; null when it has none. */
+function conditionOf(text) {
+  const match = /^ {4}if: (.*)\n((?: {6}\S.*\n)*)/m.exec(withoutComments(text));
+  if (!match) return null;
+  const head = match[1].trim();
+  return (/^[>|]-?$/.test(head) ? match[2] : head).replace(/\s+/g, ' ').trim();
+}
+
+/** The steps of a job by their name: line, each with its text. */
+const namedSteps = (text) =>
+  stepsOf(text).map((step) => ({ name: /^ {6}- name: (.+)$/m.exec(step)?.[1]?.trim() ?? null, text: step }));
+
+const MIRROR_ON = "needs.changes.outputs.mirror == 'true'";
+const STATUS_FUNCTION = /\b(always|cancelled|failure)\(\)/;
+// The terms that are false in mirror mode, where every area is off.
+const AREA_TERM =
+  /^(needs\.changes\.outputs\.(code|image|deploy) == 'true'|needs\.changes\.outputs\.mirror != 'true')$/;
+
+/** Splits an expression at a top-level operator, outside parentheses and quotes. */
+function splitTop(expr, op) {
+  const parts = [];
+  let depth = 0;
+  let quoted = false;
+  let start = 0;
+  for (let i = 0; i < expr.length; i += 1) {
+    const c = expr[i];
+    if (c === "'") quoted = !quoted;
+    else if (quoted) continue;
+    else if (c === '(') depth += 1;
+    else if (c === ')') depth -= 1;
+    else if (depth === 0 && expr.startsWith(op, i)) {
+      parts.push(expr.slice(start, i));
+      start = i + op.length;
+      i += op.length - 1;
+    }
+  }
+  parts.push(expr.slice(start));
+  return parts.map((part) => part.trim());
+}
+
+/** True when the whole expression sits in one pair of parentheses. */
+function wrapped(expr) {
+  if (!expr.startsWith('(')) return false;
+  let depth = 0;
+  for (let i = 0; i < expr.length; i += 1) {
+    if (expr[i] === '(') depth += 1;
+    else if (expr[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return i === expr.length - 1;
+    }
+  }
+  return false;
+}
+
+/**
+ * True only when the condition is false in mirror mode: every top-level ||
+ * alternative has an area term in its top-level && chain. Anything it cannot
+ * read that way (a negation, an || with another term) counts as running.
+ */
+function falseInMirror(condition) {
+  let expr = condition.trim();
+  const braced = /^\$\{\{([\s\S]*)\}\}$/.exec(expr);
+  if (braced) expr = braced[1].trim();
+  while (wrapped(expr)) expr = expr.slice(1, -1).trim();
+  const alternatives = splitTop(expr, '||');
+  if (alternatives.length > 1) return alternatives.every(falseInMirror);
+  const conjuncts = splitTop(expr, '&&');
+  if (conjuncts.length > 1) return conjuncts.some(falseInMirror);
+  return AREA_TERM.test(expr);
+}
+
+// On the release pull request changes turns every area off and mirror on, and
+// ci-ok mirrors the push run on dev instead of the jobs below testing the same
+// commit again (scripts/ci/changed-areas.mjs decides, its tests hold that every
+// area is off in mirror mode).
+describe('the release pull request mirror', () => {
+  const byId = new Map(jobs().map((job) => [job.id, job]));
+  const ciOk = byId.get('ci-ok');
+
+  /** Why a job would still run in mirror mode; null when it skips. */
+  function runsInMirrorMode(id, seen = new Set()) {
+    const job = byId.get(id);
+    if (!job) return `${id}: no such job`;
+    const condition = conditionOf(job.text);
+    if (condition && STATUS_FUNCTION.test(condition)) return `${id}: its if: (${condition}) runs past skipped needs`;
+    if (condition && falseInMirror(condition)) return null;
+    const needs = needsOf(job.text).concat(/^ {4}needs: ([a-z0-9-]+)\s*$/m.exec(job.text)?.[1] ?? []);
+    // A job without an area condition skips only when every job it needs skips.
+    const upstream = needs.filter((need) => need !== 'changes');
+    if (upstream.length === 0) return `${id}: give it an area condition on needs.changes.outputs`;
+    if (seen.has(id)) return null;
+    seen.add(id);
+    const reasons = upstream.map((need) => runsInMirrorMode(need, seen)).filter(Boolean);
+    return reasons.length === upstream.length ? `${id}: ${reasons.join('; ')}` : null;
+  }
+
+  it('reads a condition as skipping only when every alternative is off', () => {
+    for (const condition of [
+      "needs.changes.outputs.code == 'true'",
+      "needs.changes.outputs.image == 'true' || needs.changes.outputs.deploy == 'true'",
+      "needs.changes.outputs.code == 'true' && github.actor != 'dependabot[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)",
+      "${{ needs.changes.outputs.mirror != 'true' && github.ref == 'refs/heads/dev' }}",
+      "(needs.changes.outputs.code == 'true' || needs.changes.outputs.image == 'true') && github.event_name == 'push'",
+    ]) {
+      assert.equal(falseInMirror(condition), true, condition);
+    }
+    for (const condition of [
+      "needs.changes.outputs.code == 'true' || github.event_name == 'push'",
+      "github.repository == 'x/y' || needs.changes.outputs.code == 'true'",
+      "!(needs.changes.outputs.code == 'true')",
+      "needs.changes.outputs.code == 'false'",
+      "needs.changes.outputs.mirror == 'true'",
+      "(needs.changes.outputs.code == 'true' || github.event_name == 'push') && github.actor != 'x'",
+      "contains('needs.changes.outputs.code == ''true''', 'x')",
+    ]) {
+      assert.equal(falseInMirror(condition), false, condition);
+    }
+  });
+
+  // The push run on dev is what the mirror copies, so it has to cover every
+  // area the release pull request brings into main: it lists its changes
+  // against the merge base with main, not against the push before it.
+  it('has a push to dev list its changes against the merge base with main', () => {
+    const list = namedSteps(byId.get('changes').text).find((step) => step.name === 'List the changed files');
+    assert.ok(list, 'changes must keep its "List the changed files" step');
+    const text = withoutComments(list.text);
+    assert.ok(text.includes('REF: ${{ github.ref }}'), 'the list step must read github.ref');
+    assert.match(text, /if \[ "\$REF" = refs\/heads\/dev \]; then\n/);
+    assert.match(
+      text,
+      /git fetch --no-tags --filter=blob:none --unshallow origin \+refs\/heads\/main:refs\/remotes\/origin\/main\s+&& base="\$\(git merge-base origin\/main "\$AFTER"\)"; then\n\s+changed_between "\$base" "\$AFTER"\n/,
+    );
+    // The dev branch is checked first, so the diff against BEFORE only serves main.
+    assert.ok(text.indexOf('refs/heads/dev') < text.indexOf('changed_between "$BEFORE" "$AFTER"'));
+  });
+
+  it('has changes publish the mirror decision', () => {
+    const changes = byId.get('changes');
+    assert.match(changes.text, /^ {6}mirror: \$\{\{ steps\.areas\.outputs\.mirror \}\}$/m);
+    const decide = namedSteps(changes.text).find((step) => step.name === 'Decide what runs');
+    assert.ok(decide, 'changes must keep its "Decide what runs" step');
+    for (const [name, value] of [
+      ['CI_EVENT', 'github.event_name'],
+      ['CI_BASE_REF', 'github.base_ref'],
+      ['CI_HEAD_REF', 'github.head_ref'],
+      ['CI_HEAD_REPO', 'github.event.pull_request.head.repo.full_name'],
+      ['CI_REPO', 'github.repository'],
+    ]) {
+      assert.ok(decide.text.includes(`${name}: \${{ ${value} }}`), `the decide step must set ${name} from ${value}`);
+    }
+    assert.match(decide.text, /node scripts\/ci\/changed-areas\.mjs/);
+  });
+
+  it('skips every job but changes and ci-ok', () => {
+    const problems = jobs()
+      .filter(({ id }) => id !== 'changes' && id !== 'ci-ok')
+      .map(({ id }) => runsInMirrorMode(id))
+      .filter(Boolean);
+    assert.deepEqual(problems, []);
+  });
+
+  it('skips the scan by its own condition, not only through its needs', () => {
+    const scan = byId.get('scan');
+    assert.ok(needsOf(scan.text).includes('changes'), 'scan must need changes to read its mirror output');
+    assert.match(conditionOf(scan.text), /^needs\.changes\.outputs\.mirror != 'true' && /);
+  });
+
+  it('runs the mirror in ci-ok only in mirror mode, after the needs verdict', () => {
+    const steps = namedSteps(ciOk.text);
+    const verdict = steps.findIndex((step) => step.name === 'Every needed job passed or was skipped');
+    const mirrorStep = steps.findIndex((step) => /node scripts\/ci\/mirror-push-run\.mjs/.test(step.text));
+    assert.ok(verdict >= 0, 'ci-ok must keep the needs verdict step');
+    assert.ok(mirrorStep > verdict, 'ci-ok must run the mirror after the needs verdict');
+    assert.doesNotMatch(steps[verdict].text, /^ {8}if:/m, 'the needs verdict must run in both modes');
+    for (const step of steps.slice(verdict + 1)) {
+      assert.match(step.text, new RegExp(`^ {8}if: ${MIRROR_ON.replace(/[.()]/g, '\\$&')}$`, 'm'), step.text);
+    }
+    assert.match(steps[mirrorStep].text, /HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  });
+
+  it('gives ci-ok read access to actions, checks and contents only', () => {
+    const block = /^ {4}permissions:\n((?: {6}.+\n)+)/m.exec(withoutComments(ciOk.text));
+    assert.ok(block, 'ci-ok must set its own permissions');
+    const granted = block[1].trim().split('\n').map((line) => line.trim()).sort();
+    assert.deepEqual(granted, ['actions: read', 'checks: read', 'contents: read']);
+  });
+
+  it('lets the mirror end on its own before ci-ok is killed', async () => {
+    const { TIMEOUT_MS } = await import('./mirror-push-run.mjs');
+    const job = Number(/^ {4}timeout-minutes: (\d+)\s*$/m.exec(ciOk.text)[1]);
+    const step = Number(
+      /^ {8}timeout-minutes: (\d+)\s*$/m.exec(namedSteps(ciOk.text).find((s) => /mirror-push-run/.test(s.text)).text)[1],
+    );
+    assert.ok(TIMEOUT_MS / 60_000 + 2 <= step, `the mirror gives up after ${TIMEOUT_MS / 60_000} min, its step allows ${step}`);
+    assert.ok(step < job, `the mirror step allows ${step} min, the job ${job}`);
+  });
+
+  // A newer push to dev must cancel the mirror of the older commit too, so
+  // both runs share a group per ref and cancel in progress.
+  it('cancels a superseded run per ref', () => {
+    assert.match(
+      workflow,
+      /\nconcurrency:\n {2}group: \$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\n {2}cancel-in-progress: true\n/,
+    );
+  });
+});
+
 describe('the setup action', () => {
   const steps = setupAction.split(/\n(?= {4}- )/).slice(1);
 

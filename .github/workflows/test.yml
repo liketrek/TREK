@@ -90,12 +90,15 @@ permissions:
 #     the six Postgres slices, the two e2e slices and the Docker job) plus two
 #     short ones (Shared tests, Server S3), so two PR runs fit side by side
 #     and a third waits a minute or two for slots. The target is ci-ok within
-#     ten minutes of the push. A new long job, slice or shard needs a reason
-#     that outweighs the slot it takes; a job that waits for a slot adds its
-#     wait to the run when a coverage job waits for it.
+#     ten minutes of the push. The release pull request starts none of them:
+#     it mirrors the push run on dev (below). A new long job, slice or shard
+#     needs a reason that outweighs the slot it takes; a job that waits for a
+#     slot adds its wait to the run when a coverage job waits for it.
 #   - Timeouts: 15 minutes for the gates, the slices, Postgres, e2e and the
-#     Docker job, 10 for the merges, Shared tests, Server S3 and changes, 5
-#     for ci-ok, so a job that hangs frees its slot in a quarter of an hour.
+#     Docker job, so a job that hangs frees its slot in a quarter of an hour;
+#     10 for the merges, Shared tests, Server S3 and changes; 20 for ci-ok,
+#     which only polls while its mirror waits for the push run on the release
+#     pull request (below).
 #   - Scan `needs:` the gates and the coverage jobs, Shared tests among them.
 #     A coverage job failing must stop the scan: a missing lcov file would
 #     make every line of that package report as uncovered, and the dashboard
@@ -106,8 +109,11 @@ permissions:
 #     passed. Everything else runs on those PRs so outside contributors and
 #     dependency bumps still get the full test signal.
 #   - changes runs first and decides which of the jobs below a change needs
-#     (scripts/ci/changed-areas.mjs holds the rules). A docs-only push or PR
-#     runs nothing else. The filter lives in a job, not in `on.paths`, because
+#     (scripts/ci/changed-areas.mjs holds the rules). A pull request lists
+#     what it changes against its base, a push to main what the push added,
+#     and a push to dev everything dev holds that main does not (the release
+#     pull request mirrors that run, below). A docs-only change runs nothing
+#     else. The filter lives in a job, not in `on.paths`, because
 #     a workflow skipped by its path filter never reports a check, and a
 #     required check that never reports blocks the PR for good.
 #   - docker builds the Dockerfile and boots the result when the image area
@@ -120,6 +126,26 @@ permissions:
 #     or on a fork PR without secrets). The scan is not in it: the quality
 #     gate reports on the PR by itself, and a SonarCloud outage should not
 #     block a merge.
+#   - The release pull request (dev into main, from this repository) carries
+#     the head of dev, which the push run on dev tests anyway, and that run
+#     lists its changes against the merge base with main, so it covers every
+#     area the pull request brings in, an earlier push's changes included
+#     when that push's run was cancelled or red. Testing it a
+#     second time doubled the jobs past the 60 slots, so there changes sets
+#     mirror and turns every area off (scripts/ci/changed-areas.mjs): every
+#     job skips, the scan included (the push run's scan covers dev), and ci-ok
+#     runs scripts/ci/mirror-push-run.mjs, which waits for the ci-ok of the
+#     push run on dev for exactly the PR's head commit and passes or fails
+#     with it. No push run for that commit, one that ended without a verdict,
+#     or a wait past 17 minutes fails, with a re-run hint. A newer push to dev
+#     cancels the old push run and, through the synchronize it causes, the
+#     old PR run too (the concurrency group is per ref), so a mirror never
+#     waits on a superseded commit for long. The release workflows read the
+#     newest ci-ok on a commit (scripts/ci/ci-ok-verdict.mjs). A green mirror
+#     implies a green push ci-ok before it, so a mirror never lets a release
+#     through that the push run failed. A mirror that fails on its own (the
+#     API keeps failing, or the wait runs out) is the newest ci-ok on that
+#     commit and blocks the release workflows until it is re-run.
 #
 # Automatic Analysis must stay disabled on sonarcloud.io — it is mutually
 # exclusive with CI-based analysis, and it cannot import the lcov coverage
@@ -151,6 +177,7 @@ jobs:
       code: ${{ steps.areas.outputs.code }}
       image: ${{ steps.areas.outputs.image }}
       deploy: ${{ steps.areas.outputs.deploy }}
+      mirror: ${{ steps.areas.outputs.mirror }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -179,6 +206,7 @@ jobs:
         id: list
         env:
           EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
         run: |
@@ -192,9 +220,22 @@ jobs:
               changed_between HEAD^1 HEAD
               ;;
             push)
+              # A push to dev lists everything dev holds that main does not,
+              # not only what this push added. The release pull request
+              # mirrors this run (below), so it has to test what that pull
+              # request brings into main, and a cancelled or red earlier push
+              # must not leave its changes untested under a later docs-only
+              # one. The fetch is blobless: the diff reads trees only.
+              if [ "$REF" = refs/heads/dev ]; then
+                if git fetch --no-tags --filter=blob:none --unshallow origin +refs/heads/main:refs/remotes/origin/main                   && base="$(git merge-base origin/main "$AFTER")"; then
+                  changed_between "$base" "$AFTER"
+                else
+                  echo "No merge base with main, so everything runs."
+                  list=""
+                fi
               # A new branch has no previous commit, and a force push can leave
               # it unreachable. Both run everything.
-              if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]                 && git fetch --no-tags --depth=1 origin "$BEFORE"; then
+              elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]                 && git fetch --no-tags --depth=1 origin "$BEFORE"; then
                 changed_between "$BEFORE" "$AFTER"
               else
                 echo "No previous commit to compare with, so everything runs."
@@ -208,10 +249,18 @@ jobs:
           echo "list=$list" >> "$GITHUB_OUTPUT"
           [ -z "$list" ] || cat "$list"
 
+      # On the release pull request (dev into main, from this repository) every
+      # area is off and mirror is on: ci-ok then mirrors the push run on dev
+      # for the same commit instead of testing it a second time.
       - name: Decide what runs
         id: areas
         env:
           LIST: ${{ steps.list.outputs.list }}
+          CI_EVENT: ${{ github.event_name }}
+          CI_BASE_REF: ${{ github.base_ref }}
+          CI_HEAD_REF: ${{ github.head_ref }}
+          CI_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          CI_REPO: ${{ github.repository }}
         run: |
           if [ -n "$LIST" ]; then
             node scripts/ci/changed-areas.mjs --files "$LIST"
@@ -1342,8 +1391,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     # Fork PRs and Dependabot runs don't receive SONAR_TOKEN, so skip the scan
-    # rather than fail it.
+    # rather than fail it. The release pull request mirrors the push run, whose
+    # scan already covers dev, so it skips the scan too.
     if: >-
+      needs.changes.outputs.mirror != 'true' &&
       github.actor != 'dependabot[bot]' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     # Coverage jobs failing must stop the scan: a missing lcov file would make
@@ -1353,6 +1404,7 @@ jobs:
     # scripts/ci/workflow-jobs.test.mjs fails while a job that uploads a
     # sonar-*-coverage artifact is missing here.
     needs:
+      - changes
       - shared
       - server-types
       - server-lint
@@ -1437,7 +1489,14 @@ jobs:
     # ruleset reads a skipped required check as passed.
     if: always()
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    # 20 rather than 5: on the release pull request the mirror step waits for
+    # the push run's ci-ok, and gives up two minutes before this kills it.
+    timeout-minutes: 20
+    # The mirror reads the push run's jobs; nothing here writes.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
     steps:
       - name: Every needed job passed or was skipped
         env:
@@ -1450,3 +1509,28 @@ jobs:
             echo "::error::Not passed: $failed"
             exit 1
           fi
+
+      # On the release pull request every job above skipped, so the step above
+      # only proves that changes passed. The verdict is the push run's: wait
+      # for the ci-ok of the push run of this workflow on dev for exactly the
+      # pull request's head commit, and pass or fail with it. No push run, a
+      # cancelled one or a timeout fails, with what to do in the log.
+      - name: Check out the mirror script
+        if: needs.changes.outputs.mirror == 'true'
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+
+      - uses: actions/setup-node@v6
+        if: needs.changes.outputs.mirror == 'true'
+        with:
+          node-version-file: .nvmrc
+
+      - name: Mirror the ci-ok of the push run on dev
+        if: needs.changes.outputs.mirror == 'true'
+        timeout-minutes: 19
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/mirror-push-run.mjs
