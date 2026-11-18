@@ -1,0 +1,801 @@
+/**
+ * PLAN-06..10 unit tests: the parser merges without inventing fields, the
+ * provider normalises real records and routes, the planner schedules what it
+ * got, and the validator turns gaps and overloads into stable warnings.
+ */
+import {
+  PlannerRequestParser,
+  mergeRequest,
+  missingRequestFields,
+} from '../../../../src/nest/ai-travel-plan/planner-prompt';
+import { PlannerProvider, routeTransport } from '../../../../src/nest/ai-travel-plan/planner-provider';
+import { hasBlockingWarning, validateDraft } from '../../../../src/nest/ai-travel-plan/planner-validator';
+import { PlannerService } from '../../../../src/nest/ai-travel-plan/planner.service';
+import { RealTravelPlanEngine } from '../../../../src/nest/ai-travel-plan/real-travel-plan.engine';
+import {
+  travelPlanCreateRequestSchema,
+  travelPlanRequestSchema,
+  type TravelPlanCreateRequest,
+  type TravelPlanDraft,
+  type TravelPlanDraftDay,
+} from '@trek/shared';
+
+import { describe, expect, it, vi } from 'vitest';
+
+function request(overrides: Partial<TravelPlanCreateRequest> = {}): TravelPlanCreateRequest {
+  return travelPlanCreateRequestSchema.parse({
+    destination: '杭州',
+    startDate: '2026-05-01',
+    endDate: '2026-05-02',
+    ...overrides,
+  });
+}
+
+function day(date: string, times: Array<[string, string]>): TravelPlanDraftDay {
+  return {
+    date,
+    items: times.map(([arriveAt, leaveAt], index) => ({
+      place: { provider: 'amap', providerId: `amap:${index}`, name: `地点${index}`, lat: 30 + index, lng: 120 + index },
+      arriveAt,
+      leaveAt,
+      activity: '游览',
+      travelFromPrevious: null,
+      estimatedCostCny: null,
+      source: { provider: 'amap', sourceId: `amap:${index}`, checkedAt: '2026-04-01 00:00:00', freshness: 'live' },
+    })),
+  };
+}
+
+function draft(days: TravelPlanDraftDay[], warnings: TravelPlanDraft['warnings'] = []): TravelPlanDraft {
+  return {
+    summary: '',
+    factsCheckedAt: '2026-04-01 00:00:00',
+    days,
+    estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+    warnings,
+  };
+}
+
+const candidate = (id: number, lat = 30 + id * 0.01, lng = 120 + id * 0.01, address: string | null = '杭州市') => ({
+  place: { provider: 'amap', providerId: `amap:${id}`, name: `地点${id}`, lat, lng },
+  source: { provider: 'amap', sourceId: `amap:${id}`, checkedAt: '2026-04-01 00:00:00', freshness: 'live' as const },
+  address,
+  category: '风景名胜',
+  hours: [],
+});
+
+describe('PlannerRequestParser', () => {
+  it('leaves a request without a prompt untouched and never calls a model', async () => {
+    const connections = { resolveForUser: vi.fn() };
+    const clients = { create: vi.fn() };
+    const parser = new PlannerRequestParser(connections as never, clients as never);
+
+    const outcome = await parser.merge(7, request());
+
+    expect(outcome.request).toEqual(request());
+    expect(outcome.warnings).toEqual([]);
+    expect(connections.resolveForUser).not.toHaveBeenCalled();
+  });
+
+  it('reports model_not_configured and keeps the structured fields when no connection exists', async () => {
+    const connections = { resolveForUser: vi.fn(async () => Promise.reject(new Error('not connected'))) };
+    const parser = new PlannerRequestParser(connections as never, { create: vi.fn() } as never);
+
+    const outcome = await parser.merge(7, request({ prompt: '杭州两天' }));
+
+    expect(outcome.request.destination).toBe('杭州');
+    expect(outcome.warnings).toEqual([expect.objectContaining({ code: 'model_not_configured', severity: 'info' })]);
+  });
+
+  it('merges only the fields the model returned, letting explicit fields win', async () => {
+    const text = JSON.stringify({
+      destination: '苏州',
+      dayCount: 3,
+      travelers: { adults: 2, children: 1 },
+      pace: 'relaxed',
+      interests: ['园林', '博物馆'],
+      transport: 'driving',
+    });
+    const parser = new PlannerRequestParser(
+      { resolveForUser: vi.fn(async () => ({ kind: 'openai' })) } as never,
+      { create: vi.fn(() => ({ model: 'test-model', stream: () => streamOf(text) })) } as never,
+    );
+
+    const outcome = await parser.merge(7, request({ prompt: '想带家人去苏州玩三天', interests: ['园林'] }));
+    const merged = outcome.request;
+
+    expect(merged.destination).toBe('杭州');
+    expect(merged.dayCount).toBe(3);
+    expect(merged.travelers).toEqual({ adults: 2, children: 1, seniors: 0 });
+    expect(merged.pace).toBe('relaxed');
+    expect(merged.transport).toBe('driving');
+    expect(merged.interests).toEqual(['园林', '博物馆']);
+    expect(outcome.model).toEqual({
+      provider: 'openai',
+      model: 'test-model',
+      promptTokens: 3,
+      completionTokens: 4,
+    });
+  });
+
+  it('reports prompt_unparsed when the model answers something that is not the schema', async () => {
+    const parser = new PlannerRequestParser(
+      { resolveForUser: vi.fn(async () => ({ kind: 'openai' })) } as never,
+      { create: vi.fn(() => ({ model: 'test-model', stream: () => streamOf('好的，我来帮你规划！') })) } as never,
+    );
+
+    const outcome = await parser.merge(7, request({ prompt: '随便' }));
+
+    expect(outcome.warnings).toEqual([expect.objectContaining({ code: 'prompt_unparsed' })]);
+    expect(outcome.request.destination).toBe('杭州');
+  });
+
+  it('falls back to the feedback text when the model cannot extract keywords', async () => {
+    const parser = new PlannerRequestParser(
+      { resolveForUser: vi.fn(async () => ({ kind: 'openai' })) } as never,
+      { create: vi.fn(() => ({ model: 'test-model', stream: () => streamOf('not json') })) } as never,
+    );
+
+    const outcome = await parser.feedbackKeywords(7, '想去西溪湿地');
+
+    expect(outcome.keywords).toEqual(['想去西溪湿地']);
+  });
+});
+
+describe('mergeRequest and missingRequestFields', () => {
+  it('keeps a non-default structured field and unions interests', () => {
+    const merged = mergeRequest(
+      travelPlanRequestSchema.parse({
+        destination: '杭州',
+        startDate: '2026-05-01',
+        endDate: '2026-05-02',
+        pace: 'intensive',
+        interests: ['西湖'],
+      }),
+      { pace: 'relaxed', interests: ['龙井'] },
+    );
+
+    expect(merged.pace).toBe('intensive');
+    expect(merged.interests).toEqual(['西湖', '龙井']);
+  });
+
+  it('names every missing field in the order the traveller reads it', () => {
+    expect(missingRequestFields(travelPlanRequestSchema.parse({ destination: '杭州' }))).toEqual([
+      '出发日期',
+      '行程天数',
+    ]);
+  });
+});
+
+describe('validateDraft', () => {
+  it('blocks an empty plan', () => {
+    const warnings = validateDraft(request(), draft([]));
+    expect(warnings).toEqual([expect.objectContaining({ code: 'no_places_found', severity: 'blocking' })]);
+    expect(hasBlockingWarning(warnings)).toBe(true);
+  });
+
+  it('warns on duplicates, long gaps and unconfirmed prices, but lets lunch gaps through', () => {
+    const days = [
+      day('2026-05-01', [
+        ['09:00', '10:30'],
+        ['13:30', '15:00'],
+      ]),
+      day('2026-05-02', [
+        ['11:30', '12:00'],
+        ['13:30', '14:00'],
+      ]),
+    ];
+    const secondDay = days[1];
+    const secondItem = secondDay?.items[1];
+    if (secondDay && secondItem) {
+      secondDay.items[1] = { ...secondItem, place: { ...secondItem.place, providerId: 'amap:0' } };
+    }
+    const warnings = validateDraft(request(), draft(days));
+    const codes = warnings.map((warning) => warning.code);
+
+    expect(codes).toContain('duplicate_place');
+    expect(codes).toContain('price_unconfirmed');
+    expect(codes.filter((code) => code === 'long_gap')).toHaveLength(1);
+  });
+
+  it('blocks a day that runs past 22:00 or spans more than ten hours', () => {
+    const late = validateDraft(request(), draft([day('2026-05-01', [['21:00', '22:30']])]));
+    expect(late).toContainEqual(expect.objectContaining({ code: 'day_overloaded', severity: 'blocking' }));
+
+    const long = validateDraft(
+      request(),
+      draft([
+        day('2026-05-01', [
+          ['08:00', '09:00'],
+          ['19:30', '20:00'],
+        ]),
+      ]),
+    );
+    expect(long).toContainEqual(expect.objectContaining({ code: 'day_overloaded', severity: 'blocking' }));
+  });
+
+  it('warns when the known minimum exceeds the stated budget', () => {
+    const value = draft([day('2026-05-01', [['09:00', '10:00']])]);
+    value.estimatedBudgetCny = { min: 300, max: 500, breakdown: {} };
+    const item = value.days[0]?.items[0];
+    if (item) item.estimatedCostCny = { min: 300, max: 500 };
+
+    expect(validateDraft(request({ budgetCny: 200 }), value)).toContainEqual(
+      expect.objectContaining({ code: 'budget_exceeded', severity: 'warning' }),
+    );
+  });
+
+  it('blocks an item without coordinates and collapses repeated warnings', () => {
+    const value = draft(
+      [day('2026-05-01', [['09:00', '10:00']])],
+      [
+        { code: 'price_unconfirmed', message: '重复', severity: 'info' },
+        { code: 'price_unconfirmed', message: '重复', severity: 'info' },
+      ],
+    );
+    const item = value.days[0]?.items[0];
+    if (item) item.place = { ...item.place, lat: Number.NaN };
+
+    const warnings = validateDraft(request(), value);
+
+    expect(warnings).toContainEqual(
+      expect.objectContaining({ code: 'place_missing_coordinates', severity: 'blocking' }),
+    );
+    expect(warnings.filter((warning) => warning.message === '重复')).toHaveLength(1);
+  });
+
+  it('skips untimed days and rows whose clock is not HH:MM', () => {
+    const untimed = day('2026-05-01', [['09:00', '10:00']]);
+    const first = untimed.items[0];
+    if (first) untimed.items[0] = { ...first, arriveAt: null, leaveAt: null };
+    const malformed = day('2026-05-02', [['9:00', '10:00']]);
+
+    const warnings = validateDraft(request(), draft([untimed, malformed]));
+
+    expect(warnings.some((warning) => warning.code === 'day_overloaded' || warning.code === 'long_gap')).toBe(false);
+  });
+
+  it('treats a gap inside the lunch window as a break but warns past it', () => {
+    const through = validateDraft(
+      request(),
+      draft([
+        day('2026-05-01', [
+          ['09:00', '11:40'],
+          ['13:30', '14:30'],
+        ]),
+      ]),
+    );
+    expect(through.some((warning) => warning.code === 'long_gap')).toBe(false);
+
+    const past = validateDraft(
+      request(),
+      draft([
+        day('2026-05-01', [
+          ['09:00', '11:40'],
+          ['14:00', '15:00'],
+        ]),
+      ]),
+    );
+    expect(past).toContainEqual(expect.objectContaining({ code: 'long_gap', severity: 'warning' }));
+  });
+});
+
+describe('PlannerService', () => {
+  function service(provider: Record<string, ReturnType<typeof vi.fn>>): PlannerService {
+    return new PlannerService(provider as never);
+  }
+
+  it('blocks when the destination cannot be resolved', async () => {
+    const planner = service({ centre: vi.fn(async () => null), search: vi.fn(), route: vi.fn() });
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.warnings).toEqual([
+      expect.objectContaining({ code: 'destination_unresolved', severity: 'blocking' }),
+    ]);
+  });
+
+  it('blocks when every search returns nothing', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => []),
+      route: vi.fn(),
+    });
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.warnings).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'no_places_found', severity: 'blocking' })]),
+    );
+  });
+
+  it('schedules real places with routed legs and records place and route facts', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1), candidate(2), candidate(1)]),
+      route: vi.fn(async () => ({
+        ok: true,
+        legs: [
+          { mode: 'walk', minutes: 12, distanceMeters: 900 },
+          { mode: 'walk', minutes: 8, distanceMeters: 600 },
+        ],
+      })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days).toHaveLength(2);
+    expect(outcome.draft.days[0]?.items).toHaveLength(2);
+    expect(outcome.draft.days[0]?.items[0]).toMatchObject({ arriveAt: '09:00', leaveAt: '10:30' });
+    expect(outcome.draft.days[0]?.items[1]).toMatchObject({ arriveAt: '10:42', travelFromPrevious: { minutes: 12 } });
+    expect(outcome.facts.filter((fact) => fact.kind === 'place')).toHaveLength(2);
+    expect(outcome.facts).toContainEqual(expect.objectContaining({ kind: 'route', provider: 'routing-relay' }));
+    expect(outcome.draft.estimatedBudgetCny).toEqual({ min: 0, max: 0, breakdown: {} });
+  });
+
+  it('keeps going with estimated legs and a warning when the router refuses', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1), candidate(2)]),
+      route: vi.fn(async () => ({ ok: false })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'route_unavailable' }));
+    expect(outcome.draft.days[0]?.items[1]?.travelFromPrevious).toMatchObject({ distanceMeters: null });
+    expect(outcome.facts.some((fact) => fact.kind === 'route')).toBe(false);
+  });
+
+  it('reports a failed search without losing the other results', async () => {
+    const search = vi
+      .fn()
+      .mockResolvedValueOnce([candidate(1)])
+      .mockRejectedValueOnce(new Error('quota'))
+      .mockResolvedValue([]);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search,
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request({ interests: ['西湖', '龙井'] }) });
+
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'place_search_failed' }));
+    expect(outcome.draft.days[0]?.items).toHaveLength(1);
+  });
+
+  it('returns request_incomplete without a destination or with an unusable start date', async () => {
+    const search = vi.fn();
+    const planner = service({ centre: vi.fn(), search, route: vi.fn() });
+
+    const noDestination = await planner.plan({
+      userId: 1,
+      request: travelPlanCreateRequestSchema.parse({ prompt: '杭州两天', startDate: '2026-05-01', dayCount: 2 }),
+    });
+    const badDate = await planner.plan({
+      userId: 1,
+      request: travelPlanCreateRequestSchema.parse({ destination: '杭州', startDate: '2026-13-99', dayCount: 2 }),
+    });
+
+    for (const outcome of [noDestination, badDate]) {
+      expect(outcome.warnings).toEqual([expect.objectContaining({ code: 'request_incomplete', severity: 'blocking' })]);
+      expect(outcome.draft.days).toEqual([]);
+    }
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  it('covers the requested days from dayCount and asks for drive and other transport', async () => {
+    const runs = await Promise.all(
+      (['driving', 'mixed'] as const).map(async (transport) => {
+        const route = vi.fn(async () => ({ ok: false }));
+        const planner = service({
+          centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+          search: vi.fn(async () => [candidate(1), candidate(2)]),
+          route,
+        });
+        const outcome = await planner.plan({
+          userId: 1,
+          request: travelPlanCreateRequestSchema.parse({
+            destination: '杭州',
+            startDate: '2026-05-01',
+            dayCount: 2,
+            transport,
+          }),
+        });
+        return { transport, route, outcome };
+      }),
+    );
+
+    for (const { transport, route, outcome } of runs) {
+      expect(outcome.draft.days).toHaveLength(2);
+      expect(route).toHaveBeenCalledWith(1, expect.any(Array), transport === 'driving' ? 'drive' : 'other');
+      expect(outcome.draft.days[0]?.items[1]?.travelFromPrevious).toMatchObject({ mode: routeTransport(transport) });
+    }
+  });
+
+  it('uses the pace for the daily cap and warns about the places it left out', async () => {
+    const many = Array.from({ length: 10 }, (_, index) => candidate(index + 1));
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => many),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request({ pace: 'relaxed' }) });
+
+    expect(outcome.warnings).toContainEqual(
+      expect.objectContaining({ code: 'places_skipped', message: expect.stringContaining('前 6 个') }),
+    );
+    expect(outcome.draft.days[0]?.items[0]).toMatchObject({ arriveAt: '09:00', leaveAt: '11:00' });
+  });
+
+  it('moves a stop out of the lunch window and skips what no longer fits the day', async () => {
+    const lunch = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1), candidate(2)]),
+      route: vi.fn(async () => ({ ok: true, legs: [{ mode: 'walk', minutes: 60, distanceMeters: 100 }] })),
+    });
+    const shifted = await lunch.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+    expect(shifted.draft.days[0]?.items[1]).toMatchObject({ arriveAt: '13:30', leaveAt: '15:00' });
+
+    const overflow = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        candidate(1, 30, 120, null),
+        candidate(2, 31, 121, '很远的地址'),
+        candidate(3, 32, 122),
+      ]),
+      route: vi.fn(async () => ({ ok: false })),
+    });
+    const skipped = await overflow.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01', pace: 'relaxed', transport: 'driving' }),
+    });
+    expect(skipped.warnings).toContainEqual(
+      expect.objectContaining({ code: 'places_skipped', message: expect.stringContaining('没有排进行程') }),
+    );
+    expect(skipped.draft.days[0]?.items).toHaveLength(1);
+  });
+
+  it('truncates a long place fact and leaves the parenthesis off when there is no address', async () => {
+    const longAddress = '长'.repeat(600);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1, 30, 120, null), candidate(2, 30.1, 120.1, longAddress)]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+    const details = outcome.facts.filter((fact) => fact.kind === 'place').map((fact) => fact.detail);
+
+    expect(details[0]).toBe('地点1');
+    expect(details[1]).toHaveLength(500);
+  });
+});
+
+describe('PlannerProvider', () => {
+  it('normalises an amap record and drops one without coordinates', async () => {
+    const maps = {
+      geocodeQuery: vi.fn(async () => null),
+      searchPlaces: vi.fn(async () => ({
+        places: [
+          {
+            name: '西湖',
+            lat: 30.2,
+            lng: 120.1,
+            source: 'amap',
+            amap_poi_id: 'amap:B0FF',
+            address: '西湖区',
+            types: ['风景名胜'],
+          },
+          { name: '没有坐标', source: 'osm' },
+        ],
+      })),
+    };
+    const provider = new PlannerProvider(maps as never, { ask: vi.fn() } as never);
+
+    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.2, lng: 120.1 });
+    const found = await provider.search(1, '杭州 西湖', { lat: 30, lng: 120 });
+    expect(found).toEqual([
+      expect.objectContaining({
+        place: { provider: 'amap', providerId: 'amap:B0FF', name: '西湖', lat: 30.2, lng: 120.1 },
+        category: '风景名胜',
+      }),
+    ]);
+  });
+
+  it('reads valhalla legs and refuses an answer of the wrong shape', async () => {
+    const routing = {
+      ask: vi.fn(async () => ({
+        status: 200,
+        body: Buffer.from(JSON.stringify({ trip: { legs: [{ summary: { length: 1.5, time: 600 } }] } })),
+      })),
+    };
+    const provider = new PlannerProvider({ geocodeQuery: vi.fn(), searchPlaces: vi.fn() } as never, routing as never);
+
+    expect(
+      await provider.route(
+        1,
+        [
+          { lat: 30, lng: 120 },
+          { lat: 30.1, lng: 120.1 },
+        ],
+        'drive',
+      ),
+    ).toEqual({
+      ok: true,
+      legs: [{ mode: 'drive', minutes: 10, distanceMeters: 1500 }],
+    });
+
+    routing.ask.mockResolvedValueOnce({ status: 200, body: Buffer.from('{"trip":{}}') } as never);
+    expect(
+      await provider.route(
+        1,
+        [
+          { lat: 30, lng: 120 },
+          { lat: 30.1, lng: 120.1 },
+        ],
+        'walk',
+      ),
+    ).toEqual({ ok: false });
+  });
+
+  it('prefers the geocoder and only falls back to real place records for a centre', async () => {
+    const maps = {
+      geocodeQuery: vi.fn(async () => ({ lat: 30.2, lng: 120.1 })),
+      searchPlaces: vi.fn(),
+    };
+    const provider = new PlannerProvider(maps as never, { ask: vi.fn() } as never);
+
+    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.2, lng: 120.1 });
+    expect(maps.searchPlaces).not.toHaveBeenCalled();
+
+    maps.geocodeQuery.mockResolvedValueOnce(null as never);
+    maps.searchPlaces.mockResolvedValueOnce({ places: [{ name: '杭州', lat: '30.2', lng: '120.1' }] } as never);
+    expect(await provider.centre(1, '杭州')).toBeNull();
+
+    maps.geocodeQuery.mockResolvedValueOnce(null as never);
+    maps.searchPlaces.mockRejectedValueOnce(new Error('quota') as never);
+    expect(await provider.centre(1, '杭州')).toBeNull();
+  });
+
+  it('refuses a one-point route, a non-200 answer and a summary without numbers', async () => {
+    const routing = { ask: vi.fn() };
+    const provider = new PlannerProvider({ geocodeQuery: vi.fn(), searchPlaces: vi.fn() } as never, routing as never);
+
+    expect(await provider.route(1, [{ lat: 30, lng: 120 }], 'walk')).toEqual({ ok: true, legs: [] });
+    expect(routing.ask).not.toHaveBeenCalled();
+
+    routing.ask.mockResolvedValueOnce({ status: 502, body: Buffer.from('{}') } as never);
+    expect(
+      await provider.route(
+        1,
+        [
+          { lat: 30, lng: 120 },
+          { lat: 30.1, lng: 120.1 },
+        ],
+        'walk',
+      ),
+    ).toEqual({ ok: false });
+
+    routing.ask.mockResolvedValueOnce({
+      status: 200,
+      body: Buffer.from(JSON.stringify({ trip: { legs: [{}, { summary: { time: '600', length: '1.5' } }] } })),
+    } as never);
+    expect(
+      await provider.route(
+        1,
+        [
+          { lat: 30, lng: 120 },
+          { lat: 30.1, lng: 120.1 },
+          { lat: 30.2, lng: 120.2 },
+        ],
+        'other',
+      ),
+    ).toEqual({
+      ok: true,
+      legs: [
+        { mode: 'other', minutes: 0, distanceMeters: null },
+        { mode: 'other', minutes: 10, distanceMeters: 1500 },
+      ],
+    });
+  });
+
+  it('maps transport to the router mode and keeps every candidate id fallback', async () => {
+    expect(routeTransport('driving')).toBe('drive');
+    expect(routeTransport('public_transit')).toBe('public_transit');
+    expect(routeTransport('mixed')).toBe('public_transit');
+    expect(routeTransport('walking')).toBe('walk');
+
+    const maps = {
+      geocodeQuery: vi.fn(),
+      searchPlaces: vi.fn(async () => ({
+        places: [
+          { name: '甲', lat: 30, lng: 120, google_place_id: 'g:1', types: ['', 5, '公园'] },
+          { name: '乙', lat: '31', lng: '121', osm_id: 'node:2', opening_hours: ['09:00-17:00', '', 7] },
+          { name: '丙', lat: 32, lng: 122, id: 'local:3' },
+          { name: '丁', lat: 33, lng: 123 },
+          { name: '戊', lat: true, lng: 124, id: 'bad' },
+        ],
+      })),
+    };
+    const provider = new PlannerProvider(maps as never, { ask: vi.fn() } as never);
+
+    const found = await provider.search(1, '杭州', { lat: 30, lng: 120 });
+
+    expect(found.map((entry) => entry.place.providerId)).toEqual(['g:1', 'node:2', 'local:3']);
+    expect(found[0]).toMatchObject({ place: { provider: 'maps' }, address: null, category: '公园' });
+    expect(found[1]).toMatchObject({ hours: ['09:00-17:00'] });
+    expect(found[2]).toMatchObject({ category: null, hours: [] });
+  });
+});
+
+describe('RealTravelPlanEngine', () => {
+  it('returns a draft status with request_incomplete when a required field is missing', async () => {
+    const parser = {
+      merge: vi.fn(async () => ({
+        request: travelPlanRequestSchema.parse({ destination: '杭州' }),
+        warnings: [],
+        model: null,
+      })),
+    };
+    const engine = new RealTravelPlanEngine(parser as never, { plan: vi.fn() } as never);
+
+    const result = await engine.generate({ userId: 1, request: request() });
+
+    expect(result.status).toBe('draft');
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ code: 'request_incomplete', severity: 'blocking' }),
+    );
+  });
+
+  it('returns ready for a plan without blocking warnings', async () => {
+    const parser = { merge: vi.fn(async () => ({ request: request(), warnings: [], model: null })) };
+    const planner = {
+      plan: vi.fn(async () => ({
+        draft: draft([day('2026-05-01', [['09:00', '10:00']])]),
+        facts: [{ kind: 'place', provider: 'amap', checkedAt: '2026-04-01 00:00:00', detail: '西湖' }],
+        warnings: [],
+      })),
+    };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const result = await engine.generate({ userId: 1, request: request() });
+
+    expect(result.status).toBe('ready');
+    expect(result.modelMeta.engine).toBe('nest-planner');
+  });
+
+  it('returns failed, never a fabricated draft, when the planner throws', async () => {
+    const parser = { merge: vi.fn(async () => ({ request: request(), warnings: [], model: null })) };
+    const engine = new RealTravelPlanEngine(
+      parser as never,
+      { plan: vi.fn(async () => Promise.reject(new Error('down'))) } as never,
+    );
+
+    const result = await engine.generate({ userId: 1, request: request() });
+
+    expect(result.status).toBe('failed');
+    expect(result.draft.days).toEqual([]);
+    expect(result.warnings).toContainEqual(expect.objectContaining({ code: 'generation_failed' }));
+  });
+
+  it('keeps the previous draft when a revision finds no new places', async () => {
+    const previous = draft([day('2026-05-01', [['09:00', '10:00']])]);
+    const parser = {
+      merge: vi.fn(async () => ({ request: request(), warnings: [], model: null })),
+      feedbackKeywords: vi.fn(async () => ({ keywords: ['西溪'], warnings: [], model: null })),
+    };
+    const planner = {
+      plan: vi.fn(async () => ({ draft: draft([]), facts: [], warnings: [] })),
+    };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const result = await engine.revise({ userId: 1, request: request(), draft: previous, feedback: '加上西溪' });
+
+    expect(result.status).toBe('ready');
+    expect(result.draft.days).toEqual(previous.days);
+    expect(result.warnings).toContainEqual(expect.objectContaining({ code: 'revision_not_applied' }));
+  });
+
+  it('refuses to revise without the fields a plan needs', async () => {
+    const parser = {
+      merge: vi.fn(async () => ({
+        request: travelPlanRequestSchema.parse({ destination: '杭州' }),
+        warnings: [],
+        model: null,
+      })),
+    };
+    const planner = { plan: vi.fn() };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const result = await engine.revise({ userId: 1, request: request(), draft: draft([]), feedback: '换个地方' });
+
+    expect(result.status).toBe('draft');
+    expect(planner.plan).not.toHaveBeenCalled();
+    expect(result.warnings).toEqual([expect.objectContaining({ code: 'request_incomplete', severity: 'blocking' })]);
+  });
+
+  it('turns a blocking finding from the validator into a draft status', async () => {
+    const parser = { merge: vi.fn(async () => ({ request: request(), warnings: [], model: null })) };
+    const broken = day('2026-05-01', [['09:00', '10:00']]);
+    const first = broken.items[0];
+    if (first) first.place = { ...first.place, lng: Number.NaN };
+    const planner = {
+      plan: vi.fn(async () => ({ draft: draft([broken]), facts: [], warnings: [] })),
+    };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const result = await engine.generate({ userId: 1, request: request() });
+
+    expect(result.status).toBe('draft');
+    expect(result.draft.warnings).toContainEqual(
+      expect.objectContaining({ code: 'place_missing_coordinates', severity: 'blocking' }),
+    );
+  });
+
+  it('does not keep an empty previous draft as if it were a plan', async () => {
+    const parser = {
+      merge: vi.fn(async () => ({ request: request(), warnings: [], model: null })),
+      feedbackKeywords: vi.fn(async () => ({ keywords: ['西溪'], warnings: [], model: null })),
+    };
+    const planner = { plan: vi.fn(async () => ({ draft: draft([]), facts: [], warnings: [] })) };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const result = await engine.revise({ userId: 1, request: request(), draft: draft([]), feedback: '加个公园' });
+
+    expect(result.status).toBe('draft');
+    expect(result.warnings).toContainEqual(expect.objectContaining({ code: 'no_places_found' }));
+  });
+
+  it('keeps the previous draft as a draft when its warnings already block it', async () => {
+    const previous = draft(
+      [day('2026-05-01', [['09:00', '10:00']])],
+      [{ code: 'place_missing_coordinates', message: '旧版本缺坐标', severity: 'blocking' }],
+    );
+    const parser = {
+      merge: vi.fn(async () => ({ request: request(), warnings: [], model: null })),
+      feedbackKeywords: vi.fn(async () => ({ keywords: ['西溪'], warnings: [], model: null })),
+    };
+    const planner = { plan: vi.fn(async () => ({ draft: draft([]), facts: [], warnings: [] })) };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const result = await engine.revise({ userId: 1, request: request(), draft: previous, feedback: '换个地方' });
+
+    expect(result.status).toBe('draft');
+    expect(result.draft.days).toEqual(previous.days);
+  });
+
+  it('reports unknown token counts as null rather than zero, and fails a throwing revision', async () => {
+    const model = { provider: 'openai', model: 'test-model', promptTokens: null, completionTokens: null };
+    const parser = {
+      merge: vi.fn(async () => ({ request: request(), warnings: [], model })),
+      feedbackKeywords: vi.fn(async () => ({ keywords: [], warnings: [], model })),
+    };
+    const planner = {
+      plan: vi.fn(async () => ({
+        draft: draft([day('2026-05-01', [['09:00', '10:00']])]),
+        facts: [],
+        warnings: [],
+      })),
+    };
+    const engine = new RealTravelPlanEngine(parser as never, planner as never);
+
+    const generated = await engine.generate({ userId: 1, request: request() });
+    expect(generated.modelMeta).toMatchObject({ provider: 'openai', promptTokens: null, completionTokens: null });
+
+    planner.plan.mockRejectedValueOnce(new Error('down') as never);
+    const failed = await engine.revise({ userId: 1, request: request(), draft: draft([]), feedback: '改一下' });
+    expect(failed.status).toBe('failed');
+  });
+});
+
+async function* streamOf(text: string) {
+  yield { type: 'text-delta' as const, delta: text };
+  yield { type: 'usage' as const, inputTokens: 3, outputTokens: 4 };
+}

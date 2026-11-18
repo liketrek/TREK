@@ -239,5 +239,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Hozzáadás az Apple Naptárhoz / Outlookhoz',
   'dashboard.ics.copyManually': 'Vagy másold ki kézzel a hivatkozást',
   'dashboard.ics.pasteFromUrl': 'illeszd be a „URL-ből” mezőbe',
+  'dashboard.aiPlan': 'Tervezés AI-val',
+  'dashboard.aiPlanSub': 'Írd le az utazást, nézd át a javaslatot',
 };
 export default dashboard;

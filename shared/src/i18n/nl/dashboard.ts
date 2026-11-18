@@ -238,5 +238,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Toevoegen aan Apple Agenda / Outlook',
   'dashboard.ics.copyManually': 'Of kopieer een link handmatig',
   'dashboard.ics.pasteFromUrl': 'plak in “Vanaf URL”',
+  'dashboard.aiPlan': 'Plannen met AI',
+  'dashboard.aiPlanSub': 'Beschrijf de reis, bekijk het voorstel',
 };
 export default dashboard;

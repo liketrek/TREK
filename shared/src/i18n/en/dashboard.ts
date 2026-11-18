@@ -12,6 +12,8 @@ const dashboard: TranslationStrings = {
   'dashboard.subtitle.archivedSuffix.one': ' · {count} archived',
   'dashboard.newTrip': 'New Trip',
   'dashboard.newTripSub': 'Plan a new trip from scratch',
+  'dashboard.aiPlan': 'Plan with AI',
+  'dashboard.aiPlanSub': 'Describe the trip, review the proposal',
   'dashboard.subscribeAllTrips': 'Subscribe to all trips',
   'dashboard.subscribeAllTripsDesc':
     'One calendar feed for all your active trips, kept in sync automatically. Excludes archived trips and trips that ended more than 90 days ago.',

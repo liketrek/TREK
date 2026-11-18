@@ -14,6 +14,7 @@ import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AddonsModule } from './addons/addons.module';
 import { AdminModule } from './admin/admin.module';
 import { AiConnectionsModule } from './ai-connections/ai-connections.module';
+import { AiTravelPlanModule } from './ai-travel-plan/ai-travel-plan.module';
 import { AirportsModule } from './airports/airports.module';
 import { AppConfigModule } from './app-config/app-config.module';
 import { AssignmentsModule } from './assignments/assignments.module';
@@ -208,6 +209,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     ReceiptScanModule,
     LlmParseModule,
     AiConnectionsModule,
+    AiTravelPlanModule,
     AssistantModule,
     ManagedExtModule,
     // registerRequestContext off: bootstrap.ts mounts the per-request fork as a

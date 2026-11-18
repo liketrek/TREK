@@ -2,6 +2,7 @@ import { Collection, EntityRepositoryType, type Opt, type Ref, defineEntity, p }
 import { UsersRepository } from '../repositories/Users.repository';
 import { DbTimestampType } from '../types';
 import { AiConnections } from './AiConnections.entity';
+import { AiTravelPlans } from './AiTravelPlans.entity';
 import { AssignmentParticipants } from './AssignmentParticipants.entity';
 import { AssistantAttachments } from './AssistantAttachments.entity';
 import { AssistantThreads } from './AssistantThreads.entity';
@@ -135,6 +136,7 @@ export class Users {
   immich_allow_insecure_tls: number & Opt = 0;
   email_self_asserted: number & Opt = 0;
   ai_connections_collection = new Collection<AiConnections>(this);
+  ai_travel_plans_collection = new Collection<AiTravelPlans>(this);
   assignment_participants_collection = new Collection<AssignmentParticipants>(this);
   assistant_attachments_collection = new Collection<AssistantAttachments>(this);
   assistant_threads_collection = new Collection<AssistantThreads>(this);
@@ -294,6 +296,7 @@ export const UsersSchema = defineEntity({
     immich_allow_insecure_tls: p.integer().default(0),
     email_self_asserted: p.integer().default(0),
     ai_connections_collection: () => p.oneToMany(AiConnections).mappedBy('user').hidden(),
+    ai_travel_plans_collection: () => p.oneToMany(AiTravelPlans).mappedBy('owner').hidden(),
     assignment_participants_collection: () => p.oneToMany(AssignmentParticipants).mappedBy('user').hidden(),
     assistant_attachments_collection: () => p.oneToMany(AssistantAttachments).mappedBy('user').hidden(),
     assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('user').hidden(),

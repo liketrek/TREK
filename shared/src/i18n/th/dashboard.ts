@@ -214,5 +214,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'เพิ่มใน Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'หรือคัดลอกลิงก์ด้วยตนเอง',
   'dashboard.ics.pasteFromUrl': 'วางใน “จาก URL”',
+  'dashboard.aiPlan': 'วางแผนด้วย AI',
+  'dashboard.aiPlanSub': 'อธิบายทริปและตรวจดูข้อเสนอ',
 };
 export default dashboard;

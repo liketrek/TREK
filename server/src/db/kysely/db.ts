@@ -2,6 +2,8 @@
 // change the migration, then run `npm run gen:db-types`.
 import type { AddonsTable } from './Addons.table';
 import type { AiConnectionsTable } from './AiConnections.table';
+import type { AiTravelPlanRevisionsTable } from './AiTravelPlanRevisions.table';
+import type { AiTravelPlansTable } from './AiTravelPlans.table';
 import type { AppSettingsTable } from './AppSettings.table';
 import type { AssignmentParticipantsTable } from './AssignmentParticipants.table';
 import type { AssistantAttachmentsTable } from './AssistantAttachments.table';
@@ -177,6 +179,8 @@ import type { WebauthnCredentialsTable } from './WebauthnCredentials.table';
 export interface DB {
   addons: AddonsTable;
   ai_connections: AiConnectionsTable;
+  ai_travel_plan_revisions: AiTravelPlanRevisionsTable;
+  ai_travel_plans: AiTravelPlansTable;
   app_settings: AppSettingsTable;
   assignment_participants: AssignmentParticipantsTable;
   assistant_attachments: AssistantAttachmentsTable;

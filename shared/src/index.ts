@@ -245,6 +245,14 @@ export * from './assistant/assistant-share.schema';
 export * from './assistant/assistant-scope.schema';
 export * from './assistant/assistant-vision.schema';
 
+// AI travel plans (China MVP): request, draft, warnings and the REST contract
+// a future Java/Spring AI service must keep byte-compatible.
+export * from './ai-travel-plan/request.schema';
+export * from './ai-travel-plan/warnings';
+export * from './ai-travel-plan/draft.schema';
+export * from './ai-travel-plan/plan.schema';
+export * from './ai-travel-plan/apply-result.schema';
+
 // Realtime WS event contract registry (event names + payload schemas)
 export * from './realtime/events.schema';
 export * from './roadtrip/day-boundary.schema';

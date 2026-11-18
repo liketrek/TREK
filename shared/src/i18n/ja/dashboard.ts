@@ -217,5 +217,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple カレンダー / Outlook に追加',
   'dashboard.ics.copyManually': 'またはリンクを手動でコピー',
   'dashboard.ics.pasteFromUrl': '「URL から」に貼り付け',
+  'dashboard.aiPlan': 'AIで旅行を計画',
+  'dashboard.aiPlanSub': '希望を伝えて提案を確認',
 };
 export default dashboard;

@@ -303,6 +303,23 @@ export class DaysService {
     return { days: daysWithAssignments };
   }
 
+  /**
+   * Day id by date for one trip, keyed `YYYY-MM-DD` as stored. Days without a
+   * date are absent; a duplicated date keeps the first row, which is the one
+   * the day plan draws. The AI plan apply matches its draft days through this
+   * instead of loading every day's assignments.
+   */
+  async idsByDate(tripId: string | number): Promise<Map<string, number>> {
+    const tid = toRowId(tripId);
+    if (tid === null) return new Map();
+    const days = await this.daysRepo.listByTrip(tid);
+    const byDate = new Map<string, number>();
+    for (const day of days) {
+      if (day.date && !byDate.has(day.date)) byDate.set(day.date, day.id);
+    }
+    return byDate;
+  }
+
   async create(tripId: string | number, date?: string, notes?: string) {
     // Rule 21 / M-1 (Task 9 fix round 2): `toRowId`, not `Number()`. A miss
     // here answers the SAME 404 `TripAccessGuard` gives a non-numeric id

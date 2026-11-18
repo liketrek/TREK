@@ -235,5 +235,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Lägg till i Apple Kalender / Outlook',
   'dashboard.ics.copyManually': 'Eller kopiera en länk manuellt',
   'dashboard.ics.pasteFromUrl': 'klistra in i “Från URL”',
+  'dashboard.aiPlan': 'Planera med AI',
+  'dashboard.aiPlanSub': 'Beskriv resan, granska förslaget',
 };
 export default dashboard;

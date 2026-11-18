@@ -55,6 +55,7 @@ const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPag
 const NativeHandoffPage = lazyWithRetry(() => import('./pages/NativeHandoffPage'))
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'))
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'))
+const AiTravelPlanPage = lazyWithRetry(() => import('./pages/aiTravelPlan/AiTravelPlanPage'))
 const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'))
 const FilesPage = lazyWithRetry(() => import('./pages/FilesPage'))
 const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'))
@@ -484,6 +485,16 @@ export default function App() {
           />
           {/* Trip invite link (#1143) — behind ProtectedRoute so an anonymous
               visitor is redirected to /login (never registration) and returns here. */}
+          {/* The AI plan is a proposal, not a trip: it lives on its own route and
+              writes nothing to the trip data until the traveller confirms. */}
+          <Route
+            path="/plan"
+            element={
+              <ProtectedRoute>
+                <AiTravelPlanPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/join/:token"
             element={

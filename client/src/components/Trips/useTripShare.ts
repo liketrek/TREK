@@ -3,7 +3,7 @@ import type { TripMember } from '@trek/shared'
 import { tripsApi, authApi, shareApi, tripInviteApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { useAuthStore } from '../../store/authStore'
-import { useCanDo } from '../../store/permissionsStore'
+import { useCanDo, type TripOwnerContext } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
@@ -144,12 +144,14 @@ interface DirectoryUser { id: number; username: string; is_guest?: boolean }
 export type ListedMember = TripMember & { role?: string }
 
 /** The roster: members with an account, the guests without one, and the users who could still be invited. */
-export function useTripMembers({ isOpen, tripId, onClose, onMembersChanged }: {
+export function useTripMembers({ isOpen, tripId, onClose, onMembersChanged, permissionTrip }: {
   isOpen: boolean
   tripId: number
   onClose: () => void
   /** After a change to the roster, so the planner can refresh Costs participants, Collab and the rest. */
   onMembersChanged?: () => void
+  /** Permission context for pages that open the roster before the trip store holds it (the AI plan page). */
+  permissionTrip?: TripOwnerContext | null
 }) {
   const [data, setData] = useState<MembersData | null>(null)
   const [allUsers, setAllUsers] = useState<DirectoryUser[]>([])
@@ -166,7 +168,8 @@ export function useTripMembers({ isOpen, tripId, onClose, onMembersChanged }: {
   const { user } = useAuthStore()
   const { t } = useTranslation()
   const can = useCanDo()
-  const trip = useTripStore(s => s.trip)
+  const storeTrip = useTripStore(s => s.trip)
+  const trip = permissionTrip ?? storeTrip
   const loadBudgetItems = useTripStore(s => s.loadBudgetItems)
 
   const loadMembers = async (notify = false) => {

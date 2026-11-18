@@ -4,7 +4,7 @@ import { useAuthStore } from './authStore'
 export type PermissionLevel = 'admin' | 'trip_owner' | 'trip_member' | 'everybody'
 
 /** Minimal trip shape used by permission checks — accepts both Trip and DashboardTrip */
-type TripOwnerContext = { user_id?: unknown; owner_id?: unknown; is_owner?: unknown }
+export type TripOwnerContext = { user_id?: unknown; owner_id?: unknown; is_owner?: unknown }
 
 interface PermissionsState {
   permissions: Record<string, PermissionLevel>

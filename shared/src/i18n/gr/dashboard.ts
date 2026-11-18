@@ -240,5 +240,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Προσθήκη στο Ημερολόγιο Apple / Outlook',
   'dashboard.ics.copyManually': 'Ή αντιγράψτε έναν σύνδεσμο χειροκίνητα',
   'dashboard.ics.pasteFromUrl': 'επικολλήστε στο «Από URL»',
+  'dashboard.aiPlan': 'Σχεδιασμός με AI',
+  'dashboard.aiPlanSub': 'Περιγράψτε το ταξίδι, ελέγξτε την πρόταση',
 };
 export default dashboard;

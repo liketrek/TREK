@@ -212,5 +212,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': '加入 Apple 日曆 / Outlook',
   'dashboard.ics.copyManually': '或手動複製連結',
   'dashboard.ics.pasteFromUrl': '貼到「從 URL」',
+  'dashboard.aiPlan': '用 AI 幫我規劃',
+  'dashboard.aiPlanSub': '描述需求，先看草案再寫入',
 };
 export default dashboard;

@@ -9,6 +9,8 @@ const dashboard: TranslationStrings = {
   'dashboard.subtitle.archivedSuffix': ' · {count} 个已归档',
   'dashboard.newTrip': '新建旅行',
   'dashboard.newTripSub': '从零开始规划新旅行',
+  'dashboard.aiPlan': '让 AI 帮我规划',
+  'dashboard.aiPlanSub': '描述需求，先看草案再写入',
   'dashboard.subscribeAllTrips': '订阅所有旅行',
   'dashboard.subscribeAllTripsDesc':
     '一个日历订阅源，涵盖你所有进行中的旅行，并自动保持同步。不含已归档的旅行以及结束超过 90 天的旅行。',

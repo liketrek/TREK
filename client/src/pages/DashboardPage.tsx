@@ -19,7 +19,7 @@ import {
 import {
   Plus, Edit2, Trash2, Archive, ArchiveRestore, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare, LogIn, LogOut, Search,
+  LayoutGrid, List, Ticket, X, CalendarPlus, ParkingSquare, LogIn, LogOut, Search, Sparkles,
 } from 'lucide-react'
 import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
@@ -259,13 +259,22 @@ function DashboardPageDesktop(): React.ReactElement {
                   </>
                 )}
                 {tripFilter === 'planned' && !search.active && !isLoading && (
-                  <button type="button" className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
-                    <div>
-                      <div className="circ"><Plus size={20} /></div>
-                      <div className="ttl">{t('dashboard.newTrip')}</div>
-                      <div className="sub">{t('dashboard.newTripSub')}</div>
-                    </div>
-                  </button>
+                  <>
+                    <button type="button" className="add-trip-card" onClick={() => { void navigate('/plan'); }}>
+                      <div>
+                        <div className="circ"><Sparkles size={20} /></div>
+                        <div className="ttl">{t('dashboard.aiPlan')}</div>
+                        <div className="sub">{t('dashboard.aiPlanSub')}</div>
+                      </div>
+                    </button>
+                    <button type="button" className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
+                      <div>
+                        <div className="circ"><Plus size={20} /></div>
+                        <div className="ttl">{t('dashboard.newTrip')}</div>
+                        <div className="sub">{t('dashboard.newTripSub')}</div>
+                      </div>
+                    </button>
+                  </>
                 )}
               </div>
             </section>

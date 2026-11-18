@@ -238,5 +238,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple Təqvimə / Outlook-a əlavə et',
   'dashboard.ics.copyManually': 'Və ya keçidi əllə kopyalayın',
   'dashboard.ics.pasteFromUrl': '“URL-dən” sahəsinə yapışdırın',
+  'dashboard.aiPlan': 'AI ilə planlaşdır',
+  'dashboard.aiPlanSub': 'Səyahəti təsvir edin, təklifi nəzərdən keçirin',
 };
 export default dashboard;

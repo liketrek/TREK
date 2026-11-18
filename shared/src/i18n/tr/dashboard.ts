@@ -236,5 +236,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple Takvim / Outlook’a ekle',
   'dashboard.ics.copyManually': 'Veya bağlantıyı elle kopyalayın',
   'dashboard.ics.pasteFromUrl': '“URL’den” alanına yapıştırın',
+  'dashboard.aiPlan': 'AI ile planla',
+  'dashboard.aiPlanSub': 'Seyahati anlat, öneriyi incele',
 };
 export default dashboard;

@@ -235,5 +235,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Lisa Apple’i kalendrisse / Outlooki',
   'dashboard.ics.copyManually': 'Või kopeeri link käsitsi',
   'dashboard.ics.pasteFromUrl': 'kleebi väljale „URL-ist“',
+  'dashboard.aiPlan': 'Planeeri AI-ga',
+  'dashboard.aiPlanSub': 'Kirjelda reisi, vaata ettepanek üle',
 };
 export default dashboard;

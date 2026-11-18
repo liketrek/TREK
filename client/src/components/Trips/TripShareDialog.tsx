@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react'
 import { Check, Copy, Crown, Link2, LogOut, Pencil, Plus, Settings, Trash2, UserMinus, UserPlus, UserRound, Users } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import type { TripOwnerContext } from '../../store/permissionsStore'
 import CustomSelect from '../shared/CustomSelect'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { Tooltip } from '../shared/Tooltip'
@@ -18,6 +19,8 @@ interface TripShareDialogProps {
   tripId: number
   tripTitle: string
   onMembersChanged?: () => void
+  /** Permission context for callers that open the roster before the trip store holds it. */
+  permissionTrip?: TripOwnerContext | null
 }
 
 /** A question the dialog asks before it acts, answered in a ConfirmDialog over it. */
@@ -54,10 +57,10 @@ const AREAS: { id: Area; icon: (on: boolean) => ReactNode; labelKey: string; hin
   { id: 'journal', icon: () => <LinkedJournalIcon size={16} />, labelKey: 'trip.journal.title', hintKey: 'trip.journal.hint' },
 ]
 
-function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged }: TripShareDialogProps) {
+function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, permissionTrip }: TripShareDialogProps) {
   const { t } = useTranslation()
   const labelId = useId()
-  const m = useTripMembers({ isOpen: true, tripId, onClose, onMembersChanged })
+  const m = useTripMembers({ isOpen: true, tripId, onClose, onMembersChanged, permissionTrip })
   const [ask, setAsk] = useState<Ask | null>(null)
   const [area, setArea] = useState<Area>('people')
   const journalSection = useTripJournalSectionVisible(tripId)

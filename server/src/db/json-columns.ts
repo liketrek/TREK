@@ -23,6 +23,12 @@ import {
   tourSourceHintChangeSchema,
   tourWaypointSchema,
   trackMarksSchema,
+  travelPlanDraftSchema,
+  travelPlanFactSchema,
+  travelPlanApplyResultSchema,
+  travelPlanModelMetaSchema,
+  travelPlanRequestSchema,
+  travelPlanWarningSchema,
   type DawarichTrackSegment,
   type AssistantChangePreview,
   type AssistantMessagePart,
@@ -40,6 +46,12 @@ import {
   type TourSourceHintChange,
   type TourWaypoint,
   type TrackMarks,
+  type TravelPlanDraft,
+  type TravelPlanApplyResult,
+  type TravelPlanFact,
+  type TravelPlanModelMeta,
+  type TravelPlanRequest,
+  type TravelPlanWarning,
 } from '@trek/shared';
 
 import { z } from 'zod';
@@ -530,4 +542,70 @@ export const PLACE_DETAILS_CACHE_PAYLOAD: JsonColumn<Record<string, unknown> | n
   column: 'place_details_cache.payload_json',
   schema: z.record(z.string(), z.unknown()).nullable(),
   fallback: () => null,
+};
+
+/**
+ * What the traveller asked for in `ai_travel_plans.request_json`. A broken row
+ * reads as the defaults — no destination, no prompt — so the plan shows an
+ * empty request rather than answers with a parsed half.
+ */
+export const AI_TRAVEL_PLAN_REQUEST: JsonColumn<TravelPlanRequest> = {
+  column: 'ai_travel_plans.request_json',
+  schema: travelPlanRequestSchema,
+  fallback: () => travelPlanRequestSchema.parse({}),
+};
+
+/**
+ * What an explicit apply wrote, in `ai_travel_plans.apply_result_json`. Empty
+ * until the plan is applied; a broken row reads as "nothing recorded", so the
+ * undo refuses instead of deleting rows it cannot name.
+ */
+export const AI_TRAVEL_PLAN_APPLY_RESULT: JsonColumn<TravelPlanApplyResult | null> = {
+  column: 'ai_travel_plans.apply_result_json',
+  schema: travelPlanApplyResultSchema.nullable(),
+  fallback: () => null,
+};
+
+/**
+ * One revision's draft in `ai_travel_plan_revisions.draft_json`. A broken row
+ * reads as the honest empty draft: no days, no places, no price.
+ */
+export const AI_TRAVEL_PLAN_REVISION_DRAFT: JsonColumn<TravelPlanDraft> = {
+  column: 'ai_travel_plan_revisions.draft_json',
+  schema: travelPlanDraftSchema,
+  fallback: () => ({
+    summary: '这一版草案已损坏，无法读取。',
+    factsCheckedAt: '1970-01-01 00:00:00',
+    days: [],
+    estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+    warnings: [],
+  }),
+};
+
+/** The provider checks behind one revision; a broken row checked nothing. */
+export const AI_TRAVEL_PLAN_REVISION_FACTS: JsonColumn<TravelPlanFact[]> = {
+  column: 'ai_travel_plan_revisions.facts_json',
+  schema: z.array(travelPlanFactSchema),
+  fallback: () => [],
+};
+
+/** The warnings of one revision; a broken row raises none from storage. */
+export const AI_TRAVEL_PLAN_REVISION_WARNINGS: JsonColumn<TravelPlanWarning[]> = {
+  column: 'ai_travel_plan_revisions.warnings_json',
+  schema: z.array(travelPlanWarningSchema),
+  fallback: () => [],
+};
+
+/** Which engine and model produced a revision, and what it cost. */
+export const AI_TRAVEL_PLAN_REVISION_MODEL_META: JsonColumn<TravelPlanModelMeta> = {
+  column: 'ai_travel_plan_revisions.model_meta_json',
+  schema: travelPlanModelMetaSchema,
+  fallback: () => ({
+    engine: 'unknown',
+    provider: null,
+    model: null,
+    promptTokens: null,
+    completionTokens: null,
+    costCny: null,
+  }),
 };

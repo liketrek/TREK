@@ -89,6 +89,9 @@ export default defineConfig({
         // New domains in this change, unmeasured: pinned at the 80 floor. Regenerate
         // with scripts/coverage-thresholds.mjs after the first full run.
         'src/nest/ai-connections/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        // AI travel plans (China MVP, phase 1). On the 80 floor until a full run
+        // measures it; raise it with scripts/coverage-thresholds.mjs, never lower it.
+        'src/nest/ai-travel-plan/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/airports/**/*.ts': { statements: 68, branches: 60, functions: 93, lines: 73 },
         'src/nest/app-config/**/*.ts': { statements: 79, branches: 100, functions: 65, lines: 71 },
         'src/nest/assignments/**/*.ts': { statements: 90, branches: 80, functions: 97, lines: 96 },

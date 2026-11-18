@@ -304,5 +304,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'أضف إلى تقويم Apple / Outlook',
   'dashboard.ics.copyManually': 'أو انسخ الرابط يدويًا',
   'dashboard.ics.pasteFromUrl': 'الصقه في «من عنوان URL»',
+  'dashboard.aiPlan': 'التخطيط بالذكاء الاصطناعي',
+  'dashboard.aiPlanSub': 'صِف الرحلة وراجع الاقتراح',
 };
 export default dashboard;

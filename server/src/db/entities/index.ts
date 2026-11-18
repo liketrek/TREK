@@ -1,6 +1,8 @@
 import type { EntitySchema } from '@mikro-orm/core';
 import { AddonsSchema } from './Addons.entity';
 import { AiConnectionsSchema } from './AiConnections.entity';
+import { AiTravelPlanRevisionsSchema } from './AiTravelPlanRevisions.entity';
+import { AiTravelPlansSchema } from './AiTravelPlans.entity';
 import { AppSettingsSchema } from './AppSettings.entity';
 import { AssignmentParticipantsSchema } from './AssignmentParticipants.entity';
 import { AssistantAttachmentsSchema } from './AssistantAttachments.entity';
@@ -170,6 +172,8 @@ import { WebauthnCredentialsSchema } from './WebauthnCredentials.entity';
 export const ALL_ENTITIES: readonly EntitySchema[] = [
   AddonsSchema,
   AiConnectionsSchema,
+  AiTravelPlanRevisionsSchema,
+  AiTravelPlansSchema,
   AppSettingsSchema,
   AssignmentParticipantsSchema,
   AssistantAttachmentsSchema,

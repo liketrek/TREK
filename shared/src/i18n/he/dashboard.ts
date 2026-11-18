@@ -250,6 +250,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'הוספה ל-Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'או העתיקו קישור ידנית',
   'dashboard.ics.pasteFromUrl': 'הדביקו ב-„From URL”',
+  'dashboard.aiPlan': 'תכנון עם AI',
+  'dashboard.aiPlanSub': 'תארו את הטיול ובדקו את ההצעה',
 };
 
 export default dashboard;

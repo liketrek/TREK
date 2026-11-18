@@ -1,6 +1,8 @@
 {
   "Addons": "addons",
   "AiConnections": "ai-connections",
+  "AiTravelPlanRevisions": "ai-travel-plan",
+  "AiTravelPlans": "ai-travel-plan",
   "AppSettings": "settings",
   "AssignmentParticipants": "assignments",
   "AssistantAttachments": "assistant",

@@ -219,5 +219,7 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Thêm vào Lịch Apple / Outlook',
   'dashboard.ics.copyManually': 'Hoặc sao chép liên kết thủ công',
   'dashboard.ics.pasteFromUrl': 'dán vào “Từ URL”',
+  'dashboard.aiPlan': 'Lập kế hoạch với AI',
+  'dashboard.aiPlanSub': 'Mô tả chuyến đi, xem lại bản đề xuất',
 };
 export default dashboard;
