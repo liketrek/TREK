@@ -2,6 +2,14 @@ import { PLUGIN_SESSION_MAX_KEYS, PLUGIN_SESSION_MAX_KEY_LENGTH, PLUGIN_SESSION_
 import type { PluginContext, PluginDefinition, PluginRequest, PluginResponse, Trip, Place, Day, Reservation, PackingItem, TripFile, BudgetItem, User, NotificationMessage, PluginActionResult, PluginSessionStorage } from './index.js';
 import { CHANNEL_EVENTS } from './manifest.js';
 import { PermissionDenied, HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, JOBS_PERMISSION } from './permissions.js';
+import {
+  PLUGIN_DATA_CAPS,
+  PLUGIN_DATA_ERRORS,
+  refuseNulSql,
+  refuseNulValues,
+  refuseTransactionControl,
+  type PluginSqlDialect,
+} from './plugin-data-contract.js';
 
 /**
  * A mock PluginContext for unit-testing a plugin without a running TREK
@@ -194,25 +202,24 @@ export interface MockHost {
 }
 
 
-// --- Statement guards copied from the host's PluginDataDb (plugin-data.service.ts),
-// so SQL production refuses fails in a unit test too instead of silently passing. ---
-const MAX_SQL_LENGTH = 100_000;
+// --- Statement guards copied from the host's SQLite store (SqlitePluginDataStore),
+// so SQL production refuses fails in a unit test too instead of silently passing.
+// The caps, the refusal texts and the NUL refusal come from plugin-data-contract.ts,
+// a byte-identical copy of the host's. ---
 const FORBIDDEN_SQL = /\b(ATTACH|DETACH|VACUUM|PRAGMA|RECURSIVE|LOAD_EXTENSION)\b/i;
-// Transaction-control keywords, matched only at statement start (CASE…END and
-// identifiers are unaffected). A raw COMMIT inside tx() would break atomicity.
-const TX_CONTROL = /^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|END)\b/i;
-const MAX_TX_OPS = 100;
 
-function guardSql(sql: string): void {
-  if (typeof sql !== 'string') throw new Error('sql must be a string');
-  if (sql.length > MAX_SQL_LENGTH) throw new Error('sql too long');
-  if (FORBIDDEN_SQL.test(sql)) throw new Error('statement type not allowed for plugin databases');
-}
-
-/** Strip LEADING comments/whitespace so a COMMIT hidden behind a line or block
- * comment can't slip past the start-anchored TX_CONTROL check. */
-function stripLeadingComments(sql: string): string {
-  return String(sql ?? '').replace(/^(?:\s|--[^\n]*\n?|\/\*[\s\S]*?\*\/)*/, '');
+/**
+ * The host's checks on one SQL text, in the order the host runs them. The
+ * transaction-control scan reads `sql` in the dialect of the engine the mock
+ * host emulates, so Postgres spellings (`$1::numeric(10, 2)`, `$$...$$`) pass
+ * where TREK on Postgres runs them.
+ */
+function guardSql(sql: unknown, dialect: PluginSqlDialect): void {
+  if (typeof sql !== 'string') throw new Error(PLUGIN_DATA_ERRORS.sqlNotString);
+  if (sql.length > PLUGIN_DATA_CAPS.maxSqlLength) throw new Error(PLUGIN_DATA_ERRORS.sqlTooLong);
+  refuseNulSql(sql);
+  if (FORBIDDEN_SQL.test(sql)) throw new Error(PLUGIN_DATA_ERRORS.statementNotAllowed);
+  refuseTransactionControl(sql, dialect);
 }
 
 // The host's stripEmoji (text-sanitize.ts), copied so notify.send cleans/rejects the
@@ -261,6 +268,7 @@ const META_KEY_MAX = 256;
 const META_KEYS_MAX = 100;
 
 export function createMockHost(opts: MockHostOptions = {}): MockHost {
+  const dialect: PluginSqlDialect = opts.dbEngine ?? 'sqlite';
   const grants = new Set(opts.grants ?? []);
   const calls: MockHost['calls'] = [];
   const logs: MockHost['logs'] = [];
@@ -438,33 +446,39 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
         },
       },
       db: {
-        async query(sql) {
+        async query(sql, ...args) {
           need('db:own', 'db.query');
-          guardSql(sql);
-          return (opts.queryResults?.[sql] ?? []) as never[];
+          guardSql(sql, dialect);
+          refuseNulValues(args);
+          const rows = opts.queryResults?.[sql] ?? [];
+          if (rows.length > PLUGIN_DATA_CAPS.maxRows) throw new Error(PLUGIN_DATA_ERRORS.queryTooManyRows(PLUGIN_DATA_CAPS.maxRows));
+          return rows as never[];
         },
-        async exec(sql) {
+        async exec(sql, ...args) {
           need('db:own', 'db.exec');
-          guardSql(sql);
+          guardSql(sql, dialect);
+          refuseNulValues(args);
           return { changes: 0 };
         },
-        async migrate(_id, sql) {
+        async migrate(id, sql) {
           need('db:own', 'db.migrate');
-          guardSql(sql);
+          guardSql(sql, dialect);
+          refuseNulValues([id]);
           return { applied: true };
         },
         async engine() {
           need('db:own', 'db.engine');
-          return opts.dbEngine ?? 'sqlite';
+          return dialect;
         },
         async tx(ops) {
           need('db:own', 'db.tx');
-          // Same batch guards as the host's PluginDataDb: an op cap, the forbidden
-          // statement types, and no transaction control inside the batch.
-          if (ops.length > MAX_TX_OPS) throw new Error(`tx allows at most ${MAX_TX_OPS} statements`);
+          // Same batch guards as the host's SQLite store: an op cap, then each op's
+          // SQL through the guard every call takes (transaction control included).
+          if (!Array.isArray(ops)) throw new Error(PLUGIN_DATA_ERRORS.txNotArray);
+          if (ops.length > PLUGIN_DATA_CAPS.maxTxOps) throw new Error(PLUGIN_DATA_ERRORS.txTooManyOps(PLUGIN_DATA_CAPS.maxTxOps));
           for (const op of ops) {
-            guardSql(op.sql);
-            if (TX_CONTROL.test(stripLeadingComments(op.sql))) throw new Error('transaction-control statements are not allowed inside tx()');
+            guardSql(op?.sql, dialect);
+            refuseNulValues(op.args ?? []);
           }
           // Mirror the host: reads resolve from queryResults, writes report 0 changes.
           return {

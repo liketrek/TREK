@@ -23,6 +23,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import * as sdk from '../index.js';
+import { PLUGIN_DATA_CAPS, PLUGIN_DATA_ERRORS, refuseNulSql, refuseNulValues, refuseTransactionControl } from '../plugin-data-contract.js';
 import { injectTrekUi } from '../ui/kit.js';
 import { readJsonFile } from './json.js';
 import {
@@ -79,26 +80,21 @@ function printGaps(gaps: GrantGap[]): void {
   }
 }
 
-// The same SQL guards the real host's PluginDataDb applies (plugin-data.service.ts):
-// forbidden statement types, an sql-length cap, a result-row cap, and — inside tx() —
-// no transaction control plus a batch-size cap. Without them a statement production
-// refuses would silently work in dev, and the author would debug a phantom.
-const MAX_SQL_LENGTH = 100_000;
+// The same SQL guards the real host's SQLite store applies (SqlitePluginDataStore):
+// forbidden statement types, an sql-length cap, a result-row cap, NUL in the SQL, an
+// argument or a migration id, transaction control in any statement of any call, and a
+// tx batch-size cap. The caps and the refusal texts come from plugin-data-contract.ts, a byte-identical
+// copy of the host's. Without them a statement production refuses would silently work
+// in dev, and the author would debug a phantom.
 const FORBIDDEN_SQL = /\b(ATTACH|DETACH|VACUUM|PRAGMA|RECURSIVE|LOAD_EXTENSION)\b/i;
-const TX_CONTROL = /^\s*(BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|END)\b/i;
-const MAX_TX_OPS = 100;
-const MAX_ROWS = 100_000;
 
-function guardSql(sql: string): void {
-  if (typeof sql !== 'string') throw new Error('sql must be a string');
-  if (sql.length > MAX_SQL_LENGTH) throw new Error('sql too long');
-  if (FORBIDDEN_SQL.test(sql)) throw new Error('statement type not allowed for plugin databases');
-}
-
-/** Strip LEADING comments/whitespace so a COMMIT hidden behind a comment can't slip
- * past the start-anchored TX_CONTROL check (mirrors the host's tx() guard). */
-function stripLeadingComments(sql: string): string {
-  return String(sql ?? '').replace(/^(?:\s|--[^\n]*\n?|\/\*[\s\S]*?\*\/)*/, '');
+/** The host's checks on one SQL text, in the order the host runs them. */
+function guardSql(sql: unknown): void {
+  if (typeof sql !== 'string') throw new Error(PLUGIN_DATA_ERRORS.sqlNotString);
+  if (sql.length > PLUGIN_DATA_CAPS.maxSqlLength) throw new Error(PLUGIN_DATA_ERRORS.sqlTooLong);
+  refuseNulSql(sql);
+  if (FORBIDDEN_SQL.test(sql)) throw new Error(PLUGIN_DATA_ERRORS.statementNotAllowed);
+  refuseTransactionControl(sql);
 }
 
 // The credential-free inbound-header allowlist TREK's proxy forwards to auth:false
@@ -149,11 +145,11 @@ export function createDevDb(dbFile: string): { db: PluginContextDb; note: string
     return {
       note: `db:own → in-memory STUB (writes are discarded — upgrade to Node 22.5+; you are on ${process.version})`,
       close: () => {},
-      db: {
-        async query(sql: string) { guardSql(sql); return []; },
-        async exec(sql: string) { guardSql(sql); return { changes: 0 }; },
-        async migrate(_id: string, sql: string) { guardSql(sql); return { applied: true }; },
-      },
+      db: withTx({
+        async query(sql: string, ...args: unknown[]) { guardSql(sql); refuseNulValues(flatBind(args)); return []; },
+        async exec(sql: string, ...args: unknown[]) { guardSql(sql); refuseNulValues(flatBind(args)); return { changes: 0 }; },
+        async migrate(id: string, sql: string) { guardSql(sql); refuseNulValues([id]); return { applied: true }; },
+      }),
     };
   }
 
@@ -164,26 +160,59 @@ export function createDevDb(dbFile: string): { db: PluginContextDb; note: string
     return {
       note: `db:own → real SQLite at ${dbFile}`,
       close: () => { try { sq.close(); } catch { /* ignore */ } },
-      db: {
+      db: withTx({
         async query(sql: string, ...args: unknown[]) {
           guardSql(sql);
+          refuseNulValues(flatBind(args));
           const rows = sq.prepare(sql).all(...flatBind(args)) as unknown[];
-          if (rows.length > MAX_ROWS) throw new Error(`query returned more than ${MAX_ROWS} rows`);
+          if (rows.length > PLUGIN_DATA_CAPS.maxRows) throw new Error(PLUGIN_DATA_ERRORS.queryTooManyRows(PLUGIN_DATA_CAPS.maxRows));
           return rows;
         },
         async exec(sql: string, ...args: unknown[]) {
           guardSql(sql);
+          refuseNulValues(flatBind(args));
           if (args.length) { const r = sq.prepare(sql).run(...flatBind(args)); return { changes: Number(r.changes ?? 0) }; }
           sq.exec(sql); return { changes: 0 };
         },
-        async migrate(id: string, sql: string) { guardSql(sql); if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
-      },
+        async migrate(id: string, sql: string) { guardSql(sql); refuseNulValues([id]); if (applied.has(id)) return { applied: false }; sq.exec(sql); applied.add(id); return { applied: true }; },
+      }),
     };
   }
 }
 
+type DevTxOp = { sql: string; args?: unknown[] };
+type DevTxResult = { results: Array<{ changes?: number; rows?: unknown[] }> };
+
+const isRead = (sql: string) => /^\s*(SELECT|WITH|VALUES)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
+
+/**
+ * Adds a functional (not strictly atomic) tx over `db`, so read-modify-write batches
+ * work in dev; production runs it in one transaction. The whole batch is checked up
+ * front, like the host's SqlitePluginDataStore.tx, so a bad op fails before anything ran
+ * instead of leaving earlier writes behind.
+ */
+function withTx(db: Omit<PluginContextDb, 'tx'>): PluginContextDb {
+  return {
+    ...db,
+    async tx(ops: DevTxOp[]): Promise<DevTxResult> {
+      if (!Array.isArray(ops)) throw new Error(PLUGIN_DATA_ERRORS.txNotArray);
+      if (ops.length > PLUGIN_DATA_CAPS.maxTxOps) throw new Error(PLUGIN_DATA_ERRORS.txTooManyOps(PLUGIN_DATA_CAPS.maxTxOps));
+      for (const op of ops) {
+        guardSql(op?.sql);
+        refuseNulValues(op.args ?? []);
+      }
+      const results: DevTxResult['results'] = [];
+      for (const op of ops) {
+        if (isRead(op.sql)) results.push({ rows: await db.query(op.sql, ...(op.args ?? [])) });
+        else { const r = await db.exec(op.sql, ...(op.args ?? [])); results.push({ changes: r.changes }); }
+      }
+      return { results };
+    },
+  };
+}
+
 interface SqliteDb { prepare(sql: string): { all(...a: unknown[]): unknown[]; run(...a: unknown[]): { changes?: number | bigint } }; exec(sql: string): void; close(): void; }
-interface PluginContextDb { query(sql: string, ...a: unknown[]): Promise<unknown[]>; exec(sql: string, ...a: unknown[]): Promise<{ changes: number }>; migrate(id: string, sql: string): Promise<{ applied: boolean }>; }
+interface PluginContextDb { query(sql: string, ...a: unknown[]): Promise<unknown[]>; exec(sql: string, ...a: unknown[]): Promise<{ changes: number }>; migrate(id: string, sql: string): Promise<{ applied: boolean }>; tx(ops: DevTxOp[]): Promise<DevTxResult>; }
 
 function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: PluginContextDb, broadcasts: unknown[]) {
   const need = (perm: string, method: string) => { if (!grants.has(perm)) throw new PermissionDenied(`PERMISSION_DENIED: ${method} requires ${perm}`); };
@@ -198,32 +227,13 @@ function createDevContext(id: string, grants: Set<string>, fx: Fixtures, db: Plu
   // one-arg calls work on a fresh scaffold — without this, a fixtures file that omits
   // actingUserId leaves the mock userless and every user-bound capability throws.
   const mock = sdk.createMockHost({ ...fx, actingUserId: fx.actingUserId ?? 1, grants: [...grants] });
-  const isRead = (sql: string) => /^\s*(SELECT|WITH|VALUES)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
   const devDb = {
     query: (sql: string, ...a: unknown[]) => { need('db:own', 'db.query'); return db.query(sql, ...a); },
     exec: (sql: string, ...a: unknown[]) => { need('db:own', 'db.exec'); return db.exec(sql, ...a); },
     migrate: (mid: string, sql: string) => { need('db:own', 'db.migrate'); return db.migrate(mid, sql); },
     // `dev` always runs your plugin on SQLite; test the Postgres dialect against a TREK on Postgres.
     engine: async () => { need('db:own', 'db.engine'); return 'sqlite' as const; },
-    // A functional (not strictly atomic) tx over the real dev db so read-modify-write
-    // batches work in dev; production runs it in one better-sqlite3 transaction.
-    tx: async (ops: Array<{ sql: string; args?: unknown[] }>) => {
-      need('db:own', 'db.tx');
-      // Validate the WHOLE batch up front, like the host's PluginDataDb.tx — a bad
-      // op must fail before anything ran, not leave earlier writes behind.
-      if (!Array.isArray(ops)) throw new Error('tx requires an array of { sql, args }');
-      if (ops.length > MAX_TX_OPS) throw new Error(`tx allows at most ${MAX_TX_OPS} statements`);
-      for (const op of ops) {
-        guardSql(op?.sql as string);
-        if (TX_CONTROL.test(stripLeadingComments(op?.sql as string))) throw new Error('transaction-control statements are not allowed inside tx()');
-      }
-      const results: Array<{ changes?: number; rows?: unknown[] }> = [];
-      for (const op of ops) {
-        if (isRead(op.sql)) results.push({ rows: await db.query(op.sql, ...(op.args ?? [])) as unknown[] });
-        else { const r = await db.exec(op.sql, ...(op.args ?? [])) as { changes?: number }; results.push({ changes: r?.changes ?? 0 }); }
-      }
-      return { results };
-    },
+    tx: (ops: DevTxOp[]) => { need('db:own', 'db.tx'); return db.tx(ops); },
   };
   const wrap = (base: typeof mock.ctx, actingUserId: number | undefined) => ({
     ...base,
