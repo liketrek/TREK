@@ -35,6 +35,8 @@ struct WidgetSnapshot: Codable {
     }
 
     struct Today: Codable {
+        /// The calendar day it is, yyyy-MM-dd (absent from an app that predates `days`).
+        var date: String?
         var dayLabel: String
         var stops: [Stop]
         /// 1-based position of today in the trip.
@@ -245,6 +247,9 @@ struct WidgetSnapshot: Codable {
 
     var trip: Trip?
     var today: Today?
+    /// The trip's days from the day the app wrote this on, each with its date,
+    /// so the widget turns to the next day itself (see `on(_:)`).
+    var days: [Today]?
     var weather: Weather?
     var bookings: [Booking]?
     var todos: Todos?
@@ -304,6 +309,26 @@ struct WidgetSnapshot: Codable {
         guard let trip, let start = WidgetSnapshot.day(trip.start), let end = WidgetSnapshot.day(trip.end),
               let days = WidgetSnapshot.daysBetween(start, end) else { return nil }
         return days + 1
+    }
+
+    /// The snapshot as it reads on `date`: that date's trip day out of `days`,
+    /// none before or after the trip, and only the bookings from that date on.
+    /// The app writes its snapshot only while it runs, so without this a widget
+    /// showed the day it last ran (TestFlight feedback: "stuck on day 1"). A
+    /// snapshot from an app without `days` reads as it was written.
+    func on(_ date: Date) -> WidgetSnapshot {
+        guard let days, !days.isEmpty else { return self }
+        let key = WidgetSnapshot.key(date)
+        var snapshot = self
+        snapshot.today = days.first { $0.date == key }
+        snapshot.bookings = bookings?.filter { ($0.date ?? key) >= key }
+        return snapshot
+    }
+
+    /// A date as the app writes one, yyyy-MM-dd in the device's calendar day.
+    static func key(_ date: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
     static func daysBetween(_ from: Date, _ to: Date) -> Int? {

@@ -27,7 +27,28 @@ data class WidgetSnapshot(
     val labels: Labels,
     /** The trip's next flight or the one in the air; last and defaulted, so older callers keep compiling. */
     val flight: Flight? = null,
+    /**
+     * The trip's days from the day the app wrote this on, each with its date, so
+     * the widget turns to the next day itself (see [on]); empty from an app
+     * that predates them.
+     */
+    val days: List<Today> = emptyList(),
 ) {
+    /**
+     * The snapshot as it reads on [date]: that date's trip day out of [days],
+     * none before or after the trip, and only the bookings from that date on.
+     * The app writes its snapshot only while it runs, so without this a widget
+     * showed the day it last ran. A snapshot without [days] reads as written.
+     */
+    fun on(date: LocalDate): WidgetSnapshot {
+        if (days.isEmpty()) return this
+        val key = date.toString()
+        return copy(
+            today = days.firstOrNull { it.date == key },
+            bookings = bookings.filter { (it.date ?: key) >= key },
+        )
+    }
+
     data class Trip(
         val title: String,
         val start: String,
@@ -52,7 +73,8 @@ data class WidgetSnapshot(
         val symbol: String?,
     )
 
-    data class Today(val dayLabel: String, val stops: List<Stop>, val index: Int?, val total: Int?)
+    /** A trip day; [date] (yyyy-MM-dd) is absent from an app that predates the days ahead. */
+    data class Today(val dayLabel: String, val stops: List<Stop>, val index: Int?, val total: Int?, val date: String? = null)
 
     data class Weather(
         val temp: Int,
@@ -212,6 +234,16 @@ data class WidgetSnapshot(
             null
         }
 
+        private fun dayOf(t: JSONObject): Today = Today(
+            dayLabel = t.optString("dayLabel"),
+            stops = t.optJSONArray("stops").objects().map {
+                Stop(it.str("time"), it.optString("name"), it.int("minutes"), it.str("color"), it.str("symbol"))
+            },
+            index = t.int("index"),
+            total = t.int("total"),
+            date = t.str("date"),
+        )
+
         fun fromJson(o: JSONObject): WidgetSnapshot = WidgetSnapshot(
             trip = o.optJSONObject("trip")?.let {
                 Trip(
@@ -226,16 +258,8 @@ data class WidgetSnapshot(
                     memberCount = it.int("memberCount"),
                 )
             },
-            today = o.optJSONObject("today")?.let { t ->
-                Today(
-                    dayLabel = t.optString("dayLabel"),
-                    stops = t.optJSONArray("stops").objects().map {
-                        Stop(it.str("time"), it.optString("name"), it.int("minutes"), it.str("color"), it.str("symbol"))
-                    },
-                    index = t.int("index"),
-                    total = t.int("total"),
-                )
-            },
+            today = o.optJSONObject("today")?.let(::dayOf),
+            days = o.optJSONArray("days").objects().map(::dayOf),
             weather = o.optJSONObject("weather")?.let {
                 Weather(it.optInt("temp"), it.int("high"), it.int("low"), it.optString("main"), it.optString("label"), it.str("place"), it.int("rain"))
             },

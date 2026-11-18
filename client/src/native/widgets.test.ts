@@ -18,8 +18,11 @@ import {
   liveDayDue,
   pickTrip,
   publishWidgets,
+  snapshotDays,
   todayOf,
+  tripDaysFrom,
   tripDayState,
+  WIDGET_DAYS_AHEAD,
   widgetTripChoices,
   withBookings,
 } from './widgets';
@@ -403,5 +406,92 @@ describe('widgets set to a trip', () => {
     const calls = vi.mocked(TrekShell.setWidgetSnapshot).mock.calls.map(([options]) => options);
     expect(calls.map((c) => c.key)).toEqual([undefined, 'trip.2', 'trips']);
     expect(JSON.parse(calls[2].json)).toEqual([{ id: 2, title: 'Trip 2', start: '2026-12-01', end: '2026-12-05' }]);
+  });
+});
+
+describe('the days ahead, for a widget that turns the day itself', () => {
+  const tripDays = [
+    day(1, 1, '2026-11-06', [{ name: 'Museum', time: '09:00' }]),
+    day(2, 2, '2026-11-07', [{ name: 'Harbour', time: '10:00' }, { name: 'Market' }]),
+    day(3, 3, '2026-11-08', []),
+  ];
+  const label = (n: number, m: number) => `${n}/${m}`;
+
+  it('FE-NATIVE-WDAYS-001: carries every day from today on with its date, label and stops', () => {
+    const ahead = tripDaysFrom(trip(1, '2026-11-06', '2026-11-08'), tripDays, {
+      reservations: [],
+      from: '2026-11-07',
+      dayLabel: label,
+      formatTime: (t) => t,
+    });
+    expect(ahead.map((d) => [d.date, d.dayLabel, d.stops.map((s) => s.name)])).toEqual([
+      ['2026-11-07', '2/3', ['Harbour', 'Market']],
+      ['2026-11-08', '3/3', []],
+    ]);
+  });
+
+  it('FE-NATIVE-WDAYS-002: joins each day to the bookings of its own date', () => {
+    const reservations = [
+      { id: 1, type: 'restaurant', title: 'Dinner', status: 'confirmed', reservation_time: '2026-11-08T19:30' },
+    ] as never;
+    const ahead = tripDaysFrom(trip(1, '2026-11-06', '2026-11-08'), tripDays, {
+      reservations,
+      from: '2026-11-06',
+      dayLabel: label,
+      formatTime: (t) => t,
+    });
+    expect(ahead.find((d) => d.date === '2026-11-08')?.stops.map((s) => s.name)).toEqual(['Dinner']);
+    expect(ahead.find((d) => d.date === '2026-11-06')?.stops.map((s) => s.name)).toEqual(['Museum']);
+  });
+
+  it('FE-NATIVE-WDAYS-003: holds a month at most and nothing of a trip that is over', () => {
+    const long = Array.from({ length: 40 }, (_, i) =>
+      day(i + 1, i + 1, `2026-12-${String(i + 1).padStart(2, '0')}`, [])
+    ).map((d, i) => (i >= 31 ? { ...d, date: `2027-01-${String(i - 30).padStart(2, '0')}` } : d)) as Day[];
+    const t = trip(1, '2026-12-01', '2027-01-09');
+    expect(
+      tripDaysFrom(t, long, { reservations: [], from: '2026-12-01', dayLabel: label, formatTime: (x) => x })
+    ).toHaveLength(WIDGET_DAYS_AHEAD);
+    expect(
+      tripDaysFrom(t, long, { reservations: [], from: '2027-02-01', dayLabel: label, formatTime: (x) => x })
+    ).toEqual([]);
+  });
+
+  it('FE-NATIVE-WDAYS-004: the snapshot has today with its date and the days ahead, each held to 16 stops', () => {
+    const busy = day(
+      4,
+      1,
+      '2026-11-06',
+      Array.from({ length: 20 }, (_, i) => ({ name: `Stop ${i}` }))
+    );
+    const t = trip(1, '2026-11-06', '2026-11-06');
+    const ahead = tripDaysFrom(t, [busy], {
+      reservations: [],
+      from: '2026-11-06',
+      dayLabel: label,
+      formatTime: (x) => x,
+    });
+    const snapshot = buildSnapshot(t, ahead[0] ?? null, labels, { days: ahead });
+    expect(snapshot.today?.date).toBe('2026-11-06');
+    // Today stays whole, as the app has always written it; the days ahead keep their first 16.
+    expect(snapshot.today?.stops).toHaveLength(20);
+    expect(snapshot.days?.[0]).toMatchObject({ date: '2026-11-06', dayLabel: '1/1' });
+    expect(snapshot.days?.[0]?.stops).toHaveLength(16);
+  });
+
+  it('FE-NATIVE-WDAYS-005: a snapshot without days ahead leaves the field out', () => {
+    expect(buildSnapshot(trip(1, '2026-11-06', '2026-11-08'), null, labels, { days: [] })).not.toHaveProperty('days');
+  });
+
+  it('FE-NATIVE-WDAYS-006: today is the first day ahead while the trip runs today, none before it starts or without a trip', () => {
+    const options = { reservations: [], dayLabel: label, formatTime: (x: string) => x };
+    const t = trip(1, '2026-11-06', '2026-11-08');
+    const running = snapshotDays(t, tripDays, { ...options, from: '2026-11-07' });
+    expect(running.today?.date).toBe('2026-11-07');
+    expect(running.ahead).toHaveLength(2);
+    const before = snapshotDays(t, tripDays, { ...options, from: '2026-11-01' });
+    expect(before.today).toBeNull();
+    expect(before.ahead.map((d) => d.date)).toEqual(['2026-11-06', '2026-11-07', '2026-11-08']);
+    expect(snapshotDays(null, tripDays, { ...options, from: '2026-11-07' })).toEqual({ today: null, ahead: [] });
   });
 });

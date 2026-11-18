@@ -82,10 +82,12 @@ abstract class TrekWidget : GlanceAppWidget() {
             // Read inside the composition: a session outlives one update, and every
             // write (the dashboard's, then each trip's) must reach it.
             val version by WidgetStore.version.collectAsState()
-            val snapshot = remember(version) {
+            val stored = remember(version) {
                 val tripId = if (perTrip && appWidgetId >= 0) WidgetStore.tripFor(context, appWidgetId) else WidgetStore.AUTO
                 WidgetStore.load(context, tripId)
             }
+            // The day of the trip is today's on every update, not the one the app last wrote.
+            val snapshot = stored?.on(LocalDate.now())
             TrekWidgetTheme.Themed { Content(snapshot) }
         }
     }

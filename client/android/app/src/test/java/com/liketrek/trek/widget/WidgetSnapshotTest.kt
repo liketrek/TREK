@@ -99,4 +99,34 @@ class WidgetSnapshotTest {
         assertEquals("ferry.fill", TrekIcons.booking("cruise").first)
         assertEquals("bookmark.fill", TrekIcons.booking("something").first)
     }
+
+    @Test
+    fun turnsToTheDayOfTheDateItIsReadOn() {
+        val json = """{"trip":{"title":"T","start":"2026-11-06","end":"2026-11-08","path":"/trips/1"},
+            "today":{"date":"2026-11-06","dayLabel":"Day 1 of 3","stops":[{"time":"09:00","name":"Museum","minutes":540}]},
+            "days":[
+              {"date":"2026-11-06","dayLabel":"Day 1 of 3","stops":[{"time":"09:00","name":"Museum","minutes":540}]},
+              {"date":"2026-11-07","dayLabel":"Day 2 of 3","stops":[{"time":"10:00","name":"Harbour","minutes":600}]}
+            ],
+            "bookings":[
+              {"title":"Hotel","kind":"hotel","date":"2026-11-06","confirmed":true,"path":"/trips/1"},
+              {"title":"Train","kind":"train","date":"2026-11-07","confirmed":true,"path":"/trips/1"}
+            ],
+            "labels":{}}"""
+        val snapshot = WidgetSnapshot.parse(json)!!
+        assertEquals("Day 1 of 3", snapshot.on(LocalDate.of(2026, 11, 6)).today!!.dayLabel)
+        val second = snapshot.on(LocalDate.of(2026, 11, 7))
+        assertEquals("Day 2 of 3", second.today!!.dayLabel)
+        assertEquals("Harbour", second.today!!.stops.single().name)
+        assertEquals(listOf("Train"), second.bookings.map { it.title })
+        // A day the app wrote nothing for (the trip is over) shows no day.
+        assertNull(snapshot.on(LocalDate.of(2026, 11, 9)).today)
+    }
+
+    @Test
+    fun aSnapshotWithoutDaysReadsAsWritten() {
+        val snapshot = WidgetSnapshot.parse(WidgetSamples.json(running = true, now = today))!!
+        assertTrue(snapshot.days.isEmpty())
+        assertEquals(snapshot, snapshot.on(today.plusDays(3)))
+    }
 }

@@ -21,12 +21,14 @@ struct TrekProvider: TimelineProvider {
     func getSnapshot(in context: Context, completion: @escaping (TrekEntry) -> Void) {
         let stored = WidgetSnapshot.load()
         let snapshot: WidgetSnapshot? = (stored?.trip != nil || !context.isPreview) ? stored : WidgetSnapshot.sample(running: false)
-        completion(TrekEntry(date: Date(), snapshot: snapshot))
+        let now = Date()
+        completion(TrekEntry(date: now, snapshot: snapshot?.on(now)))
     }
 
     /// An entry every quarter hour for the next six hours, so the now line and
-    /// the next stop move on without the app; the app reloads the timeline
-    /// whenever it writes a new snapshot.
+    /// the next stop move on without the app, each with the trip day of its own
+    /// date: the one at midnight turns to the next day. The app reloads the
+    /// timeline whenever it writes a new snapshot, WidgetKit when it runs out.
     func getTimeline(in context: Context, completion: @escaping (Timeline<TrekEntry>) -> Void) {
         completion(TrekProvider.timeline(WidgetSnapshot.load()))
     }
@@ -36,10 +38,11 @@ struct TrekProvider: TimelineProvider {
         let calendar = Calendar.current
         let minute = calendar.component(.minute, from: now)
         let firstStep = calendar.date(byAdding: .minute, value: 15 - minute % 15, to: now) ?? now
-        var entries = [TrekEntry(date: now, snapshot: snapshot)]
+        var entries = [TrekEntry(date: now, snapshot: snapshot?.on(now))]
         for step in 0..<24 {
             if let date = calendar.date(byAdding: .minute, value: step * 15, to: firstStep) {
-                entries.append(TrekEntry(date: calendar.date(bySetting: .second, value: 0, of: date) ?? date, snapshot: snapshot))
+                let at = calendar.date(bySetting: .second, value: 0, of: date) ?? date
+                entries.append(TrekEntry(date: at, snapshot: snapshot?.on(at)))
             }
         }
         return Timeline(entries: entries, policy: .atEnd)

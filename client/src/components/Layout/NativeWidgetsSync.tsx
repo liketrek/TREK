@@ -25,11 +25,10 @@ import {
   liveFlightOf,
   pickTrip,
   publishWidgets,
-  todayOf,
+  snapshotDays,
   tripDayState,
   widgetTripChoices,
   widgetsActive,
-  withBookings,
   type TripWidgetSnapshot,
   type WidgetLabels,
 } from '../../native/widgets';
@@ -191,11 +190,15 @@ export default function NativeWidgetsSync(): null {
     const tripSnapshot = async (trip: Trip | null, context: SyncContext, atlas: WidgetAtlas | null) => {
       const days = trip ? await offlineDb.days.where('trip_id').equals(trip.id).toArray() : [];
       const extra = trip ? await tripExtras(trip, days, context) : null;
-      const plain = trip
-        ? todayOf(trip, days, context.today, (n, m) => t('native.widget.dayOf', { n, m }), context.time)
-        : null;
-      const day = plain ? withBookings(plain, extra?.reservations ?? [], context.today, context.time) : null;
-      return { day, days, extra, snapshot: buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas }) };
+      // Today and the days after it: the widgets turn to the next day at midnight by themselves.
+      const { today: day, ahead } = snapshotDays(trip, days, {
+        reservations: extra?.reservations ?? [],
+        from: context.today,
+        dayLabel: (n, m) => t('native.widget.dayOf', { n, m }),
+        formatTime: context.time,
+      });
+      const snapshot = buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas, days: ahead });
+      return { day, days, extra, snapshot };
     };
 
     /** The hero trip in full for the watch, with the ticks from it applied so far. */
