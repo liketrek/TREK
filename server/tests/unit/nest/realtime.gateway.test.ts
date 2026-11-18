@@ -242,6 +242,14 @@ describe('RealtimeGateway rooms', () => {
     expect(gw.handleLeave({ tripId: 7 }, ws)).toEqual({ type: 'left', tripId: 7 });
   });
 
+  it('WSGW-011b: join refuses a spelling of a reachable trip id that toRowId refuses, and joins no room', async () => {
+    const { gw, ws } = await connect('/ws?token=x');
+    const spellings = ['0x7', '7e0', '7.0', ' 7', '+7', 7.5, 1e20];
+    const replies = await Promise.all(spellings.map((tripId) => gw.handleJoin({ tripId } as never, ws)));
+    expect(replies).toEqual(spellings.map(() => ({ type: 'error', message: 'Access denied' })));
+    expect(await gw.handleJoin({ tripId: '7' } as never, ws)).toEqual({ type: 'joined', tripId: 7 });
+  });
+
   it('WSGW-012: a frame with no tripId is ignored rather than answered', async () => {
     const { gw, ws } = await connect('/ws?token=x');
     expect(await gw.handleJoin({}, ws)).toBeUndefined();
@@ -410,6 +418,18 @@ describe('book rooms', () => {
 
     expect(await gw.handleBookJoin({ journeyId: 4 }, ws)).toEqual({ type: 'error', message: 'Access denied' });
     expect(bookPeers(4)).toEqual([]);
+  });
+
+  it('WSGW-BOOK-002b: refuses a spelling of a visible journey id that toRowId refuses, and adds nobody', async () => {
+    const gw = new RealtimeGateway(new TripAccessService(db), tokens, journeys, users, appSettings);
+    const ws = socket();
+    registerSocket(ws, { id: 3, username: 'm' } as User);
+    const j = nextJourney++;
+    const spellings = [`0x${j.toString(16)}`, `${j}e0`, `${j}.0`, ` ${j}`, j + 0.5, 1e20];
+    const replies = await Promise.all(spellings.map((journeyId) => gw.handleBookJoin({ journeyId } as never, ws)));
+    expect(replies).toEqual(spellings.map(() => ({ type: 'error', message: 'Access denied' })));
+    expect(bookPeers(j)).toEqual([]);
+    expect(canAccessJourney).not.toHaveBeenCalled();
   });
 
   it('WSGW-BOOK-003: tells everyone in the book who is in it', async () => {

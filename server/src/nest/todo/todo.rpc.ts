@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, rowIdParam } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { TodoService } from './todo.service';
 
@@ -31,13 +31,13 @@ export class TodoRpc {
     return await this.guards.tripRead(
       params,
       ctx,
-      async () => (await this.todos.listItems(String(num(params.tripId, 'tripId')))) as unknown[],
+      async () => (await this.todos.listItems(String(rowIdParam(params.tripId, 'tripId')))) as unknown[],
     );
   }
 
   @PluginMethod('todos.create', { permission: 'db:write:todos' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'todo');
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('todo name is required');
@@ -49,8 +49,8 @@ export class TodoRpc {
 
   @PluginMethod('todos.update', { permission: 'db:write:todos' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const todoId = num(params.todoId, 'todoId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const todoId = rowIdParam(params.todoId, 'todoId');
     const actor = this.guards.requireActor(ctx, 'todo');
     await this.guards.requireTripEdit(tripId, actor, TODO_EDIT_ACTION);
     const input = asPayload(params.input);
@@ -62,8 +62,8 @@ export class TodoRpc {
 
   @PluginMethod('todos.delete', { permission: 'db:write:todos' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const todoId = num(params.todoId, 'todoId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const todoId = rowIdParam(params.todoId, 'todoId');
     const actor = this.guards.requireActor(ctx, 'todo');
     await this.guards.requireTripEdit(tripId, actor, TODO_EDIT_ACTION);
     if (!(await this.todos.deleteItem(String(tripId), todoId))) {

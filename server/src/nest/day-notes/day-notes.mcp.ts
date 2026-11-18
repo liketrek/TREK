@@ -9,6 +9,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   ok,
 } from '../../nest-mcp';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DayNotesService } from './day-notes.service';
 import {
@@ -40,11 +41,6 @@ const NOTE_BODY =
   'The note body shown under the title: details, links, reminders, Markdown allowed. ' +
   'Despite the field name this is the content, not a clock time';
 const noteTitleSchema = dayNoteCreateRequestSchema.shape.text.describe(NOTE_TITLE);
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 /**
  * Day-note MCP surface — ported 1:1 from the legacy registrars: the three
@@ -213,8 +209,8 @@ export class DayNotesMcp {
     { tripId, dayId }: { tripId: string | string[]; dayId: string | string[] },
     ctx: McpContext,
   ) {
-    const tId = parseId(tripId);
-    const dId = parseId(dayId);
+    const tId = uriRowId(tripId);
+    const dId = uriRowId(dayId);
     if (tId === null || dId === null || !(await this.notes.verifyTripAccess(tId, ctx.userId))) {
       return {
         contents: [

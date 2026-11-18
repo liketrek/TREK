@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import type { MirrorSender } from '../accommodations/accommodations.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DayRemovalService, DayDeleteError, type DayRemoval } from './day-removal.service';
@@ -28,7 +28,7 @@ export class DaysRpc {
 
   @PluginMethod('days.create', { permission: 'db:write:days' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'day');
     const parsed = dayCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid day: ${schemaMessage(parsed.error)}`);
@@ -56,8 +56,8 @@ export class DaysRpc {
 
   @PluginMethod('days.update', { permission: 'db:write:days' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const dayId = num(params.dayId, 'dayId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const dayId = rowIdParam(params.dayId, 'dayId');
     const actor = this.guards.requireActor(ctx, 'day');
     const parsed = dayUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid day: ${schemaMessage(parsed.error)}`);
@@ -72,8 +72,8 @@ export class DaysRpc {
 
   @PluginMethod('days.delete', { permission: 'db:write:days' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const dayId = num(params.dayId, 'dayId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const dayId = rowIdParam(params.dayId, 'dayId');
     const actor = this.guards.requireActor(ctx, 'day');
     await this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
     if (!(await this.days.getDay(dayId, tripId))) throw new ForbiddenResource(`no day ${dayId} on trip ${tripId}`);

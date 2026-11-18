@@ -1466,7 +1466,7 @@ export class BudgetService {
     return await this.createBudgetItem(tripId, data);
   }
 
-  /** `id: number` — Plan 4 Task 8b (U6): `BudgetController.update`/the `costs.update` RPC method both parse/hand this a real row id now (`toRowId`/`num()`). */
+  /** `id: number` — Plan 4 Task 8b (U6): `BudgetController.update`/the `costs.update` RPC method both parse/hand this a real row id now (`toRowId`/`rowIdParam()`). */
   async update(id: number, tripId: string | number, data: Parameters<BudgetService['updateBudgetItem']>[2] & { fallback_fx?: BudgetFallbackFx }) {
     await this.freezeForeignRate(tripId, data, id);
     return await this.updateBudgetItem(id, tripId, data);

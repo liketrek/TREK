@@ -14,6 +14,7 @@ import {
 import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { uriRowId } from '../common/row-id';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 import { JourneySettingsService } from './journey-settings.service';
@@ -44,11 +45,6 @@ const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
 
 function notFound(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }], isError: true };
-}
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 function accessDenied(uri: string) {
@@ -769,7 +765,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeyDetailResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
-    const id = parseId(journeyId);
+    const id = uriRowId(journeyId);
     if (id === null) return accessDenied(uri.href);
     const journey = await this.journey.getJourneyFull(id, ctx.userId);
     if (!journey) return accessDenied(uri.href);
@@ -785,7 +781,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeyEntriesResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
-    const id = parseId(journeyId);
+    const id = uriRowId(journeyId);
     if (id === null) return accessDenied(uri.href);
     if (!(await this.journey.canAccessJourney(id, ctx.userId))) return accessDenied(uri.href);
     return jsonContent(uri.href, await this.journey.listEntries(id, ctx.userId));
@@ -800,7 +796,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeyContributorsResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
-    const id = parseId(journeyId);
+    const id = uriRowId(journeyId);
     if (id === null) return accessDenied(uri.href);
     const journey = await this.journey.getJourneyFull(id, ctx.userId);
     if (!journey) return accessDenied(uri.href);

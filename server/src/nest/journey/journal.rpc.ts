@@ -3,8 +3,9 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, rowIdParam } from '../../nest-rpc/rpc-params';
 import { DemoService } from '../common/demo.service';
+import { toRowId } from '../common/row-id';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 import { StorageService } from '../storage/storage.service';
 import { JourneyDomainService } from './journey-domain.service';
@@ -68,7 +69,7 @@ export class JournalRpc {
   @PluginMethod('journal.getEntries', { permission: 'db:read:journal' })
   async getEntries(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireJournalUser(ctx, 'reads');
-    const journeyId = num(params.journeyId, 'journeyId');
+    const journeyId = rowIdParam(params.journeyId, 'journeyId');
     await this.requireJourneyAddon();
     // listEntries self-gates via canAccessJourney and returns null when the user
     // cannot see it.
@@ -82,7 +83,7 @@ export class JournalRpc {
     const userId = this.requireJournalUser(ctx, 'writes');
     const input = asPayload(params.input);
     if (typeof input.entry_date !== 'string' || input.entry_date === '') throw new BadParams('entry_date is required');
-    const journeyId = num(params.journeyId, 'journeyId');
+    const journeyId = rowIdParam(params.journeyId, 'journeyId');
     await this.requireJourneyAddon();
     const entry = await this.journey.createEntry(journeyId, userId, input as never);
     if (!entry) throw new ForbiddenResource(`no editable journey ${journeyId} for this user`);
@@ -92,7 +93,7 @@ export class JournalRpc {
   @PluginMethod('journal.updateEntry', { permission: 'db:write:journal' })
   async updateEntry(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireJournalUser(ctx, 'writes');
-    const entryId = num(params.entryId, 'entryId');
+    const entryId = rowIdParam(params.entryId, 'entryId');
     await this.requireJourneyAddon();
     const entry = await this.journey.updateEntry(entryId, userId, asPayload(params.input) as never);
     if (!entry) throw new ForbiddenResource(`no editable journal entry ${entryId} for this user`);
@@ -102,7 +103,7 @@ export class JournalRpc {
   @PluginMethod('journal.deleteEntry', { permission: 'db:write:journal' })
   async deleteEntry(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireJournalUser(ctx, 'writes');
-    const entryId = num(params.entryId, 'entryId');
+    const entryId = rowIdParam(params.entryId, 'entryId');
     await this.requireJourneyAddon();
     if (!(await this.journey.deleteEntry(entryId, userId))) {
       throw new ForbiddenResource(`no editable journal entry ${entryId} for this user`);
@@ -143,9 +144,9 @@ export class JournalRpc {
   @PluginMethod('journal.addEntryPhoto', { permission: 'db:write:journal' })
   async addEntryPhoto(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireJournalUser(ctx, 'writes');
-    const entryId = num(params.entryId, 'entryId');
-    // num() accepts "3" and 1.5; a row id is neither.
-    if (!Number.isInteger(entryId) || entryId <= 0) throw new BadParams('entryId must be a positive integer');
+    // toRowId: num() took 1.5 and '0x3'; a row id is neither.
+    const entryId = toRowId(params.entryId);
+    if (entryId === null || entryId <= 0) throw new BadParams('entryId must be a positive integer');
     await this.requireJourneyAddon();
 
     const parsed = journalPluginPhotoInputSchema.safeParse(params.input);
@@ -197,7 +198,7 @@ export class JournalRpc {
   @PluginMethod('journal.deleteJourney', { permission: 'db:write:journal' })
   async deleteJourney(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireJournalUser(ctx, 'writes');
-    const journeyId = num(params.journeyId, 'journeyId');
+    const journeyId = rowIdParam(params.journeyId, 'journeyId');
     await this.requireJourneyAddon();
     if (!(await this.journey.deleteJourney(journeyId, userId))) {
       throw new ForbiddenResource(`no deletable journal ${journeyId} for this user`);

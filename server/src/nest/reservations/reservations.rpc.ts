@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { withoutOrigin } from './reservation-origin.contract';
 import { ReservationsService } from './reservations.service';
@@ -32,7 +32,7 @@ export class ReservationsRpc {
 
   @PluginMethod('reservations.create', { permission: 'db:write:reservations' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     const parsed = reservationCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid reservation: ${schemaMessage(parsed.error)}`);
@@ -57,8 +57,8 @@ export class ReservationsRpc {
 
   @PluginMethod('reservations.update', { permission: 'db:write:reservations' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const reservationId = num(params.reservationId, 'reservationId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const reservationId = rowIdParam(params.reservationId, 'reservationId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     const parsed = reservationUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid reservation: ${schemaMessage(parsed.error)}`);
@@ -89,8 +89,8 @@ export class ReservationsRpc {
 
   @PluginMethod('reservations.delete', { permission: 'db:write:reservations' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const reservationId = num(params.reservationId, 'reservationId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const reservationId = rowIdParam(params.reservationId, 'reservationId');
     const actor = this.guards.requireActor(ctx, 'reservation');
     await this.guards.requireTripEdit(tripId, actor, RESERVATION_EDIT_ACTION);
     const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(

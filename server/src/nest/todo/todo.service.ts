@@ -103,7 +103,7 @@ export class TodoService {
    * parsing carry: `TodoController.update` now parses `:id` once via
    * `toRowId` and threads the number here, instead of the raw route string
    * reaching `TodoItemsRepository.findInTrip`/`.update` and relying on
-   * SQLite's column-affinity CAST to match it; `todos.rpc.ts`'s `num()` and
+   * SQLite's column-affinity CAST to match it; `todos.rpc.ts`'s `rowIdParam()` and
    * `todo.mcp.ts`'s Zod-typed `itemId` were already real numbers). `tripId`
    * stays `string | number` — a separate, still-accepted carry (the trip id
    * is gated for ACCESS by `TripAccessGuard`, not threaded as a parsed

@@ -11,6 +11,7 @@ import {
   ok,
 } from '../../nest-mcp';
 import type { MirrorSender } from '../accommodations/accommodations.service';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { DayRemovalService, DayDeleteError, type DayRemoval } from './day-removal.service';
 import { DaysService, DayReorderError, DayAppendError, type DatedDayAppend, type DaySender } from './days.service';
@@ -24,11 +25,6 @@ import {
 import type { DayCreateRequest, DayReorderRequest, DayUpdateRequest } from '@trek/shared';
 
 import { z } from 'zod';
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 /**
  * Day MCP surface — ported 1:1 from the legacy registrars: the seven tools of
@@ -250,7 +246,7 @@ export class DaysMcp {
     access: { group: 'trips', mode: 'read' },
   })
   async tripDaysResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.days.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [

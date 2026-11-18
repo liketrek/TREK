@@ -14,7 +14,7 @@ import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
-import { num, str } from '../../../../nest-rpc/rpc-params';
+import { str, rowIdParam } from '../../../../nest-rpc/rpc-params';
 import { UnitOfWork } from '../../../database/unit-of-work';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
@@ -126,7 +126,7 @@ export class MetaRpc {
     if (!META_ENTITY_TYPES.has(entityType)) {
       throw new BadParams(`invalid entityType "${entityType}" (${[...META_ENTITY_TYPES].join('|')})`);
     }
-    const entityId = num(params.entityId, 'entityId');
+    const entityId = rowIdParam(params.entityId, 'entityId');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('metadata requires an authenticated user context');
     const tripId = await this.entityTrip(entityType, entityId);
     if (tripId === undefined || !(await this.trips.findAccessible(tripId, ctx.actingUserId))) {

@@ -14,6 +14,7 @@ import {
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
 import { PackingService } from './packing.service';
@@ -37,11 +38,6 @@ type PackingListRow = { category?: string | null; bag_id?: number | null; checke
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 /**
  * Packing MCP surface — ported from the legacy registrars: the seventeen
@@ -712,7 +708,7 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'read' },
   })
   async tripPackingResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.packing.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -746,7 +742,7 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'read' },
   })
   async tripPackingBagsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.packing.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [

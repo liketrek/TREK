@@ -20,6 +20,7 @@ import { AddonsService } from '../addons/addons.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { CollabService } from '../collab/collab.service';
 import { DomainError } from '../common/domain-error';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { TodoService } from '../todo/todo.service';
@@ -38,11 +39,6 @@ import {
 } from '@trek/shared';
 
 import { z } from 'zod';
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 function accessDenied(uri: string) {
   return {
@@ -738,7 +734,7 @@ export class TripsMcp {
     access: (ctx) => canReadTrips(ctx.scopes),
   })
   async tripResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.trips.canAccessTrip(id, ctx.userId))) return accessDenied(uri.href);
     const trip = await this.trips.get(id, ctx.userId);
     return jsonContent(uri.href, trip);
@@ -752,7 +748,7 @@ export class TripsMcp {
     access: (ctx) => canReadTrips(ctx.scopes),
   })
   async tripMembersResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.trips.canAccessTrip(id, ctx.userId))) return accessDenied(uri.href);
     const ownerRow = await this.trips.getOwner(id);
     if (!ownerRow) return accessDenied(uri.href);

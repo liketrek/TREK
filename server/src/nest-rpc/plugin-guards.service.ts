@@ -6,7 +6,7 @@ import { AddonsService } from '../nest/addons/addons.service';
 import { PermissionsService } from '../nest/permissions/permissions.service';
 import { BadParams, ForbiddenResource } from './rpc-errors';
 import type { PluginRpcContext } from './rpc-kit/types';
-import { num } from './rpc-params';
+import { rowIdParam } from './rpc-params';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
@@ -40,7 +40,7 @@ export class PluginGuards {
    * context (a job, or onLoad) has no acting user and is refused.
    */
   async tripRead<T>(params: Record<string, unknown>, ctx: PluginRpcContext, read: (userId: number) => T): Promise<T> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('trip reads require an authenticated user context');
     }

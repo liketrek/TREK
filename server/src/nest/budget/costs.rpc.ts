@@ -3,7 +3,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { rowIdParam, schemaMessage } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
@@ -42,7 +42,7 @@ export class CostsRpc {
   async getByTrip(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     return await this.guards.tripRead(params, ctx, async () => {
       await this.requireBudgetAddon();
-      return await this.budget.listBudgetItems(num(params.tripId, 'tripId'));
+      return await this.budget.listBudgetItems(rowIdParam(params.tripId, 'tripId'));
     });
   }
 
@@ -65,7 +65,7 @@ export class CostsRpc {
 
   @PluginMethod('costs.create', { permission: 'db:write:costs' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.requireCostActor(ctx);
     await this.requireBudgetAddon();
     const parsed = budgetCreateItemRequestSchema.safeParse(params.input);
@@ -82,8 +82,8 @@ export class CostsRpc {
 
   @PluginMethod('costs.update', { permission: 'db:write:costs' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const itemId = num(params.itemId, 'itemId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.requireCostActor(ctx);
     await this.requireBudgetAddon();
     const parsed = budgetUpdateItemRequestSchema.safeParse(params.input);
@@ -92,7 +92,7 @@ export class CostsRpc {
     await this.refuseForeignLinks(tripId, parsed.data);
     const before = parsed.data.reservation_id !== undefined ? await this.budget.getBudgetItem(itemId, tripId) : null;
     // update re-freezes the FX rate on a currency change, exactly like create.
-    // Plan 4 Task 8b (U6) — itemId is already a real row id (num() above);
+    // Plan 4 Task 8b (U6) — itemId is already a real row id (rowIdParam() above);
     // BudgetService.update's id param no longer needs the String() wrapper.
     const item = await this.budget.update(itemId, String(tripId), parsed.data);
     if (item == null) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
@@ -112,8 +112,8 @@ export class CostsRpc {
 
   @PluginMethod('costs.delete', { permission: 'db:write:costs' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const itemId = num(params.itemId, 'itemId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.requireCostActor(ctx);
     await this.requireBudgetAddon();
     await this.requireCostEdit(tripId, actor);

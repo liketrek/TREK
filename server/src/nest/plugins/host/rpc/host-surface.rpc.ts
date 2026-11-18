@@ -10,7 +10,7 @@ import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
-import { asPayload, num, str } from '../../../../nest-rpc/rpc-params';
+import { asPayload, num, str, rowIdParam } from '../../../../nest-rpc/rpc-params';
 import { UnitOfWork } from '../../../database/unit-of-work';
 import { UnreadableLlmResponse } from '../../../llm-parse/clients/openai-compatible.client';
 import { createLlmClient } from '../../../llm-parse/llm-client.factory';
@@ -66,7 +66,7 @@ export class HostSurfaceRpc {
   async getUser(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     // Scoped to people the acting user can actually see (themselves, or someone they
     // share a trip with), so a plugin cannot enumerate every account by looping ids.
-    const id = num(params.id, 'id');
+    const id = rowIdParam(params.id, 'id');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('user reads require an authenticated user context');
     if (id !== ctx.actingUserId && !(await this.sharesATrip(ctx.actingUserId, id))) {
       throw new ForbiddenResource(`no access to user ${id}`);
@@ -82,7 +82,7 @@ export class HostSurfaceRpc {
   async broadcastToTrip(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     // The TARGET is gated like a read: only a trip room the acting user belongs to.
     // Namespacing the event type alone does not cross the membership boundary.
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('broadcasts require an authenticated user context');
     if (!(await this.trips.findAccessible(tripId, ctx.actingUserId)))
       throw new ForbiddenResource(`no access to trip ${tripId}`);
@@ -95,7 +95,7 @@ export class HostSurfaceRpc {
   @PluginMethod('ws.broadcastToUser', { permission: 'ws:broadcast:user' })
   broadcastToUser(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     // Authorised by identity, not by a predicate: only the acting user's own sockets.
-    const userId = num(params.userId, 'userId');
+    const userId = rowIdParam(params.userId, 'userId');
     if (ctx.actingUserId === undefined || userId !== ctx.actingUserId) {
       throw new ForbiddenResource('a plugin may only broadcast to the acting user');
     }
@@ -122,7 +122,7 @@ export class HostSurfaceRpc {
     // 'admin' is deliberately absent: there is no arbitrary-recipient or
     // admin-broadcast path, so a plugin cannot spam or phish through the host.
     if (scope !== 'user' && scope !== 'trip') throw new BadParams("scope must be 'user' or 'trip'");
-    const targetId = num(input.targetId, 'targetId');
+    const targetId = rowIdParam(input.targetId, 'targetId');
     if (scope === 'user' && targetId !== actor) throw new ForbiddenResource('a plugin may only notify the acting user');
     if (scope === 'trip' && !(await this.trips.findAccessible(targetId, actor))) {
       throw new ForbiddenResource('the acting user is not a member of that trip');

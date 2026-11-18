@@ -14,6 +14,7 @@ import {
 } from '../../nest-mcp';
 import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { CollabService } from './collab.service';
 import {
@@ -34,11 +35,6 @@ const collabNotesOn = collabFeatureGate('notes');
 const collabPollsOn = collabFeatureGate('polls');
 const collabChatOn = collabFeatureGate('chat');
 const collabLinksOn = collabFeatureGate('links');
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 function accessDenied(uri: string) {
   return {
@@ -553,7 +549,7 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'read' },
   })
   async tripCollabNotesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
     const notes = await this.collab.listNotes(id);
     return jsonContent(uri.href, notes);
@@ -568,7 +564,7 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'read' },
   })
   async tripCollabPollsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
     const polls = await this.collab.listPolls(id);
     return jsonContent(uri.href, polls);
@@ -583,7 +579,7 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'read' },
   })
   async tripCollabMessagesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
     const messages = await this.collab.listMessages(id);
     return jsonContent(uri.href, messages);

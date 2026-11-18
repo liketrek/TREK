@@ -34,11 +34,7 @@ import { isUpdateConflict } from '../common/conflictResult';
 import { isDirectionsUrl } from '../place-import/place-import.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { inOrder } from '../common/in-order';
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
+import { uriRowId } from '../common/row-id';
 
 /** Hours as the column keeps them: JSON text, or null to clear (#2472). */
 const hoursText = (hours: PlaceOpeningHours | null | undefined): string | null => (hours ? JSON.stringify(hours) : null);
@@ -583,7 +579,7 @@ export class PlacesMcp {
     access: { group: 'places', mode: 'read' },
   })
   async tripPlacesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.tripsRepo.findAccessible(id, ctx.userId))) {
       return {
         contents: [{

@@ -259,7 +259,7 @@ export class PackingService {
    * controller can detect a public↔private transition and route the
    * broadcast. `id: number` (Plan 4 Task 8b, U6 — the program's gate-level
    * id parsing carry: `PackingController.update` parses `:id` once via
-   * `toRowId` and threads the number here; `packing.rpc.ts`'s `num()`-
+   * `toRowId` and threads the number here; `packing.rpc.ts`'s `rowIdParam()`-
    * derived `itemId` was already a number).
    */
   async getItemPrivacy(tripId: string | number, id: number): Promise<PrivacyFields | undefined> {
@@ -309,7 +309,7 @@ export class PackingService {
     return (await this.enrichItems([await this.itemsRepo.findById(itemId)]))[0];
   }
 
-  /** `id: number` — same Plan 4 Task 8b (U6) gate-level narrowing as {@link getItemPrivacy} (`PackingController.update`/`packing.mcp.ts`'s Zod-typed `itemId`/`packing.rpc.ts`'s `num()`-derived `itemId`). */
+  /** `id: number` — same Plan 4 Task 8b (U6) gate-level narrowing as {@link getItemPrivacy} (`PackingController.update`/`packing.mcp.ts`'s Zod-typed `itemId`/`packing.rpc.ts`'s `rowIdParam()`-derived `itemId`). */
   async updateItem(
     tripId: string | number,
     id: number,
@@ -469,7 +469,7 @@ export class PackingService {
     }, userId);
   }
 
-  /** `id: number` — same Plan 4 Task 8b (U6) narrowing as {@link addContributor} (`PackingController.remove`/`packing.mcp.ts`'s Zod-typed `itemId`/`packing.rpc.ts`'s `num()`-derived `itemId`). */
+  /** `id: number` — same Plan 4 Task 8b (U6) narrowing as {@link addContributor} (`PackingController.remove`/`packing.mcp.ts`'s Zod-typed `itemId`/`packing.rpc.ts`'s `rowIdParam()`-derived `itemId`). */
   async deleteItem(tripId: string | number, id: number, actingUserId?: number) {
     // Return the deleted row (not just a boolean) so callers can target the
     // delete broadcast at the owner when the item was private (#858).
@@ -607,7 +607,7 @@ export class PackingService {
     return await this.tripMembersRepo.rosterUserIds(tripId);
   }
 
-  /** `bagId: number` (Plan 4 Task 8b, U6 — the program's gate-level id parsing carry: `PackingController.setBagMembers` parses `:bagId` once via `toRowId`; `packing.mcp.ts`'s Zod-typed `bagId`/`packing.rpc.ts`'s `num()`-derived `bagId` were already numbers). */
+  /** `bagId: number` (Plan 4 Task 8b, U6 — the program's gate-level id parsing carry: `PackingController.setBagMembers` parses `:bagId` once via `toRowId`; `packing.mcp.ts`'s Zod-typed `bagId`/`packing.rpc.ts`'s `rowIdParam()`-derived `bagId` were already numbers). */
   async setBagMembers(tripId: string | number, bagId: number, userIds: number[]) {
     const bag = await this.bagsRepo.findInTrip(bagId, tripId);
     if (!bag) return null;

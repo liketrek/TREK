@@ -6,7 +6,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { DaysService } from '../days/days.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -64,7 +64,7 @@ export class TripsRpc {
     return this.guards.tripRead(params, ctx, async () =>
       // db:read:trips is a read grant on the trip, not on the credential that
       // publishes it anonymously — see withoutFeedToken. RP1 — TripsRepository.findRaw.
-      withoutFeedToken(await this.em.getRepository(Trips).findRaw(num(params.tripId, 'tripId'))),
+      withoutFeedToken(await this.em.getRepository(Trips).findRaw(rowIdParam(params.tripId, 'tripId'))),
     );
   }
 
@@ -77,13 +77,15 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => await this.em.getRepository(Places).listForTripOrdered(num(params.tripId, 'tripId')),
+      async () => await this.em.getRepository(Places).listForTripOrdered(rowIdParam(params.tripId, 'tripId')),
     );
   }
 
   @PluginMethod('trips.getReservations', { permission: 'db:read:trips' })
   getReservations(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => this.reservations.list(String(num(params.tripId, 'tripId'))));
+    return this.guards.tripRead(params, ctx, async () =>
+      this.reservations.list(String(rowIdParam(params.tripId, 'tripId'))),
+    );
   }
 
   @PluginMethod('trips.getDays', { permission: 'db:read:trips' })
@@ -93,7 +95,7 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => ((await this.days.list(num(params.tripId, 'tripId'))) as { days: unknown[] }).days,
+      async () => ((await this.days.list(rowIdParam(params.tripId, 'tripId'))) as { days: unknown[] }).days,
     );
   }
 
@@ -102,7 +104,7 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => (await this.accommodations.list(num(params.tripId, 'tripId'))) as unknown[],
+      async () => (await this.accommodations.list(rowIdParam(params.tripId, 'tripId'))) as unknown[],
     );
   }
 
@@ -133,13 +135,14 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => await this.em.getRepository(TripMembers).listRawUsernameAndDisplayName(num(params.tripId, 'tripId')),
+      async () =>
+        await this.em.getRepository(TripMembers).listRawUsernameAndDisplayName(rowIdParam(params.tripId, 'tripId')),
     );
   }
 
   @PluginMethod('trips.update', { permission: 'db:write:trips' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'trip');
     const parsed = tripUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid trip: ${schemaMessage(parsed.error)}`);
@@ -202,8 +205,8 @@ export class TripsRpc {
 
   @PluginMethod('trips.addMember', { permission: 'db:write:members' })
   async addMember(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const targetUserId = num(params.userId, 'userId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const targetUserId = rowIdParam(params.userId, 'userId');
     const actor = this.guards.requireActor(ctx, 'trip member');
     await this.guards.requireTripEdit(tripId, actor, MEMBER_MANAGE_ACTION);
     // RP5 — UsersRepository.findIdAndEmail (existence check only; the `email` field is unused here).
@@ -222,8 +225,8 @@ export class TripsRpc {
 
   @PluginMethod('trips.removeMember', { permission: 'db:write:members' })
   async removeMember(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const targetUserId = num(params.userId, 'userId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const targetUserId = rowIdParam(params.userId, 'userId');
     const actor = this.guards.requireActor(ctx, 'trip member');
     await this.guards.requireTripEdit(tripId, actor, MEMBER_MANAGE_ACTION);
     // Never remove the OWNER through this path: that would orphan the trip.

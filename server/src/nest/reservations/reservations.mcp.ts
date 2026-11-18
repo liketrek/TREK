@@ -4,6 +4,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
 } from '../../nest-mcp';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { BudgetService } from '../budget/budget.service';
@@ -105,11 +106,6 @@ function resolveEndpointCoords(endpoints: TransportEndpoint[] | undefined): { en
     return { error: `Endpoint "${e.name}" is missing coordinates. For flights set "code" to the IATA airport code; for other transport types supply lat/lng.` };
   }
   return { endpoints: out };
-}
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 /** The linked cost a tool's price becomes: the entry the booking form sends for one. */
@@ -621,7 +617,7 @@ export class ReservationsMcp {
     access: { group: 'reservations', mode: 'read' },
   })
   async tripReservationsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.reservations.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [{

@@ -266,6 +266,23 @@ describe('addon-gated domains validate their input', () => {
     });
   });
 
+  it('ADDONERR-002b collab.createMessage reads replyTo with rowIdParam: a malformed one is BAD_PARAMS, none is null', async () => {
+    const createMessage = vi.fn(() => ({ error: null, message: {} }));
+    const host = build({ collab: { createMessage } });
+    const send = (replyTo: unknown) =>
+      host.dispatch(req('collab.createMessage', { tripId: 1, text: 'hi', replyTo }), 42);
+    // typeof === 'number' let 1.5 and 1e20 through to SQL and dropped the digits '5' a plugin may send.
+    const refused = await Promise.all(['0x5', '5e0', 1.5, 1e20, 'abc'].map((replyTo) => send(replyTo)));
+    expect(refused.map((r) => err(r))).toEqual(
+      refused.map(() => expect.objectContaining({ code: 'BAD_PARAMS', message: 'replyTo must be a number' })),
+    );
+    expect(createMessage).not.toHaveBeenCalled();
+    await send('5');
+    await send(null);
+    await send(undefined);
+    expect(createMessage.mock.calls.map((call) => (call as unknown[])[3])).toEqual([5, null, null]);
+  });
+
   it('ADDONERR-003 atlas rejects a code that is empty or too long', async () => {
     const host = build();
     expect(err(await host.dispatch(req('atlas.markCountry', { code: '' }), 42)).message).toBe(
