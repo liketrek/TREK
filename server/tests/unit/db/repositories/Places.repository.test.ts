@@ -1402,7 +1402,7 @@ describe('PlacesRepository.listForTripIds (AT2, AtlasService#getPlacesForTrips)'
 });
 
 describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelStats)', () => {
-  it('PLACEREPO-061: matches the legacy DISTINCT statement, owner and member trips, region_name joined from place_regions', async () => {
+  it('PLACEREPO-061: one row per place, owner and member trips, region_name joined from place_regions', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
@@ -1416,7 +1416,7 @@ describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelSta
 
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
     const legacy = testDb.prepare(`
-      SELECT DISTINCT p.address, p.lat, p.lng, pr.region_name
+      SELECT DISTINCT p.id, p.address, p.lat, p.lng, pr.region_name
       FROM places p JOIN trips t ON p.trip_id = t.id
       LEFT JOIN trip_members tm ON t.id = tm.trip_id
       LEFT JOIN place_regions pr ON pr.place_id = p.id
@@ -1425,8 +1425,8 @@ describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelSta
     const typedOwner = await places.listAddressesForUser(owner.id);
     expect(typedOwner).toEqual(legacy);
     expect(typedOwner).toEqual([
-      { address: '5 Avenue Anatole France', lat: 48.85, lng: 2.35, region_name: 'Île-de-France' },
-      { address: null, lat: null, lng: null, region_name: null },
+      { id: place.id, address: '5 Avenue Anatole France', lat: 48.85, lng: 2.35, region_name: 'Île-de-France' },
+      { id: noAddress.id, address: null, lat: null, lng: null, region_name: null },
     ]);
 
     const typedMember = await places.listAddressesForUser(member.id);

@@ -577,3 +577,88 @@ describe('getTravelStats country order (#2648)', () => {
     expect((await atlas.getTravelStats(user.id)).countries).toEqual(['AT', 'FR']);
   });
 });
+
+/**
+ * The Atlas page, the dashboard card and GET /api/v1/stats showed different place and
+ * city totals for the same user (#3137). The Atlas page counted one place per row and
+ * cut cities with its own address split, while the dashboard collapsed places sharing
+ * an address and coordinates and read cities with cityFromAddress. Both now share one
+ * count, so every surface agrees with the others.
+ */
+describe('Atlas page and passport card count the same places and cities (#3137)', () => {
+  const MUNICH = { lat: 48.1374, lng: 11.5755 };
+  const NUREMBERG = { lat: 49.4521, lng: 11.0767 };
+
+  async function addPlace(
+    tripId: number,
+    name: string,
+    values: { lat?: number | null; lng?: number | null; address?: string | null },
+  ) {
+    return insertRow(await sharedTestOrm(testDb), Places, { trip: tripId, name }, { lat: null, lng: null, ...values });
+  }
+
+  async function cacheRegion(placeId: number, regionName: string) {
+    await upsertRow(await sharedTestOrm(testDb), PlaceRegions, {
+      place: placeId,
+      country_code: 'DE',
+      region_code: 'DE-BY',
+      region_name: regionName,
+    });
+  }
+
+  async function seedFootprint() {
+    const { user } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const first = createTrip(testDb, user.id, { title: 'Bavaria', start_date: '2023-05-01', end_date: '2023-05-10' });
+    const second = createTrip(testDb, friend.id, {
+      title: 'Bavaria again',
+      start_date: '2024-05-01',
+      end_date: '2024-05-03',
+    });
+    // Members on both trips, so a join over trip_members fans every place out.
+    addTripMember(testDb, first.id, friend.id);
+    addTripMember(testDb, second.id, user.id);
+
+    // The same hotel saved on both trips is two places, not one.
+    const hotelA = await addPlace(first.id, 'Hotel', { ...MUNICH, address: 'Hotel Bayern, Munich, Bavaria, Germany' });
+    const hotelB = await addPlace(second.id, 'Hotel', { ...MUNICH, address: 'Hotel Bayern, Munich, Bavaria, Germany' });
+    // Same city in another case: still one city.
+    const square = await addPlace(first.id, 'Square', { ...MUNICH, address: 'Marienplatz, MUNICH, Bavaria, Germany' });
+    // The part before the country is the region, the city sits above it.
+    const castle = await addPlace(first.id, 'Castle', {
+      ...NUREMBERG,
+      address: 'Kaiserburg, Nuremberg, Bavaria, Germany',
+    });
+    const bridge = await addPlace(second.id, 'Bridge', {
+      lat: 49.0222,
+      lng: 12.0972,
+      address: 'Steinerne Bruecke, Regensburg, Bavaria, Germany',
+    });
+    for (const id of [hotelA, hotelB, square, castle, bridge]) await cacheRegion(id, 'Bavaria');
+    // A bare name holds no city, and two places without address or coordinates are two places.
+    await addPlace(first.id, 'Beer garden', { address: 'Augustiner Keller' });
+    await addPlace(second.id, 'Beer hall', { address: 'Hofbraeuhaus' });
+    await addPlace(first.id, 'Idea one', {});
+    await addPlace(second.id, 'Idea two', {});
+    return user;
+  }
+
+  it('AUTH-DB-130: totalPlaces and the city count agree between stats() and getTravelStats()', async () => {
+    const user = await seedFootprint();
+
+    const atlasTotals = (await atlas.stats(user.id)).stats;
+    const travel = await atlas.getTravelStats(user.id);
+
+    expect(atlasTotals.totalPlaces).toBe(travel.totalPlaces);
+    expect(atlasTotals.totalCities).toBe(travel.cities.length);
+  });
+
+  it('AUTH-DB-131: every place row counts once and cities come from cityFromAddress, case-insensitively', async () => {
+    const user = await seedFootprint();
+
+    const travel = await atlas.getTravelStats(user.id);
+    expect(travel.totalPlaces).toBe(9);
+    expect(travel.cities.map((c) => c.toLowerCase()).sort()).toEqual(['munich', 'nuremberg', 'regensburg']);
+    expect((await atlas.stats(user.id)).stats.totalCities).toBe(3);
+  });
+});
