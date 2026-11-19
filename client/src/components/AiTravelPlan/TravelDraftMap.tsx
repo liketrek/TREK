@@ -6,6 +6,7 @@ import { useTileUrl } from '../../hooks/useTileUrl';
 import { useTranslation } from '../../i18n';
 import { MapViewAuto } from '../Map/MapViewAuto';
 import type { MapPlace } from '../Map/mapViewContract';
+import { useDraftRoadRoutes } from './useDraftRoadRoutes';
 
 interface TravelDraftMapProps {
   draft: TravelPlanDraft | null;
@@ -40,27 +41,6 @@ function draftPlaces(days: TravelPlanDraftDay[]): MapPlace[] {
   return places;
 }
 
-/**
- * A straight connector for each leg the draft actually claims: one line per
- * `travelFromPrevious`, so a gap in the proposal stays a gap on the map. The
- * draft carries no road geometry, so this is a sketch, not the drive itself.
- */
-function draftRoute(days: TravelPlanDraftDay[]): [number, number][][] {
-  const lines: [number, number][][] = [];
-  for (const day of days) {
-    for (let index = 1; index < day.items.length; index += 1) {
-      const item = day.items[index];
-      if (!item.travelFromPrevious) continue;
-      const previous = day.items[index - 1];
-      lines.push([
-        [previous.place.lat, previous.place.lng],
-        [item.place.lat, item.place.lng],
-      ]);
-    }
-  }
-  return lines;
-}
-
 /** The coordinates the map frames; a lone stop (or several on one spot) gets a small square. */
 function framePoints(places: MapPlace[]): [number, number][] {
   const points = places.flatMap((place) =>
@@ -87,7 +67,7 @@ export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.Re
   const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT);
   const days = draft?.days ?? NO_DAYS;
   const places = useMemo(() => draftPlaces(days), [days]);
-  const route = useMemo(() => draftRoute(days), [days]);
+  const { lines: route, sketchOnly } = useDraftRoadRoutes(days);
   const focusPoints = useMemo(() => framePoints(places), [places]);
   // Coordinates are in the key: the engine fits again when a revision moves a
   // stop, while a rerender with the same proposal leaves the camera alone.
@@ -99,7 +79,7 @@ export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.Re
     <section className="overflow-hidden rounded-2xl border border-edge bg-surface-card shadow-sm">
       <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-edge-faint px-4 py-3 sm:px-5">
         <h2 className="text-sm font-semibold text-content">{t('planner.ai.mapTitle')}</h2>
-        <span className="text-xs text-content-muted">{t('planner.ai.mapNote')}</span>
+        {sketchOnly ? <span className="text-xs text-content-muted">{t('planner.ai.mapNote')}</span> : null}
       </header>
       <div className="h-64 w-full [--bottom-nav-h:0px] sm:h-80">
         <MapViewAuto

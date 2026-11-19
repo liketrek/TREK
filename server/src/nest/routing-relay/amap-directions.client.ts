@@ -24,6 +24,7 @@ import { readEnv } from '../../app-config';
 import { discardBody, exceedsDeclaredLength, readCappedJson } from '../../utils/cappedFetch';
 import { encodePolyline } from '../../utils/polyline';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
+import { logWarn } from '../audit/audit-log.logger';
 import { UA, amapUrl } from '../maps/maps.helpers';
 import { gcj02ToWgs84, toAmapLocation, type ValhallaCosting, type ValhallaRouteRequest } from '@trek/shared';
 
@@ -31,8 +32,34 @@ import { gcj02ToWgs84, toAmapLocation, type ValhallaCosting, type ValhallaRouteR
 const MAX_RESPONSE_BYTES = 2_000_000;
 /** One leg is a short question; a host that needs longer holds up the whole chain. */
 const LEG_TIMEOUT_MS = 8_000;
-/** Legs asked at once. A day is a handful of them, and Amap has no per-second rule. */
-const LEG_CONCURRENCY = 6;
+/** A ceiling only: the pace below spaces the starts, so a few days at once stay in flight. */
+const LEG_CONCURRENCY = 3;
+/**
+ * Amap's personal key answers about three questions a second, and the fourth in the
+ * same second is refused with 10021. A whole chain is fifteen of them, so the starts
+ * are spaced across the process: the key belongs to the installation, not to a day.
+ */
+const LEG_INTERVAL_MS = 350;
+/** Waits before asking a 10021 leg again; a spent daily quota is not worth asking again. */
+const RETRY_DELAYS_MS = [400, 800];
+/** "CUQPS_HAS_EXCEEDED_THE_LIMIT": the key was asked too fast, rather than for too much. */
+const TOO_FAST_INFOCODE = '10021';
+
+/** When the next leg may start, shared by every route in this process (see LEG_INTERVAL_MS). */
+let nextLegAt = 0;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Waits for this leg's turn under the key's pace; false when the turn would outlast the question. */
+async function paceLeg(deadline: number): Promise<boolean> {
+  const at = Math.max(Date.now(), nextLegAt);
+  nextLegAt = at + LEG_INTERVAL_MS;
+  if (at >= deadline) return false;
+  if (at > Date.now()) await sleep(at - Date.now());
+  return Date.now() < deadline;
+}
 
 type AmapProfile = 'driving' | 'walking' | 'bicycling';
 
@@ -44,10 +71,7 @@ const PROFILE_OF: Record<ValhallaCosting, AmapProfile> = {
 };
 
 /** What comes back for a whole chain: a Valhalla-shaped body, a way that does not exist, or a host that failed. */
-export type AmapRouteAnswer =
-  | { kind: 'route'; body: unknown }
-  | { kind: 'none' }
-  | { kind: 'failed' };
+export type AmapRouteAnswer = { kind: 'route'; body: unknown } | { kind: 'none' } | { kind: 'failed' };
 
 // ── Amap's envelope ──────────────────────────────────────────────────────────
 
@@ -113,6 +137,8 @@ interface AmapLeg {
 }
 
 type LegOutcome = { kind: 'leg'; leg: AmapLeg } | { kind: 'none' } | { kind: 'failed' };
+/** One attempt may also be refused for asking too fast, which is worth another try. */
+type LegAttempt = LegOutcome | { kind: 'retry' };
 
 /**
  * Amap's driving strategy for the weightings the planner sends.
@@ -157,9 +183,9 @@ export async function routeByAmap(
 
   const legs: AmapLeg[] = [];
   for (let i = 0; i < pairs.length; i += LEG_CONCURRENCY) {
-    const batch = pairs.slice(i, i + LEG_CONCURRENCY).map((pair) =>
-      askLeg(profile, pair.from, pair.to, strategy, apiKey, deadline),
-    );
+    const batch = pairs
+      .slice(i, i + LEG_CONCURRENCY)
+      .map((pair) => askLeg(profile, pair.from, pair.to, strategy, apiKey, deadline));
     for (const outcome of await Promise.all(batch)) {
       if (outcome.kind === 'failed') return { kind: 'failed' };
       // One pair Amap cannot route is a question for the Valhalla behind this, not a failure.
@@ -179,6 +205,30 @@ async function askLeg(
   apiKey: string,
   deadline: number,
 ): Promise<LegOutcome> {
+  // Retried by recursion rather than a loop, so the wait between tries is the plain kind.
+  const askAgain = async (attempt: number): Promise<LegOutcome> => {
+    if (!(await paceLeg(deadline))) return { kind: 'failed' };
+
+    const outcome = await askLegOnce(profile, from, to, strategy, apiKey, deadline);
+    if (outcome.kind !== 'retry') return outcome;
+
+    const wait = RETRY_DELAYS_MS[attempt];
+    // Out of tries, or the wait would outlast the question: this leg failed like any other.
+    if (wait === undefined || Date.now() + wait >= deadline) return { kind: 'failed' };
+    await sleep(wait);
+    return askAgain(attempt + 1);
+  };
+  return askAgain(0);
+}
+
+async function askLegOnce(
+  profile: AmapProfile,
+  from: { lat: number; lon: number },
+  to: { lat: number; lon: number },
+  strategy: string | undefined,
+  apiKey: string,
+  deadline: number,
+): Promise<LegAttempt> {
   const remaining = deadline - Date.now();
   if (remaining <= 0) return { kind: 'failed' };
 
@@ -210,7 +260,7 @@ async function askLeg(
 
     if (profile === 'bicycling') {
       if (data.errcode !== 0) {
-        console.error(`[Routing relay] amap bicycling refused: ${data.errcode} ${data.errmsg ?? ''}`);
+        logWarn(`[Routing relay] amap bicycling refused: ${data.errcode} ${data.errmsg ?? ''}`);
         return { kind: 'failed' };
       }
       const path0 = asArray(data.data?.paths)[0];
@@ -218,13 +268,13 @@ async function askLeg(
     }
 
     if (data.status !== '1') {
-      console.error(`[Routing relay] amap ${profile} refused: ${data.info ?? ''} (infocode ${data.infocode ?? 'none'})`);
-      return { kind: 'failed' };
+      logWarn(`[Routing relay] amap ${profile} refused: ${data.info ?? ''} (infocode ${data.infocode ?? 'none'})`);
+      return data.infocode === TOO_FAST_INFOCODE ? { kind: 'retry' } : { kind: 'failed' };
     }
     const path0 = asArray(data.route?.paths)[0];
     return path0 ? toLeg(path0, profile) : { kind: 'none' };
   } catch (err) {
-    console.error(`[Routing relay] amap ${profile} did not answer: ${err instanceof Error ? err.message : String(err)}`);
+    logWarn(`[Routing relay] amap ${profile} did not answer: ${err instanceof Error ? err.message : String(err)}`);
     return { kind: 'failed' };
   }
 }

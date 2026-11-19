@@ -64,7 +64,7 @@ function decode(shape: string): [number, number][] {
   const next = () => {
     let result = 0;
     let shift = 0;
-    let byte = 0;
+    let byte: number;
     do {
       byte = shape.charCodeAt(index++) - 63;
       result |= (byte & 0x1f) << shift;
@@ -198,5 +198,31 @@ describe('routeByAmap', () => {
     const answer = await routeByAmap(ROUTE, 'k', 0);
     expect(answer.kind).toBe('failed');
     expect(vi.mocked(safeFetchFollow)).not.toHaveBeenCalled();
+  });
+
+  it('ROUTE-AMAP-007: asks a 10021 refusal again and still lands the leg (the free key is ~3 QPS)', async () => {
+    vi.mocked(safeFetchFollow)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: '0', info: 'CUQPS_HAS_EXCEEDED_THE_LIMIT', infocode: '10021' }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(v3([pathOf('104300', '7056', '0', ['延安高架路'])]));
+
+    const answer = await routeByAmap(ROUTE, 'k', 10_000);
+
+    expect(answer.kind).toBe('route');
+    expect(vi.mocked(safeFetchFollow)).toHaveBeenCalledTimes(2);
+  });
+
+  it('ROUTE-AMAP-008: a spent daily quota (10003) is refused for good, never asked again', async () => {
+    vi.mocked(safeFetchFollow).mockResolvedValueOnce(
+      new Response(JSON.stringify({ status: '0', info: 'DAILY_QUERY_OVER_LIMIT', infocode: '10003' }), {
+        status: 200,
+      }),
+    );
+
+    expect((await routeByAmap(ROUTE, 'k', 10_000)).kind).toBe('failed');
+    expect(vi.mocked(safeFetchFollow)).toHaveBeenCalledTimes(1);
   });
 });
