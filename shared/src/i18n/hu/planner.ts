@@ -179,5 +179,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Utazás',
   'planner.ai.mapTitle': 'Javaslat térképe',
   'planner.ai.mapNote': 'Az egyenes vonalak az egymást követő állomásokat kötik össze; nem útvonaltervek.',
+  'planner.ai.recalculate': 'Újraszámolás utak alapján',
+  'planner.ai.recalculating': 'Újraszámolás…',
+  'planner.ai.recalculated': 'Az utazási idők valós utak alapján frissültek.',
+  'planner.ai.recalculateFailed': 'Nem sikerült újraszámolni az utazási időket. Próbálja újra.',
+  'planner.ai.navigate': 'Navigáció az Amapban',
 };
 export default planner;

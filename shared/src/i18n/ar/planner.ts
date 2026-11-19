@@ -189,5 +189,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'تنقل',
   'planner.ai.mapTitle': 'خريطة الاقتراح',
   'planner.ai.mapNote': 'تربط الخطوط المستقيمة المحطات المتتالية؛ وهي ليست اتجاهات طرق.',
+  'planner.ai.recalculate': 'إعادة الحساب حسب الطرق',
+  'planner.ai.recalculating': 'تجري إعادة الحساب…',
+  'planner.ai.recalculated': 'تم تحديث أوقات التنقل وفق الطرق الفعلية.',
+  'planner.ai.recalculateFailed': 'تعذر إعادة حساب أوقات التنقل. حاول مرة أخرى.',
+  'planner.ai.navigate': 'التنقل في Amap',
 };
 export default planner;

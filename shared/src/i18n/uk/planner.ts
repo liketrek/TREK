@@ -185,5 +185,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Інше',
   'planner.ai.mapTitle': 'Карта чернетки',
   'planner.ai.mapNote': 'Прямі лінії з’єднують сусідні зупинки; це не дорожні маршрути.',
+  'planner.ai.recalculate': 'Перерахувати за дорогами',
+  'planner.ai.recalculating': 'Перерахунок…',
+  'planner.ai.recalculated': 'Час у дорозі оновлено за реальними дорогами.',
+  'planner.ai.recalculateFailed': 'Не вдалося перерахувати час у дорозі. Спробуйте ще раз.',
+  'planner.ai.navigate': 'Навігація в Amap',
 };
 export default planner;

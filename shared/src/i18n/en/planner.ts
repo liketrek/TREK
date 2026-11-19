@@ -178,5 +178,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Travel',
   'planner.ai.mapTitle': 'Proposal map',
   'planner.ai.mapNote': 'Straight lines join consecutive stops; they are not road directions.',
+  'planner.ai.recalculate': 'Recalculate by road',
+  'planner.ai.recalculating': 'Recalculating…',
+  'planner.ai.recalculated': 'Travel times updated from real roads.',
+  'planner.ai.recalculateFailed': 'Could not recalculate travel times. Please try again.',
+  'planner.ai.navigate': 'Navigate in Amap',
 };
 export default planner;

@@ -20,6 +20,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { PlanApplyClaimLostError, PlannerApplyService } from './planner-apply.service';
 import { logPlannerEvent, stageLogger, type PlannerLogFields, type PlannerMode } from './planner-log';
+import { PlannerProvider, routeTransport } from './planner-provider';
 import { PlannerQuotaService } from './planner-quota.service';
 import { TRAVEL_PLAN_ENGINE, type TravelPlanEngine, type TravelPlanEngineResult } from './travel-plan-engine';
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
@@ -85,6 +86,7 @@ export class AiTravelPlanService {
     private readonly tripAccess: TripAccessService,
     private readonly applyService: PlannerApplyService,
     private readonly quota: PlannerQuotaService,
+    private readonly provider: PlannerProvider,
     @Inject(TRAVEL_PLAN_ENGINE) private readonly engine: TravelPlanEngine,
   ) {}
 
@@ -396,6 +398,88 @@ export class AiTravelPlanService {
       revision: toRevisionView(revision as AiTravelPlanRevisions),
       quota: await this.quota.view(user.id),
     };
+  }
+
+  /**
+   * Recomputes the traffic legs of the current draft from the real road
+   * network. Every day keeps its allocation and its time windows; only
+   * `travelFromPrevious` is replaced.
+   *
+   * This is not a generation: no model is called, no revision is appended and
+   * the daily quota is not charged. The current revision's draft is rewritten
+   * in place — the same proposal, with checked legs instead of estimates.
+   */
+  async recalculate(user: User, rawId: string): Promise<{ plan: TravelPlan }> {
+    const planId = parsePlanId(rawId);
+    const now = dbNow();
+    const plan = await this.mustFindOwned(planId, user.id);
+    const status = effectiveStatus(plan, now);
+    if (!EDITABLE_TRAVEL_PLAN_STATUSES.includes(status)) {
+      throw planError(409, `草案当前状态为 ${status}，不能重算交通。`, 'plan_not_editable', { status });
+    }
+
+    const draft = await this.currentDraft(plan);
+    const routedDays = draft.days.filter((day) => day.items.length > 1);
+    if (routedDays.length === 0) {
+      throw planError(409, '草案还没有可重算的连续地点。', 'plan_no_legs');
+    }
+
+    const request = decodeJson(AI_TRAVEL_PLAN_REQUEST, plan.request_json, `plan ${plan.id}`);
+    const transport = routeTransport(request.transport);
+    const mode = transport === 'walk' ? 'walk' : transport === 'drive' ? 'drive' : 'other';
+
+    const answers = await Promise.all(
+      draft.days.map(async (day) => {
+        if (day.items.length < 2) return { date: day.date, ok: true as const, legs: [] };
+        const result = await this.provider.route(
+          user.id,
+          day.items.map((item) => ({ lat: item.place.lat, lng: item.place.lng })),
+          mode,
+        );
+        return { date: day.date, ...result };
+      }),
+    );
+    const failed = answers.filter((answer) => !answer.ok);
+    if (failed.length > 0) {
+      // All or nothing: a partial rewrite would leave some days checked and
+      // others estimated with no way to tell which is which.
+      throw planError(502, '路线服务暂时不可用，请稍后重试。', 'route_unavailable', {
+        days: failed.map((answer) => answer.date),
+      });
+    }
+
+    const legsByDate = new Map(answers.map((answer) => [answer.date, answer.ok ? answer.legs : []]));
+    const nextDraft: TravelPlanDraft = {
+      ...draft,
+      days: draft.days.map((day) => {
+        const legs = legsByDate.get(day.date) ?? [];
+        return {
+          ...day,
+          items: day.items.map((item, index) => ({
+            ...item,
+            travelFromPrevious: index === 0 ? null : (legs[index - 1] ?? null),
+          })),
+        };
+      }),
+    };
+
+    await this.uow.transactional(async () => {
+      await this.revisions.updateDraft(
+        plan.id,
+        plan.current_revision,
+        encodeJson(AI_TRAVEL_PLAN_REVISION_DRAFT, nextDraft),
+      );
+      await this.plans.nativeUpdate({ id: plan.id, owner: user.id }, { updated_at: now });
+    });
+
+    await this.audit.writeAudit({
+      userId: user.id,
+      action: 'ai_travel_plan.recalculate',
+      resource: `ai_travel_plan:${plan.id}`,
+      details: { planId: plan.id, revision: plan.current_revision, days: routedDays.length, mode },
+    });
+
+    return { plan: await this.loadView(plan.id, user.id) };
   }
 
   /**

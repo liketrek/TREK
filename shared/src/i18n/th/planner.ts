@@ -174,5 +174,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'เดินทาง',
   'planner.ai.mapTitle': 'แผนที่ข้อเสนอ',
   'planner.ai.mapNote': 'เส้นตรงเชื่อมจุดแวะที่ต่อเนื่องกัน ไม่ใช่เส้นทางถนนจริง',
+  'planner.ai.recalculate': 'คำนวณเส้นทางถนนใหม่',
+  'planner.ai.recalculating': 'กำลังคำนวณใหม่…',
+  'planner.ai.recalculated': 'อัปเดตเวลาเดินทางตามถนนจริงแล้ว',
+  'planner.ai.recalculateFailed': 'คำนวณเวลาเดินทางใหม่ไม่สำเร็จ โปรดลองอีกครั้ง',
+  'planner.ai.navigate': 'นำทางด้วย Amap',
 };
 export default planner;

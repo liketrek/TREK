@@ -193,6 +193,11 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Səyahət',
   'planner.ai.mapTitle': 'Təklif xəritəsi',
   'planner.ai.mapNote': 'Düz xətlər ardıcıl dayanacaqları birləşdirir; onlar yol istiqamətləri deyil.',
+  'planner.ai.recalculate': 'Yollara görə yenidən hesabla',
+  'planner.ai.recalculating': 'Yenidən hesablanır…',
+  'planner.ai.recalculated': 'Səyahət vaxtları real yollara görə yeniləndi.',
+  'planner.ai.recalculateFailed': 'Səyahət vaxtlarını yenidən hesablamaq alınmadı. Yenidən cəhd edin.',
+  'planner.ai.navigate': 'Amap ilə naviqasiya',
 };
 
 export default planner;

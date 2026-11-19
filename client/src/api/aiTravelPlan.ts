@@ -22,6 +22,9 @@ import apiClient from './client';
  */
 const GENERATION_TIMEOUT_MS = 180_000;
 
+/** Route recalculation asks each day's legs from the relay, which budgets 15 s per day. */
+const RECALCULATE_TIMEOUT_MS = 60_000;
+
 /**
  * AI travel plans (China MVP).
  *
@@ -45,6 +48,16 @@ export const aiTravelPlanApi = {
   /** Appends a revision; `expectedRevision` makes a stale client a 409. */
   revise: (id: number, data: TravelPlanRevisionRequest): Promise<TravelPlanRevisionResponse> =>
     apiClient.post(`/ai-travel-plans/${id}/revisions`, data, { timeout: GENERATION_TIMEOUT_MS }).then((r) => r.data),
+
+  /**
+   * Refreshes the current draft's traffic legs from the real road network.
+   * No model call, no new revision, no quota charge — the same proposal with
+   * checked travel times.
+   */
+  recalculate: (id: number): Promise<TravelPlanResponse> =>
+    apiClient
+      .post(`/ai-travel-plans/${id}/recalculate`, undefined, { timeout: RECALCULATE_TIMEOUT_MS })
+      .then((r) => r.data),
 
   /**
    * Applies the current draft into a new or existing trip.

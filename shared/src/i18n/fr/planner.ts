@@ -181,5 +181,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Déplacement',
   'planner.ai.mapTitle': 'Carte de la proposition',
   'planner.ai.mapNote': 'Des lignes droites relient les étapes consécutives ; ce ne sont pas des itinéraires routiers.',
+  'planner.ai.recalculate': 'Recalculer par la route',
+  'planner.ai.recalculating': 'Recalcul en cours…',
+  'planner.ai.recalculated': 'Temps de trajet mis à jour d’après les routes réelles.',
+  'planner.ai.recalculateFailed': 'Impossible de recalculer les temps de trajet. Réessayez.',
+  'planner.ai.navigate': 'Naviguer dans Amap',
 };
 export default planner;

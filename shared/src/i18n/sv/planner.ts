@@ -178,5 +178,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Resa',
   'planner.ai.mapTitle': 'Förslagskarta',
   'planner.ai.mapNote': 'Raka linjer förbinder på varandra följande stopp; de är inte vägbeskrivningar.',
+  'planner.ai.recalculate': 'Beräkna om efter väg',
+  'planner.ai.recalculating': 'Beräknar om…',
+  'planner.ai.recalculated': 'Restider uppdaterade efter verkliga vägar.',
+  'planner.ai.recalculateFailed': 'Det gick inte att beräkna om restiderna. Försök igen.',
+  'planner.ai.navigate': 'Navigera i Amap',
 };
 export default planner;

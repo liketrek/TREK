@@ -173,5 +173,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': '이동',
   'planner.ai.mapTitle': '제안서 지도',
   'planner.ai.mapNote': '직선은 연속된 경유지를 잇는 선이며 실제 도로 경로가 아닙니다.',
+  'planner.ai.recalculate': '실제 도로로 다시 계산',
+  'planner.ai.recalculating': '다시 계산 중…',
+  'planner.ai.recalculated': '실제 도로 기준으로 이동 시간을 업데이트했습니다.',
+  'planner.ai.recalculateFailed': '이동 시간을 다시 계산하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  'planner.ai.navigate': 'Amap 길안내',
 };
 export default planner;

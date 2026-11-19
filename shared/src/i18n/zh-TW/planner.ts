@@ -171,5 +171,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': '移動',
   'planner.ai.mapTitle': '草案地圖',
   'planner.ai.mapNote': '直線僅連接相鄰的地點，並不代表實際道路路線。',
+  'planner.ai.recalculate': '按實際道路重算',
+  'planner.ai.recalculating': '正在重算…',
+  'planner.ai.recalculated': '交通時間已按實際道路更新。',
+  'planner.ai.recalculateFailed': '重算失敗，請稍後再試。',
+  'planner.ai.navigate': '高德導航',
 };
 export default planner;

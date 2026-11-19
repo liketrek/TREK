@@ -1,5 +1,5 @@
 /**
- * The six handlers are thin: they pass the signed-in user, the route id and
+ * The seven handlers are thin: they pass the signed-in user, the route id and
  * the validated body through, and apply forwards the idempotency header. The
  * service contract is covered separately; this file pins the routing surface.
  */
@@ -15,7 +15,7 @@ const user = { id: 7, role: 'user' } as User;
 function controller(): {
   controller: AiTravelPlanController;
   plans: Record<
-    'create' | 'createStreaming' | 'get' | 'createRevision' | 'apply' | 'discard' | 'undo',
+    'create' | 'createStreaming' | 'get' | 'createRevision' | 'recalculate' | 'apply' | 'discard' | 'undo',
     ReturnType<typeof vi.fn>
   >;
 } {
@@ -26,6 +26,7 @@ function controller(): {
     }),
     get: vi.fn(async () => ({ plan: { id: 1 } })),
     createRevision: vi.fn(async () => ({ plan: { id: 1 }, revision: { version: 2 } })),
+    recalculate: vi.fn(async () => ({ plan: { id: 1 } })),
     apply: vi.fn(async () => ({ plan: { id: 1 }, tripId: 9 })),
     discard: vi.fn(async () => ({ plan: { id: 1 } })),
     undo: vi.fn(async () => ({ plan: { id: 1 }, tripId: 9, tripDeleted: true })),
@@ -70,6 +71,13 @@ describe('AiTravelPlanController', () => {
 
     await expect(c.createRevision(user, '42', body)).resolves.toMatchObject({ revision: { version: 2 } });
     expect(plans.createRevision).toHaveBeenCalledWith(user, '42', body);
+  });
+
+  it('POST /:id/recalculate passes the route id through', async () => {
+    const { controller: c, plans } = controller();
+
+    await expect(c.recalculate(user, '42')).resolves.toEqual({ plan: { id: 1 } });
+    expect(plans.recalculate).toHaveBeenCalledWith(user, '42');
   });
 
   it('POST /:id/apply forwards the idempotency key', async () => {

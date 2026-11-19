@@ -185,5 +185,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Другое',
   'planner.ai.mapTitle': 'Карта черновика',
   'planner.ai.mapNote': 'Прямые линии соединяют соседние остановки; это не дорожные маршруты.',
+  'planner.ai.recalculate': 'Пересчитать по дорогам',
+  'planner.ai.recalculating': 'Пересчёт…',
+  'planner.ai.recalculated': 'Время в пути обновлено по реальным дорогам.',
+  'planner.ai.recalculateFailed': 'Не удалось пересчитать время в пути. Попробуйте ещё раз.',
+  'planner.ai.navigate': 'Навигация в Amap',
 };
 export default planner;

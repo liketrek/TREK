@@ -179,5 +179,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Perjalanan',
   'planner.ai.mapTitle': 'Peta usulan',
   'planner.ai.mapNote': 'Garis lurus menghubungkan perhentian berurutan; itu bukan petunjuk jalan.',
+  'planner.ai.recalculate': 'Hitung ulang lewat jalan',
+  'planner.ai.recalculating': 'Menghitung ulang…',
+  'planner.ai.recalculated': 'Waktu perjalanan diperbarui sesuai jalan sebenarnya.',
+  'planner.ai.recalculateFailed': 'Waktu perjalanan tidak dapat dihitung ulang. Coba lagi.',
+  'planner.ai.navigate': 'Navigasi di Amap',
 };
 export default planner;

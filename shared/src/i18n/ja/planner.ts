@@ -173,5 +173,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': '移動',
   'planner.ai.mapTitle': '提案マップ',
   'planner.ai.mapNote': '直線は連続する立ち寄り地点を結ぶもので、道路の経路ではありません。',
+  'planner.ai.recalculate': '実際の道路で再計算',
+  'planner.ai.recalculating': '再計算中…',
+  'planner.ai.recalculated': '実際の道路に基づいて移動時間を更新しました。',
+  'planner.ai.recalculateFailed': '移動時間を再計算できませんでした。後でもう一度お試しください。',
+  'planner.ai.navigate': 'Amap でナビ',
 };
 export default planner;

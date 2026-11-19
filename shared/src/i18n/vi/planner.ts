@@ -176,5 +176,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Di chuyển',
   'planner.ai.mapTitle': 'Bản đồ đề xuất',
   'planner.ai.mapNote': 'Các đường thẳng nối các điểm dừng liên tiếp; đó không phải chỉ dẫn đường đi.',
+  'planner.ai.recalculate': 'Tính lại theo đường bộ',
+  'planner.ai.recalculating': 'Đang tính lại…',
+  'planner.ai.recalculated': 'Đã cập nhật thời gian di chuyển theo đường thực tế.',
+  'planner.ai.recalculateFailed': 'Không thể tính lại thời gian di chuyển. Vui lòng thử lại.',
+  'planner.ai.navigate': 'Dẫn đường bằng Amap',
 };
 export default planner;

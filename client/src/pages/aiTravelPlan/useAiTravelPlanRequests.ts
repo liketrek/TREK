@@ -31,6 +31,7 @@ interface RequestContext {
   applyTitle: string;
   create: (request: TravelPlanCreateRequest) => Promise<TravelPlan>;
   revise: (id: number, request: TravelPlanRevisionRequest) => Promise<TravelPlan>;
+  recalculate: (id: number) => Promise<TravelPlan>;
   apply: (id: number, request: TravelPlanApplyRequest, idempotencyKey: string) => Promise<TravelPlanApplyResponse>;
   setError: (message: string | null) => void;
   setFeedback: (feedback: string) => void;
@@ -58,6 +59,7 @@ export function useAiTravelPlanRequests(ctx: RequestContext) {
     applyTitle,
     create,
     revise,
+    recalculate,
     apply,
     setError,
     setFeedback,
@@ -110,6 +112,21 @@ export function useAiTravelPlanRequests(ctx: RequestContext) {
     }
   };
 
+  /**
+   * Rewrites the travel legs of the same proposal from the real road network.
+   * The server keeps every day and time window; only the legs change.
+   */
+  const handleRecalculate = async () => {
+    if (!plan || isBusy) return;
+    setError(null);
+    try {
+      await recalculate(plan.id);
+      toast.success(t('planner.ai.recalculated'));
+    } catch (err) {
+      setError(getApiErrorMessage(err, t('planner.ai.recalculateFailed')));
+    }
+  };
+
   const handleApply = async () => {
     if (!plan || isBusy) return;
     if (!canApply) {
@@ -140,5 +157,5 @@ export function useAiTravelPlanRequests(ctx: RequestContext) {
     }
   };
 
-  return { handleCreate, handleRevise, handleApply };
+  return { handleCreate, handleRevise, handleRecalculate, handleApply };
 }

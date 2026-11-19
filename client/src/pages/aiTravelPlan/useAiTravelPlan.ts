@@ -28,6 +28,7 @@ export function useAiTravelPlan() {
   const create = useAiTravelPlanStore((s) => s.create);
   const load = useAiTravelPlanStore((s) => s.load);
   const revise = useAiTravelPlanStore((s) => s.revise);
+  const recalculate = useAiTravelPlanStore((s) => s.recalculate);
   const apply = useAiTravelPlanStore((s) => s.apply);
   const undo = useAiTravelPlanStore((s) => s.undo);
   const discard = useAiTravelPlanStore((s) => s.discard);
@@ -87,6 +88,7 @@ export function useAiTravelPlan() {
     applyTitle: applyTitleValue,
     create,
     revise,
+    recalculate,
     apply,
     setError,
     setFeedback,

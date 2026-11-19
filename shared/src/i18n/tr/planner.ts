@@ -178,5 +178,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Seyahat',
   'planner.ai.mapTitle': 'Öneri haritası',
   'planner.ai.mapNote': 'Düz çizgiler ardışık durakları birleştirir; bunlar yol tarifi değildir.',
+  'planner.ai.recalculate': 'Yollara göre yeniden hesapla',
+  'planner.ai.recalculating': 'Yeniden hesaplanıyor…',
+  'planner.ai.recalculated': 'Seyahat süreleri gerçek yollara göre güncellendi.',
+  'planner.ai.recalculateFailed': 'Seyahat süreleri yeniden hesaplanamadı. Lütfen tekrar deneyin.',
+  'planner.ai.navigate': 'Amap ile yol tarifi',
 };
 export default planner;

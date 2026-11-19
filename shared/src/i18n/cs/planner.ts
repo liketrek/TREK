@@ -181,5 +181,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Cestování',
   'planner.ai.mapTitle': 'Mapa návrhu',
   'planner.ai.mapNote': 'Přímé čáry spojují po sobě jdoucí zastávky; nejde o silniční navigaci.',
+  'planner.ai.recalculate': 'Přepočítat po silnicích',
+  'planner.ai.recalculating': 'Přepočítávání…',
+  'planner.ai.recalculated': 'Časy cest aktualizovány podle skutečných silnic.',
+  'planner.ai.recalculateFailed': 'Časy cest se nepodařilo přepočítat. Zkuste to znovu.',
+  'planner.ai.navigate': 'Navigovat v Amap',
 };
 export default planner;

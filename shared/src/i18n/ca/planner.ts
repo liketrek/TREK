@@ -180,5 +180,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Desplaçament',
   'planner.ai.mapTitle': 'Mapa de la proposta',
   'planner.ai.mapNote': 'Les línies rectes uneixen parades consecutives; no són indicacions de carretera.',
+  'planner.ai.recalculate': 'Recalcula per carretera',
+  'planner.ai.recalculating': 'Recalculant…',
+  'planner.ai.recalculated': 'Temps de viatge actualitzats amb carreteres reals.',
+  'planner.ai.recalculateFailed': 'No s’han pogut recalcular els temps de viatge. Torna-ho a provar.',
+  'planner.ai.navigate': 'Navega amb Amap',
 };
 export default planner;

@@ -1,4 +1,4 @@
-import { Loader2, PenLine, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, PenLine, RotateCcw, Route, Sparkles, Trash2 } from 'lucide-react';
 import React from 'react';
 import TravelBriefForm from '../../components/AiTravelPlan/TravelBriefForm';
 import TravelDraftApplyCard from '../../components/AiTravelPlan/TravelDraftApplyCard';
@@ -28,6 +28,9 @@ function formatDate(value: string, locale: string): string {
 function DraftOverview({ vm }: { vm: ReturnType<typeof useAiTravelPlan> }): React.ReactElement | null {
   const { t, locale, plan, draft } = vm;
   if (!plan) return null;
+  const canRecalculate =
+    (plan.status === 'draft' || plan.status === 'ready' || plan.status === 'failed') &&
+    (draft?.days.some((day) => day.items.length > 1) ?? false);
   return (
     <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -71,6 +74,19 @@ function DraftOverview({ vm }: { vm: ReturnType<typeof useAiTravelPlan> }): Reac
           <PenLine size={13} />
           {t('planner.ai.editBrief')}
         </button>
+        {canRecalculate && (
+          <button
+            type="button"
+            onClick={() => {
+              void vm.handleRecalculate();
+            }}
+            disabled={vm.isBusy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-xs font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
+          >
+            {vm.pending === 'recalculating' ? <Loader2 size={13} className="animate-spin" /> : <Route size={13} />}
+            {vm.pending === 'recalculating' ? t('planner.ai.recalculating') : t('planner.ai.recalculate')}
+          </button>
+        )}
         <button
           type="button"
           onClick={vm.handleStartOver}

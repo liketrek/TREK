@@ -181,5 +181,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Μετακίνηση',
   'planner.ai.mapTitle': 'Χάρτης πρότασης',
   'planner.ai.mapNote': 'Οι ευθείες γραμμές ενώνουν διαδοχικές στάσεις· δεν είναι οδηγίες διαδρομής.',
+  'planner.ai.recalculate': 'Επανυπολογισμός μέσω δρόμων',
+  'planner.ai.recalculating': 'Γίνεται επανυπολογισμός…',
+  'planner.ai.recalculated': 'Οι χρόνοι μετακίνησης ενημερώθηκαν με βάση πραγματικούς δρόμους.',
+  'planner.ai.recalculateFailed': 'Δεν ήταν δυνατός ο επανυπολογισμός των χρόνων μετακίνησης. Δοκιμάστε ξανά.',
+  'planner.ai.navigate': 'Πλοήγηση στο Amap',
 };
 export default planner;

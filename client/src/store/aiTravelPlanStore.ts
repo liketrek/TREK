@@ -12,7 +12,8 @@ import { create } from 'zustand';
 import { aiTravelPlanApi } from '../api/aiTravelPlan';
 
 /** Which request the page is waiting on; the page disables every control while one runs. */
-export type AiTravelPlanPending = 'loading' | 'creating' | 'revising' | 'applying' | 'undoing' | 'discarding' | null;
+export type AiTravelPlanPending =
+  'loading' | 'creating' | 'revising' | 'recalculating' | 'applying' | 'undoing' | 'discarding' | null;
 
 /**
  * The AI travel plan the page is working on.
@@ -31,6 +32,7 @@ interface AiTravelPlanState {
   create: (request: TravelPlanCreateRequest) => Promise<TravelPlan>;
   load: (id: number) => Promise<TravelPlan>;
   revise: (id: number, request: TravelPlanRevisionRequest) => Promise<TravelPlan>;
+  recalculate: (id: number) => Promise<TravelPlan>;
   apply: (id: number, request: TravelPlanApplyRequest, idempotencyKey: string) => Promise<TravelPlanApplyResponse>;
   undo: (id: number, request?: TravelPlanUndoRequest) => Promise<TravelPlanUndoResponse>;
   discard: (id: number, request?: TravelPlanDiscardRequest) => Promise<TravelPlan>;
@@ -69,6 +71,17 @@ export const useAiTravelPlanStore = create<AiTravelPlanState>((set) => ({
     set({ pending: 'revising' });
     try {
       const { plan } = await aiTravelPlanApi.revise(id, request);
+      set({ plan });
+      return plan;
+    } finally {
+      set({ pending: null });
+    }
+  },
+
+  recalculate: async (id) => {
+    set({ pending: 'recalculating' });
+    try {
+      const { plan } = await aiTravelPlanApi.recalculate(id);
       set({ plan });
       return plan;
     } finally {

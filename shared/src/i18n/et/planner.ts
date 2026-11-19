@@ -178,5 +178,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Reisimine',
   'planner.ai.mapTitle': 'Ettepaneku kaart',
   'planner.ai.mapNote': 'Sirged jooned ühendavad järjestikuseid peatusi; need ei ole maanteemarsruudid.',
+  'planner.ai.recalculate': 'Arvuta teede järgi uuesti',
+  'planner.ai.recalculating': 'Arvutan uuesti…',
+  'planner.ai.recalculated': 'Sõiduajad uuendatud tegelike teede järgi.',
+  'planner.ai.recalculateFailed': 'Sõiduaegu ei õnnestunud uuesti arvutada. Proovige uuesti.',
+  'planner.ai.navigate': 'Navigeeri Amapis',
 };
 export default planner;

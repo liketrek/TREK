@@ -14,6 +14,7 @@ import { dbNow } from '../../../../src/db/types';
 import { AiTravelPlanModule } from '../../../../src/nest/ai-travel-plan/ai-travel-plan.module';
 import { AiTravelPlanService } from '../../../../src/nest/ai-travel-plan/ai-travel-plan.service';
 import { PlannerApplyService } from '../../../../src/nest/ai-travel-plan/planner-apply.service';
+import { PlannerProvider, type PlannerRouteResult } from '../../../../src/nest/ai-travel-plan/planner-provider';
 import {
   TRAVEL_PLAN_ENGINE,
   type TravelPlanEngineResult,
@@ -130,6 +131,10 @@ const audit = { writeAudit: vi.fn(async () => undefined) };
 const permissions = { checkPermission: vi.fn(async () => true) };
 const tripAccess = { findAccessible: vi.fn(async () => null) };
 const realtime = new FakeRealtimeService();
+/** The recalculation's only outside call; the route is faked here, the write path is real. */
+const plannerProvider = {
+  route: vi.fn(async (): Promise<PlannerRouteResult> => ({ ok: true, legs: [] })),
+};
 
 beforeAll(async () => {
   t = await createTestModule({
@@ -140,6 +145,7 @@ beforeAll(async () => {
       { provide: PermissionsService, useValue: permissions },
       { provide: TripAccessService, useValue: tripAccess },
       { provide: RealtimeService, useValue: realtime },
+      { provide: PlannerProvider, useValue: plannerProvider },
       { provide: TRAVEL_PLAN_ENGINE, useValue: engine },
     ],
   });
@@ -698,6 +704,90 @@ describe('phase 2: planner status and streaming', () => {
 
     expect(events.at(-1)).toMatchObject({ type: 'error', code: 'generation_failed' });
     expect(await findRow(orm(), AiTravelPlans, { owner: ownerId.id })).toMatchObject({ status: 'failed' });
+  });
+});
+
+describe('recalculate traffic (real roads, same proposal)', () => {
+  it('RECALC-001: rewrites the current draft in place — no new revision, no quota charge', async () => {
+    engine.generate.mockResolvedValueOnce(dayResult());
+    const ownerId = await user();
+    const { plan } = await service().create(ownerId, request());
+    const before = plan.draft?.days.map((day) => day.items.map((item) => [item.arriveAt, item.leaveAt]));
+
+    plannerProvider.route.mockResolvedValueOnce({
+      ok: true,
+      legs: [{ mode: 'drive', minutes: 17, distanceMeters: 6400 }],
+    });
+
+    const { plan: updated } = await service().recalculate(ownerId, String(plan.id));
+
+    // Only day 1 has two consecutive stops; day 2 has one and never hits the router.
+    expect(plannerProvider.route).toHaveBeenCalledTimes(1);
+    expect(plannerProvider.route).toHaveBeenCalledWith(
+      ownerId.id,
+      [
+        { lat: 30.2431, lng: 120.1501 },
+        { lat: 30.2431, lng: 120.1501 },
+      ],
+      'other',
+    );
+
+    expect(updated.currentRevision).toBe(1);
+    expect(updated.revisions).toHaveLength(1);
+    expect(updated.draft?.days[0]?.items.map((item) => item.travelFromPrevious)).toEqual([
+      null,
+      { mode: 'drive', minutes: 17, distanceMeters: 6400 },
+    ]);
+    expect(updated.draft?.days[1]?.items[0]?.travelFromPrevious).toBeNull();
+    // The plan itself is untouched: same days, same clock.
+    expect(updated.draft?.days.map((day) => day.items.map((item) => [item.arriveAt, item.leaveAt]))).toEqual(before);
+
+    expect(await findRow(orm(), AiTravelPlanRevisions, { plan: plan.id, version: 2 })).toBeNull();
+    expect(audit.writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ai_travel_plan.recalculate',
+        details: { planId: plan.id, revision: 1, days: 1, mode: 'other' },
+      }),
+    );
+  });
+
+  it('RECALC-002: an unavailable router is a 502 and leaves every leg as it was', async () => {
+    engine.generate.mockResolvedValueOnce(dayResult());
+    const ownerId = await user();
+    const { plan } = await service().create(ownerId, request());
+    plannerProvider.route.mockResolvedValueOnce({ ok: false });
+
+    expect(await refusal(service().recalculate(ownerId, String(plan.id)))).toEqual({
+      status: 502,
+      body: { error: '路线服务暂时不可用，请稍后重试。', code: 'route_unavailable', days: ['2026-05-01'] },
+    });
+
+    const after = await service().get(ownerId, String(plan.id));
+    expect(after.plan.draft?.days[0]?.items[1]?.travelFromPrevious).toBeNull();
+    expect(after.plan.currentRevision).toBe(1);
+  });
+
+  it('RECALC-003: a non-editable plan is refused before the router is called', async () => {
+    const ownerId = await user();
+    const { plan } = await service().create(ownerId, request());
+    await service().discard(ownerId, String(plan.id));
+
+    expect(await refusal(service().recalculate(ownerId, String(plan.id)))).toEqual({
+      status: 409,
+      body: { error: '草案当前状态为 expired，不能重算交通。', code: 'plan_not_editable', status: 'expired' },
+    });
+    expect(plannerProvider.route).not.toHaveBeenCalled();
+  });
+
+  it('RECALC-004: a draft without consecutive stops is a 409, never a pointless router call', async () => {
+    const ownerId = await user();
+    const { plan } = await service().create(ownerId, request());
+
+    expect(await refusal(service().recalculate(ownerId, String(plan.id)))).toEqual({
+      status: 409,
+      body: { error: '草案还没有可重算的连续地点。', code: 'plan_no_legs' },
+    });
+    expect(plannerProvider.route).not.toHaveBeenCalled();
   });
 });
 

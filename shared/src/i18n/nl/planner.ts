@@ -179,5 +179,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Reis',
   'planner.ai.mapTitle': 'Kaart van het voorstel',
   'planner.ai.mapNote': 'Rechte lijnen verbinden opeenvolgende stops; ze zijn geen routebeschrijving.',
+  'planner.ai.recalculate': 'Herberekenen via de weg',
+  'planner.ai.recalculating': 'Herberekenen…',
+  'planner.ai.recalculated': 'Reistijden bijgewerkt op basis van echte wegen.',
+  'planner.ai.recalculateFailed': 'Reistijden konden niet worden herberekend. Probeer het opnieuw.',
+  'planner.ai.navigate': 'Navigeren in Amap',
 };
 export default planner;

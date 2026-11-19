@@ -180,5 +180,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Deslocamento',
   'planner.ai.mapTitle': 'Mapa da proposta',
   'planner.ai.mapNote': 'Linhas retas ligam paradas consecutivas; não são itinerários de estrada.',
+  'planner.ai.recalculate': 'Adkalkuliñ dre an hentoù',
+  'planner.ai.recalculating': 'O kalkuliñ en-dro…',
+  'planner.ai.recalculated': 'Hizivaet eo amzerioù ar veaj diouzh an hentoù gwir.',
+  'planner.ai.recalculateFailed': 'N’haller ket adkalkuliñ amzerioù ar veaj. Klaskit en-dro.',
+  'planner.ai.navigate': 'Merdeiñ gant Amap',
 };
 export default planner;

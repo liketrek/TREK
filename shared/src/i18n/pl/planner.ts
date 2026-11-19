@@ -187,5 +187,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Podróż',
   'planner.ai.mapTitle': 'Mapa propozycji',
   'planner.ai.mapNote': 'Proste linie łączą kolejne przystanki; nie są to wskazówki drogowe.',
+  'planner.ai.recalculate': 'Przelicz po drogach',
+  'planner.ai.recalculating': 'Przeliczanie…',
+  'planner.ai.recalculated': 'Czasy podróży zaktualizowane według rzeczywistych dróg.',
+  'planner.ai.recalculateFailed': 'Nie udało się przeliczyć czasów podróży. Spróbuj ponownie.',
+  'planner.ai.navigate': 'Nawiguj w Amap',
 };
 export default planner;

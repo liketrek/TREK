@@ -101,6 +101,17 @@ export class AiTravelPlanController {
     return this.plans.createRevision(user, id, body);
   }
 
+  /**
+   * Refreshes the current draft's traffic legs from the real road network
+   * without regenerating the proposal or charging the daily quota.
+   */
+  @Post(':id/recalculate')
+  @HttpCode(200)
+  @ResponseContract(travelPlanResponseSchema)
+  recalculate(@CurrentUser() user: User, @Param('id') id: string): Promise<TravelPlanResponse> {
+    return this.plans.recalculate(user, id);
+  }
+
   @Post(':id/apply')
   @HttpCode(200)
   @ResponseContract(travelPlanApplyResponseSchema)

@@ -180,6 +180,11 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'נסיעה',
   'planner.ai.mapTitle': 'מפת ההצעה',
   'planner.ai.mapNote': 'קווים ישרים מחברים עצירות עוקבות; הם אינם הוראות דרך.',
+  'planner.ai.recalculate': 'חשב מחדש לפי כבישים',
+  'planner.ai.recalculating': 'מחשב מחדש…',
+  'planner.ai.recalculated': 'זמני הנסיעה עודכנו לפי כבישים אמיתיים.',
+  'planner.ai.recalculateFailed': 'לא ניתן היה לחשב מחדש את זמני הנסיעה. נסו שוב.',
+  'planner.ai.navigate': 'ניווט באמצעות Amap',
 };
 
 export default planner;

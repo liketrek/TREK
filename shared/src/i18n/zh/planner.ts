@@ -171,5 +171,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': '其他',
   'planner.ai.mapTitle': '草案地图',
   'planner.ai.mapNote': '直线连接相邻地点，不代表实际道路。',
+  'planner.ai.recalculate': '按实际道路重算',
+  'planner.ai.recalculating': '正在重算…',
+  'planner.ai.recalculated': '交通时间已按实际道路更新。',
+  'planner.ai.recalculateFailed': '重算失败，请稍后重试。',
+  'planner.ai.navigate': '高德导航',
 };
 export default planner;

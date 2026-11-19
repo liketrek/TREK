@@ -17,4 +17,13 @@ export class AiTravelPlanRevisionsRepository extends TrekRepository<AiTravelPlan
   findByVersion(planId: number, version: number): Promise<AiTravelPlanRevisions | null> {
     return this.findOne({ plan: planId, version });
   }
+
+  /**
+   * Rewrites one revision's draft in place. Used by the route recalculation,
+   * which refreshes the traffic legs of the proposal the traveller is already
+   * looking at instead of appending a version (and a quota charge) for it.
+   */
+  async updateDraft(planId: number, version: number, draftJson: string): Promise<void> {
+    await this.nativeUpdate({ plan: planId, version }, { draft_json: draftJson });
+  }
 }

@@ -180,5 +180,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Reise',
   'planner.ai.mapTitle': 'Karte des Vorschlags',
   'planner.ai.mapNote': 'Gerade Linien verbinden aufeinanderfolgende Stopps; sie sind keine Straßenanweisungen.',
+  'planner.ai.recalculate': 'Nach Straßen neu berechnen',
+  'planner.ai.recalculating': 'Wird neu berechnet…',
+  'planner.ai.recalculated': 'Reisezeiten anhand echter Straßen aktualisiert.',
+  'planner.ai.recalculateFailed': 'Reisezeiten konnten nicht neu berechnet werden. Bitte erneut versuchen.',
+  'planner.ai.navigate': 'In Amap navigieren',
 };
 export default planner;

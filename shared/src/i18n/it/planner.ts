@@ -180,5 +180,10 @@ const planner: TranslationStrings = {
   'planner.ai.travelMode.other': 'Spostamento',
   'planner.ai.mapTitle': 'Mappa della proposta',
   'planner.ai.mapNote': 'Le linee rette collegano le tappe consecutive; non sono indicazioni stradali.',
+  'planner.ai.recalculate': 'Ricalcola su strada',
+  'planner.ai.recalculating': 'Ricalcolo…',
+  'planner.ai.recalculated': 'Tempi di viaggio aggiornati con strade reali.',
+  'planner.ai.recalculateFailed': 'Impossibile ricalcolare i tempi di viaggio. Riprova.',
+  'planner.ai.navigate': 'Naviga con Amap',
 };
 export default planner;
