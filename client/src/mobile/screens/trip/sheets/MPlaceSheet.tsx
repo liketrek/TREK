@@ -208,12 +208,14 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 </PlacePhotoGallery>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span dir="auto" className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
+                <div className="flex items-start gap-1.5">
+                  {/* The sheet is where a place is read in full, so its name wraps
+                      onto as many lines as it needs, as on the desktop (#3140). */}
+                  <span dir="auto" className="min-w-0 break-words text-[1rem] font-bold leading-snug [overflow-wrap:anywhere]">{place.name}</span>
                   {/* Accepted out of the traveller's own recordings — the same
                       mark the desktop inspector carries. */}
                   {place.source === 'dawarich' && (
-                    <span className="flex-none overflow-hidden rounded-[5px]">
+                    <span className="mt-[3px] flex-none overflow-hidden rounded-[5px]">
                       <DawarichIcon size={15} />
                     </span>
                   )}
