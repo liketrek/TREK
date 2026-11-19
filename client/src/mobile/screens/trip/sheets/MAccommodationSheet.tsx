@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, Hotel, MapPin, X } from 'lucide-react'
+import { ArrowRight, Check, Hotel, MapPin, Plus, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
 import CustomSelect from '../../../../components/shared/CustomSelect'
@@ -87,6 +87,15 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
   const dayOptions = stayDayOptions(days, t, locale)
 
   const filteredPlaces = stayPlaceChoices(places, form.place_id, categoryFilter)
+
+  // Same opener as the places tab's add button: a blank form, no prefilled position.
+  const canAddPlace = planner.can('place_edit', planner.trip)
+  const openAddPlace = () => {
+    planner.setEditingPlace(null)
+    planner.setEditingAssignmentId(null)
+    planner.setPrefillCoords(null)
+    planner.setShowPlaceForm(true)
+  }
 
   const save = async () => {
     setSaving(true)
@@ -204,9 +213,21 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
         {/* Place picker */}
         <Eyebrow className="mb-[6px] mt-3">{t('reservations.meta.pickHotel')}</Eyebrow>
         {filteredPlaces.length === 0 ? (
-          <p className="rounded-[14px] bg-[color:var(--m-ic)] px-3 py-6 text-center font-geist text-[0.75rem] text-m-faint">
-            {t('day.noPlacesForHotel')}
-          </p>
+          <div className="flex flex-col items-center gap-2.5 rounded-[14px] bg-[color:var(--m-ic)] px-3 py-5 text-center">
+            <p className="font-geist text-[0.75rem] text-m-faint">{t('day.noPlacesForHotel')}</p>
+            {/* A new trip has no place yet, and the stay needs one: the place form
+                opens over this sheet and its place is listed here once saved. */}
+            {canAddPlace && (
+              <button
+                type="button"
+                onClick={openAddPlace}
+                className="flex items-center gap-1.5 rounded-full bg-m-act px-3.5 py-[7px] text-[0.75rem] font-semibold text-m-actfg"
+              >
+                <Plus size={13} strokeWidth={2.4} />
+                {t('planner.addPlace')}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="flex flex-col gap-1.5">
             {filteredPlaces.map(p => {
