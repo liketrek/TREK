@@ -238,6 +238,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
           icon={<ResIcon size={19} strokeWidth={1.8} />}
           title={<span dir="auto" className="min-w-0 break-words text-[1rem] [overflow-wrap:anywhere]">{res.title}</span>}
           sub={subParts.length > 0 ? subParts.join(' · ') : undefined}
+          subWrap
           onClose={shell.closeSheet}
           closeLabel={t('common.close')}
         />
