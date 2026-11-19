@@ -686,15 +686,34 @@ extension TrekShellPlugin {
     /// know are left out, so the shell offers only what can really be bought.
     @objc func storeProducts(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
-        // TestFlight, App Review and Xcode builds buy in the sandbox; their receipt says so.
-        let sandbox = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
         Task {
+            let sandbox = await Self.buysInSandbox()
             guard AppStore.canMakePayments, let products = try? await Product.products(for: ids) else {
                 call.resolve(["products": [], "sandbox": sandbox])
                 return
             }
             call.resolve(["products": products.map { ["id": $0.id, "displayPrice": $0.displayPrice] }, "sandbox": sandbox])
         }
+    }
+
+    /// Whether this build buys in the App Store sandbox: TestFlight, App Review and
+    /// Xcode builds do, and while TREK Cloud's orders are closed only they may buy.
+    /// The signed app transaction names its environment; the receipt's file name,
+    /// which App Review builds do not always carry, is only the fallback where the
+    /// app transaction is missing (iOS 15) or cannot be read.
+    static func buysInSandbox() async -> Bool {
+        let receiptSaysSandbox = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        guard #available(iOS 16.0, *), let result = try? await AppTransaction.shared else {
+            return receiptSaysSandbox
+        }
+        // An unverified transaction still names the environment it was signed in;
+        // it only decides whether the button shows, the cloud checks every purchase itself.
+        let transaction: AppTransaction
+        switch result {
+        case .verified(let signed), .unverified(let signed, _):
+            transaction = signed
+        }
+        return transaction.environment != .production || receiptSaysSandbox
     }
 
     /// Feature storeKit: runs the App Store purchase sheet. Resolves with `kind`
