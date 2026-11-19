@@ -77,6 +77,32 @@ describe('PlannerRequestParser', () => {
     expect(connections.resolveForUser).not.toHaveBeenCalled();
   });
 
+  it('OPS-01: a capped generation never resolves a connection or calls a model', async () => {
+    const connections = { resolveForUser: vi.fn() };
+    const clients = { create: vi.fn() };
+    const parser = new PlannerRequestParser(connections as never, clients as never);
+
+    const outcome = await parser.merge(7, request({ prompt: '杭州两天' }), { allowModel: false });
+
+    expect(outcome.request).toEqual(request({ prompt: '杭州两天' }));
+    expect(outcome.warnings).toEqual([expect.objectContaining({ code: 'usage_limit', severity: 'warning' })]);
+    expect(connections.resolveForUser).not.toHaveBeenCalled();
+    expect(clients.create).not.toHaveBeenCalled();
+  });
+
+  it('OPS-01: a capped revision falls back to the raw feedback without a model', async () => {
+    const connections = { resolveForUser: vi.fn() };
+    const clients = { create: vi.fn() };
+    const parser = new PlannerRequestParser(connections as never, clients as never);
+
+    const outcome = await parser.feedbackKeywords(7, '再去一个博物馆', { allowModel: false });
+
+    expect(outcome.keywords).toEqual(['再去一个博物馆']);
+    expect(outcome.warnings).toEqual([expect.objectContaining({ code: 'usage_limit', severity: 'warning' })]);
+    expect(connections.resolveForUser).not.toHaveBeenCalled();
+    expect(clients.create).not.toHaveBeenCalled();
+  });
+
   it('reports model_not_configured and keeps the structured fields when no connection exists', async () => {
     const connections = { resolveForUser: vi.fn(async () => Promise.reject(new Error('not connected'))) };
     const parser = new PlannerRequestParser(connections as never, { create: vi.fn() } as never);

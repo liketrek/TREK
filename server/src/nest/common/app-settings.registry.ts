@@ -135,6 +135,14 @@ export const APP_SETTINGS = {
   ai_assistant_policy: { schema: aiPolicySchema, default: 'instance_or_user' },
   ai_assistant_daily_turns: { schema: intText, default: '50' },
   ai_assistant_retention: { schema: text, default: '{"mode":"days","days":90}' },
+  // OPS-01: the travel planner's cost guards, read on every generation so an
+  // admin's change applies to the next request. 0 means no cap. The generation
+  // count is per user; tokens are counted only for instance-paid calls, so a
+  // user's own key never spends the instance's budget.
+  ai_planner_daily_generations: { schema: intText, default: '30' },
+  ai_planner_daily_tokens: { schema: intText, default: '300000' },
+  ai_planner_instance_daily_tokens: { schema: intText, default: '3000000' },
+  ai_planner_instance_monthly_tokens: { schema: intText, default: '60000000' },
   /** Whether the assistant may search the web through its provider's own search, where the provider has one. */
   ai_assistant_web_search: { schema: flag, default: 'true' },
   /** `urn:uuid:<uuid>`: this install as one host to Sign in with ChatGPT, created on the first sign-in. */

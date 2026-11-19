@@ -55,6 +55,40 @@ export class AssistantUsageRepository extends TrekRepository<AssistantUsage> {
     return row?.turns ?? 0;
   }
 
+  /** The tokens (input + output) a user spent on `day` paid by `paidBy`, 0 without a row. */
+  async tokensOn(userId: number, day: string, paidBy: string): Promise<number> {
+    const row = await this.db()
+      .selectFrom('assistant_usage')
+      .select(['input_tokens', 'output_tokens'])
+      .where('user_id', '=', userId)
+      .where('day', '=', day)
+      .where('paid_by', '=', paidBy)
+      .executeTakeFirst();
+    return (row?.input_tokens ?? 0) + (row?.output_tokens ?? 0);
+  }
+
+  /** The tokens everybody spent on `day` paid by `paidBy`. */
+  async tokensOnDay(day: string, paidBy: string): Promise<number> {
+    const row = await this.db()
+      .selectFrom('assistant_usage')
+      .select((eb) => [eb.fn.sum<number>('input_tokens').as('input'), eb.fn.sum<number>('output_tokens').as('output')])
+      .where('day', '=', day)
+      .where('paid_by', '=', paidBy)
+      .executeTakeFirst();
+    return Number(row?.input ?? 0) + Number(row?.output ?? 0);
+  }
+
+  /** The tokens everybody spent since `day` (inclusive) paid by `paidBy`. */
+  async tokensSince(day: string, paidBy: string): Promise<number> {
+    const row = await this.db()
+      .selectFrom('assistant_usage')
+      .select((eb) => [eb.fn.sum<number>('input_tokens').as('input'), eb.fn.sum<number>('output_tokens').as('output')])
+      .where('day', '>=', day)
+      .where('paid_by', '=', paidBy)
+      .executeTakeFirst();
+    return Number(row?.input ?? 0) + Number(row?.output ?? 0);
+  }
+
   /** Drops the days before `day` (exclusive); answers how many rows went. */
   async deleteBefore(day: string): Promise<number> {
     const result = await this.db().deleteFrom('assistant_usage').where('day', '<', day).executeTakeFirst();

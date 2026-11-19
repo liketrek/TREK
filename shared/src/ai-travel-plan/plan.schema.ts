@@ -79,6 +79,17 @@ export const travelPlanSchema = z.object({
 
 export type TravelPlan = z.infer<typeof travelPlanSchema>;
 
+/**
+ * OPS-01: today's generations against the per-user cap. `limit` is always
+ * positive; the whole object is null when the admin turned the cap off.
+ */
+export const travelPlanQuotaSchema = z.object({
+  used: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+});
+
+export type TravelPlanQuota = z.infer<typeof travelPlanQuotaSchema>;
+
 /* -------------------------------------------------------------------------
  * REST envelopes
  *
@@ -87,13 +98,17 @@ export type TravelPlan = z.infer<typeof travelPlanSchema>;
  * exact contract: the client must not need to know which process answered.
  * ---------------------------------------------------------------------- */
 
-export const travelPlanResponseSchema = z.object({ plan: travelPlanSchema });
+export const travelPlanResponseSchema = z.object({
+  plan: travelPlanSchema,
+  quota: travelPlanQuotaSchema.nullable().optional(),
+});
 
 export type TravelPlanResponse = z.infer<typeof travelPlanResponseSchema>;
 
 export const travelPlanRevisionResponseSchema = z.object({
   plan: travelPlanSchema,
   revision: travelPlanRevisionSchema,
+  quota: travelPlanQuotaSchema.nullable().optional(),
 });
 
 export type TravelPlanRevisionResponse = z.infer<typeof travelPlanRevisionResponseSchema>;
@@ -142,7 +157,7 @@ export const travelPlanStreamEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('progress'), stage: travelPlanStreamStageSchema, message: z.string().trim().max(200) }),
   /** Sent once, right after the plan row exists with status `generating`. */
   z.object({ type: z.literal('plan'), plan: travelPlanSchema }),
-  z.object({ type: z.literal('done'), plan: travelPlanSchema }),
+  z.object({ type: z.literal('done'), plan: travelPlanSchema, quota: travelPlanQuotaSchema.nullable().optional() }),
   z.object({ type: z.literal('error'), code: z.string().trim().min(1).max(80), message: z.string().trim().max(500) }),
 ]);
 

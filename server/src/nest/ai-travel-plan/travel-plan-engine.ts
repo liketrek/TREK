@@ -1,3 +1,4 @@
+import type { PlannerTrace } from './planner-log';
 import type {
   TravelPlanCreateRequest,
   TravelPlanDraft,
@@ -31,6 +32,16 @@ export interface GenerateTravelPlanInput {
   request: TravelPlanCreateRequest;
   /** Progress for the streaming route; the JSON route passes nothing. */
   onStage?: (stage: TravelPlanStreamStage) => void;
+  /**
+   * False when OPS-01's token cap is already reached: skip every model call and
+   * build the draft from the structured fields alone (the warning says so).
+   */
+  allowModel?: boolean;
+  /**
+   * OPS-02: the ids the engine's model-call lines carry. Absent on the JSON
+   * create, whose plan row is only written after generation has finished.
+   */
+  trace?: PlannerTrace;
 }
 
 export interface ReviseTravelPlanInput extends GenerateTravelPlanInput {

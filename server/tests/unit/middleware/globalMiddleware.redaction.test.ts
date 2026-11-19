@@ -172,4 +172,52 @@ describe('globalMiddleware request-log redaction', () => {
     expect(redact(null)).toBe(null);
     expect(redact(undefined)).toBe(undefined);
   });
+
+  it('OPS-02: hides the planner body text, precise places and companion structure, keeping dates and budget', () => {
+    // POST /api/ai/travel-plans, then its revision body — the traveller's own
+    // sentence names where they live, where they are going and who is coming;
+    // none of it may reach trek.log.
+    expect(
+      redact({
+        prompt: '带两岁女儿和父母去阿坝州，住松潘古城附近',
+        destination: '阿坝州',
+        origin: '成都',
+        startDate: '2026-05-01',
+        endDate: '2026-05-04',
+        dayCount: 4,
+        travelers: { adults: 2, children: 1, seniors: 2 },
+        budgetCny: 6000,
+        pace: 'relaxed',
+        transport: 'self_drive',
+        interests: ['自然风光'],
+        constraints: ['带婴儿车'],
+      }),
+    ).toEqual({
+      prompt: '[REDACTED]',
+      destination: '[REDACTED]',
+      origin: '[REDACTED]',
+      startDate: '2026-05-01',
+      endDate: '2026-05-04',
+      dayCount: 4,
+      travelers: '[REDACTED]',
+      budgetCny: 6000,
+      pace: 'relaxed',
+      transport: 'self_drive',
+      interests: '[REDACTED]',
+      constraints: '[REDACTED]',
+    });
+    expect(redact({ feedback: '把第二天的西湖换成室内', expectedRevision: 2 })).toEqual({
+      feedback: '[REDACTED]',
+      expectedRevision: 2,
+    });
+  });
+
+  it('OPS-02: keeps a reservation body readable except the traveller ids', () => {
+    // PUT /api/reservations/:id/travelers shares the field name; who is on a
+    // booking is companion structure too, so it goes out of the log as well.
+    expect(redact({ travelers: [{ userId: 3, email: 'a@example.com' }], note: 'late arrival' })).toEqual({
+      travelers: '[REDACTED]',
+      note: 'late arrival',
+    });
+  });
 });

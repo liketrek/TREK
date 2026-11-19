@@ -9,6 +9,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { PlacesModule } from '../places/places.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { RoutingRelayModule } from '../routing-relay/routing-relay.module';
+import { SettingsModule } from '../settings/settings.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { TripsModule } from '../trips/trips.module';
 import { AiTravelPlanController } from './ai-travel-plan.controller';
@@ -16,6 +17,7 @@ import { AiTravelPlanService } from './ai-travel-plan.service';
 import { PlannerApplyService } from './planner-apply.service';
 import { PlannerRequestParser } from './planner-prompt';
 import { PlannerProvider } from './planner-provider';
+import { PlannerQuotaService } from './planner-quota.service';
 import { PlannerService } from './planner.service';
 import { RealTravelPlanEngine } from './real-travel-plan.engine';
 import { TRAVEL_PLAN_ENGINE } from './travel-plan-engine';
@@ -46,10 +48,12 @@ import { Module } from '@nestjs/common';
     PlacesModule,
     AssignmentsDomainModule,
     RealtimeModule,
+    SettingsModule,
   ],
   controllers: [AiTravelPlanController],
   providers: [
     AiTravelPlanService,
+    PlannerQuotaService,
     PlannerApplyService,
     PlannerRequestParser,
     PlannerProvider,

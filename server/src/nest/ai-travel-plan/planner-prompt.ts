@@ -1,6 +1,7 @@
 import { AiChatClientService } from '../ai-connections/ai-chat-client.service';
 import { AiConnectionsService } from '../ai-connections/ai-connections.service';
 import { parseLenientJson } from '../llm-parse/llm-parse.contract';
+import { logPlannerEvent, type PlannerTrace } from './planner-log';
 import { Injectable } from '@nestjs/common';
 import {
   travelPlanPaceSchema,
@@ -58,6 +59,22 @@ export interface PlannerParseOutcome {
 
 type ModelUsage = Pick<TravelPlanModelMeta, 'provider' | 'model' | 'promptTokens' | 'completionTokens'>;
 
+/** OPS-01: false when the cost cap is reached and the model must not run. */
+export interface PlannerModelOptions {
+  allowModel?: boolean;
+  /** OPS-02: the ids each model-call line carries, when they exist yet. */
+  trace?: PlannerTrace;
+}
+
+/** The warning a capped generation carries instead of calling the model. */
+export function usageLimitWarning(): TravelPlanWarning {
+  return {
+    code: 'usage_limit',
+    message: '今日 AI 模型用量已达到上限，本次只按你填写的结构化字段规划。',
+    severity: 'warning',
+  };
+}
+
 /**
  * PLAN-06: the traveller's sentence becomes the structured request.
  *
@@ -74,10 +91,18 @@ export class PlannerRequestParser {
   ) {}
 
   /** Merges whatever the model extracted into what the client already sent. */
-  async merge(userId: number, request: TravelPlanCreateRequest): Promise<PlannerParseOutcome> {
+  async merge(
+    userId: number,
+    request: TravelPlanCreateRequest,
+    options: PlannerModelOptions = {},
+  ): Promise<PlannerParseOutcome> {
     if (!request.prompt) return { request, warnings: [], model: null };
+    if (options.allowModel === false) {
+      logPlannerEvent('model_skipped', { ...options.trace, stage: 'parse', outcome: 'usage_limit' });
+      return { request, warnings: [usageLimitWarning()], model: null };
+    }
 
-    const answer = await this.ask(userId, PARSE_SYSTEM_PROMPT, request.prompt);
+    const answer = await this.ask(userId, PARSE_SYSTEM_PROMPT, request.prompt, 'parse', options.trace);
     if ('warning' in answer) {
       return { request, warnings: [answer.warning], model: null };
     }
@@ -108,8 +133,14 @@ export class PlannerRequestParser {
   async feedbackKeywords(
     userId: number,
     feedback: string,
+    options: PlannerModelOptions = {},
   ): Promise<{ keywords: string[]; warnings: TravelPlanWarning[]; model: ModelUsage | null }> {
-    const answer = await this.ask(userId, FEEDBACK_SYSTEM_PROMPT, feedback);
+    if (options.allowModel === false) {
+      logPlannerEvent('model_skipped', { ...options.trace, stage: 'feedback', outcome: 'usage_limit' });
+      return { keywords: [truncate(feedback, 40)], warnings: [usageLimitWarning()], model: null };
+    }
+
+    const answer = await this.ask(userId, FEEDBACK_SYSTEM_PROMPT, feedback, 'feedback', options.trace);
     if ('warning' in answer) {
       return { keywords: [truncate(feedback, 40)], warnings: [answer.warning], model: null };
     }
@@ -121,15 +152,28 @@ export class PlannerRequestParser {
     return { keywords: parsed.data.keywords, warnings: [], model: answer.meta };
   }
 
+  /**
+   * One model call. The chain line names the provider, model, tokens and
+   * duration; the prompt and the answer are never part of it (OPS-02).
+   */
   private async ask(
     userId: number,
     system: string,
     prompt: string,
+    purpose: 'parse' | 'feedback',
+    trace: PlannerTrace = {},
   ): Promise<{ ok: true; text: string; meta: ModelUsage } | { ok: false; warning: TravelPlanWarning }> {
+    const startedAt = Date.now();
     let connection;
     try {
       connection = await this.connections.resolveForUser(userId);
     } catch {
+      logPlannerEvent('model_call', {
+        ...trace,
+        stage: purpose,
+        durationMs: Date.now() - startedAt,
+        outcome: 'not_configured',
+      });
       return {
         ok: false,
         warning: {
@@ -164,6 +208,18 @@ export class PlannerRequestParser {
         }
       }
     } catch {
+      logPlannerEvent(
+        'model_call',
+        {
+          ...trace,
+          stage: purpose,
+          provider: connection.kind,
+          model: client.model,
+          durationMs: Date.now() - startedAt,
+          outcome: controller.signal.aborted ? 'timeout' : 'error',
+        },
+        'warn',
+      );
       return {
         ok: false,
         warning: {
@@ -177,6 +233,20 @@ export class PlannerRequestParser {
     }
 
     if (text.trim() === '') {
+      logPlannerEvent(
+        'model_call',
+        {
+          ...trace,
+          stage: purpose,
+          provider: connection.kind,
+          model: client.model,
+          promptTokens,
+          completionTokens,
+          durationMs: Date.now() - startedAt,
+          outcome: 'empty',
+        },
+        'warn',
+      );
       return {
         ok: false,
         warning: {
@@ -187,6 +257,16 @@ export class PlannerRequestParser {
       };
     }
 
+    logPlannerEvent('model_call', {
+      ...trace,
+      stage: purpose,
+      provider: connection.kind,
+      model: client.model,
+      promptTokens,
+      completionTokens,
+      durationMs: Date.now() - startedAt,
+      outcome: 'ok',
+    });
     return {
       ok: true,
       text,

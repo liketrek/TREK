@@ -42,6 +42,21 @@ export class AiUsageService {
     return this.usage.turnsOn(userId, todayUtc(), 'instance');
   }
 
+  /** The tokens (input + output) a user spent today on `paidBy`'s connection. */
+  async tokensToday(userId: number, paidBy: AiConnectionScope): Promise<number> {
+    return this.usage.tokensOn(userId, todayUtc(), paidBy);
+  }
+
+  /** The tokens the instance paid for today, across every user. */
+  async instanceTokensToday(): Promise<number> {
+    return this.usage.tokensOnDay(todayUtc(), 'instance');
+  }
+
+  /** The tokens the instance paid for since `day` (inclusive), across every user. */
+  async instanceTokensSince(day: string): Promise<number> {
+    return this.usage.tokensSince(day, 'instance');
+  }
+
   /** Retention: drops the days older than `days`; answers how many rows went. */
   async purgeOlderThan(days: number): Promise<number> {
     const cutoff = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);

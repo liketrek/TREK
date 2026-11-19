@@ -35,7 +35,10 @@ export class RealTravelPlanEngine implements TravelPlanEngine {
 
   async generate(input: GenerateTravelPlanInput): Promise<TravelPlanEngineResult> {
     input.onStage?.('parsing');
-    const merged = await this.parser.merge(input.userId, input.request);
+    const merged = await this.parser.merge(input.userId, input.request, {
+      allowModel: input.allowModel,
+      trace: input.trace,
+    });
     const warnings = [...merged.warnings];
     const modelMeta = modelMetaOf([merged.model]);
     const missing = missingRequestFields(merged.request);
@@ -77,7 +80,10 @@ export class RealTravelPlanEngine implements TravelPlanEngine {
 
   async revise(input: ReviseTravelPlanInput): Promise<TravelPlanEngineResult> {
     input.onStage?.('parsing');
-    const merged = await this.parser.merge(input.userId, input.request);
+    const merged = await this.parser.merge(input.userId, input.request, {
+      allowModel: input.allowModel,
+      trace: input.trace,
+    });
     const warnings = [...merged.warnings];
     const missing = missingRequestFields(merged.request);
 
@@ -98,7 +104,10 @@ export class RealTravelPlanEngine implements TravelPlanEngine {
       };
     }
 
-    const feedback = await this.parser.feedbackKeywords(input.userId, input.feedback);
+    const feedback = await this.parser.feedbackKeywords(input.userId, input.feedback, {
+      allowModel: input.allowModel,
+      trace: input.trace,
+    });
     warnings.push(...feedback.warnings);
 
     try {

@@ -19,6 +19,8 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { PlanApplyClaimLostError, PlannerApplyService } from './planner-apply.service';
+import { logPlannerEvent, stageLogger, type PlannerLogFields, type PlannerMode } from './planner-log';
+import { PlannerQuotaService } from './planner-quota.service';
 import { TRAVEL_PLAN_ENGINE, type TravelPlanEngine, type TravelPlanEngineResult } from './travel-plan-engine';
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -32,6 +34,7 @@ import {
   type TravelPlanApplyRequest,
   type TravelPlanApplyResponse,
   type TravelPlanCreateRequest,
+  type TravelPlanResponse,
   type TravelPlanDiscardResponse,
   type TravelPlanDraft,
   type TravelPlanRevision,
@@ -81,20 +84,51 @@ export class AiTravelPlanService {
     private readonly permissions: PermissionsService,
     private readonly tripAccess: TripAccessService,
     private readonly applyService: PlannerApplyService,
+    private readonly quota: PlannerQuotaService,
     @Inject(TRAVEL_PLAN_ENGINE) private readonly engine: TravelPlanEngine,
   ) {}
 
   /** Generates revision 1 and stores the plan. Nothing touches a trip. */
-  async create(user: User, request: TravelPlanCreateRequest): Promise<{ plan: TravelPlan }> {
+  async create(user: User, request: TravelPlanCreateRequest): Promise<TravelPlanResponse> {
     await this.requireTripCreate(user);
+    // OPS-01: a capped user is refused before any model call runs.
+    await this.quota.assertGenerationAllowed(user.id);
+    const policy = await this.quota.modelPolicy(user.id);
 
     const now = dbNow();
     const startedAt = Date.now();
-    const result = await this.engine.generate({ request, userId: user.id });
+    const revision = 1;
+    logPlannerEvent('generation_started', {
+      revision,
+      mode: 'create',
+      allowModel: policy.allowModel,
+    });
+    const stage = stageLogger({ revision, mode: 'create' });
+
+    let result: TravelPlanEngineResult;
+    try {
+      result = await this.engine.generate({
+        request,
+        userId: user.id,
+        allowModel: policy.allowModel,
+        trace: { revision },
+        onStage: stage,
+      });
+    } catch (err) {
+      logPlannerEvent(
+        'generation_failed',
+        { revision, mode: 'create', durationMs: Date.now() - startedAt, outcome: 'error', error: errorName(err) },
+        'warn',
+      );
+      throw err;
+    }
+    await this.quota.record(user.id, policy.paidBy, result.modelMeta);
     const durationMs = Date.now() - startedAt;
     const encoded = this.encodeRevision(result);
     const status = result.status ?? 'ready';
+    logGenerationFinished(result, { revision, mode: 'create', durationMs });
 
+    const persistedAt = Date.now();
     const planId = await this.uow.transactional(async () => {
       const id = await this.plans.insert({
         owner: user.id,
@@ -117,6 +151,13 @@ export class AiTravelPlanService {
       });
       return id;
     });
+    logPlannerEvent('revision_persisted', {
+      planId,
+      revision,
+      mode: 'create',
+      durationMs: Date.now() - persistedAt,
+      outcome: status,
+    });
 
     await this.audit.writeAudit({
       userId: user.id,
@@ -125,7 +166,7 @@ export class AiTravelPlanService {
       details: { planId, revision: 1, engine: result.modelMeta.engine },
     });
 
-    return { plan: await this.loadView(planId, user.id) };
+    return { plan: await this.loadView(planId, user.id), quota: await this.quota.view(user.id) };
   }
 
   /**
@@ -143,6 +184,8 @@ export class AiTravelPlanService {
     emit: (event: TravelPlanStreamEvent) => void,
   ): Promise<void> {
     await this.requireTripCreate(user);
+    await this.quota.assertGenerationAllowed(user.id);
+    const policy = await this.quota.modelPolicy(user.id);
 
     const now = dbNow();
     const planId = await this.uow.transactional(async () =>
@@ -160,17 +203,33 @@ export class AiTravelPlanService {
     );
     emit({ type: 'plan', plan: await this.loadView(planId, user.id) });
 
+    const revision = 1;
     const startedAt = Date.now();
+    logPlannerEvent('generation_started', {
+      planId,
+      revision,
+      mode: 'stream',
+      allowModel: policy.allowModel,
+    });
+    const stage = stageLogger({ planId, revision, mode: 'stream' });
     try {
       const result = await this.engine.generate({
         userId: user.id,
         request,
-        onStage: (stage) => emit({ type: 'progress', stage, message: STAGE_MESSAGES[stage] }),
+        allowModel: policy.allowModel,
+        trace: { planId, revision },
+        onStage: (stageName) => {
+          stage(stageName);
+          emit({ type: 'progress', stage: stageName, message: STAGE_MESSAGES[stageName] });
+        },
       });
+      await this.quota.record(user.id, policy.paidBy, result.modelMeta);
       const durationMs = Date.now() - startedAt;
       const encoded = this.encodeRevision(result);
       const status = result.status ?? 'ready';
+      logGenerationFinished(result, { planId, revision, mode: 'stream', durationMs });
 
+      const persistedAt = Date.now();
       await this.uow.transactional(async () => {
         await this.revisions.insert({
           plan: planId,
@@ -185,6 +244,13 @@ export class AiTravelPlanService {
           { status, current_revision: 1, updated_at: dbNow() },
         );
       });
+      logPlannerEvent('revision_persisted', {
+        planId,
+        revision,
+        mode: 'stream',
+        durationMs: Date.now() - persistedAt,
+        outcome: status,
+      });
 
       await this.audit.writeAudit({
         userId: user.id,
@@ -193,8 +259,20 @@ export class AiTravelPlanService {
         details: { planId, revision: 1, engine: result.modelMeta.engine, streamed: true },
       });
 
-      emit({ type: 'done', plan: await this.loadView(planId, user.id) });
-    } catch {
+      emit({ type: 'done', plan: await this.loadView(planId, user.id), quota: await this.quota.view(user.id) });
+    } catch (err) {
+      logPlannerEvent(
+        'generation_failed',
+        {
+          planId,
+          revision,
+          mode: 'stream',
+          durationMs: Date.now() - startedAt,
+          outcome: 'error',
+          error: errorName(err),
+        },
+        'warn',
+      );
       await this.plans.nativeUpdate({ id: planId, owner: user.id }, { status: 'failed', updated_at: dbNow() });
       emit({
         type: 'error',
@@ -226,18 +304,52 @@ export class AiTravelPlanService {
       });
     }
 
-    const startedAt = Date.now();
-    const result = await this.engine.revise({
-      request: decodeJson(AI_TRAVEL_PLAN_REQUEST, plan.request_json, `plan ${plan.id}`),
-      draft: await this.currentDraft(plan),
-      feedback: body.feedback,
-      userId: user.id,
-    });
-    const durationMs = Date.now() - startedAt;
+    await this.quota.assertGenerationAllowed(user.id);
+    const policy = await this.quota.modelPolicy(user.id);
+
     const version = plan.current_revision + 1;
+    const startedAt = Date.now();
+    logPlannerEvent('generation_started', {
+      planId: plan.id,
+      revision: version,
+      mode: 'revise',
+      allowModel: policy.allowModel,
+    });
+    const stage = stageLogger({ planId: plan.id, revision: version, mode: 'revise' });
+
+    let result: TravelPlanEngineResult;
+    try {
+      result = await this.engine.revise({
+        request: decodeJson(AI_TRAVEL_PLAN_REQUEST, plan.request_json, `plan ${plan.id}`),
+        draft: await this.currentDraft(plan),
+        feedback: body.feedback,
+        userId: user.id,
+        allowModel: policy.allowModel,
+        trace: { planId: plan.id, revision: version },
+        onStage: stage,
+      });
+    } catch (err) {
+      logPlannerEvent(
+        'generation_failed',
+        {
+          planId: plan.id,
+          revision: version,
+          mode: 'revise',
+          durationMs: Date.now() - startedAt,
+          outcome: 'error',
+          error: errorName(err),
+        },
+        'warn',
+      );
+      throw err;
+    }
+    await this.quota.record(user.id, policy.paidBy, result.modelMeta);
+    const durationMs = Date.now() - startedAt;
     const encoded = this.encodeRevision(result);
     const nextStatus = result.status ?? 'ready';
+    logGenerationFinished(result, { planId: plan.id, revision: version, mode: 'revise', durationMs });
 
+    const persistedAt = Date.now();
     try {
       await this.uow.transactional(async () => {
         await this.revisions.insert({
@@ -261,6 +373,13 @@ export class AiTravelPlanService {
       }
       throw err;
     }
+    logPlannerEvent('revision_persisted', {
+      planId: plan.id,
+      revision: version,
+      mode: 'revise',
+      durationMs: Date.now() - persistedAt,
+      outcome: nextStatus,
+    });
 
     await this.audit.writeAudit({
       userId: user.id,
@@ -275,6 +394,7 @@ export class AiTravelPlanService {
       // The insert above is the only source for this version; a missing row
       // here would mean the insert vanished, which is a bug, not a 404.
       revision: toRevisionView(revision as AiTravelPlanRevisions),
+      quota: await this.quota.view(user.id),
     };
   }
 
@@ -550,6 +670,36 @@ function parsePlanId(raw: string): number {
 /** A refusal with a stable machine code in the body and the same code on the error. */
 function planError(status: number, message: string, code: string, details: Record<string, unknown> = {}): DomainError {
   return new DomainError(status, message, { code, details: { ...details, code } });
+}
+
+/**
+ * OPS-02: the closing line of a generation. Provider and token counts come
+ * from the model metadata the engine already returns; warnings are reduced to
+ * their codes because a warning message may repeat the traveller's words.
+ */
+function logGenerationFinished(
+  result: TravelPlanEngineResult,
+  fields: { planId?: number | null; revision: number; mode: PlannerMode; durationMs: number },
+): void {
+  const status = result.status ?? 'ready';
+  const trace: PlannerLogFields = {
+    planId: fields.planId,
+    revision: fields.revision,
+    mode: fields.mode,
+    provider: result.modelMeta.provider,
+    model: result.modelMeta.model,
+    promptTokens: result.modelMeta.promptTokens,
+    completionTokens: result.modelMeta.completionTokens,
+    durationMs: fields.durationMs,
+    outcome: status,
+    warnings: [...new Set(result.warnings.map((warning) => warning.code))],
+  };
+  logPlannerEvent('generation_finished', trace, status === 'failed' ? 'warn' : 'info');
+}
+
+/** The error's class name only — a provider message may echo the prompt. */
+function errorName(err: unknown): string {
+  return err instanceof Error ? err.constructor.name : 'UnknownError';
 }
 
 /** `now` plus whole days, in the canonical db timestamp spelling. */

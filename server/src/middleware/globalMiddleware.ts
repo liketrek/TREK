@@ -46,6 +46,19 @@ export const SENSITIVE_KEYS = new Set([
   // either field, and an `auth` anywhere else would be a credential as well.
   'p256dh',
   'auth',
+  // OPS-02: an AI travel-planner body carries the traveller's own sentence
+  // (which names precise places and who is coming along), the resolved
+  // origin/destination, the companion counts and their interests. The
+  // planner's chain log (nest/ai-travel-plan/planner-log.ts) records ids,
+  // stages and token counts only, so this debug dump must not write the same
+  // request back into trek.log either.
+  'prompt',
+  'feedback',
+  'destination',
+  'origin',
+  'travelers',
+  'interests',
+  'constraints',
 ]);
 
 /**

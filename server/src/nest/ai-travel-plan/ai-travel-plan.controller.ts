@@ -1,6 +1,7 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { DomainError } from '../common/domain-error';
 import { ResponseContract } from '../common/response-contract';
 import { armKeepalive, openSseStream } from '../common/sse-stream';
 import { AiTravelPlanService } from './ai-travel-plan.service';
@@ -66,12 +67,16 @@ export class AiTravelPlanController {
     const stop = armKeepalive(stream);
     try {
       await this.plans.createStreaming(user, body, (event) => stream.send(JSON.stringify(event)));
-    } catch {
+    } catch (err) {
+      // A refusal raised before generation (OPS-01's `daily_limit`, a missing
+      // permission) keeps its own code and message; anything else is the
+      // generic "generation failed".
+      const refusal = err instanceof DomainError ? err : null;
       stream.send(
         JSON.stringify({
           type: 'error',
-          code: 'generation_failed',
-          message: '生成请求没有被接受，请稍后重试。',
+          code: refusal?.code ?? 'generation_failed',
+          message: refusal?.publicMessage ?? '生成请求没有被接受，请稍后重试。',
         }),
       );
     } finally {
