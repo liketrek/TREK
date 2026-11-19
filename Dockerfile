@@ -94,8 +94,8 @@ RUN echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] http://apt.postgresql.org/p
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
     chown -R node:node /app
 
-# gosu rebuilt with a current Go toolchain (stage 0) — the entrypoint script uses
-# it to drop to node.
+# gosu rebuilt with a current Go toolchain (stage 0). The entrypoint drops to node
+# with setpriv since #3135; gosu stays in the image for anyone who calls it by hand.
 COPY --from=gosu-build /out/gosu /usr/local/bin/gosu
 
 ENV XDG_CACHE_HOME=/tmp/kf6-cache
