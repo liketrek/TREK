@@ -173,8 +173,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 # carrying quotes does not survive that round-trip (the container then dies with
 # a shell syntax error before Node starts). A CMD of one bare token does.
 COPY server/scripts/entrypoint.sh /usr/local/bin/trek-entrypoint
-# Root-owned on purpose — this is what calls gosu, so it runs before the drop to
-# node. chmod is explicit because a checkout on Windows carries no exec bit.
+# Root-owned on purpose: it runs as root and drops to node itself, with setpriv.
+# chmod is explicit because a checkout on Windows carries no exec bit.
 RUN chmod 0755 /usr/local/bin/trek-entrypoint
 
 ENTRYPOINT ["dumb-init", "--"]
