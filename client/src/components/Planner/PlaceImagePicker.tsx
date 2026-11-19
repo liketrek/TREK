@@ -46,7 +46,7 @@ function ring(selected: boolean, dialog: boolean): string {
 function Picked(): React.ReactElement {
   return (
     <span className="absolute end-1 top-1 rounded-full bg-accent p-0.5 shadow-card">
-      <Check className="h-2.5 w-2.5 text-accent-on" />
+      <Check className="h-2.5 w-2.5 text-accent-text" />
     </span>
   );
 }

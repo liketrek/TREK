@@ -17,6 +17,22 @@ export interface PlannerCandidate {
 /** A day's legs, or the reason the router could not answer. */
 export type PlannerRouteResult = { ok: true; legs: TravelPlanLeg[] } | { ok: false };
 
+/** Map "types" that name an area, never a visitable stop. */
+export const ADMIN_CATEGORIES = new Set([
+  'city',
+  'town',
+  'village',
+  'hamlet',
+  'municipality',
+  'county',
+  'state',
+  'province',
+  'region',
+  'country',
+  'administrative',
+  'boundary',
+]);
+
 /**
  * The only door the planner has to the outside world (PLAN-07).
  *
@@ -32,21 +48,25 @@ export class PlannerProvider {
     private readonly routing: RoutingRelayService,
   ) {}
 
-  /** The destination's centre, for biasing searches; `null` when nothing resolved. */
+  /**
+   * The destination's centre, for biasing searches; `null` when nothing resolved.
+   *
+   * An administrative record comes first: the geocoder happily returns a
+   * same-named restaurant in another country ("成都" in Tokyo), while a city
+   * record is the thing the traveller actually named.
+   */
   async centre(userId: number, destination: string): Promise<{ lat: number; lng: number } | null> {
-    const direct = await this.maps.geocodeQuery(destination);
-    if (direct) return direct;
-
-    // The geocoder knows addresses, not city names. Asking the place provider
-    // for the destination itself often returns a real record at its centre,
-    // which is still a provider answer, never a guessed coordinate.
+    const wanted = destination.replace(/\s+/g, '');
     try {
       const found = await this.maps.searchPlaces(userId, destination, 'zh');
-      const hit = found.places.find((record) => finite(record.lat) && finite(record.lng));
-      return hit ? { lat: Number(hit.lat), lng: Number(hit.lng) } : null;
+      const records = found.places.filter((record) => finite(record.lat) && finite(record.lng));
+      const hit = records.find((record) => isArea(record) && nameMatches(text(record.name), wanted));
+      if (hit) return { lat: Number(hit.lat), lng: Number(hit.lng) };
     } catch {
-      return null;
+      // Fall through to the geocoder; a provider refusal must not block a plan.
     }
+
+    return this.maps.geocodeQuery(destination);
   }
 
   /** Real places for one query, normalised; throws only when the provider refused. */
@@ -108,6 +128,17 @@ export function routeTransport(transport: 'public_transit' | 'driving' | 'walkin
   if (transport === 'driving') return 'drive';
   if (transport === 'public_transit' || transport === 'mixed') return 'public_transit';
   return 'walk';
+}
+
+function isArea(record: Record<string, unknown>): boolean {
+  const category = text(record.category)?.toLowerCase();
+  return category !== undefined && ADMIN_CATEGORIES.has(category);
+}
+
+function nameMatches(name: string | null, wanted: string): boolean {
+  if (!name || !wanted) return false;
+  const plain = name.replace(/\s+/g, '');
+  return plain === wanted || plain.includes(wanted) || wanted.includes(plain);
 }
 
 function toCandidate(record: Record<string, unknown>, checkedAt: string): PlannerCandidate | null {

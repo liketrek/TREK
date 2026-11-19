@@ -1,5 +1,5 @@
 import { dbNow } from '../../db/types';
-import { PlannerProvider, routeTransport, type PlannerCandidate } from './planner-provider';
+import { ADMIN_CATEGORIES, PlannerProvider, routeTransport, type PlannerCandidate } from './planner-provider';
 import { Injectable } from '@nestjs/common';
 import type {
   TravelPlanBudget,
@@ -24,6 +24,9 @@ const MAX_QUERIES = 5;
 
 /** Never schedule more places than this, whatever the pace. */
 const MAX_PLACES = 24;
+
+/** A stop must be near the resolved centre; a same-named venue abroad is not a candidate. */
+const MAX_PLACE_DISTANCE_M = 80_000;
 
 export interface PlannerOutcome {
   draft: TravelPlanDraft;
@@ -99,7 +102,14 @@ export class PlannerService {
     for (const result of results) {
       if (result.warning) warnings.push(result.warning);
     }
-    if (candidates.length === 0) {
+    // Keep the draft in one city: drop administrative areas (a "city" record is
+    // not a stop) and same-named venues that geocoded somewhere else entirely.
+    const nearby = candidates.filter(
+      (candidate) =>
+        !ADMIN_CATEGORIES.has((candidate.category ?? '').toLowerCase()) &&
+        haversine(centre, candidate.place) <= MAX_PLACE_DISTANCE_M,
+    );
+    if (nearby.length === 0) {
       return emptyOutcome(checkedAt, '没有检索到可用的真实地点。', [
         ...warnings,
         {
@@ -112,7 +122,7 @@ export class PlannerService {
 
     const perDay = request.pace === 'relaxed' ? 3 : request.pace === 'intensive' ? 5 : 4;
     const cap = Math.min(dates.length * perDay, MAX_PLACES);
-    const ordered = nearestNeighbour(dedupe(candidates), centre);
+    const ordered = nearestNeighbour(dedupe(nearby), centre);
     const selected = ordered.slice(0, cap);
     if (ordered.length > selected.length) {
       warnings.push({
@@ -196,11 +206,10 @@ function dayCountOf(request: TravelPlanCreateRequest): number | null {
 function buildQueries(request: TravelPlanCreateRequest, extra: string[]): string[] {
   const destination = request.destination ?? '';
   const interests = request.interests.length > 0 ? request.interests : ['景点', '博物馆', '公园'];
-  const queries = [
-    ...interests.slice(0, 3).map((interest) => `${destination} ${interest}`),
-    ...extra.map((keyword) => `${destination} ${keyword}`),
-    destination,
-  ]
+  // The destination keeps the last slot; every other slot is a keyword, so a
+  // fourth interest is searched instead of silently dropped.
+  const keywords = [...interests, ...extra].slice(0, Math.max(1, MAX_QUERIES - 1));
+  const queries = [...keywords.map((keyword) => `${destination} ${keyword}`), destination]
     .map((query) => query.replace(/\s+/g, ' ').trim().slice(0, QUERY_MAX))
     .filter((query) => query !== '');
 
@@ -208,10 +217,15 @@ function buildQueries(request: TravelPlanCreateRequest, extra: string[]): string
 }
 
 function dedupe(candidates: PlannerCandidate[]): PlannerCandidate[] {
-  const seen = new Set<string>();
+  const ids = new Set<string>();
+  const spots = new Set<string>();
   return candidates.filter((candidate) => {
-    if (seen.has(candidate.place.providerId)) return false;
-    seen.add(candidate.place.providerId);
+    if (ids.has(candidate.place.providerId)) return false;
+    // The index and OSM can both return the same venue under different ids.
+    const spot = `${candidate.place.name.trim()}|${candidate.place.lat.toFixed(3)},${candidate.place.lng.toFixed(3)}`;
+    if (spots.has(spot)) return false;
+    ids.add(candidate.place.providerId);
+    spots.add(spot);
     return true;
   });
 }
@@ -249,6 +263,13 @@ function scheduleDays(
   const dayEnd = pace === 'relaxed' ? 18 * 60 : pace === 'intensive' ? 20 * 60 : 19 * 60;
   const days: TravelPlanDraftDay[] = dates.map((date) => ({ date, items: [] }));
 
+  // More stops than days would otherwise pack the first days and leave the
+  // tail empty; spread the route across the whole calendar instead. A short
+  // list that fits one day keeps the old packing behaviour.
+  const spread = selected.length > dates.length;
+  const dayOf = (index: number) =>
+    spread ? Math.min(days.length - 1, Math.floor((index * days.length) / selected.length)) : 0;
+
   let dayIndex = 0;
   let cursor = DAY_START_MINUTES;
   let previous = -1;
@@ -257,6 +278,12 @@ function scheduleDays(
   for (let index = 0; index < selected.length; index += 1) {
     const candidate = selected[index];
     if (!candidate) continue;
+    const target = dayOf(index);
+    if (target > dayIndex) {
+      dayIndex = target;
+      cursor = DAY_START_MINUTES;
+      previous = -1;
+    }
     let leg = previous >= 0 && days[dayIndex]?.items.length ? (legs[previous] ?? null) : null;
     let arrive = cursor + (leg?.minutes ?? 0);
     if (arrive >= 11 * 60 + 30 && arrive < 13 * 60 + 30) arrive = 13 * 60 + 30;

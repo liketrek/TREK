@@ -82,7 +82,7 @@ export default function TravelDraftApplyCard({
           <button
             type="button"
             onClick={onOpenTrip}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-on transition hover:bg-accent-hover"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-text transition hover:bg-accent-hover"
           >
             <ArrowUpRight size={16} />
             {t('planner.ai.openTrip')}
@@ -218,7 +218,7 @@ export default function TravelDraftApplyCard({
         type="button"
         onClick={onApply}
         disabled={!canApply || busy}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-on transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Wand2 size={16} />
         {busy ? t('planner.ai.applying') : t('planner.ai.apply')}

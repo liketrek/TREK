@@ -529,6 +529,8 @@ export async function createPluginRpcHostParts(
     vacay,
     realtime,
     unsplash,
+    // AmapPhotoService: cover photos are exercised by their own suites.
+    {} as never,
     // StorageReleaseService: a replaced cover's release has its own suites; nothing is released here.
     { releaseValues: async () => [] } as never,
     await createTestUnitOfWork(db),

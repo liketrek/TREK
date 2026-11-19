@@ -73,7 +73,7 @@ export function briefFromRequest(request: TravelPlanRequest): TravelBrief {
 /** Splits a comma-separated field into trimmed non-empty entries. */
 export function splitList(value: string): string[] {
   return value
-    .split(/[,，]/)
+    .split(/[,，、;；]/)
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
 }

@@ -100,7 +100,7 @@ export default function AiTravelPlanPage(): React.ReactElement {
       {/* pb clears the phone's floating dock, whose centre FAB otherwise sits on the form's submit button. */}
       <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-[calc(var(--bottom-nav-h,0px)_+_24px)] sm:px-6 md:pb-10 lg:py-10">
         <header className="mb-6">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent-text">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent-on">
             <Sparkles size={13} />
             {t('planner.ai.badge')}
           </div>
@@ -154,7 +154,7 @@ export default function AiTravelPlanPage(): React.ReactElement {
                         void vm.handleRevise();
                       }}
                       disabled={vm.isBusy}
-                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-on transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {vm.pending === 'revising' && <Loader2 size={15} className="animate-spin" />}
                       {vm.pending === 'revising' ? t('planner.ai.revising') : t('planner.ai.reviseSubmit')}

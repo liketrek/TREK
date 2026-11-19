@@ -232,7 +232,7 @@ export default function TravelBriefForm({
         <button
           type="submit"
           disabled={disabled}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-on transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Sparkles size={16} />
           {disabled ? t('planner.ai.generating') : t('planner.ai.generate')}

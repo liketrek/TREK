@@ -60,6 +60,11 @@ describe('aiPlanModel', () => {
       expect(splitList(' 火锅, 夜景 ，, 博物馆 ')).toEqual(['火锅', '夜景', '博物馆']);
     });
 
+    it('FE-AI-MODEL-001b: splits on enumeration commas and semicolons', () => {
+      expect(splitList('美食、博物馆、徒步、景区')).toEqual(['美食', '博物馆', '徒步', '景区']);
+      expect(splitList('美食；夜景;徒步')).toEqual(['美食', '夜景', '徒步']);
+    });
+
     it('FE-AI-MODEL-002: an empty field is an empty list', () => {
       expect(splitList('   ')).toEqual([]);
     });

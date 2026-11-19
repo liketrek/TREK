@@ -147,7 +147,20 @@ async function deleteTripAndWatchTempFiles(db: Database.Database): Promise<{
 
   const none = undefined as never;
   try {
-    const trips = new TripsService(none, none, none, none, none, none, none, none, new UnitOfWork(t.em), t.em, none);
+    const trips = new TripsService(
+      none,
+      none,
+      none,
+      none,
+      none,
+      none,
+      none,
+      none,
+      none,
+      new UnitOfWork(t.em),
+      t.em,
+      none,
+    );
     await trips.remove(trip.id, user.id, 'user');
     return {
       tempFiles: [...seen],

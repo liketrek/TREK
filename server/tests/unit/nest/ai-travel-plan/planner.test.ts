@@ -428,6 +428,45 @@ describe('PlannerService', () => {
     expect(outcome.draft.days[0]?.items[0]).toMatchObject({ arriveAt: '09:00', leaveAt: '11:00' });
   });
 
+  it('keeps stops near the centre and drops an administrative area', async () => {
+    const city = candidate(2);
+    const abroad = candidate(3);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        candidate(1),
+        { ...city, place: { ...city.place, name: '成都', lat: 30.66, lng: 104.06 }, category: 'city' },
+        { ...abroad, place: { ...abroad.place, name: '成都', lat: 35.69, lng: 139.77 }, category: 'restaurant' },
+      ]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days.flatMap((day) => day.items).map((item) => item.place.name)).toEqual(['地点1']);
+  });
+
+  it('spreads a long list across every planned day instead of leaving the tail empty', async () => {
+    const many = Array.from({ length: 6 }, (_, index) => candidate(index + 1));
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => many),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: travelPlanCreateRequestSchema.parse({
+        destination: '杭州',
+        startDate: '2026-05-01',
+        endDate: '2026-05-03',
+        pace: 'relaxed',
+      }),
+    });
+
+    expect(outcome.draft.days.map((day) => day.items.length)).toEqual([2, 2, 2]);
+  });
+
   it('moves a stop out of the lunch window and skips what no longer fits the day', async () => {
     const lunch = service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
@@ -442,12 +481,15 @@ describe('PlannerService', () => {
 
     const overflow = service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
-      search: vi.fn(async () => [
-        candidate(1, 30, 120, null),
-        candidate(2, 31, 121, '很远的地址'),
-        candidate(3, 32, 122),
-      ]),
-      route: vi.fn(async () => ({ ok: false })),
+      search: vi.fn(async () => [candidate(1), candidate(2), candidate(3)]),
+      // A routed leg this long pushes every following stop past the day's end.
+      route: vi.fn(async () => ({
+        ok: true,
+        legs: [
+          { mode: 'drive', minutes: 900, distanceMeters: 50_000 },
+          { mode: 'drive', minutes: 900, distanceMeters: 50_000 },
+        ],
+      })),
     });
     const skipped = await overflow.plan({
       userId: 1,
@@ -499,7 +541,7 @@ describe('PlannerProvider', () => {
     };
     const provider = new PlannerProvider(maps as never, { ask: vi.fn() } as never);
 
-    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.2, lng: 120.1 });
+    expect(await provider.centre(1, '杭州')).toBeNull();
     const found = await provider.search(1, '杭州 西湖', { lat: 30, lng: 120 });
     expect(found).toEqual([
       expect.objectContaining({
@@ -545,19 +587,26 @@ describe('PlannerProvider', () => {
     ).toEqual({ ok: false });
   });
 
-  it('prefers the geocoder and only falls back to real place records for a centre', async () => {
+  it('prefers an administrative record and falls back to the geocoder for a centre', async () => {
     const maps = {
       geocodeQuery: vi.fn(async () => ({ lat: 30.2, lng: 120.1 })),
-      searchPlaces: vi.fn(),
+      searchPlaces: vi.fn(async () => ({
+        places: [
+          { name: '杭州小笼包', lat: 35.7, lng: 139.7, category: 'restaurant' },
+          { name: '杭州', lat: 30.25, lng: 120.15, category: 'city' },
+        ],
+      })),
     };
     const provider = new PlannerProvider(maps as never, { ask: vi.fn() } as never);
 
-    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.2, lng: 120.1 });
-    expect(maps.searchPlaces).not.toHaveBeenCalled();
+    // A same-named restaurant abroad must never become the centre.
+    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.25, lng: 120.15 });
+    expect(maps.geocodeQuery).not.toHaveBeenCalled();
 
-    maps.geocodeQuery.mockResolvedValueOnce(null as never);
-    maps.searchPlaces.mockResolvedValueOnce({ places: [{ name: '杭州', lat: '30.2', lng: '120.1' }] } as never);
-    expect(await provider.centre(1, '杭州')).toBeNull();
+    maps.searchPlaces.mockResolvedValueOnce({
+      places: [{ name: '杭州', lat: 30.2, lng: 120.1, category: 'restaurant' }],
+    } as never);
+    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.2, lng: 120.1 });
 
     maps.geocodeQuery.mockResolvedValueOnce(null as never);
     maps.searchPlaces.mockRejectedValueOnce(new Error('quota') as never);
