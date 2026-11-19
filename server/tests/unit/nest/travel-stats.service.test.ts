@@ -634,7 +634,7 @@ describe('Atlas page and passport card count the same places and cities (#3137)'
       lng: 12.0972,
       address: 'Steinerne Bruecke, Regensburg, Bavaria, Germany',
     });
-    for (const id of [hotelA, hotelB, square, castle, bridge]) await cacheRegion(id, 'Bavaria');
+    await Promise.all([hotelA, hotelB, square, castle, bridge].map((id) => cacheRegion(id, 'Bavaria')));
     // A bare name holds no city, and two places without address or coordinates are two places.
     await addPlace(first.id, 'Beer garden', { address: 'Augustiner Keller' });
     await addPlace(second.id, 'Beer hall', { address: 'Hofbraeuhaus' });
