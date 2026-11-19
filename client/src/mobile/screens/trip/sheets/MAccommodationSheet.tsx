@@ -221,7 +221,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
               <button
                 type="button"
                 onClick={openAddPlace}
-                className="flex items-center gap-1.5 rounded-full bg-m-act px-3.5 py-[7px] text-[0.75rem] font-semibold text-m-actfg"
+                className="flex items-center gap-1.5 rounded-full bg-m-act px-3.5 py-[7px] text-caption font-semibold text-m-actfg"
               >
                 <Plus size={13} strokeWidth={2.4} />
                 {t('planner.addPlace')}
