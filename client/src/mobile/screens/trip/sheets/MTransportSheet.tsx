@@ -236,7 +236,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<ResIcon size={19} strokeWidth={1.8} />}
-          title={<span dir="auto" className="truncate text-[1rem]">{res.title}</span>}
+          title={<span dir="auto" className="min-w-0 break-words text-[1rem] [overflow-wrap:anywhere]">{res.title}</span>}
           sub={subParts.length > 0 ? subParts.join(' · ') : undefined}
           onClose={shell.closeSheet}
           closeLabel={t('common.close')}
@@ -314,9 +314,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
                         <span className="text-m-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span>
                       ) : (
                         <>
-                          <span dir="auto" className="truncate">{leg.from?.name}</span>
+                          <span dir="auto" className="min-w-0 break-words [overflow-wrap:anywhere]">{leg.from?.name}</span>
                           <ArrowRight size={10} strokeWidth={2} className="flex-none text-m-faint" />
-                          <span dir="auto" className="truncate">{leg.to?.name}</span>
+                          <span dir="auto" className="min-w-0 break-words [overflow-wrap:anywhere]">{leg.to?.name}</span>
                         </>
                       )}
                     </div>

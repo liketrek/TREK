@@ -48,9 +48,11 @@ export function TransitLegs({ legs, compact = false }: { legs: TransitLegDisplay
               }}>{leg.line || leg.mode}</span>
             )}
             <div className={`flex min-w-0 flex-1 flex-col ${compact ? 'gap-1' : 'gap-1.5'}`}>
-              <div className="flex min-w-0 items-center gap-1 font-medium text-content" style={fs(compact ? 12 : 13, 'body')}>
-                {walk ? <span className="truncate text-content-muted">{t('transit.walkTo', { name: leg.to?.name || '' })}</span> : (
-                  <><span className="truncate">{leg.from?.name}</span><ArrowRight size={compact ? 11 : 12} strokeWidth={2} className="flex-none text-content-faint" /><span className="truncate">{leg.to?.name}</span></>
+              {/* Detail views show a stop name whole: the names wrap and the
+                  arrow moves to the next line with them when it has to (#3139). */}
+              <div className="flex min-w-0 flex-wrap items-center gap-1 font-medium text-content" style={fs(compact ? 12 : 13, 'body')}>
+                {walk ? <span className="min-w-0 break-words text-content-muted [overflow-wrap:anywhere]">{t('transit.walkTo', { name: leg.to?.name || '' })}</span> : (
+                  <><span dir="auto" className="min-w-0 break-words [overflow-wrap:anywhere]">{leg.from?.name}</span><ArrowRight size={compact ? 11 : 12} strokeWidth={2} className="flex-none text-content-faint" /><span dir="auto" className="min-w-0 break-words [overflow-wrap:anywhere]">{leg.to?.name}</span></>
                 )}
               </div>
               <TransitMetaBadges size={compact ? 'sm' : 'md'} items={[

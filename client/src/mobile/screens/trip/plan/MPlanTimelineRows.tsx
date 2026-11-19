@@ -350,8 +350,11 @@ function TransitLegRows({ legs, t }: { legs: TransitLegDisplay[]; t: Translation
         const hasSeg = i < legs.length - 1
         return (
           <div key={i} className="flex gap-[9px]">
-            <span className="w-9 flex-none pt-[9px] text-end font-geist text-[0.65625rem] font-semibold tabular-nums text-m-muted">
-              {isWalk ? '' : leg.from?.time?.slice(0, 5) || ''}
+            {/* A ride's departure stands beside its stops, its arrival at the
+                bottom of its row, so the open card holds the whole journey (#3139). */}
+            <span className="flex w-9 flex-none flex-col justify-between py-[9px] text-end font-geist text-[0.65625rem] font-semibold tabular-nums text-m-muted">
+              <span>{isWalk ? '' : leg.from?.time?.slice(0, 5) || ''}</span>
+              {!isWalk && leg.to?.time && <span className="text-m-faint">{leg.to.time.slice(0, 5)}</span>}
             </span>
             <div className="flex w-3 flex-none flex-col items-center">
               {isWalk ? (
@@ -371,16 +374,16 @@ function TransitLegRows({ legs, t }: { legs: TransitLegDisplay[]; t: Translation
             </div>
             <div className="min-w-0 flex-1 py-[7px]">
               {isWalk ? (
-                <div className="truncate font-geist text-[0.6875rem] font-semibold text-m-muted">
+                <div className="break-words font-geist text-[0.6875rem] font-semibold text-m-muted [overflow-wrap:anywhere]">
                   <Footprints size={10} strokeWidth={2.2} className="me-1 inline-block align-[-1px]" />
                   {[mins ? t('transit.min', { count: mins }) : '', t('transit.walkTo', { name: leg.to?.name || '' })]
                     .filter(Boolean).join(' · ')}
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <LineBadge leg={leg} className="flex-none" />
-                    <span className="truncate text-[0.78125rem] font-bold">
+                  <div className="flex items-start gap-1.5">
+                    <LineBadge leg={leg} className="mt-px flex-none" />
+                    <span dir="auto" className="min-w-0 break-words text-[0.78125rem] font-bold [overflow-wrap:anywhere]">
                       {flowText([leg.from?.name, leg.to?.name].filter((n): n is string => !!n))}
                     </span>
                   </div>

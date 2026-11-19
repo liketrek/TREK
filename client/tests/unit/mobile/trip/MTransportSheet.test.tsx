@@ -144,6 +144,24 @@ describe('MTransportSheet', () => {
     expect(screen.getByText('Prater')).toBeInTheDocument()
   })
 
+  it('FE-MOB-TRSH-025: the title and every stop name wrap instead of being cut off (#3139)', () => {
+    const res = {
+      ...FLIGHT, type: 'transit', title: 'Basingstoke station → Reading station', endpoints: [], metadata: {
+        transit: {
+          legs: [{
+            mode: 'RAIL', line: 'CrossCountry', duration: 1260,
+            from: { name: 'Basingstoke', time: '12:48' }, to: { name: 'Reading', time: '13:09' },
+          }],
+        },
+      },
+    } as unknown as Reservation
+    render(<MTransportSheet planner={makePlanner({ reservations: [res] })} shell={makeShell()} />)
+    expect(screen.getByText('Basingstoke station → Reading station')).not.toHaveClass('truncate')
+    expect(screen.getByText('Basingstoke')).not.toHaveClass('truncate')
+    expect(screen.getByText('Reading')).not.toHaveClass('truncate')
+    expect(screen.getByText('Reading')).toHaveClass('break-words')
+  })
+
   it('FE-MOB-TRSH-010: shows the pending status and the booking code unblurred by default', () => {
     render(<MTransportSheet planner={makePlanner()} shell={makeShell()} />)
     expect(screen.getByText('Pending')).toBeInTheDocument()

@@ -54,6 +54,14 @@ describe('TransitLegs', () => {
     expect(screen.getByText('BVG')).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-BKTRANSIT-009: stop names and a walk target wrap instead of being cut off (#3139)', () => {
+    render(<TransitLegs legs={[ride, walk]} compact />);
+    for (const text of ['Alexanderplatz', 'Eberswalder Str.', 'Walk to Mauerpark']) {
+      expect(screen.getByText(text)).not.toHaveClass('truncate');
+      expect(screen.getByText(text)).toHaveClass('break-words');
+    }
+  });
+
   it('FE-PLANNER-BKTRANSIT-006: a walk reads as one and leaves out the ride facts', () => {
     render(<TransitLegs legs={[walk]} compact />);
     expect(screen.getByText('Walk to Mauerpark')).toBeInTheDocument();
