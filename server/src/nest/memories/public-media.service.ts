@@ -73,7 +73,7 @@ export class PublicMediaService {
 
     const key = `${category}/${name}`;
     let pending = this.inFlight.get(key);
-    if (!pending) {
+    if (pending === undefined) {
       pending = this.build(category, name, rendition).finally(() => this.inFlight.delete(key));
       this.inFlight.set(key, pending);
     }
