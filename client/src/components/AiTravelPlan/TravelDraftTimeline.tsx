@@ -3,10 +3,12 @@ import { Banknote, Clock, MapPin, Navigation, Route } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../i18n';
 import type { Translate } from './aiPlanModel';
-import { amapDayNavigationUrl, amapPlaceNavigationUrl } from './amapNavigation';
+import { dayNavigationUrl, placeNavigationUrl, type DraftTravelMode } from './draftNavigation';
 
 interface TravelDraftTimelineProps {
   days: TravelPlanDraftDay[];
+  /** Drive or walk, shared with the map legend so both surfaces agree. */
+  navMode: DraftTravelMode;
 }
 
 function formatDay(date: string, locale: string): string {
@@ -39,13 +41,13 @@ function travelModeLabel(mode: TravelPlanLeg['mode'], t: Translate): string {
 }
 
 /** Day-by-day proposal: times, places, the leg from the previous stop and its price. */
-export default function TravelDraftTimeline({ days }: TravelDraftTimelineProps): React.ReactElement {
+export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimelineProps): React.ReactElement {
   const { t, locale } = useTranslation();
 
   return (
     <div className="space-y-4">
       {days.map((day, dayIndex) => {
-        const navigationUrl = amapDayNavigationUrl(day.items);
+        const navigationUrl = dayNavigationUrl(day.items, navMode);
         return (
           <section key={day.date} className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
             <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-edge-faint pb-3">
@@ -117,7 +119,7 @@ export default function TravelDraftTimeline({ days }: TravelDraftTimelineProps):
                         {item.place.provider}
                       </span>
                       <a
-                        href={amapPlaceNavigationUrl(item.place)}
+                        href={placeNavigationUrl(item.place, navMode)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 font-medium text-content-secondary transition hover:text-content"

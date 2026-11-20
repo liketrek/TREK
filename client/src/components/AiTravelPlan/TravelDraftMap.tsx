@@ -1,18 +1,22 @@
 import type { TravelPlanDraft, TravelPlanDraftDay } from '@trek/shared';
-import { Navigation } from 'lucide-react';
+import { Car, Footprints, Navigation } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { OFM_BRIGHT, OFM_DARK } from '../../constants/mapDefaults';
 import { useIsDark } from '../../hooks/useIsDark';
 import { useTileUrl } from '../../hooks/useTileUrl';
 import { useTranslation } from '../../i18n';
+import { isInstalledApp } from '../../utils/resumeRoute';
 import { dayColor } from '../Map/dawarichTrail';
 import { MapViewAuto } from '../Map/MapViewAuto';
 import type { MapPlace } from '../Map/mapViewContract';
-import { amapDayNavigationUrl } from './amapNavigation';
+import { dayNavigationUrl, placeNavigationUrl, type DraftTravelMode } from './draftNavigation';
 import { useDraftRoadRoutes } from './useDraftRoadRoutes';
 
 interface TravelDraftMapProps {
   draft: TravelPlanDraft | null;
+  /** Drive or walk, shared with the timeline so both surfaces agree. */
+  navMode: DraftTravelMode;
+  onNavModeChange: (mode: DraftTravelMode) => void;
 }
 
 /** A stable empty list, so a proposal with no draft keeps the memos below still. */
@@ -71,12 +75,18 @@ function framePoints(places: MapPlace[]): [number, number][] {
  * and nothing can be dragged. Reuses the trip map stack rather than a second
  * map engine, and draws nothing at all when the proposal has no stops.
  */
-export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.ReactElement | null {
+export default function TravelDraftMap({
+  draft,
+  navMode,
+  onNavModeChange,
+}: TravelDraftMapProps): React.ReactElement | null {
   const { t } = useTranslation();
   const dark = useIsDark();
   const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT);
   const days = draft?.days ?? NO_DAYS;
   const { places, dayOrderMap } = useMemo(() => draftMarkers(days), [days]);
+  // Marker ids follow the same flattening, so a pin opens the stop it stands for.
+  const items = useMemo(() => days.flatMap((day) => day.items), [days]);
   const { lines: route, lineDays, sketchOnly } = useDraftRoadRoutes(days);
   // One hue per day, matching the legend below the map; the dark casing keeps
   // neighbouring days readable where their roads overlap.
@@ -88,6 +98,16 @@ export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.Re
   // Coordinates are in the key: the engine fits again when a revision moves a
   // stop, while a rerender with the same proposal leaves the camera alone.
   const focusKey = useMemo(() => places.map((place) => `${place.id}:${place.lat},${place.lng}`).join('|'), [places]);
+
+  // A pin is a stop, so tapping it hands that stop to the maps app in the mode
+  // the legend is set to — the same link the timeline offers under the stop.
+  const openMarker = (id: number): void => {
+    const item = items[id - 1];
+    if (!item) return;
+    const url = placeNavigationUrl(item.place, navMode);
+    if (isInstalledApp()) window.location.href = url;
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   if (places.length === 0) return null;
 
@@ -106,12 +126,41 @@ export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.Re
           tileUrl={tileUrl}
           focusPoints={focusPoints}
           focusKey={focusKey}
+          onMarkerClick={openMarker}
         />
       </div>
       {days.some((day) => day.items.length > 1) ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5 sm:px-5">
+          <div role="group" className="inline-flex items-center gap-0.5 rounded-full border border-edge p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => onNavModeChange('drive')}
+              aria-pressed={navMode === 'drive'}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition ${
+                navMode === 'drive'
+                  ? 'bg-surface-secondary font-medium text-content'
+                  : 'text-content-muted hover:text-content'
+              }`}
+            >
+              <Car size={11} />
+              {t('planner.ai.travelMode.drive')}
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavModeChange('walk')}
+              aria-pressed={navMode === 'walk'}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition ${
+                navMode === 'walk'
+                  ? 'bg-surface-secondary font-medium text-content'
+                  : 'text-content-muted hover:text-content'
+              }`}
+            >
+              <Footprints size={11} />
+              {t('planner.ai.travelMode.walk')}
+            </button>
+          </div>
           {days.map((day, dayIndex) => {
-            const navigationUrl = amapDayNavigationUrl(day.items);
+            const navigationUrl = dayNavigationUrl(day.items, navMode);
             if (!navigationUrl) return null;
             return (
               <span

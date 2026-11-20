@@ -6,6 +6,7 @@ import TravelDraftMap from '../../components/AiTravelPlan/TravelDraftMap';
 import TravelDraftSources from '../../components/AiTravelPlan/TravelDraftSources';
 import TravelDraftTimeline from '../../components/AiTravelPlan/TravelDraftTimeline';
 import TravelDraftWarnings from '../../components/AiTravelPlan/TravelDraftWarnings';
+import type { DraftTravelMode } from '../../components/AiTravelPlan/draftNavigation';
 import PageShell from '../../components/Layout/PageShell';
 import TripShareDialog from '../../components/Trips/TripShareDialog';
 import { useAiTravelPlan } from './useAiTravelPlan';
@@ -110,6 +111,9 @@ export default function AiTravelPlanPage(): React.ReactElement {
   const vm = useAiTravelPlan();
   const { t, plan, draft } = vm;
   const [shareOpen, setShareOpen] = React.useState(false);
+  // One switch for every navigation link on the page: the map legend owns the
+  // control, the timeline under it follows the same choice.
+  const [navMode, setNavMode] = React.useState<DraftTravelMode>('drive');
 
   return (
     <PageShell background="var(--bg-secondary)">
@@ -147,8 +151,8 @@ export default function AiTravelPlanPage(): React.ReactElement {
             <main className="min-w-0 flex-1 space-y-5">
               <DraftOverview vm={vm} />
 
-              <TravelDraftMap draft={draft} />
-              {draft && draft.days.length > 0 && <TravelDraftTimeline days={draft.days} />}
+              <TravelDraftMap draft={draft} navMode={navMode} onNavModeChange={setNavMode} />
+              {draft && draft.days.length > 0 && <TravelDraftTimeline days={draft.days} navMode={navMode} />}
               {draft && <TravelDraftSources draft={draft} />}
               <TravelDraftWarnings warnings={plan.warnings} />
 
