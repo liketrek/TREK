@@ -183,5 +183,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Sõiduajad uuendatud tegelike teede järgi.',
   'planner.ai.recalculateFailed': 'Sõiduaegu ei õnnestunud uuesti arvutada. Proovige uuesti.',
   'planner.ai.navigate': 'Navigeeri Amapis',
+  'planner.ai.navigateTo': 'Navi siia',
+  'planner.ai.startNavigation': 'Alusta navigeerimist',
 };
 export default planner;

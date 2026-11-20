@@ -1,11 +1,14 @@
 import type { TravelPlanDraft, TravelPlanDraftDay } from '@trek/shared';
+import { Navigation } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { OFM_BRIGHT, OFM_DARK } from '../../constants/mapDefaults';
 import { useIsDark } from '../../hooks/useIsDark';
 import { useTileUrl } from '../../hooks/useTileUrl';
 import { useTranslation } from '../../i18n';
+import { dayColor } from '../Map/dawarichTrail';
 import { MapViewAuto } from '../Map/MapViewAuto';
 import type { MapPlace } from '../Map/mapViewContract';
+import { amapDayNavigationUrl } from './amapNavigation';
 import { useDraftRoadRoutes } from './useDraftRoadRoutes';
 
 interface TravelDraftMapProps {
@@ -23,22 +26,29 @@ const NO_DAYS: TravelPlanDraftDay[] = [];
 const LONE_PLACE_SPAN = 0.05;
 
 /**
- * Every stop in the order the timeline lists it. The ids are the pin's position,
- * not a database id: a draft has no places yet.
+ * Every stop in the order the timeline lists it, plus the number it carries
+ * inside its own day. The ids are the pin's position, not a database id: a
+ * draft has no places yet.
  */
-function draftPlaces(days: TravelPlanDraftDay[]): MapPlace[] {
+function draftMarkers(days: TravelPlanDraftDay[]): {
+  places: MapPlace[];
+  dayOrderMap: Record<number, number[]>;
+} {
   const places: MapPlace[] = [];
+  const dayOrderMap: Record<number, number[]> = {};
   for (const day of days) {
-    for (const item of day.items) {
+    for (const [index, item] of day.items.entries()) {
+      const id = places.length + 1;
       places.push({
-        id: places.length + 1,
+        id,
         name: item.place.name,
         lat: item.place.lat,
         lng: item.place.lng,
       });
+      dayOrderMap[id] = [index + 1];
     }
   }
-  return places;
+  return { places, dayOrderMap };
 }
 
 /** The coordinates the map frames; a lone stop (or several on one spot) gets a small square. */
@@ -66,8 +76,14 @@ export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.Re
   const dark = useIsDark();
   const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT);
   const days = draft?.days ?? NO_DAYS;
-  const places = useMemo(() => draftPlaces(days), [days]);
-  const { lines: route, sketchOnly } = useDraftRoadRoutes(days);
+  const { places, dayOrderMap } = useMemo(() => draftMarkers(days), [days]);
+  const { lines: route, lineDays, sketchOnly } = useDraftRoadRoutes(days);
+  // One hue per day, matching the legend below the map; the dark casing keeps
+  // neighbouring days readable where their roads overlap.
+  const routeColors = useMemo(
+    () => route.map((_, index) => ({ line: dayColor(lineDays[index] ?? 0), casing: '#0F172A' })),
+    [route, lineDays]
+  );
   const focusPoints = useMemo(() => framePoints(places), [places]);
   // Coordinates are in the key: the engine fits again when a revision moves a
   // stop, while a rerender with the same proposal leaves the camera alone.
@@ -84,12 +100,40 @@ export default function TravelDraftMap({ draft }: TravelDraftMapProps): React.Re
       <div className="h-64 w-full [--bottom-nav-h:0px] sm:h-80">
         <MapViewAuto
           places={places}
+          dayOrderMap={dayOrderMap}
           route={route.length > 0 ? route : null}
+          routeColors={routeColors.length > 0 ? routeColors : undefined}
           tileUrl={tileUrl}
           focusPoints={focusPoints}
           focusKey={focusKey}
         />
       </div>
+      {days.some((day) => day.items.length > 1) ? (
+        <div className="flex flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5 sm:px-5">
+          {days.map((day, dayIndex) => {
+            const navigationUrl = amapDayNavigationUrl(day.items);
+            if (!navigationUrl) return null;
+            return (
+              <span
+                key={day.date}
+                className="inline-flex items-center gap-1.5 rounded-full border border-edge px-2 py-1 text-xs"
+              >
+                <span aria-hidden className="h-2 w-2 rounded-full" style={{ backgroundColor: dayColor(dayIndex) }} />
+                <span className="text-content-secondary">{t('planner.dayN', { n: dayIndex + 1 })}</span>
+                <a
+                  href={navigationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
+                >
+                  <Navigation size={11} />
+                  {t('planner.ai.startNavigation')}
+                </a>
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }

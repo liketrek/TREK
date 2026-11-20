@@ -185,6 +185,8 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'זמני הנסיעה עודכנו לפי כבישים אמיתיים.',
   'planner.ai.recalculateFailed': 'לא ניתן היה לחשב מחדש את זמני הנסיעה. נסו שוב.',
   'planner.ai.navigate': 'ניווט באמצעות Amap',
+  'planner.ai.navigateTo': 'ניווט לכאן',
+  'planner.ai.startNavigation': 'התחל ניווט',
 };
 
 export default planner;

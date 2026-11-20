@@ -183,5 +183,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Seyahat süreleri gerçek yollara göre güncellendi.',
   'planner.ai.recalculateFailed': 'Seyahat süreleri yeniden hesaplanamadı. Lütfen tekrar deneyin.',
   'planner.ai.navigate': 'Amap ile yol tarifi',
+  'planner.ai.navigateTo': 'Buraya git',
+  'planner.ai.startNavigation': 'Navigasyonu başlat',
 };
 export default planner;

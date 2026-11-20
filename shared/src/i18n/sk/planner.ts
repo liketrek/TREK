@@ -186,5 +186,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Časy ciest aktualizované podľa skutočných ciest.',
   'planner.ai.recalculateFailed': 'Časy ciest sa nepodarilo prepočítať. Skúste to znova.',
   'planner.ai.navigate': 'Navigovať v Amap',
+  'planner.ai.navigateTo': 'Navigovať sem',
+  'planner.ai.startNavigation': 'Spustiť navigáciu',
 };
 export default planner;

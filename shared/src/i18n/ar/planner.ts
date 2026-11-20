@@ -194,5 +194,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'تم تحديث أوقات التنقل وفق الطرق الفعلية.',
   'planner.ai.recalculateFailed': 'تعذر إعادة حساب أوقات التنقل. حاول مرة أخرى.',
   'planner.ai.navigate': 'التنقل في Amap',
+  'planner.ai.navigateTo': 'الانتقال إلى هنا',
+  'planner.ai.startNavigation': 'بدء التنقل',
 };
 export default planner;

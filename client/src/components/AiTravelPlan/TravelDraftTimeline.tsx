@@ -1,8 +1,9 @@
-import type { TravelPlanDraftDay, TravelPlanDraftItem, TravelPlanLeg } from '@trek/shared';
+import type { TravelPlanDraftDay, TravelPlanLeg } from '@trek/shared';
 import { Banknote, Clock, MapPin, Navigation, Route } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../i18n';
 import type { Translate } from './aiPlanModel';
+import { amapDayNavigationUrl, amapPlaceNavigationUrl } from './amapNavigation';
 
 interface TravelDraftTimelineProps {
   days: TravelPlanDraftDay[];
@@ -37,33 +38,6 @@ function travelModeLabel(mode: TravelPlanLeg['mode'], t: Translate): string {
   }
 }
 
-/**
- * One Amap navigation deep link for the day: first stop → middle stops → last
- * stop, driving mode, in that visit order. Coordinates are the provider's own
- * (GCJ-02 for domestic Amap places), which is what `coordinate=gaode` expects.
- * A day with a single stop has no route to navigate.
- */
-function amapNavigationUrl(items: TravelPlanDraftItem[]): string | null {
-  if (items.length < 2) return null;
-  const first = items[0];
-  const last = items[items.length - 1];
-  if (!first || !last) return null;
-  const point = (place: TravelPlanDraftItem['place']): string =>
-    `${place.lng},${place.lat},${encodeURIComponent(place.name)}`;
-  const via = items.slice(1, -1).map((item) => point(item.place));
-  const query = [
-    `from=${point(first.place)}`,
-    `to=${point(last.place)}`,
-    ...(via.length > 0 ? [`via=${via.join('|')}`] : []),
-    'mode=car',
-    'policy=1',
-    'coordinate=gaode',
-    'src=trek',
-    'callnative=1',
-  ].join('&');
-  return `https://uri.amap.com/navigation?${query}`;
-}
-
 /** Day-by-day proposal: times, places, the leg from the previous stop and its price. */
 export default function TravelDraftTimeline({ days }: TravelDraftTimelineProps): React.ReactElement {
   const { t, locale } = useTranslation();
@@ -71,7 +45,7 @@ export default function TravelDraftTimeline({ days }: TravelDraftTimelineProps):
   return (
     <div className="space-y-4">
       {days.map((day, dayIndex) => {
-        const navigationUrl = amapNavigationUrl(day.items);
+        const navigationUrl = amapDayNavigationUrl(day.items);
         return (
           <section key={day.date} className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
             <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-edge-faint pb-3">
@@ -142,6 +116,15 @@ export default function TravelDraftTimeline({ days }: TravelDraftTimelineProps):
                         <MapPin size={12} />
                         {item.place.provider}
                       </span>
+                      <a
+                        href={amapPlaceNavigationUrl(item.place)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-content-secondary transition hover:text-content"
+                      >
+                        <Navigation size={12} />
+                        {t('planner.ai.navigateTo')}
+                      </a>
                     </div>
                   </li>
                 ))}

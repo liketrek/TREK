@@ -178,5 +178,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': '実際の道路に基づいて移動時間を更新しました。',
   'planner.ai.recalculateFailed': '移動時間を再計算できませんでした。後でもう一度お試しください。',
   'planner.ai.navigate': 'Amap でナビ',
+  'planner.ai.navigateTo': 'ここへナビ',
+  'planner.ai.startNavigation': 'ナビを開始',
 };
 export default planner;

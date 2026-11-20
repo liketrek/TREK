@@ -178,5 +178,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': '실제 도로 기준으로 이동 시간을 업데이트했습니다.',
   'planner.ai.recalculateFailed': '이동 시간을 다시 계산하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   'planner.ai.navigate': 'Amap 길안내',
+  'planner.ai.navigateTo': '여기로 안내',
+  'planner.ai.startNavigation': '안내 시작',
 };
 export default planner;

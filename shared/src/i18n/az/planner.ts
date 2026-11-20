@@ -198,6 +198,8 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Səyahət vaxtları real yollara görə yeniləndi.',
   'planner.ai.recalculateFailed': 'Səyahət vaxtlarını yenidən hesablamaq alınmadı. Yenidən cəhd edin.',
   'planner.ai.navigate': 'Amap ilə naviqasiya',
+  'planner.ai.navigateTo': 'Bura naviqasiya',
+  'planner.ai.startNavigation': 'Naviqasiyanı başlat',
 };
 
 export default planner;

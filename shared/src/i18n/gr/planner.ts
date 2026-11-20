@@ -186,5 +186,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Οι χρόνοι μετακίνησης ενημερώθηκαν με βάση πραγματικούς δρόμους.',
   'planner.ai.recalculateFailed': 'Δεν ήταν δυνατός ο επανυπολογισμός των χρόνων μετακίνησης. Δοκιμάστε ξανά.',
   'planner.ai.navigate': 'Πλοήγηση στο Amap',
+  'planner.ai.navigateTo': 'Πλοήγηση εδώ',
+  'planner.ai.startNavigation': 'Έναρξη πλοήγησης',
 };
 export default planner;

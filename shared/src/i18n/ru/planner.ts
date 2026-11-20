@@ -190,5 +190,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Время в пути обновлено по реальным дорогам.',
   'planner.ai.recalculateFailed': 'Не удалось пересчитать время в пути. Попробуйте ещё раз.',
   'planner.ai.navigate': 'Навигация в Amap',
+  'planner.ai.navigateTo': 'Ведите сюда',
+  'planner.ai.startNavigation': 'Начать навигацию',
 };
 export default planner;

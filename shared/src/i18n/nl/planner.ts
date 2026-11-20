@@ -184,5 +184,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Reistijden bijgewerkt op basis van echte wegen.',
   'planner.ai.recalculateFailed': 'Reistijden konden niet worden herberekend. Probeer het opnieuw.',
   'planner.ai.navigate': 'Navigeren in Amap',
+  'planner.ai.navigateTo': 'Hierheen navigeren',
+  'planner.ai.startNavigation': 'Navigatie starten',
 };
 export default planner;

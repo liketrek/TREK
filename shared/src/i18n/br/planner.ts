@@ -185,5 +185,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Hizivaet eo amzerioù ar veaj diouzh an hentoù gwir.',
   'planner.ai.recalculateFailed': 'N’haller ket adkalkuliñ amzerioù ar veaj. Klaskit en-dro.',
   'planner.ai.navigate': 'Merdeiñ gant Amap',
+  'planner.ai.navigateTo': 'Merdeiñ betek amañ',
+  'planner.ai.startNavigation': 'Kregiñ da verdeiñ',
 };
 export default planner;

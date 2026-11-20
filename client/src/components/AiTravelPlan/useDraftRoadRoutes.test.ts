@@ -104,4 +104,16 @@ describe('useDraftRoadRoutes', () => {
     expect(result.current.lines).toEqual([TWO_STOPS]);
     expect(relay.ask).not.toHaveBeenCalled();
   });
+
+  it('DRAFTROAD-005: each line carries the day it belongs to, so the map can colour days apart', () => {
+    relay.ask.mockResolvedValue(new Response('no way', { status: 502 }));
+    const days = [
+      day([item(33.1, 123.1, null), item(33.2, 123.2, 'walk')]),
+      day([item(34.1, 124.1, null), item(34.2, 124.2, 'train')]),
+    ];
+
+    const { result } = renderHook(() => useDraftRoadRoutes(days));
+
+    expect(result.current.lineDays).toEqual([0, 1]);
+  });
 });

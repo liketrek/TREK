@@ -185,5 +185,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Reisezeiten anhand echter Straßen aktualisiert.',
   'planner.ai.recalculateFailed': 'Reisezeiten konnten nicht neu berechnet werden. Bitte erneut versuchen.',
   'planner.ai.navigate': 'In Amap navigieren',
+  'planner.ai.navigateTo': 'Hierhin navigieren',
+  'planner.ai.startNavigation': 'Navigation starten',
 };
 export default planner;

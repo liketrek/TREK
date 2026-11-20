@@ -192,5 +192,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Czasy podróży zaktualizowane według rzeczywistych dróg.',
   'planner.ai.recalculateFailed': 'Nie udało się przeliczyć czasów podróży. Spróbuj ponownie.',
   'planner.ai.navigate': 'Nawiguj w Amap',
+  'planner.ai.navigateTo': 'Prowadź tutaj',
+  'planner.ai.startNavigation': 'Rozpocznij nawigację',
 };
 export default planner;

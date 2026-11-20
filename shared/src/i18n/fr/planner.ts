@@ -186,5 +186,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Temps de trajet mis à jour d’après les routes réelles.',
   'planner.ai.recalculateFailed': 'Impossible de recalculer les temps de trajet. Réessayez.',
   'planner.ai.navigate': 'Naviguer dans Amap',
+  'planner.ai.navigateTo': 'Naviguer ici',
+  'planner.ai.startNavigation': 'Démarrer la navigation',
 };
 export default planner;

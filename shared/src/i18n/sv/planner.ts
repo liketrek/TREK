@@ -183,5 +183,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Restider uppdaterade efter verkliga vägar.',
   'planner.ai.recalculateFailed': 'Det gick inte att beräkna om restiderna. Försök igen.',
   'planner.ai.navigate': 'Navigera i Amap',
+  'planner.ai.navigateTo': 'Navigera hit',
+  'planner.ai.startNavigation': 'Starta navigering',
 };
 export default planner;

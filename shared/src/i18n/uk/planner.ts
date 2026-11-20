@@ -190,5 +190,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Час у дорозі оновлено за реальними дорогами.',
   'planner.ai.recalculateFailed': 'Не вдалося перерахувати час у дорозі. Спробуйте ще раз.',
   'planner.ai.navigate': 'Навігація в Amap',
+  'planner.ai.navigateTo': 'Навігувати сюди',
+  'planner.ai.startNavigation': 'Почати навігацію',
 };
 export default planner;

@@ -184,5 +184,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Az utazási idők valós utak alapján frissültek.',
   'planner.ai.recalculateFailed': 'Nem sikerült újraszámolni az utazási időket. Próbálja újra.',
   'planner.ai.navigate': 'Navigáció az Amapban',
+  'planner.ai.navigateTo': 'Irányítás ide',
+  'planner.ai.startNavigation': 'Navigáció indítása',
 };
 export default planner;

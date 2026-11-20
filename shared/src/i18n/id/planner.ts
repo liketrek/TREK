@@ -184,5 +184,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Waktu perjalanan diperbarui sesuai jalan sebenarnya.',
   'planner.ai.recalculateFailed': 'Waktu perjalanan tidak dapat dihitung ulang. Coba lagi.',
   'planner.ai.navigate': 'Navigasi di Amap',
+  'planner.ai.navigateTo': 'Navigasi ke sini',
+  'planner.ai.startNavigation': 'Mulai navigasi',
 };
 export default planner;

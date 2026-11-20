@@ -11,6 +11,8 @@ const ROAD_MODES = new Set<TravelPlanLeg['mode']>(['walk', 'drive']);
 interface DraftRun {
   /** Costing and every point, so a moved stop is asked again and one seen before is not. */
   key: string;
+  /** Which day of the proposal this chain belongs to, for the map's per-day paint. */
+  dayIndex: number;
   costing: ValhallaCosting;
   points: { lat: number; lon: number }[];
   /** The run as drawn before any answer, and where no answer comes. */
@@ -28,7 +30,7 @@ const roadCache = new Map<string, Line>();
  */
 function runsOf(days: TravelPlanDraftDay[]): DraftRun[] {
   const runs: DraftRun[] = [];
-  for (const day of days) {
+  for (const [dayIndex, day] of days.entries()) {
     let run: DraftRun | null = null;
     for (let index = 1; index < day.items.length; index += 1) {
       const leg = day.items[index].travelFromPrevious;
@@ -41,6 +43,7 @@ function runsOf(days: TravelPlanDraftDay[]): DraftRun[] {
       if (!run) {
         run = {
           key: '',
+          dayIndex,
           costing: 'pedestrian',
           points: [{ lat: from.lat, lon: from.lng }],
           straight: [[from.lat, from.lng]],
@@ -79,6 +82,8 @@ function roadLineOf(answer: unknown): Line | null {
 export interface DraftRoadRoutes {
   /** One line per unbroken chain, in day order: the road answer where there is one, the sketch otherwise. */
   lines: Line[];
+  /** The day each line belongs to, aligned with `lines`, so the map can colour days apart. */
+  lineDays: number[];
   /** True while every line is the straight sketch, so the map still has to say so. */
   sketchOnly: boolean;
 }
@@ -145,6 +150,6 @@ export function useDraftRoadRoutes(days: TravelPlanDraftDay[]): DraftRoadRoutes 
       run.routable ? (answers.get(run.key) ?? roadCache.get(run.key) ?? run.straight) : run.straight
     );
     const sketchOnly = runs.every((run) => !run.routable || !(answers.has(run.key) || roadCache.has(run.key)));
-    return { lines, sketchOnly };
+    return { lines, lineDays: runs.map((run) => run.dayIndex), sketchOnly };
   }, [runs, answers]);
 }

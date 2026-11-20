@@ -176,5 +176,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': '交通时间已按实际道路更新。',
   'planner.ai.recalculateFailed': '重算失败，请稍后重试。',
   'planner.ai.navigate': '高德导航',
+  'planner.ai.navigateTo': '导航到这里',
+  'planner.ai.startNavigation': '开始导航',
 };
 export default planner;

@@ -179,5 +179,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'อัปเดตเวลาเดินทางตามถนนจริงแล้ว',
   'planner.ai.recalculateFailed': 'คำนวณเวลาเดินทางใหม่ไม่สำเร็จ โปรดลองอีกครั้ง',
   'planner.ai.navigate': 'นำทางด้วย Amap',
+  'planner.ai.navigateTo': 'นำทางมาที่นี่',
+  'planner.ai.startNavigation': 'เริ่มนำทาง',
 };
 export default planner;

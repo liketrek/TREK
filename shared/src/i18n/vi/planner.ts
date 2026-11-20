@@ -181,5 +181,7 @@ const planner: TranslationStrings = {
   'planner.ai.recalculated': 'Đã cập nhật thời gian di chuyển theo đường thực tế.',
   'planner.ai.recalculateFailed': 'Không thể tính lại thời gian di chuyển. Vui lòng thử lại.',
   'planner.ai.navigate': 'Dẫn đường bằng Amap',
+  'planner.ai.navigateTo': 'Dẫn đường đến đây',
+  'planner.ai.startNavigation': 'Bắt đầu dẫn đường',
 };
 export default planner;
