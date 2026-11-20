@@ -26,6 +26,7 @@ import { BudgetItemMembers } from '../../src/db/entities/BudgetItemMembers.entit
 import { Days } from '../../src/db/entities/Days.entity';
 import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
 import { Journeys } from '../../src/db/entities/Journeys.entity';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { Settings } from '../../src/db/entities/Settings.entity';
 import { TripMembers } from '../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
@@ -380,6 +381,40 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(res.text).toContain(
       'DTSTART;TZID=Europe/Berlin:20261102T180000\r\nDTEND;TZID=Europe/Berlin:20261102T182000\r\n',
     );
+  });
+
+  it('200 export.ics gives a booking linked to a stop the stop zone and exports the lunch once (#3150)', async () => {
+    const tripId = await insertRow(orm, Trips, {
+      user: 1,
+      title: 'London',
+      start_date: '2026-12-09',
+      end_date: '2026-12-09',
+    });
+    const day = await makeDay(orm, tripId, { date: '2026-12-09' });
+    const place = await makePlace(orm, tripId, { name: 'Restaurant X', lat: 51.5074, lng: -0.1278 });
+    const stop = await makeDayAssignment(orm, day.id, place.id, {
+      assignment_time: '14:00',
+      assignment_end_time: '15:30',
+    });
+    await insertRow(orm, Reservations, {
+      trip: tripId,
+      title: 'Restaurant X',
+      type: 'restaurant',
+      assignment: stop.id,
+      reservation_time: '2026-12-09T14:00',
+      reservation_end_time: '2026-12-09T15:30',
+    });
+
+    const res = await request(server).get(`/api/trips/${tripId}/export.ics`).set('Cookie', sessionCookie(1));
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(
+      'DTSTART;TZID=Europe/London:20261209T140000\r\nDTEND;TZID=Europe/London:20261209T153000\r\n',
+    );
+    // The booking used to float (no TZID) and repeat the stop as a second event.
+    expect(res.text).not.toContain('DTSTART:20261209T140000');
+    expect(res.text).not.toContain(`UID:trek-assign-${stop.id}@trek`);
+    expect(res.text.match(/SUMMARY:Restaurant X/g)).toHaveLength(1);
   });
 
   it('200 bundle for an accessible trip (real member list)', async () => {
