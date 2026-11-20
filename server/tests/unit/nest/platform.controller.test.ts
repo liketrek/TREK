@@ -390,6 +390,11 @@ describe('applyPlatformUploads', () => {
       expect(refused.statusCode).toBe(404);
       expect(refused.body).toBe('Not found');
 
+      renditionFor.mockRejectedValue(new Error('storage down'));
+      const failed = makeRes();
+      await photoHandler()(ask, failed, next);
+      expect(failed.statusCode).toBe(404);
+
       const unwired = makeRes();
       await photoHandler(null)(ask, unwired, next);
       expect(unwired.statusCode).toBe(404);
