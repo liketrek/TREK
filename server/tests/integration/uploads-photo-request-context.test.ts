@@ -71,6 +71,8 @@ afterAll(async () => {
   } catch {
     /* ignore */
   }
+  // The location-free copy the share-token case made beside it.
+  fs.rmSync(path.join(path.dirname(photoFile), 'public', photoName), { force: true });
 });
 
 beforeEach(async () => {

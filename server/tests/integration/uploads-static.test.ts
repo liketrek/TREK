@@ -12,6 +12,10 @@
  * These routes are unauthenticated BY DESIGN (audit SEC-M9): server-chosen
  * UUIDv4 filenames; gating them would break share-link trip cards, journey
  * public pages, and email-embedded avatars. No auth setup here is deliberate.
+ * Each hit is the object's location-free copy (PublicMediaService); the PNG
+ * magic below holds no metadata, so the copy carries the same 8 bytes.
+ * /uploads/journey refuses journey entry media and its thumbs/ unless a
+ * journey uses it as its cover (PUBMEDIA-010 in public-media-privacy.test.ts).
  */
 import { buildApp } from '../../src/bootstrap';
 import type { INestApplication } from '@nestjs/common';
@@ -58,7 +62,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  for (const abs of created) fs.rmSync(abs, { force: true });
+  for (const abs of created) {
+    fs.rmSync(abs, { force: true });
+    // The location-free copy the first hit made beside it.
+    fs.rmSync(path.join(path.dirname(abs), 'public', path.basename(abs)), { force: true });
+  }
   fs.rmSync(path.join(uploadsDir, 'avatars/.tmp'), { recursive: true, force: true });
   fs.rmSync(path.join(uploadsDir, 'journey/parity-subdir'), { recursive: true, force: true });
 });
@@ -209,7 +217,7 @@ describe('/uploads static parity — miss falls through to the Nest 404 envelope
 });
 
 describe('/uploads static parity — all four mounts', () => {
-  it('UPLOADS-P21 — covers/journey(nested)/places each serve a hit and 404 a miss', async () => {
+  it('UPLOADS-P21: covers/journey/places each serve a hit and 404 a miss, journey thumbs are refused', async () => {
     // Fixtures are (re)written immediately before each request: other suites
     // rm their whole category dir in afterAll (collections/trips → covers,
     // collections → places, journey.test → journey), so a beforeAll-written
@@ -221,14 +229,19 @@ describe('/uploads static parity — all four mounts', () => {
     expect(coverMiss.status).toBe(404);
     expect(coverMiss.body.error).toBe('Cannot GET /uploads/covers/nope.png');
 
-    // Nested name — journey thumbs live at journey/thumbs/<hash>.jpg and are
-    // served through the same mount; pins multi-segment storage keys.
+    // Journey thumbs live at journey/thumbs/<hash>.jpg and go through the
+    // share proxy, so the mount answers a miss for the object that exists
+    // exactly as for one that does not.
     writeFixture('journey/thumbs/uploads-static-parity.jpg');
-    const journeyHit = await request(app).get('/uploads/journey/thumbs/uploads-static-parity.jpg');
-    expect(journeyHit.status).toBe(200);
-    expect(journeyHit.headers['content-type']).toBe('image/jpeg');
+    const journeyThumb = await request(app).get('/uploads/journey/thumbs/uploads-static-parity.jpg');
+    expect(journeyThumb.status).toBe(404);
+    expect(journeyThumb.body.error).toBe('Cannot GET /uploads/journey/thumbs/uploads-static-parity.jpg');
     const journeyMiss = await request(app).get('/uploads/journey/thumbs/nope.jpg');
     expect(journeyMiss.status).toBe(404);
+    // An object no journey entry holds (a trip cover may point here) is served.
+    writeFixture(`journey/${NAME}`);
+    const journeyHit = await request(app).get(`/uploads/journey/${NAME}`);
+    expect(journeyHit.status).toBe(200);
 
     writeFixture(`places/${NAME}`);
     const placeHit = await request(app).get(`/uploads/places/${NAME}`);

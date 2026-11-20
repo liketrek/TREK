@@ -31,7 +31,6 @@ function look(over: Partial<JourneyEntryLook> = {}): JourneyEntryLook {
     photoId: null,
     video: false,
     photoCount: 0,
-    visibility: 'private',
     draft: false,
     fromTripPlace: false,
     dayIndex: null,
@@ -97,12 +96,13 @@ describe('journeyCardModel', () => {
   });
 
   it('FE-AI-JOURNEY-MODEL-009: the states an update sets are named by field, flags by on and off', () => {
-    expect(stateOf('visibility', 'public')?.labelKey).toBe('journey.visibility.public');
+    // The stored visibility keeps nothing off the share link, so it has no name to show.
+    expect(stateOf('visibility', 'private')).toBeNull();
     expect(stateOf('type', 'skeleton')?.labelKey).toBe('journey.entry.suggestion');
     expect(stateOf('mood', 'good')?.labelKey).toBe('journey.mood.good');
     expect(stateOf('weather', 'cold')?.labelKey).toBe('journey.weather.cold');
     expect(stateOf('weather', 'Drizzle')).toBeNull();
-    expect(stateOf('visibility', 'toString')).toBeNull();
+    expect(stateOf('type', 'toString')).toBeNull();
     expect(stateOf(undefined, 'public')).toBeNull();
     expect(flagOf('is_draft', '✓')?.labelKey).toBe('journey.entry.draft');
     expect(flagOf('is_draft', '✗')?.labelKey).toBe('assistant.card.journey.notDraft');

@@ -8,6 +8,7 @@ import type { JourneyPhotoLinksService } from '../../../src/nest/journey/journey
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import type { JourneyService } from '../../../src/nest/journey/journey.service';
+import type { PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import type { StorageReleaseService } from '../../../src/nest/storage/storage-release.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';
@@ -33,6 +34,9 @@ const storageStub = {
   exists: storageExists,
   sendToResponse: storageSendToResponse,
 } as unknown as StorageService;
+// The public proxies send a location-free copy kept under public/<name>.
+const renditionFor = vi.fn(async (_category: string, name: string): Promise<string | null> => `public/${name}`);
+const publicMediaStub = { renditionFor } as unknown as PublicMediaService;
 // The provider-photo adds, their event and their detached capture refresh are
 // JourneyPhotoCaptureService's (#1587), so the routes only shape the batch and
 // the answer; the spies pin that shape. Uploads get the backfill without the
@@ -1123,6 +1127,7 @@ describe('JourneyPublicController', () => {
         new JourneyPublicController(
           svc({ getPublicJourney: vi.fn().mockReturnValue(null) } as Partial<JourneyService>),
           storageStub,
+          publicMediaStub,
         ).get('tok'),
       ),
     ).toEqual({ status: 404, body: { error: 'Not found' } });
@@ -1130,6 +1135,7 @@ describe('JourneyPublicController', () => {
       await new JourneyPublicController(
         svc({ getPublicJourney: vi.fn().mockReturnValue({ id: 1 }) } as Partial<JourneyService>),
         storageStub,
+        publicMediaStub,
       ).get('tok'),
     ).toEqual({ id: 1 });
   });
@@ -1140,15 +1146,18 @@ describe('JourneyPublicController', () => {
         new JourneyPublicController(
           svc({ getPublicMapLayers: vi.fn().mockResolvedValue(null) } as Partial<JourneyService>),
           storageStub,
+          publicMediaStub,
         ).mapLayers('tok'),
       ),
     ).toEqual({ status: 404, body: { error: 'Not found' } });
     const layers = { places: { status: 'withheld' } };
     const getPublicMapLayers = vi.fn().mockResolvedValue(layers);
     expect(
-      await new JourneyPublicController(svc({ getPublicMapLayers } as Partial<JourneyService>), storageStub).mapLayers(
-        'tok',
-      ),
+      await new JourneyPublicController(
+        svc({ getPublicMapLayers } as Partial<JourneyService>),
+        storageStub,
+        publicMediaStub,
+      ).mapLayers('tok'),
     ).toBe(layers);
     expect(getPublicMapLayers).toHaveBeenCalledWith('tok');
   });
@@ -1159,6 +1168,7 @@ describe('JourneyPublicController', () => {
         new JourneyPublicController(
           svc({ validateShareTokenForPhoto: vi.fn().mockReturnValue(null) } as Partial<JourneyService>),
           storageStub,
+          publicMediaStub,
         ).photo('tok', 7, 'thumbnail', {} as Response),
       ),
     ).toEqual({ status: 404, body: { error: 'Not found' } });
@@ -1167,7 +1177,7 @@ describe('JourneyPublicController', () => {
       validateShareTokenForPhoto: vi.fn().mockReturnValue({ ownerId: 2 }),
       streamPhoto,
     } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).photo('tok', 7, 'original', {} as Response);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).photo('tok', 7, 'original', {} as Response);
     expect(streamPhoto).toHaveBeenCalledWith({}, 2, 7, 'original');
   });
 
@@ -1177,6 +1187,7 @@ describe('JourneyPublicController', () => {
         new JourneyPublicController(
           svc({ validateShareTokenForAsset: vi.fn().mockReturnValue(null) } as Partial<JourneyService>),
           storageStub,
+          publicMediaStub,
         ).legacyPhoto('tok', 'immich', 'a1', 'thumbnail', {} as Response),
       ),
     ).toEqual({ status: 404, body: { error: 'Not found' } });
@@ -1187,7 +1198,13 @@ describe('JourneyPublicController', () => {
       validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }),
       streamProviderAsset,
     } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', 'original', {} as Response);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+      'tok',
+      'immich',
+      'a1',
+      'original',
+      {} as Response,
+    );
     expect(streamProviderAsset).toHaveBeenCalledWith(
       {},
       'immich',
@@ -1202,7 +1219,7 @@ describe('JourneyPublicController', () => {
       validateShareTokenForPhoto: vi.fn().mockReturnValue({ ownerId: 3 }),
       streamPhoto,
     } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).photo('tok', 7, 'thumbnail', {} as Response);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).photo('tok', 7, 'thumbnail', {} as Response);
     expect(streamPhoto).toHaveBeenCalledWith({}, 3, 7, 'thumbnail');
   });
 
@@ -1212,7 +1229,7 @@ describe('JourneyPublicController', () => {
       validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }),
       streamProviderAsset,
     } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto(
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
       'tok',
       'synologyphotos',
       'a1',
@@ -1233,7 +1250,13 @@ describe('JourneyPublicController', () => {
       validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 0 }),
       streamProviderAsset: vi.fn().mockRejectedValue(new Error('no synology')),
     } as Partial<JourneyService>);
-    await new JourneyPublicController(failing, storageStub).legacyPhoto('tok', 'synologyphotos', 'a1', 'original', res);
+    await new JourneyPublicController(failing, storageStub, publicMediaStub).legacyPhoto(
+      'tok',
+      'synologyphotos',
+      'a1',
+      'original',
+      res,
+    );
     expect(status).toHaveBeenCalledWith(404);
     expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
   });
@@ -1250,7 +1273,13 @@ describe('JourneyPublicController', () => {
       validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }),
       streamProviderAsset,
     } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'photoprism', 'a1', 'original', res);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+      'tok',
+      'photoprism',
+      'a1',
+      'original',
+      res,
+    );
     expect(status).toHaveBeenCalledWith(404);
     expect(json).toHaveBeenCalledWith({ error: 'Provider not supported' });
   });
@@ -1264,7 +1293,13 @@ describe('JourneyPublicController', () => {
       validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 3 }),
       streamProviderAsset,
     } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'immich', 'a1', 'original', {} as Response);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+      'tok',
+      'immich',
+      'a1',
+      'original',
+      {} as Response,
+    );
     expect(streamProviderAsset).toHaveBeenCalledWith(
       {},
       'immich',
@@ -1278,7 +1313,7 @@ describe('JourneyPublicController', () => {
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
     expect(
       await thrownAsync(() =>
-        new JourneyPublicController(s, storageStub).legacyPhoto(
+        new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
           'tok',
           'local',
           'gone.jpg',
@@ -1296,10 +1331,37 @@ describe('JourneyPublicController', () => {
     const set = vi.fn();
     const res = { set } as unknown as Response;
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
-    await new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', 'photo.jpg', 'original', res);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+      'tok',
+      'local',
+      'photo.jpg',
+      'original',
+      res,
+    );
     expect(storageExists).toHaveBeenCalledWith('journey', 'photo.jpg');
     expect(set).toHaveBeenCalledWith('Cache-Control', 'public, max-age=86400');
-    expect(storageSendToResponse).toHaveBeenCalledWith('journey', 'photo.jpg', res);
+    // The location-free copy goes out, never the stored original.
+    expect(renditionFor).toHaveBeenCalledWith('journey', 'photo.jpg');
+    expect(storageSendToResponse).toHaveBeenCalledWith('journey', 'public/photo.jpg', res);
+  });
+
+  it('legacy photo proxy: a local file that cannot be cleaned is a 404, not the original', async () => {
+    storageExists.mockResolvedValue(true);
+    renditionFor.mockResolvedValueOnce(null);
+    const res = { set: vi.fn() } as unknown as Response;
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
+    expect(
+      await thrownAsync(() =>
+        new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+          'tok',
+          'local',
+          'a.bmp',
+          'original',
+          res,
+        ),
+      ),
+    ).toEqual({ status: 404, body: { error: 'Not found' } });
+    expect(storageSendToResponse).not.toHaveBeenCalled();
   });
 
   it('legacy photo proxy: local provider cannot escape uploads/journey via a traversal asset id', async () => {
@@ -1309,7 +1371,7 @@ describe('JourneyPublicController', () => {
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
 
     // Express decodes %2F in a single path param to '/', so the handler sees this.
-    await new JourneyPublicController(s, storageStub).legacyPhoto(
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
       'tok',
       'local',
       '../../files/secret.pdf',
@@ -1321,7 +1383,7 @@ describe('JourneyPublicController', () => {
     // key validation (storage-keys.ts) rejects anything that still carries a
     // path — the asset can never address the sibling files/ category.
     expect(storageExists).toHaveBeenCalledWith('journey', 'secret.pdf');
-    expect(storageSendToResponse).toHaveBeenCalledWith('journey', 'secret.pdf', res);
+    expect(storageSendToResponse).toHaveBeenCalledWith('journey', 'public/secret.pdf', res);
   });
 
   it('legacy photo proxy: a bare traversal asset id reads as a miss, not a crash', async () => {
@@ -1331,7 +1393,13 @@ describe('JourneyPublicController', () => {
     const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
     expect(
       await thrownAsync(() =>
-        new JourneyPublicController(s, storageStub).legacyPhoto('tok', 'local', '..', 'original', {} as Response),
+        new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+          'tok',
+          'local',
+          '..',
+          'original',
+          {} as Response,
+        ),
       ),
     ).toEqual({ status: 404, body: { error: 'Not found' } });
     expect(storageSendToResponse).not.toHaveBeenCalled();

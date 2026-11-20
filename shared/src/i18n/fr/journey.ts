@@ -51,9 +51,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': "Racontez l'histoire de cette journée...",
   'journey.editor.placePlaceholder': 'Lieu (facultatif)',
   'journey.editor.tagsPlaceholder': 'Tags : pépite cachée, meilleur repas, à revisiter...',
-  'journey.visibility.private': 'Privé',
-  'journey.visibility.shared': 'Partagé',
-  'journey.visibility.public': 'Public', // same-as-en
   'journey.emptyState.title': 'Votre histoire commence ici',
   'journey.emptyState.subtitle': 'Faites un check-in ou écrivez votre première entrée de journal',
   'journey.frontpage.subtitle': 'Transformez vos voyages en histoires inoubliables',

@@ -50,6 +50,12 @@ export class TrekPhotosRepository extends TrekRepository<TrekPhotos> {
     return row ? { id: row.id } : null;
   }
 
+  /** Whether some row holds one of `paths` as its file or its poster: the journey entry media. */
+  async referencesLocalPath(paths: string[]): Promise<boolean> {
+    const count = await this.count({ $or: [{ file_path: { $in: paths } }, { thumbnail_path: { $in: paths } }] });
+    return count > 0;
+  }
+
   /** PH5 — `INSERT INTO trek_photos (provider, file_path, thumbnail_path, width, height, media_type, duration_ms)`, always `provider = 'local'`. */
   async insertLocal(data: {
     file_path: string;

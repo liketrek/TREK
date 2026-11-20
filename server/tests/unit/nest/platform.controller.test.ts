@@ -1,5 +1,6 @@
 import { Photos } from '../../../src/db/entities/Photos.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
+import type { PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import {
   applyPlatformUploads,
   applyPlatformSpa,
@@ -35,6 +36,10 @@ vi.mock('../../../src/db/database', () => ({ db: { prepare: h.dbPrepare } }));
 // these unit tests only assert routing/auth/error mapping, so a two-method stub
 // is the whole storage surface.
 const storage = { exists: h.exists, sendToResponse: h.sendToResponse } as unknown as StorageService;
+// What a share link gets: the location-free copy under public/<name>.
+const renditionFor = vi.fn();
+const servesFromJourneyMount = vi.fn();
+const publicMedia = { renditionFor, servesFromJourneyMount } as unknown as PublicMediaService;
 
 // Tagged sentinel for express.static — we only need to know it was registered on
 // the right path, not run it.
@@ -151,9 +156,9 @@ describe('applyPlatformUploads', () => {
   });
 
   describe('GET /uploads/photos/:filename', () => {
-    function photoHandler() {
+    function photoHandler(media: PublicMediaService | null = publicMedia) {
       const { app, calls } = fakeApp();
-      applyPlatformUploads(app, storage, uploadsOrm.orm);
+      applyPlatformUploads(app, storage, uploadsOrm.orm, media ?? undefined);
       return calls.find((c) => c.method === 'get' && c.path === '/uploads/photos/:filename')!.handlers[0];
     }
     const next = vi.fn();
@@ -350,13 +355,14 @@ describe('applyPlatformUploads', () => {
       expect(res.statusCode).toBe(401);
     });
 
-    it('serves the file when the share token covers the photo trip (R1 valid-token case)', async () => {
+    it('serves the location-free copy when the share token covers the photo trip (R1 valid-token case)', async () => {
       const { user } = createUser(uploadsTestDb);
       const photoTrip = createTrip(uploadsTestDb, user.id);
       await insertShareToken(photoTrip.id, user.id, 'share-valid');
       h.exists.mockResolvedValue(true);
       h.sendToResponse.mockResolvedValue(undefined);
       h.verifyJwtAndLoadUser.mockReturnValue(null);
+      renditionFor.mockResolvedValue('public/photo-valid.jpg');
       await insertPhoto(photoTrip.id, 'photo-valid.jpg');
       const res = makeRes();
       await photoHandler()(
@@ -364,7 +370,30 @@ describe('applyPlatformUploads', () => {
         res,
         next,
       );
-      expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'photo-valid.jpg', res);
+      expect(renditionFor).toHaveBeenCalledWith('photos', 'photo-valid.jpg');
+      expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'public/photo-valid.jpg', res);
+      expect(h.sendToResponse).not.toHaveBeenCalledWith('photos', 'photo-valid.jpg', res);
+    });
+
+    it('a share token gets a 404, never the stored photo, when no clean copy can be made or none is wired', async () => {
+      const { user } = createUser(uploadsTestDb);
+      const photoTrip = createTrip(uploadsTestDb, user.id);
+      await insertShareToken(photoTrip.id, user.id, 'share-unclean');
+      h.exists.mockResolvedValue(true);
+      h.verifyJwtAndLoadUser.mockReturnValue(null);
+      await insertPhoto(photoTrip.id, 'photo-unclean.jpg');
+      const ask = { params: { filename: 'photo-unclean.jpg' }, headers: {}, query: { token: 'share-unclean' } };
+
+      renditionFor.mockResolvedValue(null);
+      const refused = makeRes();
+      await photoHandler()(ask, refused, next);
+      expect(refused.statusCode).toBe(404);
+      expect(refused.body).toBe('Not found');
+
+      const unwired = makeRes();
+      await photoHandler(null)(ask, unwired, next);
+      expect(unwired.statusCode).toBe(404);
+      expect(h.sendToResponse).not.toHaveBeenCalled();
     });
 
     it('404 when the object vanishes between the exists check and the send', async () => {
@@ -497,6 +526,79 @@ describe('storageStaticHandler', () => {
     const { next, out } = run();
     await out;
     expect(next).toHaveBeenCalledWith(boom);
+  });
+});
+
+describe('storageStaticHandler with public serving', () => {
+  function run(serving: Parameters<typeof storageStaticHandler>[2]) {
+    const handler = storageStaticHandler(storage, 'journey', serving);
+    const res = makeRes();
+    const next = vi.fn();
+    const out = handler({ method: 'GET', path: '/a.jpg' } as never, res as never, next as never);
+    return { res, next, out };
+  }
+
+  it('sends the copy the serving names instead of the object', async () => {
+    h.sendToResponse.mockResolvedValue(undefined);
+    const { res, next, out } = run({ rendition: async (name) => 'public/' + name });
+    await out;
+    expect(h.sendToResponse).toHaveBeenCalledWith('journey', 'public/a.jpg', res);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('a name the gate refuses, or one without a clean copy, is a miss', async () => {
+    const refused = run({ allows: async () => false, rendition: async (name) => 'public/' + name });
+    await refused.out;
+    expect(refused.next).toHaveBeenCalledWith();
+    const unclean = run({ rendition: async () => null });
+    await unclean.out;
+    expect(unclean.next).toHaveBeenCalledWith();
+    expect(h.sendToResponse).not.toHaveBeenCalled();
+  });
+
+  it('a source that is gone is a miss too', async () => {
+    const { next, out } = run({
+      rendition: () => Promise.reject(new StorageNotFoundError('journey/a.jpg')),
+    });
+    await out;
+    expect(next).toHaveBeenCalledWith();
+  });
+});
+
+describe('applyPlatformUploads static mounts', () => {
+  function mount(path: string, media?: PublicMediaService) {
+    const { app, calls } = fakeApp();
+    applyPlatformUploads(app, storage, uploadsOrm.orm, media);
+    return calls.find((c) => c.method === 'use' && c.path === path)?.handlers[0] as Handler;
+  }
+
+  it('/uploads/journey serves an allowed object as its copy and refuses journey entry media', async () => {
+    h.sendToResponse.mockResolvedValue(undefined);
+    renditionFor.mockResolvedValue('public/cover.jpg');
+    servesFromJourneyMount.mockImplementation(async (name: string) => name === 'cover.jpg');
+    const handler = mount('/uploads/journey', publicMedia);
+
+    const res = makeRes();
+    await handler({ method: 'GET', path: '/cover.jpg' }, res, vi.fn());
+    expect(h.sendToResponse).toHaveBeenCalledWith('journey', 'public/cover.jpg', res);
+
+    const entryNext = vi.fn();
+    await handler({ method: 'GET', path: '/entry.jpg' }, makeRes(), entryNext);
+    expect(entryNext).toHaveBeenCalledWith();
+    expect(renditionFor).toHaveBeenCalledTimes(1);
+  });
+
+  it('without PublicMediaService every mount serves nothing rather than the raw bytes', async () => {
+    const mounts = ['/uploads/avatars', '/uploads/covers', '/uploads/journey', '/uploads/places'];
+    const nexts = await Promise.all(
+      mounts.map(async (path) => {
+        const next = vi.fn();
+        await mount(path)({ method: 'GET', path: '/a.jpg' }, makeRes(), next);
+        return next;
+      }),
+    );
+    for (const next of nexts) expect(next).toHaveBeenCalledWith();
+    expect(h.sendToResponse).not.toHaveBeenCalled();
   });
 });
 

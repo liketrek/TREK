@@ -4,10 +4,11 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { Public } from '../auth-core/public.decorator';
 import { ResponseContract } from '../common/response-contract';
 import { rowId } from '../common/row-id.pipe';
+import { PublicMediaService } from '../memories/public-media.service';
 import { StorageService } from '../storage/storage.service';
 import { JourneyService } from './journey.service';
 import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
-import { journeyPublicMapLayersResponseSchema } from '@trek/shared';
+import { journeyPublicMapLayersResponseSchema, journeyPublicResponseSchema } from '@trek/shared';
 
 import type { Response } from 'express';
 import path from 'node:path';
@@ -20,6 +21,8 @@ import path from 'node:path';
  * no authentication, every route validates the share token (404 on failure),
  * the unified proxy streams by trek_photo_id and the legacy proxy serves local
  * files (with the uploads-dir traversal guard) or proxies immich/synology.
+ * A local file never leaves here as stored: both proxies send its
+ * location-free copy (PublicMediaService), or nothing.
  *
  * The addon gate is the one guard here, and it has to be: turning the Journey
  * addon off is meant to take the feature away, and without it already-published
@@ -34,9 +37,16 @@ export class JourneyPublicController {
   constructor(
     private readonly journey: JourneyService,
     private readonly storage: StorageService,
+    private readonly publicMedia: PublicMediaService,
   ) {}
 
+  /**
+   * The shared journey. Its contract is strict: a column that is not named
+   * there (a storage key, an asset id, an author) fails every test that reaches
+   * this route instead of going out to the public.
+   */
   @Get(':token')
+  @ResponseContract(journeyPublicResponseSchema)
   async get(@Param('token') token: string) {
     const data = await this.journey.getPublicJourney(token);
     if (!data) {
@@ -96,11 +106,14 @@ export class JourneyPublicController {
       if (!(await this.storage.exists('journey', name).catch(() => false))) {
         throw new HttpException({ error: 'Not found' }, 404);
       }
+      // The copy without GPS and place tags, never the stored original; a file
+      // that cannot be cleaned is not served at all.
+      const rendition = await this.publicMedia.renditionFor('journey', name).catch(() => null);
+      if (!rendition) {
+        throw new HttpException({ error: 'Not found' }, 404);
+      }
       res.set('Cache-Control', 'public, max-age=86400');
-      // The storage layer serves it, whichever driver is configured. dev's fix
-      // for the absolute-path 404 under the Nest ExpressAdapter does not apply
-      // here any more: nothing on this path calls sendFile.
-      await this.storage.sendToResponse('journey', name, res);
+      await this.storage.sendToResponse('journey', rendition, res);
       return;
     }
 

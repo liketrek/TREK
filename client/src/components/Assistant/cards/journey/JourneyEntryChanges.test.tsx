@@ -28,7 +28,6 @@ const ENTRY: JourneyEntryLook = {
   photoId: null,
   video: false,
   photoCount: 0,
-  visibility: 'private',
   draft: false,
   fromTripPlace: false,
   dayIndex: null,

@@ -1542,7 +1542,6 @@
   "src/pages/journeyDetail/useJourneyDetail.ts",
   "src/pages/journeyDetail/useProviderPhotoAdds.test.tsx",
   "src/pages/journeyDetail/useProviderPhotoAdds.ts",
-  "src/pages/journeyPublic/journeyPublicModel.ts",
   "src/pages/journeyPublic/useJourneyPublic.ts",
   "src/pages/journeyStudio/useJourneyStudio.test.tsx",
   "src/pages/journeyStudio/useJourneyStudio.ts",

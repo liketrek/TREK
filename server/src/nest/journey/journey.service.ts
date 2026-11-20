@@ -188,8 +188,9 @@ export class JourneyService {
   validateShareTokenForAsset(token: string, assetId: string) {
     return this.share.validateShareTokenForAsset(token, assetId);
   }
+  /** The public share's photo bytes: local files go out without their location. */
   streamPhoto(res: Response, ownerId: number, photoId: number, kind: 'thumbnail' | 'original') {
-    return this.photoResolver.streamPhoto(res, ownerId, photoId, kind);
+    return this.photoResolver.streamPublicPhoto(res, ownerId, photoId, kind);
   }
   /**
    * Stream a shared journey asset from whichever backend holds it.

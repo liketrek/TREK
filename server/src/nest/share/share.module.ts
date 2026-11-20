@@ -1,5 +1,4 @@
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import { Categories } from '../../db/entities/Categories.entity';
 import { CollabMessages } from '../../db/entities/CollabMessages.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
@@ -24,7 +23,7 @@ import { Module } from '@nestjs/common';
 // `MikroOrmModule.forFeature([Reservations, ...])` registers every repository
 // `ShareService`'s `@InjectRepository` constructor params need (Plan 3d Task 4
 // already registered `Reservations`; Plan 3h Task 6 adds `ShareTokens` — this
-// file's own table — plus the nine cross-domain tables its public-share reads
+// file's own table — plus the eight cross-domain tables its public-share reads
 // (SH7-9,11-16) touch, without importing each owning module: this file stays a
 // leaf the way `PublicApiModule`'s own `Trips`-only `forFeature` already does
 // for the same reason).
@@ -46,7 +45,6 @@ import { Module } from '@nestjs/common';
       Places,
       PackingItems,
       BudgetItems,
-      Categories,
       CollabMessages,
     ]),
   ],

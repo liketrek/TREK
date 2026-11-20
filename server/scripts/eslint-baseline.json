@@ -1,6 +1,6 @@
 {
   "src": {
-    "@typescript-eslint/no-explicit-any": 84,
+    "@typescript-eslint/no-explicit-any": 81,
     "@typescript-eslint/no-non-null-assertion": 263,
     "@typescript-eslint/no-require-imports": 18,
     "@typescript-eslint/no-unsafe-function-type": 1,

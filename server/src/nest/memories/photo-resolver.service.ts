@@ -5,6 +5,7 @@ import { StorageService } from '../storage/storage.service';
 import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
 import type { PhotoAssetRef } from './photo-provider';
 import { PhotoProviderRegistry } from './photo-provider.registry';
+import { PublicMediaService } from './public-media.service';
 import { ThumbnailService } from './thumbnail.service';
 import { TrekPhotoCacheService } from './trek-photo-cache.service';
 import { Injectable } from '@nestjs/common';
@@ -24,6 +25,12 @@ export type PhotoSignalSource =
   | { kind: 'none' }
   | { kind: 'unavailable' };
 
+/** Who a local file goes to: its owner or a member as stored, the public as a location-free copy. */
+type Audience = 'owner' | 'public';
+
+const THUMB_CACHE = 'public, max-age=86400, immutable';
+const ORIGINAL_CACHE = 'public, max-age=86400';
+
 /**
  * Resolves a stored trek_photo to bytes or metadata by asking whichever provider
  * owns it. The storage half of the old photoResolverService lives in
@@ -42,6 +49,7 @@ export class PhotoResolverService {
     private readonly cache: TrekPhotoCacheService,
     private readonly providers: PhotoProviderRegistry,
     private readonly storage: StorageService,
+    private readonly publicMedia: PublicMediaService,
   ) {}
 
   /** photos.file_path / thumbnail_path are uploads-relative 'journey/…' by
@@ -83,12 +91,71 @@ export class PhotoResolverService {
     await fallback();
   }
 
+  /** An owner's or member's view: local files go out as stored. */
   async streamPhoto(
     res: Response,
     userId: number,
     photoId: number,
     kind: 'thumbnail' | 'original',
     range?: string,
+  ): Promise<void> {
+    await this.stream(res, userId, photoId, kind, range, 'owner');
+  }
+
+  /**
+   * A public share's view. A local file goes out as its location-free copy
+   * (PublicMediaService) and never as stored; one that cannot be cleaned falls
+   * back to the thumbnail TREK re-encoded itself, else a 404. Provider assets
+   * stream as for an owner.
+   */
+  async streamPublicPhoto(
+    res: Response,
+    ownerId: number,
+    photoId: number,
+    kind: 'thumbnail' | 'original',
+  ): Promise<void> {
+    await this.stream(res, ownerId, photoId, kind, undefined, 'public');
+  }
+
+  /**
+   * Sends one local journey object. For the public a re-encoded thumbnail
+   * (thumbs/, written by ThumbnailService, no metadata) goes out as is, anything
+   * else as its location-free copy. False when there is nothing safe to send.
+   */
+  private async sendLocal(res: Response, relPath: string, audience: Audience, cacheControl: string): Promise<boolean> {
+    const name = this.storageName(relPath);
+    if (!name || !(await this.storage.exists('journey', name).catch(() => false))) return false;
+    let served = name;
+    if (audience === 'public' && !name.startsWith('thumbs/')) {
+      const rendition = await this.publicMedia.renditionFor('journey', name).catch(() => null);
+      if (!rendition) return false;
+      served = rendition;
+    }
+    res.set('Cache-Control', cacheControl);
+    res.set('X-Content-Type-Options', 'nosniff');
+    await this.storage.sendToResponse('journey', served, res);
+    return true;
+  }
+
+  /** The thumbnail row path, generated for a raster image that has none yet. */
+  private async localThumbnail(photo: TrekPhoto): Promise<string | null> {
+    if (photo.thumbnail_path) return photo.thumbnail_path;
+    // Only raster images get a lazily-generated Jimp thumbnail; Jimp can't decode
+    // video, so a video relies on the poster captured at upload (#823).
+    if (photo.media_type === 'video' || !photo.file_path) return null;
+    const result = await this.thumbnails.ensureLocalThumbnail(photo.file_path);
+    if (!result) return null;
+    await this.photos.recordLocalThumbnail(photo.id, result.thumbnailRelPath, result.width, result.height);
+    return result.thumbnailRelPath;
+  }
+
+  private async stream(
+    res: Response,
+    userId: number,
+    photoId: number,
+    kind: 'thumbnail' | 'original',
+    range: string | undefined,
+    audience: Audience,
   ): Promise<void> {
     const photo = await this.photos.resolve(photoId);
     if (!photo) {
@@ -98,41 +165,24 @@ export class PhotoResolverService {
 
     if (photo.file_path) {
       if (kind === 'thumbnail') {
-        const isVideo = photo.media_type === 'video';
-        let thumbRel = photo.thumbnail_path ?? null;
-        // Only raster images get a lazily-generated Jimp thumbnail; Jimp can't decode
-        // video, so a video relies on the poster captured at upload (#823).
-        if (!thumbRel && !isVideo) {
-          const result = await this.thumbnails.ensureLocalThumbnail(photo.file_path);
-          if (result) {
-            thumbRel = result.thumbnailRelPath;
-            await this.photos.recordLocalThumbnail(photo.id, thumbRel, result.width, result.height);
-          }
-        }
-        if (thumbRel) {
-          const thumbName = this.storageName(thumbRel);
-          if (thumbName && (await this.storage.exists('journey', thumbName).catch(() => false))) {
-            res.set('Cache-Control', 'public, max-age=86400, immutable');
-            res.set('X-Content-Type-Options', 'nosniff');
-            await this.storage.sendToResponse('journey', thumbName, res);
-            return;
-          }
-        }
+        const thumbRel = await this.localThumbnail(photo);
+        if (thumbRel && (await this.sendLocal(res, thumbRel, audience, THUMB_CACHE))) return;
         // A poster-less video must NOT fall through to streaming the whole file as a
         // "thumbnail"; let the client render its own placeholder instead.
-        if (isVideo) {
+        if (photo.media_type === 'video') {
           res.status(404).json({ error: 'No poster available' });
           return;
         }
         // Images fall through to original if the thumbnail is unavailable.
       }
 
-      const name = this.storageName(photo.file_path);
-      if (name && (await this.storage.exists('journey', name).catch(() => false))) {
-        res.set('Cache-Control', 'public, max-age=86400');
-        res.set('X-Content-Type-Options', 'nosniff');
-        await this.storage.sendToResponse('journey', name, res);
-        return;
+      if (await this.sendLocal(res, photo.file_path, audience, ORIGINAL_CACHE)) return;
+
+      // A public original that could not be cleaned is stood in for by the
+      // re-encoded thumbnail, never by the stored bytes.
+      if (audience === 'public' && kind === 'original' && photo.media_type !== 'video') {
+        const thumbRel = await this.localThumbnail(photo);
+        if (thumbRel && (await this.sendLocal(res, thumbRel, audience, THUMB_CACHE))) return;
       }
     }
 

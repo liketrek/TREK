@@ -95,12 +95,17 @@ export function photoUrl(p: { photo_id: number }, size: 'thumbnail' | 'original'
  * purpose rather than streaming the whole file, and an <img> pointed at it
  * shows the broken-image glyph (#2341). A provider clip is not one of these,
  * its poster comes from the provider whether or not a local path is recorded.
+ *
+ * A shared journey carries no storage keys, so the server answers the question
+ * itself there (`posterless`).
  */
 export function posterlessVideo(p: {
   media_type?: string | null;
   provider?: string | null;
   thumbnail_path?: string | null;
+  posterless?: boolean;
 }): boolean {
+  if (typeof p.posterless === 'boolean') return p.posterless;
   return p.media_type === 'video' && p.provider === 'local' && !p.thumbnail_path;
 }
 

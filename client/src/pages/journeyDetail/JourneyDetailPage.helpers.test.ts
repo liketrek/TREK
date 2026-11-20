@@ -260,6 +260,13 @@ describe('posterlessVideo (#2341)', () => {
     expect(posterlessVideo({ provider: 'local', thumbnail_path: null })).toBe(false);
     expect(posterlessVideo({ media_type: 'video', provider: 'immich', thumbnail_path: null })).toBe(false);
   });
+
+  it('takes the answer a shared journey sends, which carries no storage key', () => {
+    expect(posterlessVideo({ media_type: 'video', posterless: true })).toBe(true);
+    expect(posterlessVideo({ media_type: 'video', posterless: false })).toBe(false);
+    // The flag wins over the columns, so a public photo never needs them.
+    expect(posterlessVideo({ media_type: 'video', provider: 'local', thumbnail_path: null, posterless: false })).toBe(false);
+  });
 });
 
 describe('fetchRemainingProviderPages (#1587)', () => {

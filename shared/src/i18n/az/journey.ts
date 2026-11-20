@@ -57,9 +57,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': 'Bu günün hekayəsini danışın...',
   'journey.editor.placePlaceholder': 'Məkan (istəyə bağlı)',
   'journey.editor.tagsPlaceholder': 'Teqlər: gizli inci, ən yaxşı yemək, yenidən gəlməli...',
-  'journey.visibility.private': 'Şəxsi',
-  'journey.visibility.shared': 'Paylaşılan',
-  'journey.visibility.public': 'İctimai',
 
   'journey.emptyState.title': 'Hekayəniz burada başlayır',
   'journey.emptyState.subtitle': 'Bir məkanda qeydiyyatdan keçin və ya ilk gündəlik qeydinizi yazın',

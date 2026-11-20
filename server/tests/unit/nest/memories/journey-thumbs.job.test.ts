@@ -10,6 +10,7 @@
 import { Addons } from '../../../../src/db/entities/Addons.entity';
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { JourneyThumbsJob } from '../../../../src/nest/memories/journey-thumbs.job';
+import type { PublicMediaService } from '../../../../src/nest/memories/public-media.service';
 import type { ThumbnailService } from '../../../../src/nest/memories/thumbnail.service';
 import { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
@@ -57,6 +58,8 @@ function makeThumbnails(): Pick<ThumbnailService, 'sweepOrphanThumbs'> {
   };
 }
 
+const noRenditions = { sweepOrphans: async () => 0 } as unknown as PublicMediaService;
+
 describe('JourneyThumbsJob boot sweep', () => {
   it('JTHUMB-001: onApplicationBootstrap delegates the boot-time sweep through CronRegistrarService.runOnBoot, not a bare void this.sweep()', async () => {
     const registered: Array<[string, () => void | Promise<void>]> = [];
@@ -71,6 +74,7 @@ describe('JourneyThumbsJob boot sweep', () => {
     };
     const job = new JourneyThumbsJob(
       makeThumbnails() as ThumbnailService,
+      noRenditions,
       registrar as unknown as CronRegistrarService,
     );
     job.onApplicationBootstrap();
@@ -84,7 +88,7 @@ describe('JourneyThumbsJob boot sweep', () => {
       { isTest: () => false } as RuntimeEnvService,
       t.orm,
     );
-    const job = new JourneyThumbsJob(makeThumbnails() as ThumbnailService, registrar);
+    const job = new JourneyThumbsJob(makeThumbnails() as ThumbnailService, noRenditions, registrar);
     await registrar.runOnBoot('journey-thumbs-boot', () => job.sweep());
     expect(logMock.logError).not.toHaveBeenCalled();
   });
@@ -99,6 +103,7 @@ describe('JourneyThumbsJob boot sweep', () => {
           return 0;
         },
       } as ThumbnailService,
+      noRenditions,
       registrar,
     );
     await registrar.runOnBoot('journey-thumbs-boot', () => job.sweep());

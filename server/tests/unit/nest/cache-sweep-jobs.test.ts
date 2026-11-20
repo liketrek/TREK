@@ -9,6 +9,7 @@ import type { AppSettingsRepository } from '../../../src/db/repositories/AppSett
 import { AirtrailSyncJob } from '../../../src/nest/integrations/airtrail-sync.job';
 import type { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
 import { JourneyThumbsJob } from '../../../src/nest/memories/journey-thumbs.job';
+import type { PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
 import { TrekPhotoCacheJob } from '../../../src/nest/memories/trek-photo-cache.job';
 import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
@@ -122,6 +123,25 @@ describe('PlacePhotoCacheJob', () => {
     expect(() => job.sweep()).not.toThrow();
     expect(logMock.logError).toHaveBeenCalledWith('Place-photo cache cleanup: fs down');
 
+    const thumbsDown = make(
+      () => {
+        throw new Error('storage down');
+      },
+      true,
+      4,
+    );
+    await thumbsDown.job.sweep();
+    // The copies are still swept after the thumbnail pass failed.
+    expect(thumbsDown.publicMedia.sweepOrphans).toHaveBeenCalledTimes(1);
+    expect(logMock.logInfo).toHaveBeenCalledWith(
+      'Public media cleanup: removed 4 location-free copies of deleted media',
+    );
+
+    await make(0, true, () => {
+      throw new Error('bucket throttled');
+    }).job.sweep();
+    expect(logMock.logError).toHaveBeenCalledWith('Public media cleanup: bucket throttled');
+
     const gated = make(0, false);
     gated.job.onApplicationBootstrap();
     expect(gated.cache.sweepOrphans).not.toHaveBeenCalled();
@@ -130,16 +150,20 @@ describe('PlacePhotoCacheJob', () => {
 });
 
 describe('JourneyThumbsJob', () => {
-  function make(removed: number | (() => number) = 0, enabled = true) {
+  function make(removed: number | (() => number) = 0, enabled = true, renditions: number | (() => number) = 0) {
     const registrar = registrarStub(enabled);
     const thumbnails = {
       sweepOrphanThumbs: vi.fn(typeof removed === 'function' ? removed : () => Promise.resolve(removed)),
     };
+    const publicMedia = {
+      sweepOrphans: vi.fn(typeof renditions === 'function' ? renditions : () => Promise.resolve(renditions)),
+    };
     const job = new JourneyThumbsJob(
       thumbnails as unknown as ThumbnailService,
+      publicMedia as unknown as PublicMediaService,
       registrar as unknown as CronRegistrarService,
     );
-    return { job, registrar, thumbnails };
+    return { job, registrar, thumbnails, publicMedia };
   }
 
   it('CSJOB-010 — boot sweep runs immediately, then the daily app-tz cron registers', async () => {
@@ -154,6 +178,17 @@ describe('JourneyThumbsJob', () => {
     expect(logMock.logInfo).not.toHaveBeenCalled();
     await make(2).job.sweep();
     expect(logMock.logInfo).toHaveBeenCalledWith('Journey thumbnail cleanup: removed 2 orphaned thumbnail(s)');
+  });
+
+  it('CSJOB-013: the same pass sweeps the location-free copies and logs only when it removed some', async () => {
+    const quiet = make(0);
+    await quiet.job.sweep();
+    expect(quiet.publicMedia.sweepOrphans).toHaveBeenCalledTimes(1);
+    expect(logMock.logInfo).not.toHaveBeenCalled();
+    await make(0, true, 3).job.sweep();
+    expect(logMock.logInfo).toHaveBeenCalledWith(
+      'Public media cleanup: removed 3 location-free copies of deleted media',
+    );
   });
 
   it('CSJOB-012 — a throwing sweep is contained to the cleanup log line, and the gate skips the boot sweep', async () => {

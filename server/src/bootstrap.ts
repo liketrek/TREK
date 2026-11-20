@@ -11,6 +11,7 @@ import { PUBLIC_ROUTE_ALLOW_LIST, validateRouteGuards } from './nest/common/vali
 import { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
 import { withRequestContext } from './nest/database/request-context';
 import { MANAGED_PUBLIC_ROUTES } from './nest/managed/managed-ext.module';
+import { PublicMediaService } from './nest/memories/public-media.service';
 import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
 import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
@@ -146,7 +147,8 @@ export async function buildApp(): Promise<INestApplication> {
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —
   // per-request resolution runs after app.init() completed the registry load.
-  applyPlatformUploads(instance, app.get(StorageService), orm);
+  // PublicMediaService hands anonymous viewers the location-free copies.
+  applyPlatformUploads(instance, app.get(StorageService), orm, app.get(PublicMediaService));
   // The SDK discovery router (+ its addon gate). Container-built so its deps
   // are injected (same pre-init consumption bridge as httpConfig above), but
   // applied here as a PATHLESS app.use: the SDK router matches absolute
