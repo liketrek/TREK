@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Import e-mailov s rezerváciami',
   'mailAdmin.hint': 'Preposlané potvrdenia rezervácií sa stanú rezerváciami v správnom výlete.',
+  'mailAdmin.setup': 'Nastaviť import e-mailov',
   'mailAdmin.enabled': 'Importovať e-maily s rezerváciami',
   'mailAdmin.enabledHint':
     'Dá každému na tejto inštalácii adresu na preposielanie. Pri vypnutí žiadna adresa neprijíma poštu.',

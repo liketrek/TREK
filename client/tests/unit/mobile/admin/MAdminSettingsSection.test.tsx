@@ -16,7 +16,7 @@ vi.mock('../../../../src/mobile/screens/admin/MAdminServiceQuota', () => ({ defa
 vi.mock('../../../../src/mobile/screens/admin/MAdminPlaceContrib', () => ({ default: () => <div data-testid="place-contrib" /> }));
 vi.mock('../../../../src/mobile/screens/admin/MAdminGoogleDailyLimit', () => ({ default: () => <div data-testid="google-daily-limit" /> }));
 
-const PARTS = ['security', 'services', 'features'] as const;
+const PARTS = ['security', 'services'] as const;
 
 /** All three sections at once, so each card's behaviour is tested wherever it now lives. */
 function AllParts({ admin, t }: { admin: AdminHook; t: ReturnType<typeof useTranslation>['t'] }) {
@@ -114,12 +114,9 @@ describe('MAdminSettingsSection', () => {
     expect(screen.getByText('API Keys')).toBeInTheDocument();
     expect(screen.getAllByText('Allowed File Types').length).toBeGreaterThan(0);
     expect(screen.queryByText('Authentication Methods')).not.toBeInTheDocument();
+    // Live flight status is a row of the addons' trip group now, in neither section.
+    expect(screen.queryByText('Live flight status')).not.toBeInTheDocument();
     services.unmount();
-
-    render(<PartHarness admin={admin} part="features" />);
-    expect(screen.getByText('Live flight status')).toBeInTheDocument();
-    expect(screen.queryByText('API Keys')).not.toBeInTheDocument();
-    expect(screen.queryByText('Danger Zone')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-ASET-026: a managed install keeps the danger zone and the passkey domain to its operator', () => {

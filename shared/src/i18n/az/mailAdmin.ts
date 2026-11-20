@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Rezervasiya məktublarının idxalı',
   'mailAdmin.hint': 'Yönləndirilən rezervasiya təsdiqləri düzgün səyahətdə rezervasiyaya çevrilir.',
+  'mailAdmin.setup': 'Məktub idxalını qur',
   'mailAdmin.enabled': 'Rezervasiya məktublarını idxal et',
   'mailAdmin.enabledHint':
     'Bu quraşdırmadakı hər kəsə yönləndirmə ünvanı verir. Deaktiv olduqda heç bir ünvan məktub qəbul etmir.',

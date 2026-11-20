@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Importació de correus de reserva',
   'mailAdmin.hint': 'Les confirmacions de reserva reenviades es converteixen en reserves del viatge correcte.',
+  'mailAdmin.setup': 'Configura la importació de correus',
   'mailAdmin.enabled': 'Importa correus de reserva',
   'mailAdmin.enabledHint':
     'Dona a tothom en aquesta instal·lació una adreça de reenviament. Desactivat, cap adreça rep correu.',

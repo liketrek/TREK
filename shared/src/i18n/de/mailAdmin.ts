@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Buchungsmail-Import',
   'mailAdmin.hint': 'Weitergeleitete Buchungsbestätigungen werden zu Buchungen in der passenden Reise.',
+  'mailAdmin.setup': 'Mail-Import einrichten',
   'mailAdmin.enabled': 'Buchungsmails importieren',
   'mailAdmin.enabledHint':
     'Gibt allen auf dieser Instanz eine Weiterleitungsadresse. Aus, nimmt keine Adresse Mails an.',

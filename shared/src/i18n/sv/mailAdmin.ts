@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Import av bokningsmejl',
   'mailAdmin.hint': 'Vidarebefordrade bokningsbekräftelser blir bokningar i rätt resa.',
+  'mailAdmin.setup': 'Konfigurera mejlimport',
   'mailAdmin.enabled': 'Importera bokningsmejl',
   'mailAdmin.enabledHint':
     'Ger alla på den här installationen en vidarebefordringsadress. När det är av tar ingen adress emot mejl.',

@@ -61,9 +61,6 @@ vi.mock('../../../../src/mobile/screens/admin/MAdminStoragePanel', () => ({
 }));
 
 // The addon manager is reduced to the two controls MAdmin wires itself.
-vi.mock('../../../../src/mobile/screens/admin/MAdminPaddleRegionsPanel', () => ({
-  default: () => <div data-testid="paddle-regions-panel" />,
-}));
 vi.mock('../../../../src/mobile/screens/admin/MAdminAddonManager', () => ({
   default: ({
     bagTrackingEnabled,
@@ -232,7 +229,8 @@ describe('MAdmin', () => {
     expect(screen.getByTestId('category-manager')).toBeInTheDocument();
 
     await openSection('Addons');
-    expect(screen.getByTestId('paddle-regions-panel')).toBeInTheDocument();
+    // The paddle water data, live flights and booking mails are rows inside the addon groups now.
+    expect(screen.getByTestId('bag-state')).toBeInTheDocument();
 
     await openSection('Plugins');
     expect(screen.getByTestId('plugins-panel')).toBeInTheDocument();

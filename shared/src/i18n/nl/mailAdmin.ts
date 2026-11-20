@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Import van boekingsmails',
   'mailAdmin.hint': 'Doorgestuurde boekingsbevestigingen worden boekingen in de juiste reis.',
+  'mailAdmin.setup': 'Mailimport instellen',
   'mailAdmin.enabled': 'Boekingsmails importeren',
   'mailAdmin.enabledHint':
     'Geeft iedereen op deze installatie een doorstuuradres. Uit: geen enkel adres neemt mail aan.',

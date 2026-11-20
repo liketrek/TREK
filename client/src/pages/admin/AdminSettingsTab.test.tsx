@@ -13,13 +13,12 @@ import AdminSettingsTab from './AdminSettingsTab';
 type Spy = ReturnType<typeof vi.fn>;
 type Spies = Record<string, Spy> & { toast: Record<string, Spy> };
 
-/** The three tabs the settings are split into (security, services, features), on one page. */
+/** The two tabs the settings are split into (security, services), on one page. */
 function AllParts({ admin, t }: { admin: AdminHook; t: ReturnType<typeof useTranslation>['t'] }) {
   return (
     <>
       <AdminSettingsTab admin={admin} t={t} part="security" />
       <AdminSettingsTab admin={admin} t={t} part="services" />
-      <AdminSettingsTab admin={admin} t={t} part="features" />
     </>
   );
 }

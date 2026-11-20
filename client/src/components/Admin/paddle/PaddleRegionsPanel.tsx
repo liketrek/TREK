@@ -1,6 +1,6 @@
 import type { PaddleRegion, PaddleRegionCatalogEntry } from '@trek/shared';
 import { Check, ChevronRight, Loader2, Plus, RefreshCw, Search, Trash2, Waves, WifiOff } from 'lucide-react';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useDateFormat } from '../../../hooks/useDateFormat';
 import { useTranslation } from '../../../i18n';
 import { formatDisplayDate } from '../../../utils/dateFormat';
@@ -8,7 +8,6 @@ import {
   SettingRows,
   SETTINGS_BUTTON,
   SETTINGS_ICON_BUTTON,
-  SettingsCard,
   SettingsHint,
   StatusPill,
 } from '../../Settings/settingsKit';
@@ -17,6 +16,8 @@ import { EditorField, INPUT } from '../../shared/dialogParts';
 import { fs } from '../../shared/DialogShell';
 import ErrorBoundary from '../../shared/ErrorBoundary';
 import { Tooltip } from '../../shared/Tooltip';
+import AddonSetupDialog from '../AddonSetupDialog';
+import AddonSetupRow from '../AddonSetupRow';
 import { AutoLoadSettings, AutoOriginPill, RequestList } from './PaddleAutoLoadParts';
 import { progressPercent, regionStatusTone } from './paddleRegionsModel';
 import { usePaddleRegionsAdmin } from './usePaddleRegionsAdmin';
@@ -27,8 +28,10 @@ type Admin = ReturnType<typeof usePaddleRegionsAdmin>;
  * PAD-05A in the admin area: the regions TREK reads paddle obstacles for,
  * picked from Geofabrik's list, and (PAD-11C) how TREK loads the region of a
  * place a paddler plans in by itself, with the regions that wait for an admin.
- * The desktop admin shows this card under the addons while the Tours addon
- * is on; the phone has MAdminPaddleRegionsPanel on the same hook.
+ * The desktop admin shows it as a row of the Tours addon that opens it as a
+ * dialog while the addon is on; the row counts what waits for the admin (the
+ * requests) or else the regions. The phone has MAdminPaddleRegionsPanel on
+ * the same hook.
  */
 export default function PaddleRegionsPanel() {
   return (
@@ -41,14 +44,42 @@ export default function PaddleRegionsPanel() {
 function Panel() {
   const { t } = useTranslation();
   const admin = usePaddleRegionsAdmin();
+  const [open, setOpen] = useState(false);
   if (!admin.toursOn) return null;
+  const title = t('admin.paddleRegions.title');
+  // A declined request no longer waits for anyone; only the open ones ask for a look.
+  const waiting = admin.requests.filter((r) => !r.declined).length;
+  const badge =
+    waiting > 0 ? (
+      <StatusPill tone="warning">{waiting}</StatusPill>
+    ) : admin.regions.length > 0 ? (
+      <StatusPill>{admin.regions.length}</StatusPill>
+    ) : undefined;
+  const close = () => setOpen(false);
   return (
-    <SettingsCard
-      icon={Waves}
-      title={t('admin.paddleRegions.title')}
-      hint={t('admin.paddleRegions.hint')}
-      badge={admin.regions.length > 0 ? <StatusPill>{admin.regions.length}</StatusPill> : undefined}
-    >
+    <>
+      <AddonSetupRow label={title} onOpen={() => setOpen(true)} badge={badge} />
+      {open && (
+        <AddonSetupDialog
+          icon={<Waves size={20} strokeWidth={2} />}
+          eyebrow={t('admin.addons.catalog.tours.name')}
+          title={title}
+          sub={t('admin.paddleRegions.hint')}
+          onClose={close}
+          blocked={admin.removing !== null}
+        >
+          <PanelBody admin={admin} />
+        </AddonSetupDialog>
+      )}
+    </>
+  );
+}
+
+/** What the dialog holds: the state of the list, the settings, the requests, the search and the regions. */
+function PanelBody({ admin }: { admin: Admin }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-4">
       {admin.offline && (
         <p
           role="status"
@@ -86,7 +117,7 @@ function Panel() {
         message={t('admin.paddleRegions.removeMessage', { name: admin.removing?.name ?? '' })}
         confirmLabel={t('common.remove')}
       />
-    </SettingsCard>
+    </div>
   );
 }
 

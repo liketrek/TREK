@@ -1,6 +1,6 @@
-import type { ComponentType, ReactNode } from 'react'
+import type { ComponentType } from 'react'
 import { useTranslation } from '../../i18n'
-import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront } from 'lucide-react'
+import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront, Radar } from 'lucide-react'
 import EmptyState from '../shared/EmptyState'
 import DawarichIcon from '../shared/DawarichIcon'
 import AirTrailIcon from '../shared/AirTrailIcon'
@@ -12,6 +12,9 @@ import { SettingsCard, SettingsColumns, StatusPill } from '../Settings/settingsK
 import { type Addon, type CollabFeatures, COLLAB_SUB_FEATURES, getAddonLabel } from './addons/addonModel'
 import { useAddonManager } from './addons/useAddonManager'
 import AiAddonTile from './addons/AiAddonTile'
+import MailIngestAddonTile from './mailIngest/MailIngestAddonTile'
+import PaddleRegionsPanel from './paddle/PaddleRegionsPanel'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import { ImmichIcon, SynologyIcon } from './addons/PhotoProviderIcons'
 import WandererMark from '../Tours/wanderer/WandererMark'
 
@@ -65,13 +68,24 @@ const TYPE_META: Record<string, { icon: ComponentType<{ size?: number }>; labelK
   integration: { icon: Link2, labelKey: 'admin.addons.type.integration', hintKey: 'admin.addons.integrationHint' },
 }
 
-export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature, aside }: {
+/** The live flight status switch, an instance setting that sits with the trip addons. */
+export interface FlightLiveOption {
+  on: boolean
+  /** The server environment (FLIGHT_LIVE_ENABLED) holds it; the switch shows the state and says why. */
+  locked: boolean
+  managed: boolean
+  onToggle: () => void
+}
+
+export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature, flightLive, mailImport = false }: {
   bagTrackingEnabled?: boolean
   onToggleBagTracking?: () => void
   collabFeatures?: CollabFeatures
   onToggleCollabFeature?: (key: string) => void
-  /** Cards that set up what the integrations reach (flight status, booking mails), under them in the right column. */
-  aside?: ReactNode
+  /** Live flight status, a row of the trip card: it follows the trips' booked flights. */
+  flightLive?: FlightLiveOption
+  /** Booking mail import, a row of the integration card with its setup dialog; off on a managed install. */
+  mailImport?: boolean
 }) {
   const { t } = useTranslation()
   const {
@@ -181,6 +195,8 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             onToggle={() => void toggle()}
           />
         )),
+        // The paddle water data the tour planner reads, set up in a dialog of its own.
+        <PaddleRegionsPanel key="paddle-regions" />,
       ]
     }
     return null
@@ -202,6 +218,9 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     )
   }
 
+  /** Whether a card holds rows beside its own addons: the AI tile, an instance option. */
+  const extraRows = (key: string) =>
+    (key === 'trip' && !!flightLive) || (key === 'integration' && (aiAddons.length > 0 || mailImport))
   /* A card per type, the way every other admin tab sets its cards: Trip in the
      left column, Global and Integration in the right one, each card with the
      dialogs' head band carrying the type, its count and what it means. */
@@ -209,14 +228,14 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     { key: 'trip', addons: tripAddons },
     { key: 'global', addons: globalAddons },
     { key: 'integration', addons: integrationAddons },
-  ].filter(g => g.addons.length > 0 || (g.key === 'integration' && aiAddons.length > 0))
+  ].filter(g => g.addons.length > 0 || extraRows(g.key))
 
   const card = (g: (typeof groups)[number]) => {
     const meta = TYPE_META[g.key]
     const all = g.key === 'integration' ? [...aiAddons, ...g.addons] : g.addons
     const visible = g.addons
     const ai = g.key === 'integration' && aiAddons.length > 0
-    if (!visible.length && !ai) return null
+    if (!visible.length && !ai && !extraRows(g.key)) return null
     const on = all.filter(a => a.enabled).length
     return (
       <SettingsCard
@@ -235,6 +254,10 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
           {/* The AI addons share a connection and a settings dialog, so they head the card as one tile. */}
           {ai && <AiAddonTile addons={aiAddons} onToggle={handleToggle} />}
           {visible.map(tile)}
+          {/* Not addons but instance options of the same kind, as rows of the same card;
+              the count above stays the addons'. */}
+          {g.key === 'trip' && flightLive && <FlightLiveTile option={flightLive} />}
+          {g.key === 'integration' && mailImport && <MailIngestAddonTile />}
         </div>
       </SettingsCard>
     )
@@ -251,5 +274,21 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     )
   }
 
-  return <SettingsColumns start={cards.start} end={<>{cards.end}{aside}</>} />
+  return <SettingsColumns start={cards.start} end={cards.end} />
+}
+
+/** Live flight status as a trip row: on, it follows every booked flight on its day. */
+function FlightLiveTile({ option }: { option: FlightLiveOption }) {
+  const { t } = useTranslation()
+  const name = t('flightLive.adminTitle')
+  const hint = option.managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')
+  return (
+    <AddonTile
+      icon={<Radar size={18} />}
+      name={name}
+      description={option.locked ? `${hint} ${t('flightLive.envLocked')}` : hint}
+      enabled={option.on}
+      trailing={<ToggleSwitch on={option.on} label={t('flightLive.adminToggle')} disabled={option.locked} onToggle={option.onToggle} />}
+    />
+  )
 }

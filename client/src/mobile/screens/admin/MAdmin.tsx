@@ -1,5 +1,4 @@
 import MAdminSchoolHolidayCatalog from './MAdminSchoolHolidayCatalog'
-import MAdminPaddleRegionsPanel from './MAdminPaddleRegionsPanel'
 import { useState } from 'react'
 import {
   ArrowUp,
@@ -246,10 +245,17 @@ export default function MAdmin() {
             onToggleBagTracking={toggleBagTracking}
             collabFeatures={collabFeatures}
             onToggleCollabFeature={toggleCollabFeature}
+            // Live flight status and the booking mail import are rows of the addon groups,
+            // and the paddle water data a row under Tours (desktop parity).
+            flightLive={{
+              on: admin.flightLive,
+              locked: admin.flightLiveLocked,
+              managed: !!managed,
+              onToggle: () =>
+                void admin.handleToggleAuthSetting('flight_live_enabled', !admin.flightLive, admin.setFlightLive),
+            }}
+            mailImport={!managed}
           />
-          {/* How the integrations reach the world (live flights, booking mails), beside the addons they serve. */}
-          <MAdminSettingsSection admin={admin} t={t} part="features" />
-          <MAdminPaddleRegionsPanel />
         </div>
       )}
       {activeTab === 'plugins' && <MAdminPluginsPanel />}

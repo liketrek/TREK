@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Impor email pemesanan',
   'mailAdmin.hint': 'Konfirmasi pemesanan yang diteruskan menjadi pemesanan di perjalanan yang tepat.',
+  'mailAdmin.setup': 'Atur impor email',
   'mailAdmin.enabled': 'Impor email pemesanan',
   'mailAdmin.enabledHint':
     'Memberi semua orang di instalasi ini alamat penerusan. Jika nonaktif, tidak ada alamat yang menerima email.',

@@ -1,4 +1,5 @@
-import { Inbox, Upload, Webhook, type LucideIcon } from 'lucide-react';
+import { Inbox, Mail, Upload, Webhook, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import {
   TRANSPORTS,
   problemText,
@@ -15,15 +16,16 @@ import { useTranslation } from '../../../i18n';
 import type { TranslationFn } from '../../../types';
 import { relativeTime } from '../../../utils/relativeTime';
 import MSegmented from '../../components/MSegmented';
+import MSheet from '../../components/MSheet';
 import MToggle from '../../components/MToggle';
 import {
   MAdminButton,
-  MAdminCard,
-  MAdminCardHead,
   MAdminField,
   MAdminInput,
-  MAdminRow,
+  MAdminOptionRow,
   MAdminSecretInput,
+  MAdminSetupRow,
+  MAdminSheetFrame,
 } from './MAdminUi';
 
 interface PartProps {
@@ -250,19 +252,23 @@ function Setup({ admin, form, t, locale }: PartProps & { locale: string }) {
 }
 
 /**
- * The booking mail import in the phone's admin settings, the same card as on
- * the desktop (useMailIngestAdmin): the switch, how mail arrives, the address
- * template, the AI allowance, the test and the status. Self-hosted only.
+ * The booking mail import as a row of the phone's integration group, the same
+ * as on the desktop (useMailIngestAdmin): the switch, and while it is on a row
+ * to the sheet that sets it up (how mail arrives, the address template, the AI
+ * allowance, the test and the status). Self-hosted only.
  */
-export default function MMailIngestAdminCard() {
+export default function MMailIngestAdminCard({ first = false }: { first?: boolean }) {
   const { t, locale } = useTranslation();
   const admin = useMailIngestAdmin(true);
+  const [open, setOpen] = useState(false);
+  const setupLabel = t('mailAdmin.setup');
   return (
-    <MAdminCard>
-      <MAdminCardHead title={t('mailAdmin.title')} hint={t('mailAdmin.hint')} />
-      <MAdminRow
-        title={t('mailAdmin.enabled')}
-        hint={t('mailAdmin.enabledHint')}
+    <>
+      <MAdminOptionRow
+        icon={<Mail size={18} />}
+        title={t('mailAdmin.title')}
+        hint={`${t('mailAdmin.hint')} ${t('mailAdmin.enabledHint')}`}
+        first={first}
         trailing={
           <MToggle
             checked={admin.enabled}
@@ -272,7 +278,18 @@ export default function MMailIngestAdminCard() {
           />
         }
       />
-      {admin.enabled && admin.form && <Setup admin={admin} form={admin.form} t={t} locale={locale} />}
-    </MAdminCard>
+      {admin.enabled && admin.form && <MAdminSetupRow label={setupLabel} onOpen={() => setOpen(true)} />}
+      {open && admin.enabled && admin.form && (
+        <MSheet open onClose={() => setOpen(false)} variant="bottom" material="glass" ariaLabel={setupLabel}>
+          <MAdminSheetFrame
+            icon={<Mail size={19} strokeWidth={1.8} />}
+            title={setupLabel}
+            onClose={() => setOpen(false)}
+          >
+            <Setup admin={admin} form={admin.form} t={t} locale={locale} />
+          </MAdminSheetFrame>
+        </MSheet>
+      )}
+    </>
   );
 }

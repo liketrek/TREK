@@ -1,5 +1,4 @@
 import SchoolHolidayCatalog from '../components/Admin/SchoolHolidayCatalog'
-import PaddleRegionsPanel from '../components/Admin/paddle/PaddleRegionsPanel'
 import React, { Fragment } from 'react'
 import DevNotificationsPanel from '../components/Admin/DevNotificationsPanel'
 import DefaultUserSettingsTab from '../components/Admin/DefaultUserSettingsTab'
@@ -166,10 +165,17 @@ function AdminPageDesktop(): React.ReactElement {
                 onToggleBagTracking={toggleBagTracking}
                 collabFeatures={collabFeatures}
                 onToggleCollabFeature={toggleCollabFeature}
-                // How the integrations reach the world: live flight status, booking mails.
-                aside={<AdminSettingsTab admin={admin} t={t} part="features" />}
+                // Live flight status follows the trips' flights; the booking mail import is
+                // the operator's relay on a managed install.
+                flightLive={{
+                  on: admin.flightLive,
+                  locked: admin.flightLiveLocked,
+                  managed,
+                  onToggle: () =>
+                    void admin.handleToggleAuthSetting('flight_live_enabled', !admin.flightLive, admin.setFlightLive),
+                }}
+                mailImport={!managed}
               />
-              <PaddleRegionsPanel />
             </div>
           )}
 

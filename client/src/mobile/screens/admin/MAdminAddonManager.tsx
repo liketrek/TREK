@@ -3,7 +3,7 @@ import { useTranslation } from '../../../i18n'
 import { useIsDark } from '../../../hooks/useIsDark'
 import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
-  Sparkles, Luggage, Plane, Bookmark, Users, Mountain, CarFront, Settings2, ChevronRight,
+  Sparkles, Luggage, Plane, Bookmark, Users, Mountain, CarFront, Radar,
 } from 'lucide-react'
 import DawarichIcon from '../../../components/shared/DawarichIcon'
 import AirTrailIcon from '../../../components/shared/AirTrailIcon'
@@ -21,7 +21,10 @@ import AiSettingsDialog from '../../../components/Admin/addons/AiAdminConfig'
 import { AI_ADDON_ICONS, type AiAddonId } from '../../../components/Admin/addons/aiAddons'
 import { useAiAddonTile } from '../../../components/Admin/addons/useAiAddonTile'
 import { ImmichIcon, SynologyIcon } from '../../../components/Admin/addons/PhotoProviderIcons'
-import { MAdminCard } from './MAdminUi'
+import { MAdminCard, MAdminOptionRow, MAdminSetupRow } from './MAdminUi'
+import MAdminPaddleRegionsPanel from './MAdminPaddleRegionsPanel'
+import MMailIngestAdminCard from './MMailIngestAdminCard'
+import type { FlightLiveOption } from '../../../components/Admin/AddonManager'
 import MHintLabel from '../../components/MHintLabel'
 import WandererMark from '../../../components/Tours/wanderer/WandererMark'
 import MSkeleton from '../../components/MSkeleton'
@@ -59,7 +62,16 @@ function AddonIcon({ name, size = 18, enabled = true }: AddonIconProps) {
   return <Icon size={size} />
 }
 
-export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature }: { bagTrackingEnabled?: boolean; onToggleBagTracking?: () => void; collabFeatures?: CollabFeatures; onToggleCollabFeature?: (key: string) => void }) {
+export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature, flightLive, mailImport = false }: {
+  bagTrackingEnabled?: boolean
+  onToggleBagTracking?: () => void
+  collabFeatures?: CollabFeatures
+  onToggleCollabFeature?: (key: string) => void
+  /** Live flight status, a row of the trip group (desktop parity). */
+  flightLive?: FlightLiveOption
+  /** Booking mail import, a row of the integration group with its setup sheet; off on a managed install. */
+  mailImport?: boolean
+}) {
   const { t } = useTranslation()
   const dark = useIsDark()
   const {
@@ -98,7 +110,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
       ) : (
         <>
           {/* Trip Addons */}
-          {tripAddons.length > 0 && (
+          {(tripAddons.length > 0 || flightLive) && (
             <MAdminCard>
               <MGroupHead icon={Briefcase} label={t('admin.addons.type.trip')} hint={t('admin.addons.tripHint')} />
               {tripAddons.map((addon, i) => (
@@ -135,6 +147,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
                           onToggle={() => void toggle()}
                         />
                       ))}
+                      <MAdminPaddleRegionsPanel />
                     </>
                   )}
                   {addon.id === 'collab' && addon.enabled && collabFeatures && onToggleCollabFeature && (
@@ -153,6 +166,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
                   )}
                 </div>
               ))}
+              {flightLive && <MFlightLiveRow option={flightLive} first={tripAddons.length === 0} />}
             </MAdminCard>
           )}
 
@@ -171,13 +185,14 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
           )}
 
           {/* Integration Addons, headed by the AI ones as one group, as on the desktop */}
-          {(integrationAddons.length > 0 || aiAddons.length > 0) && (
+          {(integrationAddons.length > 0 || aiAddons.length > 0 || mailImport) && (
             <MAdminCard>
               <MGroupHead icon={Link2} label={t('admin.addons.type.integration')} hint={t('admin.addons.integrationHint')} />
               {aiAddons.length > 0 && <MAiAddons addons={aiAddons} onToggle={handleToggle} />}
               {integrationAddons.map((addon, i) => (
                 <MAddonRow key={addon.id} addon={addon} onToggle={handleToggle} t={t} first={i === 0 && aiAddons.length === 0} />
               ))}
+              {mailImport && <MMailIngestAdminCard first={integrationAddons.length === 0 && aiAddons.length === 0} />}
             </MAdminCard>
           )}
         </>
@@ -216,16 +231,28 @@ interface MAddonRowProps {
 function MAddonRow({ addon, onToggle, t, first }: MAddonRowProps) {
   const label = getAddonLabel(t, addon)
   return (
-    <div className={`flex items-center gap-3 py-[11px] ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
-      {/* overflow-hidden so a brand mark that fills the slot keeps its rounded corners. */}
-      <span className="flex h-[38px] w-[38px] flex-none items-center justify-center overflow-hidden rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
-        <AddonIcon name={addon.icon} size={18} enabled={addon.enabled} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <MHintLabel label={label.name} hint={label.description} />
-      </div>
-      <MToggle checked={addon.enabled} ariaLabel={label.name} onChange={() => onToggle(addon)} />
-    </div>
+    <MAdminOptionRow
+      icon={<AddonIcon name={addon.icon} size={18} enabled={addon.enabled} />}
+      title={label.name}
+      hint={label.description}
+      first={first}
+      trailing={<MToggle checked={addon.enabled} ariaLabel={label.name} onChange={() => onToggle(addon)} />}
+    />
+  )
+}
+
+/** Live flight status as a trip row, locked with a word when the server environment holds it. */
+function MFlightLiveRow({ option, first }: { option: FlightLiveOption; first: boolean }) {
+  const { t } = useTranslation()
+  const hint = option.managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')
+  return (
+    <MAdminOptionRow
+      icon={<Radar size={18} />}
+      title={t('flightLive.adminTitle')}
+      hint={option.locked ? `${hint} ${t('flightLive.envLocked')}` : hint}
+      first={first}
+      trailing={<MToggle checked={option.on} ariaLabel={t('flightLive.adminToggle')} disabled={option.locked} onChange={option.onToggle} />}
+    />
   )
 }
 
@@ -301,17 +328,7 @@ function MAiAddons({ addons, onToggle }: { addons: Addon[]; onToggle: (addon: Ad
           />
         )
       })}
-      {tile.canSetUp && (
-        <button
-          type="button"
-          onClick={tile.openDialog}
-          className="flex w-full items-center gap-3 border-t border-[color:var(--m-rowbr)] py-[11px] ps-[50px] text-start"
-        >
-          <Settings2 size={14} className="flex-none text-m-faint" />
-          <span className="min-w-0 flex-1 truncate text-[0.75rem] font-bold text-m-ink">{t('admin.addons.ai.setup')}</span>
-          <ChevronRight size={15} className="flex-none text-m-faint rtl:rotate-180" />
-        </button>
-      )}
+      {tile.canSetUp && <MAdminSetupRow label={t('admin.addons.ai.setup')} onOpen={tile.openDialog} />}
       {tile.dialogOpen && <AiSettingsDialog addons={addons} onClose={tile.closeDialog} />}
     </div>
   )

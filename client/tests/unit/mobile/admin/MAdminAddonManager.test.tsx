@@ -8,6 +8,7 @@ import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
 import { useAddonStore } from '../../../../src/store/addonStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
+import { mailIngestRepo } from '../../../../src/repo/mailIngestRepo';
 import MAdminAddonManager from '../../../../src/mobile/screens/admin/MAdminAddonManager';
 
 interface AddonFixture {
@@ -570,5 +571,27 @@ describe('MAdminAddonManager', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     await user.click(toggle);
     await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
+  });
+
+  it('FE-MOB-AADD-038: live flight status is a row of the trip group, switched there and locked by the environment', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Lists', type: 'trip', enabled: true })]));
+    const onToggle = vi.fn();
+    const { unmount } = render(<MAdminAddonManager flightLive={{ on: false, locked: false, managed: false, onToggle }} />);
+    await userEvent.click(await screen.findByRole('switch', { name: 'Follow booked flights live' }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    unmount();
+
+    render(<MAdminAddonManager flightLive={{ on: true, locked: true, managed: false, onToggle }} />);
+    expect(await screen.findByRole('switch', { name: 'Follow booked flights live' })).toBeDisabled();
+  });
+
+  it('FE-MOB-AADD-039: the booking mail import is a row of the integration group whose setup opens in a sheet', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'mcp', name: 'MCP', icon: 'Terminal', type: 'integration', enabled: false })]));
+    vi.spyOn(mailIngestRepo, 'adminSettings').mockResolvedValue({ mail_ingest_enabled: 'true' });
+    vi.spyOn(mailIngestRepo, 'adminStatus').mockRejectedValue(new Error('no status'));
+    render(<MAdminAddonManager mailImport />);
+    expect(await screen.findByText('Booking mail import')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Set up mail import' }));
+    expect(await screen.findByText('How mail arrives')).toBeInTheDocument();
   });
 });

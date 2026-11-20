@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'การนำเข้าอีเมลการจอง',
   'mailAdmin.hint': 'อีเมลยืนยันการจองที่ส่งต่อมาจะกลายเป็นการจองในทริปที่ถูกต้อง',
+  'mailAdmin.setup': 'ตั้งค่าการนำเข้าอีเมล',
   'mailAdmin.enabled': 'นำเข้าอีเมลการจอง',
   'mailAdmin.enabledHint': 'ให้ทุกคนในการติดตั้งนี้มีที่อยู่สำหรับส่งต่อ เมื่อปิด จะไม่มีที่อยู่ใดรับอีเมล',
   'mailAdmin.transport.label': 'วิธีรับอีเมล',

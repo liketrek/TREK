@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Importazione delle e-mail di prenotazione',
   'mailAdmin.hint': 'Le conferme di prenotazione inoltrate diventano prenotazioni nel viaggio giusto.',
+  'mailAdmin.setup': 'Configura l’importazione delle e-mail',
   'mailAdmin.enabled': 'Importa e-mail di prenotazione',
   'mailAdmin.enabledHint':
     'Dà a tutti su questa installazione un indirizzo di inoltro. Disattivato, nessun indirizzo riceve posta.',

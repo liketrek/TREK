@@ -1,22 +1,17 @@
 import { AlertTriangle, CheckCircle, Copy, Loader2, Mail, PlugZap, Save, XCircle } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from '../../../i18n';
 import type { TranslationFn } from '../../../types';
 import { copyText } from '../../../utils/clipboard';
 import { relativeTime } from '../../../utils/relativeTime';
-import {
-  HintMark,
-  SETTINGS_BUTTON,
-  SETTINGS_BUTTON_PRIMARY,
-  SettingRow,
-  SettingRows,
-  SettingsCard,
-  StatusPill,
-} from '../../Settings/settingsKit';
+import { HintMark, SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, StatusPill } from '../../Settings/settingsKit';
 import ToggleSwitch from '../../Settings/ToggleSwitch';
 import CustomSelect from '../../shared/CustomSelect';
 import { EditorField, GRID_2, INPUT, READONLY_BOX } from '../../shared/dialogParts';
 import { useToast } from '../../shared/Toast';
+import AddonSetupDialog from '../AddonSetupDialog';
+import AddonSetupRow from '../AddonSetupRow';
+import AddonTile from '../AddonTile';
 import {
   TRANSPORTS,
   problemText,
@@ -306,32 +301,46 @@ function Setup({ admin, form, t, locale }: { admin: MailIngestAdmin; form: MailA
 }
 
 /**
- * The booking mail import in the admin settings of a self-hosted install: the
- * instance switch, how mail arrives (IMAP or a signed webhook), the forwarding
- * address template, the AI allowance per person and day, a connection test and
- * the status in counts. Not shown on a managed install, where the operator
- * runs the TREK Cloud relay.
+ * The booking mail import as a row of the integration card: its switch, and
+ * while it is on one row to the dialog that sets it up (how mail arrives, the
+ * forwarding address template, the AI allowance per person and day, a
+ * connection test and the status in counts). Not shown on a managed install,
+ * where the operator runs the TREK Cloud relay.
  */
-export default function MailIngestAdminCard() {
+export default function MailIngestAddonTile() {
   const { t, locale } = useTranslation();
   const admin = useMailIngestAdmin(true);
+  const [open, setOpen] = useState(false);
+  const name = t('mailAdmin.title');
   return (
-    <SettingsCard icon={Mail} title={t('mailAdmin.title')} hint={t('mailAdmin.hint')}>
-      <SettingRows>
-        <SettingRow
-          label={t('mailAdmin.enabled')}
-          hint={t('mailAdmin.enabledHint')}
-          control={
-            <ToggleSwitch
-              on={admin.enabled}
-              label={t('mailAdmin.enabled')}
-              disabled={!admin.loaded}
-              onToggle={() => admin.toggle(!admin.enabled)}
-            />
-          }
-        />
-      </SettingRows>
-      {admin.enabled && admin.form && <Setup admin={admin} form={admin.form} t={t} locale={locale} />}
-    </SettingsCard>
+    <>
+      <AddonTile
+        icon={<Mail size={15} />}
+        name={name}
+        description={`${t('mailAdmin.hint')} ${t('mailAdmin.enabledHint')}`}
+        enabled={admin.enabled}
+        trailing={
+          <ToggleSwitch
+            on={admin.enabled}
+            label={t('mailAdmin.enabled')}
+            disabled={!admin.loaded}
+            onToggle={() => admin.toggle(!admin.enabled)}
+          />
+        }
+      >
+        {admin.enabled && admin.form && <AddonSetupRow label={t('mailAdmin.setup')} onOpen={() => setOpen(true)} />}
+      </AddonTile>
+      {open && admin.enabled && admin.form && (
+        <AddonSetupDialog
+          icon={<Mail size={20} strokeWidth={2} />}
+          eyebrow={name}
+          title={t('mailAdmin.setup')}
+          sub={t('mailAdmin.hint')}
+          onClose={() => setOpen(false)}
+        >
+          <Setup admin={admin} form={admin.form} t={t} locale={locale} />
+        </AddonSetupDialog>
+      )}
+    </>
   );
 }

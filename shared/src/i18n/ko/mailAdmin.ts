@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': '예약 메일 가져오기',
   'mailAdmin.hint': '전달된 예약 확인 메일이 알맞은 여행의 예약이 됩니다.',
+  'mailAdmin.setup': '메일 가져오기 설정',
   'mailAdmin.enabled': '예약 메일 가져오기',
   'mailAdmin.enabledHint': '이 설치의 모든 사용자에게 전달용 주소를 제공합니다. 끄면 어떤 주소도 메일을 받지 않습니다.',
   'mailAdmin.transport.label': '메일 수신 방식',

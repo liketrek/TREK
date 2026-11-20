@@ -1,8 +1,9 @@
-import { ChevronRight, Settings2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../i18n';
 import { StatusPill } from '../../Settings/settingsKit';
 import { fs } from '../../shared/DialogShell';
+import AddonSetupRow from '../AddonSetupRow';
 import AddonSubRow from '../AddonSubRow';
 import AddonTile from '../AddonTile';
 import { type Addon, getAddonLabel } from './addonModel';
@@ -54,23 +55,7 @@ export default function AiAddonTile({
             />
           );
         })}
-        {tile.canSetUp && (
-          <li>
-            <button
-              type="button"
-              onClick={tile.openDialog}
-              className="flex min-h-[44px] w-full items-center gap-2.5 border-0 bg-transparent py-1.5 pe-4 ps-[60px] text-start transition-colors hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
-            >
-              <span className="grid h-6 w-6 flex-none place-items-center text-content-muted">
-                <Settings2 size={14} />
-              </span>
-              <span className="min-w-0 flex-1 truncate font-medium text-content" style={fs(12.5, 'body')}>
-                {t('admin.addons.ai.setup')}
-              </span>
-              <ChevronRight size={15} strokeWidth={2.2} className="flex-none text-content-faint rtl:rotate-180" />
-            </button>
-          </li>
-        )}
+        {tile.canSetUp && <AddonSetupRow label={t('admin.addons.ai.setup')} onOpen={tile.openDialog} />}
       </AddonTile>
       {tile.dialogOpen && <AiSettingsDialog addons={addons} onClose={tile.closeDialog} />}
     </>

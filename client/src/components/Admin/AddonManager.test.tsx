@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAddonStore } from '../../store/addonStore';
 import { ToastContainer } from '../shared/Toast';
+import { mailIngestRepo } from '../../repo/mailIngestRepo';
 import AddonManager from './AddonManager';
 
 function buildAddon(overrides = {}) {
@@ -690,5 +691,41 @@ describe('AddonManager', () => {
     expect(tours.querySelector('svg.lucide-mountain')).toBeInTheDocument();
     expect(roadtrip.querySelector('svg.lucide-car-front')).toBeInTheDocument();
     expect(tours.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-045: live flight status is a row of the trip card, switched there and locked by the environment', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Lists', icon: 'ListChecks', type: 'trip', enabled: true })]));
+    const onToggle = vi.fn();
+    const { unmount } = render(<AddonManager flightLive={{ on: false, locked: false, managed: false, onToggle }} />);
+    const trip = (await screen.findByRole('heading', { name: 'Trip' })).closest('section')!;
+    await userEvent.click(within(trip).getByRole('button', { name: 'Follow booked flights live' }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    // The count stays the addons': the flight row is an instance option beside them.
+    expect(within(trip).getByText('1/1')).toBeInTheDocument();
+    unmount();
+
+    render(<AddonManager flightLive={{ on: true, locked: true, managed: false, onToggle }} />);
+    expect(await screen.findByRole('button', { name: 'Follow booked flights live' })).toBeDisabled();
+  });
+
+  it('FE-ADMIN-ADDON-046: the booking mail import is a row of the integration card whose setup opens in a dialog', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'mcp', name: 'MCP', icon: 'Terminal', type: 'integration', enabled: false })]));
+    vi.spyOn(mailIngestRepo, 'adminSettings').mockResolvedValue({ mail_ingest_enabled: 'true' });
+    vi.spyOn(mailIngestRepo, 'adminStatus').mockRejectedValue(new Error('no status'));
+    render(<AddonManager mailImport />);
+    const integration = (await screen.findByRole('heading', { name: 'Integration' })).closest('section')!;
+    expect(within(integration).getByText('Booking mail import')).toBeInTheDocument();
+    await userEvent.click(await within(integration).findByRole('button', { name: 'Set up mail import' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('How mail arrives')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-ADDON-047: without the mail option the integration card has no mail row and nothing is loaded', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'mcp', name: 'MCP', icon: 'Terminal', type: 'integration', enabled: false })]));
+    const load = vi.spyOn(mailIngestRepo, 'adminSettings');
+    render(<AddonManager />);
+    await screen.findByRole('heading', { name: 'Integration' });
+    expect(screen.queryByText('Booking mail import')).not.toBeInTheDocument();
+    expect(load).not.toHaveBeenCalled();
   });
 });

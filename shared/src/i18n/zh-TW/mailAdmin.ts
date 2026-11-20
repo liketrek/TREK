@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': '預訂郵件匯入',
   'mailAdmin.hint': '轉寄的預訂確認郵件會變成正確旅行中的預訂。',
+  'mailAdmin.setup': '設定郵件匯入',
   'mailAdmin.enabled': '匯入預訂郵件',
   'mailAdmin.enabledHint': '為此執行個體上的每個人提供一個轉寄地址。關閉後，任何地址都不接收郵件。',
   'mailAdmin.transport.label': '郵件送達方式',

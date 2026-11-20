@@ -146,7 +146,7 @@
   "mobile/components/MToastHost.tsx": 2,
   "mobile/components/MUserPickerList.tsx": 1,
   "mobile/screens/admin/MAdmin.tsx": 8,
-  "mobile/screens/admin/MAdminAddonManager.tsx": 4,
+  "mobile/screens/admin/MAdminAddonManager.tsx": 3,
   "mobile/screens/admin/MAdminAuditLogPanel.tsx": 15,
   "mobile/screens/admin/MAdminBackupPanel.tsx": 7,
   "mobile/screens/admin/MAdminCategoryManager.tsx": 8,

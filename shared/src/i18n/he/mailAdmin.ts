@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'ייבוא דוא״ל הזמנות',
   'mailAdmin.hint': 'אישורי הזמנה שהועברו הופכים להזמנות בטיול המתאים.',
+  'mailAdmin.setup': 'הגדרת ייבוא דוא״ל',
   'mailAdmin.enabled': 'ייבוא דוא״ל הזמנות',
   'mailAdmin.enabledHint': 'נותן לכל משתמש בהתקנה הזו כתובת להעברה. כשהאפשרות כבויה, אף כתובת לא מקבלת דוא״ל.',
   'mailAdmin.transport.label': 'איך הדוא״ל מגיע',

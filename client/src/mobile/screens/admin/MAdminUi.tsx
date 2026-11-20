@@ -1,5 +1,5 @@
 import { InputHTMLAttributes, ReactNode, useState } from 'react'
-import { ChevronDown, Eye, EyeOff, Loader2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, EyeOff, Loader2, Settings2, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import MIconBtn from '../../components/MIconBtn'
 import MHintLabel from '../../components/MHintLabel'
@@ -58,6 +58,58 @@ export function MAdminRow({
       </div>
       {trailing}
     </div>
+  )
+}
+
+/**
+ * A row of the addons screen: the icon tile, the name with its description
+ * behind the info mark, and the switch. Addons and the instance options that
+ * sit with them (live flight status, booking mails) share it.
+ */
+export function MAdminOptionRow({
+  icon,
+  title,
+  hint,
+  trailing,
+  first = false,
+}: {
+  icon: ReactNode
+  title: string
+  hint?: string
+  trailing: ReactNode
+  first?: boolean
+}) {
+  return (
+    <div className={`flex items-center gap-3 py-[11px] ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
+      {/* overflow-hidden so a brand mark that fills the slot keeps its rounded corners. */}
+      <span className="flex h-[38px] w-[38px] flex-none items-center justify-center overflow-hidden rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <MHintLabel label={title} hint={hint} />
+      </div>
+      {trailing}
+    </div>
+  )
+}
+
+/**
+ * The last row under an addon that opens its settings: a gear, what it sets up,
+ * an optional badge for what waits inside, and a chevron (AI, booking mails,
+ * paddle water data).
+ */
+export function MAdminSetupRow({ label, onOpen, badge }: { label: string; onOpen: () => void; badge?: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-3 border-t border-[color:var(--m-rowbr)] py-[11px] ps-[50px] text-start"
+    >
+      <Settings2 size={14} className="flex-none text-m-faint" />
+      <span className="min-w-0 flex-1 truncate text-[length:calc(12px*var(--fs-scale-body,1))] font-bold text-m-ink">{label}</span>
+      {badge}
+      <ChevronRight size={15} className="flex-none text-m-faint rtl:rotate-180" />
+    </button>
   )
 }
 

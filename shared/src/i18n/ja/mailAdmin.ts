@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': '予約メールの取り込み',
   'mailAdmin.hint': '転送された予約確認メールが、適切な旅行の予約になります。',
+  'mailAdmin.setup': 'メール取り込みを設定',
   'mailAdmin.enabled': '予約メールを取り込む',
   'mailAdmin.enabledHint':
     'このインストールの全員に転送用アドレスを発行します。オフの間は、どのアドレスもメールを受け付けません。',

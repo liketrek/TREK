@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Import wiadomości z rezerwacjami',
   'mailAdmin.hint': 'Przekazane potwierdzenia rezerwacji stają się rezerwacjami we właściwej podróży.',
+  'mailAdmin.setup': 'Skonfiguruj import wiadomości',
   'mailAdmin.enabled': 'Importuj wiadomości z rezerwacjami',
   'mailAdmin.enabledHint':
     'Daje każdemu użytkownikowi tej instalacji adres do przekazywania. Po wyłączeniu żaden adres nie przyjmuje poczty.',

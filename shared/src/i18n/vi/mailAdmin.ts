@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Nhập email đặt chỗ',
   'mailAdmin.hint': 'Email xác nhận đặt chỗ được chuyển tiếp sẽ trở thành đặt chỗ trong đúng chuyến đi.',
+  'mailAdmin.setup': 'Thiết lập nhập email',
   'mailAdmin.enabled': 'Nhập email đặt chỗ',
   'mailAdmin.enabledHint':
     'Cấp cho mọi người trên bản cài đặt này một địa chỉ chuyển tiếp. Khi tắt, không địa chỉ nào nhận email.',

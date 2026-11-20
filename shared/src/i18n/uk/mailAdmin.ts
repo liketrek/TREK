@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Імпорт листів із бронюваннями',
   'mailAdmin.hint': 'Переслані підтвердження бронювань стають бронюваннями в потрібній подорожі.',
+  'mailAdmin.setup': 'Налаштувати імпорт листів',
   'mailAdmin.enabled': 'Імпортувати листи з бронюваннями',
   'mailAdmin.enabledHint':
     'Дає кожному користувачу цієї інсталяції адресу для пересилання. Якщо вимкнено, жодна адреса не приймає пошту.',

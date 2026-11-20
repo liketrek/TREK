@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Booking mail import',
   'mailAdmin.hint': 'Forwarded booking confirmations become bookings in the right trip.',
+  'mailAdmin.setup': 'Set up mail import',
   'mailAdmin.enabled': 'Import booking mails',
   'mailAdmin.enabledHint': 'Gives everyone on this install a forwarding address. Off, no address takes mail.',
   'mailAdmin.transport.label': 'How mail arrives',

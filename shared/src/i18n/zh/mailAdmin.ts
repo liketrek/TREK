@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': '预订邮件导入',
   'mailAdmin.hint': '转发的预订确认邮件会变成正确旅行中的预订。',
+  'mailAdmin.setup': '设置邮件导入',
   'mailAdmin.enabled': '导入预订邮件',
   'mailAdmin.enabledHint': '为此实例上的每个人提供一个转发地址。关闭后，任何地址都不接收邮件。',
   'mailAdmin.transport.label': '邮件送达方式',

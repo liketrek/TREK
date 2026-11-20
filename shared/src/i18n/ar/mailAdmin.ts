@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'استيراد رسائل الحجز',
   'mailAdmin.hint': 'تتحول رسائل تأكيد الحجز المُعاد توجيهها إلى حجوزات في الرحلة المناسبة.',
+  'mailAdmin.setup': 'إعداد استيراد البريد',
   'mailAdmin.enabled': 'استيراد رسائل الحجز',
   'mailAdmin.enabledHint': 'يمنح كل مستخدم في هذا التثبيت عنوان إعادة توجيه. عند الإيقاف، لا يستقبل أي عنوان بريداً.',
   'mailAdmin.transport.label': 'كيفية وصول البريد',

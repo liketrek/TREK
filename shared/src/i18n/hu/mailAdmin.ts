@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Foglalási e-mailek importja',
   'mailAdmin.hint': 'A továbbított foglalási visszaigazolásokból foglalás lesz a megfelelő utazásban.',
+  'mailAdmin.setup': 'E-mail-import beállítása',
   'mailAdmin.enabled': 'Foglalási e-mailek importálása',
   'mailAdmin.enabledHint':
     'Mindenkinek ad egy továbbítási címet ezen a telepítésen. Kikapcsolva egyik cím sem fogad levelet.',

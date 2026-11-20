@@ -190,7 +190,7 @@
     {
       "feature": "Booking mail import: admin card",
       "hooks": ["src/components/Admin/mailIngest/useMailIngestAdmin.ts", "src/components/Admin/mailIngest/mailIngestAdminModel.ts"],
-      "desktop": ["src/components/Admin/mailIngest/MailIngestAdminCard.tsx"],
+      "desktop": ["src/components/Admin/mailIngest/MailIngestAddonTile.tsx"],
       "mobile": ["src/mobile/screens/admin/MMailIngestAdminCard.tsx"]
     },
     {

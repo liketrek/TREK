@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Εισαγωγή email κρατήσεων',
   'mailAdmin.hint': 'Οι προωθημένες επιβεβαιώσεις κράτησης γίνονται κρατήσεις στο σωστό ταξίδι.',
+  'mailAdmin.setup': 'Ρύθμιση εισαγωγής email',
   'mailAdmin.enabled': 'Εισαγωγή email κρατήσεων',
   'mailAdmin.enabledHint':
     'Δίνει σε όλους σε αυτή την εγκατάσταση μια διεύθυνση προώθησης. Όταν είναι ανενεργό, καμία διεύθυνση δεν δέχεται email.',

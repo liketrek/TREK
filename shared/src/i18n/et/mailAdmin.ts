@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Broneeringukirjade import',
   'mailAdmin.hint': 'Edastatud broneeringute kinnitustest saavad broneeringud õigel reisil.',
+  'mailAdmin.setup': 'Seadista kirjade import',
   'mailAdmin.enabled': 'Impordi broneeringukirjad',
   'mailAdmin.enabledHint':
     'Annab igaühele selles paigalduses edastusaadressi. Väljalülitatuna ei võta ükski aadress kirju vastu.',

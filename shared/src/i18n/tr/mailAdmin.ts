@@ -3,6 +3,7 @@ import type { TranslationStrings } from '../types';
 const mailAdmin: TranslationStrings = {
   'mailAdmin.title': 'Rezervasyon e-postası içe aktarma',
   'mailAdmin.hint': 'Yönlendirilen rezervasyon onayları doğru seyahatte rezervasyona dönüşür.',
+  'mailAdmin.setup': 'E-posta içe aktarmayı ayarla',
   'mailAdmin.enabled': 'Rezervasyon e-postalarını içe aktar',
   'mailAdmin.enabledHint':
     'Bu kurulumdaki herkese bir yönlendirme adresi verir. Kapalıyken hiçbir adres e-posta kabul etmez.',

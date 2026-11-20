@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   AlertTriangle, CheckCircle, Compass, Eye, EyeOff, FileType, Fingerprint, KeyRound, Loader2, LockKeyhole, LogIn,
-  Plane, RefreshCw, Save, XCircle,
+  RefreshCw, Save, XCircle,
 } from 'lucide-react'
 import ToggleSwitch from '../../components/Settings/ToggleSwitch'
 import CustomSelect from '../../components/shared/CustomSelect'
@@ -14,7 +14,6 @@ import GoogleOptions from './GoogleOptions'
 import GoogleDailyLimitRow from '../../components/Admin/GoogleDailyLimitRow'
 import ProviderBlock from './ProviderBlock'
 import TrekApiCard from './TrekApiCard'
-import MailIngestAdminCard from '../../components/Admin/mailIngest/MailIngestAdminCard'
 import PlaceContribPanel from '../../components/Admin/PlaceContribPanel'
 import { useAdminSettingsActions } from '../../components/Admin/useAdminSettingsActions'
 import { placesGoogleOnlyHint } from '../../utils/placeSource'
@@ -25,11 +24,10 @@ interface AdminSettingsTabProps {
   admin: ReturnType<typeof useAdmin>
   t: TranslationFn
   /**
-   * Which tab this renders: sign-in and its safety (security), what the
-   * install talks to outside (services), or the setup of the features the
-   * addons tab switches on (features).
+   * Which tab this renders: sign-in and its safety (security) or what the
+   * install talks to outside (services).
    */
-  part: 'security' | 'services' | 'features'
+  part: 'security' | 'services'
 }
 
 /**
@@ -126,7 +124,6 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
     oidcConfig, setOidcConfig, savingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
     oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
-    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, oidcConfigured, requireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,
     webauthnRpId, setWebauthnRpId, webauthnOrigins, setWebauthnOrigins, savingWebauthn, handleSaveWebauthn,
@@ -393,34 +390,6 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
             />
           </SettingsCard>
           )}
-    </>
-  )
-  const flightCard = (
-    <>
-          {/* Live flight status: open ADS-B data, no key, on by default; the admin may keep it off. */}
-          <SettingsCard icon={Plane} title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')}>
-            <SettingRows>
-              <SettingRow
-                label={t('flightLive.adminToggle')}
-                hint={flightLiveLocked ? t('flightLive.envLocked') : undefined}
-                control={
-                  <ToggleSwitch
-                    on={flightLive}
-                    label={t('flightLive.adminToggle')}
-                    disabled={flightLiveLocked}
-                    onToggle={() => void handleToggleAuthSetting('flight_live_enabled', !flightLive, setFlightLive)}
-                  />
-                }
-              />
-            </SettingRows>
-          </SettingsCard>
-    </>
-  )
-  const mailCard = (
-    <>
-          {/* Booking mail import: how forwarded booking mails reach this install. On a managed
-              install the operator runs the TREK Cloud relay, so the card is not shown there. */}
-          {!managed && <MailIngestAdminCard />}
     </>
   )
   const servicesCard = (
@@ -714,16 +683,9 @@ export default function AdminSettingsTab({ admin, t, part }: AdminSettingsTabPro
   )
 
   // What used to be one "Settings" tab, split by what an admin comes for:
-  // who may sign in and how (security), what the install talks to outside
-  // (services), and how the features in the addons tab are set up there.
-  if (part === 'features') {
-    return (
-      <>
-        {flightCard}
-        {mailCard}
-      </>
-    )
-  }
+  // who may sign in and how (security) and what the install talks to outside
+  // (services). Live flight status and the booking mail import are rows of the
+  // addons tab's cards now.
   if (part === 'services') {
     // Place search and the services on the left, the keys and file types on the right.
     return (

@@ -6,7 +6,6 @@ import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MToggle from '../../components/MToggle'
 import { MBlockDisclosure, MProviderBlock, MTrekApiBlock } from './MApiProviderBlocks'
 import MAdminOidcCard from './MAdminOidcCard'
-import MMailIngestAdminCard from './MMailIngestAdminCard'
 import MAdminGoogleDailyLimit from './MAdminGoogleDailyLimit'
 import MAdminPlaceContrib from './MAdminPlaceContrib'
 import MAdminServiceQuota from './MAdminServiceQuota'
@@ -27,39 +26,20 @@ interface MAdminSettingsSectionProps {
   t: TranslationFn
   /**
    * Which section this renders, cut the way the desktop tabs are: who may sign
-   * in and what it takes (security), what the install talks to outside
-   * (services), and the setup of the features the addons switch on (features).
+   * in and what it takes (security) or what the install talks to outside
+   * (services). Live flight status and the booking mail import are rows of the
+   * addon groups (MAdminAddonManager).
    */
-  part: 'security' | 'services' | 'features'
+  part: 'security' | 'services'
 }
 
 type PartProps = Omit<MAdminSettingsSectionProps, 'part'>
 
-// The admin's security, services and feature setup sections as phone cards,
+// The admin's security and services sections as phone cards,
 // one function each. All state and mutations come from useAdmin.
 export default function MAdminSettingsSection({ admin, t, part }: MAdminSettingsSectionProps) {
-  if (part === 'features') return <FeaturesPart admin={admin} t={t} />
   if (part === 'security') return <SecurityPart admin={admin} t={t} />
   return <ServicesPart admin={admin} t={t} />
-}
-
-/** Live flights and booking mails: how the integrations of the addons tab reach the world. */
-function FeaturesPart({ admin, t }: PartProps) {
-  const { managed, flightLive, setFlightLive, flightLiveLocked, handleToggleAuthSetting } = admin
-  return (
-    <div className="space-y-3">
-      {/* Live flight status: open ADS-B data, no key, on by default (desktop parity). */}
-      <FlightLiveCard
-        t={t}
-        managed={!!managed}
-        on={flightLive}
-        locked={flightLiveLocked}
-        onChange={(v) => void handleToggleAuthSetting('flight_live_enabled', v, setFlightLive)}
-      />
-      {/* Booking mail import: self-hosted only, the operator runs the TREK Cloud relay (desktop parity). */}
-      {!managed && <MMailIngestAdminCard />}
-    </div>
-  )
 }
 
 /** Who may sign in and what it takes, with the one destructive action last. */
@@ -480,25 +460,5 @@ function ServicesPart({ admin, t }: PartProps) {
         </div>
       </MAdminCard>
     </div>
-  )
-}
-
-/** The live flight status switch, locked with a word when the server environment holds it. */
-function FlightLiveCard({ t, managed, on, locked, onChange }: {
-  t: TranslationFn
-  managed: boolean
-  on: boolean
-  locked: boolean
-  onChange: (on: boolean) => void
-}) {
-  return (
-    <MAdminCard>
-      <MAdminCardHead title={t('flightLive.adminTitle')} hint={managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')} />
-      <MAdminRow
-        title={t('flightLive.adminToggle')}
-        hint={locked ? t('flightLive.envLocked') : undefined}
-        trailing={<MToggle checked={on} ariaLabel={t('flightLive.adminToggle')} disabled={locked} onChange={onChange} />}
-      />
-    </MAdminCard>
   )
 }

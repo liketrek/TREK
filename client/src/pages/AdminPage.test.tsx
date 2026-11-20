@@ -20,9 +20,6 @@ vi.mock('../components/Admin/BackupPanel', () => ({
 vi.mock('../components/Admin/GitHubPanel', () => ({
   default: () => <div data-testid="github-panel" />,
 }));
-vi.mock('../components/Admin/paddle/PaddleRegionsPanel', () => ({
-  default: () => <div data-testid="paddle-regions-panel" />,
-}));
 
 // AddonManager is stubbed but keeps its two callbacks reachable — the page owns
 // the optimistic toggle logic behind them.
@@ -225,8 +222,6 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /^addons$/i }));
 
       expect(screen.getByTestId('addon-manager')).toBeInTheDocument();
-      // The paddle water data sit under the addons; the panel hides itself while Tours is off.
-      expect(screen.getByTestId('paddle-regions-panel')).toBeInTheDocument();
     });
   });
 
