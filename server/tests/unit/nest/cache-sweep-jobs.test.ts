@@ -123,25 +123,6 @@ describe('PlacePhotoCacheJob', () => {
     expect(() => job.sweep()).not.toThrow();
     expect(logMock.logError).toHaveBeenCalledWith('Place-photo cache cleanup: fs down');
 
-    const thumbsDown = make(
-      () => {
-        throw new Error('storage down');
-      },
-      true,
-      4,
-    );
-    await thumbsDown.job.sweep();
-    // The copies are still swept after the thumbnail pass failed.
-    expect(thumbsDown.publicMedia.sweepOrphans).toHaveBeenCalledTimes(1);
-    expect(logMock.logInfo).toHaveBeenCalledWith(
-      'Public media cleanup: removed 4 location-free copies of deleted media',
-    );
-
-    await make(0, true, () => {
-      throw new Error('bucket throttled');
-    }).job.sweep();
-    expect(logMock.logError).toHaveBeenCalledWith('Public media cleanup: bucket throttled');
-
     const gated = make(0, false);
     gated.job.onApplicationBootstrap();
     expect(gated.cache.sweepOrphans).not.toHaveBeenCalled();
@@ -197,6 +178,25 @@ describe('JourneyThumbsJob', () => {
     });
     await job.sweep();
     expect(logMock.logError).toHaveBeenCalledWith('Journey thumbnail cleanup: storage down');
+
+    const thumbsDown = make(
+      () => {
+        throw new Error('storage down');
+      },
+      true,
+      4,
+    );
+    await thumbsDown.job.sweep();
+    // The copies are still swept after the thumbnail pass failed.
+    expect(thumbsDown.publicMedia.sweepOrphans).toHaveBeenCalledTimes(1);
+    expect(logMock.logInfo).toHaveBeenCalledWith(
+      'Public media cleanup: removed 4 location-free copies of deleted media',
+    );
+
+    await make(0, true, () => {
+      throw new Error('bucket throttled');
+    }).job.sweep();
+    expect(logMock.logError).toHaveBeenCalledWith('Public media cleanup: bucket throttled');
 
     const gated = make(0, false);
     gated.job.onApplicationBootstrap();

@@ -137,7 +137,12 @@ export class PhotoResolverService {
     return true;
   }
 
-  /** The thumbnail row path, generated for a raster image that has none yet. */
+  /**
+   * The thumbnail row path, generated for a raster image that has none yet.
+   *
+   * @txStandalone an idempotent lazy provision: the row only records a
+   * thumbnail that already exists in storage, whatever the caller does next.
+   */
   private async localThumbnail(photo: TrekPhoto): Promise<string | null> {
     if (photo.thumbnail_path) return photo.thumbnail_path;
     // Only raster images get a lazily-generated Jimp thumbnail; Jimp can't decode
