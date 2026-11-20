@@ -31,10 +31,10 @@ export function trackStoredObjects(storage: StorageService): StoredObjects {
     stored,
     async cleanup() {
       storage.put = put;
-      for (const { category, name } of stored.splice(0)) {
-        // Already gone is fine: a test may have deleted its own object.
-        await storage.delete(category, name).catch(() => undefined);
-      }
+      // Already gone is fine: a test may have deleted its own object.
+      await Promise.all(
+        stored.splice(0).map(({ category, name }) => storage.delete(category, name).catch(() => undefined)),
+      );
     },
   };
 }
