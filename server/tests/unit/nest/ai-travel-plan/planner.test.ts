@@ -333,6 +333,39 @@ describe('PlannerService', () => {
     );
   });
 
+  it('never searches the bare destination — Amap answers that with the city’s own offices', async () => {
+    const search = vi.fn(async (_userId: number, _query: string) => [candidate(1), candidate(2)]);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search,
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    await planner.plan({ userId: 1, request: request() });
+
+    const queries = search.mock.calls.map((call) => call[1]);
+    expect(queries).toEqual(expect.arrayContaining(['杭州 景点', '杭州 博物馆', '杭州 公园']));
+    expect(queries).not.toContain('杭州');
+  });
+
+  it('drops civic infrastructure that a city-name search drags in', async () => {
+    const civic = (id: number, category: string) => ({ ...candidate(id), category });
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        candidate(1),
+        civic(2, '政府机构及社会团体;政府机关;地市级政府及事业单位'),
+        civic(3, '科教文化服务;学校;中学'),
+        civic(4, '医疗保健服务;医药保健销售店'),
+      ]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days.flatMap((day) => day.items).map((item) => item.place.name)).toEqual(['地点1']);
+  });
+
   it('schedules real places with routed legs and records place and route facts', async () => {
     const planner = service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),

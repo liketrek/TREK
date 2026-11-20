@@ -28,6 +28,29 @@ const MAX_PLACES = 24;
 /** A stop must be near the resolved centre; a same-named venue abroad is not a candidate. */
 const MAX_PLACE_DISTANCE_M = 80_000;
 
+/**
+ * Provider categories that are infrastructure, never a place to visit. Amap
+ * answers a bare city-name search with the city's own offices, schools and
+ * hospitals, and a plan of those is not a trip.
+ */
+const NON_VISIT_CATEGORY_PREFIXES = [
+  '政府机构及社会团体',
+  '医疗保健服务',
+  '金融保险服务',
+  '交通设施服务',
+  '汽车服务',
+  '公司企业',
+  '科教文化服务;学校',
+];
+
+const NON_VISIT_CATEGORIES = new Set(['government', 'hospital', 'school', 'bank', 'pharmacy', 'parking', 'office']);
+
+function isVisitCategory(category: string | null): boolean {
+  const value = (category ?? '').trim().toLowerCase();
+  if (value === '') return true;
+  return !NON_VISIT_CATEGORY_PREFIXES.some((prefix) => value.startsWith(prefix)) && !NON_VISIT_CATEGORIES.has(value);
+}
+
 export interface PlannerOutcome {
   draft: TravelPlanDraft;
   facts: TravelPlanFact[];
@@ -103,10 +126,12 @@ export class PlannerService {
       if (result.warning) warnings.push(result.warning);
     }
     // Keep the draft in one city: drop administrative areas (a "city" record is
-    // not a stop) and same-named venues that geocoded somewhere else entirely.
+    // not a stop), civic infrastructure and same-named venues that geocoded
+    // somewhere else entirely.
     const nearby = candidates.filter(
       (candidate) =>
         !ADMIN_CATEGORIES.has((candidate.category ?? '').toLowerCase()) &&
+        isVisitCategory(candidate.category) &&
         haversine(centre, candidate.place) <= MAX_PLACE_DISTANCE_M,
     );
     if (nearby.length === 0) {
@@ -206,10 +231,12 @@ function dayCountOf(request: TravelPlanCreateRequest): number | null {
 function buildQueries(request: TravelPlanCreateRequest, extra: string[]): string[] {
   const destination = request.destination ?? '';
   const interests = request.interests.length > 0 ? request.interests : ['景点', '博物馆', '公园'];
-  // The destination keeps the last slot; every other slot is a keyword, so a
-  // fourth interest is searched instead of silently dropped.
-  const keywords = [...interests, ...extra].slice(0, Math.max(1, MAX_QUERIES - 1));
-  const queries = [...keywords.map((keyword) => `${destination} ${keyword}`), destination]
+  // The city name alone is never a query: Amap matches it against POI names and
+  // fills the pool with the city's own offices, schools and hospitals. Every
+  // query pairs the city with a keyword; extra revision keywords take the slots.
+  const keywords = [...interests, ...extra].slice(0, MAX_QUERIES);
+  const queries = keywords
+    .map((keyword) => `${destination} ${keyword}`)
     .map((query) => query.replace(/\s+/g, ' ').trim().slice(0, QUERY_MAX))
     .filter((query) => query !== '');
 
