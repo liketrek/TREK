@@ -8,7 +8,7 @@ import PoiCategoryPill from '../../../../components/Map/PoiCategoryPill'
 import { usePoiExplore } from '../../../../components/Map/usePoiExplore'
 import { useMergedMapPois } from '../../../../components/Map/useMergedMapPois'
 import { firstStopOfPlace, stageOf } from '../../../../components/Roadtrip/roadtripRowModel'
-import { stageMapData } from '../../../../components/Roadtrip/stageMap'
+import { stageConnectionIds, stageMapData } from '../../../../components/Roadtrip/stageMap'
 import { usePlanMapViewport } from '../../../../hooks/usePlanMapViewport'
 import { useIsDark } from '../../../../hooks/useIsDark'
 import { useTileUrl } from '../../../../hooks/useTileUrl'
@@ -21,6 +21,7 @@ import { RT_ALT_BAR_LIFT } from '../roadtrip/useMRtAlternatives'
 import type { MMapAreaProps } from '../MTripShell'
 import type { Poi } from '../../../../components/Map/poiCategories'
 import type { ViewportPadding } from '../../../../utils/mapViewport'
+import { runsOnDay } from '../../../../utils/reservationRoutes'
 
 /** One array, so an explore set switched off does not move every pin on the stage. */
 const NO_POIS: Poi[] = []
@@ -215,6 +216,20 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
     () => onStage ? stageMapData(planner.roadtripRoutes, stage, !!dayColorsOn) : null,
     [onStage, planner.roadtripRoutes, stage, dayColorsOn],
   )
+  // The arcs the stage draws: its own rides and what was switched on for its day. The
+  // all-days view keeps every ride of the drive.
+  const stageConnections = useMemo(() => {
+    if (!onStage) return null
+    if (!stage) return planner.roadtripConnections
+    const byId = new Map(planner.reservations.map(r => [r.id, r]))
+    return stageConnectionIds(stage, planner.visibleConnections, id => {
+      const r = byId.get(id)
+      return !r || runsOnDay(r, planner.selectedDayId, planner.days)
+    })
+  }, [
+    onStage, stage, planner.roadtripConnections, planner.reservations,
+    planner.visibleConnections, planner.selectedDayId, planner.days,
+  ])
 
   // Only what the stage carries, so a trip's other 200 pins stay off a screen that
   // is answering one question. Without a stage (the all-days view) every place a stored
@@ -412,10 +427,11 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         // toggled on or not, the way the desktop map does it in road trip mode. The
         // ride's leg carries no geometry, so without this the road ended at the
         // departure terminal and picked up again at the arrival with nothing between.
-        visibleConnectionIds={onStage ? planner.roadtripConnections : planner.visibleConnections}
+        visibleConnectionIds={stageConnections ?? planner.visibleConnections}
         // The plan map shows one day, so a booking switched on for another day stays off
         // it until that day is picked, or the whole trip is. The switch itself is still
-        // trip-wide. The stage keeps its seamed rides whatever day they were booked on.
+        // trip-wide. The stage scopes its own set above, since its seamed rides stay on
+        // it whatever day they were booked on.
         scopeConnectionsToDay={!onStage}
         // Transport overlay tap → the mobile transport detail sheet (desktop
         // routes this through mapTransportDetail into the day sidebar instead).

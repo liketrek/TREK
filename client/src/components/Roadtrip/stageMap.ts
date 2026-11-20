@@ -1,4 +1,5 @@
 import { dayColor } from './dayColors'
+import { carrierReservationIds } from '@trek/shared/roadtrip'
 import type { AccessSpur, RoadtripDay, RoadtripRoutes } from '@trek/shared/roadtrip'
 
 /**
@@ -86,6 +87,20 @@ export function stageMapData(
  */
 export function stagePlaceIds(stage: RoadtripDay): Set<number> {
   return new Set(stage.stops.filter(s => !s.automaticNight).map(s => s.placeId))
+}
+
+/**
+ * The bookings the map draws as arcs on ONE stage: the rides that seam this stage's
+ * drive, whatever day they were booked on, and of the ones switched on by hand only
+ * those that run on the stage's day. Taking the rides of the whole drive put a flight
+ * home across every stage before it, as if it were part of that day.
+ */
+export function stageConnectionIds(
+  stage: RoadtripDay,
+  switchedOn: readonly number[],
+  runsOnStageDay: (reservationId: number) => boolean,
+): number[] {
+  return [...new Set([...switchedOn.filter(runsOnStageDay), ...carrierReservationIds([stage])])]
 }
 
 /** The stage's stops as coordinates, for the fit. */

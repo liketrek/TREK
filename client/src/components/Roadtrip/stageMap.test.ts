@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { dayColor } from './dayColors'
-import { stageMapData, stagePlaceIds, stagePoints } from './stageMap'
+import { stageConnectionIds, stageMapData, stagePlaceIds, stagePoints } from './stageMap'
 import type { AccessSpur, RoadtripDay, RoadtripRoutes, RoadtripStop } from '@trek/shared/roadtrip'
 
-// FE-RTSTAGE-001 to FE-RTSTAGE-021
+// FE-RTSTAGE-001 to FE-RTSTAGE-023
 
 function stop(name: string, over: Partial<RoadtripStop> = {}): RoadtripStop {
   return {
@@ -266,5 +266,25 @@ describe('a stage that starts or ends at a booked night', () => {
     expect([...data.placeIds]).toEqual([900, 11])
     expect(data.focusPoints[0]).toEqual([47.2, 11.4])
     expect(data.accessLines).toEqual([walk])
+  })
+})
+
+describe('stageConnectionIds', () => {
+  const flight = (reservationId: number, role: 'arrival' | 'departure') =>
+    stop('Airport', { carrier: { reservationId, type: 'flight', role, title: 'Flight', code: null, at: null } })
+
+  it("FE-RTSTAGE-022: a stage draws its own rides, not the drive's ride home from a later day", () => {
+    // The flight in (31) seams this stage; the flight home (32) belongs to a stage days later
+    // and is not on this one at all.
+    const stage = day([flight(31, 'arrival'), stop('Ubud')])
+    expect(stageConnectionIds(stage, [], () => true)).toEqual([31])
+  })
+
+  it('FE-RTSTAGE-023: of the bookings switched on by hand only those running on the stage day stay', () => {
+    const stage = day([stop('Ubud')])
+    const onThisDay = new Set([40])
+    expect(stageConnectionIds(stage, [40, 41], id => onThisDay.has(id))).toEqual([40])
+    // A ride that seams the stage stays even when it was booked on another day.
+    expect(stageConnectionIds(day([flight(31, 'arrival')]), [31], () => false)).toEqual([31])
   })
 })
