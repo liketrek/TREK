@@ -10,11 +10,13 @@ import { buildApp } from '../../src/bootstrap';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
 import { Collections } from '../../src/db/entities/Collections.entity';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie } from '../helpers/auth';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { insertRow, upsertRow } from '../helpers/factories/rows';
 import { makeUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
 import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -26,6 +28,8 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
+// Only what this suite stored is removed: other suites share uploads/ and may run beside it.
+let stored: StoredObjects;
 let app: Application;
 let orm: FactoryOrm;
 const FIXTURE_IMG = path.join(__dirname, '../fixtures/small-image.jpg');
@@ -42,6 +46,7 @@ async function createCollectionPlace(collectionId: number, ownerId: number): Pro
 
 beforeAll(async () => {
   nestApp = await buildApp();
+  stored = trackStoredObjects(nestApp.get(StorageService));
   app = nestApp.getHttpAdapter().getInstance();
   orm = nestApp.get(MikroORM);
 });
@@ -62,9 +67,8 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await stored.cleanup();
   await nestApp.close();
-  fs.rmSync(coversDir, { recursive: true, force: true });
-  fs.rmSync(placesDir, { recursive: true, force: true });
 });
 
 describe('Collection cover upload', () => {

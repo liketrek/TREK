@@ -10,6 +10,7 @@
 import { buildApp } from '../../src/bootstrap';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { TripFiles } from '../../src/db/entities/TripFiles.entity';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie, authHeader, generateToken } from '../helpers/auth';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { findRows, updateRows } from '../helpers/factories/rows';
@@ -17,6 +18,7 @@ import { setAppSetting } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
 import { makeUser, readUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
 import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -28,6 +30,8 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
+// Only what this suite stored is removed: other suites share uploads/ and may run beside it.
+let stored: StoredObjects;
 let app: Application;
 /** The app's own ORM, which the factories seed and read through. */
 let orm: FactoryOrm;
@@ -36,6 +40,7 @@ const uploadsDir = path.join(__dirname, '../../uploads/files');
 
 beforeAll(async () => {
   nestApp = await buildApp();
+  stored = trackStoredObjects(nestApp.get(StorageService));
   orm = nestApp.get(MikroORM);
   app = nestApp.getHttpAdapter().getInstance();
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -49,8 +54,8 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await stored.cleanup();
   await nestApp.close();
-  fs.rmSync(uploadsDir, { recursive: true, force: true });
 });
 
 describe('Authentication security', () => {

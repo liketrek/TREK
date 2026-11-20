@@ -6,6 +6,7 @@ import { buildApp } from '../../src/bootstrap';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie } from '../helpers/auth';
 import { jpegWithExif } from '../helpers/exif-jpeg';
 import { addJourneyContributor, makeJourney, makeJourneyEntry } from '../helpers/factories/journeys';
@@ -14,6 +15,7 @@ import { setAppSetting } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
 import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -1031,9 +1033,25 @@ describe('Journey upload parity', () => {
   const FIXTURE_IMG = pathMod.join(__dirname, '../fixtures/small-image.jpg');
   const journeyDir = pathMod.join(__dirname, '../../uploads/journey');
 
-  afterAll(() => {
-    fsMod.rmSync(journeyDir, { recursive: true, force: true });
+  // Only what these tests store is removed: other suites share uploads/ and may run beside them.
+  let stored: StoredObjects;
+  beforeAll(() => {
+    stored = trackStoredObjects(nestApp.get(StorageService));
   });
+  afterAll(async () => {
+    await stored.cleanup();
+  });
+
+  /**
+   * The objects stored since `since` that still exist. Counting the files in
+   * uploads/journey would also count what a suite beside this one writes there.
+   */
+  async function stillStored(since: number): Promise<string[]> {
+    const storage = nestApp.get(StorageService);
+    const objects = stored.stored.slice(since);
+    const exists = await Promise.all(objects.map(({ category, name }) => storage.exists(category, name)));
+    return objects.filter((_, i) => exists[i]).map(({ name }) => name);
+  }
 
   it('JOURNEY-P01 — entry photo upload stores journey/<uuid> with a lowercased extension', async () => {
     const { user } = await makeUser(orm);
@@ -1098,7 +1116,7 @@ describe('Journey upload parity', () => {
     const { user: other } = await makeUser(orm);
     const journey = await makeJourney(orm, owner.id);
 
-    const before = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
+    const since = stored.stored.length;
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/photos`)
       .set('Cookie', authCookie(other.id))
@@ -1107,8 +1125,8 @@ describe('Journey upload parity', () => {
     expect(res.body.error).toBe('Not allowed');
     // The commit runs before the permission answer is known, so the refusal has
     // to delete the object again. Nothing sweeps orphans.
-    const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before);
+    expect(stored.stored.length).toBeGreaterThan(since);
+    expect(await stillStored(since)).toEqual([]);
   });
 
   it('JOURNEY-P06 — video+poster upload: poster is ALWAYS stored as .jpg (stored-XSS pin)', async () => {
@@ -1130,15 +1148,14 @@ describe('Journey upload parity', () => {
     const { user } = await makeUser(orm);
     const journey = await makeJourney(orm, user.id);
 
-    const before = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
+    const since = stored.stored.length;
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/video`)
       .set('Cookie', authCookie(user.id))
       .attach('poster', fsMod.readFileSync(FIXTURE_IMG), { filename: 'poster.png', contentType: 'image/png' });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('No video uploaded');
-    const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before);
+    expect(await stillStored(since)).toEqual([]);
   });
 
   it('JOURNEY-P08 — non-contributor video upload is 403 and BOTH files are removed', async () => {
@@ -1146,7 +1163,7 @@ describe('Journey upload parity', () => {
     const { user: other } = await makeUser(orm);
     const journey = await makeJourney(orm, owner.id);
 
-    const before = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
+    const since = stored.stored.length;
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/video`)
       .set('Cookie', authCookie(other.id))
@@ -1154,8 +1171,9 @@ describe('Journey upload parity', () => {
       .attach('poster', fsMod.readFileSync(FIXTURE_IMG), { filename: 'poster.png', contentType: 'image/png' });
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('Not allowed');
-    const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before);
+    // The bytes were written before the refusal, and are gone again.
+    expect(stored.stored.length).toBeGreaterThan(since);
+    expect(await stillStored(since)).toEqual([]);
   });
 
   it('JOURNEY-P09 — cover upload stores journey/<uuid> into cover_image', async () => {

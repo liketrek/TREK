@@ -8,6 +8,7 @@
  * - FILE-009 (ephemeral token download) is covered via the /api/auth/resource-token endpoint
  */
 import { buildApp } from '../../src/bootstrap';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie, generateToken } from '../helpers/auth';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { makePlace } from '../helpers/factories/places';
@@ -16,6 +17,7 @@ import { setAppSetting } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
 import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -27,6 +29,8 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
+// Only what this suite stored is removed: other suites share uploads/ and may run beside it.
+let stored: StoredObjects;
 let app: Application;
 let orm: FactoryOrm;
 const FIXTURE_PDF = path.join(__dirname, '../fixtures/test.pdf');
@@ -37,6 +41,7 @@ const uploadsDir = path.join(__dirname, '../../uploads/files');
 
 beforeAll(async () => {
   nestApp = await buildApp();
+  stored = trackStoredObjects(nestApp.get(StorageService));
   app = nestApp.getHttpAdapter().getInstance();
   orm = nestApp.get(MikroORM);
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -52,8 +57,8 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  await stored.cleanup();
   await nestApp.close();
-  fs.rmSync(uploadsDir, { recursive: true, force: true });
 });
 
 // Helper to upload a file and return the file object

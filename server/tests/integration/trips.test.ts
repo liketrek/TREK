@@ -20,6 +20,7 @@ import { TripMembers } from '../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie } from '../helpers/auth';
 import { makeBudgetItem } from '../helpers/factories/budget';
 import type { FactoryOrm } from '../helpers/factories/context';
@@ -32,6 +33,7 @@ import { setAppSetting } from '../helpers/factories/settings';
 import { addTripMember, makeTrip, readTripDays } from '../helpers/factories/trips';
 import { makeAdmin, makeUser, readUser } from '../helpers/factories/users';
 import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
 import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -1271,8 +1273,13 @@ describe('Trip cover upload parity', () => {
   const FIXTURE_IMG = pathMod.join(__dirname, '../fixtures/small-image.jpg');
   const coversDir = pathMod.join(__dirname, '../../uploads/covers');
 
-  afterAll(() => {
-    fsMod.rmSync(coversDir, { recursive: true, force: true });
+  // Only what these tests store is removed: other suites share uploads/ and may run beside them.
+  let stored: StoredObjects;
+  beforeAll(() => {
+    stored = trackStoredObjects(nestApp.get(StorageService));
+  });
+  afterAll(async () => {
+    await stored.cleanup();
   });
 
   it('TRIP-P01 — cover upload returns /uploads/covers/<uuid> and writes the file', async () => {
