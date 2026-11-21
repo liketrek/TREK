@@ -44,6 +44,8 @@ Requires `trips:read` or `trips:write` scope.
 | `create_trip_guest` | Add a travelling companion who has no TREK account. Assignable to budget splits, packing and day participants; never signs in, never emailed. Owner only. |
 | `rename_trip_guest` | Rename a guest on a trip. Owner only. |
 | `delete_trip_guest` | Delete a guest and hand their share of each expense to the others in its split. Refused while the guest paid for an expense or is part of a recorded payment. Owner only. |
+| `get_trip_addons` | The trip addons of one trip (lists, costs, files, collab, road trip, tours) and whether each applies to it: `enabled` is what applies here, `instanceEnabled` the instance setting, `overridden` whether the trip owner chose it. An addon that is off for a trip has its tools refused for that trip. |
+| `set_trip_addon` | Switch one trip addon on or off for this trip only, or pass `enabled: null` to follow the instance again. Owner only. Data of an addon switched off is kept. See [Trip-Settings](Trip-Settings#addons). |
 | `copy_trip` | Duplicate a trip (days, places, itinerary, packing, budget, reservations). Packing items reset to unchecked. |
 | `export_trip_ics` | Export the trip itinerary and reservations as iCalendar (`.ics`) text. `dayEvents: false` leaves out the all-day summary per day. |
 | `get_share_link` | Get the current public share link for a trip and its permission flags. Requires `trips:share`. |
