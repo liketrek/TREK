@@ -79,6 +79,7 @@ const NOT_ROW_IDS: Record<string, string> = {
   '* /api/plugin-settings/ :id': 'a plugin id is its manifest slug',
   '* /api/oauth/clients/ :id': 'an OAuth client row id is a generated text key',
   'PUT /api/admin/addons/:id :id': 'an addon id is its key',
+  'PUT /api/trips/:tripId/addons/:addonId :addonId': 'an addon id is its key',
   'GET /api/maps/place-photo/:placeId :placeId': 'a maps provider place id is a provider string',
   '* /api/ :toolCallId': "an assistant tool call id is the model's string",
 };

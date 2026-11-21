@@ -12,7 +12,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { collabFeatureGate } from '../addons/addon-gate';
+import { addonOffResource, collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -551,6 +551,7 @@ export class CollabMcp {
   async tripCollabNotesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = uriRowId(tripId);
     if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.COLLAB))) return addonOffResource(uri, ADDON_IDS.COLLAB);
     const notes = await this.collab.listNotes(id);
     return jsonContent(uri.href, notes);
   }
@@ -566,6 +567,7 @@ export class CollabMcp {
   async tripCollabPollsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = uriRowId(tripId);
     if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.COLLAB))) return addonOffResource(uri, ADDON_IDS.COLLAB);
     const polls = await this.collab.listPolls(id);
     return jsonContent(uri.href, polls);
   }
@@ -581,6 +583,7 @@ export class CollabMcp {
   async tripCollabMessagesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = uriRowId(tripId);
     if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.COLLAB))) return addonOffResource(uri, ADDON_IDS.COLLAB);
     const messages = await this.collab.listMessages(id);
     return jsonContent(uri.href, messages);
   }

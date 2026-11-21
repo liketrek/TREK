@@ -1,3 +1,4 @@
+import { ADDON_IDS } from '../../addons';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import { CollabMessages } from '../../db/entities/CollabMessages.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
@@ -19,6 +20,7 @@ import type { ReservationsRepository } from '../../db/repositories/Reservations.
 import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
 import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { AddonsService } from '../addons/addons.service';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
@@ -214,6 +216,7 @@ export class ShareService {
     @InjectRepository(PackingItems) private readonly packingItems: PackingItemsRepository,
     @InjectRepository(BudgetItems) private readonly budgetItems: BudgetItemsRepository,
     @InjectRepository(CollabMessages) private readonly collabMessages: CollabMessagesRepository,
+    private readonly addons: AddonsService,
   ) {}
 
   /** SH-AP1 — the same `TripsRepository.findAccessible` every other access-primitive call in this plan reuses. */
@@ -346,12 +349,15 @@ export class ShareService {
     const trip = await this.trips.findPublicForShare(tripId);
     if (!trip) return null;
 
+    // A section whose addon is off for this trip is not shared, whatever the
+    // link allows, and the page is told so through the same flags it reads.
+    const on = async (addonId: string) => this.addons.isEnabledForTrip(tripId, addonId);
     const permissions = {
       share_map: !!shareRow.share_map,
       share_bookings: !!shareRow.share_bookings,
-      share_packing: !!shareRow.share_packing,
-      share_budget: !!shareRow.share_budget,
-      share_collab: !!shareRow.share_collab,
+      share_packing: !!shareRow.share_packing && (await on(ADDON_IDS.PACKING)),
+      share_budget: !!shareRow.share_budget && (await on(ADDON_IDS.BUDGET)),
+      share_collab: !!shareRow.share_collab && (await on(ADDON_IDS.COLLAB)),
       share_travel_only: !!shareRow.share_travel_only,
       share_hide_images: !!shareRow.share_hide_images,
     };

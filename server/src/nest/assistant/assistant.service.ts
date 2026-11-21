@@ -289,7 +289,7 @@ export class AssistantService {
   ): Promise<void> {
     await this.admit(userId);
     const reader: AttachedFileReader = isAssistantTourFile(file.originalname) ? this.tourFiles : this.bookings;
-    await reader.ensureReadable(userId, file);
+    await reader.ensureReadable(userId, tripId, file);
     const connection = await this.connections.resolveForUser(userId);
     await this.withinDailyLimit(userId, connection);
     await this.claimed(userId, channel.signal, async (signal) => {

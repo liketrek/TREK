@@ -8,6 +8,7 @@ import { Places } from '../../db/entities/Places.entity';
 import { Reservations } from '../../db/entities/Reservations.entity';
 import { ShareTokens } from '../../db/entities/ShareTokens.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import { AddonsModule } from '../addons/addons.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
@@ -29,6 +30,8 @@ import { Module } from '@nestjs/common';
 // for the same reason).
 @Module({
   imports: [
+    // The shared sections follow the trip's addons (ShareService.getSharedTripData).
+    AddonsModule,
     McpSharedModule,
     SettingsModule,
     PermissionsModule,

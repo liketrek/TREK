@@ -42,6 +42,7 @@ import {
 import { deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting, setUserSetting } from '../../helpers/factories/settings';
 import { shareServiceRepoArgs } from '../../helpers/share-repos';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestModule, type TestModule } from '../../helpers/test-module';
 import type { TestOrm } from '../../helpers/test-orm';
@@ -102,6 +103,7 @@ beforeAll(async () => {
     photoCacheStub,
     await createTestUnitOfWork(testDb),
     ...(await shareServiceRepoArgs(testDb)),
+    await createTestAddonsService(testDb),
   );
 });
 

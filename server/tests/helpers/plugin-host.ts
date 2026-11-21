@@ -521,6 +521,7 @@ export async function createPluginRpcHostParts(
     await createTestUsersRepo(db),
     await createTestTripsRepo(db),
     await createTestBudgetItemsRepo(db),
+    await createTestAddonsService(db),
   );
   const trips = new TripsService(
     reservations,
@@ -535,6 +536,8 @@ export async function createPluginRpcHostParts(
     await createTestUnitOfWork(db),
     (await sharedTestOrm(db)).em,
     new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db), membership),
+    // TripAddonsService: a copy's per-trip addon switches have their own suites; nothing is copied here.
+    { copyOverrides: async () => {} } as never,
   );
   // Plan 4 Task 4: UserCleanupService's UC1 now goes through a directly-injected
   // EntityManager (MaintenanceRepository.deletePluginUserData), not DatabaseService.

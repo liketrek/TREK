@@ -500,11 +500,11 @@ describe('TourChangeUndoMcp (MCP-T04)', () => {
       ]);
       expect(Object.keys(options.inputSchema as object)).toEqual([...fields]);
       expect(options.description).toContain('planner');
-      const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
-      return { isAddonEnabled, open: options.when?.(ctx(1), { addons: { isAddonEnabled } }) };
+      const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === 'tours');
+      return { isEnabledForUserAnywhere, open: options.when?.(ctx(1), { addons: { isEnabledForUserAnywhere } }) };
     });
     expect(await Promise.all(gates.map((gate) => gate.open))).toEqual([true, true, true]);
-    for (const { isAddonEnabled } of gates) expect(isAddonEnabled).toHaveBeenCalledWith('tours');
+    for (const { isEnabledForUserAnywhere } of gates) expect(isEnabledForUserAnywhere).toHaveBeenCalledWith(1, 'tours');
     const entry = getEntry(TourChangeUndoMcp as unknown as ClassRef, 'undoTourChange');
     if (!entry || entry.kind !== 'tool') throw new Error('undoTourChange is no MCP tool');
     // The fields are zod schemas from @trek/shared, read here by what they answer.

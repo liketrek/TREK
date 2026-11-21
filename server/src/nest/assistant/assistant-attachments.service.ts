@@ -183,9 +183,11 @@ export class AssistantAttachmentsService {
     const compact = connection.kind === 'custom';
     const { attached, texts } = await this.forTurn(threadId, userId, compact);
     const sentTo = `${connection.model} (${connection.host})`;
+    // A thread's files all belong to its trip, so the first one names it.
+    const keeps = attached.length > 0 && (await this.keeper.keepsOn(attached[0].trip_id));
     // Read while the turn streams, outside any request's context.
     const read = (id: string) => withRequestContext(this.orm, () => this.readShared(userId, threadId, id, compact));
-    return { texts, turn: { attached, sentTo, read } };
+    return { texts, turn: { attached, sentTo, keeps, read } };
   }
 
   /** Whether a held change is one on an attachment, which `applyChange` runs. */

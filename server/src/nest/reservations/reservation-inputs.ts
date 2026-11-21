@@ -73,3 +73,16 @@ export interface UpdateReservationData {
   endpoints?: EndpointInput[];
   needs_review?: boolean;
 }
+
+/** The stay times a hotel booking keeps in its metadata. */
+export type AccommodationTimesMeta = {
+  check_in_time?: string | null;
+  check_in_end_time?: string | null;
+  check_out_time?: string | null;
+};
+
+/** A booking's linked cost as a write takes it. */
+export type BudgetEntry =
+  { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
+/** A booking's cost as written: the entry, dated on the booking's day (bookingDate), never by the caller. */
+export type DatedBudgetEntry = (NonNullable<BudgetEntry> & { expense_date?: string | null }) | undefined;

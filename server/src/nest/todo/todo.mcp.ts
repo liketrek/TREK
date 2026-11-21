@@ -12,7 +12,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -305,6 +305,7 @@ export class TodoMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING))) return addonOffResource(uri, ADDON_IDS.PACKING);
     const items = await this.todos.listItems(id);
     return {
       contents: [

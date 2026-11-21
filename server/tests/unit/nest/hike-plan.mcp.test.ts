@@ -264,10 +264,10 @@ describe('HikePlanMcp: the tools and their gates', () => {
     expect(tools[1].description).toContain('route_pending');
     expect(tools[2].description).toContain('expected_revision');
     expect(tools[3].description).toContain('skipped');
-    const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
-    const gated = await Promise.all(tools.map((tool) => tool.when?.(ctx(1), { addons: { isAddonEnabled } })));
+    const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === 'tours');
+    const gated = await Promise.all(tools.map((tool) => tool.when?.(ctx(1), { addons: { isEnabledForUserAnywhere } })));
     expect(gated).toEqual([true, true, true, true]);
-    expect(isAddonEnabled).toHaveBeenCalledWith('tours');
+    expect(isEnabledForUserAnywhere).toHaveBeenCalledWith(1, 'tours');
   });
 
   it('HIKE-MCP-002: an outsider is refused every tool, and the writes are refused without place_edit, as REST refuses them', async () => {

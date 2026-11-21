@@ -3,6 +3,7 @@
  * App-agnostic on purpose — host-specific canned errors (permission wording,
  * RBAC lookups, broadcasts) belong in the host, built on `errorResult`.
  */
+import type { McpToolGate } from './types';
 
 /** The text-content result shape MCP tool handlers return. */
 export interface McpTextResult {
@@ -67,3 +68,16 @@ export const TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT = {
   ...TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   openWorldHint: true,
 } as const;
+
+/**
+ * One tool gate out of several, asked in order: the first refusal answers
+ * the call, and the handler runs only when every gate let it through.
+ */
+export function combineToolGates(...gates: readonly McpToolGate[]): McpToolGate {
+  // Chained rather than run side by side: a later gate is not asked once an earlier one refused.
+  return (tool, ctx, args) =>
+    gates.reduce<Promise<unknown>>(async (earlier, gate) => {
+      const refusal = await earlier;
+      return refusal !== undefined ? refusal : gate(tool, ctx, args);
+    }, Promise.resolve(undefined));
+}

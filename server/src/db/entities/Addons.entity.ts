@@ -1,6 +1,7 @@
-import { EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
+import { Collection, EntityRepositoryType, type Opt, defineEntity, p } from '@mikro-orm/core';
 import { AddonsRepository } from '../repositories/Addons.repository';
 import { IntegerFlagType } from '../types';
+import { TripAddonOverrides } from './TripAddonOverrides.entity';
 
 export interface AddonConfig {
   [key: string]: unknown;
@@ -16,6 +17,7 @@ export class Addons {
   enabled?: boolean | null;
   config?: AddonConfig | null;
   sort_order?: number | null = 0;
+  trip_addon_overrides_collection = new Collection<TripAddonOverrides>(this);
 }
 
 export const AddonsSchema = defineEntity({
@@ -30,5 +32,6 @@ export const AddonsSchema = defineEntity({
     enabled: p.type(IntegerFlagType).nullable().default(false),
     config: p.json<AddonConfig>().nullable().default('{}'),
     sort_order: p.integer().nullable(),
+    trip_addon_overrides_collection: () => p.oneToMany(TripAddonOverrides).mappedBy('addon').hidden(),
   },
 });

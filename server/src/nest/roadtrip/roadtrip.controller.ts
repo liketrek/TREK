@@ -1,7 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
@@ -45,11 +45,11 @@ import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
  * socket that sent the request.
  */
 @Controller('api/trips/:tripId/roadtrip')
-// AddonGuard FIRST: @RequireAddon is metadata and does nothing on its own, and the guard
-// is not registered globally either, so without it here the decorator below was inert and
-// all six routes answered on an instance that had the addon switched off. It leads the
-// chain because a disabled addon owes an anonymous caller a 404, not a 401.
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+// TripAddonGuard enforces @RequireAddon, which is metadata and does nothing on its own: without
+// a guard here the decorator below was inert and all six routes answered on an instance that
+// had the addon switched off. It runs after TripAccessGuard because what applies is the trip's
+// own choice, which only a caller who may see the trip learns.
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.ROADTRIP, 'Road trip')
 export class RoadtripController {
   constructor(private readonly roadtrip: RoadtripService) {}

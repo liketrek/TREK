@@ -74,7 +74,7 @@ function build(addonOn: boolean) {
   const guards = new PluginGuards(
     db,
     { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
-    { isAddonEnabled: vi.fn(() => addonOn) } as unknown as AddonsService,
+    { isAddonEnabled: vi.fn(() => addonOn), isEnabledForTrip: vi.fn(async () => addonOn) } as unknown as AddonsService,
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   const registry = createTestPluginRegistry([
@@ -168,8 +168,10 @@ describe('every addon-gated plugin method refuses when its addon is off', () => 
       expect(res.ok).toBe(false);
       expect(res.error.code).toBe('RESOURCE_FORBIDDEN');
       expect(res.error.message).toBe(`the ${addon} addon is disabled`);
-      // The gate has to come before the service, not after it.
-      expect(f.calls).toEqual([]);
+      // The gate has to come before the service, not after it. listMine first reads which trips the
+      // user has, since a trip of theirs may have switched Costs on while the instance has it off.
+      const reads = method === 'costs.listMine' ? ['membership.listAccessibleTripIds'] : [];
+      expect(f.calls).toEqual(reads);
     });
   }
 

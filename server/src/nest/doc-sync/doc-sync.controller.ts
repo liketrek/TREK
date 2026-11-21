@@ -2,6 +2,7 @@ import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { rowId } from '../common/row-id.pipe';
@@ -64,7 +65,10 @@ import type { Request } from 'express';
  * where their documents are going.
  */
 @Controller('api/trips/:tripId/docsync')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+// AddonGuard first, on the instance switch alone: the document providers stay bound to it, so a trip
+// cannot open doc-sync while the instance has Documents off. TripAddonGuard then refuses a trip
+// whose owner switched Documents off for it.
+@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.DOCUMENTS, 'Documents')
 export class DocSyncController {
   private readonly logger = new Logger(DocSyncController.name);

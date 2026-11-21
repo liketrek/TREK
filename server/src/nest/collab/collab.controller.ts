@@ -1,4 +1,9 @@
+import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
+import { addonOffMessage } from '../addons/addons.constants';
+import { AddonsService } from '../addons/addons.service';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
@@ -128,19 +133,29 @@ export const collabNoteFileFilter: Options['fileFilter'] = (_req, file, cb) => {
 // route keeps its own check, because guards run before interceptors and a 404 sent
 // while the client is still streaming the multipart body destroys the socket (the
 // caller then sees ECONNRESET instead of the 404). Same as files.controller.ts.
+//
+// Collab is a trip addon: a trip it is off for answers 404 "Collab addon is not
+// enabled" after the trip check, through TripAddonGuard beside TripAccessGuard
+// and through requireTrip on the two upload routes. Notes, polls and messages
+// stay where they are.
 @UseGuards(JwtAuthGuard)
+@RequireAddon(ADDON_IDS.COLLAB, 'Collab')
 export class CollabController {
   constructor(
     private readonly collab: CollabService,
     private readonly storage: StorageService,
     // Whether DEMO_MODE is on, read on every upload: the demo account's are refused.
     private readonly env: RuntimeEnvService,
+    private readonly addons: AddonsService,
   ) {}
 
   private async requireTrip(tripId: string, user: User) {
     const trip = await this.collab.verifyTripAccess(tripId, user.id);
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
+    }
+    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.COLLAB))) {
+      throw new HttpException({ error: addonOffMessage(ADDON_IDS.COLLAB) }, 404);
     }
     return trip;
   }
@@ -155,14 +170,14 @@ export class CollabController {
   }
 
   // ── Notes ───────────────────────────────────────────────────────────────
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get('notes')
   @ResponseContract(collabNotesResponseSchema)
   async listNotes(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { notes: await this.collab.listNotes(tripId) };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Post('notes')
   @ResponseContract(collabNoteResponseSchema)
@@ -180,7 +195,7 @@ export class CollabController {
     return { note };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Put('notes/:id')
   @ResponseContract(collabNoteResponseSchema)
@@ -206,7 +221,7 @@ export class CollabController {
     return { note };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Delete('notes/:id')
   @ResponseContract(successResponseSchema)
@@ -281,7 +296,7 @@ export class CollabController {
     return result;
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Delete('notes/:id/files/:fileId')
   @ResponseContract(successResponseSchema)
@@ -305,14 +320,14 @@ export class CollabController {
   }
 
   // ── Shared links ────────────────────────────────────────────────────────
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get('links')
   @ResponseContract(collabLinksResponseSchema)
   async listLinks(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { links: await this.collab.listLinks(tripId) };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Post('links')
   @ResponseContract(collabLinkResponseSchema)
@@ -331,7 +346,7 @@ export class CollabController {
     return { link };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Put('links/:id')
   @ResponseContract(collabLinkResponseSchema)
@@ -352,7 +367,7 @@ export class CollabController {
     return { link };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Delete('links/:id')
   @ResponseContract(successResponseSchema)
@@ -368,14 +383,14 @@ export class CollabController {
   }
 
   // ── Polls ───────────────────────────────────────────────────────────────
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get('polls')
   @ResponseContract(collabPollsResponseSchema)
   async listPolls(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { polls: await this.collab.listPolls(tripId) };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Post('polls')
   @ResponseContract(collabPollResponseSchema)
@@ -396,7 +411,7 @@ export class CollabController {
     return { poll };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Post('polls/:id/vote')
   @HttpCode(200)
@@ -416,7 +431,7 @@ export class CollabController {
     return { poll: result.poll };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Put('polls/:id/close')
   @ResponseContract(collabPollResponseSchema)
@@ -434,7 +449,7 @@ export class CollabController {
     return { poll };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Delete('polls/:id')
   @ResponseContract(successResponseSchema)
@@ -452,7 +467,7 @@ export class CollabController {
   }
 
   // ── Messages ────────────────────────────────────────────────────────────
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get('messages')
   @ResponseContract(collabMessagesResponseSchema)
   async listMessages(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('before') before?: string) {
@@ -559,7 +574,7 @@ export class CollabController {
     return { message: result.message };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Post('messages/:id/react')
   @HttpCode(200)
@@ -584,7 +599,7 @@ export class CollabController {
     return { reactions: result.reactions };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @RequirePermission('collab_edit')
   @Delete('messages/:id')
   @ResponseContract(successResponseSchema)
@@ -614,7 +629,7 @@ export class CollabController {
   // trip whose owner has narrowed that right, for people who may still read the
   // chat. What keeps the fetcher from being a free outbound proxy is the budget
   // inside the service, not a write permission.
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get('link-preview')
   @ResponseContract(collabLinkPreviewResponseSchema)
   async linkPreview(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('url') url?: string) {

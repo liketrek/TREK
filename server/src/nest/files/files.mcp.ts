@@ -1,3 +1,4 @@
+import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -9,6 +10,8 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
+import { addonGate } from '../addons/addon-gate';
+import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { contentTypeFor } from '../storage/content-type';
 import { AllowedFileTypesService } from './allowed-file-types.service';
@@ -21,6 +24,12 @@ import { z } from 'zod';
 
 const CONTENT_MAX_MB = Math.round(FILE_CONTENT_MAX / (1024 * 1024));
 
+/**
+ * The trip file manager is the Documents addon: its tools are offered while it is on for the
+ * instance or a trip of the caller, and each call needs it on for the trip it names (the host's
+ * tool gate), as every files route answers 404 "Documents addon is not enabled" otherwise.
+ */
+const documentsAddonOn = addonGate(ADDON_IDS.DOCUMENTS);
 /**
  * The upload tool's cap: the same 10 MB a read hands back, or the operator's
  * upload limit when that is lower. The bytes travel base64 inside one JSON-RPC
@@ -70,6 +79,7 @@ export class FilesMcp {
     private readonly files: FilesService,
     private readonly guards: McpToolGuardsService,
     private readonly allowedTypes: AllowedFileTypesService,
+    readonly addons: AddonsService,
   ) {}
 
   @Tool({
@@ -82,6 +92,7 @@ export class FilesMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
+    when: documentsAddonOn,
   })
   async listTripFiles({ tripId, trash }: { tripId: number; trash?: boolean }, ctx: McpContext) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
@@ -100,6 +111,7 @@ export class FilesMcp {
     // passport scan are different privileges, and the plugin host draws the same
     // line (db:read:files vs db:read:files:content).
     access: { group: 'files', mode: 'content' },
+    when: documentsAddonOn,
   })
   async readTripFile({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
@@ -144,6 +156,7 @@ export class FilesMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
+    when: documentsAddonOn,
   })
   async uploadTripFile(
     {
@@ -210,6 +223,7 @@ export class FilesMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
+    when: documentsAddonOn,
   })
   async updateTripFile(
     { tripId, fileId, ...fields }: { tripId: number; fileId: number } & FileUpdateRequest,
@@ -252,6 +266,7 @@ export class FilesMcp {
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
+    when: documentsAddonOn,
   })
   async linkTripFile(
     { tripId, fileId, ...targets }: { tripId: number; fileId: number } & FileLinkRequest,
@@ -283,6 +298,7 @@ export class FilesMcp {
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'files', mode: 'write' },
+    when: documentsAddonOn,
   })
   async unlinkTripFile(
     { tripId, fileId, linkId }: { tripId: number; fileId: number; linkId: number },
@@ -308,6 +324,7 @@ export class FilesMcp {
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
+    when: documentsAddonOn,
   })
   async listTripFileLinks({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();

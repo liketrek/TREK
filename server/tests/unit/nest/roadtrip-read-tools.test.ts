@@ -102,7 +102,7 @@ describe('roadtrip read tools', () => {
       {} as never,
       {} as never,
       {} as never,
-      { isAddonEnabled: () => true } as never,
+      { isEnabledForUserAnywhere: async () => true } as never,
     );
     const registry = createTestRegistry([tool], {
       accessPolicy: trekMcpAccessPolicy,

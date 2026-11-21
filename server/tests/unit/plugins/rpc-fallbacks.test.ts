@@ -83,7 +83,7 @@ function guardsFor() {
     guards: new PluginGuards(
       db,
       { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
-      { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+      { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
       { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
     ),
   };

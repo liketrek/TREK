@@ -1,5 +1,10 @@
+import { ADDON_IDS } from '../../addons';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { addonOffMessage } from '../addons/addons.constants';
+import { AddonsService } from '../addons/addons.service';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { logError } from '../audit/audit-log.logger';
 import { CurrentUser } from '../auth-core/current-user.decorator';
@@ -116,12 +121,18 @@ export function filesUploadFileFilter(allowedTypes: AllowedFileTypesService): Op
 // socket destroyed, so the caller sees ECONNRESET instead of the 404. Refusing after
 // the body has been read costs the bandwidth but keeps the answer readable, which is
 // the behaviour every client already handles.
+//
+// Documents is a trip addon: a trip it is off for answers 404 "Documents addon is
+// not enabled" on every route, after the trip check, with TripAddonGuard beside
+// TripAccessGuard and inline in the upload. The files themselves stay.
 @UseGuards(JwtAuthGuard)
+@RequireAddon(ADDON_IDS.DOCUMENTS, 'Documents')
 export class FilesController {
   constructor(
     private readonly files: FilesService,
     private readonly env: RuntimeEnvService,
     private readonly storage: StorageService,
+    private readonly addons: AddonsService,
   ) {}
 
   // A file may only point at reservations/assignments/places/budget_items from its own trip.
@@ -141,7 +152,7 @@ export class FilesController {
     }
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get()
   @ResponseContract(tripFilesResponseSchema)
   async list(
@@ -179,6 +190,9 @@ export class FilesController {
       const trip = await this.files.verifyTripAccess(tripId, user.id);
       if (!trip) {
         throw new HttpException({ error: 'Trip not found' }, 404);
+      }
+      if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS))) {
+        throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
       }
       // Inline rather than DemoWriteGuard: the 404 above has to come first, so a demo
       // user still cannot learn which trips exist.
@@ -231,7 +245,7 @@ export class FilesController {
     return { file: created };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Put(':id')
   @ResponseContract(tripFileResponseSchema)
   async update(
@@ -264,7 +278,7 @@ export class FilesController {
     return { file: updated };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Patch(':id/star')
   @ResponseContract(tripFileResponseSchema)
   async star(
@@ -286,7 +300,7 @@ export class FilesController {
     return { file: updated };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Delete('trash/empty')
   @ResponseContract(fileTrashEmptyResponseSchema)
   async emptyTrash(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string) {
@@ -297,7 +311,7 @@ export class FilesController {
     return { success: true, deleted };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Delete(':id/permanent')
   @ResponseContract(successResponseSchema)
   async permanent(
@@ -319,7 +333,7 @@ export class FilesController {
     return { success: true };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Delete(':id')
   @ResponseContract(successResponseSchema)
   async remove(
@@ -341,7 +355,7 @@ export class FilesController {
     return { success: true };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Post(':id/restore')
   @HttpCode(200) // Express answers restore with res.json (200), not the POST-default 201.
   @ResponseContract(tripFileResponseSchema)
@@ -364,7 +378,7 @@ export class FilesController {
     return { file: restored };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Post(':id/link')
   @HttpCode(200) // Express answers link with res.json (200).
   @ResponseContract(fileLinkCreateResponseSchema)
@@ -402,7 +416,7 @@ export class FilesController {
     return { success: true, links };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Delete(':id/link/:linkId')
   @ResponseContract(successResponseSchema)
   async unlink(
@@ -427,7 +441,7 @@ export class FilesController {
     return { success: true };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Get(':id/links')
   @ResponseContract(fileLinksResponseSchema)
   async links(

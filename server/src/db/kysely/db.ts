@@ -150,6 +150,7 @@ import type { ToursTable } from './Tours.table';
 import type { TrekPhotoCacheMetaTable } from './TrekPhotoCacheMeta.table';
 import type { TrekPhotoSignalsTable } from './TrekPhotoSignals.table';
 import type { TrekPhotosTable } from './TrekPhotos.table';
+import type { TripAddonOverridesTable } from './TripAddonOverrides.table';
 import type { TripAlbumLinksTable } from './TripAlbumLinks.table';
 import type { TripDocumentLinksTable } from './TripDocumentLinks.table';
 import type { TripFilesTable } from './TripFiles.table';
@@ -331,6 +332,7 @@ export interface DB {
   trek_photo_cache_meta: TrekPhotoCacheMetaTable;
   trek_photo_signals: TrekPhotoSignalsTable;
   trek_photos: TrekPhotosTable;
+  trip_addon_overrides: TripAddonOverridesTable;
   trip_album_links: TripAlbumLinksTable;
   trip_document_links: TripDocumentLinksTable;
   trip_files: TripFilesTable;

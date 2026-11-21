@@ -1,5 +1,5 @@
 import { originColumns } from './reservation-origin.contract';
-import type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
+import type { AccommodationTimesMeta, BudgetEntry, CreateAccommodation, CreateReservationData, DatedBudgetEntry, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 export type { CreateAccommodation, CreateReservationData, EndpointInput, ReservationEndpoint, UpdateReservationData } from './reservation-inputs';
 import type { ReservationRow, ReservationTraveler } from './reservation-rows';
 export type { ReservationRow, ReservationTraveler } from './reservation-rows';
@@ -15,6 +15,8 @@ import { keepMirroredPrice } from './reservation-metadata';
 import { endpointRows, groupDayPositions, groupEndpointsByReservation } from './reservations.helpers';
 import type { Reservation, User } from '../../types';
 import { BudgetService } from '../budget/budget.service';
+import { AddonsService } from '../addons/addons.service';
+import { ADDON_IDS } from '../../addons';
 import { isDerivedCostCategory, typeToCostCategory } from '@trek/shared';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AccommodationsService, noStayMirror, type AccommodationMirror } from '../accommodations/accommodations.service';
@@ -47,21 +49,11 @@ import { RESERVATION_METADATA } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
 
 type Trip = TripAccess;
-type BudgetEntry = { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
-/** A booking's cost as written: the entry, dated on the booking's day (bookingDate), never by the caller. */
-type DatedBudgetEntry = (NonNullable<BudgetEntry> & { expense_date?: string | null }) | undefined;
-
 /** What a booking write did to its linked costs, for the caller to send once the write has committed. */
 export type CostEvent =
   | { event: 'budget:created'; payload: TrekWsPayload<'budget:created'> }
   | { event: 'budget:updated'; payload: TrekWsPayload<'budget:updated'> }
   | { event: 'budget:deleted'; payload: TrekWsPayload<'budget:deleted'> };
-
-type AccommodationTimesMeta = {
-  check_in_time?: string | null;
-  check_in_end_time?: string | null;
-  check_out_time?: string | null;
-};
 
 /**
  * Reservations domain service: the reservation SQL with the legacy `||`
@@ -91,6 +83,7 @@ export class ReservationsService {
     @InjectRepository(Users) private readonly usersRepo: UsersRepository,
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
+    private readonly addons: AddonsService,
   ) {}
 
   async verifyTripAccess(tripId: string | number, userId: number) {
@@ -568,7 +561,7 @@ export class ReservationsService {
   async createWithCostInTx(tripId: string, data: CreateReservationData, entry: BudgetEntry) {
     const costEvents: CostEvent[] = [];
     const done = await this.createInTx(tripId, data);
-    await this.syncBudgetOnCreate(tripId, done.reservation.id, data.title, data.type, await this.dated(entry, done.reservation), undefined, costEvents);
+    if (await this.costsOn(tripId)) await this.syncBudgetOnCreate(tripId, done.reservation.id, data.title, data.type, await this.dated(entry, done.reservation), undefined, costEvents);
     return { ...done, costEvents };
   }
 
@@ -577,11 +570,16 @@ export class ReservationsService {
     const costEvents: CostEvent[] = [];
     const { stayMirror, ...written } = await this.uow.transactional(async () => {
       const done = await this.updateInTx(id, tripId, data, current);
-      await this.syncBudgetOnUpdate(tripId, id, data.title ?? '', data.type, current.title, current.type ?? undefined, await this.dated(entry, done.reservation), undefined, costEvents);
+      if (await this.costsOn(tripId)) await this.syncBudgetOnUpdate(tripId, id, data.title ?? '', data.type, current.title, current.type ?? undefined, await this.dated(entry, done.reservation), undefined, costEvents);
       return done;
     });
     await this.announceStayMirror(tripId, stayMirror);
     return { ...written, costEvents };
+  }
+
+  /** A booking write files no cost while the trip has Costs off; the costs it has stay as they are. */
+  private costsOn(tripId: string): Promise<boolean> {
+    return this.addons.isEnabledForTrip(Number(tripId), ADDON_IDS.BUDGET);
   }
 
   /** Sends a booking write's cost events to the trip. */

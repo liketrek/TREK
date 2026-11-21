@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
 import { ParseRowIdPipe } from '../common/row-id.pipe';
@@ -17,7 +17,7 @@ import { stationKeySchema, tourVisitListResponseSchema } from '@trek/shared';
  * someone who may edit the trip's days. Nothing here changes a route.
  */
 @Controller('api/trips/:tripId/tour-visits')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class TourVisitsController {
   constructor(private readonly visits: TourVisitsService) {}

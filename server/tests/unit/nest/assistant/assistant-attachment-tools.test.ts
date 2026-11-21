@@ -55,17 +55,18 @@ describe('attachedPort', () => {
   it('ASTATL-001: offers keep_attached_file where the thread holds a file, read_attached_file where one has text', () => {
     const port = base();
     expect(attachedPort(port, null)).toBe(port);
-    expect(attachedPort(port, { attached: [], sentTo: 'm', read: vi.fn() })).toBe(port);
+    expect(attachedPort(port, { attached: [], sentTo: 'm', keeps: true, read: vi.fn() })).toBe(port);
     const scanOnly = attachedPort(port, {
       attached: [row(SCAN, { text_status: 'scanned' })],
       sentTo: 'm',
+      keeps: true,
       read: vi.fn(),
     });
     expect(scanOnly.specs().map((spec) => spec.name)).toEqual(['get_trip_summary', KEEP_ATTACHED_FILE_SPEC.name]);
     expect(scanOnly.pinArgs('read_attached_file', { attachmentId: SCAN })).toEqual({
       args: { attachmentId: SCAN },
     });
-    const offered = attachedPort(port, { attached: ATTACHED, sentTo: 'm', read: vi.fn() });
+    const offered = attachedPort(port, { attached: ATTACHED, sentTo: 'm', keeps: true, read: vi.fn() });
     expect(offered.specs().map((spec) => spec.name)).toEqual([
       'get_trip_summary',
       READ_ATTACHED_FILE_SPEC.name,
@@ -74,7 +75,7 @@ describe('attachedPort', () => {
   });
 
   it('ASTATL-002: the first read of a file is held for the user, a shared one runs at once', () => {
-    const port = attachedPort(base(), { attached: ATTACHED, sentTo: 'm', read: vi.fn() });
+    const port = attachedPort(base(), { attached: ATTACHED, sentTo: 'm', keeps: true, read: vi.fn() });
     expect(port.kindOf('read_attached_file', { attachmentId: OWN })).toBe('write');
     expect(port.kindOf('read_attached_file', { attachmentId: SHARED })).toBe('read');
     expect(port.kindOf('read_attached_file', { attachmentId: ELSEWHERE })).toBe('write');
@@ -82,7 +83,12 @@ describe('attachedPort', () => {
   });
 
   it('ASTATL-003: the held call names the file and where its text goes, never more; anything else is refused alike', () => {
-    const port = attachedPort(base(), { attached: ATTACHED, sentTo: 'gpt-5 (api.openai.com)', read: vi.fn() });
+    const port = attachedPort(base(), {
+      attached: ATTACHED,
+      sentTo: 'gpt-5 (api.openai.com)',
+      keeps: true,
+      read: vi.fn(),
+    });
     expect(port.pinArgs('read_attached_file', { attachmentId: OWN, sentTo: 'nowhere' })).toEqual({
       args: { attachmentId: OWN, name: '0b7c.pdf', sentTo: 'gpt-5 (api.openai.com)' },
     });
@@ -96,7 +102,7 @@ describe('attachedPort', () => {
   it('ASTATL-004: a read runs through the turn, and only for a file of the thread', async () => {
     const read = vi.fn(async () => ({ ok: true, value: { name: 'x', read: true }, modelText: 'text' }));
     const inner = base();
-    const port = attachedPort(inner, { attached: ATTACHED, sentTo: 'm', read });
+    const port = attachedPort(inner, { attached: ATTACHED, sentTo: 'm', keeps: true, read });
     expect(await port.call('read_attached_file', { attachmentId: SHARED })).toMatchObject({ modelText: 'text' });
     expect(read).toHaveBeenCalledWith(SHARED);
     expect(await port.call('read_attached_file', { attachmentId: ELSEWHERE })).toEqual({
@@ -114,7 +120,7 @@ describe('attachedPort', () => {
   });
 
   it('ASTATL-006: a keep is always held, checked, and names the file; an attachment of no one here is refused alike', () => {
-    const port = attachedPort(base(), { attached: ATTACHED, sentTo: 'm', read: vi.fn() });
+    const port = attachedPort(base(), { attached: ATTACHED, sentTo: 'm', keeps: true, read: vi.fn() });
     expect(port.kindOf('keep_attached_file', { attachmentId: SCAN })).toBe('write');
     expect(port.pinArgs('keep_attached_file', { attachmentId: SCAN, reservation_id: 5, name: 'forged.exe' })).toEqual({
       args: { attachmentId: SCAN, reservation_id: 5, name: '2d9e.pdf' },
@@ -123,5 +129,15 @@ describe('attachedPort', () => {
     expect(port.pinArgs('keep_attached_file', {})).toEqual({ error: NO_SUCH_ATTACHMENT });
     const bad = port.pinArgs('keep_attached_file', { attachmentId: OWN, budget_item_id: 'seven' });
     expect(bad).toEqual({ error: expect.stringContaining('Invalid arguments') });
+  });
+
+  it('ASTATL-007: no keep is offered or held while the trip has Documents off; the call goes to the port', () => {
+    const inner = base();
+    const port = attachedPort(inner, { attached: ATTACHED, sentTo: 'm', keeps: false, read: vi.fn() });
+    expect(port.specs().map((spec) => spec.name)).toEqual(['get_trip_summary', READ_ATTACHED_FILE_SPEC.name]);
+    expect(port.kindOf('keep_attached_file', { attachmentId: SCAN })).toBe('read');
+    expect(inner.kindOf).toHaveBeenCalledWith('keep_attached_file', { attachmentId: SCAN });
+    port.pinArgs('keep_attached_file', { attachmentId: SCAN });
+    expect(inner.pinArgs).toHaveBeenCalledWith('keep_attached_file', { attachmentId: SCAN });
   });
 });

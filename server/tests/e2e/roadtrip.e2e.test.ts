@@ -387,12 +387,13 @@ describe('Roadtrip e2e (real guard chain + temp SQLite)', () => {
       }
     });
 
-    it('ROADTRIP-E2E-002: a disabled addon owes an anonymous caller a 404, not a 401', async () => {
-      // The gate leads the chain for this reason: a 401 tells a stranger the
-      // route exists. Both answers refuse; only one of them says nothing.
+    it('ROADTRIP-E2E-002: with the addon off an anonymous caller gets the 401 every trip route answers', async () => {
+      // Whether Road trip applies is the trip's own choice now (a trip may switch it on while the
+      // instance has it off), and only somebody who may see the trip learns it, so the addon gate
+      // follows the auth and trip guards and an anonymous caller hears what it hears on any trip route.
       await setAddon(false);
       const res = await request(server).get('/api/trips/5/roadtrip/vias');
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(401);
     });
 
     it('ROADTRIP-E2E-003: with the addon on, an anonymous caller gets 401', async () => {

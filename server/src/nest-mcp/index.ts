@@ -1,5 +1,6 @@
 export { McpController, Prompt, Resource, ResourceTemplate, Tool } from './decorators';
 export {
+  combineToolGates,
   demoDenied,
   errorResult,
   ok,

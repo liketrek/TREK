@@ -10,9 +10,11 @@ import {
   trekMcpValidateAccess,
 } from '../mcp/nest-mcp-policy';
 import mikroOrmConfig from '../mikro-orm.config';
-import { McpModule } from '../nest-mcp';
+import { combineToolGates, McpModule } from '../nest-mcp';
 import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AddonsModule } from './addons/addons.module';
+import { AddonsService } from './addons/addons.service';
+import { trekTripAddonToolGate } from './addons/trip-addon-tool-gate';
 import { AdminModule } from './admin/admin.module';
 import { AiConnectionsModule } from './ai-connections/ai-connections.module';
 import { AirportsModule } from './airports/airports.module';
@@ -105,6 +107,8 @@ import { TodoModule } from './todo/todo.module';
 import { ToursModule } from './tours/tours.module';
 import { TransitModule } from './transit/transit.module';
 import { TripInviteModule } from './trip-invite/trip-invite.module';
+import { TripAccessService } from './trip-membership/trip-access.service';
+import { TripMembershipModule } from './trip-membership/trip-membership.module';
 import { TripsModule } from './trips/trips.module';
 import { VacayModule } from './vacay/vacay.module';
 import { WalletPassModule } from './wallet-pass/wallet-pass.module';
@@ -130,9 +134,16 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     McpModule.forRoot({
       accessPolicy: trekMcpAccessPolicy,
       validateAccess: trekMcpValidateAccess,
+      // The demo write block first, then whether the addon of a tool applies
+      // to the trip the call names (trekTripAddonToolGate).
       toolGate: {
-        inject: [DemoService],
-        useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)),
+        imports: [AddonsModule, TripMembershipModule],
+        inject: [DemoService, AddonsService, TripAccessService],
+        useFactory: (demo: DemoService, addons: AddonsService, trips: TripAccessService) =>
+          combineToolGates(
+            trekDemoToolGate((id) => demo.isDemoUserId(id)),
+            trekTripAddonToolGate(addons, trips),
+          ),
       },
       errorMapper: trekMcpErrorMapper,
       inputMapper: trekMcpInputMapper,

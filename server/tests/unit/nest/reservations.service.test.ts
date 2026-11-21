@@ -67,6 +67,8 @@ import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from 
 import { makeReservation } from '../../helpers/factories/reservations';
 import { makeTrip, readTripDays } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
+import { setTripAddon } from '../../helpers/factories/settings';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -84,7 +86,7 @@ const broadcast = realtime.broadcastMock;
 let svc: ReservationsService;
 let orm: TestOrm;
 beforeAll(async () => {
-  svc = new ReservationsService(permissionsStub, budget as unknown as BudgetService, realtime, notificationsStub(notif.send), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), await makeAccommodationsService(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb));
+  svc = new ReservationsService(permissionsStub, budget as unknown as BudgetService, realtime, notificationsStub(notif.send), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), await makeAccommodationsService(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestAddonsService(testDb));
 });
 
 beforeEach(async () => {
@@ -843,6 +845,22 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       svc.announceCost(String(trip.id), out.costEvents, 'sock');
       expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: item.id } }, 'sock');
     });
+
+    it('RESV-TX-008: with Costs off for the trip an edit leaves the linked cost as it is, cleared price and new type alike', async () => {
+      const { trip, res, item } = await linkedItem({ total_price: 100, category: 'other' });
+      await updateRows(orm, Reservations, { id: res.id }, { title: 'Old', type: 'other' });
+      await setTripAddon(orm, trip.id, 'budget', false);
+      const current = await svc.getReservation(String(res.id), String(trip.id));
+      if (!current) throw new Error('the booking was not written');
+
+      const out = await svc.updateWithCost(String(res.id), String(trip.id), { title: 'New', type: 'flight' } as never, current, { total_price: 0 });
+
+      expect(out.costEvents).toEqual([]);
+      expect(budget.deleteBudgetItem).not.toHaveBeenCalled();
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(await findRow(orm, BudgetItems, { id: item.id })).toMatchObject({ total_price: 100, category: 'other' });
+      expect(await findRow(orm, Reservations, { id: res.id })).toMatchObject({ title: 'New', type: 'flight' });
+    });
   });
 
   describe('createWithCost', () => {
@@ -866,6 +884,17 @@ describe('ReservationsService (DI-native, real SQL)', () => {
 
       expect(await countRows(orm, Reservations, { trip: trip.id })).toBe(0);
       expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it('RESV-TX-009: with Costs off for the trip the booking is written without its cost', async () => {
+      const { trip } = ownerTrip();
+      await setTripAddon(orm, trip.id, 'budget', false);
+
+      const out = await svc.createWithCost(String(trip.id), { title: 'Hotel', type: 'other' } as never, { total_price: 200 });
+
+      expect(out.reservation.id).toBeGreaterThan(0);
+      expect(out.costEvents).toEqual([]);
+      expect(budget.linkBudgetItemToReservation).not.toHaveBeenCalled();
     });
 
     it('RESV-TX-005: without a price there is no cost and no event', async () => {

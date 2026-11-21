@@ -32,6 +32,12 @@ export interface McpContext {
    * consumers (list_trips / get_trip_summary) treat absence as "no notice".
    */
   getDeprecationNotice?: () => string | null;
+  /**
+   * The one trip a session is about, set by a session pinned to a trip (the
+   * assistant's trip chat). The addon gates then ask that trip instead of the
+   * user's trips as a whole. Absent for an MCP client, which may name any trip.
+   */
+  tripId?: number;
 }
 
 /**
@@ -268,15 +274,17 @@ export type McpAccessValidator = (access: McpDeclarativeAccess, entry: McpRegist
 
 /**
  * Host-supplied check run before every registered tool handler, after the
- * SDK validated the arguments and inside the `around` wrapper. Return a result
- * to answer the call with it instead of running the handler, or undefined to
- * let the handler run. The package attaches no meaning to it; TREK's demo-mode
- * write block lives in `src/mcp/nest-mcp-policy.ts`.
+ * SDK validated the arguments and inside the `around` wrapper. It is handed
+ * the tool's options, the session context and the arguments the handler is
+ * about to receive (after the host's input mapper). Return a result to answer
+ * the call with it instead of running the handler, or undefined to let the
+ * handler run. The package attaches no meaning to it; TREK's demo-mode write
+ * block and its per-trip addon check live in `src/mcp/nest-mcp-policy.ts`.
  *
  * Registered entries only: a dynamic tool's source owns its own checks,
  * because the host cannot know what a contributor's annotations promise.
  */
-export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
+export type McpToolGate = (tool: ToolOptions, ctx: McpContext, args?: unknown) => unknown;
 
 /**
  * Host-supplied translation of an error a registered tool handler threw into

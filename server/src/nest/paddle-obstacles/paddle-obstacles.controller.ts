@@ -41,7 +41,7 @@ import type { Request } from 'express';
  * Asking again follows the load; it never starts a second one.
  */
 @Controller('api/paddle')
-@UseGuards(AddonGuard, JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class PaddleObstaclesController {
   constructor(

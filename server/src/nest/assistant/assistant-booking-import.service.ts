@@ -76,7 +76,7 @@ export class AssistantBookingImportService implements AttachedFileReader {
    * Refuses a file nobody here can read: no extractor and no AI parsing, or a
    * photo while the AI model reads no images (the extractor never reads one).
    */
-  async ensureReadable(userId: number, file: Express.Multer.File): Promise<void> {
+  async ensureReadable(userId: number, _tripId: number, file: Express.Multer.File): Promise<void> {
     const ai = await this.bookingImport.aiAvailable(userId);
     if (!ai && !this.bookingImport.isAvailable()) {
       throw aiRefusal('import_unavailable', 'Reading booking files is not available on this server');

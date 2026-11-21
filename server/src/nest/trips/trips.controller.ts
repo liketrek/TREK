@@ -336,7 +336,7 @@ export class TripsController {
 
   @Get(':id/bundle')
   async bundle(@CurrentUser() user: User, @Param('id') id: string) {
-    const trip = (await this.trips.get(id, user.id)) as { user_id: number } | undefined;
+    const trip = (await this.trips.get(id, user.id)) as { id: number; user_id: number } | undefined;
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }

@@ -23,7 +23,7 @@ function make(over: { readsImages?: boolean; trip?: unknown; addon?: boolean; al
       findAccessible: vi.fn(async () => ('trip' in over ? over.trip : { user_id: 5 })),
     } as unknown as TripsRepository),
     { checkPermission } as unknown as PermissionsService,
-    { isAddonEnabled: vi.fn(async () => over.addon ?? true) } as unknown as AddonsService,
+    { isEnabledForTrip: vi.fn(async () => over.addon ?? true) } as unknown as AddonsService,
   );
   return { c, startReceipt, checkPermission };
 }

@@ -339,7 +339,7 @@ export class McpRegistry {
     const gate = this.toolGate;
     if (!gate) return handler;
     return async function (this: unknown, ...handlerArgs: unknown[]) {
-      const refusal = await gate(options, ctx);
+      const refusal = await gate(options, ctx, handlerArgs[0]);
       return refusal !== undefined ? refusal : handler.apply(this, handlerArgs);
     };
   }

@@ -129,16 +129,16 @@ export class DocSyncService {
   }
 
   /**
-   * Whether an admin has closed the door on this binding: the Documents addon
-   * is off, or the provider it runs against is.
+   * Whether the door on this binding is closed: Documents off for the instance
+   * or for the binding's trip, or its provider off (providers follow the instance).
    *
-   * A kill switch, not a failure. Nothing about the binding is written while it
-   * is off, not its state and not its documents' attempt counters, so it
-   * resumes exactly where it stopped once the switch is back on. Public because
-   * a manual run has to refuse before it un-shelves anything.
+   * A kill switch, not a failure: nothing about the binding is written while it is off
+   * (not its state, not its documents' attempt counters), so it resumes where it stopped.
+   * Public because a manual run has to refuse before it un-shelves anything.
    */
-  async isSwitchedOff(link: Pick<LinkRow, 'provider_id'>): Promise<boolean> {
+  async isSwitchedOff(link: Pick<LinkRow, 'provider_id' | 'trip_id'>): Promise<boolean> {
     if (!(await this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS))) return true;
+    if (!(await this.addons.isEnabledForTrip(link.trip_id, ADDON_IDS.DOCUMENTS))) return true;
     return !(await this.config.enabledProviderIds()).includes(link.provider_id);
   }
 

@@ -1,3 +1,4 @@
+import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -7,7 +8,7 @@ import {
   ok,
   type McpContext,
 } from '../../nest-mcp';
-import type { HasAddons } from '../addons/addon-gate';
+import { addonGate, gateOnAddons } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
@@ -24,8 +25,16 @@ import {
   type WandererMcpSourceRequest,
 } from '@trek/shared';
 
-/** Offered only while the admin allows wanderer under Tours, as WandererEnabledGuard lets its routes through. */
-const wandererOn = (_ctx: McpContext, self: HasAddons): Promise<boolean> => self.addons.isWandererAvailable();
+const toursOn = addonGate(ADDON_IDS.TOURS);
+
+/**
+ * Offered only while the admin allows wanderer under Tours, as WandererEnabledGuard lets its routes through,
+ * and Tours is on for the instance or a trip of the caller. Each call also needs Tours on for the trip it names.
+ */
+const wandererOn = gateOnAddons(
+  [ADDON_IDS.TOURS],
+  async (ctx, self) => (await self.addons.isWandererAllowed()) && (await toursOn(ctx, self)),
+);
 
 /**
  * The trip-side wanderer routes over MCP (ToursWandererController): the

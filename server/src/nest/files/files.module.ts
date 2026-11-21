@@ -7,6 +7,7 @@ import { TripFiles } from '../../db/entities/TripFiles.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
+import { AddonsModule } from '../addons/addons.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
@@ -62,6 +63,8 @@ import { MulterModule } from '@nestjs/platform-express';
     RealtimeModule,
     PluginGuardsModule,
     McpSharedModule,
+    // Documents is a trip addon; the routes ask whether it applies to their trip.
+    AddonsModule,
     // FilesMcp's upload tool checks the same extension list as the multipart filter.
     AllowedFileTypesModule,
   ],

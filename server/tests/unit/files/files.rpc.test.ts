@@ -80,7 +80,7 @@ function build(
   const guards = new PluginGuards(
     db,
     permissions,
-    { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+    { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
     usersRepo,
   );
   const storage = {
@@ -417,7 +417,7 @@ describe('FilesRpc writes', () => {
       const guards = new PluginGuards(
         db,
         { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
-        { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+        { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
         // PluginGuards' own role lookup — unrelated to FL28's `usersRepo` below,
         // which is used for the demo-uploader email check.
         { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,

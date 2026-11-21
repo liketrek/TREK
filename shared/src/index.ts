@@ -299,3 +299,5 @@ export * from './demo/demo-account';
 export * from './ferratas/ferratas.schema';
 // The 0.05 degree tile grid both ends load, cache and persist the layer on.
 export * from './ferratas/ferrataGrid';
+// Per-trip addons: GET/PUT /api/trips/:tripId/addons and the tripAddons:changed event.
+export * from './addons/trip-addons.schema';

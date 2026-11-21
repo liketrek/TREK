@@ -108,7 +108,8 @@ const tripTagId = (s: Scene): number => {
 
 /**
  * The planner: places and the tags their trip owns, the day plan, days, day
- * notes, categories, and the collection places copied into a trip.
+ * notes, categories, the collection places copied into a trip, and the trip
+ * addons its owner switches for it.
  */
 export const plan: CaseGroup = {
   name: 'plan',
@@ -454,6 +455,13 @@ export const plan: CaseGroup = {
         body: () => ({ transport_mode: 'walking' }),
       },
       expect: ['day:updated'],
+    },
+    {
+      // The owner switches costs off for the trip: every tab gets the trip's addon list.
+      tool: 'set_trip_addon',
+      args: (s) => ({ tripId: s.trip.id, addonId: 'budget', enabled: false }),
+      rest: { method: 'put', path: (s) => `/api/trips/${s.trip.id}/addons/budget`, body: () => ({ enabled: false }) },
+      expect: ['tripAddons:changed'],
     },
   ],
   exempt: [

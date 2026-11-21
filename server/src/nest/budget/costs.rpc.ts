@@ -40,9 +40,10 @@ export class CostsRpc {
 
   @PluginMethod('costs.getByTrip', { permission: 'db:read:costs' })
   async getByTrip(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    return await this.guards.tripRead(params, ctx, async () => {
-      await this.requireBudgetAddon();
-      return await this.budget.listBudgetItems(rowIdParam(params.tripId, 'tripId'));
+    return await this.guards.tripRead(params, ctx, async (userId) => {
+      const tripId = rowIdParam(params.tripId, 'tripId');
+      await this.requireBudgetAddon(tripId, userId);
+      return await this.budget.listBudgetItems(tripId);
     });
   }
 
@@ -51,11 +52,14 @@ export class CostsRpc {
     // Cross-trip aggregate. The acting user is host-bound; a job or onLoad is refused
     // the same way tripRead refuses one.
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('cost reads require an authenticated user context');
-    await this.requireBudgetAddon();
     // The leaf membership read, not TripsService.list: TripsModule imports this
     // one, so injecting TripsService here would close a cycle. Same id set,
-    // same newest-first order.
-    const tripIds = await this.membership.listAccessibleTripIds(ctx.actingUserId);
+    // same newest-first order. A trip that has Costs off for itself is left out.
+    const tripIds = await this.guards.tripsWithAddon(
+      ADDON_IDS.BUDGET,
+      'costs',
+      await this.membership.listAccessibleTripIds(ctx.actingUserId),
+    );
     // Sequential, not Promise.all: the legacy flatMap read each trip's items one
     // after the other, in id order, and the output order is the contract here.
     const items: unknown[] = [];
@@ -67,7 +71,7 @@ export class CostsRpc {
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     const parsed = budgetCreateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     await this.requireCostEdit(tripId, actor);
@@ -85,7 +89,7 @@ export class CostsRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     const parsed = budgetUpdateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     await this.requireCostEdit(tripId, actor);
@@ -115,7 +119,7 @@ export class CostsRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     // Plan 4 Task 8b (U6) — same drop of itemId's String() wrapper as update above.
     if (!(await this.budget.remove(itemId, String(tripId)))) {
@@ -133,8 +137,8 @@ export class CostsRpc {
     return ctx.actingUserId;
   }
 
-  private async requireBudgetAddon(): Promise<void> {
-    await this.guards.requireAddon(ADDON_IDS.BUDGET, 'costs');
+  private async requireBudgetAddon(tripId: number, userId: number): Promise<void> {
+    await this.guards.requireAddon(ADDON_IDS.BUDGET, 'costs', { tripId, userId });
   }
 
   /** Trip access plus budget_edit, with the cost-specific refusal message. */

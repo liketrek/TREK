@@ -59,7 +59,7 @@ export class ReceiptScanController {
   ): Promise<ReceiptScanStartResponse> {
     const trip = await this.trips.findAccessible(tripId, user.id);
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.BUDGET)))
+    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.BUDGET)))
       throw new HttpException({ error: 'Costs addon is not enabled' }, 404);
     if (
       !(await this.permissions.checkPermission(

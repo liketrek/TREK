@@ -38,6 +38,7 @@ import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.enti
 import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { Settings } from '../../../src/db/entities/Settings.entity';
+import { TripAddonOverrides } from '../../../src/db/entities/TripAddonOverrides.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { PluginRpcRegistry } from '../../../src/nest-rpc/rpc-kit/registry';
 import type { PluginRpcRegistryService } from '../../../src/nest-rpc/rpc-kit/registry.service';
@@ -269,6 +270,7 @@ describe('plugin boot vs registry scan ordering', () => {
         t2.repo(AppSettings),
         t2.repo(Users),
         new UnitOfWork(t2.em, new SqliteEngine()),
+        t2.repo(TripAddonOverrides),
       );
       const auditLogRepo2 = t2.repo(AuditLog);
       const usersRepo2 = t2.repo(Users);

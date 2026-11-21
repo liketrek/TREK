@@ -37,8 +37,8 @@ export interface AttachedFileReader {
    * (assistant-attach-answer.ts); no answer ends on the error then.
    */
   readonly acknowledges: boolean;
-  /** Refuses a file nobody here can read, before a turn begins. */
-  ensureReadable(userId: number, file: Express.Multer.File): Promise<void>;
+  /** Refuses a file nobody here can read for this trip, before a turn begins. */
+  ensureReadable(userId: number, tripId: number, file: Express.Multer.File): Promise<void>;
   /** What the file holds, at most a step's worth. Persists nothing. */
   propose(userId: number, tripId: number, file: Express.Multer.File): Promise<FileRead>;
 }

@@ -31,24 +31,24 @@ export class CollabRpc {
 
   @PluginMethod('collab.listNotes', { permission: 'db:read:collab' })
   listNotes(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireCollabAddon();
+    return this.guards.tripRead(params, ctx, async (userId) => {
+      await this.requireCollabAddon(rowIdParam(params.tripId, 'tripId'), userId);
       return (await this.collab.listNotes(rowIdParam(params.tripId, 'tripId'))) as unknown[];
     });
   }
 
   @PluginMethod('collab.listPolls', { permission: 'db:read:collab' })
   listPolls(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireCollabAddon();
+    return this.guards.tripRead(params, ctx, async (userId) => {
+      await this.requireCollabAddon(rowIdParam(params.tripId, 'tripId'), userId);
       return (await this.collab.listPolls(rowIdParam(params.tripId, 'tripId'))) as unknown[];
     });
   }
 
   @PluginMethod('collab.listMessages', { permission: 'db:read:collab' })
   listMessages(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireCollabAddon();
+    return this.guards.tripRead(params, ctx, async (userId) => {
+      await this.requireCollabAddon(rowIdParam(params.tripId, 'tripId'), userId);
       const before = params.before != null ? rowIdParam(params.before, 'before') : undefined;
       return (await this.collab.listMessages(rowIdParam(params.tripId, 'tripId'), before)) as unknown[];
     });
@@ -61,7 +61,7 @@ export class CollabRpc {
     const input = asPayload(params.input);
     if (typeof input.title !== 'string' || input.title.trim() === '') throw new BadParams('note title is required');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     const note = await this.collab.createNote(String(tripId), actor, input as never);
     this.realtime.broadcast(tripId, 'collab:note:created', { note }, undefined);
     return note;
@@ -77,7 +77,7 @@ export class CollabRpc {
     if (!Array.isArray(input.options) || input.options.length < 2)
       throw new BadParams('a poll needs at least two options');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     const poll = await this.collab.createPoll(String(tripId), actor, input as never);
     this.realtime.broadcast(tripId, 'collab:poll:created', { poll }, undefined);
     return poll;
@@ -88,7 +88,7 @@ export class CollabRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'collab poll');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     const result = await this.collab.votePoll(
       String(tripId),
       String(rowIdParam(params.pollId, 'pollId')),
@@ -109,7 +109,7 @@ export class CollabRpc {
       throw new BadParams('message text is required (max 4000 chars)');
     }
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     // Left out or null is no reply; anything else must be a message id.
     const replyTo = optionalRowIdParam(params.replyTo ?? undefined, 'replyTo') ?? null;
     const result = await this.collab.createMessage(String(tripId), actor, params.text, replyTo);
@@ -118,7 +118,8 @@ export class CollabRpc {
     return result.message;
   }
 
-  private async requireCollabAddon(): Promise<void> {
-    await this.guards.requireAddon(ADDON_IDS.COLLAB, 'collab');
+  /** Collab has to be on for the trip, the owner's choice or else the instance switch. */
+  private async requireCollabAddon(tripId: number, userId: number): Promise<void> {
+    await this.guards.requireAddon(ADDON_IDS.COLLAB, 'collab', { tripId, userId });
   }
 }

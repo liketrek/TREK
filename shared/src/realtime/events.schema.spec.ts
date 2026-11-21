@@ -16,6 +16,9 @@ import { describe, it, expect } from 'vitest';
  */
 const FIXTURES: Record<TrekWsEventName, Record<string, unknown>> = {
   'roadtripPreferences:changed': { preferences: { roadtrip_day_start: '08:00' } },
+  'tripAddons:changed': {
+    addons: [{ id: 'budget', name: 'Costs', icon: 'Wallet', enabled: false, instanceEnabled: true, overridden: true }],
+  },
   'place:created': { place: { id: 3, name: 'Louvre' } },
   'place:updated': { place: { id: 3, name: 'Louvre' } },
   'place:deleted': { placeId: 3 },
@@ -200,7 +203,7 @@ const DRIFT_VARIANTS: Partial<Record<TrekWsEventName, Record<string, unknown>[]>
 };
 
 describe('@trek/shared realtime event registry', () => {
-  it('WSEVT-REG-001: pins the authoritative inventory counts (79 trip + 43 user = 122)', () => {
+  it('WSEVT-REG-001: pins the authoritative inventory counts (82 trip + 43 user = 125)', () => {
     // 67th to 69th trip event: the three collab:link:* a shared link emits.
     // 70th and 71st: the road trip's vias and tracks, which used to be written silently.
     // 74th: docsync:changed, so a sync run that moved documents refreshes the
@@ -222,9 +225,11 @@ describe('@trek/shared realtime event registry', () => {
     // inbox of forwarded booking mails and its settings card.
     // 81st trip event: tripTags:changed, so a tag a member adds to the trip,
     // renames or deletes shows the same for everyone on it.
-    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(81);
+    // 82nd trip event: tripAddons:changed, so a trip addon its owner switches on
+    // or off for the trip shows or hides for every member at once.
+    expect(TREK_WS_TRIP_EVENT_NAMES).toHaveLength(82);
     expect(TREK_WS_USER_EVENT_NAMES).toHaveLength(43);
-    expect(TREK_WS_EVENT_NAMES).toHaveLength(124);
+    expect(TREK_WS_EVENT_NAMES).toHaveLength(125);
   });
 
   it('WSEVT-REG-002: every name is domain:action shaped and outside the reserved plugin: namespace', () => {

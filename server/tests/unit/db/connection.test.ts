@@ -160,6 +160,7 @@ async function deleteTripAndWatchTempFiles(db: Database.Database): Promise<{
       new UnitOfWork(t.em, new SqliteEngine()),
       t.em,
       none,
+      none,
     );
     await trips.remove(trip.id, user.id, 'user');
     return {

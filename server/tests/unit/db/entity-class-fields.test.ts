@@ -66,7 +66,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // + mail_ingest_addresses: id, token_hash, token_enc, user_id; mail_ingest_prefs: id, user_id; mail_ingest_cursor:
 //   id, transport, mailbox; mail_ingest_messages: id, transport, dedupe_hash, user_id, size; mail_ingest_candidates:
 //   id, message_id, user_id (each row is written whole by the mail import, which always knows all of them).
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 632;
+// + trip_addon_overrides: trip_id, addon_id, enabled (an override is only ever written whole, by the trip owner).
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 635;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {

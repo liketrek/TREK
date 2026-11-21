@@ -6,6 +6,7 @@ import { ReservationsRepository } from '../../db/repositories/Reservations.repos
 import { AddonsService } from '../addons/addons.service';
 import { BudgetService } from '../budget/budget.service';
 import { DomainError } from '../common/domain-error';
+import { toRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
 import { imageMimeType } from '../llm-parse/image-input';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
@@ -322,7 +323,8 @@ export class BookingImportService {
     tripId: string,
     item: BookingImportPreviewItem,
   ): Promise<{ total_price: number; category: string; currency?: string | null; exchange_rate?: number } | undefined> {
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.BUDGET))) return undefined;
+    const tid = toRowId(tripId);
+    if (tid === null || !(await this.addons.isEnabledForTrip(tid, ADDON_IDS.BUDGET))) return undefined;
     const meta = item.metadata && typeof item.metadata === 'object' ? (item.metadata as Record<string, unknown>) : null;
     const price = meta && meta.price != null ? Number(meta.price) : Number.NaN;
     if (!Number.isFinite(price) || price <= 0) return undefined;

@@ -1,5 +1,8 @@
+import { ADDON_IDS } from '../../addons';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { toRowId } from '../common/row-id';
@@ -55,8 +58,10 @@ import {
 @Controller('api/trips/:tripId/budget')
 // TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
 // add @RequirePermission('budget_edit'), the same action string the service's canEdit
-// passes, so the HTTP and MCP paths cannot demand different rights.
-@UseGuards(JwtAuthGuard, TripAccessGuard)
+// passes, so the HTTP and MCP paths cannot demand different rights. TripAddonGuard follows it:
+// a trip that has Costs off answers 404 "Costs addon is not enabled", data kept.
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
+@RequireAddon(ADDON_IDS.BUDGET, 'Costs')
 export class BudgetController {
   constructor(
     private readonly budget: BudgetService,

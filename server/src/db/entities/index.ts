@@ -144,6 +144,7 @@ import { ToursSchema } from './Tours.entity';
 import { TrekPhotoCacheMetaSchema } from './TrekPhotoCacheMeta.entity';
 import { TrekPhotoSignalsSchema } from './TrekPhotoSignals.entity';
 import { TrekPhotosSchema } from './TrekPhotos.entity';
+import { TripAddonOverridesSchema } from './TripAddonOverrides.entity';
 import { TripAlbumLinksSchema } from './TripAlbumLinks.entity';
 import { TripDocumentLinksSchema } from './TripDocumentLinks.entity';
 import { TripFilesSchema } from './TripFiles.entity';
@@ -319,6 +320,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   TrekPhotoCacheMetaSchema,
   TrekPhotoSignalsSchema,
   TrekPhotosSchema,
+  TripAddonOverridesSchema,
   TripAlbumLinksSchema,
   TripDocumentLinksSchema,
   TripFilesSchema,

@@ -115,6 +115,7 @@ const UNNUMBERED = [
   'Migration20200101046450_a_carried_over_half_day_stays_half',
   'Migration20200101046460_an_upgraded_install_gets_the_columns_its_history_skipped',
   'Migration20200101046480_an_address_changed_after_an_admin_made_the_account',
+  'Migration20200101046490_a_trip_can_switch_its_own_addons',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

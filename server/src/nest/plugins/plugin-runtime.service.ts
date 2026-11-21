@@ -38,6 +38,7 @@ import { NotificationChannelPreferences } from '../../db/entities/NotificationCh
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
+import { tripEventSink } from './plugin-event-addons';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
 import { setPluginChannelSource, pluginChannelId } from '../notifications/channel-registry';
 import type { ChannelMessage, ExternalChannel } from '../notifications/notification-events';
@@ -330,9 +331,8 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       await this.supervisor.shutdownAll();
       applyStagedPluginTrees();
     });
-    // Forward core trip events to plugins that subscribed (events:subscribe). The
-    // sink is name-only + fire-and-forget, so it can never block a core broadcast.
-    setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
+    // Core trip events go to subscribed plugins, fire-and-forget, unless the trip has the event's addon off.
+    setPluginEventSink(tripEventSink(this.addons, this.orm, (t, e, m) => this.supervisor.deliverEvent(t, e, m)));
     // Expose plugin notification channels to the (plain, non-Nest) notification
     // service. Pull-based: it calls this on every dispatch, so enabling or removing
     // a plugin takes effect immediately with nothing to invalidate.

@@ -1,4 +1,5 @@
-import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { ADDON_IDS } from '../../addons';
+import { PluginGuards, type RpcAddon } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
@@ -12,6 +13,9 @@ import { packingCreateItemRequestSchema, packingUpdateItemRequestSchema } from '
 const PACKING_EDIT_ACTION = 'packing_edit';
 
 type PrivacyItem = { is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] };
+
+/** Every read and write here belongs to the packing addon and follows it per trip. */
+const PACKING_ADDON: RpcAddon = { addonId: ADDON_IDS.PACKING, noun: 'packing' };
 
 /**
  * The packing surface a plugin may reach (#plugins).
@@ -37,8 +41,11 @@ export class PackingRpc {
   list(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
     // Scoped to the acting user so the #858 visibility filter applies: a plugin must
     // not see another member's private items.
-    return this.guards.tripRead(params, ctx, (userId) =>
-      this.packing.listItems(rowIdParam(params.tripId, 'tripId'), userId),
+    return this.guards.tripRead(
+      params,
+      ctx,
+      (userId) => this.packing.listItems(rowIdParam(params.tripId, 'tripId'), userId),
+      PACKING_ADDON,
     );
   }
 
@@ -48,7 +55,7 @@ export class PackingRpc {
     const actor = this.guards.requireActor(ctx, 'packing item');
     const parsed = packingCreateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid packing item: ${schemaMessage(parsed.error)}`);
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     const item = (await this.packing.createItem(String(tripId), parsed.data as never, actor)) as PrivacyItem;
     // A referenced bag must exist on this trip (#2154), as on the REST route.
     if (isInvalidBagRef(item)) throw new BadParams(`no packing bag ${parsed.data.bag_id} on trip ${tripId}`);
@@ -64,7 +71,7 @@ export class PackingRpc {
     const actor = this.guards.requireActor(ctx, 'packing item');
     const parsed = packingUpdateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid packing item: ${schemaMessage(parsed.error)}`);
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     // Read the privacy BEFORE the write, so a public/private toggle routes correctly.
     const before = await this.packing.getItemPrivacy(tripId, itemId);
     const input = parsed.data as Record<string, unknown>;
@@ -94,7 +101,7 @@ export class PackingRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.guards.requireActor(ctx, 'packing item');
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     // Plan 4 Task 8b (U6) — same drop of itemId's String() wrapper as update above.
     const deleted = (await this.packing.deleteItem(String(tripId), itemId, actor)) as PrivacyItem | null;
     if (!deleted) throw new ForbiddenResource(`no packing item ${itemId} on trip ${tripId}`);
@@ -111,6 +118,7 @@ export class PackingRpc {
       params,
       ctx,
       async () => (await this.packing.listBags(String(rowIdParam(params.tripId, 'tripId')))) as unknown[],
+      PACKING_ADDON,
     );
   }
 
@@ -120,7 +128,7 @@ export class PackingRpc {
     const actor = this.guards.requireActor(ctx, 'packing bag');
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '') throw new BadParams('bag name is required');
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     const bag = await this.packing.createBag(String(tripId), {
       name: input.name,
       color: typeof input.color === 'string' ? input.color : undefined,
@@ -135,7 +143,7 @@ export class PackingRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const bagId = rowIdParam(params.bagId, 'bagId');
     const actor = this.guards.requireActor(ctx, 'packing bag');
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     const input = asPayload(params.input);
     // Plan 4 Task 8b (U6) — bagId is already a real row id (rowIdParam() above);
     // PackingService.updateBag's bagId param no longer needs the String() wrapper.
@@ -150,7 +158,7 @@ export class PackingRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const bagId = rowIdParam(params.bagId, 'bagId');
     const actor = this.guards.requireActor(ctx, 'packing bag');
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     // Plan 4 Task 8b (U6) — same drop of bagId's String() wrapper as updateBag above.
     if (!(await this.packing.deleteBag(String(tripId), bagId))) {
       throw new ForbiddenResource(`no packing bag ${bagId} on trip ${tripId}`);
@@ -166,7 +174,7 @@ export class PackingRpc {
     const tripId = rowIdParam(params.tripId, 'tripId');
     const bagId = rowIdParam(params.bagId, 'bagId');
     const actor = this.guards.requireActor(ctx, 'packing bag');
-    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, PACKING_EDIT_ACTION, PACKING_ADDON);
     // userIds sits on the params object itself, not under `input`.
     const raw = asPayload(params).userIds;
     const userIds = Array.isArray(raw) ? raw.filter((x): x is number => typeof x === 'number') : [];

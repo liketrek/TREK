@@ -176,7 +176,7 @@ export class MailIngestApplyService {
     mail: WalkedMail,
     userId: number,
   ): Promise<{ fileIds: number[]; error: string | null }> {
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS))) return { fileIds: [], error: null };
+    if (!(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.DOCUMENTS))) return { fileIds: [], error: null };
     const allowed = await this.settings.allowedFileTypes();
     const kept = mail.attachments.filter((file) => isUploadTypeAllowed(file.fileName, file.mimeType, allowed));
     const uploads = kept.length
@@ -298,7 +298,7 @@ export class MailIngestApplyService {
   }
 
   /**
-   * The cost a price becomes: only with the costs addon on, a price read to
+   * The cost a price becomes: only with the costs addon on for the trip, a price read to
    * the cent and, in a foreign currency, a rate frozen now. Undefined where
    * there is no cost to write, null where the mail names a price that cannot
    * be written without guessing (the field is marked instead).
@@ -306,7 +306,7 @@ export class MailIngestApplyService {
   private async costOf(item: BookingImportPreviewItem, trip: TripOption): Promise<CostEntry | null> {
     const meta = item.metadata ?? {};
     if (meta.price == null || meta.price === '') return undefined;
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.BUDGET))) return undefined;
+    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.BUDGET))) return undefined;
     const currency = typeof meta.priceCurrency === 'string' ? meta.priceCurrency.toUpperCase() : null;
     const minor = parsePriceMinor(meta.price, currency ?? trip.currency);
     if (minor === null || minor <= 0) return null;

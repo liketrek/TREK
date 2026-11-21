@@ -12,6 +12,7 @@ import { AssignmentParticipants } from '../../src/db/entities/AssignmentParticip
 import { Days } from '../../src/db/entities/Days.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { TourActivityExclusions } from '../../src/db/entities/TourActivityExclusions.entity';
+import { TripAddonOverrides } from '../../src/db/entities/TripAddonOverrides.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -22,7 +23,7 @@ import { ToursModule } from '../../src/nest/tours/tours.module';
 import { createSnapshotTestDb } from '../helpers/db-mock';
 import { makeDayAssignment } from '../helpers/factories/itinerary';
 import { countRows, deleteRows, insertRow, insertRows } from '../helpers/factories/rows';
-import { setAddonEnabled } from '../helpers/factories/settings';
+import { setAddonEnabled, setTripAddon } from '../helpers/factories/settings';
 import { addTripMember } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { FakeRealtimeService } from '../helpers/fake-realtime';
@@ -216,6 +217,24 @@ describe('Tour activity stats e2e (STA-02)', () => {
     const off = await request(server).get(STATS).set(as(OWNER));
     expect(off.status).toBe(404);
     expect(off.body).toEqual({ error: 'Tours addon is not enabled' });
+  });
+
+  it('STA2-E2E-006: a trip with Tours off adds nothing to the sums and its tours cannot be left out, data kept', async () => {
+    const ridge = await tourOnDay('Ridge', 3);
+    await setTripAddon(orm, TRIP, 'tours', false);
+    try {
+      const off = await request(server).get(STATS).set(as(OWNER));
+      expect(off.status).toBe(200);
+      expect(off.body).toEqual({ entries: [], uncounted: { unassigned: 0, undated: 0 } });
+      const left = await exclude({ place_id: ridge.placeId, excluded: true });
+      expect(left.status).toBe(404);
+      expect(left.body).toEqual({ error: 'Tour not found' });
+      expect(await countRows(orm, TourActivityExclusions)).toBe(0);
+    } finally {
+      await deleteRows(orm, TripAddonOverrides);
+    }
+    const back = await request(server).get(STATS).set(as(OWNER));
+    expect(back.body.entries.map((entry: { place_id: number }) => entry.place_id)).toEqual([ridge.placeId]);
   });
 
   it('STA2-E2E-005: a tour on two days counts once, dated on the last of them', async () => {

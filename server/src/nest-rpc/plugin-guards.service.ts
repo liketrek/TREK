@@ -10,6 +10,12 @@ import { rowIdParam } from './rpc-params';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
+/** The trip addon a read or write belongs to, and the word its refusal names it by. */
+export interface RpcAddon {
+  addonId: string;
+  noun: string;
+}
+
 /**
  * The resource gates every plugin RPC handler needs, lifted out of PluginRpcHost's
  * private methods and the host factory's canEditTripAs / requireAddon so that
@@ -39,7 +45,12 @@ export class PluginGuards {
    * so a plugin cannot read another user's trips by naming their id. A userless
    * context (a job, or onLoad) has no acting user and is refused.
    */
-  async tripRead<T>(params: Record<string, unknown>, ctx: PluginRpcContext, read: (userId: number) => T): Promise<T> {
+  async tripRead<T>(
+    params: Record<string, unknown>,
+    ctx: PluginRpcContext,
+    read: (userId: number) => T,
+    addon?: RpcAddon,
+  ): Promise<T> {
     const tripId = rowIdParam(params.tripId, 'tripId');
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('trip reads require an authenticated user context');
@@ -47,6 +58,7 @@ export class PluginGuards {
     if (!(await this.trips.findAccessible(tripId, ctx.actingUserId))) {
       throw new ForbiddenResource(`no access to trip ${tripId}`);
     }
+    if (addon) await this.requireAddon(addon.addonId, addon.noun, { tripId, userId: ctx.actingUserId });
     // The read runs only for a bound, membership-checked user, so hand the id through
     // and per-user visibility filters (packing's private items) still apply.
     return read(ctx.actingUserId);
@@ -63,11 +75,15 @@ export class PluginGuards {
     return ctx.actingUserId;
   }
 
-  /** A write is allowed only if the acting user can access AND edit the trip. */
-  async requireTripEdit(tripId: number, userId: number, action: string): Promise<void> {
+  /**
+   * A write is allowed only if the acting user can access AND edit the trip,
+   * and, given the addon the write belongs to, only while it is on for the trip.
+   */
+  async requireTripEdit(tripId: number, userId: number, action: string, addon?: RpcAddon): Promise<void> {
     if (!(await this.trips.findAccessible(tripId, userId))) throw new ForbiddenResource(`no access to trip ${tripId}`);
     if (!(await this.canEditAs(action, tripId, userId)))
       throw new ForbiddenResource(`no permission to edit trip ${tripId}`);
+    if (addon) await this.requireAddon(addon.addonId, addon.noun, { tripId, userId });
   }
 
   /**
@@ -110,9 +126,35 @@ export class PluginGuards {
   /**
    * A subsystem read is refused when its addon is off, matching the app, where a
    * disabled addon means there is simply nothing to read.
+   *
+   * Given the trip a call is about and the acting user, it asks what applies to
+   * that trip (the owner's choice, else the instance switch), once the user may
+   * see the trip. For a trip the user cannot see it reads the instance switch,
+   * so the answer never tells the plugin what a stranger's trip chose; the
+   * access check that follows refuses the call anyway.
    */
-  async requireAddon(addonId: string, noun: string): Promise<void> {
-    if (!(await this.addons.isAddonEnabled(addonId))) throw new ForbiddenResource(`the ${noun} addon is disabled`);
+  async requireAddon(addonId: string, noun: string, trip?: { tripId: number; userId?: number }): Promise<void> {
+    const forTrip =
+      trip?.userId !== undefined && (await this.trips.findAccessible(trip.tripId, trip.userId)) ? trip.tripId : null;
+    const on =
+      forTrip === null
+        ? await this.addons.isAddonEnabled(addonId)
+        : await this.addons.isEnabledForTrip(forTrip, addonId);
+    if (!on) throw new ForbiddenResource(`the ${noun} addon is disabled`);
+  }
+
+  /**
+   * For a read across all of a user's trips: the ids of the trips the addon
+   * applies to, in the order given. Refused only when it applies to none of
+   * them and the instance has it off, as requireAddon refuses.
+   */
+  async tripsWithAddon(addonId: string, noun: string, tripIds: readonly number[]): Promise<number[]> {
+    const on = await Promise.all(tripIds.map((id) => this.addons.isEnabledForTrip(id, addonId)));
+    const kept = tripIds.filter((_id, i) => on[i]);
+    if (kept.length === 0 && !(await this.addons.isAddonEnabled(addonId))) {
+      throw new ForbiddenResource(`the ${noun} addon is disabled`);
+    }
+    return kept;
   }
 
   /**

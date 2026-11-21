@@ -12,7 +12,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -720,6 +720,7 @@ export class PackingMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING))) return addonOffResource(uri, ADDON_IDS.PACKING);
     // Hide other members' private items (#858) from the requesting user.
     const items = await this.packing.listItems(id, ctx.userId);
     return {
@@ -754,6 +755,7 @@ export class PackingMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING))) return addonOffResource(uri, ADDON_IDS.PACKING);
     const bags = await this.packing.listBags(id);
     return {
       contents: [

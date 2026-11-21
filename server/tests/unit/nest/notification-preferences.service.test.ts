@@ -483,6 +483,25 @@ describe('listed events follow the features that are on', () => {
     }
   });
 
+  it('NPREF-LIST-003: a trip addon a trip of the user switched on lists its rows for that user, not in the defaults', async () => {
+    const { user: chatty } = createUser(testDb);
+    const { user: quiet } = createUser(testDb);
+    const { user: admin } = createAdmin(testDb);
+    const all = { ...features };
+    Object.assign(features, {
+      isAddonEnabled: async (id: string) => id !== 'collab',
+      isEnabledForUserAnywhere: async (userId: number, id: string) => id === 'collab' && userId === chatty.id,
+    });
+    try {
+      expect((await svc.getPreferencesMatrix(chatty.id, 'user')).event_types).toContain('collab_message');
+      expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('collab_message');
+      expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('packing_tagged');
+      expect((await svc.getInstanceDefaults(admin.id)).event_types).not.toContain('collab_message');
+    } finally {
+      Object.assign(features, all);
+    }
+  });
+
   it('NPREF-LIST-002: the flight events are listed only while live flight status is on', async () => {
     const flights = ['flight_departed', 'flight_delayed', 'flight_landed'];
     const { user } = createUser(testDb);

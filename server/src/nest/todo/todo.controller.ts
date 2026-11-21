@@ -1,4 +1,7 @@
+import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
@@ -29,8 +32,10 @@ import {
 @Controller('api/trips/:tripId/todo')
 // TripAccessGuard resolves :tripId and 404s a trip the user cannot reach; mutations
 // add @RequirePermission('packing_edit'), the same action string the service's canEdit
-// passes, so the HTTP and MCP paths cannot demand different rights.
-@UseGuards(JwtAuthGuard, TripAccessGuard)
+// passes, so the HTTP and MCP paths cannot demand different rights. TripAddonGuard follows it:
+// a trip that has Lists (packing and todos) off answers 404 "Packing addon is not enabled", data kept.
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
+@RequireAddon(ADDON_IDS.PACKING, 'Packing')
 export class TodoController {
   constructor(private readonly todo: TodoService) {}
 

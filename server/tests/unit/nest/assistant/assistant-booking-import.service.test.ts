@@ -80,7 +80,7 @@ async function codeOf(promise: Promise<unknown>): Promise<string | null> {
 describe('AssistantBookingImportService', () => {
   it('ASTBKI-001: refuses a file nothing here reads, and a photo the model cannot see', async () => {
     const readable = async (opts: Opts, name: string) =>
-      codeOf((await make(opts)).service.ensureReadable(7, file(name)));
+      codeOf((await make(opts)).service.ensureReadable(7, 1, file(name)));
     expect(await readable({ extractor: false }, 'a.pdf')).toBe('import_unavailable');
     expect(await readable({ extractor: false, ai: true }, 'a.pdf')).toBeNull();
     expect(await readable({}, 'a.pdf')).toBeNull();

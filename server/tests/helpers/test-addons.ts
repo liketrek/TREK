@@ -3,6 +3,7 @@ import { Addons } from '../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { PhotoProviderFields } from '../../src/db/entities/PhotoProviderFields.entity';
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
+import { TripAddonOverrides } from '../../src/db/entities/TripAddonOverrides.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { AddonsService } from '../../src/nest/addons/addons.service';
 import { UnitOfWork } from '../../src/nest/database/unit-of-work';
@@ -44,5 +45,6 @@ export async function createTestAddonsService(db: Database.Database): Promise<Ad
     t.repo(AppSettings),
     t.repo(Users),
     new UnitOfWork(t.em, new SqliteEngine()),
+    t.repo(TripAddonOverrides),
   );
 }

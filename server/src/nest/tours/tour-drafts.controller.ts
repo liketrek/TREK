@@ -1,7 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
@@ -19,7 +19,7 @@ import { successResponseSchema, tourDraftResponseSchema } from '@trek/shared';
  * names the signed-in user, so a traveller only ever reaches their own draft.
  */
 @Controller('api/trips/:tripId/tour-draft')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class TourDraftsController {
   constructor(private readonly drafts: TourDraftsService) {}

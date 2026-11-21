@@ -1,7 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
@@ -27,7 +27,7 @@ import {
  * does, so it asks the same right.
  */
 @Controller('api/trips/:tripId/tours/wanderer')
-@UseGuards(AddonGuard, JwtAuthGuard, WandererEnabledGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard, WandererEnabledGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class ToursWandererController {
   constructor(

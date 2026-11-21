@@ -1,9 +1,11 @@
+import { ADDON_IDS } from '../../addons';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { TodoItemsRepository } from '../../db/repositories/TodoItems.repository';
 import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { AddonsService } from '../addons/addons.service';
 import { logInfo, logError, logWarn } from '../audit/audit-log.logger';
 import { readAppSetting } from '../common/app-settings.registry';
 import { appClock } from '../common/timezoneService';
@@ -52,6 +54,7 @@ export class ReminderJobsService implements OnApplicationBootstrap {
     @InjectRepository(TodoItems) private readonly todoItems: TodoItemsRepository,
     private readonly notifications: NotificationsService,
     private readonly registrar: CronRegistrarService,
+    private readonly addons: AddonsService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -180,7 +183,12 @@ export class ReminderJobsService implements OnApplicationBootstrap {
       const todayDate = appClock().date;
       const cutoffDate = addIsoDays(todayDate, TODO_REMINDER_LEAD_DAYS);
 
-      const todos = await this.todoItems.listDueForReminder(todayDate, cutoffDate);
+      // A trip that has Lists off shows no todos, so it is reminded of none; its todos stay unclaimed.
+      const due = await this.todoItems.listDueForReminder(todayDate, cutoffDate);
+      const tripIds = [...new Set(due.map((todo) => todo.trip_id))];
+      const listsOn = await Promise.all(tripIds.map((id) => this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING)));
+      const withLists = new Set(tripIds.filter((_id, i) => listsOn[i]));
+      const todos = due.filter((todo) => withLists.has(todo.trip_id));
 
       let sent = 0;
       for (const todo of todos) {

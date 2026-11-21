@@ -50,7 +50,7 @@ export class AssistantShareService {
     // The asking tab, which the route hands on; deliberately not skipped (see the class comment).
     _askingSocketId: string | undefined,
   ) {
-    const collabOn = await this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    const collabOn = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.COLLAB);
     if (!collabOn || !(await this.addons.getCollabFeatures()).chat) throw aiRefusal('forbidden', 'Collab chat is off');
     if (!(await this.threads.findOwned(threadId, user.id, tripId))) {
       throw aiRefusal('not_found', 'Conversation not found');

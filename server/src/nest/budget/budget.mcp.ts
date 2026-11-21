@@ -16,7 +16,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { DomainError } from '../common/domain-error';
@@ -849,6 +849,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     const items = await this.budget.listBudgetItems(id);
     return {
       contents: [
@@ -882,6 +883,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     // In the trip currency, each share at the rate its expense was booked at (#2525).
     const summary = await this.budget.perPersonSummary(id);
     return {
@@ -916,6 +918,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     // Resolve the trip currency + live rates like get_settlement_summary — the
     // legacy resource called calculateSettlement(id) bare, silently netting a
     // non-EUR trip in EUR with no FX conversion.

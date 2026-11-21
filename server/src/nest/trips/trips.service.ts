@@ -47,6 +47,7 @@ import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
+import { TripAddonsService } from '../addons/trip-addons.service';
 import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
 import { inOrder } from '../common/in-order';
@@ -128,6 +129,7 @@ export class TripsService {
     // .forRoot`'s core module), so no module needs new wiring.
     private readonly em: EntityManager,
     private readonly settings: SettingsService,
+    private readonly tripAddons: TripAddonsService, // the owner's per-trip addon switches travel with a copy
   ) {}
 
   // Plan 3c Task 7: the raw better-sqlite3 handle used to back `remove`'s
@@ -755,6 +757,7 @@ export class TripsService {
         await this.roadtripPreferencesRepo.upsertValue(newTripId, pref.key, pref.value); // TP50
       }
 
+      await this.tripAddons.copyOverrides(Number(sourceTripId), newTripId); // the trip addons switched on or off for the trip
       const oldBoundaries = await this.roadtripDayBoundariesRepo.listForTrip(Number(sourceTripId)); // TP51
       for (const boundary of oldBoundaries) {
         const from = assignmentMap.get(boundary.from_assignment_id);

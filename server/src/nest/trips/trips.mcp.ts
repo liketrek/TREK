@@ -432,10 +432,10 @@ export class TripsMcp {
     const summary = await this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) return noAccess();
     const R = canReadTrips(ctx.scopes);
-    // Addon availability gates
-    const packingEnabled = await this.addons.isAddonEnabled(ADDON_IDS.PACKING);
-    const budgetEnabled = await this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
-    const collabEnabled = await this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    // Addon availability gates, as they apply to this trip
+    const packingEnabled = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.PACKING);
+    const budgetEnabled = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.BUDGET);
+    const collabEnabled = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.COLLAB);
     const collabFeatures = collabEnabled ? await this.addons.getCollabFeatures() : null;
     // Scope gates — sections not covered by the client's OAuth scopes are omitted.
     // Core trip data (metadata, days, members, accommodations) is always included
@@ -781,15 +781,21 @@ export class TripsMcp {
     }
     const { trip, days, members, budget, packing, reservations, collab_notes } = summary as any;
     const memberList = [members?.owner, ...(members?.collaborators || [])].filter(Boolean);
+    // A section whose addon is off for this trip is left out, as get_trip_summary leaves it out.
+    const [packingOn, budgetOn, collabOn] = await Promise.all(
+      [ADDON_IDS.PACKING, ADDON_IDS.BUDGET, ADDON_IDS.COLLAB].map((id) => this.addons.isEnabledForTrip(tripId, id)),
+    );
+    const sections = [
+      packingOn ? `Packing: ${packing?.checked || 0}/${packing?.total || 0} items packed\n` : '',
+      budgetOn ? `Budget: ${budget?.total || 0} ${trip?.currency || 'EUR'} total\n` : '',
+    ].join('');
+    const notes = collabOn ? `Collab Notes: ${collab_notes?.length || 0}\n` : '';
     const text = `Trip: ${trip?.title || 'Untitled'}${trip?.description ? `\n${trip.description}` : ''}
 Dates: ${trip?.start_date || '?'} to ${trip?.end_date || '?'}
 Members: ${memberList.length} (${memberList.map((m: any) => m.name || m.email).join(', ') || 'none'})
 Days: ${days?.length || 0}
-Packing: ${packing?.checked || 0}/${packing?.total || 0} items packed
-Budget: ${budget?.total || 0} ${trip?.currency || 'EUR'} total
-Reservations: ${reservations?.length || 0}
-Collab Notes: ${collab_notes?.length || 0}
-${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.length || 0} places${d.title ? ` - ${d.title}` : ''}`).join('\n') || 'No days yet'}`;
+${sections}Reservations: ${reservations?.length || 0}
+${notes}${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.length || 0} places${d.title ? ` - ${d.title}` : ''}`).join('\n') || 'No days yet'}`;
     return {
       description: `Summary of trip "${trip?.title || tripId}"`,
       messages: [{ role: 'user' as const, content: { type: 'text' as const, text } }],

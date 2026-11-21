@@ -10,7 +10,7 @@
  * The guard chain is asserted through the decorator metadata rather than by
  * booting Nest: the controller's own comment calls the ORDER load-bearing, and
  * a class-level assertion is the only thing that fails when somebody removes
- * AddonGuard again. `@RequireAddon` is metadata and does nothing on its own, so
+ * TripAddonGuard again. `@RequireAddon` is metadata and does nothing on its own, so
  * dropping the guard from the list is a silent regression that opens all seven
  * routes on an instance that switched the addon off.
  *
@@ -18,7 +18,7 @@
  * siblings, pinned in roadtrip.service.test.ts); here only that every write
  * hands it the REST writer of this trip, user and socket.
  */
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import { TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
@@ -64,17 +64,17 @@ async function thrown(fn: () => unknown): Promise<{ status: number; body: unknow
 }
 
 describe('RoadtripController — the guard chain', () => {
-  it('ROADTRIP-CTL-001: the addon gate leads, and the auth and trip guards follow', () => {
+  it('ROADTRIP-CTL-001: auth and the trip lead, and the addon gate of the trip follows', () => {
     const guards = Reflect.getMetadata(GUARDS_METADATA, RoadtripController) as unknown[];
 
-    // AddonGuard first, and present at all: @RequireAddon is metadata and inert
+    // TripAddonGuard present at all: @RequireAddon is metadata and inert
     // without it, and the guard is not registered globally either. Without this
     // line all seven routes answered on an instance that had the addon off,
     // which is the bug this branch fixed once already.
-    expect(guards).toEqual([AddonGuard, JwtAuthGuard, TripAccessGuard]);
-    // It leads because a disabled addon owes an anonymous caller a 404 rather
-    // than a 401 that tells them the route exists.
-    expect(guards[0]).toBe(AddonGuard);
+    expect(guards).toEqual([JwtAuthGuard, TripAccessGuard, TripAddonGuard]);
+    // It follows TripAccessGuard because what applies is the trip's own choice,
+    // which only somebody who may see the trip gets to learn.
+    expect(guards[guards.length - 1]).toBe(TripAddonGuard);
   });
 });
 

@@ -1,3 +1,4 @@
+import { tripAddonListSchema } from '../addons/trip-addons.schema';
 import { flightLiveLegSchema } from '../flight-live/flight-live.schema';
 import { roadtripDayBoundaryListSchema } from '../roadtrip/day-boundary.schema';
 import { roadtripPreferencesSchema } from '../roadtrip/preferences.schema';
@@ -292,6 +293,10 @@ export const TREK_WS_EVENTS = {
   'memories:updated': { scope: 'trip', payload: z.object({ userId: id }) },
 
   'roadtripPreferences:changed': { scope: 'trip', payload: z.object({ preferences: roadtripPreferencesSchema }) },
+
+  // The trip owner switched a trip addon on or off for this trip, or back to the
+  // instance setting: every trip addon as the trip now sees it.
+  'tripAddons:changed': { scope: 'trip', payload: z.object({ addons: tripAddonListSchema }) },
 
   // ── Notifications (user-scoped) ──────────────────────────────────────────
   'notification:new': { scope: 'user', payload: z.object({ notification: entity }) },

@@ -84,6 +84,7 @@ import {
   createTestPluginUserErasureQueueRepo,
 } from '../../helpers/share-repos';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { resetTestDb } from '../../helpers/test-db';
 import {
   createTestUnitOfWork,
@@ -314,6 +315,7 @@ const buildReadModel = async (tripsRepo: TripsRepository, roster: TripMembersSer
       await createTestUsersRepo(testDb),
       await createTestTripsRepo(testDb),
       await createTestBudgetItemsRepo(testDb),
+      await createTestAddonsService(testDb),
     ),
     new CollabService(
       // Plan 4 Task 2 — CollabService's own DatabaseService param is gone:
@@ -364,6 +366,7 @@ const buildReadModel = async (tripsRepo: TripsRepository, roster: TripMembersSer
       await createTestBudgetItemsRepo(testDb),
       { releaseValues: async () => [] } as never, // StorageReleaseService
     ),
+    await createTestAddonsService(testDb),
   );
 
 let svc: Awaited<ReturnType<typeof buildReadModel>>;
@@ -542,7 +545,7 @@ describe('bundle shaping', () => {
       members: undefined,
     } as never);
     try {
-      const result = (await svc.bundle(String(trip.id), { user_id: owner.id }, owner.id)) as any;
+      const result = (await svc.bundle(String(trip.id), { id: trip.id, user_id: owner.id }, owner.id)) as any;
       expect(result.members).toEqual([{ id: owner.id, username: 'solo' }]);
     } finally {
       roster.mockRestore();
@@ -561,7 +564,7 @@ describe('bundle shaping', () => {
       members: [{ id: 42, username: 'left-behind' }],
     } as never);
     try {
-      const result = (await svc.bundle(String(trip.id), { user_id: owner.id }, owner.id)) as any;
+      const result = (await svc.bundle(String(trip.id), { id: trip.id, user_id: owner.id }, owner.id)) as any;
       expect(result.members).toEqual([{ id: 42, username: 'left-behind' }]);
     } finally {
       roster.mockRestore();
@@ -586,7 +589,7 @@ describe('private packing items stay viewer-scoped (#858)', () => {
     expect(asViewer.packing.items.map((i: any) => i.name)).toEqual(['Tent']);
     expect(asViewer.packing.total).toBe(1);
 
-    const bundled = (await svc.bundle(String(trip.id), { user_id: owner.id }, viewer.id)) as any;
+    const bundled = (await svc.bundle(String(trip.id), { id: trip.id, user_id: owner.id }, viewer.id)) as any;
     expect(bundled.packingItems.map((i: any) => i.name)).toEqual(['Tent']);
 
     // The owner still sees their own private item through both paths, so the
@@ -596,7 +599,7 @@ describe('private packing items stay viewer-scoped (#858)', () => {
       'Tent',
     ]);
     expect(
-      ((await svc.bundle(String(trip.id), { user_id: owner.id }, owner.id)) as any).packingItems.map(
+      ((await svc.bundle(String(trip.id), { id: trip.id, user_id: owner.id }, owner.id)) as any).packingItems.map(
         (i: any) => i.name,
       ),
     ).toEqual(['Ring', 'Tent']);
