@@ -84,11 +84,15 @@ export class Migration20200101046480_an_address_changed_after_an_admin_made_the_
     const users = (await this.execute(
       `SELECT id, email FROM users WHERE COALESCE(is_guest, 0) = 0 AND email_self_asserted = 0`,
     )) as UserEmailRow[];
+    // Queued, run after up() returns; the id comes from the database and is
+    // checked to be an integer, nothing a user typed.
     for (const user of users) {
       const id = String(user.id);
       if (!createdByAdmin.has(id) || editedByAdmin.has(id)) continue;
       if (baselines.get(id)?.includes(user.email.trim().toLowerCase())) continue;
-      await this.execute('UPDATE users SET email_self_asserted = 1 WHERE id = ?', [user.id]);
+      const rowId = Number(user.id);
+      if (!Number.isInteger(rowId)) continue;
+      this.addSql(`UPDATE users SET email_self_asserted = 1 WHERE id = ${rowId}`);
     }
   }
 }
