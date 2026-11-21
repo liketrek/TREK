@@ -129,7 +129,7 @@
   "src/pages/tripPlanner/usePlaceEdits.ts": 2,
   "src/pages/tripPlanner/usePlaceFormOpeners.test.ts": 2,
   "src/pages/tripPlanner/usePlaceFormOpeners.ts": 1,
-  "src/pages/tripPlanner/useTripPlanner.ts": 2,
+  "src/pages/tripPlanner/useTripPlanner.ts": 1,
   "src/repo/tripRepo.ts": 2,
   "src/store/slices/budgetSlice.test.ts": 1,
   "src/utils/formatters.test.ts": 1,

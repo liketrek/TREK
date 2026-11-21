@@ -26,7 +26,7 @@ const ICONS: Readonly<Record<string, LucideIcon>> = {
 };
 
 /** One trip addon as the trip settings list it. */
-export interface TripAddonRow {
+interface TripAddonRow {
   id: string;
   name: string;
   description: string;

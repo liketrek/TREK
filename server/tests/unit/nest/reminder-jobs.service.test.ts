@@ -261,6 +261,7 @@ describe('trip reminder tick', () => {
       { listDueForReminder: throwGone, claimReminder: throwGone } as unknown as TodoItemsRepository,
       broken,
       { isEnabled: () => true, register: () => true, unregister: () => {} } as unknown as CronRegistrarService,
+      addonsSvc,
     );
     await expect(svc.tripTick()).resolves.toBeUndefined();
     expect(logMock.logError).toHaveBeenCalledWith('Trip reminder check failed: db gone');
