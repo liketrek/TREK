@@ -272,7 +272,7 @@ describe('downloadTripPDF', () => {
       }),
     }
     await downloadTripPDF({ ...richArgs, reservations: [direct, stopover] })
-    const html = getIframe()!.srcdoc
+    const html = getIframe()?.srcdoc ?? ''
     expect(html).toContain('Air Italia · AI123 · reservations.meta.seat 31A · CDG → FCO')
     expect(html).toContain('Lufthansa · LH2 · reservations.meta.seat 14C · BER → HND')
     expect(html).not.toContain('LH1 · reservations.meta.seat')

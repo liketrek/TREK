@@ -7,7 +7,7 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
-import { bookingSeats, getFlightLegs, getTrainLegs, seatLabel, usesStationRoute, type FlightLeg, type TrainLeg } from '../../../../utils/flightLegs'
+import { getFlightLegs, getTrainLegs, seatLabel, seatsOfLegs, usesStationRoute, type FlightLeg, type TrainLeg } from '../../../../utils/flightLegs'
 import { runsOnDay } from '../../../../utils/reservationRoutes'
 import { filesFor } from '../../../../utils/reservationFiles'
 import { bookingDayLabel, segmentCodeLabel } from '../../../../components/Planner/transportDetailModel'
@@ -171,7 +171,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
 
   // Opened from a leg, that leg's own seat; the whole booking lists the seat of
   // every leg that has one, each under its route, rather than only the first's.
-  const seats: { route: string | null; seat: string }[] = leg ? (legDetail.seat ? [{ route: null, seat: legDetail.seat }] : []) : bookingSeats(res)
+  const seats: { route: string | null; seat: string }[] = leg ? (legDetail.seat ? [{ route: null, seat: legDetail.seat }] : []) : seatsOfLegs(routeLegs, meta.seat)
   const ownSeat = seats.find(s => s.route == null)?.seat
   const legSeats = seats.filter(s => s.route != null)
   // A flight's legs carry no platform of their own, so that stays the booking's.

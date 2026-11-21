@@ -184,11 +184,15 @@ function legSeat(leg: { seat?: unknown } | null | undefined, index: number, meta
 export function bookingSeats(r: Reservation): { route: string | null; seat: string }[] {
   const legs: (FlightLeg | TrainLeg)[] =
     r.type === 'flight' ? getFlightLegs(r) : usesStationRoute(r.type) ? getTrainLegs(r) : []
+  return seatsOfLegs(legs, parseReservationMetadata(r).seat)
+}
+
+/** bookingSeats for legs already read (getFlightLegs or getTrainLegs) and the booking's flat seat. */
+export function seatsOfLegs(legs: readonly (FlightLeg | TrainLeg)[], flatSeat: unknown): { route: string | null; seat: string }[] {
   if (legs.length > 1) {
     return legs.flatMap((l) => (l.seat ? [{ route: [l.from, l.to].filter(Boolean).join(' → ') || null, seat: l.seat }] : []))
   }
-  const seat = parseReservationMetadata(r).seat
-  return typeof seat === 'string' && seat ? [{ route: null, seat }] : []
+  return typeof flatSeat === 'string' && flatSeat ? [{ route: null, seat: flatSeat }] : []
 }
 
 /** The label of one of bookingSeats' seats: "Seat", or "Seat FRA → IST" for a leg. */
