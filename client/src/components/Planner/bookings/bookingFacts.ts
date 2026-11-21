@@ -1,6 +1,6 @@
 import type { Day, Reservation, ReservationEndpoint } from '../../../types'
 import { formatPriceText, formatTime, splitReservationDateTime } from '../../../utils/formatters'
-import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../../utils/flightLegs'
+import { getFlightLegs, getTrainLegs, seatCells, usesStationRoute } from '../../../utils/flightLegs'
 import { safeExternalHref } from '../../../utils/safeUrl'
 import { bookingDates, daySpan, hotelStayTimes, parseMeta, type AssignmentLookupEntry } from './bookingsModel'
 
@@ -102,7 +102,8 @@ export function bookingFacts(r: Reservation, c: FactsContext): BookingFacts {
   if (!hasEndpoints && meta.arrival_airport) cells.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
   if (meta.train_number) cells.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
   if (meta.platform) cells.push({ label: t('reservations.meta.platform'), value: meta.platform })
-  if (meta.seat) cells.push({ label: t('reservations.meta.seat'), value: meta.class ? `${meta.seat}, ${meta.class}` : meta.seat })
+  // One seat per leg on a booking with a stop, each under its route; otherwise the booking's own.
+  cells.push(...seatCells(r, t('reservations.meta.seat'), meta.class ? `, ${meta.class}` : ''))
   if (!c.hasLinkedCost && meta.price != null && meta.price !== '') {
     cells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, c.tripCurrency, locale) })
   }

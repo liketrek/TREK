@@ -417,7 +417,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
                 // flat metadata pair for legacy single-leg flights without endpoints.
                 const stops = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0)).map(e => e.code || e.name)
                 const route = stops.length >= 2 ? stops.join(' → ') : (meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : '')
-                subtitle = [meta.airline, meta.flight_number, route].filter(Boolean).join(' · ')
+                subtitle = [meta.airline, meta.flight_number, meta.seat ? `${tr('reservations.meta.seat')} ${meta.seat}` : '', route].filter(Boolean).join(' · ')
               }
             }
             else if (r.type === 'train') {

@@ -259,6 +259,25 @@ describe('downloadTripPDF', () => {
     expect(iframe!.srcdoc).toContain('Air Italia · AI123 · CDG → FCO')
   })
 
+  it('FE-COMP-TRIPPDF-013s: a flight prints its seat, a direct one and each leg of one with a stop alike', async () => {
+    const direct = { ...transportReservation, metadata: JSON.stringify({ airline: 'Air Italia', flight_number: 'AI123', seat: '31A', departure_airport: 'CDG', arrival_airport: 'FCO' }) }
+    const stopover = {
+      ...multiLegFlight,
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'BER', airline: 'Lufthansa', flight_number: 'LH1' },
+          { from: 'BER', to: 'HND', airline: 'Lufthansa', flight_number: 'LH2', seat: '14C' },
+        ],
+        departure_airport: 'FRA', arrival_airport: 'HND', airline: 'Lufthansa', flight_number: 'LH1',
+      }),
+    }
+    await downloadTripPDF({ ...richArgs, reservations: [direct, stopover] })
+    const html = getIframe()!.srcdoc
+    expect(html).toContain('Air Italia · AI123 · reservations.meta.seat 31A · CDG → FCO')
+    expect(html).toContain('Lufthansa · LH2 · reservations.meta.seat 14C · BER → HND')
+    expect(html).not.toContain('LH1 · reservations.meta.seat')
+  })
+
   it('FE-COMP-TRIPPDF-013f: the stop a booked night wrote is not listed, so a morning flight prints before the hotel (#2434)', async () => {
     // The desktop toolbar hands the export the store's assignments, hidden stop and
     // all, and that stop heads its check-in day. The day plan hides it and shows the

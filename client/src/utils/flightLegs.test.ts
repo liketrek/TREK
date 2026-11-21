@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getFlightLegs, getTrainLegs, isMultiLegTrain, stripAirportCode, usesStationRoute } from './flightLegs'
+import { bookingSeats, getFlightLegs, getTrainLegs, isMultiLegTrain, seatCells, seatLabel, stripAirportCode, usesStationRoute } from './flightLegs'
 import type { Reservation } from '../types'
 
 function res(partial: Partial<Reservation>): Reservation {
@@ -94,6 +94,42 @@ describe('per-segment booking references (#1943)', () => {
       metadata: '{}',
     })
     expect(getTrainLegs(train)[0].confirmation_number).toBe('BOOK2')
+  })
+})
+
+describe('the seats of a booking with a stop', () => {
+  const stopover = (legs: object[], extra: Record<string, unknown> = {}) =>
+    res({ type: 'flight', metadata: JSON.stringify({ ...extra, legs }) })
+
+  it('reads each flight leg its own seat, so one booked only on the second leg is not lost', () => {
+    const r = stopover([{ from: 'MXP', to: 'IST' }, { from: 'IST', to: 'JFK', seat: '14C' }])
+    expect(getFlightLegs(r).map(l => l.seat)).toEqual([undefined, '14C'])
+    expect(bookingSeats(r)).toEqual([{ route: 'IST → JFK', seat: '14C' }])
+  })
+
+  it('gives the first leg the flat seat when it has none of its own, as the booking form does', () => {
+    const r = stopover([{ from: 'MXP', to: 'IST' }, { from: 'IST', to: 'JFK' }], { seat: '3A' })
+    expect(getFlightLegs(r).map(l => l.seat)).toEqual(['3A', undefined])
+    expect(bookingSeats(r)).toEqual([{ route: 'MXP → IST', seat: '3A' }])
+  })
+
+  it('lists a train with a stop leg by leg too', () => {
+    const r = res({ metadata: JSON.stringify({ legs: [{ from: 'Takayama', to: 'Nagoya', seat: '10-4C' }, { from: 'Nagoya', to: 'Kyoto', seat: '4-5A' }] }) })
+    expect(bookingSeats(r)).toEqual([{ route: 'Takayama → Nagoya', seat: '10-4C' }, { route: 'Nagoya → Kyoto', seat: '4-5A' }])
+  })
+
+  it('gives a booking of one leg, of any type, its own seat without a route', () => {
+    expect(bookingSeats(res({ type: 'flight', metadata: JSON.stringify({ seat: '31A' }) }))).toEqual([{ route: null, seat: '31A' }])
+    expect(bookingSeats(res({ type: 'event', metadata: JSON.stringify({ seat: 'Row 4' }) }))).toEqual([{ route: null, seat: 'Row 4' }])
+    expect(bookingSeats(res({ type: 'flight', metadata: null }))).toEqual([])
+  })
+
+  it('labels a leg seat with its route and a booking seat plainly', () => {
+    expect(seatLabel('Seat', 'IST → JFK')).toBe('Seat IST → JFK')
+    expect(seatLabel('Seat', null)).toBe('Seat')
+    const r = stopover([{ from: 'MXP', to: 'IST', seat: '3A' }, { from: 'IST', to: 'JFK', seat: '14C' }])
+    expect(seatCells(r, 'Seat', ' · Economy')).toEqual([{ label: 'Seat', value: '3A, 14C · Economy' }])
+    expect(seatCells(res({ type: 'flight', metadata: null }), 'Seat')).toEqual([])
   })
 })
 

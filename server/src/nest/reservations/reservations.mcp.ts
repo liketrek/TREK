@@ -147,6 +147,23 @@ const legsSchema = z.array(z.strictObject(transportLegInputSchema.shape)).option
 type MetaRecord = Record<string, unknown>;
 
 /**
+ * The stored metadata a legs-only update starts from, without the flat keys
+ * that only mirrored the stored first leg's own detail. Those are set again
+ * from the new legs; kept, a first leg's seat taken away stayed in the flat
+ * seat, and the planner, which reads that as the first leg's, brought it back.
+ * A flat value the first leg never had (an older booking) is the booking's own
+ * and stays.
+ */
+function withoutLegMirrors(stored: MetaRecord, type: string): MetaRecord {
+  const mirrored = type === 'flight' ? ['airline', 'flight_number', 'seat'] : ['train_number', 'platform', 'seat'];
+  const leg: unknown = Array.isArray(stored.legs) ? stored.legs[0] : null;
+  const firstLeg = leg && typeof leg === 'object' ? (leg as MetaRecord) : null;
+  return Object.fromEntries(
+    Object.entries(stored).filter(([key, value]) => !(firstLeg && mirrored.includes(key) && firstLeg[key] === value)),
+  );
+}
+
+/**
  * `reservations.metadata` as stored: a JSON string, or (from an old
  * double-encoding bug the client readers still heal around) a JSON string of a
  * JSON string. Reading it must never throw: a booking with unparseable metadata
@@ -827,8 +844,8 @@ export class ReservationsMcp {
         })),
         // metadata keeps replacing wholesale when it is sent; a legs-only update
         // must not drop departure_airport / airtrail_ids / transit, so it merges
-        // into what is stored instead.
-        baseMetadata: metadata !== undefined ? { ...metadata } : { ...stored },
+        // into what is stored instead, less the first leg's mirrored detail.
+        baseMetadata: metadata !== undefined ? { ...metadata } : withoutLegMirrors(stored, resolvedType),
         previousLegs: Array.isArray(stored.legs) ? stored.legs as unknown[] : [],
         startDayId: start_day_id,
         endDayId: end_day_id,

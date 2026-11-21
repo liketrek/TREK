@@ -159,6 +159,61 @@ describe('wallet pass builder', () => {
     expect(request?.details?.[1]?.value).toBe('Lufthansa LH716');
   });
 
+  const ENDS = [
+    {
+      role: 'from',
+      name: 'Milan',
+      code: 'MXP',
+      lat: 45.63,
+      lng: 8.72,
+      timezone: 'Europe/Rome',
+      local_date: '2027-04-02',
+      local_time: '11:00',
+    },
+    {
+      role: 'to',
+      name: 'New York',
+      code: 'JFK',
+      lat: 40.64,
+      lng: -73.78,
+      timezone: 'America/New_York',
+      local_date: '2027-04-02',
+      local_time: '20:40',
+    },
+  ] as WalletPassSource['endpoints'];
+
+  it('WALLET-B-011: a flight with a stop shows the seat of each leg, also one booked only on the second', () => {
+    const seat = (metadata: Record<string, unknown>) =>
+      buildWalletPassRequest(
+        source({ type: 'flight', reservation_time: '2027-04-02T11:00', metadata }, { endpoints: ENDS }),
+        WORDS,
+      )?.details?.find((d) => d.label === 'Seat')?.value;
+    const legs = [
+      { from: 'MXP', to: 'IST' },
+      { from: 'IST', to: 'JFK', seat: '14C' },
+    ];
+    expect(seat({ legs })).toBe('14C');
+    expect(seat({ seat: '3A', legs: [{ from: 'MXP', to: 'IST', seat: '3A' }, legs[1]] })).toBe('3A / 14C');
+    // An older booking keeps its flat seat on the first leg.
+    expect(
+      seat({
+        seat: '3A',
+        legs: [
+          { from: 'MXP', to: 'IST' },
+          { from: 'IST', to: 'JFK' },
+        ],
+      }),
+    ).toBe('3A');
+    expect(
+      seat({
+        legs: [
+          { from: 'MXP', to: 'IST' },
+          { from: 'IST', to: 'JFK' },
+        ],
+      }),
+    ).toBeUndefined();
+  });
+
   it('WALLET-B-007: a journey without both ends is a plain booking; a train shows its number and platform', () => {
     const half = buildWalletPassRequest(source({ type: 'train', metadata: {} }, { place: null, endpoints: [] }), WORDS);
     expect(half?.kind).toBe('other');

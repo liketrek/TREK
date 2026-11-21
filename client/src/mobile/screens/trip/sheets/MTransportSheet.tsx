@@ -7,7 +7,7 @@ import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { splitReservationDateTime } from '../../../../utils/formatters'
-import { getFlightLegs, getTrainLegs, usesStationRoute, type FlightLeg, type TrainLeg } from '../../../../utils/flightLegs'
+import { bookingSeats, getFlightLegs, getTrainLegs, seatLabel, usesStationRoute, type FlightLeg, type TrainLeg } from '../../../../utils/flightLegs'
 import { runsOnDay } from '../../../../utils/reservationRoutes'
 import { filesFor } from '../../../../utils/reservationFiles'
 import { bookingDayLabel, segmentCodeLabel } from '../../../../components/Planner/transportDetailModel'
@@ -169,8 +169,12 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
   if (leg && (leg.from || leg.to)) subParts.push(flowText([leg.from, leg.to].filter((n): n is string => !!n)))
   else if (from?.name && to?.name) subParts.push(flowText([from.name, to.name]))
 
-  // A flight's legs carry no seat or platform of their own, so those stay the booking's.
-  const seat = leg && !isFlight ? legDetail.seat : meta.seat
+  // Opened from a leg, that leg's own seat; the whole booking lists the seat of
+  // every leg that has one, each under its route, rather than only the first's.
+  const seats: { route: string | null; seat: string }[] = leg ? (legDetail.seat ? [{ route: null, seat: legDetail.seat }] : []) : bookingSeats(res)
+  const ownSeat = seats.find(s => s.route == null)?.seat
+  const legSeats = seats.filter(s => s.route != null)
+  // A flight's legs carry no platform of their own, so that stays the booking's.
   const platform = leg && !isFlight ? legDetail.platform : meta.platform
   const transitLegs: TransitLeg[] = Array.isArray(meta.transit?.legs) ? meta.transit.legs : []
 
@@ -211,6 +215,9 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
         locale,
       )
     : []
+
+  // The times, platform and booking seat; each leg's seat gets a row of its own below it.
+  const statRow = hotelStats.length === 0 && ((showTimes && (depTime || arrTime)) || !!ownSeat || !!platform)
 
   // The editor that fits the booking: transports have their own, everything
   // else (a stay, a table, a ticket) the booking editor, as in the Bookings tab.
@@ -275,7 +282,7 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
         ))}
 
         {/* ── Times / seat stats (the live card already shows the times) ── */}
-        {hotelStats.length === 0 && ((showTimes && (depTime || arrTime)) || seat || platform) && (
+        {statRow && (
           <div className="mt-[14px] flex gap-[6px]">
             {showTimes && depTime && (
               <StatBox caption={depDate} value={displayTime(depTime, locale, timeFormat)} label={depLabel} />
@@ -284,7 +291,12 @@ export default function MTransportSheet({ planner, shell }: MTripSheetsProps) {
               <StatBox caption={arrDate} value={displayTime(arrTime, locale, timeFormat)} label={arrLabel} />
             )}
             {platform && <StatBox value={platform} label={t('reservations.meta.platform')} />}
-            {seat && <StatBox value={seat} label={t('reservations.meta.seat')} />}
+            {ownSeat && <StatBox value={ownSeat} label={t('reservations.meta.seat')} />}
+          </div>
+        )}
+        {hotelStats.length === 0 && legSeats.length > 0 && (
+          <div className={`${statRow ? 'mt-[6px]' : 'mt-[14px]'} flex gap-[6px]`}>
+            {legSeats.map((s, i) => <StatBox key={i} value={s.seat} label={seatLabel(t('reservations.meta.seat'), s.route)} />)}
           </div>
         )}
 

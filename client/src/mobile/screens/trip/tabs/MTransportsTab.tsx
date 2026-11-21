@@ -10,7 +10,7 @@ import { cardWhen, parseTransportMeta } from './transportsModel'
 import { TRANSPORT_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
 import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
-import { orderedEndpoints } from '../../../../utils/flightLegs'
+import { orderedEndpoints, seatCells } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
 import MFlightLiveStrip from '../MFlightLiveStrip'
 
@@ -113,7 +113,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
   if (!hasEndpoints && meta.arrival_airport) metaCells.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
   if (meta.train_number) metaCells.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
   if (meta.platform) metaCells.push({ label: t('reservations.meta.platform'), value: meta.platform })
-  if (meta.seat) metaCells.push({ label: t('reservations.meta.seat'), value: meta.seat + (meta.class ? ` · ${meta.class}` : '') })
+  metaCells.push(...seatCells(res, t('reservations.meta.seat'), meta.class ? ` · ${meta.class}` : ''))
   if (meta.price != null && meta.price !== '') {
     metaCells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, planner.trip?.currency, locale) })
   }

@@ -1712,3 +1712,63 @@ describe('Transport tools: the full type list', () => {
     });
   });
 });
+
+// The flat seat mirrors the first leg's; the planner reads it as the first leg's
+// seat when that leg has none, so a legs-only update must not leave it stale.
+describe('update_transport: the flat keys of a legs-only update', () => {
+  const create = async (h: McpHarness, tripId: number) =>
+    parseToolResult(
+      await h.client.callTool({
+        name: 'create_transport',
+        arguments: {
+          tripId,
+          type: 'flight',
+          title: 'AMS to FCO',
+          endpoints: stopoverEndpoints,
+          legs: [
+            { from: 'AMS', to: 'CDG', airline: 'KLM', seat: '3A' },
+            { from: 'CDG', to: 'FCO', airline: 'Air France', seat: '14C' },
+          ],
+        },
+      }),
+    ) as any;
+  const updateLegs = (h: McpHarness, tripId: number, reservationId: number, legs: object[]) =>
+    h.client.callTool({ name: 'update_transport', arguments: { tripId, reservationId, legs } });
+
+  it("takes the first leg's seat away from the flat seat too, and follows a new one", async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = await create(h, trip.id);
+      expect((await storedMetadata(data.reservation.id)).seat).toBe('3A');
+
+      await updateLegs(h, trip.id, data.reservation.id, [
+        { from: 'AMS', to: 'CDG', airline: 'KLM' },
+        { from: 'CDG', to: 'FCO', airline: 'Air France', seat: '14C' },
+      ]);
+      const cleared = await storedMetadata(data.reservation.id);
+      expect(cleared.seat).toBeUndefined();
+      expect(cleared.airline).toBe('KLM');
+
+      await updateLegs(h, trip.id, data.reservation.id, [
+        { from: 'AMS', to: 'CDG', airline: 'Transavia', seat: '5C' },
+        { from: 'CDG', to: 'FCO', airline: 'Air France', seat: '14C' },
+      ]);
+      const changed = await storedMetadata(data.reservation.id);
+      expect([changed.seat, changed.airline]).toEqual(['5C', 'Transavia']);
+    });
+  });
+
+  it('keeps a flat seat the first leg never had, as an older booking stores it', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await withHarness(user.id, async (h) => {
+      const data = await create(h, trip.id);
+      const legs = [{ from: 'AMS', to: 'CDG' }, { from: 'CDG', to: 'FCO' }];
+      await setMetadata(JSON.stringify({ seat: '22F', legs }), data.reservation.id);
+
+      await updateLegs(h, trip.id, data.reservation.id, legs);
+      expect((await storedMetadata(data.reservation.id)).seat).toBe('22F');
+    });
+  });
+});

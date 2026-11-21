@@ -118,6 +118,19 @@ describe('BookingDetailDialog', () => {
     expect(screen.getByText('#SEG2')).toBeInTheDocument();
   });
 
+  it('FE-PLANNER-BKDETAIL-015: a flight with a stop shows the seat booked on its second leg, once, under that leg', () => {
+    const r = buildReservation({
+      title: 'MXP to JFK', type: 'flight',
+      metadata: JSON.stringify({ class: 'Economy', legs: [{ from: 'MXP', to: 'IST' }, { from: 'IST', to: 'JFK', seat: '14C' }] }),
+    });
+    renderDetail(r);
+    const dialog = screen.getByRole('dialog', { name: 'MXP to JFK' });
+    expect(within(dialog).getByText('14C')).toBeInTheDocument();
+    expect(within(dialog).getByText('Seat IST → JFK')).toBeInTheDocument();
+    // The tile stands for it; the field grid does not repeat it.
+    expect(within(dialog).queryByText('14C, Economy')).toBeNull();
+  });
+
   it('FE-PLANNER-BKDETAIL-006: place, accommodation, linked stop, link, travelers and notes', () => {
     const place = buildPlace({ name: 'Kinkaku-ji', place_time: '10:00' });
     const a = buildAssignment({ id: 4401, day_id: 1302, place });

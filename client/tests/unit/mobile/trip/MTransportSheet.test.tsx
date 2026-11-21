@@ -500,10 +500,43 @@ describe('MTransportSheet', () => {
       expect(screen.queryByText('10-4C')).not.toBeInTheDocument()
     })
 
-    it('FE-MOB-TRSH-035: without a leg the sheet still shows the booking as a whole', () => {
+    it('FE-MOB-TRSH-035: without a leg the sheet shows the booking as a whole, with the seat of each leg under its route', () => {
       render(<MTransportSheet planner={makePlanner({ reservations: [TRAIN] })} shell={makeShell({ sheet: { id: 'transport', payload: { reservationId: 8 } } })} />)
-      expect(screen.getByText('10-4C')).toBeInTheDocument()
-      expect(screen.queryByText('4-5A')).not.toBeInTheDocument()
+      expect(screen.getByText('10-4C').nextElementSibling).toHaveTextContent('Seat Takayama → Nagoya')
+      expect(screen.getByText('4-5A').nextElementSibling).toHaveTextContent('Seat Nagoya → Kyoto')
+    })
+  })
+
+  // A flight with a stop saves a seat per leg; the sheet showed only the first leg's.
+  describe('the seats of a flight with a stop', () => {
+    const STOPOVER = {
+      ...FLIGHT, id: 9, title: 'MXP to JFK',
+      metadata: JSON.stringify({
+        airline: 'Turkish Airlines', flight_number: 'TK 1874',
+        legs: [
+          { from: 'MXP', to: 'IST', airline: 'Turkish Airlines', flight_number: 'TK 1874', dep_time: '11:00', arr_time: '15:10' },
+          { from: 'IST', to: 'JFK', airline: 'Turkish Airlines', flight_number: 'TK 1', seat: '14C', dep_time: '17:05', arr_time: '20:40' },
+        ],
+      }),
+    } as unknown as Reservation
+    const open = (legIndex?: number) => render(
+      <MTransportSheet planner={makePlanner({ reservations: [STOPOVER] })} shell={makeShell({ sheet: { id: 'transport', payload: { reservationId: 9, legIndex } } })} />,
+    )
+
+    it('FE-MOB-TRSH-045: the second leg shows its own seat', () => {
+      open(1)
+      expect(screen.getByText('14C').nextElementSibling).toHaveTextContent('Seat')
+    })
+
+    it('FE-MOB-TRSH-046: the first leg, booked without a seat, shows none', () => {
+      open(0)
+      expect(screen.queryByText('14C')).not.toBeInTheDocument()
+      expect(screen.queryByText('Seat')).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-TRSH-047: the whole booking names the seat booked on its second leg', () => {
+      open()
+      expect(screen.getByText('14C').nextElementSibling).toHaveTextContent('Seat IST → JFK')
     })
   })
 

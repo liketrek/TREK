@@ -27,7 +27,7 @@ import { BookingDialogHeader, StatusPill, TypePill } from './BookingDialogShell'
 import { DeleteButton, DialogButton, DialogFooter, DialogSection as Section, DialogShell, FooterSpacer, PILL } from '../../shared/DialogShell'
 import FlightLiveCard from '../flightLive/FlightLiveCard'
 import { useFlightLiveCardLegs } from '../flightLive/useFlightLiveCard'
-import { getFlightLegs } from '../../../utils/flightLegs'
+import { bookingSeats, getFlightLegs, seatLabel } from '../../../utils/flightLegs'
 
 export interface BookingDetailDialogProps {
   r: Reservation
@@ -84,6 +84,7 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
   const subParts = [meta.airline, meta.flight_number, meta.train_number, facts.endpoints.length >= 2 ? facts.endpoints.map(e => e.code || e.name).join(' → ') : null].filter(Boolean)
   const sub = subParts.length ? subParts.join('  ') : null
 
+  const seats = bookingSeats(r)
   const stats: { value: string; label: string }[] = []
   if (facts.isHotel) {
     stats.push(...stayStats(facts, meta, t, locale))
@@ -100,7 +101,8 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
     // Under a minute of walking is not worth a tile.
     if (transit && transit.walk > 59) stats.push({ value: t('transit.min', { count: Math.round(transit.walk / 60) }), label: t('transit.walkLabel') })
     if (meta.platform) stats.push({ value: meta.platform, label: t('reservations.meta.platform') })
-    if (meta.seat) stats.push({ value: meta.seat, label: t('reservations.meta.seat') })
+    // Each leg's seat under its route on a booking with a stop, not just the first leg's.
+    for (const s of seats) stats.push({ value: s.seat, label: seatLabel(t('reservations.meta.seat'), s.route) })
   }
   // Cells already shown as a stat stay out of the field grid below.
   const shownAsStat = new Set([t('reservations.meta.platform'), t('reservations.meta.seat'), t('reservations.meta.checkIn'), t('reservations.meta.checkOut')])

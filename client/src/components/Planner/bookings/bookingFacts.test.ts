@@ -231,3 +231,14 @@ describe('bookingFacts: codes, links and places', () => {
     expect(bookingFacts(buildReservation({ url: 'javascript:alert(1)' }), ctx()).url?.href).toBeNull();
   });
 });
+
+describe('bookingFacts: seats of a flight with a stop', () => {
+  it('FE-PLANNER-BKFACTS-025: the Seat cell holds the seat booked only on the second leg', () => {
+    const r = buildReservation({
+      type: 'flight',
+      metadata: JSON.stringify({ class: 'Economy', legs: [{ from: 'MXP', to: 'IST' }, { from: 'IST', to: 'JFK', seat: '14C' }] }),
+    });
+    const facts = bookingFacts(r, ctx());
+    expect(cell(facts, 'reservations.meta.seat')).toBe('14C, Economy');
+  });
+});

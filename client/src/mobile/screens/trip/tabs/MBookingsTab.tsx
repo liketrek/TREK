@@ -11,7 +11,7 @@ import { cardWhen, parseTransportMeta, timeRange } from './transportsModel'
 import { BOOKING_TYPE_COLOR, hotelStayTimes } from '../../../../components/Planner/bookings/bookingsModel'
 import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
-import { orderedEndpoints } from '../../../../utils/flightLegs'
+import { orderedEndpoints, seatCells } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
 
 /**
@@ -115,7 +115,7 @@ function BookingCard({ res, planner, canEdit, compact, onView }: {
   if (!hasEndpoints && meta.departure_airport) metaCells.push({ label: t('reservations.meta.from'), value: meta.departure_airport })
   if (!hasEndpoints && meta.arrival_airport) metaCells.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
   if (meta.platform) metaCells.push({ label: t('reservations.meta.platform'), value: meta.platform })
-  if (meta.seat) metaCells.push({ label: t('reservations.meta.seat'), value: meta.seat + (meta.class ? ` · ${meta.class}` : '') })
+  metaCells.push(...seatCells(res, t('reservations.meta.seat'), meta.class ? ` · ${meta.class}` : ''))
   if (meta.price != null && meta.price !== '') {
     metaCells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, planner.trip?.currency, locale) })
   }

@@ -156,7 +156,12 @@ function parseMultiLegs(r: any): any[] | null {
   // Defensive: recover metadata that was accidentally double-encoded by an earlier
   // bug (a JSON string of a JSON string) so already-saved bookings heal on read.
   if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
-  if (meta && Array.isArray(meta.legs) && meta.legs.length > 1) return meta.legs
+  if (meta && Array.isArray(meta.legs) && meta.legs.length > 1) {
+    // The flat seat mirrors the first leg's, so a booking saved before legs had
+    // seats keeps it on its first leg (flightLegs' legSeat reads it the same way).
+    const flatSeat = typeof meta.seat === 'string' && meta.seat ? meta.seat : null
+    return meta.legs.map((l: Record<string, unknown> | null, i: number) => (i === 0 && flatSeat && !l?.seat ? { ...l, seat: flatSeat } : l))
+  }
   return null
 }
 
@@ -200,9 +205,10 @@ export function expandFlightLegsForDay(
         index: i, total: legs.length,
         from: leg.from ?? null, to: leg.to ?? null,
         airline: leg.airline ?? null, flight_number: leg.flight_number ?? null,
-        // Train legs carry their own per-leg detail; added only for trains so a
-        // flight's __leg object stays byte-identical to before.
-        ...(r.type === 'train' ? { train_number: leg.train_number ?? null, platform: leg.platform ?? null, seat: leg.seat ?? null } : {}),
+        // Each leg's own seat, a flight's too: it is saved per leg, and reading the
+        // booking's flat seat showed the first leg's on every leg.
+        seat: leg.seat ?? null,
+        ...(r.type === 'train' ? { train_number: leg.train_number ?? null, platform: leg.platform ?? null } : {}),
       },
     })
   })

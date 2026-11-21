@@ -8,7 +8,7 @@ import { BlurredCode } from '../shared/BookingCode'
 import { DialogButton, DialogFooter, DialogSection, DialogShell, FooterSpacer, PILL } from '../shared/DialogShell'
 import { useTripStore } from '../../store/tripStore'
 import { formatTime, splitReservationDateTime } from '../../utils/formatters'
-import { parseReservationMetadata } from '../../utils/flightLegs'
+import { parseReservationMetadata, seatCells } from '../../utils/flightLegs'
 import { BookingDialogHeader } from './bookings/BookingDialogShell'
 import { BOX, Eyebrow, Field, fs, toneColor, toneOf } from './bookings/bookingParts'
 import { filesFor } from '../../utils/reservationFiles'
@@ -175,11 +175,13 @@ function detailCells(res: Reservation, meta: Record<string, unknown>, t: Transla
     add(t('reservations.meta.flightNumber'), meta.flight_number)
     add(t('reservations.meta.from'), meta.departure_airport)
     add(t('reservations.meta.to'), meta.arrival_airport)
-    add(t('reservations.meta.seat'), meta.seat)
   } else if (res.type === 'train') {
     add(t('reservations.meta.trainNumber'), meta.train_number)
     add(t('reservations.meta.platform'), meta.platform)
-    add(t('reservations.meta.seat'), meta.seat)
+  }
+  // Each leg's seat under its route on a booking with a stop, not just the first leg's.
+  if (res.type === 'flight' || res.type === 'train') {
+    for (const c of seatCells(res, t('reservations.meta.seat'))) add(c.label, c.value)
   }
   add(t('reservations.confirmationCode'), res.confirmation_number, true)
   // A stopover booking can carry its own reference per segment (#1943); the
