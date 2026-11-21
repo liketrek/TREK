@@ -366,6 +366,26 @@ describe('PlannerService', () => {
     expect(outcome.draft.days.flatMap((day) => day.items).map((item) => item.place.name)).toEqual(['地点1']);
   });
 
+  it('keeps only what the keyword means — a shop on 公园路 is not a park', async () => {
+    const typed = (id: number, category: string) => ({ ...candidate(id), category });
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        typed(1, '风景名胜;公园广场;公园'),
+        typed(2, '餐饮服务;休闲餐饮;烧烤'),
+        typed(3, '科教文化服务;博物馆;博物馆'),
+      ]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    const names = outcome.draft.days.flatMap((day) => day.items).map((item) => item.place.name);
+    expect(names).toContain('地点1');
+    expect(names).toContain('地点3');
+    expect(names).not.toContain('地点2');
+  });
+
   it('schedules real places with routed legs and records place and route facts', async () => {
     const planner = service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
@@ -644,6 +664,26 @@ describe('PlannerProvider', () => {
         'walk',
       ),
     ).toEqual({ ok: false });
+  });
+
+  it('routes transit legs on the car network instead of a pedestrian path', async () => {
+    const ask = vi.fn(async (_userId: number, _kind: string, _payload: { costing?: string }) => ({
+      status: 200,
+      body: Buffer.from(JSON.stringify({ trip: { legs: [{ summary: { length: 2, time: 900 } }] } })),
+    }));
+    const provider = new PlannerProvider({ geocodeQuery: vi.fn(), searchPlaces: vi.fn() } as never, { ask } as never);
+
+    const routed = await provider.route(
+      1,
+      [
+        { lat: 30, lng: 120 },
+        { lat: 30.1, lng: 120.1 },
+      ],
+      'other',
+    );
+
+    expect(ask.mock.calls[0]?.[2]).toMatchObject({ costing: 'auto' });
+    expect(routed).toEqual({ ok: true, legs: [{ mode: 'other', minutes: 15, distanceMeters: 2000 }] });
   });
 
   it('prefers an administrative record and falls back to the geocoder for a centre', async () => {

@@ -51,6 +51,27 @@ function isVisitCategory(category: string | null): boolean {
   return !NON_VISIT_CATEGORY_PREFIXES.some((prefix) => value.startsWith(prefix)) && !NON_VISIT_CATEGORIES.has(value);
 }
 
+/**
+ * What a sight keyword means as a provider category. Amap matches keywords
+ * against POI names, so "公园" also returns shops on 公园路 — a park query must
+ * not drag those in as stops. Unknown free-text interests keep every visitable
+ * category and let the keyword search decide.
+ */
+const INTEREST_CATEGORY_PREFIXES: Record<string, string[]> = {
+  景点: ['风景名胜', '科教文化服务', '体育休闲服务', 'attraction', 'tourism', 'viewpoint'],
+  博物馆: ['科教文化服务', 'museum'],
+  公园: ['风景名胜', '体育休闲服务', 'park', 'garden'],
+  美食: ['餐饮服务', 'restaurant', 'cafe', 'food'],
+  购物: ['购物服务', 'shop', 'mall'],
+};
+
+function matchesInterest(category: string | null, interest: string): boolean {
+  const allowed = INTEREST_CATEGORY_PREFIXES[interest];
+  const value = (category ?? '').trim().toLowerCase();
+  if (allowed === undefined || value === '') return true;
+  return allowed.some((prefix) => value.startsWith(prefix.toLowerCase()));
+}
+
 export interface PlannerOutcome {
   draft: TravelPlanDraft;
   facts: TravelPlanFact[];
@@ -107,19 +128,22 @@ export class PlannerService {
 
     const queries = buildQueries(request, input.extraQueries ?? []);
     const results = await Promise.all(
-      queries.map(async (query): Promise<{ candidates?: PlannerCandidate[]; warning?: TravelPlanWarning }> => {
-        try {
-          return { candidates: await this.provider.search(userId, query, centre) };
-        } catch {
-          return {
-            warning: {
-              code: 'place_search_failed',
-              message: `地点检索「${query}」暂时失败，结果可能不完整。`,
-              severity: 'warning',
-            },
-          };
-        }
-      }),
+      queries.map(
+        async ({ query, interest }): Promise<{ candidates?: PlannerCandidate[]; warning?: TravelPlanWarning }> => {
+          try {
+            const places = await this.provider.search(userId, query, centre);
+            return { candidates: places.filter((candidate) => matchesInterest(candidate.category, interest)) };
+          } catch {
+            return {
+              warning: {
+                code: 'place_search_failed',
+                message: `地点检索「${query}」暂时失败，结果可能不完整。`,
+                severity: 'warning',
+              },
+            };
+          }
+        },
+      ),
     );
     const candidates = results.flatMap((result) => result.candidates ?? []);
     for (const result of results) {
@@ -228,7 +252,12 @@ function dayCountOf(request: TravelPlanCreateRequest): number | null {
   return request.dayCount ?? null;
 }
 
-function buildQueries(request: TravelPlanCreateRequest, extra: string[]): string[] {
+interface PlaceQuery {
+  query: string;
+  interest: string;
+}
+
+function buildQueries(request: TravelPlanCreateRequest, extra: string[]): PlaceQuery[] {
   const destination = request.destination ?? '';
   const interests = request.interests.length > 0 ? request.interests : ['景点', '博物馆', '公园'];
   // The city name alone is never a query: Amap matches it against POI names and
@@ -236,11 +265,22 @@ function buildQueries(request: TravelPlanCreateRequest, extra: string[]): string
   // query pairs the city with a keyword; extra revision keywords take the slots.
   const keywords = [...interests, ...extra].slice(0, MAX_QUERIES);
   const queries = keywords
-    .map((keyword) => `${destination} ${keyword}`)
-    .map((query) => query.replace(/\s+/g, ' ').trim().slice(0, QUERY_MAX))
-    .filter((query) => query !== '');
+    .map((keyword) => ({
+      interest: keyword,
+      query: `${destination} ${keyword}`.replace(/\s+/g, ' ').trim().slice(0, QUERY_MAX),
+    }))
+    .filter((entry) => entry.query !== '');
 
-  return [...new Set(queries)].slice(0, MAX_QUERIES);
+  return dedupeQueries(queries).slice(0, MAX_QUERIES);
+}
+
+function dedupeQueries(queries: PlaceQuery[]): PlaceQuery[] {
+  const seen = new Set<string>();
+  return queries.filter((entry) => {
+    if (seen.has(entry.query)) return false;
+    seen.add(entry.query);
+    return true;
+  });
 }
 
 function dedupe(candidates: PlannerCandidate[]): PlannerCandidate[] {

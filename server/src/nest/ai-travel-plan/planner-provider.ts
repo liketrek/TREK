@@ -95,7 +95,11 @@ export class PlannerProvider {
         'route',
         {
           locations: points.map((point) => ({ lat: point.lat, lon: point.lng })),
-          costing: transport === 'drive' ? 'auto' : 'pedestrian',
+          // Transit is routed on the road network with car costing: a pedestrian
+          // route between stops a few kilometres apart either exceeds the
+          // timeout or reports an unusable duration. Car time is the closest
+          // road-based fallback; the leg keeps the requested transit mode.
+          costing: transport === 'walk' ? 'pedestrian' : 'auto',
         },
         15_000,
       );
