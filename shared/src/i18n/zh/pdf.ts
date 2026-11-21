@@ -10,6 +10,7 @@ const pdf: TranslationStrings = {
   'pdf.safariHint': 'iOS 无法从主屏幕上的应用打印。Safari 会打开此行程并准备好导出，你可以在那里保存 PDF。',
   'pdf.pageBreakPerDay': '每天分页',
   'pdf.transportNotes': '交通备注',
+  'pdf.largeText': '大字体',
   'pdf.mapTitle': '路线总览',
   'pdf.distanceLabel': '距离',
   'pdf.mapCredit': '国家轮廓：geoBoundaries (CC BY 4.0)',

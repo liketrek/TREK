@@ -1,7 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { contentDisposition } from '../common/content-disposition';
@@ -27,7 +27,7 @@ import type { Response } from 'express';
  * ToursImportController, which checks the same rules in its handler.
  */
 @Controller('api/trips/:tripId/tours')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class ToursController {
   constructor(

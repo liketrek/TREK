@@ -24,6 +24,9 @@
  * nothing. When no handler took the Enter (the field still has focus and the
  * same text a moment later) the field lets go of the focus. A field that acts
  * on Enter and clears itself, such as a list that adds the next item, keeps it.
+ *
+ * A tap away from any field closes the keyboard too, which is the only way out of
+ * a textarea: its return key writes a new line.
  */
 
 const SKIP_TYPES = new Set([
@@ -127,6 +130,43 @@ function closeOnDone(e: KeyboardEvent): void {
   }, 0);
 }
 
+/** A field that holds the keyboard open while it has the focus. */
+function typedInto(el: Element | null): el is HTMLElement {
+  if (el instanceof HTMLTextAreaElement) return !el.readOnly;
+  if (el instanceof HTMLInputElement) return !SKIP_TYPES.has(el.type) && !el.readOnly;
+  return el instanceof HTMLElement && el.isContentEditable;
+}
+
+const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
+/** How far a finger may travel and still count as a tap rather than a scroll, in CSS pixels. */
+const TAP_SLOP = 10;
+
+/**
+ * A tap away from the field closes the keyboard. A textarea keeps its return key
+ * for new lines, and the app hides the keyboard's bar with its "done" button, so
+ * otherwise nothing closes it and it covers the rest of the sheet. A tap on another
+ * field moves the focus there instead, and a scroll leaves the keyboard open.
+ */
+function closeOnTapAway(doc: Document): { start: (e: TouchEvent) => void; end: (e: TouchEvent) => void } {
+  let from: { x: number; y: number } | null = null;
+  return {
+    start(e) {
+      const touch = e.touches[0];
+      from = e.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY } : null;
+    },
+    end(e) {
+      const touch = e.changedTouches[0];
+      const tapped = from && touch && Math.hypot(touch.clientX - from.x, touch.clientY - from.y) <= TAP_SLOP;
+      from = null;
+      const field = doc.activeElement;
+      if (!tapped || !typedInto(field)) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target && (field.contains(target) || target.closest(EDITABLE))) return;
+      field.blur();
+    },
+  };
+}
+
 export function prepareKeyboardFields(doc: Document = document): () => void {
   // On the touch, before the focus: the keyboard is set up as the field takes it.
   const onTouch = (e: Event) => prepareField(e.target instanceof Element ? e.target.closest('input') : null);
@@ -135,7 +175,12 @@ export function prepareKeyboardFields(doc: Document = document): () => void {
   doc.addEventListener('focusin', onFocus, true);
   // Capturing, so the text is read before the field's own handler can change it.
   doc.addEventListener('keydown', closeOnDone, true);
+  const tapAway = closeOnTapAway(doc);
+  doc.addEventListener('touchstart', tapAway.start, { capture: true, passive: true });
+  doc.addEventListener('touchend', tapAway.end, { capture: true, passive: true });
   return () => {
+    doc.removeEventListener('touchstart', tapAway.start, { capture: true });
+    doc.removeEventListener('touchend', tapAway.end, { capture: true });
     doc.removeEventListener('touchstart', onTouch, { capture: true });
     doc.removeEventListener('focusin', onFocus, true);
     doc.removeEventListener('keydown', closeOnDone, true);

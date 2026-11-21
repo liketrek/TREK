@@ -6,12 +6,15 @@ import {
   trekDemoToolGate,
   trekMcpAccessPolicy,
   trekMcpErrorMapper,
+  trekMcpInputMapper,
   trekMcpValidateAccess,
 } from '../mcp/nest-mcp-policy';
 import mikroOrmConfig from '../mikro-orm.config';
-import { McpModule } from '../nest-mcp';
+import { combineToolGates, McpModule } from '../nest-mcp';
 import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AddonsModule } from './addons/addons.module';
+import { AddonsService } from './addons/addons.service';
+import { trekTripAddonToolGate } from './addons/trip-addon-tool-gate';
 import { AdminModule } from './admin/admin.module';
 import { AiConnectionsModule } from './ai-connections/ai-connections.module';
 import { AirportsModule } from './airports/airports.module';
@@ -35,6 +38,7 @@ import { DemoService } from './common/demo.service';
 import { IdempotencyCleanupJob } from './common/idempotency-cleanup.job';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { ManagedGuard } from './common/managed.guard';
+import { NulFreeInputPipe } from './common/nul-free-input';
 import { TrekExceptionFilter } from './common/trek-exception.filter';
 import { ZodValidationPipe } from './common/zod-validation.pipe';
 import { ConfigModule } from './config/config.module';
@@ -46,6 +50,7 @@ import { DocSyncModule } from './doc-sync/doc-sync.module';
 import { FeedsModule } from './feeds/feeds.module';
 import { FerratasModule } from './ferratas/ferratas.module';
 import { FilesModule } from './files/files.module';
+import { FlightLiveModule } from './flight-live/flight-live.module';
 import { GeoModule } from './geo/geo.module';
 import { GoogleQuotaModule } from './google-quota/google-quota.module';
 import { HealthModule } from './health/health.module';
@@ -57,6 +62,7 @@ import { JourneyAccessModule } from './journey/journey-access.module';
 import { JourneyModule } from './journey/journey.module';
 import { TripJournalLinkModule } from './journey/trip-journal-link.module';
 import { LlmParseModule } from './llm-parse/llm-parse.module';
+import { MailIngestModule } from './mail-ingest/mail-ingest.module';
 import { ManagedExtModule } from './managed/managed-ext.module';
 import { MapsModule } from './maps/maps.module';
 import { McpTransportModule } from './mcp-transport/mcp-transport.module';
@@ -101,6 +107,8 @@ import { TodoModule } from './todo/todo.module';
 import { ToursModule } from './tours/tours.module';
 import { TransitModule } from './transit/transit.module';
 import { TripInviteModule } from './trip-invite/trip-invite.module';
+import { TripAccessService } from './trip-membership/trip-access.service';
+import { TripMembershipModule } from './trip-membership/trip-membership.module';
 import { TripsModule } from './trips/trips.module';
 import { VacayModule } from './vacay/vacay.module';
 import { WalletPassModule } from './wallet-pass/wallet-pass.module';
@@ -126,11 +134,19 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     McpModule.forRoot({
       accessPolicy: trekMcpAccessPolicy,
       validateAccess: trekMcpValidateAccess,
+      // The demo write block first, then whether the addon of a tool applies
+      // to the trip the call names (trekTripAddonToolGate).
       toolGate: {
-        inject: [DemoService],
-        useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)),
+        imports: [AddonsModule, TripMembershipModule],
+        inject: [DemoService, AddonsService, TripAccessService],
+        useFactory: (demo: DemoService, addons: AddonsService, trips: TripAccessService) =>
+          combineToolGates(
+            trekDemoToolGate((id) => demo.isDemoUserId(id)),
+            trekTripAddonToolGate(addons, trips),
+          ),
       },
       errorMapper: trekMcpErrorMapper,
+      inputMapper: trekMcpInputMapper,
     }),
     HealthModule,
     PlatformModule,
@@ -178,6 +194,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     PhotosModule,
     MemoriesModule,
     AirtrailModule,
+    FlightLiveModule,
     DawarichModule,
     JourneyModule,
     JourneyRecordingsModule,
@@ -207,6 +224,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     ReservationImportModule,
     ReceiptScanModule,
     LlmParseModule,
+    MailIngestModule,
     AiConnectionsModule,
     AssistantModule,
     ManagedExtModule,
@@ -260,6 +278,10 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     { provide: APP_INTERCEPTOR, useClass: SessionRenewalInterceptor },
     // Its nightly TTL purge — a provider here because common/ has no module.
     IdempotencyCleanupJob,
+    // First of the global pipes: every handler argument without NUL, which
+    // after the nulFreeRequest middleware only changes what a route parsed
+    // itself, a multipart body (common/nul-free-input.ts).
+    { provide: APP_PIPE, useClass: NulFreeInputPipe },
     // Global Zod validation: any parameter typed with a createZodDto class
     // (the <domain>.dto.ts wrappers over @trek/shared schemas) is validated;
     // everything else passes through untouched. Paired with the boot gate in

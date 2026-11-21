@@ -8,6 +8,8 @@
     <string name="widget_today_description">Het dagplan als tijdlijn, met het weer en de volgende stop.</string>
     <string name="widget_bookings_name">Boekingen</string>
     <string name="widget_bookings_description">Je volgende vluchten, treinen, hotels en tafels, en wanneer ze zijn.</string>
+    <string name="widget_flight_name">Vlucht</string>
+    <string name="widget_flight_description">Je volgende vlucht live: aftellen tot vertrek, het toestel onderweg, vertraging en aankomst.</string>
     <string name="widget_todos_name">Taken</string>
     <string name="widget_todos_description">Wat er nog openstaat voor de reis en hoe ver het inpakken is.</string>
     <string name="widget_packing_name">Bagage</string>

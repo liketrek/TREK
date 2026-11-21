@@ -5,7 +5,7 @@ import {
   type TripRouteAnswers, type TripRouteSummary,
 } from './tripRouteGeometry'
 import { useSettingsStore } from '../../store/settingsStore'
-import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import type { RoadtripVia } from '@trek/shared'
 import type { Accommodation, AssignmentsMap, Day, Place, Reservation } from '../../types'
 import type { TourStageStops } from './dayTourProjection'
@@ -51,7 +51,7 @@ export function useTripRouteOverview(
   tourStageStops?: TourStageStops,
 ): TripRouteOverview {
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   // Leg text is formatted at compute time, so a km↔mi switch has to re-run (#1300).
   const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
   const [result, setResult] = useState<TripRouteOverview>(EMPTY)

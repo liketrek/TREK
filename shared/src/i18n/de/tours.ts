@@ -95,6 +95,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Aufstieg',
   'tours.detail.descent': 'Abstieg',
   'tours.detail.navigationHint': 'Die Navigation führt zum Startpunkt, nicht entlang der Tour.',
+  'tours.detail.openRoute': 'Route in einer Karten-App öffnen',
+  'tours.detail.mapsShort': 'Karten',
   'tours.planner.title': 'Tour planen',
   'tours.planner.newTour': 'Neue Tour planen',
   'tours.planner.addTour': 'Tour hinzufügen',

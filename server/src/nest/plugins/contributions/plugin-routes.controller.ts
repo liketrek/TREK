@@ -1,6 +1,7 @@
 import { Plugins } from '../../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -50,9 +51,8 @@ export class PluginRoutesController {
   ): Promise<{ route: PluginRouteOut | null }> {
     if (!pluginsEnabled()) return { route: null };
     const userId = req.user?.id;
-    const tripId = Number(body?.tripId);
-    if (userId == null || !Number.isFinite(tripId) || !(await this.trips.findAccessible(tripId, userId)))
-      return { route: null };
+    const tripId = toRowId(body?.tripId);
+    if (userId == null || tripId === null || !(await this.trips.findAccessible(tripId, userId))) return { route: null };
     if (!PROFILE_RE.test(profileId)) return { route: null };
     const waypoints = readWaypoints(body?.waypoints);
     if (!waypoints) return { route: null };

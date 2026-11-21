@@ -1173,7 +1173,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Który silnik rysuje mapy w planerze podróży i dzienniku oraz w jakim stylu. Leaflet to klasyczna mapa rastrowa, Mapbox GL dodaje budynki 3D i ukształtowanie terenu, ale wymaga własnego tokena, a MapLibre GL rysuje wektorowe kafelki OpenFreeMap bez tokena. Atlas zawsze korzysta z Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '„Dostawca mapy”: Leaflet, Mapbox GL („Eksperymentalne”) lub MapLibre GL, każda opcja z krótkim opisem.',
+    '„Dostawca mapy”: Leaflet, Mapbox GL lub MapLibre GL, każda opcja z krótkim opisem.',
   'help.ctx.settings-map.bullet.2':
     '„Szablon mapy” i „Klucz API CARTO” dla Leaflet; „Styl mapy” dla obu silników GL, a dla Mapbox GL także „Token dostępu Mapbox”.',
   'help.ctx.settings-map.bullet.3':
@@ -4638,7 +4638,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Karta pokazuje „Włączone na tym urządzeniu”, a zdarzenia włączone w kolumnie „Push” docierają do ciebie nawet wtedy, gdy TREK jest zamknięty.',
   'help.guide.connect-airtrail.step.1':
-    'W „Integracjach” znajdź AirTrail i wpisz „Adres URL instancji” oraz klucz API. Klucz utworzysz w AirTrail w „Settings”, „Security”.',
+    'W „Integracjach” znajdź AirTrail i wpisz „Adres URL instancji” oraz klucz API. Klucz utworzysz w AirTrail w „Settings”, „Security”. Jeśli tworzysz klucz w AirTrail 3.13 lub nowszym, do odczytu potrzebuje on zakresu flight.read.own. Do zapisywania zmian z powrotem potrzebuje też flight.update.own, flight.passengers.manage.own, reference_data.read i profile.read.',
   'help.guide.connect-dawarich.step.1':
     'W „Integracjach” znajdź Dawarich i wpisz „Adres instancji” oraz klucz API z Dawarich (w „Account”, „API key”).',
   'help.guide.tour-connect-wanderer.step.1':

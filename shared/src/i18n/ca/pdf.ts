@@ -11,6 +11,7 @@ const pdf: TranslationStrings = {
     "iOS no pot imprimir des de l'app de la pantalla d'inici. Safari obre aquest viatge amb l'exportació a punt i allà pots desar el PDF.",
   'pdf.pageBreakPerDay': 'Salt de pàgina per dia',
   'pdf.transportNotes': 'Notes del transport',
+  'pdf.largeText': 'Text gran',
   'pdf.mapTitle': 'Resum de la ruta',
   'pdf.distanceLabel': 'Distància',
   'pdf.mapCredit': 'Contorns dels països: geoBoundaries (CC BY 4.0)',

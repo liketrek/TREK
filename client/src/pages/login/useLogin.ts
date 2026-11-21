@@ -33,6 +33,8 @@ interface AppConfig {
   password_registration: boolean
   oidc_login: boolean
   oidc_registration: boolean
+  /** False when the admin wants the login page shown before the IdP; absent on servers from before #2925. */
+  oidc_auto_redirect?: boolean
   passkey_login?: boolean
   passkey_configured?: boolean
   env_override_oidc_only: boolean
@@ -55,6 +57,14 @@ function readCachedConfig(): AppConfig | null {
 
 const isOidcOnly = (config: AppConfig | null): boolean =>
   !!config && !config.password_login && config.oidc_login && config.oidc_configured
+
+/**
+ * Whether the login page leaves for the IdP by itself: an OIDC-only instance
+ * does, unless its admin turned that off to show the page and its SSO button
+ * first (#2925). A config without the field keeps the redirect.
+ */
+const redirectsToIdp = (config: AppConfig | null): boolean =>
+  isOidcOnly(config) && config?.oidc_auto_redirect !== false
 
 /**
  * Login data hook — owns the whole auth surface: login/register/demo, the MFA
@@ -88,7 +98,7 @@ export function useLogin() {
   const [cachedConfig] = useState(readCachedConfig)
   const [expectRedirect] = useState(() => {
     const params = new URLSearchParams(window.location.search)
-    return !isNativeApp() && isOidcOnly(cachedConfig) && !!cachedConfig?.has_users
+    return !isNativeApp() && redirectsToIdp(cachedConfig) && !!cachedConfig?.has_users
       && !params.get('invite') && !params.get('oidc_code') && !params.get('oidc_error')
   })
   const [idpRedirect, setIdpRedirect] = useState(false)
@@ -198,7 +208,7 @@ export function useLogin() {
             // and auto-redirecting to the IdP could loop if the proxy changed.
             // Not in the app: its WebView cannot host the IdP, and opening the
             // system browser uninvited on every launch would be worse than a button.
-            if (allowRedirect && !fromCache && !nativeApp && isOidcOnly(config) && config.has_users && !invite && !noRedirect) {
+            if (allowRedirect && !fromCache && !nativeApp && redirectsToIdp(config) && config.has_users && !invite && !noRedirect) {
               setIdpRedirect(true)
               window.location.href = IDP_LOGIN_URL
             }

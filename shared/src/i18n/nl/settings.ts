@@ -67,6 +67,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + globeprojectie voor scherpere randen en een realistische wereldweergave.',
   'settings.mapHighQualityWarning': 'Kan de prestaties op minder krachtige apparaten beïnvloeden.',
+  'settings.mapHidePois': 'Interessante plekken verbergen',
+  'settings.mapHidePoisHint':
+    'Verbergt de winkels, restaurants en bezienswaardigheden die Mapbox zelf toont, zodat alleen jouw plekken opvallen. Alleen bij de Standard-stijlen.',
   'settings.mapTipLabel': 'Tip:', // same-as-en
   'settings.mapTip':
     'Rechts-klik en sleep om de kaart te roteren/kantelen. Middenklik om een locatie toe te voegen (rechts-klik is voor rotatie).',
@@ -78,6 +81,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Voor weergegevens. Gratis op openweathermap.org/api',
   'settings.keyPlaceholder': 'Sleutel invoeren...',
   'settings.configured': 'Geconfigureerd',
+  'settings.notSetUp': 'Niet ingesteld',
+  'settings.mcp.appsConnected': '{count} apps verbonden',
+  'settings.mcp.appsConnected.one': '{count} app verbonden',
   'settings.saveKeys': 'Sleutels opslaan',
   'settings.display': 'Weergave',
   'settings.colorMode': 'Kleurmodus',
@@ -108,7 +114,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Meldingen',
   'settings.notifyTripInvite': 'Reisuitnodigingen',
   'settings.notifyBookingChange': 'Boekingswijzigingen',
+  'settings.notifyFlightDeparted': 'Vertrekken',
+  'settings.notifyFlightDelayed': 'Vluchtvertragingen',
+  'settings.notifyFlightLanded': 'Landingen',
   'settings.notifyTripReminder': 'Reisherinneringen',
+  'settings.notifyMailBookingAdded': 'Boekingen toegevoegd uit mails',
+  'settings.notifyMailBookingPending': 'Doorgestuurde boekingen om te controleren',
+  'settings.notifyMailIngestPaused': 'Mailimport gepauzeerd',
   'settings.notifyTodoDue': 'Taak verloopt',
   'settings.notifyVacayInvite': 'Vacay-fusieuitnodigingen',
   'settings.notifyVacayShare': 'Gedeelde Vacay-kalenders',
@@ -413,7 +425,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'Instantie-URL',
   'settings.airtrail.apiKey': 'API-sleutel',
   'settings.airtrail.apiKeyPlaceholder': 'Bearer API-sleutel',
-  'settings.airtrail.apiKeyHint': 'Aangemaakt in AirTrail onder Instellingen → Beveiliging. Versleuteld opgeslagen.',
+  'settings.airtrail.apiKeyHint':
+    'Aangemaakt in AirTrail onder Instellingen → Beveiliging. Versleuteld opgeslagen. Als je de sleutel in AirTrail 3.13 of nieuwer aanmaakt, heeft hij de scope flight.read.own nodig om te lezen. Om wijzigingen terug te schrijven, heeft hij ook flight.update.own, flight.passengers.manage.own, reference_data.read en profile.read nodig.',
   'settings.airtrail.allowInsecureTls': 'Zelfondertekende certificaten toestaan',
   'settings.airtrail.allowInsecureTlsHint': 'Schakel dit alleen in voor een vertrouwde instantie op je eigen netwerk.',
   'settings.airtrail.writeBack': 'Wijzigingen terugschrijven naar AirTrail',

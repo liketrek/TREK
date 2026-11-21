@@ -20,6 +20,7 @@
 import type { KiReservation } from '../../booking-import/kitinerary.types';
 import { nuExtractToKiReservations } from '../clients/nuextract';
 import { parseLenientJson } from '../lenient-json';
+import { failureOutcome, foundOutcome } from '../llm-outcome';
 import {
   FLAT_SCHEMA_BY_TYPE,
   FLAT_TYPES,
@@ -29,7 +30,7 @@ import {
   type FlatLike,
 } from './flat-schemas';
 import { extractEnforced } from './ollama-format.client';
-import { normalizeLocalDateTime, parseMeridiemClock } from '@trek/shared';
+import { normalizeLocalDateTime, parseMeridiemClock, type LlmParseOutcome } from '@trek/shared';
 
 export interface RouterContext {
   baseUrl: string;
@@ -319,14 +320,18 @@ function fillBookingWideFields(flats: Record<string, unknown>[], text: string): 
   });
 }
 
+/** What the router read, and how the reading ended (a failed model call is `[]` with its outcome). */
+interface RoutedExtraction {
+  kiItems: KiReservation[];
+  warnings: string[];
+  outcome: LlmParseOutcome;
+}
+
 /**
  * Run the router on extracted document text and return schema.org KiReservation nodes.
  * Returns `[]` (never throws for content reasons) so the caller degrades gracefully.
  */
-export async function routeExtraction(
-  text: string,
-  ctx: RouterContext,
-): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
+export async function routeExtraction(text: string, ctx: RouterContext): Promise<RoutedExtraction> {
   const warnings: string[] = [];
 
   // Schicht 1 — exactly one model call.
@@ -341,7 +346,11 @@ export async function routeExtraction(
     const looksLikeFlight = detectFlightNumbers(text).length > 0 && !(named && TRANSPORT_FLAT_TYPES.has(named));
     flats = looksLikeFlight ? await extractFlights(text, ctx) : [await extractSingle(text, ctx)];
   } catch (err) {
-    return { kiItems: [], warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
+    return {
+      kiItems: [],
+      warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+      outcome: failureOutcome(err),
+    };
   }
 
   // Schicht 2 — deterministic booking-wide fields the per-call schema doesn't carry.
@@ -350,7 +359,7 @@ export async function routeExtraction(
   const kiItems = nuExtractToKiReservations(
     flats as unknown as Record<string, unknown>[],
   ) as unknown as KiReservation[];
-  return { kiItems, warnings };
+  return { kiItems, warnings, outcome: foundOutcome(kiItems) };
 }
 
 /**
@@ -359,21 +368,22 @@ export async function routeExtraction(
  * spot a flight number or a vendor in, so the model picks the type, and the
  * booking-wide fields come from its answer alone.
  */
-export async function routeImageExtraction(
-  images: Buffer[],
-  ctx: RouterContext,
-): Promise<{ kiItems: KiReservation[]; warnings: string[] }> {
+export async function routeImageExtraction(images: Buffer[], ctx: RouterContext): Promise<RoutedExtraction> {
   let flat: FlatLike;
   try {
     flat = unwrapPrice(await extractSingle('', ctx, images));
   } catch (err) {
-    return { kiItems: [], warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
+    return {
+      kiItems: [],
+      warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+      outcome: failureOutcome(err),
+    };
   }
   const kiItems = nuExtractToKiReservations([flat] as unknown as Record<
     string,
     unknown
   >[]) as unknown as KiReservation[];
-  return { kiItems, warnings: [] };
+  return { kiItems, warnings: [], outcome: foundOutcome(kiItems) };
 }
 
 /**

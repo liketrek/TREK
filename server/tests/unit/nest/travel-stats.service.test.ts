@@ -509,3 +509,156 @@ describe('personal figures on a shared trip (#1966)', () => {
     expect(a.totalDistanceKm).toBeGreaterThan(0);
   });
 });
+
+// ── The order of the passport card's countries (#2648) ──────────────────────
+
+describe('getTravelStats country order (#2648)', () => {
+  async function placeIn(tripId: number, lat: number, lng: number) {
+    await insertRow(await sharedTestOrm(testDb), Places, { trip: tripId, name: 'Stop' }, { lat, lng });
+  }
+
+  async function markByHand(userId: number, code: string) {
+    await insertRow(await sharedTestOrm(testDb), VisitedCountries, { user: userId, country_code: code });
+  }
+
+  it('lists the countries of the latest trip first, whatever the alphabet says', async () => {
+    const { user } = createUser(testDb);
+    const austria = createTrip(testDb, user.id, { title: 'Vienna', start_date: '2022-03-01', end_date: '2022-03-05' });
+    const japan = createTrip(testDb, user.id, { title: 'Tokyo', start_date: '2024-10-01', end_date: '2024-10-12' });
+    const france = createTrip(testDb, user.id, { title: 'Paris', start_date: '2023-06-01', end_date: '2023-06-04' });
+    await placeIn(austria.id, 48.2082, 16.3738);
+    await placeIn(japan.id, 35.6762, 139.6503);
+    await placeIn(france.id, 48.8606, 2.3376);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['JP', 'FR', 'AT']);
+  });
+
+  it('dates a country by its most recent visit, places and bookings alike', async () => {
+    const { user } = createUser(testDb);
+    const early = createTrip(testDb, user.id, { title: 'Paris', start_date: '2021-05-01', end_date: '2021-05-03' });
+    const middle = createTrip(testDb, user.id, { title: 'Rome', start_date: '2022-05-01', end_date: '2022-05-03' });
+    const late = createTrip(testDb, user.id, {
+      title: 'Back to France',
+      start_date: '2023-05-01',
+      end_date: '2023-05-03',
+    });
+    await placeIn(early.id, 48.8606, 2.3376);
+    await placeIn(middle.id, 41.8902, 12.4922);
+    // The return to France is a booking only: its arrival dates FR again, after Rome.
+    const flight = createReservation(testDb, late.id, { type: 'flight' });
+    await makeReservationEndpoint(await sharedTestOrm(testDb), flight.id, {
+      role: 'to',
+      sequence: 1,
+      name: 'Paris',
+      lat: 49.0097,
+      lng: 2.5479,
+    });
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['FR', 'IT']);
+  });
+
+  it('puts a country only marked by hand after every country a trip reached', async () => {
+    const { user } = createUser(testDb);
+    await markByHand(user.id, 'NZ');
+    const trip = createTrip(testDb, user.id, { title: 'Paris', start_date: '2023-06-01', end_date: '2023-06-04' });
+    await placeIn(trip.id, 48.8606, 2.3376);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['FR', 'NZ']);
+  });
+
+  it('lists a country both marked by hand and reached by a trip once, by the trip', async () => {
+    const { user } = createUser(testDb);
+    await markByHand(user.id, 'AT');
+    const austria = createTrip(testDb, user.id, { title: 'Vienna', start_date: '2024-03-01', end_date: '2024-03-05' });
+    const france = createTrip(testDb, user.id, { title: 'Paris', start_date: '2023-06-01', end_date: '2023-06-04' });
+    await placeIn(austria.id, 48.2082, 16.3738);
+    await placeIn(france.id, 48.8606, 2.3376);
+
+    expect((await atlas.getTravelStats(user.id)).countries).toEqual(['AT', 'FR']);
+  });
+});
+
+/**
+ * The Atlas page, the dashboard card and GET /api/v1/stats showed different place and
+ * city totals for the same user (#3137). The Atlas page counted one place per row and
+ * cut cities with its own address split, while the dashboard collapsed places sharing
+ * an address and coordinates and read cities with cityFromAddress. Both now share one
+ * count, so every surface agrees with the others.
+ */
+describe('Atlas page and passport card count the same places and cities (#3137)', () => {
+  const MUNICH = { lat: 48.1374, lng: 11.5755 };
+  const NUREMBERG = { lat: 49.4521, lng: 11.0767 };
+
+  async function addPlace(
+    tripId: number,
+    name: string,
+    values: { lat?: number | null; lng?: number | null; address?: string | null },
+  ) {
+    return insertRow(await sharedTestOrm(testDb), Places, { trip: tripId, name }, { lat: null, lng: null, ...values });
+  }
+
+  async function cacheRegion(placeId: number, regionName: string) {
+    await upsertRow(await sharedTestOrm(testDb), PlaceRegions, {
+      place: placeId,
+      country_code: 'DE',
+      region_code: 'DE-BY',
+      region_name: regionName,
+    });
+  }
+
+  async function seedFootprint() {
+    const { user } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const first = createTrip(testDb, user.id, { title: 'Bavaria', start_date: '2023-05-01', end_date: '2023-05-10' });
+    const second = createTrip(testDb, friend.id, {
+      title: 'Bavaria again',
+      start_date: '2024-05-01',
+      end_date: '2024-05-03',
+    });
+    // Members on both trips, so a join over trip_members fans every place out.
+    addTripMember(testDb, first.id, friend.id);
+    addTripMember(testDb, second.id, user.id);
+
+    // The same hotel saved on both trips is two places, not one.
+    const hotelA = await addPlace(first.id, 'Hotel', { ...MUNICH, address: 'Hotel Bayern, Munich, Bavaria, Germany' });
+    const hotelB = await addPlace(second.id, 'Hotel', { ...MUNICH, address: 'Hotel Bayern, Munich, Bavaria, Germany' });
+    // Same city in another case: still one city.
+    const square = await addPlace(first.id, 'Square', { ...MUNICH, address: 'Marienplatz, MUNICH, Bavaria, Germany' });
+    // The part before the country is the region, the city sits above it.
+    const castle = await addPlace(first.id, 'Castle', {
+      ...NUREMBERG,
+      address: 'Kaiserburg, Nuremberg, Bavaria, Germany',
+    });
+    const bridge = await addPlace(second.id, 'Bridge', {
+      lat: 49.0222,
+      lng: 12.0972,
+      address: 'Steinerne Bruecke, Regensburg, Bavaria, Germany',
+    });
+    await Promise.all([hotelA, hotelB, square, castle, bridge].map((id) => cacheRegion(id, 'Bavaria')));
+    // A bare name holds no city, and two places without address or coordinates are two places.
+    await addPlace(first.id, 'Beer garden', { address: 'Augustiner Keller' });
+    await addPlace(second.id, 'Beer hall', { address: 'Hofbraeuhaus' });
+    await addPlace(first.id, 'Idea one', {});
+    await addPlace(second.id, 'Idea two', {});
+    return user;
+  }
+
+  it('AUTH-DB-130: totalPlaces and the city count agree between stats() and getTravelStats()', async () => {
+    const user = await seedFootprint();
+
+    const atlasTotals = (await atlas.stats(user.id)).stats;
+    const travel = await atlas.getTravelStats(user.id);
+
+    expect(atlasTotals.totalPlaces).toBe(travel.totalPlaces);
+    expect(atlasTotals.totalCities).toBe(travel.cities.length);
+  });
+
+  it('AUTH-DB-131: every place row counts once and cities come from cityFromAddress, case-insensitively', async () => {
+    const user = await seedFootprint();
+
+    const travel = await atlas.getTravelStats(user.id);
+    expect(travel.totalPlaces).toBe(9);
+    expect(travel.cities.map((c) => c.toLowerCase()).sort()).toEqual(['munich', 'nuremberg', 'regensburg']);
+    expect((await atlas.stats(user.id)).stats.totalCities).toBe(3);
+  });
+});

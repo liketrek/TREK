@@ -5,6 +5,8 @@
 "widget.today.description" = "El pla del dia com a línia de temps, amb el temps i la propera parada.";
 "widget.bookings.name" = "Reserves";
 "widget.bookings.description" = "Els teus propers vols, trens, hotels i taules, i quan toquen.";
+"widget.flight.name" = "Vol";
+"widget.flight.description" = "El teu proper vol en directe: compte enrere de la sortida, l’avió en camí, retard i arribada.";
 "widget.todos.name" = "Tasques";
 "widget.todos.description" = "El que encara queda per al viatge i com va l'equipatge.";
 "widget.packing.name" = "Equipatge";

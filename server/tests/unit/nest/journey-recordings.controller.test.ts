@@ -59,18 +59,18 @@ describe('JourneyRecordingsController', () => {
   it('JRNREC-CTL-002: hands the caller, the journey, the day, the body and the socket id to the service', async () => {
     const { service, controller } = controllerWith();
 
-    expect(await controller.list(user, '9')).toEqual({ days: [] });
+    expect(await controller.list(user, 9)).toEqual({ days: [] });
     expect(service.list).toHaveBeenCalledExactlyOnceWith(4, 9);
 
     const preview = { date: '2026-05-14', utcOffsetMinutes: 120, useSourceOffset: true };
-    expect(await controller.preview(user, '9', preview)).toEqual({ date: '2026-05-14' });
+    expect(await controller.preview(user, 9, preview)).toEqual({ date: '2026-05-14' });
     expect(service.preview).toHaveBeenCalledExactlyOnceWith(4, 9, preview);
 
     const save = { utcOffsetMinutes: 120, expectedHash: HASH, replace: true };
-    expect(await controller.save(user, '9', '2026-05-14', save, 'sock-1')).toEqual({ outcome: 'created' });
+    expect(await controller.save(user, 9, '2026-05-14', save, 'sock-1')).toEqual({ outcome: 'created' });
     expect(service.save).toHaveBeenCalledExactlyOnceWith(4, 9, '2026-05-14', save, 'sock-1');
 
-    expect(await controller.remove(user, '9', '2026-05-14', 'sock-1')).toEqual({ success: true });
+    expect(await controller.remove(user, 9, '2026-05-14', 'sock-1')).toEqual({ success: true });
     expect(service.remove).toHaveBeenCalledExactlyOnceWith(4, 9, '2026-05-14', 'sock-1');
   });
 
@@ -78,7 +78,7 @@ describe('JourneyRecordingsController', () => {
     const { service, controller } = controllerWith();
     const refusals = await Promise.all(
       ['2026-02-30', '14.05.2026', 'today'].map((date) =>
-        controller.remove(user, '9', date).catch((err: unknown) => err),
+        controller.remove(user, 9, date).catch((err: unknown) => err),
       ),
     );
     for (const err of refusals) {
@@ -86,9 +86,9 @@ describe('JourneyRecordingsController', () => {
       expect((err as HttpException).getStatus()).toBe(400);
       expect((err as HttpException).getResponse()).toEqual({ error: 'Invalid date' });
     }
-    await expect(
-      controller.save(user, '9', 'nope', { utcOffsetMinutes: 0, expectedHash: HASH }),
-    ).rejects.toBeInstanceOf(HttpException);
+    await expect(controller.save(user, 9, 'nope', { utcOffsetMinutes: 0, expectedHash: HASH })).rejects.toBeInstanceOf(
+      HttpException,
+    );
     expect(service.remove).not.toHaveBeenCalled();
     expect(service.save).not.toHaveBeenCalled();
   });
@@ -96,7 +96,7 @@ describe('JourneyRecordingsController', () => {
   it('JRNREC-CTL-004: asks the service how the journey is prepared for the caller (JRN-03)', async () => {
     const { service, controller } = controllerWith();
 
-    expect(await controller.prep(user, '9')).toEqual({ enabled: true });
+    expect(await controller.prep(user, 9)).toEqual({ enabled: true });
     expect(service.prepStatus).toHaveBeenCalledExactlyOnceWith(4, 9);
   });
 });

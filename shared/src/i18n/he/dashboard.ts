@@ -129,7 +129,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'שיניתם את מועד תחילת הטיול. איך התוכניות שלכם צריכות לעבור לתאריכים החדשים?',
   'dashboard.dateShiftKeepBookings': 'השארת ההזמנות בתאריכים שלהן',
   'dashboard.dateShiftKeepBookingsDesc':
-    'התוכניות היומיות עוברות לתאריכים החדשים, וההזמנות והלינות נשארות בתאריכים המקוריים כל עוד הם עדיין חלק מהטיול.',
+    'ימים שנוספו נשארים ריקים ושום דבר אחר לא זז. אם הטיול זז, התוכניות היומיות עוברות לתאריכים החדשים, וההזמנות והלינות נשארות בתאריכים המקוריים כל עוד הם עדיין חלק מהטיול.',
   'dashboard.dateShiftAll': 'הזזת הכל',
   'dashboard.dateShiftAllDesc': 'כל המסלול עובר לתאריכים החדשים, כולל הזמנות ולינות.',
   'dashboard.dateShiftHint':
@@ -250,6 +250,9 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'הוספה ל-Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'או העתיקו קישור ידנית',
   'dashboard.ics.pasteFromUrl': 'הדביקו ב-„From URL”',
+  'dashboard.ics.dayEvents': 'אירועי סיכום יום',
+  'dashboard.ics.dayEventsHint':
+    'אירוע של יום שלם לכל יום עם המקומות וההערות ללא שעה. שינוי ההגדרה משנה את הקישור, לכן יש להירשם שוב עם הקישור החדש.',
 };
 
 export default dashboard;

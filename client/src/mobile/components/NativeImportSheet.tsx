@@ -6,16 +6,21 @@
  * A web page or a link is asked about first: kept among the trip's links
  * (Collaboration, Links), or read as a booking. A bare link, whose page the phone
  * could not read, can only be kept; with Collaboration off, a page can only be read.
+ * Collaboration counts per trip: a link goes only to a trip that has it on.
  */
 import { ChevronRight, FileText, Link2, ScanText } from 'lucide-react';
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { useShallow } from 'zustand/react/shallow';
 import { useToast } from '../../components/shared/Toast';
 import { useTranslation } from '../../i18n';
 import { saveSharedLink, useSharedImportStore, type SharedLink } from '../../native/sharedFiles';
 import { tripRepo } from '../../repo/tripRepo';
 import { useAddonStore } from '../../store/addonStore';
+import { tripAddonsEntry, useTripAddonsStore } from '../../store/tripAddonsStore';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { offlineOr } from '../../utils/needsConnection';
+import { tripAddonEnabled } from '../../utils/tripAddons';
 import { TileHeader } from '../screens/trip/sheets/MTripSheetUi';
 import MSheet from './MSheet';
 
@@ -83,6 +88,27 @@ function useTripRows(open: boolean): TripRow[] {
   return trips;
 }
 
+/**
+ * The trips a shared link may go to: those with Collaboration on, each by its
+ * own list (the owner's choice, else the instance switch). The lists are read
+ * once the sheet opens for a link, so a trip that switched Collaboration on is
+ * offered while the instance has it off, and one that switched it off is not.
+ */
+function useCollabTrips(trips: TripRow[], active: boolean): TripRow[] {
+  const instanceOn = useAddonStore((s) => s.isEnabled('collab'));
+  const load = useTripAddonsStore((s) => s.load);
+  useEffect(() => {
+    if (!active) return;
+    trips.forEach((trip) => void load(trip.id));
+  }, [active, trips, load]);
+  const on = useTripAddonsStore(
+    useShallow((state) =>
+      trips.map((trip) => tripAddonEnabled(tripAddonsEntry(state, trip.id)?.addons, 'collab', instanceOn))
+    )
+  );
+  return trips.filter((_trip, i) => on[i]);
+}
+
 export default function NativeImportSheet(): React.ReactElement | null {
   const { t } = useTranslation();
   const toast = useToast();
@@ -93,7 +119,12 @@ export default function NativeImportSheet(): React.ReactElement | null {
   const link = useSharedImportStore((s) => s.link);
   const chooseTrip = useSharedImportStore((s) => s.chooseTrip);
   const setFile = useSharedImportStore((s) => s.setFile);
-  const collabOn = useAddonStore((s) => s.isEnabled('collab'));
+  const instanceCollab = useAddonStore((s) => s.isEnabled('collab'));
+  const open = !!file && tripId == null;
+  const trips = useTripRows(open);
+  const collabTrips = useCollabTrips(trips, open && !!link);
+  // Before the trips are known the instance switch decides, as it always did.
+  const collabOn = trips.length === 0 ? instanceCollab : collabTrips.length > 0;
   // Both belong to the item they were made for, so a newly shared one starts afresh.
   const [pick, setPick] = useState<{ file: File; choice: LinkChoice } | null>(null);
   const [failedFile, setFailedFile] = useState<File | null>(null);
@@ -107,8 +138,6 @@ export default function NativeImportSheet(): React.ReactElement | null {
     picked,
     presetFailed: failedFile != null && failedFile === file,
   });
-  const open = !!file && tripId == null;
-  const trips = useTripRows(open);
 
   // Once a trip is picked (here, or in the share sheet before the app opened), go to
   // it; its planner opens the booking import with the file (MTripShell).
@@ -126,8 +155,9 @@ export default function NativeImportSheet(): React.ReactElement | null {
         setFile(null);
         void navigate(`/trips/${id}?tab=collab`);
       },
-      () => {
-        toast.error(offlineOr(t, t('common.error')));
+      (err: unknown) => {
+        // The server says why, such as a trip that has Collaboration off.
+        toast.error(offlineOr(t, getApiErrorMessage(err, t('common.error'))));
         savingRef.current = null;
         setFailedFile(file);
       }
@@ -164,7 +194,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
             {t('native.share.linkUnsupported')}
           </p>
         )}
-        {showTrips && <TripPicker trips={trips} onPick={pickTrip} />}
+        {showTrips && <TripPicker trips={choice === 'link' ? collabTrips : trips} onPick={pickTrip} />}
       </div>
     </MSheet>
   );

@@ -1177,7 +1177,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Какой движок рисует карты планировщика поездок и дневника и в каком стиле. Leaflet даёт классическую растровую карту, Mapbox GL добавляет 3D-здания и рельеф с вашим собственным токеном, MapLibre GL рисует векторные тайлы OpenFreeMap без токена. Атлас всегда использует Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '«Провайдер карты»: Leaflet, Mapbox GL («Экспериментально») или MapLibre GL. У каждого варианта есть короткое описание.',
+    '«Провайдер карты»: Leaflet, Mapbox GL или MapLibre GL. У каждого варианта есть короткое описание.',
   'help.ctx.settings-map.bullet.2':
     '«Шаблон карты» и «Ключ API CARTO» для Leaflet, «Стиль карты» для двух GL-движков и «Токен доступа Mapbox» для Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -4630,7 +4630,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'В карточке написано «Включено на этом устройстве», и события, включённые в столбце Push, приходят, даже когда TREK закрыт.',
   'help.guide.connect-airtrail.step.1':
-    'В разделе «Интеграции» найдите AirTrail и введите «URL экземпляра» и «Ключ API». Ключ создаётся в AirTrail в разделе «Настройки», «Безопасность».',
+    'В разделе «Интеграции» найдите AirTrail и введите «URL экземпляра» и «Ключ API». Ключ создаётся в AirTrail в разделе «Настройки», «Безопасность». Если вы создаёте ключ в AirTrail 3.13 или новее, для чтения ему нужна область flight.read.own. Для записи изменений обратно также нужны flight.update.own, flight.passengers.manage.own, reference_data.read и profile.read.',
   'help.guide.connect-dawarich.step.1':
     'В разделе «Интеграции» найдите Dawarich и введите «Адрес экземпляра» и ключ API, который можно найти в Dawarich в разделе «Аккаунт», «Ключ API».',
   'help.guide.tour-connect-wanderer.step.1':

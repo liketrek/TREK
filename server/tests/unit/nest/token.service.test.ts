@@ -14,7 +14,7 @@ import { createUser } from '../../helpers/factories';
 import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { resetTestDb } from '../../helpers/test-db';
-import { createTestMcpTokensRepo, createTestUsersRepo } from '../../helpers/test-uow';
+import { createTestMcpTokensRepo, createTestUnitOfWork, createTestUsersRepo } from '../../helpers/test-uow';
 import { sharedTestOrm } from '../../helpers/test-uow';
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
@@ -64,6 +64,7 @@ beforeAll(async () => {
     await createTestMcpTokensRepo(testDb),
     await createTestUsersRepo(testDb),
     new EphemeralTokenService(),
+    await createTestUnitOfWork(testDb),
   );
 });
 

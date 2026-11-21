@@ -1,6 +1,7 @@
 import { columnRef } from '../dialect/sql-functions';
 import type { Days } from '../entities/Days.entity';
 import type { DB } from '../kysely/db';
+import { toRowId } from '../row-id';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -284,15 +285,18 @@ export class DaysRepository extends TrekRepository<Days> {
 
   /**
    * AS4 (`AssignmentsService.dayExists`) — `SELECT id FROM days WHERE id = ?
-   * AND trip_id = ?`. Raw-bind (`number | string`, D4's T5 escape hatch,
-   * `TripsRepository.findAccessible`'s precedent): the legacy guard binds
-   * the route's raw params with no `Number()`/`toRowId` conversion of its
-   * own, so this must accept and bind exactly what it's handed.
+   * AND trip_id = ?`. Its callers hand over the route's ids as they came, so
+   * both are read through `toRowId` (as in `TripsRepository.findAccessible`):
+   * a spelling it refuses is no day on every engine, where bound raw Postgres
+   * refused or reinterpreted it and SQLite matched nothing.
    */
   async existsInTrip(id: number | string, trip_id: number | string): Promise<boolean> {
+    const dayId = toRowId(id);
+    const tripId = toRowId(trip_id);
+    if (dayId === null || tripId === null) return false;
     const row = await this.qb('d')
       .select(['d.id'])
-      .where('d.id = ? AND d.trip_id = ?', [id, trip_id])
+      .where('d.id = ? AND d.trip_id = ?', [dayId, tripId])
       .execute<{ id: number } | undefined>('get', false);
     return !!row;
   }

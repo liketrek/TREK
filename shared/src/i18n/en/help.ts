@@ -1365,7 +1365,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Which engine draws the trip planner and journal maps, and in what style. Leaflet is the classic raster map, Mapbox GL adds 3D buildings and terrain with your own token, MapLibre GL draws OpenFreeMap vector tiles without one. Atlas always uses Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Map Provider: Leaflet, Mapbox GL (Experimental) or MapLibre GL, each option with a short description.',
+    'Map Provider: Leaflet, Mapbox GL or MapLibre GL, each option with a short description.',
   'help.ctx.settings-map.bullet.2':
     'Map Template and CARTO API key for Leaflet; Map Style for the two GL engines, plus the Mapbox Access Token for Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -1560,7 +1560,7 @@ const help: TranslationStrings = {
   'help.guide.connect-airtrail.title': 'Connect your AirTrail',
   'help.guide.connect-airtrail.goal': 'Let TREK import and sync the flights of your own AirTrail.',
   'help.guide.connect-airtrail.step.1':
-    'Under Integrations, find AirTrail and enter its Instance URL and an API key. You create the key in AirTrail under Settings, Security.',
+    'Under Integrations, find AirTrail and enter its Instance URL and an API key. You create the key in AirTrail under Settings, Security. If you make the key in AirTrail 3.13 or later, the key must have the scope flight.read.own to read flights. To write changes back to AirTrail, the key must also have flight.update.own, flight.passengers.manage.own, reference_data.read and profile.read.',
   'help.guide.connect-airtrail.step.2':
     'Allow self-signed certificates is only for a trusted instance on your own network. Write changes back to AirTrail is off by default, so TREK only reads; switch it on to send your edits back.',
   'help.guide.connect-airtrail.step.3':

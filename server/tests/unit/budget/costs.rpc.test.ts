@@ -37,7 +37,15 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
  * `linkedTo` the booking cost 5 is linked to before the write.
  */
 function build(
-  opts: { addonOn?: boolean; canEdit?: boolean; missing?: boolean; refusal?: string; linkedTo?: number | null } = {},
+  opts: {
+    addonOn?: boolean;
+    canEdit?: boolean;
+    missing?: boolean;
+    refusal?: string;
+    linkedTo?: number | null;
+    /** What a trip's owner chose for Costs, by trip id; a trip left out follows the instance (`addonOn`). */
+    tripAddon?: Record<number, boolean>;
+  } = {},
 ) {
   const budget = {
     listBudgetItems: vi.fn((tripId: number) => [{ id: 5, trip_id: tripId }]),
@@ -63,7 +71,10 @@ function build(
   const guards = new PluginGuards(
     db,
     { checkPermission: vi.fn(() => opts.canEdit ?? true) } as unknown as PermissionsService,
-    { isAddonEnabled: vi.fn(() => opts.addonOn ?? true) } as unknown as AddonsService,
+    {
+      isAddonEnabled: vi.fn(() => opts.addonOn ?? true),
+      isEnabledForTrip: vi.fn(async (tripId: number) => opts.tripAddon?.[tripId] ?? opts.addonOn ?? true),
+    } as unknown as AddonsService,
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   // The leaf membership read replaced the deleted trips.bridge for listMine.
@@ -119,6 +130,37 @@ describe('CostsRpc reads', () => {
     const res = await f.host().dispatch(req('costs.listMine'), 42);
     expect(res.ok).toBe(true);
     expect(f.budget.listBudgetItems).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('CostsRpc per trip', () => {
+  it('COSTS-RPC-TRIP-001 a trip that switched Costs on answers although the instance has it off', async () => {
+    const f = build({ addonOn: false, tripAddon: { 1: true } });
+    expect((await f.host().dispatch(req('costs.getByTrip', { tripId: 1 }), 42)).ok).toBe(true);
+    const created = await f.host().dispatch(req('costs.create', { tripId: 1, input: { name: 'Hotel', price: 1 } }), 42);
+    expect(created.ok).toBe(true);
+  });
+
+  it('COSTS-RPC-TRIP-002 a trip that switched Costs off is refused although the instance has it on', async () => {
+    const f = build({ tripAddon: { 1: false } });
+    const read = (await f.host().dispatch(req('costs.getByTrip', { tripId: 1 }), 42)) as RpcError;
+    expect(read.error.message).toBe('the costs addon is disabled');
+    const write = (await f.host().dispatch(req('costs.delete', { tripId: 1, itemId: 5 }), 42)) as RpcError;
+    expect(write.error.message).toBe('the costs addon is disabled');
+    expect(f.budget.listBudgetItems).not.toHaveBeenCalled();
+    expect(f.budget.remove).not.toHaveBeenCalled();
+  });
+
+  it('COSTS-RPC-TRIP-003 listMine leaves out the trips that have Costs off, and reads the ones that switched it on', async () => {
+    const off = build({ tripAddon: { 2: false } });
+    expect((await off.host().dispatch(req('costs.listMine'), 42)).ok).toBe(true);
+    expect(off.budget.listBudgetItems).toHaveBeenCalledTimes(1);
+    expect(off.budget.listBudgetItems).toHaveBeenCalledWith(1);
+
+    const on = build({ addonOn: false, tripAddon: { 2: true } });
+    expect((await on.host().dispatch(req('costs.listMine'), 42)).ok).toBe(true);
+    expect(on.budget.listBudgetItems).toHaveBeenCalledTimes(1);
+    expect(on.budget.listBudgetItems).toHaveBeenCalledWith(2);
   });
 });
 

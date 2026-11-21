@@ -31,10 +31,13 @@ import demo from './demo';
 import docsync from './docsync';
 import ferratas from './ferratas';
 import files from './files';
+import flightLive from './flightLive';
 import help from './help';
 import inspector from './inspector';
 import journey from './journey';
 import login from './login';
+import mailAdmin from './mailAdmin';
+import mailInbox from './mailInbox';
 import map from './map';
 import members from './members';
 import memories from './memories';
@@ -152,6 +155,9 @@ const locale = {
   ...dawarich,
   ...docsync,
   ...ferratas,
+  ...flightLive,
+  ...mailInbox,
+  ...mailAdmin,
   ...assistant,
   ...assistantCard,
   ...assistantTour,

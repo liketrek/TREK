@@ -6,7 +6,7 @@ vi.mock('./overlayStack', () => ({ hasOpenOverlay: vi.fn(() => false) }));
 
 import { tickHaptic } from '../native/haptics';
 import { hasOpenOverlay } from './overlayStack';
-import { usePullToRefresh } from './usePullToRefresh';
+import { insideScrolledBox, usePullToRefresh } from './usePullToRefresh';
 
 function touch(type: string, x = 0, y = 0) {
   const event = new Event(type, { cancelable: true });
@@ -79,6 +79,50 @@ describe('usePullToRefresh', () => {
 
     expect(onRefresh).not.toHaveBeenCalled();
     expect(el.style.transform).toBe('');
+  });
+
+  it('leaves a pull that starts in a scrolled column of its own to that column', () => {
+    const { onRefresh } = setup();
+    const column = document.createElement('div');
+    column.style.overflowY = 'auto';
+    Object.defineProperty(column, 'scrollTop', { value: 300, configurable: true });
+    Object.defineProperty(column, 'scrollHeight', { value: 2000, configurable: true });
+    Object.defineProperty(column, 'clientHeight', { value: 600, configurable: true });
+    const card = document.createElement('div');
+    column.appendChild(card);
+    document.body.appendChild(column);
+    const fire = (type: string, y: number) => {
+      const event = new Event(type, { cancelable: true, bubbles: true });
+      Object.defineProperty(event, 'touches', { value: type === 'touchend' ? [] : [{ clientX: 100, clientY: y }] });
+      act(() => {
+        card.dispatchEvent(event);
+      });
+      return event;
+    };
+    fire('touchstart', 100);
+    expect(fire('touchmove', 400).defaultPrevented).toBe(false);
+    fire('touchend', 400);
+    vi.runAllTimers();
+    expect(onRefresh).not.toHaveBeenCalled();
+    column.remove();
+  });
+
+  it('counts a box as scrolled only when it scrolls on its own and is off its top', () => {
+    const box = document.createElement('div');
+    const inner = document.createElement('div');
+    box.appendChild(inner);
+    document.body.appendChild(box);
+    Object.defineProperty(box, 'scrollHeight', { value: 2000, configurable: true });
+    Object.defineProperty(box, 'clientHeight', { value: 600, configurable: true });
+    Object.defineProperty(box, 'scrollTop', { value: 50, configurable: true });
+    expect(insideScrolledBox(inner, null)).toBe(false);
+    box.style.overflowY = 'auto';
+    expect(insideScrolledBox(inner, null)).toBe(true);
+    expect(insideScrolledBox(inner, box)).toBe(false);
+    Object.defineProperty(box, 'scrollTop', { value: 0, configurable: true });
+    expect(insideScrolledBox(inner, null)).toBe(false);
+    expect(insideScrolledBox(null, null)).toBe(false);
+    box.remove();
   });
 
   it('reads the scroll position of its own scroll box when given one', () => {

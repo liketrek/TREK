@@ -35,11 +35,12 @@ function watchService() {
 }
 
 describe('WandererWatchController', () => {
-  it('WWCTL-001: sits beside the connection, behind Tours, auth and the wanderer switch', () => {
+  it('WWCTL-001: sits beside the connection, behind auth, Tours for the caller and the wanderer switch', () => {
     expect(Reflect.getMetadata(PATH_METADATA, WandererWatchController)).toBe('api/integrations/wanderer/watch');
+    // Auth first: the watch belongs to no one trip, so Tours opens once the caller is known (any trip of theirs).
     expect(Reflect.getMetadata(GUARDS_METADATA, WandererWatchController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
+      AddonGuard,
       WandererEnabledGuard,
     ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, WandererWatchController)).toEqual({ addonId: 'tours', label: 'Tours' });

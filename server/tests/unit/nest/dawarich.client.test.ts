@@ -673,3 +673,26 @@ describe('DawarichClient — findVisitsNear', () => {
     await expect(client.findVisitsNear(CREDS, 0, 0, 100, 5)).resolves.toEqual([]);
   });
 });
+
+describe('DawarichClient, listGeocodedPoints', () => {
+  it('DAWARICH-CLIENT-100: reads one small page of full points, oldest first, to name a stay (#3105)', async () => {
+    const points = [{ city: 'Cinisi', country_name: 'Italy' }];
+    answerWith(reply({ body: points }));
+
+    const out = await client.listGeocodedPoints(CREDS, FROM, TO);
+
+    const url = requestedUrl(0);
+    expect(url.pathname).toBe('/api/v1/points');
+    expect(url.searchParams.get('start_at')).toBe(unixSeconds(FROM));
+    expect(url.searchParams.get('end_at')).toBe(unixSeconds(TO));
+    expect(url.searchParams.get('order')).toBe('asc');
+    expect(url.searchParams.get('per_page')).toBe('50');
+    expect(url.searchParams.get('slim')).toBeNull();
+    expect(out).toEqual(points);
+  });
+
+  it('DAWARICH-CLIENT-101: an answer that is not a list names nothing', async () => {
+    answerWith(reply({ body: { error: 'nope' } }));
+    await expect(client.listGeocodedPoints(CREDS, FROM, TO)).resolves.toEqual([]);
+  });
+});

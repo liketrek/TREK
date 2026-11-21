@@ -1,4 +1,4 @@
-// FE-PAGE-PLANNER-LISTS-001 to FE-PAGE-PLANNER-LISTS-006
+// FE-PAGE-PLANNER-LISTS-001 to FE-PAGE-PLANNER-LISTS-007
 import { render, screen, fireEvent, act } from '../../../tests/helpers/render'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildPackingItem, buildTodoItem } from '../../../tests/helpers/factories'
@@ -15,8 +15,13 @@ const stub = vi.hoisted(() => (name: string) => (props: Record<string, unknown>)
 })
 vi.mock('../../components/Packing/PackingListPanel', () => ({ default: stub('packingPanel') }))
 vi.mock('../../components/Todo/TodoListPanel', () => ({ default: stub('todoPanel') }))
-vi.mock('../../components/Packing/ApplyTemplateButton', () => ({ default: stub('applyTemplate') }))
-vi.mock('../../components/Packing/PackingExportMenu', () => ({ default: stub('exportMenu') }))
+vi.mock('../../components/Packing/PackingListsMenu', () => ({ default: stub('listsMenu') }))
+
+type MenuProps = {
+  onImport: () => void; onSaveTemplate: () => void; onClearChecked: () => void; onOpenBags: () => void
+  onSortChange: (s: 'manual' | 'name') => void; onHideDoneChange: (v: boolean) => void
+}
+const menu = () => captured.listsMenu as unknown as MenuProps
 
 /** The props a lazily loaded panel was last rendered with, once its chunk is in. */
 function loaded<T = Record<string, unknown>>(name: string): Promise<T> {
@@ -42,6 +47,7 @@ function renderLists(packing = [buildPackingItem(), buildPackingItem()], todos =
 beforeEach(() => {
   resetAllStores()
   sessionStorage.clear()
+  localStorage.removeItem('trek:packing-sort')
   for (const key of Object.keys(captured)) delete captured[key]
 })
 
@@ -85,39 +91,52 @@ describe('ListsContainer', () => {
     expect(await loaded('todoPanel')).toMatchObject({ addItemSignal: 2 })
   })
 
-  it('FE-PAGE-PLANNER-LISTS-004: without the packing right there is no Add list, the other tools stay', async () => {
+  it('FE-PAGE-PLANNER-LISTS-004: without the packing right there is no Add list, the menu still imports', async () => {
     seed({ packingPermission: 'trip_owner' })
     renderLists()
 
     expect(screen.queryByRole('button', { name: 'Add list' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'Import' })).toBeInTheDocument()
+    expect(captured.listsMenu).toMatchObject({ canEdit: false, tripId: TRIP_ID })
     await loaded('packingPanel')
-    fireEvent.click(screen.getByRole('button', { name: 'Import' }))
+    act(() => { menu().onImport() })
     expect(captured.packingPanel).toMatchObject({ openImportSignal: 1, addCategorySignal: 0 })
   })
 
   it('FE-PAGE-PLANNER-LISTS-005: an admin saves a template only when the list has items', async () => {
     seed({ role: 'admin' })
     const { unmount } = renderLists([])
-    expect(screen.queryByRole('button', { name: 'Save as template' })).toBeNull()
+    expect(captured.listsMenu).toMatchObject({ isAdmin: true, hasItems: false })
     unmount()
 
     renderLists()
-    fireEvent.click(screen.getByRole('button', { name: 'Save as template' }))
+    expect(captured.listsMenu).toMatchObject({ hasItems: true })
+    act(() => { menu().onSaveTemplate() })
     fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
     expect(await loaded('packingPanel')).toMatchObject({ saveTemplateSignal: 1, addCategorySignal: 1 })
   })
 
-  it('FE-PAGE-PLANNER-LISTS-006: the panel switches the view the template and export tools work on', async () => {
+  it('FE-PAGE-PLANNER-LISTS-006: the panel switches the view the menu works on, and the packed count follows it', async () => {
     seed()
-    renderLists()
+    renderLists([buildPackingItem({ checked: 1 }), buildPackingItem({ is_private: 1, checked: 1 }), buildPackingItem({ is_private: 1 })])
     const panel = await loaded<{ onViewChange: (v: string) => void }>('packingPanel')
-    expect(captured.applyTemplate).toMatchObject({ tripId: TRIP_ID, visibility: 'common' })
-    expect(captured.exportMenu).toMatchObject({ tripId: TRIP_ID, view: 'common' })
+    expect(captured.listsMenu).toMatchObject({ tripId: TRIP_ID, view: 'common', packedCount: 1 })
 
     act(() => { panel.onViewChange('personal') })
-    expect(captured.applyTemplate).toMatchObject({ visibility: 'personal' })
-    expect(captured.exportMenu).toMatchObject({ view: 'personal' })
+    expect(captured.listsMenu).toMatchObject({ view: 'personal', packedCount: 1 })
     expect(captured.packingPanel).toMatchObject({ view: 'personal' })
+  })
+
+  it('FE-PAGE-PLANNER-LISTS-007: order, hiding packed items, the clean-up and the bags reach the panel from the menu', async () => {
+    seed()
+    renderLists()
+    await loaded('packingPanel')
+    expect(captured.packingPanel).toMatchObject({ sort: 'manual', hideDone: false, clearCheckedSignal: 0, openBagsSignal: 0 })
+
+    act(() => { menu().onSortChange('name') })
+    act(() => { menu().onHideDoneChange(true) })
+    act(() => { menu().onClearChecked() })
+    act(() => { menu().onOpenBags() })
+    expect(captured.packingPanel).toMatchObject({ sort: 'name', hideDone: true, clearCheckedSignal: 1, openBagsSignal: 1 })
+    expect(localStorage.getItem('trek:packing-sort')).toBe('name')
   })
 })

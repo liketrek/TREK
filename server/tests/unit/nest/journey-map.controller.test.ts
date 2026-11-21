@@ -34,7 +34,7 @@ describe('JourneyMapController', () => {
     const mapLayers = vi.fn(async () => layers);
     const controller = new JourneyMapController({ mapLayers } as unknown as JourneyMapService);
 
-    expect(await controller.layers({ id: 4 } as User, '9')).toBe(layers);
+    expect(await controller.layers({ id: 4 } as User, 9)).toBe(layers);
     expect(mapLayers).toHaveBeenCalledWith(9, 4);
   });
 });

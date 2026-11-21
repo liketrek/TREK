@@ -74,7 +74,7 @@ function CollabPanel({ planner, tab }: { planner: MTabScreenProps['planner']; ta
   if (tab === 'chat') {
     if (!planner.collabFeatures.chat) {
       return (
-        <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+        <div className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]">
           <CollabDisabledNotice icon={MessageCircle} label={label} />
         </div>
       )

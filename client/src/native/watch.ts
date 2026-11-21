@@ -1,5 +1,5 @@
 import type { Day, PackingItem, Place, Reservation, TodoItem, Trip } from '../types';
-import { parseReservationMetadata } from '../utils/flightLegs';
+import { bookingSeats, parseReservationMetadata } from '../utils/flightLegs';
 import { splitReservationDateTime } from '../utils/formatters';
 import { hasNativeFeature } from './capabilities';
 import { isNativeIos } from './platform';
@@ -274,7 +274,13 @@ export function watchBooking(
     to: point(to),
     code: text(r.confirmation_number, 40),
     carrier: carrierOf(meta),
-    seat: metaText(meta, 'seat'),
+    // A flight or train with a stop: the seat of every leg, not only the first leg's.
+    seat: text(
+      bookingSeats(r)
+        .map((s) => s.seat)
+        .join(', '),
+      20
+    ),
     platform: metaText(meta, 'platform'),
     ...whereOf(r, places),
     checkIn: metaText(meta, 'check_in_time'),

@@ -16,7 +16,7 @@ Below the head card the addons are grouped in one card per type. From extra-wide
 
 ### Trip addons
 
-Trip addons add per-trip feature panels. They appear in every trip where the addon is enabled.
+Trip addons add per-trip feature panels. Your switch here is the default for every trip; a trip's owner can turn a trip addon on or off for their own trip under **Trip settings → Addons**, and that choice wins for that trip only. See [Trip-Settings](Trip-Settings#addons).
 
 The trip addons are: **Lists**, **Costs**, **Documents**, **Collab** and **Tours** (all enabled by default), and **Road trip** (disabled by default). The exact list is determined by what is registered in your TREK database.
 

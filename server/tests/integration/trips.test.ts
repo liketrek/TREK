@@ -3,7 +3,6 @@
  * Covers TRIP-001 through TRIP-022.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { BudgetCategoryOrder } from '../../src/db/entities/BudgetCategoryOrder.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
@@ -21,43 +20,31 @@ import { TripMembers } from '../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createAdmin,
-  createTrip,
-  addTripMember,
-  createPlace,
-  createReservation,
-  createTag,
-  createDayAccommodation,
-  createBudgetItem,
-  createPackingItem,
-  createDayNote,
-  createDayAssignment,
-} from '../helpers/factories';
+import { makeBudgetItem } from '../helpers/factories/budget';
 import type { FactoryOrm } from '../helpers/factories/context';
-import { tagPlace } from '../helpers/factories/places';
+import { makeDayAccommodation, makeDayAssignment, makeDayNote } from '../helpers/factories/itinerary';
+import { makePackingItem } from '../helpers/factories/packing';
+import { makePlace, makeTag, tagPlace } from '../helpers/factories/places';
+import { makeReservation } from '../helpers/factories/reservations';
 import { countRows, findRow, findRows, insertRow, insertRows, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { readTripDays } from '../helpers/factories/trips';
-import { readUser } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember, makeTrip, readTripDays } from '../helpers/factories/trips';
+import { makeAdmin, makeUser, readUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step 1: Bare in-memory DB — schema applied in beforeAll after mocks register
 // ─────────────────────────────────────────────────────────────────────────────
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 let nestApp: INestApplication;
 let app: Application;
 let orm: FactoryOrm;
@@ -68,13 +55,12 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   await invalidatePermissionsCache();
 });
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,7 +69,7 @@ afterAll(async () => {
 
 describe('Create trip', () => {
   it('TRIP-001 — POST /api/trips with start_date/end_date returns 201 and auto-generates days', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/trips')
@@ -102,7 +88,7 @@ describe('Create trip', () => {
   });
 
   it('TRIP-002 — POST /api/trips without dates returns 201 and creates 7 dateless placeholder days', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/trips')
@@ -121,7 +107,7 @@ describe('Create trip', () => {
   });
 
   it('TRIP-002b — POST /api/trips with day_count creates correct number of dateless days', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/trips')
@@ -137,7 +123,7 @@ describe('Create trip', () => {
   });
 
   it('TRIP-001 — POST /api/trips requires a title, returns 400 without one', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/trips')
@@ -149,7 +135,7 @@ describe('Create trip', () => {
   });
 
   it('TRIP-001 — POST /api/trips rejects end_date before start_date with 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/trips')
@@ -161,7 +147,7 @@ describe('Create trip', () => {
   });
 
   it('TRIP-003 — trip_create permission set to admin blocks regular user with 403', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     // Restrict trip creation to admins only
     await insertRow(orm, AppSettings, { key: 'perm_trip_create', value: 'admin' });
@@ -177,7 +163,7 @@ describe('Create trip', () => {
   });
 
   it('TRIP-003 — trip_create permission set to admin allows admin user', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     await insertRow(orm, AppSettings, { key: 'perm_trip_create', value: 'admin' });
     await invalidatePermissionsCache();
@@ -199,16 +185,16 @@ describe('Create trip', () => {
 
 describe('List trips', () => {
   it('TRIP-004 — GET /api/trips returns own trips and member trips, not other users trips', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
 
-    const ownTrip = createTrip(testDb, owner.id, { title: "Owner's Trip" });
-    const memberTrip = createTrip(testDb, stranger.id, { title: "Stranger's Trip (member)" });
-    createTrip(testDb, stranger.id, { title: "Stranger's Private Trip" });
+    const ownTrip = await makeTrip(orm, owner.id, { title: "Owner's Trip" });
+    const memberTrip = await makeTrip(orm, stranger.id, { title: "Stranger's Trip (member)" });
+    await makeTrip(orm, stranger.id, { title: "Stranger's Private Trip" });
 
     // Add member to one of stranger's trips
-    addTripMember(testDb, memberTrip.id, member.id);
+    await addTripMember(orm, memberTrip.id, member.id);
 
     const ownerRes = await request(app).get('/api/trips').set('Cookie', authCookie(owner.id));
 
@@ -226,10 +212,10 @@ describe('List trips', () => {
   });
 
   it('TRIP-005 — GET /api/trips excludes archived trips by default', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    const activeTrip = createTrip(testDb, user.id, { title: 'Active Trip' });
-    const archivedTrip = createTrip(testDb, user.id, { title: 'Archived Trip' });
+    const activeTrip = await makeTrip(orm, user.id, { title: 'Active Trip' });
+    const archivedTrip = await makeTrip(orm, user.id, { title: 'Archived Trip' });
 
     // Archive the second trip directly in the DB
     await updateRows(orm, Trips, { id: archivedTrip.id }, { is_archived: 1 });
@@ -243,10 +229,10 @@ describe('List trips', () => {
   });
 
   it('TRIP-005 — GET /api/trips?archived=1 returns only archived trips', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
-    const activeTrip = createTrip(testDb, user.id, { title: 'Active Trip' });
-    const archivedTrip = createTrip(testDb, user.id, { title: 'Archived Trip' });
+    const activeTrip = await makeTrip(orm, user.id, { title: 'Active Trip' });
+    const archivedTrip = await makeTrip(orm, user.id, { title: 'Archived Trip' });
 
     await updateRows(orm, Trips, { id: archivedTrip.id }, { is_archived: 1 });
 
@@ -265,8 +251,8 @@ describe('List trips', () => {
 
 describe('Get trip', () => {
   it('TRIP-006 — GET /api/trips/:id for own trip returns 200 with full trip object', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'My Trip', description: 'A lovely trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'My Trip', description: 'A lovely trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
@@ -278,9 +264,9 @@ describe('Get trip', () => {
   });
 
   it('TRIP-007 — GET /api/trips/:id for another users trip returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: "Owner's Trip" });
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: "Owner's Trip" });
 
     const res = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(other.id));
 
@@ -289,10 +275,10 @@ describe('Get trip', () => {
   });
 
   it('TRIP-017 — Member can access trip → 200', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Shared Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(member.id));
 
@@ -302,7 +288,7 @@ describe('Get trip', () => {
   });
 
   it('TRIP-006 — GET /api/trips/:id for non-existent trip returns 404', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/trips/999999').set('Cookie', authCookie(user.id));
 
@@ -316,8 +302,8 @@ describe('Get trip', () => {
 
 describe('Update trip', () => {
   it('TRIP-008 — PUT /api/trips/:id updates title and description for owner → 200', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Original Title' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Original Title' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}`)
@@ -330,8 +316,8 @@ describe('Update trip', () => {
   });
 
   it('TRIP-009 — Archive trip (PUT with is_archived:true) removes it from normal list', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'To Archive' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'To Archive' });
 
     const archiveRes = await request(app)
       .put(`/api/trips/${trip.id}`)
@@ -349,8 +335,8 @@ describe('Update trip', () => {
   });
 
   it('TRIP-009 — Unarchive trip reappears in normal list', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Archived Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Archived Trip' });
 
     // Archive it first
     await updateRows(orm, Trips, { id: trip.id }, { is_archived: 1 });
@@ -372,10 +358,10 @@ describe('Update trip', () => {
   });
 
   it('TRIP-010 — Archive by trip member is denied when trip_archive is set to trip_owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Members Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Members Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     // Restrict archiving to trip_owner only (this is actually the default, but set explicitly)
     await setAppSetting(orm, 'perm_trip_archive', 'trip_owner');
@@ -391,10 +377,10 @@ describe('Update trip', () => {
   });
 
   it('TRIP-008 — Member cannot edit trip title when trip_edit is set to trip_owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Original' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Original' });
+    await addTripMember(orm, trip.id, member.id);
 
     // Default trip_edit is trip_owner — members should be blocked
     await setAppSetting(orm, 'perm_trip_edit', 'trip_owner');
@@ -409,7 +395,7 @@ describe('Update trip', () => {
   });
 
   it('TRIP-008 — PUT /api/trips/:id returns 404 for non-existent trip', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put('/api/trips/999999')
@@ -420,15 +406,15 @@ describe('Update trip', () => {
   });
 
   it('TRIP-023 — Shifting trip date range preserves day assignments positionally', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2026-08-01', end_date: '2026-08-05' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-08-01', end_date: '2026-08-05' });
 
     const days = await readTripDays(orm, trip.id);
     expect(days).toHaveLength(5);
 
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, days[0].id, place.id);
-    const note = createDayNote(testDb, days[1].id, trip.id, { text: 'pack sunscreen' });
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, days[0].id, place.id);
+    const note = await makeDayNote(orm, days[1].id, trip.id, { text: 'pack sunscreen' });
 
     // Shift forward 10 days (zero overlap with original range)
     const res = await request(app)
@@ -458,13 +444,13 @@ describe('Update trip', () => {
   });
 
   it('TRIP-024 — Shrinking trip date range deletes overflow days and their content', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-09-01', end_date: '2026-09-05' });
 
     const days = await readTripDays(orm, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const a4 = createDayAssignment(testDb, days[3].id, place.id);
-    const a5 = createDayAssignment(testDb, days[4].id, place.id);
+    const place = await makePlace(orm, trip.id);
+    const a4 = await makeDayAssignment(orm, days[3].id, place.id);
+    const a5 = await makeDayAssignment(orm, days[4].id, place.id);
 
     // Shrink from 5 to 3 days
     const res = await request(app)
@@ -486,18 +472,18 @@ describe('Update trip', () => {
   it('TRIP-028: An earlier end takes the last day with its stay, while the hotel booking of that stay remains', async () => {
     // Pins what the trip dialog warns about before such a save: the stay goes as
     // a whole, even with nights still inside the trip, and its booking does not.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-06' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-09-01', end_date: '2026-09-06' });
     const days = await readTripDays(orm, trip.id);
-    const place = createPlace(testDb, trip.id, { name: 'Harbour Hotel' });
-    const stay = createDayAccommodation(testDb, trip.id, place.id, days[3].id, days[5].id);
-    const booking = createReservation(testDb, trip.id, {
+    const place = await makePlace(orm, trip.id, { name: 'Harbour Hotel' });
+    const stay = await makeDayAccommodation(orm, trip.id, place.id, days[3].id, days[5].id);
+    const booking = await makeReservation(orm, trip.id, {
       title: 'Harbour Hotel booking',
       type: 'hotel',
-      day_id: days[3].id,
+      day: days[3].id,
     });
     await updateRows(orm, Reservations, { id: booking.id }, { accommodation_id: String(stay.id) });
-    const sightseeing = createDayAssignment(testDb, days[5].id, place.id);
+    const sightseeing = await makeDayAssignment(orm, days[5].id, place.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}`)
@@ -521,8 +507,8 @@ describe('Update trip', () => {
 
 describe('Delete trip', () => {
   it('TRIP-018 — DELETE /api/trips/:id by owner returns 200 and trip is no longer accessible', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'To Delete' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'To Delete' });
 
     const deleteRes = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
@@ -536,9 +522,9 @@ describe('Delete trip', () => {
   });
 
   it('TRIP-019 — Regular user cannot delete another users trip → 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: "Owner's Trip" });
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: "Owner's Trip" });
 
     const res = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(other.id));
 
@@ -553,10 +539,10 @@ describe('Delete trip', () => {
   });
 
   it('TRIP-019 — Trip member cannot delete trip → 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Shared Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(member.id));
 
@@ -565,12 +551,12 @@ describe('Delete trip', () => {
   });
 
   it('TRIP-022 — Trip with places and reservations can be deleted (cascade)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip With Data' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Trip With Data' });
 
     // Add associated data
-    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
-    createReservation(testDb, trip.id, { title: 'Hotel Booking', type: 'hotel' });
+    await makePlace(orm, trip.id, { name: 'Eiffel Tower' });
+    await makeReservation(orm, trip.id, { title: 'Hotel Booking', type: 'hotel' });
 
     const deleteRes = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
 
@@ -586,9 +572,9 @@ describe('Delete trip', () => {
   });
 
   it('TRIP-018 — Admin can delete another users trip', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: "User's Trip" });
+    const { user: admin } = await makeAdmin(orm);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: "User's Trip" });
 
     const res = await request(app).delete(`/api/trips/${trip.id}`).set('Cookie', authCookie(admin.id));
 
@@ -597,7 +583,7 @@ describe('Delete trip', () => {
   });
 
   it('TRIP-018 — DELETE /api/trips/:id for non-existent trip returns 404', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete('/api/trips/999999').set('Cookie', authCookie(user.id));
 
@@ -611,10 +597,10 @@ describe('Delete trip', () => {
 
 describe('Trip members', () => {
   it('TRIP-015 — GET /api/trips/:id/members returns owner and members list', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/members`).set('Cookie', authCookie(owner.id));
 
@@ -627,9 +613,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-013 — POST /api/trips/:id/members adds a member by email → 201', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: invitee } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: invitee } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/members`)
@@ -647,9 +633,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-013 — POST /api/trips/:id/members adds a member by username → 201', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: invitee } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: invitee } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/members`)
@@ -661,8 +647,8 @@ describe('Trip members', () => {
   });
 
   it('TRIP-013 — Adding a non-existent user returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/members`)
@@ -674,10 +660,10 @@ describe('Trip members', () => {
   });
 
   it('TRIP-013 — Adding a user who is already a member returns 400', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/members`)
@@ -689,9 +675,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-013 — Adding a member by whitespace-padded username resolves correctly → 201', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: invitee } = createUser(testDb, { username: 'paddeduser' });
-    const trip = createTrip(testDb, owner.id, { title: 'Padded Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: invitee } = await makeUser(orm, { username: 'paddeduser' });
+    const trip = await makeTrip(orm, owner.id, { title: 'Padded Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/members`)
@@ -703,10 +689,10 @@ describe('Trip members', () => {
   });
 
   it('TRIP-014 — DELETE /api/trips/:id/members/:userId removes a member → 200', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/members/${member.id}`)
@@ -721,10 +707,10 @@ describe('Trip members', () => {
   });
 
   it('TRIP-014 — Member can remove themselves from a trip → 200', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/members/${member.id}`)
@@ -735,10 +721,10 @@ describe('Trip members', () => {
   });
 
   it('TRIP-TRANSFER-001 — owner hands the trip to a member; roles swap (#973)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/transfer`)
@@ -756,10 +742,10 @@ describe('Trip members', () => {
   });
 
   it('TRIP-TRANSFER-002 — a non-owner cannot transfer ownership → 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/transfer`)
@@ -770,9 +756,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-TRANSFER-003 — cannot transfer to a non-member → 400', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/transfer`)
@@ -783,8 +769,8 @@ describe('Trip members', () => {
   });
 
   it('TRIP-GUEST-001 — owner creates a guest; it appears as a member and is shielded from auth (#1362)', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Camping' });
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Camping' });
 
     const created = await request(app)
       .post(`/api/trips/${trip.id}/guests`)
@@ -812,9 +798,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-GUEST-004 — the same guest name is allowed on two trips (no "Name 2", #1446)', async () => {
-    const { user: owner } = createUser(testDb);
-    const tripA = createTrip(testDb, owner.id, { title: 'Trip A' });
-    const tripB = createTrip(testDb, owner.id, { title: 'Trip B' });
+    const { user: owner } = await makeUser(orm);
+    const tripA = await makeTrip(orm, owner.id, { title: 'Trip A' });
+    const tripB = await makeTrip(orm, owner.id, { title: 'Trip B' });
 
     const addJake = (tripId: number) =>
       request(app).post(`/api/trips/${tripId}/guests`).set('Cookie', authCookie(owner.id)).send({ name: 'Jake' });
@@ -834,10 +820,10 @@ describe('Trip members', () => {
   });
 
   it('TRIP-GUEST-002 — guest CRUD is owner-only', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Camping' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Camping' });
+    await addTripMember(orm, trip.id, member.id);
 
     // A non-owner member cannot create a guest.
     const denied = await request(app)
@@ -869,9 +855,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-GUEST-003 — a guest cannot be invited as a member to any trip (#1362)', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Camping' });
-    const otherTrip = createTrip(testDb, owner.id, { title: 'Other' });
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Camping' });
+    const otherTrip = await makeTrip(orm, owner.id, { title: 'Other' });
     const created = await request(app)
       .post(`/api/trips/${trip.id}/guests`)
       .set('Cookie', authCookie(owner.id))
@@ -886,11 +872,11 @@ describe('Trip members', () => {
   });
 
   it('TRIP-013 — Non-owner member cannot add other members when member_manage is trip_owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const { user: invitee } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const { user: invitee } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Team Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     // Restrict member management to trip_owner (default)
     await setAppSetting(orm, 'perm_member_manage', 'trip_owner');
@@ -906,9 +892,9 @@ describe('Trip members', () => {
   });
 
   it('TRIP-015 — Non-member cannot list trip members → 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Private Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/members`).set('Cookie', authCookie(stranger.id));
 
@@ -922,8 +908,8 @@ describe('Trip members', () => {
 
 describe('Copy trip', () => {
   it('TRIP-023 — POST /api/trips/:id/copy creates a duplicate trip with 201', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Original Trip', description: 'Desc' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Original Trip', description: 'Desc' });
 
     const res = await request(app).post(`/api/trips/${trip.id}/copy`).set('Cookie', authCookie(user.id)).send({});
 
@@ -934,8 +920,8 @@ describe('Copy trip', () => {
   });
 
   it('TRIP-023 — copy accepts a custom title for the new trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Source' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Source' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/copy`)
@@ -947,10 +933,10 @@ describe('Copy trip', () => {
   });
 
   it('TRIP-023 — copied trip belongs to the requesting user', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Shared Trip' });
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Shared Trip' });
+    await addTripMember(orm, trip.id, member.id);
 
     const res = await request(app).post(`/api/trips/${trip.id}/copy`).set('Cookie', authCookie(member.id)).send({});
 
@@ -960,9 +946,9 @@ describe('Copy trip', () => {
   });
 
   it('TRIP-024 — non-member cannot copy a trip → 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Private Trip' });
 
     const res = await request(app).post(`/api/trips/${trip.id}/copy`).set('Cookie', authCookie(stranger.id)).send({});
 
@@ -970,7 +956,7 @@ describe('Copy trip', () => {
   });
 
   it('TRIP-024 — copy of non-existent trip returns 404', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post('/api/trips/999999/copy').set('Cookie', authCookie(user.id)).send({});
 
@@ -984,8 +970,8 @@ describe('Copy trip', () => {
 
 describe('ICS export', () => {
   it('TRIP-025 — GET /api/trips/:id/export.ics returns text/calendar content', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Calendar Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Calendar Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/export.ics`).set('Cookie', authCookie(user.id));
 
@@ -996,9 +982,9 @@ describe('ICS export', () => {
   });
 
   it('TRIP-025 — non-member cannot export ICS → 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id, { title: 'Private Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/export.ics`).set('Cookie', authCookie(stranger.id));
 
@@ -1006,8 +992,8 @@ describe('ICS export', () => {
   });
 
   it('TRIP-025 — unauthenticated export returns 401', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/export.ics`);
     expect(res.status).toBe(401);
@@ -1018,8 +1004,8 @@ describe('ICS export', () => {
     // reads `t.*`, so without the blanking it ships in every trip response and
     // gating /feed/token on share_manage would achieve nothing: any member
     // could read the value straight out of GET /api/trips/:id.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Trip' });
     await updateRows(orm, Trips, { id: trip.id }, { feed_token: 'secret-feed-token' });
 
     const one = await request(app).get(`/api/trips/${trip.id}`).set('Cookie', authCookie(user.id));
@@ -1038,8 +1024,8 @@ describe('ICS export', () => {
 
 describe('Copy trip with data', () => {
   it('TRIP-026 — copy preserves days, places, tags, assignments, accommodations, reservations, budget, packing, notes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, {
       title: 'Data-Rich Trip',
       start_date: '2025-09-01',
       end_date: '2025-09-03',
@@ -1049,8 +1035,8 @@ describe('Copy trip with data', () => {
     expect(days.length).toBe(3);
 
     // Place with a tag
-    const place = createPlace(testDb, trip.id, { name: 'Tower Bridge' });
-    const tag = createTag(testDb, user.id, { name: 'Landmark' });
+    const place = await makePlace(orm, trip.id, { name: 'Tower Bridge' });
+    const tag = await makeTag(orm, user.id, { name: 'Landmark' });
     await tagPlace(orm, place.id, [tag.id]);
 
     // Day assignment
@@ -1059,22 +1045,24 @@ describe('Copy trip with data', () => {
       place: place.id,
       order_index: 0,
       notes: 'Visit in morning',
+      // #3092: the visit's own stay, apart from the place's duration
+      stay_minutes: 90,
     });
 
     // Accommodation spanning days 0→1
-    createDayAccommodation(testDb, trip.id, place.id, days[0].id, days[1].id);
+    await makeDayAccommodation(orm, trip.id, place.id, days[0].id, days[1].id);
 
     // Reservation on day 0
-    createReservation(testDb, trip.id, { title: 'Flight Out', type: 'flight', day_id: days[0].id });
+    await makeReservation(orm, trip.id, { title: 'Flight Out', type: 'flight', day: days[0].id });
 
     // Budget item
-    createBudgetItem(testDb, trip.id, { name: 'Flights', total_price: 400 });
+    await makeBudgetItem(orm, trip.id, { name: 'Flights', total_price: 400 });
 
     // Packing item
-    createPackingItem(testDb, trip.id, { name: 'Toothbrush' });
+    await makePackingItem(orm, trip.id, { name: 'Toothbrush' });
 
     // Day note
-    createDayNote(testDb, days[0].id, trip.id, { text: 'Pack early!' });
+    await makeDayNote(orm, days[0].id, trip.id, { text: 'Pack early!' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/copy`)
@@ -1103,6 +1091,7 @@ describe('Copy trip with data', () => {
     // Assignment copied
     const newAssignments = await findRows(orm, DayAssignments, { day: { trip: newId } });
     expect(newAssignments).toHaveLength(1);
+    expect(newAssignments[0].stay_minutes).toBe(90);
 
     // Accommodation copied
     const newAccom = await findRows(orm, DayAccommodations, { trip: newId });
@@ -1128,8 +1117,8 @@ describe('Copy trip with data', () => {
   });
 
   it('TRIP-027 — copy preserves todos (unchecked, unassigned) and budget category order', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Todo Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Todo Trip' });
 
     // Two todos: one checked and assigned — both should arrive unchecked and unassigned
     await insertRow(orm, TodoItems, {
@@ -1194,8 +1183,8 @@ describe('Copy trip with data', () => {
 
 describe('Trip bundle', () => {
   it('BUNDLE-001 — returns all sub-collections for owned trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2026-07-01', end_date: '2026-07-03' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-07-01', end_date: '2026-07-03' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(user.id));
 
@@ -1213,7 +1202,7 @@ describe('Trip bundle', () => {
   });
 
   it('BUNDLE-002 — returns 404 for trip that does not exist', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/trips/999999/bundle').set('Cookie', authCookie(user.id));
 
@@ -1221,9 +1210,9 @@ describe('Trip bundle', () => {
   });
 
   it('BUNDLE-003 — returns 404 when user has no access to trip', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(other.id));
 
@@ -1231,9 +1220,9 @@ describe('Trip bundle', () => {
   });
 
   it('BUNDLE-004 — members can fetch bundle', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     await insertRow(orm, TripMembers, { trip: trip.id, user: member.id });
 
     const res = await request(app).get(`/api/trips/${trip.id}/bundle`).set('Cookie', authCookie(member.id));
@@ -1243,8 +1232,8 @@ describe('Trip bundle', () => {
   });
 
   it('BUNDLE-005 — returns 401 when unauthenticated', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/bundle`);
 
@@ -1252,9 +1241,9 @@ describe('Trip bundle', () => {
   });
 
   it("BUNDLE-006 — packingItems are scoped to the viewer: another member's private item stays out (#858)", async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     await insertRow(orm, TripMembers, { trip: trip.id, user: member.id });
     await insertRow(orm, PackingItems, { trip: trip.id, name: 'Tent', checked: 0, sort_order: 0 });
     await insertRow(orm, PackingItems, {
@@ -1284,13 +1273,18 @@ describe('Trip cover upload parity', () => {
   const FIXTURE_IMG = pathMod.join(__dirname, '../fixtures/small-image.jpg');
   const coversDir = pathMod.join(__dirname, '../../uploads/covers');
 
-  afterAll(() => {
-    fsMod.rmSync(coversDir, { recursive: true, force: true });
+  // Only what these tests store is removed: other suites share uploads/ and may run beside them.
+  let stored: StoredObjects;
+  beforeAll(() => {
+    stored = trackStoredObjects(nestApp.get(StorageService));
+  });
+  afterAll(async () => {
+    await stored.cleanup();
   });
 
   it('TRIP-P01 — cover upload returns /uploads/covers/<uuid> and writes the file', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/cover`)
@@ -1303,8 +1297,8 @@ describe('Trip cover upload parity', () => {
   });
 
   it('TRIP-P02 — re-upload hands the previous cover to the release queue, which removes it once no undo can need it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const first = await request(app)
       .post(`/api/trips/${trip.id}/cover`)
@@ -1324,8 +1318,8 @@ describe('Trip cover upload parity', () => {
   });
 
   it('TRIP-P03 — no file → 400 "No image uploaded"', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).post(`/api/trips/${trip.id}/cover`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(400);
@@ -1333,8 +1327,8 @@ describe('Trip cover upload parity', () => {
   });
 
   it('TRIP-P04 — non-image upload is 500 (plain-Error filter quirk — pinned, do not "fix")', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/cover`)
@@ -1344,7 +1338,7 @@ describe('Trip cover upload parity', () => {
   });
 
   it('TRIP-P05 — unknown trip → 404 "Trip not found"', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/trips/999999/cover')

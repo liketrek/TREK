@@ -11,6 +11,7 @@ const pdf: TranslationStrings = {
     'iOS Əsas ekrandakı tətbiqdən çap edə bilmir. Safari bu səfəri ixrac hazır vəziyyətdə açır, PDF-i orada saxlaya bilərsən.',
   'pdf.pageBreakPerDay': 'Hər gün üçün yeni səhifə',
   'pdf.transportNotes': 'Nəqliyyat qeydləri',
+  'pdf.largeText': 'Böyük mətn',
   'pdf.mapTitle': 'Marşrutun icmalı',
   'pdf.distanceLabel': 'Məsafə',
   'pdf.mapCredit': 'Ölkə sərhədləri: geoBoundaries (CC BY 4.0)',

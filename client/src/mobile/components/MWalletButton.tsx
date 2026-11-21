@@ -17,15 +17,24 @@ interface MWalletButtonProps {
   className?: string;
   /** Shown when the pass could not be made (a toast in the sheet that hosts the button). */
   onError: (message: string) => void;
+  /** 34px beside a sheet header's close button instead of 40px in an action row. */
+  compact?: boolean;
 }
 
 /**
  * "Add to Apple Wallet" on a booking in the iOS app (feature wallet), "Add to
  * Google Wallet" in the Android app (feature googleWallet): the booking becomes a
- * TREK pass that shows up around its time and place. Black like both stores' own
- * badges, so it reads as the wallet at a glance.
+ * TREK pass that shows up around its time and place. A black circle like both
+ * stores' own badges, so it reads as the wallet at a glance; the phone's action
+ * rows are icons only, the name is in the label and tooltip.
  */
-export default function MWalletButton({ tripId, reservationId, onError, className }: MWalletButtonProps) {
+export default function MWalletButton({
+  tripId,
+  reservationId,
+  onError,
+  className,
+  compact = false,
+}: MWalletButtonProps) {
   const { t, language } = useTranslation();
   // Re-renders once the app binary has said what it can do.
   useNativeCapabilities();
@@ -51,17 +60,22 @@ export default function MWalletButton({ tripId, reservationId, onError, classNam
     }
   };
 
+  const label = t(wallet === 'google' ? 'reservations.wallet.addGoogle' : 'reservations.wallet.add');
   const button = (
     <button
       type="button"
       onClick={() => void add()}
       disabled={busy}
       aria-busy={busy}
-      aria-label={t(wallet === 'google' ? 'reservations.wallet.addGoogle' : 'reservations.wallet.add')}
-      className="flex items-center gap-[6px] rounded-full bg-black px-3 py-[7px] text-[length:calc(12px*var(--fs-scale-body,1))] font-semibold text-white transition-transform active:scale-[.97] disabled:opacity-70" // theme-lint-disable: the wallets' badges are black in either theme
+      aria-label={label}
+      title={label}
+      className={`flex ${compact ? 'h-[34px] w-[34px]' : 'h-10 w-10'} flex-none items-center justify-center rounded-full bg-black text-white transition-transform active:scale-[.97] disabled:opacity-70 dark:ring-1 dark:ring-white/25`} // theme-lint-disable: the wallets' badges are black in either theme
     >
-      {busy ? <Loader2 size={13} className="animate-spin" /> : <Wallet size={13} strokeWidth={2} />}
-      {t('reservations.wallet.short')}
+      {busy ? (
+        <Loader2 size={compact ? 15 : 16} className="animate-spin" />
+      ) : (
+        <Wallet size={compact ? 15 : 16} strokeWidth={2} />
+      )}
     </button>
   );
   return className ? <div className={className}>{button}</div> : button;

@@ -51,9 +51,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': '오늘의 이야기를 들려주세요...',
   'journey.editor.placePlaceholder': '위치 (선택)',
   'journey.editor.tagsPlaceholder': '태그: 숨겨진 명소, 최고의 식사, 다시 방문...',
-  'journey.visibility.private': '비공개',
-  'journey.visibility.shared': '공유됨',
-  'journey.visibility.public': '공개',
   'journey.emptyState.title': '여기서 이야기가 시작됩니다',
   'journey.emptyState.subtitle': '장소에 체크인하거나 첫 번째 일기 항목을 작성하세요',
   'journey.frontpage.subtitle': '여행을 영원히 잊지 못할 이야기로 만드세요',
@@ -259,6 +256,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': '앨범을 찾을 수 없습니다',
   'journey.picker.selectDate': '날짜 선택',
   'journey.picker.search': '검색',
+  'journey.picker.takenBetween': '촬영 기간',
   'journey.editor.uploadingProgress': '업로드 중 {done}/{total}…',
   'journey.editor.uploadFailed': '사진 업로드 실패',
   'journey.editor.uploadPartialFailed':

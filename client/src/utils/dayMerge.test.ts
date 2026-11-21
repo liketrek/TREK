@@ -192,6 +192,23 @@ describe('getTransportForDay', () => {
     expect(day2[0].__leg).toMatchObject({ index: 1, from: 'Frankfurt', to: 'München', train_number: 'ICE 500', platform: '9' })
   })
 
+  it('gives each leg of a flight with a stop its own seat, the first leg the flat one when it has none', () => {
+    const flight = (legs: object[], seat?: string) => [{
+      id: 42, type: 'flight', day_id: 1, end_day_id: 1,
+      metadata: JSON.stringify({ ...(seat ? { seat } : {}), legs }),
+    }]
+    const legs = [
+      { from: 'MXP', to: 'IST', dep_day_id: 1, dep_time: '11:00', arr_day_id: 1, arr_time: '15:10' },
+      { from: 'IST', to: 'JFK', seat: '14C', dep_day_id: 1, dep_time: '17:05', arr_day_id: 1, arr_time: '20:40' },
+    ]
+    const rows = getTransportForDay({ reservations: flight(legs), dayId: 1, dayAssignmentIds: [], days })
+    expect(rows.map(r => r.__leg.seat)).toEqual([null, '14C'])
+    // A booking saved before legs had seats keeps its flat seat on the first leg only.
+    const unseated = [{ ...legs[0] }, { ...legs[1], seat: undefined }]
+    const legacy = getTransportForDay({ reservations: flight(unseated, '3A'), dayId: 1, dayAssignmentIds: [], days })
+    expect(legacy.map(r => r.__leg.seat)).toEqual(['3A', null])
+  })
+
   it('leaves a single-leg train untouched (no __leg)', () => {
     const reservations = [{ id: 41, type: 'train', day_id: 1, end_day_id: 1, metadata: JSON.stringify({ train_number: 'RE 1' }) }]
     const rows = getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })

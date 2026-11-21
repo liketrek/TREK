@@ -1,4 +1,4 @@
-// FE-PAGE-COLL-001 to FE-PAGE-COLL-095
+// FE-PAGE-COLL-001 to FE-PAGE-COLL-098
 // The Collections page hook. The collection store is replaced by a fixture so
 // every handler/branch can be driven directly; the categories request goes
 // through MSW, and the websocket module is already mocked in tests/setup.ts.
@@ -35,8 +35,9 @@ vi.mock('../../store/collectionStore', () => ({
 vi.mock('../../components/Collections/collectionFile', () => ({
   downloadCollectionFile: vi.fn(),
   downloadCollectionGpx: vi.fn(),
+  downloadCollectionKml: vi.fn(),
 }))
-import { downloadCollectionFile, downloadCollectionGpx } from '../../components/Collections/collectionFile'
+import { downloadCollectionFile, downloadCollectionGpx, downloadCollectionKml } from '../../components/Collections/collectionFile'
 
 /** How long useCollections lets a run of collections:* events settle before it reloads. */
 const WS_SETTLE_MS = 400
@@ -163,6 +164,7 @@ beforeEach(() => {
   addToast.mockClear()
   vi.mocked(downloadCollectionFile).mockClear()
   vi.mocked(downloadCollectionGpx).mockClear()
+  vi.mocked(downloadCollectionKml).mockClear()
   vi.mocked(addListener).mockClear()
   vi.mocked(removeListener).mockClear()
   installMatchMedia()
@@ -379,7 +381,7 @@ describe('useCollections — derived place lists', () => {
   it('FE-PAGE-COLL-020: visiblePlaces keeps the saved order by default', async () => {
     const { result } = await setup()
     expect(result.current.visiblePlaces.map(p => p.id)).toEqual([2, 1, 3])
-    expect(result.current.counts).toEqual({ all: 3, idea: 1, want: 1, visited: 1 })
+    expect(result.current.counts).toEqual({ all: 3, idea: 1, want: 1, visited: 1, revisit: 0 })
     expect(result.current.mappable.map(p => p.id)).toEqual([1, 3])
   })
 
@@ -1197,6 +1199,52 @@ describe('useCollections — export and import as a file', () => {
     await act(async () => { await result.current.handleImportFile(listFile as never, 'Lisbon (from Ana)') })
 
     expect(seen[0]).toEqual({ file: listFile, name: 'Lisbon (from Ana)' })
+  })
+})
+
+// ── The same list as KML for Google My Maps (#1866) ──────────────────────────
+
+describe('useCollections: KML (#1866)', () => {
+  const exportKml = (body: Record<string, unknown>) =>
+    server.use(http.get('/api/addons/collections/:id/export/kml', () => HttpResponse.json(body)))
+
+  it('FE-PAGE-COLL-096: downloads the KML under the list name, neither the list file nor a GPX', async () => {
+    exportKml({ name: 'Lisbon', kml: '<kml/>', pins: 2, omitted: 0 })
+    store.activeId = 11
+    const { result } = await setup()
+
+    await act(async () => { await result.current.handleExportList('kml') })
+
+    expect(downloadCollectionKml).toHaveBeenCalledWith('Lisbon', '<kml/>')
+    expect(downloadCollectionFile).not.toHaveBeenCalled()
+    expect(downloadCollectionGpx).not.toHaveBeenCalled()
+    expect(addToast).not.toHaveBeenCalled()
+    expect(result.current.exporting).toBe(false)
+  })
+
+  it('FE-PAGE-COLL-097: says how many places had no coordinates and stayed out', async () => {
+    exportKml({ name: 'Lisbon', kml: '<kml/>', pins: 2, omitted: 3 })
+    store.activeId = 11
+    const { result } = await setup()
+
+    await act(async () => { await result.current.handleExportList('kml') })
+
+    expect(downloadCollectionKml).toHaveBeenCalled()
+    expect(addToast).toHaveBeenCalledWith('3 places have no coordinates and were left out of the KML file', 'info', undefined)
+  })
+
+  it('FE-PAGE-COLL-098: hands over no empty KML when no place has coordinates', async () => {
+    exportKml({ name: 'Lisbon', kml: '<kml/>', pins: 0, omitted: 4 })
+    store.activeId = 11
+    const { result } = await setup()
+
+    await act(async () => { await result.current.handleExportList('kml') })
+
+    expect(downloadCollectionKml).not.toHaveBeenCalled()
+    expect(addToast).toHaveBeenCalledWith(
+      'None of these places has coordinates, so there is nothing to put in a KML file.', 'warning', undefined,
+    )
+    expect(result.current.exporting).toBe(false)
   })
 })
 

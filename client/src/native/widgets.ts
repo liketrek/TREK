@@ -7,6 +7,7 @@ import { isNativeApp } from './platform';
 import { reportNativeFailure } from './reportFailure';
 import { TrekShell } from './trekShell';
 import { stopLook, type WidgetBooking, type WidgetPacking, type WidgetTodos } from './widgetExtras';
+import type { WidgetFlight } from './widgetFlight';
 import type { WidgetAtlas, WidgetCollab, WidgetPackingDetail } from './widgetOnline';
 
 /**
@@ -48,6 +49,27 @@ export interface WidgetLabels {
   votes?: string;
   noMessages?: string;
   departure?: string;
+  /** The flight widget: its title and the words around the moment. */
+  flight?: string;
+  /** Contains "{time}", where the widget puts its own running countdown. */
+  flightDeparts?: string;
+  flightInAir?: string;
+  /** Contains "{time}". */
+  flightLands?: string;
+  flightLanded?: string;
+  flightOnTime?: string;
+  /** Contains "{m}". */
+  flightLate?: string;
+  /** Contains "{m}". */
+  flightEarly?: string;
+  flightEstimated?: string;
+  /** Past the departure time with the aircraft not yet in the air. */
+  flightReady?: string;
+  noFlight?: string;
+  /** Android, which has no running countdown text: "{d} d {h} h", "{h} h {m} min", "{m} min". */
+  durDaysHours?: string;
+  durHoursMinutes?: string;
+  durMinutes?: string;
 }
 
 interface WidgetStop {
@@ -82,13 +104,21 @@ export interface WidgetSnapshot {
     placeCount?: number;
     memberCount?: number;
   } | null;
-  today: { dayLabel: string; stops: SnapshotStop[]; index?: number; total?: number } | null;
+  today: SnapshotDay | null;
+  /**
+   * Every day of the trip from the day it was written on, each with its date,
+   * so a widget turns to the next day by itself at midnight instead of showing
+   * the day the app last ran until it is opened again. A binary without it
+   * reads `today` as before.
+   */
+  days?: SnapshotDay[];
   weather?: WidgetWeather;
   bookings?: WidgetBooking[];
   todos?: WidgetTodos;
   packing?: WidgetPacking & Partial<WidgetPackingDetail>;
   atlas?: WidgetAtlas;
   collab?: WidgetCollab;
+  flight?: WidgetFlight;
   labels: WidgetLabels;
 }
 
@@ -105,7 +135,18 @@ export interface WidgetWeather {
 }
 
 /** What goes along with the trip beyond its day; each part optional. */
+/** A trip day as the widgets read it; `date` (yyyy-MM-dd) says which day of the calendar it is. */
+interface SnapshotDay {
+  date?: string;
+  dayLabel: string;
+  stops: SnapshotStop[];
+  index?: number;
+  total?: number;
+}
+
 interface SnapshotExtras {
+  /** The trip's days from today on (tripDaysFrom), for the widgets to turn the day themselves. */
+  days?: TripDay[];
   place?: string | null;
   cover?: string | null;
   placeCount?: number;
@@ -116,6 +157,7 @@ interface SnapshotExtras {
   packing?: (WidgetPacking & Partial<WidgetPackingDetail>) | null;
   atlas?: WidgetAtlas | null;
   collab?: WidgetCollab | null;
+  flight?: WidgetFlight;
 }
 
 export interface TripDay {
@@ -128,7 +170,14 @@ export interface TripDay {
   /** 1-based position of the day in the trip, and the trip's day count. */
   index?: number;
   total?: number;
+  /** The calendar day it is, yyyy-MM-dd. */
+  date?: string;
 }
+
+/** How many days ahead a snapshot carries: a month of a trip without the app being opened. */
+export const WIDGET_DAYS_AHEAD = 31;
+/** The stops a day carries at most, which is more than the largest widget shows. */
+const WIDGET_DAY_STOPS = 16;
 
 /** iOS (WidgetKit) and Android (Glance) read the same snapshot. */
 export function widgetsActive(): boolean {
@@ -219,7 +268,43 @@ export function todayOf(
     dayId: day.id,
     index: index + 1,
     total: ordered.length,
+    date: today,
   };
+}
+
+/**
+ * The trip's days from `from` on, each with its stops and its timed bookings, at
+ * most WIDGET_DAYS_AHEAD of them: what a widget needs to show the right day on
+ * the days the app is not opened.
+ */
+/** What tripDaysFrom reads besides the trip and its days. */
+interface DaysFromOptions {
+  reservations: Reservation[];
+  /** The first date, yyyy-MM-dd: today. */
+  from: string;
+  dayLabel: (index: number, total: number) => string;
+  formatTime: (time: string) => string;
+}
+
+export function tripDaysFrom(
+  trip: Trip,
+  days: Day[],
+  { reservations, from, dayLabel, formatTime }: DaysFromOptions
+): TripDay[] {
+  const dates = [
+    ...new Set(
+      days
+        .filter((d) => d.trip_id === trip.id)
+        .map((d) => (d.date ?? '').slice(0, 10))
+        .filter((date) => date >= from)
+    ),
+  ]
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, WIDGET_DAYS_AHEAD);
+  return dates.flatMap((date) => {
+    const day = todayOf(trip, days, date, dayLabel, formatTime);
+    return day ? [withBookings(day, reservations, date, formatTime)] : [];
+  });
 }
 
 /** The day with its timed bookings (a flight, the table tonight) joined to the stops in time order. */
@@ -279,6 +364,29 @@ function snapshotStop({ time, name, minutes, color, symbol }: WidgetStop): Snaps
   };
 }
 
+/**
+ * The days a trip's snapshot carries: `today` while the trip runs today, and
+ * every day from today on for the widgets to turn to by themselves.
+ */
+export function snapshotDays(
+  trip: Trip | null,
+  days: Day[],
+  options: DaysFromOptions
+): { today: TripDay | null; ahead: TripDay[] } {
+  const ahead = trip ? tripDaysFrom(trip, days, options) : [];
+  return { today: ahead[0]?.date === options.from ? ahead[0] : null, ahead };
+}
+
+/** A day for the snapshot; the days ahead keep their first `limit` stops, so a month of them stays small. */
+function snapshotDay(day: TripDay, limit = day.stops.length): SnapshotDay {
+  return {
+    ...(day.date ? { date: day.date } : {}),
+    dayLabel: day.dayLabel,
+    stops: day.stops.slice(0, limit).map(snapshotStop),
+    ...(day.index ? { index: day.index, total: day.total } : {}),
+  };
+}
+
 export function buildSnapshot(
   trip: Trip | null,
   day: TripDay | null,
@@ -299,21 +407,17 @@ export function buildSnapshot(
           ...(extras.memberCount ? { memberCount: extras.memberCount } : {}),
         }
       : null,
-    today: day
-      ? {
-          dayLabel: day.dayLabel,
-          stops: day.stops.map(snapshotStop),
-          ...(day.index ? { index: day.index, total: day.total } : {}),
-        }
-      : null,
+    today: day ? snapshotDay(day) : null,
     labels,
   };
+  if (extras.days?.length) snapshot.days = extras.days.map((d) => snapshotDay(d, WIDGET_DAY_STOPS));
   if (extras.weather) snapshot.weather = extras.weather;
   if (extras.bookings) snapshot.bookings = extras.bookings;
   if (extras.todos) snapshot.todos = extras.todos;
   if (extras.packing) snapshot.packing = extras.packing;
   if (extras.atlas) snapshot.atlas = extras.atlas;
   if (extras.collab) snapshot.collab = extras.collab;
+  if (extras.flight) snapshot.flight = extras.flight;
   return snapshot;
 }
 
@@ -330,6 +434,41 @@ interface TripDayState {
   colors?: (string | null)[];
   done: number;
   total: number;
+  /** iOS: the day's flight while it is near or in the air, drawn as a boarding pass. */
+  flight?: LiveFlight;
+}
+
+/** The flight a Live Activity follows: times in epoch seconds, the clocks formatted. */
+interface LiveFlight {
+  number: string;
+  from: string;
+  to: string;
+  dep: number;
+  arr: number;
+  depTime: string;
+  arrTime: string;
+  delay?: number;
+  /** In the air when the app last looked: the countdown then runs to touchdown. */
+  airborne?: boolean;
+}
+
+/** From three hours before take-off until an hour after touchdown the activity is about the flight. */
+export function liveFlightOf(flight: WidgetFlight | undefined, nowSeconds: number): LiveFlight | undefined {
+  if (!flight || flight.landed) return undefined;
+  const dep = flight.depActual ?? flight.depExpected ?? flight.dep;
+  const arr = flight.arrExpected ?? flight.arr;
+  if (nowSeconds < dep - 3 * 3600 || nowSeconds > arr + 3600) return undefined;
+  return {
+    number: flight.number,
+    from: flight.from,
+    to: flight.to,
+    dep,
+    arr,
+    depTime: flight.depTime,
+    arrTime: flight.arrTimeExpected ?? flight.arrTime,
+    ...(flight.delay != null ? { delay: flight.delay } : {}),
+    ...(flight.airborne ? { airborne: true } : {}),
+  };
 }
 
 /**

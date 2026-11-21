@@ -120,16 +120,45 @@ class TrekBridgeViewController: CAPBridgeViewController {
             bottom: max(0, safe.bottom - (window.bounds.maxY - frame.maxY)),
             right: max(0, safe.right - (window.bounds.maxX - frame.maxX))
         )
-        if !force, insets == publishedSafeArea { return }
+        let corner = cornerElement(in: frame, window: window)
+        if !force, insets == publishedSafeArea, corner == publishedCorner { return }
         publishedSafeArea = insets
+        publishedCorner = corner
         let px = { (v: CGFloat) in "'\(Int(v.rounded(.up)))px'" }
         let js = "(function(s){"
             + "s.setProperty('--trek-native-safe-top',\(px(insets.top)));"
             + "s.setProperty('--trek-native-safe-left',\(px(insets.left)));"
             + "s.setProperty('--trek-native-safe-right',\(px(insets.right)));"
             + "s.setProperty('--trek-native-safe-bottom',\(px(insets.bottom)));"
+            + "s.setProperty('--trek-native-corner-bottom',\(px(corner.top)));"
+            + "s.setProperty('--trek-native-corner-left',\(px(corner.left)));"
+            + "s.setProperty('--trek-native-corner-right',\(px(corner.right)));"
             + "})(document.documentElement.style)"
         webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private var publishedCorner: UIEdgeInsets?
+
+    /// An element in a top corner of the screen, such as the status capsule of
+    /// an iPhone Duo: how far down it reaches (top) and how wide it is on its
+    /// side (left/right), in the web view's coordinates; zero where there is
+    /// none. iOS 26 tells a corner apart from a whole edge: the safe area with
+    /// the corner avoided vertically reaches lower than the one avoiding it
+    /// horizontally, which in turn is wider on the corner's side. The page puts
+    /// its top bar beside the element and starts its content below it, using
+    /// the full width (mobile.css), instead of giving up a strip of the whole
+    /// height.
+    private func cornerElement(in frame: CGRect, window: UIWindow) -> UIEdgeInsets {
+        guard #available(iOS 26.0, *) else { return .zero }
+        let vertical = view.edgeInsets(for: .safeArea(cornerAdaptation: .vertical))
+        let horizontal = view.edgeInsets(for: .safeArea(cornerAdaptation: .horizontal))
+        guard vertical.top > horizontal.top + 1 else { return .zero }
+        return UIEdgeInsets(
+            top: max(0, vertical.top - frame.minY),
+            left: max(0, horizontal.left - vertical.left - frame.minX),
+            bottom: 0,
+            right: max(0, horizontal.right - vertical.right - (window.bounds.maxX - frame.maxX))
+        )
     }
 
     // MARK: - A proxy's sign-in page
@@ -455,8 +484,24 @@ enum TrekServerStore {
         guard defaults.integer(forKey: checkedKey) < serverCheck else { return }
         defaults.set(serverCheck, forKey: checkedKey)
         guard let server = url else { return }
-        url = nil
+        // Not through `url`, which throws the offline copy away: it still belongs
+        // to this server, and is what the app starts on if the check cannot run.
+        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: signInHostsKey)
         defaults.set(server, forKey: previousKey)
+    }
+
+    /// The check an update asked for cannot run (the server is out of reach),
+    /// but there is a copy of its UI: the server goes back in place, unchecked
+    /// for now, and the check runs again on the next launch.
+    static func restoreForOffline() -> Bool {
+        let defaults = UserDefaults.standard
+        guard url == nil, let previous = previousURL,
+              FileManager.default.fileExists(atPath: offlineCopyURL.path) else { return false }
+        defaults.set(previous, forKey: key)
+        defaults.removeObject(forKey: previousKey)
+        defaults.set(0, forKey: checkedKey)
+        return true
     }
 
     /// The server an update asked to check again, until a server is set.

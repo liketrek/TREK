@@ -1,6 +1,8 @@
 import { readEnv } from '../../app-config';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { aiPolicySchema } from '@trek/shared';
+import { encrypt_api_key, maybe_encrypt_api_key } from './crypto/apiKeyCrypto';
+import { DomainError } from './domain-error';
+import { aiPolicySchema, mailIngestImapTlsSchema, mailIngestTransportSettingSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -46,6 +48,8 @@ export interface AppSettingDef {
   readonly encrypted?: 'always' | 'if-plain';
   readonly managedLocked?: true;
   readonly publicConfig?: true;
+  /** The admin save refuses a value the schema does not take, with the schema's own message, instead of storing it. */
+  readonly validated?: true;
 }
 
 // The admin form's keys come first, in the order the form has always answered them.
@@ -84,12 +88,17 @@ export const APP_SETTINGS = {
   password_registration: { schema: flag, default: 'true', adminForm: true },
   oidc_login: { schema: flag, default: 'true', adminForm: true, managedLocked: true },
   oidc_registration: { schema: flag, default: 'true', adminForm: true, managedLocked: true },
+  // Whether an instance without password login sends a visitor straight to the
+  // identity provider. Off shows the login page with its SSO button first (#2925).
+  oidc_auto_redirect: { schema: flag, default: 'true', adminForm: true, publicConfig: true, managedLocked: true },
   passkey_login: { schema: flag, default: 'false', adminForm: true },
   webauthn_rp_id: { schema: text, default: null, adminForm: true, managedLocked: true },
   webauthn_origins: { schema: text, default: null, adminForm: true, managedLocked: true },
   // 'auto' (what every install had before Amap existed), 'google', 'amap' or
   // 'openstreetmap'; the maps domain validates it (isPlacesProviderChoice).
   places_provider: { schema: text, default: 'auto', adminForm: true, publicConfig: true, managedLocked: true },
+  // Live flight status from the keyless ADS-B feeds (flight-live). On by default; FLIGHT_LIVE_ENABLED wins over it.
+  flight_live_enabled: { schema: flag, default: 'true', env: (e) => e.integrations.flightLiveEnabled, adminForm: true },
 
   // Read by name elsewhere.
   oidc_issuer: { schema: text, default: null, env: (e) => e.oidc.issuer, publicConfig: true },
@@ -156,6 +165,48 @@ export const APP_SETTINGS = {
   synology_capture_repair_3019: { schema: text, default: null },
   /** How many starts have tried that so far, while some photo could not be confirmed. */
   synology_capture_repair_3019_tries: { schema: intText, default: null },
+  // The booking mail import (mail-ingest), set in its own admin dialog. Off until switched on: on a
+  // self-hosted install by its admin, on a managed one by the operator, for the plans that include
+  // it and never for Start, so every key is the operator's there. The MAIL_INGEST_* environment
+  // variables win over the stored transport keys; they belong to the mailIngestConfig token, so
+  // MailIngestSettingsService applies them rather than the `env` of an entry here.
+  mail_ingest_enabled: { schema: flag, default: 'false', adminForm: true, managedLocked: true },
+  /** How mail reaches the install: not at all (uploads only), IMAP, a signed webhook, or the TREK Cloud relay. */
+  mail_ingest_transport: {
+    schema: mailIngestTransportSettingSchema,
+    default: 'off',
+    adminForm: true,
+    managedLocked: true,
+  },
+  mail_ingest_imap_host: { schema: text, default: null, adminForm: true, managedLocked: true },
+  mail_ingest_imap_port: { schema: intText, default: '993', adminForm: true, managedLocked: true },
+  mail_ingest_imap_tls: { schema: mailIngestImapTlsSchema, default: 'tls', adminForm: true, managedLocked: true },
+  mail_ingest_imap_user: { schema: text, default: null, adminForm: true, managedLocked: true },
+  mail_ingest_imap_pass: {
+    schema: text,
+    default: null,
+    adminForm: true,
+    masked: true,
+    encrypted: 'always',
+    managedLocked: true,
+  },
+  /** The folder the forwarded mails arrive in; read mails move on to TREK/processed. */
+  mail_ingest_imap_mailbox: { schema: text, default: 'INBOX', adminForm: true, managedLocked: true },
+  /** The forwarding address, `{token}` standing where a person's token goes: `trek+{token}@example.com`. */
+  mail_ingest_address_template: { schema: text, default: null, adminForm: true, managedLocked: true },
+  /** The key the webhook's sender signs every mail with (HMAC-SHA256). */
+  mail_ingest_webhook_secret: {
+    // As MAIL_INGEST_WEBHOOK_SECRET: a short secret's HMAC can be guessed. Empty switches the webhook off.
+    schema: z.union([z.literal(''), z.string().min(32, 'The webhook secret needs at least 32 characters')]),
+    default: null,
+    adminForm: true,
+    masked: true,
+    encrypted: 'always',
+    managedLocked: true,
+    validated: true,
+  },
+  /** How many forwarded mails a day an AI reads for one person. */
+  mail_ingest_ai_per_user_daily: { schema: intText, default: '10', adminForm: true, managedLocked: true },
 } as const satisfies Record<string, AppSettingDef>;
 
 export type AppSettingKey = keyof typeof APP_SETTINGS;
@@ -168,6 +219,30 @@ const keysWhere = (pick: (def: AppSettingDef) => unknown): AppSettingKey[] =>
 export const ADMIN_FORM_SETTING_KEYS: readonly AppSettingKey[] = keysWhere((d) => d.adminForm);
 /** The form's keys answered as `••••••••` rather than their value. */
 export const MASKED_ADMIN_SETTING_KEYS: ReadonlySet<AppSettingKey> = new Set(keysWhere((d) => d.masked));
+
+/** What the admin form shows for a stored secret, and takes back as "unchanged". */
+export const ADMIN_SETTING_MASK = '••••••••';
+
+/** True when the admin form sent a masked key back as its mask: the stored value stays. */
+export function isMaskEcho(key: AppSettingKey, value: unknown): boolean {
+  return MASKED_ADMIN_SETTING_KEYS.has(key) && String(value) === ADMIN_SETTING_MASK;
+}
+
+/**
+ * The value an admin form key is stored as: checked against its schema where
+ * the registry asks for it (`validated`, a 400 naming what is wrong), and
+ * encrypted where it says so.
+ */
+export function storedAdminValue(key: AppSettingKey, value: string): string {
+  const def = APP_SETTINGS[key] as AppSettingDef;
+  if (def.validated) {
+    const checked = def.schema.safeParse(value);
+    if (!checked.success) throw new DomainError(400, checked.error.issues[0]?.message ?? `${key} is not valid`);
+  }
+  if (def.encrypted === 'always') return encrypt_api_key(value);
+  if (def.encrypted === 'if-plain' && value) return maybe_encrypt_api_key(value) ?? value;
+  return value;
+}
 /** The keys stored encrypted. */
 export const ENCRYPTED_APP_SETTING_KEYS: ReadonlySet<AppSettingKey> = new Set(keysWhere((d) => d.encrypted));
 /** The registered keys a managed install withholds from its admin (the rest of that list is user settings and profile columns). */

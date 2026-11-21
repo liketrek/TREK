@@ -761,6 +761,7 @@ function UpcomingTool({ items, locale, onOpen }: {
             const timeStr = parsed.time ? formatTime(parsed.time, locale, timeFormat) : null
             const typeClass = RES_TYPE_CLASS[r.type] || 'other'
             const moment = MOMENT_LABEL[r.type]
+            const where = moment ? t(moment) : (r.location || r.place_name || r.trip_title)
             return (
               <div className="upc-item" key={upcomingKey(r)} onClick={() => onOpen(r.trip_id)}
                 role="button" data-no-press tabIndex={0}
@@ -769,14 +770,20 @@ function UpcomingTool({ items, locale, onOpen }: {
                 <div className="upc-info">
                   <div className="t">
                     {r.title}
-                    {r.status === 'pending' && <span className="upc-pending">{t('reservations.pending')}</span>}
                   </div>
                   <div className="s">
-                    {timeStr && <><Clock size={11} /> {timeStr} · </>}
-                    {moment ? t(moment) : (r.location || r.place_name || r.trip_title)}
+                    {timeStr && <span className="upc-chip"><Clock size={11} />{timeStr}</span>}
+                    {where && <span className="upc-chip"><span className="upc-chip-text">{where}</span></span>}
                   </div>
                 </div>
-                <div className={`upc-type ${typeClass}`}>{RES_ICON[r.type] || <Ticket size={16} />}</div>
+                <div className={`upc-type ${typeClass}`}>
+                  {RES_ICON[r.type] || <Ticket size={16} />}
+                  {r.status === 'pending' && (
+                    <span className="upc-pending" title={t('reservations.pending')} aria-label={t('reservations.pending')}>
+                      {t('reservations.pending').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
             )
           })}

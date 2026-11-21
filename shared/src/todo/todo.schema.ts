@@ -17,8 +17,8 @@ export const todoCreateItemRequestSchema = z.object({
   category: z.string().nullable().optional(),
   due_date: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  assigned_user_id: z.number().nullable().optional(),
-  priority: z.number().optional(),
+  assigned_user_id: z.number().int().nullable().optional(),
+  priority: z.number().int().optional(),
 });
 export type TodoCreateItemRequest = z.infer<typeof todoCreateItemRequestSchema>;
 
@@ -31,18 +31,18 @@ export const todoUpdateItemRequestSchema = z.object({
   category: z.string().nullable().optional(),
   due_date: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  assigned_user_id: z.number().nullable().optional(),
-  priority: z.number().nullable().optional(),
+  assigned_user_id: z.number().int().nullable().optional(),
+  priority: z.number().int().nullable().optional(),
 });
 export type TodoUpdateItemRequest = z.infer<typeof todoUpdateItemRequestSchema>;
 
 export const todoReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type TodoReorderRequest = z.infer<typeof todoReorderRequestSchema>;
 
 export const todoCategoryAssigneesRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type TodoCategoryAssigneesRequest = z.infer<typeof todoCategoryAssigneesRequestSchema>;
 

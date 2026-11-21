@@ -121,7 +121,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Muutsid reisi algust. Kuidas peaksid plaanid uute kuupäevadega kohanema?',
   'dashboard.dateShiftKeepBookings': 'Jäta broneeringud oma kuupäevadele',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Päevaplaanid liiguvad uutele kuupäevadele, kuid broneeringud ja majutused jäävad algsetele kuupäevadele, kui need jäävad endiselt reisi sisse.',
+    'Lisatud päevad jäävad tühjaks ja midagi muud ei liigu. Kui reis nihkub, liiguvad päevaplaanid uutele kuupäevadele, kuid broneeringud ja majutused jäävad algsetele kuupäevadele, kui need jäävad endiselt reisi sisse.',
   'dashboard.dateShiftAll': 'Nihuta kõike',
   'dashboard.dateShiftAllDesc': 'Kogu reisiplaan, sealhulgas broneeringud ja majutused, liigub uutele kuupäevadele.',
   'dashboard.dateShiftHint': 'Vihje: ainult osa reisiplaani nihutamiseks kasuta planeerijas valikut „Lisa päev“.',
@@ -235,5 +235,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Lisa Apple’i kalendrisse / Outlooki',
   'dashboard.ics.copyManually': 'Või kopeeri link käsitsi',
   'dashboard.ics.pasteFromUrl': 'kleebi väljale „URL-ist“',
+  'dashboard.ics.dayEvents': 'Päeva ülevaate sündmused',
+  'dashboard.ics.dayEventsHint':
+    'Iga päeva kohta terve päeva sündmus kellaajata kohtade ja märkmetega. Selle muutmine muudab linki, seega telli uuesti uue lingiga.',
 };
 export default dashboard;

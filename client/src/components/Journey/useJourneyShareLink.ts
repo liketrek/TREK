@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { journeyApi } from '../../api/client';
+import { useCopied } from '../../hooks/useCopied';
 import { useTranslation } from '../../i18n';
-import { copyText } from '../../utils/clipboard';
 import { useToast } from '../shared/Toast';
 
 export interface JourneyShareLink {
@@ -41,7 +41,7 @@ export function useJourneyShareLink(journeyId: number) {
   const toast = useToast();
   const [link, setLink] = useState<JourneyShareLink | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopied();
   /** The share token is the owner's to manage; a contributor is refused. */
   const [manageable, setManageable] = useState(true);
 
@@ -103,11 +103,7 @@ export function useJourneyShareLink(journeyId: number) {
 
   const shareUrl = journeyShareUrl(link, window.location.origin);
 
-  const copyLink = async () => {
-    if (!(await copyText(shareUrl))) return;
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const copyLink = () => copy(shareUrl);
 
   return { link, loading, manageable, copied, shareUrl, createLink, togglePerm, deleteLink, copyLink };
 }

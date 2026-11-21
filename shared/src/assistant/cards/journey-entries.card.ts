@@ -1,5 +1,5 @@
 import { idSchema } from '../../common/primitives.schema';
-import { journeyEntryTypeSchema, journeyEntryVisibilitySchema } from '../../journey/journey.schema';
+import { journeyEntryTypeSchema } from '../../journey/journey.schema';
 import { cardClockSchema, cardCountSchema, cardDateSchema, cardLatSchema, cardLngSchema, cardText } from './card-parts';
 
 import { z } from 'zod';
@@ -66,7 +66,6 @@ export const journeyEntryLookSchema = z.object({
   /** That photo is the poster of a clip. */
   video: z.boolean(),
   photoCount: cardCountSchema,
-  visibility: journeyEntryVisibilitySchema,
   draft: z.boolean(),
   /** Made from a place of a trip: deleting it turns it back into a suggestion. */
   fromTripPlace: z.boolean(),

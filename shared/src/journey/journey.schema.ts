@@ -233,17 +233,26 @@ export const journalPluginPhotoInputSchema = z.strictObject({
 export type JournalPluginPhotoInput = z.infer<typeof journalPluginPhotoInputSchema>;
 
 /*
- * The three entry fields with a fixed set of values. `journey_entries.type` and
- * `.visibility` are plain TEXT columns and the REST route forwards whatever the
- * client sent, but the row type (JourneyEntry on the server) only ever models
- * these, so the MCP tools and the assistant's cards name them rather than take
- * a free string: a model that invents "friends-only" would write a value
- * nothing reads.
+ * The entry types. `journey_entries.type` is a plain TEXT column and the REST
+ * route forwards whatever the client sent, but the row type (JourneyEntry on
+ * the server) only ever models these, so the MCP tools and the assistant's
+ * cards name them rather than take a free string: a model that invents "note"
+ * would write a value nothing reads.
+ *
+ * `journey_entries.visibility` is deprecated: nothing reads it, so a "private"
+ * entry still showed on the share link. The tools keep accepting and storing
+ * it, as REST does, so a client or a held assistant change that still sends it
+ * is not refused, but nothing offers it any more. What keeps an entry off the
+ * link is `is_draft`.
  */
 export const journeyEntryTypeSchema = z.enum(['entry', 'checkin', 'skeleton']);
 export type JourneyEntryType = z.infer<typeof journeyEntryTypeSchema>;
 export const journeyEntryVisibilitySchema = z.enum(['private', 'shared', 'public']);
 export type JourneyEntryVisibility = z.infer<typeof journeyEntryVisibilitySchema>;
+
+/** The tool-side description of the deprecated field, one wording for every tool. */
+export const JOURNEY_ENTRY_VISIBILITY_DEPRECATED =
+  'Deprecated, has no effect: stored with the entry but read by nothing, and every entry that is not a draft shows on the share link. Use is_draft instead';
 
 /**
  * The verdict on a place. Either side defaults to empty so a caller can send
@@ -293,11 +302,7 @@ export const journeyEntryUpdateToolSchema = z.strictObject({
   weather: z.string().max(100).nullable().optional(),
   tags: z.array(z.string()).nullable().optional(),
   pros_cons: journeyEntryProsConsSchema.nullable().optional().describe('Replaces the whole verdict; null clears it'),
-  visibility: journeyEntryVisibilitySchema
-    .optional()
-    .describe(
-      'Stored with the entry. It does not decide the share link: every entry that is not a draft shows there. Use is_draft to keep an entry to the contributors',
-    ),
+  visibility: journeyEntryVisibilitySchema.optional().describe(JOURNEY_ENTRY_VISIBILITY_DEPRECATED),
   type: journeyEntryTypeSchema
     .optional()
     .describe('Promote a trip-derived "skeleton" to a real "entry" once it has been written up'),

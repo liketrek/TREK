@@ -35,7 +35,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Пересадка',
   'reservations.layover.layover': 'Очікування',
   'reservations.needsReview': 'Перевірити',
-  'reservations.needsReviewHint': 'Аеропорт не вдалося визначити автоматично — підтвердіть місцезнаходження.',
+  'reservations.needsReviewHint':
+    'Частину даних заповнено автоматично, і зчитано їх не зі стовідсотковою певністю. Будь ласка, перевірте їх.',
+  'reservations.reviewConfirm': 'Усе вірно',
+  'reservations.reviewConfirmHint': 'Натисніть, щоб позначити як перевірене.',
+  'reservations.reviewConfirmed': 'Позначено як перевірене',
   'reservations.searchLocation': 'Шукати станцію, порт, адресу...',
   'reservations.meta.trainNumber': 'Номер поїзда',
   'reservations.meta.platform': 'Платформа',
@@ -289,7 +293,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Експортувати показані рядки: {shown} із {total} (CSV)',
   'reservations.wallet.add': 'Додати до Apple Wallet',
   'reservations.wallet.addGoogle': 'Додати до Google Wallet',
-  'reservations.wallet.short': 'Гаманець',
   'reservations.wallet.failed': 'Не вдалося створити картку Wallet. Повторіть спробу.',
   'reservations.wallet.undated': 'Спершу вкажіть дату бронювання: Wallet показує картку ближче до цього часу.',
 };

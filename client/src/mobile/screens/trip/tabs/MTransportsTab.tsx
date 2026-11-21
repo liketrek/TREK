@@ -10,8 +10,9 @@ import { cardWhen, parseTransportMeta } from './transportsModel'
 import { TRANSPORT_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
 import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
-import { orderedEndpoints } from '../../../../utils/flightLegs'
+import { orderedEndpoints, seatCells } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
+import MFlightLiveStrip from '../MFlightLiveStrip'
 
 /**
  * Tab 1 — Transporte. Real `planner.reservations` filtered to the 10 transport
@@ -112,7 +113,7 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
   if (!hasEndpoints && meta.arrival_airport) metaCells.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
   if (meta.train_number) metaCells.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
   if (meta.platform) metaCells.push({ label: t('reservations.meta.platform'), value: meta.platform })
-  if (meta.seat) metaCells.push({ label: t('reservations.meta.seat'), value: meta.seat + (meta.class ? ` · ${meta.class}` : '') })
+  metaCells.push(...seatCells(res, t('reservations.meta.seat'), meta.class ? ` · ${meta.class}` : ''))
   if (meta.price != null && meta.price !== '') {
     metaCells.push({ label: t('reservations.price'), value: formatPriceText(meta.price, meta.priceCurrency, planner.trip?.currency, locale) })
   }
@@ -155,6 +156,11 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
         {canEdit && <CardActions onEdit={editTransport} onDelete={card.askDelete} t={t} />}
       </div>
 
+      {/* A flight TREK follows live: its moment in one line, on the compact card too. */}
+      {res.type === 'flight' && (
+        <MFlightLiveStrip tripId={planner.tripId} reservationId={res.id} onOpen={openDetail} className={compact ? 'mx-3 my-2 w-[calc(100%-24px)]' : 'mx-3 mt-[9px] w-[calc(100%-24px)]'} />
+      )}
+
       {/* Body — split around the booking code so the reveal can be its own
           control instead of a click handler buried inside the card button. */}
       {!compact && (
@@ -194,9 +200,9 @@ function TransportCard({ res, planner, shell, canEdit, compact }: {
             <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
 
             <CardNotes notes={res.notes} />
-
-            <CardFiles files={files} card={card} t={t} />
           </button>
+
+          <CardFiles files={files} card={card} t={t} />
         </div>
       )}
       {!compact && <ReservationPluginSlots tripId={planner.tripId} reservationId={res.id} />}

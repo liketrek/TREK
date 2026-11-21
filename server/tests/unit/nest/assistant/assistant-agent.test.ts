@@ -347,6 +347,55 @@ describe('runAgentLoop', () => {
     expect(assistant.toolCalls[0].id).toBe('call_id-1');
   });
 
+  it('ASTAGT-006b: a renamed call keeps its thought signature and its record, for the next step and the stored row (#3094)', async () => {
+    const t = setup([
+      [
+        { type: 'tool-call', call: { id: 'call_0', name: 'list_places', args: {} } },
+        {
+          type: 'provider-state',
+          state: { adapter: 'openai-chat', model: 'gemini-3-flash', signatures: { call_0: 'sig-A' } },
+        },
+        { type: 'finish', reason: 'tool-calls' },
+      ],
+      [{ type: 'text-delta', delta: 'Found it' }],
+    ]);
+    t.input.usedCallIds.add('call_0');
+    await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+    const renamed = { adapter: 'openai-chat', model: 'gemini-3-flash', signatures: { 'call_id-1': 'sig-A' } };
+    expect(t.requests[1].messages[1]).toMatchObject({
+      role: 'assistant',
+      toolCalls: [{ id: 'call_id-1' }],
+      providerState: renamed,
+    });
+    expect(t.memory.saved[0].step.providerState).toEqual(renamed);
+
+    const anthropic = setup([
+      [
+        { type: 'tool-call', call: { id: 'toolu_1', name: 'list_places', args: {} } },
+        {
+          type: 'provider-state',
+          state: {
+            adapter: 'anthropic-messages',
+            blocks: [
+              { type: 'thinking', thinking: 'look', signature: 's' },
+              { type: 'tool_use', id: 'toolu_1', name: 'list_places', input: {} },
+            ],
+          },
+        },
+      ],
+      [{ type: 'text-delta', delta: 'Found it' }],
+    ]);
+    anthropic.input.usedCallIds.add('toolu_1');
+    await runAgentLoop(anthropic.deps, anthropic.input, anthropic.writer, new AbortController().signal);
+    expect(anthropic.memory.saved[0].step.providerState).toEqual({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'thinking', thinking: 'look', signature: 's' },
+        { type: 'tool_use', id: 'call_id-1', name: 'list_places', input: {} },
+      ],
+    });
+  });
+
   it('ASTAGT-007: stops after MAX_STEPS steps with max_steps', async () => {
     const reads = Array.from({ length: MAX_STEPS }, (_, i): Step => [
       { type: 'tool-call', call: { id: `r${i}`, name: 'list_places', args: {} } },

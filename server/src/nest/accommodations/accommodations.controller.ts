@@ -47,7 +47,7 @@ export class AccommodationsController {
   ) {
     const { accommodation, mirror } = await this.accommodations.createStay(
       tripId,
-      rawBody as StayInput,
+      rawBody,
       this.accommodations.restWriter(tripId, user, socketId),
     );
     // The stop rides in the answer as well, for the session that booked the night
@@ -67,6 +67,7 @@ export class AccommodationsController {
     const { accommodation, mirror } = await this.accommodations.updateStay(
       tripId,
       id,
+      // The update body is open; the service reads the refs with toRowId and the rest by key.
       rawBody as StayInput,
       this.accommodations.restWriter(tripId, user, socketId),
     );

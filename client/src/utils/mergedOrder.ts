@@ -42,24 +42,49 @@ export function moveRow<T>(
   return { order: moved, index };
 }
 
-export function planMergedOrder(newOrder: readonly MergedOrderItem[]): MergedOrderPlan {
+/**
+ * The day's full stored order once the rows on screen take the order given: a row the
+ * list does not show keeps its slot, and the shown rows fill the remaining slots in
+ * their new order.
+ */
+export function withHiddenRows(storedIds: readonly number[], visibleIds: readonly number[]): number[] {
+  const visible = new Set(visibleIds);
+  let next = 0;
+  return storedIds.map((id) => (visible.has(id) ? visibleIds[next++] : id));
+}
+
+/**
+ * `storedIds` is the day's full stored order when the timeline leaves rows out (the
+ * desktop list hides the stop a lodging booking puts on the day). The places are stored
+ * across that full day, so a booking or note has to be positioned in the same count, or
+ * every hidden row ahead of a place pushed that place one slot behind the booking it was
+ * dropped above (#3100). Without it the timeline is taken to show the whole day.
+ */
+export function planMergedOrder(newOrder: readonly MergedOrderItem[], storedIds?: readonly number[]): MergedOrderPlan {
   const plan: MergedOrderPlan = { assignmentIds: [], noteUpdates: [], transportUpdates: [], legPosUpdates: {} };
-  let placeCount = 0;
+  for (const item of newOrder) if (item.type === 'place') plan.assignmentIds.push(item.data.id);
+  const full = storedIds ? withHiddenRows(storedIds, plan.assignmentIds) : plan.assignmentIds;
+  const slotOf = (id: number): number => {
+    const at = full.indexOf(id);
+    return at === -1 ? plan.assignmentIds.indexOf(id) : at;
+  };
+  let lastPlaceId: number | null = null;
   let i = 0;
   while (i < newOrder.length) {
     if (newOrder[i].type === 'place') {
-      plan.assignmentIds.push(newOrder[i].data.id);
-      placeCount++;
+      lastPlaceId = newOrder[i].data.id;
       i++;
       continue;
     }
-    // Consecutive non-place items share the gap after the place before them.
+    // Consecutive non-place items share the gap after the place before them, or the
+    // gap ahead of the first place when they open the day.
     const group: MergedOrderItem[] = [];
     while (i < newOrder.length && newOrder[i].type !== 'place') {
       group.push(newOrder[i]);
       i++;
     }
-    const base = placeCount > 0 ? placeCount - 1 : -1;
+    const nextPlace = newOrder.slice(i).find((it) => it.type === 'place');
+    const base = lastPlaceId !== null ? slotOf(lastPlaceId) : nextPlace ? slotOf(nextPlace.data.id) - 1 : -1;
     group.forEach((g, idx) => {
       const pos = base + (idx + 1) / (group.length + 1);
       if (g.type === 'note') plan.noteUpdates.push({ id: g.data.id, sort_order: pos });

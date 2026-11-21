@@ -1,11 +1,12 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, Plus,
+  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPinOff, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MChipStrip from '../../../components/MChipStrip'
 import { useAddonStore } from '../../../../store/addonStore'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -26,6 +27,7 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
 import { MCategoryFilterList, MRatingFloorChips, SquareCheck } from './MPlacesFilterControls'
 import { countActivePlacesFilters } from '../../../../utils/placesFilter'
 import { usePlacesPool } from '../../../../components/Planner/usePlacesPool'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 
 /**
  * Fullscreen places pool (mode === 'browse'): All/Unplanned/Tracks filter
@@ -44,7 +46,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   // Top level of the places browser, mirroring the desktop right add-panel's
   // Places <-> Tours switch placement.
   const [toursMode, setToursMode] = useState(false)
@@ -116,7 +118,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
 
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]">
         {/* ── Places/Tours, the filter chips and Import (Add sits in the search row
             below to free space). The switch has a row of its own, except where the
             screen is short (a phone on its side): there it shares the chips' row,
@@ -242,6 +244,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             daysForTrip={() => days.map(day => ({
               id: day.id,
               ...formatDayOption(day.day_number, day.date, locale, t),
+              date: day.date ?? undefined,
             }))}
             // The place it just created belongs on the map and in the list
             // now, not after a reload.
@@ -340,6 +343,16 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
                       )}
                       <CatIcon size={12} strokeWidth={2.2} className="flex-none" style={{ color: cat?.color || 'var(--m-muted)' }} />
                       <span dir="auto" className="truncate text-[0.8125rem] font-semibold text-m-ink">{place.name}</span>
+                      {/* A typed address without coordinates: this place has no marker (#2837). */}
+                      {addressWithoutCoordinates(place) && (
+                        <MapPinOff
+                          size={12}
+                          strokeWidth={2.2}
+                          role="img"
+                          aria-label={t('places.noCoordinates')}
+                          className="flex-none text-[color:var(--m-st-pending)]"
+                        />
+                      )}
                     </span>
                     {sub && (
                       <MarkdownText clamp className="mt-px font-geist text-[0.65625rem] text-m-muted">{sub}</MarkdownText>

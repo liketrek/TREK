@@ -3,7 +3,6 @@
  * Covers ADMIN-001 to ADMIN-022.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { BucketList } from '../../src/db/entities/BucketList.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
@@ -40,42 +39,29 @@ import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity'
 import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
 import { dbNow } from '../../src/db/types/db-timestamp.type';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createAdmin,
-  createInviteToken,
-  createTrip,
-  createBudgetItem,
-  createJourney,
-  createJourneyEntry,
-  addJourneyContributor,
-  addTripPhoto,
-  createCategory,
-  createTag,
-  createTodoItem,
-  createMcpToken,
-  createBucketListItem,
-  createVisitedCountry,
-  createCollabNote,
-  addTripMember,
-} from '../helpers/factories';
+import { makeBucketListItem, markCountryVisited } from '../helpers/factories/atlas';
+import { makeBudgetItem } from '../helpers/factories/budget';
+import { makeCollabNote } from '../helpers/factories/collab';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { addJourneyContributor, makeJourney, makeJourneyEntry } from '../helpers/factories/journeys';
+import { addTripPhoto } from '../helpers/factories/photos';
+import { makeCategory, makeTag } from '../helpers/factories/places';
 import { countRows, findRow, insertRow, insertRowIgnoringConflict, updateRows } from '../helpers/factories/rows';
+import { makeTodoItem } from '../helpers/factories/todos';
+import { makeInviteToken, makeMcpToken } from '../helpers/factories/tokens';
 import { makeShareToken } from '../helpers/factories/trips';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
 import { readUser } from '../helpers/factories/users';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
 import { makeVacayPlan } from '../helpers/factories/vacay';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -88,13 +74,12 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +88,7 @@ afterAll(async () => {
 
 describe('Admin access control', () => {
   it('ADMIN-022 — non-admin cannot access admin routes', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/admin/users').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
@@ -121,9 +106,9 @@ describe('Admin access control', () => {
 
 describe('Admin user management', () => {
   it('ADMIN-001 — GET /admin/users lists all users', async () => {
-    const { user: admin } = createAdmin(testDb);
-    createUser(testDb);
-    createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    await makeUser(orm);
+    await makeUser(orm);
 
     const res = await request(app).get('/api/admin/users').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -131,7 +116,7 @@ describe('Admin user management', () => {
   });
 
   it('ADMIN-002 — POST /admin/users creates a user', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .post('/api/admin/users')
@@ -142,8 +127,8 @@ describe('Admin user management', () => {
   });
 
   it('ADMIN-003 — POST /admin/users with duplicate email returns 409', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user: existing } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user: existing } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/admin/users')
@@ -153,8 +138,8 @@ describe('Admin user management', () => {
   });
 
   it('ADMIN-004 — PUT /admin/users/:id updates user', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put(`/api/admin/users/${user.id}`)
@@ -165,8 +150,8 @@ describe('Admin user management', () => {
   });
 
   it('ADMIN-005 — DELETE /admin/users/:id removes user', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete(`/api/admin/users/${user.id}`).set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -178,29 +163,29 @@ describe('Admin user management', () => {
   });
 
   it('ADMIN-005b — DELETE /admin/users/:id succeeds when user has FK references', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user: target } = createUser(testDb);
-    const { user: otherUser } = createUser(testDb);
-    const { user: thirdUser } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user: target } = await makeUser(orm);
+    const { user: otherUser } = await makeUser(orm);
+    const { user: thirdUser } = await makeUser(orm);
 
     // trip_members.invited_by: target invited thirdUser to otherUser's trip
     // (trip survives deletion; only invited_by should become NULL)
-    const otherTrip = createTrip(testDb, otherUser.id);
+    const otherTrip = await makeTrip(orm, otherUser.id);
     await insertRow(orm, TripMembers, { trip: otherTrip.id, user: thirdUser.id, invitedByRef: target.id });
 
     // share_tokens.created_by: target created a share token for otherUser's trip
     await makeShareToken(orm, otherTrip.id, target.id, { token: 'tok-admin-test' });
 
     // budget_items.paid_by_user_id: target paid for an expense on otherUser's trip
-    const budgetItem = createBudgetItem(testDb, otherTrip.id);
+    const budgetItem = await makeBudgetItem(orm, otherTrip.id);
     await updateRows(orm, BudgetItems, { id: budgetItem.id }, { paidByUser: target.id });
 
     // journey_contributors: target is a contributor on otherUser's journey
-    const otherJourney = createJourney(testDb, otherUser.id);
-    addJourneyContributor(testDb, otherJourney.id, target.id);
+    const otherJourney = await makeJourney(orm, otherUser.id);
+    await addJourneyContributor(orm, otherJourney.id, target.id);
 
     // journey_entries: target authored an entry on otherUser's journey
-    createJourneyEntry(testDb, otherJourney.id, target.id);
+    await makeJourneyEntry(orm, otherJourney.id, target.id);
 
     // journey_share_tokens: target created a share token for otherUser's journey
     await insertRow(orm, JourneyShareTokens, {
@@ -234,8 +219,8 @@ describe('Admin user management', () => {
     await insertRow(orm, UserNoticeDismissals, { user: target.id, notice_id: 'test-notice', dismissed_at: Date.now() });
 
     // owned journey: target owns a journey with an entry (cascade-deletes on journey deletion)
-    const ownedJourney = createJourney(testDb, target.id);
-    createJourneyEntry(testDb, ownedJourney.id, target.id);
+    const ownedJourney = await makeJourney(orm, target.id);
+    await makeJourneyEntry(orm, ownedJourney.id, target.id);
 
     // trip_files.uploaded_by (SET NULL): target uploaded a file to otherUser's trip
     const fileId = await insertRow(orm, TripFiles, {
@@ -253,22 +238,22 @@ describe('Admin user management', () => {
     });
 
     // trip_photos.user_id (CASCADE): target added a photo to otherUser's trip
-    addTripPhoto(testDb, otherTrip.id, target.id, 'asset-tp-admin', 'immich');
+    await addTripPhoto(orm, otherTrip.id, target.id, 'asset-tp-admin', 'immich');
 
     // trips.user_id (CASCADE): target owns a trip
-    const ownedTrip = createTrip(testDb, target.id);
+    const ownedTrip = await makeTrip(orm, target.id);
 
     // trip_members.user_id (CASCADE): target is a member of otherUser's trip
-    addTripMember(testDb, otherTrip.id, target.id);
+    await addTripMember(orm, otherTrip.id, target.id);
 
     // categories.user_id (SET NULL): target created a category
-    const userCategory = createCategory(testDb, { user_id: target.id });
+    const userCategory = await makeCategory(orm, { user: target.id });
 
     // tags.user_id (CASCADE): target created a tag
-    const userTag = createTag(testDb, target.id);
+    const userTag = await makeTag(orm, target.id);
 
     // todo_items.assigned_user_id (SET NULL): target is assigned to a todo on otherUser's trip
-    const todoItem = createTodoItem(testDb, otherTrip.id);
+    const todoItem = await makeTodoItem(orm, otherTrip.id);
     await updateRows(orm, TodoItems, { id: todoItem.id }, { assignedUser: target.id });
 
     // packing_bags.user_id (SET NULL): target owns a packing bag on otherUser's trip
@@ -280,7 +265,7 @@ describe('Admin user management', () => {
     });
 
     // mcp_tokens.user_id (CASCADE): target has an MCP API token
-    createMcpToken(testDb, target.id);
+    await makeMcpToken(orm, target.id);
 
     // oauth_tokens/consents.user_id (CASCADE): target has tokens from otherUser's OAuth client
     // The row id and the public client_id are the same string here, so the
@@ -310,10 +295,10 @@ describe('Admin user management', () => {
     await insertRow(orm, VacayPlanMembers, { plan: otherVacayPlanId, user: target.id });
 
     // bucket_list.user_id (CASCADE): target has a bucket list item
-    createBucketListItem(testDb, target.id);
+    await makeBucketListItem(orm, target.id);
 
     // visited_countries.user_id (CASCADE): target has visited a country
-    createVisitedCountry(testDb, target.id, 'JP');
+    await markCountryVisited(orm, target.id, 'JP');
 
     // visited_regions.user_id (CASCADE): target has visited a region
     await insertRow(orm, VisitedRegions, {
@@ -327,10 +312,10 @@ describe('Admin user management', () => {
     const packTemplateId = await insertRow(orm, PackingTemplates, { name: 'My Template', createdByRef: target.id });
 
     // invite_tokens.created_by (CASCADE): target created an invite token
-    createInviteToken(testDb, { created_by: target.id });
+    await makeInviteToken(orm, target.id);
 
     // collab_notes.user_id (CASCADE): target authored a collab note on otherUser's trip
-    createCollabNote(testDb, otherTrip.id, target.id);
+    await makeCollabNote(orm, otherTrip.id, target.id);
 
     // settings.user_id (CASCADE): target has a user setting
     await insertRow(orm, Settings, { user: target.id, key: 'theme', value: 'dark' });
@@ -424,7 +409,7 @@ describe('Admin user management', () => {
   });
 
   it('ADMIN-006 — admin cannot delete their own account', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete(`/api/admin/users/${admin.id}`).set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(400);
@@ -437,8 +422,8 @@ describe('Admin user management', () => {
 
 describe('Admin user management — whitespace normalization', () => {
   it('ADMIN-UPDATE-TRIM-1 — PUT /admin/users/:id trims username before storing', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put(`/api/admin/users/${user.id}`)
@@ -451,8 +436,8 @@ describe('Admin user management — whitespace normalization', () => {
   });
 
   it('ADMIN-UPDATE-TRIM-2 — PUT /admin/users/:id trims email before storing', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put(`/api/admin/users/${user.id}`)
@@ -465,9 +450,9 @@ describe('Admin user management — whitespace normalization', () => {
   });
 
   it('ADMIN-UPDATE-TRIM-3 — PUT /admin/users/:id with whitespace-padded username that trims to existing returns 409', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user: existing } = createUser(testDb, { username: 'carol' });
-    const { user: target } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user: existing } = await makeUser(orm, { username: 'carol' });
+    const { user: target } = await makeUser(orm);
 
     const res = await request(app)
       .put(`/api/admin/users/${target.id}`)
@@ -484,7 +469,7 @@ describe('Admin user management — whitespace normalization', () => {
 
 describe('System stats', () => {
   it('ADMIN-007 — GET /admin/stats returns system statistics', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/stats').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -499,7 +484,7 @@ describe('System stats', () => {
 
 describe('Permissions management', () => {
   it('ADMIN-008 — GET /admin/permissions returns permission config', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/permissions').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -508,7 +493,7 @@ describe('Permissions management', () => {
   });
 
   it('ADMIN-008 — PUT /admin/permissions updates permissions and change persists', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     // Change trip_create from its default ('everybody') to 'admin'
     const res = await request(app)
@@ -527,7 +512,7 @@ describe('Permissions management', () => {
   });
 
   it('ADMIN-008 — PUT /admin/permissions without object returns 400', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .put('/api/admin/permissions')
@@ -543,7 +528,7 @@ describe('Permissions management', () => {
 
 describe('Audit log', () => {
   it('ADMIN-009 — GET /admin/audit-log returns log entries', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/audit-log').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -557,7 +542,7 @@ describe('Audit log', () => {
 
 describe('Addon management', () => {
   it('ADMIN-011 — PUT /admin/addons/:id disables an addon', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .put('/api/admin/addons/atlas')
@@ -567,7 +552,7 @@ describe('Addon management', () => {
   });
 
   it('ADMIN-012 — PUT /admin/addons/:id re-enables an addon', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     await request(app).put('/api/admin/addons/atlas').set('Cookie', authCookie(admin.id)).send({ enabled: false });
 
@@ -585,7 +570,7 @@ describe('Addon management', () => {
 
 describe('Invite token management', () => {
   it('ADMIN-013 — POST /admin/invites creates an invite token', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).post('/api/admin/invites').set('Cookie', authCookie(admin.id)).send({ max_uses: 5 });
     expect(res.status).toBe(201);
@@ -593,7 +578,7 @@ describe('Invite token management', () => {
   });
 
   it('ADMIN-013b — POST /admin/invites with a trip that does not exist answers 404 and writes nothing', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .post('/api/admin/invites')
@@ -606,8 +591,8 @@ describe('Invite token management', () => {
   });
 
   it('ADMIN-014 — DELETE /admin/invites/:id removes invite', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const invite = createInviteToken(testDb, { created_by: admin.id });
+    const { user: admin } = await makeAdmin(orm);
+    const invite = await makeInviteToken(orm, admin.id);
 
     const res = await request(app).delete(`/api/admin/invites/${invite.id}`).set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -621,7 +606,7 @@ describe('Invite token management', () => {
 
 describe('Packing templates', () => {
   it('ADMIN-015 — POST /admin/packing-templates creates a template', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .post('/api/admin/packing-templates')
@@ -632,7 +617,7 @@ describe('Packing templates', () => {
   });
 
   it('ADMIN-016 — DELETE /admin/packing-templates/:id removes template', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const create = await request(app)
       .post('/api/admin/packing-templates')
       .set('Cookie', authCookie(admin.id))
@@ -653,7 +638,7 @@ describe('Packing templates', () => {
 
 describe('Bag tracking', () => {
   it('ADMIN-017 — PUT /admin/bag-tracking toggles bag tracking', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .put('/api/admin/bag-tracking')
@@ -669,7 +654,7 @@ describe('Bag tracking', () => {
 
 describe('JWT rotation', () => {
   it('ADMIN-018 — POST /admin/rotate-jwt-secret rotates the JWT secret', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).post('/api/admin/rotate-jwt-secret').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -691,7 +676,7 @@ describe('Packing template CRUD (full)', () => {
   }
 
   it('ADMIN-019 — GET /admin/packing-templates/:id returns template', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
 
     const res = await request(app)
@@ -703,14 +688,14 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-019b — GET /admin/packing-templates/:id returns 404 for missing', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/packing-templates/99999').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
   });
 
   it('ADMIN-020 — PUT /admin/packing-templates/:id updates name', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
 
     const res = await request(app)
@@ -722,7 +707,7 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-021 — POST /admin/packing-templates/:id/categories adds a category', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
 
     const res = await request(app)
@@ -734,7 +719,7 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-021b — PUT /admin/packing-templates/:templateId/categories/:catId updates category', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
     const catRes = await request(app)
       .post(`/api/admin/packing-templates/${template.id}/categories`)
@@ -751,7 +736,7 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-021c — DELETE /admin/packing-templates/:templateId/categories/:catId removes category', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
     const catRes = await request(app)
       .post(`/api/admin/packing-templates/${template.id}/categories`)
@@ -767,7 +752,7 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-021d — POST .../categories/:catId/items adds an item to category', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
     const catRes = await request(app)
       .post(`/api/admin/packing-templates/${template.id}/categories`)
@@ -784,7 +769,7 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-021e — PUT /admin/packing-templates/:templateId/items/:itemId updates item', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
     const catRes = await request(app)
       .post(`/api/admin/packing-templates/${template.id}/categories`)
@@ -806,7 +791,7 @@ describe('Packing template CRUD (full)', () => {
   });
 
   it('ADMIN-021f — DELETE /admin/packing-templates/:templateId/items/:itemId removes item', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const template = await makeTemplate(admin);
     const catRes = await request(app)
       .post(`/api/admin/packing-templates/${template.id}/categories`)
@@ -833,7 +818,7 @@ describe('Packing template CRUD (full)', () => {
 
 describe('MCP token management', () => {
   it('ADMIN-023 — GET /admin/mcp-tokens returns list', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/mcp-tokens').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -841,14 +826,14 @@ describe('MCP token management', () => {
   });
 
   it('ADMIN-024 — DELETE /admin/mcp-tokens/:id returns 404 for missing token', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/admin/mcp-tokens/99999').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
   });
 
   it('ADMIN-025 — DELETE /admin/mcp-tokens/abc (non-numeric id) returns the legacy 404, not a 500 (Plan 3b Task 2 review, F1)', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/admin/mcp-tokens/abc').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
@@ -862,7 +847,7 @@ describe('MCP token management', () => {
 
 describe('OAuth sessions', () => {
   it('ADMIN-025 — GET /admin/oauth-sessions returns list', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/oauth-sessions').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -870,14 +855,14 @@ describe('OAuth sessions', () => {
   });
 
   it('ADMIN-026 — DELETE /admin/oauth-sessions/:id returns 404 for missing session', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/admin/oauth-sessions/99999').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
   });
 
   it('ADMIN-026B — DELETE /admin/oauth-sessions/abc (non-numeric id) returns the legacy 404, not a 500 (Plan 3b Task 4 controller addendum, per Task 2 review F1)', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).delete('/api/admin/oauth-sessions/abc').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
@@ -891,14 +876,14 @@ describe('OAuth sessions', () => {
 
 describe('OIDC settings', () => {
   it('ADMIN-027 — GET /admin/oidc returns OIDC configuration', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/oidc').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
   });
 
   it('ADMIN-028 — PUT /admin/oidc updates OIDC settings', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .put('/api/admin/oidc')
@@ -915,7 +900,7 @@ describe('OIDC settings', () => {
 
 describe('Demo baseline', () => {
   it('ADMIN-029 — POST /admin/save-demo-baseline returns 404 when DEMO_MODE is not set', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).post('/api/admin/save-demo-baseline').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
@@ -928,7 +913,7 @@ describe('Demo baseline', () => {
 
 describe('GitHub releases and version check', () => {
   it('ADMIN-030 — GET /admin/github-releases returns array (even if GitHub unreachable)', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app)
       .get('/api/admin/github-releases?per_page=5&page=1')
@@ -938,7 +923,7 @@ describe('GitHub releases and version check', () => {
   });
 
   it('ADMIN-031 — GET /admin/version-check returns version info', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/version-check').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -952,7 +937,7 @@ describe('GitHub releases and version check', () => {
 
 describe('Admin list routes', () => {
   it('ADMIN-032 — GET /admin/invites lists invites', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/invites').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -960,14 +945,14 @@ describe('Admin list routes', () => {
   });
 
   it('ADMIN-033 — GET /admin/bag-tracking returns bag tracking setting', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/bag-tracking').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
   });
 
   it('ADMIN-034 — GET /admin/packing-templates lists templates', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/packing-templates').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
@@ -975,7 +960,7 @@ describe('Admin list routes', () => {
   });
 
   it('ADMIN-035 — GET /admin/addons lists addons', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
 
     const res = await request(app).get('/api/admin/addons').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);

@@ -29,13 +29,14 @@ import { useDayPreviewStore } from '../../dayPreviewStore'
 import { useIsSplit, useIsWide } from '../../../hooks/sizeClass'
 import MTripRail from './MTripRail'
 import {
-  CollabSegment, CompactToggle, DockMoreButton, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
+  CHROME_ROW, CollabSegment, CompactToggle, DockMoreButton, DocSyncButton, GlassSegment, HeaderActions, PrimaryPill, ROW_AFTER_BACK, ROW_CENTRED,
 } from './MTripShellParts'
 import { edgeFadeClass, useEdgeFade } from '../../components/useEdgeFade'
 import { useShortcuts } from '../../keyboard/useShortcuts'
 import { tripCreateIntent } from '../../../components/Layout/useCreateAction'
 import MDockScrim from '../../components/MDockScrim'
 import { setTabHeadSlot } from './tabHeadSlot'
+import { useTripTabSwitch } from './useTripTabSwitch'
 
 /**
  * Mobile trip screen frame. Owns the chrome the design shares across every
@@ -335,10 +336,7 @@ export default function MTripShell({
     if (trTab === 'tour-planner' && !wide) planner.handleTabChange('plan')
   }, [trTab, wide, planner.handleTabChange])
 
-  const setTrTab = (tabId: string) => {
-    planner.handleTabChange(tabId)
-    if (mode === 'browse') setMode('go')
-  }
+  const setTrTab = useTripTabSwitch(planner, mode, setMode, setCollabTab)
 
   const setTravelMode = (next: MTripMode) => {
     setBrowseFromEdit(next === 'browse' && mode === 'edit')
@@ -636,13 +634,15 @@ export default function MTripShell({
       )}
       {!MAP_TABS.has(trTab) && (
         <div className="absolute inset-0 z-30 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] wide:start-[var(--m-rail-w)]">
-          <TabPanel planner={planner} shell={shell} tab={trTab} />
+          <div className="m-corner-side relative h-full">
+            <TabPanel planner={planner} shell={shell} tab={trTab} />
+          </div>
         </div>
       )}
 
       {/* ── Day chips (z-25 — covered by non-plan tab overlays, stays mounted) ── */}
       {days.length > 0 && (
-        <div className={`absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)] z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)] ${chromeSpan}`}>
+        <div className={`${CHROME_ROW} z-[25] flex gap-[6px] top-[calc(var(--m-safe-top,12px)+50px)] ${chromeSpan}`}>
           {/* The glass is the outer box, the scroller sits inside its padding: that way
               the fade at an edge that runs on takes the chips, not the glass's rim. */}
           <div className="relative flex min-w-0 flex-1 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[3px] backdrop-blur-[24px] backdrop-saturate-[1.7]">
@@ -713,7 +713,7 @@ export default function MTripShell({
       )}
 
       {/* ── Top controls (z-42 — above every layer incl. tab overlays) ── */}
-      <div className={`absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)] z-[42] flex h-10 items-center justify-between top-[var(--m-safe-top,12px)] ${chromeSpan}`}>
+      <div className={`${CHROME_ROW} z-[42] flex h-10 items-center justify-between top-[var(--m-safe-top,12px)] ${chromeSpan}`}>
         <MIconBtn ariaLabel={t('common.back')} onClick={() => navigate('/dashboard')} className="backdrop-blur-[24px] backdrop-saturate-[1.7]">
           <ChevronLeft size={19} strokeWidth={2.2} />
         </MIconBtn>

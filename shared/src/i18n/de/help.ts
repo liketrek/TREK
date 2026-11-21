@@ -1208,7 +1208,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Welche Engine die Karten im Reiseplaner und im Journal zeichnet und in welchem Stil. Leaflet ist die klassische Rasterkarte, Mapbox GL ergänzt mit deinem eigenen Token 3D-Gebäude und Gelände, MapLibre GL zeichnet OpenFreeMap-Vektorkacheln ganz ohne Token. Atlas nutzt immer Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Kartenanbieter: Leaflet, Mapbox GL (Experimentell) oder MapLibre GL, jede Kachel mit einer kurzen Beschreibung.',
+    'Kartenanbieter: Leaflet, Mapbox GL oder MapLibre GL, jede Kachel mit einer kurzen Beschreibung.',
   'help.ctx.settings-map.bullet.2':
     '„Karten-Vorlage“ und „CARTO-API-Key“ für Leaflet; „Kartenstil“ für die beiden GL-Engines, dazu das „Mapbox Access Token“ für Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -3612,7 +3612,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.step.2':
     'Das Dokument erscheint mit seinem Namen, einem Button zum Öffnen und einem X daneben.',
   'help.guide.booking-files.step.3':
-    '„Vorhandene verknüpfen“ bietet die Dokumente der Reise an, die noch nicht an dieser Buchung hängen. Wähle eines aus, und es wird angehängt, ohne erneut hochgeladen zu werden.',
+    '„Datei verknüpfen“ bietet die Dokumente der Reise an, die noch nicht an dieser Buchung hängen. Wähle eines aus, und es wird angehängt, ohne erneut hochgeladen zu werden.',
   'help.guide.booking-files.step.4': 'Klick auf „Aktualisieren“.',
   'help.guide.booking-files.result':
     'Karte und Details listen die Dokumente unter „Dateien“ auf; ein Klick auf eins öffnet es. „In Dateien zeigen“ über der Liste in den Details bringt dich zum Tab „Dateien“.',
@@ -4744,7 +4744,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Auf der Karte steht „Für dieses Gerät eingeschaltet“, und die Ereignisse, die du unter „Push“ eingeschaltet hast, kommen auch an, wenn TREK geschlossen ist.',
   'help.guide.connect-airtrail.step.1':
-    'Such unter „Integrationen“ AirTrail und gib die „Instanz-URL“ und einen API-Schlüssel ein. Den Schlüssel erstellst du in AirTrail unter „Einstellungen“, „Sicherheit“.',
+    'Such unter „Integrationen“ AirTrail und gib die „Instanz-URL“ und einen API-Schlüssel ein. Den Schlüssel erstellst du in AirTrail unter „Einstellungen“, „Sicherheit“. Wenn du den Schlüssel in AirTrail 3.13 oder neuer erstellst, braucht er den Scope flight.read.own zum Lesen. Zum Zurückschreiben braucht er zusätzlich flight.update.own, flight.passengers.manage.own, reference_data.read und profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Such unter „Integrationen“ Dawarich und gib die „Adresse der Instanz“ und den API-Schlüssel ein, den du in Dawarich unter „Konto“, „API-Schlüssel“ findest.',
   'help.guide.tour-connect-wanderer.step.1':

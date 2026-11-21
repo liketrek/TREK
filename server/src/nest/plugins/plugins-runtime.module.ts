@@ -30,6 +30,7 @@ import { BudgetModule } from '../budget/budget.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { CollabModule } from '../collab/collab.module';
 import { CollectionsModule } from '../collections/collections.module';
+import { DatabaseEngineModule } from '../database/database-engine.module';
 import { DayNotesModule } from '../day-notes/day-notes.module';
 import { DaysModule } from '../days/days.module';
 import { FilesModule } from '../files/files.module';
@@ -47,6 +48,7 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
 import { TripsModule } from '../trips/trips.module';
 import { VacayModule } from '../vacay/vacay.module';
 import { WeatherModule } from '../weather/weather.module';
+import { PLUGIN_DATA_PROVIDERS } from './host/plugin-data.backend';
 import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { DbRpc } from './host/rpc/db.rpc';
 import { HostSurfaceRpc } from './host/rpc/host-surface.rpc';
@@ -153,8 +155,11 @@ import { DiscoveryModule } from '@nestjs/core';
     NotificationsModule,
     TripMembershipModule,
     JournalRpcModule,
+    DatabaseEngineModule,
   ],
   providers: [
+    // Where plugins keep their own data, bound to the engine TREK runs on.
+    ...PLUGIN_DATA_PROVIDERS,
     PluginsService,
     PluginUserSettingsService,
     PluginRuntimeService,

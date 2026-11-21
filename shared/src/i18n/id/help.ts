@@ -1178,7 +1178,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Mesin yang menggambar peta perencana perjalanan dan jurnal, beserta gayanya. Leaflet adalah peta raster klasik, Mapbox GL menambahkan bangunan dan medan 3D dengan token milikmu sendiri, dan MapLibre GL menggambar tile vektor OpenFreeMap tanpa token. Atlas selalu memakai Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '“Penyedia peta”: Leaflet, Mapbox GL (“Eksperimental”), atau MapLibre GL, masing-masing dengan keterangan singkat.',
+    '“Penyedia peta”: Leaflet, Mapbox GL, atau MapLibre GL, masing-masing dengan keterangan singkat.',
   'help.ctx.settings-map.bullet.2':
     '“Template Peta” dan “Kunci API CARTO” untuk Leaflet; “Gaya peta” untuk kedua mesin GL, ditambah “Token akses Mapbox” untuk Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -4674,7 +4674,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kartu menampilkan “Aktif untuk perangkat ini”, dan peristiwa yang diaktifkan di kolom Push tetap sampai meskipun TREK sedang ditutup.',
   'help.guide.connect-airtrail.step.1':
-    'Di bawah “Integrasi”, cari AirTrail, lalu isi “URL Instans” dan kunci API-nya. Kunci itu kamu buat di AirTrail, di Settings, Security.',
+    'Di bawah “Integrasi”, cari AirTrail, lalu isi “URL Instans” dan kunci API-nya. Kunci itu kamu buat di AirTrail, di Settings, Security. Jika kamu membuat kunci di AirTrail 3.13 atau yang lebih baru, kunci memerlukan cakupan flight.read.own untuk membaca. Untuk menulis perubahan kembali, kunci juga memerlukan flight.update.own, flight.passengers.manage.own, reference_data.read, dan profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Di bawah “Integrasi”, cari Dawarich, lalu isi “Alamat instans” dan kunci API dari Dawarich, yang ada di Account, API key.',
   'help.guide.tour-connect-wanderer.step.1':

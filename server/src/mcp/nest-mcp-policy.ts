@@ -1,3 +1,4 @@
+import { nulFreeInput } from '../db/nul-free';
 import {
   demoDenied,
   errorResult,
@@ -6,6 +7,7 @@ import {
   type McpAccessPolicy,
   type McpAccessValidator,
   type McpErrorMapper,
+  type McpInputMapper,
   type McpToolGate,
   type ToolOptions,
 } from '../nest-mcp';
@@ -106,3 +108,14 @@ export function trekDemoToolGate(isDemoUser: (userId: number) => Promise<boolean
  */
 export const trekMcpErrorMapper: McpErrorMapper = (err) =>
   err instanceof DomainError ? errorResult(err.mcpMessage ?? err.publicMessage) : undefined;
+
+/**
+ * What a client sends over MCP, without NUL characters, before any tool,
+ * prompt or resource template reads it: the same rule as every HTTP request
+ * (`nest/common/nul-free-input.ts`), so a key or a check a tool makes from an
+ * argument sees the value the database stores. /mcp keeps its raw body for the
+ * SDK, so the registry is where a tool's input enters TREK. Given to
+ * McpModule.forRoot (AppModule), which the transport and the in-app assistant
+ * both attach through.
+ */
+export const trekMcpInputMapper: McpInputMapper = nulFreeInput;

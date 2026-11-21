@@ -63,6 +63,7 @@ import {
   type ImportsResolver,
   type Platform,
 } from '@mikro-orm/core';
+import { fixFlagClassFieldTypes } from './generate-entities-flags';
 import { EntityGenerator } from '@mikro-orm/entity-generator';
 import { Migrator } from '@mikro-orm/migrations';
 import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
@@ -292,26 +293,22 @@ export function RULE1b_markJsonColumns(metadata: EntityMetadata[]): JsonColumnFi
   return fixups;
 }
 
-/** Rule 1c (metadata level): mark known boolean columns so they render `p.boolean()` (see BOOLEAN_COLUMNS above). */
+/** Rule 1c (metadata level): mark known boolean columns so they render `p.type(IntegerFlagType)` (BOOLEAN_COLUMNS). */
 export function RULE1c_markBooleanColumns(metadata: EntityMetadata[]): RetypedScalarFixup[] {
   const fixups: RetypedScalarFixup[] = [];
   for (const meta of metadata) {
     for (const prop of Object.values(meta.properties)) {
       if (prop.kind !== undefined && prop.kind !== ReferenceKind.SCALAR) continue;
       if (!BOOLEAN_COLUMNS.has(`${meta.tableName}.${prop.fieldNames[0]}`)) continue;
-      prop.type = 'boolean';
-      // `runtimeType` must move with `type` here too, for the same reason
-      // Rule 1's doc comment gives: left at its introspected value
-      // (`'number'`, SQLite has no BOOLEAN storage class), the mismatch
-      // against `BooleanType`'s own runtime type ('boolean') would make
-      // `breakdownOfIType` treat the property as ambiguous and wrap the
-      // class field in `IType<number, boolean>` — confirmed by generating
-      // the real schema before this fix, not assumed.
+      // `IntegerFlagType` (src/db/types) stores 0/1 on both engines; `p.boolean()` is a boolean column on Postgres.
+      // The renderer wraps the class field in `IType<boolean, number>` and adds `.columnType('INTEGER')`;
+      // `fixFlagClassFieldTypes` and `stripRedundantColumnType` undo both.
+      prop.type = 'IntegerFlagType';
       prop.runtimeType = 'boolean';
       // The introspected DB default is always the raw SQLite value (`0`/`1`,
       // a number, since SQLite has no boolean storage class either) —
-      // coerce it to a real boolean so a `p.boolean()` column's `.default()`
-      // renders `.default(false)`, not the now ill-typed `.default(0)`.
+      // coerce it to a real boolean so the flag's `.default()` renders
+      // `.default(false)`, not the now ill-typed `.default(0)`.
       if (typeof prop.default === 'number') prop.default = prop.default !== 0;
       if (typeof prop.defaultRaw === 'string' && /^-?\d+$/.test(prop.defaultRaw)) {
         prop.defaultRaw = prop.defaultRaw !== '0' ? 'true' : 'false';
@@ -1222,7 +1219,9 @@ export interface RuleFixups {
   defaults: DefaultFixup[];
   timestamps: TimestampFixup[];
   jsonColumns: JsonColumnFixup[];
-  /** Rule 1's + Rule 1b's + Rule 2's retyped scalars together — all three need the same `.columnType()` strip (see `stripRedundantColumnType`). */
+  /** Rule 1c's flags, whose class field `fixFlagClassFieldTypes` turns back into a plain boolean. */
+  flags: RetypedScalarFixup[];
+  /** Rule 1's + Rule 1b's + Rule 1c's + Rule 2's retyped scalars together, which all need the same `.columnType()` strip (see `stripRedundantColumnType`). */
   retypedScalars: RetypedScalarFixup[];
   /** Rule 10's repository-type markers — one per entity class. */
   repositoryMarkers: RepositoryTypeMarkerFixup[];
@@ -1249,14 +1248,10 @@ export function applyRules(
 ): RuleFixups {
   const retypedByRule1 = RULE1_fixUnknownScalarTypes(metadata);
   const jsonColumns = RULE1b_markJsonColumns(metadata);
-  // Unlike Rule 1's/Rule 1b's retypes, a boolean column's own declaration
-  // matches its raw INTEGER column type cleanly on SQLite (BooleanType's
-  // getColumnType() returns the same spelling needsExplicitColumnType()
-  // compares against) — confirmed by generating the real schema: no stray
-  // `.columnType()` appears, so RULE1c's fixups do NOT belong in
-  // `retypedScalars` (stripRedundantColumnType's "found no .columnType() to
-  // strip" throw catches this immediately if that ever stops being true).
-  RULE1c_markBooleanColumns(metadata);
+  // A flag picks up a `.columnType('INTEGER')` like Rule 1's retypes (the
+  // renderer cannot tell that `IntegerFlagType` already declares INTEGER), so
+  // its fixups join `retypedScalars`, and its class field needs its own pass.
+  const flags = RULE1c_markBooleanColumns(metadata);
   RULE1d_fixNaNNumericDefaults(metadata);
   const timestamps = RULE2_datetimeToDbTimestampType(metadata);
   RULE3_integerPkAutoincrement(metadata);
@@ -1289,7 +1284,8 @@ export function applyRules(
     defaults,
     timestamps,
     jsonColumns,
-    retypedScalars: [...retypedByRule1, ...timestamps, ...jsonColumns],
+    flags,
+    retypedScalars: [...retypedByRule1, ...timestamps, ...jsonColumns, ...flags],
     repositoryMarkers,
     referencedColumns,
     checkExpressions,
@@ -1400,6 +1396,7 @@ export async function collectForeignKeyDeleteRules(
 // ---------------------------------------------------------------------------
 export const onImport: ImportsResolver = (alias) => {
   if (alias === 'DbTimestampType') return { path: '../types', name: 'DbTimestampType' };
+  if (alias === 'IntegerFlagType') return { path: '../types', name: 'IntegerFlagType' };
   if (alias.endsWith('Repository')) {
     const entityName = alias.slice(0, -'Repository'.length);
     return { path: `../repositories/${entityName}.repository`, name: alias };
@@ -1901,6 +1898,7 @@ export function applyTextPasses(source: string, fixups: RuleFixups): string {
   result = stripRedundantColumnType(result, fixups.retypedScalars);
   result = injectJsonTypeParams(result, fixups.jsonColumns);
   result = fixJsonClassFieldTypes(result, fixups.jsonColumns);
+  result = fixFlagClassFieldTypes(result, fixups.flags);
   result = injectJsonInterfaces(result, fixups.jsonColumns);
   result = removeUnusedCoreImportIfUnused(result, 'IType');
   result = stripHiddenTypeAnnotation(result);
@@ -2001,6 +1999,7 @@ export async function generateEntities(): Promise<GenerateResult> {
         defaults: [],
         timestamps: [],
         jsonColumns: [],
+        flags: [],
         retypedScalars: [],
         repositoryMarkers: [],
         referencedColumns: [],
@@ -2039,6 +2038,7 @@ export async function generateEntities(): Promise<GenerateResult> {
           defaults: fixups.defaults.filter((f) => f.className === className),
           timestamps: fixups.timestamps.filter((f) => f.className === className),
           jsonColumns: fixups.jsonColumns.filter((f) => f.className === className),
+          flags: fixups.flags.filter((f) => f.className === className),
           retypedScalars: fixups.retypedScalars.filter((f) => f.className === className),
           repositoryMarkers: fixups.repositoryMarkers.filter((f) => f.className === className),
           referencedColumns: fixups.referencedColumns.filter((f) => f.className === className),

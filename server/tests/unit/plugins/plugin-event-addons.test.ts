@@ -1,0 +1,61 @@
+/**
+ * PEVADDON-001..004: the plugin event sink with the trip's addons in front.
+ *
+ * A trip that has an addon off shows none of its rows, so a subscribed plugin
+ * gets none of that family's events either; every other event goes out at once.
+ */
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { tripAddonOfEvent, tripEventSink } from '../../../src/nest/plugins/plugin-event-addons';
+
+import { describe, it, expect, vi } from 'vitest';
+
+/** Lets the sink's pending addon read settle. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+describe('the plugin event sink per trip', () => {
+  it('PEVADDON-001: an event names its trip addon by family; a trip event names none', () => {
+    expect(tripAddonOfEvent('budget:created')).toBe('budget');
+    expect(tripAddonOfEvent('packing:updated')).toBe('packing');
+    expect(tripAddonOfEvent('todo:deleted')).toBe('packing');
+    expect(tripAddonOfEvent('file:created')).toBe('documents');
+    expect(tripAddonOfEvent('collab:message:created')).toBe('collab');
+    expect(tripAddonOfEvent('roadtripVia:created')).toBe('roadtrip');
+    expect(tripAddonOfEvent('tours:updated')).toBe('tours');
+    expect(tripAddonOfEvent('place:created')).toBeNull();
+    expect(tripAddonOfEvent('toString:x')).toBeNull();
+  });
+
+  it('PEVADDON-002: an event of no addon goes out at once, without asking', () => {
+    const deliver = vi.fn();
+    const addons = { isEnabledForTrip: vi.fn() } as unknown as AddonsService;
+    tripEventSink(addons, undefined, deliver)(5, 'place:created', undefined);
+    expect(deliver).toHaveBeenCalledWith(5, 'place:created', undefined);
+    expect(addons.isEnabledForTrip).not.toHaveBeenCalled();
+  });
+
+  it('PEVADDON-003: an addon event goes out only for a trip that has the addon on', async () => {
+    const deliver = vi.fn();
+    const addons = {
+      isEnabledForTrip: vi.fn(async (tripId: number, id: string) => !(tripId === 5 && id === 'budget')),
+    } as unknown as AddonsService;
+    const sink = tripEventSink(addons, undefined, deliver);
+    sink(5, 'budget:created', undefined);
+    sink(6, 'budget:created', undefined);
+    sink(5, 'packing:created', undefined);
+    await settle();
+    expect(deliver.mock.calls.map(([tripId, event]) => `${tripId} ${event}`)).toEqual([
+      '6 budget:created',
+      '5 packing:created',
+    ]);
+  });
+
+  it('PEVADDON-004: an addon that cannot be read sends nothing', async () => {
+    const deliver = vi.fn();
+    const addons = {
+      isEnabledForTrip: vi.fn(async () => Promise.reject(new Error('db gone'))),
+    } as unknown as AddonsService;
+    tripEventSink(addons, undefined, deliver)(5, 'file:created', undefined);
+    await settle();
+    expect(deliver).not.toHaveBeenCalled();
+  });
+});

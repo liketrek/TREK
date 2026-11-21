@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AREAS, classify } from './changed-areas.mjs';
+import { AREAS, classify, decide, mirrorsPushRun } from './changed-areas.mjs';
 
 const script = fileURLToPath(new URL('./changed-areas.mjs', import.meta.url));
 const workflow = fileURLToPath(new URL('../../.github/workflows/test.yml', import.meta.url));
@@ -15,10 +15,21 @@ after(() => rmSync(scratch, { recursive: true, force: true }));
 const none = Object.fromEntries(Object.keys(AREAS).map((area) => [area, false]));
 const every = Object.fromEntries(Object.keys(AREAS).map((area) => [area, true]));
 
+// The run's context, cleared so a variable set around the test run cannot
+// switch the script into mirror mode.
+const NO_CONTEXT = { CI_EVENT: '', CI_BASE_REF: '', CI_HEAD_REF: '', CI_HEAD_REPO: '', CI_REPO: '' };
+const RELEASE_PR_ENV = {
+  CI_EVENT: 'pull_request',
+  CI_BASE_REF: 'main',
+  CI_HEAD_REF: 'dev',
+  CI_HEAD_REPO: 'liketrek/TREK',
+  CI_REPO: 'liketrek/TREK',
+};
+
 function run(args, env = {}) {
   return spawnSync(process.execPath, [script, ...args], {
     encoding: 'utf8',
-    env: { ...process.env, GITHUB_OUTPUT: '', ...env },
+    env: { ...process.env, GITHUB_OUTPUT: '', ...NO_CONTEXT, ...env },
   });
 }
 
@@ -42,6 +53,24 @@ describe('classify', () => {
 
   it('runs the tests and the image for a server change', () => {
     assert.deepEqual(classify(['server/src/nest/weather/weather.service.ts']), { code: true, image: true, deploy: false });
+  });
+
+  it('runs the Postgres probe and lane for every file they read', () => {
+    // server-postgres is gated on `code`; a migration, a repository, the
+    // engine, the baseline or the lane's own config must never skip it.
+    for (const file of [
+      'server/src/db/migrations/Migration20200101046440_x.ts',
+      'server/src/db/repositories/Trips.repository.ts',
+      'server/src/db/dialect/sql-functions.ts',
+      'server/src/db/engine/postgres/schema-bootstrap.ts',
+      'server/assets/postgres/baseline.sql',
+      'server/scripts/pg-probe-baseline.json',
+      'server/vitest.pg.config.ts',
+      'server/tests/postgres/lane.ts',
+      'server/tests/postgres/snapshot-suites-baseline.json',
+    ]) {
+      assert.equal(classify([file]).code, true, file);
+    }
   });
 
   it('runs the tests but not the image for a plugin-sdk change', () => {
@@ -77,6 +106,13 @@ describe('classify', () => {
     assert.deepEqual(classify(['scripts/ci/changed-areas.mjs']), every);
   });
 
+  it('runs everything when a local action the jobs set up with changes', () => {
+    assert.deepEqual(classify(['.github/actions/setup/action.yml']), every);
+    assert.deepEqual(classify(['.github/actions/other/action.yaml']), every);
+    // Another workflow is not one of them.
+    assert.deepEqual(classify(['.github/workflows/security.yml']), none);
+  });
+
   it('matches whole file names, not prefixes of them', () => {
     assert.deepEqual(classify(['package.json.bak', 'Dockerfile.old', 'serverless/x.ts', 'wikis/x.png']), none);
   });
@@ -93,6 +129,55 @@ describe('classify', () => {
   });
 });
 
+describe('the mirror decision', () => {
+  const releasePr = {
+    event: 'pull_request',
+    baseRef: 'main',
+    headRef: 'dev',
+    headRepo: 'liketrek/TREK',
+    repo: 'liketrek/TREK',
+  };
+
+  it('mirrors the push run on the release pull request from dev into main', () => {
+    assert.equal(mirrorsPushRun(releasePr), true);
+  });
+
+  it('tests every other run itself', () => {
+    for (const [what, context] of [
+      ['a push to dev', { ...releasePr, event: 'push', baseRef: '', headRef: '' }],
+      ['a push to main', { event: 'push', repo: 'liketrek/TREK' }],
+      ['a manual dispatch', { ...releasePr, event: 'workflow_dispatch' }],
+      ['a feature PR into dev', { ...releasePr, baseRef: 'dev', headRef: 'feat/x' }],
+      ['a hotfix PR into main', { ...releasePr, headRef: 'hotfix/x' }],
+      ['a PR from main into dev', { ...releasePr, baseRef: 'dev', headRef: 'main' }],
+      ['a fork whose branch is named dev', { ...releasePr, headRepo: 'someone/TREK' }],
+      ['a PR without a head repository', { ...releasePr, headRepo: '' }],
+      ['a run without a repository', { ...releasePr, headRepo: '', repo: '' }],
+      ['no context at all', {}],
+    ]) {
+      assert.equal(mirrorsPushRun(context), false, what);
+    }
+  });
+
+  it('turns every area off in mirror mode, whatever changed', () => {
+    for (const files of [null, [], ['server/src/index.ts'], ['.github/workflows/test.yml']]) {
+      assert.deepEqual(decide(files, releasePr), { ...none, mirror: true }, JSON.stringify(files));
+    }
+  });
+
+  it('classifies the files as before outside mirror mode', () => {
+    const feature = { ...releasePr, baseRef: 'dev', headRef: 'feat/x' };
+    assert.deepEqual(decide(['README.md'], feature), { ...none, mirror: false });
+    assert.deepEqual(decide(null, { event: 'push' }), { ...every, mirror: false });
+    assert.deepEqual(decide(['charts/trek/values.yaml'], feature), {
+      code: true,
+      image: false,
+      deploy: true,
+      mirror: false,
+    });
+  });
+});
+
 describe('the command line', () => {
   it('writes the areas to stdout and to GITHUB_OUTPUT', () => {
     const list = join(scratch, 'list.txt');
@@ -101,14 +186,30 @@ describe('the command line', () => {
     writeFileSync(output, '');
     const result = run(['--files', list], { GITHUB_OUTPUT: output });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, 'code=true\nimage=false\ndeploy=true\n');
-    assert.equal(readFileSync(output, 'utf8'), 'code=true\nimage=false\ndeploy=true\n');
+    assert.equal(result.stdout, 'code=true\nimage=false\ndeploy=true\nmirror=false\n');
+    assert.equal(readFileSync(output, 'utf8'), 'code=true\nimage=false\ndeploy=true\nmirror=false\n');
   });
 
   it('turns everything on with --all', () => {
     const result = run(['--all']);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, 'code=true\nimage=true\ndeploy=true\n');
+    assert.equal(result.stdout, 'code=true\nimage=true\ndeploy=true\nmirror=false\n');
+  });
+
+  it('turns every area off and mirror on for the release pull request', () => {
+    const list = join(scratch, 'release-list.txt');
+    writeFileSync(list, 'server/src/index.ts\n');
+    for (const args of [['--files', list], ['--all']]) {
+      const result = run(args, RELEASE_PR_ENV);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, 'code=false\nimage=false\ndeploy=false\nmirror=true\n', JSON.stringify(args));
+    }
+  });
+
+  it('still fails on an unreadable list in mirror mode', () => {
+    const result = run(['--files', join(scratch, 'missing.txt')], RELEASE_PR_ENV);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
   });
 
   it('fails on a list it cannot read', () => {

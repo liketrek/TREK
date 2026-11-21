@@ -3,7 +3,7 @@ import { isServiceStopType } from '../components/Roadtrip/roadtripModel'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTripStore } from '../store/tripStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { useAddonStore } from '../store/addonStore'
+import { useTripAddonEnabled } from '../store/tripAddonsStore'
 import { calculateRouteWithRetries, type RouteProfileKey } from '../components/Map/routeRetry'
 import { buildDayRouteRuns, hotelBookendOf, TRANSPORT_TYPES, type DayRouteInputs } from '../components/Map/dayRoutePlan'
 import { dayViaLookup, foldViaLegs, threadVias, viaKeyOf, viasOnDayLeg } from '../utils/dayRouteVias'
@@ -36,7 +36,8 @@ export function useRouteCalculation(tripStore: Pick<TripStoreState, 'assignments
   // Charging stops / rest areas a plugin route places on the drawn line.
   const [routeVias, setRouteVias] = useState<RouteVia[]>([])
   const mirrorServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false)
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const activeTripId = useTripStore(s => s.trip?.id)
+  const toursEnabled = useTripAddonEnabled(activeTripId, 'tours')
   const places = useTripStore(s => s.places)
   const routeAbortRef = useRef<AbortController | null>(null)
   const reservationsForSignature = useTripStore((s) => s.reservations)

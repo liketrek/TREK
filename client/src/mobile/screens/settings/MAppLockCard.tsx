@@ -45,7 +45,7 @@ export default function MAppLockCard() {
         <MSetRow
           first
           label={t('native.lock.setting')}
-          sub={t('native.lock.settingHint')}
+          hint={t('native.lock.settingHint')}
           trailing={<MToggle checked={enabled} onChange={() => void toggle()} ariaLabel={t('native.lock.setting')} />}
         />
       </div>

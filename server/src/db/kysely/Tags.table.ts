@@ -8,4 +8,5 @@ export interface TagsTable {
   name: string;
   color: InsertOptional<string | null>;
   created_at: InsertOptional<string | null>;
+  trip_id: InsertOptional<number | null>;
 }

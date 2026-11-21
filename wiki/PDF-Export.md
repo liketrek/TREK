@@ -8,7 +8,7 @@ TREK turns a trip into a printable **Trip Plan PDF**: a cover, a map of the whol
 
 ### How to generate
 
-1. In the trip planner, click **Export** at the top of the days column. The Export dialog opens with three groups: **Document**, **Calendar** and **Maps & GPS**.
+1. In the trip planner, click **Export** at the top of the days column. The Export dialog opens with four groups: **Document**, **Calendar**, **Maps & GPS** and **Google Maps**.
 2. Under **Document**, click **PDF** (*Export day plan as PDF*). The row shows a spinner while the document is put together, then the dialog closes and a preview opens.
 3. In the preview, click **Save as PDF**. Your browser's print dialog opens; pick *Save as PDF* as the destination, or send it to a printer.
 
@@ -20,7 +20,7 @@ TREK turns a trip into a printable **Trip Plan PDF**: a cover, a map of the whol
 
 When some activities or bookings of the trip name who takes part (participants on a day plan entry, travelers on a booking), the **Document** group also offers **My plan as PDF** (*Only the activities and bookings you take part in*). It builds the same document with only your part of the plan: an entry or booking that names its people stays only when it names you, and one that names nobody belongs to everyone and stays. The row is offered on the phone's export sheet as well.
 
-The other groups of the same dialog are covered elsewhere: **Calendar** in [Calendar-Feeds](Calendar-Feeds), and the GPX downloads under **Maps & GPS** (*Whole trip*, *Places only*, *Days as routes*) in [Map-Features](Map-Features#exporting-a-trip-as-gpx).
+The other groups of the same dialog are covered elsewhere: **Calendar** in [Calendar-Feeds](Calendar-Feeds), the GPX downloads under **Maps & GPS** (*Whole trip*, *Places only*, *Days as routes*) in [Map-Features](Map-Features#exporting-a-trip-as-gpx), and the KML for Google My Maps under **Google Maps** in [Map-Features](Map-Features#taking-the-places-to-google-maps).
 
 ### Cover page
 
@@ -52,6 +52,8 @@ Each day starts on a new page, unless you turn off **Page break per day**, with 
 
 **Transport notes** sits next to it when a flight, train, rental or other transport of the trip has notes. On by default, it prints those notes under the transport in the day plan; turn it off to leave them out. This choice is remembered in the browser too.
 
+**Large text** is the last switch in the header. Off by default, it prints the day pages in larger type and turns their grey text darker, which reads better on paper and on an inkjet printer. The cover and the route map keep their size. This choice is remembered in the browser too.
+
 Under the header:
 
 - **The stay**, when an accommodation covers that day: *Check-in* on the first day, *Check-out* on the last, *Accommodation* on the nights in between, with the time, the place name, the address, the notes, and the booking code on the check-in day only
@@ -59,6 +61,8 @@ Under the header:
   - **Places**: a photo (or a coloured category icon without one), a numbered badge, the name, the category, the address, the description, the time, the price and the notes. The description, the notes of the place, the notes of the day entry and the notes of a transport are written in Markdown, and the PDF shows them as such: bold text, lists and links
   - **Notes**: the icon, the text and the time, if set
   - **Bookings**: the type icon, the title, the time, the notes of a transport (unless **Transport notes** is off), the details that fit the type (airline, flight number and route for a flight; train number, platform and seat for a train; party size for a restaurant; the venue for an event; the operator for a tour), the location and the booking code
+
+Place photos go into the document at thumbnail size, so a trip with hundreds of places still saves to a small file. A photo linked from another website keeps its original size, because the browser does not let TREK shrink it.
 
 ![A day page in the PDF preview: the dark day header with date and cost, the check-in at the hotel, the flight with its notes, a day note, and a place whose Markdown description prints with bold text, italics and a list](assets/PDFPreviewDay.png)
 

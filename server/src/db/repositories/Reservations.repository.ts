@@ -1,12 +1,15 @@
 import type { Reservations } from '../entities/Reservations.entity';
 import { DayAssignments } from '../entities/DayAssignments.entity';
 import { Days } from '../entities/Days.entity';
-import { coalesceOverride, columnRef, dayDistance } from '../dialect/sql-functions';
-import { castIntegerKysely, concatKysely, startsWithIsoDateKysely, substringKysely } from '../dialect/kysely-functions';
+import { coalesceOverride, columnRef, dayDistance, isCalendarDate } from '../dialect/sql-functions';
+import { concatKysely, startsWithIsoDateKysely, substringKysely } from '../dialect/kysely-functions';
+import { accommodationIdMatches, reservationStayIs } from './_shared/reservation-accommodation';
 import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyselyDB } from './_shared/reservation-visibility';
 import type { DayAssignmentRow } from './day-assignment-rows';
 import { TrekRepository } from './_shared/trek-repository';
-import { passContextQuery, type PassContextDB } from './_shared/reservation-pass-context';
+import { passContextQuery } from './_shared/reservation-pass-context';
+import { originColumnValues, type ReservationOriginColumns } from './_shared/reservation-origin-columns';
+import { idByExternalQuery, joinedReservationQuery, type ReservationJoinDB } from './_shared/reservation-joined-query';
 import type { DB } from '../kysely/db';
 import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
 import type {
@@ -29,19 +32,6 @@ export type {
   PublicApiUnplannedPlaceRow,
   PublicApiUnscheduledReservationRow,
 };
-
-/**
- * Kysely typing for the RS18/RR1 join (`joinedQuery` below) — `reservations
- * .accommodation_id` is a bare `p.text().nullable()` column with no FK to
- * `day_accommodations` (§18.1 of the inventory), so the QueryBuilder's
- * relation-path `.join()` cannot express `LEFT JOIN day_accommodations ap ON
- * r.accommodation_id = ap.id` at all — the same escape hatch
- * `DayAssignmentsRepository.effectiveStart`/`TripsRepository.tripSelectQuery`
- * use. The `id`/`trip_id` the callers pass stay `number | string` (raw-bind,
- * D4's T5 seam) and are cast to the column type only at the bind, so this
- * join keeps the legacy statement's exact raw-bind flexibility.
- */
-type ReservationJoinKyselyDB = Pick<DB, 'reservations' | 'days' | 'places' | 'day_accommodations'>;
 
 /**
  * `reservations` as the two aliases below bind it: `accommodation_id` is a
@@ -146,10 +136,10 @@ export interface CalendarReservationRow extends ReservationAllColumnsRow {
 type CalendarReservationKyselyDB = Pick<DB, 'reservations' | 'places' | 'day_accommodations' | 'days'>;
 
 /**
- * CL4 (`CalendarService.buildTripCalendar`'s assignment read, for every dated
- * day at once) — `SELECT da.*, p.name as place_name, p.address as
- * place_address, p.lat as place_lat, p.lng as place_lng, p.duration_minutes
- * as place_duration_minutes, COALESCE(da.assignment_time, p.place_time) as
+ * CL4 (`CalendarService.buildTripCalendar`'s assignment read, for every day
+ * of the trip at once, undated ones for a linked booking's zone) — `SELECT da.*, p.name as place_name, p.address as
+ * place_address, p.lat as place_lat, p.lng as place_lng, COALESCE(da.stay_minutes,
+ * p.duration_minutes) as place_duration_minutes, COALESCE(da.assignment_time, p.place_time) as
  * effective_time, COALESCE(da.assignment_end_time, p.end_time) as
  * effective_end_time FROM
  * day_assignments da JOIN places p ON da.place_id = p.id WHERE da.day_id IN
@@ -360,27 +350,10 @@ type FlightsMissingEndpointsKyselyDB = Pick<DB, 'reservations' | 'reservation_en
 
 export class ReservationsRepository extends TrekRepository<Reservations> {
   // For its Wallet pass (_shared/reservation-pass-context.ts).
-  findPassContext(id: number, tripId: number) { return passContextQuery(this.kysely<PassContextDB>(), id, tripId); }
+  findPassContext(id: number, tripId: number) { return passContextQuery(this.getEntityManager(), id, tripId); }
 
   private joinedQuery() {
-    return this.kysely<ReservationJoinKyselyDB>()
-      .selectFrom('reservations as r')
-      .leftJoin('days as d', 'd.id', 'r.day_id')
-      .leftJoin('places as p', 'p.id', 'r.place_id')
-      .leftJoin('day_accommodations as ap', 'ap.id', 'r.accommodation_id')
-      .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
-      .selectAll('r')
-      .select([
-        'd.day_number as day_number',
-        'p.name as place_name',
-        'ap.place_id as accommodation_place_id',
-        'acc_p.name as accommodation_name',
-        'ap.start_day_id as accommodation_start_day_id',
-        'ap.end_day_id as accommodation_end_day_id',
-        'ap.check_in as accommodation_check_in',
-        'ap.check_in_end as accommodation_check_in_end',
-        'ap.check_out as accommodation_check_out',
-      ]);
+    return joinedReservationQuery(this.kysely<ReservationJoinDB>(), this.getEntityManager().getPlatform());
   }
 
   /**
@@ -398,10 +371,15 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
 
   /**
    * RR1 (`ReservationsReadService.getReservationWithJoins`) — the SAME
-   * projection for one reservation, no `ORDER BY` (a single row).
+   * projection for one reservation, no `ORDER BY` (a single row), and only
+   * when it belongs to `trip_id`: every caller holds the trip it checked, so a
+   * booking id from another trip reads as missing rather than leaking its row.
    */
-  async findWithJoins(id: number | string): Promise<ReservationJoinRow | undefined> {
-    const row = await this.joinedQuery().where('r.id', '=', id as number).executeTakeFirst();
+  async findWithJoins(id: number | string, trip_id: number | string): Promise<ReservationJoinRow | undefined> {
+    const row = await this.joinedQuery()
+      .where('r.id', '=', id as number)
+      .where('r.trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row as ReservationJoinRow | undefined;
   }
 
@@ -459,12 +437,16 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * (trip_id, day_id, end_day_id, place_id, assignment_id, title,
    * reservation_time, reservation_end_time, location, confirmation_number,
    * notes, url, status, type, accommodation_id, metadata, needs_review)
-   * VALUES (?×17)`. `sync_enabled`/`ingest_state`/`day_plan_position`
-   * deliberately NOT named, so the column's own DB-level `DEFAULT` applies
-   * (`sync_enabled INTEGER DEFAULT 1`, `Migration20200101021800_…`;
-   * `ingest_state` `.default('live')`) — the caller has already resolved
-   * every value (the `|| null` coercions, `resolvedOrNull`, the numeric
-   * `accommodation_id` stringified for the TEXT column, R2).
+   * VALUES (?×17)`. `ingest_state`/`day_plan_position` deliberately NOT
+   * named, so the column's own DB-level `DEFAULT` applies (`ingest_state`
+   * `.default('live')`) — the caller has already resolved every value (the
+   * `|| null` coercions, `resolvedOrNull`, the numeric `accommodation_id`
+   * stringified for the TEXT column, R2).
+   *
+   * `external_source`/`external_id`/`sync_enabled` are named only when the
+   * caller passes them: an imported booking records where it came from, every
+   * other write leaves them to the column defaults as before (`sync_enabled
+   * INTEGER DEFAULT 1`, `Migration20200101021800_…`).
    */
   async insertReservation(input: {
     trip_id: number;
@@ -484,7 +466,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     accommodation_id: string | null;
     metadata: string | null;
     needs_review: number;
-  }): Promise<number> {
+  } & ReservationOriginColumns): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
       day: input.day_id,
@@ -503,7 +485,13 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
       accommodation_id: input.accommodation_id,
       metadata: input.metadata,
       needs_review: input.needs_review,
+      ...originColumnValues(input),
     });
+  }
+
+  /** The booking an import already wrote into this trip under the same origin (_shared/reservation-joined-query.ts). */
+  findIdByExternal(trip_id: number, external_source: string, external_id: string): Promise<number | undefined> {
+    return idByExternalQuery(this.kysely<DB>(), trip_id, external_source, external_id);
   }
 
   /**
@@ -621,7 +609,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
           .else(concatKysely(platform, eb, { value: date }, { expression: substringKysely(platform, eb, 'reservation_time', 11) }))
           .end(),
       }))
-      .where('accommodation_id', '=', accommodation_id)
+      .where((eb) => reservationStayIs(eb, 'accommodation_id', accommodation_id))
       .where('type', '=', 'hotel')
       .execute();
   }
@@ -652,12 +640,11 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
   /**
    * RS11 (`resolveDayIdFromTime`'s nearest-day fallback) — `SELECT id FROM
    * days WHERE trip_id = ? ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC,
-   * date ASC LIMIT 1`. `dayDistance`, through `DaysRepository`'s own QB (the
-   * same cross-repository-read shape as `getAssignmentTripId` above —
-   * `DaysRepository` stays Task 1's additive-method territory; no new
-   * method is added there).
+   * date ASC LIMIT 1`, through `DaysRepository`'s own QB. A date the calendar does
+   * not have (`2024-02-30`) finds no day on either engine (`isCalendarDate`).
    */
   async findNearestDayId(trip_id: number, iso_date: string): Promise<number | undefined> {
+    if (!isCalendarDate(iso_date)) return undefined;
     const platform = this.getEntityManager().getPlatform();
     const days = this.getEntityManager().getRepository(Days);
     const row = await days
@@ -727,7 +714,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ReservationsByAccommodationKyselyDB>()
       .selectFrom('reservations')
       .select(['id', 'metadata'])
-      .where('accommodation_id', '=', accommodation_id)
+      .where((eb) => reservationStayIs(eb, 'accommodation_id', accommodation_id))
       .execute();
     return rows as { id: number; metadata: string | null }[];
   }
@@ -771,7 +758,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<ReservationsByAccommodationKyselyDB>()
       .selectFrom('reservations')
       .select(['id'])
-      .where('accommodation_id', '=', accommodation_id)
+      .where((eb) => reservationStayIs(eb, 'accommodation_id', accommodation_id))
       .execute();
     return rows as { id: number }[];
   }
@@ -876,10 +863,13 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
 
   /** CL2 — see {@link CalendarReservationRow}'s docstring. */
   async listForCalendar(trip_id: number | string): Promise<CalendarReservationRow[]> {
+    const platform = this.getEntityManager().getPlatform();
     const rows = await this.kysely<CalendarReservationKyselyDB>()
       .selectFrom('reservations as r')
       .leftJoin('places as pl', 'pl.id', 'r.place_id')
-      .leftJoin('day_accommodations as a', 'a.id', 'r.accommodation_id')
+      .leftJoin('day_accommodations as a', (join) =>
+        join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'a.id')),
+      )
       .leftJoin('days as sd', 'sd.id', 'a.start_day_id')
       .leftJoin('days as ed', 'ed.id', 'a.end_day_id')
       .leftJoin('days as rd', 'rd.id', 'r.day_id')
@@ -895,7 +885,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         eb
           .selectFrom('reservations as r2')
           .select((eb2) => eb2.fn.min<number | null>('r2.id').as('c'))
-          .whereRef('r2.accommodation_id', '=', 'a.id')
+          .where((eb2) => accommodationIdMatches(platform, eb2, 'r2.accommodation_id', 'a.id'))
           .as('stay_first_reservation_id'),
         'rd.date as day_date',
         'red.date as end_day_date',
@@ -918,7 +908,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         'p.address as place_address',
         'p.lat as place_lat',
         'p.lng as place_lng',
-        'p.duration_minutes as place_duration_minutes',
+        eb.fn.coalesce('da.stay_minutes', 'p.duration_minutes').as('place_duration_minutes'),
         eb.fn.coalesce('da.assignment_time', 'p.place_time').as('effective_time'),
         eb.fn.coalesce('da.assignment_end_time', 'p.end_time').as('effective_end_time'),
       ])
@@ -933,10 +923,11 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
 
   /** CL7 — see {@link CalendarStayRow}'s docstring. */
   async listPublicStaysForCalendar(trip_id: number | string): Promise<CalendarStayRow[]> {
+    const platform = this.getEntityManager().getPlatform();
     const rows = await this.kysely<CalendarStayKyselyDB>()
       .selectFrom('day_accommodations as a')
       .where('a.trip_id', '=', trip_id as number)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(this.getEntityManager().getPlatform(), eb))
       .leftJoin('days as sd', 'sd.id', 'a.start_day_id')
       .leftJoin('days as ed', 'ed.id', 'a.end_day_id')
       .leftJoin('places as p', 'p.id', 'a.place_id')
@@ -954,7 +945,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
         eb
           .selectFrom('reservations as r')
           .select('r.title')
-          .whereRef('r.accommodation_id', '=', 'a.id')
+          .where((eb2) => accommodationIdMatches(platform, eb2, 'r.accommodation_id', 'a.id'))
           .where((eb2) => publicReservationExpr(eb2, 'r.ingest_state'))
           .orderBy('r.id', 'asc')
           .limit(1)
@@ -1040,7 +1031,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
                 eb
                   .selectFrom('reservations as res')
                   .select('res.title')
-                  .where((eb2) => eb2(castIntegerKysely(platform, eb2, 'res.accommodation_id'), '=', eb2.ref('a.id')))
+                  .where((eb2) => accommodationIdMatches(platform, eb2, 'res.accommodation_id', 'a.id'))
                   .where('res.status', '!=', 'cancelled')
                   .orderBy('res.id', 'asc')
                   .limit(1),
@@ -1081,7 +1072,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
                 eb
                   .selectFrom('reservations as res')
                   .select('res.title')
-                  .where((eb2) => eb2(castIntegerKysely(platform, eb2, 'res.accommodation_id'), '=', eb2.ref('a.id')))
+                  .where((eb2) => accommodationIdMatches(platform, eb2, 'res.accommodation_id', 'a.id'))
                   .where('res.status', '!=', 'cancelled')
                   .orderBy('res.id', 'asc')
                   .limit(1),
@@ -1172,7 +1163,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<SharePublicAccommodationKyselyDB>()
       .selectFrom('day_accommodations as a')
       .where('a.trip_id', '=', trip_id as number)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(this.getEntityManager().getPlatform(), eb))
       .innerJoin('places as p', 'p.id', 'a.place_id')
       .select([
         'a.id', 'a.trip_id', 'a.place_id', 'a.start_day_id', 'a.end_day_id',
@@ -1193,7 +1184,7 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
     const rows = await this.kysely<SharePublicAccommodationKyselyDB>()
       .selectFrom('day_accommodations as a')
       .where('a.trip_id', '=', trip_id as number)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(this.getEntityManager().getPlatform(), eb))
       .select('a.place_id')
       .distinct()
       .execute();

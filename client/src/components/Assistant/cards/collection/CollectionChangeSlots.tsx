@@ -1,10 +1,11 @@
-import type {
-  CollectionCardDelta,
-  CollectionCardLabel,
-  CollectionCardList,
-  CollectionCardPlace,
-  CollectionListsCard,
-  CollectionPlacesCard,
+import {
+  type CollectionCardDelta,
+  type CollectionCardLabel,
+  type CollectionCardList,
+  type CollectionCardPlace,
+  type CollectionListsCard,
+  type CollectionPlacesCard,
+  isVisitedCollectionStatus,
 } from '@trek/shared';
 import { Bookmark, Info, Tag } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -44,6 +45,10 @@ const FIELD_LOOK: Record<CollectionCardDelta['fields'][number], { labelKey: stri
   category: { labelKey: 'assistant.change.label.category' },
   link: { labelKey: 'assistant.change.label.link' },
   photo: { labelKey: 'assistant.card.collection.photo' },
+  website: { labelKey: 'assistant.change.label.website' },
+  phone: { labelKey: 'assistant.change.label.phone' },
+  price: { labelKey: 'assistant.change.label.price' },
+  mapEntry: { labelKey: 'assistant.card.collection.mapEntry' },
 };
 
 /** The verb's tile, as the row shows it without a place. */
@@ -110,7 +115,7 @@ function ListChip({ list }: { list: CollectionCardList }) {
 function statusChange(status: NonNullable<CollectionCardDelta['status']>, t: T): ReactNode {
   const to = STATUS_META[status.to];
   const before = status.from ? t(STATUS_META[status.from].labelKey) : null;
-  const tone = status.to === 'visited' ? 'success' : 'neutral';
+  const tone = isVisitedCollectionStatus(status.to) ? 'success' : 'neutral';
   return <FactChange key="status" icon={to.icon} before={before} after={t(to.labelKey)} tone={tone} />;
 }
 

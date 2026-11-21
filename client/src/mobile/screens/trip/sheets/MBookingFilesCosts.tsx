@@ -40,7 +40,6 @@ export default function MBookingFilesCosts({
           files={pendingFiles}
           onAdd={files => setPendingFiles(prev => [...prev, ...files])}
           onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
-          hideHint
           canAttach={canUploadFiles}
           attached={bookingFiles.attached}
           linkable={bookingFiles.linkable}

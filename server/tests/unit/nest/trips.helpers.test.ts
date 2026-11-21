@@ -1,8 +1,9 @@
 /**
  * The pure helpers of the trips domain: the date range a trip may span and the
- * feed token a trip row loses on its way out. TRIP-HELPERS-001 to 003.
+ * feed token a trip row loses on its way out, and the rights a trip update
+ * needs. TRIP-HELPERS-001 to 004.
  */
-import { assertTripSpan, withoutFeedToken } from '../../../src/nest/trips/trips.helpers';
+import { assertTripSpan, tripUpdatePermissions, withoutFeedToken } from '../../../src/nest/trips/trips.helpers';
 import { MAX_TRIP_DAYS, addIsoDays } from '@trek/shared';
 
 import { describe, expect, it } from 'vitest';
@@ -30,5 +31,18 @@ describe('withoutFeedToken', () => {
     expect(withoutFeedToken(undefined)).toBeUndefined();
     expect(withoutFeedToken(null)).toBeNull();
     expect(withoutFeedToken(42)).toBe(42);
+  });
+});
+
+describe('tripUpdatePermissions', () => {
+  it('TRIP-HELPERS-004: the costs mode asks for budget_edit, not trip_edit (#1714)', () => {
+    expect(tripUpdatePermissions({ costs_mode: 'totals' }).map((p) => p.action)).toEqual(['budget_edit']);
+    expect(tripUpdatePermissions({ costs_mode: 'split', title: 'Japan' }).map((p) => p.action)).toEqual([
+      'budget_edit',
+      'trip_edit',
+    ]);
+    expect(tripUpdatePermissions({ title: 'Japan', costs_mode: undefined }).map((p) => p.action)).toEqual([
+      'trip_edit',
+    ]);
   });
 });

@@ -8,17 +8,17 @@
  * real on that same instance against the real test DB.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { OidcService } from '../../src/nest/oidc/oidc.service';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { findRow, findRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
+import { makeUser } from '../helpers/factories/users';
 import { readUser } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -28,11 +28,6 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } 
 import type { MockInstance } from 'vitest';
 
 // ── DB mock (async vi.mock factory over the migrated schema snapshot) ────────
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 /** Read one cookie's value out of a response's Set-Cookie header, as a browser would. */
 function readCookie(res: request.Response, name: string): string | undefined {
@@ -78,7 +73,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm());
   await resetRateLimits(nestApp);
   vi.clearAllMocks();
 
@@ -98,7 +93,6 @@ afterEach(() => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ── /login ───────────────────────────────────────────────────────────────────
@@ -142,7 +136,7 @@ describe('GET /api/auth/oidc/login', () => {
 
 describe('GET /api/auth/oidc/callback', () => {
   it('OIDC-004: valid code for existing user → redirects to frontend with oidc_code', async () => {
-    const { user } = createUser(testDb, { email: 'alice@example.com' });
+    const { user } = await makeUser(orm(), { email: 'alice@example.com' });
 
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({
@@ -171,7 +165,7 @@ describe('GET /api/auth/oidc/callback', () => {
   });
 
   it('OIDC-004b: a successful login writes the user.login row every other method writes (#2417)', async () => {
-    const { user } = createUser(testDb, { email: 'audited@example.com' });
+    const { user } = await makeUser(orm(), { email: 'audited@example.com' });
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({
       access_token: 'test-access-token',
@@ -326,7 +320,7 @@ describe('GET /api/auth/oidc/callback', () => {
 
   it('OIDC-010: registration disabled for new user → redirects with registration_disabled error', async () => {
     // Need at least one existing user so isFirstUser=false
-    createUser(testDb, { email: 'existing@example.com' });
+    await makeUser(orm(), { email: 'existing@example.com' });
     // Disable registration
     await setAppSetting(orm(), 'allow_registration', 'false');
 

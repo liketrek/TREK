@@ -74,7 +74,10 @@ afterAll(async () => {
 /** The service from the module, with its collaborators set to a hotel booking that may have a pass. */
 function make(mode: 'auto' | 'off' = 'auto') {
   config.mode = mode;
-  reservations.getReservationWithJoins.mockReset().mockImplementation(async () => ({ ...ROW }));
+  // The read is trip-scoped: a booking asked for under another trip is not found.
+  reservations.getReservationWithJoins
+    .mockReset()
+    .mockImplementation(async (_id: number, tripId: number) => (tripId === ROW.trip_id ? { ...ROW } : undefined));
   reservations.passContext.mockReset().mockImplementation(async () => ({
     trip_title: 'Japan 2027',
     place_lat: 34.985,
@@ -221,8 +224,8 @@ describe('WalletPassService', () => {
     expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(502);
     safeFetchAdminConfigured.mockRejectedValueOnce(new Error('ECONNREFUSED'));
     expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(502);
-    reservations.getReservationWithJoins.mockResolvedValueOnce({ ...ROW, trip_id: 99 });
-    expect(await refusal(service.googleSaveUrlFor(1, 42, 7, 'en'))).toBe(404);
+    expect(await refusal(service.googleSaveUrlFor(1, 99, 7, 'en'))).toBe(404);
+    expect(reservations.getReservationWithJoins).toHaveBeenLastCalledWith(7, 99);
   });
 
   it('WALLET-S-010: the Google route sits beside /pass, query kept; any other signer URL has none', async () => {

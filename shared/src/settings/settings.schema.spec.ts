@@ -5,6 +5,8 @@ import {
   PLANNER_TRIP_VIEWS_MAX,
   compactPlannerTripViews,
   plannerTripViewsSchema,
+  dashboardTimezonesSchema,
+  MAX_DASHBOARD_TIMEZONES,
 } from './settings.schema';
 
 import { describe, it, expect } from 'vitest';
@@ -61,5 +63,19 @@ describe('compactPlannerTripViews', () => {
     ).toEqual({
       '1': { roadtrip: true },
     });
+  });
+});
+
+describe('dashboardTimezonesSchema (#3044)', () => {
+  it('takes known zones once each, up to the cap, and an empty list', () => {
+    expect(dashboardTimezonesSchema.safeParse(['Europe/Madrid', 'Asia/Tokyo']).success).toBe(true);
+    expect(dashboardTimezonesSchema.safeParse([]).success).toBe(true);
+  });
+
+  it('refuses an unknown zone, a repeated one and one past the cap', () => {
+    expect(dashboardTimezonesSchema.safeParse(['Mars/Olympus']).success).toBe(false);
+    expect(dashboardTimezonesSchema.safeParse(['Europe/Madrid', 'Europe/Madrid']).success).toBe(false);
+    const tooMany = Intl.supportedValuesOf('timeZone').slice(0, MAX_DASHBOARD_TIMEZONES + 1);
+    expect(dashboardTimezonesSchema.safeParse(tooMany).success).toBe(false);
   });
 });

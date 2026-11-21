@@ -21,6 +21,11 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'tours:changed',
   // CW-03: store/tourVisitStore (watchTourVisits) keeps the visits store current.
   'tours:visits',
+  // store/flightLiveStore (watchFlightLive, mounted by useFlightLiveSync) merges live flight states.
+  'flight:live',
+  // store/mailIngestStore (watchMailInbox, mounted by Navbar and MMailInboxHost): the open count and the settings card.
+  'mailInbox:changed',
+  'mailInbox:settings',
   // Collab — Collab/MCollab components + useTripWebSocket's collabFileSync
   'collab:note:created',
   'collab:note:updated',
@@ -41,6 +46,10 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'roadtripVia:changed',
   'roadtripTrack:changed',
   'roadtripPreferences:changed',
+  // Per-trip addons: store/tripAddonsStore (watchTripAddons, mounted by App through
+  // hooks/useTripAddonsSync) puts the trip's list into the store and the device's copy, so the
+  // tabs and panels a trip switched off disappear for every member at once.
+  'tripAddons:changed',
   // components/Roadtrip/useDayBoundaries reloads the shared boundaries.
   'roadtripBoundary:changed',
   // In-app notifications: hooks/useInAppNotificationListener, which also keeps

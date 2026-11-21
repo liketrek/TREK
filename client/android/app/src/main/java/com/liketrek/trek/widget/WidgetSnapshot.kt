@@ -25,7 +25,30 @@ data class WidgetSnapshot(
     val atlas: Atlas?,
     val collab: Collab?,
     val labels: Labels,
+    /** The trip's next flight or the one in the air; last and defaulted, so older callers keep compiling. */
+    val flight: Flight? = null,
+    /**
+     * The trip's days from the day the app wrote this on, each with its date, so
+     * the widget turns to the next day itself (see [on]); empty from an app
+     * that predates them.
+     */
+    val days: List<Today> = emptyList(),
 ) {
+    /**
+     * The snapshot as it reads on [date]: that date's trip day out of [days],
+     * none before or after the trip, and only the bookings from that date on.
+     * The app writes its snapshot only while it runs, so without this a widget
+     * showed the day it last ran. A snapshot without [days] reads as written.
+     */
+    fun on(date: LocalDate): WidgetSnapshot {
+        if (days.isEmpty()) return this
+        val key = date.toString()
+        return copy(
+            today = days.firstOrNull { it.date == key },
+            bookings = bookings.filter { (it.date ?: key) >= key },
+        )
+    }
+
     data class Trip(
         val title: String,
         val start: String,
@@ -50,7 +73,8 @@ data class WidgetSnapshot(
         val symbol: String?,
     )
 
-    data class Today(val dayLabel: String, val stops: List<Stop>, val index: Int?, val total: Int?)
+    /** A trip day; [date] (yyyy-MM-dd) is absent from an app that predates the days ahead. */
+    data class Today(val dayLabel: String, val stops: List<Stop>, val index: Int?, val total: Int?, val date: String? = null)
 
     data class Weather(
         val temp: Int,
@@ -105,6 +129,39 @@ data class WidgetSnapshot(
 
     data class Collab(val members: List<Member>, val messages: List<Message>, val poll: Poll?, val path: String)
 
+    /**
+     * The flight widget's flight. Times are epoch seconds, so the widget moves on
+     * with the clock between two snapshots; the clock times at either airport
+     * come formatted, since the widget has no zone data.
+     */
+    data class Flight(
+        val number: String,
+        val from: String,
+        val to: String,
+        val fromCity: String?,
+        val toCity: String?,
+        val dep: Long,
+        val arr: Long,
+        /** Observed take-off. */
+        val depActual: Long?,
+        /** Before take-off: the planned departure plus the delay seen so far. */
+        val depExpected: Long?,
+        /** The feed saw the aircraft in the air when the app last looked. */
+        val airborne: Boolean,
+        /** Touchdown once landed, else the estimate while in the air. */
+        val arrExpected: Long?,
+        val landed: Boolean,
+        val depTime: String,
+        val arrTime: String,
+        val arrTimeExpected: String?,
+        /** Minutes late against the schedule, negative when early. */
+        val delay: Int?,
+        val aircraft: String?,
+        /** When the feed last heard the aircraft; null for a flight it never heard of. */
+        val seen: Long?,
+        val path: String,
+    )
+
     /** The labels, translated by the app. The optional ones fall back to English. */
     data class Labels(private val raw: JSONObject) {
         val nextTrip get() = text("nextTrip", "Next trip")
@@ -137,6 +194,23 @@ data class WidgetSnapshot(
         val votes get() = text("votes", "votes")
         val noMessages get() = text("noMessages", "No messages yet")
         val departure get() = text("departure", "Departure")
+        val flight get() = text("flight", "Flight")
+        /** Contains "{time}". */
+        val flightDeparts get() = text("flightDeparts", "Departs in {time}")
+        /** Contains "{time}". */
+        val flightLands get() = text("flightLands", "Lands in {time}")
+        val flightLanded get() = text("flightLanded", "Landed")
+        val flightReady get() = text("flightReady", "Ready for departure")
+        val noFlight get() = text("noFlight", "No flight ahead")
+        val flightOnTime get() = text("flightOnTime", "On time")
+        /** Contains "{m}". */
+        val flightLate get() = text("flightLate", "+{m} min")
+        /** Contains "{m}". */
+        val flightEarly get() = text("flightEarly", "{m} min early")
+        /** Contain "{d}" and "{h}", "{h}" and "{m}", and "{m}". */
+        val durDaysHours get() = text("durDaysHours", "{d} d {h} h")
+        val durHoursMinutes get() = text("durHoursMinutes", "{h} h {m} min")
+        val durMinutes get() = text("durMinutes", "{m} min")
 
         private fun text(key: String, fallback: String): String = raw.optString(key).ifBlank { fallback }
     }
@@ -160,6 +234,16 @@ data class WidgetSnapshot(
             null
         }
 
+        private fun dayOf(t: JSONObject): Today = Today(
+            dayLabel = t.optString("dayLabel"),
+            stops = t.optJSONArray("stops").objects().map {
+                Stop(it.str("time"), it.optString("name"), it.int("minutes"), it.str("color"), it.str("symbol"))
+            },
+            index = t.int("index"),
+            total = t.int("total"),
+            date = t.str("date"),
+        )
+
         fun fromJson(o: JSONObject): WidgetSnapshot = WidgetSnapshot(
             trip = o.optJSONObject("trip")?.let {
                 Trip(
@@ -174,16 +258,8 @@ data class WidgetSnapshot(
                     memberCount = it.int("memberCount"),
                 )
             },
-            today = o.optJSONObject("today")?.let { t ->
-                Today(
-                    dayLabel = t.optString("dayLabel"),
-                    stops = t.optJSONArray("stops").objects().map {
-                        Stop(it.str("time"), it.optString("name"), it.int("minutes"), it.str("color"), it.str("symbol"))
-                    },
-                    index = t.int("index"),
-                    total = t.int("total"),
-                )
-            },
+            today = o.optJSONObject("today")?.let(::dayOf),
+            days = o.optJSONArray("days").objects().map(::dayOf),
             weather = o.optJSONObject("weather")?.let {
                 Weather(it.optInt("temp"), it.int("high"), it.int("low"), it.optString("main"), it.optString("label"), it.str("place"), it.int("rain"))
             },
@@ -240,6 +316,29 @@ data class WidgetSnapshot(
                 )
             },
             labels = Labels(o.optJSONObject("labels") ?: JSONObject()),
+            flight = o.optJSONObject("flight")?.let { f ->
+                Flight(
+                    number = f.optString("number"),
+                    from = f.optString("from"),
+                    to = f.optString("to"),
+                    fromCity = f.str("fromCity"),
+                    toCity = f.str("toCity"),
+                    dep = f.optLong("dep"),
+                    arr = f.optLong("arr"),
+                    depActual = f.long("depActual"),
+                    depExpected = f.long("depExpected"),
+                    airborne = f.optBoolean("airborne"),
+                    arrExpected = f.long("arrExpected"),
+                    landed = f.optBoolean("landed"),
+                    depTime = f.optString("depTime"),
+                    arrTime = f.optString("arrTime"),
+                    arrTimeExpected = f.str("arrTimeExpected"),
+                    delay = f.int("delay"),
+                    aircraft = f.str("aircraft"),
+                    seen = f.long("seen"),
+                    path = f.optString("path", "/"),
+                )
+            }?.takeIf { it.dep > 0 && it.arr > 0 },
         )
 
         fun day(iso: String?): LocalDate? {
@@ -257,6 +356,8 @@ data class WidgetSnapshot(
         private fun JSONObject.str(key: String): String? = if (isNull(key)) null else optString(key).ifEmpty { null }
 
         private fun JSONObject.int(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
+
+        private fun JSONObject.long(key: String): Long? = if (has(key) && !isNull(key)) optLong(key) else null
 
         private fun JSONArray?.objects(): List<JSONObject> =
             if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }

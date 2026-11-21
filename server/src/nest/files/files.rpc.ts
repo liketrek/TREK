@@ -1,11 +1,12 @@
+import { ADDON_IDS } from '../../addons';
 import { readEnv } from '../../app-config';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { PluginGuards, type RpcAddon } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, rowIdParam } from '../../nest-rpc/rpc-params';
 import { isDemoEmail } from '../common/demo';
 import { RealtimeService } from '../realtime/realtime.service';
 import { StorageService } from '../storage/storage.service';
@@ -33,6 +34,9 @@ type CreateInput = {
   reservation_id?: number;
 };
 
+/** Every read and write here belongs to the documents addon and follows it per trip. */
+const FILES_ADDON: RpcAddon = { addonId: ADDON_IDS.DOCUMENTS, noun: 'documents' };
+
 /**
  * The file surface a plugin may reach (#plugins).
  *
@@ -59,15 +63,21 @@ export class FilesRpc {
   @PluginMethod('files.list', { permission: 'db:read:files' })
   async list(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     // Trash excluded, the same view the files tab shows.
-    return await this.guards.tripRead(params, ctx, async () =>
-      this.files.listFiles(num(params.tripId, 'tripId'), false),
+    return await this.guards.tripRead(
+      params,
+      ctx,
+      async () => this.files.listFiles(rowIdParam(params.tripId, 'tripId'), false),
+      FILES_ADDON,
     );
   }
 
   @PluginMethod('files.getContent', { permission: 'db:read:files:content' })
   getContent(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, () =>
-      this.readContent(num(params.tripId, 'tripId'), num(params.fileId, 'fileId')),
+    return this.guards.tripRead(
+      params,
+      ctx,
+      () => this.readContent(rowIdParam(params.tripId, 'tripId'), rowIdParam(params.fileId, 'fileId')),
+      FILES_ADDON,
     );
   }
 
@@ -92,7 +102,7 @@ export class FilesRpc {
 
   @PluginMethod('files.create', { permission: 'db:write:files' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'file');
     const input = asPayload(params.input);
     if (typeof input.name !== 'string' || input.name.trim() === '' || input.name.length > 255) {
@@ -106,7 +116,7 @@ export class FilesRpc {
     if (input.content_base64.length > 14 * 1024 * 1024) {
       throw new BadParams('file exceeds the 10MB plugin upload cap');
     }
-    await this.guards.requireTripEdit(tripId, actor, UPLOAD_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, UPLOAD_ACTION, FILES_ADDON);
     return this.writeFile(tripId, input as unknown as CreateInput, actor);
   }
 
@@ -155,10 +165,10 @@ export class FilesRpc {
 
   @PluginMethod('files.createLink', { permission: 'db:write:files' })
   async createLink(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const fileId = num(params.fileId, 'fileId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const fileId = rowIdParam(params.fileId, 'fileId');
     const actor = this.guards.requireActor(ctx, 'file link');
-    await this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, EDIT_ACTION, FILES_ADDON);
     if (!(await this.files.getFileById(fileId, tripId)))
       throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
     const opts = asPayload(params.opts) as { reservation_id?: number; assignment_id?: number; place_id?: number };
@@ -174,10 +184,10 @@ export class FilesRpc {
 
   @PluginMethod('files.update', { permission: 'db:write:files' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const fileId = num(params.fileId, 'fileId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const fileId = rowIdParam(params.fileId, 'fileId');
     const actor = this.guards.requireActor(ctx, 'file');
-    await this.guards.requireTripEdit(tripId, actor, EDIT_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, EDIT_ACTION, FILES_ADDON);
     const current = await this.files.getFileById(fileId, tripId);
     if (!current) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
     const input = asPayload(params.input) as {
@@ -203,10 +213,10 @@ export class FilesRpc {
 
   @PluginMethod('files.softDelete', { permission: 'db:write:files' })
   async softDelete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const fileId = num(params.fileId, 'fileId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const fileId = rowIdParam(params.fileId, 'fileId');
     const actor = this.guards.requireActor(ctx, 'file');
-    await this.guards.requireTripEdit(tripId, actor, DELETE_ACTION);
+    await this.guards.requireTripEdit(tripId, actor, DELETE_ACTION, FILES_ADDON);
     if (!(await this.files.getFileById(fileId, tripId)))
       throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
     await this.files.softDeleteFile(fileId);

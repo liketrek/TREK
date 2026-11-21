@@ -1206,7 +1206,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Itt választod ki, melyik motor rajzolja az utazástervező és a napló térképeit, és milyen stílusban. A Leaflet a klasszikus raszteres térkép, a Mapbox GL saját tokennel 3D-s épületeket és domborzatot is mutat, a MapLibre GL token nélkül rajzol OpenFreeMap vektorcsempéket. Az Atlasz mindig a Leafletet használja.',
   'help.ctx.settings-map.bullet.1':
-    '„Térkép szolgáltató”: Leaflet, Mapbox GL („Kísérleti”) vagy MapLibre GL, mindegyik egy rövid leírással.',
+    '„Térkép szolgáltató”: Leaflet, Mapbox GL vagy MapLibre GL, mindegyik egy rövid leírással.',
   'help.ctx.settings-map.bullet.2':
     'Leafletnél „Térkép sablon” és „CARTO API-kulcs”; a két GL-motornál „Térkép stílus”, a Mapbox GL-nél pedig emellett „Mapbox hozzáférési token”.',
   'help.ctx.settings-map.bullet.3':
@@ -4725,7 +4725,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'A kártyán a „Bekapcsolva ezen az eszközön” felirat látszik, és a „Push” alatt bekapcsolt eseményekről akkor is kapsz értesítést, ha a TREK be van zárva.',
   'help.guide.connect-airtrail.step.1':
-    'Az „Integráció” részben keresd meg az AirTrailt, és add meg a „Példány URL-címe” mezőt és egy API-kulcsot. A kulcsot az AirTrailben hozhatod létre a Settings, Security menüpontban.',
+    'Az „Integráció” részben keresd meg az AirTrailt, és add meg a „Példány URL-címe” mezőt és egy API-kulcsot. A kulcsot az AirTrailben hozhatod létre a Settings, Security menüpontban. Ha a kulcsot az AirTrail 3.13-as vagy újabb verziójában hozod létre, olvasáshoz a(z) flight.read.own jogosultság kell. A módosítások visszaírásához ezek is kellenek: flight.update.own, flight.passengers.manage.own, reference_data.read és profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Az „Integráció” részben keresd meg a Dawarichot, és add meg „A példány címe” mezőt, valamint az API-kulcsot, amelyet a Dawarichban az Account, API key menüpontban találsz.',
   'help.guide.tour-connect-wanderer.step.1':

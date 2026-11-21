@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import 'reflect-metadata';
 
 import { db } from '../../../../src/db/database';
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
@@ -40,7 +41,7 @@ beforeAll(async () => {
     new UserAirtrailRepository(t.orm.em),
     new AuditService(t.repo(AuditLog), t.repo(Users)),
     new AirtrailClient(),
-    new UnitOfWork(t.orm.em),
+    new UnitOfWork(t.orm.em, new SqliteEngine()),
   );
   getConnectionSettings = (...args) => svc.getConnectionSettings(...args);
   isAirtrailWriteEnabled = (...args) => svc.isAirtrailWriteEnabled(...args);

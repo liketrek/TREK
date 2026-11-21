@@ -12,8 +12,7 @@ const studioText: TranslationStrings = {
   'journey.studio.fx.middle': 'กลาง',
   'journey.studio.fx.bottom': 'ล่าง',
   'journey.studio.fx.fit': 'ย่อให้พอดีกรอบ',
-  'journey.studio.fx.fitHint':
-    'ขนาดที่ตั้งไว้คือขนาดใหญ่สุด ข้อความจะเล็กลงเมื่อกรอบเล็กเกินไป และกลับมาใหญ่ขึ้นเมื่อมีที่ว่าง',
+  'journey.studio.fx.fitHint': 'ขนาดที่ตั้งไว้คือขนาดใหญ่สุด ข้อความจะเล็กลงเมื่อกรอบเล็กเกินไป และกลับมาใหญ่ขึ้นเมื่อมีที่ว่าง',
   'journey.studio.fx.effects': 'เอฟเฟกต์',
   'journey.studio.fx.shadow': 'เงาคม',
   'journey.studio.fx.across': 'แนวนอน',

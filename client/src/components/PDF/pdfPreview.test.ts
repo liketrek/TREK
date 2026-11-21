@@ -1,12 +1,12 @@
 /**
- * FE-PDFPREVIEW-001 to FE-PDFPREVIEW-005: the trip PDF's preview and the control
+ * FE-PDFPREVIEW-001 to FE-PDFPREVIEW-007: the trip PDF's preview and the control
  * that saves it. An iPhone or iPad ignores print() in the Home Screen app, so
  * there the preview hands the export to Safari instead of offering a button that
  * does nothing.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { PAGE_BREAK_KEY, openPdfPreview, type PdfPreviewOptions } from './pdfPreview';
+import { LARGE_TEXT_KEY, PAGE_BREAK_KEY, openPdfPreview, type PdfPreviewOptions } from './pdfPreview';
 
 const tr = (key: string) => key;
 
@@ -19,6 +19,7 @@ function open(overrides: Partial<PdfPreviewOptions> = {}) {
     breaksPerDay: true,
     showTransportNotes: true,
     hasTransportNotes: false,
+    largeText: false,
     ...overrides,
   });
 }
@@ -86,5 +87,28 @@ describe('openPdfPreview', () => {
     toggle?.click();
     expect(toggle?.getAttribute('aria-checked')).toBe('false');
     expect(localStorage.getItem(PAGE_BREAK_KEY)).not.toBeNull();
+  });
+
+  it('FE-PDFPREVIEW-006: the large-text switch starts as given, flips, and remembers the choice', () => {
+    open();
+    const toggle = document.getElementById('pdf-large-text-toggle');
+    expect(toggle?.getAttribute('aria-label')).toBe('pdf.largeText');
+    expect(toggle?.getAttribute('aria-checked')).toBe('false');
+    toggle?.click();
+    expect(toggle?.getAttribute('aria-checked')).toBe('true');
+    expect(localStorage.getItem(LARGE_TEXT_KEY)).toBe('1');
+    toggle?.click();
+    expect(localStorage.getItem(LARGE_TEXT_KEY)).toBe('0');
+  });
+
+  it('FE-PDFPREVIEW-007: each label stays with its switch, so a narrow header wraps between them', () => {
+    open({ largeText: true, hasTransportNotes: true });
+    for (const id of ['pdf-transport-notes-toggle', 'pdf-daybreak-toggle', 'pdf-large-text-toggle']) {
+      const toggle = document.getElementById(id);
+      const unit = toggle?.parentElement;
+      expect(unit?.querySelector(`label[for="${id}"]`)).not.toBeNull();
+      expect(unit?.style.whiteSpace).toBe('nowrap');
+    }
+    expect(document.getElementById('pdf-large-text-toggle')?.getAttribute('aria-checked')).toBe('true');
   });
 });

@@ -91,6 +91,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Toplam yükselme',
   'tours.detail.descent': 'Toplam alçalma',
   'tours.detail.navigationHint': 'Navigasyon yürüyüşün başlangıç noktasını açar; rota boyunca yol tarifi vermez.',
+  'tours.detail.openRoute': 'Rotayı bir harita uygulamasında aç',
+  'tours.detail.mapsShort': 'Haritalar',
   'tours.planner.title': 'Tur planla',
   'tours.planner.newTour': 'Yeni tur planla',
   'tours.planner.addTour': 'Tur ekle',

@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Prioritas',
   'todo.detail.noPriority': 'Tidak ada',
   'todo.detail.create': 'Buat tugas',
+  'todo.progressCount': '{done} dari {total} selesai',
+  'todo.allDone': 'Semua selesai!',
+  'todo.filter.myShort': 'Milik saya',
 };
 export default todo;

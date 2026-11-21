@@ -12,8 +12,9 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PackingWritesService } from './packing-writes.service';
 import { PackingService } from './packing.service';
@@ -37,11 +38,6 @@ type PackingListRow = { category?: string | null; bag_id?: number | null; checke
 
 /** Legacy registrar gate: the whole packing surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 /**
  * Packing MCP surface — ported from the legacy registrars: the seventeen
@@ -664,7 +660,7 @@ export class PackingMcp {
               .max(100)
               .optional()
               .describe('Bag name to assign the item to; created if it does not exist'),
-            weight_grams: z.number().nonnegative().optional(),
+            weight_grams: z.number().int().nonnegative().optional(),
             checked: z.boolean().optional(),
           }),
         )
@@ -712,7 +708,7 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'read' },
   })
   async tripPackingResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.packing.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -724,6 +720,7 @@ export class PackingMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING))) return addonOffResource(uri, ADDON_IDS.PACKING);
     // Hide other members' private items (#858) from the requesting user.
     const items = await this.packing.listItems(id, ctx.userId);
     return {
@@ -746,7 +743,7 @@ export class PackingMcp {
     access: { group: 'packing', mode: 'read' },
   })
   async tripPackingBagsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.packing.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -758,6 +755,7 @@ export class PackingMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING))) return addonOffResource(uri, ADDON_IDS.PACKING);
     const bags = await this.packing.listBags(id);
     return {
       contents: [

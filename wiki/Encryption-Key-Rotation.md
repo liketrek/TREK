@@ -56,7 +56,9 @@ To find your current key: check the `ENCRYPTION_KEY` environment variable or rea
 
 ## Rotating the key
 
-Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed below without downtime or manual re-entry.
+Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed below without downtime or manual re-entry, on SQLite and on Postgres alike.
+
+The script works on the database TREK runs on. Without `TREK_DB_URL` that is the SQLite file (`DB_PATH`, default `data/travel.db`). On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) it is the Postgres database, reached with the server's own connection settings (SSL included); no `travel.db` is opened, created or backed up then, and the script refuses to run when `DB_PATH` or `TREK_DB_FILE` is set beside the URL, since it would not be clear which database is meant.
 
 **Docker:**
 
@@ -76,8 +78,9 @@ The script:
 
 1. Prompts for the old and new encryption keys interactively (keys are never echoed to the terminal or written to shell history).
 2. Asks for confirmation before making any changes.
-3. Creates a timestamped backup of the database (e.g. `travel.db.backup-1713484800000`) before modifying anything.
-4. Re-encrypts all stored secrets across all tables:
+3. Creates a timestamped backup of the database before modifying anything: on SQLite a copy next to the file (e.g. `travel.db.backup-1713484800000`), on Postgres a `pg_dump` custom-format copy in the data directory (e.g. `data/pre-key-rotation-1713484800000.pgdump`). On Postgres it checks first that it reaches the database and that the database holds TREK's tables, and it changes nothing when the copy cannot be written (for example without the PostgreSQL client tools; the TREK image ships them). The copy loads back as described in [Rolling back a Postgres update](Updating#rolling-back-a-postgres-update).
+4. Runs the rotation as one transaction. On Postgres that transaction first takes the same write lock as every write of a running TREK, so the server's writes wait until the rotation has finished.
+5. Re-encrypts all stored secrets across all tables:
    - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `web_push_vapid_private_key`
    - `app_settings['storage.backends']`: the `secretAccessKey` of every S3 storage backend
    - `users` (per user): `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `airtrail_api_key`, `mfa_secret`
@@ -91,8 +94,8 @@ The script:
    - `trip_document_links`: `webhook_secret`
    - `addons.config`: the instance-wide API key of the AI Parsing addon
    - `ai_connections`: `secrets` (the AI Assistant's API key or ChatGPT sign-in tokens; left out, the admin would have to enter the key again and every ChatGPT user would have to sign in anew)
-5. Reports counts of migrated, already-migrated, skipped (empty), and errored values.
-6. Writes the new key to `.encryption_key` next to the database, when that file exists, so the file and the secrets agree again.
+6. Reports counts of migrated, already-migrated, skipped (empty), and errored values.
+7. Writes the new key to `.encryption_key` (next to the SQLite file, or in the data directory on Postgres), when that file exists, so the file and the secrets agree again.
 
 After a successful migration:
 

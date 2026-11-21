@@ -2,6 +2,7 @@ import {
   castIntegerKysely,
   concatKysely,
   currentTimestampKysely,
+  integerTextEqualsKysely,
   nowPlusSecondsKysely,
   startsWithIsoDateKysely,
   substringKysely,
@@ -34,6 +35,7 @@ import {
   dateOf,
   dayDistance,
   foundAgainState,
+  ilike,
   lower,
   lowerParam,
   lowerTrim,
@@ -63,7 +65,7 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * The Postgres branches of the dialect layer, pinned as compiled text. Nothing
- * here talks to a Postgres server: the CI `postgres-probe` job
+ * here talks to a Postgres server: the CI `server-postgres` job
  * (`scripts/pg-probe.ts`) runs every one of these spellings against a real
  * one and compares the values with what SQLite returns. This file holds the
  * text, so a change to a spelling is a visible diff in review.
@@ -175,6 +177,9 @@ describe('sql-functions (postgres)', () => {
       'CAST(trunc(CAST(vr.accommodation_id AS numeric)) AS integer)',
     );
     expect(collateNoCase(pg, 'name').sql).toBe('name COLLATE "nocase"');
+    expect(ilike(pg, ['p.name', 'p.address'])).toBe("(p.name ILIKE ? ESCAPE '\\' OR p.address ILIKE ? ESCAPE '\\')");
+    expect(ilike(new SqlitePlatform(), ['p.name'])).toBe("(p.name LIKE ? ESCAPE '\\')");
+    expect(() => ilike(pg, ['p.name; drop'])).toThrow(/not a column reference/);
     const whileSame = coalesceOverrideWhileSame(pg, null, 'u.tls', 'u.url', 'https://a');
     expect(whileSame.sql).toBe(
       'CASE WHEN u.url IS NOT DISTINCT FROM ? THEN COALESCE(?, u.tls) ELSE COALESCE(?, 0) END',
@@ -224,6 +229,22 @@ describe('kysely-functions (postgres)', () => {
       .compile();
     expect(compiled.sql).toBe('select cast(trunc(cast("display_name" as numeric)) as integer) as "v" from "users"');
     expect(compiled.parameters).toEqual([]);
+  });
+
+  it("SQLFPG-026: integerTextEqualsKysely compares the truncated text with the integer, so '14.0' meets 14", () => {
+    const compiled = db
+      .selectFrom('users')
+      .select('id')
+      .where((eb) => integerTextEqualsKysely(pg, eb, 'display_name', 'id'))
+      .compile();
+    expect(compiled.sql).toBe(
+      'select "id" from "users" where cast(trunc(cast("display_name" as numeric)) as integer) = "id"',
+    );
+    expect(compiled.parameters).toEqual([]);
+    class FakePlatform extends Platform {}
+    expect(() =>
+      integerTextEqualsKysely(new FakePlatform(), expressionBuilder<ProbeDB, 'users'>(), 'username', 'id'),
+    ).toThrow(/no implementation for platform FakePlatform/);
   });
 
   it('SQLFPG-023: unixEpochToIsoKysely renders UTC ISO text from epoch milliseconds', () => {

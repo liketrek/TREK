@@ -18,7 +18,7 @@ import { tourActivityStatsResponseSchema } from '@trek/shared';
  * asks for no trip permission beyond being able to open the trip.
  */
 @Controller('api/tours/activity-stats')
-@UseGuards(AddonGuard, JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class TourActivityStatsController {
   constructor(private readonly stats: TourActivityStatsService) {}

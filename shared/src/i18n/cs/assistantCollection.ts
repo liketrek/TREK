@@ -34,6 +34,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Přesunout do {name}',
   'assistant.card.collection.removed': 'Odebráno ze seznamu',
   'assistant.card.collection.photo': 'Fotka',
+  'assistant.card.collection.mapEntry': 'Záznam na mapě',
   'assistant.card.collection.places': 'Uložená místa v {name}',
   'assistant.card.collection.saved': 'Uložená místa',
   'assistant.card.collection.statusSet': '{count} uložených míst změněno',

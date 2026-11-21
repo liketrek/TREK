@@ -1212,7 +1212,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Səyahət planlaşdırıcısı və gündəlik xəritələrini hansı mühərrikin, hansı üslubda çəkdiyi. Leaflet klassik raster xəritədir, Mapbox GL öz tokeninizlə 3D binalar və relyef əlavə edir, MapLibre GL isə tokensiz OpenFreeMap vektor plitələrini çəkir. Atlas həmişə Leaflet istifadə edir.',
   'help.ctx.settings-map.bullet.1':
-    '«Xəritə provayderi»: Leaflet, Mapbox GL («Eksperimental») və ya MapLibre GL, hər seçimin qısa təsviri ilə.',
+    '«Xəritə provayderi»: Leaflet, Mapbox GL və ya MapLibre GL, hər seçimin qısa təsviri ilə.',
   'help.ctx.settings-map.bullet.2':
     'Leaflet üçün «Xəritə şablonu» və «CARTO API açarı»; iki GL mühərriki üçün «Xəritə üslubu», Mapbox GL üçün isə əlavə olaraq «Mapbox giriş tokeni».',
   'help.ctx.settings-map.bullet.3':
@@ -4676,7 +4676,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kartda «Bu cihaz üçün aktivdir» yazılır, Push altında yandırılmış hadisələr isə TREK bağlı olsa belə gəlir.',
   'help.guide.connect-airtrail.step.1':
-    '«İnteqrasiyalar» altında AirTrail-i tapın və «İnstansiya URL-i» ilə API açarını daxil edin. Açarı AirTrail-də «Settings», «Security» bölməsində yaradırsınız.',
+    '«İnteqrasiyalar» altında AirTrail-i tapın və «İnstansiya URL-i» ilə API açarını daxil edin. Açarı AirTrail-də «Settings», «Security» bölməsində yaradırsınız. Açarı AirTrail 3.13 və ya daha yeni versiyada yaratsanız, oxumaq üçün ona flight.read.own icazəsi lazımdır. Dəyişiklikləri geri yazmaq üçün həmçinin flight.update.own, flight.passengers.manage.own, reference_data.read və profile.read lazımdır.',
   'help.guide.connect-dawarich.step.1':
     '«İnteqrasiyalar» altında Dawarich-i tapın, «İnstansiya ünvanı»nı və Dawarich-də «Account», «API key» bölməsindəki API açarını daxil edin.',
   'help.guide.tour-connect-wanderer.step.1':

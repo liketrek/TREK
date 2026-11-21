@@ -61,3 +61,21 @@ describe('cityFromAddress', () => {
     expect(city('Place, -, Lyon, France')).toBe('Lyon');
   });
 });
+
+describe('cityFromAddress with the postcode in the same part as the city (#3137)', () => {
+  it('reads the city beside a postcode, the way a Google-style address writes it', () => {
+    expect(city('Alexanderplatz 1, 10178 Berlin, Germany')).toBe('Berlin');
+    expect(city('Rue de Rivoli 99, 75001 Paris, France')).toBe('Paris');
+    expect(city('Via del Corso 12, 00186 Roma RM, Italy')).toBe('Roma');
+    expect(city('Damrak 1, 1012 LG Amsterdam, Nederland')).toBe('Amsterdam');
+    expect(city('10 Downing St, London SW1A 2AA, United Kingdom')).toBe('London');
+    expect(city('Shibuya Crossing, Shibuya City, Tokyo 150-0002, Japan', 'Tokyo')).toBe('Shibuya City');
+  });
+
+  it('never takes a street with its house number, a numbered district or a state code for a city', () => {
+    expect(city('Hotel Adlon, Unter den Linden 77, Germany')).toBeNull();
+    expect(city('Shibuya Sky, 12, Shibuya 2, Japan')).toBeNull();
+    expect(city('350 5th Ave, New York, NY 10118, USA')).toBe('New York');
+    expect(city('CN Tower, Toronto, ON M5V 3L9, Canada')).toBe('Toronto');
+  });
+});

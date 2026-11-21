@@ -38,6 +38,7 @@ final class TrekServerStore {
     private static final String KEY_SIGN_IN_HOSTS = "sign_in_hosts";
     private static final String KEY_SHELL_ONCE = "shell_once";
     private static final String KEY_RESTART = "restart";
+    private static final String KEY_OFFLINE_START = "offline_start";
     private static final String KEY_WELCOME = "welcome";
     private static final String CONFIG_DIR = "trek-server-config";
 
@@ -189,6 +190,37 @@ final class TrekServerStore {
 
     static boolean consumeRestart(Context context) {
         return consume(context, KEY_RESTART);
+    }
+
+    /** The next onCreate starts on the stored copy of the server's UI (TrekOfflineShell). */
+    static void markOfflineStart(Context context) {
+        prefs(context).edit().putBoolean(KEY_OFFLINE_START, true).commit();
+    }
+
+    static boolean consumeOfflineStart(Context context) {
+        return consume(context, KEY_OFFLINE_START);
+    }
+
+    /**
+     * The remembered server, or the one an update asked to check again: the
+     * server the stored copy of the UI belongs to.
+     */
+    static String getUrlOrPrevious(Context context) {
+        String url = getUrl(context);
+        return url != null ? url : getPreviousUrl(context);
+    }
+
+    /**
+     * Starting on the stored copy while the check an update asked for could not
+     * run: the server goes back in place, unchecked for now, and the check runs
+     * again on the next launch, which reaches the server.
+     */
+    static void restoreForOffline(Context context) {
+        SharedPreferences prefs = prefs(context);
+        if (prefs.getString(KEY_URL, null) != null) return;
+        String previous = prefs.getString(KEY_PREVIOUS_URL, null);
+        if (previous == null) return;
+        prefs.edit().putString(KEY_URL, previous).remove(KEY_PREVIOUS_URL).putInt(KEY_SERVER_CHECK, 0).commit();
     }
 
     private static boolean consume(Context context, String key) {

@@ -4,6 +4,7 @@
  * days hold (MDT-02), the trip copy read and write
  * (TO6/TO8), and the create/edit writes (TO7/TO9).
  */
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../../../src/db/entities/Places.entity';
 import { TourPackingLinks } from '../../../../src/db/entities/TourPackingLinks.entity';
@@ -332,7 +333,9 @@ describe('ToursRepository stages on days (MDT-02)', () => {
     createTour(testDb, other.id);
     const otherStage = createDayAssignment(testDb, days[2].id, other.id, { tour_stage_key: 'stage-two' });
 
-    const gone = await new UnitOfWork(t.em).transactional(() => repo.deleteTourStagesNotIn(place.id, ['stage-one']));
+    const gone = await new UnitOfWork(t.em, new SqliteEngine()).transactional(() =>
+      repo.deleteTourStagesNotIn(place.id, ['stage-one']),
+    );
     expect(gone).toEqual([{ id: second.id, day_id: days[1].id }]);
     const left = (await findRows(t, DayAssignments, {}, { id: 'asc' })).map((row) => row.id);
     expect(left).toEqual([first.id, whole.id, otherStage.id]);

@@ -13,23 +13,26 @@ import { useToast } from '../../shared/Toast';
 /**
  * LIB-03: the tours a collection keeps, for the collection's page. Read when
  * the collection opens and kept current while its members keep or remove one;
- * nothing at all while the Tours addon is off. Removing asks first and says
+ * nothing at all while the Tours addon is off. Tours counts as on while the
+ * instance has it on or any of the user's trips switched it on for itself;
+ * only the server knows the second, so with the instance off the tours are
+ * read all the same and its refusal hides them. Removing asks first and says
  * how it went.
  */
 export function useCollectionTours(collectionId: number) {
   const { t } = useTranslation();
   const toast = useToast();
-  const enabled = useAddonStore((state) => state.isEnabled('tours'));
+  const instanceOn = useAddonStore((state) => state.isEnabled('tours'));
   const { tours, status, shownFor } = useCollectionTourStore(
     useShallow((state) => ({ tours: state.tours, status: state.status, shownFor: state.collectionId }))
   );
   const [removing, setRemoving] = useState<CollectionTourItem | null>(null);
 
+  // Read again when the instance switch flips, since the answer may change with it.
   useEffect(() => {
-    if (!enabled) return undefined;
     void useCollectionTourStore.getState().load(collectionId);
     return watchCollectionTours();
-  }, [collectionId, enabled]);
+  }, [collectionId, instanceOn]);
 
   const confirmRemove = async () => {
     const tour = removing;
@@ -44,6 +47,9 @@ export function useCollectionTours(collectionId: number) {
   };
 
   const current = shownFor === collectionId;
+  // With the instance on nothing changes; with it off only tours the server handed over show,
+  // so an install without a trip of its own choice shows nothing, as it always did.
+  const enabled = instanceOn ? !(current && status === 'off') : current && status === 'ready';
   return {
     enabled,
     tours: enabled && current ? tours : [],

@@ -33,8 +33,8 @@ export function TabScroller({ children, wide = 'readable' }: { children: ReactNo
 }
 
 /** The room a tab's scroll body keeps clear: the floating top controls above, the dock (or the home indicator) below. */
-const TAB_INSETS = 'px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:px-6'
-const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]'
+const TAB_INSETS = 'px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))] wide:px-6'
+const PANE_INSETS = 'pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]'
 
 /**
  * The cards of a list tab (transports, bookings, tasks, polls): one column on a

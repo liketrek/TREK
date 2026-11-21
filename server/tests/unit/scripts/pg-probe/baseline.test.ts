@@ -130,11 +130,13 @@ describe('pg-probe baseline', () => {
     });
   });
 
-  it('PGPROBE-010: only syntax and feature errors count toward the ratchet, not data errors from the sample values', () => {
-    for (const code of ['42601', '42883', '42804', '42P01', '42703', '0A000'])
+  it('PGPROBE-010: syntax, feature and data errors count toward the ratchet; constraints and timeouts do not', () => {
+    // A data exception (class 22) is a value of the wrong type reaching a
+    // column: a string the SQLite comparison let through where Postgres
+    // refuses it, so it counts once the sampler sends the declared types.
+    for (const code of ['42601', '42883', '42804', '42P01', '42703', '0A000', '22P02', '22007', '22008'])
       expect(countsTowardRatchet(code)).toBe(true);
-    for (const code of ['22P02', '22007', '22008', '23505', '57014', 'NOSQLSTATE'])
-      expect(countsTowardRatchet(code)).toBe(false);
+    for (const code of ['23505', '23514', '57014', 'NOSQLSTATE']) expect(countsTowardRatchet(code)).toBe(false);
   });
 
   it('PGPROBE-008: the checked-in baseline parses and formats back to itself', () => {

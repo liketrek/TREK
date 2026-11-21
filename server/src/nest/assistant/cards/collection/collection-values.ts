@@ -61,7 +61,7 @@ export function statusArg(value: unknown): CollectionStatus | null {
 
 /** The places of a whole list by status. */
 export function tally(places: readonly Row[]): NonNullable<CollectionCardList['counts']> {
-  const counts = { idea: 0, want: 0, visited: 0 };
+  const counts = { idea: 0, want: 0, visited: 0, revisit: 0 };
   for (const place of places) counts[statusOf(place.status)] += 1;
   return counts;
 }

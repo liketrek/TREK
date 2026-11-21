@@ -11,6 +11,7 @@ const pdf: TranslationStrings = {
     'لا يمكن لنظام iOS الطباعة من التطبيق على الشاشة الرئيسية. سيفتح Safari هذه الرحلة مع تجهيز التصدير، ويمكنك حفظ ملف PDF هناك.',
   'pdf.pageBreakPerDay': 'فاصل صفحة لكل يوم',
   'pdf.transportNotes': 'ملاحظات التنقل',
+  'pdf.largeText': 'نص كبير',
   'pdf.mapTitle': 'نظرة عامة على المسار',
   'pdf.distanceLabel': 'المسافة',
   'pdf.mapCredit': 'حدود الدول: geoBoundaries (CC BY 4.0)',

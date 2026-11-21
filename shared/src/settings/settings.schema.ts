@@ -127,3 +127,33 @@ export function compactPlannerTripViews(views: PlannerTripViews): PlannerTripVie
   }
   return kept;
 }
+
+/**
+ * Cap on the dashboard's world clocks (#3044). Far above what a person keeps on
+ * the widget, but it stops a model from parking hundreds of zones in one row.
+ */
+export const MAX_DASHBOARD_TIMEZONES = 24;
+
+/**
+ * Whether the runtime knows the zone. The same check as the client's
+ * isValidTimeZone: a clock in an unknown zone throws a RangeError while it
+ * renders, and the widget would quietly drop it.
+ */
+function isKnownTimeZone(zone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The dashboard world clocks as IANA zone ids, each once; [] shows none. */
+export const dashboardTimezonesSchema = z
+  .array(
+    z.string().min(1).max(64).refine(isKnownTimeZone, {
+      message: 'Expected IANA time zone ids such as Europe/Madrid',
+    }),
+  )
+  .max(MAX_DASHBOARD_TIMEZONES, `Expected at most ${MAX_DASHBOARD_TIMEZONES} time zones`)
+  .refine((zones) => new Set(zones).size === zones.length, { message: 'Expected each time zone only once' });

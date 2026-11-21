@@ -365,7 +365,6 @@
     "route-usage -> AppSettings (owned by settings)",
     "school-holidays -> VacayHolidayCalendars (owned by vacay)",
     "share -> BudgetItems (owned by budget)",
-    "share -> Categories (owned by categories)",
     "share -> CollabMessages (owned by collab)",
     "share -> DayAssignments (owned by assignments)",
     "share -> DayNotes (owned by day-notes)",

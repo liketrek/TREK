@@ -27,6 +27,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'Μετακίνηση στη λίστα {name}',
   'assistant.card.collection.removed': 'Αφαιρέθηκε από τη λίστα',
   'assistant.card.collection.photo': 'Φωτογραφία',
+  'assistant.card.collection.mapEntry': 'Καταχώριση χάρτη',
   'assistant.card.collection.places': 'Αποθηκευμένα μέρη στη λίστα {name}',
   'assistant.card.collection.saved': 'Αποθηκευμένα μέρη',
   'assistant.card.collection.statusSet': '{count} αποθηκευμένα μέρη άλλαξαν',

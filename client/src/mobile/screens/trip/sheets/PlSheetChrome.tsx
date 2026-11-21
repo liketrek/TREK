@@ -1,8 +1,9 @@
 import { ComponentProps, HTMLAttributes, ReactNode, useState } from 'react'
-import { Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MIconBtn from '../../../components/MIconBtn'
 import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
+import { fs } from '../../../../components/shared/DialogShell'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
 
 /**
@@ -35,6 +36,35 @@ export const FORM_PAIR_CLS = 'grid grid-cols-1 gap-2 [@container(min-width:400px
 export const SELECT_FIELD_CLS =
   'flex h-[42px] w-full min-w-0 items-center overflow-hidden rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px]'
 
+/**
+ * A button that adds something (opening hours, a file, an expense), drawn as an
+ * empty field of the form: its icon, the action in the placeholder's grey and a
+ * plus at the end, so it reads as one more field and not as a card of its own.
+ */
+export function AddFieldButton({ icon: Icon, label, onClick, disabled, pressed, ariaExpanded }: {
+  icon: LucideIcon
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  /** Drawn as switched on, for a button that opens a list under it. */
+  pressed?: boolean
+  ariaExpanded?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-expanded={ariaExpanded}
+      className={`${SELECT_FIELD_CLS} gap-[10px] text-start disabled:opacity-40 ${pressed ? '!border-transparent !bg-m-act text-m-actfg' : 'text-m-faint'}`}
+    >
+      <Icon size={14} strokeWidth={2} aria-hidden="true" className="flex-none" />
+      <span className="min-w-0 flex-1 truncate font-medium" style={fs(13.5, 'body')}>{label}</span>
+      <Plus size={14} strokeWidth={2.2} aria-hidden="true" className="flex-none" />
+    </button>
+  )
+}
+
 export const FIELD_AREA_CLS =
   'w-full box-border resize-none rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint'
 
@@ -64,12 +94,14 @@ interface FormSheetHeaderProps {
   subtitle?: ReactNode
   /** Replaces the icon tile, e.g. a back button on the import sub-steps. */
   leading?: ReactNode
+  /** A 34px action before the close button (the booking's Wallet pass). */
+  trailing?: ReactNode
   onClose: () => void
   closeLabel: string
 }
 
 /** Form-sheet header: optional tile, 17px/700 title, 34px close. No hairline. */
-export function FormSheetHeader({ icon: Icon, title, subtitle, leading, onClose, closeLabel }: FormSheetHeaderProps) {
+export function FormSheetHeader({ icon: Icon, title, subtitle, leading, trailing, onClose, closeLabel }: FormSheetHeaderProps) {
   return (
     <div className="m-fs-head flex flex-none items-center gap-3 px-[18px] pb-2 pt-4">
       {leading}
@@ -84,6 +116,7 @@ export function FormSheetHeader({ icon: Icon, title, subtitle, leading, onClose,
         <div className="line-clamp-2 break-words text-[1.0625rem] font-bold leading-tight text-m-ink">{title}</div>
         {subtitle && <div className="truncate font-geist text-[0.71875rem] text-m-muted">{subtitle}</div>}
       </div>
+      {trailing}
       <MIconBtn ariaLabel={closeLabel} onClick={onClose} variant="neutral" size={34} className="m-fs-close">
         <X size={15} strokeWidth={2.2} />
       </MIconBtn>

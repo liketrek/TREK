@@ -139,7 +139,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'لقد غيّرت موعد بداية هذه الرحلة. كيف تريد أن تتبع خططك التواريخ الجديدة؟',
   'dashboard.dateShiftKeepBookings': 'إبقاء الحجوزات في تواريخها',
   'dashboard.dateShiftKeepBookingsDesc':
-    'تنتقل خطط الأيام مع التواريخ الجديدة، بينما تبقى الحجوزات وأماكن الإقامة في تواريخها الأصلية ما دامت تلك التواريخ لا تزال ضمن الرحلة.',
+    'تبقى الأيام المضافة فارغة ولا يتحرك أي شيء آخر. وإذا انتقلت الرحلة، تنتقل خطط الأيام مع التواريخ الجديدة، بينما تبقى الحجوزات وأماكن الإقامة في تواريخها الأصلية ما دامت تلك التواريخ لا تزال ضمن الرحلة.',
   'dashboard.dateShiftAll': 'نقل كل شيء',
   'dashboard.dateShiftAllDesc': 'ينتقل خط سير الرحلة بالكامل مع التواريخ الجديدة، بما في ذلك الحجوزات وأماكن الإقامة.',
   'dashboard.dateShiftHint':
@@ -304,5 +304,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'أضف إلى تقويم Apple / Outlook',
   'dashboard.ics.copyManually': 'أو انسخ الرابط يدويًا',
   'dashboard.ics.pasteFromUrl': 'الصقه في «من عنوان URL»',
+  'dashboard.ics.dayEvents': 'أحداث ملخص اليوم',
+  'dashboard.ics.dayEventsHint':
+    'حدث يستمر طوال اليوم لكل يوم يضم الأماكن والملاحظات التي ليس لها وقت. تغيير هذا الخيار يغيّر الرابط، لذا اشترك مجددًا بالرابط الجديد.',
 };
 export default dashboard;

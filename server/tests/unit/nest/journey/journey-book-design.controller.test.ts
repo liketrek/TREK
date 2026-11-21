@@ -41,9 +41,9 @@ describe('JourneyBookDesignController', () => {
     const controller = new JourneyBookDesignController({ draftView, select } as unknown as JourneyBookDesignService);
     const user = { id: 4 } as User;
 
-    expect(await controller.draft(user, '9', 'd-1')).toBe(view);
+    expect(await controller.draft(user, 9, 'd-1')).toBe(view);
     expect(draftView).toHaveBeenCalledWith(9, 4, 'd-1');
-    expect(await controller.select(user, '9', 'd-1', { spreadIds: ['sp-b'] })).toBe(chosen);
+    expect(await controller.select(user, 9, 'd-1', { spreadIds: ['sp-b'] })).toBe(chosen);
     expect(select).toHaveBeenCalledWith(9, 4, 'd-1', ['sp-b']);
   });
 });

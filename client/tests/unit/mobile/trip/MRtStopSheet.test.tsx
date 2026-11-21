@@ -8,7 +8,7 @@ import { useTripStore } from '../../../../src/store/tripStore'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-RTSTOP-001 to FE-MOB-RTSTOP-038
+// FE-MOB-RTSTOP-001 to FE-MOB-RTSTOP-041
 //
 // The sheet renders inside the real TranslationProvider, so the copy is asserted
 // in English. `planner.t` from the fixture is never consulted here.
@@ -555,6 +555,22 @@ describe('MRtStopSheet', () => {
       open(leaving('10:00', '12:00'))
       expect(screen.getAllByText('until 14:00')).toHaveLength(2)
       expect(screen.getByText('The travel day ends before 14:00, so the drive goes on the next morning.')).toBeInTheDocument()
+    })
+  })
+
+  describe('the place picture (#2629)', () => {
+    it('FE-MOB-RTSTOP-040: a place with a picture shows it under the name, and a tap opens its photos', () => {
+      const withPhoto = PLACES.map(p => (p.id === 203 ? { ...p, image_url: '/uploads/places/bremen.jpg' } : p))
+      renderSheet({}, {}, withPhoto as Place[])
+      const trigger = screen.getByRole('button', { name: 'Show photos' })
+      expect(trigger.querySelector('img')).toHaveAttribute('src', '/uploads/places/bremen.jpg')
+    })
+
+    it('FE-MOB-RTSTOP-041: a place without one, or known only by its position, shows no picture and asks for none', () => {
+      renderSheet()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Show photos' })).not.toBeInTheDocument()
+      expect(screen.getByRole('dialog').querySelector('img')).toBeNull()
     })
   })
 })

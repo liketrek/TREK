@@ -95,6 +95,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Ganho de elevação',
   'tours.detail.descent': 'Perda de elevação',
   'tours.detail.navigationHint': 'A navegação abre o início da trilha; ela não orienta ao longo da rota.',
+  'tours.detail.openRoute': 'Digeriñ an hent en un arload kartennoù',
+  'tours.detail.mapsShort': 'Kartennoù',
   'tours.planner.title': 'Planejar um passeio',
   'tours.planner.newTour': 'Planejar novo passeio',
   'tours.planner.addTour': 'Adicionar passeio',

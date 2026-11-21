@@ -3,6 +3,7 @@ import { JourneyEntries } from '../../../db/entities/JourneyEntries.entity';
 import type { JourneyEntriesRepository } from '../../../db/repositories/JourneyEntries.repository';
 import { AddonsService } from '../../addons/addons.service';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { JourneyDomainService } from '../../journey/journey-domain.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -91,9 +92,9 @@ export class JournalEntryRowsController {
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ providers: ProviderResult[] }> {
     if (!pluginsEnabled() || !(await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))) return { providers: [] };
-    const entryId = Number(entryIdRaw);
+    const entryId = toRowId(entryIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(entryId) || userId == null) return { providers: [] };
+    if (entryId === null || userId == null) return { providers: [] };
 
     // The entry's journey must be one the caller can access — same gate as a read.
     const row = await this.journeyEntries.findById(entryId); // JEC1 — converted (Plan 3g Task 4)

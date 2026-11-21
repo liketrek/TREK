@@ -12,6 +12,7 @@ import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AccommodationsModule } from '../accommodations/accommodations.module';
+import { AddonsModule } from '../addons/addons.module';
 import { AssignmentsModule } from '../assignments/assignments.module';
 import { BudgetModule } from '../budget/budget.module';
 import { DaysModule } from '../days/days.module';
@@ -64,6 +65,8 @@ import { Module } from '@nestjs/common';
     RealtimeModule,
     PluginGuardsModule,
     ReservationsReadModule,
+    // A booking write files its cost only while the trip has Costs on.
+    AddonsModule,
     AirtrailCoreModule,
     MikroOrmModule.forFeature([
       Reservations,

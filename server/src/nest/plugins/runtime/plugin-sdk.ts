@@ -24,6 +24,8 @@ export interface PluginContext {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;
     exec(sql: string, ...args: unknown[]): Promise<{ changes: number }>;
     migrate(id: string, sql: string): Promise<{ applied: boolean }>;
+    /** The engine your SQL runs on: 'sqlite' (the default), or 'postgres' when TREK runs on Postgres. */
+    engine(): Promise<'sqlite' | 'postgres'>;
     /** Run several statements atomically on your OWN db — all commit or all roll
      * back. Each op is one statement; reads see the batch's own earlier writes.
      * A read returns `{ rows }`, a write `{ changes }`. Max 100 statements. */
@@ -125,7 +127,7 @@ export interface PluginContext {
     listNotes(tripId: number): Promise<unknown[]>;
     /** A trip's polls (with options + voters). Needs 'db:read:collab'. */
     listPolls(tripId: number): Promise<unknown[]>;
-    /** A trip's chat messages (newest 100, oldest first; `before` = a message id to page back). Needs 'db:read:collab'. */
+    /** A trip's chat messages: newest 100, oldest first; `before` pages back from a message. Needs 'db:read:collab'. */
     listMessages(tripId: number, before?: number): Promise<unknown[]>;
     createNote(tripId: number, input: { title: string; content?: string; category?: string; color?: string; website?: string; pinned?: boolean }): Promise<unknown>;
     createPoll(tripId: number, input: { question: string; options: unknown[]; multiple?: boolean; deadline?: string }): Promise<unknown>;
@@ -173,7 +175,7 @@ export interface PluginContext {
   };
   /** Exchange rates (tenant-free, cached upstream). Needs 'rates:read'. */
   rates: {
-    /** A map of quote → rate relative to `base` (e.g. base 'EUR' → { USD: 1.08, ... }). `null` on an upstream failure. */
+    /** A map of quote → rate relative to `base` (base 'EUR' → { USD: 1.08 }). `null` on an upstream failure. */
     get(base: string): Promise<Record<string, number> | null>;
   };
   /** The global place-category reference list (read-only). Needs 'db:read:categories'. */
@@ -448,7 +450,7 @@ export interface SearchRequest {
 }
 export interface SearchProvider {
   search(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
-  /** Optional: the same question while it is typed (#2221). The host only calls it when the child reported it at load. */
+  /** Optional: the same question while it is typed (#2221). The host calls it only if the child reported it at load. */
   suggest?(request: SearchRequest, ctx: PluginContext): Promise<SearchResultPlace[]>;
 }
 /**
@@ -824,6 +826,7 @@ export function createPluginContext(
       exec: (sql, ...args) => t.rpc('db.exec', { sql, args }) as Promise<{ changes: number }>,
       migrate: (mid, sql) => t.rpc('db.migrate', { id: mid, sql }) as Promise<{ applied: boolean }>,
       tx: (ops) => t.rpc('db.tx', { ops }) as Promise<{ results: Array<{ changes?: number; rows?: unknown[] }> }>,
+      engine: () => (t.rpc('db.engine', {}) as Promise<{ engine: 'sqlite' | 'postgres' }>).then((r) => r.engine),
     },
     trips: {
       getById: (tripId) => t.rpc('trips.getById', { tripId, _inv: invocationId }),

@@ -1,6 +1,6 @@
 # Trip Settings
 
-**Trip settings** gathers who is on a trip, how others get in, and which journal the trip shows, in one dialog with three areas: **People**, **Sharing** and **Journal**. The trip's own details (title, description, dates, currency, cover) are edited with **Edit Trip** instead; see [Creating-a-Trip](Creating-a-Trip).
+**Trip settings** gathers who is on a trip, how others get in, and which journal the trip shows, in one dialog with its areas: **People**, **Sharing**, **Journal** and, for the trip's owner, **Addons**. The trip's own details (title, description, dates, currency, cover) are edited with **Edit Trip** instead; see [Creating-a-Trip](Creating-a-Trip).
 
 ## Opening it
 
@@ -8,6 +8,8 @@
 - **On a phone**, open the trip's **More** sheet and tap **Trip settings**. The same areas open as a sheet. **Edit Trip** sits in the same sheet for those who may edit the trip. See [Mobile-App](Mobile-App).
 
 On a wide screen the areas are listed down the left side, each with a line saying what it is for; on a narrow one they are a row of pills above the content. The head of the dialog shows how many people and guests the trip has.
+
+If you may edit the trip (`trip_edit`), **Edit Trip** sits at the foot of that list (at the end of the pills on a narrow screen). It closes Trip settings and opens the trip's own dialog, the same one as the pencil on the trip card in **My Trips**, so the title, description, dates, currency and cover can be changed without leaving the planner.
 
 ## People
 
@@ -64,6 +66,18 @@ Linking a journal, or changing who may open it, gives other people access to tha
 A member the journal is closed to, and who can do nothing about the link, does not see that the trip has one. Linking needs a connection; offline the dialog says *Linking a journal needs a connection.* With the Journey addon switched off, the Journal area and the tab are not shown.
 
 The [AI Assistant](AI-Assistant) can propose the link as a card too (*Show the journal in this trip*), which you apply like any other change.
+
+## Addons
+
+*Switch features on or off for this trip only. It applies to everyone on the trip.*
+
+Only the trip's owner sees this area. It lists the trip addons (**Lists**, **Costs**, **Documents**, **Collab**, **Road trip** and **Tours**, as far as they are installed), each with its switch. The administrator's setting in [Admin-Addons](Admin-Addons) is where every trip starts; the owner can then turn an addon off for a trip that does not need it, or on for one trip although it is off for the instance.
+
+- A switch the owner set apart from the instance is marked **This trip only**.
+- Turning it back to what the instance says drops the trip's own choice, so a later change by the administrator reaches the trip again.
+- The choice holds for everyone on the trip, in the planner, on the phone, in the public link, in the offline copy and for the [AI Assistant](AI-Assistant) and [MCP](MCP-Overview) tools of that trip. Members see the result, not the switches.
+- Switching an addon off hides it; nothing is deleted. Switching it on again brings back what was there.
+- Changing a switch needs a connection; offline TREK says so and leaves the switch as it was.
 
 ## See also
 

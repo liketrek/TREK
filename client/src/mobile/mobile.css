@@ -70,6 +70,39 @@
   --m-safe-l: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));
   --m-safe-r: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));
   --m-safe-top: calc(var(--m-safe-t) + 12px);
+  /* An element in a top corner of the screen, such as an iPhone Duo's status
+   * capsule, as the iOS app measures it (TrekBridgeViewController
+   * cornerElement): how far down it reaches and how wide it is on its side.
+   * The floating bars stand beside it; the page keeps the side's full width
+   * and starts below it, instead of giving up a strip of the whole height to
+   * an inset that only exists in the corner. 0 everywhere else. */
+  --m-corner-b: var(--trek-native-corner-bottom, 0px);
+  --m-bar-l: max(var(--m-safe-l), var(--trek-native-corner-left, 0px));
+  --m-bar-r: max(var(--m-safe-r), var(--trek-native-corner-right, 0px));
+  --m-page-l: max(0px, var(--m-safe-l) - var(--trek-native-corner-left, 0px));
+  --m-page-r: max(0px, var(--m-safe-r) - var(--trek-native-corner-right, 0px));
+  /* A bar's side inset plus a little air: next to a Duo's status capsule a
+   * bar that ends exactly at the inset reads as touching it. Without an inset
+   * the air is 0 too (min() of 0 and 8px). */
+  --m-safe-l-gap: calc(var(--m-bar-l) + min(var(--m-bar-l), 8px));
+  --m-safe-r-gap: calc(var(--m-bar-r) + min(var(--m-bar-r), 8px));
+  /* The corner element alone, with the same air, for the screens that place
+   * their own controls (the trip, the map): a control row in the corner's
+   * height ends this far from the screen's side (m-corner-beside). Physical
+   * sides, as the element is: right to left does not move it. */
+  --m-corner-l-gap: calc(var(--trek-native-corner-left, 0px) + min(var(--trek-native-corner-left, 0px), 8px));
+  --m-corner-r-gap: calc(var(--trek-native-corner-right, 0px) + min(var(--trek-native-corner-right, 0px), 8px));
+  /* Where the content of a screen that places its own scroll body begins at
+   * the latest, so its first row is not under the corner element: just below
+   * it (m-corner-below). Upright that is the cheaper way round; on a wide
+   * window the page gives up the corner's side instead (below). 0 elsewhere. */
+  --m-corner-clear: calc(var(--m-corner-b) + min(var(--m-corner-b), 10px));
+  --m-corner-side-l: 0px;
+  --m-corner-side-r: 0px;
+  /* The same air for a control row inside .m-page, which on a wide window has
+   * already given up the corner's side (m-corner-beside-in). */
+  --m-corner-in-l: var(--m-corner-l-gap);
+  --m-corner-in-r: var(--m-corner-r-gap);
   /* The navigation rail's share of the leading edge (wide windows only), what
    * every full-width fixed bar and the page column start after. */
   --m-rail-w: 0px;
@@ -82,10 +115,21 @@
  * reads the same values as the shell. */
 html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {
   --bottom-nav-h: env(safe-area-inset-bottom, 0px);
-  --m-rail-w: calc(var(--m-safe-l) + 100px);
+  --m-rail-w: calc(var(--m-bar-l) + 100px);
+  /* A wide window gives up the corner element's side over the whole height,
+   * as an iPhone on its side does for its camera: on an unfolded Duo lifting
+   * every page below the status capsule cost a quarter of the height. The
+   * rail already takes the leading side, so only the trailing side's corner
+   * counts here. */
+  --m-corner-clear: 0px;
+  --m-corner-side-r: var(--m-corner-r-gap);
+  --m-corner-in-l: 0px;
+  --m-corner-in-r: 0px;
 }
 html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {
-  --m-rail-w: calc(var(--m-safe-r) + 100px);
+  --m-rail-w: calc(var(--m-bar-r) + 100px);
+  --m-corner-side-l: var(--m-corner-l-gap);
+  --m-corner-side-r: 0px;
 }
 
 .dark .m-root {
@@ -583,10 +627,62 @@ html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-
    On a wide window the rail takes the leading side and a bar may centre itself
    (mx-auto). */
 html:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {
-  margin-inline: var(--m-safe-l, 0px) var(--m-safe-r, 0px);
+  margin-inline: var(--m-safe-l-gap, 0px) var(--m-safe-r-gap, 0px);
 }
 html[dir='rtl']:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) :is(.m-bar-x, .m-span-x) {
-  margin-inline: var(--m-safe-r, 0px) var(--m-safe-l, 0px);
+  margin-inline: var(--m-safe-r-gap, 0px) var(--m-safe-l-gap, 0px);
+}
+/* On a wide window the rail holds the leading side; the trailing side still
+   has the screen's inset, which on an unfolded Duo is its status capsule, so
+   the top bar's avatar no longer sits under it (TestFlight feedback). The box
+   the bar is placed in ends earlier rather than the bar taking a margin, so a
+   bar that centres itself (mx-auto) still does. */
+html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-bar-x {
+  inset-inline-end: calc(16px + var(--m-safe-r-gap, 0px));
+}
+html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-span-x {
+  inset-inline-end: var(--m-safe-r-gap, 0px);
+}
+html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-bar-x {
+  inset-inline-end: calc(16px + var(--m-safe-l-gap, 0px));
+}
+html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-span-x {
+  inset-inline-end: var(--m-safe-l-gap, 0px);
+}
+/* The page itself keeps clear of the sides' safe area, as iOS asks of every
+   app, and starts below an element in a top corner: on a Duo the status
+   capsule ran over the cards under the top bar (TestFlight feedback). The
+   padding lifts the content only by what the capsule reaches below the top
+   bar's row (about 70px under the top clearance), so with no corner element
+   it is 0. Margins, so the rail's wide:ps on the same element stays; fixed
+   layers are the window's and keep their own rules. The rail already takes
+   the leading inset on a wide window. */
+.m-page {
+  margin-inline: var(--m-page-l, 0px) var(--m-page-r, 0px);
+  padding-top: max(0px, calc(var(--m-corner-clear, 0px) + 2px - var(--m-safe-top, 12px) - 70px));
+}
+html[dir='rtl'] .m-page {
+  margin-inline: var(--m-page-r, 0px) var(--m-page-l, 0px);
+}
+/* The lift above counts on a floating top bar over the page. A screen whose
+   first row is part of the page (m-corner-flow: settings, administration,
+   collections) is lifted until that row starts below the corner element; one
+   that keeps clear of it by itself (m-corner-own: a map under its own bars, a
+   calendar under its own header) is not lifted at all. */
+.m-page:has(.m-corner-flow) {
+  padding-top: max(0px, calc(var(--m-corner-clear, 0px) - var(--m-safe-top, 12px)));
+}
+.m-page:has(.m-corner-own) {
+  padding-top: 0;
+}
+/* On a wide window the page starts at the top and ends before the corner
+   element instead (--m-corner-side-*, 0 without one). */
+html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-page {
+  margin-inline-start: 0;
+  margin-inline-end: max(var(--m-page-r, 0px), var(--m-corner-side-r, 0px));
+}
+html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-page {
+  margin-inline-end: max(var(--m-page-l, 0px), var(--m-corner-side-l, 0px));
 }
 /* A screen whose background is a map reaches under the rail: the map runs to
    the window's edge and the rail floats over it like the top controls do. Its

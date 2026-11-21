@@ -18,7 +18,7 @@ import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-053
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-059
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -254,7 +254,8 @@ describe('MCostsTab', () => {
 
   it('FE-MOB-COSTT-011: breaks the spend down by category, largest bar first', async () => {
     await renderTab()
-    const block = up(screen.getByText('costs.byCategory'), 1)
+    // The heading sits in its own row now, beside the way to count everything again (#2819).
+    const block = up(screen.getByText('costs.byCategory'), 2)
     const labels = within(block).getAllByText(/^costs\.cat\./).map(n => n.textContent)
     expect(labels).toEqual(['costs.cat.food', 'costs.cat.activities', 'costs.cat.shopping', 'costs.cat.transport'])
     expect(within(block).getByText('$60.00')).toBeInTheDocument()
@@ -966,6 +967,63 @@ describe('MCostsTab', () => {
     } finally {
       // Back to the prototype's reflected attribute.
       delete (document.documentElement as { dir?: string }).dir
+    }
+  })
+
+  it('FE-MOB-COSTT-056: a trip of one shows the total and the categories, nothing owed or to settle (#2689)', async () => {
+    serveSettlement({ balances: [], flows: [], settlements: [] })
+    const solo = planner({ tripMembers: [MEMBERS[0]] as unknown as TripPlanner['tripMembers'], budgetItems: [TAXI, SOUVENIR] })
+    render(<MCostsTab planner={solo} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    expect(screen.getByText('costs.totalSpend')).toBeInTheDocument()
+    expect(screen.getByText('costs.byCategory')).toBeInTheDocument()
+    for (const key of ['costs.yourShare', 'costs.youOwe', 'costs.outstanding', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    // The souvenirs nobody paid for are an expense like any other here.
+    expect(screen.getByText('Souvenirs')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-057: a trip that keeps totals only leaves out what is owed, and its switch turns splitting back on (#1714)', async () => {
+    const updateTrip = vi.fn(async () => TRIP)
+    useTripStore.setState({ updateTrip })
+    render(<MCostsTab planner={planner({ trip: { ...TRIP, costs_mode: 'totals' } as Trip })} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    for (const key of ['costs.youOwe', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    const toggle = screen.getByRole('button', { name: 'costs.mode.label' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('costs.mode.hintTotals')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(updateTrip).toHaveBeenCalledWith(7, { costs_mode: 'split' }))
+  })
+
+  it('FE-MOB-COSTT-058: a tapped category leaves the total and is named, and Count all brings it back (#2819)', async () => {
+    await renderTab()
+    const total = () => up(screen.getByText('costs.totalSpend'), 1)
+    const before = total().textContent
+    expect(screen.queryByText('costs.breakdown.countAll')).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /^costs\.breakdown\.leaveOut:/ })[0])
+    expect(total().textContent).not.toBe(before)
+    expect(within(total()).getByText(/^costs\.breakdown\.leftOut:/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^costs\.breakdown\.countIn:/ })).toHaveClass('opacity-45')
+    fireEvent.click(screen.getByText('costs.breakdown.countAll'))
+    expect(total().textContent).toBe(before)
+    expect(screen.queryByRole('button', { name: /^costs\.breakdown\.countIn:/ })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-059: the heading carries the currency the tab reads in, and a pick reads the balances again in it (#1683)', async () => {
+    localStorage.removeItem('trek:costs-currency:7')
+    try {
+      await renderTab()
+      const picker = screen.getByRole('button', { name: 'Show amounts in' })
+      expect(picker).toHaveTextContent('USD')
+      fireEvent.click(picker)
+      fireEvent.click(await screen.findByText(/^GBP\s/))
+      await waitFor(() => expect(settlementBases).toContain('GBP'))
+    } finally {
+      localStorage.removeItem('trek:costs-currency:7')
     }
   })
 })

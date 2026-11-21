@@ -143,3 +143,56 @@ describe('closeOnDone', () => {
     expect(document.activeElement).toBe(handled);
   });
 });
+
+describe('closeOnTapAway', () => {
+  function touch(target: Element, type: 'touchstart' | 'touchend', x: number, y: number) {
+    const e = new Event(type, { bubbles: true, cancelable: true });
+    const point = [{ clientX: x, clientY: y }];
+    Object.defineProperty(e, type === 'touchstart' ? 'touches' : 'changedTouches', { value: point });
+    if (type === 'touchend') Object.defineProperty(e, 'touches', { value: [] });
+    target.dispatchEvent(e);
+  }
+  function tap(target: Element, moveBy = 0) {
+    touch(target, 'touchstart', 100, 100);
+    touch(target, 'touchend', 100, 100 + moveBy);
+  }
+  function sheet(): { notes: HTMLTextAreaElement; title: HTMLInputElement; label: HTMLElement; stop: () => void } {
+    document.body.innerHTML =
+      '<div><p id="label">Notes for this day</p><textarea id="notes"></textarea><input id="title"></div>';
+    const stop = prepareKeyboardFields(document);
+    return {
+      notes: document.getElementById('notes') as HTMLTextAreaElement,
+      title: document.getElementById('title') as HTMLInputElement,
+      label: document.getElementById('label') as HTMLElement,
+      stop,
+    };
+  }
+
+  it('closes the keyboard of a textarea when the sheet beside it is tapped', () => {
+    const { notes, label, stop } = sheet();
+    notes.focus();
+    tap(label);
+    expect(document.activeElement).not.toBe(notes);
+    stop();
+  });
+
+  it('keeps it while the finger scrolls, taps the field itself or moves to another field', () => {
+    const { notes, title, label, stop } = sheet();
+    notes.focus();
+    tap(label, 40);
+    expect(document.activeElement).toBe(notes);
+    tap(notes);
+    expect(document.activeElement).toBe(notes);
+    tap(title);
+    expect(document.activeElement).toBe(notes);
+    stop();
+  });
+
+  it('stops listening when told to', () => {
+    const { notes, label, stop } = sheet();
+    stop();
+    notes.focus();
+    tap(label);
+    expect(document.activeElement).toBe(notes);
+  });
+});

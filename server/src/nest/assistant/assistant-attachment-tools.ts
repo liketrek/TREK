@@ -74,6 +74,8 @@ export interface AttachedTurn {
   attached: readonly AssistantAttachmentSummary[];
   /** The model and its host, as the consent card names them. */
   sentTo: string;
+  /** Whether a file may go into the trip's Files: false while the trip has Documents off. */
+  keeps: boolean;
   /** Reads a file the user let the model read already. */
   read(attachmentId: string): Promise<AgentToolRun>;
 }
@@ -87,7 +89,8 @@ function attachmentOf(turn: AttachedTurn, args: ToolArgs): AssistantAttachmentSu
 
 /**
  * The turn's tools with the attached files' own: keep_attached_file where
- * the thread holds an attachment, read_attached_file where one holds text.
+ * the thread holds an attachment and the trip has Documents on,
+ * read_attached_file where one holds text.
  * A file not yet shared is a write (held as the consent card), a shared one
  * a read; a keep is always held. A held call keeps the file's name (and
  * where its text goes) for the card, never the text.
@@ -96,14 +99,18 @@ export function attachedPort(port: AgentToolPort, turn: AttachedTurn | null): Ag
   if (!turn || turn.attached.length === 0) return port;
   const reads = turn.attached.some((row) => row.text_status === 'ok');
   return {
-    specs: () => [...port.specs(), ...(reads ? [READ_ATTACHED_FILE_SPEC] : []), KEEP_ATTACHED_FILE_SPEC],
+    specs: () => [
+      ...port.specs(),
+      ...(reads ? [READ_ATTACHED_FILE_SPEC] : []),
+      ...(turn.keeps ? [KEEP_ATTACHED_FILE_SPEC] : []),
+    ],
     kindOf: (name, args) => {
-      if (name === KEEP_ATTACHED_FILE_TOOL) return 'write';
+      if (name === KEEP_ATTACHED_FILE_TOOL && turn.keeps) return 'write';
       if (name !== READ_ATTACHED_FILE_TOOL || !reads) return port.kindOf(name, args);
       return attachmentOf(turn, args ?? {})?.shared_at ? 'read' : 'write';
     },
     pinArgs: (name, args) => {
-      if (name === KEEP_ATTACHED_FILE_TOOL) return keepArgs(turn, args);
+      if (name === KEEP_ATTACHED_FILE_TOOL && turn.keeps) return keepArgs(turn, args);
       if (name !== READ_ATTACHED_FILE_TOOL || !reads) return port.pinArgs(name, args);
       const row = attachmentOf(turn, args);
       if (!row) return { error: NO_SUCH_ATTACHMENT };

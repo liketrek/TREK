@@ -1,5 +1,6 @@
 import type { PackingTemplateCategories } from '../entities/PackingTemplateCategories.entity';
 import type { DB } from '../kysely/db';
+import { toRowId } from '../row-id';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -75,11 +76,15 @@ export class PackingTemplateCategoriesRepository extends TrekRepository<PackingT
     id: number | string,
     template_id: number | string,
   ): Promise<PackingTemplateCategoryRow | undefined> {
+    // Route ids: a spelling toRowId refuses is no category, on every engine.
+    const categoryId = toRowId(id);
+    const templateId = toRowId(template_id);
+    if (categoryId === null || templateId === null) return undefined;
     return await this.db()
       .selectFrom('packing_template_categories')
       .selectAll()
-      .where('id', '=', id as number)
-      .where('template_id', '=', template_id as number)
+      .where('id', '=', categoryId)
+      .where('template_id', '=', templateId)
       .executeTakeFirst();
   }
 

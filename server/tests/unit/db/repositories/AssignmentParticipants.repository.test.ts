@@ -6,6 +6,7 @@
  * username)` — unlike `AssignmentsService.getParticipants` (AS15) — see the
  * repository's own docstring.
  */
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { AssignmentParticipants } from '../../../../src/db/entities/AssignmentParticipants.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { AssignmentParticipantsRepository } from '../../../../src/db/repositories/AssignmentParticipants.repository';
@@ -27,7 +28,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   participants = t.repo(AssignmentParticipants);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);

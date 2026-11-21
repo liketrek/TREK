@@ -250,6 +250,8 @@ export interface Settings {
   maplibre_style?: string
   mapbox_3d_enabled?: boolean
   mapbox_quality_mode?: boolean
+  /** Leaves out the points of interest Mapbox Standard labels on its own (#1761); absent shows them. */
+  map_hide_basemap_pois?: boolean
   // Dashboard widget prefs — persisted server-side so a (docker) upgrade keeps them (#1311).
   dashboard_fx_from?: string
   dashboard_fx_to?: string
@@ -447,6 +449,8 @@ export interface AppConfig {
   password_registration?: boolean
   oidc_login?: boolean
   oidc_registration?: boolean
+  /** Whether an instance without password login sends visitors straight to the IdP */
+  oidc_auto_redirect?: boolean
   env_override_oidc_only?: boolean
 }
 

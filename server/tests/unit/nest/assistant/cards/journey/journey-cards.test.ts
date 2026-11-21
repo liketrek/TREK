@@ -181,8 +181,10 @@ describe('an entry as a card shows it', () => {
     expect(lookOf(entry({ entry_time: 'noon' }))?.time).toBeNull();
     expect(lookOf(entry({ location_lng: null }))?.point).toBeNull();
     expect(lookOf(entry())?.point).toEqual({ lat: 52.52, lng: 13.405 });
-    const tidy = lookOf(entry({ country_code: 'xyz', mood: 'Very happy', visibility: 'friends', type: 'diary' }));
-    expect(tidy).toMatchObject({ countryCode: null, mood: null, visibility: 'private', type: 'entry' });
+    const tidy = lookOf(entry({ country_code: 'xyz', mood: 'Very happy', type: 'diary' }));
+    expect(tidy).toMatchObject({ countryCode: null, mood: null, type: 'entry' });
+    // The row's visibility keeps nothing off the share link, so the card does not show it.
+    expect(lookOf(entry())).not.toHaveProperty('visibility');
     expect(lookOf(entry())?.countryCode).toBe('DE');
     expect(lookOf(entry({ entry_date: '21.10.2026' }))).toBeNull();
   });
@@ -224,7 +226,6 @@ describe('the change cards', () => {
     expect(card).toMatchObject({ change: 'new', journalTitle: 'Berlin 2026', tripJournal: true, more: 0 });
     expect(card.entries[0]).toMatchObject({
       entryId: null,
-      visibility: 'private',
       photoId: null,
       photoCount: 0,
       title: 'Write to me at bo@example.com',
@@ -312,10 +313,10 @@ describe('the change cards', () => {
     expect(updated.rows).toEqual([{ op: 'change', labelKey: 'time', before: '14:30', after: '18:00' }]);
     expect(describeToolCall('update_journey_entry', 'c4', {}, ctx).rows).toEqual([]);
 
-    // Who sees it, its mood and whether it is a draft each get a row; a state set to what it holds gets none.
+    // Its mood and whether it is a draft each get a row; a state set to what it holds gets none. A
+    // visibility from a call held before the tools dropped it is no state the card names.
     const states = { entryId: 12, visibility: 'private', mood: null, weather: 'sunny', is_draft: true };
     expect(describeToolCall('update_journey_entry', 'c6', states, ctx, loaded).rows).toEqual([
-      { op: 'change', labelKey: 'field', field: 'visibility', before: 'public', after: 'private' },
       { op: 'change', labelKey: 'field', field: 'mood', before: 'amazing', after: '' },
       { op: 'change', labelKey: 'field', field: 'is_draft', before: '✗', after: '✓' },
     ]);

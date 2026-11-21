@@ -110,10 +110,12 @@ export class PasswordResetTokensRepository extends TrekRepository<PasswordResetT
   /**
    * `UPDATE password_reset_tokens SET consumed_at = CURRENT_TIMESTAMP WHERE
    *  id = ?` (AU41, `resetPassword` — burns the token being used, first
-   * statement inside the password-change transaction).
+   * statement inside the password-change transaction), and only while the
+   * token is unused: whether this call burned it. Two resets with one link
+   * at once both read it unused, and only one of them may go on.
    */
-  async markConsumed(id: number): Promise<void> {
+  async markConsumed(id: number): Promise<boolean> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ id }, { consumed_at: currentTimestamp(platform) });
+    return (await this.nativeUpdate({ id, consumed_at: null }, { consumed_at: currentTimestamp(platform) })) === 1;
   }
 }

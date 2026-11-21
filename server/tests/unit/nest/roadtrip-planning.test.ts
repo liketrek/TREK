@@ -337,7 +337,7 @@ describe('browser-independent roadtrip calculation', () => {
     expect(body.undatedRides).toEqual([]);
     expect(body.days.length).toBeGreaterThan(0);
     // And the tool says what the field is, or an assistant has no reason to read it.
-    const addons = { isAddonEnabled: vi.fn(() => true) };
+    const addons = { isEnabledForUserAnywhere: vi.fn(async () => true) };
     const registry = createTestRegistry([new RoadtripPlanningMcp(s.plans, {} as never, addons as never)], {
       accessPolicy: trekMcpAccessPolicy,
       validateAccess: trekMcpValidateAccess,
@@ -373,6 +373,7 @@ describe('Roadtrip MCP registration and search', () => {
       guards as never,
       {} as never,
       { recordImported: vi.fn(async () => undefined) } as never,
+      {} as never,
     );
     const input = {
       tripId: 1,
@@ -396,7 +397,7 @@ describe('Roadtrip MCP registration and search', () => {
   });
   it('hides addon tools when disabled and separates settings reads from writes', async () => {
     const s = setup();
-    const addons = { isAddonEnabled: vi.fn(() => true) };
+    const addons = { isEnabledForUserAnywhere: vi.fn(async () => true) };
     const registry = createTestRegistry(
       [
         new RoadtripPreferencesMcp(s.preferences, addons as never, s.tripsRepo as never, {} as never),
@@ -414,7 +415,7 @@ describe('Roadtrip MCP registration and search', () => {
     expect(names).toContain('get_roadtrip_settings');
     expect(names).not.toContain('update_roadtrip_settings');
     names.length = 0;
-    addons.isAddonEnabled.mockReturnValue(false);
+    addons.isEnabledForUserAnywhere.mockResolvedValue(false);
     await registry.attach(registrar as never, { ...ctx, scopes: null });
     expect(names).toEqual([]);
   });
@@ -424,11 +425,11 @@ describe('Roadtrip MCP registration and search', () => {
       [
         new RoadtripPreferencesMcp(
           s.preferences,
-          { isAddonEnabled: () => true } as never,
+          { isEnabledForUserAnywhere: async () => true } as never,
           s.tripsRepo as never,
           {} as never,
         ),
-        new RoadtripPlanningMcp(s.plans, {} as never, { isAddonEnabled: () => true } as never),
+        new RoadtripPlanningMcp(s.plans, {} as never, { isEnabledForUserAnywhere: async () => true } as never),
       ],
       { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
     );

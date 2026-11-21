@@ -1,5 +1,5 @@
 import { COLLECTION_STATUSES, type CollectionStatus } from '@trek/shared';
-import { Bookmark, CheckCircle2, Circle, type LucideIcon } from 'lucide-react';
+import { Bookmark, CheckCircle2, Circle, RotateCcw, type LucideIcon } from 'lucide-react';
 
 /**
  * How a saved place's status looks wherever it shows: its icon, its name and
@@ -26,12 +26,13 @@ export const STATUS_META: Record<CollectionStatus, StatusMeta> = {
     color: 'var(--success)',
     coverColor: '#6ee7b7',
   },
+  revisit: { icon: RotateCcw, labelKey: 'collections.status.revisit', color: 'var(--warning)', coverColor: '#fcd34d' },
 };
 
 /** Stable order for the filter chips + the one-tap cycle. */
 export const STATUS_ORDER: CollectionStatus[] = [...COLLECTION_STATUSES];
 
-/** idea → want → visited → idea */
+/** idea → want → visited → revisit → idea */
 export function nextStatus(status: CollectionStatus): CollectionStatus {
   const i = STATUS_ORDER.indexOf(status);
   return STATUS_ORDER[(i + 1) % STATUS_ORDER.length];

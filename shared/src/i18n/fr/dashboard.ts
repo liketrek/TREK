@@ -110,7 +110,7 @@ const dashboard: TranslationStrings = {
     'Vous avez modifié la date de début de ce voyage. Comment vos plans doivent-ils suivre les nouvelles dates ?',
   'dashboard.dateShiftKeepBookings': 'Conserver les réservations à leurs dates',
   'dashboard.dateShiftKeepBookingsDesc':
-    "Les plans journaliers suivent les nouvelles dates, tandis que les réservations et hébergements restent à leurs dates d'origine tant que celles-ci font toujours partie du voyage.",
+    "Les jours ajoutés restent vides et rien d'autre ne bouge. Si le voyage est décalé, les plans journaliers suivent les nouvelles dates, tandis que les réservations et hébergements restent à leurs dates d'origine tant que celles-ci font toujours partie du voyage.",
   'dashboard.dateShiftAll': 'Tout décaler',
   'dashboard.dateShiftAllDesc':
     "L'itinéraire entier suit les nouvelles dates, y compris les réservations et hébergements.",
@@ -239,5 +239,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Ajouter à Calendrier Apple / Outlook',
   'dashboard.ics.copyManually': 'Ou copier un lien manuellement',
   'dashboard.ics.pasteFromUrl': 'à coller dans « À partir de l’URL »',
+  'dashboard.ics.dayEvents': 'Événements de résumé du jour',
+  'dashboard.ics.dayEventsHint':
+    'Un événement sur la journée entière pour chaque jour, avec les lieux et notes sans heure. Modifier ce réglage change le lien, abonnez-vous à nouveau avec le nouveau lien.',
 };
 export default dashboard;

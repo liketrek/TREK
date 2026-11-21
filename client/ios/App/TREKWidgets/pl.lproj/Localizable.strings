@@ -5,6 +5,8 @@
 "widget.today.description" = "Plan dnia jako oś czasu, z pogodą i kolejnym przystankiem.";
 "widget.bookings.name" = "Rezerwacje";
 "widget.bookings.description" = "Twoje najbliższe loty, pociągi, hotele i stoliki oraz ich terminy.";
+"widget.flight.name" = "Lot";
+"widget.flight.description" = "Twój następny lot na żywo: odliczanie do odlotu, samolot w drodze, opóźnienie i przylot.";
 "widget.todos.name" = "Zadania";
 "widget.todos.description" = "Co jeszcze zostało do zrobienia przed podróżą i jak idzie pakowanie.";
 "widget.packing.name" = "Pakowanie";

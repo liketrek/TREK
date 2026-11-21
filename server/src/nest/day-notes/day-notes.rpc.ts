@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, rowIdParam } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DayNotesService } from './day-notes.service';
 
@@ -32,14 +32,14 @@ export class DayNotesRpc {
     return await this.guards.tripRead(
       params,
       ctx,
-      async () => await this.dayNotes.list(num(params.dayId, 'dayId'), num(params.tripId, 'tripId')),
+      async () => await this.dayNotes.list(rowIdParam(params.dayId, 'dayId'), rowIdParam(params.tripId, 'tripId')),
     );
   }
 
   @PluginMethod('daynotes.create', { permission: 'db:write:daynotes' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const dayId = num(params.dayId, 'dayId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const dayId = rowIdParam(params.dayId, 'dayId');
     const actor = this.guards.requireActor(ctx, 'day note');
     const input = asPayload(params.input);
     if (typeof input.text !== 'string' || input.text.trim() === '') throw new BadParams('note text is required');
@@ -54,9 +54,9 @@ export class DayNotesRpc {
 
   @PluginMethod('daynotes.update', { permission: 'db:write:daynotes' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const dayId = num(params.dayId, 'dayId');
-    const noteId = num(params.noteId, 'noteId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const dayId = rowIdParam(params.dayId, 'dayId');
+    const noteId = rowIdParam(params.noteId, 'noteId');
     const actor = this.guards.requireActor(ctx, 'day note');
     await this.guards.requireTripEdit(tripId, actor, DAY_NOTE_EDIT_ACTION);
     const current = await this.dayNotes.getNote(noteId, dayId, tripId);
@@ -68,9 +68,9 @@ export class DayNotesRpc {
 
   @PluginMethod('daynotes.delete', { permission: 'db:write:daynotes' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const dayId = num(params.dayId, 'dayId');
-    const noteId = num(params.noteId, 'noteId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const dayId = rowIdParam(params.dayId, 'dayId');
+    const noteId = rowIdParam(params.noteId, 'noteId');
     const actor = this.guards.requireActor(ctx, 'day note');
     await this.guards.requireTripEdit(tripId, actor, DAY_NOTE_EDIT_ACTION);
     const current = await this.dayNotes.getNote(noteId, dayId, tripId);

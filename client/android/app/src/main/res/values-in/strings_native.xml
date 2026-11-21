@@ -8,6 +8,8 @@
     <string name="widget_today_description">Rencana hari ini sebagai linimasa, dengan cuaca dan perhentian berikutnya.</string>
     <string name="widget_bookings_name">Pemesanan</string>
     <string name="widget_bookings_description">Penerbangan, kereta, hotel, dan meja berikutnya, beserta waktunya.</string>
+    <string name="widget_flight_name">Penerbangan</string>
+    <string name="widget_flight_description">Penerbangan berikutnya secara langsung: hitung mundur keberangkatan, pesawat dalam perjalanan, keterlambatan, dan kedatangan.</string>
     <string name="widget_todos_name">Tugas</string>
     <string name="widget_todos_description">Yang masih tersisa untuk perjalanan dan sejauh mana persiapan barang.</string>
     <string name="widget_packing_name">Barang bawaan</string>

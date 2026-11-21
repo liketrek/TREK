@@ -7,8 +7,11 @@
 # enforce-target-branch.yml moves those onto dev.
 #
 # Every PR runs test.yml like any other, so ci-ok decides whether it can
-# merge. Dependabot runs get no Actions secrets, so s3-contract and the Sonar
+# merge. Dependabot runs get no Actions secrets, so server-s3 and the Sonar
 # scan skip themselves on these PRs and ci-ok counts the skip as passed.
+# A bump of @playwright/test also needs the Playwright container tag and
+# digest in test.yml's client-e2e moved by hand; workflow-jobs.test.mjs
+# fails the PR until they match.
 version: 2
 updates:
   # The root lockfile covers the client, server and shared workspaces.
@@ -25,6 +28,13 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # TypeScript 7 is the native compiler and has no JavaScript API yet:
+      # typescript-eslint, the coverage instrumenter and the Postgres probe all
+      # call into it (readConfigFile, ScriptTarget). It moves by hand once the
+      # tooling supports it.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
 
   # plugin-sdk is standalone with a lockfile of its own and ships to npm.
   - package-ecosystem: npm

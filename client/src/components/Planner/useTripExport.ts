@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useTripAddonEnabled } from '../../store/tripAddonsStore';
 import type { AssignmentsMap, Category, Day, DayNote, Place, Reservation, Trip } from '../../types';
 import { importChunk } from '../../utils/chunkReload';
 import type { ViasByDay } from '../../utils/dayRouteVias';
@@ -12,8 +13,8 @@ import { hasPersonalPlan } from '../PDF/pdfScope';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
-/** A running export: a PDF of the plan or of my plan, the calendar file, or a GPX scope. */
-export type ExportJob = 'pdf' | 'pdf:mine' | 'ics' | `gpx:${string}`;
+/** A running export: a PDF of the plan or of my plan, the calendar file, a GPX scope, or the places as KML. */
+export type ExportJob = 'pdf' | 'pdf:mine' | 'ics' | 'kml' | `gpx:${string}`;
 
 /** What a trip export prints, as both shells hold it. */
 export interface TripExportData {
@@ -117,8 +118,8 @@ function usePdfRouting(open: boolean) {
 /**
  * Every way a trip leaves TREK, behind the desktop export dialog and the phone's
  * export sheet: the day plan as a PDF (the whole plan, or my plan once somebody
- * has been given a part of the trip, #2168), the bookings as an .ics file and the
- * map data as GPX.
+ * has been given a part of the trip, #2168), the bookings as an .ics file, the
+ * map data as GPX and the places as KML for Google My Maps.
  */
 export function useTripExport({
   tripId,
@@ -144,6 +145,9 @@ export function useTripExport({
   // them, so it needs the same switch the plan reads.
   const showServiceStops = useRoadtripSettings((s) => s.roadtrip_service_stops_in_days !== false, tripId);
   const myId = useAuthStore((s) => s.user?.id);
+  // The sections the trip has on, as the plan shows them: costs in the figures, tours on the route.
+  const costsEnabled = useTripAddonEnabled(tripId, 'budget');
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours');
   const offerMine = myId != null && hasPersonalPlan(data.assignments, data.reservations);
   const fileBase = data.trip?.title || 'trip';
 
@@ -185,6 +189,8 @@ export function useTripExport({
         timeFormat,
         distanceUnit,
         showServiceStops,
+        costsEnabled,
+        toursEnabled,
         onlyUserId: mine ? myId : undefined,
         route: { viasByDay: data.viasByDay, tourStageStops: data.tourStageStops, ...routing },
         signal: givenUp,
@@ -215,13 +221,12 @@ export function useTripExport({
     }
   };
 
-  /** One GPX scope; `query` narrows what the file carries, empty for everything. */
-  const downloadGpx = async (key: string, query: string) => {
-    const job: ExportJob = `gpx:${key}`;
+  /** One map file the server writes, saved as `<trip>.<extension>`; `failed` is what a broken download says. */
+  const downloadMapFile = async (job: ExportJob, path: string, extension: string, failed: string) => {
     if (running[laneOf(job)]) return;
     begin(job);
     try {
-      const res = await fetch(`/api/trips/${tripId}/places/export.gpx${query}`, { credentials: 'include' });
+      const res = await fetch(`/api/trips/${tripId}/places/${path}`, { credentials: 'include' });
       // 404 here means the selection is empty, which is worth its own message:
       // "nothing happened" and "the download broke" look identical otherwise.
       if (res.status === 404) {
@@ -229,14 +234,21 @@ export function useTripExport({
         return;
       }
       if (!res.ok) throw new Error();
-      saveBlob(await res.blob(), `${fileBase}.gpx`);
+      saveBlob(await res.blob(), `${fileBase}.${extension}`);
       onExported();
     } catch {
-      toast.error(t('dayplan.gpxFailed'));
+      toast.error(failed);
     } finally {
       end(job);
     }
   };
+
+  /** One GPX scope; `query` narrows what the file carries, empty for everything. */
+  const downloadGpx = (key: string, query: string) =>
+    downloadMapFile(`gpx:${key}`, `export.gpx${query}`, 'gpx', t('dayplan.gpxFailed'));
+
+  /** The places as pins for Google My Maps (#1866), which takes a KML file as a layer. */
+  const downloadKml = () => downloadMapFile('kml', 'export.kml', 'kml', t('dayplan.kmlFailed'));
 
   return {
     fileBase,
@@ -249,5 +261,6 @@ export function useTripExport({
     skipPdfRouting: pdfRouting.skip,
     downloadIcs,
     downloadGpx,
+    downloadKml,
   };
 }

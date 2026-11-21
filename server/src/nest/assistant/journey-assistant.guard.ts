@@ -1,6 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
 import { AddonsService } from '../addons/addons.service';
+import { toRowId } from '../common/row-id';
 import { AssistantBookContext } from './assistant-book-context';
 import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
 
@@ -30,8 +31,9 @@ export class JourneyAssistantGuard implements CanActivate {
     if (!(await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))) {
       throw new HttpException({ error: 'Journey addon is not enabled' }, 404);
     }
-    const journeyId = Number((request.params as Record<string, string>).journeyId);
-    const open = Number.isInteger(journeyId) && journeyId > 0 && (await this.books.canOpen(user.id, journeyId));
+    // toRowId, not Number(): Number('0x1') and Number('1e0') are journey 1.
+    const journeyId = toRowId((request.params as Record<string, string>).journeyId);
+    const open = journeyId !== null && journeyId > 0 && (await this.books.canOpen(user.id, journeyId));
     if (!open) throw new HttpException({ error: 'Journey not found' }, 404);
     return true;
   }

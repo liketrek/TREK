@@ -9,10 +9,12 @@ import MKeyboardHost from './keyboard/MKeyboardHost'
 import MShellShortcuts from './keyboard/MShellShortcuts'
 import MToastHost from './components/MToastHost'
 import MEdgeBack from './components/MEdgeBack'
+import MMailInboxHost from './screens/mail/MMailInboxHost'
 import { useNativeCapabilities } from '../native/capabilities'
 import { isNativeIos } from '../native/platform'
 import { useWindowFold } from '../native/windowFold'
 import './mobile.css'
+import './corner.css'
 
 interface MobileShellProps {
   isPhone: boolean
@@ -88,12 +90,13 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
       {!inTripPlanner && wide && (
         <ErrorBoundary boundaryId="chrome:m-nav-rail" fallback={null}><MNavRail /></ErrorBoundary>
       )}
-      <div ref={pageRef} className="flex-1 wide:ps-[var(--m-rail-w)]">{children}</div>
+      <div ref={pageRef} className="m-page flex-1 wide:ps-[var(--m-rail-w)]">{children}</div>
       <MEdgeBack target={pageRef} enabled={edgeBack} />
       {!inTripPlanner && !wide && (
         <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>
       )}
       <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
+      <ErrorBoundary boundaryId="chrome:m-mail-inbox" fallback={null}><MMailInboxHost /></ErrorBoundary>
       {/* A hardware keyboard (an iPad's, mostly) gets the shortcuts an iPad app has. */}
       <ErrorBoundary boundaryId="chrome:m-keyboard" fallback={null}>
         <MKeyboardHost />

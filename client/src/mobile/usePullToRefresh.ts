@@ -14,6 +14,25 @@ export type PullState = { distance: number; refreshing: boolean; armed: boolean 
 function refreshFailed(): void {}
 
 /**
+ * Whether the touch starts inside a box that scrolls on its own and is not at
+ * its top, such as the second column of the dashboard on an unfolded Duo or an
+ * iPad. That pull scrolls the box back up; it is no refresh of the page
+ * (TestFlight feedback: dragging the right column back up refreshed instead).
+ */
+export function insideScrolledBox(target: EventTarget | null, page: Element | null): boolean {
+  for (
+    let el = target instanceof Element ? target : null;
+    el && el !== page && el !== document.body;
+    el = el.parentElement
+  ) {
+    if (el.scrollTop <= 0 || el.scrollHeight <= el.clientHeight) continue;
+    const overflow = getComputedStyle(el).overflowY;
+    if (overflow === 'auto' || overflow === 'scroll') return true;
+  }
+  return false;
+}
+
+/**
  * Pull-to-refresh on a page whose scroller is the window, as the mobile
  * dashboard is. A downward drag that starts at the very top moves `contentRef`
  * down with resistance; past the threshold a light tick tells the finger that
@@ -63,6 +82,7 @@ export function usePullToRefresh(
 
     const onStart = (e: TouchEvent) => {
       if (busy || e.touches.length !== 1 || scrolled() > 0 || hasOpenOverlay()) return;
+      if (insideScrolledBox(e.target, scrollerRef?.current ?? null)) return;
       start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       pulling = false;
     };

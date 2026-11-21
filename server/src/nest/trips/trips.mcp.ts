@@ -20,6 +20,7 @@ import { AddonsService } from '../addons/addons.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { CollabService } from '../collab/collab.service';
 import { DomainError } from '../common/domain-error';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { TodoService } from '../todo/todo.service';
@@ -29,14 +30,15 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { TripWritesService, type TripListWriter } from './trip-writes.service';
 import { tripUpdatePermissions } from './trips.helpers';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
-import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
+import {
+  idSchema,
+  MAX_TRIP_DAYS,
+  tripCalendarDayEventsSchema,
+  tripUpdateRequestSchema,
+  type TripCostsMode,
+} from '@trek/shared';
 
 import { z } from 'zod';
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 function accessDenied(uri: string) {
   return {
@@ -249,8 +251,11 @@ export class TripsMcp {
         .enum(['keep_bookings', 'shift_all'])
         .optional()
         .describe(
-          'When changing dates: keep_bookings (default) keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
+          'When changing dates: keep_bookings (default) leaves everything on its date when days are only added before the start or after the end, and when the trip moves keeps dated reservations/accommodations on their dates while day plans move; shift_all moves the whole itinerary, bookings included',
         ),
+      costs_mode: tripUpdateRequestSchema.shape.costs_mode.describe(
+        'How the trip keeps its costs: split (who paid and who shares each expense, with settling up) or totals (what the trip costs, nothing split). Who paid and the shares stay stored either way. Needs the budget_edit permission rather than trip_edit',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'write' },
@@ -269,6 +274,7 @@ export class TripsMcp {
       day_count,
       reminder_days,
       date_shift_mode,
+      costs_mode,
     }: {
       tripId: number;
       title?: string;
@@ -282,6 +288,7 @@ export class TripsMcp {
       day_count?: number;
       reminder_days?: number;
       date_shift_mode?: 'keep_bookings' | 'shift_all';
+      costs_mode?: TripCostsMode;
     },
     ctx: McpContext,
   ) {
@@ -293,8 +300,18 @@ export class TripsMcp {
     const dates: { start_date?: string | null; end_date?: string | null } = clear_dates
       ? { start_date: null, end_date: null }
       : { start_date, end_date };
-    const fields = { title, description, ...dates, currency, is_archived, cover_image, day_count, reminder_days };
-    // The rights PUT /api/trips/:id asks for, field by field: archiving and the cover have their own.
+    const fields = {
+      title,
+      description,
+      ...dates,
+      currency,
+      is_archived,
+      cover_image,
+      day_count,
+      reminder_days,
+      costs_mode,
+    };
+    // The rights PUT /api/trips/:id asks for, field by field: archiving, the cover and the costs mode have their own.
     const granted = await Promise.all(
       tripUpdatePermissions(fields).map(({ action }) => this.guards.hasTripPermission(action, tripId, ctx.userId)),
     );
@@ -319,13 +336,14 @@ export class TripsMcp {
     // role, as REST hands it on, so an admin's edit of a trip they do not own is one.
     const { role } = await this.guards.tripWriter(tripId, ctx.userId);
     try {
-      const { updatedTrip, removedDays } = await this.trips.update(
+      const { updatedTrip, removedDays, boundaries } = await this.trips.update(
         tripId,
         ctx.userId,
         { ...fields, date_shift_mode },
         role,
       );
       this.guards.safeBroadcast(tripId, 'trip:updated', { trip: updatedTrip });
+      if (boundaries) this.guards.safeBroadcast(tripId, 'roadtripBoundary:changed', { boundaries });
       // Only when days went, so the answer to a rename or a longer trip stays as it was.
       return ok({ trip: updatedTrip, ...(removedDays.length > 0 ? { removed_days: removedDays } : {}) });
     } catch (err) {
@@ -414,10 +432,10 @@ export class TripsMcp {
     const summary = await this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) return noAccess();
     const R = canReadTrips(ctx.scopes);
-    // Addon availability gates
-    const packingEnabled = await this.addons.isAddonEnabled(ADDON_IDS.PACKING);
-    const budgetEnabled = await this.addons.isAddonEnabled(ADDON_IDS.BUDGET);
-    const collabEnabled = await this.addons.isAddonEnabled(ADDON_IDS.COLLAB);
+    // Addon availability gates, as they apply to this trip
+    const packingEnabled = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.PACKING);
+    const budgetEnabled = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.BUDGET);
+    const collabEnabled = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.COLLAB);
     const collabFeatures = collabEnabled ? await this.addons.getCollabFeatures() : null;
     // Scope gates — sections not covered by the client's OAuth scopes are omitted.
     // Core trip data (metadata, days, members, accommodations) is always included
@@ -676,14 +694,19 @@ export class TripsMcp {
       "Export a trip's itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.",
     inputSchema: {
       tripId: idSchema,
+      dayEvents: tripCalendarDayEventsSchema
+        .optional()
+        .describe(
+          'false leaves out the all-day summary each day with untimed places or notes gets ("Day 1", ...), the same as days=0 on the download; the trip itself, timed stops and bookings stay. Default true.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canReadTrips(ctx.scopes),
   })
-  async exportTripIcs({ tripId }: { tripId: number }, ctx: McpContext) {
+  async exportTripIcs({ tripId, dayEvents }: { tripId: number; dayEvents?: boolean }, ctx: McpContext) {
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     try {
-      const { ics, filename } = await this.calendar.exportICS(tripId);
+      const { ics, filename } = await this.calendar.exportICS(tripId, { dayEvents });
       return ok({ ics, filename });
     } catch {
       return { content: [{ type: 'text' as const, text: 'Trip not found.' }], isError: true };
@@ -712,7 +735,7 @@ export class TripsMcp {
     access: (ctx) => canReadTrips(ctx.scopes),
   })
   async tripResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.trips.canAccessTrip(id, ctx.userId))) return accessDenied(uri.href);
     const trip = await this.trips.get(id, ctx.userId);
     return jsonContent(uri.href, trip);
@@ -726,7 +749,7 @@ export class TripsMcp {
     access: (ctx) => canReadTrips(ctx.scopes),
   })
   async tripMembersResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.trips.canAccessTrip(id, ctx.userId))) return accessDenied(uri.href);
     const ownerRow = await this.trips.getOwner(id);
     if (!ownerRow) return accessDenied(uri.href);
@@ -758,15 +781,21 @@ export class TripsMcp {
     }
     const { trip, days, members, budget, packing, reservations, collab_notes } = summary as any;
     const memberList = [members?.owner, ...(members?.collaborators || [])].filter(Boolean);
+    // A section whose addon is off for this trip is left out, as get_trip_summary leaves it out.
+    const [packingOn, budgetOn, collabOn] = await Promise.all(
+      [ADDON_IDS.PACKING, ADDON_IDS.BUDGET, ADDON_IDS.COLLAB].map((id) => this.addons.isEnabledForTrip(tripId, id)),
+    );
+    const sections = [
+      packingOn ? `Packing: ${packing?.checked || 0}/${packing?.total || 0} items packed\n` : '',
+      budgetOn ? `Budget: ${budget?.total || 0} ${trip?.currency || 'EUR'} total\n` : '',
+    ].join('');
+    const notes = collabOn ? `Collab Notes: ${collab_notes?.length || 0}\n` : '';
     const text = `Trip: ${trip?.title || 'Untitled'}${trip?.description ? `\n${trip.description}` : ''}
 Dates: ${trip?.start_date || '?'} to ${trip?.end_date || '?'}
 Members: ${memberList.length} (${memberList.map((m: any) => m.name || m.email).join(', ') || 'none'})
 Days: ${days?.length || 0}
-Packing: ${packing?.checked || 0}/${packing?.total || 0} items packed
-Budget: ${budget?.total || 0} ${trip?.currency || 'EUR'} total
-Reservations: ${reservations?.length || 0}
-Collab Notes: ${collab_notes?.length || 0}
-${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.length || 0} places${d.title ? ` - ${d.title}` : ''}`).join('\n') || 'No days yet'}`;
+${sections}Reservations: ${reservations?.length || 0}
+${notes}${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.length || 0} places${d.title ? ` - ${d.title}` : ''}`).join('\n') || 'No days yet'}`;
     return {
       description: `Summary of trip "${trip?.title || tripId}"`,
       messages: [{ role: 'user' as const, content: { type: 'text' as const, text } }],

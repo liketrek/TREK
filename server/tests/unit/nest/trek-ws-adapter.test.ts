@@ -138,6 +138,15 @@ describe('TrekWsAdapter wire protocol', () => {
     expect(socket.sent).toHaveLength(0); // the answer went nowhere
   });
 
+  it('WSAD-001c: a frame reaches its handler without NUL characters, its type included', () => {
+    // The same rule as every HTTP request (src/nest/common/nul-free-input.ts):
+    // a handler never holds a value the database would store differently.
+    const socket = fakeSocket();
+    adapter.bindMessageHandlers(socket as never, handlers as never, transform);
+    socket.emit('message', frame({ type: 'jo\u0000in', tripId: 7, note: 'a\u0000b', 'k\u0000': ['c\u0000'] }));
+    expect(handled).toEqual([{ type: 'join', tripId: 7, note: 'ab', k: ['c'] }]);
+  });
+
   it('WSAD-002: a handler that answers undefined sends nothing', () => {
     const socket = fakeSocket();
     adapter.bindMessageHandlers(socket as never, handlers as never, transform);

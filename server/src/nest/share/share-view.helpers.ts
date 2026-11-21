@@ -18,6 +18,7 @@ interface ShareSnapshot {
     Array<{ accommodation_id?: number | null; place?: { id: number; image_url?: string | null } }>
   >;
   dayNotes: Record<number, unknown[]>;
+  days: Array<{ title?: string | null }>;
   places: Array<{ id: number; image_url?: string | null }>;
   reservations: Array<{ type?: unknown }>;
 }
@@ -26,7 +27,8 @@ interface ShareSnapshot {
  * "Only travel and stays": what family or an emergency contact needs to know,
  * without the museum and the restaurant. A day keeps only the stop its night's
  * booking wrote, the notes go, the place pool shrinks to where the trip sleeps,
- * and the bookings to transport and hotels.
+ * and the bookings to transport and hotels. Day titles go too ("Louvre and
+ * lunch at Marie's" says what the link leaves out); the page then reads "Day N".
  */
 export function travelOnly<T extends ShareSnapshot>(data: T, stayPlaceIds: ReadonlySet<number>): T {
   const assignments: T['assignments'] = {};
@@ -38,6 +40,7 @@ export function travelOnly<T extends ShareSnapshot>(data: T, stayPlaceIds: Reado
     ...data,
     assignments,
     dayNotes: {},
+    days: data.days.map((d) => ({ ...d, title: null })),
     places: data.places.filter((p) => stayPlaceIds.has(p.id)),
     reservations: data.reservations.filter((r) => isTravelBooking(r.type)),
   };

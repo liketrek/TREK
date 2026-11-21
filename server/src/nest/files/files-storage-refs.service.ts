@@ -22,7 +22,7 @@ export class FilesStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(TripFiles)
-      .find(likeAny<TripFiles>(['filename'], containing), { fields: ['filename'] });
+      .find(likeAny<TripFiles>(this.em.getPlatform(), ['filename'], containing), { fields: ['filename'] });
     return rows.map((row) => row.filename);
   }
 }

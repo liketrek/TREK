@@ -115,6 +115,8 @@ export interface DayAssignmentRow {
   route_excluded: number;
   /** MDT-02: the stage of a multi-day tour the day holds, by its starting stop's key; null for anything else. */
   tour_stage_key: string | null;
+  /** #3092: how long the drive stands at this visit; null reads the place's `duration_minutes`. */
+  stay_minutes: number | null;
 }
 
 const _dayAssignmentRowKeys: AssertRowKeys<DayAssignmentRow, DayAssignments> = true;
@@ -172,6 +174,7 @@ export interface RoadtripVisitRow {
   lng: number | null;
   time: string | null;
   end_time: string | null;
+  /** The visit's own stay where it has one (#3092), else the place's. */
   duration_minutes: number | null;
   end_day: number;
   leg_transport_mode: string | null;

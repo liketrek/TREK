@@ -1,0 +1,168 @@
+/**
+ * Stand-in PostgreSQL client tools (pg_dump, pg_restore and psql) for the unit
+ * tests of the Postgres backup and restore. Each is an executable shell script
+ * in a bin directory, which the test hands TREK as its client-tool directory.
+ *
+ * A stand-in writes its argv and its PG* environment to `<bin>/<name>.log`
+ * before anything else it does, so readToolCall() says what the tool was given.
+ * The log holds the last call. What a call does is a list of shell snippets,
+ * run in order: the builders below name what a test sets up (answersSchema,
+ * writesFile, failsWith, ...), so a test reads as the scenario it describes.
+ * Output files are found by their `--file=` argument, not by position.
+ */
+import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+export type PgToolName = 'pg_dump' | 'pg_restore' | 'psql';
+
+export interface FakeToolOptions {
+  /** What `--version` answers after "PostgreSQL". Defaults to 17.11. */
+  version?: string;
+  /** Shell fragments run after the call is logged, in order. */
+  snippets?: readonly string[];
+}
+
+/** What a stand-in was called with: its arguments, and its PG* environment. */
+export interface ToolCall {
+  args: string[];
+  env: Record<string, string>;
+}
+
+/** A value as one single-quoted shell word. */
+function shellWord(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+/** Answers a call whose arguments contain `pattern` with `text`, and ends the call. */
+export function printsWhen(pattern: string, text: string): string {
+  return `case "$*" in *${pattern}*) printf '%s' ${shellWord(text)}; exit 0;; esac`;
+}
+
+/** What the server says about itself beside its current schema. */
+interface FakeServer {
+  /** `server_version_num`; 170000 by default, which the default tool version (17.11) reaches. */
+  versionNum?: string;
+  /** Whether TREK's role could reach the database host. */
+  privileged?: boolean;
+  /** The plugin data schemas the role owns; none by default. */
+  pluginSchemas?: readonly string[];
+}
+
+/**
+ * psql's answer about the server, as pgServer reads it: the schema's name, its
+ * quote_ident spelling, the server's version number, whether the role is
+ * privileged and the plugin schemas it owns, tab-separated.
+ */
+export function answersSchema(name = 'public', quoted = name, server: FakeServer = {}): string {
+  const { versionNum = '170000', privileged = false, pluginSchemas = [] } = server;
+  const plugins = pluginSchemas.join(',');
+  return printsWhen('quote_ident', `${name}\t${quoted}\t${versionNum}\t${String(privileged)}\t${plugins}\n`);
+}
+
+/** psql's table listing, one name per line, as pgTablesInUse reads it. */
+export function answersTables(names: readonly string[]): string {
+  return printsWhen('table_name', names.map((name) => `${name}\n`).join(''));
+}
+
+/** psql's row count of the migration history, as pgTablesInUse reads it when that table stands alone. */
+export function answersHistoryRows(count: number): string {
+  return printsWhen('history_rows', `${count}\n`);
+}
+
+/** Writes `content` to the output file the call names with `--file=`. */
+export function writesFile(content: string): string {
+  return `printf '%s' ${shellWord(content)} | fake_write "$@"`;
+}
+
+/** Appends what the shell `command` prints to the output the call names with `--file=`. */
+export function appendsOutputOf(command: string): string {
+  return `${command} | fake_append "$@"`;
+}
+
+/** Writes the start of a restore script that restricts psql (CVE-2025-8714) and creates TREK's migration table. */
+export function writesRestrictedScript(table = 'public.mikro_orm_migrations'): string {
+  return writesFile(`\\restrict k1\nCREATE TABLE ${table} (\n);\n`);
+}
+
+/**
+ * Answers a `--list` call with a table of contents holding a SCHEMA line for
+ * each of `schemas`, written to its `--file=`, as `pg_restore --list` does.
+ */
+export function listsSchemas(schemas: readonly string[]): string {
+  const toc = schemas.map((name, i) => `${i + 4}; 2615 ${16000 + i} SCHEMA - ${name} trek\n`).join('');
+  return `case "$*" in *--list*) printf '%s' ${shellWord(toc)} | fake_write "$@"; exit 0;; esac`;
+}
+
+/** Answers a `--data-only` call with the COPY block of `mikro_orm_migrations`, one row per name. */
+export function listsMigrations(names: readonly string[]): string {
+  const rows = names.map((name, i) => `${i + 1}\t${name}\tx\n`).join('');
+  const copy = `COPY public.mikro_orm_migrations (id, name, executed_at) FROM stdin;\n${rows}\\.\n`;
+  return `case "$*" in *--data-only*) printf '%s' ${shellWord(copy)}; exit 0;; esac`;
+}
+
+/** Fails the way a tool that cannot connect does: the message on stderr, then a non-zero exit. */
+export function failsWith(message: string, exitCode = 1): string {
+  return `printf '%s\\n' ${shellWord(message)} >&2; exit ${exitCode}`;
+}
+
+/** Creates `file`: a marker that the tool ran. */
+export function touches(file: string): string {
+  return `touch ${shellWord(file)}`;
+}
+
+/** Copies the `--file=` output whose path ends with `suffix` to `destination`, so a test can read a work file the tool has since removed. */
+export function copiesFileEndingWith(suffix: string, destination: string): string {
+  return `for a in "$@"; do case "$a" in --file=*${suffix}) cp "\${a#--file=}" ${shellWord(destination)};; esac; done`;
+}
+
+/**
+ * The functions every stand-in writes its output with: fake_file_target finds
+ * the `--file=` argument wherever it sits, fake_write (replacing) and
+ * fake_append copy their stdin there. `--file=-` is the tool's own stdout, as
+ * the real tools read it, written as such: /dev/stdout cannot be opened when
+ * stdout is a socket, as it is under the CI runner.
+ */
+const FILE_TARGET_FUNCTION = [
+  'fake_file_target() { for a in "$@"; do case "$a" in --file=*) printf \'%s\' "${a#--file=}";; esac; done; }',
+  'fake_write() { t="$(fake_file_target "$@")"; if [ "$t" = - ]; then cat; else cat > "$t"; fi; }',
+  'fake_append() { t="$(fake_file_target "$@")"; if [ "$t" = - ]; then cat; else cat >> "$t"; fi; }',
+].join('\n');
+
+/**
+ * Installs the stand-in `name` in `bin` and returns the path of its call log.
+ * The script is executable and runs by its absolute path, as TREK runs it.
+ */
+export function installFakeTool(bin: string, name: PgToolName, options: FakeToolOptions = {}): string {
+  const { version = '17.11', snippets = [] } = options;
+  const log = path.join(bin, `${name}.log`);
+  const script = [
+    '#!/bin/sh',
+    FILE_TARGET_FUNCTION,
+    `[ "$1" = --version ] && { echo '${name} (PostgreSQL) ${version} (Debian)'; exit 0; }`,
+    `printf '%s\\n' "$@" > ${shellWord(log)}`,
+    `env | grep '^PG' | sort >> ${shellWord(log)}`,
+    ...snippets,
+    '',
+  ].join('\n');
+  writeFileSync(path.join(bin, name), script);
+  chmodSync(path.join(bin, name), 0o755);
+  return log;
+}
+
+/** What the stand-in logged last: its arguments, and the PG* variables it was run with. */
+export function readToolCall(log: string): ToolCall {
+  const lines = readFileSync(log, 'utf8')
+    .split('\n')
+    .filter((line) => line !== '');
+  const env: Record<string, string> = {};
+  for (const line of lines.filter((line) => line.startsWith('PG'))) {
+    const eq = line.indexOf('=');
+    env[line.slice(0, eq)] = line.slice(eq + 1);
+  }
+  return { args: lines.filter((line) => !line.startsWith('PG')), env };
+}
+
+/** Every argument that starts with `flag`, with the flag removed (`--file=` gives the file paths). */
+export function flagValues(args: readonly string[], flag: string): string[] {
+  return args.filter((arg) => arg.startsWith(flag)).map((arg) => arg.slice(flag.length));
+}

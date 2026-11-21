@@ -36,7 +36,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Coincidenza',
   'reservations.layover.layover': 'Sosta',
   'reservations.needsReview': 'Verifica',
-  'reservations.needsReviewHint': "L'aeroporto non è stato riconosciuto automaticamente — conferma la posizione.",
+  'reservations.needsReviewHint':
+    'Alcuni dati sono stati compilati automaticamente e non è stato possibile leggerli con certezza. Controllali, per favore.',
+  'reservations.reviewConfirm': 'È corretto',
+  'reservations.reviewConfirmHint': 'Clicca per segnare come controllato.',
+  'reservations.reviewConfirmed': 'Segnato come controllato',
   'reservations.searchLocation': 'Cerca stazione, porto, indirizzo...',
   'reservations.meta.trainNumber': 'N. treno',
   'reservations.meta.platform': 'Binario',
@@ -276,7 +280,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Esporta le {shown} righe mostrate su {total} (CSV)',
   'reservations.wallet.add': 'Aggiungi ad Apple Wallet',
   'reservations.wallet.addGoogle': 'Aggiungi a Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Impossibile creare il pass di Wallet. Riprova.',
   'reservations.wallet.undated': 'Prima dai una data alla prenotazione: Wallet mostra il pass intorno a quel momento.',
 };

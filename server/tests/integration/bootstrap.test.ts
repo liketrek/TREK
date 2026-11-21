@@ -7,20 +7,16 @@
  * server/src/bootstrap.ts + index.ts serve everything correctly without the legacy app.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { UnitOfWork } from '../../src/nest/database/unit-of-work';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
-import { resetTestDb } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 // BOOT-007 boots with NODE_ENV=production, which opens the cron gate — keep the
 // registrar inert so a bootstrap test never schedules real jobs or runs boot
 // sweeps against the real uploads/data dirs. The gate itself is covered by
@@ -54,16 +50,17 @@ vi.mock('../../src/nest/scheduling/cron-registrar.service', () => ({
 describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () => {
   let app: INestApplication;
   let instance: import('express').Application;
+  let orm: MikroORM;
 
   beforeAll(async () => {
-    resetTestDb(testDb);
     app = await buildApp();
     instance = app.getHttpAdapter().getInstance();
+    orm = app.get(MikroORM);
+    await resetDatabase(orm);
   });
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('BOOT-001 — GET /api/health returns 200 { status: ok } (platform transport on Nest)', async () => {
@@ -99,7 +96,7 @@ describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () =>
     const anon = await request(instance).get('/api/addons');
     expect(anon.status).toBe(401);
 
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(instance).get('/api/addons').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.addons)).toBe(true);
@@ -124,7 +121,7 @@ describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () =>
     // The admin-0 country GeoJSON is multi-MB; without compression it stalls
     // behind reverse proxies / Cloudflare Tunnel. Proves applyGlobalMiddleware
     // gzips it on the wire.
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(instance)
       .get('/api/addons/atlas/countries/geo')
       .set('Accept-Encoding', 'gzip')

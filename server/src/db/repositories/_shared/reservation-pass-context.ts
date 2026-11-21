@@ -1,9 +1,9 @@
 import type { DB } from '../../kysely/db';
-
-import type { Kysely } from 'kysely';
+import { accommodationIdMatches } from './reservation-accommodation';
+import type { SqlEntityManager } from '@mikro-orm/sql';
 
 /** The tables `passContextQuery` reads. */
-export type PassContextDB = Pick<DB, 'reservations' | 'trips' | 'places' | 'day_accommodations'>;
+type PassContextDB = Pick<DB, 'reservations' | 'trips' | 'places' | 'day_accommodations'>;
 
 /** What a booking's Wallet pass needs beyond the booking: where it is, and the trip's name. */
 export interface ReservationPassContext {
@@ -17,20 +17,22 @@ export interface ReservationPassContext {
  * The trip's title and the place a booking is at (its own place, else its
  * stay's), for its Apple Wallet pass (`ReservationsRepository.findPassContext`).
  * Scoped to the trip, so a booking of another trip reads as none. Kept out of
- * the repository file, which is at its size baseline.
+ * the repository file, which is at its size baseline. `em` is the repository's
+ * own, which has checked the request context.
  */
 export async function passContextQuery(
-  kysely: Kysely<PassContextDB>,
+  em: SqlEntityManager,
   id: number,
   trip_id: number,
 ): Promise<ReservationPassContext | undefined> {
-  const row = await kysely
+  const platform = em.getPlatform();
+  const row = await em
+    .getKysely<PassContextDB>()
     .selectFrom('reservations as r')
     .innerJoin('trips as t', 't.id', 'r.trip_id')
     .leftJoin('places as p', 'p.id', 'r.place_id')
-    // accommodation_id is TEXT; compared as a number so Postgres takes it as well as SQLite ("14" and "14.0" alike).
     .leftJoin('day_accommodations as ap', (join) =>
-      join.on((eb) => eb(eb.cast<number>('r.accommodation_id', 'numeric'), '=', eb.ref('ap.id'))),
+      join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'ap.id')),
     )
     .leftJoin('places as acc_p', 'acc_p.id', 'ap.place_id')
     .where('r.id', '=', id)

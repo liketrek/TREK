@@ -4,12 +4,14 @@ import { applyGlobalMiddleware, routingCspOrigins } from './middleware/globalMid
 import { httpConfig } from './nest/app-config';
 import { AppModule } from './nest/app.module';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
+import { nulFreeRequest } from './nest/common/nul-free-input';
 import { validateBodyContracts } from './nest/common/validate-body-contracts';
 import { validateManagedRoutes } from './nest/common/validate-managed-routes';
 import { PUBLIC_ROUTE_ALLOW_LIST, validateRouteGuards } from './nest/common/validate-route-guards';
 import { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
 import { withRequestContext } from './nest/database/request-context';
 import { MANAGED_PUBLIC_ROUTES } from './nest/managed/managed-ext.module';
+import { PublicMediaService } from './nest/memories/public-media.service';
 import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
 import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
@@ -49,6 +51,7 @@ import nodeHttp from 'node:http';
  *   4b. setupApiDocs — Swagger UI/spec at /api/docs* when TREK_API_DOCS_ENABLED.
  *   4c. the named body-parser wrappers — the global 100kb JSON/urlencoded
  *      parsers, exempting /mcp so the MCP SDK reads the raw stream.
+ *   4d. nulFreeRequest, which drops NUL from the path, query, body and cookies.
  *   5. app.init() — every domain controller, including the transport surface
  *      that used to live pre-init: /api/health (FeaturesController), OAuth
  *      discovery documents (DiscoveryController), the /oauth/consent COOP
@@ -144,7 +147,8 @@ export async function buildApp(): Promise<INestApplication> {
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —
   // per-request resolution runs after app.init() completed the registry load.
-  applyPlatformUploads(instance, app.get(StorageService), orm);
+  // PublicMediaService hands anonymous viewers the location-free copies.
+  applyPlatformUploads(instance, app.get(StorageService), orm, app.get(PublicMediaService));
   // The SDK discovery router (+ its addon gate). Container-built so its deps
   // are injected (same pre-init consumption bridge as httpConfig above), but
   // applied here as a PATHLESS app.use: the SDK router matches absolute
@@ -228,6 +232,11 @@ export async function buildApp(): Promise<INestApplication> {
   instance.use(function urlencodedParser(req: Request, res: Response, next: NextFunction) {
     return isMcp(req) ? next() : urlencoded(req, res, next);
   });
+  // Every request value without NUL from here on (nest/common/nul-free-input.ts):
+  // the path, the query string, the parsed body and the cookies, before any
+  // guard, interceptor or controller reads them, so a key or a check made from
+  // a value matches what the database stores for it.
+  instance.use(nulFreeRequest);
   if (apiDocsEnabled()) setupApiDocs(app);
   // The per-request EntityManager fork every Nest route runs inside (D6). This
   // used to be @mikro-orm/nestjs's own middleware, which Nest 11 mounts as an

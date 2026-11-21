@@ -5,6 +5,7 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
+import { rowId } from '../common/row-id.pipe';
 import { JourneyRecordingPreviewDto, JourneyRecordingSaveDto } from './journey-recordings.dto';
 import { JourneyRecordingsService } from './journey-recordings.service';
 import {
@@ -43,34 +44,38 @@ export class JourneyRecordingsController {
 
   @Get()
   @ResponseContract(journeyRecordedDaysResponseSchema)
-  async list(@CurrentUser() user: User, @Param('id') id: string) {
-    return { days: await this.recordings.list(user.id, Number(id)) };
+  async list(@CurrentUser() user: User, @Param('id', rowId('Journey not found')) id: number) {
+    return { days: await this.recordings.list(user.id, id) };
   }
 
   /** JRN-03: whether the journey prepares its recorded days, and how the caller's last runs went. */
   @Get('prep')
   @ResponseContract(journeyRecordingPrepSchema)
-  async prep(@CurrentUser() user: User, @Param('id') id: string) {
-    return await this.recordings.prepStatus(user.id, Number(id));
+  async prep(@CurrentUser() user: User, @Param('id', rowId('Journey not found')) id: number) {
+    return await this.recordings.prepStatus(user.id, id);
   }
 
   @Post('preview')
   @HttpCode(200)
   @ResponseContract(journeyRecordingPreviewSchema)
-  async preview(@CurrentUser() user: User, @Param('id') id: string, @Body() body: JourneyRecordingPreviewDto) {
-    return await this.recordings.preview(user.id, Number(id), body);
+  async preview(
+    @CurrentUser() user: User,
+    @Param('id', rowId('Journey not found')) id: number,
+    @Body() body: JourneyRecordingPreviewDto,
+  ) {
+    return await this.recordings.preview(user.id, id, body);
   }
 
   @Put(':date')
   @ResponseContract(journeyRecordingSaveResultSchema)
   async save(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Journey not found')) id: number,
     @Param('date') date: string,
     @Body() body: JourneyRecordingSaveDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return await this.recordings.save(user.id, Number(id), dateParam(date), body, socketId);
+    return await this.recordings.save(user.id, id, dateParam(date), body, socketId);
   }
 
   @Delete(':date')
@@ -78,11 +83,11 @@ export class JourneyRecordingsController {
   @ResponseContract(successResponseSchema)
   async remove(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Journey not found')) id: number,
     @Param('date') date: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    await this.recordings.remove(user.id, Number(id), dateParam(date), socketId);
+    await this.recordings.remove(user.id, id, dateParam(date), socketId);
     return { success: true as const };
   }
 }

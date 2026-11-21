@@ -63,6 +63,7 @@ import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-
 import type { PlaceOriginsService } from '../../src/nest/places/place-origins.service';
 import { PlacesRpc } from '../../src/nest/places/places.rpc';
 import { PlacesService } from '../../src/nest/places/places.service';
+import { SqlitePluginDataBackend } from '../../src/nest/plugins/host/plugin-data.backend';
 import { PluginRpcHostFactory } from '../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { DbRpc } from '../../src/nest/plugins/host/rpc/db.rpc';
 import { HostSurfaceRpc } from '../../src/nest/plugins/host/rpc/host-surface.rpc';
@@ -520,6 +521,7 @@ export async function createPluginRpcHostParts(
     await createTestUsersRepo(db),
     await createTestTripsRepo(db),
     await createTestBudgetItemsRepo(db),
+    await createTestAddonsService(db),
   );
   const trips = new TripsService(
     reservations,
@@ -534,6 +536,8 @@ export async function createPluginRpcHostParts(
     await createTestUnitOfWork(db),
     (await sharedTestOrm(db)).em,
     new SettingsService(await createTestUnitOfWork(db), appSettings, await createTestSettingsRepo(db), membership),
+    // TripAddonsService: a copy's per-trip addon switches have their own suites; nothing is copied here.
+    { copyOverrides: async () => {} } as never,
   );
   // Plan 4 Task 4: UserCleanupService's UC1 now goes through a directly-injected
   // EntityManager (MaintenanceRepository.deletePluginUserData), not DatabaseService.
@@ -641,6 +645,7 @@ export async function createPluginRpcHostParts(
       await createTestDaysRepo(db),
       await createTestReservationsRepo(db),
       await createTestDayAccommodationsRepo(db),
+      await createTestUnitOfWork(db),
     ),
     // Plan 3j Task 5 — HostSurfaceRpc's own HR1/HR5–HR9 conversion: the plugin-visible
     // user row, the bilateral trip-sharing gate, and its own scheduler.set/cancel.
@@ -655,12 +660,17 @@ export async function createPluginRpcHostParts(
       usersRepo,
       await createTestTripsRepo(db),
       pluginOrm.repo(PluginScheduledTasks),
+      await createTestUnitOfWork(db),
     ),
     new PluginHooks(undefined as never),
   ];
   const registry = createTestPluginRegistry(controllers);
   return {
-    factory: new PluginRpcHostFactory(pluginAuditRepo, registry as unknown as PluginRpcRegistryService),
+    factory: new PluginRpcHostFactory(
+      pluginAuditRepo,
+      registry as unknown as PluginRpcRegistryService,
+      new SqlitePluginDataBackend(),
+    ),
     controllers,
   };
 }

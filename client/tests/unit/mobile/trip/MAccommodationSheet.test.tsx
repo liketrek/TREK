@@ -8,7 +8,7 @@ import { useSettingsStore } from '../../../../src/store/settingsStore'
 import { isBlurred } from '../../../helpers/bookingCodeBlur'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-ACCSH-001 to FE-MOB-ACCSH-031
+// FE-MOB-ACCSH-001 to FE-MOB-ACCSH-033
 
 // The pickers have their own suites; here they only need to be addressable, so
 // they render as plain controls. data-value keeps the requested value readable
@@ -254,6 +254,22 @@ describe('MAccommodationSheet', () => {
     setup(makePlanner({ places: [PLACES[0]] }))
     fireEvent.click(screen.getByRole('button', { name: 'Food' }))
     expect(screen.getByText('Add places to your trip first')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-ACCSH-032: a trip without places offers to add one instead of a dead end', () => {
+    const { planner } = setup(makePlanner({ places: [] }))
+    expect(screen.getByText('Add places to your trip first')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add place/activity' }))
+
+    expect(planner.setEditingPlace).toHaveBeenCalledWith(null)
+    expect(planner.setShowPlaceForm).toHaveBeenCalledWith(true)
+  })
+
+  it('FE-MOB-ACCSH-033: without the right to add places the hint stays a hint', () => {
+    setup(makePlanner({ places: [], can: vi.fn(() => false) }))
+    expect(screen.getByText('Add places to your trip first')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add place/activity' })).toBeNull()
   })
 
   it('FE-MOB-ACCSH-018: without categories there are no filter chips', () => {

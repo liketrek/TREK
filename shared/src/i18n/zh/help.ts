@@ -987,8 +987,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': '地图',
   'help.ctx.settings-map.summary':
     '行程规划器和旅程日志的地图用哪个引擎绘制，以及采用什么样式。Leaflet 是经典的栅格地图；Mapbox GL 用你自己的令牌增加 3D 建筑和地形；MapLibre GL 不需要令牌，绘制 OpenFreeMap 矢量瓦片。足迹始终使用 Leaflet。',
-  'help.ctx.settings-map.bullet.1':
-    '“地图提供商”：Leaflet、Mapbox GL（“实验性”）或 MapLibre GL，每个选项都有一行简短说明。',
+  'help.ctx.settings-map.bullet.1': '“地图提供商”：Leaflet、Mapbox GL或 MapLibre GL，每个选项都有一行简短说明。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet 使用“地图模板”和“CARTO API 密钥”；两种 GL 引擎使用“地图样式”，Mapbox GL 另外还需要“Mapbox 访问令牌”。',
   'help.ctx.settings-map.bullet.3':
@@ -3989,7 +3988,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '卡片下方的“恢复默认”会把整个“外观”标签页恢复为初始设置。',
   'help.guide.web-push-device.result': '卡片显示“已为此设备开启”，在“推送”下开启的事件，即使 TREK 没有打开也会送达。',
   'help.guide.connect-airtrail.step.1':
-    '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。',
+    '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。若在 AirTrail 3.13 或更高版本中创建密钥，读取需要范围 flight.read.own。若要将更改写回，还需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在“集成”下找到 Dawarich，输入它的“实例地址”，以及在 Dawarich 的“账户”、“API 密钥”中获取的 API 密钥。',
   'help.guide.tour-connect-wanderer.step.1':

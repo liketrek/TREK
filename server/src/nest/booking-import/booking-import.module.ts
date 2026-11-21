@@ -4,7 +4,7 @@ import { AddonsModule } from '../addons/addons.module';
 import { BudgetModule } from '../budget/budget.module';
 import { LlmParseModule } from '../llm-parse/llm-parse.module';
 import { MapsModule } from '../maps/maps.module';
-import { PermissionsModule } from '../permissions/permissions.module';
+import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PlacesModule } from '../places/places.module';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { BookingImportService } from './booking-import.service';
@@ -16,14 +16,16 @@ import { Module } from '@nestjs/common';
 /**
  * `MikroOrmModule.forFeature([Days, Reservations])` (Plan 3h Task 4, BI1/BI2):
  * `BookingImportService.resolveDayId` reaches `DaysRepository.findByTripAndDate`
- * and `ReservationsRepository.findNearestDayId`.
+ * and `ReservationsRepository.findNearestDayId`; confirm() reads the duplicate
+ * key through `ReservationsRepository`, and asks McpToolGuardsService whether
+ * the importing person may edit the trip's bookings.
  */
 @Module({
   imports: [
     KitineraryExtractorModule,
     LlmParseModule,
     ReservationsModule,
-    PermissionsModule,
+    McpSharedModule,
     BudgetModule,
     AddonsModule,
     MapsModule,

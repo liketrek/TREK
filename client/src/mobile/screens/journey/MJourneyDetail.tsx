@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
-import { BookOpen, ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2, X, Route, ListChecks } from 'lucide-react'
+import { BookOpen, ChevronLeft, MapPin, Grid3x3, Map as MapIcon, MoreHorizontal, Play, Image, Camera, EyeOff, Satellite, Settings2, X, Route, ListChecks } from 'lucide-react'
 import JourneyLayeredMap from '../../../components/Journey/JourneyLayeredMap'
+import type { BaseLayer } from '../../../components/Map/MapLayerSwitcher'
 import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
 import ContributorInviteDialog from '../../../components/Journey/ContributorInviteDialog'
 import ConfirmDialog from '../../../components/shared/ConfirmDialog'
@@ -205,6 +206,8 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   // Whether the probe below has finished — not whether it found anything.
   const [providersReady, setProvidersReady] = useState(false)
   const [showUploadMenu, setShowUploadMenu] = useState(false)
+  // The map's base, switched from the bar: the satellite imagery or the map (#2594).
+  const [mapBase, setMapBase] = useState<BaseLayer>('default')
   const [showActionMenu, setShowActionMenu] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
   // The gallery photo waiting on its delete confirm; entries have their own deleteTarget.
@@ -343,7 +346,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden" style={headSlot ? IN_SHELL_ROW : undefined}>
+    <div ref={rootRef} className="m-bleed m-corner-own relative h-dvh overflow-hidden" style={headSlot ? IN_SHELL_ROW : undefined}>
       {/* Integrated map — always mounted, the gallery overlays it. Beside the feed
           it begins where the feed ends, so its controls and its framing stay in
           the part that can be seen. */}
@@ -355,7 +358,9 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           ref={mapRef}
           layers={mapLayers}
           hideLayerControl
-          controlsTop="calc(var(--m-safe-top, 12px) + 50px)"
+          controlsTop="max(calc(var(--m-safe-top, 12px) + 50px), var(--m-corner-clear, 0px))"
+          // Its satellite switch sits in the bar above, beside the menu.
+          baseLayer={mapBase}
           onOpenEntry={handleMarkerClick}
           onWriteAboutPlace={writeAboutPlace}
           entryTitleOf={entryTitleOf}
@@ -377,7 +382,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
 
       {/* Gallery tab overlay */}
       {view === 'gallery' && (
-        <div className="m-span-x absolute inset-y-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[calc(var(--m-safe-top,12px)+56px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6">
+        <div className="m-span-x absolute inset-y-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[max(calc(var(--m-safe-top,12px)+56px),var(--m-corner-clear,0px))] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6">
           {gallery.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
               <MDancingTrek scene="journey" className="mb-2" />
@@ -512,6 +517,17 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
               className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-[color:var(--m-sheet)] text-m-ink shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)]"
             >
               <BookOpen size={17} strokeWidth={2} />
+            </button>
+          )}
+          {view === 'timeline' && (
+            <button
+              type="button"
+              onClick={() => setMapBase((was) => (was === 'satellite' ? 'default' : 'satellite'))}
+              aria-pressed={mapBase === 'satellite'}
+              aria-label={t(mapBase === 'satellite' ? 'map.baseLayer.switchToDefault' : 'map.baseLayer.switchToSatellite')}
+              className={`flex h-[38px] w-[38px] items-center justify-center rounded-full shadow-[0_5px_14px_-6px_rgba(0,0,0,.3)] ${mapBase === 'satellite' ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-sheet)] text-m-ink'}`}
+            >
+              {mapBase === 'satellite' ? <MapIcon size={17} strokeWidth={2} /> : <Satellite size={17} strokeWidth={2} />}
             </button>
           )}
           <button

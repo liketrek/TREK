@@ -1,5 +1,7 @@
+import { ADDON_IDS } from '../../addons';
 import { Tours } from '../../db/entities/Tours.entity';
 import type { ToursRepository, TourLibraryRow } from '../../db/repositories/Tours.repository';
+import { AddonsService } from '../addons/addons.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { parseRouteGeometry, thinnedLine } from './tours.helpers';
 import { ToursService } from './tours.service';
@@ -48,8 +50,9 @@ function toItem(row: TourLibraryRow, points: Parameters<typeof walkStationFacts>
  * into the trip they are planning. Listing and previewing read only. Every
  * answer is bounded by the trips the user owns or is a member of, read anew
  * for each call: a tour of a trip out of reach is "not found", never a hint
- * that it exists. Heights, times and distances are passed on as they are
- * stored, null staying null.
+ * that it exists. A trip with Tours off counts as out of reach, so its tours
+ * are neither listed, shown nor taken over. Heights, times and distances are
+ * passed on as they are stored, null staying null.
  */
 @Injectable()
 export class TourLibraryService {
@@ -57,10 +60,12 @@ export class TourLibraryService {
     @InjectRepository(Tours) private readonly toursRepo: ToursRepository,
     private readonly membership: TripMembershipService,
     private readonly tours: ToursService,
+    private readonly addons: AddonsService,
   ) {}
 
+  /** The user's trips that have Tours on, the one being planned left out when named. */
   private async reachableTrips(userId: number, exclude?: number): Promise<number[]> {
-    const ids = await this.membership.listAccessibleTripIds(userId);
+    const ids = await this.addons.tripsWithAddon(await this.membership.listAccessibleTripIds(userId), ADDON_IDS.TOURS);
     return exclude === undefined ? ids : ids.filter((id) => id !== exclude);
   }
 

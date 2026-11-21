@@ -2,6 +2,8 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Notifikasi',
+  'admin.notifications.channels': 'Saluran',
+  'admin.notifications.adminAlerts': 'Peringatan admin',
   'admin.notifications.hint': 'Pilih satu saluran notifikasi. Hanya satu yang bisa aktif sekaligus.',
   'admin.notifications.none': 'Dinonaktifkan',
   'admin.notifications.email': 'Email (SMTP)', // same-as-en
@@ -121,7 +123,8 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Tautan undangan dihapus',
   'admin.invite.createError': 'Gagal membuat tautan undangan',
   'admin.invite.deleteError': 'Gagal menghapus tautan undangan',
-  'admin.tabs.settings': 'Pengaturan',
+  'admin.tabs.security': 'Keamanan',
+  'admin.tabs.services': 'Layanan',
   'admin.allowRegistration': 'Izinkan Pendaftaran',
   'admin.allowRegistrationHint': 'Pengguna baru dapat mendaftar sendiri',
   'admin.authMethods': 'Metode Autentikasi',
@@ -133,10 +136,13 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Izinkan pengguna masuk dengan SSO',
   'admin.oidcRegistration': 'Penyediaan Otomatis SSO',
   'admin.oidcRegistrationHint': 'Buat akun otomatis untuk pengguna SSO baru',
+  'admin.oidcAutoRedirect': 'Langsung ke SSO',
+  'admin.oidcAutoRedirectHint':
+    'Saat login dengan kata sandi nonaktif, pengunjung langsung diarahkan ke penyedia identitas. Matikan ini untuk menampilkan halaman login dengan tombol SSO terlebih dahulu.',
   'admin.envOverrideHint':
     'Pengaturan login kata sandi dikendalikan oleh variabel lingkungan OIDC_ONLY dan tidak dapat diubah di sini.',
   'admin.lockoutWarning': 'Minimal satu metode login harus tetap aktif',
-  'admin.requireMfa': 'Wajibkan autentikasi dua faktor (2FA)',
+  'admin.requireMfa': 'Wajibkan 2FA',
   'admin.requireMfaHint':
     'Pengguna tanpa 2FA harus menyelesaikan pengaturan di Pengaturan sebelum menggunakan aplikasi.',
   'admin.apiKeys': 'Kunci API',
@@ -180,10 +186,8 @@ const admin: TranslationStrings = {
   'admin.trekApi.included': 'Termasuk',
   'admin.trekApi.notIncluded': 'Tidak termasuk',
   'admin.trekApi.quota.title': 'Kuota hari ini',
-  'admin.trekApi.quota.used': 'Terpakai',
   'admin.trekApi.quota.remaining': 'Tersisa',
   'admin.trekApi.quota.resets': 'Direset pukul',
-  'admin.trekApi.quota.limit': 'Batas',
   'admin.trekApi.quota.key': 'Kunci',
   'admin.trekApi.quota.state.connected': 'Terhubung',
   'admin.trekApi.quota.state.registering': 'Sedang disiapkan',
@@ -308,8 +312,9 @@ const admin: TranslationStrings = {
   'admin.collab.whatsnext.title': 'Selanjutnya',
   'admin.collab.whatsnext.subtitle': 'Saran aktivitas dan langkah selanjutnya',
   'admin.tabs.config': 'Personalisasi',
-  'admin.tabs.defaults': 'Pengaturan Default Pengguna',
+  'admin.tabs.defaults': 'Bawaan',
   'admin.defaultSettings.title': 'Pengaturan Default Pengguna',
+  'admin.defaultSettings.routing': 'Rute',
   'admin.defaultSettings.description':
     'Tetapkan nilai default untuk seluruh instance. Pengguna yang belum mengubah pengaturan akan melihat nilai-nilai ini. Perubahan mereka sendiri selalu diprioritaskan.',
   'admin.defaultSettings.saved': 'Default disimpan',
@@ -768,14 +773,6 @@ const admin: TranslationStrings = {
   'admin.addons.toast.updated': 'Addon diperbarui',
   'admin.addons.toast.error': 'Gagal memperbarui addon',
   'admin.addons.group.count': '{enabled} dari {total} aktif',
-  'admin.addons.search': 'Cari add-on',
-  'admin.addons.filter': 'Tampilkan',
-  'admin.addons.filter.all': 'Semua',
-  'admin.addons.filter.on': 'Aktif',
-  'admin.addons.filter.off': 'Nonaktif',
-  'admin.addons.noMatch': 'Tidak ada add-on yang cocok dengan pencarian atau filter.',
-  'admin.addons.subOptions': '{count} opsi',
-  'admin.addons.subOptionsOn': '{count} aktif',
   'admin.toursWanderer.title': 'wanderer',
   'admin.toursWanderer.subtitle':
     'Pengguna dapat menghubungkan instans wanderer milik sendiri dan mengimpor jalurnya sebagai tur',
@@ -801,7 +798,7 @@ const admin: TranslationStrings = {
   'admin.weather.requestsDesc': 'Gratis, tidak perlu kunci API',
   'admin.weather.locationHint':
     'Cuaca didasarkan pada tempat pertama dengan koordinat di setiap hari. Jika tidak ada tempat yang ditetapkan untuk suatu hari, tempat mana pun dari daftar tempat digunakan sebagai referensi.',
-  'admin.tabs.mcpTokens': 'Akses MCP',
+  'admin.tabs.mcpTokens': 'MCP',
   'admin.mcpTokens.title': 'Akses MCP',
   'admin.mcpTokens.subtitle': 'Kelola sesi OAuth dan token API di semua pengguna',
   'admin.mcpTokens.sectionTitle': 'Token API',
@@ -916,7 +913,6 @@ const admin: TranslationStrings = {
     'Digunakan untuk setiap pengguna yang belum memasukkan kunci mereka sendiri, sehingga seluruh instance mendapatkan ubin CARTO tanpa tanda air. Disimpan dalam bentuk terenkripsi.',
   'admin.group.users': 'Pengguna',
   'admin.group.config': 'Konfigurasi',
-  'admin.group.integration': 'Integrasi',
   'admin.group.maintenance': 'Pemeliharaan',
   'admin.invite.tripLabel': 'Tambahkan ke perjalanan (opsional)',
   'admin.invite.tripNone': 'Tanpa perjalanan',

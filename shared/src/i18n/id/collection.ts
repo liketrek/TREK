@@ -94,6 +94,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'Ide',
   'collections.status.want': 'Ingin ke sana',
   'collections.status.visited': 'Dikunjungi',
+  'collections.status.revisit': 'Ingin kembali',
   'collections.status.filterAll': 'Semua',
   'collections.status.cycleHint': 'ketuk untuk mengubah',
 
@@ -174,9 +175,13 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'Daftar TREK',
   'collections.file.formatTrekHint': 'Untuk TREK lain, lengkap dengan label dan status',
   'collections.file.formatGpxHint': 'Titik lokasi untuk OsmAnd, Organic Maps, Garmin, dan aplikasi peta lain',
+  'collections.file.formatKmlHint': 'Penanda untuk Google My Maps, agar tempat terlihat di Google Maps',
   'collections.file.gpxOmitted': '{count} tempat tanpa koordinat tidak dimasukkan ke berkas GPX',
   'collections.file.gpxNothing':
     'Tidak ada tempat yang punya koordinat, jadi tidak ada yang bisa dimasukkan ke berkas GPX.',
+  'collections.file.kmlOmitted': '{count} tempat tanpa koordinat tidak dimasukkan ke berkas KML',
+  'collections.file.kmlNothing':
+    'Tidak ada tempat yang punya koordinat, jadi tidak ada yang bisa dimasukkan ke berkas KML.',
   'collections.file.reading': 'Membaca berkas…',
   'collections.file.gpxSkipped': '{count} titik lokasi tanpa koordinat yang bisa dipakai tidak disertakan.',
   'collections.file.gpxTrack': 'Berkas ini juga berisi {count} titik jejak. Jejak tidak diimpor, hanya titik lokasi.',

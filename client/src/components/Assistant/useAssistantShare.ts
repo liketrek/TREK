@@ -8,6 +8,7 @@ import { OnlineOnlyError } from '../../repo/onlineOnly';
 import { useAddonStore } from '../../store/addonStore';
 import { chatOf, useAssistantStore } from '../../store/assistantStore';
 import { useCanDo } from '../../store/permissionsStore';
+import { useTripAddonEnabled } from '../../store/tripAddonsStore';
 import { useTripStore } from '../../store/tripStore';
 import { useToast } from '../shared/Toast';
 import { chatTextOf } from './assistantShare';
@@ -35,7 +36,10 @@ export function useAssistantShare(tripId: number, message: AssistantMessage, wri
   const { offline } = useNetworkMode();
   const can = useCanDo();
   const trip = useTripStore((s) => (s.trip?.id === tripId ? s.trip : null));
-  const chatOn = useAddonStore((s) => s.collabChat && s.addons.some((a) => a.id === 'collab' && a.enabled));
+  // The chat is an instance-wide part of Collab, which this trip may have on or off.
+  const chatFeatureOn = useAddonStore((s) => s.collabChat);
+  const collabOn = useTripAddonEnabled(tripId, 'collab');
+  const chatOn = chatFeatureOn && collabOn;
   const threadId = useAssistantStore((s) => chatOf(s, tripId).threadId);
   const [previewing, setPreviewing] = useState(false);
   const [includeChanges, setIncludeChanges] = useState(true);

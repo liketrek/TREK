@@ -19,6 +19,7 @@ import {
   castIntegerKysely,
   concatKysely,
   currentTimestampKysely,
+  integerTextEqualsKysely,
   nowPlusSecondsKysely,
   startsWithIsoDateKysely,
   substringKysely,
@@ -44,6 +45,7 @@ import {
   dateOf,
   dayDistance,
   foundAgainState,
+  ilike,
   lower,
   lowerParam,
   lowerTrim,
@@ -270,6 +272,18 @@ export const HELPER_CASES: readonly HelperCase[] = [
     expect: { equals: 3 },
   },
   {
+    name: 'ilike matches in other case',
+    row: { a: 'Probe Place' },
+    raw: (p) => ({ sql: ilike(p, ['a']), params: ['%PLACE%'] }),
+    expect: { equals: true },
+  },
+  {
+    name: 'ilike keeps the escaped wildcard literal',
+    row: { a: 'Probe Place' },
+    raw: (p) => ({ sql: ilike(p, ['a']), params: ['probe\\_place'] }),
+    expect: { equals: false },
+  },
+  {
     name: 'collateNoCase',
     row: { a: 'Probe' },
     raw: (p) => comparison(collateNoCase(p, 'a'), bound('pROBE')),
@@ -341,6 +355,26 @@ export const HELPER_CASES: readonly HelperCase[] = [
     row: { a: '14.0' },
     kysely: (p, eb) => castIntegerKysely(p, eb, 'a'),
     expect: { equals: 14 },
+  },
+  ...['14', '14.0'].map(
+    (stored): HelperCase => ({
+      name: `integerTextEqualsKysely matches the text ${stored} to 14`,
+      row: { a: stored, n: 14 },
+      kysely: (p, eb) => eb.case().when(integerTextEqualsKysely(p, eb, 'a', 'n')).then('yes').else('no').end(),
+      expect: { equals: 'yes' },
+    }),
+  ),
+  {
+    name: 'integerTextEqualsKysely matches the number 14 to 14',
+    row: { n: 14 },
+    kysely: (p, eb) => eb.case().when(integerTextEqualsKysely(p, eb, 'n', 'n')).then('yes').else('no').end(),
+    expect: { equals: 'yes' },
+  },
+  {
+    name: 'integerTextEqualsKysely tells 15.0 from 14',
+    row: { a: '15.0', n: 14 },
+    kysely: (p, eb) => eb.case().when(integerTextEqualsKysely(p, eb, 'a', 'n')).then('yes').else('no').end(),
+    expect: { equals: 'no' },
   },
   {
     name: 'unixEpochToIsoKysely',

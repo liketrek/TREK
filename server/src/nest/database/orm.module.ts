@@ -1,3 +1,4 @@
+import { DatabaseEngineModule } from './database-engine.module';
 import { UnitOfWork } from './unit-of-work';
 import { Global, Module } from '@nestjs/common';
 
@@ -10,10 +11,11 @@ import { Global, Module } from '@nestjs/common';
  * (`Test.createTestingModule({ imports: [DatabaseModule, ...] })`)
  * with no ORM in the container: a provider there that injects the core
  * `EntityManager` fails every one of them at `compile()`, because Nest
- * instantiates providers eagerly. Nothing is imported here — the
- * `EntityManager` token comes from `MikroOrmModule.forRoot`, whose
- * `MikroOrmCoreModule` is itself `@Global()`.
+ * instantiates providers eagerly. The `EntityManager` token comes from
+ * `MikroOrmModule.forRoot`, whose
+ * `MikroOrmCoreModule` is itself `@Global()`. It imports `DatabaseEngineModule`,
+ * the engine the unit of work serializes its writes through.
  */
 @Global()
-@Module({ providers: [UnitOfWork], exports: [UnitOfWork] })
+@Module({ imports: [DatabaseEngineModule], providers: [UnitOfWork], exports: [UnitOfWork] })
 export class OrmModule {}

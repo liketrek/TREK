@@ -168,6 +168,20 @@ describe('watchBooking', () => {
     });
   });
 
+  it('carries the seat of every leg of a flight with a stop, also one booked only on the second', () => {
+    const stopover = reservation({
+      ...flight,
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'MXP', to: 'IST' },
+          { from: 'IST', to: 'JFK', seat: '14C' },
+        ],
+      }),
+    });
+    const b = watchBooking(stopover, { day: '2026-11-17', time: '13:05' }, { dayDates: new Map(), places: new Map() });
+    expect(b.seat).toBe('14C');
+  });
+
   it('gives a stay its check-in, check-out, dates from its days and the hotel as the place to go', () => {
     const dayDates = new Map([
       [2, '2026-11-18'],

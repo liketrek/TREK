@@ -6,7 +6,7 @@
  * journey, a saved place, a value an undo wrote back) stays. The objects are
  * written straight into the test run's uploads folder under random names and
  * taken back afterwards, the owner markers the job wrote with them.
- * RELI-001 to RELI-009.
+ * RELI-001 to RELI-010.
  */
 import { buildApp } from '../../src/bootstrap';
 import { Addons } from '../../src/db/entities/Addons.entity';
@@ -113,6 +113,25 @@ describe('the deferred release of what a change left unnamed', () => {
     await tick();
     expect(exists('covers', old)).toBe(false);
     expect(exists('covers', next)).toBe(true);
+  });
+
+  it('RELI-010: a row that names the object in uppercase keeps it on every engine', async () => {
+    const { user } = await makeUser(orm);
+    const old = stored('covers');
+    const trip = await makeTrip(orm, user.id, { cover_image: `/uploads/covers/${old}` });
+    // A client may write the key in another case; the parser reads it case-insensitively,
+    // and so must the narrowed lookup, which a bare LIKE is only on SQLite.
+    await makeTrip(orm, user.id, { cover_image: `/uploads/covers/${old.toUpperCase()}` });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ cover_image: `/uploads/covers/${stored('covers')}` });
+    expect(res.status).toBe(200);
+    expect(await queued('covers', old)).toBe(1);
+    await tick();
+    expect(exists('covers', old)).toBe(true);
+    expect(await queued('covers', old)).toBe(0);
   });
 
   it('RELI-002: a deleted trip takes its cover along a day later, unless a journey inherited it', async () => {

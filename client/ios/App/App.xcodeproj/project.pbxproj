@@ -37,6 +37,7 @@
 		512499AF65E091B2BBC9A7BB /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E45050B942C96E1ACCAB7CE9 /* UniformTypeIdentifiers.framework */; };
 		5480CCC12F42E9605044AB6B /* ShareHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56050CCA8DE4BEB4680D9E0B /* ShareHandoff.swift */; };
 		5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */; };
+		F11E0C0A9B7D4E2A8C3F5A01 /* FlightContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11E0C0A9B7D4E2A8C3F5A02 /* FlightContent.swift */; };
 		5BBE9EE02A47EC67C31F5E21 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0A4B2C6C93971E884561CFA /* Localizable.strings */; };
 		612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030A06726542A2D7F61C54B /* TrekFamily.swift */; };
 		634F4E63DC7C2A0027F0D118 /* Details.swift in Sources */ = {isa = PBXBuildFile; fileRef = F406A4A31BD875A880A7CA14 /* Details.swift */; };
@@ -305,6 +306,7 @@
 		E5800E4ECECED54A47CDABAA /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = tr; path = tr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E6831E849332626BE8D54CEF /* ShareView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
 		E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookingsContent.swift; sourceTree = "<group>"; };
+		F11E0C0A9B7D4E2A8C3F5A02 /* FlightContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FlightContent.swift; sourceTree = "<group>"; };
 		EAFBDD97043B34E4B64FDA86 /* pt-BR */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		EC8D1292C9FC6430C059960A /* nl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		ECC80E1314B31ED2D2347411 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 				DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */,
 				24B175DE91E1E6E850DB0285 /* TodayContent.swift */,
 				E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */,
+				F11E0C0A9B7D4E2A8C3F5A02 /* FlightContent.swift */,
 				AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */,
 			);
 			name = TREKWidgets;
@@ -849,6 +852,7 @@
 				8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */,
 				9A175689CFCC630BE9BB9EE1 /* TodayContent.swift in Sources */,
 				5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */,
+				F11E0C0A9B7D4E2A8C3F5A01 /* FlightContent.swift in Sources */,
 				F1E29B18C5B1E75A5BC01B57 /* TodosContent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

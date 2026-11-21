@@ -375,6 +375,7 @@ struct LockAccessory: View {
             switch kind {
             case .trip: TripContent(snapshot: snapshot, family: family, now: now)
             case .bookings: BookingsContent(snapshot: snapshot, family: family, now: now)
+            case .flight: FlightContent(snapshot: snapshot, family: family, now: now)
             case .todos: TodosContent(snapshot: snapshot, family: family, now: now)
             case .packing: PackingContent(snapshot: snapshot, family: family, now: now)
             case .atlas: AtlasContent(snapshot: snapshot, family: family)

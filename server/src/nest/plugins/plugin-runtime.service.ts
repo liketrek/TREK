@@ -38,6 +38,7 @@ import { NotificationChannelPreferences } from '../../db/entities/NotificationCh
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
+import { tripEventSink } from './plugin-event-addons';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
 import { setPluginChannelSource, pluginChannelId } from '../notifications/channel-registry';
 import type { ChannelMessage, ExternalChannel } from '../notifications/notification-events';
@@ -53,7 +54,6 @@ import path from 'node:path';
 import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { closePluginDataDb } from './host/plugin-host-state';
 import { ForbiddenResource } from './host/rpc-host';
-import { removePluginData } from './host/plugin-data.service';
 import { isKnownPermission } from './protocol/envelope';
 import { discoverPlugins, type DiscoveryRepos } from './install/discovery';
 import { enqueueHookUserDataErasures } from './user-erasure-enqueue';
@@ -331,9 +331,8 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       await this.supervisor.shutdownAll();
       applyStagedPluginTrees();
     });
-    // Forward core trip events to plugins that subscribed (events:subscribe). The
-    // sink is name-only + fire-and-forget, so it can never block a core broadcast.
-    setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
+    // Core trip events go to subscribed plugins, fire-and-forget, unless the trip has the event's addon off.
+    setPluginEventSink(tripEventSink(this.addons, this.orm, (t, e, m) => this.supervisor.deliverEvent(t, e, m)));
     // Expose plugin notification channels to the (plain, non-Nest) notification
     // service. Pull-based: it calls this on every dispatch, so enabling or removing
     // a plugin takes effect immediately with nothing to invalidate.
@@ -436,7 +435,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       // errors (each body is wrapped in try/catch); the .catch below is defense-in-
       // depth against a future regression, same shape as the pruneErrorLog call in
       // the onLog hook above.
-      void this.fireDueScheduled().catch(() => { /* fireDueScheduled already handles its own errors — this is a backstop */ });
+      void this.fireDueScheduled().catch(() => { /* a backstop: fireDueScheduled handles its own errors */ });
       void this.drainUserErasures();
     });
   }
@@ -1021,7 +1020,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     this.stopWatch(id);
     removePluginCodeEntry(dest); // drop any prior link — never follows into the author's source
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX ignores the type -> dir symlink
+    fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX: a dir symlink
     await discoverPlugins(this.discoveryRepos); // registers/updates the row from the linked manifest, INACTIVE
     // Same as a sideload: the plugin has left the registry trust model, so a block that
     // described a refused REGISTRY update no longer describes the code that will run.
@@ -1091,7 +1090,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // leave a plugin without its row but with its settings, grants or tasks, which a
     // later plugin reusing the id would inherit. The data dir goes after the commit.
     await this.uow.transactional(() => this.dropPluginRows(id, deleteData));
-    if (deleteData) removePluginData(id);
+    // The plugin's own database (a SQLite file, or its schema on Postgres) and its data dir.
+    if (deleteData) {
+      if (!this.hostFactory) throw new Error('PluginRpcHostFactory not provided: it is what erases the plugin data');
+      await this.hostFactory.erasePluginData(id);
+    }
   }
 
   private async dropPluginRows(id: string, deleteData: boolean): Promise<void> {
@@ -1158,7 +1161,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   invoke(id: string, method: string, params: Record<string, unknown>, actingUserId?: number): Promise<unknown> {
     return this.supervisor.invoke(id, method, params, { actingUserId });
   }
-  /** Ids of active plugins implementing a provider hook (e.g. 'placeDetailProvider'), or one optional function of it. */
+  /** Ids of active plugins implementing a provider hook ('placeDetailProvider'), or one optional function of it. */
   providersOf(hook: string, fn?: string): string[] {
     return this.supervisor.providersOf(hook, fn);
   }

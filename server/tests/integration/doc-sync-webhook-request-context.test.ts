@@ -37,25 +37,21 @@
  * `schedule()` call ever touches the EntityManager.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { DocumentConnections } from '../../src/db/entities/DocumentConnections.entity';
 import { DocumentProviders } from '../../src/db/entities/DocumentProviders.entity';
 import { TripDocumentLinks } from '../../src/db/entities/TripDocumentLinks.entity';
 import { DocSyncConfigService } from '../../src/nest/doc-sync/doc-sync-config.service';
 import { DocSyncWebhookController } from '../../src/nest/doc-sync/doc-sync-webhook.controller';
 import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from '../../src/nest/doc-sync/doc-sync.constants';
-import { createUser, createTrip } from '../helpers/factories';
 import { insertRow, updateRows } from '../helpers/factories/rows';
 import { setAddonEnabled } from '../helpers/factories/settings';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 describe('DocSyncWebhookController#schedule() runs its detached timer body inside its own request context', () => {
   let app: INestApplication;
@@ -72,11 +68,13 @@ describe('DocSyncWebhookController#schedule() runs its detached timer body insid
     // own reload callback (`syncIsOn`) skips the run otherwise, before ever
     // reaching the assertion below.
     const orm = app.get(MikroORM);
+    await resetDatabase(orm);
     await setAddonEnabled(orm, 'documents', true);
     await updateRows(orm, DocumentProviders, { id: 'paperless' }, { enabled: 1 });
 
-    const owner = createUser(testDb, { username: 'docsync-webhook-ctx', email: 'docsync-webhook-ctx@test.local' }).user;
-    const trip = createTrip(testDb, owner.id, { title: 'Japan' });
+    const owner = (await makeUser(orm, { username: 'docsync-webhook-ctx', email: 'docsync-webhook-ctx@test.local' }))
+      .user;
+    const trip = await makeTrip(orm, owner.id, { title: 'Japan' });
     const connectionId = await insertRow(orm, DocumentConnections, {
       trip: trip.id,
       provider: 'paperless',
@@ -104,7 +102,6 @@ describe('DocSyncWebhookController#schedule() runs its detached timer body insid
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('WEBHOOK-CTX-001: schedule(), called from a genuinely bare (non-request) context, never logs cannotUseGlobalContext once its debounce timer fires', async () => {

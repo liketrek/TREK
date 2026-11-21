@@ -1167,7 +1167,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Ktorý engine kreslí mapy plánovača ciest a denníka a v akom štýle. Leaflet je klasická rastrová mapa, Mapbox GL pridáva 3D budovy a terén s vlastným tokenom a MapLibre GL kreslí vektorové dlaždice OpenFreeMap bez tokenu. Atlas vždy používa Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Poskytovateľ mapy: Leaflet, Mapbox GL (Experimentálne) alebo MapLibre GL, každá možnosť s krátkym popisom.',
+    'Poskytovateľ mapy: Leaflet, Mapbox GL alebo MapLibre GL, každá možnosť s krátkym popisom.',
   'help.ctx.settings-map.bullet.2':
     'Šablóna mapy a CARTO API kľúč pre Leaflet, Štýl mapy pre oba GL enginy a k tomu Mapbox prístupový token pre Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -4591,7 +4591,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Karta ukazuje Zapnuté pre toto zariadenie a udalosti zapnuté pod Push vám prídu, aj keď je TREK zatvorený.',
   'help.guide.connect-airtrail.step.1':
-    'V časti Integrácie nájdite AirTrail a zadajte jeho URL inštancie a API kľúč. Kľúč vytvoríte v AirTrail v časti Nastavenia, Zabezpečenie.',
+    'V časti Integrácie nájdite AirTrail a zadajte jeho URL inštancie a API kľúč. Kľúč vytvoríte v AirTrail v časti Nastavenia, Zabezpečenie. Ak kľúč vytvoríte v AirTrail 3.13 alebo novšom, potrebuje oprávnenie flight.read.own na čítanie. Na zápis zmien späť potrebuje aj flight.update.own, flight.passengers.manage.own, reference_data.read a profile.read.',
   'help.guide.connect-dawarich.step.1':
     'V časti Integrácie nájdite Dawarich a zadajte jeho Adresu inštancie a API kľúč z Dawarich z časti Účet, API kľúč.',
   'help.guide.tour-connect-wanderer.step.1':

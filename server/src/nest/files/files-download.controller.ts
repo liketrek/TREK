@@ -1,3 +1,6 @@
+import { ADDON_IDS } from '../../addons';
+import { addonOffMessage } from '../addons/addons.constants';
+import { AddonsService } from '../addons/addons.service';
 import { Public } from '../auth-core/public.decorator';
 import { contentDisposition } from '../common/content-disposition';
 import { StorageService } from '../storage/storage.service';
@@ -15,7 +18,9 @@ import path from 'path';
  * the legacy authenticateDownload helper. Byte-identical to the legacy route:
  * 401 token, 404 trip/file, .pkpass served inline for Wallet. Bytes come from
  * storage.sendToResponse, whose local branch is the root-relative res.sendFile
- * form this route needs under the ExpressAdapter.
+ * form this route needs under the ExpressAdapter. A trip that has Documents off
+ * answers 404 "Documents addon is not enabled" after the trip check, like every
+ * other files route.
  */
 @Public('authenticates itself: the download link carries a short-lived ?token the client mints')
 @Controller('api/trips/:tripId/files')
@@ -23,6 +28,7 @@ export class FilesDownloadController {
   constructor(
     private readonly files: FilesService,
     private readonly storage: StorageService,
+    private readonly addons: AddonsService,
   ) {}
 
   // response-contract-exempt: streams the file through @Res(), there is no JSON body to check.
@@ -38,6 +44,9 @@ export class FilesDownloadController {
     const trip = await this.files.verifyTripAccess(tripId, auth.userId);
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
+    }
+    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS))) {
+      throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
     }
 
     const file = await this.files.getFileById(id, tripId);

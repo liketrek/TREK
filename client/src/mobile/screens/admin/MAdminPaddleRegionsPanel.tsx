@@ -15,6 +15,7 @@ import {
   Waves,
   WifiOff,
 } from 'lucide-react';
+import { useState } from 'react';
 import {
   AUTO_LOAD_MODES,
   autoLoadSizes,
@@ -28,8 +29,9 @@ import { useTranslation } from '../../../i18n';
 import { formatDisplayDate } from '../../../utils/dateFormat';
 import MBadge from '../../components/MBadge';
 import MChip from '../../components/MChip';
+import MSheet from '../../components/MSheet';
 import MConfirmSheet from '../settings/MConfirmSheet';
-import { MAdminButton, MAdminCard, MAdminClampedText } from './MAdminUi';
+import { MAdminButton, MAdminClampedText, MAdminSetupRow, MAdminSheetFrame } from './MAdminUi';
 
 type Admin = ReturnType<typeof usePaddleRegionsAdmin>;
 
@@ -393,32 +395,49 @@ function Regions({ admin }: { admin: Admin }) {
 
 /**
  * PAD-05A/PAD-11C on the phone: the regions TREK reads paddle data for, how it
- * loads a paddler's region by itself and the regions that wait for an admin.
- * usePaddleRegionsAdmin is the desktop card's state; this is only the markup.
+ * loads a paddler's region by itself and the regions that wait for an admin, as
+ * a row under the Tours addon that opens them in a sheet. The row counts the
+ * open requests, else the regions. usePaddleRegionsAdmin is the desktop
+ * dialog's state; this is only the markup.
  */
 export default function MAdminPaddleRegionsPanel() {
   const { t } = useTranslation();
   const admin = usePaddleRegionsAdmin();
+  const [open, setOpen] = useState(false);
   if (!admin.toursOn) return null;
+  const title = t('admin.paddleRegions.title');
+  // A declined request no longer waits for anyone; only the open ones ask for a look.
+  const waiting = admin.requests.filter((r) => !r.declined).length;
+  const badge =
+    waiting > 0 ? (
+      <MBadge caps={false} tone="strong">
+        {waiting}
+      </MBadge>
+    ) : admin.regions.length > 0 ? (
+      <MBadge caps={false}>{admin.regions.length}</MBadge>
+    ) : undefined;
   return (
-    <MAdminCard>
-      <div className="flex items-start gap-3">
-        <span className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
-          <Waves size={18} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="min-w-0 truncate text-[length:calc(14px*var(--fs-scale-body,1))] font-extrabold text-m-ink">
-              {t('admin.paddleRegions.title')}
-            </span>
-            {admin.regions.length > 0 && <MBadge caps={false}>{admin.regions.length}</MBadge>}
-          </div>
-          <MAdminClampedText className="mt-[2px] text-[length:calc(10px*var(--fs-scale-caption,1))]">
-            {t('admin.paddleRegions.hint')}
-          </MAdminClampedText>
-        </div>
-      </div>
+    <>
+      <MAdminSetupRow label={title} onOpen={() => setOpen(true)} badge={badge} />
+      {open && (
+        <MSheet open onClose={() => setOpen(false)} variant="bottom" material="glass" ariaLabel={title}>
+          <MAdminSheetFrame icon={<Waves size={19} strokeWidth={1.8} />} title={title} onClose={() => setOpen(false)}>
+            <p className="m-0 font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] leading-relaxed text-m-muted">
+              {t('admin.paddleRegions.hint')}
+            </p>
+            <PanelBody admin={admin} />
+          </MAdminSheetFrame>
+        </MSheet>
+      )}
+    </>
+  );
+}
 
+/** What the sheet holds: the state of the list, the settings, the requests, the search and the regions. */
+function PanelBody({ admin }: { admin: Admin }) {
+  const { t } = useTranslation();
+  return (
+    <>
       {admin.offline && (
         <p
           role="status"
@@ -462,6 +481,6 @@ export default function MAdminPaddleRegionsPanel() {
         danger
         onConfirm={admin.confirmRemove}
       />
-    </MAdminCard>
+    </>
   );
 }

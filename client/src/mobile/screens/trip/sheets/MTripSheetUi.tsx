@@ -121,6 +121,8 @@ export function TileHeader({ icon, title, sub, subWrap = false, onClose, closeLa
 interface StatBoxProps {
   value: ReactNode
   label: ReactNode
+  /** A line above the value, such as the calendar date a time falls on. */
+  caption?: ReactNode
   blurred?: boolean
   onClick?: () => void
   /** Colours the label, so a check-in or check-out time carries its own state. */
@@ -133,10 +135,11 @@ const LABEL_TONE: Record<NonNullable<StatBoxProps['labelTone']>, string> = {
 }
 
 /** Small stat box (check-in / times / code): value 700 tabular over a faint Geist label. */
-export function StatBox({ value, label, blurred = false, onClick, labelTone }: StatBoxProps) {
+export function StatBox({ value, label, caption, blurred = false, onClick, labelTone }: StatBoxProps) {
   const box = 'min-w-0 flex-1 rounded-[10px] bg-[color:var(--m-ic)] px-[9px] py-[7px] text-center'
   const inner = (
     <>
+      {caption && <div className="truncate font-geist text-caption leading-tight text-m-muted">{caption}</div>}
       <div
         className={`truncate text-[0.8125rem] font-bold tabular-nums leading-tight ${blurred ? 'blur-[4px] select-none' : ''}`}
       >
@@ -160,23 +163,29 @@ interface ActionCircleProps {
   label: string
   primary?: boolean
   danger?: boolean
+  /** A toggle (shown on the map): announced as pressed and filled while on. */
+  pressed?: boolean
   className?: string
   children: ReactNode
   /** For callers that anchor a popup to the button. React 19 passes it through. */
   ref?: Ref<HTMLButtonElement>
 }
 
-/** 38px round action button of the inspector footer rows. */
-export function ActionCircle({ onClick, label, primary = false, danger = false, className = '', children, ref }: ActionCircleProps) {
+/**
+ * 40px round action button of the sheets' action rows. The rows hold icons
+ * only, so a phone never wraps them; the name is the label and the tooltip.
+ */
+export function ActionCircle({ onClick, label, primary = false, danger = false, pressed, className = '', children, ref }: ActionCircleProps) {
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={pressed}
       title={label}
-      className={`flex h-[38px] w-[38px] flex-none items-center justify-center rounded-full ${
-        primary
+      className={`flex h-10 w-10 flex-none items-center justify-center rounded-full ${
+        primary || pressed
           ? 'bg-m-act text-m-actfg'
           : `border border-[color:var(--m-gbr)] bg-[color:var(--m-ic)] ${danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'}`
       } ${className}`}

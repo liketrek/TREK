@@ -15,8 +15,10 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { SettingsService } from '../settings/settings.service';
 import { JourneyDomainService } from './journey-domain.service';
 import { decodeEntryRow } from './journey-entry-row';
+import { publicMapEntry, publicPhoto, publicTimelineEntry } from './journey-public-payload';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import type { JourneyPublicEntry, JourneyPublicResponse } from '@trek/shared';
 
 import crypto from 'crypto';
 
@@ -231,7 +233,7 @@ export class JourneyShareService {
     return { ownerId: photo.owner_id || photo.journey_owner_id };
   }
 
-  async getPublicJourney(token: string) {
+  async getPublicJourney(token: string): Promise<JourneyPublicResponse | null> {
     // JS11 — exact-match token lookup, no LIKE/COLLATE (R4).
     const row = await this.shareTokensRepo.findByToken(token);
     if (!row) return null;
@@ -257,11 +259,6 @@ export class JourneyShareService {
     // A photo whose every entry is a draft stays off the public page (#696).
     const gallery = await this.photosRepo.galleryRead(row.journey_id, { hideDraftOnly: true });
 
-    const enrichedEntries = entries.map((e) => ({
-      ...decodeEntryRow(e),
-      photos: photosByEntry[e.id] || [],
-    }));
-
     // Stats are derived from the full data so the overview pills stay accurate
     // even when a section is hidden.
     const stats = {
@@ -276,33 +273,16 @@ export class JourneyShareService {
 
     // Honour the share flags server-side so the API only returns the sections the
     // owner enabled (the client gates these too, but it must not rely on that).
-    let publicEntries: Record<string, unknown>[] = [];
+    // Every entry and photo is built field by field (journey-public-payload.ts):
+    // a spread row sent storage keys and author ids to anyone with the link.
+    let publicEntries: JourneyPublicEntry[] = [];
     if (shareTimeline) {
-      // Include the full entry, but drop GPS unless the map is shared and inline
-      // photos unless the gallery is shared.
-      publicEntries = enrichedEntries.map((e) => {
-        const projected: Record<string, unknown> = { ...e };
-        if (!shareMap) {
-          projected.location_lat = null;
-          projected.location_lng = null;
-        }
-        if (!shareGallery) projected.photos = [];
-        else if (!shareMap) projected.photos = stripPhotoGps(e.photos);
-        return projected;
-      });
+      publicEntries = entries.map((e) =>
+        publicTimelineEntry(decodeEntryRow(e), photosByEntry[e.id] || [], { map: shareMap, gallery: shareGallery }),
+      );
     } else if (shareMap) {
       // Map-only share: just enough to plot markers, no story/photos/mood.
-      publicEntries = enrichedEntries.map((e) => ({
-        id: e.id,
-        journey_id: e.journey_id,
-        type: e.type,
-        entry_date: e.entry_date,
-        title: e.title,
-        location_name: e.location_name,
-        location_lat: e.location_lat,
-        location_lng: e.location_lng,
-        sort_order: e.sort_order,
-      }));
+      publicEntries = entries.map((e) => publicMapEntry(decodeEntryRow(e)));
     }
 
     // Same reason as the trip share payload: CARTO watermarks every tile fetched
@@ -318,9 +298,9 @@ export class JourneyShareService {
     return {
       journey: {
         title: journey.title,
-        subtitle: journey.subtitle,
-        cover_image: journey.cover_image,
-        status: journey.status,
+        subtitle: journey.subtitle ?? null,
+        cover_image: journey.cover_image ?? null,
+        status: journey.status ?? null,
         // The three "this journey does not use that field" switches. A public
         // reader was getting mood and weather chips on a journey that had them
         // turned off, because the phone card reads these and they were not here
@@ -334,7 +314,7 @@ export class JourneyShareService {
       // owner never typed and may not expect to publish. It follows share_map, the
       // same switch the entry coordinates follow — otherwise a gallery-only share
       // would hand out places the map was deliberately turned off for.
-      gallery: shareGallery ? (shareMap ? gallery : stripPhotoGps(gallery)) : [],
+      gallery: shareGallery ? gallery.map((p) => publicPhoto(p, shareMap)) : [],
       stats,
       cartoApiKey,
       permissions: {
@@ -345,9 +325,4 @@ export class JourneyShareService {
       },
     };
   }
-}
-
-/** Drop capture coordinates from a photo list, keeping everything else. */
-function stripPhotoGps<T>(photos: T[] | undefined | null): T[] {
-  return (photos ?? []).map((p) => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
 }

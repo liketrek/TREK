@@ -1,4 +1,4 @@
-name: Tests & SonarQube
+name: CI
 
 permissions:
   contents: read
@@ -9,92 +9,143 @@ permissions:
 # analysis; pull requests get PR analysis with decoration on the PR itself
 # (the scanner picks the context up from the Actions environment).
 #
-# Job names read "<package>: <what>", so the checks list on a PR sorts by
-# package. What each job holds:
+# Job names read "<Area> <what>[ <variant>][ i/n]", the area one of Changes,
+# Shared, Server, Client, Docker or Sonar, with no colon, no parentheses and
+# the slice last, so the checks list on a PR sorts by area. The job ids are
+# the names in kebab-case, and the jobs below stand in the same order.
+# scripts/ci/workflow-jobs.test.mjs holds the names to that form. What each
+# job holds:
 #
-#   Repo: Changed Areas      decides what the change needs to run (below)
-#   Shared: i18n Parity      every locale has en's files and keys
-#   Shared: Coverage         shared's tests with coverage
-#   Server: Types            builds shared and the server, typechecks shared,
-#                            the server's src, tests and scripts, smokes the
+#   Changes                  decides what the change needs to run (below)
+#   Shared tests             every locale has en's files and keys (i18n
+#                            parity); shared's tests with coverage; the plugin
+#                            SDK's typecheck and tests with coverage
+#   Server types             builds the server, typechecks shared, the
+#                            server's src, tests and scripts, smokes the
 #                            production require chain, the strict ratchet,
-#                            the generated entities and Kysely types
-#   Server: Lint & Checks    ESLint (typed), errors and warning counts; then
+#                            the generated entities and Kysely types, the
+#                            Postgres baseline
+#   Server lint              ESLint (typed), errors and warning counts; then
 #                            Prettier, the plugin facts, the DB call graph,
 #                            the shared ratchet code, the source ratchets
-#                            (size, boundaries, dialect, tx, test SQL, test
-#                            mocks, hand-built services, query API, MCP zod,
-#                            error envelopes, response contracts), open
-#                            request schemas, knip
-#   Server: Tests n/7        one slice of the server suite, with coverage
-#   Server: Coverage         merges the slices, checks the per-domain
+#                            (size, boundaries, dialect, engine checks, tx,
+#                            test SQL, test mocks, hand-built services, query
+#                            API, MCP zod, error envelopes, response
+#                            contracts), open request schemas, knip
+#   Server tests i/10        one slice of the server suite, with coverage
+#   Server coverage          merges the slices, checks the per-domain
 #                            thresholds, uploads lcov
-#   Server: S3 Contract (MinIO)
-#                            the storage driver against MinIO
-#   Server: Postgres Probe   the repository SQL against Postgres
-#   Client: Types & Checks   typecheck and the strict ratchet; then the page
-#                            pattern and the source ratchets (RTL, size,
-#                            Prettier, layers, offline path, duplication,
-#                            desktop/phone pairs, skips, i18n keys, theme
-#                            tokens)
-#   Client: Lint             ESLint (typed), errors and warning counts
-#   Client: Tests n/7        one slice of the client suite, with coverage
-#   Client: Coverage         merges the slices, checks the thresholds,
+#   Server Postgres 14 i/3, Server Postgres 18 i/3
+#                            per supported major, in three slices: the probe
+#                            (the repository SQL against Postgres, first slice
+#                            only), then a slice of the lane (every suite that
+#                            boots the app on the real database module, plus
+#                            PARITY-PG and the write lock; vitest.pg.config.ts)
+#   Server S3                the storage driver against MinIO
+#   Client types             typecheck and the strict ratchet
+#   Client checks            the page pattern and the source ratchets (RTL,
+#                            size, Prettier, layers, offline path,
+#                            duplication, desktop/phone pairs, skips, i18n
+#                            keys, theme tokens); then the production build
+#                            and one chunk per map engine
+#   Client lint              ESLint (typed), errors and warning counts
+#   Client tests i/10        one slice of the client suite, with coverage
+#   Client coverage          merges the slices, checks the thresholds,
 #                            uploads lcov
-#   Client: Bundle           the production build, one chunk per map engine
-#   Client: End-to-End       the app in Chromium and WebKit
-#   Plugin SDK: Types & Coverage
-#   Repo: Docker Image       builds the image and boots it until ready
-#   Repo: Helm Chart & Compose
-#   Repo: Sonar Scan         SonarCloud analysis, not required
+#   Client e2e i/2           one slice of the browser flows in Chromium and
+#                            WebKit, in the Playwright container
+#   Docker and Helm          builds the image and boots it until ready, on
+#                            SQLite and on Postgres 18; lints and renders the
+#                            Helm chart and checks the compose files
+#   Sonar                    SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
 #
 # Job layout:
 #   - Everything starts right after changes: the gates and the tests run side
-#     by side, so a run takes as long as its slowest job and not the gates
-#     plus the tests. The tests used to wait for the gates, which put ~9
-#     minutes in front of every test result. The gates were one job per
-#     package (~8-9 minutes each); each is now two jobs of ~4-5 minutes,
-#     split where the time is (the server's typechecks, the client's lint),
-#     so neither outlasts a test shard.
-#   - The client and server suites run in shards (client-tests,
+#     by side, so a run takes as long as its slowest chain and not the gates
+#     plus the tests. Each gate is cut to about four to five minutes, split
+#     where the time is (the server's typechecks, the client's lint, the
+#     client's checks with the bundle), so none outlasts a test slice.
+#   - The client and server suites run in ten slices each (client-tests,
 #     server-tests), each running a slice with coverage and uploading a blob
 #     report; client-coverage and server-coverage merge the blobs, check the
-#     thresholds against the whole and upload lcov. A red shard is usually a
+#     thresholds against the whole and upload lcov. A red slice is usually a
 #     failing test, a red merge job usually a threshold. None of the other
 #     test jobs feeds the scan.
-#   - Job count: GitHub runs at most 20 jobs of the organisation at once and
-#     does not say in which order it starts queued ones. A code change starts
-#     the 14 shards and about a dozen other jobs; seven of those (parity, the
-#     SDK, the bundle, S3, Postgres, shared coverage, the chart) are done in
-#     a minute or two, so what queues at the start waits about that long. The
-#     jobs that run for minutes (shards, gates, e2e, the image) must not
-#     outnumber the 20 slots, or one of them waits for another to finish and
-#     the run grows by a whole job: a layout with six gate jobs did exactly
-#     that. Check the count before adding a long job or a shard.
-#   - Scan `needs:` the gates and the four coverage jobs. A coverage job
-#     failing must stop the scan — a missing lcov file would make every line
-#     of that package report as uncovered, and the dashboard would show a
-#     collapse that did not happen.
+#   - Setup: every job that installs dependencies goes through
+#     ./.github/actions/setup, which restores node_modules and shared/dist
+#     from an exact cache key and falls back to npm ci and the shared build.
+#     The node_modules key covers the lockfile and every workspace
+#     package.json, so a package.json out of step with the lockfile misses and
+#     npm ci refuses it. Only pushes to dev and main save, the npm download
+#     cache included, so a pull request reads its base's caches and a first
+#     run after a dependency change pays the install once.
+#   - A job that holds several gates (Shared tests, Client checks, Docker and
+#     Helm) runs each group of steps after a failure in another group too, so
+#     one red check still shows every gate that failed. The step names say
+#     which one it was.
+#   - Job count: GitHub Team runs 60 Linux jobs of the organisation at once,
+#     the other workflows and other PRs included. A code change starts at
+#     most about 35 long jobs (today 34: the five gates, the 20 test slices,
+#     the six Postgres slices, the two e2e slices and the Docker job) plus two
+#     short ones (Shared tests, Server S3), so two PR runs fit side by side
+#     and a third waits a minute or two for slots. The target is ci-ok within
+#     ten minutes of the push. The release pull request starts none of them:
+#     it mirrors the push run on dev (below). A new long job, slice or shard
+#     needs a reason that outweighs the slot it takes; a job that waits for a
+#     slot adds its wait to the run when a coverage job waits for it.
+#   - Timeouts: 15 minutes for the gates, the slices, Postgres, e2e and the
+#     Docker job, so a job that hangs frees its slot in a quarter of an hour;
+#     10 for the merges, Shared tests, Server S3 and changes; 20 for ci-ok,
+#     which only polls while its mirror waits for the push run on the release
+#     pull request (below).
+#   - Scan `needs:` the gates and the coverage jobs, Shared tests among them.
+#     A coverage job failing must stop the scan: a missing lcov file would
+#     make every line of that package report as uncovered, and the dashboard
+#     would show a collapse that did not happen.
 #   - Fork PRs and runs Dependabot triggers don't receive the repo's Actions
-#     secrets, so the two jobs that need them skip themselves: s3-contract
+#     secrets, so the two jobs that need them skip themselves: server-s3
 #     (MINIO_LICENSE_KEY) and scan (SONAR_TOKEN). ci-ok counts a skip as
 #     passed. Everything else runs on those PRs so outside contributors and
 #     dependency bumps still get the full test signal.
 #   - changes runs first and decides which of the jobs below a change needs
-#     (scripts/ci/changed-areas.mjs holds the rules). A docs-only push or PR
-#     runs nothing else. The filter lives in a job, not in `on.paths`, because
+#     (scripts/ci/changed-areas.mjs holds the rules). A pull request lists
+#     what it changes against its base, a push to main what the push added,
+#     and a push to dev everything dev holds that main does not (the release
+#     pull request mirrors that run, below). A docs-only change runs nothing
+#     else. The filter lives in a job, not in `on.paths`, because
 #     a workflow skipped by its path filter never reports a check, and a
 #     required check that never reports blocks the PR for good.
-#   - docker-image builds the Dockerfile and boots the result, and
-#     deploy-manifests lints and renders the Helm chart and checks the
-#     compose files. Both run beside the gates rather than after them.
+#   - docker builds the Dockerfile and boots the result when the image area
+#     changed, and lints and renders the Helm chart and checks the compose
+#     files when the deploy area changed; each step carries its area's
+#     condition. It runs beside the gates rather than after them.
 #   - ci-ok `needs:` every gate, test, image and chart job, and is the one
 #     check the branch ruleset requires. It fails when any of them failed or
 #     was cancelled and passes when they passed or were skipped (by changes,
 #     or on a fork PR without secrets). The scan is not in it: the quality
 #     gate reports on the PR by itself, and a SonarCloud outage should not
 #     block a merge.
+#   - The release pull request (dev into main, from this repository) carries
+#     the head of dev, which the push run on dev tests anyway, and that run
+#     lists its changes against the merge base with main, so it covers every
+#     area the pull request brings in, an earlier push's changes included
+#     when that push's run was cancelled or red. Testing it a
+#     second time doubled the jobs past the 60 slots, so there changes sets
+#     mirror and turns every area off (scripts/ci/changed-areas.mjs): every
+#     job skips, the scan included (the push run's scan covers dev), and ci-ok
+#     runs scripts/ci/mirror-push-run.mjs, which waits for the ci-ok of the
+#     push run on dev for exactly the PR's head commit and passes or fails
+#     with it. No push run for that commit, one that ended without a verdict,
+#     or a wait past 17 minutes fails, with a re-run hint. A newer push to dev
+#     cancels the old push run and, through the synchronize it causes, the
+#     old PR run too (the concurrency group is per ref), so a mirror never
+#     waits on a superseded commit for long. The release workflows read the
+#     newest ci-ok on a commit (scripts/ci/ci-ok-verdict.mjs). A green mirror
+#     implies a green push ci-ok before it, so a mirror never lets a release
+#     through that the push run failed. A mirror that fails on its own (the
+#     API keeps failing, or the wait runs out) is the newest ci-ok on that
+#     commit and blocks the release workflows until it is re-run.
 #
 # Automatic Analysis must stay disabled on sonarcloud.io — it is mutually
 # exclusive with CI-based analysis, and it cannot import the lcov coverage
@@ -119,13 +170,14 @@ concurrency:
 
 jobs:
   changes:
-    name: 'Repo: Changed Areas'
+    name: 'Changes'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       code: ${{ steps.areas.outputs.code }}
       image: ${{ steps.areas.outputs.image }}
       deploy: ${{ steps.areas.outputs.deploy }}
+      mirror: ${{ steps.areas.outputs.mirror }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -154,6 +206,7 @@ jobs:
         id: list
         env:
           EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
         run: |
@@ -167,9 +220,22 @@ jobs:
               changed_between HEAD^1 HEAD
               ;;
             push)
+              # A push to dev lists everything dev holds that main does not,
+              # not only what this push added. The release pull request
+              # mirrors this run (below), so it has to test what that pull
+              # request brings into main, and a cancelled or red earlier push
+              # must not leave its changes untested under a later docs-only
+              # one. The fetch is blobless: the diff reads trees only.
+              if [ "$REF" = refs/heads/dev ]; then
+                if git fetch --no-tags --filter=blob:none --unshallow origin +refs/heads/main:refs/remotes/origin/main                   && base="$(git merge-base origin/main "$AFTER")"; then
+                  changed_between "$base" "$AFTER"
+                else
+                  echo "No merge base with main, so everything runs."
+                  list=""
+                fi
               # A new branch has no previous commit, and a force push can leave
               # it unreachable. Both run everything.
-              if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]                 && git fetch --no-tags --depth=1 origin "$BEFORE"; then
+              elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]                 && git fetch --no-tags --depth=1 origin "$BEFORE"; then
                 changed_between "$BEFORE" "$AFTER"
               else
                 echo "No previous commit to compare with, so everything runs."
@@ -183,10 +249,18 @@ jobs:
           echo "list=$list" >> "$GITHUB_OUTPUT"
           [ -z "$list" ] || cat "$list"
 
+      # On the release pull request (dev into main, from this repository) every
+      # area is off and mirror is on: ci-ok then mirrors the push run on dev
+      # for the same commit instead of testing it a second time.
       - name: Decide what runs
         id: areas
         env:
           LIST: ${{ steps.list.outputs.list }}
+          CI_EVENT: ${{ github.event_name }}
+          CI_BASE_REF: ${{ github.base_ref }}
+          CI_HEAD_REF: ${{ github.head_ref }}
+          CI_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          CI_REPO: ${{ github.repository }}
         run: |
           if [ -n "$LIST" ]; then
             node scripts/ci/changed-areas.mjs --files "$LIST"
@@ -194,48 +268,95 @@ jobs:
             node scripts/ci/changed-areas.mjs --all
           fi
 
-  i18n-parity:
-    name: 'Shared: i18n Parity'
+  # i18n parity, shared's coverage and the plugin SDK in one job: each takes
+  # seconds to a minute, and a runner of its own would cost more in setup than
+  # it saves. Parity stays out of changes on purpose: a red changes skips
+  # every other job and would hide their failures. Each group runs after a
+  # failure in another, so one red run names every gate that failed.
+  shared:
+    name: 'Shared tests'
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
 
+      # plugin-sdk is standalone (own lockfile, not a root workspace) and has
+      # to work on its own once published, so it installs, typechecks and tests
+      # before the root install: with the workspaces' node_modules above it, a
+      # module or tool missing from its package.json would resolve from there
+      # and pass. The Node from .nvmrc is the image's Node, which runs the
+      # plugins and has the node:sqlite the dev-server tests exercise.
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
 
-      - name: Check i18n key parity
-        run: node shared/scripts/i18n-parity.mjs --strict
-
-  server-types:
-    name: 'Server: Types'
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
+      - name: Plugin SDK install
+        id: sdk-install
+        working-directory: plugin-sdk
         run: npm ci
 
-      - name: Build shared
-        run: npm run build --workspace=shared
+      - name: Plugin SDK typecheck
+        if: ${{ !cancelled() && steps.sdk-install.outcome == 'success' }}
+        working-directory: plugin-sdk
+        run: npm run typecheck
+
+      - name: Plugin SDK coverage
+        id: sdk-coverage
+        if: ${{ !cancelled() && steps.sdk-install.outcome == 'success' }}
+        working-directory: plugin-sdk
+        run: npm run test:coverage
+
+      - name: Upload plugin SDK coverage
+        if: ${{ !cancelled() && steps.sdk-coverage.outcome == 'success' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-plugin-sdk-coverage
+          path: plugin-sdk/coverage/
+          retention-days: 1
+
+      - uses: ./.github/actions/setup
+        id: setup
+        if: ${{ !cancelled() }}
+        with:
+          scope: shared
+
+      - name: i18n parity
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: node shared/scripts/i18n-parity.mjs --strict
+
+      - name: Shared coverage
+        id: shared-coverage
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: cd shared && npm run test:coverage
+
+      - name: Upload shared coverage
+        if: ${{ !cancelled() && steps.shared-coverage.outcome == 'success' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-shared-coverage
+          path: shared/coverage/
+          retention-days: 1
+
+  server-types:
+    name: 'Server types'
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        with:
+          scope: full
+          build-shared: 'true'
 
       - name: Typecheck shared
-        # Rides along here rather than in shared-coverage: this job already
-        # pays the root install and shared build, and a coverage job may only
-        # fail because tests failed (it gates the scan).
+        # Rides along here rather than in the shared job: this job already
+        # pays the root install and the shared build, and a coverage job may
+        # only fail because tests failed (it gates the scan).
         run: cd shared && npm run typecheck
 
       - name: Build server (tsc -> dist)
@@ -282,26 +403,28 @@ jobs:
         # migration that changes a column regenerates it in the same change.
         run: cd server && npm run check:db-types
 
-  server-lint-checks:
-    name: 'Server: Lint & Checks'
+      - name: Postgres baseline manifest (and entities until a migration follows the cut)
+        # server/assets/postgres/ is the schema a fresh Postgres database starts
+        # from, generated from the entities by gen:pg-baseline. Until a migration
+        # lands after its cut it must match them exactly; after, it is frozen,
+        # its list of migrations is checked and the migrations after the cut are
+        # listed: lint:dialect holds their engineDdl and PARITY-PG their result.
+        # Either way every SQLite trigger needs its Postgres port.
+        run: cd server && npm run check:pg-baseline
+
+  server-lint:
+    name: 'Server lint'
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build shared
-        run: npm run build --workspace=shared
+          scope: full
+          build-shared: 'true'
 
       - name: Fetch the base the warnings are compared with
         # lint:warnings names the file behind a grown count by linting it as
@@ -367,6 +490,12 @@ jobs:
         # so the code stays portable to a second engine.
         run: cd server && npm run lint:dialect
 
+      - name: Engine checks may only shrink
+        # isSqlite(/isPostgres( and platform instanceof outside src/db/dialect/
+        # and src/db/engine/ are held to scripts/engine-dispatch-baseline.json,
+        # so what differs between engines stays in those two places.
+        run: cd server && npm run lint:engine-dispatch
+
       - name: Writes outside a transaction
         # A method that writes twice does it inside one uow.transactional.
         # Today's exceptions sit in scripts/tx-writes-baseline.json and may
@@ -425,31 +554,295 @@ jobs:
         # knip (knip.jsonc) over client, server and shared: unused files,
         # exports, types and dependencies per file may not rise above
         # scripts/ci/knip-baseline.json (scripts/ci/knip-ratchet.mjs). Here
-        # rather than in client-types-checks because it needs every workspace's
+        # rather than in a client job because it needs every workspace's
         # dependencies, which the client jobs do not install.
         run: npm run lint:knip
 
-  client-types-checks:
-    name: 'Client: Types & Checks'
+  # The server suite in ten slices. vitest.shard.config.ts is vitest.config.ts
+  # without the thresholds and the coverage reports: a slice's blob carries
+  # its coverage to server-coverage, which checks the whole. fail-fast is off,
+  # so one red run shows every failing slice and not just the first.
+  server-tests:
+    name: 'Server tests ${{ matrix.shard }}/10'
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        with:
+          scope: full
+          build-shared: 'true'
+
+      - name: Check @swc/core's native binding loads
+        # The server's SWC transform (server/vitest.config.ts) needs it. The
+        # lockfile carries the Linux binary, so npm ci installs it; this only
+        # names the cause if a lockfile regenerated without it ever lands, or
+        # if a cached node_modules ever holds a binary this runner cannot
+        # load. (It used to be installed here with --legacy-peer-deps, which
+        # pruned eight peer packages and left the tests on a tree the
+        # lockfile does not describe.)
+        run: node -e "require('@swc/core').transformSync('let a = 1')"
+
+      - name: Run a slice of the tests with coverage
+        run: >-
+          cd server && npx vitest run --config vitest.shard.config.ts --coverage
+          --shard=${{ matrix.shard }}/10
+          --reporter=default --reporter=github-actions --reporter=blob
+
+      - name: Upload the blob report
+        uses: actions/upload-artifact@v6
+        with:
+          name: server-blob-${{ matrix.shard }}
+          path: server/.vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  server-coverage:
+    name: 'Server coverage'
+    needs: server-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        with:
+          scope: full
+
+      - name: Download the blob reports
+        uses: actions/download-artifact@v7
+        with:
+          pattern: server-blob-*
+          path: server/.vitest-reports/
+          merge-multiple: true
+
+      - name: Merge the slices and check the thresholds
+        # Every blob holds a whole coverage map, and the merge reads them all
+        # into one process.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: cd server && npx vitest run --merge-reports --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
+        with:
+          name: sonar-server-coverage
+          path: server/coverage/
+          retention-days: 1
+
+  # TREK on Postgres, once per supported major: the oldest (14) and the newest
+  # (18). Both steps run against the same service, the probe on an empty
+  # database of its own, the lane on databases it creates and drops.
+  #
+  # The probe (server/scripts/pg-probe.ts): against an empty Postgres it
+  # derives a schema from the entities, runs every dialect helper on SQLite
+  # and Postgres (every case must pass), and calls every public repository
+  # method once, each statement in its own rolled-back transaction. The
+  # statements Postgres refuses as SQL are held per method to
+  # server/scripts/pg-probe-baseline.json, and so is the list of methods it
+  # could not measure (uncovered); both may only shrink, on every major. An
+  # unmeasured baseline (failing or uncovered null) or a run that called no
+  # method fails. The measured baseline and the full report are uploaded
+  # either way (pg-probe-baseline-<major>), so a change that fixes a statement
+  # can lower the file without a local Postgres.
+  #
+  # The lane (server/vitest.pg.config.ts): every suite that boots the app on
+  # the real database module, found by server/tests/postgres/lane.ts, each file
+  # on its own copy of one migrated template, plus the Postgres-only suites
+  # (PARITY-PG, the write lock, the search semantics). It fails, never skips,
+  # without TREK_TEST_DB_URL, and TREK_TEST_PG_MAJOR makes it refuse a service
+  # of another major. It runs after a red probe too, so one run shows both.
+  #
+  # The lane runs the whole server suite that boots the app. Each file
+  # copies the template with CREATE DATABASE, one copy at a time, and before
+  # Postgres 15 a copy is two checkpoints, each waiting for fsync. With fsync
+  # on, the lane's test step took 20 to 23 minutes on 14 and about 12 on 18,
+  # summed over the slices (runs 44194202635 and 44200029312). The service
+  # runs with fsync off (the first step): a test database has nothing to
+  # keep through a crash. Measured in Docker on a workstation, 30 copies of
+  # a 120-table template took 24.9 s on 14 with fsync and 3.5 s without,
+  # and 5.3 s on 17 with it.
+  #
+  # Each major runs the lane in three slices (--shard=<i>/3), each on a runner
+  # and a service of its own; each slice builds its own template in global
+  # setup, and a slice spends under a minute before the lane starts
+  # (checkout and the cached install and shared build). vitest splits the
+  # files by count, not by time. Three keeps a slice of either major at about
+  # the length of a test slice (five to six and a half minutes): every slice
+  # is a long job (see Job count at the top), and one slice more is one more
+  # job that may wait for a slot. If a slice of 14 still runs longer than a
+  # test slice, give 14 one slice more rather than both majors; that needs a
+  # count per major (a matrix include), which scripts/ci/workflow-jobs.test.mjs
+  # does not read yet and fails on until it is taught to. The probe runs once
+  # per major, in the first slice. ci-ok needs this job, and a matrix job's
+  # result is failure when any one slice fails or is cancelled, so every
+  # slice is required. The shard axis, the --shard divisor and the "i/n" at
+  # the end of the name must agree; scripts/ci/workflow-jobs.test.mjs fails
+  # when they do not.
+  server-postgres:
+    name: 'Server Postgres ${{ matrix.postgres }} ${{ matrix.shard }}/3'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: [14, 18]
+        shard: [1, 2, 3]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_PASSWORD: lane
+          POSTGRES_DB: trek_probe
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d trek_probe"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      # A service container takes no server arguments, so fsync is turned off
+      # through ALTER SYSTEM; it is a reload setting, no restart needed. Why
+      # it is off: see the comment above the job.
+      - name: Turn fsync off on the service
+        env:
+          SERVICE: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          docker exec "$SERVICE" psql -U postgres -d trek_probe -c 'ALTER SYSTEM SET fsync = off' -c 'SELECT pg_reload_conf()'
+          if [ "$(docker exec "$SERVICE" psql -U postgres -d trek_probe -Atc 'SHOW fsync')" != off ]; then
+            echo "::error::fsync is still on after the reload; the lane would pass but take about twice as long on 14."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # The probe reads the repositories' parameter types, some of which come
+      # from @trek/shared's built declarations.
+      - uses: ./.github/actions/setup
+        with:
+          scope: full
+          build-shared: 'true'
+
+      - name: Run the Postgres probe
+        if: matrix.shard == 1
+        env:
+          TREK_PG_PROBE_URL: postgres://postgres:lane@127.0.0.1:5432/trek_probe
+        run: >-
+          cd server && npm run probe:pg --
+          --next-baseline="$RUNNER_TEMP/pg-probe-baseline.json"
+          --report="$RUNNER_TEMP/pg-probe-report.json"
+
+      - name: Upload the measured baseline and the report
+        if: ${{ !cancelled() && matrix.shard == 1 }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: pg-probe-baseline-${{ matrix.postgres }}
+          path: |
+            ${{ runner.temp }}/pg-probe-baseline.json
+            ${{ runner.temp }}/pg-probe-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Run the Postgres lane
+        if: ${{ !cancelled() }}
+        env:
+          TREK_TEST_DB_URL: postgres://postgres:lane@127.0.0.1:5432/postgres
+          TREK_TEST_PG_MAJOR: ${{ matrix.postgres }}
+        run: npm run test:pg --workspace=server -- --shard=${{ matrix.shard }}/3
+
+  server-s3:
+    name: 'Server S3'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: changes
+    # Fork PRs don't get repo secrets, so MINIO_LICENSE_KEY would be empty and
+    # the AIStor container would fail to boot. A run Dependabot triggers gets
+    # only Dependabot secrets, so its PRs (same repo, not a fork) hit the same
+    # wall. Pushes and manual dispatches by anyone else do have secrets, so
+    # only those two are filtered out.
+    if: >-
+      needs.changes.outputs.code == 'true' &&
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
+          scope: full
+          build-shared: 'true'
 
-      - name: Install dependencies
-        run: npm ci --workspace shared --workspace client
+      - name: Check @swc/core's native binding loads
+        # The server's SWC transform (server/vitest.config.ts) needs it; see
+        # the same step in server-tests.
+        run: node -e "require('@swc/core').transformSync('let a = 1')"
 
-      - name: Build shared
-        run: npm run build --workspace=shared
+      - name: Write MinIO license
+        run: printf '%s' "${{ secrets.MINIO_LICENSE_KEY }}" > minio-licence.key
+
+      - name: Start MinIO
+        # `services:` can't pass the `server /data --license ...` command to
+        # the AIStor image, so it starts via docker run. 127.0.0.1 endpoint is
+        # load-bearing: aws-lite picks path-style only for IP/localhost hosts,
+        # which is all stock MinIO/AIStor speaks.
+        run: |
+          docker run -d --name minio -p 127.0.0.1:9000:9000 \
+            -v "$PWD/minio-licence.key:/minio.license:ro" \
+            -e MINIO_ROOT_USER=trekci -e MINIO_ROOT_PASSWORD=trekci-secret \
+            quay.io/minio/aistor/minio:RELEASE.2026-08-07T18-34-35Z server /data --license /minio.license
+
+      - name: Wait for MinIO
+        # curl was removed from the AIStor image — poll from the runner instead.
+        # 60 x 2s gives a wider margin on cold runners than the 30 x 1s the
+        # pre-6fbff835 job used.
+        run: |
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:9000/minio/health/live && exit 0
+            sleep 2
+          done
+          echo "MinIO never became healthy" >&2
+          docker logs minio >&2
+          exit 1
+
+      - name: Run the S3 driver contract suite
+        # No --coverage: the src/nest/storage/** 94/84/97/94 pin must keep
+        # holding from hermetic tests alone. The suite's beforeAll creates
+        # the trek-test bucket idempotently — no separate bucket-init step.
+        env:
+          TREK_TEST_S3_ENDPOINT: http://127.0.0.1:9000
+          TREK_TEST_S3_BUCKET: trek-test
+          TREK_TEST_S3_ACCESS_KEY_ID: trekci
+          TREK_TEST_S3_SECRET_ACCESS_KEY: trekci-secret
+        run: cd server && npx vitest run tests/unit/nest/storage/s3.driver.contract.test.ts
+
+  client-types:
+    name: 'Client types'
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        with:
+          scope: client
+          build-shared: 'true'
 
       - name: Typecheck
         run: cd client && npm run typecheck
@@ -458,8 +851,28 @@ jobs:
         # tsconfig.strict.json is the same program with strictNullChecks and
         # noImplicitAny; its errors per file may not rise above
         # scripts/strict-baseline.json, and a file without an entry, every new
-        # one included, has to be clean (scripts/strict-lint.mjs).
+        # one included, has to be clean (scripts/strict-lint.mjs). It holds the
+        # whole program with strict checks, past Node's default ~4 GB heap.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: cd client && npm run lint:strict
+
+  # The source ratchets, then the production build. The build runs after a
+  # red ratchet too, so one red run names every gate that failed.
+  client-checks:
+    name: 'Client checks'
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        id: setup
+        with:
+          scope: client
+          build-shared: 'true'
 
       - name: Page pattern check
         run: cd client && npm run lint:pages
@@ -524,27 +937,32 @@ jobs:
         # follow the user's scheme, accent and text size (scripts/theme-lint.mjs).
         run: cd client && npm run theme:lint
 
+      - name: Build client
+        id: build-client
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: cd client && npm run build
+
+      - name: Each map engine in a chunk of its own
+        # One static import of mapbox-gl or maplibre-gl in the map tree folds
+        # both engines into one chunk again, and nothing else notices: the build
+        # stays green and the app still works, only every map user downloads
+        # both. scripts/check-gl-split.mjs explains the markers it looks for.
+        if: ${{ !cancelled() && steps.build-client.outcome == 'success' }}
+        run: cd client && npm run check:gl-split
+
   client-lint:
-    name: 'Client: Lint'
+    name: 'Client lint'
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --workspace shared --workspace client
-
-      - name: Build shared
-        run: npm run build --workspace=shared
+          scope: client
+          build-shared: 'true'
 
       - name: Fetch the base the warnings are compared with
         # lint:warnings names the file behind a grown count by linting it as
@@ -565,369 +983,32 @@ jobs:
           TREK_LINT_BASE: refs/remotes/lint-base
         run: cd client && npm run lint:warnings
 
-  client-bundle:
-    name: 'Client: Bundle'
+  # The client suite in ten slices, the same way as server-tests.
+  client-tests:
+    name: 'Client tests ${{ matrix.shard }}/10'
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --workspace shared --workspace client
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Build client
-        run: cd client && npm run build
-
-      - name: Each map engine in a chunk of its own
-        # One static import of mapbox-gl or maplibre-gl in the map tree folds
-        # both engines into one chunk again, and nothing else notices: the build
-        # stays green and the app still works, only every map user downloads
-        # both. scripts/check-gl-split.mjs explains the markers it looks for.
-        run: cd client && npm run check:gl-split
-
-  client-e2e:
-    name: 'Client: End-to-End'
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      # The run boots the real server (e2e/server-launch.mjs builds it and
-      # starts it against a throwaway SQLite file) and the Vite dev server in
-      # front of it, so it needs every workspace.
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      # Keyed on the lockfile, which pins @playwright/test and with it the
-      # browser builds. The system libraries the browsers need are not cached
-      # and are installed on every run.
-      - name: Cache browsers
-        id: browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      # Chromium for the desktop and phone flows, WebKit for the iPad and
-      # iPhone ones (every browser on iOS and iPadOS is WebKit underneath).
-      - name: Install browsers
-        if: steps.browsers.outputs.cache-hit != 'true'
-        run: cd client && npx playwright install --with-deps chromium webkit
-
-      - name: Install browser dependencies
-        if: steps.browsers.outputs.cache-hit == 'true'
-        run: cd client && npx playwright install-deps chromium webkit
-
-      # The public and app projects are the regression flows. The screenshot
-      # and help-media projects make pictures for the wiki and the help center
-      # and assert nothing, so they stay out of CI.
-      - name: Run the end-to-end flows
-        run: cd client && npx playwright test --project=public --project=app
-
-      - name: Upload traces
-        if: failure()
-        uses: actions/upload-artifact@v6
-        with:
-          name: e2e-results
-          path: client/test-results/
-          retention-days: 7
-
-  s3-contract:
-    name: 'Server: S3 Contract (MinIO)'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    needs: changes
-    # Fork PRs don't get repo secrets, so MINIO_LICENSE_KEY would be empty and
-    # the AIStor container would fail to boot. A run Dependabot triggers gets
-    # only Dependabot secrets, so its PRs (same repo, not a fork) hit the same
-    # wall. Pushes and manual dispatches by anyone else do have secrets, so
-    # only those two are filtered out.
-    if: >-
-      needs.changes.outputs.code == 'true' &&
-      github.actor != 'dependabot[bot]' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check @swc/core's native binding loads
-        # The server's SWC transform (server/vitest.config.ts) needs it. The
-        # lockfile carries the Linux binary, so npm ci installs it; this only
-        # names the cause if a lockfile regenerated without it ever lands. (It
-        # used to be installed here with --legacy-peer-deps, which pruned
-        # eight peer packages and left the tests on a tree the lockfile does
-        # not describe.)
-        run: node -e "require('@swc/core').transformSync('let a = 1')"
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Write MinIO license
-        run: printf '%s' "${{ secrets.MINIO_LICENSE_KEY }}" > minio-licence.key
-
-      - name: Start MinIO
-        # `services:` can't pass the `server /data --license ...` command to
-        # the AIStor image, so it starts via docker run. 127.0.0.1 endpoint is
-        # load-bearing: aws-lite picks path-style only for IP/localhost hosts,
-        # which is all stock MinIO/AIStor speaks.
-        run: |
-          docker run -d --name minio -p 127.0.0.1:9000:9000 \
-            -v "$PWD/minio-licence.key:/minio.license:ro" \
-            -e MINIO_ROOT_USER=trekci -e MINIO_ROOT_PASSWORD=trekci-secret \
-            quay.io/minio/aistor/minio:RELEASE.2026-08-07T18-34-35Z server /data --license /minio.license
-
-      - name: Wait for MinIO
-        # curl was removed from the AIStor image — poll from the runner instead.
-        # 60 x 2s gives a wider margin on cold runners than the 30 x 1s the
-        # pre-6fbff835 job used.
-        run: |
-          for _ in $(seq 1 60); do
-            curl -sf http://127.0.0.1:9000/minio/health/live && exit 0
-            sleep 2
-          done
-          echo "MinIO never became healthy" >&2
-          docker logs minio >&2
-          exit 1
-
-      - name: Run the S3 driver contract suite
-        # No --coverage: the src/nest/storage/** 94/84/97/94 pin must keep
-        # holding from hermetic tests alone. The suite's beforeAll creates
-        # the trek-test bucket idempotently — no separate bucket-init step.
-        env:
-          TREK_TEST_S3_ENDPOINT: http://127.0.0.1:9000
-          TREK_TEST_S3_BUCKET: trek-test
-          TREK_TEST_S3_ACCESS_KEY_ID: trekci
-          TREK_TEST_S3_SECRET_ACCESS_KEY: trekci-secret
-        run: cd server && npx vitest run tests/unit/nest/storage/s3.driver.contract.test.ts
-
-  # What of the server's SQL runs on Postgres today (server/scripts/pg-probe.ts).
-  # TREK runs on SQLite; the dialect layer in server/src/db/dialect/ is written
-  # so a second engine is a branch there and not a sweep through the
-  # repositories, and this is the job that holds it to that. Against an empty
-  # Postgres it derives a schema from the entities, runs every dialect helper
-  # on SQLite and Postgres (every case must pass), and calls every public
-  # repository method once, each statement in its own rolled-back transaction.
-  # The statements Postgres refuses as SQL are held per method to
-  # server/scripts/pg-probe-baseline.json, and so is the list of methods it
-  # could not measure (uncovered); both may only shrink. An unmeasured
-  # baseline (failing or uncovered null) or a run that called no method fails. The measured
-  # baseline and the full report are uploaded either way, so the first run's
-  # artifact seeds the file and a change that fixes a statement can lower it
-  # without a local Postgres.
-  postgres-probe:
-    name: 'Server: Postgres Probe'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: probe
-          POSTGRES_DB: trek_probe
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d trek_probe"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      # The probe reads the repositories' parameter types, some of which come
-      # from @trek/shared's built declarations.
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Run the Postgres probe
-        env:
-          TREK_PG_PROBE_URL: postgres://postgres:probe@127.0.0.1:5432/trek_probe
-        run: >-
-          cd server && npm run probe:pg --
-          --next-baseline="$RUNNER_TEMP/pg-probe-baseline.json"
-          --report="$RUNNER_TEMP/pg-probe-report.json"
-
-      - name: Upload the measured baseline and the report
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: pg-probe-baseline
-          path: |
-            ${{ runner.temp }}/pg-probe-baseline.json
-            ${{ runner.temp }}/pg-probe-report.json
-          if-no-files-found: ignore
-          retention-days: 14
-
-  # The server suite in seven slices. vitest.shard.config.ts is vitest.config.ts
-  # without the thresholds and the coverage reports: a slice's blob carries
-  # its coverage to server-coverage, which checks the whole. fail-fast is off,
-  # so one red run shows every failing slice and not just the first.
-  server-tests:
-    name: 'Server: Tests ${{ matrix.shard }}/7'
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check @swc/core's native binding loads
-        # The server's SWC transform (server/vitest.config.ts) needs it. The
-        # lockfile carries the Linux binary, so npm ci installs it; this only
-        # names the cause if a lockfile regenerated without it ever lands. (It
-        # used to be installed here with --legacy-peer-deps, which pruned
-        # eight peer packages and left the tests on a tree the lockfile does
-        # not describe.)
-        run: node -e "require('@swc/core').transformSync('let a = 1')"
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Run a slice of the tests with coverage
-        run: >-
-          cd server && npx vitest run --config vitest.shard.config.ts --coverage
-          --shard=${{ matrix.shard }}/7
-          --reporter=default --reporter=github-actions --reporter=blob
-
-      - name: Upload the blob report
-        uses: actions/upload-artifact@v6
-        with:
-          name: server-blob-${{ matrix.shard }}
-          path: server/.vitest-reports/
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 1
-
-  server-coverage:
-    name: 'Server: Coverage'
-    needs: server-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download the blob reports
-        uses: actions/download-artifact@v7
-        with:
-          pattern: server-blob-*
-          path: server/.vitest-reports/
-          merge-multiple: true
-
-      - name: Merge the slices and check the thresholds
-        # Every blob holds a whole coverage map, and the merge reads them all
-        # into one process.
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        run: cd server && npx vitest run --merge-reports --coverage
-
-      - name: Upload coverage
-        uses: actions/upload-artifact@v6
-        with:
-          name: sonar-server-coverage
-          path: server/coverage/
-          retention-days: 1
-
-  # The client suite in seven slices, the same way as server-tests. The two
-  # suites cost about the same per slice at seven each (~4-6 minutes).
-  client-tests:
-    name: 'Client: Tests ${{ matrix.shard }}/7'
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      # Only the shared and client workspaces — a full root npm ci is not
+      # Only the shared and client workspaces: a full root npm ci is not
       # needed, and the scoped install keeps @testing-library/dom (a peer of
-      # @testing-library/react) in the tree without the re-resolution dance
-      # the folded coverage job used to need.
-      - name: Install dependencies
-        run: npm ci --workspace shared --workspace client
-
-      - name: Build shared
-        run: npm run build --workspace=shared
+      # @testing-library/react) in the tree.
+      - uses: ./.github/actions/setup
+        with:
+          scope: client
+          build-shared: 'true'
 
       - name: Run a slice of the tests with coverage
         run: >-
           cd client && npx vitest run --config vitest.shard.config.ts --coverage
-          --shard=${{ matrix.shard }}/7
+          --shard=${{ matrix.shard }}/10
           --reporter=default --reporter=github-actions --reporter=blob
 
       - name: Upload the blob report
@@ -940,21 +1021,16 @@ jobs:
           retention-days: 1
 
   client-coverage:
-    name: 'Client: Coverage'
+    name: 'Client coverage'
     needs: client-tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --workspace shared --workspace client
+          scope: client
 
       - name: Download the blob reports
         uses: actions/download-artifact@v7
@@ -977,96 +1053,366 @@ jobs:
           path: client/coverage/
           retention-days: 1
 
-  shared-coverage:
-    name: 'Shared: Coverage'
+  # The browser flows in two slices, in the Playwright image of the version
+  # the lockfile pins. The image carries Chromium, WebKit and the system
+  # libraries they need, so no step installs them from the Ubuntu mirror
+  # (that apt step used to hang for 20 minutes now and then). Dependabot bumps
+  # only the lockfile: scripts/ci/workflow-jobs.test.mjs fails until the tag
+  # here names the same version, so a Playwright bump moves the tag and its
+  # digest by hand in the same PR (the digest of the multi-arch index, from
+  # `docker buildx imagetools inspect mcr.microsoft.com/playwright:v<version>-noble`).
+  #
+  # The job runs as root in the container; git is in the image, so checkout
+  # clones as usual, and Chromium runs without its sandbox as Playwright does
+  # for root on its own. Each slice boots its own server on its own SQLite
+  # file (e2e/server-launch.mjs) and runs the setup project before its share
+  # of the app flows.
+  client-e2e:
+    name: 'Client e2e ${{ matrix.shard }}/2'
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      # The run boots the real server (e2e/server-launch.mjs builds it and
+      # starts it against a throwaway SQLite file) and the Vite dev server in
+      # front of it, so it needs every workspace.
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: package-lock.json
+          scope: full
+          build-shared: 'true'
 
-      - name: Install dependencies
-        run: npm ci --workspace shared
+      # The public and app projects are the regression flows. The screenshot
+      # and help-media projects make pictures for the wiki and the help center
+      # and assert nothing, so they stay out of CI.
+      - name: Run a slice of the end-to-end flows
+        run: >-
+          cd client && npx playwright test --project=public --project=app
+          --shard=${{ matrix.shard }}/2
 
-      - name: Run tests with coverage
-        run: cd shared && npm run test:coverage
-
-      - name: Upload coverage
+      - name: Upload traces
+        if: failure()
         uses: actions/upload-artifact@v6
         with:
-          name: sonar-shared-coverage
-          path: shared/coverage/
-          retention-days: 1
+          name: e2e-results-${{ matrix.shard }}
+          path: client/test-results/
+          retention-days: 7
 
-  # Typecheck and tests in one job: each takes seconds, and a runner of its
-  # own would cost more in setup than it saves.
-  plugin-sdk:
-    name: 'Plugin SDK: Types & Coverage'
+  # The image every release ships, built the way docker.yml builds it and
+  # started the way docker-compose.yml starts it (read-only root, every
+  # capability dropped but the three the entrypoint needs, bind-mounted data
+  # and uploads). Nothing else in CI builds the Dockerfile: the unit tests only
+  # read it as text, which is how a Dockerfile that could not be parsed
+  # reached dev unseen. It is separate from the vulnerability scan on purpose,
+  # so a newly published CVE cannot hide a broken build or the other way round.
+  #
+  # The Helm chart and the compose files are what self-hosters deploy from,
+  # and before this check only a release ever touched them. The chart is
+  # linted, rendered with the defaults and with each secret and persistence
+  # mode, and the output checked against the Kubernetes API schemas. Both
+  # tools come from their release pages, pinned by version and checksum.
+  #
+  # One job for both: the image steps run when the image area changed, the
+  # chart and compose steps when the deploy area changed, exactly as the two
+  # jobs this replaced did. Each step names the step it builds on, so a red
+  # chart step does not skip the image steps or the other way round.
+  docker:
+    name: 'Docker and Helm'
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.image == 'true' || needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: plugin-sdk
-
+    timeout-minutes: 15
+    env:
+      HELM_VERSION: v3.22.0
+      HELM_SHA256: 1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb
+      KUBECONFORM_VERSION: v0.8.0
+      KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
         with:
-          # The image's Node runs the plugins, and it has the node:sqlite the
-          # dev-server tests exercise.
-          node-version-file: .nvmrc
+          persist-credentials: false
 
-      # plugin-sdk is standalone (own lockfile, not a root workspace), so it
-      # installs from its own directory.
-      - name: Install dependencies
-        run: npm ci
+      - name: Install helm and kubeconform
+        id: helm-install
+        if: needs.changes.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          bin="$RUNNER_TEMP/bin"
+          mkdir -p "$bin"
+          cd "$RUNNER_TEMP"
+          # GitHub's release downloads answer 504 now and then: retry, the checksum still decides.
+          fetch() { curl -sSfL --retry 5 --retry-delay 15 --retry-all-errors -o "$1" "$2"; }
+          fetch helm.tgz "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz"
+          echo "$HELM_SHA256  helm.tgz" | sha256sum -c -
+          tar -xzf helm.tgz --strip-components=1 -C "$bin" linux-amd64/helm
+          fetch kubeconform.tgz "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          echo "$KUBECONFORM_SHA256  kubeconform.tgz" | sha256sum -c -
+          tar -xzf kubeconform.tgz -C "$bin" kubeconform
+          echo "$bin" >> "$GITHUB_PATH"
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Lint the chart
+        if: ${{ !cancelled() && steps.helm-install.outcome == 'success' }}
+        run: helm lint --strict charts/trek
 
-      - name: Run tests with coverage
-        run: npm run test:coverage
+      - name: Render the chart
+        id: helm-render
+        if: ${{ !cancelled() && steps.helm-install.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/rendered"
+          mkdir -p "$out"
+          helm template trek charts/trek > "$out/defaults.yaml"
+          helm template trek charts/trek --set existingSecret=trek-secrets > "$out/existing-secret.yaml"
+          helm template trek charts/trek --set generateEncryptionKey=true > "$out/generated-key.yaml"
+          helm template trek charts/trek \
+            --set persistence.enabled=false \
+            --set ingress.enabled=true \
+            --set 'ingress.tls[0].secretName=trek-tls' \
+            --set 'ingress.tls[0].hosts[0]=chart-example.local' \
+            --set 'extraEnv[0].name=SESSION_DURATION' \
+            --set 'extraEnv[0].value=7d' \
+            --set 'extraEnvFrom[0].secretRef.name=trek-smtp' \
+            --set 'extraVolumes[0].name=kitinerary-extractors' \
+            --set 'extraVolumes[0].configMap.name=trek-kitinerary-extractors' \
+            --set 'extraVolumeMounts[0].name=kitinerary-extractors' \
+            --set 'extraVolumeMounts[0].mountPath=/usr/local/share/kitinerary/extractors' \
+            --set 'extraVolumeMounts[0].readOnly=true' \
+            --set probes.liveness=null \
+            > "$out/variants.yaml"
+          helm template trek charts/trek \
+            --set httpRoute.enabled=true \
+            --set 'httpRoute.parentRefs[0].name=gateway' \
+            > "$out/http-route.yaml"
+          helm template trek charts/trek \
+            --set 'persistence.data.accessModes[0]=ReadWriteMany' \
+            --set 'persistence.uploads.accessModes[0]=ReadWriteMany' \
+            > "$out/access-modes.yaml"
+          helm template trek charts/trek \
+            --set podSecurityContext.runAsUser=1000 \
+            --set podSecurityContext.runAsGroup=1000 \
+            --set podSecurityContext.runAsNonRoot=true \
+            --set podSecurityContext.seccompProfile.type=RuntimeDefault \
+            --set securityContext.allowPrivilegeEscalation=false \
+            --set 'securityContext.capabilities.drop[0]=ALL' \
+            > "$out/non-root.yaml"
+          helm template trek charts/trek \
+            --set ingress.enabled=true \
+            --set fullnameOverride=custom-trek \
+            --set service.port=8080 \
+            --set-json 'httpRoute={"enabled":true,"parentRefs":[{"name":"gateway","namespace":"gateway-system","sectionName":"https"}],"hostnames":["trek.example.com"],"paths":["/","/api"],"annotations":{"example.com/note":"custom route"},"timeouts":{"request":"0s","backendRequest":"0s"}}' \
+            > "$out/http-route-variants.yaml"
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v6
+      - name: Check the manifests against the Kubernetes schemas
+        # The pinned Gateway API schema adds HTTPRoute validation without skipping unknown resources.
+        if: ${{ !cancelled() && steps.helm-render.outcome == 'success' }}
+        run: >-
+          kubeconform -strict -summary
+          -schema-location default
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/041baf4c1d3740ca21461cab765e7432ecd073ef/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          "$RUNNER_TEMP"/rendered/*.yaml
+
+      - name: Check every compose file
+        if: ${{ !cancelled() && needs.changes.outputs.deploy == 'true' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(docker-compose*.yml docker-compose*.yaml)
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::No compose file found."; exit 1; }
+          for f in "${files[@]}"; do
+            echo "$f"
+            docker compose -f "$f" config --quiet
+          done
+
+      - name: Set up buildx
+        id: buildx
+        if: ${{ !cancelled() && needs.changes.outputs.image == 'true' }}
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # Only pushes write the layer cache. Pull requests read what the last
+      # push to their base left, so a stream of PRs cannot evict it and the
+      # cache stays within the repository's quota.
+      - name: Build the image
+        id: image-build
+        if: ${{ !cancelled() && steps.buildx.outcome == 'success' }}
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          name: sonar-plugin-sdk-coverage
-          path: plugin-sdk/coverage/
-          retention-days: 1
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: trek:ci
+          build-args: |
+            APP_VERSION=0.0.0-ci
+          cache-from: type=gha,scope=trek-image
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=trek-image' || '' }}
+
+      - name: Start the container
+        id: image-start
+        if: ${{ !cancelled() && steps.image-build.outcome == 'success' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/trek/data" "$RUNNER_TEMP/trek/uploads"
+          docker run -d --name trek-ci -p 127.0.0.1:3000:3000 \
+            --read-only --tmpfs /tmp:noexec,nosuid,size=128m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-add KILL \
+            -v "$RUNNER_TEMP/trek/data:/app/data" \
+            -v "$RUNNER_TEMP/trek/uploads:/app/uploads" \
+            -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+            trek:ci
+
+      # Ready means migrated, seeded and answering from the database. A first
+      # boot migrates an empty database, which takes seconds; three minutes
+      # is the bound, not the expectation.
+      - name: Wait until the server is ready
+        id: image-ready
+        if: ${{ !cancelled() && steps.image-start.outcome == 'success' }}
+        run: |
+          for _ in $(seq 1 90); do
+            if [ "$(docker inspect -f '{{.State.Running}}' trek-ci)" != "true" ]; then
+              echo "::error::The container exited before it became ready."
+              exit 1
+            fi
+            if curl -sf http://127.0.0.1:3000/api/health/ready; then
+              echo
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::/api/health/ready did not answer within 180 seconds."
+          exit 1
+
+      - name: Check what the image serves
+        id: image-serves
+        if: ${{ !cancelled() && steps.image-ready.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          version="$(docker exec trek-ci cat /app/server/VERSION)"
+          [ "$version" = "0.0.0-ci" ] || { echo "::error::VERSION holds '$version'"; exit 1; }
+          curl -sf http://127.0.0.1:3000/ | grep -q '<div id="root">' \
+            || { echo "::error::/ does not serve the client"; exit 1; }
+
+      # Same capabilities as the shipped compose file: dumb-init has to be able
+      # to pass the stop signal on to node, or docker stop ends in SIGKILL (137).
+      - name: Stop gracefully
+        id: image-stop
+        if: ${{ !cancelled() && steps.image-serves.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          docker stop -t 30 trek-ci >/dev/null
+          code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci)"
+          [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
+          docker logs trek-ci 2>&1 | grep 'SIGTERM received' >/dev/null \
+            || { echo "::error::the server never saw SIGTERM"; exit 1; }
+
+      # The same image on a Postgres database (TREK_DB_URL): an empty database
+      # gets the baseline schema, the admin is seeded, and the server answers
+      # ready. The database runs beside it on a private network, never exposed.
+      # It is the newest supported major, the one the image's client tools are
+      # for; server-postgres covers the oldest.
+      - name: Start the container on Postgres
+        id: pg-start
+        if: ${{ !cancelled() && steps.image-stop.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          docker network create trek-ci-pg
+          docker run -d --name trek-ci-db --network trek-ci-pg \
+            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:18
+          for _ in $(seq 1 30); do
+            docker exec trek-ci-db pg_isready -U postgres -d trek >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec trek-ci-db pg_isready -U postgres -d trek \
+            || { echo "::error::Postgres did not accept connections within 60 seconds."; exit 1; }
+          mkdir -p "$RUNNER_TEMP/trek-pg/data" "$RUNNER_TEMP/trek-pg/uploads"
+          docker run -d --name trek-ci-on-pg --network trek-ci-pg -p 127.0.0.1:3001:3000 \
+            --read-only --tmpfs /tmp:noexec,nosuid,size=128m \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-add KILL \
+            -v "$RUNNER_TEMP/trek-pg/data:/app/data" \
+            -v "$RUNNER_TEMP/trek-pg/uploads:/app/uploads" \
+            -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+            -e TREK_DB_URL=postgres://postgres:ci@trek-ci-db:5432/trek \
+            trek:ci
+
+      # Twice: the first start creates the schema in the empty database, the
+      # restart finds it migrated and must start without touching it.
+      - name: Wait until the server on Postgres is ready, then again after a restart
+        id: pg-ready
+        if: ${{ !cancelled() && steps.pg-start.outcome == 'success' }}
+        run: |
+          wait_ready() {
+          for _ in $(seq 1 90); do
+            if [ "$(docker inspect -f '{{.State.Running}}' trek-ci-on-pg)" != "true" ]; then
+              echo "::error::The container on Postgres exited before it became ready."
+              exit 1
+            fi
+            if curl -sf http://127.0.0.1:3001/api/health/ready; then
+              echo
+              return 0
+            fi
+            sleep 2
+          done
+          echo "::error::/api/health/ready on Postgres did not answer within 180 seconds."
+          exit 1
+          }
+          wait_ready
+          docker restart -t 30 trek-ci-on-pg >/dev/null
+          wait_ready
+
+      - name: Stop the container on Postgres gracefully
+        if: ${{ !cancelled() && steps.pg-ready.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          docker stop -t 30 trek-ci-on-pg >/dev/null
+          code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci-on-pg)"
+          [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
+
+      - name: Container log
+        if: always() && needs.changes.outputs.image == 'true'
+        run: docker logs trek-ci 2>&1 || true
+
+      - name: Container log on Postgres
+        if: always() && needs.changes.outputs.image == 'true'
+        run: |
+          docker logs trek-ci-on-pg 2>&1 || true
+          docker logs trek-ci-db 2>&1 | tail -50 || true
 
   scan:
-    name: 'Repo: Sonar Scan'
+    name: 'Sonar'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 20
     # Fork PRs and Dependabot runs don't receive SONAR_TOKEN, so skip the scan
-    # rather than fail it.
+    # rather than fail it. The release pull request mirrors the push run, whose
+    # scan already covers dev, so it skips the scan too.
     if: >-
+      needs.changes.outputs.mirror != 'true' &&
       github.actor != 'dependabot[bot]' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     # Coverage jobs failing must stop the scan: a missing lcov file would make
     # every line of that package report as uncovered, and the dashboard would
-    # show a collapse that did not happen. The gates run beside the tests now,
-    # so they are listed here too, and a failed gate still stops the scan.
+    # show a collapse that did not happen. The gates run beside the tests, so
+    # they are listed here too, and a failed gate still stops the scan.
+    # scripts/ci/workflow-jobs.test.mjs fails while a job that uploads a
+    # sonar-*-coverage artifact is missing here.
     needs:
-      - i18n-parity
+      - changes
+      - shared
       - server-types
-      - server-lint-checks
-      - client-types-checks
+      - server-lint
+      - client-types
+      - client-checks
       - client-lint
       - server-coverage
       - client-coverage
-      - shared-coverage
-      - plugin-sdk
 
     steps:
       - uses: actions/checkout@v6
@@ -1100,7 +1446,7 @@ jobs:
           path: plugin-sdk/coverage/
 
       - name: Scan
-        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
         env:
           # SonarQube Cloud is the scan action's default host, so no
           # SONAR_HOST_URL — the token is a sonarcloud.io token for the
@@ -1119,225 +1465,38 @@ jobs:
           # reviewable in a PR rather than buried in workflow YAML.
           args: -Dsonar.projectVersion=4.0.0
 
-  # The image every release ships, built the way docker.yml builds it and
-  # started the way docker-compose.yml starts it (read-only root, every
-  # capability dropped but the three the entrypoint needs, bind-mounted data
-  # and uploads). Nothing else in CI builds the Dockerfile: the unit tests only
-  # read it as text, which is how a Dockerfile that could not be parsed
-  # reached dev unseen. It is separate from the vulnerability scan on purpose,
-  # so a newly published CVE cannot hide a broken build or the other way round.
-  docker-image:
-    name: 'Repo: Docker Image'
-    needs: changes
-    if: needs.changes.outputs.image == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-      # Only pushes write the layer cache. Pull requests read what the last
-      # push to their base left, so a stream of PRs cannot evict it and the
-      # cache stays within the repository's quota.
-      - name: Build the image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: .
-          platforms: linux/amd64
-          push: false
-          load: true
-          tags: trek:ci
-          build-args: |
-            APP_VERSION=0.0.0-ci
-          cache-from: type=gha,scope=trek-image
-          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=trek-image' || '' }}
-
-      - name: Start the container
-        run: |
-          mkdir -p "$RUNNER_TEMP/trek/data" "$RUNNER_TEMP/trek/uploads"
-          docker run -d --name trek-ci -p 127.0.0.1:3000:3000 \
-            --read-only --tmpfs /tmp:noexec,nosuid,size=128m \
-            --security-opt no-new-privileges:true \
-            --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --cap-add KILL \
-            -v "$RUNNER_TEMP/trek/data:/app/data" \
-            -v "$RUNNER_TEMP/trek/uploads:/app/uploads" \
-            -e ENCRYPTION_KEY="$(openssl rand -hex 32)" \
-            trek:ci
-
-      # Ready means migrated, seeded and answering from the database. A first
-      # boot migrates an empty database, which takes seconds; three minutes
-      # is the bound, not the expectation.
-      - name: Wait until the server is ready
-        run: |
-          for _ in $(seq 1 90); do
-            if [ "$(docker inspect -f '{{.State.Running}}' trek-ci)" != "true" ]; then
-              echo "::error::The container exited before it became ready."
-              exit 1
-            fi
-            if curl -sf http://127.0.0.1:3000/api/health/ready; then
-              echo
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "::error::/api/health/ready did not answer within 180 seconds."
-          exit 1
-
-      - name: Check what the image serves
-        run: |
-          set -euo pipefail
-          version="$(docker exec trek-ci cat /app/server/VERSION)"
-          [ "$version" = "0.0.0-ci" ] || { echo "::error::VERSION holds '$version'"; exit 1; }
-          curl -sf http://127.0.0.1:3000/ | grep -q '<div id="root">' \
-            || { echo "::error::/ does not serve the client"; exit 1; }
-
-      # Same capabilities as the shipped compose file: dumb-init has to be able
-      # to pass the stop signal on to node, or docker stop ends in SIGKILL (137).
-      - name: Stop gracefully
-        run: |
-          set -euo pipefail
-          docker stop -t 30 trek-ci >/dev/null
-          code="$(docker inspect -f '{{.State.ExitCode}}' trek-ci)"
-          [ "$code" = "0" ] || { echo "::error::docker stop ended with exit code $code, not a graceful shutdown"; exit 1; }
-          docker logs trek-ci 2>&1 | grep 'SIGTERM received' >/dev/null \
-            || { echo "::error::the server never saw SIGTERM"; exit 1; }
-
-      - name: Container log
-        if: always()
-        run: docker logs trek-ci 2>&1 || true
-
-  # The Helm chart and the compose files are what self-hosters deploy from,
-  # and before this job only a release ever touched them. The chart is linted,
-  # rendered with the defaults and with each secret and persistence mode, and
-  # the output checked against the Kubernetes API schemas. Both tools come
-  # from their release pages, pinned by version and checksum.
-  deploy-manifests:
-    name: 'Repo: Helm Chart & Compose'
-    needs: changes
-    if: needs.changes.outputs.deploy == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    env:
-      HELM_VERSION: v3.22.0
-      HELM_SHA256: 1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb
-      KUBECONFORM_VERSION: v0.8.0
-      KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Install helm and kubeconform
-        run: |
-          set -euo pipefail
-          bin="$RUNNER_TEMP/bin"
-          mkdir -p "$bin"
-          cd "$RUNNER_TEMP"
-          # GitHub's release downloads answer 504 now and then: retry, the checksum still decides.
-          fetch() { curl -sSfL --retry 5 --retry-delay 15 --retry-all-errors -o "$1" "$2"; }
-          fetch helm.tgz "https://get.helm.sh/helm-$HELM_VERSION-linux-amd64.tar.gz"
-          echo "$HELM_SHA256  helm.tgz" | sha256sum -c -
-          tar -xzf helm.tgz --strip-components=1 -C "$bin" linux-amd64/helm
-          fetch kubeconform.tgz "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
-          echo "$KUBECONFORM_SHA256  kubeconform.tgz" | sha256sum -c -
-          tar -xzf kubeconform.tgz -C "$bin" kubeconform
-          echo "$bin" >> "$GITHUB_PATH"
-
-      - name: Lint the chart
-        run: helm lint --strict charts/trek
-
-      - name: Render the chart
-        run: |
-          set -euo pipefail
-          out="$RUNNER_TEMP/rendered"
-          mkdir -p "$out"
-          helm template trek charts/trek > "$out/defaults.yaml"
-          helm template trek charts/trek --set existingSecret=trek-secrets > "$out/existing-secret.yaml"
-          helm template trek charts/trek --set generateEncryptionKey=true > "$out/generated-key.yaml"
-          helm template trek charts/trek \
-            --set persistence.enabled=false \
-            --set ingress.enabled=true \
-            --set 'ingress.tls[0].secretName=trek-tls' \
-            --set 'ingress.tls[0].hosts[0]=chart-example.local' \
-            --set 'extraEnv[0].name=SESSION_DURATION' \
-            --set 'extraEnv[0].value=7d' \
-            --set 'extraEnvFrom[0].secretRef.name=trek-smtp' \
-            --set 'extraVolumes[0].name=kitinerary-extractors' \
-            --set 'extraVolumes[0].configMap.name=trek-kitinerary-extractors' \
-            --set 'extraVolumeMounts[0].name=kitinerary-extractors' \
-            --set 'extraVolumeMounts[0].mountPath=/usr/local/share/kitinerary/extractors' \
-            --set 'extraVolumeMounts[0].readOnly=true' \
-            --set probes.liveness=null \
-            > "$out/variants.yaml"
-          helm template trek charts/trek \
-            --set httpRoute.enabled=true \
-            --set 'httpRoute.parentRefs[0].name=gateway' \
-            > "$out/http-route.yaml"
-          helm template trek charts/trek \
-            --set podSecurityContext.runAsUser=1000 \
-            --set podSecurityContext.runAsGroup=1000 \
-            --set podSecurityContext.runAsNonRoot=true \
-            --set podSecurityContext.seccompProfile.type=RuntimeDefault \
-            --set securityContext.allowPrivilegeEscalation=false \
-            --set 'securityContext.capabilities.drop[0]=ALL' \
-            > "$out/non-root.yaml"
-          helm template trek charts/trek \
-            --set ingress.enabled=true \
-            --set fullnameOverride=custom-trek \
-            --set service.port=8080 \
-            --set-json 'httpRoute={"enabled":true,"parentRefs":[{"name":"gateway","namespace":"gateway-system","sectionName":"https"}],"hostnames":["trek.example.com"],"paths":["/","/api"],"annotations":{"example.com/note":"custom route"},"timeouts":{"request":"0s","backendRequest":"0s"}}' \
-            > "$out/http-route-variants.yaml"
-
-      - name: Check the manifests against the Kubernetes schemas
-        # The pinned Gateway API schema adds HTTPRoute validation without skipping unknown resources.
-        run: >-
-          kubeconform -strict -summary
-          -schema-location default
-          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/041baf4c1d3740ca21461cab765e7432ecd073ef/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
-          "$RUNNER_TEMP"/rendered/*.yaml
-
-      - name: Check every compose file
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          files=(docker-compose*.yml docker-compose*.yaml)
-          [ "${#files[@]}" -gt 0 ] || { echo "::error::No compose file found."; exit 1; }
-          for f in "${files[@]}"; do
-            echo "$f"
-            docker compose -f "$f" config --quiet
-          done
-
   # The single check the branch ruleset requires. It needs every job that
   # gates a merge, so listing a job here is what makes it required. The scan
   # stays out (see the layout notes at the top).
   ci-ok:
     needs:
       - changes
-      - i18n-parity
+      - shared
       - server-types
-      - server-lint-checks
-      - client-types-checks
-      - client-lint
-      - client-bundle
-      - client-e2e
-      - s3-contract
-      - postgres-probe
+      - server-lint
       - server-tests
       - server-coverage
+      - server-postgres
+      - server-s3
+      - client-types
+      - client-checks
+      - client-lint
       - client-tests
       - client-coverage
-      - shared-coverage
-      - plugin-sdk
-      - docker-image
-      - deploy-manifests
+      - client-e2e
+      - docker
     # always(): without it a failed dependency would skip this job, and the
     # ruleset reads a skipped required check as passed.
     if: always()
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    # 20 rather than 5: on the release pull request the mirror step waits for
+    # the push run's ci-ok, and gives up two minutes before this kills it.
+    timeout-minutes: 20
+    # The mirror reads the push run's jobs; nothing here writes.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
     steps:
       - name: Every needed job passed or was skipped
         env:
@@ -1350,3 +1509,28 @@ jobs:
             echo "::error::Not passed: $failed"
             exit 1
           fi
+
+      # On the release pull request every job above skipped, so the step above
+      # only proves that changes passed. The verdict is the push run's: wait
+      # for the ci-ok of the push run of this workflow on dev for exactly the
+      # pull request's head commit, and pass or fail with it. No push run, a
+      # cancelled one or a timeout fails, with what to do in the log.
+      - name: Check out the mirror script
+        if: needs.changes.outputs.mirror == 'true'
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+
+      - uses: actions/setup-node@v6
+        if: needs.changes.outputs.mirror == 'true'
+        with:
+          node-version-file: .nvmrc
+
+      - name: Mirror the ci-ok of the push run on dev
+        if: needs.changes.outputs.mirror == 'true'
+        timeout-minutes: 19
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/mirror-push-run.mjs

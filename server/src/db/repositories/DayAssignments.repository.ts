@@ -266,6 +266,8 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     accommodation_id: number | null;
     /** MDT-02: one stage of a multi-day tour, by its starting stop's key; absent for the whole tour or a place. */
     tour_stage_key?: string | null;
+    /** #3092: the visit's own stay; absent or null reads the place's. */
+    stay_minutes?: number | null;
   }): Promise<number> {
     return await this.insert({
       day: input.day_id,
@@ -274,6 +276,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       notes: input.notes,
       accommodation_id: input.accommodation_id,
       tour_stage_key: input.tour_stage_key ?? null,
+      stay_minutes: input.stay_minutes ?? null,
     });
   }
 
@@ -424,6 +427,14 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     await this.nativeUpdate({ id }, { end_day });
   }
 
+  /**
+   * `UPDATE day_assignments SET stay_minutes = ? WHERE id = ?` (#3092). Null hands the
+   * visit back to the stay its place carries.
+   */
+  async setStayMinutes(id: number, stay_minutes: number | null): Promise<void> {
+    await this.nativeUpdate({ id }, { stay_minutes });
+  }
+
   /** AS25 — `UPDATE day_assignments SET notes = ? WHERE id = ?`. */
   async setNotes(id: number, notes: string | null): Promise<void> {
     await this.nativeUpdate({ id }, { notes });
@@ -542,6 +553,8 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     end_day: number;
     /** MDT-02: the copied tour keeps its stops' keys, so a day holding one of its stages keeps holding it. */
     tour_stage_key?: string | null;
+    /** #3092: the visit's own stay goes with it. */
+    stay_minutes?: number | null;
   }): Promise<number> {
     return await this.insert({
       day: input.day_id,
@@ -555,6 +568,7 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
       assignment_end_time: input.assignment_end_time,
       end_day: input.end_day,
       tour_stage_key: input.tour_stage_key ?? null,
+      stay_minutes: input.stay_minutes ?? null,
     });
   }
 
@@ -637,7 +651,9 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
         'p.lng as lng',
         eb.fn.coalesce('a.assignment_time', 'p.place_time').as('time'),
         eb.fn.coalesce('a.assignment_end_time', 'p.end_time').as('end_time'),
-        'p.duration_minutes as duration_minutes',
+        // A visit's own stay before the place's (#3092): the same place planned twice
+        // on a day can be stood at for two different lengths.
+        eb.fn.coalesce('a.stay_minutes', 'p.duration_minutes').as('duration_minutes'),
         'a.end_day as end_day',
         'a.leg_transport_mode as leg_transport_mode',
         'a.incoming_leg_transport_mode as incoming_leg_transport_mode',

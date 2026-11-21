@@ -382,14 +382,28 @@ export function withHotelBookends<T extends { lat: number; lng: number }>(
   return out
 }
 
-export function generateGoogleMapsUrl(places: Waypoint[]): string | null {
-  const valid = places.filter((p) => p.lat && p.lng)
+/** Google's directions modes for the profiles it has; anything else leaves the mode to Google. */
+const GOOGLE_TRAVEL_MODE: Partial<Record<RouteProfileKey, string>> = { walking: 'walking', cycling: 'bicycling' }
+
+/**
+ * Google Maps for a list of stops. A walking or cycling route goes as the
+ * documented directions link, which carries the mode; a drive keeps the short
+ * path link it always had. A stop on the equator or the prime meridian counts.
+ */
+export function generateGoogleMapsUrl(places: Waypoint[], profile?: RouteProfileKey): string | null {
+  const valid = places.filter((p) => p.lat != null && p.lng != null)
   if (valid.length === 0) return null
   if (valid.length === 1) {
     return `https://www.google.com/maps/search/?api=1&query=${valid[0].lat},${valid[0].lng}`
   }
-  const stops = valid.map((p) => `${p.lat},${p.lng}`).join('/')
-  return `https://www.google.com/maps/dir/${stops}`
+  const mode = profile && GOOGLE_TRAVEL_MODE[profile]
+  const point = (p: Waypoint) => `${p.lat},${p.lng}`
+  if (mode) {
+    const between = valid.slice(1, -1).map(point).join('|')
+    return `https://www.google.com/maps/dir/?api=1&origin=${point(valid[0])}&destination=${point(valid[valid.length - 1])}`
+      + (between ? `&waypoints=${encodeURIComponent(between)}` : '') + `&travelmode=${mode}`
+  }
+  return `https://www.google.com/maps/dir/${valid.map(point).join('/')}`
 }
 
 /** A stop that can carry its name into a deep link that has somewhere to put one. */

@@ -81,6 +81,7 @@ export class AppSettingsRepository extends TrekRepository<AppSettings> {
    * a prefix that itself contains `%`/`_`.
    */
   async findByKeyPrefix(prefix: string): Promise<AppSettingsRow[]> {
+    // like-exact: setting keys are lowercase identifiers, matched by their exact prefix on both engines.
     const rows = await this.find({ key: { $like: `${prefix}%` } });
     return rows.map((row) => toRow(row) as AppSettingsRow);
   }

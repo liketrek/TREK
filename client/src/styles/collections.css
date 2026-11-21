@@ -546,7 +546,7 @@
    the link chips below — it is an action on the place, not a piece of it. */
 
 /* status segmented control */
-.trek-dash .col-detail-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); }
+.trek-dash .col-detail-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); }
 .trek-dash .col-detail-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 6px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); transition: background .12s, color .12s, box-shadow .12s; }
 .trek-dash .col-detail-seg button:hover { color: var(--ink); }
 .trek-dash .col-detail-seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
@@ -595,6 +595,8 @@
 
 @media (max-width: 720px) {
   .trek-dash .col-detail { inset-inline: 0; bottom: 0; transform: none; width: 100%; max-height: 84dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
+  /* four statuses side by side leave a label no room at this width: two by two */
+  .trek-dash .col-detail-seg { grid-template-columns: repeat(2, 1fr); }
   /* the read-mode footer (Edit · Copy · Remove) would otherwise clip its last
      button — let it wrap, drop the growing spacer, and clear the home indicator */
   .trek-dash .col-detail-footer { flex-wrap: wrap; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }

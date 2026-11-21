@@ -24,7 +24,6 @@
  * SEAM-FEED-001 uses for the anonymous ICS routes.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { AirtrailLinkService } from '../../src/nest/integrations/airtrail-link.service';
@@ -33,36 +32,33 @@ import { AirtrailClient, type AirtrailFlightRaw } from '../../src/nest/integrati
 import { AirtrailService } from '../../src/nest/integrations/airtrail.service';
 import { ReservationsService } from '../../src/nest/reservations/reservations.service';
 import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { createTrip, createUser } from '../helpers/factories';
 import { deleteRows, insertRow } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 describe('airtrail-sync cron tick runs inside a request context', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     app = await buildApp();
+    await resetDatabase(app.get(MikroORM));
   });
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('AIRTRAIL-CTX-001: firing the real registered tick reaches ReservationsService.getReservation with a live request context, against the SAME MikroORM app.get(MikroORM) does', async () => {
     const orm = app.get(MikroORM);
     const registrar = app.get(CronRegistrarService);
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const reservationId = await insertRow(orm, Reservations, {
       trip: trip.id,

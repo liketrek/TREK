@@ -8,6 +8,8 @@
     <string name="widget_today_description">El pla del dia com a línia de temps, amb el temps i la propera parada.</string>
     <string name="widget_bookings_name">Reserves</string>
     <string name="widget_bookings_description">Els teus propers vols, trens, hotels i taules, i quan toquen.</string>
+    <string name="widget_flight_name">Vol</string>
+    <string name="widget_flight_description">El teu proper vol en directe: compte enrere de la sortida, l’avió en camí, retard i arribada.</string>
     <string name="widget_todos_name">Tasques</string>
     <string name="widget_todos_description">El que encara queda per al viatge i com va l\'equipatge.</string>
     <string name="widget_packing_name">Equipatge</string>

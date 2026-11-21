@@ -5,26 +5,24 @@
  * create_collab_note, update_collab_note, delete_collab_note (CollabMcp,
  * DI-discovered via the same registry).
  */
-import { db as testDb } from '../../../src/db/database';
 import { CollabNotes } from '../../../src/db/entities/CollabNotes.entity';
 import { DayNotes } from '../../../src/db/entities/DayNotes.entity';
 import { TripFiles } from '../../../src/db/entities/TripFiles.entity';
 import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { createUser, createTrip, createDay, createDayNote, createCollabNote } from '../../helpers/factories';
+import { makeCollabNote } from '../../helpers/factories/collab';
 import { makeTripFile } from '../../helpers/factories/files';
+import { makeDayNote } from '../../helpers/factories/itinerary';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { setCollabFeature } from '../../helpers/factories/settings';
+import { makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
-import { resetTestDb, setCollabFeature } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const { unlinkSyncMock } = vi.hoisted(() => ({
   unlinkSyncMock: vi.fn(),
@@ -37,22 +35,21 @@ vi.mock('fs', async (importOriginal) => {
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   unlinkSyncMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 /** The stored day note; fails the case when it is gone. */
@@ -84,9 +81,9 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: create_day_note', () => {
   it('creates a note on a day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -100,7 +97,7 @@ describe('Tool: create_day_note', () => {
   });
 
   it('describes text as the title and time as the body, as the planner shows them', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const { tools } = await h.client.listTools();
       for (const name of ['create_day_note', 'update_day_note']) {
@@ -116,9 +113,9 @@ describe('Tool: create_day_note', () => {
   });
 
   it('takes a body of 2000 characters, the bound the planner allows, and refuses one more', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const body = 'b'.repeat(2000);
       const result = await h.client.callTool({
@@ -137,9 +134,9 @@ describe('Tool: create_day_note', () => {
   });
 
   it('defaults icon to 📝', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -151,9 +148,9 @@ describe('Tool: create_day_note', () => {
   });
 
   it('broadcasts dayNote:created event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_day_note', arguments: { tripId: trip.id, dayId: day.id, text: 'Note' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'dayNote:created', expect.any(Object));
@@ -161,9 +158,9 @@ describe('Tool: create_day_note', () => {
   });
 
   it('persists a palette color and an explicit position', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -177,9 +174,9 @@ describe('Tool: create_day_note', () => {
   });
 
   it('stores no color and appends at the bottom when neither is given', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -193,9 +190,9 @@ describe('Tool: create_day_note', () => {
   });
 
   it('refuses a color outside the note palette and writes nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -207,10 +204,10 @@ describe('Tool: create_day_note', () => {
   });
 
   it('returns error when day does not belong to trip', async () => {
-    const { user } = createUser(testDb);
-    const trip1 = createTrip(testDb, user.id);
-    const trip2 = createTrip(testDb, user.id);
-    const dayFromTrip2 = createDay(testDb, trip2.id);
+    const { user } = await makeUser(orm);
+    const trip1 = await makeTrip(orm, user.id);
+    const trip2 = await makeTrip(orm, user.id);
+    const dayFromTrip2 = await makeDay(orm, trip2.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -221,10 +218,10 @@ describe('Tool: create_day_note', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day_note',
@@ -241,10 +238,10 @@ describe('Tool: create_day_note', () => {
 
 describe('Tool: update_day_note', () => {
   it('updates note text, time, icon', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id, { text: 'Old text', time: '09:00', icon: '📝' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id, { text: 'Old text', time: '09:00', icon: '📝' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_day_note',
@@ -258,11 +255,11 @@ describe('Tool: update_day_note', () => {
   });
 
   it('edits a note whose body is longer than 250 characters without shortening it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     const longBody = 'Opening hours and the ticket links. '.repeat(20);
-    const note = createDayNote(testDb, day.id, trip.id, { text: 'Museum day', time: longBody });
+    const note = await makeDayNote(orm, day.id, trip.id, { text: 'Museum day', time: longBody });
     await withHarness(user.id, async (h) => {
       const renamed = await h.client.callTool({
         name: 'update_day_note',
@@ -282,10 +279,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('refuses an empty title on update and keeps the stored one', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id, { text: 'Keep me' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id, { text: 'Keep me' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_day_note',
@@ -297,10 +294,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('trims text whitespace', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_day_note',
@@ -312,10 +309,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('sets color and moves the note within the day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id, { sort_order: 9999 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id, { sort_order: 9999 });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_day_note',
@@ -328,10 +325,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('clears the color with an explicit null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await updateRows(orm, DayNotes, { id: note.id }, { color: '#2563eb' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -343,10 +340,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('keeps the stored color and position when neither is sent', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id, { sort_order: 3 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id, { sort_order: 3 });
     await updateRows(orm, DayNotes, { id: note.id }, { color: '#9333ea' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -360,10 +357,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('refuses a color outside the note palette', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_day_note',
@@ -375,10 +372,10 @@ describe('Tool: update_day_note', () => {
   });
 
   it('broadcasts dayNote:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_day_note',
@@ -389,9 +386,9 @@ describe('Tool: update_day_note', () => {
   });
 
   it('returns error when note not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_day_note',
@@ -402,11 +399,11 @@ describe('Tool: update_day_note', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_day_note',
@@ -423,10 +420,10 @@ describe('Tool: update_day_note', () => {
 
 describe('Tool: delete_day_note', () => {
   it('deletes a day note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_day_note',
@@ -439,10 +436,10 @@ describe('Tool: delete_day_note', () => {
   });
 
   it('broadcasts dayNote:deleted event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'delete_day_note',
@@ -453,9 +450,9 @@ describe('Tool: delete_day_note', () => {
   });
 
   it('returns error when note not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_day_note',
@@ -466,11 +463,11 @@ describe('Tool: delete_day_note', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const day = createDay(testDb, trip.id);
-    const note = createDayNote(testDb, day.id, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const day = await makeDay(orm, trip.id);
+    const note = await makeDayNote(orm, day.id, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_day_note',
@@ -500,19 +497,19 @@ describe('Day-note tools — scope gating', () => {
   }
 
   it('registers all three tools with null scopes (full access)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, null);
     for (const tool of WRITE_TOOLS) expect(names).toContain(tool);
   });
 
   it('registers no day-note tools with trips:read only (all three are writes)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['trips:read']);
     for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
   });
 
   it('registers no day-note tools for an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['budget:read']);
     for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
   });
@@ -525,11 +522,11 @@ describe('Day-note tools — scope gating', () => {
 
 describe('Resource: trek://trips/{tripId}/days/{dayId}/notes', () => {
   it('returns the day notes ordered by sort_order', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    createDayNote(testDb, day.id, trip.id, { text: 'Second', sort_order: 5 });
-    createDayNote(testDb, day.id, trip.id, { text: 'First', sort_order: 1 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    await makeDayNote(orm, day.id, trip.id, { text: 'Second', sort_order: 5 });
+    await makeDayNote(orm, day.id, trip.id, { text: 'First', sort_order: 1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/days/${day.id}/notes` });
       const notes = parseResourceResult(result) as { text: string }[];
@@ -540,10 +537,10 @@ describe('Resource: trek://trips/{tripId}/days/{dayId}/notes', () => {
   });
 
   it('returns the access-denied payload for a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/days/${day.id}/notes` });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
@@ -551,7 +548,7 @@ describe('Resource: trek://trips/{tripId}/days/{dayId}/notes', () => {
   });
 
   it('returns the access-denied payload for a malformed id', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: 'trek://trips/1/days/not-a-number/notes' });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
@@ -565,8 +562,8 @@ describe('Resource: trek://trips/{tripId}/days/{dayId}/notes', () => {
 
 describe('Tool: create_collab_note', () => {
   it('creates a collab note with all fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_collab_note',
@@ -581,8 +578,8 @@ describe('Tool: create_collab_note', () => {
   });
 
   it('defaults category to "General" and color to "#6366f1"', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_collab_note',
@@ -595,8 +592,8 @@ describe('Tool: create_collab_note', () => {
   });
 
   it('persists the website link', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_collab_note',
@@ -609,8 +606,8 @@ describe('Tool: create_collab_note', () => {
   });
 
   it('stores no website when none is given', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_collab_note',
@@ -622,8 +619,8 @@ describe('Tool: create_collab_note', () => {
   });
 
   it('broadcasts collab:note:created event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_collab_note', arguments: { tripId: trip.id, title: 'Note' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:note:created', expect.any(Object));
@@ -631,9 +628,9 @@ describe('Tool: create_collab_note', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_collab_note',
@@ -650,9 +647,9 @@ describe('Tool: create_collab_note', () => {
 
 describe('Tool: update_collab_note', () => {
   it('updates collab note fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id, { title: 'Old', color: '#6366f1' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id, { title: 'Old', color: '#6366f1' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_collab_note',
@@ -666,9 +663,9 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('sets the website link on an existing note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_collab_note',
@@ -679,9 +676,9 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('clears the website with an explicit null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await updateRows(orm, CollabNotes, { id: note.id }, { website: 'https://example.com/old' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -693,9 +690,9 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('keeps the stored website when the field is not sent', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await updateRows(orm, CollabNotes, { id: note.id }, { website: 'https://example.com/keep' });
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -707,9 +704,9 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('refuses a website past the tool cap, the way the sibling text fields are capped', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_collab_note',
@@ -721,9 +718,9 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('broadcasts collab:note:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_collab_note',
@@ -734,8 +731,8 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('returns error when note not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_collab_note',
@@ -746,10 +743,10 @@ describe('Tool: update_collab_note', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const note = createCollabNote(testDb, trip.id, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const note = await makeCollabNote(orm, trip.id, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_collab_note',
@@ -766,9 +763,9 @@ describe('Tool: update_collab_note', () => {
 
 describe('Tool: delete_collab_note', () => {
   it('deletes a collab note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_collab_note',
@@ -781,9 +778,9 @@ describe('Tool: delete_collab_note', () => {
   });
 
   it('deletes associated trip_files records from the database', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     // Insert a trip_file linked to this note
     await makeTripFile(orm, trip.id, {
       note: note.id,
@@ -808,9 +805,9 @@ describe('Tool: delete_collab_note', () => {
   });
 
   it('broadcasts collab:note:deleted event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const note = createCollabNote(testDb, trip.id, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const note = await makeCollabNote(orm, trip.id, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'delete_collab_note', arguments: { tripId: trip.id, noteId: note.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'collab:note:deleted', expect.any(Object));
@@ -818,8 +815,8 @@ describe('Tool: delete_collab_note', () => {
   });
 
   it('returns error when note not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_collab_note',
@@ -830,10 +827,10 @@ describe('Tool: delete_collab_note', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const note = createCollabNote(testDb, trip.id, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const note = await makeCollabNote(orm, trip.id, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_collab_note',
@@ -850,9 +847,9 @@ describe('Tool: delete_collab_note', () => {
 // never attaches.
 describe('Resource: trek://trips/{tripId}/collab-notes', () => {
   it('returns collab notes with username', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createCollabNote(testDb, trip.id, user.id, { title: 'Ideas' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeCollabNote(orm, trip.id, user.id, { title: 'Ideas' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/collab-notes` });
@@ -864,9 +861,9 @@ describe('Resource: trek://trips/{tripId}/collab-notes', () => {
   });
 
   it('returns access denied for unauthorized trip', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/collab-notes` });
@@ -878,8 +875,8 @@ describe('Resource: trek://trips/{tripId}/collab-notes', () => {
 
 describe('create_collab_note, as the Collab tab posts it', () => {
   it('MCP-COLLAB-002: notifies the fellow travellers like the route does, after the room heard of the note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const send = vi
       .spyOn((await bootTestApp(realtime)).get(NotificationsService), 'send')
       .mockResolvedValue({ attempted: 0, delivered: 0 });
@@ -921,10 +918,10 @@ describe('Tool: list_collab_notes', () => {
   }
 
   it('MCP-COLLAB-010: lists the notes of the trip, pinned first, with their author and files', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createCollabNote(testDb, trip.id, user.id, { title: 'Ideas' });
-    const pinned = createCollabNote(testDb, trip.id, user.id, { title: 'Restaurants' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeCollabNote(orm, trip.id, user.id, { title: 'Ideas' });
+    const pinned = await makeCollabNote(orm, trip.id, user.id, { title: 'Restaurants' });
     await updateRows(orm, CollabNotes, { id: pinned.id }, { pinned: 1 });
     const { isError, data } = await listNotes(user.id, trip.id);
     expect(isError).not.toBe(true);
@@ -934,17 +931,17 @@ describe('Tool: list_collab_notes', () => {
   });
 
   it('MCP-COLLAB-011: refuses a trip the user is not part of, and reads nothing', async () => {
-    const { user } = createUser(testDb);
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    createCollabNote(testDb, trip.id, owner.id, { title: 'Private' });
+    const { user } = await makeUser(orm);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await makeCollabNote(orm, trip.id, owner.id, { title: 'Private' });
     const { isError, data } = await listNotes(user.id, trip.id);
     expect(isError).toBe(true);
     expect(data).toBeNull();
   });
 
   it('MCP-COLLAB-012: is a read, offered only while the notes are switched on', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = async () => {
       const h = await createMcpHarness({ realtime, userId: user.id, withResources: false });
       try {
@@ -954,11 +951,11 @@ describe('Tool: list_collab_notes', () => {
       }
     };
     expect(await names()).toContainEqual(['list_collab_notes', true]);
-    setCollabFeature(testDb, 'notes', false);
+    await setCollabFeature(orm, 'notes', false);
     try {
       expect((await names()).map(([name]) => name)).not.toContain('list_collab_notes');
     } finally {
-      setCollabFeature(testDb, 'notes', true);
+      await setCollabFeature(orm, 'notes', true);
     }
   });
 });

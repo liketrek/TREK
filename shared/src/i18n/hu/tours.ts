@@ -93,6 +93,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Szintemelkedés',
   'tours.detail.descent': 'Szintcsökkenés',
   'tours.detail.navigationHint': 'A navigáció a túra kiindulópontját nyitja meg; nem vezet végig az útvonalon.',
+  'tours.detail.openRoute': 'Útvonal megnyitása térképalkalmazásban',
+  'tours.detail.mapsShort': 'Térkép',
   'tours.planner.title': 'Túra tervezése',
   'tours.planner.newTour': 'Új túra tervezése',
   'tours.planner.addTour': 'Túra hozzáadása',

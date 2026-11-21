@@ -44,7 +44,7 @@ function build(canEdit = true) {
       ),
     } as unknown as TripsRepository,
     permissions,
-    { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+    { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   const rpc = new TodoRpc(todos, realtime, guards);

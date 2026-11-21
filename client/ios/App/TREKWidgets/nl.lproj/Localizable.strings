@@ -5,6 +5,8 @@
 "widget.today.description" = "Het dagplan als tijdlijn, met het weer en de volgende stop.";
 "widget.bookings.name" = "Boekingen";
 "widget.bookings.description" = "Je volgende vluchten, treinen, hotels en tafels, en wanneer ze zijn.";
+"widget.flight.name" = "Vlucht";
+"widget.flight.description" = "Je volgende vlucht live: aftellen tot vertrek, het toestel onderweg, vertraging en aankomst.";
 "widget.todos.name" = "Taken";
 "widget.todos.description" = "Wat er nog openstaat voor de reis en hoe ver het inpakken is.";
 "widget.packing.name" = "Bagage";

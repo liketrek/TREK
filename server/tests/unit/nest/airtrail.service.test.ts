@@ -12,6 +12,7 @@
  * `checkSsrf` and the `AirtrailClient` are the only two fakes: both would
  * otherwise leave the process.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { UserAirtrailRepository } from '../../../src/db/repositories/UserAirtrail.repository';
@@ -49,7 +50,7 @@ beforeAll(async () => {
     {
       listFlights,
     } as unknown as AirtrailClient,
-    new UnitOfWork(t.orm.em),
+    new UnitOfWork(t.orm.em, new SqliteEngine()),
   );
 });
 beforeEach(() => {

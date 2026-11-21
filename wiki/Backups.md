@@ -1,6 +1,6 @@
 # Backups
 
-TREK stores all data in a single SQLite database (`travel.db`) plus an `uploads/` directory of attachments, cover photos, and avatars, by default; storage backends and replication are configured in [[Admin: Storage|Admin-Storage]]. The Backup panel lets you create, download, restore, and schedule backups of both.
+TREK stores all data in a single SQLite database (`travel.db`) plus an `uploads/` directory of attachments, cover photos, and avatars, by default. On a [PostgreSQL database](Database-Postgres) (`TREK_DB_URL` set) the database is `travel.pgdump` instead. Storage backends and replication are configured in [[Admin: Storage|Admin-Storage]]. The Backup panel lets you create, download, restore, and schedule backups of both.
 
 ## Where to find it
 
@@ -14,7 +14,7 @@ A backup is a ZIP archive with these entries:
 
 | Entry | Contents |
 |---|---|
-| `travel.db` | The full SQLite database, as a consistent snapshot taken while TREK keeps running (writes during the backup cannot tear it) |
+| `travel.db` | The full SQLite database, as a consistent snapshot taken while TREK keeps running (writes during the backup cannot tear it). On PostgreSQL this entry is `travel.pgdump` instead: a `pg_dump` custom-format file, taken from one consistent snapshot of the database. |
 | `uploads/` | All uploaded attachments, covers, and avatars (default location, see [Admin: Storage](Admin-Storage)) |
 | `plugins-data/` | Each installed plugin's own database + files (present only if plugins are installed) |
 | `plugins-code/` | The installed plugin code, so a restore is self-contained (dev-linked plugins are skipped) |
@@ -38,13 +38,13 @@ You can restore from:
 
 A second limit caps the **decompressed** size of a restore archive at 5 GB by default (`BACKUP_MAX_DECOMPRESSED_MB`). It applies to both routes (a stored backup as well as an uploaded ZIP) and a restore that exceeds it is refused with `Backup exceeds the maximum decompressed size.` Raise it if your own backups legitimately grow past the default, otherwise they become unrestorable.
 
-Before restoring, TREK runs integrity checks on the uploaded database:
+Before restoring, TREK runs integrity checks on the uploaded database. On PostgreSQL the first two are replaced by the checks in [Database: Postgres](Database-Postgres#backups-and-restore).
 
 1. **SQLite `PRAGMA integrity_check`**: verifies the database file is not corrupt.
 2. **Required tables present**: confirms the file contains `users`, `trips`, `trip_members`, `places`, and `days`. Files missing any of these are rejected as not being a valid TREK backup.
 3. **Not from a newer TREK**: a backup whose database a newer release migrated is refused with `This backup was made by a newer TREK version. Update TREK before restoring it.` Restoring it would leave this version unable to start.
 
-The database being replaced is kept as `pre-restore-<time>.db` next to it (in `data/` on a standard install), so a restore of the wrong archive can be undone by hand. Delete these copies once you no longer need them.
+The database being replaced is kept as `pre-restore-<time>.db` next to it (in `data/` on a standard install), so a restore of the wrong archive can be undone by hand. On PostgreSQL the copy is `pre-restore-<time>.pgdump`. Delete these copies once you no longer need them.
 
 The sessions signed in when the restore starts stay signed in, yours included: they are carried into the restored database for every account it holds under the same id and email. An account whose password differs in the backup still has to sign in again, and a session for an account the backup does not have ends with the restore.
 
@@ -98,7 +98,7 @@ The phone admin has the same lists and settings in its **Backup** section.
 
 Always create a manual backup before updating. See [Updating](Updating).
 
-TREK also copies the database by itself right before a startup migrates it, to `data/pre-migrate-<schema>-<time>.db`, and keeps the newest three. That copy is what an older image can be started on again if you have to roll an update back. It holds the database only, never uploads, so it does not replace a backup. See [Updating](Updating#database-migrations).
+TREK also copies the database by itself right before a startup migrates it, to `data/pre-migrate-<schema>-<time>.db` (`.pgdump` on PostgreSQL), and keeps the newest three. That copy is what an older image can be started on again if you have to roll an update back. It holds the database only, never uploads, so it does not replace a backup. See [Updating](Updating#database-migrations).
 
 ## Audit log
 

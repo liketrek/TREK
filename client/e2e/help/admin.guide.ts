@@ -375,7 +375,7 @@ const SCRIPTS: Record<string, GuideScript> = {
       only(p => section(p, 'Authentication Methods').getByText('Password Login', { exact: true }).locator('xpath=../..')),
       // The SSO rows exist only once OIDC is configured; the run shows where that happens.
       only(p => section(p, 'Single Sign-On (OIDC)')),
-      only(p => section(p, 'Require two-factor authentication (2FA)')),
+      only(p => section(p, 'Require 2FA')),
     ],
   },
   'admin-passkeys': {

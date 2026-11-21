@@ -122,3 +122,15 @@ describe('MPlaceSheet ask the assistant', () => {
     expect(chatOf(useAssistantStore.getState(), 5).focus).toEqual({ placeIds: [42] })
   })
 })
+
+describe('MPlaceSheet header (#3140)', () => {
+  it('lets a long place name wrap instead of cutting it to one line', () => {
+    const longName = 'Broad Street Christmas Lights & Market'
+    render(<MPlaceSheet planner={planner({ selectedPlace: buildPlace({ id: 7, name: longName, address: 'Broad Street, RG1 2AF, Reading' }) })} shell={shell} />)
+
+    const title = screen.getByText(longName)
+    expect(title).not.toHaveClass('truncate')
+    expect(title).toHaveClass('break-words')
+    expect(screen.getByText('Broad Street, RG1 2AF, Reading').closest('div')).not.toHaveClass('truncate')
+  })
+})

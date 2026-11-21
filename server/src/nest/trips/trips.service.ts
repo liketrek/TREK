@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import { Trips } from '../../db/entities/Trips.entity';
+import { Trips, TripsCostsMode } from '../../db/entities/Trips.entity';
 import { Days } from '../../db/entities/Days.entity';
 import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
 import { Users } from '../../db/entities/Users.entity';
@@ -32,8 +32,10 @@ import {
   type ActiveTrip,
   type DayGridPlan,
   type DayGridRemoval,
+  type RoadtripDayBoundary,
   type TrekWsPayload,
   type TrekWsTripEventName,
+  type TripUpdateRequest,
 } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -45,12 +47,14 @@ import { VacayService } from '../vacay/vacay.service';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { StorageReleaseService } from '../storage/storage-release.service';
 import { SettingsService } from '../settings/settings.service';
+import { TripAddonsService } from '../addons/trip-addons.service';
 import { escapeLikePattern } from '../places/places.helpers';
 import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { inOrder } from '../common/in-order';
 import { UnitOfWork } from '../database/unit-of-work';
 import { legacyBoundIntegerText } from '../common/row-id';
 import { appClock } from '../common/timezoneService';
-import { assertTripSpan } from './trips.helpers';
+import { assertTripSpan, leaveStartFor } from './trips.helpers';
 
 interface CreateTripData {
   title: string;
@@ -62,20 +66,9 @@ interface CreateTripData {
   day_count?: number;
 }
 
-// Nullable where the wire contract (tripUpdateRequestSchema) is nullable — the
-// legacy route accepted arbitrary JSON, so null always reached these fields.
-interface UpdateTripData {
-  title?: string;
-  description?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  currency?: string;
-  is_archived?: boolean | number;
-  cover_image?: string | null;
-  reminder_days?: number;
-  day_count?: number;
-  date_shift_mode?: 'keep_bookings' | 'shift_all';
-}
+// The wire contract of PUT /api/trips/:id (tripUpdateRequestSchema), which
+// update_trip hands on as well; nullable where it is, as null always arrived.
+type UpdateTripData = TripUpdateRequest;
 
 export interface UpdateTripResult {
   updatedTrip: any;
@@ -87,6 +80,8 @@ export interface UpdateTripResult {
   oldReminder: number;
   /** The day rows a changed range took away, as they stood before; empty when none went. */
   removedDays: DayGridRemoval[];
+  /** The road trip day boundaries after they followed their days, or null when none moved. */
+  boundaries: RoadtripDayBoundary[] | null;
 }
 
 export interface DeleteTripInfo {
@@ -95,36 +90,6 @@ export interface DeleteTripInfo {
   ownerId: number;
   isAdminDelete: boolean;
   ownerEmail?: string;
-}
-
-export interface AddMemberResult {
-  member: { id: number; username: string; email: string; avatar?: string | null; role: string; avatar_url: string | null };
-  targetUserId: number;
-  tripTitle: string;
-}
-
-export interface TransferOwnershipResult {
-  tripTitle: string;
-  fromEmail: string;
-  toEmail: string;
-}
-
-// ── Guest members (#1362) ───────────────────────────────────────────────────
-//
-// A guest is a credential-less users row (is_guest=1) joined into trip_members, so
-// it is assignable everywhere a real member is (budget splits, packing, to-dos, day
-// participants) yet can never authenticate (the auth/global-list guards exclude
-// is_guest=1). The display name lives in users.username so every existing JOIN that
-// renders a member name shows the guest correctly; a synthetic, non-deliverable
-// email keeps the UNIQUE/NOT NULL constraints satisfied.
-
-export interface GuestMember {
-  id: number;
-  username: string;
-  email: string;
-  role: 'member';
-  is_guest: true;
-  avatar_url: null;
 }
 
 /**
@@ -164,6 +129,7 @@ export class TripsService {
     // .forRoot`'s core module), so no module needs new wiring.
     private readonly em: EntityManager,
     private readonly settings: SettingsService,
+    private readonly tripAddons: TripAddonsService, // the owner's per-trip addon switches travel with a copy
   ) {}
 
   // Plan 3c Task 7: the raw better-sqlite3 handle used to back `remove`'s
@@ -339,8 +305,11 @@ export class TripsService {
    * load-bearing against `UNIQUE(trip_id, day_number)`). The whole rebuild
    * runs in one `uow.transactional` — a savepoint when `updateTrip`'s own
    * block already holds the transaction, its own transaction from `create`.
+   * `keepDates` lets every day the new range still holds keep its date (#3119).
+   * The road trip day boundaries follow their days to the numbers they take;
+   * `boundaries` is the list after that, or null when none had to move.
    */
-  async generateDays(tripId: number | bigint | string, startDate: string | null, endDate: string | null, dayCount?: number): Promise<DayGridPlan> {
+  async generateDays(tripId: number | bigint | string, startDate: string | null, endDate: string | null, dayCount?: number, keepDates = false): Promise<DayGridPlan & { boundaries: RoadtripDayBoundary[] | null }> {
     const trip_id = Number(tripId);
     return await this.uow.transactional(async () => {
       const existing = await this.daysRepo.listForDayGrid(trip_id); // TP77
@@ -352,6 +321,7 @@ export class TripsService {
         startDate,
         endDate,
         dayCount,
+        keepDates,
       });
 
       const dateBefore = new Map(existing.map(d => [d.id, d.date]));
@@ -365,7 +335,7 @@ export class TripsService {
         else await this.daysRepo.setDayNumberAndDate(row.id, i + 1, row.date); // TP9
       }
       for (const gone of plan.removed) await this.daysRepo.deleteById(gone.id); // TP11
-      return plan;
+      return { ...plan, boundaries: await this.days.followDayNumbers(trip_id, existing, plan.rows) };
     });
   }
 
@@ -475,7 +445,7 @@ export class TripsService {
     const trip = await this.tripsRepo.findRaw(tripId) as (Trip & { reminder_days?: number }) | null; // TP24
     if (!trip) throw new NotFoundError('Trip not found');
 
-    const { title, description, currency, is_archived, cover_image, reminder_days } = data;
+    const { title, description, currency, is_archived, cover_image, reminder_days, costs_mode } = data;
     const { newStart, newEnd, dayCount, regenerate } = this.resolveRange(trip, data);
 
     const newTitle = title || trip.title;
@@ -483,6 +453,9 @@ export class TripsService {
     const newCurrency = currency || trip.currency;
     const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
     const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
+    // A stored trip is read as one of the two modes the column allows.
+    const storedCostsMode = trip.costs_mode === TripsCostsMode.TOTALS ? TripsCostsMode.TOTALS : TripsCostsMode.SPLIT;
+    const newCostsMode = costs_mode ?? storedCostsMode;
     const oldReminder = (trip as any).reminder_days ?? 3;
     const newReminder = reminder_days !== undefined
       ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
@@ -492,6 +465,7 @@ export class TripsService {
     // The row, the leave entries that follow its dates and the rebuilt day grid are
     // one write: a failure halfway used to leave a trip whose days missed its dates.
     let removedDays: DayGridRemoval[] = [];
+    let boundaries: RoadtripDayBoundary[] | null = null; // the road trip day boundaries, when they moved with their days
     let vacayId: number | undefined; // the vacay plan whose leave days moved along (#2604)
     await this.uow.transactional(async () => {
       // Before the row: the rebase reads the outgoing currency off it (#1543).
@@ -510,22 +484,30 @@ export class TripsService {
         is_archived: newArchived,
         cover_image: newCover ?? null,
         reminder_days: newReminder,
+        costs_mode: newCostsMode,
       });
-
-      if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
-        vacayId = await this.vacay.shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
 
       if (regenerate) {
         // Accommodations have no absolute date columns, so their pre-change dates must be
         // snapshotted before generateDays re-dates the day rows in place.
         const prevDays = await this.daysRepo.listOrderedForReorder(tripIdNum); // TP26
         const prevDateByDayId = new Map(prevDays.map(d => [d.id, d.date]));
-        removedDays = (await this.generateDays(tripId, newStart || null, newEnd || null, dayCount)).removed;
-        if (data.date_shift_mode === 'shift_all') {
+        // Unless everything shifts, a range that still holds every day (one more day
+        // before the start or after the end) leaves each day, and all on it, on its
+        // date (#3119); only a moved or shorter range re-dates the days by position.
+        const shiftAll = data.date_shift_mode === 'shift_all';
+        const grid = await this.generateDays(tripId, newStart || null, newEnd || null, dayCount, !shiftAll);
+        removedDays = grid.removed;
+        boundaries = grid.boundaries;
+        const newDays = await this.daysRepo.listOrderedForReorder(tripIdNum); // TP27
+        const newDateByDayId = new Map(newDays.map(d => [d.id, d.date]));
+        // The owner's leave days follow the plan, not the new start (#3119).
+        const leaveStart = leaveStartFor(trip.start_date, prevDays, newDateByDayId, newStart);
+        if (trip.start_date && trip.end_date && leaveStart && leaveStart !== trip.start_date)
+          vacayId = await this.vacay.shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, leaveStart);
+        if (shiftAll) {
           // Explicit "shift everything": bookings stay glued to their (re-dated) day rows,
           // so re-stamp reservation_time to follow — same rules as reorderDays/insertDay.
-          const newDays = await this.daysRepo.listOrderedForReorder(tripIdNum); // TP27
-          const newDateByDayId = new Map(newDays.map(d => [d.id, d.date]));
           await this.days.restampReservationDates(tripIdNum, prevDateByDayId, newDateByDayId);
         } else {
           // Default: generateDays re-dates day rows positionally; re-anchor dated bookings to
@@ -545,6 +527,7 @@ export class TripsService {
     if (newEnd !== trip.end_date) changes.end_date = newEnd;
     if (newReminder !== oldReminder) changes.reminder_days = newReminder === 0 ? 'none' : `${newReminder} days`;
     if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
+    if (newCostsMode !== trip.costs_mode) changes.costs_mode = newCostsMode;
 
     const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
     let ownerEmail: string | undefined;
@@ -558,7 +541,7 @@ export class TripsService {
     // same reasoning as `create`'s TP19 re-select above.
     const updatedTrip = await this.tripsRepo.findForViewer(tripId, userId);
 
-    return { updatedTrip, changes, isAdminEdit, ownerEmail, newTitle, newReminder, oldReminder, removedDays };
+    return { updatedTrip, changes, isAdminEdit, ownerEmail, newTitle, newReminder, oldReminder, removedDays, boundaries };
   }
 
   /**
@@ -659,6 +642,7 @@ export class TripsService {
         currency: src.currency,
         cover_image: src.cover_image,
         reminder_days: src.reminder_days ?? 3,
+        costs_mode: src.costs_mode,
       });
 
       const oldDays = await this.daysRepo.listByTrip(Number(sourceTripId)); // TP38
@@ -716,10 +700,15 @@ export class TripsService {
         if (newDayId && newPlaceId) await this.roadtripDayTracksRepo.upsertTrack(newDayId, newPlaceId, t.stray_km); // TP45
       }
 
+      // The trip's own tags are written again as the copy's; a personal tag stays its owner's one row.
+      const tagMap = new Map<number, number>();
+      await inOrder(await this.tagsRepo.listByTrip(Number(sourceTripId)), async ({ id, name, color }) => {
+        tagMap.set(id, (await this.tagsRepo.createTag({ user_id: newOwnerId, trip_id: newTripId, name, color })).id);
+      });
       const oldTags = await this.tagsRepo.listPlaceTagsForTrip(sourceTripId); // TP46
       for (const t of oldTags) {
         const newPlaceId = placeMap.get(t.place_id);
-        if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [t.tag_id]); // TP47
+        if (newPlaceId) await this.tagsRepo.insertIgnore(newPlaceId, [tagMap.get(t.tag_id) ?? t.tag_id]); // TP47
       }
 
       // The `tours` facet goes first: the import record, obstacle decisions, packing link and waypoints need it.
@@ -757,6 +746,7 @@ export class TripsService {
             reservation_status: a.reservation_status, reservation_notes: a.reservation_notes,
             reservation_datetime: a.reservation_datetime, assignment_time: a.assignment_time,
             assignment_end_time: a.assignment_end_time, end_day: a.end_day ?? 0, tour_stage_key: a.tour_stage_key,
+            stay_minutes: a.stay_minutes ?? null,
           });
           assignmentMap.set(a.id, newAssignmentId);
         }
@@ -767,6 +757,7 @@ export class TripsService {
         await this.roadtripPreferencesRepo.upsertValue(newTripId, pref.key, pref.value); // TP50
       }
 
+      await this.tripAddons.copyOverrides(Number(sourceTripId), newTripId); // the trip addons switched on or off for the trip
       const oldBoundaries = await this.roadtripDayBoundariesRepo.listForTrip(Number(sourceTripId)); // TP51
       for (const boundary of oldBoundaries) {
         const from = assignmentMap.get(boundary.from_assignment_id);

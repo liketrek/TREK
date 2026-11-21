@@ -99,4 +99,30 @@ describe('keepOfflineShellFresh', () => {
     await keepOfflineShellFresh(fetchImpl, 'fr');
     expect(fetched).toContain('/assets/fr-bbbb2222.js');
   });
+
+  it('on Android hands the list to the native store instead of fetching it here', async () => {
+    vi.mocked(TrekShell.refreshOfflineCopy).mockResolvedValue({ saved: true, complete: true });
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === '/asset-manifest.json') return new Response(JSON.stringify(manifest));
+      throw new Error('the native side fetches the files');
+    }) as unknown as typeof fetch;
+
+    await keepOfflineShellFresh(fetchImpl, 'en', true);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(TrekShell.refreshOfflineCopy).toHaveBeenCalledTimes(1);
+    const { files } = vi.mocked(TrekShell.refreshOfflineCopy).mock.calls[0][0] as { files: string[] };
+    expect(files).toContain('assets/index-a1b2c3d4.js');
+    expect(files).toContain('assets/AtlasPage-99887766.js');
+  });
+
+  it('on Android asks again on the next launch while the store is incomplete', async () => {
+    vi.mocked(TrekShell.refreshOfflineCopy).mockResolvedValue({ saved: true, complete: false });
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(manifest))) as unknown as typeof fetch;
+
+    await keepOfflineShellFresh(fetchImpl, 'en', true);
+    await keepOfflineShellFresh(fetchImpl, 'en', true);
+
+    expect(TrekShell.refreshOfflineCopy).toHaveBeenCalledTimes(2);
+  });
 });

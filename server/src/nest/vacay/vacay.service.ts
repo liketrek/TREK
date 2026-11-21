@@ -997,14 +997,15 @@ export class VacayService {
   async addYear(planId: number, year: number, socketId: string | undefined): Promise<number[]> {
     // A duplicate year is a no-op (the legacy blanket try/catch was written for exactly this
     // constraint hit); real errors propagate. The insert + per-user seeding runs atomically.
-    if (!(await this.years.exists(planId, year))) await this.openYear(planId, year);
+    await this.openYear(planId, year);
     await this.notifyPlanUsers(planId, socketId, 'vacay:settings');
     return await this.listYears(planId);
   }
 
-  /** The year's row and every member's allowance for it, with no broadcast: the caller sends it after its commit. */
-  private async openYear(planId: number, year: number): Promise<void> {
-    await this.uow.transactional(async () => {
+  /** The year's row and every member's allowance, unbroadcast (sent after the commit); false when it exists. */
+  private async openYear(planId: number, year: number): Promise<boolean> {
+    return await this.uow.transactional(async () => {
+      if (await this.years.exists(planId, year)) return false;
       await this.years.insertYear(planId, year);
       const plan = await this.plans.findById(planId);
       const carryOverEnabled = plan ? !!plan.carry_over_enabled : true;
@@ -1024,6 +1025,7 @@ export class VacayService {
         }
         await this.userYears.insertIgnore(u.id, planId, year, 30, carriedOver);
       }
+      return true;
     });
   }
 
@@ -1138,9 +1140,7 @@ export class VacayService {
   private async ensureYearOf(planId: number, userId: number, date: string): Promise<boolean> {
     const [y, m, d] = date.split('-').map(Number);
     const year = await this.currentPeriodYear(userId, new Date(y, m - 1, d));
-    if (await this.years.exists(planId, year)) return false;
-    await this.openYear(planId, year);
-    return true;
+    return await this.openYear(planId, year);
   }
 
   /**

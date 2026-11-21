@@ -19,6 +19,11 @@ interface PlaceCountryRow {
   country_code: string | null;
 }
 
+/** A place of a started trip, with the trip's last day (its end, or its start when it has none) for ordering by recency. */
+export interface StartedTripPlaceCountryRow extends PlaceCountryRow {
+  trip_last_date: string | null;
+}
+
 type PlaceRegionsKyselyDB = Pick<DB, 'place_regions' | 'places' | 'trips' | 'trip_members'>;
 
 /**
@@ -192,22 +197,32 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
 
   /**
    * AT44 (`getTravelStats`) — `SELECT DISTINCT p.id, p.lat, p.lng, p.address,
-   * pr.country_code FROM places p JOIN trips t ON p.trip_id = t.id LEFT JOIN
+   * pr.country_code, COALESCE(t.end_date, t.start_date) AS trip_last_date
+   * FROM places p JOIN trips t ON p.trip_id = t.id LEFT JOIN
    * trip_members tm ON t.id = tm.trip_id LEFT JOIN place_regions pr ON
    * pr.place_id = p.id WHERE (t.user_id = ? OR tm.user_id = ?) AND
    * COALESCE(t.start_date, t.end_date) IS NOT NULL AND COALESCE(t.start_date,
    * t.end_date) <= ? ORDER BY p.id` — "only started trips count" (#1048).
    * Every place comes back, a place without a cached region with a null
    * country (#2875). `today` (UTC) is resolved by the caller once
-   * (`todayUtc()`) and bound here.
+   * (`todayUtc()`) and bound here. A place sits on one trip, so the trip's
+   * last day adds no row to the DISTINCT; the dashboard orders the countries
+   * by it (#2648).
    */
-  async listStartedTripPlaceCountriesForUser(userId: number, today: string): Promise<PlaceCountryRow[]> {
+  async listStartedTripPlaceCountriesForUser(userId: number, today: string): Promise<StartedTripPlaceCountryRow[]> {
     return await this.db()
       .selectFrom('places as p')
       .innerJoin('trips as t', 't.id', 'p.trip_id')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
       .leftJoin('place_regions as pr', 'pr.place_id', 'p.id')
-      .select(['p.id', 'p.lat', 'p.lng', 'p.address', 'pr.country_code'])
+      .select((eb) => [
+        'p.id',
+        'p.lat',
+        'p.lng',
+        'p.address',
+        'pr.country_code',
+        eb.fn.coalesce('t.end_date', 't.start_date').as('trip_last_date'),
+      ])
       .distinct()
       .where((eb) => eb.or([eb('t.user_id', '=', userId), eb('tm.user_id', '=', userId)]))
       .where((eb) => eb(eb.fn.coalesce('t.start_date', 't.end_date'), 'is not', null))

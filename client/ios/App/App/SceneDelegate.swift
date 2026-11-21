@@ -17,6 +17,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         for context in connectionOptions.urlContexts where context.url.isFileURL {
             TrekSharedFiles.receive(context.url)
         }
+        // Launched by a tap on a widget or a Live Activity: held like a quick action.
+        // Capacitor still hears of the link, the UI ignores it there (feature appLinks).
+        for context in connectionOptions.urlContexts {
+            if let path = TrekQuickActions.appLinkPath(context.url) { TrekQuickActions.open(path: path) }
+        }
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
     }
 
@@ -40,7 +45,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // com.liketrek.trek://share: the share sheet left an item for the import.
         let handoffs = URLContexts.filter { $0.url.scheme == "com.liketrek.trek" && $0.url.host == "share" }
         if !handoffs.isEmpty { TrekSharedFiles.receiveFromShareExtension() }
-        let others = URLContexts.subtracting(files).subtracting(handoffs)
+        // com.liketrek.trek://navigate/<path>: a widget or Live Activity tap. Through
+        // Capacitor it was an event a page reloading after the system ended its process
+        // never heard, and that page then took the same link for one already followed.
+        let appLinks = URLContexts.filter { TrekQuickActions.appLinkPath($0.url) != nil }
+        for context in appLinks {
+            if let path = TrekQuickActions.appLinkPath(context.url) { TrekQuickActions.open(path: path) }
+        }
+        let others = URLContexts.subtracting(files).subtracting(handoffs).subtracting(appLinks)
         if !others.isEmpty { SceneDelegateProxy.shared.scene(scene, openURLContexts: others) }
     }
 
@@ -104,8 +116,23 @@ enum TrekQuickActions {
 
     static func open(_ item: UIApplicationShortcutItem) -> Bool {
         guard let path = item.userInfo?[pathKey] as? String, path.hasPrefix("/") else { return false }
-        if let onOpen { onOpen(path) } else { pending = path }
+        open(path: path)
         return true
+    }
+
+    /// A path to open: at once when the UI listens, else held for it to take.
+    /// Widget and Live Activity taps come this way too, so each is followed once.
+    static func open(path: String) {
+        if let onOpen { onOpen(path) } else { pending = path }
+    }
+
+    /// The path in com.liketrek.trek://navigate/<path>, the link widgets and Live Activities open.
+    static func appLinkPath(_ url: URL) -> String? {
+        let prefix = "com.liketrek.trek://navigate"
+        guard url.absoluteString.hasPrefix(prefix) else { return nil }
+        let path = String(url.absoluteString.dropFirst(prefix.count))
+        if path.isEmpty { return "/" }
+        return path.hasPrefix("/") ? path : nil
     }
 
     /// The action the app was launched with, once.

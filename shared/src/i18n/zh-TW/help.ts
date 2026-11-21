@@ -989,8 +989,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': '地圖',
   'help.ctx.settings-map.summary':
     '旅行規劃器和日誌地圖由哪個引擎繪製，以及使用什麼樣式。Leaflet 是傳統的點陣地圖，Mapbox GL 搭配你自己的權杖可加入 3D 建築和地形，MapLibre GL 則無需權杖就能繪製 OpenFreeMap 向量圖磚。Atlas 一律使用 Leaflet。',
-  'help.ctx.settings-map.bullet.1':
-    '「地圖提供商」：Leaflet、Mapbox GL（「實驗性」）或 MapLibre GL，每個選項都有一行說明它是什麼。',
+  'help.ctx.settings-map.bullet.1': '「地圖提供商」：Leaflet、Mapbox GL或 MapLibre GL，每個選項都有一行說明它是什麼。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet 使用「地圖模板」和「CARTO API 金鑰」；兩種 GL 引擎使用「地圖樣式」，Mapbox GL 另外需要「Mapbox 存取權杖」。',
   'help.ctx.settings-map.bullet.3':
@@ -4026,7 +4025,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '卡片下方的「恢復預設」會讓整個「外觀」分頁恢復為出廠狀態。',
   'help.guide.web-push-device.result': '卡片會顯示「已為此裝置開啟」，在「推播」下開啟的事件即使 TREK 已關閉也會送達。',
   'help.guide.connect-airtrail.step.1':
-    '在「整合」下找到 AirTrail，輸入它的「執行個體網址」和 API 金鑰。金鑰需要在 AirTrail 的「設定」、「安全性」中建立。',
+    '在「整合」下找到 AirTrail，輸入它的「執行個體網址」和 API 金鑰。金鑰需要在 AirTrail 的「設定」、「安全性」中建立。若在 AirTrail 3.13 或更新版本中建立金鑰，讀取需要範圍 flight.read.own。若要將變更寫回，還需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在「整合」下找到 Dawarich，輸入它的「執行個體位址」，以及 Dawarich 中「帳戶」、「API 金鑰」裡的 API 金鑰。',
   'help.guide.tour-connect-wanderer.step.1':

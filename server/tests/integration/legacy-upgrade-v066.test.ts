@@ -25,16 +25,14 @@ describeLegacyUpgrade(
     nightOrderIndex: 1,
     id: 'LEGACYUP-066',
     // Carried from the legacy chain itself, not caused by the upgrade: an install
-    // this old got `users` and `reservations` from its own createTables(), and no
-    // numbered step ever adds `users.immich_access_token` or retypes
-    // `reservations.accommodation_id` (INTEGER there, TEXT in the baseline). The
-    // legacy runner at 417d0445b would have left the same two differences.
+    // this old got `reservations` from its own createTables(), and no numbered
+    // step ever retypes `reservations.accommodation_id` (INTEGER there, TEXT in
+    // the baseline). It also lacked `users.immich_access_token`, which no step
+    // adds either; Migration20200101046460 adds that one, as every column an
+    // ALTER TABLE can add.
     carriedSchemaDiffs: {
       onlyUpgraded: ['reservations.accommodation_id INTEGER notnull=0 default= pk=0'],
-      onlyFresh: [
-        'reservations.accommodation_id TEXT notnull=0 default= pk=0',
-        'users.immich_access_token TEXT notnull=0 default= pk=0',
-      ],
+      onlyFresh: ['reservations.accommodation_id TEXT notnull=0 default= pk=0'],
     },
   },
   legacyDb,

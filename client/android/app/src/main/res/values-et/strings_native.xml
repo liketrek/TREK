@@ -8,6 +8,8 @@
     <string name="widget_today_description">Päeva plaan ajajoonena, koos ilma ja järgmise peatusega.</string>
     <string name="widget_bookings_name">Broneeringud</string>
     <string name="widget_bookings_description">Sinu järgmised lennud, rongid, hotellid ja lauad ning millal need on.</string>
+    <string name="widget_flight_name">Lend</string>
+    <string name="widget_flight_description">Sinu järgmine lend otse: loendus väljumiseni, lennuk teel, hilinemine ja saabumine.</string>
     <string name="widget_todos_name">Ülesanded</string>
     <string name="widget_todos_description">Mis reisi jaoks veel tegemata on ja kui kaugel pakkimine on.</string>
     <string name="widget_packing_name">Pakkimine</string>

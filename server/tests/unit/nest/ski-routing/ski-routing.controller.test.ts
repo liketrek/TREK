@@ -7,9 +7,9 @@
 import { ADDON_IDS } from '../../../../src/addons';
 import type { McpContext, McpTextResult, ToolOptions } from '../../../../src/nest-mcp';
 import { getEntry, type ClassRef } from '../../../../src/nest-mcp/metadata';
-import { AddonGuard } from '../../../../src/nest/addons/addon.guard';
 import type { AddonsService } from '../../../../src/nest/addons/addons.service';
 import { REQUIRE_ADDON } from '../../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../../src/nest/auth-core/jwt-auth.guard';
 import { RESPONSE_CONTRACT_KEY } from '../../../../src/nest/common/response-contract';
 import { TripAccessGuard } from '../../../../src/nest/permissions/trip-access.guard';
@@ -96,9 +96,9 @@ describe('SkiRoutingController', () => {
   it('SKICTL-001: the routes sit behind Tours, the session and the trip, each on its contract', () => {
     expect(Reflect.getMetadata(PATH_METADATA, SkiRoutingController)).toBe('api/trips/:tripId/ski');
     expect(Reflect.getMetadata(GUARDS_METADATA, SkiRoutingController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
       TripAccessGuard,
+      TripAddonGuard,
     ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, SkiRoutingController)).toEqual({ addonId: 'tours', label: 'Tours' });
     const { route, areaNear, network } = SkiRoutingController.prototype;
@@ -160,15 +160,16 @@ function makeMcp(accessible: boolean) {
 }
 
 describe('SkiRoutingMcp', () => {
-  it('SKIMCP-001: plan_ski_route is read only, gated on Tours and scoped to reading trips', () => {
+  it('SKIMCP-001: plan_ski_route is read only, gated on Tours and scoped to reading trips', async () => {
     const options = toolOptions();
     expect(options.name).toBe('plan_ski_route');
     expect(options.annotations?.readOnlyHint).toBe(true);
     expect(options.access).toEqual({ group: 'trips', mode: 'read' });
-    const isAddonEnabled = vi.fn((id: string) => id === ADDON_IDS.TOURS);
-    const self = { addons: { isAddonEnabled } } as unknown as SkiRoutingMcp;
-    expect(options.when?.(ctx, self)).toBe(true);
-    expect(isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.TOURS);
+    // Tours is a trip addon: the tool is offered while it is on for the instance or any trip of the caller.
+    const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === ADDON_IDS.TOURS);
+    const self = { addons: { isEnabledForUserAnywhere } } as unknown as SkiRoutingMcp;
+    expect(await options.when?.(ctx, self)).toBe(true);
+    expect(isEnabledForUserAnywhere).toHaveBeenCalledWith(7, ADDON_IDS.TOURS);
   });
 
   it('SKIMCP-002: takes the REST contract plus the trip, with the same defaults and limits', () => {

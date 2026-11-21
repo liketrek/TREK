@@ -1805,6 +1805,18 @@ async function start(): Promise<void> {
     return;
   }
   if (!url && previousUrl) {
+    // An update asks to check the server once more. Out of reach (a trip, a
+    // server at home), that check cannot run: with a stored copy of the UI the
+    // app starts on that and checks on a later launch. Only for a server that
+    // did not answer, never for one that answered with a reason to stop.
+    const probe = await probeServer(previousUrl, get).catch(() => null);
+    if (!probe || (!probe.ok && probe.reason === 'unreachable')) {
+      const opened = await TrekShell.openOfflineCopy().then(
+        (r) => r.opened,
+        () => false
+      );
+      if (opened) return;
+    }
     showConnect(previousUrl, { recheck: true });
   } else if (!url) {
     showWelcome();

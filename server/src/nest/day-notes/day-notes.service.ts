@@ -4,6 +4,7 @@ import type { DayNotesRepository } from '../../db/repositories/DayNotes.reposito
 import type { DaysRepository } from '../../db/repositories/Days.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { DayNote, User } from '../../types';
+import { toRowId, withRowId } from '../common/row-id';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
@@ -67,8 +68,11 @@ export class DayNotesService {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
+  // The route's ids are read through toRowId: a spelling it refuses names no
+  // day and no note, the same answer on every engine. The writes below only
+  // run after dayExists or getNote found the row.
   async list(dayId: string | number, tripId: string | number) {
-    return this.dayNotes.listByDayAndTrip(dayId, tripId);
+    return (await withRowId(dayId, (day) => this.dayNotes.listByDayAndTrip(day, tripId))) ?? [];
   }
 
   async dayExists(dayId: string | number, tripId: string | number) {
@@ -76,7 +80,8 @@ export class DayNotesService {
   }
 
   async getNote(id: string | number, dayId: string | number, tripId: string | number) {
-    return this.dayNotes.findByIdDayTrip(id, dayId, tripId);
+    const day = toRowId(dayId);
+    return day === null ? undefined : withRowId(id, (note) => this.dayNotes.findByIdDayTrip(note, day, tripId));
   }
 
   async create(

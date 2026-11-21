@@ -1156,7 +1156,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Vilken motor som ritar kartorna i reseplaneraren och i dagboken, och i vilken stil. Leaflet är den klassiska rasterkartan, Mapbox GL lägger till 3D-byggnader och terräng med din egen token, och MapLibre GL ritar vektorrutor från OpenFreeMap utan token. Atlas använder alltid Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Kartleverantör: Leaflet, Mapbox GL (Experimentell) eller MapLibre GL, varje alternativ med en kort beskrivning.',
+    'Kartleverantör: Leaflet, Mapbox GL eller MapLibre GL, varje alternativ med en kort beskrivning.',
   'help.ctx.settings-map.bullet.2':
     'Kartmall och CARTO API-nyckel för Leaflet, Kartstil för de två GL-motorerna, samt Mapbox-åtkomsttoken för Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -4605,7 +4605,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kortet visar På för den här enheten, och händelserna du har slagit på under Push kommer fram även när TREK är stängt.',
   'help.guide.connect-airtrail.step.1':
-    'Hitta AirTrail under Integrationer och ange dess Instans URL och en API-nyckel. Nyckeln skapar du i AirTrail under Inställningar, Säkerhet.',
+    'Hitta AirTrail under Integrationer och ange dess Instans URL och en API-nyckel. Nyckeln skapar du i AirTrail under Inställningar, Säkerhet. Om du skapar nyckeln i AirTrail 3.13 eller senare behöver den behörigheten flight.read.own för att läsa. För att skriva tillbaka ändringar behöver den även flight.update.own, flight.passengers.manage.own, reference_data.read och profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Hitta Dawarich under Integrationer och ange dess Instansens adress och API-nyckeln från Dawarich under Konto, API-nyckel.',
   'help.guide.tour-connect-wanderer.step.1':

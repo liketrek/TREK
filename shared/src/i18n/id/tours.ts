@@ -90,6 +90,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Total kenaikan elevasi',
   'tours.detail.descent': 'Total penurunan elevasi',
   'tours.detail.navigationHint': 'Navigasi membuka titik awal jalur, bukan memberikan panduan sepanjang rute.',
+  'tours.detail.openRoute': 'Buka rute di aplikasi peta',
+  'tours.detail.mapsShort': 'Peta',
   'tours.planner.title': 'Rencanakan tur',
   'tours.planner.newTour': 'Rencanakan tur baru',
   'tours.planner.addTour': 'Tambah tur',

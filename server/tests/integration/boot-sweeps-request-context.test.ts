@@ -57,7 +57,6 @@
  * exercising.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AirportsService } from '../../src/nest/airports/airports.service';
 import { PlaceRegionsRepairJob } from '../../src/nest/atlas/place-regions-repair.job';
 import { DocSyncJob } from '../../src/nest/doc-sync/doc-sync.job';
@@ -72,11 +71,6 @@ import type { INestApplication } from '@nestjs/common';
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 describe('Every onApplicationBootstrap boot sweep runs inside a request context', () => {
   let app: INestApplication;
 
@@ -86,7 +80,6 @@ describe('Every onApplicationBootstrap boot sweep runs inside a request context'
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('BOOT-SWEEP-001: the eight jobs\' plus AirportsService\'s REAL onApplicationBootstrap, driven through the real production-wired CronRegistrarService, each routes through runOnBoot (structurally asserted), and journey-thumbs and place-regions-repair — the sweeps that reach a repository today — never log cannotUseGlobalContext / "global EntityManager"', async () => {

@@ -5,6 +5,7 @@ import { avoidedClasses, calculateRouteWithLegs, routeEngineFor, RoutingRefusedE
 import { resolveLegMode } from '../Planner/legMode'
 import { splitIntoRuns, parseAvoid, type DriveLimits } from './roadtripModel'
 import { spillChains } from './nightSpill'
+import { stayOf } from './stayReading'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useVehicleRange } from './useVehicleRange'
@@ -201,7 +202,7 @@ const asStop = (a: Assignment, ownerDayId: number, ownerIndex: number, accommoda
     checkInTime: stay?.check_in ?? null,
     night: stay !== undefined,
     bookedNightId: a.accommodation_id ?? null,
-    dwellMinutes: typeof p.duration_minutes === 'number' ? p.duration_minutes : null,
+    dwellMinutes: stayOf(a),
     endDay: a.end_day === true,
     legMode: a.leg_transport_mode ?? null,
     incomingLegMode: a.incoming_leg_transport_mode ?? null,

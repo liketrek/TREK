@@ -1,24 +1,30 @@
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Crown,
   Link2,
   LogOut,
   Pencil,
   Plus,
+  Puzzle,
   RefreshCw,
   Settings2,
   Trash2,
   UserMinus,
   UserPlus,
   UserRound,
+  Users,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import CustomSelect from '../../../../components/shared/CustomSelect';
+import { LinkedJournalIcon } from '../../../../components/Trips/LinkedJournalIcon';
 import { TripJournalLinkSection } from '../../../../components/Trips/TripJournalLinkSection';
 import { TripMemberAvatar } from '../../../../components/Trips/TripMemberAvatar';
+import { useTripAddonRows } from '../../../../components/Trips/useTripAddonRows';
+import { useTripJournalSectionVisible } from '../../../../components/Trips/useTripJournalLink';
 import {
   SHARE_OPTIONS,
-  SHARE_SECTIONS,
   useShareLink,
   useTripInviteLink,
   useTripMembers,
@@ -28,9 +34,11 @@ import { useTranslation } from '../../../../i18n';
 import MChip from '../../../components/MChip';
 import MLinkField from '../../../components/MLinkField';
 import MSheet from '../../../components/MSheet';
+import MToggle from '../../../components/MToggle';
 import MConfirmSheet from '../../settings/MConfirmSheet';
 import {
   SHEET_FIELD as FIELD,
+  INNER_CLS,
   SHEET_PILL as PILL,
   SHEET_PRIMARY as PRIMARY,
   SHEET_ROUND as ROUND,
@@ -85,7 +93,7 @@ function ShareLinkSection({ tripId }: { tripId: number }) {
   return (
     <Section title={t('share.linkTitle')} hint={t('share.linkHint')}>
       <div className="flex flex-wrap gap-1.5">
-        {[...SHARE_SECTIONS, ...SHARE_OPTIONS].map((option) => {
+        {[...link.sections, ...SHARE_OPTIONS].map((option) => {
           const always = 'always' in option && !!option.always;
           const on = !!link.perms[option.key];
           return (
@@ -390,11 +398,73 @@ function GuestsSection({ m, ask }: { m: Members; ask: Ask }) {
   );
 }
 
+/** The trip addons with their switches, for the owner; a pill marks the ones set apart from the instance. */
+function AddonsSection({ tripId }: { tripId: number }) {
+  const { t } = useTranslation();
+  const { rows, loading } = useTripAddonRows(tripId);
+  return (
+    <Section hint={t('trip.settings.addonsHint')}>
+      {loading ? (
+        <div className="h-[44px] animate-pulse rounded-full bg-[color:var(--m-ic)]" />
+      ) : (
+        rows.map((row) => (
+          <div key={row.id} className="flex min-h-[44px] items-center gap-[10px]">
+            <span
+              className={`flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[color:var(--m-ic)] ${row.enabled ? 'text-m-ink' : 'text-m-faint'}`}
+            >
+              <row.Icon size={16} strokeWidth={2} />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <span className="min-w-0 truncate text-[length:calc(13.5px*var(--fs-scale-body,1))] font-semibold text-m-ink">
+                {row.name}
+              </span>
+              {row.ownChoice && (
+                <span className={`${PILL} bg-[color:var(--m-ic)] text-m-muted`}>{t('trip.addons.thisTripOnly')}</span>
+              )}
+            </div>
+            <MToggle checked={row.enabled} onChange={row.toggle} ariaLabel={row.name} disabled={row.busy} />
+          </div>
+        ))
+      )}
+    </Section>
+  );
+}
+
+/** The areas the sheet opens into, each a page of its own. */
+type Page = 'people' | 'sharing' | 'journal' | 'addons';
+
+/** One row of the sheet's first page: an icon tile, the area's name, what it holds, a chevron. */
+function AreaRow({
+  icon,
+  label,
+  value,
+  onOpen,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button type="button" onClick={onOpen} className="flex w-full items-center gap-3 px-2.5 py-[11px] text-start">
+      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[color:var(--m-ic)] text-m-ink">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-body font-semibold text-m-ink">{label}</span>
+      {value && <span className="flex-none font-geist text-caption font-semibold text-m-muted">{value}</span>}
+      <ChevronRight size={16} strokeWidth={2} className="flex-none text-m-faint rtl:rotate-180" />
+    </button>
+  );
+}
+
 /**
- * The trip's settings on the phone (the Mehr sheet's "Trip settings"): who has
- * access, the guests without an account, the public link, the invite link and
- * the linked journal. The state is useTripShare's, the same the desktop share
- * dialog runs on; only the markup and the questions are the phone's own.
+ * The trip's settings on the phone (the Mehr sheet's "Trip settings"). The
+ * first page lists the areas, like the phone's own settings, and each opens as
+ * a page of its own with a way back: who is on the trip and its guests, the two
+ * links, the linked journal, and for the owner the trip's own addons. One list
+ * rather than every card at once, so the sheet stays calm as areas are added.
+ * The state is useTripShare's and useTripAddonRows', the same the desktop
+ * dialog runs on; only the markup and the questions are the phone's.
  */
 export default function MTripSettingsSheet({
   open,
@@ -405,7 +475,15 @@ export default function MTripSettingsSheet({
 }: MTripSettingsSheetProps) {
   const { t } = useTranslation();
   const m = useTripMembers({ isOpen: open, tripId, onClose, onMembersChanged });
+  const journalVisible = useTripJournalSectionVisible(tripId);
   const [question, setQuestion] = useState<Question | null>(null);
+  const [page, setPage] = useState<Page | null>(null);
+  // Opened again, the sheet starts on its list.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (open) setPage(null);
+  }
   const words = questionWords(question, t);
 
   const answer = () => {
@@ -416,13 +494,34 @@ export default function MTripSettingsSheet({
     setQuestion(null);
   };
 
+  const pageTitle: Record<Page, string> = {
+    people: t('trip.settings.people'),
+    sharing: t('trip.settings.sharing'),
+    journal: t('trip.journal.title'),
+    addons: t('trip.settings.addons'),
+  };
+  const people = m.realMembers.length + m.guests.length;
+
   return (
     <>
       <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('trip.settings.title')}>
         <div className="flex-none px-[18px] pt-4">
           <TileHeader
-            icon={<Settings2 size={19} strokeWidth={1.8} />}
-            title={t('trip.settings.title')}
+            icon={
+              page ? (
+                <button
+                  type="button"
+                  onClick={() => setPage(null)}
+                  aria-label={t('common.back')}
+                  className="flex h-full w-full items-center justify-center"
+                >
+                  <ChevronLeft size={19} strokeWidth={2} className="rtl:rotate-180" />
+                </button>
+              ) : (
+                <Settings2 size={19} strokeWidth={1.8} />
+              )
+            }
+            title={page ? pageTitle[page] : t('trip.settings.title')}
             sub={tripTitle}
             onClose={onClose}
             closeLabel={t('common.close')}
@@ -430,11 +529,54 @@ export default function MTripSettingsSheet({
         </div>
 
         <div className="m-scroll-fade mt-2 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-[18px] pb-[18px] pt-[14px]">
-          <AccessSection m={m} ask={setQuestion} />
-          <GuestsSection m={m} ask={setQuestion} />
-          {m.canManageShare && <ShareLinkSection tripId={tripId} />}
-          {m.canManageShare && <InviteLinkSection tripId={tripId} />}
-          <TripJournalLinkSection tripId={tripId} />
+          {page === null && (
+            <nav
+              aria-label={t('trip.settings.title')}
+              className={`flex flex-col divide-y divide-[color:var(--m-rowbr)] rounded-[18px] px-1.5 ${INNER_CLS}`}
+            >
+              <AreaRow
+                icon={<Users size={16} strokeWidth={2} />}
+                label={pageTitle.people}
+                value={m.loading ? undefined : String(people)}
+                onOpen={() => setPage('people')}
+              />
+              {m.canManageShare && (
+                <AreaRow
+                  icon={<Link2 size={16} strokeWidth={2} />}
+                  label={pageTitle.sharing}
+                  onOpen={() => setPage('sharing')}
+                />
+              )}
+              {journalVisible && (
+                <AreaRow
+                  icon={<LinkedJournalIcon size={16} />}
+                  label={pageTitle.journal}
+                  onOpen={() => setPage('journal')}
+                />
+              )}
+              {m.isCurrentOwner && (
+                <AreaRow
+                  icon={<Puzzle size={16} strokeWidth={2} />}
+                  label={pageTitle.addons}
+                  onOpen={() => setPage('addons')}
+                />
+              )}
+            </nav>
+          )}
+          {page === 'people' && (
+            <>
+              <AccessSection m={m} ask={setQuestion} />
+              <GuestsSection m={m} ask={setQuestion} />
+            </>
+          )}
+          {page === 'sharing' && m.canManageShare && (
+            <>
+              <ShareLinkSection tripId={tripId} />
+              <InviteLinkSection tripId={tripId} />
+            </>
+          )}
+          {page === 'journal' && <TripJournalLinkSection tripId={tripId} />}
+          {page === 'addons' && m.isCurrentOwner && <AddonsSection tripId={tripId} />}
         </div>
       </MSheet>
 

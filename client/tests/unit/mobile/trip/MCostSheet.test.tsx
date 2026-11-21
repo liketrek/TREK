@@ -5,12 +5,12 @@ import type { TripMember } from '../../../../src/components/Budget/BudgetPanelMe
 import { clearExchangeRateCache } from '../../../../src/hooks/useExchangeRates'
 import { useTripStore, type TripStoreState } from '../../../../src/store/tripStore'
 import type { BudgetItem, BudgetItemMember } from '../../../../src/types'
-import { buildBudgetItem, buildTrip } from '../../../helpers/factories'
+import { buildBudgetItem, buildTrip, buildTripFile } from '../../../helpers/factories'
 import { localToday } from '../../../../src/components/Planner/today'
 import { resetAllStores } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-038
+// FE-MOB-COSTSH-001 to FE-MOB-COSTSH-042
 // The sheet reads its copy from useTranslation(), so assertions are English.
 // EUR formats de-DE style: displayed amounts and inputs use a comma.
 
@@ -353,7 +353,7 @@ describe('MCostSheet', () => {
 
     // The remaining share now suggests what is left of the total.
     fireEvent.change(screen.getByPlaceholderText('70,00'), { target: { value: '70' } })
-    expect(screen.getByText('Split 2 ways · 50,00 € each')).toBeInTheDocument()
+    expect(screen.getByText('Split matches total')).toBeInTheDocument()
 
     fireEvent.click(submit())
     await waitFor(() => expect(addBudgetItem).toHaveBeenCalledWith(1, expect.objectContaining({
@@ -743,5 +743,64 @@ describe('MCostSheet', () => {
     expect(shares[0].className).toContain('placeholder:text-m-faint')
     fireEvent.change(shares[0], { target: { value: '10000' } })
     expect(screen.getByText('₩10,000 / ₩60,000')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTSH-039: a custom split by shares saves the stay split by nights (#1165)', async () => {
+    renderSheet()
+    fillBasics('Apartment', '390')
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Shares' }))
+    // One share each until something is typed: the split already balances.
+    expect(screen.getByRole('textbox', { name: 'Shares for You' })).toHaveAttribute('placeholder', '1')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Shares for You' }), { target: { value: '5' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Shares for bob' }), { target: { value: '4' } })
+    expect(screen.getByText('216,67 €')).toBeInTheDocument()
+    expect(screen.getByText('173,33 €')).toBeInTheDocument()
+
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({
+      members: [{ user_id: 1, amount: 216.67 }, { user_id: 2, amount: 173.33 }],
+    })
+  })
+
+  it('FE-MOB-COSTSH-040: the custom split also takes percentages, the amount shown beside each', () => {
+    renderSheet()
+    fillBasics('Bag storage', '30')
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('radio', { name: '%' }))
+    expect(screen.getByText("Type each person's share in percent; together they have to make 100 %.")).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'You %' }), { target: { value: '60' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'bob %' }), { target: { value: '40' } })
+    expect(screen.getByText('18,00 €')).toBeInTheDocument()
+    expect(submit()).toBeEnabled()
+  })
+
+  it('FE-MOB-COSTSH-041: a trip file is linked as a receipt and saved with the expense (#2839)', async () => {
+    useTripStore.setState({ files: [buildTripFile({ id: 51, original_name: 'hotel-confirmation.pdf' })] } as unknown as Partial<TripStoreState>)
+    renderSheet()
+    fillBasics('Hotel', '200')
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'hotel-confirmation.pdf' }))
+    // Listed with the receipts now, and nothing is left to link.
+    expect(screen.getByRole('button', { name: 'hotel-confirmation.pdf' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Link' })).toBeNull()
+
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({ receipt_file_ids: [51] })
+  })
+
+  it('FE-MOB-COSTSH-042: on a trip of one the sheet asks for no payer or split, and saves the expense as mine (#2689)', async () => {
+    renderSheet({ people: [PEOPLE[0]] })
+    expect(screen.queryByText(/Who paid/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Equally' })).not.toBeInTheDocument()
+    fillBasics('Museum', '12')
+    fireEvent.click(submit())
+    await waitFor(() => expect(addBudgetItem).toHaveBeenCalledTimes(1))
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({
+      payers: [{ user_id: 1, amount: 12 }],
+      members: [{ user_id: 1, amount: null }],
+    })
   })
 })

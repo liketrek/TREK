@@ -193,6 +193,23 @@ function text(meta: Record<string, unknown>, key: string, max = 64): string | un
   return typeof value === 'string' || typeof value === 'number' ? clean(value, max) : undefined;
 }
 
+/**
+ * The seat a pass shows. One pass covers a whole flight or train with a stop,
+ * so it lists the seat of every leg that has one (the first leg falling back
+ * to the flat seat, which mirrors it); before, a seat booked only on a later
+ * leg was missing and the first leg's stood for the whole route.
+ */
+function seatsOf(meta: Record<string, unknown>): string | undefined {
+  const legs = Array.isArray(meta.legs) && meta.legs.length > 1 ? (meta.legs as unknown[]) : null;
+  if (!legs) return text(meta, 'seat', 16);
+  const seats = legs.flatMap((leg, i) => {
+    const own = leg && typeof leg === 'object' ? (leg as Record<string, unknown>).seat : undefined;
+    const seat = typeof own === 'string' && own.trim() ? own : i === 0 ? meta.seat : undefined;
+    return typeof seat === 'string' && seat.trim() ? [seat.trim()] : [];
+  });
+  return seats.length ? clean(seats.join(' / '), 16) : undefined;
+}
+
 /** A stable serial for the booking, so adding its pass again replaces the one in Wallet. */
 export function serialFor(reservation: WalletPassSource['reservation']): string {
   const digest = createHash('sha256')
@@ -258,7 +275,7 @@ export function buildWalletPassRequest(src: WalletPassSource, words: WalletWords
       add(words.flightNumber, number || undefined);
     }
     if (kind === 'train') add(words.trainNumber, text(meta, 'train_number', 20));
-    add(words.seat, text(meta, 'seat', 16));
+    add(words.seat, seatsOf(meta));
     add(words.platform, text(meta, 'platform', 16));
     if (endLocal) add(words.arrival, when(endLocal.date, endLocal.time));
   } else if (kind === 'hotel') {

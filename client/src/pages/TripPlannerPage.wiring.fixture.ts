@@ -174,8 +174,10 @@ function layoutState(): HookState {
     startResizeRight: vi.fn(),
     nudgeLeft: vi.fn(),
     nudgeRight: vi.fn(),
+    resizing: false,
     resizeMin: 200,
-    resizeMax: 520,
+    resizeMaxLeft: 520,
+    resizeMaxRight: 520,
     selectedPlaceId: null,
     selectedAssignmentId: null,
     setSelectedPlaceId: vi.fn(),
@@ -327,6 +329,7 @@ function mapState(): HookState {
     selectedTour: null,
     mapTileUrl: 'https://tiles/{z}/{x}/{y}.png',
     fontStyle: { fontFamily: 'var(--font-system)' },
-    splashDone: true,
+    slowOpen: false,
+    saveTrip: vi.fn(),
   };
 }

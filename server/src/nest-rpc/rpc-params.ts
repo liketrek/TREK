@@ -1,3 +1,4 @@
+import { toRowId } from '../db/row-id';
 import { BadParams } from './rpc-errors';
 
 /**
@@ -14,6 +15,24 @@ export const num = (v: unknown, name: string): number => {
   if (typeof n !== 'number' || !Number.isFinite(n)) throw new BadParams(`${name} must be a number`);
   return n;
 };
+
+/**
+ * A row id, or another whole number compared with an integer column (a list
+ * position, a pagination cursor): a safe integer or its decimal digits, read
+ * through toRowId. num() let '0x5', '5e0', 1.5 and 1e20 through,
+ * which SQLite matches against nothing while Postgres refuses the cast or reads
+ * the string its own way; a canonical numeric string still passes, as the
+ * published contract says. The refusal keeps num()'s message.
+ */
+export const rowIdParam = (v: unknown, name: string): number => {
+  const id = toRowId(v);
+  if (id === null) throw new BadParams(`${name} must be a number`);
+  return id;
+};
+
+/** rowIdParam for a param that may be left out: absent stays undefined, anything else must be a row id. */
+export const optionalRowIdParam = (v: unknown, name: string): number | undefined =>
+  v === undefined ? undefined : rowIdParam(v, name);
 
 export const str = (v: unknown, name: string): string => {
   if (typeof v !== 'string') throw new BadParams(`${name} must be a string`);

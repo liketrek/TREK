@@ -3,7 +3,7 @@
  * the two cross-trip feeds, the roster, the update, the create and the two member
  * operations.
  *
- * Two things get their own cases. trips.update gates two individual FIELDS behind
+ * Two things get their own cases. trips.update gates three individual FIELDS behind
  * permissions of their own on top of trip_edit, and adding a member GRANTS TRIP
  * ACCESS, which is why it sits behind its own permission rather than any other write.
  */
@@ -46,12 +46,22 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const ALL_TRIP_GRANTS = ['db:read:trips', 'db:write:trips', 'db:create:trips', 'db:write:members'];
 
 /** Trip 1 belongs to user 42. `allow` decides each individual permission check. */
-export function build(opts: { allow?: (action: string) => boolean; updateThrows?: Error; createThrows?: Error } = {}) {
+export function build(
+  opts: {
+    allow?: (action: string) => boolean;
+    updateThrows?: Error;
+    createThrows?: Error;
+    updateBoundaries?: unknown[];
+  } = {},
+) {
   const trips = {
     list: vi.fn(() => [{ id: 1, title: 'Japan' }]),
     updateTrip: vi.fn(() => {
       if (opts.updateThrows) throw opts.updateThrows;
-      return { updatedTrip: { id: 1, title: 'Japan' } };
+      return {
+        updatedTrip: { id: 1, title: 'Japan' },
+        ...(opts.updateBoundaries ? { boundaries: opts.updateBoundaries } : {}),
+      };
     }),
     create: vi.fn((userId: number) => {
       if (opts.createThrows) throw opts.createThrows;
@@ -271,9 +281,37 @@ describe('TripsRpc writes', () => {
     expect(res.error.message).toBe('no permission to change the cover of trip 1');
   });
 
-  it('TRIPS-RPC-008 a plain edit is unaffected by those two field permissions', async () => {
-    const f = build({ allow: (a) => a !== 'trip_archive' && a !== 'trip_cover_upload' });
+  it('TRIPS-RPC-008 a plain edit is unaffected by those field permissions', async () => {
+    const f = build({ allow: (a) => a !== 'trip_archive' && a !== 'trip_cover_upload' && a !== 'budget_edit' });
     expect((await f.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'New' } }), 42)).ok).toBe(true);
+  });
+
+  it('TRIPS-RPC-022 switching the costs mode needs budget_edit on top of trip_edit', async () => {
+    const f = build({ allow: (a) => a !== 'budget_edit' });
+    const res = (await f
+      .host()
+      .dispatch(req('trips.update', { tripId: 1, input: { costs_mode: 'totals' } }), 42)) as RpcError;
+    expect(res.error).toMatchObject({
+      code: 'RESOURCE_FORBIDDEN',
+      message: 'no permission to change how trip 1 keeps its costs',
+    });
+    expect(f.trips.updateTrip).not.toHaveBeenCalled();
+  });
+
+  it('TRIPS-RPC-023 with budget_edit the costs mode reaches the service', async () => {
+    const f = build();
+    expect((await f.host().dispatch(req('trips.update', { tripId: 1, input: { costs_mode: 'totals' } }), 42)).ok).toBe(
+      true,
+    );
+    expect(f.trips.updateTrip).toHaveBeenCalledWith(1, 42, { costs_mode: 'totals' }, 'user');
+  });
+
+  it('TRIPS-RPC-024 road trip day boundaries that moved with their days go out with the trip (#3119)', async () => {
+    const boundaries = [{ day_number: 4, from_assignment_id: 8, to_assignment_id: null, fraction: 0.5 }];
+    const f = build({ updateBoundaries: boundaries });
+    const input = { start_date: '2026-05-09', end_date: '2026-05-14' };
+    expect((await f.host().dispatch(req('trips.update', { tripId: 1, input }), 42)).ok).toBe(true);
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'roadtripBoundary:changed', { boundaries });
   });
 
   it('TRIPS-RPC-009 service errors map onto the right RPC codes', async () => {

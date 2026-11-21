@@ -3,6 +3,7 @@ import {
   packingCreateItemRequestSchema,
   packingUpdateItemRequestSchema,
   packingSetSharingRequestSchema,
+  packingAddContributorRequestSchema,
   packingImportRequestSchema,
   packingReorderRequestSchema,
   packingCreateBagRequestSchema,
@@ -24,6 +25,7 @@ import { createZodDto } from 'nestjs-zod';
 export class PackingCreateItemDto extends createZodDto(packingCreateItemRequestSchema) {}
 export class PackingUpdateItemDto extends createZodDto(packingUpdateItemRequestSchema) {}
 export class PackingSetSharingDto extends createZodDto(packingSetSharingRequestSchema) {}
+export class PackingAddContributorDto extends createZodDto(packingAddContributorRequestSchema) {}
 export class PackingImportDto extends createZodDto(packingImportRequestSchema) {}
 export class PackingReorderDto extends createZodDto(packingReorderRequestSchema) {}
 export class PackingCreateBagDto extends createZodDto(packingCreateBagRequestSchema) {}

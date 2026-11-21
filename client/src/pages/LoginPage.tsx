@@ -18,6 +18,7 @@ import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
 import NativeServerLink from './login/NativeServerLink';
 import MfaCodeStep from './login/MfaCodeStep';
+import { LANGUAGE_CORNER_CLASS } from './login/languageCorner';
 import PasswordChecklist from '../components/shared/PasswordChecklist';
 
 /** Fixed so the sky does not reshuffle on every render. */
@@ -228,8 +229,7 @@ export default function LoginPage(): React.ReactElement {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
-      {/* Language dropdown, below the status bar in the app and under a notch, not behind them */}
-      <div className="absolute end-4 top-[calc(env(safe-area-inset-top,0px)+16px)] z-10">
+      <div className={LANGUAGE_CORNER_CLASS}>
         <button type="button"
           onClick={(e) => {
             e.stopPropagation();

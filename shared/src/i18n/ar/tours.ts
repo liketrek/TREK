@@ -103,6 +103,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'إجمالي الصعود',
   'tours.detail.descent': 'إجمالي الهبوط',
   'tours.detail.navigationHint': 'تفتح الملاحة نقطة بداية الدرب، ولا توفّر إرشادًا على طول مسار الجولة.',
+  'tours.detail.openRoute': 'افتح المسار في تطبيق خرائط',
+  'tours.detail.mapsShort': 'الخرائط',
   'tours.planner.title': 'تخطيط جولة',
   'tours.planner.newTour': 'تخطيط جولة جديدة',
   'tours.planner.addTour': 'إضافة جولة',
@@ -347,8 +349,7 @@ const tours: TranslationStrings = {
   'tours.walkImport.failed': 'تعذرت قراءة الرابط الآن. حاول مرة أخرى بعد قليل.',
   'tours.walkImport.refusal.not_google_maps':
     'استخدم رابط مسار من Google Maps: رابطًا مختصرًا من maps.app.goo.gl أو رابطًا على google.com/maps/dir.',
-  'tours.walkImport.refusal.not_a_route':
-    'رابط Google Maps هذا ليس مسارًا. خطط جولة المشي في Google Maps وشارك المسار.',
+  'tours.walkImport.refusal.not_a_route': 'رابط Google Maps هذا ليس مسارًا. خطط جولة المشي في Google Maps وشارك المسار.',
   'tours.walkImport.refusal.not_walking':
     'هذا المسار غير مخطط سيرًا على الأقدام. اختر وضع المشي في Google Maps وشارك المسار من جديد.',
   'tours.walkImport.refusal.mode_unknown':
@@ -580,8 +581,7 @@ const tours: TranslationStrings = {
   'tours.bike.ways.loading': 'جارٍ قراءة الطرق على طول المسار…',
   'tours.bike.ways.offline': 'يتطلب السطح ودرجات المسارات اتصالًا.',
   'tours.bike.ways.failed': 'تعذرت قراءة الطرق على طول المسار. المسار نفسه لم يتأثر.',
-  'tours.bike.ways.source':
-    'من OpenStreetMap كما يقرأه الموجّه. حيث لا تذكر البيانات شيئًا يكون السطح مجهولًا، لا جيدًا.',
+  'tours.bike.ways.source': 'من OpenStreetMap كما يقرأه الموجّه. حيث لا تذكر البيانات شيئًا يكون السطح مجهولًا، لا جيدًا.',
   'tours.bike.ways.showOnMap': 'عرض على الخريطة',
   'tours.bike.ways.unpavedBadge': '{share} غير مرصوف',
   'tours.bike.ways.unpavedNotice': '{length} من المسار معروف بأنه غير مرصوف.',
@@ -766,8 +766,7 @@ const tours: TranslationStrings = {
   'tours.walk.ferry.gap': 'لا يوجد طريق يربط {from} و{to}، لا سيرًا ولا بالعبّارة.',
   'tours.walk.ferry.gapHint': 'يبقى المسار المخطط سابقًا على الخريطة باهتًا حتى يُعثر على طريق. انقل إحدى المحطتين.',
   'tours.walk.ferry.pending': 'لا يوجد طريق سيرًا بين {from} و{to}: يعبر الموجّه الماء هنا بالعبّارة.',
-  'tours.walk.ferry.pendingHint':
-    'لا يُحتسب العبور وقتَ مشي. للحفظ، اعتمد العبّارة أو انقل محطة كي يربطهما طريق سيرًا.',
+  'tours.walk.ferry.pendingHint': 'لا يُحتسب العبور وقتَ مشي. للحفظ، اعتمد العبّارة أو انقل محطة كي يربطهما طريق سيرًا.',
   'tours.walk.ferry.accepted': 'عبّارة من {from} إلى {to}، اعتُمدت عن قصد. يبقى وقتها منفصلًا عن وقت المشي.',
   'tours.walk.ferry.accept': 'اعتماد العبّارة',
   'tours.walk.ferry.acceptTooLong': 'خط هذا العبور أطول من أن يُحفظ كمقطع واحد. أضف محطة في الطريق أو انقل واحدة.',

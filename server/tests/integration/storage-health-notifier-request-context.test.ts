@@ -21,16 +21,10 @@
  * seven cron boot sweeps.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { StorageEventsService } from '../../src/nest/storage/storage-events.service';
 import type { INestApplication } from '@nestjs/common';
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 describe('StorageHealthNotifierService listener runs inside its own request context, outside any active one', () => {
   let app: INestApplication;
@@ -41,7 +35,6 @@ describe('StorageHealthNotifierService listener runs inside its own request cont
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('STORAGE-HEALTH-CTX-001: emitting replica_failure from a bare (non-request) context never logs cannotUseGlobalContext', async () => {

@@ -109,7 +109,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Megváltoztattad az út kezdetét. Hogyan kövessék a terveid az új dátumokat?',
   'dashboard.dateShiftKeepBookings': 'A foglalások maradjanak a saját dátumaikon',
   'dashboard.dateShiftKeepBookingsDesc':
-    'A napi tervek az új dátumokkal együtt mozognak, míg a foglalások és szállások az eredeti dátumaikon maradnak, amíg azok még az út részei.',
+    'A hozzáadott napok üresek maradnak, és semmi más nem mozdul. Ha az út eltolódik, a napi tervek az új dátumokkal együtt mozognak, míg a foglalások és szállások az eredeti dátumaikon maradnak, amíg azok még az út részei.',
   'dashboard.dateShiftAll': 'Minden eltolása',
   'dashboard.dateShiftAllDesc':
     'A teljes útiterv az új dátumokkal együtt mozog, beleértve a foglalásokat és a szállásokat is.',
@@ -239,5 +239,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Hozzáadás az Apple Naptárhoz / Outlookhoz',
   'dashboard.ics.copyManually': 'Vagy másold ki kézzel a hivatkozást',
   'dashboard.ics.pasteFromUrl': 'illeszd be a „URL-ből” mezőbe',
+  'dashboard.ics.dayEvents': 'Napi összefoglaló események',
+  'dashboard.ics.dayEventsHint':
+    'Egész napos esemény minden naphoz az időpont nélküli helyekkel és jegyzetekkel. A beállítás módosítása megváltoztatja a linket, ezért iratkozz fel újra az új linkkel.',
 };
 export default dashboard;

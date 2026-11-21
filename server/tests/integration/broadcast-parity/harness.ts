@@ -1,6 +1,7 @@
 import { ADDON_IDS } from '../../../src/addons';
 import { buildApp } from '../../../src/bootstrap';
 import { BudgetSettlements } from '../../../src/db/entities/BudgetSettlements.entity';
+import { CollabLinks } from '../../../src/db/entities/CollabLinks.entity';
 import { CollabPolls } from '../../../src/db/entities/CollabPolls.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { PackingTemplateCategories } from '../../../src/db/entities/PackingTemplateCategories.entity';
@@ -12,6 +13,7 @@ import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 import { createLocalMcpServer, McpRegistryService } from '../../../src/nest-mcp';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { withRequestContext } from '../../../src/nest/database/request-context';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { SchoolHolidaysService } from '../../../src/nest/school-holidays/school-holidays.service';
 import { authCookie } from '../../helpers/auth';
@@ -208,6 +210,12 @@ export interface ParityHarness {
   listTools(userId: number): Promise<ListedTool[]>;
   /** The REST twin, as `userId`, with the session cookie and X-Socket-Id 'sock-rest'. */
   rest(userId: number, call: RestCall, s: Scene): Promise<{ status: number; text: string }>;
+  /**
+   * Resolves once every notification send started so far has finished. A
+   * write starts most of them without waiting, and on Postgres one still runs
+   * after the answer, so the case reads its recording only after this.
+   */
+  notificationsSettled(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -220,7 +228,9 @@ export async function openHarness(): Promise<ParityHarness> {
   await app.init();
   const orm = app.get(MikroORM);
   await oneByOne(Object.values(ADDON_IDS), (addon) => setAddonEnabled(orm, addon, true));
-  await oneByOne(['chat', 'notes', 'polls', 'whatsnext'] as const, (feature) => setCollabFeature(orm, feature, true));
+  await oneByOne(['chat', 'notes', 'polls', 'links', 'whatsnext'] as const, (feature) =>
+    setCollabFeature(orm, feature, true),
+  );
   // The wanderer tools show only while wanderer is allowed under Tours.
   await setAppSetting(orm, 'tours_wanderer_enabled', 'true');
   // The photo search tools show only while a provider is on.
@@ -293,6 +303,7 @@ export async function openHarness(): Promise<ParityHarness> {
       const res = call.body ? await req.send(call.body(s)) : await req;
       return { status: res.status, text: res.text };
     },
+    notificationsSettled: () => app.get(NotificationsService).settled(),
     close: async () => {
       vi.restoreAllMocks();
       await app.close();
@@ -319,6 +330,7 @@ export const NEED_KEYS: Record<Need, readonly (keyof Scene)[]> = {
   collabNote: ['collabNote'],
   collabMessage: ['collabMessage'],
   poll: ['poll'],
+  collabLink: ['collabLink'],
   file: ['file'],
   collection: ['collection', 'collectionPlace'],
   journey: ['journey', 'journeyEntry'],
@@ -442,6 +454,15 @@ const BUILDERS: Record<Need, Builder> = {
       options: JSON.stringify(['Pasta', 'Sushi']),
     });
     s.poll = { id: row.id };
+  },
+  async collabLink(s, _app, orm) {
+    const id = await insertRow(orm, CollabLinks, {
+      trip: s.trip.id,
+      user: s.owner.id,
+      title: `Ferry ${s.n}`,
+      url: 'https://example.com/ferry',
+    });
+    s.collabLink = { id };
   },
   async file(s, _app, orm) {
     s.file = await makeTripFile(orm, s.trip.id);

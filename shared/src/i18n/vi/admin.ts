@@ -2,6 +2,8 @@ import type { TranslationStrings } from '../types';
 
 const admin: TranslationStrings = {
   'admin.notifications.title': 'Thông báo',
+  'admin.notifications.channels': 'Kênh',
+  'admin.notifications.adminAlerts': 'Cảnh báo quản trị',
   'admin.notifications.hint': 'Chọn một kênh thông báo. Chỉ có một người có thể hoạt động tại một thời điểm.',
   'admin.notifications.none': 'Tắt',
   'admin.notifications.email': 'Email (SMTP)', // same-as-en
@@ -122,7 +124,8 @@ const admin: TranslationStrings = {
   'admin.invite.deleted': 'Đã xóa liên kết mời',
   'admin.invite.createError': 'Không tạo được liên kết mời',
   'admin.invite.deleteError': 'Không xóa được liên kết mời',
-  'admin.tabs.settings': 'Cài đặt',
+  'admin.tabs.security': 'Bảo mật',
+  'admin.tabs.services': 'Dịch vụ',
   'admin.allowRegistration': 'Cho phép đăng ký',
   'admin.allowRegistrationHint': 'Người dùng mới có thể tự đăng ký',
   'admin.authMethods': 'Phương thức xác thực',
@@ -134,10 +137,13 @@ const admin: TranslationStrings = {
   'admin.oidcLoginHint': 'Cho phép người dùng đăng nhập bằng SSO',
   'admin.oidcRegistration': 'SSO Tự động cấp phép',
   'admin.oidcRegistrationHint': 'Tự động tạo tài khoản cho người dùng SSO mới',
+  'admin.oidcAutoRedirect': 'Chuyển thẳng đến SSO',
+  'admin.oidcAutoRedirectHint':
+    'Khi tắt đăng nhập bằng mật khẩu, khách truy cập được chuyển ngay đến nhà cung cấp danh tính. Tắt tùy chọn này để hiển thị trang đăng nhập có nút SSO trước.',
   'admin.envOverrideHint':
     'Cài đặt đăng nhập mật khẩu được kiểm soát bởi biến môi trường OIDC_ONLY và không thể thay đổi tại đây.',
   'admin.lockoutWarning': 'Ít nhất một phương thức đăng nhập phải được bật',
-  'admin.requireMfa': 'Yêu cầu xác thực hai yếu tố (2FA)',
+  'admin.requireMfa': 'Yêu cầu 2FA',
   'admin.requireMfaHint': 'Người dùng không có 2FA phải hoàn tất thiết lập trong Cài đặt trước khi sử dụng ứng dụng.',
   'admin.apiKeys': 'API Key',
   'admin.apiKeysHint':
@@ -180,10 +186,8 @@ const admin: TranslationStrings = {
   'admin.trekApi.included': 'Có',
   'admin.trekApi.notIncluded': 'Không có',
   'admin.trekApi.quota.title': 'Hạn mức hôm nay',
-  'admin.trekApi.quota.used': 'Đã dùng',
   'admin.trekApi.quota.remaining': 'Còn lại',
   'admin.trekApi.quota.resets': 'Đặt lại lúc',
-  'admin.trekApi.quota.limit': 'Giới hạn',
   'admin.trekApi.quota.key': 'Khóa',
   'admin.trekApi.quota.state.connected': 'Đã kết nối',
   'admin.trekApi.quota.state.registering': 'Đang thiết lập',
@@ -308,8 +312,9 @@ const admin: TranslationStrings = {
   'admin.collab.whatsnext.title': 'Tiếp theo là gì',
   'admin.collab.whatsnext.subtitle': 'Đề xuất hoạt động và các bước tiếp theo',
   'admin.tabs.config': 'Cá nhân hóa',
-  'admin.tabs.defaults': 'Mặc định của người dùng',
+  'admin.tabs.defaults': 'Mặc định',
   'admin.defaultSettings.title': 'Cài đặt người dùng mặc định',
+  'admin.defaultSettings.routing': 'Định tuyến',
   'admin.defaultSettings.description':
     'Đặt mặc định cho toàn phiên bản. Người dùng chưa thay đổi cài đặt sẽ thấy các giá trị này. Những thay đổi của riêng họ luôn được ưu tiên.',
   'admin.defaultSettings.saved': 'Đã lưu mặc định',
@@ -781,14 +786,6 @@ const admin: TranslationStrings = {
   'admin.addons.toast.updated': 'Đã cập nhật tiện ích bổ sung',
   'admin.addons.toast.error': 'Không thể cập nhật tiện ích bổ sung',
   'admin.addons.group.count': '{enabled} trên {total} đã bật',
-  'admin.addons.search': 'Tìm tiện ích',
-  'admin.addons.filter': 'Hiển thị',
-  'admin.addons.filter.all': 'Tất cả',
-  'admin.addons.filter.on': 'Bật',
-  'admin.addons.filter.off': 'Tắt',
-  'admin.addons.noMatch': 'Không có tiện ích nào khớp với tìm kiếm hoặc bộ lọc.',
-  'admin.addons.subOptions': '{count} tùy chọn',
-  'admin.addons.subOptionsOn': '{count} đang bật',
   'admin.toursWanderer.title': 'wanderer',
   'admin.toursWanderer.subtitle':
     'Người dùng có thể kết nối máy chủ wanderer riêng và nhập các cung đường của máy chủ đó thành chuyến tham quan',
@@ -814,7 +811,7 @@ const admin: TranslationStrings = {
   'admin.weather.requestsDesc': 'Miễn phí, không cần khóa API',
   'admin.weather.locationHint':
     'Thời tiết dựa trên địa điểm đầu tiên có tọa độ mỗi ngày. Nếu không có địa điểm nào được chỉ định cho một ngày thì bất kỳ địa điểm nào trong danh sách địa điểm đều được sử dụng làm tham chiếu.',
-  'admin.tabs.mcpTokens': 'MCP Truy cập',
+  'admin.tabs.mcpTokens': 'MCP',
   'admin.mcpTokens.title': 'MCP Truy cập',
   'admin.mcpTokens.subtitle': 'Quản lý phiên OAuth và mã thông báo API trên tất cả người dùng',
   'admin.mcpTokens.sectionTitle': 'API Mã thông báo',
@@ -914,7 +911,6 @@ const admin: TranslationStrings = {
   'admin.passkey.resetDone': 'Đã xóa {count} mật mã',
   'admin.group.users': 'Người dùng',
   'admin.group.config': 'Cấu hình',
-  'admin.group.integration': 'Tích hợp',
   'admin.group.maintenance': 'Bảo trì',
   'admin.invite.tripLabel': 'Thêm vào chuyến đi (tùy chọn)',
   'admin.invite.tripNone': 'Không có chuyến đi',

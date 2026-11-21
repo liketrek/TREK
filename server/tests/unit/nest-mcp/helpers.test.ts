@@ -2,6 +2,7 @@ import {
   demoDenied,
   errorResult,
   ok,
+  okCompact,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
@@ -16,6 +17,12 @@ describe('result helpers', () => {
   it('ok() wraps data as one pretty-printed JSON text block, without isError', () => {
     const result = ok({ a: 1 });
     expect(result).toEqual({ content: [{ type: 'text', text: JSON.stringify({ a: 1 }, null, 2) }] });
+    expect('isError' in result).toBe(false);
+  });
+
+  it('okCompact() wraps data as one line of JSON, without isError', () => {
+    const result = okCompact({ a: 1, b: [2, 3] });
+    expect(result).toEqual({ content: [{ type: 'text', text: '{"a":1,"b":[2,3]}' }] });
     expect('isError' in result).toBe(false);
   });
 

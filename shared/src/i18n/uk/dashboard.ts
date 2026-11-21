@@ -139,7 +139,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Ви змінили дату початку поїздки. Як ваші плани мають перейти на нові дати?',
   'dashboard.dateShiftKeepBookings': 'Залишити бронювання на своїх датах',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Плани днів переміщуються разом із новими датами, а бронювання та проживання залишаються на своїх початкових датах, поки ті все ще входять до поїздки.',
+    'Додані дні залишаються порожніми, усе інше лишається на місці. Якщо поїздка зсувається, плани днів переміщуються разом із новими датами, а бронювання та проживання залишаються на своїх початкових датах, поки ті все ще входять до поїздки.',
   'dashboard.dateShiftAll': 'Перемістити все',
   'dashboard.dateShiftAllDesc': 'Весь маршрут переміщується на нові дати, включно з бронюваннями та проживанням.',
   'dashboard.dateShiftHint':
@@ -273,5 +273,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Додати до Календаря Apple / Outlook',
   'dashboard.ics.copyManually': 'Або скопіюйте посилання вручну',
   'dashboard.ics.pasteFromUrl': 'вставте в поле «За URL»',
+  'dashboard.ics.dayEvents': 'Події з оглядом дня',
+  'dashboard.ics.dayEventsHint':
+    'Подія на весь день для кожного дня з місцями та нотатками без часу. Зміна цього налаштування змінює посилання, тож підпишіться знову за новим посиланням.',
 };
 export default dashboard;

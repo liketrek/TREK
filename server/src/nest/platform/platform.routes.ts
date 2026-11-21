@@ -9,6 +9,7 @@ import type { UserSessionsRepository } from '../../db/repositories/UserSessions.
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { withRequestContext } from '../database/request-context';
+import type { PublicMediaService } from '../memories/public-media.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
 import { precompressedStatic } from './precompressed-static';
@@ -68,6 +69,17 @@ export function answerUnmatchedGet(req: Request, res: Response, message = 'Not F
 }
 
 /**
+ * What a public mount may serve and in which form: `allows` gates the name
+ * (the journey mount refuses journey entry media), `rendition` names the
+ * location-free copy to send instead of the stored object, or null when there
+ * is none, which reads as a miss.
+ */
+interface PublicServing {
+  allows?: (name: string) => Promise<boolean>;
+  rendition: (name: string) => Promise<string | null>;
+}
+
+/**
  * express.static replacement for the four public /uploads mounts (storage
  * slice 3). Parity contract (spec §Serving): identical ETag / Last-Modified /
  * conditional-GET / Range / HEAD behavior — res.sendFile inside
@@ -76,9 +88,14 @@ export function answerUnmatchedGet(req: Request, res: Response, message = 'Not F
  * next() so the request falls through to the Nest router's standard 404
  * envelope, exactly like express.static's fallthrough. 412/416/5xx go to
  * next(err) with send's own http-errors — the same finalhandler path
- * express.static uses.
+ * express.static uses. With `serving`, the handler sends the location-free
+ * copy it names instead of the object, and a name it refuses is a miss.
  */
-export function storageStaticHandler(storage: StorageService, category: StorageCategory): express.RequestHandler {
+export function storageStaticHandler(
+  storage: StorageService,
+  category: StorageCategory,
+  serving?: PublicServing,
+): express.RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     // serve-static fallthrough: non-GET/HEAD pass straight through (no 405).
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -96,25 +113,34 @@ export function storageStaticHandler(storage: StorageService, category: StorageC
       return;
     }
     const name = decoded.replace(/^\/+/, '');
-    return storage.sendToResponse(category, name, res).catch((err: unknown) => {
-      // MISS contract: unknown object, invalid key ('' at the mount root,
-      // '..', dot segments, control chars) → Nest 404 envelope.
-      if (err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) {
-        next();
-        return;
-      }
-      const e = err as { status?: number; code?: string; syscall?: string };
-      // stat→sendFile race (send 404) and directories: static falls through too.
-      if (e.status === 404 || e.code === 'EISDIR') {
-        next();
-        return;
-      }
-      // Client gone / bytes already on the wire: nothing useful to send —
-      // mirrors res.sendFile's own default callback (express response.js:454).
-      if (e.code === 'ECONNABORTED' || e.syscall === 'write') return;
-      next(err as Error);
-    });
+    return resolveServedName(name, serving)
+      .then((served) => (served === null ? next() : storage.sendToResponse(category, served, res)))
+      .catch((err: unknown) => {
+        // MISS contract: unknown object, invalid key ('' at the mount root,
+        // '..', dot segments, control chars) → Nest 404 envelope.
+        if (err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) {
+          next();
+          return;
+        }
+        const e = err as { status?: number; code?: string; syscall?: string };
+        // stat→sendFile race (send 404) and directories: static falls through too.
+        if (e.status === 404 || e.code === 'EISDIR') {
+          next();
+          return;
+        }
+        // Client gone / bytes already on the wire: nothing useful to send —
+        // mirrors res.sendFile's own default callback (express response.js:454).
+        if (e.code === 'ECONNABORTED' || e.syscall === 'write') return;
+        next(err as Error);
+      });
   };
+}
+
+/** The object name a static mount sends for `name`, or null for a miss. */
+async function resolveServedName(name: string, serving: PublicServing | undefined): Promise<string | null> {
+  if (!serving) return name;
+  if (serving.allows && !(await serving.allows(name))) return null;
+  return serving.rendition(name);
 }
 
 async function servePhoto(
@@ -125,6 +151,7 @@ async function servePhoto(
   shareTokens: ShareTokensRepository,
   photos: PhotosRepository,
   sessions: UserSessionsRepository,
+  publicMedia: PublicMediaService | undefined,
 ): Promise<void> {
   const safeName = path.basename(req.params.filename);
   // Parity: after basename(), the old resolve()+startsWith guard could only
@@ -139,8 +166,8 @@ async function servePhoto(
     res.status(404).send('Not found');
     return;
   }
-  const sendPhoto = () =>
-    storage.sendToResponse('photos', safeName, res).catch((err: unknown) => {
+  const sendPhoto = (name = safeName) =>
+    storage.sendToResponse('photos', name, res).catch((err: unknown) => {
       // exists→send delete race: same 404 text as the miss branch.
       if ((err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) && !res.headersSent) {
         res.status(404).send('Not found');
@@ -172,7 +199,15 @@ async function servePhoto(
     res.status(401).send('Authentication required');
     return;
   }
-  return sendPhoto();
+  // A share link is no account: it gets the copy without the location, and a
+  // photo that cannot be cleaned is not sent at all (fail closed, also when no
+  // PublicMediaService was wired).
+  const rendition = publicMedia ? await publicMedia.renditionFor('photos', safeName).catch(() => null) : null;
+  if (!rendition) {
+    res.status(404).send('Not found');
+    return;
+  }
+  return sendPhoto(rendition);
 }
 
 /**
@@ -221,29 +256,44 @@ export function applyPlatformUploads(
   app: express.Application,
   storage: StorageService,
   orm?: { em: EntityManager },
+  publicMedia?: PublicMediaService,
 ): void {
-  // Static: avatars, covers, and journey photos.
+  // Static: avatars, covers, journey covers and place images.
   //
-  // Security model (audit SEC-M9): these paths are unauthenticated by
-  // design. All filenames are server-chosen UUID v4 (see `uuid()` in
-  // the multer storage config for avatars / covers / journey uploads),
-  // which gives each asset >122 bits of namespace entropy — not
-  // guessable via enumeration. An attacker would need to have already
-  // seen the URL (email, shared journey, etc.) to request the file.
-  //
-  // Moving these behind auth would also break:
-  //   - Unauthenticated trip-card rendering on public share links
-  //   - Journey public-share pages (/public/journey/:token)
-  //   - Email-embedded avatars
+  // Security model (audit SEC-M9): these paths are unauthenticated by design,
+  // because share-link trip cards, journey public pages and email-embedded
+  // avatars load them without a session. Filenames are server-chosen UUID v4
+  // (>122 bits), so nothing can be enumerated, but a URL that was seen once
+  // keeps working, so two rules bound what it can hand out:
+  //   - Every object goes out as its location-free copy (PublicMediaService:
+  //     EXIF GPS, IPTC and XMP place fields and movie location atoms blanked,
+  //     or a fresh re-encode of an image whose metadata cannot be cleaned),
+  //     never as uploaded; only what can be neither is a 404.
+  //   - /uploads/journey does not serve journey entry media (originals,
+  //     posters, thumbs/) unless a journey uses it as its cover. Those go
+  //     through the token-checked /api/public/journey proxy or the
+  //     session-checked ones, so revoking a share link takes them away.
+  //     Covers, and other objects a trip cover or place image points at,
+  //     stay reachable.
+  // Without PublicMediaService (a partial test wiring) the four mounts serve
+  // nothing rather than the raw bytes.
   //
   // The `/uploads/photos/...` route below is DIFFERENT: photo URLs are
   // not embedded in unauthenticated UI contexts, so that endpoint IS
   // gated (session JWT with pv, or a share token scoped to the photo's
-  // trip).
-  app.use('/uploads/avatars', storageStaticHandler(storage, 'avatars'));
-  app.use('/uploads/covers', storageStaticHandler(storage, 'covers'));
-  app.use('/uploads/journey', storageStaticHandler(storage, 'journey'));
-  app.use('/uploads/places', storageStaticHandler(storage, 'places'));
+  // trip, which gets the location-free copy too).
+  const serving = (category: StorageCategory, allows?: PublicServing['allows']): PublicServing => ({
+    allows,
+    rendition: (name) => (publicMedia ? publicMedia.renditionFor(category, name) : Promise.resolve(null)),
+  });
+  const servesFromJourneyMount = (name: string): Promise<boolean> => {
+    if (!publicMedia || !orm) return Promise.resolve(false);
+    return withRequestContext(orm, () => publicMedia.servesFromJourneyMount(name));
+  };
+  app.use('/uploads/avatars', storageStaticHandler(storage, 'avatars', serving('avatars')));
+  app.use('/uploads/covers', storageStaticHandler(storage, 'covers', serving('covers')));
+  app.use('/uploads/journey', storageStaticHandler(storage, 'journey', serving('journey', servesFromJourneyMount)));
+  app.use('/uploads/places', storageStaticHandler(storage, 'places', serving('places')));
 
   // Photos require either a valid logged-in session (via JWT with the
   // password_version gate) OR a share token that covers the SPECIFIC
@@ -264,6 +314,7 @@ export function applyPlatformUploads(
         orm.em.getRepository(ShareTokens),
         orm.em.getRepository(Photos),
         orm.em.getRepository(UserSessions),
+        publicMedia,
       ),
     ).catch(next);
   });

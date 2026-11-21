@@ -1,4 +1,4 @@
-// FE-MOB-ASHEET-001 to FE-MOB-ASHEET-026
+// FE-MOB-ASHEET-001 to FE-MOB-ASHEET-028
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
@@ -217,6 +217,30 @@ describe('MAdminSheets', () => {
     expect(hitId).toBe('2');
   });
 
+  it('FE-MOB-ASHEET-027: unlinking single sign-on confirms first, then forgets the SSO identity of that user', async () => {
+    const user = userEvent.setup();
+    let hitId = '';
+    server.use(
+      http.delete('/api/admin/users/:id/sso', ({ params }) => {
+        hitId = String(params.id);
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    const admin = renderSheets({ editingUser: ALICE, oidcConfigured: true });
+
+    await user.click(screen.getByRole('button', { name: 'Remove SSO link' }));
+    expect(screen.getByRole('dialog', { name: 'Remove SSO link' })).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Remove SSO link' })[1]);
+
+    await waitFor(() => expect(admin.toast.success).toHaveBeenCalled());
+    expect(hitId).toBe('2');
+  });
+
+  it('FE-MOB-ASHEET-028: without single sign-on set up there is nothing to unlink', () => {
+    renderSheets({ editingUser: ALICE, oidcConfigured: false });
+    expect(screen.queryByRole('button', { name: 'Remove SSO link' })).not.toBeInTheDocument();
+  });
+
   it('FE-MOB-ASHEET-012: a failing passkey reset toasts the error and keeps the sheet open', async () => {
     const user = userEvent.setup();
     server.use(
@@ -406,7 +430,7 @@ describe('MAdminSheets', () => {
     );
   });
 
-  it('FE-MOB-ASHEET-024: confirming the passkey reset without an edited user does nothing', async () => {
+  it('FE-MOB-ASHEET-024: the passkey confirm closes with the edit sheet and resets nobody', async () => {
     const user = userEvent.setup();
     let called = false;
     server.use(
@@ -419,13 +443,12 @@ describe('MAdminSheets', () => {
     const { rerender } = render(<Harness admin={admin} />);
 
     await user.click(screen.getByRole('button', { name: 'Reset passkeys' }));
-    // The edit sheet closes underneath while the confirm stays open
+    expect(screen.getByRole('dialog', { name: 'Reset passkeys' })).toBeInTheDocument();
+    // The confirm belongs to the user being edited: the edit sheet closing takes it along.
     rerender(<Harness admin={buildAdminHook({ editingUser: null })} />);
 
-    await user.click(screen.getByRole('button', { name: 'Reset passkeys' }));
-
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Reset passkeys' })).not.toBeInTheDocument());
     expect(called).toBe(false);
-    expect(screen.getByRole('dialog', { name: 'Reset passkeys' })).toBeInTheDocument();
   });
 
   it('FE-MOB-ASHEET-025: resetting 2FA confirms, calls the API and reports it', async () => {

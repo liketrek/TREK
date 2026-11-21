@@ -112,3 +112,22 @@ describe('PackingItemsRepository — share.service.ts SH13 read', () => {
     expect(await packingItemsRepo.listPublicForShare(trip.id)).toEqual([]);
   });
 });
+
+describe('PackingItemsRepository — clearOwner (#3098)', () => {
+  it('drops the owner of one item, keeps its tier and leaves the other items alone', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Stove' });
+    const other = createPackingItem(testDb, trip.id, { name: 'Pot' });
+    await updateRows(t, PackingItems, { id: item.id }, { is_private: 0, owner: owner.id, updated_at: null });
+    await updateRows(t, PackingItems, { id: other.id }, { is_private: 0, owner: owner.id });
+
+    await packingItemsRepo.clearOwner(item.id);
+
+    const row = await packingItemsRepo.findById(item.id);
+    expect(row?.owner_id).toBeNull();
+    expect(row?.is_private).toBe(0);
+    expect(row?.updated_at).not.toBeNull();
+    expect((await packingItemsRepo.findById(other.id))?.owner_id).toBe(owner.id);
+  });
+});

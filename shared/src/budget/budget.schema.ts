@@ -117,12 +117,12 @@ export const budgetItemSchema = z.object({
 export type BudgetItem = z.infer<typeof budgetItemSchema>;
 
 const payerInputSchema = z.object({
-  user_id: z.number(),
+  user_id: z.number().int(),
   amount: z.number(),
 });
 
 const memberInputSchema = z.object({
-  user_id: z.number(),
+  user_id: z.number().int(),
   amount: z.number().nullable().optional(),
 });
 
@@ -159,21 +159,21 @@ export const budgetCreateItemRequestSchema = z.object({
   // server falls back to total_price with no explicit payer.
   payers: z.array(payerInputSchema).optional(),
   // Equal-split participants. When omitted, the item has no split (planning-only).
-  member_ids: z.array(z.number()).optional(),
+  member_ids: z.array(z.number().int()).optional(),
   members: z.array(memberInputSchema).optional(),
-  persons: z.number().nullable().optional(),
-  days: z.number().nullable().optional(),
+  persons: z.number().int().nullable().optional(),
+  days: z.number().int().nullable().optional(),
   note: z.string().nullable().optional(),
   ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
   // Link this expense to a reservation (e.g. created from a booking's
   // "add expense" flow). The server stores it on budget_items.reservation_id.
-  reservation_id: z.number().optional(),
+  reservation_id: z.number().int().optional(),
   // The same for a place: the place form's "add expense" flow saves the place
   // first, then creates the expense against it (#1298).
-  place_id: z.number().optional(),
+  place_id: z.number().int().optional(),
   // Receipt files to link to this expense
-  receipt_file_ids: z.array(z.number()).optional(),
+  receipt_file_ids: z.array(z.number().int()).optional(),
   // Rates to freeze a foreign currency with when the server has none of its own.
   fallback_fx: budgetFallbackFxSchema.optional(),
 });
@@ -187,14 +187,14 @@ export const budgetUpdateItemRequestSchema = z.object({
   currency: z.string().nullable().optional(),
   exchange_rate: z.number().optional(),
   payers: z.array(payerInputSchema).optional(),
-  member_ids: z.array(z.number()).optional(),
+  member_ids: z.array(z.number().int()).optional(),
   members: z.array(memberInputSchema).optional(),
-  persons: z.number().nullable().optional(),
-  days: z.number().nullable().optional(),
+  persons: z.number().int().nullable().optional(),
+  days: z.number().int().nullable().optional(),
   note: z.string().nullable().optional(),
   ticket_json: z.string().nullable().optional(),
   expense_date: z.string().nullable().optional(),
-  receipt_file_ids: z.array(z.number()).optional(),
+  receipt_file_ids: z.array(z.number().int()).optional(),
   // Link an existing expense to a booking or a place on the same trip (#2084);
   // null lets go of the link and keeps the expense. Omitted leaves it as is.
   reservation_id: z.number().int().positive().nullable().optional(),
@@ -244,8 +244,8 @@ export const budgetSettlementSchema = z.object({
 export type BudgetSettlement = z.infer<typeof budgetSettlementSchema>;
 
 export const budgetCreateSettlementRequestSchema = z.object({
-  from_user_id: z.number(),
-  to_user_id: z.number(),
+  from_user_id: z.number().int(),
+  to_user_id: z.number().int(),
   amount: z.number(),
   // The display currency the amount was entered in; the server freezes its FX rate.
   currency: z.string().nullable().optional(),
@@ -261,8 +261,8 @@ export type BudgetCreateSettlementRequest = z.infer<typeof budgetCreateSettlemen
 
 /** Edit a persisted settle-up transfer (same fields as create; full replace). */
 export const budgetUpdateSettlementRequestSchema = z.object({
-  from_user_id: z.number(),
-  to_user_id: z.number(),
+  from_user_id: z.number().int(),
+  to_user_id: z.number().int(),
   amount: z.number(),
   currency: z.string().nullable().optional(),
   settled_at: z.string().nullable().optional(),
@@ -373,7 +373,7 @@ export const budgetParticipantFinalSchema = z.object({
 export type BudgetParticipantFinal = z.infer<typeof budgetParticipantFinalSchema>;
 
 export const budgetUpdateMembersRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type BudgetUpdateMembersRequest = z.infer<typeof budgetUpdateMembersRequestSchema>;
 
@@ -383,7 +383,7 @@ export const budgetToggleMemberPaidRequestSchema = z.object({
 export type BudgetToggleMemberPaidRequest = z.infer<typeof budgetToggleMemberPaidRequestSchema>;
 
 export const budgetReorderItemsRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type BudgetReorderItemsRequest = z.infer<typeof budgetReorderItemsRequestSchema>;
 

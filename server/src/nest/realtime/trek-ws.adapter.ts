@@ -1,4 +1,5 @@
 import { readEnv } from '../../app-config';
+import { nulFreeInput } from '../../db/nul-free';
 import { logError } from '../audit/audit-log.logger';
 import { traceEntry } from '../audit/entry-trace.logger';
 import { isSameHostOrigin } from '../common/same-origin';
@@ -250,7 +251,9 @@ export class TrekWsAdapter extends WsAdapter {
 
       let message: { type?: unknown } | null = null;
       try {
-        const parsed = JSON.parse(buffer.toString());
+        // Without NUL before any handler reads it, as every HTTP request is
+        // (common/nul-free-input.ts).
+        const parsed = nulFreeInput(JSON.parse(buffer.toString())) as { type?: unknown } | null;
         if (parsed && typeof parsed === 'object' && typeof parsed.type === 'string') message = parsed;
       } catch {
         // Malformed JSON. Still counted below, exactly as before.

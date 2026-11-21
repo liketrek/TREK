@@ -49,7 +49,11 @@ function* walk(dir: string): Generator<string> {
 }
 
 describe('production dependencies', () => {
-  const files = [...walk(path.join(serverRoot, 'src')), path.join(serverRoot, 'scripts', 'migrate-encryption.ts')];
+  const files = [
+    ...walk(path.join(serverRoot, 'src')),
+    path.join(serverRoot, 'scripts', 'migrate-encryption.ts'),
+    path.join(serverRoot, 'scripts', 'migrate-encryption-stores.ts'),
+  ];
   const usedBy = new Map<string, string[]>();
   for (const file of files) {
     for (const pkg of externalImports(file)) {

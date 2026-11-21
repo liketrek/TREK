@@ -3,26 +3,22 @@
  * Covers PROFILE-001 to PROFILE-015.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { StorageReleaseQueue } from '../../src/db/entities/StorageReleaseQueue.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createAdmin, createTrip } from '../helpers/factories';
 import { findRow, insertRow } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
 import { readUser } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import path from 'path';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -37,13 +33,12 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,7 +47,7 @@ afterAll(async () => {
 
 describe('PROFILE-001 — Get current user profile', () => {
   it('returns user object with expected fields', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.user).toMatchObject({
@@ -75,7 +70,7 @@ describe('PROFILE-001 — Get current user profile', () => {
 // in-memory entity, which still looked right).
 describe('PUT /api/auth/me/settings (F3)', () => {
   it('PROFILE-016 — a username+email change persists: the response, a fresh GET, and the raw row all agree', async () => {
-    const { user } = createUser(testDb, { username: 'before-name', email: 'before@example.test' });
+    const { user } = await makeUser(orm, { username: 'before-name', email: 'before@example.test' });
 
     const put = await request(app)
       .put('/api/auth/me/settings')
@@ -102,8 +97,8 @@ describe('PUT /api/auth/me/settings (F3)', () => {
   // regex, `^[a-zA-Z0-9_.-]+$`, so a non-ASCII collision can never reach
   // this route.)
   it("PROFILE-016b — renaming to a non-ASCII email that collides with ANOTHER user still 409s; renaming to one's own exact non-ASCII spelling succeeds", async () => {
-    createUser(testDb, { email: 'JOSÉ-OTHER@x.com' });
-    const { user } = createUser(testDb, { email: 'plain-self@example.test' });
+    await makeUser(orm, { email: 'JOSÉ-OTHER@x.com' });
+    const { user } = await makeUser(orm, { email: 'plain-self@example.test' });
 
     // Differs from the stored spelling only in ASCII-letter case (the accented
     // 'É' is kept as-is — SQLite's LOWER() never touches it): SQLite's own
@@ -125,7 +120,7 @@ describe('PUT /api/auth/me/settings (F3)', () => {
 
 describe('Avatar', () => {
   it('PROFILE-002 — upload valid JPEG avatar updates avatar_url', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/auth/avatar')
       .set('Cookie', authCookie(user.id))
@@ -139,7 +134,7 @@ describe('Avatar', () => {
     const fsMod = require('fs') as typeof import('fs');
     const pathMod = require('path') as typeof import('path');
     const avatarsDir = pathMod.join(__dirname, '../../uploads/avatars');
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/auth/avatar')
@@ -164,7 +159,7 @@ describe('Avatar', () => {
   });
 
   it('PROFILE-003 — uploading non-image (PDF) is rejected', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/auth/avatar')
       .set('Cookie', authCookie(user.id))
@@ -174,7 +169,7 @@ describe('Avatar', () => {
   });
 
   it('PROFILE-005 — DELETE /api/auth/avatar clears avatar_url', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // Upload first
     await request(app).post('/api/auth/avatar').set('Cookie', authCookie(user.id)).attach('avatar', FIXTURE_JPEG);
 
@@ -188,7 +183,7 @@ describe('Avatar', () => {
 
 describe('Password change', () => {
   it('PROFILE-006 — change password with valid credentials succeeds', async () => {
-    const { user, password } = createUser(testDb);
+    const { user, password } = await makeUser(orm);
     const res = await request(app)
       .put('/api/auth/me/password')
       .set('Cookie', authCookie(user.id))
@@ -198,7 +193,7 @@ describe('Password change', () => {
   });
 
   it('PROFILE-007 — wrong current password returns 401', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .put('/api/auth/me/password')
       .set('Cookie', authCookie(user.id))
@@ -207,7 +202,7 @@ describe('Password change', () => {
   });
 
   it('PROFILE-008 — weak new password is rejected', async () => {
-    const { user, password } = createUser(testDb);
+    const { user, password } = await makeUser(orm);
     const res = await request(app)
       .put('/api/auth/me/password')
       .set('Cookie', authCookie(user.id))
@@ -218,7 +213,7 @@ describe('Password change', () => {
 
 describe('Settings', () => {
   it('PROFILE-009 — PUT /api/settings with key+value persists and GET returns it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const put = await request(app)
       .put('/api/settings')
@@ -232,13 +227,13 @@ describe('Settings', () => {
   });
 
   it('PROFILE-009 — PUT /api/settings without key returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).put('/api/settings').set('Cookie', authCookie(user.id)).send({ value: 'dark' });
     expect(res.status).toBe(400);
   });
 
   it('PROFILE-010 — POST /api/settings/bulk saves multiple keys atomically', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/settings/bulk')
@@ -256,7 +251,7 @@ describe('Settings', () => {
 
 describe('Account deletion', () => {
   it('PROFILE-013 — DELETE /api/auth/me removes account, subsequent login fails', async () => {
-    const { user, password } = createUser(testDb);
+    const { user, password } = await makeUser(orm);
 
     const del = await request(app).delete('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(del.status).toBe(200);
@@ -267,7 +262,7 @@ describe('Account deletion', () => {
   });
 
   it('PROFILE-013 — admin cannot delete their own account', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     // Admins are protected from self-deletion
     const res = await request(app).delete('/api/auth/me').set('Cookie', authCookie(admin.id));
     // deleteAccount returns 400 when the user is the last admin
@@ -277,8 +272,8 @@ describe('Account deletion', () => {
 
 describe('Travel stats', () => {
   it('PROFILE-014 — GET /api/auth/travel-stats returns stats object', async () => {
-    const { user } = createUser(testDb);
-    createTrip(testDb, user.id, {
+    const { user } = await makeUser(orm);
+    await makeTrip(orm, user.id, {
       title: 'France Trip',
       start_date: '2024-06-01',
       end_date: '2024-06-05',

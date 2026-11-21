@@ -59,6 +59,7 @@ describe('tool gate', () => {
     expect(gate).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'write_it', annotations: { readOnlyHint: false } }),
       asCtx({ userId: 3 }),
+      { n: 1 },
     );
   });
 

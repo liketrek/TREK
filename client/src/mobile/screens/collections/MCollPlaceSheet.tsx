@@ -127,8 +127,8 @@ export default function MCollPlaceSheet({
               </div>
             )}
 
-            {/* Status cycle */}
-            <div className="mt-3 flex gap-[6px]">
+            {/* Status cycle: two by two on a phone, so every label keeps its room */}
+            <div className="mt-3 grid grid-cols-2 gap-[6px] wide:grid-cols-4">
               {STATUS_ORDER.map(s => {
                 const meta = STATUS_SPEC[s]
                 const Icon = meta.icon

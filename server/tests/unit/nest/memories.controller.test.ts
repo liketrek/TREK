@@ -452,7 +452,7 @@ describe('ImmichMemoriesController (parity with /api/integrations/memories/immic
       });
       const res = makeRes();
       await new ImmichMemoriesController(svc).assetInfo(user, '5', 'a', '2', res);
-      expect(svc.canAccessUserPhoto).toHaveBeenCalledWith(7, 2, '5', 'a', 'immich');
+      expect(svc.canAccessUserPhoto).toHaveBeenCalledWith(7, '2', '5', 'a', 'immich');
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({ error: 'Forbidden' });
     });
@@ -850,7 +850,7 @@ describe('SynologyMemoriesController (parity with /api/integrations/memories/syn
       const svc = makeService({ canAccessUserPhoto: vi.fn().mockReturnValue(false) });
       const res = makeRes();
       await new SynologyMemoriesController(svc).assetInfo(user, '5', 'p1', '2', undefined, res);
-      expect(svc.canAccessUserPhoto).toHaveBeenCalledWith(7, 2, '5', 'p1', 'synologyphotos');
+      expect(svc.canAccessUserPhoto).toHaveBeenCalledWith(7, '2', '5', 'p1', 'synologyphotos');
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({ error: "You don't have access to this photo" });
     });

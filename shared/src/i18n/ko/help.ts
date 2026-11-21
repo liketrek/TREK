@@ -1063,7 +1063,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     '여행 계획과 Journey 지도를 어떤 엔진과 스타일로 그릴지 정해요. Leaflet은 기본 래스터 지도이고, Mapbox GL은 내 토큰으로 3D 건물과 지형을 더하며, MapLibre GL은 토큰 없이 OpenFreeMap 벡터 타일을 그려요. Atlas는 항상 Leaflet을 써요.',
   'help.ctx.settings-map.bullet.1':
-    '‘지도 공급자’: Leaflet, Mapbox GL(실험적), MapLibre GL이 있고, 옵션마다 짧은 설명이 있어요.',
+    '‘지도 공급자’: Leaflet, Mapbox GL, MapLibre GL이 있고, 옵션마다 짧은 설명이 있어요.',
   'help.ctx.settings-map.bullet.2':
     'Leaflet용 ‘지도 템플릿’과 ‘CARTO API 키’, 두 GL 엔진용 ‘지도 스타일’, 그리고 Mapbox GL용 ‘Mapbox 액세스 토큰’.',
   'help.ctx.settings-map.bullet.3':
@@ -4295,7 +4295,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     '카드에 ‘이 기기에서 켜짐’이 보이고, ‘푸시’에서 켠 이벤트는 TREK를 닫아 둬도 알림이 와요.',
   'help.guide.connect-airtrail.step.1':
-    '‘통합’에서 AirTrail을 찾아 ‘인스턴스 URL’과 API 키를 입력하세요. 키는 AirTrail의 ‘Settings’, ‘Security’에서 만들어요.',
+    '‘통합’에서 AirTrail을 찾아 ‘인스턴스 URL’과 API 키를 입력하세요. 키는 AirTrail의 ‘Settings’, ‘Security’에서 만들어요. AirTrail 3.13 이상에서 키를 만드는 경우, 읽기에는 flight.read.own 범위가 필요합니다. 변경 사항을 다시 기록하려면 flight.update.own, flight.passengers.manage.own, reference_data.read, profile.read 범위도 필요합니다.',
   'help.guide.connect-dawarich.step.1':
     '‘통합’에서 Dawarich를 찾아 ‘인스턴스 주소’와 API 키를 입력하세요. API 키는 Dawarich의 ‘Account’, ‘API key’에 있어요.',
   'help.guide.tour-connect-wanderer.step.1':

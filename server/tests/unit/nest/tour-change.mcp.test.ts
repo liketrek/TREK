@@ -292,8 +292,8 @@ describe('TourChangeMcp (MCP-T02)', () => {
     ]);
     const terms = ['revision', 'spontaneous stop', 'protected', 'visited or skipped', 'data_gaps', 'create_place'];
     for (const term of terms) expect(options.description).toContain(term);
-    const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
-    expect(await options.when?.(ctx(1), { addons: { isAddonEnabled } })).toBe(true);
-    expect(isAddonEnabled).toHaveBeenCalledWith('tours');
+    const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === 'tours');
+    expect(await options.when?.(ctx(1), { addons: { isEnabledForUserAnywhere } })).toBe(true);
+    expect(isEnabledForUserAnywhere).toHaveBeenCalledWith(1, 'tours');
   });
 });

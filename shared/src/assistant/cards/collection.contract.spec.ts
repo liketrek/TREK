@@ -86,7 +86,7 @@ describe('collection cards', () => {
     const delta = deltaOf({ status: { from: 'idea', to: 'visited' }, rating: { to: null }, fields: ['photo'] });
     const card = { ...placesCard, places: [{ ...place, delta }] };
     expect(collectionPlacesCardSchema.parse(card).places[0]?.delta).toEqual(delta);
-    const unknownField = { ...placesCard, places: [{ ...place, delta: deltaOf({ fields: ['phone'] }) }] };
+    const unknownField = { ...placesCard, places: [{ ...place, delta: deltaOf({ fields: ['email'] }) }] };
     expect(collectionPlacesCardSchema.safeParse(unknownField).success).toBe(false);
   });
 

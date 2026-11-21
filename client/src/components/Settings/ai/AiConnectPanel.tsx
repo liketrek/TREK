@@ -1,5 +1,5 @@
 import type { AiApiKeyKind, AiConnectionScope, AiParsingPrefill } from '@trek/shared';
-import { ChevronRight, KeyRound, Loader2, Server, ShieldCheck } from 'lucide-react';
+import { KeyRound, Loader2, Server, ShieldCheck } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import { useTranslation } from '../../../i18n';
 import { useAssistantStore } from '../../../store/assistantStore';
@@ -193,7 +193,6 @@ function KeyForm({ scope, keyConnect }: { scope: AiConnectionScope; keyConnect: 
             onClick={() => void submit()}
             disabled={!kind || testing}
             className={`${SETTINGS_BUTTON_PRIMARY} whitespace-nowrap`}
-            style={fs(13, 'body')}
           >
             {testing && <Loader2 size={14} className="animate-spin" />}
             {testing ? t('assistant.connect.testing') : t('assistant.connect.save')}
@@ -225,7 +224,6 @@ function KeyForm({ scope, keyConnect }: { scope: AiConnectionScope; keyConnect: 
             onClick={() => void openrouter.start()}
             disabled={openrouter.busy}
             className={SETTINGS_BUTTON}
-            style={fs(13, 'body')}
           >
             {openrouter.busy ? (
               <Loader2 size={14} className="animate-spin" />
@@ -298,7 +296,6 @@ function CustomForm({ custom }: { custom: ReturnType<typeof useCustomConnect> })
           onClick={() => void custom.submit()}
           disabled={!custom.ready || custom.saving}
           className={SETTINGS_BUTTON_PRIMARY}
-          style={fs(13, 'body')}
         >
           {custom.saving && <Loader2 size={14} className="animate-spin" />}
           {custom.saving ? t('assistant.connect.testing') : t('assistant.connect.save')}
@@ -314,7 +311,6 @@ function CustomForm({ custom }: { custom: ReturnType<typeof useCustomConnect> })
  */
 function PrivacyNote({ provider }: { provider: string }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   return (
     <div className="rounded-[12px] bg-surface-tertiary px-3 py-2.5">
       {provider && (
@@ -322,28 +318,16 @@ function PrivacyNote({ provider }: { provider: string }) {
           {t('assistant.privacy.banner', { provider })}
         </p>
       )}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="inline-flex items-center gap-1.5 font-medium text-content-muted hover:text-content"
-        style={fs(12, 'body')}
-      >
+      {/* Said in full before anything is saved, not folded behind a link. */}
+      <div className="inline-flex items-center gap-1.5 font-medium text-content-muted" style={fs(12, 'body')}>
         <ShieldCheck size={13} strokeWidth={2.2} />
         {t('assistant.privacy.what')}
-        <ChevronRight
-          size={13}
-          strokeWidth={2.2}
-          className={`transition-transform ${open ? 'rotate-90' : 'rtl:rotate-180'}`}
-        />
-      </button>
-      {open && (
-        <ul className="m-0 mt-2 flex list-disc flex-col gap-1 ps-5 text-content-faint" style={fs(11.5)}>
-          <li>{t('assistant.privacy.shared')}</li>
-          <li>{t('assistant.privacy.notShared')}</li>
-          {provider && <li>{t('assistant.privacy.provider', { provider })}</li>}
-        </ul>
-      )}
+      </div>
+      <ul className="m-0 mt-2 flex list-disc flex-col gap-1 ps-5 text-content-faint" style={fs(11.5)}>
+        <li>{t('assistant.privacy.shared')}</li>
+        <li>{t('assistant.privacy.notShared')}</li>
+        {provider && <li>{t('assistant.privacy.provider', { provider })}</li>}
+      </ul>
     </div>
   );
 }

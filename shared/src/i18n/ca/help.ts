@@ -1199,7 +1199,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     "Quin motor dibuixa els mapes del planificador de viatges i del diari, i amb quin estil. Leaflet és el mapa ràster clàssic; Mapbox GL hi afegeix edificis i relleu en 3D amb el teu propi token; MapLibre GL dibuixa tessel·les vectorials d'OpenFreeMap sense necessitat de token. «Atles» sempre fa servir Leaflet.",
   'help.ctx.settings-map.bullet.1':
-    '«Proveïdor de mapa»: Leaflet, Mapbox GL (Experimental) o MapLibre GL, cada opció amb una breu descripció.',
+    '«Proveïdor de mapa»: Leaflet, Mapbox GL o MapLibre GL, cada opció amb una breu descripció.',
   'help.ctx.settings-map.bullet.2':
     "«Plantilla del mapa» i «Clau d'API de CARTO» per a Leaflet; «Estil de mapa» per als dos motors GL, i a més el «Token d'accés de Mapbox» per a Mapbox GL.",
   'help.ctx.settings-map.bullet.3':
@@ -4704,7 +4704,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     "La targeta mostra «Activat en aquest dispositiu», i els esdeveniments activats a Push t'arriben encara que TREK estigui tancat.",
   'help.guide.connect-airtrail.step.1':
-    'A «Integracions», busca AirTrail i introdueix la «URL de la instància» i una clau API. La clau es crea a AirTrail, a «Settings», «Security».',
+    "A «Integracions», busca AirTrail i introdueix la «URL de la instància» i una clau API. La clau es crea a AirTrail, a «Settings», «Security». Si crees la clau a AirTrail 3.13 o posterior, necessita l'abast flight.read.own per llegir. Per sincronitzar els canvis cap a AirTrail, també necessita flight.update.own, flight.passengers.manage.own, reference_data.read i profile.read.",
   'help.guide.connect-dawarich.step.1':
     "A «Integracions», busca Dawarich i introdueix l'«Adreça de la instància» i la clau API que trobaràs a Dawarich, a «Account», «API key».",
   'help.guide.tour-connect-wanderer.step.1':

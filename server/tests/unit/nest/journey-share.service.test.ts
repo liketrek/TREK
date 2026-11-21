@@ -13,10 +13,7 @@ import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
 import type { JourneyEntriesRepository } from '../../../src/db/repositories/JourneyEntries.repository';
 import type { JourneyEntryPhotosRepository } from '../../../src/db/repositories/JourneyEntryPhotos.repository';
-import type {
-  JourneyPublicGalleryRow,
-  JourneyShareTokensRepository,
-} from '../../../src/db/repositories/JourneyShareTokens.repository';
+import type { JourneyShareTokensRepository } from '../../../src/db/repositories/JourneyShareTokens.repository';
 import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import { JourneyShareService } from '../../../src/nest/journey/journey-share.service';
 import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
@@ -48,6 +45,7 @@ import {
   createTestTripsRepo,
   createTestPlacesRepo,
 } from '../../helpers/test-uow';
+import { journeyPublicResponseSchema } from '@trek/shared';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -138,6 +136,13 @@ afterAll(async () => {
 });
 
 // -- Helpers ------------------------------------------------------------------
+
+/** The public payload of a share link that is expected to exist. */
+async function publicJourney(token: string) {
+  const result = await svc.getPublicJourney(token);
+  if (!result) throw new Error('no public payload for the share link');
+  return result;
+}
 
 /** Insert a trek_photos + journey_photos (gallery) + journey_entry_photos row and return the trek_photos id (used as photoId in public URLs). */
 async function insertJourneyPhoto(
@@ -819,7 +824,7 @@ describe('getPublicJourney', () => {
     });
 
     const result = (await svc.getPublicJourney(token))!;
-    const gallery = result.gallery as JourneyPublicGalleryRow[];
+    const gallery = result.gallery;
     expect(gallery).toHaveLength(1);
     expect(gallery[0].lat).toBeNull();
     expect(gallery[0].lng).toBeNull();
@@ -848,7 +853,7 @@ describe('getPublicJourney', () => {
       share_map: true,
     });
 
-    const gallery = (await svc.getPublicJourney(token))!.gallery as JourneyPublicGalleryRow[];
+    const gallery = (await svc.getPublicJourney(token))!.gallery;
     expect(gallery[0].lat).toBe(48.8584);
     expect(gallery[0].lng).toBe(2.2945);
   });
@@ -892,7 +897,7 @@ describe('getPublicJourney', () => {
     });
 
     const late = await insertJourneyPhoto(day2.id, { filePath: '/photos/day2.jpg' });
-    await insertJourneyPhoto(day1.id, { filePath: '/photos/day1.jpg' });
+    const early = await insertJourneyPhoto(day1.id, { filePath: '/photos/day1.jpg' });
     await updateRows(t, TrekPhotos, { id: late }, { taken_at: '2026-05-02T16:00:00.000Z' });
 
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
@@ -901,8 +906,92 @@ describe('getPublicJourney', () => {
       share_map: true,
     });
 
-    const gallery = (await svc.getPublicJourney(token))!.gallery as JourneyPublicGalleryRow[];
-    expect(gallery.map((p) => p.file_path)).toEqual(['/photos/day1.jpg', '/photos/day2.jpg']);
+    const gallery = (await svc.getPublicJourney(token))!.gallery;
+    expect(gallery.map((p) => p.photo_id)).toEqual([early, late]);
+  });
+
+  it.each([
+    { share_timeline: true, share_gallery: true, share_map: true },
+    { share_timeline: false, share_gallery: true, share_map: true },
+    { share_timeline: false, share_gallery: false, share_map: true },
+  ])('JOURNEY-SHARE-032: no storage key, asset id, owner or author leaves the server (%o)', async (flags) => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry',
+      title: 'Day 1',
+      story: 'notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
+    });
+    await updateRows(t, JourneyEntries, { id: entry.id }, { location_lat: 48.8566, location_lng: 2.3522 });
+    await insertJourneyPhoto(entry.id, { ownerId: user.id, filePath: 'journey/0b9c2f.jpg' });
+    await insertJourneyPhoto(entry.id, { ownerId: user.id, assetId: 'immich-asset-1' });
+    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, flags);
+
+    const result = await publicJourney(token);
+    // The route's contract is strict, so a key it does not name fails here.
+    expect(journeyPublicResponseSchema.safeParse(result).success).toBe(true);
+    const wire = JSON.stringify(result);
+    for (const leak of ['journey/0b9c2f.jpg', 'immich-asset-1', 'file_path', 'thumbnail_path', 'asset_id']) {
+      expect(wire).not.toContain(leak);
+    }
+    // Photos here are stills: `provider` only goes out with a clip (JOURNEY-SHARE-033).
+    for (const column of ['owner_id', 'author_id', 'visibility', 'journey_id', 'source_trip_id', 'provider']) {
+      expect(wire).not.toContain(`"${column}"`);
+    }
+  });
+
+  it('JOURNEY-SHARE-033: a local clip without a poster says so, without its storage key (#2341)', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-05-01' });
+    const clip = await insertJourneyPhoto(entry.id, { ownerId: user.id, filePath: 'journey/clip.mp4' });
+    const posterClip = await insertJourneyPhoto(entry.id, { ownerId: user.id, filePath: 'journey/poster.mp4' });
+    const remoteClip = await insertJourneyPhoto(entry.id, { ownerId: user.id, assetId: 'remote-clip' });
+    await updateRows(t, TrekPhotos, { id: clip }, { media_type: 'video' });
+    await updateRows(t, TrekPhotos, { id: posterClip }, { media_type: 'video', thumbnail_path: 'journey/poster.jpg' });
+    await updateRows(t, TrekPhotos, { id: remoteClip }, { media_type: 'video' });
+    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {});
+
+    const result = await publicJourney(token);
+    const posterless = Object.fromEntries(result.gallery.map((p) => [p.photo_id, p.posterless]));
+    expect(posterless).toEqual({ [clip]: true, [posterClip]: false, [remoteClip]: false });
+    const [first] = result.entries;
+    expect(first?.photos?.find((p) => p.photo_id === clip)?.posterless).toBe(true);
+    // Clips keep their provider for app builds and cached pages from before
+    // `posterless`; it is no storage key, and the poster path still stays home.
+    const providers = Object.fromEntries(result.gallery.map((p) => [p.photo_id, p.provider]));
+    expect(providers).toEqual({ [clip]: 'local', [posterClip]: 'local', [remoteClip]: 'immich' });
+    expect(JSON.stringify(result)).not.toContain('journey/poster.jpg');
+  });
+
+  it('JOURNEY-SHARE-034: a map-only share sends the marker fields and nothing of the story', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+      type: 'entry',
+      title: 'Day 1',
+      story: 'private notes',
+      entry_date: '2026-05-01',
+      location_name: 'Paris',
+    });
+    await updateRows(
+      t,
+      JourneyEntries,
+      { id: entry.id },
+      { location_lat: 48.8566, location_lng: 2.3522, mood: 'good' },
+    );
+    const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {
+      share_timeline: false,
+      share_gallery: false,
+      share_map: true,
+    });
+
+    const [first] = (await publicJourney(token)).entries;
+    expect(Object.keys(first ?? {}).sort()).toEqual(
+      ['entry_date', 'id', 'location_lat', 'location_lng', 'location_name', 'sort_order', 'title', 'type'].sort(),
+    );
   });
 
   it('JOURNEY-SHARE-030: cartoApiKey resolves owner setting → admin instance default → empty (#2054)', async () => {
@@ -1216,7 +1305,10 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
     ).toBeTruthy();
   });
 
-  it('JOURNEY-SHARE-R07: validateShareTokenForPhoto does not match a token with an embedded NUL byte', async () => {
+  // A NUL is dropped before any value reaches the database (src/db/nul-free.ts), so it neither
+  // forges a token nor hides one: junk after it still refuses, and a NUL inside the right token
+  // is the right token, as the request edge would have made it before the lookup.
+  it('JOURNEY-SHARE-R07: validateShareTokenForPhoto reads a token with an embedded NUL byte without it', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, { type: 'entry', entry_date: '2026-01-01' });
@@ -1224,7 +1316,8 @@ describe('R4 — JS6/JS9/JS11 are exact-match token lookups (revoked / wrong-cas
     const { token } = await svc.createOrUpdateJourneyShareLink(journey.id, user.id, {});
 
     expect(await svc.validateShareTokenForPhoto(`${token}\0trailing`, photoId)).toBeNull();
-    expect(await svc.validateShareTokenForPhoto(`${token.slice(0, 5)}\0${token.slice(5)}`, photoId)).toBeNull();
+    expect(await svc.validateShareTokenForPhoto(`${token.slice(0, 5)}\0${token.slice(5)}`, photoId)).not.toBeNull();
+    expect(await svc.validateShareTokenForPhoto(`${token.slice(0, 5)}\0`, photoId)).toBeNull();
   });
 
   it('JOURNEY-SHARE-R08: validateShareTokenForAsset does not match a token with an embedded NUL byte', async () => {

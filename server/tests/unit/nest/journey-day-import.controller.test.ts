@@ -52,11 +52,11 @@ describe('JourneyDayImportController', () => {
   it('JRNDAY-CTL-002: hands the caller, the journey, the day, the body and the socket id to the service', async () => {
     const { service, controller } = controllerWith();
 
-    expect(await controller.review(user, '9', '2026-05-14')).toEqual({ date: '2026-05-14', stays: [] });
+    expect(await controller.review(user, 9, '2026-05-14')).toEqual({ date: '2026-05-14', stays: [] });
     expect(service.review).toHaveBeenCalledExactlyOnceWith(4, 9, '2026-05-14');
 
     const body = { groups: [{ kind: 'single' as const, stays: [{ suggestionId: 3 }] }], skipSuggestionIds: [5] };
-    expect(await controller.takeOver(user, '9', '2026-05-14', body, 'sock-1')).toEqual({
+    expect(await controller.takeOver(user, 9, '2026-05-14', body, 'sock-1')).toEqual({
       entries: [],
       alreadyTaken: [],
       skipped: [],
@@ -67,14 +67,14 @@ describe('JourneyDayImportController', () => {
   it('JRNDAY-CTL-003: a day that is no calendar day is a 400 before the service is asked', async () => {
     const { service, controller } = controllerWith();
     const refusals = await Promise.all(
-      ['2026-02-30', 'today'].map((date) => controller.review(user, '9', date).catch((e: unknown) => e)),
+      ['2026-02-30', 'today'].map((date) => controller.review(user, 9, date).catch((e: unknown) => e)),
     );
     for (const err of refusals) {
       expect(err).toBeInstanceOf(HttpException);
       expect((err as HttpException).getResponse()).toEqual({ error: 'Invalid date' });
     }
     await expect(
-      controller.takeOver(user, '9', 'nope', { groups: [{ kind: 'single', stays: [{ suggestionId: 1 }] }] }),
+      controller.takeOver(user, 9, 'nope', { groups: [{ kind: 'single', stays: [{ suggestionId: 1 }] }] }),
     ).rejects.toBeInstanceOf(HttpException);
     expect(service.review).not.toHaveBeenCalled();
     expect(service.takeOver).not.toHaveBeenCalled();

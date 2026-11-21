@@ -74,8 +74,7 @@ const storage: TranslationStrings = {
   'storage.categoryDesc.covers': 'صور غلاف الرحلات والمجموعات، بما في ذلك الأغلفة المجلوبة من Unsplash.',
   'storage.categoryDesc.avatars': 'الصور الشخصية لحسابات المستخدمين.',
   'storage.categoryDesc.places': 'الصور المرفقة بالأماكن وأماكن المجموعات — سواء تم رفعها أو استيرادها.',
-  'storage.categoryDesc.photos-google':
-    'نسخ مخزّنة مؤقتًا من صور Google Places — يمكن إعادة جلبها، ويُمكن فقدانها بأمان.',
+  'storage.categoryDesc.photos-google': 'نسخ مخزّنة مؤقتًا من صور Google Places — يمكن إعادة جلبها، ويُمكن فقدانها بأمان.',
   'storage.categoryDesc.photos-trek':
     'صور مخزّنة مؤقتًا من خدمة صور TREK التي تستخدمها ميزة الصور (Memories) — يمكن إعادة جلبها، ويُمكن فقدانها بأمان.',
   'storage.categoryDesc.backups': 'أرشيفات النسخ الاحتياطي للخادم التي تُنشئها لوحة النسخ الاحتياطي أو الجدولة.',
@@ -172,8 +171,7 @@ const storage: TranslationStrings = {
   'storage.reclaim.skip.owner_unknown': 'تم التخطي: تعذّر على TREK وسم هذا التخزين على أنه خاص به',
   'storage.reclaim.skip.delete_failed': 'توقف: رفض التخزين عملية حذف',
   'storage.reclaim.skip.interrupted': 'توقف قبل الاكتمال، الأرقام جزئية',
-  'storage.reclaim.confirmNeeded':
-    'يبدو أن أكثر من خُمس هذه الملفات غير مستخدم. لن يُحذف شيء هنا حتى تؤكد أن هذا متوقع.',
+  'storage.reclaim.confirmNeeded': 'يبدو أن أكثر من خُمس هذه الملفات غير مستخدم. لن يُحذف شيء هنا حتى تؤكد أن هذا متوقع.',
   'storage.reclaim.confirm': 'تأكيد',
   'storage.reclaim.confirmed': 'تم التأكيد للأيام الـ 14 القادمة.',
   'storage.reclaim.error.reclaim_busy': 'مهمة تخزين أخرى قيد التشغيل. حاول مجددًا بعد قليل.',

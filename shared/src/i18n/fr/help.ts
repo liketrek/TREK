@@ -1219,7 +1219,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Le moteur qui affiche les cartes du planificateur et du journal, et son style. Leaflet est la carte raster classique, Mapbox GL ajoute les bâtiments et le relief en 3D avec votre propre jeton, MapLibre GL affiche les tuiles vectorielles OpenFreeMap sans jeton. Atlas utilise toujours Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '« Fournisseur de carte » : Leaflet, Mapbox GL (Expérimental) ou MapLibre GL, chacun avec une courte description.',
+    '« Fournisseur de carte » : Leaflet, Mapbox GL ou MapLibre GL, chacun avec une courte description.',
   'help.ctx.settings-map.bullet.2':
     "« Modèle de carte » et « Clé d'API CARTO » pour Leaflet ; « Style de carte » pour les deux moteurs GL, ainsi que le « Jeton d'accès Mapbox » pour Mapbox GL.",
   'help.ctx.settings-map.bullet.3':
@@ -4775,7 +4775,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'La carte affiche « Activé sur cet appareil », et les événements activés dans la colonne Push vous parviennent même quand TREK est fermé.',
   'help.guide.connect-airtrail.step.1':
-    "Sous « Intégrations », repérez AirTrail et saisissez son « URL de l'instance » et une clé API. Vous créez la clé dans AirTrail, sous Paramètres, Sécurité.",
+    "Sous « Intégrations », repérez AirTrail et saisissez son « URL de l'instance » et une clé API. Vous créez la clé dans AirTrail, sous Paramètres, Sécurité. Si vous créez la clé dans AirTrail 3.13 ou une version ultérieure, elle a besoin du scope flight.read.own pour la lecture. Pour réécrire les modifications, il lui faut aussi flight.update.own, flight.passengers.manage.own, reference_data.read et profile.read.",
   'help.guide.connect-dawarich.step.1':
     'Sous « Intégrations », repérez Dawarich et saisissez son « Adresse de l’instance » et la clé API que vous trouvez dans Dawarich sous Compte, Clé API.',
   'help.guide.tour-connect-wanderer.step.1':

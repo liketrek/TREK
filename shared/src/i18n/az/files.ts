@@ -14,6 +14,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{trip} üçün {count} fayl',
   'files.download': 'Endir',
   'files.openError': 'Faylı açmaq mümkün olmadı',
+  'files.downloadError': 'Faylı yükləmək mümkün olmadı',
   'files.downloadPdf': 'PDF-i endir',
   'files.count': '{count} fayl',
   'files.count.one': '{count} fayl',
@@ -45,7 +46,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Rezervasiya',
   'files.sourceTransport': 'Nəqliyyat',
   'files.attach': 'Əlavə et',
-  'files.pasteHint': 'Şəkilləri mübadilə buferindən də yapışdıra bilərsiniz (Ctrl+V)',
 
   'files.trash': 'Zibil qutusu',
   'files.trashEmpty': 'Zibil qutusu boşdur',

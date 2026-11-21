@@ -1157,7 +1157,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Công cụ nào vẽ bản đồ trong trình lập kế hoạch chuyến đi và nhật ký, và theo kiểu nào. Leaflet là bản đồ raster cổ điển, Mapbox GL thêm tòa nhà 3D và địa hình bằng token của bạn, MapLibre GL vẽ ô vector OpenFreeMap mà không cần token. Bản đồ Atlas luôn dùng Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '“Nhà cung cấp bản đồ”: Leaflet, Mapbox GL (“thực nghiệm”) hoặc MapLibre GL, mỗi lựa chọn kèm một mô tả ngắn.',
+    '“Nhà cung cấp bản đồ”: Leaflet, Mapbox GL hoặc MapLibre GL, mỗi lựa chọn kèm một mô tả ngắn.',
   'help.ctx.settings-map.bullet.2':
     '“Mẫu bản đồ” và “Khóa API CARTO” cho Leaflet; “Kiểu bản đồ” cho hai công cụ GL, cùng “Mapbox Mã thông báo truy cập” cho Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
@@ -4592,7 +4592,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Thẻ hiện “Đã bật cho thiết bị này”, và các sự kiện bật trong “Thông báo đẩy” sẽ đến ngay cả khi TREK đã đóng.',
   'help.guide.connect-airtrail.step.1':
-    'Trong “Tích hợp”, tìm AirTrail và nhập “Ví dụ URL” cùng một khóa API. Bạn tạo khóa trong AirTrail ở “Cài đặt”, “Bảo mật”.',
+    'Trong “Tích hợp”, tìm AirTrail và nhập “Ví dụ URL” cùng một khóa API. Bạn tạo khóa trong AirTrail ở “Cài đặt”, “Bảo mật”. Nếu bạn tạo khóa trong AirTrail 3.13 trở lên, khóa cần phạm vi flight.read.own để đọc. Để ghi các thay đổi trở lại, khóa cũng cần flight.update.own, flight.passengers.manage.own, reference_data.read và profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Trong “Tích hợp”, tìm Dawarich và nhập “Địa chỉ phiên bản” cùng khóa API từ Dawarich ở “Tài khoản”, “Khóa API”.',
   'help.guide.tour-connect-wanderer.step.1':

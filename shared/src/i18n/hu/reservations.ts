@@ -37,7 +37,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Csatlakozás',
   'reservations.layover.layover': 'Átszállás',
   'reservations.needsReview': 'Ellenőrzés',
-  'reservations.needsReviewHint': 'A repülőteret nem sikerült automatikusan azonosítani — erősítsd meg a helyet.',
+  'reservations.needsReviewHint':
+    'Néhány adat automatikusan lett kitöltve, és nem olvasható ki biztosan. Kérjük, ellenőrizd őket.',
+  'reservations.reviewConfirm': 'Rendben van',
+  'reservations.reviewConfirmHint': 'Kattints, hogy ellenőrzöttként jelöld meg.',
+  'reservations.reviewConfirmed': 'Ellenőrzöttként megjelölve',
   'reservations.searchLocation': 'Állomás, kikötő, cím keresése...',
   'reservations.meta.trainNumber': 'Vonatszám',
   'reservations.meta.platform': 'Vágány',
@@ -279,7 +283,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'A megjelenített {shown} sor exportálása a(z) {total} közül (CSV)',
   'reservations.wallet.add': 'Hozzáadás az Apple Wallethez',
   'reservations.wallet.addGoogle': 'Hozzáadás a Google Wallethez',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Nem sikerült létrehozni a Wallet-kártyát. Próbáld újra.',
   'reservations.wallet.undated': 'Előbb adj dátumot a foglalásnak: a Wallet az időpont körül jeleníti meg a kártyát.',
 };

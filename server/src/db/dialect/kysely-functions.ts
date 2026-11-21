@@ -167,6 +167,23 @@ export function castIntegerKysely<DB, TB extends keyof DB>(
   return unsupported(platform);
 }
 
+/**
+ * `<text ref> = <integer ref>` for a TEXT column that holds an integer id,
+ * written either bare or the way the services store it (`'14'`, `'14.0'`):
+ * the text goes through {@link castIntegerKysely}, so both engines match
+ * `'14'`, `'14.0'` and a stored 14 against the id 14 alike. A bare cast to
+ * integer would do on SQLite, but Postgres refuses `CAST('14.0' AS integer)`
+ * (22P02), and a bare text-to-integer comparison (42883).
+ */
+export function integerTextEqualsKysely<DB, TB extends keyof DB>(
+  platform: Platform,
+  eb: ExpressionBuilder<DB, TB>,
+  text: ReferenceExpression<DB, TB>,
+  integer: StringReference<DB, TB>,
+): ExpressionWrapper<DB, TB, SqlBool> {
+  return eb(castIntegerKysely(platform, eb, text), '=', eb.ref(integer).$castTo<number>());
+}
+
 // ---------------------------------------------------------------------------
 // Plan 3g Task 0 (R1) — no consumer yet: Task 1 (`getJourneyFull`'s gallery
 // read) and Task 3 (`getPublicJourney`'s gallery read) each fold this into

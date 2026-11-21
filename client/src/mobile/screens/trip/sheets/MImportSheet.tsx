@@ -6,9 +6,9 @@ import MIconBtn from '../../../components/MIconBtn'
 import { FormSheetHeader } from './PlSheetChrome'
 import ImpFileStep from './ImpFileStep'
 import ImpListStep from './ImpListStep'
-import { useAddonStore } from '../../../../store/addonStore'
 import { usePlacesColumnFileImport } from '../../../../components/Planner/usePlacesColumnFileImport'
 import TourGpxPreviewDialog from '../../../../components/Tours/TourGpxPreviewDialog'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import type { TripPlanner } from '../MTripShell'
 
 export interface MImportSheetProps {
@@ -32,7 +32,7 @@ type ImportStep = 'menu' | 'file' | 'list'
 export default function MImportSheet({ planner, open, onClose }: MImportSheetProps) {
   const { t, tripId, trip, can } = planner
   const [step, setStep] = useState<ImportStep>('menu')
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   const fileImport = usePlacesColumnFileImport({
     tripId,
     toursEnabled,

@@ -93,6 +93,7 @@ const collection: TranslationStrings = {
   'collections.status.idea': 'アイデア',
   'collections.status.want': '行きたい',
   'collections.status.visited': '訪問済み',
+  'collections.status.revisit': 'また行きたい',
   'collections.status.filterAll': 'すべて',
   'collections.status.cycleHint': 'タップで変更',
 
@@ -173,8 +174,11 @@ const collection: TranslationStrings = {
   'collections.file.formatTrek': 'TREK リスト',
   'collections.file.formatTrekHint': '別の TREK 向け。ラベルとステータスも含みます',
   'collections.file.formatGpxHint': 'OsmAnd、Organic Maps、Garmin などの地図アプリ向けのウェイポイント',
+  'collections.file.formatKmlHint': 'Google My Maps 用のピン。Google Maps で場所を見られます',
   'collections.file.gpxOmitted': '座標のない {count} 件の場所は GPX ファイルに含まれていません',
   'collections.file.gpxNothing': 'どの場所にも座標がないため、GPX ファイルに入れるものがありません。',
+  'collections.file.kmlOmitted': '座標のない {count} 件の場所は KML ファイルに含まれていません',
+  'collections.file.kmlNothing': 'どの場所にも座標がないため、KML ファイルに入れるものがありません。',
   'collections.file.reading': 'ファイルを読み込んでいます…',
   'collections.file.gpxSkipped': '使える座標のないウェイポイント {count} 件は除外されます。',
   'collections.file.gpxTrack':

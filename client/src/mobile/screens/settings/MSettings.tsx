@@ -42,7 +42,7 @@ import MSectionNav, { MSectionList, SECTION_SCREEN, type MSection } from '../../
 export default function MSettings() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { hasIntegrations, hasPlugins, appVersion, activeTab, setActiveTab, managed } = useSettings()
+  const { hasPlugins, appVersion, activeTab, setActiveTab, managed } = useSettings()
   const [dropOpen, setDropOpen] = useState(false)
   // With room for two panes the sections stand in a list of their own beside
   // the page, the way Settings on an iPad does, instead of behind a dropdown.
@@ -59,9 +59,8 @@ export default function MSettings() {
     { id: 'appearance', label: t('settings.tabs.appearance'), icon: Palette, group: accountGroup },
     { id: 'map', label: t('settings.tabs.map'), icon: Map, group: accountGroup },
     { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell, group: accountGroup },
-    ...(hasIntegrations
-      ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug, group: accountGroup }]
-      : []),
+    // Always there, as on the desktop: API keys sit in this tab and need no addon.
+    { id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug, group: accountGroup },
     ...(hasPlugins && !managed
       ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle, group: accountGroup }]
       : []),
@@ -136,7 +135,7 @@ export default function MSettings() {
       {active.id === 'appearance' && <MSettingsAppearance />}
       {active.id === 'map' && <MSettingsMap />}
       {active.id === 'notifications' && <MSettingsNotifications />}
-      {active.id === 'integrations' && hasIntegrations && <MSettingsIntegrations />}
+      {active.id === 'integrations' && <MSettingsIntegrations />}
       {/* Per-plugin settings still reuse the existing responsive tab. */}
       {active.id === 'plugins' && hasPlugins && !managed && <MSettingsPlugins />}
       {/* Each card hides itself where it has nothing to offer; their own margins give way to one gap. */}

@@ -3,6 +3,7 @@ import { TagsRepository } from '../repositories/Tags.repository';
 import { DbTimestampType } from '../types';
 import { CollectionPlaces } from './CollectionPlaces.entity';
 import { Places } from './Places.entity';
+import { Trips } from './Trips.entity';
 import { Users } from './Users.entity';
 
 export class Tags {
@@ -13,6 +14,8 @@ export class Tags {
   name!: string;
   color?: string | null = '#10b981';
   created_at?: string | null;
+  trip?: Ref<Trips> | null;
+  trip_id?: number | null;
   collection_place_tags_inverse = new Collection<CollectionPlaces>(this);
   place_tags_inverse = new Collection<Places>(this);
 }
@@ -27,6 +30,8 @@ export const TagsSchema = defineEntity({
     name: p.text(),
     color: p.text().nullable(),
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
+    trip: () => p.manyToOne(Trips).ref().deleteRule('cascade').nullable().hidden().index('idx_tags_trip_id'),
+    trip_id: p.integer().nullable().persist(false).index('idx_tags_trip_id'),
     collection_place_tags_inverse: () => p.manyToMany(CollectionPlaces).mappedBy('collection_place_tags').hidden(),
     place_tags_inverse: () => p.manyToMany(Places).mappedBy('place_tags').hidden(),
   },

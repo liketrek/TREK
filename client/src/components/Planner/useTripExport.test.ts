@@ -1,11 +1,12 @@
-// FE-PLANNER-TRIPEXPORT-001 to -013: the trip exports behind the desktop export
+// FE-PLANNER-TRIPEXPORT-001 to -015: the trip exports behind the desktop export
 // dialog and the phone's export sheet.
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 
 import { buildAssignment, buildReservation, buildTrip, buildUser } from '../../../tests/helpers/factories';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { resetAllStores, seedInstanceAddons, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
+import { useTripAddonsStore } from '../../store/tripAddonsStore';
 import type { DayNote } from '../../types';
 import { downloadTripPDF } from '../PDF/TripPDF';
 import { flatDayNotes, saveBlob, useTripExport, type TripExportOptions } from './useTripExport';
@@ -133,6 +134,17 @@ describe('useTripExport', () => {
     expect(vi.mocked(downloadTripPDF).mock.calls[1][0]).toMatchObject({ onlyUserId: 9 });
   });
 
+  it('FE-PLANNER-TRIPEXPORT-015: the PDF prints costs and tours as the trip has them, not the instance', async () => {
+    seedInstanceAddons(['budget']);
+    useTripAddonsStore.getState().publish(3, [
+      { id: 'budget', name: 'Costs', icon: null, enabled: false, instanceEnabled: true, overridden: true },
+      { id: 'tours', name: 'Tours', icon: null, enabled: true, instanceEnabled: false, overridden: true },
+    ]);
+    const { result } = renderHook(() => useTripExport(options()));
+    await act(() => result.current.exportPdf());
+    expect(vi.mocked(downloadTripPDF).mock.calls[0][0]).toMatchObject({ costsEnabled: false, toursEnabled: true });
+  });
+
   it('FE-PLANNER-TRIPEXPORT-005: the phone stays open after the PDF and prints nothing without a trip', async () => {
     const opts = options(PHONE);
     const { result } = renderHook(() => useTripExport(opts));
@@ -238,6 +250,24 @@ describe('useTripExport', () => {
     expect(opts.toast.error).toHaveBeenCalledWith('dayplan.gpxFailed');
     expect(opts.onExported).toHaveBeenCalledTimes(1);
     expect(result.current.anyRunning).toBe(false);
+  });
+
+  it('FE-PLANNER-TRIPEXPORT-014: the places go out as KML for Google My Maps, an empty trip and a broken download said apart (#1866)', async () => {
+    const opts = options();
+    const { result } = renderHook(() => useTripExport(opts));
+    await act(() => result.current.downloadKml());
+    expect(fetchSpy).toHaveBeenCalledWith('/api/trips/3/places/export.kml', { credentials: 'include' });
+    expect((clickSpy.mock.contexts[0] as HTMLAnchorElement).download).toBe('Alps.kml');
+    expect(opts.onExported).toHaveBeenCalledTimes(1);
+
+    fetchSpy.mockResolvedValue(response(404));
+    await act(() => result.current.downloadKml());
+    expect(opts.toast.info).toHaveBeenCalledWith('dayplan.gpxEmpty');
+
+    fetchSpy.mockResolvedValue(response(500));
+    await act(() => result.current.downloadKml());
+    expect(opts.toast.error).toHaveBeenCalledWith('dayplan.kmlFailed');
+    expect(result.current.isRunning('kml')).toBe(false);
   });
 
   it('FE-PLANNER-TRIPEXPORT-011: the PDF routes what the planner draws, counts its legs and can print without the rest', async () => {

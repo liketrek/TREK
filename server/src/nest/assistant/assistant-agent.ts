@@ -261,6 +261,51 @@ function uniqueCallId(call: AiToolCall, used: Set<string>, newId: () => string):
   return id;
 }
 
+/**
+ * The provider's own record of a step under the ids its calls go on with. A
+ * call whose id the thread had used already is renamed (uniqueCallId), and
+ * the record has to follow: Gemini finds a thought signature by the call's
+ * id, Anthropic and the Responses API pair each answer with the call of the
+ * same id, and a record left on the old id was refused on the next request
+ * that replayed it, which for the last step of an answer is every later
+ * message of the thread (#3094).
+ */
+function withRenamedCalls(state: AiProviderState | null, renamed: ReadonlyMap<string, string>): AiProviderState | null {
+  if (!state || renamed.size === 0) return state;
+  const idOf = (id: unknown) => (typeof id === 'string' ? (renamed.get(id) ?? id) : id);
+  if (state.adapter === 'anthropic-messages') {
+    return {
+      ...state,
+      blocks: state.blocks.map((block) => (block.type === 'tool_use' ? { ...block, id: idOf(block.id) } : block)),
+    };
+  }
+  if (state.adapter === 'openai-responses') {
+    return {
+      ...state,
+      items: state.items.map((item) =>
+        item.type === 'function_call' ? { ...item, call_id: idOf(item.call_id) } : item,
+      ),
+    };
+  }
+  return {
+    ...state,
+    signatures: Object.fromEntries(
+      Object.entries(state.signatures).map(([id, signature]) => [renamed.get(id) ?? id, signature]),
+    ),
+  };
+}
+
+/** The ids the step's calls were renamed from, to the ones they go on with; an id one of its calls kept stays. */
+function renamedCalls(received: readonly AiToolCall[], kept: readonly AiToolCall[]): Map<string, string> {
+  const keptIds = new Set(kept.map((call) => call.id));
+  const renamed = new Map<string, string>();
+  received.forEach((call, index) => {
+    const id = kept[index]?.id;
+    if (id && call.id !== id && !keptIds.has(call.id) && !renamed.has(call.id)) renamed.set(call.id, id);
+  });
+  return renamed;
+}
+
 /** What every step of one turn shares. */
 interface Turn {
   deps: AgentDeps;
@@ -576,8 +621,9 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
   w.startStep();
   const answer = await streamAnswer(turn, rowId);
   if ('end' in answer) return answer;
-  const { text, providerState, cutOff } = answer;
+  const { text, cutOff } = answer;
   const all = answer.received.map((call) => ({ ...call, id: uniqueCallId(call, input.usedCallIds, deps.newId) }));
+  const providerState = withRenamedCalls(answer.providerState, renamedCalls(answer.received, all));
   // The follow-ups the model offers are the server's to answer: they never run, and alone they end the turn.
   const asks = all.filter((call) => call.name === ASSISTANT_FOLLOW_UPS_TOOL);
   const received = all.filter((call) => call.name !== ASSISTANT_FOLLOW_UPS_TOOL);

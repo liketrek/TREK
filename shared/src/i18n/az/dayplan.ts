@@ -91,6 +91,10 @@ const dayplan: TranslationStrings = {
   'dayplan.gpxDays': 'Günlər marşrut kimi',
   'dayplan.gpxEmpty': 'Hələ ixrac ediləcək heç nə yoxdur',
   'dayplan.gpxFailed': 'GPX ixracı uğursuz oldu',
+  'dayplan.exportGoogleMaps': 'Google Maps',
+  'dayplan.kmlPlaces': 'Google My Maps üçün məkanlar',
+  'dayplan.kmlHint': 'My Maps-ə qat kimi idxal etmək üçün KML faylı',
+  'dayplan.kmlFailed': 'KML ixracı alınmadı',
   'dayplan.pdfError': 'PDF-i ixrac etmək mümkün olmadı',
 
   'dayplan.mobile.addPlace': 'Məkan əlavə et',

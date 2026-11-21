@@ -2,7 +2,9 @@ import { Users } from '../entities/Users.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
 import { coalesce, columnIncrementedBy, currentTimestamp, lower, lowerParam } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
-import { UniqueConstraintViolationException } from '@mikro-orm/core';
+import { guardIdentity } from './_shared/user-identity';
+
+export { UserIdentityTakenError } from './_shared/user-identity';
 
 /**
  * The three third-party keys that belong to the instance rather than to a
@@ -249,32 +251,6 @@ export interface NewAdminUserRow {
   email: string;
   password_hash: string;
   role: string;
-}
-
-/**
- * A write the database refused because another account already holds that
- * email address (in any case, `idx_users_email_lower`) or username. The
- * services check first and answer 409; this is the same answer for the write
- * that lost a race against another one, instead of a 500.
- */
-export class UserIdentityTakenError extends Error {
-  constructor(readonly field: 'email' | 'username') {
-    super(`${field} already taken`);
-    this.name = 'UserIdentityTakenError';
-  }
-}
-
-/** Runs a users write, turning a unique violation on email or username into {@link UserIdentityTakenError}. */
-async function guardIdentity<T>(write: () => Promise<T>): Promise<T> {
-  try {
-    return await write();
-  } catch (err) {
-    if (err instanceof UniqueConstraintViolationException) {
-      if (/users\.email|idx_users_email/.test(err.message)) throw new UserIdentityTakenError('email');
-      if (/users\.username/.test(err.message)) throw new UserIdentityTakenError('username');
-    }
-    throw err;
-  }
 }
 
 /** AD11 (`admin.service.ts#updateUser`, inside `uow.transactional`) — the columns the legacy COALESCE-shaped UPDATE can touch; a key the caller omits is left unchanged, the same net effect as binding NULL into `COALESCE(?, column)`. */

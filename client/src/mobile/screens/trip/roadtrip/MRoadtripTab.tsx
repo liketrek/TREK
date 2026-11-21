@@ -64,7 +64,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   // fall back to the trip's first routed day, which is not the one on screen, and every
   // distance it answered with would be measured against a road nobody is looking at.
   const searchBar = stage && (
-    <div className="pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
+    <div className="m-corner-beside pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
       <MRtCorridorBar planner={planner} corridor={corridor} onOpen={() => shell.openSheet('rtsearch')} />
     </div>
   )
@@ -197,7 +197,7 @@ function RoadtripStagePage({ planner, shell, dayId: pageDayId, alts, chrome }: O
   return (
     <div
       className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
-        stage ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
+        stage ? 'pt-[max(calc(var(--m-safe-top,12px)+150px),var(--m-corner-clear,0px))]' : 'pt-[max(calc(var(--m-safe-top,12px)+102px),var(--m-corner-clear,0px))]'
       }`}
     >
         <UndatedRides rides={undated} t={t} onOpen={openBooking} />

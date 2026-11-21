@@ -1,7 +1,7 @@
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, rowIdParam } from '../../nest-rpc/rpc-params';
 import { TagsService } from './tags.service';
 
 /**
@@ -42,7 +42,7 @@ export class TagsRpc {
       throw new ForbiddenResource('tag writes require an authenticated user context');
     }
     const input = asPayload(params.input);
-    const tagId = num(params.tagId, 'tagId');
+    const tagId = rowIdParam(params.tagId, 'tagId');
     await this.requireOwnTag(tagId, ctx.actingUserId);
     return this.tags.update(
       tagId,
@@ -56,7 +56,7 @@ export class TagsRpc {
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('tag writes require an authenticated user context');
     }
-    const tagId = num(params.tagId, 'tagId');
+    const tagId = rowIdParam(params.tagId, 'tagId');
     await this.requireOwnTag(tagId, ctx.actingUserId);
     await this.tags.remove(tagId);
     return { deleted: true };

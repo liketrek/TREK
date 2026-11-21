@@ -8,8 +8,9 @@
  *
  * No real HTTP calls are made.
  */
+import { readEnv } from '../../src/app-config';
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
+import { postgresTarget } from '../../src/db/engine';
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
 import { TripAlbumLinks } from '../../src/db/entities/TripAlbumLinks.entity';
@@ -23,11 +24,10 @@ import { withRequestContext } from '../../src/nest/database/request-context';
 import { TrekPhotoRegistrationService } from '../../src/nest/photos/trek-photo-registration.service';
 import { safeFetch } from '../../src/utils/ssrfGuard';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, addTripMember, addTripPhoto, setSynologyCredentials } from '../helpers/factories';
 // ── Album sync ────────────────────────────────────────────────────────────────
 
-import { addAlbumLink } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
 import {
   createRow,
   deleteRows,
@@ -37,8 +37,12 @@ import {
   insertRowIgnoringConflict,
   updateRows,
 } from '../helpers/factories/rows';
+import { setAddonEnabled } from '../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser, setSynologyCredentials } from '../helpers/factories/users';
 import { readUser } from '../helpers/factories/users';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -47,11 +51,6 @@ import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ── Hoisted DB mock ──────────────────────────────────────────────────────────
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 // ── SSRF guard mock — routes all Synology API calls to fake responses ─────────
 vi.mock('../../src/utils/ssrfGuard', async () => {
@@ -220,6 +219,9 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
   };
 });
 
+/** The lane runs this file on Postgres when TREK_DB_URL names one (vitest.pg.config.ts). */
+const ON_POSTGRES = postgresTarget(readEnv().db) !== null;
+
 let nestApp: INestApplication;
 let app: Application;
 let orm: FactoryOrm;
@@ -243,20 +245,19 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 describe('Synology settings', () => {
   it('SYNO-001 — GET /settings when not configured returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get(`${SYNO}/settings`).set('Cookie', authCookie(user.id));
 
@@ -264,7 +265,7 @@ describe('Synology settings', () => {
   });
 
   it('SYNO-002 — PUT /settings saves credentials and returns success', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).put(`${SYNO}/settings`).set('Cookie', authCookie(user.id)).send({
       synology_url: 'https://synology.example.com',
@@ -280,7 +281,7 @@ describe('Synology settings', () => {
   });
 
   it('SYNO-003 — PUT /settings with SSRF-blocked URL returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).put(`${SYNO}/settings`).set('Cookie', authCookie(user.id)).send({
       synology_url: 'http://192.168.1.100',
@@ -292,7 +293,7 @@ describe('Synology settings', () => {
   });
 
   it('SYNO-004 — PUT /settings without URL returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .put(`${SYNO}/settings`)
@@ -307,7 +308,7 @@ describe('Synology settings', () => {
 
 describe('Synology connection', () => {
   it('SYNO-010 — GET /status when not configured returns { connected: false }', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get(`${SYNO}/status`).set('Cookie', authCookie(user.id));
 
@@ -316,8 +317,8 @@ describe('Synology connection', () => {
   });
 
   it('SYNO-011 — GET /status when configured returns { connected: true }', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     const res = await request(app).get(`${SYNO}/status`).set('Cookie', authCookie(user.id));
 
@@ -326,7 +327,7 @@ describe('Synology connection', () => {
   });
 
   it('SYNO-012 — POST /test with valid credentials returns { connected: true }', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post(`${SYNO}/test`).set('Cookie', authCookie(user.id)).send({
       synology_url: 'https://synology.example.com',
@@ -339,7 +340,7 @@ describe('Synology connection', () => {
   });
 
   it('SYNO-013 — POST /test with missing fields returns error', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post(`${SYNO}/test`)
@@ -356,8 +357,8 @@ describe('Synology connection', () => {
 
 describe('Synology search and albums', () => {
   it('SYNO-020 — POST /search returns mapped assets', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     const res = await request(app).post(`${SYNO}/search`).set('Cookie', authCookie(user.id)).send({});
 
@@ -367,8 +368,8 @@ describe('Synology search and albums', () => {
   });
 
   it('SYNO-021 — POST /search when upstream throws propagates 500', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     // Auth call succeeds, search call throws a network error
     vi.mocked(safeFetch)
@@ -388,8 +389,8 @@ describe('Synology search and albums', () => {
   });
 
   it('SYNO-022 — GET /albums returns album list', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
 
@@ -414,10 +415,10 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
   });
 
   it('SYNO-027 — personal-only: shared and shared-with-me return failure → merged result contains personal albums, no error', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       // Always read both URL params and body params; body takes precedence for request-specific fields.
       const urlParams = (() => {
         try {
@@ -481,10 +482,10 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
   });
 
   it('SYNO-028 — full merge: personal + shared (with passphrase) + shared-with-me (with sharing_info.passphrase) → 4 albums with correct passphrases', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       const urlParams = (() => {
         try {
           return new URL(String(_url)).searchParams;
@@ -568,10 +569,10 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
   });
 
   it('SYNO-029 — dedup: same album id=99 in personal and shared-with-me → last-write-wins gives passphrase from shared-with-me', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
-    vi.mocked(safeFetch).mockImplementation((_url: string, init?: any) => {
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
       const urlParams = (() => {
         try {
           return new URL(String(_url)).searchParams;
@@ -645,10 +646,10 @@ describe('Synology listSynologyAlbums multi-source merge', () => {
 
 describe('Synology asset access', () => {
   it('SYNO-030 — GET /assets/info returns metadata for own photo', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
-    addTripPhoto(testDb, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
+    await addTripPhoto(orm, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
 
     const res = await request(app)
       .get(`${SYNO}/assets/${trip.id}/101_cachekey/${user.id}/info`)
@@ -659,11 +660,11 @@ describe('Synology asset access', () => {
   });
 
   it('SYNO-031 — GET /assets/info by non-owner of unshared photo returns 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    addTripPhoto(testDb, trip.id, owner.id, '101_cachekey', 'synologyphotos', { shared: false });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await addTripPhoto(orm, trip.id, owner.id, '101_cachekey', 'synologyphotos', { shared: false });
 
     const res = await request(app)
       .get(`${SYNO}/assets/${trip.id}/101_cachekey/${owner.id}/info`)
@@ -673,10 +674,10 @@ describe('Synology asset access', () => {
   });
 
   it('SYNO-032 — GET /assets/thumbnail streams image data for own photo', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
-    addTripPhoto(testDb, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
+    await addTripPhoto(orm, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
 
     const res = await request(app)
       .get(`${SYNO}/assets/${trip.id}/101_cachekey/${user.id}/thumbnail`)
@@ -687,8 +688,8 @@ describe('Synology asset access', () => {
   });
 
   it('SYNO-032b — GET /api/photos/:id/thumbnail uses an allowed Synology thumbnail size', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     const trekPhotoId = await insertRow(orm, TrekPhotos, {
       provider: 'synologyphotos',
@@ -704,12 +705,12 @@ describe('Synology asset access', () => {
   });
 
   it('SYNO-033 — GET /assets/original streams image data for shared photo', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    setSynologyCredentials(testDb, owner.id, 'https://synology.example.com', 'admin', 'pass');
-    addTripPhoto(testDb, trip.id, owner.id, '101_cachekey', 'synologyphotos', { shared: true });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await setSynologyCredentials(orm, owner.id, 'https://synology.example.com', 'admin', 'pass');
+    await addTripPhoto(orm, trip.id, owner.id, '101_cachekey', 'synologyphotos', { shared: true });
 
     const res = await request(app)
       .get(`${SYNO}/assets/${trip.id}/101_cachekey/${owner.id}/original`)
@@ -720,9 +721,9 @@ describe('Synology asset access', () => {
   });
 
   it('SYNO-034 — GET /assets with invalid kind returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripPhoto(testDb, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripPhoto(orm, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
 
     const res = await request(app)
       .get(`${SYNO}/assets/${trip.id}/101_cachekey/${user.id}/badkind`)
@@ -731,11 +732,15 @@ describe('Synology asset access', () => {
     expect(res.status).toBe(400);
   });
 
-  it('SYNO-035 — GET /assets/info where trip does not exist returns 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
+  // A shared photo row whose trip is gone: the foreign key's cascade makes that
+  // impossible on a database that enforces it, so the row is written with
+  // SQLite's foreign keys off, which Postgres has no equivalent of.
+  it.skipIf(ON_POSTGRES)('SYNO-035 — GET /assets/info where trip does not exist returns 403', async () => {
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
     // Insert a shared photo referencing a trip that doesn't exist (FK disabled temporarily)
-    testDb.exec('PRAGMA foreign_keys = OFF');
+    // test-sql-allow: the orphaned row this case needs exists only with SQLite's foreign keys switched off.
+    await orm.em.getConnection().execute('PRAGMA foreign_keys = OFF');
     const known = await findRow(orm, TrekPhotos, {
       provider: 'synologyphotos',
       asset_id: '101_cachekey',
@@ -745,7 +750,7 @@ describe('Synology asset access', () => {
       known?.id ??
       (await insertRow(orm, TrekPhotos, { provider: 'synologyphotos', asset_id: '101_cachekey', owner: owner.id }));
     await insertRow(orm, TripPhotos, { trip: 9999, user: owner.id, photo: tkpSyno35, shared: 1 });
-    testDb.exec('PRAGMA foreign_keys = ON');
+    await orm.em.getConnection().execute('PRAGMA foreign_keys = ON');
 
     const res = await request(app)
       .get(`${SYNO}/assets/9999/101_cachekey/${owner.id}/info`)
@@ -756,10 +761,10 @@ describe('Synology asset access', () => {
   });
 
   it('SYNO-036 — GET /assets/info when upstream throws propagates 500', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
-    addTripPhoto(testDb, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
+    await addTripPhoto(orm, trip.id, user.id, '101_cachekey', 'synologyphotos', { shared: false });
 
     // Auth call succeeds, Browse.Item call throws a network error
     vi.mocked(safeFetch)
@@ -819,16 +824,16 @@ describe('Synology auth checks', () => {
 
 describe('Synology syncSynologyAlbumLink', () => {
   it('SYNO-050 — POST sync happy path: trip owner with album link saves photos to DB', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
     // The migration inserts synologyphotos with enabled=0; ensure it is enabled for this test.
     // A provider only counts as enabled under an enabled journey addon (also seeded off).
     await updateRows(orm, PhotoProviders, { id: 'synologyphotos' }, { enabled: 1 });
-    setAddonEnabled(testDb, 'journey', true);
+    await setAddonEnabled(orm, 'journey', true);
     // album_id must be a numeric string so getAlbumIdFromLink returns it and
     // syncSynologyAlbumLink passes Number(album_id) to the API.
-    const link = addAlbumLink(testDb, trip.id, user.id, 'synologyphotos', '1', 'Summer Trip');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'synologyphotos', '1', 'Summer Trip');
 
     const res = await request(app)
       .post(`${SYNO}/trips/${trip.id}/album-links/${link.id}/sync`)
@@ -845,11 +850,11 @@ describe('Synology syncSynologyAlbumLink', () => {
   });
 
   it('SYNO-051 — POST sync when user is not a trip member returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    setSynologyCredentials(testDb, owner.id, 'https://synology.example.com', 'admin', 'pass');
-    const link = addAlbumLink(testDb, trip.id, owner.id, 'synologyphotos', '1', 'Summer Trip');
+    const { user: owner } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await setSynologyCredentials(orm, owner.id, 'https://synology.example.com', 'admin', 'pass');
+    const link = await addAlbumLink(orm, trip.id, owner.id, 'synologyphotos', '1', 'Summer Trip');
 
     const res = await request(app)
       .post(`${SYNO}/trips/${trip.id}/album-links/${link.id}/sync`)
@@ -859,10 +864,10 @@ describe('Synology syncSynologyAlbumLink', () => {
   });
 
   it('SYNO-052 — POST sync when Synology is not configured returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // No credentials — album link still exists for the user
-    const link = addAlbumLink(testDb, trip.id, user.id, 'synologyphotos', '1', 'Summer Trip');
+    const link = await addAlbumLink(orm, trip.id, user.id, 'synologyphotos', '1', 'Summer Trip');
 
     const res = await request(app)
       .post(`${SYNO}/trips/${trip.id}/album-links/${link.id}/sync`)
@@ -877,11 +882,11 @@ describe('Synology syncSynologyAlbumLink', () => {
   });
 
   it('SYNO-054 — POST sync with passphrase link: uses passphrase in item-list call and persists encrypted passphrase on trek_photos', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
     await updateRows(orm, PhotoProviders, { id: 'synologyphotos' }, { enabled: 1 });
-    setAddonEnabled(testDb, 'journey', true);
+    await setAddonEnabled(orm, 'journey', true);
 
     // Insert a link with an encrypted passphrase directly into the DB.
     const rawPassphrase = 'syno-share-pass-abc';
@@ -964,112 +969,75 @@ describe('Synology syncSynologyAlbumLink', () => {
 // ── Session retry logic ───────────────────────────────────────────────────────
 
 describe('Synology session retry on error codes 106/107/119', () => {
-  it('SYNO-060 — request retries with fresh session when API returns error code 119', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+  // The album list asks three sources at once (personal, shared, shared with
+  // me), so the order in which their calls reach safeFetch depends on how the
+  // database reads interleave, which differs between the engines. The fake
+  // therefore answers by API and category, not by call position: logins hand
+  // out a new session id each time, the personal album list fails once with the
+  // given code and then succeeds, and the other two sources fail, which the
+  // service reports as a partial failure.
+  let savedImpl: ((...args: any[]) => any) | undefined;
+  beforeEach(() => {
+    savedImpl = vi.mocked(safeFetch).getMockImplementation();
+  });
+  afterEach(() => {
+    if (savedImpl) vi.mocked(safeFetch).mockImplementation(savedImpl);
+  });
 
-    // Clear previous call history so the count only reflects this test's calls
-    vi.mocked(safeFetch).mockClear();
-
-    // Call sequence:
-    //   1. Auth login (fresh session — no cached SID) → success with sid
-    //   2. SYNO.Foto.Browse.Album call → returns { success: false, error: { code: 119 } }
-    //   3. Auth login again (retry session after clearing SID) → success with new sid
-    //   4. SYNO.Foto.Browse.Album retry call → success
-    vi.mocked(safeFetch)
-      .mockResolvedValueOnce({
-        // call 1: initial login
+  function sessionExpiringSynology(code: number, album: { id: number; name: string; item_count: number }) {
+    const calls = { logins: 0, personal: [] as string[] };
+    const json = (body: unknown) =>
+      Promise.resolve({
         ok: true,
         status: 200,
         headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'first-sid' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        // call 2: album list → session expired (119)
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: false, error: { code: 119 } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        // call 3: retry login after clearing SID
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'second-sid' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        // call 4: retry album list → success
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({
-          success: true,
-          data: {
-            list: [{ id: 99, name: 'Retry Album', item_count: 5 }],
-          },
-        }),
+        json: async () => body,
         body: null,
       } as any);
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
+      const params: URLSearchParams =
+        init?.body instanceof URLSearchParams ? init.body : new URLSearchParams(String(init?.body ?? ''));
+      const api = params.get('api') || '';
+      if (api === 'SYNO.API.Auth') {
+        calls.logins++;
+        return json({ success: true, data: { sid: `sid-${calls.logins}` } });
+      }
+      if (api === 'SYNO.Foto.Browse.Album' && !params.get('category')) {
+        calls.personal.push(params.get('_sid') || '');
+        if (calls.personal.length === 1) return json({ success: false, error: { code } });
+        return json({ success: true, data: { list: [album] } });
+      }
+      return json({ success: false, error: { code: 400 } });
+    });
+    return calls;
+  }
+
+  it('SYNO-060 — request retries with fresh session when API returns error code 119', async () => {
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const calls = sessionExpiringSynology(119, { id: 99, name: 'Retry Album', item_count: 5 });
 
     const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.albums)).toBe(true);
     expect(res.body.albums[0]).toMatchObject({ albumName: 'Retry Album' });
-    // Five safeFetch calls: login, failed album list (119), re-login, successful album list retry,
-    // plus one additional call for the shared or shared-with-me source (handled by default mock)
-    expect(vi.mocked(safeFetch)).toHaveBeenCalledTimes(5);
+    // The personal list was asked twice: with the session that expired, then with one from a fresh login.
+    expect(calls.personal).toHaveLength(2);
+    expect(calls.personal[1]).not.toBe(calls.personal[0]);
   });
 
   it('SYNO-061 — request retries with fresh session when API returns error code 106', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
-
-    vi.mocked(safeFetch).mockClear();
-    vi.mocked(safeFetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'sid-one' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: false, error: { code: 106 } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'sid-two' } }),
-        body: null,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({
-          success: true,
-          data: { list: [{ id: 3, name: 'Timeout Album', item_count: 2 }] },
-        }),
-        body: null,
-      } as any);
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const calls = sessionExpiringSynology(106, { id: 3, name: 'Timeout Album', item_count: 2 });
 
     const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(200);
     expect(res.body.albums[0]).toMatchObject({ albumName: 'Timeout Album' });
-    // Five safeFetch calls: login, failed album list (106), re-login, successful album list retry,
-    // plus one additional call for the shared or shared-with-me source (handled by default mock)
-    expect(vi.mocked(safeFetch)).toHaveBeenCalledTimes(5);
+    expect(calls.personal).toHaveLength(2);
+    expect(calls.personal[1]).not.toBe(calls.personal[0]);
   });
 });
 
@@ -1077,8 +1045,8 @@ describe('Synology session retry on error codes 106/107/119', () => {
 
 describe('Synology searchSynologyPhotos date range', () => {
   it('SYNO-070 — POST /search with from/to passes start_time and end_time to Synology API', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     // Capture the body sent on the search call (second safeFetch call after auth)
     let capturedBody: URLSearchParams | null = null;
@@ -1147,8 +1115,8 @@ describe('Synology searchSynologyPhotos date range', () => {
   });
 
   it('SYNO-071 — POST /search without date range omits start_time and end_time', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     let capturedBody: URLSearchParams | null = null;
     vi.mocked(safeFetch)
@@ -1184,8 +1152,8 @@ describe('Synology searchSynologyPhotos date range', () => {
 
 describe('Synology search pagination', () => {
   it('SYNO-025 — POST /search with { page: 2, size: 50 } sends offset=50 and limit=50 to Synology API', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     let capturedBody: URLSearchParams | null = null;
     vi.mocked(safeFetch)
@@ -1222,8 +1190,8 @@ describe('Synology search pagination', () => {
   });
 
   it('SYNO-026 — POST /search with { page: 3, size: 25 } sends offset=50 and limit=25 to Synology API', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     let capturedBody: URLSearchParams | null = null;
     vi.mocked(safeFetch)
@@ -1263,8 +1231,8 @@ describe('Synology search pagination', () => {
 
 describe('Synology SSRF blocked error handling', () => {
   it('SYNO-080 — safeFetch throwing SsrfBlockedError for private IP URL returns connected: false', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'http://192.168.1.200', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'http://192.168.1.200', 'admin', 'pass');
 
     const { SsrfBlockedError: SsrfErr } = await import('../../src/utils/ssrfGuard');
 
@@ -1280,8 +1248,8 @@ describe('Synology SSRF blocked error handling', () => {
   });
 
   it('SYNO-081 — safeFetch throwing SsrfBlockedError during one album source is swallowed; other sources still return albums', async () => {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
 
     const { SsrfBlockedError: SsrfErr } = await import('../../src/utils/ssrfGuard');
 
@@ -1296,21 +1264,35 @@ describe('Synology SSRF blocked error handling', () => {
       body: null,
     } as any;
 
-    // Auth succeeds, personal album source throws SSRF, shared + shared-with-me succeed.
-    // listSynologyAlbums uses Promise.allSettled so the SSRF failure is logged and skipped.
-    vi.mocked(safeFetch)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ success: true, data: { sid: 'sid-x' } }),
-        body: null,
-      } as any)
-      .mockRejectedValueOnce(new SsrfErr('Private IP detected'))
-      .mockResolvedValueOnce(emptyAlbumResponse)
-      .mockResolvedValueOnce(emptyAlbumResponse);
+    // Auth succeeds, the personal album source throws SSRF, shared and shared-with-me succeed.
+    // listSynologyAlbums asks the three sources at once (Promise.allSettled), so which call
+    // reaches the fake first depends on how database reads interleave on each engine: the
+    // fake answers by API and category, not by call position.
+    const savedImpl = vi.mocked(safeFetch).getMockImplementation();
+    vi.mocked(safeFetch).mockImplementation((_url: string, init?: RequestInit) => {
+      const params: URLSearchParams =
+        init?.body instanceof URLSearchParams ? init.body : new URLSearchParams(String(init?.body ?? ''));
+      if (params.get('api') === 'SYNO.API.Auth') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: () => 'application/json' },
+          json: async () => ({ success: true, data: { sid: 'sid-x' } }),
+          body: null,
+        } as any);
+      }
+      if (params.get('api') === 'SYNO.Foto.Browse.Album' && !params.get('category')) {
+        return Promise.reject(new SsrfErr('Private IP detected'));
+      }
+      return Promise.resolve(emptyAlbumResponse);
+    });
 
-    const res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
+    let res: request.Response;
+    try {
+      res = await request(app).get(`${SYNO}/albums`).set('Cookie', authCookie(user.id));
+    } finally {
+      if (savedImpl) vi.mocked(safeFetch).mockImplementation(savedImpl);
+    }
 
     // Personal failed (SSRF), shared sources returned an album — 200 with non-empty list.
     expect(res.status).toBe(200);
@@ -1338,7 +1320,7 @@ const deleteTrekPhotoIfOrphan = (id: number) => withRequestContext(orm, () => tr
 
 describe('trek_photos passphrase healing (SYNO-090)', () => {
   it('SYNO-090 — getOrCreateTrekPhoto overwrites an existing bad passphrase when a new one is supplied', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const wrongPass = 'wrong-passphrase';
     const correctPass = 'correct-passphrase';
@@ -1356,8 +1338,8 @@ describe('trek_photos passphrase healing (SYNO-090)', () => {
 
 describe('trek_photos orphan cleanup (SYNO-091)', () => {
   it('SYNO-091 — deleteTrekPhotoIfOrphan removes the trek_photos row when no trip_photos or journey_photos reference it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await updateRows(orm, PhotoProviders, { id: 'synologyphotos' }, { enabled: 1 });
 
     const trekPhotoId = await getOrCreateTrekPhoto('synologyphotos', 'asset-orphan-test', user.id, 'pass-A');
@@ -1375,8 +1357,8 @@ describe('trek_photos orphan cleanup (SYNO-091)', () => {
   });
 
   it('SYNO-092 — re-adding a previously removed Synology photo stores the new passphrase correctly', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await updateRows(orm, PhotoProviders, { id: 'synologyphotos' }, { enabled: 1 });
 
     const firstPass = 'first-passphrase';
@@ -1416,8 +1398,8 @@ describe('Synology skip-SSL forwarding to image fetches (#1611)', () => {
   const uniqueAssetId = () => `${Date.now()}${++assetSeq}_test1611`;
 
   async function createSynologyTrekPhoto(skipSsl: 0 | 1) {
-    const { user } = createUser(testDb);
-    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+    const { user } = await makeUser(orm);
+    await setSynologyCredentials(orm, user.id, 'https://synology.example.com', 'admin', 'pass');
     await updateRows(orm, Users, { id: user.id }, { synology_skip_ssl: skipSsl });
     const assetId = uniqueAssetId();
     const trekPhotoId = await insertRow(orm, TrekPhotos, {

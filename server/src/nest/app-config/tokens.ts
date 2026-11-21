@@ -38,4 +38,14 @@ export const kitineraryConfig = registerAs('kitinerary', () => BOOT_DERIVERS.kit
  */
 export const servicesConfig = registerAs('services', () => BOOT_DERIVERS.services(process.env));
 
-export const BOOT_STABLE_TOKENS = [httpConfig, storageConfig, transitConfig, kitineraryConfig, servicesConfig];
+/** How the booking mail import takes mail in (MAIL_INGEST_*), each value over its stored setting. */
+export const mailIngestConfig = registerAs('mailIngest', () => BOOT_DERIVERS.mailIngest(process.env));
+
+export const BOOT_STABLE_TOKENS = [
+  httpConfig,
+  storageConfig,
+  transitConfig,
+  kitineraryConfig,
+  servicesConfig,
+  mailIngestConfig,
+];

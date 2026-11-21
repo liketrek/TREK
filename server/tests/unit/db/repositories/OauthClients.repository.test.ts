@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
 import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import type { OauthClientsRepository } from '../../../../src/db/repositories/OauthClients.repository';
@@ -20,7 +21,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   clients = t.repo(OauthClients);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(async () => {
   resetTestDb(testDb);

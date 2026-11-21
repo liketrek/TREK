@@ -58,6 +58,14 @@ describe('collectionTourStore', () => {
     expect(useCollectionTourStore.getState().status).toBe('error');
   });
 
+  it('FE-STORE-COLLECTION-TOURS-008: the refusal while Tours is off for the user everywhere is no failure', async () => {
+    vi.spyOn(collectionToursRepo, 'list').mockRejectedValueOnce({
+      response: { status: 404, data: { error: 'Tours addon is not enabled' } },
+    });
+    await useCollectionTourStore.getState().load(3);
+    expect(useCollectionTourStore.getState()).toMatchObject({ status: 'off', tours: [] });
+  });
+
   it('FE-STORE-COLLECTION-TOURS-004: removing takes the tour off at once and puts it back on a refusal', async () => {
     vi.spyOn(collectionToursRepo, 'list').mockResolvedValue({ tours: [tour(1, 'Ridge'), tour(2, 'Lake')] });
     await useCollectionTourStore.getState().load(3);

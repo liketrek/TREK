@@ -8,12 +8,23 @@
 // through this script, and every other job asks the answer whether to run.
 // The aggregate `ci-ok` job then treats a skipped job as passed.
 //
+// It also decides whether the run mirrors the push run instead of testing.
+// The release pull request (dev into main, from this repository) always
+// carries the head of dev, and every push to dev already runs this workflow
+// on exactly that commit, listing its changes against the merge base with
+// main, so that run covers every area the pull request brings in. Running
+// it twice for one commit doubled the jobs past the organisation's slots, so
+// on that pull request every area is off and ci-ok mirrors the push run's
+// verdict (scripts/ci/mirror-push-run.mjs).
+// The run's context comes from the environment: CI_EVENT, CI_BASE_REF,
+// CI_HEAD_REF, CI_HEAD_REPO and CI_REPO.
+//
 // Usage:
 //   node scripts/ci/changed-areas.mjs --files <list>   one changed path per line
 //   node scripts/ci/changed-areas.mjs --all            no usable list, run everything
 //
-// Prints `<area>=true|false` per area and appends the same lines to
-// $GITHUB_OUTPUT when it is set.
+// Prints `<area>=true|false` per area and `mirror=true|false`, and appends
+// the same lines to $GITHUB_OUTPUT when it is set.
 //
 // It fails closed. A list it cannot read is an error, and anything it cannot
 // classify with confidence (an empty list, a path git had to quote) turns every
@@ -23,9 +34,9 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// The workflow file and this script decide what runs, so a change to either
-// runs everything.
-const ALWAYS = ['.github/workflows/test.yml', 'scripts/ci/'];
+// The workflow file, the local actions its jobs set up with and this script
+// decide what runs and how, so a change to any of them runs everything.
+const ALWAYS = ['.github/workflows/test.yml', '.github/actions/', 'scripts/ci/'];
 
 // Files the test suites read straight from disk, outside the packages:
 // config-templates.test.ts pins docker-compose.yml and the Helm chart to the
@@ -49,7 +60,7 @@ export const AREAS = {
     'package-lock.json',
     '.nvmrc',
     'sonar-project.properties',
-    // lint:knip in server-lint-checks reads it.
+    // lint:knip in server-lint reads it.
     'knip.jsonc',
     'Dockerfile',
     ...READ_BY_TESTS,
@@ -108,6 +119,50 @@ export function classify(files) {
   return result;
 }
 
+// The release pull request: base main, head dev, and the head branch in this
+// repository. A fork's branch named dev is not it: its commits never ran here.
+export const RELEASE_PR = { base: 'main', head: 'dev' };
+
+/**
+ * @param {{ event?: string, baseRef?: string, headRef?: string, headRepo?: string, repo?: string }} context
+ * @returns {boolean} true when the run mirrors the push run on dev instead of testing
+ */
+export function mirrorsPushRun({ event, baseRef, headRef, headRepo, repo }) {
+  return (
+    event === 'pull_request' &&
+    baseRef === RELEASE_PR.base &&
+    headRef === RELEASE_PR.head &&
+    Boolean(repo) &&
+    headRepo === repo
+  );
+}
+
+/**
+ * What the run does: the areas to test, and whether ci-ok mirrors the push
+ * run. In mirror mode every area is off, so every job skips by its area
+ * condition and only changes and ci-ok run.
+ *
+ * @param {string[] | null} files changed paths, or null when there is no usable list
+ * @param {Parameters<typeof mirrorsPushRun>[0]} context
+ * @returns {Record<string, boolean>}
+ */
+export function decide(files, context) {
+  if (mirrorsPushRun(context)) {
+    return { ...Object.fromEntries(Object.keys(AREAS).map((area) => [area, false])), mirror: true };
+  }
+  return { ...classify(files), mirror: false };
+}
+
+function contextFromEnv(env) {
+  return {
+    event: env.CI_EVENT,
+    baseRef: env.CI_BASE_REF,
+    headRef: env.CI_HEAD_REF,
+    headRepo: env.CI_HEAD_REPO,
+    repo: env.CI_REPO,
+  };
+}
+
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === '--all') return { all: true };
   if (argv.length === 2 && argv[0] === '--files' && argv[1]) return { all: false, list: argv[1] };
@@ -118,7 +173,7 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   // An unreadable list throws and fails the job instead of running on a guess.
   const files = args.all ? null : readFileSync(args.list, 'utf8').split('\n');
-  const result = classify(files);
+  const result = decide(files, contextFromEnv(process.env));
   const lines = Object.entries(result).map(([area, on]) => `${area}=${on}`);
   console.log(lines.join('\n'));
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `${lines.join('\n')}\n`);

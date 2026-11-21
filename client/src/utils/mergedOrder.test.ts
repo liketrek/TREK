@@ -2,11 +2,13 @@
 // phone's plan timeline both derive from a day's new timeline order.
 import { describe, expect, it } from 'vitest';
 
+import { getMergedItems } from './dayMerge';
 import {
   keepDayPositions,
   metadataWithLegPositions,
   moveRow,
   planMergedOrder,
+  withHiddenRows,
   withTransportPositions,
 } from './mergedOrder';
 
@@ -104,5 +106,40 @@ describe('keepDayPositions', () => {
     expect(keepDayPositions({ id: 1 }, prev)).toEqual({ id: 1, day_positions: { 4: 1.5 } });
     expect(keepDayPositions({ id: 1, day_positions: null }, prev)).toEqual({ id: 1, day_positions: null });
     expect(keepDayPositions({ id: 1 }, undefined)).toEqual({ id: 1 });
+  });
+});
+
+describe('planMergedOrder over a day with hidden rows (#3100)', () => {
+  it('FE-UTIL-MERGEDORDER-010: hidden rows keep their slots and the shown rows fill the rest in their new order', () => {
+    expect(withHiddenRows([10, 1, 2, 11], [2, 1])).toEqual([10, 2, 1, 11]);
+    expect(withHiddenRows([1, 2], [2, 1])).toEqual([2, 1]);
+  });
+
+  it('FE-UTIL-MERGEDORDER-011: bookings and notes are positioned in the full day the places are stored in', () => {
+    const plan = planMergedOrder([transport(8), place(1), note(7), transport(9), place(2)], [10, 1, 2]);
+    expect(plan.assignmentIds).toEqual([1, 2]);
+    expect(plan.transportUpdates).toEqual([
+      { id: 8, day_plan_position: 0.5 },
+      { id: 9, day_plan_position: 1 + 2 / 3 },
+    ]);
+    expect(plan.noteUpdates).toEqual([{ id: 7, sort_order: 1 + 1 / 3 }]);
+  });
+
+  it('FE-UTIL-MERGEDORDER-012: an untimed stop dropped between two timed bookings stays there behind a hidden hotel row', () => {
+    const dayId = 5;
+    const tour = { id: 8, day_id: dayId, reservation_time: '2026-11-25T12:00' };
+    const flight = { id: 9, day_id: dayId, reservation_time: '2026-11-25T19:15' };
+    const newOrder = [transport(8), place(1), transport(9), place(2)];
+    const plan = planMergedOrder(newOrder, [10, 2, 1]);
+    const stored = withHiddenRows([10, 2, 1], plan.assignmentIds);
+    const dayAssignments = stored
+      .filter((id) => id !== 10)
+      .map((id) => ({ id, order_index: stored.indexOf(id), place: { place_time: null } }));
+    const positioned = [tour, flight].map((r) => {
+      const update = plan.transportUpdates.find((u) => u.id === r.id);
+      return { ...r, day_positions: { [dayId]: update?.day_plan_position } };
+    });
+    const drawn = getMergedItems({ dayAssignments, dayNotes: [], dayTransports: positioned, dayId });
+    expect(drawn.map((it) => `${it.type}:${it.data.id}`)).toEqual(['transport:8', 'place:1', 'transport:9', 'place:2']);
   });
 });
