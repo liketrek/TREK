@@ -697,7 +697,7 @@ describe('AddonManager', () => {
     server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Lists', icon: 'ListChecks', type: 'trip', enabled: true })]));
     const onToggle = vi.fn();
     const { unmount } = render(<AddonManager flightLive={{ on: false, locked: false, managed: false, onToggle }} />);
-    const trip = (await screen.findByRole('heading', { name: 'Trip' })).closest('section')!;
+    const trip = (await screen.findByRole('heading', { name: 'Trip' })).closest('section') as HTMLElement;
     await userEvent.click(within(trip).getByRole('button', { name: 'Follow booked flights live' }));
     expect(onToggle).toHaveBeenCalledTimes(1);
     // The count stays the addons': the flight row is an instance option beside them.
@@ -713,7 +713,7 @@ describe('AddonManager', () => {
     vi.spyOn(mailIngestRepo, 'adminSettings').mockResolvedValue({ mail_ingest_enabled: 'true' });
     vi.spyOn(mailIngestRepo, 'adminStatus').mockRejectedValue(new Error('no status'));
     render(<AddonManager mailImport />);
-    const integration = (await screen.findByRole('heading', { name: 'Integration' })).closest('section')!;
+    const integration = (await screen.findByRole('heading', { name: 'Integration' })).closest('section') as HTMLElement;
     expect(within(integration).getByText('Booking mail import')).toBeInTheDocument();
     await userEvent.click(await within(integration).findByRole('button', { name: 'Set up mail import' }));
     const dialog = await screen.findByRole('dialog');
