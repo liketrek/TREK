@@ -1731,7 +1731,7 @@ describe('update_transport: the flat keys of a legs-only update', () => {
           ],
         },
       }),
-    ) as any;
+    ) as { reservation: { id: number } };
   const updateLegs = (h: McpHarness, tripId: number, reservationId: number, legs: object[]) =>
     h.client.callTool({ name: 'update_transport', arguments: { tripId, reservationId, legs } });
 
