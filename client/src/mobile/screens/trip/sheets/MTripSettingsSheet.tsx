@@ -7,6 +7,7 @@ import {
   LogOut,
   Pencil,
   Plus,
+  Puzzle,
   RefreshCw,
   Settings2,
   Trash2,
@@ -20,10 +21,10 @@ import CustomSelect from '../../../../components/shared/CustomSelect';
 import { LinkedJournalIcon } from '../../../../components/Trips/LinkedJournalIcon';
 import { TripJournalLinkSection } from '../../../../components/Trips/TripJournalLinkSection';
 import { TripMemberAvatar } from '../../../../components/Trips/TripMemberAvatar';
+import { useTripAddonRows } from '../../../../components/Trips/useTripAddonRows';
 import { useTripJournalSectionVisible } from '../../../../components/Trips/useTripJournalLink';
 import {
   SHARE_OPTIONS,
-  SHARE_SECTIONS,
   useShareLink,
   useTripInviteLink,
   useTripMembers,
@@ -33,6 +34,7 @@ import { useTranslation } from '../../../../i18n';
 import MChip from '../../../components/MChip';
 import MLinkField from '../../../components/MLinkField';
 import MSheet from '../../../components/MSheet';
+import MToggle from '../../../components/MToggle';
 import MConfirmSheet from '../../settings/MConfirmSheet';
 import {
   SHEET_FIELD as FIELD,
@@ -91,7 +93,7 @@ function ShareLinkSection({ tripId }: { tripId: number }) {
   return (
     <Section title={t('share.linkTitle')} hint={t('share.linkHint')}>
       <div className="flex flex-wrap gap-1.5">
-        {[...SHARE_SECTIONS, ...SHARE_OPTIONS].map((option) => {
+        {[...link.sections, ...SHARE_OPTIONS].map((option) => {
           const always = 'always' in option && !!option.always;
           const on = !!link.perms[option.key];
           return (
@@ -396,8 +398,40 @@ function GuestsSection({ m, ask }: { m: Members; ask: Ask }) {
   );
 }
 
+/** The trip addons with their switches, for the owner; a pill marks the ones set apart from the instance. */
+function AddonsSection({ tripId }: { tripId: number }) {
+  const { t } = useTranslation();
+  const { rows, loading } = useTripAddonRows(tripId);
+  return (
+    <Section hint={t('trip.settings.addonsHint')}>
+      {loading ? (
+        <div className="h-[44px] animate-pulse rounded-full bg-[color:var(--m-ic)]" />
+      ) : (
+        rows.map((row) => (
+          <div key={row.id} className="flex min-h-[44px] items-center gap-[10px]">
+            <span
+              className={`flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-[color:var(--m-ic)] ${row.enabled ? 'text-m-ink' : 'text-m-faint'}`}
+            >
+              <row.Icon size={16} strokeWidth={2} />
+            </span>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <span className="min-w-0 truncate text-[length:calc(13.5px*var(--fs-scale-body,1))] font-semibold text-m-ink">
+                {row.name}
+              </span>
+              {row.ownChoice && (
+                <span className={`${PILL} bg-[color:var(--m-ic)] text-m-muted`}>{t('trip.addons.thisTripOnly')}</span>
+              )}
+            </div>
+            <MToggle checked={row.enabled} onChange={row.toggle} ariaLabel={row.name} disabled={row.busy} />
+          </div>
+        ))
+      )}
+    </Section>
+  );
+}
+
 /** The areas the sheet opens into, each a page of its own. */
-type Page = 'people' | 'sharing' | 'journal';
+type Page = 'people' | 'sharing' | 'journal' | 'addons';
 
 /** One row of the sheet's first page: an icon tile, the area's name, what it holds, a chevron. */
 function AreaRow({
@@ -427,9 +461,10 @@ function AreaRow({
  * The trip's settings on the phone (the Mehr sheet's "Trip settings"). The
  * first page lists the areas, like the phone's own settings, and each opens as
  * a page of its own with a way back: who is on the trip and its guests, the two
- * links, and the linked journal. One list rather than every card at once, so
- * the sheet stays calm as areas are added. The state is useTripShare's, the same
- * the desktop dialog runs on; only the markup and the questions are the phone's.
+ * links, the linked journal, and for the owner the trip's own addons. One list
+ * rather than every card at once, so the sheet stays calm as areas are added.
+ * The state is useTripShare's and useTripAddonRows', the same the desktop
+ * dialog runs on; only the markup and the questions are the phone's.
  */
 export default function MTripSettingsSheet({
   open,
@@ -463,6 +498,7 @@ export default function MTripSettingsSheet({
     people: t('trip.settings.people'),
     sharing: t('trip.settings.sharing'),
     journal: t('trip.journal.title'),
+    addons: t('trip.settings.addons'),
   };
   const people = m.realMembers.length + m.guests.length;
 
@@ -518,6 +554,13 @@ export default function MTripSettingsSheet({
                   onOpen={() => setPage('journal')}
                 />
               )}
+              {m.isCurrentOwner && (
+                <AreaRow
+                  icon={<Puzzle size={16} strokeWidth={2} />}
+                  label={pageTitle.addons}
+                  onOpen={() => setPage('addons')}
+                />
+              )}
             </nav>
           )}
           {page === 'people' && (
@@ -533,6 +576,7 @@ export default function MTripSettingsSheet({
             </>
           )}
           {page === 'journal' && <TripJournalLinkSection tripId={tripId} />}
+          {page === 'addons' && m.isCurrentOwner && <AddonsSection tripId={tripId} />}
         </div>
       </MSheet>
 

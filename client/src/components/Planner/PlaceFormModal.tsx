@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, useId, type ReactNod
 import type { PlaceClientOrigin, RoadtripStopType, TourListItem } from '@trek/shared'
 import { useAuthStore } from '../../store/authStore'
 import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -120,7 +121,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
-  const isBudgetEnabled = useAddonStore((s) => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(tripId, 'budget')
   const deleteBudgetItem = useTripStore((s) => s.deleteBudgetItem)
   const {
     form, setForm, autoFilledRef, pendingFiles, addFilesFromInput, removeFile, handlePaste, isSaving, setIsSaving,

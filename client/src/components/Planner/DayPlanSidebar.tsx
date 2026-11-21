@@ -33,6 +33,7 @@ import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import { openSaveToCollection } from '../Collections/saveTarget'
 import { computeMultiDayMove as computeMultiDayMoveIn, getDayOrder as getDayOrderIn, type SpanPhase } from './DayPlanSidebar.multiDayMove'
 import { useTranslation } from '../../i18n'
@@ -41,7 +42,6 @@ import { Tooltip } from '../shared/Tooltip'
 import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { BarButton, MoreButton, SoftPill, TimePill, tintOf } from './planParts'
 import './dayPlanRows.css'
-
 import { TypeTile } from './bookings/bookingParts'
 import { typeInfo } from './bookings/bookingsModel'
 import { transportSubtitle } from './transportDetailModel'
@@ -218,7 +218,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
   const toast = useToast()
   const { t, locale } = useTranslation()
   const mirrorServiceStops = useRoadtripSettings(s => s.roadtrip_service_stops_in_days !== false)
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   const tripActions = useRef(useTripStore.getState()).current
 
   const { noteUi, setNoteUi, noteInputRef, dayNotes, openAddNote: _openAddNote, openEditNote: _openEditNote, cancelNote, saveNote, deleteNote: _deleteNote, moveNote: _moveNote } = useDayNotes(tripId)
@@ -1098,7 +1098,7 @@ function useDayPlanSidebar(props: DayPlanSidebarProps) {
 
   // Total Cost reads the expenses in Costs when it is on (#2551).
   const budgetItems = useTripStore(s => s.budgetItems)
-  const costsEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const costsEnabled = useTripAddonEnabled(tripId, 'budget')
   const totalCostLabel = useMemo(() => {
     return formatMoneySum(planCosts({ days, assignments, reservations, budgetItems, costsEnabled, tripCurrency: currency, displayCurrency: costBase }).total, costBase, locale, fxRates)
   }, [days, assignments, reservations, budgetItems, costsEnabled, currency, costBase, locale, fxRates])
@@ -1276,7 +1276,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
   const dateFirst = useSettingsStore(s => s.settings.day_date_first === true)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   // Plugin time contributions in the day plan (dayScheduleProvider hook).
   const daySchedule = usePluginDaySchedule(tripId)
   // Per-day colours from the dayTintProvider hook — e.g. which leg of the trip a

@@ -123,6 +123,16 @@ export interface TripStoreState
   clearTripGone: () => void
 }
 
+/**
+ * What a section reads as when the trip has its addon switched off: the server
+ * answers 404 ("Lists addon is not enabled") for it, which is no reason to fail
+ * the whole trip. Any other failure is rethrown as before.
+ */
+function emptyWhenAddonOff<T>(err: unknown, empty: T): T {
+  if ((err as { response?: { status?: number } } | null)?.response?.status === 404) return empty
+  throw err
+}
+
 export const useTripStore = create<TripStoreState>((set, get) => ({
   trip: null,
   days: [],
@@ -188,8 +198,9 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         tripRepo.get(tripId),
         dayRepo.list(tripId),
         placeRepo.list(tripId),
-        packingRepo.list(tripId),
-        todoRepo.list(tripId),
+        // A trip with Lists switched off answers 404 for both; the trip still opens, without them.
+        packingRepo.list(tripId).catch(err => emptyWhenAddonOff(err, { items: [] as PackingItem[] })),
+        todoRepo.list(tripId).catch(err => emptyWhenAddonOff(err, { items: [] as TodoItem[] })),
         // Budget / reservations / files are hydrated here too so the offline
         // path is uniform (no separate tab-gated effects). Non-fatal: a failure
         // in any of these must not blank the whole trip.

@@ -70,8 +70,9 @@ export function useTourWorkspace(planner: TripPlanner, canPlaceEdit: boolean, ca
     tripMembers,
     upsertTour,
   } = planner;
-  // wanderer only while the admin allows it under Tours (the store reads Tours being on into it too).
-  const wandererAllowed = useAddonStore((state) => state.toursWanderer);
+  // wanderer only while the admin allows it under Tours, and Tours is on for this trip (the
+  // instance switch or the trip's own).
+  const wandererAllowed = useAddonStore((state) => state.toursOptions.wanderer) && !!enabledAddons.tours;
   // The workspace is up where its tab is: on a desktop, and in the touch shell on a
   // large screen (an iPad, an unfolded foldable). The app counts as a phone shell on
   // every device, so the phone test alone left the tablet's editor switched off.

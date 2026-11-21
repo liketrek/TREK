@@ -1113,8 +1113,8 @@
       "mobile": ["src/mobile/screens/admin/MAdminSchoolHolidayCatalog.tsx"]
     },
     {
-      "feature": "Trip settings: members, guests, public and invite link",
-      "hooks": ["src/components/Trips/useTripShare.ts"],
+      "feature": "Trip settings: members, guests, public and invite link, the trip's own addons",
+      "hooks": ["src/components/Trips/useTripShare.ts", "src/components/Trips/useTripAddonRows.ts"],
       "desktop": ["src/components/Trips/TripShareDialog.tsx"],
       "mobile": ["src/mobile/screens/trip/sheets/MTripSettingsSheet.tsx"]
     }

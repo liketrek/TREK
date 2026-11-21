@@ -14,7 +14,7 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 import { formatMoney, formatMoneySum, formatClockTime, splitReservationDateTime, type MoneyEntry } from '../../utils/formatters'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore } from '../../store/tripStore'
-import { useAddonStore } from '../../store/addonStore'
+import { tripAddonEnabledNow } from '../../store/tripAddonsStore'
 import { projectDayItinerary } from '../Map/dayTourProjection'
 import { planCosts } from '../Planner/planCosts'
 import { routeDistanceLabel } from '../Map/tripRouteLabels'
@@ -180,8 +180,10 @@ interface downloadTripPDFProps {
   showServiceStops?: boolean
   /** The trip's expenses, which the cost figures add up with Costs on (#2551). Read from the trip store when left out. */
   budgetItems?: BudgetItem[]
-  /** Whether the Costs addon is on. Read from the addon store when left out. */
+  /** Whether the Costs addon is on for this trip. Read from the trip's addons when left out. */
   costsEnabled?: boolean
+  /** Whether the Tours addon is on for this trip. Read from the trip's addons when left out. */
+  toursEnabled?: boolean
   /** Prints only this member's plan (#2168): the stops and bookings that name them, and the ones that name nobody. */
   onlyUserId?: number
   /** The planner's road trip vias and tour stages, and the routing progress and stop (#2876). */
@@ -192,7 +194,7 @@ interface downloadTripPDFProps {
 
 // `assignments` is normalised here once, to the plan's own list; every read below
 // (and fetchPlacePhotos) relies on it being an object.
-export async function downloadTripPDF({ trip, days, places, assignments: allStored = {}, categories, dayNotes, reservations: allReservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true, budgetItems, costsEnabled, onlyUserId, route, signal }: downloadTripPDFProps) {
+export async function downloadTripPDF({ trip, days, places, assignments: allStored = {}, categories, dayNotes, reservations: allReservations = [], t: _t, locale: _locale, timeFormat: _timeFormat, distanceUnit: _distanceUnit, showServiceStops = true, budgetItems, costsEnabled, toursEnabled: toursOn, onlyUserId, route, signal }: downloadTripPDFProps) {
   const { assignments: stored, reservations } = onlyUserId != null
     ? onlyMyPlan(allStored, allReservations, onlyUserId)
     : { assignments: allStored, reservations: allReservations }
@@ -226,7 +228,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
 
   const unit: DistanceUnit = (_distanceUnit || useSettingsStore.getState().settings.distance_unit) === 'imperial'
     ? 'imperial' : 'metric'
-  const toursEnabled = useAddonStore.getState().isEnabled('tours')
+  const toursEnabled = toursOn ?? tripAddonEnabledNow(trip.id, 'tours')
   const hasInvalidTour = toursEnabled && Object.values(assignments).some(list =>
     projectDayItinerary(list || [], true, places).some(item => item.kind === 'tour' && !item.valid))
   const { route: tripRoute, mapSvg: tripMapSvg } = await drawTripRoute({
@@ -289,7 +291,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
   // The same figures the plan shows (#2551): the expenses with Costs on, each once,
   // else each planned place's own price once. An expense linked to a place finds its
   // day through every stop, the booked night's included.
-  const withCosts = costsEnabled ?? useAddonStore.getState().isEnabled('budget')
+  const withCosts = costsEnabled ?? tripAddonEnabledNow(trip.id, 'budget')
   const costs = planCosts({
     days: sorted,
     assignments: withCosts ? stored : assignments,

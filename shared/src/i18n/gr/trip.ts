@@ -111,6 +111,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharingHint':
     'Ένας σύνδεσμος μόνο για ανάγνωση για όλους και ένας σύνδεσμος πρόσκλησης για συμμετοχή.',
   'trip.settings.editTripHint': 'Τίτλος, ημερομηνίες, εξώφυλλο, περιγραφή και νόμισμα.',
+  'trip.addons.saveFailed': 'Δεν ήταν δυνατή η αλλαγή των πρόσθετων αυτού του ταξιδιού.',
+  'trip.settings.addons': 'Πρόσθετα',
+  'trip.settings.addonsHint':
+    'Ενεργοποιήστε ή απενεργοποιήστε λειτουργίες μόνο για αυτό το ταξίδι. Ισχύει για όλους στο ταξίδι.',
+  'trip.addons.thisTripOnly': 'Μόνο αυτό το ταξίδι',
   'trip.form.coverTitle': 'Εικόνα εξωφύλλου',
   'trip.form.coverHint': 'Εμφανίζεται στην κάρτα του ταξιδιού και στην κορυφή του σχεδιαστή.',
   'trip.form.aboutTitle': 'Όνομα και περιγραφή',

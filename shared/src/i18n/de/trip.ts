@@ -109,6 +109,10 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Teilen',
   'trip.settings.sharingHint': 'Ein Nur-Lesen-Link für alle und ein Einladungslink zum Beitreten.',
   'trip.settings.editTripHint': 'Titel, Daten, Titelbild, Beschreibung und Währung.',
+  'trip.addons.saveFailed': 'Die Addons dieser Reise konnten nicht geändert werden.',
+  'trip.settings.addons': 'Addons', // same-as-en
+  'trip.settings.addonsHint': 'Funktionen nur für diese Reise ein- oder ausschalten. Das gilt für alle auf der Reise.',
+  'trip.addons.thisTripOnly': 'Nur diese Reise',
   'trip.form.coverTitle': 'Titelbild',
   'trip.form.coverHint': 'Erscheint auf der Karte der Reise und oben im Planer.',
   'trip.form.aboutTitle': 'Name und Beschreibung',

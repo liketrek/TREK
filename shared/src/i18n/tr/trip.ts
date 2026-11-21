@@ -109,6 +109,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Paylaşım',
   'trip.settings.sharingHint': 'Herkes için salt okunur bir bağlantı ve katılmak için davet bağlantısı.',
   'trip.settings.editTripHint': 'Başlık, tarihler, kapak, açıklama ve para birimi.',
+  'trip.addons.saveFailed': 'Bu seyahatin eklentileri değiştirilemedi.',
+  'trip.settings.addons': 'Eklentiler',
+  'trip.settings.addonsHint':
+    'Özellikleri yalnızca bu seyahat için açın veya kapatın. Seyahatteki herkes için geçerlidir.',
+  'trip.addons.thisTripOnly': 'Yalnızca bu seyahat',
   'trip.form.coverTitle': 'Kapak görseli',
   'trip.form.coverHint': 'Seyahat kartında ve planlayıcının üstünde görünür.',
   'trip.form.aboutTitle': 'Ad ve açıklama',

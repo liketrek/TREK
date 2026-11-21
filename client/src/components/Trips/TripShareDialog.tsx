@@ -1,8 +1,9 @@
 import { useId, useState, type ComponentProps, type ReactNode } from 'react'
-import { Check, Copy, Crown, Link2, LogOut, Pencil, Plus, Settings, Trash2, UserMinus, UserPlus, UserRound, Users } from 'lucide-react'
+import { Check, Copy, Crown, Link2, LogOut, Pencil, Plus, Puzzle, Settings, Trash2, UserMinus, UserPlus, UserRound, Users } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomSelect from '../shared/CustomSelect'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import { Tooltip } from '../shared/Tooltip'
 import { DialogButton, DialogHeader, DialogSection, DialogShell, DialogTile, NEUTRAL_TINT, PILL, fs } from '../shared/DialogShell'
 import { AddRowButton, CardHead, INPUT, LABEL, PANEL } from '../shared/dialogParts'
@@ -12,7 +13,8 @@ import TripFormModal from './TripFormModal'
 import { TripJournalLinkSection } from './TripJournalLinkSection'
 import { TripMemberAvatar } from './TripMemberAvatar'
 import { useTripJournalSectionVisible } from './useTripJournalLink'
-import { SHARE_OPTIONS, SHARE_SECTIONS, useShareLink, useTripInviteLink, useTripMembers, type TripMembersState } from './useTripShare'
+import { useTripAddonRows } from './useTripAddonRows'
+import { SHARE_OPTIONS, useShareLink, useTripInviteLink, useTripMembers, type TripMembersState } from './useTripShare'
 
 interface TripShareDialogProps {
   isOpen: boolean
@@ -57,19 +59,21 @@ const NAV_ENTRY_OFF = 'text-content-muted hover:bg-surface-hover hover:text-cont
 
 /**
  * The trip's Settings on the desktop: who is on the trip, its guests, the two
- * links that let others in, and the journal the trip shows.
+ * links that let others in, the journal the trip shows, and for the owner
+ * which addons the trip uses.
  */
 export default function TripShareDialog(props: TripShareDialogProps) {
   return props.isOpen ? <OpenDialog {...props} /> : null
 }
 
-type Area = 'people' | 'sharing' | 'journal' | 'trip'
+type Area = 'people' | 'sharing' | 'journal' | 'addons' | 'trip'
 
 /** The areas of the dialog, each with its icon, its name and the line under the name. */
 const AREAS: { id: Area; icon: (on: boolean) => ReactNode; labelKey: string; hintKey: string }[] = [
   { id: 'people', icon: () => <Users size={16} strokeWidth={2} />, labelKey: 'trip.settings.people', hintKey: 'trip.settings.peopleHint' },
   { id: 'sharing', icon: () => <Link2 size={16} strokeWidth={2} />, labelKey: 'trip.settings.sharing', hintKey: 'trip.settings.sharingHint' },
   { id: 'journal', icon: () => <LinkedJournalIcon size={16} />, labelKey: 'trip.journal.title', hintKey: 'trip.journal.hint' },
+  { id: 'addons', icon: () => <Puzzle size={16} strokeWidth={2} />, labelKey: 'trip.settings.addons', hintKey: 'trip.settings.addonsHint' },
   { id: 'trip', icon: () => <Pencil size={16} strokeWidth={2} />, labelKey: 'dashboard.editTrip', hintKey: 'trip.settings.editTripHint' },
 ]
 
@@ -81,7 +85,7 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, editTrip }: 
   const [area, setArea] = useState<Area>('people')
   const [tripReviewing, setTripReviewing] = useState(false)
   const journalSection = useTripJournalSectionVisible(tripId)
-  const shows: Record<Area, boolean> = { people: true, sharing: m.canManageShare, journal: journalSection, trip: !!editTrip }
+  const shows: Record<Area, boolean> = { people: true, sharing: m.canManageShare, journal: journalSection, addons: m.isCurrentOwner, trip: !!editTrip }
   const areas = AREAS.filter(a => shows[a.id])
   const current = areas.find(a => a.id === area) ?? areas[0]
   const panelOf = (id: Area) => areas.find(a => a.id === id)
@@ -130,6 +134,11 @@ function OpenDialog({ onClose, tripId, tripTitle, onMembersChanged, editTrip }: 
           {journalSection && (
             <AreaPanel area={panelOf('journal')} shown={current.id === 'journal'} titled>
               <TripJournalLinkSection tripId={tripId} framed={false} />
+            </AreaPanel>
+          )}
+          {m.isCurrentOwner && (
+            <AreaPanel area={panelOf('addons')} shown={current.id === 'addons'} titled>
+              <TripAddonsList tripId={tripId} />
             </AreaPanel>
           )}
           {editTrip && (
@@ -418,6 +427,32 @@ function PermChip({ on, disabled, label, hint, onToggle }: { on: boolean; disabl
   return hint ? <Tooltip label={hint}>{chip}</Tooltip> : chip
 }
 
+/** The trip addons, each with its switch; a badge marks the ones the owner set apart from the instance. */
+function TripAddonsList({ tripId }: { tripId: number }) {
+  const { t } = useTranslation()
+  const { rows, loading } = useTripAddonRows(tripId)
+  if (loading) return <div className="h-[120px] animate-pulse rounded-[14px] bg-surface-secondary" />
+  return (
+    <div className={ROWS}>
+      {rows.map(row => (
+        <div key={row.id} className={ROW}>
+          <span className={`flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-surface-tertiary ${row.enabled ? 'text-content' : 'text-content-faint'}`}>
+            <row.Icon size={16} strokeWidth={2} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate font-semibold text-content" style={fs(13.5, 'body')}>{row.name}</span>
+              {row.ownChoice && <span className={`${BADGE} bg-surface-tertiary text-content-muted`} style={fs(10.5, 'caption')}>{t('trip.addons.thisTripOnly')}</span>}
+            </div>
+            {row.description && <p className="m-0 truncate text-content-muted" style={fs(12, 'caption')}>{row.description}</p>}
+          </div>
+          <ToggleSwitch on={row.enabled} onToggle={row.toggle} label={row.name} disabled={row.busy} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** The read-only public link, and which parts of the trip it shows. */
 function PublicLink({ tripId }: { tripId: number }) {
   const { t } = useTranslation()
@@ -429,7 +464,7 @@ function PublicLink({ tripId }: { tripId: number }) {
       <div>
         <span className={LABEL}>{t('share.options')}</span>
         <div className="flex flex-wrap gap-1.5">
-          {SHARE_SECTIONS.map(opt => (
+          {link.sections.map(opt => (
             <PermChip key={opt.key} on={link.perms[opt.key]} disabled={opt.always} label={t(opt.label)}
               onToggle={() => void link.setPerm(opt.key, !link.perms[opt.key])} />
           ))}

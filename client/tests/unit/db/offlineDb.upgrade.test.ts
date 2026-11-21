@@ -58,6 +58,7 @@ const HISTORY: Record<number, StoreSpec> = {
   13: { tourDrafts: 'tripId' },
   14: { routeCache: 'key, savedAt' },
   15: { tripTags: 'tripId' },
+  16: { tripAddons: 'tripId' },
 };
 
 const HISTORY_VERSIONS = Object.keys(HISTORY)
@@ -140,6 +141,12 @@ function rowsAt(version: number): Record<string, Record<string, unknown>> {
     tourDrafts: { tripId: 1, draft: { payload: '{"version":11}', updated_at: '2026-10-22 09:00:00' } },
     routeCache: { key: 'driving:km:11.5,48.1;11.6,48.2', route: { coordinates: [], legs: [] }, savedAt: 13 },
     tripTags: { tripId: 1, tags: [{ id: 91, trip_id: 1, name: 'Viewpoint', color: '#10b981' }] },
+    tripAddons: {
+      tripId: 1,
+      addons: [
+        { id: 'budget', name: 'Costs', icon: 'Wallet', enabled: false, instanceEnabled: true, overridden: true },
+      ],
+    },
   };
   const tables = schemaAt(version);
   return Object.fromEntries(Object.entries(all).filter(([table]) => table in tables));
@@ -386,6 +393,28 @@ const UPGRADE_CASES: Record<number, UpgradeCase> = {
       expect((await db.tripTags.get(1))?.tags.map((tag) => tag.name)).toEqual(['Lookout', 'Zone']);
       // The user's personal tags stay in their own table, as they were.
       expect(await db.tags.count()).toBe(1);
+    },
+  },
+  16: {
+    intent: 'adds the trip addons of each trip, one list per trip, and keeps the tags a trip owns',
+    check: async (db) => {
+      expect((await db.tripTags.get(1))?.tags.map((tag) => tag.name)).toEqual(['Viewpoint']);
+      const costsOff = {
+        id: 'budget',
+        name: 'Costs',
+        icon: 'Wallet',
+        enabled: false,
+        instanceEnabled: true,
+        overridden: true,
+      };
+      await db.table('tripAddons').bulkPut([
+        { tripId: 1, addons: [costsOff] },
+        { tripId: 2, addons: [] },
+      ]);
+      // One row per trip: the list read again replaces the one kept before.
+      await db.table('tripAddons').put({ tripId: 1, addons: [{ ...costsOff, enabled: true, overridden: false }] });
+      expect(await db.tripAddons.count()).toBe(2);
+      expect((await db.tripAddons.get(1))?.addons[0]).toMatchObject({ id: 'budget', enabled: true, overridden: false });
     },
   },
 };

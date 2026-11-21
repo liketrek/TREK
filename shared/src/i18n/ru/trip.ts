@@ -118,6 +118,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Доступ по ссылке',
   'trip.settings.sharingHint': 'Ссылка только для чтения для всех и ссылка-приглашение для участия.',
   'trip.settings.editTripHint': 'Название, даты, обложка, описание и валюта.',
+  'trip.addons.saveFailed': 'Не удалось изменить дополнения этой поездки.',
+  'trip.settings.addons': 'Дополнения',
+  'trip.settings.addonsHint':
+    'Включайте и выключайте функции только для этой поездки. Это действует для всех участников.',
+  'trip.addons.thisTripOnly': 'Только эта поездка',
   'trip.form.coverTitle': 'Обложка',
   'trip.form.coverHint': 'Показывается на карточке поездки и вверху планировщика.',
   'trip.form.aboutTitle': 'Название и описание',

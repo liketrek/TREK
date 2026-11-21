@@ -1,4 +1,4 @@
-import type { Ferrata, RoadtripPreferences, TourActivity, TourDraft, TourListItem, TourObstacleCheck, TourPackingLink, TourProvenance, TourVisit, TourWaypoint } from '@trek/shared';
+import type { Ferrata, RoadtripPreferences, TripAddon, TourActivity, TourDraft, TourListItem, TourObstacleCheck, TourPackingLink, TourProvenance, TourVisit, TourWaypoint } from '@trek/shared';
 import Dexie, { type Table } from 'dexie';
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
 
@@ -78,6 +78,15 @@ interface CachedTourDraft {
 interface CachedTripTags {
   tripId: number;
   tags: Tag[];
+}
+
+/**
+ * The trip addons of one trip as the server last listed them, each on or off for
+ * that trip: one row per trip, so a trip opened offline shows the tabs it had.
+ */
+interface CachedTripAddons {
+  tripId: number;
+  addons: TripAddon[];
 }
 
 /**
@@ -304,6 +313,7 @@ export class TrekOfflineDb extends Dexie {
   tourDrafts!: Table<CachedTourDraft, number>;
   routeCache!: Table<CachedRoute, string>;
   tripTags!: Table<CachedTripTags, number>;
+  tripAddons!: Table<CachedTripAddons, number>;
 
   constructor(name: string = ANON_DB_NAME) {
     super(name);
@@ -400,6 +410,10 @@ export class TrekOfflineDb extends Dexie {
     // v15: the tags a trip owns, one list per trip, so they are offered offline
     // and go with the trip.
     this.version(15).stores({ tripTags: 'tripId' });
+
+    // v16: the trip addons of each trip, on or off for that trip, one list per
+    // trip, so the tabs a trip switched off stay hidden offline too.
+    this.version(16).stores({ tripAddons: 'tripId' });
   }
 }
 
@@ -702,11 +716,13 @@ export async function clearTripData(tripId: number): Promise<void> {
       offlineDb.tourStationVisits,
       offlineDb.tourDrafts,
       offlineDb.tripTags,
+      offlineDb.tripAddons,
     ],
     async () => {
       await offlineDb.roadtripPreferences.delete(tripId);
       await offlineDb.tourDrafts.delete(tripId);
       await offlineDb.tripTags.delete(tripId);
+      await offlineDb.tripAddons.delete(tripId);
       await offlineDb.budgetSettlements.delete(tripId);
       await offlineDb.days.where('trip_id').equals(tripId).delete();
       await offlineDb.places.where('trip_id').equals(tripId).delete();

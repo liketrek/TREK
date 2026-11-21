@@ -34,6 +34,7 @@ vi.mock('../../native/widgets', async (importOriginal) => {
   };
 });
 
+import { collabSummary, packingDetail } from '../../native/widgetOnline';
 import NativeWidgetsSync from './NativeWidgetsSync';
 
 const trip = {
@@ -69,6 +70,8 @@ describe('NativeWidgetsSync', () => {
     vi.useRealTimers();
     await offlineDb.trips.clear();
     await offlineDb.days.clear();
+    await offlineDb.todoItems.clear();
+    await offlineDb.tripAddons.clear();
   });
 
   it('FE-NATIVE-WSYNC-001: writes today and every day ahead, so the widgets turn the day without the app', async () => {
@@ -83,5 +86,30 @@ describe('NativeWidgetsSync', () => {
       ['2026-11-07', 'Harbour'],
       ['2026-11-08', 'Market'],
     ]);
+  });
+
+  it('FE-NATIVE-WSYNC-002: a trip with Lists and Collab switched off shows neither its todos nor its chat', async () => {
+    await offlineDb.todoItems.put({ id: 70, trip_id: 7, name: 'Book ferry', checked: 0 } as never);
+    const off = (id: string) => ({ id, name: id, icon: null, enabled: false, instanceEnabled: true, overridden: true });
+    await offlineDb.tripAddons.put({ tripId: 7, addons: [off('packing'), off('collab')] });
+    vi.mocked(packingDetail).mockClear();
+    vi.mocked(collabSummary).mockClear();
+
+    render(<NativeWidgetsSync />);
+    await waitFor(() => expect(published.calls.length).toBeGreaterThan(0));
+    const snapshot = published.calls[0][0] as { todos?: unknown; collab?: unknown };
+    expect(snapshot.todos).toBeUndefined();
+    expect(snapshot.collab).toBeUndefined();
+    expect(vi.mocked(packingDetail)).not.toHaveBeenCalled();
+    expect(vi.mocked(collabSummary)).not.toHaveBeenCalled();
+  });
+
+  it('FE-NATIVE-WSYNC-003: a trip the device never read the addons of shows its todos, as before', async () => {
+    await offlineDb.todoItems.put({ id: 71, trip_id: 7, name: 'Book ferry', checked: 0 } as never);
+
+    render(<NativeWidgetsSync />);
+    await waitFor(() => expect(published.calls.length).toBeGreaterThan(0));
+    const snapshot = published.calls[0][0] as { todos?: { items?: unknown[] } };
+    expect(snapshot.todos).toBeDefined();
   });
 });

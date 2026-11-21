@@ -13,6 +13,7 @@ import { useSettingsStore } from '../../src/store/settingsStore';
 import { useTourMapViewportStore } from '../../src/store/tourMapViewportStore';
 import { useTourMapVisibilityStore } from '../../src/store/tourMapVisibilityStore';
 import { useTrackMarkToolStore } from '../../src/store/trackMarkToolStore';
+import { useTripAddonsStore } from '../../src/store/tripAddonsStore';
 import { useTripStore } from '../../src/store/tripStore';
 import { useVacayStore } from '../../src/store/vacayStore';
 
@@ -54,6 +55,8 @@ export const RESET_STORES: Record<string, ResettableStore> = {
   useFlightLiveStore,
   // The mail inbox and its pending count, which the menus of every shell read.
   useMailIngestStore,
+  // The trip addons per trip, which every trip view reads: a list one test loaded must not decide the next one's tabs.
+  useTripAddonsStore,
 };
 
 /** Not reset so far; moving one into RESET_STORES changes what every file that resets starts from. */

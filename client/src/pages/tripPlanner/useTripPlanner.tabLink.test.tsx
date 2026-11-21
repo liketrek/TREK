@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 
 import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { makeActions } from '../../../tests/helpers/plannerActions';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { addonsApi, airtrailApi, authApi, healthApi, tripsApi } from '../../api/client';
+import { resetAllStores, seedInstanceAddons, seedStore } from '../../../tests/helpers/store';
+import { airtrailApi, authApi, healthApi, tripsApi } from '../../api/client';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore } from '../../store/authStore';
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore';
@@ -80,7 +80,7 @@ beforeEach(() => {
     ...(makeActions() as unknown as Partial<TripStoreState>),
   } as Partial<TripStoreState>);
 
-  vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [{ id: 'collab' }] });
+  seedInstanceAddons(['collab']);
   vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({});
   vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false });
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [] });

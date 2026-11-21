@@ -9,7 +9,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { translateApiError, useTranslation } from '../../../i18n';
 import { tourPackingLinkRepo } from '../../../repo/tourPackingLinkRepo';
-import { useAddonStore } from '../../../store/addonStore';
+import { useTripAddonEnabled } from '../../../store/tripAddonsStore';
 import { useTripStore } from '../../../store/tripStore';
 import type { PackingItem } from '../../../types';
 import { packingCategoryOrder, packingViewItems } from '../../Packing/packingListModel';
@@ -42,7 +42,7 @@ interface TourPackingCategory extends PackingCategoryChoice {
 export function useTourPackingLink({ tripId, tour }: { tripId: number; tour: TourListItem }) {
   const { t } = useTranslation();
   const toast = useToast();
-  const packingEnabled = useAddonStore((state) => state.isEnabled('packing'));
+  const packingEnabled = useTripAddonEnabled(tripId, 'packing');
   const items = useTripStore((state) => state.packingItems);
   const placeId = tour.place_id;
   const key = `${tripId}:${placeId}`;

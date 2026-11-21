@@ -113,6 +113,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Zdieľanie',
   'trip.settings.sharingHint': 'Odkaz len na čítanie pre kohokoľvek a pozvánka na pripojenie.',
   'trip.settings.editTripHint': 'Názov, termíny, obálka, popis a mena.',
+  'trip.addons.saveFailed': 'Doplnky tohto výletu sa nepodarilo zmeniť.',
+  'trip.settings.addons': 'Doplnky',
+  'trip.settings.addonsHint':
+    'Zapnite alebo vypnite funkcie len pre tento výlet. Platí to pre všetkých účastníkov výletu.',
+  'trip.addons.thisTripOnly': 'Len tento výlet',
   'trip.form.coverTitle': 'Titulný obrázok',
   'trip.form.coverHint': 'Zobrazí sa na karte cesty a hore v plánovači.',
   'trip.form.aboutTitle': 'Názov a popis',

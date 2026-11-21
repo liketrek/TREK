@@ -109,6 +109,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Partage',
   'trip.settings.sharingHint': "Un lien en lecture seule pour tous, et un lien d'invitation pour rejoindre.",
   'trip.settings.editTripHint': 'Titre, dates, couverture, description et devise.',
+  'trip.addons.saveFailed': 'Impossible de modifier les modules de ce voyage.',
+  'trip.settings.addons': 'Modules',
+  'trip.settings.addonsHint':
+    'Activez ou désactivez des fonctions pour ce voyage uniquement. Cela vaut pour tous les participants.',
+  'trip.addons.thisTripOnly': 'Ce voyage uniquement',
   'trip.form.coverTitle': 'Image de couverture',
   'trip.form.coverHint': 'Affichée sur la carte du voyage et en haut du planificateur.',
   'trip.form.aboutTitle': 'Nom et description',

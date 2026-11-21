@@ -119,6 +119,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Paylaşma',
   'trip.settings.sharingHint': 'Hər kəs üçün yalnız oxunan keçid və qoşulmaq üçün dəvət keçidi.',
   'trip.settings.editTripHint': 'Ad, tarixlər, üz qabığı, təsvir və valyuta.',
+  'trip.addons.saveFailed': 'Bu səyahətin əlavələrini dəyişmək mümkün olmadı.',
+  'trip.settings.addons': 'Əlavələr',
+  'trip.settings.addonsHint':
+    'Funksiyaları yalnız bu səyahət üçün açın və ya bağlayın. Bu, səyahətdəki hər kəsə aiddir.',
+  'trip.addons.thisTripOnly': 'Yalnız bu səyahət',
   'trip.form.coverTitle': 'Örtük şəkli',
   'trip.form.coverHint': 'Səfərin kartında və planlayıcının yuxarısında göstərilir.',
   'trip.form.aboutTitle': 'Ad və təsvir',

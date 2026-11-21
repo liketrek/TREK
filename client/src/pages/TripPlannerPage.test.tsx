@@ -456,7 +456,7 @@ describe('TripPlannerPage', () => {
     it('shows PackingListPanel after clicking the Lists tab with packing addon enabled', async () => {
       server.use(
         http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
+          HttpResponse.json({ addons: [{ id: 'packing', type: 'trip', enabled: true }] })
         )
       );
 
@@ -483,7 +483,7 @@ describe('TripPlannerPage', () => {
     it('shows CostsPanel after clicking the Costs tab with budget addon enabled', async () => {
       server.use(
         http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })
+          HttpResponse.json({ addons: [{ id: 'budget', type: 'trip', enabled: true }] })
         )
       );
 
@@ -510,7 +510,7 @@ describe('TripPlannerPage', () => {
     it('shows FileManager after clicking the Files tab with documents addon enabled', async () => {
       server.use(
         http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
+          HttpResponse.json({ addons: [{ id: 'documents', type: 'trip', enabled: true }] })
         )
       );
 
@@ -537,7 +537,7 @@ describe('TripPlannerPage', () => {
     it('shows CollabPanel after clicking the Collab tab with collab addon enabled', async () => {
       server.use(
         http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
+          HttpResponse.json({ addons: [{ id: 'collab', type: 'trip', enabled: true }] })
         )
       );
 
@@ -665,7 +665,7 @@ describe('TripPlannerPage', () => {
     it('shows TodoListPanel after switching to the Todo subtab inside Lists', async () => {
       server.use(
         http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
+          HttpResponse.json({ addons: [{ id: 'packing', type: 'trip', enabled: true }] })
         )
       );
 
@@ -1393,7 +1393,7 @@ describe('TripPlannerPage', () => {
     it('calls FileManager onUpload/onDelete/onUpdate to cover inline lambda bodies', async () => {
       server.use(
         http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
+          HttpResponse.json({ addons: [{ id: 'documents', type: 'trip', enabled: true }] })
         )
       );
 
@@ -1838,7 +1838,7 @@ describe('TripPlannerPage', () => {
     // road-trip hooks then read their own endpoints, answered empty here.
     const enterRoadtrip = () => {
       server.use(
-        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'roadtrip', type: 'roadtrip' }] })),
+        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'roadtrip', type: 'trip', enabled: true }] })),
         http.get('/api/trips/42/roadtrip/vias', () => HttpResponse.json({ vias: [], tracks: [] })),
         http.get('/api/trips/42/roadtrip/preferences', () => HttpResponse.json({ tripId: 42, preferences: {} })),
       );

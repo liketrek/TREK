@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, Plus, TrainFront, TramFront, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { MBookingCodeStatus, MBookingNotes, MBookingTravelers, MRouteStopCard } from './MBookingFields'
-import { useAddonStore } from '../../../../store/addonStore'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import { useTranslation } from '../../../../i18n'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
@@ -56,7 +56,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
   } = planner
   const { locale } = useTranslation()
 
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(tripId, 'budget')
   const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
   // The trip's places, offered by every location field of the manual tab (#2468).
   const locationPicks = useMemo(() => toLocationPicks(places), [places])

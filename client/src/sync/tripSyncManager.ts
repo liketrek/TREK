@@ -1,6 +1,7 @@
 import { roadtripPreferencesRepo } from '../repo/roadtripPreferencesRepo'
 import { tourRepo } from '../repo/tourRepo'
 import { tripTagRepo } from '../repo/tripTagRepo'
+import { tripAddonsRepo } from '../repo/tripAddonsRepo'
 /**
  * Trip sync manager — seeds Dexie with trip data for offline use.
  *
@@ -35,6 +36,9 @@ import { isEffectivelyOffline } from './networkMode'
 import { getOfflinePrefs, isTripOfflineEnabled, isTripPinned } from './offlinePrefs'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAddonStore } from '../store/addonStore'
+import { useTripAddonsStore } from '../store/tripAddonsStore'
+import { tripAddonEnabled } from '../utils/tripAddons'
+import type { TripAddon } from '@trek/shared'
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember } from '../types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -144,6 +148,12 @@ async function syncTrip(tripId: number): Promise<void> {
     filesCachedCount: 0,
   })
 
+  // Which addons the trip has on, kept for offline use and decided before the
+  // optional caches below. Never fatal: without the list each addon follows the
+  // instance switch, as it did before a trip could switch its own.
+  const tripAddons = await readTripAddons(tripId)
+  const addonOn = (id: string) => tripAddonEnabled(tripAddons, id, useAddonStore.getState().isEnabled(id))
+
   // Last, and never fatal. Driving settings belong to an optional addon: the
   // route answers 404 when it is off, and the repo's own offline fallback throws
   // a bare Error when there is no cached row yet, which is exactly the state a
@@ -152,7 +162,7 @@ async function syncTrip(tripId: number): Promise<void> {
   // reported it stored, so Settings said "N trips ready" over an empty database.
   // Asked only while the addon is on, like the tours below: with it off, every
   // trip of a dashboard load spent a request on a 404.
-  if (useAddonStore.getState().isEnabled('roadtrip')) {
+  if (addonOn('roadtrip')) {
     await roadtripPreferencesRepo.read(tripId).catch(() => { /* optional cache */ })
   }
 
@@ -167,12 +177,25 @@ async function syncTrip(tripId: number): Promise<void> {
   // Tours, the same way: optional, and never fatal. Without them every Tour
   // reads as a plain place offline. Asked only while the addon is on, so a
   // sync of many trips does not spend a refused request on each.
-  if (useAddonStore.getState().isEnabled('tours')) {
+  if (addonOn('tours')) {
     try {
       await cacheTripTours(tripId)
     } catch (err) {
       console.warn(`[sync] tours for trip ${tripId} not cached:`, err)
     }
+  }
+}
+
+/** The trip's addons, read and kept for offline use, and put in the store for the open views; null when unreadable. */
+async function readTripAddons(tripId: number): Promise<TripAddon[] | null> {
+  try {
+    const addons = await tripAddonsRepo.list(tripId)
+    useTripAddonsStore.getState().publish(tripId, addons)
+    return addons
+  } catch {
+    // An optional cache like the ones after it: a trip opened offline then shows
+    // the instance switches, until the next sync reads its own.
+    return null
   }
 }
 

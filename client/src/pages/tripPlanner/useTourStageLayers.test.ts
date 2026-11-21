@@ -29,7 +29,7 @@ const basesOf = (p: Planner, zoom: number | null = null) =>
   renderHook(() => useTourStageLayers(p, ferrata, zoom)).result.current;
 
 describe('useTourStageLayers: OpenHikingMap (MAP-01)', () => {
-  beforeEach(() => useAddonStore.setState({ toursHikingMap: true, toursCycleMap: true }));
+  beforeEach(() => useAddonStore.setState({ toursOptions: { wanderer: false, hikingMap: true, cycleMap: true } }));
 
   it('offers it while a hike is open: planned as a draft, a saved tour in the editor, or an import viewed as it came in', () => {
     const viewed = { type: 'view-gpx', placeId: 9, tour: { place_id: 9, tour_type: 'hike' } as TourListItem } as const;
@@ -54,7 +54,7 @@ describe('useTourStageLayers: OpenHikingMap (MAP-01)', () => {
   });
 
   it('not where the admin withdrew it', () => {
-    useAddonStore.setState({ toursHikingMap: false });
+    useAddonStore.setState({ toursOptions: { wanderer: false, hikingMap: false, cycleMap: true } });
     expect(basesOf(planner({ type: 'new-draft' })).tourLayers.bases).not.toContain('hiking');
   });
 
@@ -67,7 +67,7 @@ describe('useTourStageLayers: OpenHikingMap (MAP-01)', () => {
       expect(layers.tourLayers.baseHealth).toMatchObject({ base: 'cycle', down: false });
     }
     expect(basesOf(planner({ type: 'new-draft' }, 'hike', 'cycle')).baseLayer).toBe('default');
-    useAddonStore.setState({ toursCycleMap: false });
+    useAddonStore.setState({ toursOptions: { wanderer: false, hikingMap: true, cycleMap: false } });
     expect(basesOf(planner({ type: 'new-draft' }, 'bike', 'cycle')).tourLayers.bases).not.toContain('cycle');
   });
 });

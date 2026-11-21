@@ -6,6 +6,7 @@ import {
 import MDancingTrek from '../../../components/MDancingTrek'
 import MChipStrip from '../../../components/MChipStrip'
 import { useAddonStore } from '../../../../store/addonStore'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -45,7 +46,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
   const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   // Top level of the places browser, mirroring the desktop right add-panel's
   // Places <-> Tours switch placement.
   const [toursMode, setToursMode] = useState(false)

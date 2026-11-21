@@ -365,6 +365,48 @@ describe('tripSyncManager.syncAll — tours', () => {
     expect(await offlineDb.syncMeta.get(312)).toBeDefined();
   });
 
+  describe("the trip's own addons", () => {
+    const toursAddon = (enabled: boolean, instanceEnabled: boolean) => ({
+      id: 'tours', name: 'Tours', icon: 'Mountain', enabled, instanceEnabled, overridden: enabled !== instanceEnabled,
+    });
+    const serveAddons = (tripId: number, addons: unknown[]) =>
+      server.use(http.get(`/api/trips/${tripId}/addons`, () => HttpResponse.json({ tripId, addons })));
+
+    it('keeps the list for offline use and caches tours for a trip that switched them on', async () => {
+      // Off for the instance, on for this trip.
+      serveAddons(314, [toursAddon(true, false)]);
+      serve(314, () => HttpResponse.json({ tours: [tour] }));
+
+      await tripSyncManager.syncAll();
+
+      expect((await offlineDb.tripAddons.get(314))?.addons).toEqual([toursAddon(true, false)]);
+      expect(await offlineDb.tours.get(900)).toMatchObject({ trip_id: 314 });
+    });
+
+    it('does not ask for the tours of a trip that switched them off', async () => {
+      useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never });
+      serveAddons(315, [toursAddon(false, true)]);
+      const asked = serve(315, () => HttpResponse.json({ tours: [tour] }));
+
+      await tripSyncManager.syncAll();
+
+      expect(asked()).toBe(0);
+      expect(await offlineDb.tours.count()).toBe(0);
+    });
+
+    it('follows the instance switch when the list cannot be read, and still stores the trip', async () => {
+      useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never });
+      server.use(http.get('/api/trips/316/addons', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+      serve(316, () => HttpResponse.json({ tours: [tour] }));
+
+      await tripSyncManager.syncAll();
+
+      expect(await offlineDb.tripAddons.get(316)).toBeUndefined();
+      expect(await offlineDb.tours.get(900)).toMatchObject({ trip_id: 316 });
+      expect(await offlineDb.syncMeta.get(316)).toBeDefined();
+    });
+  });
+
   // CW-03: a city walk shows how far it got offline, and its stops can be checked off there.
   describe('city walks', () => {
     const walk = (place_id: number) => ({ ...tour, place_id, name: `Walk ${place_id}`, tour_type: 'walk', max_hiking_difficulty: null, station_count: 1 });

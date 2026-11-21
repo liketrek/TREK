@@ -32,12 +32,15 @@ import {
   type TripWidgetSnapshot,
   type WidgetLabels,
 } from '../../native/widgets';
+import { cachedTripAddons } from '../../repo/tripAddonsRepo';
+import { instanceAddonOn, useAddonStore } from '../../store/addonStore';
 import { useAuthStore } from '../../store/authStore';
 import { useFlightLiveStore } from '../../store/flightLiveStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useTripStore } from '../../store/tripStore';
 import type { Day, Place, Reservation, TranslationFn, Trip } from '../../types';
 import { formatTime } from '../../utils/formatters';
+import { tripAddonEnabled } from '../../utils/tripAddons';
 import { localDateStr } from '../../vacay/monthGrid';
 
 const REFRESH_MS = 15 * 60 * 1000;
@@ -120,15 +123,31 @@ async function flightOf(trip: Trip, reservations: Reservation[], path: string, c
   return widgetFlight(legs, Date.now(), path, { locale: context.language, timeFormat: context.timeFormat });
 }
 
+/**
+ * Whether the trip has Lists and Collab on, from the list the device kept for it
+ * (the sync reads it with the trip). A trip it never read follows the instance,
+ * and while that is not known either the widgets show both, as they always did.
+ */
+async function tripSections(tripId: number): Promise<{ lists: boolean; collab: boolean }> {
+  const own = await cachedTripAddons(tripId);
+  const instance = useAddonStore.getState();
+  const on = (id: string) => tripAddonEnabled(own, id, instanceAddonOn(instance, id, true));
+  return { lists: on('packing'), collab: on('collab') };
+}
+
 async function tripExtras(trip: Trip, days: Day[], context: SyncContext) {
   const { today, language, unit, time } = context;
-  const [places, reservations, todos, packing, memberRows] = await Promise.all([
+  const [places, reservations, todoRows, packingRows, memberRows, sections] = await Promise.all([
     offlineDb.places.where('trip_id').equals(trip.id).toArray(),
     offlineDb.reservations.where('trip_id').equals(trip.id).toArray(),
     offlineDb.todoItems.where('trip_id').equals(trip.id).toArray(),
     offlineDb.packingItems.where('trip_id').equals(trip.id).toArray(),
     offlineDb.tripMembers.where('tripId').equals(trip.id).toArray(),
+    tripSections(trip.id),
   ]);
+  // A trip with Lists off shows no todos or packing, on the widgets and the watch alike.
+  const todos = sections.lists ? todoRows : [];
+  const packing = sections.lists ? packingRows : [];
   const members = memberRows.length;
   const names = [trip.owner_username, ...memberRows.map((m) => m.username)].filter((n): n is string => !!n);
   const path = `/trips/${trip.id}`;
@@ -144,13 +163,15 @@ async function tripExtras(trip: Trip, days: Day[], context: SyncContext) {
   const [weather, cover, bags, collab, flight] = await Promise.all([
     spot && inRange ? widgetWeather(spot, { date: weatherDate, lang: language, unit, place }) : Promise.resolve(null),
     widgetCover(trip.cover_image),
-    packingDetail(trip.id, packing),
-    collabSummary(
-      trip.id,
-      `/trips/${trip.id}?tab=collab`,
-      [...new Set(names)],
-      useAuthStore.getState().user?.id ?? null
-    ),
+    sections.lists ? packingDetail(trip.id, packing) : Promise.resolve(null),
+    sections.collab
+      ? collabSummary(
+          trip.id,
+          `/trips/${trip.id}?tab=collab`,
+          [...new Set(names)],
+          useAuthStore.getState().user?.id ?? null
+        )
+      : Promise.resolve(null),
     flightOf(trip, reservations, path, context),
   ]);
   const packed = packingSummary(packing, `/trips/${trip.id}?tab=listen`);
@@ -166,7 +187,7 @@ async function tripExtras(trip: Trip, days: Day[], context: SyncContext) {
       memberCount: members > 0 ? members + 1 : 0,
       weather,
       bookings: bookingsAhead(reservations, { dayDates, today, tripPath: path, formatTime: time }),
-      todos: todosSummary(todos, `${path}?tab=listen`),
+      todos: sections.lists ? todosSummary(todos, `${path}?tab=listen`) : undefined,
       packing: packed && bags ? { ...packed, ...bags } : packed,
       collab,
       flight,

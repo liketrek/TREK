@@ -7,7 +7,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { resetAllStores, seedInstanceAddons, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip } from '../../../tests/helpers/factories';
 import TripMembersModal from './TripMembersModal';
 
@@ -101,6 +101,8 @@ beforeEach(() => {
   );
   seedStore(useAuthStore, { user: ownerUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Test Trip' }) });
+  // The instance has the three addons a link section belongs to; the trip names none of its own.
+  seedInstanceAddons(['packing', 'budget', 'collab']);
   addToast = vi.fn<AddToast>(() => 0);
   window.__addToast = addToast;
 });
@@ -1130,5 +1132,35 @@ describe('TripMembersModal', () => {
 
     expect(await screen.findByText('owner')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit Trip' })).toBeNull();
+  });
+
+  it('FE-COMP-MEMBERS-064: the owner switches the trip addons in an area of their own', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    const list = [
+      { id: 'budget', name: 'Budget', icon: 'Wallet', enabled: false, instanceEnabled: true, overridden: true },
+    ];
+    server.use(
+      http.get('/api/trips/1/addons', () => HttpResponse.json({ tripId: 1, addons: list })),
+      http.put('/api/trips/1/addons/:addonId', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ tripId: 1, addons: list });
+      }),
+    );
+    render(<TripMembersModal {...defaultProps} />);
+
+    const nav = await screen.findByRole('navigation', { name: 'Trip settings' });
+    await user.click(await within(nav).findByRole('button', { name: 'Addons' }));
+    expect(await screen.findByText('This trip only')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Costs' }));
+    await waitFor(() => expect(bodies).toEqual([{ enabled: null }]));
+  });
+
+  it('FE-COMP-MEMBERS-065: a member who is not the owner gets no Addons area', async () => {
+    seedStore(useAuthStore, { user: memberUser, isAuthenticated: true });
+    render(<TripMembersModal {...defaultProps} />);
+
+    expect(await screen.findByText('owner')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Addons' })).toBeNull();
   });
 });

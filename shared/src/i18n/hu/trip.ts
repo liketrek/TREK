@@ -111,6 +111,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Megosztás',
   'trip.settings.sharingHint': 'Csak olvasható link bárkinek, és meghívó link a csatlakozáshoz.',
   'trip.settings.editTripHint': 'Cím, dátumok, borítókép, leírás és pénznem.',
+  'trip.addons.saveFailed': 'Az utazás bővítményeit nem sikerült módosítani.',
+  'trip.settings.addons': 'Bővítmények',
+  'trip.settings.addonsHint':
+    'Funkciók be- vagy kikapcsolása csak ehhez az utazáshoz. Ez az utazás minden résztvevőjére vonatkozik.',
+  'trip.addons.thisTripOnly': 'Csak ez az utazás',
   'trip.form.coverTitle': 'Borítókép',
   'trip.form.coverHint': 'Az utazás kártyáján és a tervező tetején jelenik meg.',
   'trip.form.aboutTitle': 'Név és leírás',

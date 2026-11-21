@@ -104,6 +104,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Berbagi',
   'trip.settings.sharingHint': 'Tautan hanya-baca untuk siapa saja, dan tautan undangan untuk bergabung.',
   'trip.settings.editTripHint': 'Judul, tanggal, sampul, deskripsi, dan mata uang.',
+  'trip.addons.saveFailed': 'Add-on perjalanan ini tidak dapat diubah.',
+  'trip.settings.addons': 'Add-on',
+  'trip.settings.addonsHint':
+    'Aktifkan atau nonaktifkan fitur hanya untuk perjalanan ini. Berlaku untuk semua orang di perjalanan.',
+  'trip.addons.thisTripOnly': 'Hanya perjalanan ini',
   'trip.form.coverTitle': 'Gambar sampul',
   'trip.form.coverHint': 'Tampil di kartu perjalanan dan di bagian atas perencana.',
   'trip.form.aboutTitle': 'Nama dan deskripsi',

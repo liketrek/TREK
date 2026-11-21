@@ -16,7 +16,7 @@ import { usePlaceForm } from '../../../../components/Planner/usePlaceForm'
 import { usePlaceTags } from '../../../../components/Planner/usePlaceTags'
 import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { AMOUNT_FIELD_CLS, Eyebrow, FIELD_CLS, FormSheetBody, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import { useAddonStore } from '../../../../store/addonStore'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import type { BookingExpenseRequest } from '../../../../components/Planner/BookingCostsSection.types'
 import PlPlaceSearch, { type PlSearchPick } from './PlPlaceSearch'
 import PlCategoryPicker from './PlCategoryPicker'
@@ -90,7 +90,7 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   const [resolvingPick, setResolvingPick] = useState(false)
   // The hours the details looked up, offered to the hours editor as on the desktop.
   const [detailsHours, setDetailsHours] = useState<PlaceOpeningHours | null>(null)
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(planner.tripId, 'budget')
   // Set right before submit: the place has to exist before an expense can point
   // at it, exactly like MReservationSheet does it.
   const expenseIntentRef = useRef(false)

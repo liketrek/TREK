@@ -108,6 +108,11 @@ const trip: TranslationStrings = {
   'trip.settings.sharing': 'Jagamine',
   'trip.settings.sharingHint': 'Kirjutuskaitstud link kõigile ja kutselink liitumiseks.',
   'trip.settings.editTripHint': 'Pealkiri, kuupäevad, kaanepilt, kirjeldus ja valuuta.',
+  'trip.addons.saveFailed': 'Selle reisi lisasid ei õnnestunud muuta.',
+  'trip.settings.addons': 'Lisad',
+  'trip.settings.addonsHint':
+    'Lülita funktsioone sisse või välja ainult selle reisi jaoks. See kehtib kõigile reisil osalejatele.',
+  'trip.addons.thisTripOnly': 'Ainult see reis',
   'trip.form.coverTitle': 'Kaanepilt',
   'trip.form.coverHint': 'Kuvatakse reisi kaardil ja planeerija ülaosas.',
   'trip.form.aboutTitle': 'Nimi ja kirjeldus',

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRoadtripSettings } from '../../hooks/useRoadtripSettings';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useTripAddonEnabled } from '../../store/tripAddonsStore';
 import type { AssignmentsMap, Category, Day, DayNote, Place, Reservation, Trip } from '../../types';
 import { importChunk } from '../../utils/chunkReload';
 import type { ViasByDay } from '../../utils/dayRouteVias';
@@ -144,6 +145,9 @@ export function useTripExport({
   // them, so it needs the same switch the plan reads.
   const showServiceStops = useRoadtripSettings((s) => s.roadtrip_service_stops_in_days !== false, tripId);
   const myId = useAuthStore((s) => s.user?.id);
+  // The sections the trip has on, as the plan shows them: costs in the figures, tours on the route.
+  const costsEnabled = useTripAddonEnabled(tripId, 'budget');
+  const toursEnabled = useTripAddonEnabled(tripId, 'tours');
   const offerMine = myId != null && hasPersonalPlan(data.assignments, data.reservations);
   const fileBase = data.trip?.title || 'trip';
 
@@ -185,6 +189,8 @@ export function useTripExport({
         timeFormat,
         distanceUnit,
         showServiceStops,
+        costsEnabled,
+        toursEnabled,
         onlyUserId: mine ? myId : undefined,
         route: { viasByDay: data.viasByDay, tourStageStops: data.tourStageStops, ...routing },
         signal: givenUp,

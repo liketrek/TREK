@@ -3,7 +3,7 @@ import { Link2, Ticket } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MWalletButton from '../../../components/MWalletButton'
 import { MBookingCodeStatus, MBookingNotes, MBookingTravelers } from './MBookingFields'
-import { useAddonStore } from '../../../../store/addonStore'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import { useTranslation } from '../../../../i18n'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
@@ -59,7 +59,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   } = planner
   const { locale } = useTranslation()
 
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(tripId, 'budget')
 
   const {
     form, setForm, set, isSaving, setIsSaving, pendingFiles, setPendingFiles, travelerIds, setTravelerIds, toggleTraveler,

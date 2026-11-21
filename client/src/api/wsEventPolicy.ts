@@ -46,6 +46,10 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'roadtripVia:changed',
   'roadtripTrack:changed',
   'roadtripPreferences:changed',
+  // Per-trip addons: store/tripAddonsStore (watchTripAddons, mounted by App through
+  // hooks/useTripAddonsSync) puts the trip's list into the store and the device's copy, so the
+  // tabs and panels a trip switched off disappear for every member at once.
+  'tripAddons:changed',
   // components/Roadtrip/useDayBoundaries reloads the shared boundaries.
   'roadtripBoundary:changed',
   // In-app notifications: hooks/useInAppNotificationListener, which also keeps

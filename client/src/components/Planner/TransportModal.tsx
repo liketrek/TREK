@@ -12,7 +12,7 @@ import { toLocationPicks } from './locationPicks'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useTripStore } from '../../store/tripStore'
-import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import type { Day, Place, Accommodation, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { BookingNotesFilesCosts } from './BookingNotesFilesCosts'
 import { TravelerPicker } from './TravelerPicker'
@@ -83,10 +83,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const toast = useToast()
   // The trip's places, offered by every location field of the manual tab (#2468).
   const locationPicks = useMemo(() => toLocationPicks(places), [places])
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
   const { id: tripId } = useParams<{ id: string }>()
+  const isBudgetEnabled = useTripAddonEnabled(Number(tripId), 'budget')
   // Set right before submitting when the user clicked "create/edit expense", so
   // the post-save handler knows to open the Costs editor for the saved booking.
   const expense = useBookingExpenseIntent(() => handleSubmit(), {
