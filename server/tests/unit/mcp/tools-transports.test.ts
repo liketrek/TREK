@@ -1764,7 +1764,10 @@ describe('update_transport: the flat keys of a legs-only update', () => {
     const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const data = await create(h, trip.id);
-      const legs = [{ from: 'AMS', to: 'CDG' }, { from: 'CDG', to: 'FCO' }];
+      const legs = [
+        { from: 'AMS', to: 'CDG' },
+        { from: 'CDG', to: 'FCO' },
+      ];
       await setMetadata(JSON.stringify({ seat: '22F', legs }), data.reservation.id);
 
       await updateLegs(h, trip.id, data.reservation.id, legs);
