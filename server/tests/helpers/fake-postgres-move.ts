@@ -153,7 +153,7 @@ export class FakePostgres {
         })),
       ]);
     }
-    if (sql.includes("pg_get_serial_sequence(format('%I'")) {
+    if (sql.includes("pg_get_serial_sequence(format('%I.%I'")) {
       return this.schema.flatMap((table) =>
         (table.serial ?? []).map((column) => ({
           table_name: table.name,

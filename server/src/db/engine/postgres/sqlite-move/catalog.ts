@@ -52,11 +52,15 @@ export async function readTargetSchema(trx: Trx): Promise<TargetSchema> {
       "where c.connamespace = current_schema()::regnamespace and c.contype in ('p', 'f') " +
       'group by c.oid, c.contype, src.relname, dst.relname',
   );
+  // The name handed to pg_get_serial_sequence carries its schema: Postgres may evaluate the call before the
+  // table_schema filter, on rows of information_schema itself, whose bare names do not resolve.
   const sequences = await run<{ table_name: string; column_name: string; sequence: string }>(
     trx,
-    "select table_name, column_name, pg_get_serial_sequence(format('%I', table_name), column_name) as sequence " +
+    'select table_name, column_name, ' +
+      "pg_get_serial_sequence(format('%I.%I', table_schema, table_name), column_name) as sequence " +
       'from information_schema.columns where table_schema = current_schema() ' +
-      "and pg_get_serial_sequence(format('%I', table_name), column_name) is not null order by table_name, column_name",
+      "and pg_get_serial_sequence(format('%I.%I', table_schema, table_name), column_name) is not null " +
+      'order by table_name, column_name',
   );
 
   // A unique constraint is backed by an index of its name, so the index names what a refusal reports. Its key
