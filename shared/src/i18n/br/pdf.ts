@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Visão geral da rota',
   'pdf.distanceLabel': 'Distância',
   'pdf.mapCredit': 'Contornos dos países: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Visão geral',
+  'pdf.showPhotos': 'Fotos',
+  'pdf.showDetails': 'Contato e horários',
+  'pdf.atAGlance': 'Em resumo',
+  'pdf.bookings': 'Reservas e hospedagens',
+  'pdf.day': 'Dia',
+  'pdf.stay': 'Hospedagem',
+  'pdf.plan': 'Plano',
 };
 export default pdf;

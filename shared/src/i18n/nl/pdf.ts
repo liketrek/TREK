@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Routeoverzicht',
   'pdf.distanceLabel': 'Afstand',
   'pdf.mapCredit': 'Landcontouren: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Overzicht',
+  'pdf.showPhotos': 'Foto\'s',
+  'pdf.showDetails': 'Contact en openingstijden',
+  'pdf.atAGlance': 'In één oogopslag',
+  'pdf.bookings': 'Boekingen en verblijven',
+  'pdf.day': 'Dag',
+  'pdf.stay': 'Verblijf',
+  'pdf.plan': 'Planning',
 };
 export default pdf;

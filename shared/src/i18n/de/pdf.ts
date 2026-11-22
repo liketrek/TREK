@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Routenübersicht',
   'pdf.distanceLabel': 'Strecke',
   'pdf.mapCredit': 'Ländergrenzen: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Übersicht',
+  'pdf.showPhotos': 'Fotos',
+  'pdf.showDetails': 'Kontakt & Öffnungszeiten',
+  'pdf.atAGlance': 'Auf einen Blick',
+  'pdf.bookings': 'Buchungen & Unterkünfte',
+  'pdf.day': 'Tag',
+  'pdf.stay': 'Unterkunft',
+  'pdf.plan': 'Plan', // same-as-en
 };
 export default pdf;

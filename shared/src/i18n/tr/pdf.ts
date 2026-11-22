@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Rota genel görünümü',
   'pdf.distanceLabel': 'Mesafe',
   'pdf.mapCredit': 'Ülke sınırları: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Genel bakış',
+  'pdf.showPhotos': 'Fotoğraflar',
+  'pdf.showDetails': 'İletişim ve çalışma saatleri',
+  'pdf.atAGlance': 'Bir bakışta',
+  'pdf.bookings': 'Rezervasyonlar ve konaklamalar',
+  'pdf.day': 'Gün',
+  'pdf.stay': 'Konaklama',
+  'pdf.plan': 'Program',
 };
 export default pdf;

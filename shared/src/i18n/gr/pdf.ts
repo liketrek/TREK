@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Επισκόπηση διαδρομής',
   'pdf.distanceLabel': 'Απόσταση',
   'pdf.mapCredit': 'Περιγράμματα χωρών: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Επισκόπηση',
+  'pdf.showPhotos': 'Φωτογραφίες',
+  'pdf.showDetails': 'Επικοινωνία και ωράριο',
+  'pdf.atAGlance': 'Με μια ματιά',
+  'pdf.bookings': 'Κρατήσεις και διαμονή',
+  'pdf.day': 'Ημέρα',
+  'pdf.stay': 'Διαμονή',
+  'pdf.plan': 'Πρόγραμμα',
 };
 export default pdf;

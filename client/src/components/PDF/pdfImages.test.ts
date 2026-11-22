@@ -8,7 +8,7 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { server } from '../../../tests/helpers/msw/server';
-import { shrinkPdfImages } from './pdfImages';
+import { shrinkPdfImages, STRIP_PX } from './pdfImages';
 
 const origin = window.location.origin;
 const JPEG = 'data:image/jpeg;base64,c21hbGw=';
@@ -64,19 +64,27 @@ afterEach(() => {
 });
 
 describe('shrinkPdfImages', () => {
-  it('FE-PDFIMAGES-001: a same-origin photo comes back as a JPEG with its short side at 156 px', async () => {
+  it('FE-PDFIMAGES-001: a same-origin photo comes back as a JPEG with its short side at 222 px', async () => {
     const url = `${origin}/uploads/places/a.jpg`;
     const shrunk = await shrinkPdfImages([url]);
 
     expect(shrunk.get(url)).toBe(JPEG);
-    expect(drawn).toEqual([{ width: 234, height: 156 }]);
+    expect(drawn).toEqual([{ width: 333, height: 222 }]);
     expect(HTMLCanvasElement.prototype.toDataURL).toHaveBeenCalledWith('image/jpeg', expect.any(Number));
   });
 
   it('FE-PDFIMAGES-001b: a photo is decoded near thumbnail size, not in full', async () => {
     await shrinkPdfImages([`${origin}/uploads/places/a.jpg`]);
 
-    expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), { resizeHeight: 312, resizeQuality: 'medium' });
+    expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), { resizeHeight: 444, resizeQuality: 'medium' });
+  });
+
+  it('FE-PDFIMAGES-001c: the photo strip of a day asks for a larger copy, decoded at twice its size', async () => {
+    const url = `${origin}/uploads/places/a.jpg`;
+    await shrinkPdfImages([url], undefined, STRIP_PX);
+
+    expect(drawn).toEqual([{ width: 720, height: 480 }]);
+    expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), { resizeHeight: 960, resizeQuality: 'medium' });
   });
 
   it('FE-PDFIMAGES-002: a photo from another origin keeps its URL and is never fetched', async () => {

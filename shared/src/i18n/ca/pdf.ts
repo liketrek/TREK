@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Resum de la ruta',
   'pdf.distanceLabel': 'Distància',
   'pdf.mapCredit': 'Contorns dels països: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Resum',
+  'pdf.showPhotos': 'Fotos',
+  'pdf.showDetails': 'Contacte i horaris',
+  'pdf.atAGlance': 'D\'un cop d\'ull',
+  'pdf.bookings': 'Reserves i allotjaments',
+  'pdf.day': 'Dia',
+  'pdf.stay': 'Allotjament',
+  'pdf.plan': 'Pla',
 };
 export default pdf;

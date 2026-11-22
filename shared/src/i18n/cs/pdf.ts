@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Přehled trasy',
   'pdf.distanceLabel': 'Vzdálenost',
   'pdf.mapCredit': 'Obrysy zemí: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Přehled',
+  'pdf.showPhotos': 'Fotky',
+  'pdf.showDetails': 'Kontakt a otevírací doba',
+  'pdf.atAGlance': 'Na první pohled',
+  'pdf.bookings': 'Rezervace a ubytování',
+  'pdf.day': 'Den',
+  'pdf.stay': 'Ubytování',
+  'pdf.plan': 'Plán',
 };
 export default pdf;

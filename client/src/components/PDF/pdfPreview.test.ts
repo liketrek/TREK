@@ -1,12 +1,21 @@
 /**
- * FE-PDFPREVIEW-001 to FE-PDFPREVIEW-007: the trip PDF's preview and the control
+ * FE-PDFPREVIEW-001 to FE-PDFPREVIEW-009: the trip PDF's preview and the control
  * that saves it. An iPhone or iPad ignores print() in the Home Screen app, so
  * there the preview hands the export to Safari instead of offering a button that
  * does nothing.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { LARGE_TEXT_KEY, PAGE_BREAK_KEY, openPdfPreview, type PdfPreviewOptions } from './pdfPreview';
+import {
+  COORDINATES_KEY,
+  DETAILS_KEY,
+  LARGE_TEXT_KEY,
+  OVERVIEW_KEY,
+  PAGE_BREAK_KEY,
+  PHOTOS_KEY,
+  openPdfPreview,
+  type PdfPreviewOptions,
+} from './pdfPreview';
 
 const tr = (key: string) => key;
 
@@ -20,6 +29,10 @@ function open(overrides: Partial<PdfPreviewOptions> = {}) {
     showTransportNotes: true,
     hasTransportNotes: false,
     largeText: false,
+    photos: true,
+    overview: true,
+    coordinates: true,
+    details: true,
     ...overrides,
   });
 }
@@ -110,5 +123,44 @@ describe('openPdfPreview', () => {
       expect(unit?.style.whiteSpace).toBe('nowrap');
     }
     expect(document.getElementById('pdf-large-text-toggle')?.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('FE-PDFPREVIEW-008: the switches sit in a row of their own under the title and the actions', () => {
+    open({ hasTransportNotes: true });
+    const row = document.getElementById('pdf-settings-row');
+    const ids = [...(row?.querySelectorAll('[role="switch"]') ?? [])].map((toggle) => toggle.id);
+    expect(ids).toEqual([
+      'pdf-daybreak-toggle',
+      'pdf-large-text-toggle',
+      'pdf-overview-toggle',
+      'pdf-photos-toggle',
+      'pdf-coordinates-toggle',
+      'pdf-details-toggle',
+      'pdf-transport-notes-toggle',
+    ]);
+    // The header keeps only the title and its two actions.
+    expect(row?.previousElementSibling?.querySelector('[role="switch"]')).toBeNull();
+    expect(row?.previousElementSibling?.querySelector('#pdf-print-btn')).not.toBeNull();
+  });
+
+  it.each([
+    ['pdf-overview-toggle', OVERVIEW_KEY, 'pdf-no-overview'],
+    ['pdf-photos-toggle', PHOTOS_KEY, 'pdf-no-photos'],
+    ['pdf-coordinates-toggle', COORDINATES_KEY, 'pdf-no-coords'],
+    ['pdf-details-toggle', DETAILS_KEY, 'pdf-no-details'],
+  ])('FE-PDFPREVIEW-009: %s hides its part of the open document at once and is remembered', (id, key, hidden) => {
+    open();
+    const toggle = document.getElementById(id);
+    const body = document.querySelector<HTMLIFrameElement>('#pdf-preview-overlay iframe')?.contentDocument?.body;
+    expect(toggle?.getAttribute('aria-checked')).toBe('true');
+
+    toggle?.click();
+    expect(toggle?.getAttribute('aria-checked')).toBe('false');
+    expect(localStorage.getItem(key)).toBe('0');
+    if (body) expect(body.classList.contains(hidden)).toBe(true);
+
+    toggle?.click();
+    expect(localStorage.getItem(key)).toBe('1');
+    if (body) expect(body.classList.contains(hidden)).toBe(false);
   });
 });

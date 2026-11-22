@@ -14,5 +14,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'ภาพรวมเส้นทาง',
   'pdf.distanceLabel': 'ระยะทาง',
   'pdf.mapCredit': 'ขอบเขตประเทศ: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'ภาพรวม',
+  'pdf.showPhotos': 'รูปภาพ',
+  'pdf.showDetails': 'ติดต่อและเวลาทำการ',
+  'pdf.atAGlance': 'สรุปโดยย่อ',
+  'pdf.bookings': 'การจองและที่พัก',
+  'pdf.day': 'วัน',
+  'pdf.stay': 'ที่พัก',
+  'pdf.plan': 'แผน',
 };
 export default pdf;

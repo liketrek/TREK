@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Marsruudi ülevaade',
   'pdf.distanceLabel': 'Vahemaa',
   'pdf.mapCredit': 'Riigipiirid: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Ülevaade',
+  'pdf.showPhotos': 'Fotod',
+  'pdf.showDetails': 'Kontakt ja lahtiolekuajad',
+  'pdf.atAGlance': 'Ühe pilguga',
+  'pdf.bookings': 'Broneeringud ja majutus',
+  'pdf.day': 'Päev',
+  'pdf.stay': 'Majutus',
+  'pdf.plan': 'Plaan',
 };
 export default pdf;

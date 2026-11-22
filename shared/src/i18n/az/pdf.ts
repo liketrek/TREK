@@ -15,6 +15,14 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Marşrutun icmalı',
   'pdf.distanceLabel': 'Məsafə',
   'pdf.mapCredit': 'Ölkə sərhədləri: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'İcmal',
+  'pdf.showPhotos': 'Fotolar',
+  'pdf.showDetails': 'Əlaqə və iş saatları',
+  'pdf.atAGlance': 'Bir baxışda',
+  'pdf.bookings': 'Rezervasiyalar və yerləşmə',
+  'pdf.day': 'Gün',
+  'pdf.stay': 'Yerləşmə',
+  'pdf.plan': 'Plan', // same-as-en
 };
 
 export default pdf;

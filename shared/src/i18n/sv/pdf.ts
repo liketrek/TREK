@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Ruttöversikt',
   'pdf.distanceLabel': 'Sträcka',
   'pdf.mapCredit': 'Landskonturer: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Översikt',
+  'pdf.showPhotos': 'Foton',
+  'pdf.showDetails': 'Kontakt och öppettider',
+  'pdf.atAGlance': 'I korthet',
+  'pdf.bookings': 'Bokningar och boenden',
+  'pdf.day': 'Dag',
+  'pdf.stay': 'Boende',
+  'pdf.plan': 'Plan', // same-as-en
 };
 export default pdf;

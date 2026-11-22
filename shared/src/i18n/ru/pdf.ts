@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Обзор маршрута',
   'pdf.distanceLabel': 'Расстояние',
   'pdf.mapCredit': 'Контуры стран: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Обзор',
+  'pdf.showPhotos': 'Фото',
+  'pdf.showDetails': 'Контакты и часы работы',
+  'pdf.atAGlance': 'Коротко',
+  'pdf.bookings': 'Бронирования и жильё',
+  'pdf.day': 'День',
+  'pdf.stay': 'Жильё',
+  'pdf.plan': 'План',
 };
 export default pdf;

@@ -15,6 +15,14 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'סקירת המסלול',
   'pdf.distanceLabel': 'מרחק',
   'pdf.mapCredit': 'גבולות מדינות: geoBoundaries ‏(CC BY 4.0)',
+  'pdf.showOverview': 'סקירה',
+  'pdf.showPhotos': 'תמונות',
+  'pdf.showDetails': 'פרטי קשר ושעות פתיחה',
+  'pdf.atAGlance': 'במבט חטוף',
+  'pdf.bookings': 'הזמנות ולינה',
+  'pdf.day': 'יום',
+  'pdf.stay': 'לינה',
+  'pdf.plan': 'תוכנית',
 };
 
 export default pdf;

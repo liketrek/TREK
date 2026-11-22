@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'نظرة عامة على المسار',
   'pdf.distanceLabel': 'المسافة',
   'pdf.mapCredit': 'حدود الدول: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'نظرة عامة',
+  'pdf.showPhotos': 'الصور',
+  'pdf.showDetails': 'التواصل وساعات العمل',
+  'pdf.atAGlance': 'لمحة سريعة',
+  'pdf.bookings': 'الحجوزات والإقامات',
+  'pdf.day': 'اليوم',
+  'pdf.stay': 'الإقامة',
+  'pdf.plan': 'الخطة',
 };
 export default pdf;

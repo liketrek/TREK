@@ -25,6 +25,17 @@ export const TRANSPORT_NOTES_KEY = 'trek_pdf_transport_notes';
  */
 export const LARGE_TEXT_KEY = 'trek_pdf_large_text';
 
+/**
+ * What the document shows besides the plan itself, each on by default and each a
+ * switch in the preview: the photos of the places and stays, the overview pages
+ * (route map, the days at a glance, bookings and stays), the coordinates under the
+ * addresses, and the contact lines, opening hours and companions of a place.
+ */
+export const PHOTOS_KEY = 'trek_pdf_photos';
+export const OVERVIEW_KEY = 'trek_pdf_overview';
+export const COORDINATES_KEY = 'trek_pdf_coordinates';
+export const DETAILS_KEY = 'trek_pdf_details';
+
 /* The overlay is imperative DOM, so the switch from Settings/ToggleSwitch is
    rebuilt here rather than rendered — as static markup it would carry no
    behaviour. Same geometry and the same tokens, so it reads as the same control. */
@@ -52,6 +63,10 @@ export interface PdfPreviewOptions {
   /** The transport-notes switch only shows when there is a note to hide. */
   hasTransportNotes: boolean;
   largeText: boolean;
+  photos: boolean;
+  overview: boolean;
+  coordinates: boolean;
+  details: boolean;
 }
 
 /**
@@ -84,6 +99,10 @@ export function openPdfPreview({
   showTransportNotes,
   hasTransportNotes,
   largeText,
+  photos,
+  overview,
+  coordinates,
+  details,
 }: PdfPreviewOptions): void {
   // Open in modal with srcdoc iframe (no URL loading = no X-Frame-Options issue)
   const overlay = document.createElement('div');
@@ -104,16 +123,30 @@ export function openPdfPreview({
     'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border-primary);flex-shrink:0;';
   header.innerHTML = `
     <span style="font-size:13px;font-weight:600;color:var(--text-primary);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(title)}</span>
-    <div style="display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px">
-      ${hasTransportNotes ? previewSwitch('pdf-transport-notes-toggle', tr('pdf.transportNotes'), showTransportNotes) : ''}
-      ${previewSwitch('pdf-daybreak-toggle', tr('pdf.pageBreakPerDay'), breaksPerDay)}
-      ${previewSwitch('pdf-large-text-toggle', tr('pdf.largeText'), largeText)}
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
       ${save.html}
       <button type="button" id="pdf-close-btn" style="background:none;border:none;cursor:pointer;color:var(--text-faint);display:flex;padding:4px;border-radius:6px">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
   `;
+
+  // The document's switches in a row of their own under the header: the layout first,
+  // then what it shows, so the header keeps only the title and the actions.
+  const settings = document.createElement('div');
+  settings.id = 'pdf-settings-row';
+  settings.style.cssText =
+    'display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;padding:8px 16px;border-bottom:1px solid var(--border-primary);background:var(--bg-secondary);flex-shrink:0;';
+  settings.innerHTML = [
+    previewSwitch('pdf-daybreak-toggle', tr('pdf.pageBreakPerDay'), breaksPerDay),
+    previewSwitch('pdf-large-text-toggle', tr('pdf.largeText'), largeText),
+    '<span aria-hidden="true" style="width:1px;align-self:stretch;background:var(--border-primary)"></span>',
+    previewSwitch('pdf-overview-toggle', tr('pdf.showOverview'), overview),
+    previewSwitch('pdf-photos-toggle', tr('pdf.showPhotos'), photos),
+    previewSwitch('pdf-coordinates-toggle', tr('collections.coordinates'), coordinates),
+    previewSwitch('pdf-details-toggle', tr('pdf.showDetails'), details),
+    hasTransportNotes ? previewSwitch('pdf-transport-notes-toggle', tr('pdf.transportNotes'), showTransportNotes) : '',
+  ].join('');
 
   const iframe = document.createElement('iframe');
   iframe.style.cssText = 'flex:1;width:100%;border:none;';
@@ -123,6 +156,7 @@ export function openPdfPreview({
   iframe.srcdoc = html;
 
   card.appendChild(header);
+  card.appendChild(settings);
   if (save.hint) {
     const hint = document.createElement('p');
     hint.id = 'pdf-safari-hint';
@@ -145,18 +179,18 @@ export function openPdfPreview({
 
   // Each choice differs by one class on <body>, so switching is instant in the
   // preview and there is no need to re-fetch photos or rebuild the document.
-  wirePreviewSwitch(header, 'pdf-daybreak-toggle', (on) => {
-    rememberPdfSwitch(PAGE_BREAK_KEY, on);
-    iframe.contentDocument?.body.classList.toggle('pdf-flow', !on);
-  });
-  wirePreviewSwitch(header, 'pdf-transport-notes-toggle', (on) => {
-    rememberPdfSwitch(TRANSPORT_NOTES_KEY, on);
-    iframe.contentDocument?.body.classList.toggle('pdf-no-transport-notes', !on);
-  });
-  wirePreviewSwitch(header, 'pdf-large-text-toggle', (on) => {
-    rememberPdfSwitch(LARGE_TEXT_KEY, on);
-    iframe.contentDocument?.body.classList.toggle('pdf-large-text', on);
-  });
+  const bodyClass = (id: string, key: string, className: string, addWhenOn: boolean) =>
+    wirePreviewSwitch(settings, id, (on) => {
+      rememberPdfSwitch(key, on);
+      iframe.contentDocument?.body.classList.toggle(className, addWhenOn ? on : !on);
+    });
+  bodyClass('pdf-daybreak-toggle', PAGE_BREAK_KEY, 'pdf-flow', false);
+  bodyClass('pdf-transport-notes-toggle', TRANSPORT_NOTES_KEY, 'pdf-no-transport-notes', false);
+  bodyClass('pdf-large-text-toggle', LARGE_TEXT_KEY, 'pdf-large-text', true);
+  bodyClass('pdf-overview-toggle', OVERVIEW_KEY, 'pdf-no-overview', false);
+  bodyClass('pdf-photos-toggle', PHOTOS_KEY, 'pdf-no-photos', false);
+  bodyClass('pdf-coordinates-toggle', COORDINATES_KEY, 'pdf-no-coords', false);
+  bodyClass('pdf-details-toggle', DETAILS_KEY, 'pdf-no-details', false);
 }
 
 /**

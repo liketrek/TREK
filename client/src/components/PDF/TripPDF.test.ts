@@ -37,6 +37,41 @@ function plannedStat(html: string): number | null {
   return match ? Number(match[1]) : null
 }
 
+/** The days of the document, without the cover and the overview's booking list before them. */
+function daysOf(html: string): string {
+  return html.slice(html.indexOf('<table class="day-section'))
+}
+
+const textOf = (el: Element | null | undefined) => el?.textContent?.trim() ?? ''
+
+/**
+ * Each booking on the days' timelines, read the way it prints: the span label over the
+ * title, the start and end in the time column, one line per leg (its route, then its
+ * facts, then its own code, as one string) and the codes of the whole booking.
+ */
+function bookingsOf(html: string) {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return [...doc.querySelectorAll('.timeline .tl-booking')].map(item => ({
+    kicker: textOf(item.querySelector('.note-kicker')),
+    title: textOf(item.querySelector('.note-text')),
+    start: textOf(item.querySelector('.tl-start')),
+    end: textOf(item.querySelector('.tl-end')),
+    lines: [...item.querySelectorAll('.note-line')].map(line =>
+      [...line.children].map(part => textOf(part)).filter(Boolean).join(' · ')),
+    codes: [...item.querySelectorAll('.note-extra .code-chip')].map(code => textOf(code)),
+  }))
+}
+
+/** Every line printed under the bookings' titles, across the days. */
+const bookingLines = (html: string) => bookingsOf(html).flatMap(b => b.lines)
+
+/** The booking of that title and span label, as bookingsOf reads it. */
+function bookingCard(html: string, title: string, kicker = '') {
+  const card = bookingsOf(html).find(b => b.title === title && b.kicker === kicker)
+  if (!card) throw new Error(`no booking "${title}" labelled "${kicker}"`)
+  return card
+}
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -175,8 +210,8 @@ describe('downloadTripPDF', () => {
     expect(srcdoc).toContain('<table class="day-section')
     expect(srcdoc).toContain('<thead class="day-header">')
     expect(srcdoc).toContain('<tbody class="day-body-group">')
-    // The dark bar (background/padding/flex) lives in an inner wrapper inside the thead.
-    expect(srcdoc).toContain('class="day-header-bar"')
+    // The header (number, date, title, figures) lives in an inner wrapper inside the thead.
+    expect(srcdoc).toContain('<thead class="day-header"><tr><td><div class="day-head">')
     // Day content still renders inside the new structure.
     expect(srcdoc).toContain('Rome Day')
     expect(srcdoc).toContain('Colosseum')
@@ -188,10 +223,10 @@ describe('downloadTripPDF', () => {
     const srcdoc = iframe!.srcdoc
     // The thead is repeated on every overflow page, so the spacing below the header bar
     // must be declared on its cell...
-    expect(srcdoc).toContain('.day-header > tr > td { padding-bottom: 12px; }')
+    expect(srcdoc).toContain('.day-header > tr > td { padding: 0 var(--gutter) 5mm; }')
     // ...and not as a block-start padding on .day-body, which the print engine only paints
     // on the first fragment of the (fragmented) body cell.
-    expect(srcdoc).toContain('.day-body  { padding: 0 28px 6px; }')
+    expect(srcdoc).toContain('.day-body { padding: 0 var(--gutter) 4mm; }')
   })
 
   it('FE-COMP-TRIPPDF-006: escHtml prevents XSS in trip title', async () => {
@@ -255,8 +290,8 @@ describe('downloadTripPDF', () => {
     const iframe = getIframe()
     expect(iframe!.srcdoc).toContain('Flight to Rome')
     expect(iframe!.srcdoc).toContain('ABC123')
-    // Single-leg flight keeps its full-route subtitle.
-    expect(iframe!.srcdoc).toContain('Air Italia · AI123 · CDG → FCO')
+    // Single-leg flight keeps its full route, then airline and number as badges.
+    expect(bookingLines(iframe!.srcdoc)).toContain('CDG → FCO · Air Italia · AI123')
   })
 
   it('FE-COMP-TRIPPDF-013s: a flight prints its seat, a direct one and each leg of one with a stop alike', async () => {
@@ -272,10 +307,10 @@ describe('downloadTripPDF', () => {
       }),
     }
     await downloadTripPDF({ ...richArgs, reservations: [direct, stopover] })
-    const html = getIframe()?.srcdoc ?? ''
-    expect(html).toContain('Air Italia · AI123 · reservations.meta.seat 31A · CDG → FCO')
-    expect(html).toContain('Lufthansa · LH2 · reservations.meta.seat 14C · BER → HND')
-    expect(html).not.toContain('LH1 · reservations.meta.seat')
+    const lines = bookingLines(getIframe()?.srcdoc ?? '')
+    expect(lines).toContain('CDG → FCO · Air Italia · AI123 · reservations.meta.seat 31A')
+    expect(lines).toContain('BER → HND · Lufthansa · LH2 · reservations.meta.seat 14C')
+    expect(lines).toContain('FRA → BER · Lufthansa · LH1')
   })
 
   it('FE-COMP-TRIPPDF-013f: the stop a booked night wrote is not listed, so a morning flight prints before the hotel (#2434)', async () => {
@@ -329,15 +364,14 @@ describe('downloadTripPDF', () => {
     const iframe = getIframe()
 
     // Without the landing time the reader cannot tell what is left of the day.
-    expect(iframe!.srcdoc).toContain('14:30 – 16:45')
+    expect(bookingCard(iframe!.srcdoc, 'Flight to Rome')).toMatchObject({ start: '14:30', end: '16:45' })
   })
 
   it('FE-COMP-TRIPPDF-013d: a flight without a landing time still shows its departure', async () => {
     await downloadTripPDF(richArgs)
     const iframe = getIframe()
 
-    expect(iframe!.srcdoc).toContain('14:30')
-    expect(iframe!.srcdoc).not.toContain('14:30 –')
+    expect(bookingCard(iframe!.srcdoc, 'Flight to Rome')).toMatchObject({ start: '14:30', end: '' })
   })
 
   it('FE-COMP-TRIPPDF-013e: an overnight flight keeps its arrival on the arrival day (#1310)', async () => {
@@ -351,16 +385,16 @@ describe('downloadTripPDF', () => {
     })
     const iframe = getIframe()
 
-    expect(iframe!.srcdoc).not.toContain('14:30 – 06:15')
-    expect(iframe!.srcdoc).toContain('06:15')
+    const html = iframe!.srcdoc
+    expect(bookingCard(html, 'Flight to Rome', 'reservations.span.departure')).toMatchObject({ start: '14:30', end: '' })
+    expect(bookingCard(html, 'Flight to Rome', 'reservations.span.arrival')).toMatchObject({ start: '06:15' })
   })
 
   it('FE-COMP-TRIPPDF-013b: renders every flight number for a multi-leg flight', async () => {
     await downloadTripPDF({ ...richArgs, reservations: [multiLegFlight] })
     const iframe = getIframe()
-    // One subtitle line per leg, each with its own flight number and segment route.
-    expect(iframe!.srcdoc).toContain('Lufthansa · LH1 · FRA → BER')
-    expect(iframe!.srcdoc).toContain('Lufthansa · LH2 · BER → HND')
+    // One line per leg, each with its own flight number and segment route.
+    expect(bookingLines(iframe!.srcdoc)).toEqual(['FRA → BER · Lufthansa · LH1', 'BER → HND · Lufthansa · LH2'])
   })
 
   it('FE-COMP-TRIPPDF-014: renders cover image when trip has cover_image', async () => {
@@ -760,11 +794,9 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('reservations.span.start: Nordic Cruise')
-    expect(html).toContain('reservations.span.ongoing: Nordic Cruise')
-    expect(html).toContain('reservations.span.end: Nordic Cruise')
-    expect(html).toContain('09:00')
-    expect(html).toContain('18:00')
+    expect(bookingCard(html, 'Nordic Cruise', 'reservations.span.start').start).toBe('09:00')
+    expect(bookingCard(html, 'Nordic Cruise', 'reservations.span.ongoing').start).toBe('')
+    expect(bookingCard(html, 'Nordic Cruise', 'reservations.span.end').start).toBe('18:00')
   })
 
   it('FE-W5PDF-002: a multi-day flight uses departure/arrival wording', async () => {
@@ -775,8 +807,8 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('reservations.span.departure: Red Eye')
-    expect(html).toContain('reservations.span.arrival: Red Eye')
+    expect(bookingCard(html, 'Red Eye', 'reservations.span.departure').start).toBe('23:00')
+    expect(bookingCard(html, 'Red Eye', 'reservations.span.arrival').start).toBe('06:00')
   })
 
   it('FE-W5PDF-003: a multi-day car hire is labelled pickup/return and skips the middle day', async () => {
@@ -786,8 +818,10 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('reservations.span.pickup: Rental')
-    expect(html).toContain('reservations.span.return: Rental')
+    expect(bookingsOf(html).map(b => [b.kicker, b.title])).toEqual([
+      ['reservations.span.pickup', 'Rental'],
+      ['reservations.span.return', 'Rental'],
+    ])
     expect(html).not.toContain('reservations.span.active')
   })
 
@@ -798,8 +832,10 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('reservations.span.dropOff: Airport Parking')
-    expect(html).toContain('reservations.span.pickup: Airport Parking')
+    expect(bookingsOf(html).map(b => [b.kicker, b.title])).toEqual([
+      ['reservations.span.dropOff', 'Airport Parking'],
+      ['reservations.span.pickup', 'Airport Parking'],
+    ])
     expect(html).not.toContain('reservations.span.ongoing')
     // Day B holds nothing else, so it prints the empty-day hint rather than the booking.
     expect(html).toContain('dayplan.emptyDay')
@@ -828,7 +864,7 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('ICE 599 · reservations.meta.platform 7 · reservations.meta.seat 21A · FRA → BER')
+    expect(bookingLines(html)).toEqual(['FRA → BER · ICE 599 · reservations.meta.platform 7 · reservations.meta.seat 21A'])
   })
 
   it('FE-W5PDF-006: a multi-leg train renders one line per leg', async () => {
@@ -843,8 +879,7 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('IC 1 · reservations.meta.platform 3 · BER → MUC')
-    expect(html).toContain('EC 2 · MUC → ZRH')
+    expect(bookingLines(html)).toEqual(['BER → MUC · IC 1 · reservations.meta.platform 3', 'MUC → ZRH · EC 2'])
   })
 
   it('FE-W5PDF-007: restaurant, event, tour and unknown types get their own subtitles', async () => {
@@ -856,7 +891,8 @@ describe('downloadTripPDF remaining branches', () => {
     ]))
     const html = srcdoc()
 
-    expect(html).toContain('4 guests')
+    // The party size needs no word: it prints beside the people icon.
+    expect(bookingCard(html, 'Dinner').lines).toEqual(['4'])
     expect(html).toContain('Arena')
     expect(html).toContain('GuideCo')
     expect(html).toContain('Mystery')
@@ -889,8 +925,7 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('AirX · X1')
-    expect(html).toContain('AirX · X2 · AAA → BBB')
+    expect(bookingLines(html)).toEqual(['AirX · X1', 'AAA → BBB · AirX · X2'])
   })
 
   it('FE-W5PDF-030: a stopover flight prints the booking code of each segment that has one (#1943)', async () => {
@@ -905,11 +940,12 @@ describe('downloadTripPDF remaining branches', () => {
     }]))
     const html = srcdoc()
 
-    expect(html).toContain('LH · LH1 · FRA → BER · ABC123')
+    // Each leg is its own card, the way the day plan shows it, with its own line.
+    const legs = bookingsOf(html).filter(b => b.title === 'Layover')
+    expect(legs.map(leg => leg.lines)).toEqual([['FRA → BER · LH · LH1 · ABC123'], ['BER → HND · ANA · NH2']])
     // A segment without one keeps the line it had before, and the booking's own
-    // reference still prints once for the whole card.
-    expect(html).toContain('ANA · NH2 · BER → HND')
-    expect(html).toContain('Code: BOOK1')
+    // reference still prints on its card.
+    expect(legs[0].codes).toEqual(['BOOK1'])
   })
 
   it('FE-W5PDF-010: a single-leg flight with waypoints joins the whole route', async () => {
@@ -919,7 +955,7 @@ describe('downloadTripPDF remaining branches', () => {
       metadata: { airline: 'LH', flight_number: 'LH7' },
     }]))
 
-    expect(srcdoc()).toContain('LH · LH7 · FRA → Berlin → HND')
+    expect(bookingLines(srcdoc())).toEqual(['FRA → Berlin → HND · LH · LH7'])
   })
 
   it('FE-W5PDF-011: an assignment without a place contributes nothing', async () => {
@@ -1003,9 +1039,11 @@ describe('downloadTripPDF remaining branches', () => {
     await downloadTripPDF(spanArgs([]))
     const html = srcdoc()
 
-    expect(html.indexOf('Earlier Inn')).toBeLessThan(html.indexOf('Later Inn'))
+    const days = daysOf(html)
+    expect(days.indexOf('Earlier Inn')).toBeGreaterThan(-1)
+    expect(days.indexOf('Earlier Inn')).toBeLessThan(days.indexOf('Later Inn'))
     // the shared days list two hotels, so they lose the single-column class
-    expect(html).toContain('class="day-accommodations "')
+    expect(html).toContain('class="day-accommodations"')
   })
 
   it('FE-W5PDF-017: a trip without dated days prints no date range and no day dates', async () => {
@@ -1018,7 +1056,7 @@ describe('downloadTripPDF remaining branches', () => {
 
     expect(html).not.toContain('class="cover-dates"')
     expect(html).not.toContain('class="day-date"')
-    expect(html).toContain('class="cover-circle-ph"')
+    expect(html).toContain('<section class="cover cover-plain">')
   })
 
   it('FE-W5PDF-018: the print button asks the preview frame to print', async () => {
@@ -1045,7 +1083,7 @@ describe('downloadTripPDF remaining branches', () => {
       trip: { id: 1, title: 'Cover Trip', description: null, cover_image: '/uploads/cover.svg' } as any,
     })
     expect(srcdoc()).not.toContain('/uploads/cover.svg')
-    expect(srcdoc()).toContain('class="cover-circle-ph"')
+    expect(srcdoc()).toContain('<section class="cover cover-plain">')
   })
 
   it('FE-W5PDF-020: plugin sections render their paragraphs and tables', async () => {
@@ -1081,7 +1119,7 @@ describe('downloadTripPDF defaults', () => {
 
     // no translator, no days, no places, no notes
     expect(html).toContain('pdf.travelPlan')
-    expect(html).toContain('<div class="cover-title">My Trip</div>')
+    expect(html).toContain('<h1 class="cover-title">My Trip</h1>')
     expect(html).toContain('<div class="cover-stat-num">0</div>')
   })
 
@@ -1146,11 +1184,9 @@ describe('downloadTripPDF defaults', () => {
       reservations: [{ id: 1, title: 'Overnight Bus', type: 'bus', day_id: 1, end_day_id: 2, reservation_time: '22:00', reservation_end_time: null }] as any[],
     })
     const html = srcdoc()
-    const endSection = html.slice(html.indexOf('End Day'))
 
-    expect(html).toContain('reservations.span.start: Overnight Bus')
-    expect(endSection).toContain('reservations.span.end: Overnight Bus')
-    expect(endSection).not.toContain('22:00')
+    expect(bookingCard(html, 'Overnight Bus', 'reservations.span.start').start).toBe('22:00')
+    expect(bookingCard(html, 'Overnight Bus', 'reservations.span.end')).toMatchObject({ start: '', end: '' })
   })
 
   it('FE-W5PDF-027: an export without a locale still renders, with lang="en"', async () => {
@@ -1217,12 +1253,16 @@ describe('page breaks between days (#1292)', () => {
     expect(toggle()!.style.background).toContain('--border-primary')
   })
 
-  it('FE-PDF-BREAK-003: the first day never carries a break of its own', async () => {
+  // The first day opens the plan after the cover and the overview, so it always starts a
+  // sheet; the switch decides only whether the days after it do.
+  it('FE-PDF-BREAK-003: the first day never carries the switchable break', async () => {
     await downloadTripPDF(twoDays)
     const html = getIframe()!.srcdoc
 
-    expect(html.indexOf('<table class="day-section">')).toBeGreaterThan(-1)
+    expect(html.indexOf('<table class="day-section day-first"')).toBeGreaterThan(-1)
     expect(html.match(/day-section day-break/g)).toHaveLength(1)
+    expect(html).toContain('.day-first { break-before: page; }')
+    expect(html).toContain('.pdf-flow .day-break { break-before: auto; }')
   })
 
   it('FE-PDF-BREAK-004: turning the breaks off is remembered and shown at once', async () => {
@@ -1305,8 +1345,8 @@ describe('a printed day follows the plan (#1978)', () => {
   const d2 = { id: 22, day_number: 2, title: 'Day Two', date: '2025-06-02' } as any
   const srcdoc = () => getIframe()!.srcdoc
 
-  /** Where each needle first appears, so order can be asserted without parsing. */
-  const positions = (html: string, needles: string[]) => needles.map(n => html.indexOf(n))
+  /** Where each needle first appears in the days, so order can be asserted without parsing. */
+  const positions = (html: string, needles: string[]) => needles.map(n => daysOf(html).indexOf(n))
 
   it('orders the day by the clock, not by the order the API sent rows in', async () => {
     await downloadTripPDF({
@@ -1390,7 +1430,7 @@ describe('a printed day follows the plan (#1978)', () => {
       dayId: 21,
     }).map(item => (item.type === 'place' ? item.data.place.name : item.data.title))
 
-    const seen = expected.map(name => html.indexOf(name))
+    const seen = expected.map(name => daysOf(html).indexOf(name))
     for (const at of seen) expect(at).toBeGreaterThan(-1)
     expect(seen).toEqual([...seen].sort((a, b) => a - b))
   })
@@ -1473,18 +1513,20 @@ describe('downloadTripPDF — large text', () => {
     expect(html).not.toContain('pdf-large-text"')
     expect(largeToggle().getAttribute('aria-checked')).toBe('false')
     // One scale and one set of greys, at today's values unless the class is on.
-    expect(html).toContain('--pdf-text: 1;')
+    expect(html).toContain('--t: 1;')
     expect(html).toContain('body.pdf-large-text {')
-    expect(html).toContain('.place-name { font-size: calc(11.5px * var(--pdf-text));')
-    expect(html).toContain('.note-text { font-size: calc(9.5px * var(--pdf-text)); color: var(--pdf-ink);')
+    expect(html).toContain('.place-name { flex: 1; font-size: calc(12px * var(--t));')
+    expect(html).toContain('.note-text { font-size: calc(9.5px * var(--t)); color: var(--ink);')
   })
 
   it('FE-PDF-LARGE-002: the clock and the booking code of a transport scale with the rest', async () => {
     await downloadTripPDF(richArgs)
     const html = previewFrame().srcdoc
 
-    expect(html).toContain('<span class="note-clock">')
-    expect(html).toContain('<div class="note-time note-code">Code: ABC123</div>')
+    // The clock sits in the time column and the code in its chip, both on the scale.
+    expect(bookingCard(html, 'Flight to Rome')).toMatchObject({ start: '14:30', codes: ['ABC123'] })
+    expect(html).toContain('.tl-start { display: block; font-size: calc(9.5px * var(--t));')
+    expect(html).toContain('font-family: var(--num); font-size: calc(8px * var(--t)); font-weight: 600; letter-spacing: 0.04em;')
     expect(html).not.toContain('font-size:10px;')
   })
 
@@ -1549,14 +1591,14 @@ describe('downloadTripPDF — photos at thumbnail size', () => {
     await downloadTripPDF(withImage('/uploads/colosseum.jpg'))
     const html = previewFrame().srcdoc
 
-    expect(html).toContain(`<img class="place-thumb" src="${JPEG}" />`)
+    expect(html).toContain(`<img class="place-thumb" src="${JPEG}" alt="" />`)
     expect(html).not.toContain('colosseum.jpg')
   })
 
   it('FE-PDF-THUMB-002: a photo from another origin keeps its URL', async () => {
     await downloadTripPDF(withImage('https://images.example.com/colosseum.jpg'))
 
-    expect(previewFrame().srcdoc).toContain('<img class="place-thumb" src="https://images.example.com/colosseum.jpg" />')
+    expect(previewFrame().srcdoc).toContain('<img class="place-thumb" src="https://images.example.com/colosseum.jpg" alt="" />')
   })
 
   it('FE-PDF-THUMB-003: a closed export dialog stops the photos and opens nothing', async () => {

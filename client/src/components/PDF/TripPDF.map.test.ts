@@ -245,7 +245,7 @@ describe('trip route map in the PDF', () => {
     expect(html).toContain('<svg class="trip-map-svg"')
     // Between the cover and the days, which is where it is meant to read.
     expect(html.indexOf('class="trip-map"')).toBeGreaterThan(html.indexOf('class="cover"'))
-    expect(html.indexOf('class="trip-map"')).toBeLessThan(html.indexOf('class="day-section"'))
+    expect(html.indexOf('class="trip-map"')).toBeLessThan(html.indexOf('class="day-section'))
   })
 
   it('FE-COMP-TRIPPDF-MAP-011: prefers the real basemap when it renders', async () => {

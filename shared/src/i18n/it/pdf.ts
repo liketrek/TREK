@@ -15,5 +15,13 @@ const pdf: TranslationStrings = {
   'pdf.mapTitle': 'Panoramica del percorso',
   'pdf.distanceLabel': 'Distanza',
   'pdf.mapCredit': 'Confini dei paesi: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Panoramica',
+  'pdf.showPhotos': 'Foto',
+  'pdf.showDetails': 'Contatti e orari',
+  'pdf.atAGlance': 'In sintesi',
+  'pdf.bookings': 'Prenotazioni e alloggi',
+  'pdf.day': 'Giorno',
+  'pdf.stay': 'Alloggio',
+  'pdf.plan': 'Programma',
 };
 export default pdf;
