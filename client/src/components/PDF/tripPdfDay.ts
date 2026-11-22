@@ -261,7 +261,7 @@ function placeFacts(place: Assignment['place'] & Partial<Place>, ctx: PdfDayCont
   const price = Number(place.price);
   if (Number.isFinite(price) && price > 0) {
     facts.push(
-      `<span class="chip chip-green">${glyph('price', 9)}${escHtml(formatMoney(price, place.currency || ctx.tripCurrency, ctx.locale))}</span>`
+      `<span class="chip chip-green">${glyph('price', 9)}${escHtml(formatMoney(price, place.currency || ctx.tripCurrency, ctx.locale || 'en'))}</span>`
     );
   }
   if (typeof place.rating_avg === 'number' && place.rating_avg > 0) {
