@@ -81,19 +81,30 @@ describe('hidesOnMiddleDay', () => {
 describe('getTransportRouteEndpoints', () => {
   const pickup = { role: 'from', lat: 48.1, lng: 11.5 }
   const dropoff = { role: 'to', lat: 52.5, lng: 13.4 }
+  // An overnight train spanning day 1 (departure) through day 3 (arrival).
+  const rental = { type: 'train', day_id: 1, end_day_id: 3, endpoints: [pickup, dropoff] }
   // A car rental spanning day 1 (pickup) through day 3 (drop-off).
-  const rental = { day_id: 1, end_day_id: 3, endpoints: [pickup, dropoff] }
+  const car = { ...rental, type: 'car' }
 
-  it('routes to the pickup only on the start day of a multi-day rental', () => {
+  it('routes to the departure only on the start day of a booking spanning days', () => {
     expect(getTransportRouteEndpoints(rental, 1)).toEqual({ from: { lat: 48.1, lng: 11.5 }, to: null })
   })
 
-  it('routes from the drop-off only on the end day', () => {
+  it('routes from the arrival only on the end day', () => {
     expect(getTransportRouteEndpoints(rental, 3)).toEqual({ from: null, to: { lat: 52.5, lng: 13.4 } })
   })
 
   it('adds no waypoints on the days in between (regression for #1210)', () => {
     expect(getTransportRouteEndpoints(rental, 2)).toEqual({ from: null, to: null })
+    expect(getTransportRouteEndpoints(car, 2)).toEqual({ from: null, to: null })
+  })
+
+  it('passes a rental the traveller drives through its pickup and its return', () => {
+    // The drive goes to the desk and on from it, and to the return and on from it.
+    expect(getTransportRouteEndpoints(car, 1)).toEqual({ from: { lat: 48.1, lng: 11.5 }, to: { lat: 48.1, lng: 11.5 } })
+    expect(getTransportRouteEndpoints(car, 3)).toEqual({ from: { lat: 52.5, lng: 13.4 }, to: { lat: 52.5, lng: 13.4 } })
+    const bike = { ...rental, type: 'bicycle' }
+    expect(getTransportRouteEndpoints(bike, 3)).toEqual({ from: { lat: 52.5, lng: 13.4 }, to: { lat: 52.5, lng: 13.4 } })
   })
 
   it('uses both endpoints for a single-day transport', () => {

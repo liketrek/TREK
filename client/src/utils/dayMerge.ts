@@ -83,11 +83,22 @@ export function isCarrierTransport(r: { type?: string | null }): boolean {
 }
 
 /**
+ * Vehicles a traveller drives themselves. Picked up or returned on another day than the
+ * booking's other end, such a booking is a stop the day's drive passes through: you get to
+ * the rental desk and drive on from it, and you drive to the return and leave from there.
+ * Anything else that spans days is ridden, an overnight train or bus, so the day it starts
+ * only leaves from its departure and the day it ends only arrives at its destination.
+ */
+const SELF_DRIVEN_TYPES = new Set(['car', 'bicycle'])
+
+/**
  * The route waypoints a transport contributes on a given day, respecting multi-day spans.
- * A car rental (or any reservation whose span covers several days) is only routed to on its
- * pickup day (the departure endpoint) and from on its drop-off day (the arrival endpoint) — on
- * the days in between you simply hold the vehicle, so it adds no waypoints and must not pull the
- * route to those points. Single-day transports contribute both endpoints.
+ * A reservation whose span covers several days is routed to its departure on its first day
+ * and from its arrival on its last; a rental the traveller drives (SELF_DRIVEN_TYPES) is
+ * routed through its pickup and its return instead, so the drive to the rental desk, the one
+ * away from it and the one to the return all show. On the days in between you simply hold
+ * the vehicle, so it adds no waypoints and must not pull the route to those points.
+ * Single-day transports contribute both endpoints.
  */
 export function getTransportRouteEndpoints(
   r: any,
@@ -111,11 +122,12 @@ export function getTransportRouteEndpoints(
     if (legIdx != null) return point(ordered[role === 'from' ? legIdx : legIdx + 1])
     return point((r.endpoints || []).find((x: { role?: string }) => x.role === role))
   }
+  const passedThrough = SELF_DRIVEN_TYPES.has(r.type)
   switch (getSpanPhase(r, dayId)) {
     case 'start':
-      return { from: ep('from'), to: null }
+      return { from: ep('from'), to: passedThrough ? ep('from') : null }
     case 'end':
-      return { from: null, to: ep('to') }
+      return { from: passedThrough ? ep('to') : null, to: ep('to') }
     case 'middle':
       return { from: null, to: null }
     default:
