@@ -18,7 +18,7 @@ const pdf: TranslationStrings = {
   'pdf.showOverview': 'Resum',
   'pdf.showPhotos': 'Fotos',
   'pdf.showDetails': 'Contacte i horaris',
-  'pdf.atAGlance': 'D\'un cop d\'ull',
+  'pdf.atAGlance': "D'un cop d'ull",
   'pdf.bookings': 'Reserves i allotjaments',
   'pdf.day': 'Dia',
   'pdf.stay': 'Allotjament',

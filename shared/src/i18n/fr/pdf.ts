@@ -18,7 +18,7 @@ const pdf: TranslationStrings = {
   'pdf.showOverview': 'Aperçu',
   'pdf.showPhotos': 'Photos', // same-as-en
   'pdf.showDetails': 'Contact et horaires',
-  'pdf.atAGlance': 'En un coup d\'œil',
+  'pdf.atAGlance': "En un coup d'œil",
   'pdf.bookings': 'Réservations et hébergements',
   'pdf.day': 'Jour',
   'pdf.stay': 'Hébergement',
