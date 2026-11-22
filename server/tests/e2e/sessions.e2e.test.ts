@@ -322,11 +322,9 @@ describe('Sessions e2e (sign-in sessions that can be ended)', () => {
     const forged = `trek_session=${jwt.sign({ id: user.id, pv: 0, iat }, 'not-the-server-secret', { expiresIn: 86400, algorithm: 'HS256' })}`;
     const genuine = sessionCookie(user.id, 0, { lifetime: 86400, consumed: 60000 });
 
-    for (const cookie of [forged, genuine]) {
-      const res = await request(server)
-        .get('/api/v1/trips')
-        .set('Authorization', `Bearer ${key}`)
-        .set('Cookie', cookie);
+    const withKey = (cookie: string) =>
+      request(server).get('/api/v1/trips').set('Authorization', `Bearer ${key}`).set('Cookie', cookie);
+    for (const res of [await withKey(forged), await withKey(genuine)]) {
       expect(res.status).toBe(200);
       const set = (res.headers['set-cookie'] ?? []) as unknown as string[];
       expect(set.some((c) => c.startsWith('trek_session='))).toBe(false);
