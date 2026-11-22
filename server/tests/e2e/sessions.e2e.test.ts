@@ -15,16 +15,19 @@ import { db } from '../../src/db/database';
 import { UserSessions } from '../../src/db/entities/UserSessions.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { AuthModule } from '../../src/nest/auth/auth.module';
+import { AuthService } from '../../src/nest/auth/auth.service';
 import { SessionRenewalInterceptor } from '../../src/nest/auth/session-renewal.interceptor';
 import { encryptMfaSecret } from '../../src/nest/common/crypto/mfaCrypto';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { withRequestContext } from '../../src/nest/database/request-context';
 import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
+import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
 import { SessionPurgeJob } from '../../src/nest/sessions/session-purge.job';
 import { SessionsService } from '../../src/nest/sessions/sessions.service';
 import { createUser } from '../helpers/factories';
 import { insertRow, updateRows } from '../helpers/factories/rows';
+import { makeMcpToken } from '../helpers/factories/tokens';
 import { sessionRows } from '../helpers/sessions';
 import { resetRateLimits } from '../helpers/test-db';
 import { createTestMikroOrmModule } from '../helpers/test-orm';
@@ -71,7 +74,14 @@ describe('Sessions e2e (sign-in sessions that can be ended)', () => {
 
   async function build() {
     moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AuthModule],
+      // PublicApiModule brings the one guard chain that authenticates by something
+      // other than the session cookie, which the renewal must not mistake for it.
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        AuthModule,
+        PublicApiModule,
+      ],
     })
       .overrideProvider(MailerService)
       .useValue({ sendPasswordResetEmail })
@@ -80,7 +90,9 @@ describe('Sessions e2e (sign-in sessions that can be ended)', () => {
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
     nest.useGlobalPipes(new ZodValidationPipe());
-    nest.useGlobalInterceptors(new SessionRenewalInterceptor(moduleRef.get(SessionsService)));
+    nest.useGlobalInterceptors(
+      new SessionRenewalInterceptor(moduleRef.get(SessionsService), moduleRef.get(AuthService)),
+    );
     await nest.init();
     return nest;
   }
@@ -294,6 +306,34 @@ describe('Sessions e2e (sign-in sessions that can be ended)', () => {
     expect(list.body.sessions).toEqual([
       expect.objectContaining({ id: sessionIdOf(renewed), user_agent: 'Renewed', current: true }),
     ]);
+  }, 10000);
+
+  it('a public API key beside a session cookie never yields a session, whatever the cookie claims', async () => {
+    const { user } = freshUser('sess-apikey');
+    const key = 'trek_' + '7'.repeat(48);
+    await makeMcpToken(moduleRef.get(MikroORM), user.id, {
+      rawToken: key,
+      token_prefix: key.slice(0, 13),
+      kind: 'api',
+    });
+    const iat = Math.floor(Date.now() / 1000) - 60000;
+    // Past half its life, naming the key's owner and no session: one signed with a
+    // secret that is not the server's, and a real one.
+    const forged = `trek_session=${jwt.sign({ id: user.id, pv: 0, iat }, 'not-the-server-secret', { expiresIn: 86400, algorithm: 'HS256' })}`;
+    const genuine = sessionCookie(user.id, 0, { lifetime: 86400, consumed: 60000 });
+
+    for (const cookie of [forged, genuine]) {
+      const res = await request(server)
+        .get('/api/v1/trips')
+        .set('Authorization', `Bearer ${key}`)
+        .set('Cookie', cookie);
+      expect(res.status).toBe(200);
+      const set = (res.headers['set-cookie'] ?? []) as unknown as string[];
+      expect(set.some((c) => c.startsWith('trek_session='))).toBe(false);
+    }
+    expect(await sessionRows(db as never, user.id)).toEqual([]);
+    // The forged cookie opens nothing on its own either.
+    expect((await me(forged)).status).toBe(401);
   }, 10000);
 
   it("on a demo instance, visitors of the shared demo account neither see nor end each other's sessions", async () => {

@@ -4,8 +4,10 @@
  * lifetime. Covers the renew path (fresh token + cookie semantics per the
  * `remember` claim) and every skip condition: young token, bearer-only request,
  * unauthenticated request, purpose token, id mismatch, malformed claims,
- * headers already sent, non-http context.
+ * headers already sent, non-http context, a cookie the session check refuses
+ * and a request a public API key authenticated.
  */
+import type { AuthService } from '../../../src/nest/auth/auth.service';
 import { SessionRenewalInterceptor } from '../../../src/nest/auth/session-renewal.interceptor';
 import type { SessionsService } from '../../../src/nest/sessions/sessions.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
@@ -30,6 +32,7 @@ function makeRes(headersSent = false) {
 type ReqShape = {
   cookies?: Record<string, string>;
   user?: { id: number };
+  apiToken?: { scopes: string[] | null };
   headers?: Record<string, string>;
   secure?: boolean;
 };
@@ -46,10 +49,18 @@ function handler(): CallHandler & { handle: ReturnType<typeof vi.fn> } {
   return { handle: vi.fn(() => of('ok')) };
 }
 
-function makeInterceptor(renewed: string | null = 'renewed.jwt') {
+/**
+ * `verified` is what the session check answers for the cookie: the user its
+ * token names when it is a live session, null when it is not one.
+ */
+function makeInterceptor(renewed: string | null = 'renewed.jwt', verified: { id: number } | null = { id: 1 }) {
   const renew = vi.fn().mockResolvedValue(renewed);
-  const interceptor = new SessionRenewalInterceptor({ renew } as unknown as SessionsService);
-  return { interceptor, renew };
+  const verifyJwtToken = vi.fn().mockResolvedValue(verified);
+  const interceptor = new SessionRenewalInterceptor(
+    { renew } as unknown as SessionsService,
+    { verifyJwtToken } as unknown as AuthService,
+  );
+  return { interceptor, renew, verifyJwtToken };
 }
 
 async function run(
@@ -65,12 +76,13 @@ async function run(
 }
 
 describe('SessionRenewalInterceptor', () => {
-  it('SES-RENEW-001: does not renew a token under half of its lifetime', async () => {
-    const { interceptor, renew } = makeInterceptor();
+  it('SES-RENEW-001: does not renew a token under half of its lifetime, nor look it up', async () => {
+    const { interceptor, renew, verifyJwtToken } = makeInterceptor();
     const res = makeRes();
     const t = token({ id: 1, pv: 0 }, 86400, 1000); // ~1% consumed
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
     expect(renew).not.toHaveBeenCalled();
+    expect(verifyJwtToken).not.toHaveBeenCalled();
     expect(res.cookie).not.toHaveBeenCalled();
   });
 
@@ -224,6 +236,39 @@ describe('SessionRenewalInterceptor', () => {
     const t = token({ id: 1, pv: 0 }, 86400, 60000);
     await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
     expect(renew).toHaveBeenCalled();
+    expect(res.cookie).not.toHaveBeenCalled();
+  });
+
+  it('SES-RENEW-014: renews no cookie the session check refuses, whoever req.user is', async () => {
+    // What a route with its own guard chain can see: ApiTokenGuard set req.user from
+    // a key, and the cookie beside it is unsigned, past half its life and names the
+    // key's owner without a session id. Decoding it alone would re-sign it.
+    const { interceptor, renew, verifyJwtToken } = makeInterceptor('renewed.jwt', null);
+    const res = makeRes();
+    const iat = Math.floor(Date.now() / 1000) - 60000;
+    const forged = jwt.sign({ id: 1, pv: 0, iat }, 'not-the-server-secret', { expiresIn: 86400, algorithm: 'HS256' });
+    await run(interceptor, { cookies: { trek_session: forged }, user: { id: 1 } }, res);
+    expect(verifyJwtToken).toHaveBeenCalledWith(forged);
+    expect(renew).not.toHaveBeenCalled();
+    expect(res.cookie).not.toHaveBeenCalled();
+  });
+
+  it('SES-RENEW-015: renews no cookie whose session belongs to another user than the request', async () => {
+    const { interceptor, renew } = makeInterceptor('renewed.jwt', { id: 2 });
+    const res = makeRes();
+    const t = token({ id: 1, pv: 0 }, 86400, 60000);
+    await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 } }, res);
+    expect(renew).not.toHaveBeenCalled();
+    expect(res.cookie).not.toHaveBeenCalled();
+  });
+
+  it('SES-RENEW-016: a request a public API key authenticated renews nothing, even beside a valid cookie', async () => {
+    const { interceptor, renew, verifyJwtToken } = makeInterceptor();
+    const res = makeRes();
+    const t = token({ id: 1, pv: 0 }, 86400, 60000);
+    await run(interceptor, { cookies: { trek_session: t }, user: { id: 1 }, apiToken: { scopes: null } }, res);
+    expect(verifyJwtToken).not.toHaveBeenCalled();
+    expect(renew).not.toHaveBeenCalled();
     expect(res.cookie).not.toHaveBeenCalled();
   });
 });
