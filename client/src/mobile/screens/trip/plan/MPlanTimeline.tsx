@@ -212,7 +212,7 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
         Beside the map the card is the pane and runs down to that line, as the
         places list does; across the page it is as tall as its day, so a short
         day leaves no empty card under it. */}
-    <div className="absolute inset-x-4 flex flex-col gap-3 top-[max(calc(var(--m-safe-top,12px)+102px),var(--m-corner-clear,0px))] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)] wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+    <div className="absolute inset-x-4 flex flex-col gap-3 top-[calc(var(--m-safe-top,12px)+102px)] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)] wide:bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 

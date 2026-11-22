@@ -91,7 +91,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
 
   return (
     <div
-      className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))] wide:mx-auto wide:w-full wide:max-w-[808px] wide:px-6 wide:pb-[calc(var(--bottom-nav-h,0px)+12px)]"
+      className="flex h-full flex-col px-4 pb-[var(--bottom-nav-h,84px)] pt-[calc(var(--m-safe-top,12px)+58px)] wide:mx-auto wide:w-full wide:max-w-[808px] wide:px-6 wide:pb-[calc(var(--bottom-nav-h,0px)+12px)]"
       style={keyboard > 0 ? { paddingBottom: keyboard + 8 } : undefined}
     >
       {loading ? (

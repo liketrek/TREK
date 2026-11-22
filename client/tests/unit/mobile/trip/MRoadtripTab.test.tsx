@@ -600,7 +600,7 @@ describe('MRoadtripTab', () => {
       const scroller = container.querySelector('[class*="overflow-y-auto"]') as HTMLElement
       // 96px band plus a 44px bar plus its gap. A padding left at the old 102 would
       // put the head card's first line behind the glass.
-      expect(scroller.className).toContain('pt-[max(calc(var(--m-safe-top,12px)+150px),var(--m-corner-clear,0px))]')
+      expect(scroller.className).toContain('pt-[calc(var(--m-safe-top,12px)+150px)]')
     })
     it('FE-MOB-RTTAB-031: no stage, no search bar, and the chain keeps its old top', () => {
       // Without a stage the corridor falls back to the trip's first routed day, which
@@ -610,7 +610,7 @@ describe('MRoadtripTab', () => {
 
       expect(screen.queryByText('roadtrip.poi.title')).toBeNull()
       const scroller = container.querySelector('[class*="overflow-y-auto"]') as HTMLElement
-      expect(scroller.className).toContain('pt-[max(calc(var(--m-safe-top,12px)+102px),var(--m-corner-clear,0px))]')
+      expect(scroller.className).toContain('pt-[calc(var(--m-safe-top,12px)+102px)]')
     })
   })
 

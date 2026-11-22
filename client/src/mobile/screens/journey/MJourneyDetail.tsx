@@ -346,7 +346,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
     // and a map on a percentage of an auto-height parent collapses to zero.
-    <div ref={rootRef} className="m-bleed m-corner-own relative h-dvh overflow-hidden" style={headSlot ? IN_SHELL_ROW : undefined}>
+    <div ref={rootRef} className="m-bleed relative h-dvh overflow-hidden" style={headSlot ? IN_SHELL_ROW : undefined}>
       {/* Integrated map — always mounted, the gallery overlays it. Beside the feed
           it begins where the feed ends, so its controls and its framing stay in
           the part that can be seen. */}
@@ -358,7 +358,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           ref={mapRef}
           layers={mapLayers}
           hideLayerControl
-          controlsTop="max(calc(var(--m-safe-top, 12px) + 50px), var(--m-corner-clear, 0px))"
+          controlsTop="calc(var(--m-safe-top, 12px) + 50px)"
           // Its satellite switch sits in the bar above, beside the menu.
           baseLayer={mapBase}
           onOpenEntry={handleMarkerClick}
@@ -382,7 +382,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
 
       {/* Gallery tab overlay */}
       {view === 'gallery' && (
-        <div className="m-span-x absolute inset-y-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[max(calc(var(--m-safe-top,12px)+56px),var(--m-corner-clear,0px))] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6">
+        <div className="m-span-x absolute inset-y-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[calc(var(--m-safe-top,12px)+56px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6">
           {gallery.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
               <MDancingTrek scene="journey" className="mb-2" />
@@ -849,7 +849,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
  * With the header in the shell's row, what the screen measures from its top
  * starts right under that row instead of under a row of its own.
  */
-const IN_SHELL_ROW = { '--m-safe-top': 'calc(env(safe-area-inset-top, 0px) + 6px)' } as CSSProperties
+const IN_SHELL_ROW = { '--m-safe-top': 'calc(var(--m-safe-t, env(safe-area-inset-top, 0px)) + 6px)' } as CSSProperties
 
 /** The header row: on the screen, or in the trip shell's top row when the journal is a trip tab. */
 function HeaderFrame({ slot, feed, children }: { slot: HTMLElement | null; feed: boolean; children: ReactNode }) {

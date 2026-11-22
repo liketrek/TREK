@@ -48,7 +48,7 @@ export default function MImageViewer({
         type="button"
         onClick={onClose}
         aria-label={t('collab.chat.closeImage')}
-        className="m-corner-beside absolute end-4 top-[calc(var(--m-safe-top,12px)+4px)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--m-viewer-btn)] text-[color:var(--m-viewer-ink)]"
+        className="m-safe-row absolute end-4 top-[calc(var(--m-safe-top,12px)+4px)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--m-viewer-btn)] text-[color:var(--m-viewer-ink)]"
       >
         <X size={20} strokeWidth={2} />
       </button>

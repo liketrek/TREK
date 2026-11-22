@@ -118,7 +118,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
 
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
         {/* ── Places/Tours, the filter chips and Import (Add sits in the search row
             below to free space). The switch has a row of its own, except where the
             screen is short (a phone on its side): there it shares the chips' row,

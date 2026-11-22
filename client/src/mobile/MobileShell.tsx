@@ -14,7 +14,6 @@ import { useNativeCapabilities } from '../native/capabilities'
 import { isNativeIos } from '../native/platform'
 import { useWindowFold } from '../native/windowFold'
 import './mobile.css'
-import './corner.css'
 
 interface MobileShellProps {
   isPhone: boolean

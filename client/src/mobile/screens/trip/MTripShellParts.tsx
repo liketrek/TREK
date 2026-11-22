@@ -68,7 +68,7 @@ export function GlassSegment({ children, activeKey }: { children: ReactNode; act
  * The box of the trip's floating rows (the top controls, the day chips): the page's width after
  * the rail, beside an element in a top corner such as a Duo's status capsule (mobile.css).
  */
-export const CHROME_ROW = 'm-corner-beside absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)]';
+export const CHROME_ROW = 'm-safe-row absolute end-4 start-[calc(var(--m-rail-w,0px)+16px)]';
 
 /** A phone's header group: after the back button (transports, bookings), or centred on the bar (costs, files). */
 export const ROW_AFTER_BACK = 'absolute start-[52px] end-2 justify-center';

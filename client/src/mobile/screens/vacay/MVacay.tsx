@@ -91,9 +91,9 @@ export default function MVacay() {
 
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
-    <div className="m-corner-own relative h-dvh">
+    <div className="relative h-dvh">
       {/* Header, beside a corner element (a Duo's status capsule) upright */}
-      <div className="m-corner-beside-in absolute inset-x-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
+      <div className="absolute inset-x-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
         <MIconBtn onClick={() => v.setSheet('invite')} ariaLabel={t('vacay.inviteUser')}>
           <UserPlus size={16} strokeWidth={2} className="text-m-muted" />
         </MIconBtn>
@@ -115,7 +115,7 @@ export default function MVacay() {
       </div>
 
       {/* Scroll container */}
-      <div className={`absolute inset-0 overflow-y-auto px-4 pt-[max(calc(var(--m-safe-top,12px)+44px),var(--m-corner-clear,0px))] pb-[calc(var(--bottom-nav-h,84px)+12px)] ${edit ? 'wide:pb-[calc(env(safe-area-inset-bottom,0px)+84px)]' : ''}`}>
+      <div className={`absolute inset-0 overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+44px)] pb-[calc(var(--bottom-nav-h,84px)+12px)] ${edit ? 'wide:pb-[calc(env(safe-area-inset-bottom,0px)+84px)]' : ''}`}>
         {/* Selected person card */}
         {v.selectedUser && stat && (
           <div className="mt-2 flex items-center gap-3 rounded-[18px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-[14px] py-[9px]">

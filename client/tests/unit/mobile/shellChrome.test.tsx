@@ -52,12 +52,15 @@ describe('MGlassBar', () => {
 describe('safe area in the touch shell', () => {
   // jsdom applies no stylesheet and has no env(), so the rules are read from source.
   const css = readFileSync(resolve(root, 'src/mobile/mobile.css'), 'utf8');
+  const wideRoot = "html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {";
+  const rtlWideRoot = "html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {";
+  const block = (selector: string) => css.split(selector)[1]?.split('}')[0] ?? '';
 
-  it('FE-MOB-CHROME-004: the top clearance takes env() with the measurement of the app as a floor, never in its place', () => {
-    expect(css).toContain('--m-safe-t: max(env(safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));');
+  it('FE-MOB-CHROME-004: the insets take env() with the measurement of the app as a floor, never in its place', () => {
+    expect(css).toContain('--m-raw-t: max(env(safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));');
+    expect(css).toContain('--m-raw-l: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));');
+    expect(css).toContain('--m-raw-r: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));');
     expect(css).toContain('--m-safe-top: calc(var(--m-safe-t) + 12px);');
-    expect(css).toContain('--m-safe-l: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));');
-    expect(css).toContain('--m-safe-r: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));');
   });
 
   it('FE-MOB-CHROME-005: without the rail the floating bars keep clear of a side inset, such as a camera in a corner', () => {
@@ -74,92 +77,66 @@ describe('safe area in the touch shell', () => {
   });
 
   it('FE-MOB-CHROME-006: a side inset gets a little air, and none where there is no inset', () => {
-    expect(css).toContain('--m-safe-r-gap: calc(var(--m-bar-r) + min(var(--m-bar-r), 8px));');
-    expect(css).toContain('--m-safe-l-gap: calc(var(--m-bar-l) + min(var(--m-bar-l), 8px));');
+    expect(css).toContain('--m-safe-r-gap: calc(var(--m-safe-r) + min(var(--m-safe-r), 8px));');
+    expect(css).toContain('--m-safe-l-gap: calc(var(--m-safe-l) + min(var(--m-safe-l), 8px));');
   });
 
   it('FE-MOB-CHROME-007: on a wide window the bars end before the trailing inset, by their box, not a margin', () => {
     const wide = "html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-bar-x {";
-    expect(css.split(wide)[1]?.split('}')[0] ?? '').toContain(
-      'inset-inline-end: calc(16px + var(--m-safe-r-gap, 0px));'
-    );
+    expect(block(wide)).toContain('inset-inline-end: calc(16px + var(--m-safe-r-gap, 0px));');
     const rtl = `html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-bar-x {`;
-    expect(css.split(rtl)[1]?.split('}')[0] ?? '').toContain(
-      'inset-inline-end: calc(16px + var(--m-safe-l-gap, 0px));'
-    );
+    expect(block(rtl)).toContain('inset-inline-end: calc(16px + var(--m-safe-l-gap, 0px));');
   });
 
   it('FE-MOB-CHROME-008: the page keeps clear of the side insets, the leading one left to the rail on a wide window', () => {
-    expect(css.split('\n.m-page {')[1]?.split('}')[0] ?? '').toContain(
-      'margin-inline: var(--m-page-l, 0px) var(--m-page-r, 0px);'
-    );
-    expect(css.split("html[dir='rtl'] .m-page {")[1]?.split('}')[0] ?? '').toContain(
-      'margin-inline: var(--m-page-r, 0px) var(--m-page-l, 0px);'
-    );
-    const wide = "html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-page {";
-    expect(css.split(wide)[1]?.split('}')[0] ?? '').toContain('margin-inline-start: 0;');
+    expect(block('\n.m-page {')).toContain('margin-inline: var(--m-safe-l, 0px) var(--m-safe-r, 0px);');
+    expect(block('\n.m-page {')).not.toContain('padding-top');
+    expect(block("html[dir='rtl'] .m-page {")).toContain('margin-inline: var(--m-safe-r, 0px) var(--m-safe-l, 0px);');
+    const wide = block("html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-page {");
+    expect(wide).toContain('margin-inline-start: 0;');
+    expect(wide).toContain('margin-inline-end: var(--m-safe-r-gap, 0px);');
+    const rtlWide = block("html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-page {");
+    expect(rtlWide).toContain('margin-inline-end: var(--m-safe-l-gap, 0px);');
   });
 
-  it('FE-MOB-CHROME-009: an element in a top corner moves the bars beside it and the page below it, not a whole strip aside', () => {
-    // The bars avoid the wider of the side inset and the corner element.
-    expect(css).toContain('--m-bar-r: max(var(--m-safe-r), var(--trek-native-corner-right, 0px));');
-    expect(css).toContain('--m-bar-l: max(var(--m-safe-l), var(--trek-native-corner-left, 0px));');
-    // The page gives the corner's width back and starts below the corner instead.
-    expect(css).toContain('--m-page-r: max(0px, var(--m-safe-r) - var(--trek-native-corner-right, 0px));');
-    expect(css).toContain('--m-page-l: max(0px, var(--m-safe-l) - var(--trek-native-corner-left, 0px));');
-    expect(css.split('\n.m-page {')[1]?.split('}')[0] ?? '').toContain(
-      'padding-top: max(0px, calc(var(--m-corner-clear, 0px) + 2px - var(--m-safe-top, 12px) - 70px));'
-    );
-    expect(css).toContain('--m-corner-clear: calc(var(--m-corner-b) + min(var(--m-corner-b), 10px));');
-    // Without a corner element (every other device, iOS before 26) nothing moves.
-    expect(css).toContain('--m-corner-b: var(--trek-native-corner-bottom, 0px);');
+  it('FE-MOB-CHROME-009: upright, an element in a top corner counts as top inset, and the sides keep their width', () => {
+    // A Duo's status capsule: everything that clears the top clears it too.
+    expect(css).toContain('--m-safe-t: max(var(--m-raw-t), var(--trek-native-corner-bottom, 0px));');
+    // iOS reports it as a side inset as well; upright that width is given back.
+    expect(css).toContain('--m-safe-l: max(0px, var(--m-raw-l) - var(--trek-native-corner-left, 0px));');
+    expect(css).toContain('--m-safe-r: max(0px, var(--m-raw-r) - var(--trek-native-corner-right, 0px));');
   });
 
-  it('FE-MOB-CHROME-010: on a wide window the page ends before a corner element instead of starting below it', () => {
-    const wideRoot = "html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {";
-    const block = css.split(wideRoot)[1]?.split('}')[0] ?? '';
-    expect(block).toContain('--m-corner-clear: 0px;');
-    expect(block).toContain('--m-corner-side-r: var(--m-corner-r-gap);');
-    expect(block).toContain('--m-rail-w: calc(var(--m-bar-l) + 100px);');
-    const widePage = "html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-page {";
-    expect(css.split(widePage)[1]?.split('}')[0] ?? '').toContain(
-      'margin-inline-end: max(var(--m-page-r, 0px), var(--m-corner-side-r, 0px));'
-    );
-    // Right to left the rail stands on the corner's side and takes it.
-    const rtlRoot = "html[dir='rtl']:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) .m-root {";
-    const rtl = css.split(rtlRoot)[1]?.split('}')[0] ?? '';
-    expect(rtl).toContain('--m-rail-w: calc(var(--m-bar-r) + 100px);');
-    expect(rtl).toContain('--m-corner-side-r: 0px;');
+  it('FE-MOB-CHROME-010: on a wide window the corner element takes its side over the whole height instead', () => {
+    const wide = block(wideRoot);
+    expect(wide).toContain('--m-safe-t: var(--m-raw-t);');
+    expect(wide).toContain('--m-safe-l: max(var(--m-raw-l), var(--trek-native-corner-left, 0px));');
+    expect(wide).toContain('--m-safe-r: max(var(--m-raw-r), var(--trek-native-corner-right, 0px));');
+    expect(wide).toContain('--m-rail-w: calc(var(--m-safe-l) + 100px);');
+    // Right to left the rail stands on the other side and takes that inset.
+    expect(block(rtlWideRoot)).toContain('--m-rail-w: calc(var(--m-safe-r) + 100px);');
   });
 
-  it('FE-MOB-CHROME-011: the screens that place their own controls keep them beside a corner element and their content below it', () => {
-    const corner = readFileSync(resolve(root, 'src/mobile/corner.css'), 'utf8');
-    expect(corner).toMatch(
-      /\.m-corner-beside \{\s*margin-inline: var\(--m-corner-l-gap, 0px\) var\(--m-corner-r-gap, 0px\);/
-    );
-    // The element stays where the hardware has it, so right to left swaps the sides back.
-    expect(corner).toMatch(
-      /html\[dir='rtl'\] \.m-corner-beside \{\s*margin-inline: var\(--m-corner-r-gap, 0px\) var\(--m-corner-l-gap, 0px\);/
-    );
-    expect(corner).toMatch(
-      /\.m-corner-side \{\s*margin-inline: var\(--m-corner-side-l, 0px\) var\(--m-corner-side-r, 0px\);/
-    );
-    expect(css).toMatch(/\.m-page:has\(\.m-corner-own\) \{\s*padding-top: 0;/);
-    expect(readFileSync(resolve(root, 'src/mobile/MobileShell.tsx'), 'utf8')).toContain("import './corner.css'");
+  it('FE-MOB-CHROME-011: rows and layers a screen places itself keep to the same insets, and no screen handles the corner on its own', () => {
+    const narrowRow = "html:not(:has(.m-shell[data-size='wide'], .m-shell[data-size='split'])) .m-safe-row {";
+    expect(block(narrowRow)).toContain('margin-inline: var(--m-safe-l-gap, 0px) var(--m-safe-r-gap, 0px);');
+    const wideBoth =
+      "html:has(.m-shell[data-size='wide'], .m-shell[data-size='split']) :is(.m-safe-row, .m-safe-trail) {";
+    expect(block(wideBoth)).toContain('margin-inline-end: var(--m-safe-r-gap, 0px);');
     const src = (file: string) => readFileSync(resolve(root, 'src', file), 'utf8');
-    const shell = src('mobile/screens/trip/MTripShell.tsx');
-    // The top row and the day chips stand beside it, a list tab ends before it on a wide window.
-    expect(src('mobile/screens/trip/MTripShellParts.tsx')).toContain("CHROME_ROW = 'm-corner-beside absolute end-4");
-    expect(shell.match(/\$\{CHROME_ROW\}/g)).toHaveLength(2);
-    expect(shell).toContain('<div className="m-corner-side relative h-full">');
-    expect(src('mobile/screens/trip/map/MMapArea.tsx')).toContain('m-corner-beside pointer-events-none absolute end-4');
-    // A list tab's first row and a docked sheet start below it.
-    expect(src('mobile/screens/trip/tabs/tabChrome.tsx')).toContain(
-      'pt-[max(calc(var(--m-safe-top,12px)+58px),var(--m-corner-clear,0px))]'
-    );
-    expect(src('mobile/components/MSheet.tsx')).toContain(
-      'top-[max(calc(var(--m-safe-top,12px)+56px),var(--m-corner-clear,0px))]'
-    );
-    expect(src('mobile/components/MSectionNav.tsx')).toContain("'m-corner-flow px-4 ");
+    expect(src('mobile/screens/trip/MTripShellParts.tsx')).toContain("CHROME_ROW = 'm-safe-row absolute end-4");
+    expect(src('mobile/screens/trip/MTripShell.tsx')).toContain('<div className="m-safe-trail relative h-full">');
+    expect(src('mobile/screens/trip/map/MMapArea.tsx')).toContain('m-safe-row pointer-events-none absolute end-4');
+    expect(src('mobile/components/MSheet.tsx')).toContain('${base} m-safe-trail ');
+    // The capsule's own measurement is read in mobile.css alone.
+    expect(src('mobile/MobileShell.tsx')).not.toContain('corner.css');
+    for (const file of [
+      'mobile/components/MSectionNav.tsx',
+      'mobile/screens/trip/tabs/tabChrome.tsx',
+      'mobile/screens/journey/MJourneyDetail.tsx',
+      'mobile/screens/vacay/MVacay.tsx',
+    ]) {
+      expect(src(file)).not.toMatch(/m-corner|trek-native-corner/);
+    }
   });
 });

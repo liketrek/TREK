@@ -89,7 +89,7 @@ export function MSectionList({
  * width on both screens.
  */
 export const SECTION_SCREEN =
-  'm-corner-flow px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:mx-auto wide:max-w-[1040px] wide:px-6 split:grid split:max-w-[1240px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8';
+  'px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[var(--m-safe-top,12px)] wide:mx-auto wide:max-w-[1040px] wide:px-6 split:grid split:max-w-[1240px] split:grid-cols-[260px_minmax(0,1fr)] split:items-start split:gap-8';
 
 interface MSectionNavProps {
   title: string;
