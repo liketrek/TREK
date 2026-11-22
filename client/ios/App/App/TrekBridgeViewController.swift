@@ -121,6 +121,9 @@ class TrekBridgeViewController: CAPBridgeViewController {
             right: max(0, safe.right - (window.bounds.maxX - frame.maxX))
         )
         let corner = cornerElement(in: frame, window: window)
+        if corner != .zero, cornerWindowSizes.insert(sizeKey(window.bounds.size)).inserted {
+            setNeedsStatusBarAppearanceUpdate()
+        }
         if !force, insets == publishedSafeArea, corner == publishedCorner { return }
         publishedSafeArea = insets
         publishedCorner = corner
@@ -139,15 +142,36 @@ class TrekBridgeViewController: CAPBridgeViewController {
 
     private var publishedCorner: UIEdgeInsets?
 
+    // MARK: - The status bar beside a corner element
+
+    /// The window sizes on which a corner element was seen. On an iPhone Duo
+    /// that element is the status capsule, so the app hides the status bar
+    /// there to take the capsule away; whatever still covers the corner stays
+    /// in the safe area the page keeps clear of. A size stays in the set
+    /// once seen: with the bar hidden the next measure may find no corner, and
+    /// showing the bar again would bring the capsule back and start over. The
+    /// folded and the unfolded display differ in size, so each keeps its own
+    /// answer, and a device without such an element never hides its bar.
+    private var cornerWindowSizes = Set<String>()
+
+    private func sizeKey(_ size: CGSize) -> String {
+        "\(Int(size.width.rounded()))x\(Int(size.height.rounded()))"
+    }
+
+    override var prefersStatusBarHidden: Bool {
+        if super.prefersStatusBarHidden { return true }
+        guard let size = view.window?.bounds.size else { return false }
+        return cornerWindowSizes.contains(sizeKey(size))
+    }
+
     /// An element in a top corner of the screen, such as the status capsule of
     /// an iPhone Duo: how far down it reaches (top) and how wide it is on its
     /// side (left/right), in the web view's coordinates; zero where there is
     /// none. iOS 26 tells a corner apart from a whole edge: the safe area with
     /// the corner avoided vertically reaches lower than the one avoiding it
-    /// horizontally, which in turn is wider on the corner's side. The page puts
-    /// its top bar beside the element and starts its content below it, using
-    /// the full width (mobile.css), instead of giving up a strip of the whole
-    /// height.
+    /// horizontally, which in turn is wider on the corner's side. The page
+    /// counts it into its safe area (mobile.css): upright its content starts
+    /// below the element, on a wide window it leaves the element's side free.
     private func cornerElement(in frame: CGRect, window: UIWindow) -> UIEdgeInsets {
         guard #available(iOS 26.0, *) else { return .zero }
         let vertical = view.edgeInsets(for: .safeArea(cornerAdaptation: .vertical))
