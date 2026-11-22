@@ -70,7 +70,7 @@ export function glanceHtml(rows: readonly GlanceRow[], tr: Translate): string {
       <th>${escHtml(tr('common.date'))}</th>
       <th>${escHtml(tr('pdf.plan'))}</th>
       <th>${escHtml(tr('pdf.stay'))}</th>
-      <th class="glance-end">${glyph('pin', 9)}</th>
+      <th class="glance-stops">${glyph('pin', 9)}</th>
       ${withCost ? `<th class="glance-end">${escHtml(tr('pdf.costLabel'))}</th>` : ''}
     </tr></thead>
     <tbody>${rows
@@ -80,7 +80,7 @@ export function glanceHtml(rows: readonly GlanceRow[], tr: Translate): string {
       <td class="num">${escHtml(r.date)}</td>
       <td class="glance-title">${escHtml(r.title)}</td>
       <td>${escHtml(r.stay)}</td>
-      <td class="num">${r.stops || ''}</td>
+      <td class="num glance-stops">${r.stops || ''}</td>
       ${withCost ? `<td class="num">${r.cost ?? ''}</td>` : ''}
     </tr>`
       )

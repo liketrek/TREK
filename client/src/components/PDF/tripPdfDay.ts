@@ -226,11 +226,16 @@ export function bookingItem(r: PdfBooking, day: Day, ctx: PdfDayContext, flags: 
  */
 export function noteItem(note: DayNote): string {
   const colour = note.color ? hexColour(note.color, '') : '';
+  // A note's `time` is the free line the day plan prints under its text, not a clock,
+  // so it stays in the card and the time column stays empty.
+  const subtitle = typeof note.time === 'string' ? note.time.trim() : '';
   const card = `<div class="note-card${colour ? ' note-tinted' : ''}"${colour ? ` style="--note:${colour}"` : ''}>
     <span class="note-icon">${noteIcon(note.icon)}</span>
-    <div class="note-body"><div class="note-text">${escHtml(note.text)}</div></div>
+    <div class="note-body"><div class="note-text">${escHtml(note.text)}</div>${
+      subtitle ? `<div class="note-time">${escHtml(subtitle)}</div>` : ''
+    }</div>
   </div>`;
-  return item('note', timeColumn(note.time || '', ''), '', card);
+  return item('note', timeColumn('', ''), '', card);
 }
 
 // ── Places ────────────────────────────────────────────────────────────────

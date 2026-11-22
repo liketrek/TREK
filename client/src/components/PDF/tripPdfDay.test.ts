@@ -14,13 +14,13 @@ const category = { id: 4, name: 'Temple', icon: 'landmark', color: '#c2410c' } a
 
 /** Monday first, like the stored week; Wednesday has hours, Thursday is closed. */
 const week = JSON.stringify([
-  { open: '08:00', close: '18:00' },
-  { open: '08:00', close: '18:00' },
-  { open: '09:00', close: '17:30' },
+  { closed: false, open: '08:00', close: '18:00' },
+  { closed: false, open: '08:00', close: '18:00' },
+  { closed: false, open: '09:00', close: '17:30' },
   { closed: true },
-  { open: '08:00', close: '18:00' },
-  { open: '08:00', close: '18:00' },
-  { open: '08:00', close: '18:00' },
+  { closed: false, open: '08:00', close: '18:00' },
+  { closed: false, open: '08:00', close: '18:00' },
+  { closed: false, open: '08:00', close: '18:00' },
 ]);
 
 const fullPlace = {
@@ -173,11 +173,13 @@ describe('noteItem', () => {
     expect(tinted.querySelector('.note-card')?.className).toBe('note-card note-tinted');
     expect(tinted.querySelector('.note-card')?.getAttribute('style')).toBe('--note:#2563eb');
     expect(texts(tinted, '.note-text')).toEqual(['Buy <tickets>']);
-    expect(texts(tinted, '.tl-start')).toEqual(['08:00']);
+    // The note's time field is its free second line, kept in the card, not a clock.
+    expect(texts(tinted, '.note-time')).toEqual(['08:00']);
+    expect(tinted.querySelector('.tl-start')).toBeNull();
 
     const plain = parse(noteItem({ ...note, color: 'not-a-colour', time: null } as DayNote));
     expect(plain.querySelector('.note-card')?.className).toBe('note-card');
-    expect(plain.querySelector('.tl-start')).toBeNull();
+    expect(plain.querySelector('.note-time')).toBeNull();
   });
 });
 
@@ -227,7 +229,8 @@ describe('dayHeader', () => {
   it('FE-PDFDAY-010: the number, date and title, with only the figures the day has', () => {
     const doc = parse(dayHeader(day, { stops: 4, distance: '12 km', cost: '¥3,000' }, context()));
 
-    expect(texts(doc, '.day-tag')).toEqual(['pdf.day 3']);
+    expect(texts(doc, '.day-tag-lbl')).toEqual(['pdf.day']);
+    expect(texts(doc, '.day-tag-num')).toEqual(['3']);
     expect(texts(doc, '.day-date')[0]).toMatch(/May/);
     expect(texts(doc, '.day-title')).toEqual(['Kyoto']);
     expect(texts(doc, '.meta-pill, .day-cost')).toEqual(['4', '12 km', '¥3,000']);

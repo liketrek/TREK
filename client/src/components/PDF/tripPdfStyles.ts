@@ -81,10 +81,6 @@ export function tripPdfCss(): string {
   }
   .page-break { break-before: page; }
 
-  @media screen {
-    html { background: var(--wash-2); }
-    .doc { max-width: 210mm; margin: 0 auto; background: var(--paper); box-shadow: 0 0 0 1px var(--hair); }
-  }
 
   /* ── Cover ───────────────────────────────────────────────── */
   .cover {
@@ -153,6 +149,8 @@ export function tripPdfCss(): string {
   .glance-day { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 18px; padding: 0 5px; border-radius: 6px; background: var(--day); color: var(--paper); font-family: var(--num); font-weight: 600; font-size: calc(8px * var(--t)); }
   .glance-title { color: var(--ink); font-weight: 500; }
   .glance .num, .glance-end { text-align: end; white-space: nowrap; }
+  .glance .glance-stops { text-align: center; }
+  .glance th.glance-stops svg { display: inline-block; vertical-align: -1px; }
 
   .ledger { display: grid; gap: 5px; }
   .ledger-row {
@@ -358,7 +356,7 @@ export function tripPdfCss(): string {
   .note-kicker { font-family: var(--num); font-size: calc(7.5px * var(--t)); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--kind, var(--ink-3)); }
   .note-text { font-size: calc(9.5px * var(--t)); color: var(--ink); line-height: 1.5; }
   .booking-card .note-text { font-size: calc(11px * var(--t)); font-weight: 600; line-height: 1.35; }
-  .note-time { font-size: calc(8.5px * var(--t)); color: var(--ink-3); margin-block-start: 2px; }
+  .note-time { font-size: calc(8.5px * var(--t)); color: var(--ink-3); margin-block-start: 2px; white-space: pre-line; }
   .note-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-block-start: 4px; }
   .note-line .route { font-family: var(--num); font-size: calc(9px * var(--t)); font-weight: 600; color: var(--ink); margin-inline-end: 2px; }
   .booking-card .chip { background: var(--paper); }
