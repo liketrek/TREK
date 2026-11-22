@@ -18,11 +18,11 @@ import { drawTripRoute, type TripPdfRouteOptions } from './tripPdfRoute'
 import { fetchExchangeRates } from '../../hooks/useExchangeRates'
 import { onlyMyPlan, planAssignments } from './pdfScope'
 import { createPdfMarkdown } from './pdfMarkdown'
-import { STRIP_PX, shrinkPdfImages } from './pdfImages'
+import { STRIP_PX, bakePdfCover, shrinkPdfImages } from './pdfImages'
 import { absUrl, escHtml, hexColour, longDateRange, safeImg, shortDate } from './tripPdfHtml'
 import { bookingIcon, bookingTint, glyph } from './tripPdfIcons'
 import { bookingItem, bookingLinesHtml, dayHeader, noteItem, photoStrip, placeItem, staysBlock, type PdfBooking, type PdfDayContext } from './tripPdfDay'
-import { coverHtml, glanceHtml, ledgerHtml, type CoverStat, type GlanceRow, type LedgerRow } from './tripPdfOverview'
+import { COVER_SHADE, coverHtml, glanceHtml, ledgerHtml, type CoverStat, type GlanceRow, type LedgerRow } from './tripPdfOverview'
 import { tripPdfCss } from './tripPdfStyles'
 
 /** A day's colour when the route gave it none: the same palette entry the map would use. */
@@ -291,6 +291,8 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
     })
     return [day.id, photos.slice(0, 3)]
   }))
+  // The cover photo and its shade as one picture at print size (null: printed as before).
+  const bakedCover = coverImg ? await bakePdfCover(coverImg, COVER_SHADE, signal).catch(() => null) : null
   const stripCopies = await shrinkPdfImages([...stripPhotos.values()].flat().map(p => p.url), signal, STRIP_PX)
     .catch(() => new Map<string, string>())
 
@@ -426,7 +428,8 @@ ${coverHtml({
   title: trip?.title || 'My Trip',
   description: trip?.description || null,
   range,
-  image: coverImg,
+  image: bakedCover ?? coverImg,
+  baked: bakedCover != null,
   logo: absUrl('/logo-light.svg'),
   stats,
   route: (tripRoute?.days || []).filter(d => d.lines.length).map(d => ({ colour: hexColour(d.color.line, '#ffffff'), lines: d.lines })),

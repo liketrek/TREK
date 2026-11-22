@@ -8,13 +8,15 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { server } from '../../../tests/helpers/msw/server';
-import { shrinkPdfImages, STRIP_PX } from './pdfImages';
+import { bakePdfCover, shrinkPdfImages, STRIP_PX } from './pdfImages';
 
 const origin = window.location.origin;
 const JPEG = 'data:image/jpeg;base64,c21hbGw=';
 
 let bitmapSize = { width: 1200, height: 800 };
 let drawn: { width: number; height: number }[] = [];
+let drawCalls: unknown[][] = [];
+let stops: [number, string][] = [];
 let inFlight = 0;
 let mostInFlight = 0;
 
@@ -24,7 +26,11 @@ function fakeContext(this: HTMLCanvasElement, type: string) {
   return {
     fillStyle: '',
     fillRect: vi.fn(),
-    drawImage: vi.fn(() => drawn.push({ width: this.width, height: this.height })),
+    drawImage: vi.fn((...args: unknown[]) => {
+      drawCalls.push(args);
+      drawn.push({ width: this.width, height: this.height });
+    }),
+    createLinearGradient: vi.fn(() => ({ addColorStop: (at: number, colour: string) => stops.push([at, colour]) })),
   };
 }
 
@@ -35,6 +41,8 @@ function imageResponse(type = 'image/jpeg') {
 beforeEach(() => {
   bitmapSize = { width: 1200, height: 800 };
   drawn = [];
+  drawCalls = [];
+  stops = [];
   inFlight = 0;
   mostInFlight = 0;
   vi.stubGlobal(
@@ -141,5 +149,37 @@ describe('shrinkPdfImages', () => {
     const shrunk = await shrinkPdfImages([url]);
 
     expect(shrunk.has(url)).toBe(false);
+  });
+});
+
+describe('bakePdfCover', () => {
+  it('FE-PDFIMAGES-010: the photo is cropped to the page and the shade painted into one JPEG', async () => {
+    bitmapSize = { width: 4000, height: 2252 };
+    const url = `${origin}/uploads/places/cover.jpg`;
+    const baked = await bakePdfCover(url, [
+      [0, 0.35],
+      [0.92, 0.82],
+    ]);
+
+    expect(baked).toBe(JPEG);
+    // Decoded at the page's height, not in full.
+    expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), { resizeHeight: 1754, resizeQuality: 'medium' });
+    // A4 at 150 dpi, the landscape photo scaled to the page height and centred.
+    expect(drawn).toEqual([{ width: 1240, height: 1754 }]);
+    const [, x, y, width, height] = drawCalls[0] as number[];
+    expect(height).toBeCloseTo(1754, 0);
+    expect(width).toBeCloseTo((4000 * 1754) / 2252, 0);
+    expect(x).toBeCloseTo((1240 - width) / 2, 3);
+    expect(y).toBeCloseTo(0, 3);
+    expect(stops).toEqual([
+      [0, 'rgba(10, 10, 14, 0.35)'],
+      [0.92, 'rgba(10, 10, 14, 0.82)'],
+    ]);
+  });
+
+  it('FE-PDFIMAGES-011: a cover from another origin or one that cannot be read is left to print as before', async () => {
+    expect(await bakePdfCover('https://elsewhere.example/cover.jpg', [[0, 0.5]])).toBeNull();
+    expect(await bakePdfCover(`${origin}/uploads/missing.jpg`, [[0, 0.5]])).toBeNull();
+    expect(drawn).toEqual([]);
   });
 });

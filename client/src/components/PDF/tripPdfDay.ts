@@ -73,14 +73,15 @@ function item(kind: string, time: string, marker: string, body: string, style = 
 /** "Departure", "Pick-up" and the like, for a booking that spans days; null on its single day. */
 function spanLabel(r: PdfBooking, phase: string, tr: Translate): string | null {
   if (phase === 'single') return null;
-  const at = (start: string, end: string, middle: string) =>
-    tr(`reservations.span.${phase === 'start' ? start : phase === 'end' ? end : middle}`);
-  if (r.type === 'flight') return at('departure', 'arrival', 'inTransit');
-  if (r.type === 'car') return at('pickup', 'return', 'active');
+  // Each key spelled out, so the key check can follow every branch to its string.
+  const start = phase === 'start';
+  const end = phase === 'end';
+  if (r.type === 'flight') return tr(`reservations.span.${start ? 'departure' : end ? 'arrival' : 'inTransit'}`);
+  if (r.type === 'car') return tr(`reservations.span.${start ? 'pickup' : end ? 'return' : 'active'}`);
   // Parking reuses span.pickup for its end day: you drop the car off and collect it
   // again later, so the rental car's wording carries over without a second key.
-  if (r.type === 'parking') return at('dropOff', 'pickup', 'ongoing');
-  return at('start', 'end', 'ongoing');
+  if (r.type === 'parking') return tr(`reservations.span.${start ? 'dropOff' : end ? 'pickup' : 'ongoing'}`);
+  return tr(`reservations.span.${start ? 'start' : end ? 'end' : 'ongoing'}`);
 }
 
 function stopsOf(r: PdfBooking, label: 'code' | 'name'): string[] {
@@ -194,7 +195,8 @@ export function bookingItem(r: PdfBooking, day: Day, ctx: PdfDayContext, flags: 
   if (note) flags.transportNote = true;
   const meta = metadataOf(r);
   const location = r.location || text(meta.location);
-  const status = r.status === 'confirmed' || r.status === 'pending' ? tr(`reservations.${r.status}`) : '';
+  const status =
+    r.status === 'confirmed' ? tr('reservations.confirmed') : r.status === 'pending' ? tr('reservations.pending') : '';
   const tint = hexColour(bookingTint(r.type), NEUTRAL);
 
   const extras = [
@@ -386,7 +388,7 @@ export function staysBlock(stays: readonly Accommodation[], day: Day, ctx: PdfDa
 
 // ── Header ────────────────────────────────────────────────────────────────
 
-export interface DayHeaderFacts {
+interface DayHeaderFacts {
   stops: number;
   distance: string | null;
   cost: string | null;
@@ -412,7 +414,7 @@ export function dayHeader(day: Day, facts: DayHeaderFacts, ctx: PdfDayContext): 
 
 // ── Photo strip ───────────────────────────────────────────────────────────
 
-export interface StripPhoto {
+interface StripPhoto {
   url: string;
   caption: string;
 }

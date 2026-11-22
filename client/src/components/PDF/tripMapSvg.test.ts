@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildTripMapSvg } from './tripMapSvg'
+import { buildTripMapSvg, drawnPoints } from './tripMapSvg'
 import type { TripOverviewDay } from '../Map/tripRouteGeometry'
 
 const day = (over: Partial<TripOverviewDay> = {}): TripOverviewDay => ({
@@ -76,5 +76,27 @@ describe('buildTripMapSvg', () => {
     const svg = buildTripMapSvg([day()], opts) as string
     expect(svg).toContain('viewBox="0 0 720 420"')
     expect(svg).toContain('width="720"')
+  })
+})
+
+// A routed road carries a point every few metres; drawn as it came, a trip map held
+// tens of thousands of them and stuttered in every viewer.
+describe('drawnPoints', () => {
+  // One degree is one map pixel, so the tolerance reads in degrees here.
+  const flat = (lat: number, lng: number): [number, number] => [lng, -lat]
+
+  it('FE-PDF-MAPSVG-020: a dense straight road keeps only its ends', () => {
+    const road = Array.from({ length: 5000 }, (_, i) => [0, i / 10] as [number, number])
+    expect(drawnPoints(road, flat)).toBe('0,0 499.9,0')
+  })
+
+  it('FE-PDF-MAPSVG-021: a turn is kept, a wobble under the tolerance is not', () => {
+    const road: [number, number][] = [[0, 0], [-0.1, 50], [0, 100], [-60, 100], [-0.2, 100.1]]
+    expect(drawnPoints(road, flat)).toBe('0,0 100,0 100,60 100.1,0.2')
+  })
+
+  it('FE-PDF-MAPSVG-022: points that round onto the same pixel are drawn once', () => {
+    const road: [number, number][] = [[0, 0], [0, 0.01], [0, 0.02], [0, 0.04]]
+    expect(drawnPoints(road, flat)).toBe('0,0')
   })
 })

@@ -3,6 +3,7 @@ import geist500 from '@fontsource/geist-sans/files/geist-sans-latin-500-normal.w
 import geist600 from '@fontsource/geist-sans/files/geist-sans-latin-600-normal.woff2?url';
 
 import { PDF_MARKDOWN_CSS } from './pdfMarkdown';
+import { coverShadeCss } from './tripPdfOverview';
 
 /*
  * The trip PDF's stylesheet. A print document has a fixed palette rather than the
@@ -41,15 +42,11 @@ export function tripPdfCss(): string {
     --wash: #f6f5f2;
     --wash-2: #eeede8;
     --night: #141418;
-    --shade: rgba(10, 10, 14, 0.82);
-    --shade-mid: rgba(10, 10, 14, 0.35);
-    --shade-none: rgba(10, 10, 14, 0);
     --glass: rgba(255, 255, 255, 0.13);
     --glass-edge: rgba(255, 255, 255, 0.22);
     --glass-dark: rgba(14, 14, 18, 0.42);
     --glass-tile: rgba(18, 18, 24, 0.34);
     --glass-deep: rgba(12, 12, 16, 0.5);
-    --route-glow: rgba(255, 255, 255, 0.5);
     --on-night: rgba(255, 255, 255, 0.78);
     --on-night-2: rgba(255, 255, 255, 0.56);
     --gold: #b7791f;
@@ -96,7 +93,7 @@ export function tripPdfCss(): string {
   }
   .cover-shade {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, var(--shade-mid) 0%, var(--shade-none) 22%, var(--shade-none) 36%, var(--shade) 92%);
+    background: ${coverShadeCss()};
   }
   .cover-top {
     position: absolute; inset-block-start: 14mm; inset-inline: var(--gutter);
@@ -123,7 +120,7 @@ export function tripPdfCss(): string {
     text-transform: uppercase; color: var(--on-night-2);
   }
   .cover-route-svg { display: block; width: 100%; height: auto; }
-  .cover-route-glow { color: var(--route-glow); }
+  .cover-route-glow { color: var(--paper); }
   .cover-route-start { fill: var(--paper); }
   .cover-route-end { stroke: var(--paper); }
   .cover-ribbon { display: flex; gap: 2px; height: 5px; margin-block-start: 8mm; }
@@ -148,11 +145,8 @@ export function tripPdfCss(): string {
     text-transform: uppercase; color: var(--on-night-2); margin-block-start: 5px;
   }
 
-  /* The blur behind the glass shows in the preview; print engines leave it out. */
-  @media screen {
-    .cover-dates, .cover-stat, .glass-label { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-    .cover-route { -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-  }
+  /* The glass is a tinted fill, not a backdrop blur: print engines leave a blur out, and
+     in the preview a blur over the full-page photo had to be redrawn on every scroll. */
 
   /* ── Overview: route map, the days at a glance, bookings and stays ─────── */
   .overview { padding: 2mm var(--gutter) 0; }

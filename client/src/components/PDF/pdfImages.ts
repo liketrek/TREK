@@ -66,6 +66,23 @@ function canShrink(): boolean {
 }
 
 async function shrinkImage(url: string, shortSide: number, signal?: AbortSignal): Promise<string | null> {
+  // Decoded at twice the short side, so a portrait photo still has room to shrink.
+  const bitmap = await fetchBitmap(url, shortSide * 2, signal);
+  if (!bitmap) return null;
+  try {
+    return toJpeg(bitmap, shortSide);
+  } finally {
+    bitmap.close();
+  }
+}
+
+/**
+ * The photo at `url` decoded at `height` pixels, or null when it cannot be had. Decoded
+ * near the size it is drawn at: a 48 MP phone photo decoded in full holds about 190 MB,
+ * which can end the web view on a phone. Browsers without the option decode in full and
+ * the canvas scales down as before.
+ */
+async function fetchBitmap(url: string, height: number, signal?: AbortSignal): Promise<ImageBitmap | null> {
   // A controller and a timer rather than AbortSignal.timeout/any, which Safari only
   // has from 16 and 17.4 on; a throw there would cost the whole export.
   const fetching = new AbortController();
@@ -77,22 +94,58 @@ async function shrinkImage(url: string, shortSide: number, signal?: AbortSignal)
     if (!res.ok || Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) return null;
     const blob = await res.blob();
     if (!blob.type.startsWith('image/') || blob.size > MAX_BYTES) return null;
-    // Decoded near thumbnail size: a 48 MP phone photo decoded in full holds about
-    // 190 MB, which can end the web view on a phone. Browsers without the option
-    // decode in full and toJpeg scales down as before.
-    // Decoded at twice the short side, so a portrait photo still has room to shrink.
-    const bitmap = await createImageBitmap(blob, { resizeHeight: shortSide * 2, resizeQuality: 'medium' });
-    try {
-      return toJpeg(bitmap, shortSide);
-    } finally {
-      bitmap.close();
-    }
+    return await createImageBitmap(blob, { resizeHeight: height, resizeQuality: 'medium' });
   } catch {
     // Offline, timed out, aborted or undecodable: the photo prints from its URL.
     return null;
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener('abort', stop);
+  }
+}
+
+/** The cover page in pixels: A4 at 150 dpi, enough for a photo behind the type. */
+const COVER_W = 1240;
+const COVER_H = 1754;
+const COVER_QUALITY = 0.82;
+
+/** One stop of the shade over the cover photo: how far down the page, 0 to 1, and how dark. */
+export type ShadeStop = readonly [at: number, alpha: number];
+
+/**
+ * The cover photo cropped to the page with its shade painted in, as one JPEG at print
+ * size. A page-sized photo under a translucent gradient is composited again by every
+ * viewer on every redraw, which made the first pages stutter in the preview and in the
+ * saved file; one flat picture is drawn once. Null for a photo from another origin or
+ * one that cannot be read: the cover then prints the photo and the shade as before.
+ */
+export async function bakePdfCover(
+  url: string,
+  shade: readonly ShadeStop[],
+  signal?: AbortSignal
+): Promise<string | null> {
+  if (!isSameOrigin(url) || !canShrink()) return null;
+  const bitmap = await fetchBitmap(url, COVER_H, signal);
+  if (!bitmap) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = COVER_W;
+    canvas.height = COVER_H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    // Cropped the way background-size: cover crops it, around the middle.
+    const scale = Math.max(COVER_W / bitmap.width, COVER_H / bitmap.height);
+    const width = bitmap.width * scale;
+    const height = bitmap.height * scale;
+    ctx.drawImage(bitmap, (COVER_W - width) / 2, (COVER_H - height) / 2, width, height);
+    const gradient = ctx.createLinearGradient(0, 0, 0, COVER_H);
+    for (const [at, alpha] of shade) gradient.addColorStop(at, `rgba(10, 10, 14, ${alpha})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, COVER_W, COVER_H);
+    const baked = canvas.toDataURL('image/jpeg', COVER_QUALITY);
+    return baked.startsWith('data:image/jpeg') ? baked : null;
+  } finally {
+    bitmap.close();
   }
 }
 

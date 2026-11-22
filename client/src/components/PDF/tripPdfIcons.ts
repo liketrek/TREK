@@ -79,7 +79,7 @@ const GLYPHS = {
   key: KeyRound,
 } satisfies Record<string, LucideIcon>;
 
-export type PdfGlyph = keyof typeof GLYPHS;
+type PdfGlyph = keyof typeof GLYPHS;
 
 export function glyph(name: PdfGlyph, size = 10): string {
   return iconSvg(GLYPHS[name], size);

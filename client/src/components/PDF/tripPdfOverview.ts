@@ -1,3 +1,4 @@
+import type { ShadeStop } from './pdfImages';
 import { cssUrl, escHtml } from './tripPdfHtml';
 import { glyph } from './tripPdfIcons';
 
@@ -14,17 +15,19 @@ export interface CoverStat {
 }
 
 /** One day of the route as the cover draws it: its colour and its roads, `[lat, lng]`. */
-export interface CoverRouteDay {
+interface CoverRouteDay {
   colour: string;
   lines: readonly (readonly [number, number])[][];
 }
 
-export interface CoverInput {
+interface CoverInput {
   title: string;
   description: string | null;
   range: string | null;
   /** The cover photo, already checked to be one the document may load. */
   image: string | null;
+  /** Whether the shade is already painted into `image`, so none is laid over it. */
+  baked?: boolean;
   /** The light TREK logo, absolute. */
   logo: string | null;
   stats: readonly CoverStat[];
@@ -35,6 +38,23 @@ export interface CoverInput {
   /** The first and the last day's short date, under the band's ends. */
   ribbonEnds: readonly [string, string] | null;
   tr: Translate;
+}
+
+/**
+ * The shade over the cover photo, top to bottom: a little at the top for the logo, clear
+ * through the middle, dark at the foot for the title and the figures. Painted into the
+ * photo when the export could bake it, laid over it as a gradient when not.
+ */
+export const COVER_SHADE: readonly ShadeStop[] = [
+  [0, 0.35],
+  [0.22, 0],
+  [0.36, 0],
+  [0.92, 0.82],
+];
+
+/** The cover shade as a CSS gradient, for a photo the export could not bake. */
+export function coverShadeCss(): string {
+  return `linear-gradient(180deg, ${COVER_SHADE.map(([at, alpha]) => `rgba(10, 10, 14, ${alpha}) ${at * 100}%`).join(', ')})`;
 }
 
 const ROUTE_W = 240;
@@ -85,7 +105,7 @@ export function coverRouteSvg(days: readonly CoverRouteDay[]): string {
   const start = first.points[0];
   const end = last.points[last.points.length - 1];
   return `<svg class="cover-route-svg" viewBox="0 0 ${ROUTE_W} ${ROUTE_H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-    <g class="cover-route-glow" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">${drawn
+    <g class="cover-route-glow" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round">${drawn
       .map((l) => `<path d="${l.d}"/>`)
       .join('')}</g>
     <g fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${drawn
@@ -102,6 +122,7 @@ export function coverHtml({
   description,
   range,
   image,
+  baked = false,
   logo,
   stats,
   route,
@@ -122,7 +143,7 @@ export function coverHtml({
       : '';
   return `<section class="cover${image ? '' : ' cover-plain'}">
   <div class="cover-bg"${image ? ` style="background-image:url('${escHtml(cssUrl(image))}')"` : ''}></div>
-  <div class="cover-shade"></div>
+  ${baked ? '' : '<div class="cover-shade"></div>'}
   <div class="cover-top">
     ${logo ? `<img src="${escHtml(logo)}" alt="TREK" />` : '<span></span>'}
     <span class="eyebrow">${escHtml(tr('pdf.travelPlan'))}</span>
