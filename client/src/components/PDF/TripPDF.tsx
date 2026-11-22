@@ -292,7 +292,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
     return [day.id, photos.slice(0, 3)]
   }))
   // The cover photo and its shade as one picture at print size (null: printed as before).
-  const bakedCover = coverImg ? await bakePdfCover(coverImg, COVER_SHADE, signal).catch(() => null) : null
+  const bakedCover = coverImg ? await bakePdfCover(coverImg, COVER_SHADE, signal) : null
   const stripCopies = await shrinkPdfImages([...stripPhotos.values()].flat().map(p => p.url), signal, STRIP_PX)
     .catch(() => new Map<string, string>())
 

@@ -144,6 +144,10 @@ export async function bakePdfCover(
     ctx.fillRect(0, 0, COVER_W, COVER_H);
     const baked = canvas.toDataURL('image/jpeg', COVER_QUALITY);
     return baked.startsWith('data:image/jpeg') ? baked : null;
+  } catch {
+    // A canvas the browser will not draw or encode (out of memory on a phone, say):
+    // the cover then prints the photo and its shade as separate layers, as before.
+    return null;
   } finally {
     bitmap.close();
   }

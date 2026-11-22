@@ -148,12 +148,12 @@ describe('glanceHtml', () => {
     expect(texts(without, 'thead th')).toEqual(['pdf.day', 'common.date', 'pdf.plan', 'pdf.stay', '']);
     expect(texts(without, 'tbody tr:first-child td')).toEqual(['1', 'Sun, Nov 1', 'Tokyo', 'Hotel Gracery', '3']);
     // A day without stops leaves the cell empty rather than printing a zero.
-    expect(texts(without, 'tbody tr:last-child td').at(-1)).toBe('');
+    expect(texts(without, 'tbody tr:last-child td').slice(-1)[0]).toBe('');
     expect(without.querySelector('tbody tr')?.getAttribute('style')).toBe('--day:#0a84ff');
 
     const withCost = parse(glanceHtml([row(), row({ number: 2, cost: '¥3,000' })], tr));
-    expect(texts(withCost, 'thead th').at(-1)).toBe('pdf.costLabel');
-    expect(texts(withCost, 'tbody tr:last-child td').at(-1)).toBe('¥3,000');
+    expect(texts(withCost, 'thead th').slice(-1)[0]).toBe('pdf.costLabel');
+    expect(texts(withCost, 'tbody tr:last-child td').slice(-1)[0]).toBe('¥3,000');
 
     expect(glanceHtml([], tr)).toBe('');
   });
