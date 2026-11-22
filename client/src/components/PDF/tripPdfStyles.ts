@@ -47,6 +47,9 @@ export function tripPdfCss(): string {
     --glass: rgba(255, 255, 255, 0.13);
     --glass-edge: rgba(255, 255, 255, 0.22);
     --glass-dark: rgba(14, 14, 18, 0.42);
+    --glass-tile: rgba(18, 18, 24, 0.34);
+    --glass-deep: rgba(12, 12, 16, 0.5);
+    --route-glow: rgba(255, 255, 255, 0.5);
     --on-night: rgba(255, 255, 255, 0.78);
     --on-night-2: rgba(255, 255, 255, 0.56);
     --gold: #b7791f;
@@ -93,7 +96,7 @@ export function tripPdfCss(): string {
   }
   .cover-shade {
     position: absolute; inset: 0;
-    background: linear-gradient(180deg, var(--shade-mid) 0%, var(--shade-none) 24%, var(--shade-none) 40%, var(--shade) 100%);
+    background: linear-gradient(180deg, var(--shade-mid) 0%, var(--shade-none) 22%, var(--shade-none) 36%, var(--shade) 92%);
   }
   .cover-top {
     position: absolute; inset-block-start: 14mm; inset-inline: var(--gutter);
@@ -101,19 +104,54 @@ export function tripPdfCss(): string {
   }
   .cover-top img { height: 22px; }
   .cover-top .eyebrow { color: var(--on-night); }
-  .cover-body { position: absolute; inset-inline: var(--gutter); inset-block-end: 16mm; }
-  .cover-dates { font-family: var(--num); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: var(--on-night); }
-  .cover-title { font-size: 46px; font-weight: 700; line-height: 1.04; letter-spacing: -0.02em; margin: 6px 0 10px; }
-  .cover-desc { max-width: 135mm; font-size: 12px; line-height: 1.6; color: var(--on-night); }
-  .cover-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(30mm, 1fr)); gap: 8px; margin-block-start: 10mm; }
-  .cover-stat {
-    background: var(--glass); border: 1px solid var(--glass-edge); border-radius: 16px;
-    padding: 12px 14px 11px; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  .cover-body { position: absolute; inset-inline: var(--gutter); inset-block-end: 15mm; }
+  .cover-main { display: flex; align-items: flex-end; gap: 8mm; }
+  .cover-head { flex: 1; min-width: 0; }
+  .cover-dates {
+    display: inline-block; font-family: var(--num); font-size: 9px; font-weight: 600; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--paper); padding: 5px 11px; border-radius: 99px;
+    background: var(--glass-tile); border: 1px solid var(--glass-edge);
   }
-  .cover-stat-num { font-family: var(--num); font-size: 20px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .cover-title { font-size: 54px; font-weight: 700; line-height: 1; letter-spacing: -0.025em; margin: 5mm 0 3.5mm; }
+  .cover-desc { max-width: 120mm; font-size: 12px; line-height: 1.6; color: var(--on-night); }
+  .cover-route {
+    flex: 0 0 66mm; padding: 9px 10px 6px; border-radius: 18px;
+    background: var(--glass-deep); border: 1px solid var(--glass-edge);
+  }
+  .cover-route-lbl {
+    font-family: var(--num); font-size: 7px; font-weight: 600; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--on-night-2);
+  }
+  .cover-route-svg { display: block; width: 100%; height: auto; }
+  .cover-route-glow { color: var(--route-glow); }
+  .cover-route-start { fill: var(--paper); }
+  .cover-route-end { stroke: var(--paper); }
+  .cover-ribbon { display: flex; gap: 2px; height: 5px; margin-block-start: 8mm; }
+  .cover-ribbon span { flex: 1; border-radius: 3px; }
+  .cover-ribbon-ends {
+    display: flex; justify-content: space-between; margin-block-start: 5px;
+    font-family: var(--num); font-size: 7.5px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--on-night-2);
+  }
+  .cover-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 6mm; }
+  .cover-stat {
+    flex: 1 1 0; min-width: max-content;
+    background: var(--glass-tile); border: 1px solid var(--glass-edge); border-radius: 16px;
+    padding: 12px 14px 11px;
+  }
+  .cover-stat-num {
+    font-family: var(--num); font-size: 19px; font-weight: 600; line-height: 1.1;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
   .cover-stat-lbl {
     font-family: var(--num); font-size: 7.5px; font-weight: 500; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--on-night-2); margin-block-start: 5px;
+  }
+
+  /* The blur behind the glass shows in the preview; print engines leave it out. */
+  @media screen {
+    .cover-dates, .cover-stat, .glass-label { -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+    .cover-route { -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
   }
 
   /* ── Overview: route map, the days at a glance, bookings and stays ─────── */
@@ -150,6 +188,7 @@ export function tripPdfCss(): string {
   .glance-title { color: var(--ink); font-weight: 500; }
   .glance .num, .glance-end { text-align: end; white-space: nowrap; }
   .glance .glance-stops { text-align: center; }
+  .glance .glance-date { text-align: start; }
   .glance th.glance-stops svg { display: inline-block; vertical-align: -1px; }
 
   .ledger { display: grid; gap: 5px; }
@@ -223,7 +262,6 @@ export function tripPdfCss(): string {
     padding: 4px 10px; border-radius: 99px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-size: calc(8px * var(--t)); font-weight: 500; color: var(--paper);
     background: var(--glass-dark); border: 1px solid var(--glass-edge);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   }
   .pdf-no-photos .day-strip { display: none; }
 

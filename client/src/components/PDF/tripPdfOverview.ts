@@ -13,6 +13,12 @@ export interface CoverStat {
   label: string;
 }
 
+/** One day of the route as the cover draws it: its colour and its roads, `[lat, lng]`. */
+export interface CoverRouteDay {
+  colour: string;
+  lines: readonly (readonly [number, number])[][];
+}
+
 export interface CoverInput {
   title: string;
   description: string | null;
@@ -22,11 +28,98 @@ export interface CoverInput {
   /** The light TREK logo, absolute. */
   logo: string | null;
   stats: readonly CoverStat[];
+  /** The routed days, drawn as the trip's shape; empty when nothing was routed. */
+  route: readonly CoverRouteDay[];
+  /** Every day's colour in trip order, for the band under the title. */
+  ribbon: readonly string[];
+  /** The first and the last day's short date, under the band's ends. */
+  ribbonEnds: readonly [string, string] | null;
   tr: Translate;
 }
 
+const ROUTE_W = 240;
+const ROUTE_H = 170;
+const ROUTE_PAD = 14;
+/** Points drawn at most: a road trip routes to tens of thousands, the shape needs far fewer. */
+const ROUTE_MAX_POINTS = 1600;
+
+type LatLng = readonly [number, number];
+
+/**
+ * The trip's roads as one small drawing, each day in its colour on a soft glow, with a
+ * ring where the trip starts and a dot where it ends. Projected flat with the longitude
+ * scaled to the middle latitude, which is true enough at the size of a trip. Empty when
+ * there is no shape to draw.
+ */
+export function coverRouteSvg(days: readonly CoverRouteDay[]): string {
+  const lines = days.flatMap((d) => d.lines.filter((l) => l.length > 1).map((l) => ({ colour: d.colour, points: l })));
+  const points = lines.flatMap((l) => l.points);
+  if (!lines.length) return '';
+  const lats = points.map((p) => p[0]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const k = Math.cos((midLat * Math.PI) / 180);
+  const xs = points.map((p) => p[1] * k);
+  const ys = points.map((p) => -p[0]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const w = Math.max(...xs) - minX;
+  const h = Math.max(...ys) - minY;
+  const scale = Math.min(
+    w > 0 ? (ROUTE_W - 2 * ROUTE_PAD) / w : Infinity,
+    h > 0 ? (ROUTE_H - 2 * ROUTE_PAD) / h : Infinity
+  );
+  if (!Number.isFinite(scale)) return '';
+  const offX = (ROUTE_W - w * scale) / 2;
+  const offY = (ROUTE_H - h * scale) / 2;
+  const x = (p: LatLng) => (offX + (p[1] * k - minX) * scale).toFixed(1);
+  const y = (p: LatLng) => (offY + (-p[0] - minY) * scale).toFixed(1);
+  const step = Math.max(1, Math.ceil(points.length / ROUTE_MAX_POINTS));
+  const path = (line: readonly LatLng[]) =>
+    line
+      .filter((_, i) => i % step === 0 || i === line.length - 1)
+      .map((p, i) => `${i ? 'L' : 'M'}${x(p)} ${y(p)}`)
+      .join('');
+  const drawn = lines.map((l) => ({ colour: l.colour, d: path(l.points) }));
+  const first = lines[0];
+  const last = lines[lines.length - 1];
+  const start = first.points[0];
+  const end = last.points[last.points.length - 1];
+  return `<svg class="cover-route-svg" viewBox="0 0 ${ROUTE_W} ${ROUTE_H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <g class="cover-route-glow" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">${drawn
+      .map((l) => `<path d="${l.d}"/>`)
+      .join('')}</g>
+    <g fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${drawn
+      .map((l) => `<path d="${l.d}" stroke="${l.colour}"/>`)
+      .join('')}</g>
+    <circle class="cover-route-start" cx="${x(start)}" cy="${y(start)}" r="4.2" stroke="${first.colour}" stroke-width="2.2"/>
+    <circle class="cover-route-end" cx="${x(end)}" cy="${y(end)}" r="4.2" fill="${last.colour}" stroke-width="1.6"/>
+  </svg>`;
+}
+
 /** The cover: the trip's photo left bright, the title, the dates and its figures. */
-export function coverHtml({ title, description, range, image, logo, stats, tr }: CoverInput): string {
+export function coverHtml({
+  title,
+  description,
+  range,
+  image,
+  logo,
+  stats,
+  route,
+  ribbon,
+  ribbonEnds,
+  tr,
+}: CoverInput): string {
+  const routeSvg = coverRouteSvg(route);
+  const routeCard = routeSvg
+    ? `<div class="cover-route"><div class="cover-route-lbl">${escHtml(tr('pdf.mapTitle'))}</div>${routeSvg}</div>`
+    : '';
+  const ends = ribbonEnds
+    ? `<div class="cover-ribbon-ends"><span>${escHtml(ribbonEnds[0])}</span><span>${escHtml(ribbonEnds[1])}</span></div>`
+    : '';
+  const band =
+    ribbon.length > 1
+      ? `<div class="cover-ribbon">${ribbon.map((c) => `<span style="background:${c}"></span>`).join('')}</div>${ends}`
+      : '';
   return `<section class="cover${image ? '' : ' cover-plain'}">
   <div class="cover-bg"${image ? ` style="background-image:url('${escHtml(cssUrl(image))}')"` : ''}></div>
   <div class="cover-shade"></div>
@@ -35,9 +128,15 @@ export function coverHtml({ title, description, range, image, logo, stats, tr }:
     <span class="eyebrow">${escHtml(tr('pdf.travelPlan'))}</span>
   </div>
   <div class="cover-body">
-    ${range ? `<div class="cover-dates">${escHtml(range)}</div>` : ''}
-    <h1 class="cover-title">${escHtml(title)}</h1>
-    ${description ? `<p class="cover-desc">${escHtml(description)}</p>` : ''}
+    <div class="cover-main">
+      <div class="cover-head">
+        ${range ? `<div class="cover-dates">${escHtml(range)}</div>` : ''}
+        <h1 class="cover-title">${escHtml(title)}</h1>
+        ${description ? `<p class="cover-desc">${escHtml(description)}</p>` : ''}
+      </div>
+      ${routeCard}
+    </div>
+    ${band}
     <div class="cover-stats">${stats
       .map(
         (s) =>
@@ -77,7 +176,7 @@ export function glanceHtml(rows: readonly GlanceRow[], tr: Translate): string {
       .map(
         (r) => `<tr style="--day:${r.colour}">
       <td><span class="glance-day">${r.number}</span></td>
-      <td class="num">${escHtml(r.date)}</td>
+      <td class="num glance-date">${escHtml(r.date)}</td>
       <td class="glance-title">${escHtml(r.title)}</td>
       <td>${escHtml(r.stay)}</td>
       <td class="num glance-stops">${r.stops || ''}</td>

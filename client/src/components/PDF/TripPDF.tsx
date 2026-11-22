@@ -429,6 +429,11 @@ ${coverHtml({
   image: coverImg,
   logo: absUrl('/logo-light.svg'),
   stats,
+  route: (tripRoute?.days || []).filter(d => d.lines.length).map(d => ({ colour: hexColour(d.color.line, '#ffffff'), lines: d.lines })),
+  ribbon: sorted.map(dayColourOf),
+  ribbonEnds: sorted.length > 1 && sorted[0].date && sorted[sorted.length - 1].date
+    ? [shortDate(sorted[0].date, loc), shortDate(sorted[sorted.length - 1].date, loc)]
+    : null,
   tr,
 })}
 ${overviewHtml}

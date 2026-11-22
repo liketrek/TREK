@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { coverHtml, glanceHtml, ledgerHtml, type GlanceRow, type LedgerRow } from './tripPdfOverview';
+import { coverHtml, coverRouteSvg, glanceHtml, ledgerHtml, type GlanceRow, type LedgerRow } from './tripPdfOverview';
 
 const tr = (key: string) => key;
 const parse = (html: string) => new DOMParser().parseFromString(html, 'text/html');
@@ -21,6 +21,9 @@ describe('coverHtml', () => {
       { value: '22', label: 'days' },
       { value: '1,234 km', label: 'pdf.distanceLabel' },
     ],
+    route: [],
+    ribbon: [],
+    ribbonEnds: null,
     tr,
   };
 
@@ -49,6 +52,82 @@ describe('coverHtml', () => {
     const style = hostile.querySelector('.cover-bg')?.getAttribute('style') ?? '';
     expect(style.match(/url\(/g)).toHaveLength(1);
     expect(style).not.toContain("');");
+  });
+});
+
+describe('the cover route and day band', () => {
+  const base = { title: 'Japan', description: null, range: null, image: null, logo: null, stats: [], tr };
+
+  it('FE-PDFOVERVIEW-006: the route is drawn day by day in its colours, the band has a segment per day', () => {
+    const doc = parse(
+      coverHtml({
+        ...base,
+        route: [
+          {
+            colour: '#ff0000',
+            lines: [
+              [
+                [35.68, 139.76],
+                [35.0, 135.77],
+              ],
+            ],
+          },
+          {
+            colour: '#00ff00',
+            lines: [
+              [
+                [35.0, 135.77],
+                [34.69, 135.5],
+              ],
+            ],
+          },
+        ],
+        ribbon: ['#ff0000', '#00ff00', '#0000ff'],
+        ribbonEnds: ['Sun, Nov 1', 'Tue, Nov 3'],
+      })
+    );
+
+    const coloured = [...doc.querySelectorAll('.cover-route-svg path[stroke]')].map((p) => p.getAttribute('stroke'));
+    expect(coloured).toEqual(['#ff0000', '#00ff00']);
+    expect(doc.querySelectorAll('.cover-route-glow path')).toHaveLength(2);
+    expect(texts(doc, '.cover-route-lbl')).toEqual(['pdf.mapTitle']);
+    expect(doc.querySelectorAll('.cover-ribbon span')).toHaveLength(3);
+    expect(texts(doc, '.cover-ribbon-ends span')).toEqual(['Sun, Nov 1', 'Tue, Nov 3']);
+    // Every point lands inside the drawing.
+    const numbers = [...doc.querySelectorAll('.cover-route-svg path[stroke]')].flatMap((p) =>
+      (p.getAttribute('d') ?? '').split(/[ML ]/).filter(Boolean).map(Number)
+    );
+    for (const n of numbers) expect(n).toBeGreaterThanOrEqual(0);
+    for (const n of numbers) expect(n).toBeLessThanOrEqual(240);
+  });
+
+  it('FE-PDFOVERVIEW-007: nothing routed, one point or one spot draws no card, one day no band', () => {
+    expect(coverRouteSvg([])).toBe('');
+    expect(coverRouteSvg([{ colour: '#ff0000', lines: [[[1, 1]]] }])).toBe('');
+    expect(
+      coverRouteSvg([
+        {
+          colour: '#ff0000',
+          lines: [
+            [
+              [1, 1],
+              [1, 1],
+            ],
+          ],
+        },
+      ])
+    ).toBe('');
+
+    const doc = parse(coverHtml({ ...base, route: [], ribbon: ['#ff0000'], ribbonEnds: null }));
+    expect(doc.querySelector('.cover-route')).toBeNull();
+    expect(doc.querySelector('.cover-ribbon')).toBeNull();
+  });
+
+  it('FE-PDFOVERVIEW-008: a long road is thinned to a drawable number of points', () => {
+    const road = Array.from({ length: 20000 }, (_, i) => [45 + i / 20000, 7 + i / 10000] as [number, number]);
+    const svg = coverRouteSvg([{ colour: '#ff0000', lines: [road] }]);
+    const d = /<path d="([^"]+)" stroke=/.exec(svg)?.[1] ?? '';
+    expect(d.split('L').length).toBeLessThanOrEqual(1700);
   });
 });
 
