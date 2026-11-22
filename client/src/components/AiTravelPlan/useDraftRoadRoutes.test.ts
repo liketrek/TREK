@@ -15,7 +15,18 @@ const TWO_STOPS: [number, number][] = [
 
 function item(lat: number, lng: number, mode: TravelPlanLeg['mode'] | null): TravelPlanDraftItem {
   return {
-    place: { provider: 'amap', providerId: `${lat},${lng}`, name: '停靠点', lat, lng },
+    place: {
+      provider: 'amap',
+      providerId: `${lat},${lng}`,
+      name: '停靠点',
+      lat,
+      lng,
+      category: null,
+      address: null,
+      rating: null,
+      hours: [],
+      coordinateSystem: 'wgs84',
+    },
     arriveAt: null,
     leaveAt: null,
     activity: null,

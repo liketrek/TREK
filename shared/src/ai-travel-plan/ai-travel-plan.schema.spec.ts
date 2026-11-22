@@ -103,6 +103,31 @@ describe('travelPlanDraftSchema / plan response', () => {
     expect(travelPlanDraftItemSchema.safeParse({ ...item, source: undefined }).success).toBe(false);
   });
 
+  it('fills place metadata defaults for drafts written before it existed', () => {
+    const parsed = travelPlanDraftItemSchema.parse({
+      place: { provider: 'amap', providerId: 'B0FFH3', name: '西湖', lat: 30.25, lng: 120.15 },
+      arriveAt: null,
+      leaveAt: null,
+      activity: null,
+      travelFromPrevious: null,
+      estimatedCostCny: null,
+      source: {
+        provider: 'amap',
+        sourceId: 'B0FFH3',
+        checkedAt: '2026-05-01 01:00:00',
+        freshness: 'live',
+      },
+    });
+
+    expect(parsed.place).toMatchObject({
+      category: null,
+      address: null,
+      rating: null,
+      hours: [],
+      coordinateSystem: 'wgs84',
+    });
+  });
+
   it('builds an honest empty draft', () => {
     const draft = emptyTravelPlanDraft('2026-01-01 00:00:00', [
       { code: 'engine_not_configured', message: '没有引擎', severity: 'warning' },
@@ -141,9 +166,7 @@ describe('travelPlanStreamEventSchema', () => {
       stage: 'places',
       message: '检索中',
     });
-    expect(() =>
-      travelPlanStreamEventSchema.parse({ type: 'progress', stage: 'thinking', message: 'x' }),
-    ).toThrow();
+    expect(() => travelPlanStreamEventSchema.parse({ type: 'progress', stage: 'thinking', message: 'x' })).toThrow();
   });
 
   it('discriminates the error event from a plan event', () => {

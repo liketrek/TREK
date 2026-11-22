@@ -114,10 +114,27 @@ export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimeli
                           {formatCny(item.estimatedCostCny.min, locale)}–{formatCny(item.estimatedCostCny.max, locale)}
                         </span>
                       )}
-                      <span className="inline-flex items-center gap-1 text-content-faint">
+                      <span
+                        className="inline-flex items-center gap-1 text-content-faint"
+                        title={`${item.source.provider} · ${item.source.checkedAt}`}
+                      >
                         <MapPin size={12} />
                         {item.place.provider}
                       </span>
+                      {typeof item.place.rating === 'number' && (
+                        <span className="inline-flex items-center gap-1 text-content-muted">
+                          ★ {item.place.rating.toFixed(1)}
+                        </span>
+                      )}
+                      {(item.place.hours?.length ?? 0) > 0 && (
+                        <span
+                          className="inline-flex max-w-[14rem] items-center gap-1 truncate text-content-faint"
+                          title={item.place.hours.join('；')}
+                        >
+                          <Clock size={12} />
+                          {item.place.hours[0]}
+                        </span>
+                      )}
                       <a
                         href={placeNavigationUrl(item.place, navMode)}
                         target="_blank"

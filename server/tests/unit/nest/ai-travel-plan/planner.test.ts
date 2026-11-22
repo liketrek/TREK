@@ -35,7 +35,18 @@ function day(date: string, times: Array<[string, string]>): TravelPlanDraftDay {
   return {
     date,
     items: times.map(([arriveAt, leaveAt], index) => ({
-      place: { provider: 'amap', providerId: `amap:${index}`, name: `地点${index}`, lat: 30 + index, lng: 120 + index },
+      place: {
+        provider: 'amap',
+        providerId: `amap:${index}`,
+        name: `地点${index}`,
+        lat: 30 + index,
+        lng: 120 + index,
+        category: null,
+        address: null,
+        rating: null,
+        hours: [],
+        coordinateSystem: 'wgs84',
+      },
       arriveAt,
       leaveAt,
       activity: '游览',
@@ -57,7 +68,18 @@ function draft(days: TravelPlanDraftDay[], warnings: TravelPlanDraft['warnings']
 }
 
 const candidate = (id: number, lat = 30 + id * 0.01, lng = 120 + id * 0.01, address: string | null = '杭州市') => ({
-  place: { provider: 'amap', providerId: `amap:${id}`, name: `地点${id}`, lat, lng },
+  place: {
+    provider: 'amap',
+    providerId: `amap:${id}`,
+    name: `地点${id}`,
+    lat,
+    lng,
+    category: '风景名胜',
+    address,
+    rating: null,
+    hours: [],
+    coordinateSystem: 'wgs84' as const,
+  },
   source: { provider: 'amap', sourceId: `amap:${id}`, checkedAt: '2026-04-01 00:00:00', freshness: 'live' as const },
   address,
   category: '风景名胜',
@@ -348,6 +370,20 @@ describe('PlannerService', () => {
     expect(queries).not.toContain('杭州');
   });
 
+  it('fills a single explicit interest with the discovery keywords', async () => {
+    const search = vi.fn(async (_userId: number, _query: string) => [candidate(1)]);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search,
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    await planner.plan({ userId: 1, request: request({ interests: ['景点'] }) });
+
+    const queries = search.mock.calls.map((call) => call[1]);
+    expect(queries).toEqual(expect.arrayContaining(['杭州 景点', '杭州 公园', '杭州 博物馆']));
+  });
+
   it('drops civic infrastructure that a city-name search drags in', async () => {
     const civic = (id: number, category: string) => ({ ...candidate(id), category });
     const planner = service({
@@ -386,6 +422,38 @@ describe('PlannerService', () => {
     expect(names).not.toContain('地点2');
   });
 
+  it('carries the provider metadata the traveller needs to judge a stop', async () => {
+    const base = candidate(1);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        {
+          ...base,
+          address: '山西省忻州市忻府区',
+          rating: 4.6,
+          hours: ['周一：08:00-18:00'],
+          place: {
+            ...base.place,
+            address: '山西省忻州市忻府区',
+            rating: 4.6,
+            hours: ['周一：08:00-18:00'],
+          },
+        },
+      ]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days.flatMap((day) => day.items)[0]?.place).toMatchObject({
+      address: '山西省忻州市忻府区',
+      category: '风景名胜',
+      rating: 4.6,
+      hours: ['周一：08:00-18:00'],
+      coordinateSystem: 'wgs84',
+    });
+  });
+
   it('schedules real places with routed legs and records place and route facts', async () => {
     const planner = service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
@@ -399,9 +467,12 @@ describe('PlannerService', () => {
       })),
     });
 
-    const outcome = await planner.plan({ userId: 1, request: request() });
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
 
-    expect(outcome.draft.days).toHaveLength(2);
+    expect(outcome.draft.days).toHaveLength(1);
     expect(outcome.draft.days[0]?.items).toHaveLength(2);
     expect(outcome.draft.days[0]?.items[0]).toMatchObject({ arriveAt: '09:00', leaveAt: '10:30' });
     expect(outcome.draft.days[0]?.items[1]).toMatchObject({ arriveAt: '10:42', travelFromPrevious: { minutes: 12 } });
@@ -417,7 +488,10 @@ describe('PlannerService', () => {
       route: vi.fn(async () => ({ ok: false })),
     });
 
-    const outcome = await planner.plan({ userId: 1, request: request() });
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
 
     expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'route_unavailable' }));
     expect(outcome.draft.days[0]?.items[1]?.travelFromPrevious).toMatchObject({ distanceMeters: null });
@@ -468,7 +542,7 @@ describe('PlannerService', () => {
         const route = vi.fn(async () => ({ ok: false }));
         const planner = service({
           centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
-          search: vi.fn(async () => [candidate(1), candidate(2)]),
+          search: vi.fn(async () => [candidate(1), candidate(2), candidate(3), candidate(4)]),
           route,
         });
         const outcome = await planner.plan({
@@ -546,6 +620,31 @@ describe('PlannerService', () => {
     expect(outcome.draft.days.map((day) => day.items.length)).toEqual([2, 2, 2]);
   });
 
+  it('puts one stop on each day when the list only just covers the calendar', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1), candidate(2)]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days.map((day) => day.items.length)).toEqual([1, 1]);
+  });
+
+  it('warns about a day that had no place left to schedule', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1)]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days.map((day) => day.items.length)).toEqual([1, 0]);
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'day_underfilled', severity: 'warning' }));
+  });
+
   it('moves a stop out of the lunch window and skips what no longer fits the day', async () => {
     const lunch = service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
@@ -613,6 +712,8 @@ describe('PlannerProvider', () => {
             amap_poi_id: 'amap:B0FF',
             address: '西湖区',
             types: ['风景名胜'],
+            rating: 4.5,
+            opening_hours: ['周一：08:00-18:00'],
           },
           { name: '没有坐标', source: 'osm' },
         ],
@@ -624,7 +725,18 @@ describe('PlannerProvider', () => {
     const found = await provider.search(1, '杭州 西湖', { lat: 30, lng: 120 });
     expect(found).toEqual([
       expect.objectContaining({
-        place: { provider: 'amap', providerId: 'amap:B0FF', name: '西湖', lat: 30.2, lng: 120.1 },
+        place: {
+          provider: 'amap',
+          providerId: 'amap:B0FF',
+          name: '西湖',
+          lat: 30.2,
+          lng: 120.1,
+          category: '风景名胜',
+          address: '西湖区',
+          rating: 4.5,
+          hours: ['周一：08:00-18:00'],
+          coordinateSystem: 'wgs84',
+        },
         category: '风景名胜',
       }),
     ]);

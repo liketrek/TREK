@@ -91,7 +91,18 @@ const engine = {
 /** One draft item: a real provider place, a time window and no price. */
 function item(providerId: string, name: string, arriveAt: string, leaveAt: string) {
   return {
-    place: { provider: 'amap', providerId, name, lat: 30.2431, lng: 120.1501 },
+    place: {
+      provider: 'amap',
+      providerId,
+      name,
+      lat: 30.2431,
+      lng: 120.1501,
+      category: null,
+      address: null,
+      rating: null,
+      hours: [],
+      coordinateSystem: 'wgs84' as const,
+    },
     arriveAt,
     leaveAt,
     activity: null,

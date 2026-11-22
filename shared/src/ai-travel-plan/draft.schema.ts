@@ -6,6 +6,12 @@ import { z } from 'zod';
  * A place the planner proposes. `provider` + `providerId` identify a real record
  * in a provider the server is allowed to call; a draft never carries a place
  * that a provider did not return.
+ *
+ * Coordinates are WGS-84 by contract: a provider that speaks another datum
+ * converts at its own boundary, and `coordinateSystem` records that so a reader
+ * never has to assume it. The remaining fields are what the provider knew about
+ * the place when it was checked; empty values mean "the provider had none", not
+ * "the planner guessed".
  */
 export const travelPlanPlaceSchema = z.object({
   provider: z.string().trim().min(1).max(40),
@@ -13,6 +19,15 @@ export const travelPlanPlaceSchema = z.object({
   name: z.string().trim().min(1).max(120),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
+  /** The provider's own taxonomy, e.g. 风景名胜; null when it has none. */
+  category: z.string().trim().min(1).max(120).nullable().default(null),
+  /** Full address as the provider wrote it, region included. */
+  address: z.string().trim().min(1).max(300).nullable().default(null),
+  /** Provider rating, 0–5. Null when the provider has no rating for the place. */
+  rating: z.number().min(0).max(5).nullable().default(null),
+  /** Opening-hours lines exactly as the provider wrote them; empty when none. */
+  hours: z.array(z.string().trim().min(1).max(200)).default([]),
+  coordinateSystem: z.enum(['wgs84', 'gcj02', 'bd09']).default('wgs84'),
 });
 
 export type TravelPlanPlace = z.infer<typeof travelPlanPlaceSchema>;

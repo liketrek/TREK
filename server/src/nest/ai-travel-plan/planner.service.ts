@@ -209,6 +209,14 @@ export class PlannerService {
         severity: 'info',
       });
     }
+    const emptyDays = days.filter((day) => day.items.length === 0).length;
+    if (emptyDays > 0) {
+      warnings.push({
+        code: 'day_underfilled',
+        message: `有 ${emptyDays} 天没有排入地点，可以增加兴趣关键词或缩短行程天数后重试。`,
+        severity: 'warning',
+      });
+    }
 
     const facts = buildFacts(selected, days, routed.ok, checkedAt);
     const summary = buildSummary(selected.length, days.length, routed.ok);
@@ -257,9 +265,14 @@ interface PlaceQuery {
   interest: string;
 }
 
+const DEFAULT_INTERESTS = ['景点', '公园', '博物馆'];
+
 function buildQueries(request: TravelPlanCreateRequest, extra: string[]): PlaceQuery[] {
   const destination = request.destination ?? '';
-  const interests = request.interests.length > 0 ? request.interests : ['景点', '博物馆', '公园'];
+  // A single explicit interest ("景点") is one search and a thin pool; pair it
+  // with the discovery defaults so a small city still yields a full itinerary.
+  // Explicit interests keep their slots, defaults only fill the remainder.
+  const interests = [...new Set([...request.interests, ...DEFAULT_INTERESTS])];
   // The city name alone is never a query: Amap matches it against POI names and
   // fills the pool with the city's own offices, schools and hospitals. Every
   // query pairs the city with a keyword; extra revision keywords take the slots.
@@ -331,9 +344,10 @@ function scheduleDays(
   const days: TravelPlanDraftDay[] = dates.map((date) => ({ date, items: [] }));
 
   // More stops than days would otherwise pack the first days and leave the
-  // tail empty; spread the route across the whole calendar instead. A short
-  // list that fits one day keeps the old packing behaviour.
-  const spread = selected.length > dates.length;
+  // tail empty; spread the route across the whole calendar instead. A list that
+  // only just covers the calendar still gets one stop per day. A shorter list
+  // cannot fill every day, and the caller warns about the days left empty.
+  const spread = selected.length >= dates.length;
   const dayOf = (index: number) =>
     spread ? Math.min(days.length - 1, Math.floor((index * days.length) / selected.length)) : 0;
 

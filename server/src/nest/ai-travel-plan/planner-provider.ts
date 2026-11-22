@@ -12,6 +12,8 @@ export interface PlannerCandidate {
   category: string | null;
   /** Opening-hours text exactly as the provider wrote it; empty when it has none. */
   hours: string[];
+  /** Provider rating 0–5, or null when the provider has none. */
+  rating?: number | null;
 }
 
 /** A day's legs, or the reason the router could not answer. */
@@ -158,13 +160,33 @@ function toCandidate(record: Record<string, unknown>, checkedAt: string): Planne
   const hours = Array.isArray(record.opening_hours)
     ? record.opening_hours.filter((entry): entry is string => typeof entry === 'string' && entry.trim() !== '')
     : [];
+  const rating = numberOrNull(record.rating);
+  const address = text(record.address);
+  const category = text(record.category) ?? firstCategory(record.types);
+  // A provider that reports 0 or a value above 5 has no usable rating; the
+  // schema range would otherwise reject the whole draft.
+  const usableRating = rating !== null && rating >= 0 && rating <= 5 ? rating : null;
 
   return {
-    place: { provider, providerId, name, lat, lng },
+    place: {
+      provider,
+      providerId,
+      name,
+      lat,
+      lng,
+      category,
+      address,
+      rating: usableRating,
+      hours,
+      // The provider converts whatever datum it speaks to WGS-84 at its own
+      // boundary (see places-provider.ts), so the draft can state it plainly.
+      coordinateSystem: 'wgs84',
+    },
     source: { provider, sourceId: providerId, checkedAt, freshness: 'live' },
-    address: text(record.address),
-    category: text(record.category) ?? firstCategory(record.types),
+    address,
+    category,
     hours,
+    rating: usableRating,
   };
 }
 

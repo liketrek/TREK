@@ -31,7 +31,18 @@ function request(overrides: Partial<TravelPlanRequest> = {}): TravelPlanRequest 
 
 function item(name: string): TravelPlanDraftDay['items'][number] {
   return {
-    place: { provider: 'amap', providerId: name, name, lat: 29.56, lng: 106.55 },
+    place: {
+      provider: 'amap',
+      providerId: name,
+      name,
+      lat: 29.56,
+      lng: 106.55,
+      category: null,
+      address: null,
+      rating: null,
+      hours: [],
+      coordinateSystem: 'wgs84',
+    },
     arriveAt: null,
     leaveAt: null,
     activity: null,

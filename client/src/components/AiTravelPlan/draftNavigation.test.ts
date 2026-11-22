@@ -11,7 +11,18 @@ import {
 
 function stop(name: string, lat: number, lng: number): TravelPlanDraftItem {
   return {
-    place: { provider: 'amap', providerId: `${lat},${lng}`, name, lat, lng },
+    place: {
+      provider: 'amap',
+      providerId: `${lat},${lng}`,
+      name,
+      lat,
+      lng,
+      category: null,
+      address: null,
+      rating: null,
+      hours: [],
+      coordinateSystem: 'wgs84',
+    },
     arriveAt: null,
     leaveAt: null,
     activity: null,
