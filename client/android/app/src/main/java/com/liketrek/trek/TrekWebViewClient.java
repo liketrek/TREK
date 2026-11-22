@@ -202,14 +202,23 @@ class TrekWebViewClient extends BridgeWebViewClient {
      * none, as Cloudflare does with a 403, sends the app to the address screen,
      * which says so and offers to add one. Any other 4xx page (a proxy's block
      * page, a certificate it refused) stays up with the bar and its way out, so
-     * the app is never stuck on a page without TREK's UI.
+     * the app is never stuck on a page without TREK's UI. Each one is logged
+     * with its address and whoever answered it (PageErrorLog).
      */
     @Override
     public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
         int status = errorResponse.getStatusCode();
         if (!request.isForMainFrame()) {
             super.onReceivedHttpError(view, request, errorResponse);
-        } else if (status >= 500 || (status >= 400 && wantedCertificate(request.getUrl()))) {
+            return;
+        }
+        Log.w("TrekShell", PageErrorLog.describe(
+            request.getUrl().toString(),
+            status,
+            errorResponse.getReasonPhrase(),
+            errorResponse.getResponseHeaders()
+        ));
+        if (status >= 500 || (status >= 400 && wantedCertificate(request.getUrl()))) {
             TrekServerStore.setFailure(view.getContext(), "HTTP " + status);
             onUnreachable.run();
         } else if (status >= 400) {
