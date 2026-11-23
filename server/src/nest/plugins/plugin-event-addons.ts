@@ -37,15 +37,28 @@ type Deliver = (tripId: number, event: string, meta?: PluginEventMeta) => void;
  * trip, any other event at once. An addon that cannot be read sends nothing,
  * since events are best-effort and a family the owner switched off must not
  * leak through a failed read.
+ *
+ * The reads run side by side, but a trip's events go out in the order they
+ * were emitted: while one of them waits for its read, every later event of the
+ * same trip queues behind it, a trip event included.
  */
 export function tripEventSink(addons: AddonsService, orm: MikroORM | undefined, deliver: Deliver): Deliver {
+  const queues = new Map<number, Promise<void>>();
   return (tripId, event, meta) => {
     const addonId = tripAddonOfEvent(event);
-    if (!addonId) return deliver(tripId, event, meta);
-    const ask = () => addons.isEnabledForTrip(tripId, addonId);
-    void (orm ? withRequestContext(orm, ask) : ask()).then(
-      (on) => on && deliver(tripId, event, meta),
-      () => undefined,
-    );
+    const before = queues.get(tripId);
+    if (!addonId && !before) return deliver(tripId, event, meta);
+    const ask = () => (addonId ? addons.isEnabledForTrip(tripId, addonId) : Promise.resolve(true));
+    const on = orm && addonId ? withRequestContext(orm, ask) : ask();
+    const queued = (before ?? Promise.resolve())
+      .then(() => on)
+      .then((open) => {
+        if (open) deliver(tripId, event, meta);
+      })
+      .catch(() => undefined);
+    queues.set(tripId, queued);
+    void queued.then(() => {
+      if (queues.get(tripId) === queued) queues.delete(tripId);
+    });
   };
 }

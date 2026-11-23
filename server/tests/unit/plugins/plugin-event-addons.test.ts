@@ -58,4 +58,31 @@ describe('the plugin event sink per trip', () => {
     await settle();
     expect(deliver).not.toHaveBeenCalled();
   });
+
+  it('PEVADDON-005: a trip keeps its emission order, though a later read answers first', async () => {
+    const deliver = vi.fn();
+    const answers: Array<(on: boolean) => void> = [];
+    const addons = {
+      isEnabledForTrip: vi.fn(() => new Promise<boolean>((resolve) => answers.push(resolve))),
+    } as unknown as AddonsService;
+    const sink = tripEventSink(addons, undefined, deliver);
+    sink(5, 'budget:updated', { v: 1 } as never);
+    sink(5, 'budget:updated', { v: 2 } as never);
+    sink(5, 'trip:deleted', undefined);
+    sink(6, 'place:created', undefined);
+    expect(deliver.mock.calls.map(([tripId, event]) => `${tripId} ${event}`)).toEqual(['6 place:created']);
+    answers[1](true);
+    await settle();
+    expect(deliver).toHaveBeenCalledTimes(1);
+    answers[0](true);
+    await settle();
+    expect(deliver.mock.calls.map(([tripId, event, meta]) => [tripId, event, meta])).toEqual([
+      [6, 'place:created', undefined],
+      [5, 'budget:updated', { v: 1 }],
+      [5, 'budget:updated', { v: 2 }],
+      [5, 'trip:deleted', undefined],
+    ]);
+    sink(5, 'place:created', undefined);
+    expect(deliver).toHaveBeenLastCalledWith(5, 'place:created', undefined);
+  });
 });
