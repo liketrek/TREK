@@ -980,15 +980,54 @@ describe('streamImmichAsset', () => {
 
     await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 13, { publicView: true });
     await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 13);
-    await svc.streamImmichAsset(makeRes() as never, USER, 'v1', 'original', 13, {
-      mediaType: 'video',
-      publicView: true,
-    });
+    await svc.streamImmichAsset(makeRes() as never, USER, 'v1', 'original', 13, { mediaType: 'video' });
 
     const urls = safeFetch.mock.calls.map((call) => String(call[0]));
     expect(urls[0]).toContain('/api/assets/a1/thumbnail?size=preview');
     expect(urls[1]).toContain('/api/assets/a1/thumbnail?size=fullsize');
     expect(urls[2]).toContain('/api/assets/v1/video/playback');
+  });
+
+  it('IMMICH-041f: a public view plays a video with a location only from the transcode, never the original file', async () => {
+    await seedUser(13, 'https://immich.example', 'owner-key');
+    const located = { exifInfo: { latitude: 38.1, longitude: 13.1, fileSizeInByte: 5000 } };
+    const playback = (total: number) => ({
+      ...upstream({ status: 206, contentType: 'video/mp4' }),
+      headers: { get: (h: string) => (h === 'content-range' ? `bytes 0-0/${total}` : null) },
+    });
+    const serve = (asset: unknown, total: number) =>
+      safeFetch.mockImplementation(async (url: string, init: { headers: Record<string, string> }) => {
+        if (url.endsWith('/api/assets/v1')) return upstream({ json: asset });
+        if (init.headers.Range === 'bytes=0-0') return playback(total);
+        return upstream({ contentType: 'video/mp4', body: 'video' });
+      });
+    const played = () =>
+      safeFetch.mock.calls.some(
+        (call) => call[1].headers.Range !== 'bytes=0-0' && String(call[0]).includes('/video/playback'),
+      );
+    const publicVideo = async () => {
+      const res = makeRes();
+      await svc.streamImmichAsset(res as never, USER, 'v1', 'original', 13, { mediaType: 'video', publicView: true });
+      return res;
+    };
+
+    serve(located, 5000);
+    expect((await publicVideo()).status).toHaveBeenCalledWith(404);
+    expect(played()).toBe(false);
+
+    safeFetch.mockClear();
+    serve(located, 3200);
+    await publicVideo();
+    expect(played()).toBe(true);
+
+    safeFetch.mockClear();
+    serve({ exifInfo: { latitude: null, longitude: null, fileSizeInByte: 5000 } }, 5000);
+    await publicVideo();
+    expect(played()).toBe(true);
+
+    safeFetch.mockClear();
+    serve({}, 3200);
+    expect((await publicVideo()).status).toHaveBeenCalledWith(404);
   });
 });
 

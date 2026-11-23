@@ -21,6 +21,7 @@ import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import type { Response } from 'express';
 import fsPromises from 'node:fs/promises';
 import path from 'node:path';
+import { z } from 'zod';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
@@ -72,6 +73,17 @@ export interface ImmichCreds {
  * the only thing the switch relaxes: the SSRF guard and the DNS pinning still
  * run on every hop.
  */
+/** What a public video's playback check reads of an Immich asset. */
+const videoExifSchema = z.object({
+  exifInfo: z
+    .object({
+      latitude: z.number().nullish(),
+      longitude: z.number().nullish(),
+      fileSizeInByte: z.number().nullish(),
+    })
+    .nullish(),
+});
+
 function tlsOptions(allowInsecureTls: boolean): SafeFetchOptions {
   return { rejectUnauthorized: !allowInsecureTls };
 }
@@ -530,6 +542,10 @@ export class ImmichService {
     }
 
     const isVideo = opts?.mediaType === 'video';
+    if (kind === 'original' && isVideo && opts?.publicView && !(await this.playbackWithoutLocation(creds, assetId))) {
+      handleServiceResult(response, fail('Not found', 404));
+      return;
+    }
     const headers: Record<string, string> = { 'x-api-key': creds.immich_api_key };
     let url: string;
     let timeout: number | undefined;
@@ -563,6 +579,41 @@ export class ImmichService {
       cacheControl,
       tlsOptions(creds.allow_insecure_tls),
     );
+  }
+
+  /**
+   * Whether Immich plays a video back without its recorded location: the asset
+   * has none, or Immich serves its own transcode, which it writes without the
+   * metadata, rather than the original file (told apart by the file's size).
+   * Anything Immich does not answer counts as no.
+   */
+  private async playbackWithoutLocation(creds: ImmichCreds, assetId: string): Promise<boolean> {
+    const tls = tlsOptions(creds.allow_insecure_tls);
+    const key = { 'x-api-key': creds.immich_api_key };
+    try {
+      const info = await safeFetch(
+        `${creds.immich_url}/api/assets/${assetId}`,
+        { headers: { ...key, Accept: 'application/json' }, signal: AbortSignal.timeout(10000) },
+        { ...tls, maxBytes: 1024 * 1024 },
+      );
+      if (!info.ok) return false;
+      const exifInfo = videoExifSchema.safeParse(await info.json()).data?.exifInfo;
+      if (!exifInfo) return false;
+      if (exifInfo.latitude == null && exifInfo.longitude == null) return true;
+      const probe = await safeFetch(
+        `${creds.immich_url}/api/assets/${assetId}/video/playback`,
+        { headers: { ...key, Range: 'bytes=0-0' }, signal: AbortSignal.timeout(10000) },
+        { ...tls, maxBytes: 1024 * 1024 },
+      );
+      void probe.body?.cancel().catch(() => undefined);
+      if (!probe.ok) return false;
+      const total =
+        /\/(\d+)$/.exec(probe.headers.get('content-range') ?? '')?.[1] ?? probe.headers.get('content-length');
+      const original = Number(exifInfo.fileSizeInByte);
+      return total !== null && original > 0 && Number(total) > 0 && Number(total) !== original;
+    } catch {
+      return false;
+    }
   }
 
   // ── Albums ──────────────────────────────────────────────────────────────────
