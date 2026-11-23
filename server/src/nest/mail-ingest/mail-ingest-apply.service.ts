@@ -164,8 +164,8 @@ export class MailIngestApplyService {
   }
 
   /**
-   * The mail's documents as trip files on the booking (or on the trip, for a
-   * mail filed without one), when the documents addon is on: each attachment
+   * The mail's documents as trip files on the booking, or on the trip for a
+   * mail filed without one when the documents addon is on: each attachment
    * of a type the trip takes, or the mail's text when none is. A failure
    * leaves the booking standing and is reported, never thrown.
    *
@@ -178,7 +178,8 @@ export class MailIngestApplyService {
     mail: WalkedMail,
     userId: number,
   ): Promise<{ fileIds: number[]; error: string | null }> {
-    if (!(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.DOCUMENTS))) return { fileIds: [], error: null };
+    if (reservationId === null && !(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.DOCUMENTS)))
+      return { fileIds: [], error: null };
     const allowed = await this.settings.allowedFileTypes();
     const kept = mail.attachments.filter((file) => isUploadTypeAllowed(file.fileName, file.mimeType, allowed));
     const uploads = kept.length

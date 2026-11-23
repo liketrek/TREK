@@ -226,6 +226,24 @@ describe('a booking that passes every check', () => {
     expect(t.realtime.broadcastMock).toHaveBeenCalledWith(trip.id, 'reservation:created', expect.anything());
   });
 
+  it('keeps the documents on its booking while the trip has Documents off', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { title: 'Japan', start_date: '2030-03-01', end_date: '2030-03-10' });
+    await setAddonEnabled(orm(), 'documents', false);
+    try {
+      await forward(user.id, eml('flight'));
+      const booking = await findRow(orm(), Reservations, { trip: trip.id });
+      expect(files.createFileFromBytes).toHaveBeenCalledWith(
+        trip.id,
+        expect.objectContaining({ originalname: 'mail.txt' }),
+        user.id,
+        expect.objectContaining({ reservation_id: booking?.id }),
+      );
+    } finally {
+      await setAddonEnabled(orm(), 'documents', true);
+    }
+  });
+
   it('is undone by its forwarder: the booking and its cost go, the same mail again waits in the inbox', async () => {
     const user = await person();
     const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
