@@ -253,7 +253,10 @@ export class FlightLivePollService {
     if (!answer.ok && (answer as Extract<FeedLookup, { ok: false }>).reason === 'budget') return;
     result.asked++;
     const at = clock();
-    const picked = answer.ok ? pickAircraft(answer.aircraft, route, { now: at, siblings: head.siblings }) : null;
+    const departed = prev.phase === 'airborne' || prev.departed_at !== null;
+    const picked = answer.ok
+      ? pickAircraft(answer.aircraft, route, { now: at, siblings: head.siblings, departed })
+      : null;
     let next = answer.ok ? advance(prev, picked, route, at, answer.source) : failed(prev);
     next = closeIfOver({ ...next, next_poll_at: nextPollAt(next, route, at) }, route, at);
     const notices = this.dueNotices(prev, next, head.legs, at);

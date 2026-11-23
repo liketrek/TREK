@@ -169,7 +169,37 @@ describe('pickAircraft and observe', () => {
 
     expect(pick(swa({ lat: 41.787, lon: -87.75 }), at('2026-07-01T14:20:00Z'))?.hex).toBe('swa');
     expect(pick(swa({ alt_baro: 6000, lat: 41.77, lon: -88.1 }), at('2026-07-01T14:40:00Z'))?.hex).toBe('swa');
-    expect(pick(overOhio, at('2026-07-01T14:50:00Z'))?.hex).toBe('swa');
+    expect(
+      pickAircraft([overOhio], second, { now: at('2026-07-01T14:50:00Z'), siblings: [], departed: true })?.hex,
+    ).toBe('swa');
+  });
+
+  it('FLDER-022: a late first sector is not taken for the second once its scheduled departure has passed', () => {
+    const at = (iso: string) => Date.parse(iso);
+    const mdw = { code: 'MDW', name: 'Chicago Midway', lat: 41.7868, lng: -87.7522, timezone: 'America/Chicago' };
+    const den = { code: 'DEN', name: 'Denver', lat: 39.8561, lng: -104.6737, timezone: 'America/Denver' };
+    const second: ScheduledLeg = {
+      ...LEG,
+      callsign: 'SWA1234',
+      flight_number: 'WN 1234',
+      origin: mdw,
+      destination: den,
+      scheduled_departure: at('2026-07-01T14:45:00Z'),
+      scheduled_arrival: at('2026-07-01T17:15:00Z'),
+    };
+    const swa = (overrides: Partial<FeedAircraft>) => ac({ hex: 'swa', flight: 'SWA1234', ...overrides });
+    const late = at('2026-07-01T14:55:00Z');
+    const pick = (aircraft: FeedAircraft) => pickAircraft([aircraft], second, { now: late, siblings: [] })?.hex ?? null;
+
+    const overIndiana = swa({ alt_baro: 24000, lat: 41.6, lon: -86.5, baro_rate: -1500 });
+    const onFinal = swa({ alt_baro: 2500, lat: 41.78, lon: -87.6, baro_rate: -800 });
+    expect(pick(overIndiana)).toBeNull();
+    expect(pick(onFinal)).toBeNull();
+    const quiet = advance(emptyState('SWA1234', '2026-07-01', 'MDW', 'DEN'), null, second, late, 'adsb.lol');
+    expect(quiet).toMatchObject({ phase: 'scheduled', departed_at: null });
+
+    // Off the eastbound runway and climbing before it turns west: that is the second sector leaving.
+    expect(pick(swa({ alt_baro: 3000, lat: 41.79, lon: -87.55, baro_rate: 2200 }))).toBe('swa');
   });
 
   it('FLDER-003: reads a report at its own time, on the ground at zero feet, the geometric height as a fallback', () => {

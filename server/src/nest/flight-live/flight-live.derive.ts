@@ -166,14 +166,27 @@ function claimedBySibling(
 }
 
 /**
- * Whether an aircraft in the air before the leg's scheduled departure cannot be
- * this leg: it is no nearer the destination than the origin is, so it has not
- * left the origin for it. That is the aircraft still flying an earlier sector
- * of the same flight number, which nobody on the instance may have booked.
+ * Whether an aircraft in the air while the leg has not departed cannot be this
+ * leg: it is no nearer the destination than the origin is, so it has not left
+ * the origin for it. That is the aircraft still flying an earlier sector of the
+ * same flight number, which nobody on the instance may have booked, and which
+ * runs late past this leg's scheduled departure as often as not. After the
+ * scheduled time a departure may climb out away from the destination before it
+ * turns, so one climbing near the origin then is taken for the leg.
  */
-function airborneBeforeDeparture(ac: FeedAircraft, lat: number, lng: number, route: Route, now: number): boolean {
-  if (route.scheduled_departure === null || now >= route.scheduled_departure || ac.alt_baro === 'ground') return false;
-  return kmTo(lat, lng, route.destination) >= kmTo(route.origin.lat, route.origin.lng, route.destination);
+function stillInbound(
+  ac: FeedAircraft,
+  lat: number,
+  lng: number,
+  route: Route,
+  now: number,
+  departed: boolean,
+): boolean {
+  if (departed || route.scheduled_departure === null || ac.alt_baro === 'ground') return false;
+  if (kmTo(lat, lng, route.destination) < kmTo(route.origin.lat, route.origin.lng, route.destination)) return false;
+  if (now < route.scheduled_departure) return true;
+  const climbing = (finite(ac.baro_rate) ?? finite(ac.geom_rate) ?? 0) > 0;
+  return !(climbing && kmTo(lat, lng, route.origin) <= 60);
 }
 
 /**
@@ -182,12 +195,12 @@ function airborneBeforeDeparture(ac: FeedAircraft, lat: number, lng: number, rou
  * airports (least detour over the direct distance). A callsign is reused by
  * the next leg of a rotation, so two can be in the air at once. An aircraft a
  * sibling sector of the same flight number claims at `now` is left to it, and
- * so is one still on its way to the origin before the scheduled departure.
+ * so is one still on its way to the origin while the leg has not departed.
  */
 export function pickAircraft(
   aircraft: readonly FeedAircraft[],
   route: Route,
-  sectors: { now: number; siblings: readonly SiblingSector[] } = { now: 0, siblings: [] },
+  sectors: { now: number; siblings: readonly SiblingSector[]; departed?: boolean } = { now: 0, siblings: [] },
 ): FeedAircraft | null {
   let best: FeedAircraft | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
@@ -195,7 +208,8 @@ export function pickAircraft(
     const lat = finite(ac.lat);
     const lng = finite(ac.lon);
     if (lat !== null && lng !== null && claimedBySibling(lat, lng, route, sectors.now, sectors.siblings)) continue;
-    if (lat !== null && lng !== null && airborneBeforeDeparture(ac, lat, lng, route, sectors.now)) continue;
+    if (lat !== null && lng !== null && stillInbound(ac, lat, lng, route, sectors.now, sectors.departed === true))
+      continue;
     const score = lat === null || lng === null ? Number.MAX_VALUE : detourKm(lat, lng, route);
     if (best === null || score < bestScore) {
       best = ac;
