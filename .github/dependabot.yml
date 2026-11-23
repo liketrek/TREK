@@ -35,6 +35,13 @@ updates:
       # tooling supports it.
       - dependency-name: typescript
         update-types: [version-update:semver-major]
+      # mapbox-gl 3.33 and later read the worker registry key before handling
+      # Set and Error, and maplibre-gl, bundled beside it, stamps that key on
+      # both built-ins: every vector tile then fails with "reading 'omit'".
+      # glWorkerRegistry.test.ts fails on a version with that order; it moves
+      # by hand once mapbox-gl checks the built-ins first again.
+      - dependency-name: mapbox-gl
+        versions: ['>=3.33.0']
 
   # plugin-sdk is standalone with a lockfile of its own and ships to npm.
   - package-ecosystem: npm

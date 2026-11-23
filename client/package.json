@@ -112,7 +112,7 @@
     "iso-3166-2": "^1.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
-    "mapbox-gl": "^3.35.2",
+    "mapbox-gl": "3.32.0",
     "maplibre-gl": "6.19.0",
     "modern-screenshot": "4.7.0",
     "plyr": "^3.8.5",
