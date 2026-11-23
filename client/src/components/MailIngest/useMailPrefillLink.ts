@@ -29,7 +29,11 @@ export function useMailPrefillLink({
   const handled = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!requested || !loaded || handled.current === requested) return;
+    if (!requested) {
+      handled.current = null;
+      return;
+    }
+    if (!loaded || handled.current === requested) return;
     handled.current = requested;
     setSearchParams(
       (prev) => {
