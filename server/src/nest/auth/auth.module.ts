@@ -31,6 +31,7 @@ import { SessionsModule } from '../sessions/sessions.module';
 import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
+import { TagsModule } from '../tags/tags.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { AuthPublicController } from './auth-public.controller';
@@ -99,6 +100,8 @@ import { MulterModule } from '@nestjs/platform-express';
     AppConfigModule,
     TokensModule,
     BudgetModule,
+    // TripTagsService: the trip tags of a deleted user stay with the trip.
+    TagsModule,
     // MaintenanceRepository: UserCleanupService's UC1 plugin-table erasure.
     MaintenanceModule,
     // AppSettings/Users: AuthService/UserProfileService each pass their own

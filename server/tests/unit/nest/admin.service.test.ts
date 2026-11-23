@@ -174,6 +174,7 @@ beforeAll(async () => {
     await createTestPluginsRepo(testDb),
     await createTestPluginUserErasureQueueRepo(testDb),
     { releaseValues: async () => [] } as never,
+    { handToTripOwners: async () => {} } as never,
   );
   auth = new AuthService(
     permissions,

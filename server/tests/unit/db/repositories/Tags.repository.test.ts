@@ -431,6 +431,25 @@ describe('TagsRepository: the tags a trip owns', () => {
     expect((await tags.listByUser(user.id)).map((row) => row.trip_id)).toEqual([null]);
     expect((await tags.findByIdAndUser(personal.id, user.id))?.trip_id).toBeNull();
   });
+
+  it('TRIPTAGREPO-005: handTripTagsToTripOwners moves the user’s trip tags to each trip’s owner and leaves the rest', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: otherOwner } = createUser(testDb, { username: 'other_owner' });
+    const { user: member } = createUser(testDb, { username: 'tag_member' });
+    const trip = createTrip(testDb, owner.id);
+    const other = createTrip(testDb, otherOwner.id);
+    const onTrip = await makeTag(t, member.id, { trip: trip.id, name: 'Beach' });
+    const onOther = await makeTag(t, member.id, { trip: other.id, name: 'Museum' });
+    const ownersTag = await makeTag(t, owner.id, { trip: trip.id, name: 'Food' });
+    const personal = createTag(testDb, member.id, { name: 'personal' });
+
+    await tags.handTripTagsToTripOwners(member.id);
+
+    expect((await tags.findByIdAndTrip(onTrip.id, trip.id))?.user_id).toBe(owner.id);
+    expect((await tags.findByIdAndTrip(onOther.id, other.id))?.user_id).toBe(otherOwner.id);
+    expect((await tags.findByIdAndTrip(ownersTag.id, trip.id))?.user_id).toBe(owner.id);
+    expect(await tags.findByIdAndUser(personal.id, member.id)).toStrictEqual(rawTag(personal.id));
+  });
 });
 
 describe('TagsRepository.findByIds (PL2)', () => {

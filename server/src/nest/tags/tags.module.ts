@@ -41,7 +41,7 @@ import { Module } from '@nestjs/common';
   // PROVIDERS only, and a missing entry here would leave tags.* answering
   // PERMISSION_DENIED with no other symptom.
   providers: [TagsService, TagWritesService, TripTagsService, TagsMcp, TripTagsMcp, TagsRpc],
-  // For in-container consumers (TagsRpc).
-  exports: [TagsService],
+  // For in-container consumers (TagsRpc, and the account deletion for TripTagsService).
+  exports: [TagsService, TripTagsService],
 })
 export class TagsModule {}

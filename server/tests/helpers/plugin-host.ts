@@ -559,6 +559,7 @@ export async function createPluginRpcHostParts(
       await createTestPluginsRepo(db),
       await createTestPluginUserErasureQueueRepo(db),
       { releaseValues: async () => [] } as never,
+      { handToTripOwners: async () => {} } as never,
     ),
     permissions,
     realtime,

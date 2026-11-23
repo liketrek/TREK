@@ -49,6 +49,8 @@ type PlaceTagsKyselyDB = Pick<DB, 'place_tags'>;
 /** `tags` alone, for the reads that name their columns. */
 type TagsKyselyDB = Pick<DB, 'tags'>;
 
+type TagsWithTripsKyselyDB = Pick<DB, 'tags' | 'trips'>;
+
 /**
  * `place_tags` joined to `places` for TP46 (`trips.service.ts::copy`'s
  * place-tags read). The `trip_id` the caller passes stays `number | string`
@@ -237,6 +239,22 @@ export class TagsRepository extends TrekRepository<Tags> {
   async findByIdAndTrip(id: number, tripId: number): Promise<TagRow | null> {
     const tag = await this.findOne({ id, trip: tripId });
     return tag ? (toRow(tag) as TagRow) : null;
+  }
+
+  /**
+   * Hands the trip tags a user created to each trip's owner, so deleting the
+   * user does not take a tag the whole trip uses (and its place_tags) with it.
+   * The user's personal tags are left alone.
+   */
+  async handTripTagsToTripOwners(userId: number): Promise<void> {
+    await this.kysely<TagsWithTripsKyselyDB>()
+      .updateTable('tags')
+      .set((eb) => ({
+        user_id: eb.selectFrom('trips').select('trips.user_id').whereRef('trips.id', '=', 'tags.trip_id'),
+      }))
+      .where('user_id', '=', userId)
+      .where('trip_id', 'is not', null)
+      .execute();
   }
 
   // ---------------------------------------------------------------------------

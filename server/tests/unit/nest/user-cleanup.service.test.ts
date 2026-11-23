@@ -21,6 +21,7 @@ import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.enti
 import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
+import { Tags } from '../../../src/db/entities/Tags.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
@@ -38,9 +39,12 @@ import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { TagsModule } from '../../../src/nest/tags/tags.module';
+import { TripTagsService } from '../../../src/nest/tags/trip-tags.service';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
 import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
 import { createUser, createTrip } from '../../helpers/factories';
+import { makePlace, makeTag, tagPlace } from '../../helpers/factories/places';
 import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { makeShareToken } from '../../helpers/factories/trips';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
@@ -57,6 +61,7 @@ import {
 } from '../../helpers/share-repos';
 import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
+import { createTestModule, type TestModule } from '../../helpers/test-module';
 import type { TestOrm } from '../../helpers/test-orm';
 import {
   createTestUnitOfWork,
@@ -95,6 +100,7 @@ vi.mock('../../../src/nest/plugins/paths', () => ({ pluginsDataRoot: () => dataR
 let em: EntityManager;
 let budget: BudgetService;
 let svc: UserCleanupService;
+let tagsModule: TestModule;
 /** What a deletion hands on: the avatar, released by its own suites. */
 const cleanupRelease = releaseNothing();
 beforeAll(async () => {
@@ -110,6 +116,7 @@ beforeAll(async () => {
     await createTestUnitOfWork(testDb),
     ...(await budgetRepoArgs(testDb)),
   );
+  tagsModule = await createTestModule({ db: testDb, imports: [TagsModule] });
   svc = new UserCleanupService(
     new MaintenanceRepository(em),
     budget,
@@ -130,6 +137,7 @@ beforeAll(async () => {
     await createTestPluginsRepo(testDb),
     await createTestPluginUserErasureQueueRepo(testDb),
     cleanupRelease,
+    tagsModule.get(TripTagsService),
   );
 });
 
@@ -173,7 +181,8 @@ beforeEach(async () => {
   dataRootRef.value = path.join(os.tmpdir(), 'trek-user-cleanup-absent');
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await tagsModule.close();
   testDb.close();
 });
 
@@ -267,6 +276,7 @@ describe('erasePluginUserData', () => {
       await createTestPluginsRepo(slim),
       await createTestPluginUserErasureQueueRepo(slim),
       { releaseValues: async () => [] } as never,
+      { handToTripOwners: async () => {} } as never,
     );
 
     await expect(slimSvc.erasePluginUserData(1)).rejects.toThrow(/no such table: plugin_user_config/);
@@ -313,6 +323,23 @@ describe('deleteUserCompletely', () => {
       amount: settlement?.amount,
       created_by_user_id: settlement?.created_by_user_id,
     }).toEqual({ from_user_id: payer.id, to_user_id: owner.id, amount: 12.5, created_by_user_id: null });
+  });
+
+  it('USER-CLEANUP-013: deleting a member keeps the trip tags they created, on every place, under the trip owner', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'tagger' });
+    const trip = createTrip(testDb, owner.id);
+    await insertRow(orm, TripMembers, { trip: trip.id, user: member.id });
+    const tripTag = await makeTag(orm, member.id, { trip: trip.id, name: 'Beach' });
+    const personal = await makeTag(orm, member.id, { name: 'Mine' });
+    const place = await makePlace(orm, trip.id);
+    await tagPlace(orm, place.id, [tripTag.id]);
+
+    await svc.deleteUserCompletely(member.id);
+
+    expect((await findRow(orm, Tags, { id: tripTag.id }))?.user_id).toBe(owner.id);
+    expect(await findRow(orm, Tags, { id: personal.id })).toBeNull();
+    expect(await countRows(orm, Tags, { place_tags_inverse: place.id })).toBe(1);
   });
 
   it('USER-CLEANUP-007: deletes their journeys and the entries they authored elsewhere', async () => {
@@ -438,6 +465,7 @@ describe('deleteUserCompletely', () => {
           await createTestPluginsRepo(testDb),
           await createTestPluginUserErasureQueueRepo(testDb),
           cleanupRelease,
+          { handToTripOwners: async () => {} } as never,
         ).deleteUserCompletely(victim.id),
       ).rejects.toThrow('boom');
 
