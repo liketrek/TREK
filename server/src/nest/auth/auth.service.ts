@@ -42,7 +42,7 @@ import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
-import { revokeUserSessions } from '../../mcp/sessionManager';
+import { invalidateMcpSessions, revokeUserSessions } from '../../mcp/sessionManager';
 import { UserCleanupService } from './user-cleanup.service';
 import { envLockedKeys, splitManagedKeys, withEnvLocks } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
@@ -743,6 +743,7 @@ export class AuthService {
     // rest of the save working. Reported, never thrown: the settings tab sends
     // the whole form in one request.
     const blocked = [...splitManagedKeys(body, readEnv().managed.enabled).blocked, ...envLockedKeys(body)];
+    const mailImportBefore = await readAppSetting(this.appSettings, 'mail_ingest_enabled');
 
     await this.uow.transactional(async () => { // the whole form lands, or none of it
       // Lockout prevention: can't disable all login methods (read in the writing transaction).
@@ -786,6 +787,10 @@ export class AuthService {
     if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
     if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
     if (changedKeys.some(k => k.startsWith('mail_ingest_'))) summary.mail_ingest_settings_updated = true;
+    // The mail import tools are listed only while it is on, and a session's tool list is fixed when it connects.
+    if (changedKeys.includes('mail_ingest_enabled') && (await readAppSetting(this.appSettings, 'mail_ingest_enabled')) !== mailImportBefore) {
+      invalidateMcpSessions();
+    }
 
     const debugDetails: Record<string, unknown> = {};
     for (const k of changedKeys) {

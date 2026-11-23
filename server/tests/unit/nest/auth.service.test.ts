@@ -11,7 +11,7 @@ import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
 import { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { revokeUserSessions } from '../../../src/mcp/sessionManager';
+import { invalidateMcpSessions, revokeUserSessions } from '../../../src/mcp/sessionManager';
 import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { createEphemeralToken } from '../../../src/nest/auth-core/ephemeral-tokens';
 import { verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
@@ -114,7 +114,7 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   encrypt_api_key: vi.fn((v) => v),
 }));
 vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
-vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
+vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(), invalidateMcpSessions: vi.fn() }));
 
 // MailerService is injected since the notifications fold — a stub instead of a
 // module mock. sendPasswordResetEmail is the only thing auth reaches for.
@@ -1163,6 +1163,18 @@ describe('updateAppSettings', () => {
     const cleared = await asLegacyResult(svc.updateAppSettings(user.id, { mail_ingest_webhook_secret: '' }));
     expect(cleared.success).toBe(true);
     await deleteRows(orm, AppSettings, { key: 'mail_ingest_webhook_secret' });
+  });
+
+  it('AUTH-DB-075d: switching the mail import ends the MCP sessions, so they list its tools anew; a save that keeps it does not', async () => {
+    const { user } = createAdmin(testDb);
+    vi.mocked(invalidateMcpSessions).mockClear();
+    await svc.updateAppSettings(user.id, { mail_ingest_enabled: 'true' });
+    expect(invalidateMcpSessions).toHaveBeenCalledTimes(1);
+    await svc.updateAppSettings(user.id, { mail_ingest_enabled: 'true', allow_registration: 'false' });
+    expect(invalidateMcpSessions).toHaveBeenCalledTimes(1);
+    await svc.updateAppSettings(user.id, { mail_ingest_enabled: 'false' });
+    expect(invalidateMcpSessions).toHaveBeenCalledTimes(2);
+    await deleteRows(orm, AppSettings, { key: { $in: ['mail_ingest_enabled', 'allow_registration'] } });
   });
 });
 
