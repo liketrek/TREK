@@ -106,9 +106,10 @@ export class TripReadModelService {
    * Aggregates every trip sub-collection for offline caching (legacy /:id/bundle).
    *
    * A section whose addon is off for this trip (Lists for packing and todos,
-   * Costs, Documents) goes out as an empty list rather than being left out, so
-   * a client that replaces its cache from the bundle drops what it may no
-   * longer show, and one that expects every key still finds it.
+   * Costs) goes out as an empty list rather than being left out, so a client
+   * that replaces its cache from the bundle drops what it may no longer show,
+   * and one that expects every key still finds it. With Documents off the files
+   * keep the ones a booking, place, expense, note or message carries.
    */
   async bundle(tripId: string, trip: { id: number; user_id: number }, viewerId: number) {
     const { days } = await this.days.list(tripId);
@@ -125,7 +126,7 @@ export class TripReadModelService {
       todoItems: packingOn ? await this.todo.listItems(tripId) : [],
       budgetItems: (await on(ADDON_IDS.BUDGET)) ? await this.budget.listBudgetItems(tripId) : [],
       reservations: await this.reservations.list(tripId),
-      files: (await on(ADDON_IDS.DOCUMENTS)) ? await this.files.listFiles(tripId, false) : [],
+      files: await this.files.listFiles(tripId, false, !(await on(ADDON_IDS.DOCUMENTS))),
       accommodations: await this.accommodations.list(tripId),
       members: [owner, ...(members || [])].filter(Boolean),
     };

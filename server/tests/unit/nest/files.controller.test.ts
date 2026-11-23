@@ -74,16 +74,22 @@ const trip = { id: 5, user_id: 42 } as never;
 
 // The 404 "Trip not found" cases moved to trip-access.guard.test.ts with the check.
 describe('FilesController (parity with the legacy /api/trips/:tripId/files route)', () => {
-  it('every route but the multipart upload asks the trip and then the Documents addon of that trip', () => {
+  it('only the file manager routes ask the Documents addon of the trip in a guard', () => {
     expect(Reflect.getMetadata(REQUIRE_ADDON, FilesController)).toEqual({ addonId: 'documents', label: 'Documents' });
-    const proto = FilesController.prototype as unknown as Record<string, unknown>;
-    const routes = Object.getOwnPropertyNames(FilesController.prototype)
-      .map((name) => proto[name])
-      .filter((fn) => typeof fn === 'function' && Reflect.getMetadata('method', fn as object) !== undefined);
-    const guarded = routes.filter((fn) => fn !== FilesController.prototype.upload);
-    expect(guarded.length).toBeGreaterThan(8);
-    for (const handler of guarded) {
-      expect(Reflect.getMetadata('__guards__', handler as object)).toEqual([TripAccessGuard, TripAddonGuard]);
+    const proto = FilesController.prototype;
+    for (const handler of [proto.star, proto.emptyTrash, proto.restore]) {
+      expect(Reflect.getMetadata('__guards__', handler)).toEqual([TripAccessGuard, TripAddonGuard]);
+    }
+    for (const handler of [
+      proto.list,
+      proto.update,
+      proto.remove,
+      proto.permanent,
+      proto.link,
+      proto.unlink,
+      proto.links,
+    ]) {
+      expect(Reflect.getMetadata('__guards__', handler)).toEqual([TripAccessGuard]);
     }
     // A guard on the multipart route would answer before multer read the body (ECONNRESET), so it checks inside.
     expect(Reflect.getMetadata('__guards__', FilesController.prototype.upload)).toBeUndefined();
@@ -94,7 +100,44 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     expect(await fc(fsvc({ listFiles } as Partial<FilesService>)).list(user, trip, '5', 'true')).toEqual({
       files: [{ id: 1 }],
     });
-    expect(listFiles).toHaveBeenCalledWith('5', true);
+    expect(listFiles).toHaveBeenCalledWith('5', true, false);
+  });
+
+  it('GET / with Documents off lists only attached files and refuses the trash', async () => {
+    const listFiles = vi.fn().mockReturnValue([{ id: 1 }]);
+    const controller = fc(fsvc({ listFiles } as Partial<FilesService>), addonsOff);
+    expect(await controller.list(user, trip, '5')).toEqual({ files: [{ id: 1 }] });
+    expect(listFiles).toHaveBeenCalledWith('5', false, true);
+    expect(await rejected(controller.list(user, trip, '5', 'true'))).toEqual({
+      status: 404,
+      body: { error: 'Documents addon is not enabled' },
+    });
+  });
+
+  it('a file only the file manager shows answers 404 on its routes while Documents is off, an attached one does not', async () => {
+    const svc = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      isAttached: vi.fn().mockResolvedValue(false),
+      updateFile: vi.fn(),
+      linkFile: vi.fn(),
+      unlinkFile: vi.fn(),
+      getFileLinks: vi.fn(),
+      restWriter: vi.fn(),
+    } as Partial<FilesService>);
+    const off = { error: 'Documents addon is not enabled' };
+    expect(await rejected(fc(svc, addonsOff).update(user, trip, '5', '9', {}))).toEqual({ status: 404, body: off });
+    expect(await rejected(fc(svc, addonsOff).link(user, trip, '5', '9', {}))).toEqual({ status: 404, body: off });
+    expect(await rejected(fc(svc, addonsOff).unlink(user, trip, '5', '9', '3'))).toEqual({ status: 404, body: off });
+    expect(await rejected(fc(svc, addonsOff).links(user, trip, '5', '9'))).toEqual({ status: 404, body: off });
+    expect(svc.updateFile).not.toHaveBeenCalled();
+    expect(svc.unlinkFile).not.toHaveBeenCalled();
+
+    const attached = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      isAttached: vi.fn().mockResolvedValue(true),
+      getFileLinks: vi.fn().mockReturnValue([{ id: 3 }]),
+    } as Partial<FilesService>);
+    expect(await fc(attached, addonsOff).links(user, trip, '5', '9')).toEqual({ links: [{ id: 3 }] });
   });
 
   describe('POST / (upload)', () => {
@@ -109,14 +152,11 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     });
 
     const file = { filename: 'a.pdf' } as Express.Multer.File;
-    it('404 while Documents is off for the trip, after the trip check and before anything is stored', async () => {
-      const svc = fsvc({ verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }) });
-      expect(await rejected(fc(svc, addonsOff).upload(user, '5', file, {}))).toEqual({
-        status: 404,
-        body: { error: 'Documents addon is not enabled' },
-      });
-      expect(addonsOff.isEnabledForTrip).toHaveBeenCalledWith(5, 'documents');
-      expect(storageStub.put).not.toHaveBeenCalled();
+    it('stores the upload while Documents is off for the trip, so bookings, places and receipts still attach', async () => {
+      const createFile = vi.fn().mockReturnValue({ id: 9 });
+      const svc = fsvc({ verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }), createFile });
+      expect(await fc(svc, addonsOff).upload(user, '5', file, { reservation_id: '4' })).toEqual({ file: { id: 9 } });
+      expect(storageStub.put).toHaveBeenCalled();
     });
 
     it('403 in demo mode for a demo email', async () => {
@@ -499,13 +539,26 @@ describe('FilesDownloadController', () => {
     ).toEqual({ status: 404, body: { error: 'File not found' } });
   });
 
-  it('404 while Documents is off for the trip, before the file is looked up', async () => {
-    const s = dsvc({ verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }) });
-    expect(await rejected(new FilesDownloadController(s, dstor(), addonsOff).download(req, res, '5', '9'))).toEqual({
-      status: 404,
-      body: { error: 'Documents addon is not enabled' },
-    });
-    expect(s.getFileById).not.toHaveBeenCalled();
+  it('while Documents is off for the trip, serves an attached file and 404s one only the file manager shows', async () => {
+    const loose = dsvc({
+      verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }),
+      isAttached: vi.fn().mockResolvedValue(false),
+    } as Partial<FilesService>);
+    const storage = dstor();
+    expect(await rejected(new FilesDownloadController(loose, storage, addonsOff).download(req, res, '5', '9'))).toEqual(
+      {
+        status: 404,
+        body: { error: 'Documents addon is not enabled' },
+      },
+    );
+    expect(storage.sendToResponse).not.toHaveBeenCalled();
+
+    const attached = dsvc({
+      verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }),
+      isAttached: vi.fn().mockResolvedValue(true),
+    } as Partial<FilesService>);
+    await new FilesDownloadController(attached, storage, addonsOff).download(req, res, '5', '9');
+    expect(storage.sendToResponse).toHaveBeenCalled();
   });
 
   it('404 when the object is gone from storage', async () => {

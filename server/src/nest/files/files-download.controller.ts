@@ -19,8 +19,8 @@ import path from 'path';
  * 401 token, 404 trip/file, .pkpass served inline for Wallet. Bytes come from
  * storage.sendToResponse, whose local branch is the root-relative res.sendFile
  * form this route needs under the ExpressAdapter. A trip that has Documents off
- * answers 404 "Documents addon is not enabled" after the trip check, like every
- * other files route.
+ * still serves the files of its bookings, places, expenses, notes and messages,
+ * and answers 404 "Documents addon is not enabled" for the rest.
  */
 @Public('authenticates itself: the download link carries a short-lived ?token the client mints')
 @Controller('api/trips/:tripId/files')
@@ -45,13 +45,13 @@ export class FilesDownloadController {
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
-    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS))) {
-      throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
-    }
 
     const file = await this.files.getFileById(id, tripId);
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
+    }
+    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS)) && !(await this.files.isAttached(file))) {
+      throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
     }
 
     // basename() tolerates a stray prefixed row (legacy rows sometimes stored

@@ -7,7 +7,9 @@
  * trip switched it on (allowed), and the instance has it on and the trip
  * switched it off (refused with `<Label> addon is not enabled`, data kept).
  * A trip without a choice follows the instance, so the instance switch now
- * closes the lists, costs, collab and files routes too.
+ * closes the lists, costs, collab and file manager routes too. Documents is
+ * the file manager only: a file a booking, place or expense carries stays
+ * reachable while it is off.
  */
 import { buildApp } from '../../src/bootstrap';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
@@ -16,8 +18,9 @@ import { createLocalMcpServer, McpRegistryService } from '../../src/nest-mcp';
 import { withRequestContext } from '../../src/nest/database/request-context';
 import { makeBudgetItem } from '../helpers/factories/budget';
 import { makeCollabNote } from '../helpers/factories/collab';
-import { makeTripFile } from '../helpers/factories/files';
+import { linkFile, makeTripFile } from '../helpers/factories/files';
 import { makePackingItem } from '../helpers/factories/packing';
+import { makeReservation } from '../helpers/factories/reservations';
 import { countRows } from '../helpers/factories/rows';
 import { setAddonEnabled, setTripAddon } from '../helpers/factories/settings';
 import { makeTodoItem } from '../helpers/factories/todos';
@@ -85,7 +88,7 @@ const ROUTES: ReadonlyArray<[string, string, (tripId: number) => string]> = [
   ['packing', 'Packing', (id) => `/api/trips/${id}/todo`],
   ['budget', 'Costs', (id) => `/api/trips/${id}/budget`],
   ['collab', 'Collab', (id) => `/api/trips/${id}/collab/notes`],
-  ['documents', 'Documents', (id) => `/api/trips/${id}/files`],
+  ['documents', 'Documents', (id) => `/api/trips/${id}/files?trash=true`],
   ['roadtrip', 'Road trip', (id) => `/api/trips/${id}/roadtrip/vias`],
   ['tours', 'Tours', (id) => `/api/trips/${id}/tours`],
 ];
@@ -145,15 +148,37 @@ describe('trip-scoped REST', () => {
     expect(anonymous.status).toBe(401);
   });
 
-  it('TRIPADDON-ENF-004: the multipart upload refuses in its handler, so the caller reads the 404 body', async () => {
+  it('TRIPADDON-ENF-004: with Documents off a booking still attaches, lists and opens its file, and a receipt still uploads', async () => {
     const { owner, chosen } = await world();
-    await setTripAddon(orm, chosen.id, 'documents', false);
-    const res = await request(app.getHttpServer())
-      .post(`/api/trips/${chosen.id}/files`)
-      .set('Cookie', sessionCookie(owner.id))
-      .attach('file', Buffer.from('%PDF-1.4 test'), 'ticket.pdf');
-    expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Documents addon is not enabled' });
+    await setAddonEnabled(orm, 'documents', false);
+    const booking = await makeReservation(orm, chosen.id, { title: 'Ferry' });
+    const upload = (fields: Record<string, string>) => {
+      const req = request(app.getHttpServer())
+        .post(`/api/trips/${chosen.id}/files`)
+        .set('Cookie', sessionCookie(owner.id));
+      for (const [key, value] of Object.entries(fields)) req.field(key, value);
+      return req.attach('file', Buffer.from('%PDF-1.4 test'), 'ferry.pdf');
+    };
+    const attached = await upload({ reservation_id: String(booking.id) });
+    expect(attached.status).toBe(201);
+    // A receipt for an expense not saved yet goes up without a link; the expense links it.
+    expect((await upload({})).status).toBe(201);
+
+    const list = await get(owner.id, `/api/trips/${chosen.id}/files`);
+    expect(list.status).toBe(200);
+    expect((list.body.files as Array<{ id: number }>).map((f) => f.id)).toEqual([attached.body.file.id]);
+
+    const loose = await makeTripFile(orm, chosen.id, { original_name: 'notes.pdf' });
+    const [opened, refused] = await oneByOne(
+      [
+        () => get(owner.id, `/api/trips/${chosen.id}/files/${attached.body.file.id}/download`),
+        () => get(owner.id, `/api/trips/${chosen.id}/files/${loose.id}/download`),
+      ],
+      (send) => send(),
+    );
+    expect(opened.status).toBe(200);
+    expect(refused.status).toBe(404);
+    expect(refused.body).toEqual({ error: 'Documents addon is not enabled' });
   });
 
   it('TRIPADDON-ENF-005: switching back on brings every row back where it was', async () => {
@@ -195,15 +220,18 @@ describe('routes about no one trip', () => {
 });
 
 describe('what leaves the trip in bulk', () => {
-  it('TRIPADDON-ENF-020: the offline bundle sends empty lists for the addons the trip has off', async () => {
+  it('TRIPADDON-ENF-020: the offline bundle sends empty lists for the addons the trip has off, and only attached files', async () => {
     const { owner, chosen } = await world();
     await setTripAddon(orm, chosen.id, 'packing', false);
     await setTripAddon(orm, chosen.id, 'documents', false);
+    const booking = await makeReservation(orm, chosen.id, { title: 'Ferry' });
+    const ticket = await makeTripFile(orm, chosen.id, { original_name: 'ferry.pdf' });
+    await linkFile(orm, ticket.id, { reservation: booking.id });
     const res = await get(owner.id, `/api/trips/${chosen.id}/bundle`);
     expect(res.status).toBe(200);
     expect(res.body.packingItems).toEqual([]);
     expect(res.body.todoItems).toEqual([]);
-    expect(res.body.files).toEqual([]);
+    expect((res.body.files as Array<{ original_name: string }>).map((f) => f.original_name)).toEqual(['ferry.pdf']);
     expect((res.body.budgetItems as Array<{ name: string }>).map((item) => item.name)).toEqual(['Hotel']);
   });
 
@@ -303,6 +331,25 @@ describe('MCP', () => {
     expect(res.error).toBeNull();
     expect(res.answer).not.toHaveProperty('packing');
     expect(res.answer).not.toHaveProperty('budget');
+  });
+  it('TRIPADDON-ENF-034: with Documents off the file tools still reach the files a booking carries, and only those', async () => {
+    const { owner, chosen } = await world();
+    await setAddonEnabled(orm, 'documents', false);
+    const booking = await makeReservation(orm, chosen.id, { title: 'Ferry' });
+    const ticket = await makeTripFile(orm, chosen.id, { original_name: 'ferry.pdf', reservation: booking.id });
+    const loose = await makeTripFile(orm, chosen.id, { original_name: 'notes.pdf' });
+    const listed = await callTool(owner.id, 'list_trip_files', { tripId: chosen.id });
+    expect(listed.error).toBeNull();
+    expect((listed.answer?.files as Array<{ id: number }>).map((f) => f.id)).toEqual([ticket.id]);
+    expect((await callTool(owner.id, 'list_trip_files', { tripId: chosen.id, trash: true })).error).toBe(
+      'Documents addon is not enabled',
+    );
+    expect(
+      (await callTool(owner.id, 'list_trip_file_links', { tripId: chosen.id, fileId: ticket.id })).error,
+    ).toBeNull();
+    expect((await callTool(owner.id, 'list_trip_file_links', { tripId: chosen.id, fileId: loose.id })).error).toBe(
+      'Documents addon is not enabled',
+    );
   });
 });
 

@@ -61,6 +61,16 @@ function withLinkedIds(file: TripFileJoinRow, fileLinks: FileLinkTargetRow[]) {
   };
 }
 
+/**
+ * Whether a file belongs to something besides the Documents file manager: a
+ * booking, place, expense, collab note or chat message. Such a file stays
+ * reachable while a trip has Documents off.
+ */
+function isAttachedFile(file: TripFileRow, fileLinks: FileLinkTargetRow[]): boolean {
+  if (file.reservation_id || file.place_id || file.note_id || file.message_id) return true;
+  return fileLinks.some((l) => l.reservation_id || l.assignment_id || l.place_id || l.budget_item_id);
+}
+
 export interface FileLink {
   file_id: number;
   reservation_id: number | null;
@@ -349,11 +359,17 @@ export class FilesService {
     };
   }
 
-  async listFiles(tripId: string | number, showTrash: boolean) {
-    const tripIdNum = toRowId(tripId) ?? -1;
-    const files = await this.tripFilesRepo.listForTrip(tripIdNum, showTrash);
+  /** Whether the file belongs to a booking, place, expense, note or message rather than to the file manager alone. */
+  async isAttached(file: TripFileRow): Promise<boolean> {
+    return isAttachedFile(file, await this.fileLinksRepo.listForFiles([file.id]));
+  }
 
-    const fileIds = files.map((f) => f.id);
+  /** `attachedOnly` leaves out the files only the file manager shows, for a trip that has Documents off. */
+  async listFiles(tripId: string | number, showTrash: boolean, attachedOnly = false) {
+    const tripIdNum = toRowId(tripId) ?? -1;
+    const all = await this.tripFilesRepo.listForTrip(tripIdNum, showTrash);
+
+    const fileIds = all.map((f) => f.id);
     const links = await this.fileLinksRepo.listForFiles(fileIds);
     const linksMap: Record<number, FileLinkTargetRow[]> = {};
     for (const link of links) {
@@ -361,6 +377,7 @@ export class FilesService {
       linksMap[link.file_id].push(link);
     }
 
+    const files = attachedOnly ? all.filter((f) => isAttachedFile(f, linksMap[f.id] || [])) : all;
     return files.map((f) => withLinkedIds(f, linksMap[f.id] || []));
   }
 
