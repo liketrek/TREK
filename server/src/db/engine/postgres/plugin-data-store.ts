@@ -91,6 +91,33 @@ const DEFAULT_LIMITS: PostgresPluginDataLimits = {
   now: () => Date.now(),
 };
 
+/** Words whose parenthesis takes an array: `= ANY($1)`, `<> ALL($1)`. */
+const ARRAY_CALLS = new Set(['any', 'all', 'some']);
+
+/** Whether a placeholder of `statement` takes an array: inside ANY, ALL or SOME, or cast to an array type. */
+function takesArray(statement: PluginStatement): boolean {
+  const { tokens } = statement;
+  return tokens.some((token, i) => {
+    if (token.kind !== 'param') return false;
+    const before = tokens[i - 2];
+    const after = tokens[i + 1];
+    const called = tokens[i - 1]?.kind === 'punct' && before?.kind === 'word' && ARRAY_CALLS.has(before.value);
+    const cast = after?.kind === 'punct' && after.value === '::';
+    return called || (cast && tokens.slice(i + 2, i + 5).some((t) => t.kind === 'punct' && t.value === '['));
+  });
+}
+
+/**
+ * The values a statement is bound with. The single-array form, args [[a, b]],
+ * is spread as better-sqlite3 spreads it when the array fills the statement's
+ * placeholders and none of them takes an array.
+ */
+function bindValues(statement: PluginStatement, args: readonly unknown[]): readonly unknown[] {
+  const [only] = args;
+  if (args.length !== 1 || !Array.isArray(only) || only.length !== statement.params) return args;
+  return takesArray(statement) ? args : only;
+}
+
 /** Postgres's SQLSTATE for a statement cancelled by `statement_timeout`. */
 const QUERY_CANCELED = '57014';
 /** Rows a cursor fetches at once. */
@@ -219,7 +246,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
     return this.call('query', (budget) =>
       this.transaction(budget.ms, [statement], (client) => {
         const rows = { count: 0, max: maxRows, message: PLUGIN_DATA_ERRORS.queryTooManyRows(maxRows) };
-        return this.stream(client, statement, args, rows, budget.check);
+        return this.stream(client, statement, bindValues(statement, args), rows, budget.check);
       }),
     );
   }
@@ -229,7 +256,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       const statement = this.single(sql, args);
       return this.call('exec', (budget) =>
         this.transaction(budget.ms, [statement], async (client) => ({
-          changes: await this.run(client, statement, args),
+          changes: await this.run(client, statement, bindValues(statement, args)),
         })),
       );
     }
@@ -261,7 +288,7 @@ export class PostgresPluginDataStore implements PluginDataStore {
       this.transaction(budget.ms, statements, async (client) => {
         const rows = { count: 0, max: maxRows, message: PLUGIN_DATA_ERRORS.txTooManyRows(maxRows) };
         const results = await inOrder(statements, async (statement, index) => {
-          const args = ops[index].args ?? [];
+          const args = bindValues(statement, ops[index].args ?? []);
           // One budget for the whole batch: each statement after the first gets what is left of it.
           if (index > 0) await this.setTimeout(client, budget.remaining());
           const result = statement.returnsRows

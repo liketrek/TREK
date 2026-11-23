@@ -354,6 +354,28 @@ describe('Postgres plugin data store', () => {
     expect(configs.filter((q) => q.queryMode === 'extended')).toHaveLength(plugin.length);
   });
 
+  it('PGSTORE-021: the single-array bind form is spread as on SQLite when it fills the placeholders, and an array a placeholder takes stays whole', async () => {
+    const { store: s, configs, cursors } = store({ changes: 1 });
+    const bytes = Buffer.from([0, 1, 255]);
+    await s.query('SELECT v FROM kv WHERE k = $1', [['key']]);
+    await s.exec('INSERT INTO blobs (k, v) VALUES ($1, $2)', [['key', bytes]]);
+    await s.tx([{ sql: 'DELETE FROM kv WHERE k = $1 AND v = $2', args: [['key', 2]] }]);
+    await s.query('SELECT v FROM kv WHERE k = ANY($1)', [['key']]);
+    await s.query('SELECT v FROM kv WHERE k = $1::text[]', [['key']]);
+    await s.exec('INSERT INTO blobs (k, v) VALUES ($1, $2)', ['key', 'v']);
+
+    expect(cursors.filter((c) => c.text.startsWith('SELECT v')).map((c) => c.values)).toEqual([
+      ['key'],
+      ['{"key"}'],
+      ['{"key"}'],
+    ]);
+    expect(configs.filter((q) => q.queryMode === 'extended').map((q) => q.values)).toEqual([
+      ['key', bytes],
+      ['key', 2],
+      ['key', 'v'],
+    ]);
+  });
+
   it('PGSTORE-013: every read goes through a cursor on the same client, closed however the read ends', async () => {
     // EXTQ-002 before the store checked out its own clients: what is not a plugin write reaches pg as it was.
     const rows = Array.from({ length: 7 }, (_, i) => ({ i }));
