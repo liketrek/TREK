@@ -319,7 +319,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       onMoveStopToDay={can('day_edit', trip) ? moveRoadtripStopToDay : undefined}
                       onAskAlternatives={can('day_edit', trip) ? askRouteAlternatives : undefined}
                       openAlternatives={routeAlternatives.open}
-                      onEditStay={can('place_edit', trip) ? editRoadtripStay : undefined}
+                      onEditStay={can('day_edit', trip) ? editRoadtripStay : undefined}
                       onSetStopKind={can('place_edit', trip) ? setRoadtripStopKind : undefined}
                       onSetStopFill={can('place_edit', trip) ? setRoadtripStopFill : undefined}
                       onFollowTrack={can('day_edit', trip) && followTrack.available ? followTrack.open : undefined}

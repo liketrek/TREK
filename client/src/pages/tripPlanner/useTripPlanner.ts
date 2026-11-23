@@ -556,7 +556,7 @@ export function useTripPlanner() {
   }, [])
 
   const {
-    stayDraft, setStayDraft, editRoadtripStay, setRoadtripStay, roadtripEndsDayAt, setRoadtripEndDay,
+    stayDraft, setStayDraft, editRoadtripStay, setRoadtripStay, roadtripEndsDayAt, setRoadtripEndDay, mayEditStay,
     saveStopDraft, saveStopDraftAsNight, confirmStayRelease, reorderRoadtripStop, moveRoadtripStopToDay,
     setRoadtripStopKind, setRoadtripStopFill,
   } = useRoadtripStopEdits({
@@ -694,7 +694,7 @@ export function useTripPlanner() {
     ? { active: roadtripEndsDayAt(endDayStop), onToggle: () => setRoadtripEndDay(endDayStop) }
     : undefined
   const roadtripStay = roadtripActive && selectedPlace
-    ? inspectorStay(roadtripRoutes.days, endDayStop, selectedPlace, can('place_edit', trip) ? editRoadtripStay : undefined)
+    ? inspectorStay(roadtripRoutes.days, endDayStop, selectedPlace, mayEditStay(endDayStop?.assignmentId) ? editRoadtripStay : undefined)
     : undefined
 
   const mapTileUrl = useTileUrl(OFM_POSITRON)

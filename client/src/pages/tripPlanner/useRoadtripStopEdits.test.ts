@@ -1,4 +1,4 @@
-// FE-TP-STOPEDITS-001 to FE-TP-STOPEDITS-018
+// FE-TP-STOPEDITS-001 to FE-TP-STOPEDITS-019
 //
 // Edits to one stop on the drive, driven straight through useRoadtripStopEdits. The
 // stop popup's draft and the stay release question are real state in the harness, so
@@ -528,6 +528,28 @@ describe('useRoadtripStopEdits', () => {
       const [first, second] = useTripStore.getState().assignments['5']
       expect(stayOf(first)).toBe(90)
       expect(stayOf(second)).toBe(45)
+    })
+
+    it('FE-TP-STOPEDITS-019: the stay of a visit needs the day plan right, and a refusal says so before anything is written', async () => {
+      const tripActions = seed()
+      vi.mocked(can).mockImplementation(action => action === 'place_edit')
+      const editing = { placeId: 70, assignmentId: 51, dwellMinutes: 45, stopType: null }
+      const { result } = renderEdits({ poi: hit(), dayId: 5, position: 0, dayNumber: 5, editing }, { tripActions, assignments: twice })
+      expect(result.current.mayEditStay(52)).toBe(false)
+      expect(result.current.mayEditStay(undefined)).toBe(true)
+
+      await act(async () => { await result.current.setRoadtripStay(70, 0, 52) })
+      expect(assignmentRepo.setStay).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenLastCalledWith('trip.journal.errorForbidden')
+
+      await act(async () => { await result.current.saveStopDraft({ stopType: 'rest_area', dwellMinutes: 90 }) })
+      expect(actions.updatePlace).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledTimes(2)
+
+      await act(async () => { await result.current.saveStopDraft({ stopType: 'rest_area', dwellMinutes: 45 }) })
+      expect(actions.updatePlace).toHaveBeenCalledWith(42, 70, { stop_type: 'rest_area' })
+      expect(assignmentRepo.setStay).not.toHaveBeenCalled()
+      vi.mocked(can).mockImplementation(() => allowed)
     })
   })
 })
