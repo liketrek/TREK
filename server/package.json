@@ -82,7 +82,7 @@
     "@nestjs/schedule": "^12.0.4",
     "@nestjs/swagger": "^11.4.7",
     "@nestjs/websockets": "^11.2.5",
-    "@simplewebauthn/server": "^13.3.3",
+    "@simplewebauthn/server": "^14.1.0",
     "@trek/shared": "*",
     "archiver": "^6.0.2",
     "bcryptjs": "^2.4.3",
