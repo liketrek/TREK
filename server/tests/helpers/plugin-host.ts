@@ -584,7 +584,7 @@ export async function createPluginRpcHostParts(
     new TodoRpc(todos, realtime, guards),
     new DayNotesRpc(dayNotes, realtime, guards),
     new PackingRpc(packing, realtime, guards),
-    new FilesRpc(files, realtime, usersRepo, guards, generalStorage),
+    new FilesRpc(files, realtime, usersRepo, guards, generalStorage, addons),
     new PlacesRpc(places, journey, realtime, guards, placeOriginsStub()),
     new DaysRpc(
       days,
