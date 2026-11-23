@@ -86,10 +86,13 @@ export function writesRestrictedScript(table = 'public.mikro_orm_migrations'): s
 
 /**
  * Answers a `--list` call with a table of contents holding a SCHEMA line for
- * each of `schemas`, written to its `--file=`, as `pg_restore --list` does.
+ * each of `schemas`, written to its `--file=`, as `pg_restore --list` does,
+ * under a header naming the server version the dump was taken from, if given.
  */
-export function listsSchemas(schemas: readonly string[]): string {
-  const toc = schemas.map((name, i) => `${i + 4}; 2615 ${16000 + i} SCHEMA - ${name} trek\n`).join('');
+export function listsSchemas(schemas: readonly string[], dumpedFrom?: string): string {
+  const header = dumpedFrom === undefined ? '' : `;\n;     Dumped from database version: ${dumpedFrom}\n;\n`;
+  const lines = schemas.map((name, i) => `${i + 4}; 2615 ${16000 + i} SCHEMA - ${name} trek\n`).join('');
+  const toc = header + lines;
   return `case "$*" in *--list*) printf '%s' ${shellWord(toc)} | fake_write "$@"; exit 0;; esac`;
 }
 

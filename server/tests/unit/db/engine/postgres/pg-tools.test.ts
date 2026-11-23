@@ -417,4 +417,31 @@ describe('pg-tools', () => {
     installFakeTool(bin, 'pg_restore', { snippets: [printsWhen('--data-only', forged)] });
     await expect(pgDumpMigrations('/data/in.pgdump', bin)).resolves.toEqual([]);
   });
+
+  it('PGTOOLS-022: a dump from a newer server major is refused before anything is cleared, naming both majors', async () => {
+    const psqlLog = installFakeTool(bin, 'psql', { version: '18.1', snippets: [answersSchema()] });
+    installFakeTool(bin, 'pg_restore', {
+      version: '18.1',
+      snippets: [listsSchemas([], '18.1 (Debian 18.1-1.pgdg13+2)'), writesRestrictedScript()],
+    });
+    await expect(pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT)).rejects.toThrow(
+      'The backup was dumped from PostgreSQL 18, newer than the PostgreSQL 17 server it would be restored into; ' +
+        'nothing was replaced.',
+    );
+    expect(readToolCall(psqlLog).args.join(' ')).not.toContain('--single-transaction');
+    expect(readdirSync(out)).toEqual([]);
+  });
+
+  it.each(['17.6', '14.19'])(
+    'PGTOOLS-022b: a dump from %s restores into a PostgreSQL 17 server',
+    async (dumpedFrom) => {
+      const psqlLog = installFakeTool(bin, 'psql', { version: '18.1', snippets: [answersSchema()] });
+      installFakeTool(bin, 'pg_restore', {
+        version: '18.1',
+        snippets: [listsSchemas([], dumpedFrom), writesRestrictedScript()],
+      });
+      await pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT);
+      expect(readToolCall(psqlLog).args).toContain('--single-transaction');
+    },
+  );
 });

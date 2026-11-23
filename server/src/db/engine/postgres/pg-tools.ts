@@ -219,6 +219,8 @@ export interface PreparedPgRestore {
  * beside it, refusing (and removing them) on:
  *
  * - client tools without the CVE-2025-8714 fix, or older than the server;
+ * - a dump taken from a newer server major than this one, whose DDL an older
+ *   server may not know;
  * - a role that could reach the database host from SQL (`PRIVILEGED_ROLE_SQL`),
  *   since the script comes from an archive and runs as that role;
  * - a script past `maxScriptBytes` (BACKUP_MAX_DECOMPRESSED_MB): the dump is
@@ -237,7 +239,14 @@ export async function pgPrepareRestore(
   try {
     const clear = path.join(workDir, 'clear-schema.sql');
     const script = path.join(workDir, 'restore.sql');
-    const pluginSchemas = await dumpPluginSchemas(source, path.join(workDir, 'toc.txt'), binDir);
+    const { pluginSchemas, dumpedFromMajor } = await readDumpToc(source, path.join(workDir, 'toc.txt'), binDir);
+    if (dumpedFromMajor !== null && dumpedFromMajor > major) {
+      throw new Error(
+        `The backup was dumped from PostgreSQL ${dumpedFromMajor}, newer than the PostgreSQL ${major} server ` +
+          `it would be restored into; nothing was replaced. Restore it into a PostgreSQL ${dumpedFromMajor} ` +
+          'server or newer.',
+      );
+    }
     fs.writeFileSync(clear, CLEAR_SCHEMA_SQL + pluginSchemasSql(pluginSchemas), { mode: 0o600 });
     createPrivateFile(script);
     await writeRestoreScript(source, script, [schema.name, ...pluginSchemas], binDir, {
@@ -281,20 +290,29 @@ export async function pgRunRestore(
 }
 
 /**
- * The plugin data schemas the dump at `source` holds, read from its table of
- * contents (`pg_restore --list`, written to `toc`), which has a line
- * `<id>; <oid> <oid> SCHEMA - <name> <owner>` per schema. Only a name TREK
- * gives a plugin schema counts.
+ * What a restore reads from the table of contents of the dump at `source`
+ * (`pg_restore --list`, written to `toc`): the plugin data schemas it holds,
+ * from its `<id>; <oid> <oid> SCHEMA - <name> <owner>` lines (only a name TREK
+ * gives a plugin schema counts), and the major version of the server it was
+ * dumped from, from its `Dumped from database version` header (null when the
+ * header is missing).
  */
-async function dumpPluginSchemas(source: string, toc: string, binDir: string | undefined): Promise<string[]> {
+async function readDumpToc(
+  source: string,
+  toc: string,
+  binDir: string | undefined,
+): Promise<{ pluginSchemas: string[]; dumpedFromMajor: number | null }> {
   createPrivateFile(toc);
   await run('pg_restore', binDir, ['--list', `--file=${toc}`, '--', source], {});
   const names = new Set<string>();
+  let dumpedFromMajor: number | null = null;
   for (const line of fs.readFileSync(toc, 'utf8').split('\n')) {
     const name = /^\d+; \d+ \d+ SCHEMA - (\S+) /.exec(line)?.[1];
     if (name !== undefined && isPluginSchemaName(name)) names.add(name);
+    const version = /^;\s+Dumped from database version: (\d+)/.exec(line)?.[1];
+    if (version !== undefined) dumpedFromMajor = Number(version);
   }
-  return [...names].sort((a, b) => a.localeCompare(b));
+  return { pluginSchemas: [...names].sort((a, b) => a.localeCompare(b)), dumpedFromMajor };
 }
 
 /** The tables in the current schema of the database at `url`, read before TREK opens it. */

@@ -15,6 +15,7 @@ import {
   failsWith,
   installFakeTool,
   listsMigrations,
+  listsSchemas,
   touches,
   writesRestrictedScript,
 } from '../../helpers/fake-pg-tools';
@@ -228,6 +229,20 @@ describe('restoreOnFirstBoot', () => {
         /^RESTORE_FROM_BACKUP: TREK_DB_URL connects as a superuser/,
       );
       await expect(restoreOnFirstBoot(plan)).rejects.toBeInstanceOf(BootRestoreError);
+      expect(loaded()).toBe(false);
+      expect(scratch()).toEqual([]);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004i: a dump from a newer server major is refused before anything is loaded, naming both', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }));
+      const migration = [...knownMigrationNames()][0];
+      installFakeTool(plan.postgres.binDir, 'pg_restore', {
+        snippets: [listsSchemas([], '18.1'), listsMigrations([migration]), writesRestrictedScript()],
+      });
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow(
+        'The backup was dumped from PostgreSQL 18, newer than the PostgreSQL 17 server',
+      );
       expect(loaded()).toBe(false);
       expect(scratch()).toEqual([]);
       expect(fs.existsSync(reclaimResetFile)).toBe(false);
