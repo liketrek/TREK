@@ -21,6 +21,9 @@ const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
+// The server reads its .env too (src/index.ts), so TREK_DB_URL kept there picks the same database here.
+require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
+
 // Kept in sync with the seeder/authService cost factor.
 const BCRYPT_COST = 12;
 

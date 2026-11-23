@@ -32,6 +32,7 @@ import { MikroORM } from '@mikro-orm/core';
 
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import { config as loadDotenv } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
@@ -861,6 +862,8 @@ async function mainPostgres(): Promise<void> {
 }
 
 async function main() {
+  // The server reads its .env too (index.ts), so TREK_DB_URL kept there picks the same database here.
+  loadDotenv({ path: path.join(__dirname, '../.env'), quiet: true });
   openPrompts();
   console.log('=== TREK Encryption Key Migration ===\n');
   console.log('This script re-encrypts all stored secrets under a new ENCRYPTION_KEY.');
