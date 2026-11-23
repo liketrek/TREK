@@ -51,6 +51,13 @@ describe('classifyMail', () => {
     ]) {
       expect(classifyMail(mail({ Subject: subject }, body)), subject).toEqual({ kind: 'read' });
     }
+    const coded = mail(
+      { From: 'resa@navette.example', Subject: 'Transfert Orly - Paris : confirmation de réservation' },
+      'Votre code de réservation : 58213467. Rendez-vous le 2030-03-02 à 10:00.',
+    );
+    expect(classifyMail(coded)).toEqual({ kind: 'read' });
+    const relayed = mail({ Subject: 'Transfert de courrier : confirmez' }, 'Votre code : 612345678');
+    expect(classifyMail(relayed)).toEqual({ kind: 'forwarding_confirmation', code: '612345678' });
   });
 
   it('reads a long subject and From header in linear time', () => {

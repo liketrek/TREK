@@ -13,6 +13,9 @@ type MailClass =
 
 const FORWARDING_SENDERS = /forwarding-noreply@google\.com|@accountprotection\.microsoft\.com|@microsoft\.com/i;
 const FORWARDING_WORD = /forwarding|weiterleitung|transfert|reenv[ií]o|inoltro|doorsturen/i;
+/** The forwarding words that name mail forwarding alone: a bare "transfert" is as often an airport transfer. */
+const MAIL_FORWARDING_WORD =
+  /forwarding|weiterleitung|transfert (?:de |des |du )?(?:courriers?|messages?|e-?mails?|mails?)|transfert automatique|reenv[ií]o|inoltro|doorsturen/i;
 const CONFIRM_WORD = /confirm|bestätig|verif|conferma|bevestig/i;
 const CODE_RE = /(?:code|código|codice|kód)\D{0,40}?(\d{6,10})\b/i;
 const AUTO_REPLY_SUBJECT =
@@ -33,7 +36,7 @@ export function classifyMail(mail: WalkedMail): MailClass {
   const code = CODE_RE.exec(mail.body)?.[1] ?? null;
   // A subject alone is no proof: "Votre transfert aéroport est confirmé" is a booking.
   const fromProvider = FORWARDING_SENDERS.test(envelope.from ?? '');
-  const subjectSays = asksToConfirmForwarding(subject);
+  const subjectSays = asksToConfirmForwarding(subject, fromProvider ? FORWARDING_WORD : MAIL_FORWARDING_WORD);
   if (fromProvider ? subjectSays || code !== null : subjectSays && code !== null) {
     return { kind: 'forwarding_confirmation', code };
   }
@@ -53,8 +56,8 @@ export function classifyMail(mail: WalkedMail): MailClass {
 }
 
 /** A forwarding word with a confirm word after it, found without rescanning the subject from every forwarding word. */
-function asksToConfirmForwarding(subject: string): boolean {
-  const word = FORWARDING_WORD.exec(subject);
+function asksToConfirmForwarding(subject: string, forwardingWord: RegExp): boolean {
+  const word = forwardingWord.exec(subject);
   return word !== null && CONFIRM_WORD.test(subject.slice(word.index + word[0].length));
 }
 
