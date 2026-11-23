@@ -1,4 +1,4 @@
-// FE-STORE-MAILINGEST-001 to FE-STORE-MAILINGEST-005
+// FE-STORE-MAILINGEST-001 to FE-STORE-MAILINGEST-006
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../api/mailIngest', () => ({
@@ -87,6 +87,21 @@ describe('mailIngestStore', () => {
     await useMailIngestStore.getState().act(1, 'apply');
     expect(useMailIngestStore.getState().entries[0].reason).toBe('ai_provider_error');
     expect(useMailIngestStore.getState().pending).toBe(1);
+  });
+
+  it('FE-STORE-MAILINGEST-006: a reset forgets the account, and its answers still on the way land nowhere', async () => {
+    let answer: (value: unknown) => void = () => undefined;
+    vi.mocked(mailIngestApi.inbox).mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)) as never);
+    useMailIngestStore.setState({ settings: { address: 'a@example.com' } as never, pending: 2 });
+    const reading = useMailIngestStore.getState().loadInbox();
+    useMailIngestStore.getState().reset();
+    answer({ entries: [entry(1)], pending: 1, next_before: null });
+    await reading;
+    const state = useMailIngestStore.getState();
+    expect(state.settings).toBeNull();
+    expect(state.entries).toEqual([]);
+    expect(state.pending).toBe(0);
+    expect(state.loadingInbox).toBe(false);
   });
 
   it('FE-STORE-MAILINGEST-005: the server inbox events move the count, read the list again and reload the settings', async () => {

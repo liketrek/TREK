@@ -11,6 +11,7 @@ import { isEffectivelyOffline, setForcedOffline } from '../sync/networkMode'
 import { mutationQueue } from '../sync/mutationQueue'
 import { registerSyncTriggers, unregisterSyncTriggers } from '../sync/syncTriggers'
 import { useSystemNoticeStore } from './systemNoticeStore.js'
+import { useMailIngestStore } from './mailIngestStore'
 import { clearAppearanceSnapshot } from '../theme/applyAppearance'
 import { clearAllPluginSessions } from './pluginStore'
 import { forgetStartDestination } from '../utils/startDestination'
@@ -273,6 +274,7 @@ export const useAuthStore = create<AuthState>()(
     // 3. Tear down the live connection.
     disconnect()
     useSystemNoticeStore.getState().reset()
+    useMailIngestStore.getState().reset()
     // Drop the per-device appearance snapshot so the next user on a shared
     // browser doesn't get a pre-paint flash of this user's theme.
     clearAppearanceSnapshot()

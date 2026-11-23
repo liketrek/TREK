@@ -24,65 +24,85 @@ interface MailIngestState {
   loadInbox: (more?: boolean) => Promise<void>;
   /** Runs an action on an entry; the entry leaves the open list once it is decided. */
   act: (candidateId: number, action: MailIngestAction, body?: Record<string, unknown>) => Promise<MailIngestCandidate>;
+  /** Forgets the person on sign-out: the next account on this tab must not see their address or inbox. */
+  reset: () => void;
 }
 
 const OPEN = new Set(['pending']);
 
-export const useMailIngestStore = create<MailIngestState>((set, get) => ({
-  settings: null,
-  entries: [],
-  nextBefore: null,
-  pending: 0,
-  loadingInbox: false,
+const EMPTY = { settings: null, entries: [], nextBefore: null, pending: 0, loadingInbox: false };
 
-  loadSettings: async () => {
-    if (isEffectivelyOffline()) return;
-    try {
-      const settings = await mailIngestRepo.settings();
-      set({ settings, pending: settings.pending });
-    } catch {
-      // Without an answer the menus keep what they showed; the next sign-in or event reads it again.
-    }
-  },
+export const useMailIngestStore = create<MailIngestState>((set, get) => {
+  // Bumped on sign-out, so an answer still on its way for the account before lands nowhere.
+  let account = 0;
+  return {
+    ...EMPTY,
 
-  setSettings: (settings) => set({ settings, pending: settings.pending }),
+    loadSettings: async () => {
+      if (isEffectivelyOffline()) return;
+      const asked = account;
+      try {
+        const settings = await mailIngestRepo.settings();
+        if (asked === account) set({ settings, pending: settings.pending });
+      } catch {
+        // Without an answer the menus keep what they showed; the next sign-in or event reads it again.
+      }
+    },
 
-  loadCount: async () => {
-    if (isEffectivelyOffline()) return;
-    try {
-      set({ pending: await mailIngestRepo.inboxCount() });
-    } catch {
-      // The badge keeps its last count until the next event brings a new one.
-    }
-  },
+    setSettings: (settings) => set({ settings, pending: settings.pending }),
 
-  loadInbox: async (more = false) => {
-    if (isEffectivelyOffline() || get().loadingInbox) return;
-    set({ loadingInbox: true });
-    try {
-      const before = more ? (get().nextBefore ?? undefined) : undefined;
-      const { entries, pending, next_before } = await mailIngestRepo.inbox(before);
-      set((state) => ({ entries: more ? [...state.entries, ...entries] : entries, pending, nextBefore: next_before }));
-    } catch {
-      // The inbox stays as it was; the next open reads it again.
-    } finally {
-      set({ loadingInbox: false });
-    }
-  },
+    loadCount: async () => {
+      if (isEffectivelyOffline()) return;
+      const asked = account;
+      try {
+        const pending = await mailIngestRepo.inboxCount();
+        if (asked === account) set({ pending });
+      } catch {
+        // The badge keeps its last count until the next event brings a new one.
+      }
+    },
 
-  act: async (candidateId, action, body = {}) => {
-    const candidate = await mailIngestRepo.act(candidateId, action, body);
-    set((state) => {
-      const stillOpen = OPEN.has(candidate.resolution);
-      const entries = state.entries.flatMap((entry) =>
-        entry.id !== candidate.id ? [entry] : stillOpen ? [{ ...entry, ...candidate }] : []
-      );
-      const removed = state.entries.length - entries.length;
-      return { entries, pending: Math.max(0, state.pending - removed) };
-    });
-    return candidate;
-  },
-}));
+    loadInbox: async (more = false) => {
+      if (isEffectivelyOffline() || get().loadingInbox) return;
+      const asked = account;
+      set({ loadingInbox: true });
+      try {
+        const before = more ? (get().nextBefore ?? undefined) : undefined;
+        const { entries, pending, next_before } = await mailIngestRepo.inbox(before);
+        if (asked !== account) return;
+        set((state) => ({
+          entries: more ? [...state.entries, ...entries] : entries,
+          pending,
+          nextBefore: next_before,
+        }));
+      } catch {
+        // The inbox stays as it was; the next open reads it again.
+      } finally {
+        if (asked === account) set({ loadingInbox: false });
+      }
+    },
+
+    act: async (candidateId, action, body = {}) => {
+      const asked = account;
+      const candidate = await mailIngestRepo.act(candidateId, action, body);
+      if (asked !== account) return candidate;
+      set((state) => {
+        const stillOpen = OPEN.has(candidate.resolution);
+        const entries = state.entries.flatMap((entry) =>
+          entry.id !== candidate.id ? [entry] : stillOpen ? [{ ...entry, ...candidate }] : []
+        );
+        const removed = state.entries.length - entries.length;
+        return { entries, pending: Math.max(0, state.pending - removed) };
+      });
+      return candidate;
+    },
+
+    reset: () => {
+      account += 1;
+      set(EMPTY);
+    },
+  };
+});
 
 /**
  * Keeps the inbox current while the app is open: the server says when the
