@@ -602,6 +602,23 @@ describe('what a mail names', () => {
 });
 
 describe('a mail that keeps failing', () => {
+  it('is not read again when what follows its commit fails', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    const announce = vi
+      .spyOn(t.get(MailIngestApplyService), 'announce')
+      .mockRejectedValueOnce(new Error('connection lost'));
+    try {
+      const messageId = await forward(user.id, eml('flight'));
+      expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({ status: 'processed' });
+      expect(await job().tick(new Date(NOW.getTime() + 60 * 60 * 1000))).toBe(0);
+      expect(await entriesOf(messageId)).toHaveLength(1);
+      expect(await countRows(orm(), Reservations, { trip: trip.id })).toBe(1);
+    } finally {
+      announce.mockRestore();
+    }
+  });
+
   it('is tried again later and given up after its last try', async () => {
     const user = await person();
     await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });

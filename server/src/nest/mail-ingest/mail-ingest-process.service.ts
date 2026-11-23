@@ -142,7 +142,7 @@ export class MailIngestProcessService {
     }
     if (kind.kind === 'forwarding_confirmation') {
       await this.keepForInbox(message, { ...outcome, forwardingCode: kind.code }, 'forwarding_confirmation', now);
-      await this.notify.bookingsPending(person.id, await this.candidates.countPending(person.id));
+      await this.afterRead(message.id, () => this.pendingNotice(person.id));
       return;
     }
     await this.readBookings(message, raw, mail, person, outcome, now);
@@ -171,7 +171,7 @@ export class MailIngestProcessService {
         return;
       }
       await this.keepForInbox(message, done, read.emptyReason, now);
-      await this.notify.bookingsPending(person.id, await this.candidates.countPending(person.id));
+      await this.afterRead(message.id, () => this.pendingNotice(person.id));
       return;
     }
     const context: CheckContext = {
@@ -184,7 +184,20 @@ export class MailIngestProcessService {
     };
     const planned = await this.plan(read.drafts, context, person, prefs);
     const added = await this.write(message, planned, done, now);
-    await this.afterCommit(added, planned, mail, person);
+    await this.afterRead(message.id, () => this.afterCommit(added, planned, mail, person));
+  }
+
+  /** What follows a mail's commit fails on its own: the mail is read, so it is never queued again for it. */
+  private async afterRead(messageId: number, step: () => Promise<void>): Promise<void> {
+    try {
+      await step();
+    } catch (err) {
+      logError(`[mail-ingest] After reading mail ${messageId}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  private async pendingNotice(userId: number): Promise<void> {
+    await this.notify.bookingsPending(userId, await this.candidates.countPending(userId));
   }
 
   /** The trips a booking of this mail may go to: the address's trip alone, or the person's editable ones. */
@@ -376,7 +389,7 @@ export class MailIngestProcessService {
       });
     }, Promise.resolve());
     if (planned.some((booking) => booking.resolution === 'pending' && booking.prepared === null)) {
-      await this.notify.bookingsPending(person.id, await this.candidates.countPending(person.id));
+      await this.pendingNotice(person.id);
     }
   }
 
