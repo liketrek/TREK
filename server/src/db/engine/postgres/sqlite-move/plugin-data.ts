@@ -151,7 +151,9 @@ function indexDdl(index: SqliteIndex, target: string, notes: string[], table: st
     return null;
   }
   const columns = index.columns.map(quoteIdentifier).join(', ');
-  return `create ${index.unique ? 'unique ' : ''}index on ${target} (${columns})`;
+  // The plugin's own name, for a later migration to find; a UNIQUE constraint's index has none of its own.
+  const name = index.origin === 'c' ? `${quoteIdentifier(index.name)} ` : '';
+  return `create ${index.unique ? 'unique ' : ''}index ${name}on ${target} (${columns})`;
 }
 
 /** Plans the copy of one plugin's `plugin.db`: what to create in its schema and what to fill. */

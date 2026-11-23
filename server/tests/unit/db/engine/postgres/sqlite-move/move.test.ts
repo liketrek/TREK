@@ -332,7 +332,7 @@ describe('moveSqliteToPostgres', () => {
         '"body" text not null default \'x\', "score" double precision, "raw" bytea, "added" text default ' +
         'to_char((CURRENT_TIMESTAMP AT TIME ZONE \'UTC\'), \'YYYY-MM-DD HH24:MI:SS\'), "odd" text, primary key ("id"))',
     );
-    expect(statements).toContain('create unique index on "trek_plugin_move_notes"."notes" ("body")');
+    expect(statements).toContain('create unique index "notes_body" on "trek_plugin_move_notes"."notes" ("body")');
     expect(pg.rowsOf('"trek_plugin_move_notes"."_plugin_migrations"')).toEqual([['001', '1700000000000']]);
     expect(pg.sequences.get('"trek_plugin_move_notes"."notes"_seq')).toEqual({ value: '3', called: true });
     expect(renderSummary(summary, 'postgres://db/trek')).toContain(
@@ -833,10 +833,10 @@ describe('the pieces', () => {
     fs.mkdirSync(pluginDir, { recursive: true });
     sqlite(
       path.join(pluginDir, 'plugin.db'),
-      `create table tags (name text primary key collate nocase, label text, slug text collate rtrim, note text);
+      `create table tags (name text primary key collate nocase, label text, slug text collate rtrim, note text, ref text unique);
        create unique index tags_label on tags (label collate nocase, slug);
        create index tags_note on tags (note);
-       insert into tags values ('Alpha', 'a', 's', 'n');`,
+       insert into tags values ('Alpha', 'a', 's', 'n', 'r');`,
     );
     const summary = await moveSqliteToPostgres(options());
     expect(summary.plugins[0].notCarried).toEqual([
@@ -844,8 +844,12 @@ describe('the pieces', () => {
       'the collation NOCASE of the primary key on tags (Postgres compares its values exactly)',
     ]);
     const statements = pg.statements.join('\n');
-    expect(statements).toContain('create unique index on "trek_plugin_move_tags"."tags" ("label", "slug")');
-    expect(statements).toContain('create index on "trek_plugin_move_tags"."tags" ("note")');
+    expect(statements).toContain(
+      'create unique index "tags_label" on "trek_plugin_move_tags"."tags" ("label", "slug")',
+    );
+    expect(statements).toContain('create index "tags_note" on "trek_plugin_move_tags"."tags" ("note")');
+    // A UNIQUE constraint's index has a name SQLite made up, so Postgres names it.
+    expect(statements).toContain('create unique index on "trek_plugin_move_tags"."tags" ("ref")');
   });
 });
 
