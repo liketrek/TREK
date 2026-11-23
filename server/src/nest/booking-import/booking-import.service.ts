@@ -17,7 +17,7 @@ import { PlacesService } from '../places/places.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { withoutOrigin } from '../reservations/reservation-origin.contract';
 import { ReservationsService, type CreateAccommodation } from '../reservations/reservations.service';
-import { IMPORT_SOURCE, importExternalId } from './booking-origin';
+import { IMPORT_SOURCE, IMPORTED_SOURCES, importExternalId } from './booking-origin';
 import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { mapReservations } from './kitinerary-mapper';
 import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
@@ -406,10 +406,13 @@ export class BookingImportService {
     }
   }
 
-  /** Whether an earlier import already wrote the booking this key names into the trip. */
+  /** Whether an earlier import, from a file or a forwarded mail, already wrote the booking this key names into the trip. */
   private async alreadyImported(tripId: string, externalId: string): Promise<boolean> {
-    const id = await this.reservationsRepo.findIdByExternal(this.rowIdNum(tripId), IMPORT_SOURCE, externalId);
-    return id !== undefined;
+    const trip = this.rowIdNum(tripId);
+    const ids = await Promise.all(
+      IMPORTED_SOURCES.map((source) => this.reservationsRepo.findIdByExternal(trip, source, externalId)),
+    );
+    return ids.some((id) => id !== undefined);
   }
 
   /** The place row a venue booking brings, geocoded first so the broadcast carries coordinates. */

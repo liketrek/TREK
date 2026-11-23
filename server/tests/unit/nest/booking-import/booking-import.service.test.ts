@@ -675,6 +675,17 @@ describe('BookingImportService.confirm reports every item it did not create', ()
     expect(guardsStub.hasTripPermission).toHaveBeenLastCalledWith('reservation_edit', '5', 2);
     expect(reservations.createWithCostInTx).not.toHaveBeenCalled();
   });
+
+  it('BOOKING-IMPORT-REPORT-005: a booking a forwarded mail already wrote into the trip is a duplicate too', async () => {
+    const { svc, reservations } = makeReport(async () => ({}));
+    findIdByExternal.mockResolvedValueOnce(undefined).mockResolvedValueOnce(4);
+
+    const res = await svc.confirm('5', 1, [flight as never], undefined);
+
+    expect(res).toEqual({ created: [], failed: [{ index: 0, reason: 'duplicate' }] });
+    expect(findIdByExternal).toHaveBeenCalledWith(5, 'mail', 'ABC123|flight|2026-09-01|fra-nrt');
+    expect(reservations.createWithCostInTx).not.toHaveBeenCalled();
+  });
 });
 
 describe('BookingImportService: reading a forwarded mail', () => {

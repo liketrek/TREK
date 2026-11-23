@@ -3,6 +3,9 @@ import type { BookingImportPreviewItem } from '@trek/shared';
 /** The `external_source` of a booking written by the file import. */
 export const IMPORT_SOURCE = 'import';
 
+/** The sources whose keys say a booking is in a trip already: the file import's and the mail import's (`mail`). */
+export const IMPORTED_SOURCES: readonly string[] = [IMPORT_SOURCE, 'mail'];
+
 /** `external_id` is free text, but a key past this length is a document that is not a booking reference. */
 const MAX_EXTERNAL_ID = 200;
 
