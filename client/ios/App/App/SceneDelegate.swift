@@ -18,11 +18,30 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             TrekSharedFiles.receive(context.url)
         }
         // Launched by a tap on a widget or a Live Activity: held like a quick action.
-        // Capacitor still hears of the link, the UI ignores it there (feature appLinks).
-        for context in connectionOptions.urlContexts {
+        // Capacitor must not hear of the link as well, or a UI that still follows the
+        // launch URL (a server before feature appLinks) opens the page twice.
+        let appLinks = connectionOptions.urlContexts.filter { TrekQuickActions.appLinkPath($0.url) != nil }
+        for context in appLinks {
             if let path = TrekQuickActions.appLinkPath(context.url) { TrekQuickActions.open(path: path) }
         }
-        SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+        if appLinks.isEmpty {
+            SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+        } else {
+            connectWithoutAppLinks(scene, others: connectionOptions.urlContexts.subtracting(appLinks),
+                                   activities: connectionOptions.userActivities)
+        }
+    }
+
+    /// What SceneDelegateProxy does on a launch, for the links it may have: the
+    /// options cannot be rebuilt without the app links, so they go in here.
+    private func connectWithoutAppLinks(_ scene: UIScene, others: Set<UIOpenURLContext>, activities: Set<NSUserActivity>) {
+        NotificationCenter.default.post(name: .capacitorSceneWillConnect, object: scene)
+        var token: NSObjectProtocol?
+        token = NotificationCenter.default.addObserver(forName: .capacitorViewDidAppear, object: nil, queue: .main) { _ in
+            if let token { NotificationCenter.default.removeObserver(token) }
+            if !others.isEmpty { SceneDelegateProxy.shared.scene(scene, openURLContexts: others) }
+            for activity in activities { SceneDelegateProxy.shared.scene(scene, continue: activity) }
+        }
     }
 
     // The app switcher takes its snapshot as the scene resigns active, so the
