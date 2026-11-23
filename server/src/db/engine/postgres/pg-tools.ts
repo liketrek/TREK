@@ -177,7 +177,7 @@ async function writeRestoreScript(
  * checks that need no dump have passed: client tools with the CVE-2025-8714
  * fix and not older than the server, and a role that could not reach the
  * database host (`PRIVILEGED_ROLE_SQL`). Both restore paths ask it before
- * they unpack or copy anything, and `pgRestore` asks it again.
+ * they unpack or copy anything, and `pgPrepareRestore` asks it again.
  */
 export async function pgRestoreTarget(url: string, binDir: string | undefined): Promise<PgServer> {
   await refuseToolsWithoutRestrict(binDir);
@@ -194,7 +194,29 @@ export async function pgRestoreTarget(url: string, binDir: string | undefined): 
  * dump holds is left out), then psql clears the schema, drops the plugin
  * schemas TREK's role owns, creates the dump's and runs the script, all in
  * one transaction, so a restore that fails leaves the database as it was. No
- * other schema of the database is touched. Refused before anything is cleared:
+ * other schema of the database is touched. Refused before anything is cleared,
+ * by {@link pgPrepareRestore}. The work files are removed whatever happens.
+ */
+export async function pgRestore(
+  url: string,
+  source: string,
+  binDir: string | undefined,
+  maxScriptBytes: number,
+): Promise<void> {
+  await pgRunRestore(url, await pgPrepareRestore(url, source, binDir, maxScriptBytes), binDir);
+}
+
+/** A restore whose script pg_restore has written and checked, ready for psql to run. */
+export interface PreparedPgRestore {
+  readonly source: string;
+  readonly workDir: string;
+  readonly clear: string;
+  readonly script: string;
+}
+
+/**
+ * Writes the work files of a restore of the dump at `source` into a folder
+ * beside it, refusing (and removing them) on:
  *
  * - client tools without the CVE-2025-8714 fix, or older than the server;
  * - a role that could reach the database host from SQL (`PRIVILEGED_ROLE_SQL`),
@@ -203,15 +225,13 @@ export async function pgRestoreTarget(url: string, binDir: string | undefined): 
  *   compressed once more inside the archive, so its script is held to the
  *   limit while pg_restore writes it, not only the archive's entry;
  * - a dump without TREK's tables in that schema.
- *
- * The work files are removed whatever happens.
  */
-export async function pgRestore(
+export async function pgPrepareRestore(
   url: string,
   source: string,
   binDir: string | undefined,
   maxScriptBytes: number,
-): Promise<void> {
+): Promise<PreparedPgRestore> {
   const { schema, major } = await pgRestoreTarget(url, binDir);
   const workDir = fs.mkdtempSync(path.join(path.dirname(source), '.pg-restore-'));
   try {
@@ -227,6 +247,20 @@ export async function pgRestore(
     if (!(await scriptHoldsTrekSchema(script, schema))) {
       throw new Error(`The backup holds no TREK tables in the schema "${schema.name}"; nothing was replaced.`);
     }
+    return { source, workDir, clear, script };
+  } catch (err) {
+    fs.rmSync(workDir, { recursive: true, force: true });
+    throw err;
+  }
+}
+
+/** Runs a prepared restore in one psql transaction, then removes its work files. */
+export async function pgRunRestore(
+  url: string,
+  prepared: PreparedPgRestore,
+  binDir: string | undefined,
+): Promise<void> {
+  try {
     await run(
       'psql',
       binDir,
@@ -236,13 +270,13 @@ export async function pgRestore(
         '--single-transaction',
         '--set=ON_ERROR_STOP=1',
         `--output=${os.devNull}`,
-        `--file=${clear}`,
-        `--file=${script}`,
+        `--file=${prepared.clear}`,
+        `--file=${prepared.script}`,
       ],
       { ...pgConnectionEnv(url), PGOPTIONS: RESTORE_SESSION_OPTIONS },
     );
   } finally {
-    fs.rmSync(workDir, { recursive: true, force: true });
+    fs.rmSync(prepared.workDir, { recursive: true, force: true });
   }
 }
 

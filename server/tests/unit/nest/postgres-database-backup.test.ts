@@ -21,7 +21,7 @@ import {
   writesRestrictedScript,
 } from '../../helpers/fake-pg-tools';
 
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -85,8 +85,29 @@ describe('PostgresDatabaseBackup', () => {
 
   it('PGBACKUP-002: verify accepts a TREK dump this build knows', async () => {
     writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
-    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3))] });
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3)), writesRestrictedScript()] });
     await expect(backup.verify(extract)).resolves.toBeUndefined();
+  });
+
+  it('PGBACKUP-002h: verify refuses a dump of another schema with a 400, leaving no work files, before a copy is kept', async () => {
+    writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3)), writesRestrictedScript()] });
+    installFakeTool(bin, 'psql', { snippets: [answersSchema('trek')] });
+    expect(await refusal(backup.verify(extract))).toEqual({
+      status: 400,
+      message: 'The backup holds no TREK tables in the schema "trek"; nothing was replaced.',
+    });
+    expect(readdirSync(extract)).toEqual(['travel.pgdump']);
+  });
+
+  it('PGBACKUP-002i: replace runs the script verify prepared, without asking pg_restore again', async () => {
+    const source = path.join(extract, 'travel.pgdump');
+    writeFileSync(source, 'dump');
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3)), writesRestrictedScript()] });
+    await backup.verify(extract);
+    installFakeTool(bin, 'pg_restore', { snippets: [failsWith('pg_restore must not run again')] });
+    await expect(backup.replace(source)).resolves.toEqual({ reopenError: null });
+    expect(readdirSync(extract)).toEqual(['travel.pgdump']);
   });
 
   it('PGBACKUP-002a: verify refuses an archive without a TREK dump in it', async () => {

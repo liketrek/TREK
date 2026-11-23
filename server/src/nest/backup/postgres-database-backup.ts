@@ -1,7 +1,14 @@
 import type { DbSettings } from '../../app-config';
 import { postgresTarget, type DatabaseEngine } from '../../db/engine';
 import { PgToolMissingError } from '../../db/engine/postgres/pg-process';
-import { pgDump, pgDumpMigrations, pgRestore, pgRestoreTarget } from '../../db/engine/postgres/pg-tools';
+import {
+  pgDump,
+  pgDumpMigrations,
+  pgPrepareRestore,
+  pgRestore,
+  pgRunRestore,
+  type PreparedPgRestore,
+} from '../../db/engine/postgres/pg-tools';
 import { unknownMigrations } from '../../db/known-migrations';
 import { DataPathsService } from '../app-config/data-paths.service';
 import { logWarn } from '../audit/audit-log.logger';
@@ -90,6 +97,8 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
   readonly archiveEntry = PG_ARCHIVE_ENTRY;
   /** The URL and the tools' directory; null on SQLite, where this provider is built but never called. */
   private readonly target: ReturnType<typeof postgresTarget>;
+  /** The restore `verify` prepared for the archive it checked, run by the `replace` that follows. */
+  private prepared: PreparedPgRestore | null = null;
 
   constructor(
     private readonly lifecycle: DatabaseLifecycle,
@@ -127,14 +136,22 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
   /**
    * Throws a DomainError (400) with the refusal when the archive cannot be
    * restored here, before anything is replaced or copied: the dump's own
-   * checks, then the tools, the server and the role `pgRestore` would refuse.
+   * checks, then everything `pgPrepareRestore` refuses (the tools, the server,
+   * the role, the script's size and schema). The prepared script waits beside
+   * the dump for `replace`.
    */
   async verify(extractDir: string): Promise<void> {
     const { url, binDir } = this.connection;
     const refusal = await checkPostgresDump(extractDir, binDir);
     if (refusal) throw new DomainError(400, refusal);
+    this.prepared = null;
     try {
-      await pgRestoreTarget(url, binDir);
+      this.prepared = await pgPrepareRestore(
+        url,
+        path.join(extractDir, PG_ARCHIVE_ENTRY),
+        binDir,
+        MAX_BACKUP_DECOMPRESSED_SIZE,
+      );
     } catch (err) {
       throw new DomainError(400, describeError(err));
     }
@@ -155,8 +172,13 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
     return replaceThenReopen(
       async () => {
         const { url, binDir } = this.connection;
+        const prepared = this.prepared?.source === source ? this.prepared : null;
+        this.prepared = null;
+        const restore = prepared
+          ? pgRunRestore(url, prepared, binDir)
+          : pgRestore(url, source, binDir, MAX_BACKUP_DECOMPRESSED_SIZE);
         // A rejection with no reason still has to fail the swap, so it is never swallowed.
-        await pgRestore(url, source, binDir, MAX_BACKUP_DECOMPRESSED_SIZE).catch((err: unknown) => {
+        await restore.catch((err: unknown) => {
           throw err ?? new Error('pg_restore failed');
         });
       },
