@@ -1,5 +1,6 @@
 import { TripInviteTokens } from '../../db/entities/TripInviteTokens.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import { AddonsModule } from '../addons/addons.module';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { DemoModule } from '../common/demo.module';
@@ -32,6 +33,7 @@ import { Module } from '@nestjs/common';
     AppConfigModule,
     RealtimeModule,
     DemoModule,
+    AddonsModule,
     MikroOrmModule.forFeature([TripInviteTokens, Trips]),
   ],
   controllers: [TripInviteLinkController, TripInviteController],

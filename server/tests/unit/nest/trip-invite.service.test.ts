@@ -6,6 +6,7 @@
  */
 import { db as testDb } from '../../../src/db/database';
 import { TripInviteTokens } from '../../../src/db/entities/TripInviteTokens.entity';
+import type { TripAddonsService } from '../../../src/nest/addons/trip-addons.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { TripInviteService } from '../../../src/nest/trip-invite/trip-invite.service';
 import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
@@ -40,6 +41,7 @@ vi.mock('../../../src/db/database', async () => {
 });
 
 let svc: TripInviteService;
+const tripAddons = { reattachJoinedMember: vi.fn() };
 beforeAll(async () => {
   const uow = await createTestUnitOfWork(testDb);
   svc = new TripInviteService(
@@ -50,6 +52,7 @@ beforeAll(async () => {
     new TripMembershipService(await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb)),
     uow,
     await createTestTripInviteTokensRepo(testDb),
+    tripAddons as unknown as TripAddonsService,
   );
 });
 
@@ -135,5 +138,14 @@ describe('TripInviteService', () => {
     expect(expires).toBeLessThan(Date.now() + 8 * 86400000);
     expect((await svc.createOrRotate(trip.id, owner.id, 0)).expires_at).toBeNull();
     expect((await svc.createOrRotate(trip.id, owner.id, -3)).expires_at).toBeNull();
+  });
+
+  it('TRIP-INVITE-008: joining through the link asks for a new MCP session, a second join does not', async () => {
+    const { trip } = setup();
+    const { user: joiner } = createUser(testDb);
+    tripAddons.reattachJoinedMember.mockClear();
+    expect(await svc.join(trip.id, joiner.id)).toEqual({ joined: true, tripId: trip.id });
+    expect(await svc.join(trip.id, joiner.id)).toEqual({ joined: false, tripId: trip.id });
+    expect(tripAddons.reattachJoinedMember.mock.calls).toEqual([[trip.id, joiner.id]]);
   });
 });

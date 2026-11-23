@@ -110,6 +110,15 @@ export class TripAddonsService {
     for (const userId of new Set([...(ownerId === null ? [] : [ownerId]), ...memberIds])) revokeUserSessions(userId);
   }
 
+  /**
+   * Somebody joined the trip. While it has an addon on that the instance has off, their MCP
+   * session attached its tools without that addon's, so it is ended the same way.
+   */
+  async reattachJoinedMember(tripId: number, userId: number): Promise<void> {
+    const opened = (await this.effectiveTripAddons(tripId)).some((addon) => addon.enabled && !addon.instanceEnabled);
+    if (opened) revokeUserSessions(userId);
+  }
+
   /** A copied trip keeps the choices of the trip it came from. Runs inside the copy's transaction. */
   async copyOverrides(fromTripId: number, toTripId: number): Promise<void> {
     await this.overrides.copyForTrip(fromTripId, toTripId);

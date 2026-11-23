@@ -2,6 +2,7 @@ import { TripInviteTokens } from '../../db/entities/TripInviteTokens.entity';
 import type { TripInviteTokensRepository } from '../../db/repositories/TripInviteTokens.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { TripAddonsService } from '../addons/trip-addons.service';
 import { forbidden } from '../common/domain-error';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -49,6 +50,7 @@ export class TripInviteService {
     private readonly membership: TripMembershipService,
     private readonly uow: UnitOfWork,
     @InjectRepository(TripInviteTokens) private readonly tripInviteTokens: TripInviteTokensRepository,
+    private readonly tripAddons: TripAddonsService,
   ) {}
 
   async verifyTripAccess(tripId: string, userId: number) {
@@ -137,6 +139,8 @@ export class TripInviteService {
   /** Join the resolved trip as the current (authenticated, non-guest) user.
    *  invited_by is null — they joined via a link, not a personal invite. */
   async join(tripId: number, userId: number) {
-    return await this.membership.joinTripAsMember(tripId, userId, null);
+    const result = await this.membership.joinTripAsMember(tripId, userId, null);
+    if (result.joined) await this.tripAddons.reattachJoinedMember(tripId, userId);
+    return result;
   }
 }

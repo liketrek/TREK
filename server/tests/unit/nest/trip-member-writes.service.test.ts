@@ -7,6 +7,7 @@
  * deleted guest's split is read back again is left out instead of announced.
  */
 import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { TripAddonsService } from '../../../src/nest/addons/trip-addons.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import { TripMemberWritesService } from '../../../src/nest/trip-members/trip-member-writes.service';
@@ -31,6 +32,7 @@ const budget = {
   getBudgetItem: vi.fn(),
 };
 const addons = { isEnabledForTrip: vi.fn() };
+const tripAddons = { reattachJoinedMember: vi.fn() };
 
 /** A writer whose user has no row, so nothing about them can be read back. */
 function writerFor(userId: number): TripWriter {
@@ -45,6 +47,7 @@ beforeAll(async () => {
       { provide: TripMembersService, useValue: roster },
       { provide: BudgetService, useValue: budget },
       { provide: AddonsService, useValue: addons },
+      { provide: TripAddonsService, useValue: tripAddons },
     ],
   });
   writes = t.get(TripMemberWritesService);
@@ -78,6 +81,7 @@ describe('TripMemberWritesService', () => {
       'Lisbon',
       'invitee@example.test',
     );
+    expect(tripAddons.reattachJoinedMember).toHaveBeenCalledWith(7, 21);
   });
 
   it('MEMBER-WRITES-002: deleting a guest announces only the expenses that still read back after the re-split', async () => {

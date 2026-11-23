@@ -260,4 +260,18 @@ describe('TripAddonsService: open MCP sessions', () => {
     await svc.setTripOverride(trip.id, owner.id, 'roadtrip', false);
     expect(own.closed).toBe(false);
   });
+
+  it('TRIPADDON-SVC-032: a member who joins a trip that switched on an addon the instance has off gets a new session', async () => {
+    const { owner, trip } = await ownedTrip();
+    const { user: joiner } = await makeUser(orm());
+    await setAddonEnabled(orm(), 'roadtrip', false);
+    const before = liveSession('before', joiner.id);
+    await svc.reattachJoinedMember(trip.id, joiner.id);
+    expect(before.closed).toBe(false);
+
+    await svc.setTripOverride(trip.id, owner.id, 'roadtrip', true);
+    const joined = liveSession('joined', joiner.id);
+    await svc.reattachJoinedMember(trip.id, joiner.id);
+    expect(joined.closed).toBe(true);
+  });
 });
