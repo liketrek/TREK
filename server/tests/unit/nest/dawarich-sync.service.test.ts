@@ -368,6 +368,34 @@ describe('DawarichSyncService, naming a stay Dawarich sends without a name (#310
     expect(listGeocodedPoints).toHaveBeenCalledTimes(listVisits.mock.calls.length);
     expect((await rows()).map((r) => r.name)).toEqual(['Unknown Location', 'Unknown Location', 'Unknown Location']);
   });
+
+  it('DAWARICH-SYNC-096: a stay never read is named before unnamed stays are read again, and those only a few per run', async () => {
+    const unnamed = Array.from({ length: 25 }, (_, i) => nameless(1000 + i));
+    withVisits(...unnamed);
+    await svc.syncUser(USER);
+    expect((await rows()).every((r) => r.name === 'Unnamed stay')).toBe(true);
+
+    const fresh = visit({
+      id: 1100,
+      name: 'Unknown Location',
+      place: null,
+      started_at: `${VISIT_DAY}T15:00:00Z`,
+      ended_at: `${VISIT_DAY}T17:00:00Z`,
+    });
+    withVisits(...unnamed, fresh);
+    listVisits.mockClear();
+    listGeocodedPoints
+      .mockReset()
+      .mockImplementation(async (_creds: DawarichCreds, from: Date) =>
+        from.toISOString().startsWith(`${VISIT_DAY}T15:00`) ? [{ city: 'Cinisi', country_name: 'Italy' }] : [],
+      );
+    await svc.syncUser(USER);
+
+    const firstAsked = (listGeocodedPoints.mock.calls[0] as [DawarichCreds, Date, Date])[1];
+    expect(firstAsked.toISOString()).toBe(`${VISIT_DAY}T15:00:00.000Z`);
+    expect(listGeocodedPoints).toHaveBeenCalledTimes(21 * listVisits.mock.calls.length);
+    expect((await rows()).find((r) => r.source_visit_id === '1100')?.name).toBe('Cinisi, Italy');
+  });
 });
 
 describe('DawarichSyncService — new visits', () => {
