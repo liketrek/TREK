@@ -35,4 +35,11 @@ describe('asArgs', () => {
     const [op] = asTxOps([{ sql: 'SELECT ?', args: wire }]);
     expect(Buffer.isBuffer(op?.args?.[0])).toBe(true);
   });
+
+  it('RPCPARAM-005: a Buffer in the single-array bind form is bound as its bytes as well', () => {
+    const wire = JSON.parse(JSON.stringify([[Buffer.from([7, 0]), 'k']]));
+    const [[bytes, key]] = asArgs(wire) as unknown[][];
+    expect(Buffer.isBuffer(bytes) && [...(bytes as Buffer)]).toEqual([7, 0]);
+    expect(key).toBe('k');
+  });
 });

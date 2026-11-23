@@ -55,7 +55,8 @@ function reviveBuffer(v: unknown): unknown {
 
 export function asArgs(v: unknown): unknown[] {
   if (v == null) return [];
-  if (Array.isArray(v)) return v.map(reviveBuffer);
+  // The single-array bind form, args: [[a, b]], carries its Buffers one level down.
+  if (Array.isArray(v)) return v.map((a) => (Array.isArray(a) ? a.map(reviveBuffer) : reviveBuffer(a)));
   throw new BadParams('args must be an array');
 }
 
