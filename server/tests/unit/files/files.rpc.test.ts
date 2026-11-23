@@ -260,6 +260,10 @@ describe('FilesRpc with Documents off for the trip', () => {
     expect(
       await forbidden(host.dispatch(req('files.createLink', { tripId: 1, fileId: 2, opts: {} }), 42)),
     ).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
+    const unwritten = req('files.update', { tripId: 1, fileId: 2, input: { description: 'x', budget_item_id: 9 } });
+    expect(await forbidden(host.dispatch(unwritten, 42))).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
+    const unlinked = req('files.createLink', { tripId: 1, fileId: 2, opts: { budget_item_id: 9 } });
+    expect(await forbidden(host.dispatch(unlinked, 42))).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
     expect(f.files.updateFile).not.toHaveBeenCalled();
 
     const attach = req('files.update', { tripId: 1, fileId: 2, input: { reservation_id: 4 } });

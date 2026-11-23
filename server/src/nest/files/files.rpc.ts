@@ -182,7 +182,11 @@ export class FilesRpc {
     const file = await this.files.getFileById(fileId, tripId);
     if (!file) throw new ForbiddenResource(`no file ${fileId} on trip ${tripId}`);
     const opts = asPayload(params.opts) as { reservation_id?: number; assignment_id?: number; place_id?: number };
-    await this.requireReachable(tripId, file, opts);
+    await this.requireReachable(tripId, file, {
+      reservation_id: opts.reservation_id,
+      assignment_id: opts.assignment_id,
+      place_id: opts.place_id,
+    });
     // A link target on another trip would otherwise attach this trip's file to it.
     const foreign = await this.files.findForeignLinkTarget(tripId, opts);
     if (foreign) throw new ForbiddenResource(`${foreign} does not belong to trip ${tripId}`);
@@ -206,7 +210,7 @@ export class FilesRpc {
       place_id?: number | null;
       reservation_id?: number | null;
     };
-    await this.requireReachable(tripId, current, input);
+    await this.requireReachable(tripId, current, { place_id: input.place_id, reservation_id: input.reservation_id });
     const foreign = await this.files.findForeignLinkTarget(tripId, {
       reservation_id: input.reservation_id ?? null,
       place_id: input.place_id ?? null,
