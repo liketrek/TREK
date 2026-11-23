@@ -1,10 +1,11 @@
-// FE-MAIL-PREFILL-001 to FE-MAIL-PREFILL-002: "Fill in yourself" opens the booking form in the trip.
+// FE-MAIL-PREFILL-001 to FE-MAIL-PREFILL-003: "Fill in yourself" opens the booking form in the trip.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { BookingImportPreviewItem } from '@trek/shared';
 import { createElement, type ReactNode } from 'react';
 import { MemoryRouter, useSearchParams } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TranslationProvider } from '../../i18n/TranslationContext';
+import { useMailIngestStore } from '../../store/mailIngestStore';
 
 const repo = vi.hoisted(() => ({ prefill: vi.fn() }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -55,5 +56,20 @@ describe('useMailPrefillLink', () => {
     act(() => result.current.setSearchParams({ mailPrefill: '12' }));
     await waitFor(() => expect(startImportReview).toHaveBeenCalledTimes(2));
     expect(result.current.searchParams.get('mailPrefill')).toBeNull();
+  });
+
+  it('FE-MAIL-PREFILL-003: a saved booking sets the entry aside, and a refused one reads the inbox again', async () => {
+    const act$ = vi.fn().mockResolvedValue({});
+    const loadInbox = vi.fn().mockResolvedValue(undefined);
+    useMailIngestStore.setState({ act: act$, loadInbox });
+    const { startImportReview } = setup();
+    await waitFor(() => expect(startImportReview).toHaveBeenCalledTimes(1));
+    const onSaved = startImportReview.mock.calls[0][3] as () => void;
+    onSaved();
+    expect(act$).toHaveBeenCalledWith(12, 'discard');
+    expect(loadInbox).not.toHaveBeenCalled();
+    act$.mockRejectedValueOnce(new Error('decided already'));
+    onSaved();
+    await waitFor(() => expect(loadInbox).toHaveBeenCalledTimes(1));
   });
 });

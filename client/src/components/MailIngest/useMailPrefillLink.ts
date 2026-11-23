@@ -3,14 +3,16 @@ import { useEffect, useRef } from 'react';
 import type { SetURLSearchParams } from 'react-router';
 import { useTranslation } from '../../i18n';
 import { mailIngestRepo } from '../../repo/mailIngestRepo';
+import { useMailIngestStore } from '../../store/mailIngestStore';
 import { useToast } from '../shared/Toast';
 
 /**
  * "Fill in yourself" from the mail inbox lands in the trip as ?mailPrefill=<id>:
  * once the trip has loaded, the booking form opens with what the mail held, the
  * same per-item review a file import uses, and the parameter leaves the address
- * so a reload does not open it again. Desktop and phone share the planner hook
- * this runs in.
+ * so a reload does not open it again. Once the booking is saved the entry is set
+ * aside, so it leaves the inbox instead of offering to add it a second time.
+ * Desktop and phone share the planner hook this runs in.
  */
 export function useMailPrefillLink({
   searchParams,
@@ -21,7 +23,12 @@ export function useMailPrefillLink({
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
   loaded: boolean;
-  startImportReview: (items: BookingImportPreviewItem[], files?: File[], kind?: 'transports' | 'bookings') => void;
+  startImportReview: (
+    items: BookingImportPreviewItem[],
+    files?: File[],
+    kind?: 'transports' | 'bookings',
+    onSaved?: () => void
+  ) => void;
 }): void {
   const { t } = useTranslation();
   const toast = useToast();
@@ -48,7 +55,11 @@ export function useMailPrefillLink({
     mailIngestRepo
       .prefill(id)
       .then(({ item }) => {
-        startImportReview([item], [], isTransportReservationType(item.type) ? 'transports' : 'bookings');
+        startImportReview([item], [], isTransportReservationType(item.type) ? 'transports' : 'bookings', () => {
+          const inbox = useMailIngestStore.getState();
+          // Decided elsewhere meanwhile, or offline: a fresh read shows what is left.
+          void inbox.act(id, 'discard').catch(() => inbox.loadInbox());
+        });
       })
       .catch(() => {
         // An entry decided meanwhile has nothing to prefill: the trip stays open, and the person hears why.
