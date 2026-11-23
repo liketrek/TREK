@@ -1,8 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import type { TripAddon } from '@trek/shared';
+import { useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useTripAddons } from '../../components/Trips/useTripAddons';
 import { useAddonStore } from '../../store/addonStore';
+import { useTripStore } from '../../store/tripStore';
 import { tripAddonEnabled } from '../../utils/tripAddons';
 
 /**
@@ -19,6 +21,13 @@ const WHEN_UNKNOWN: Readonly<Record<string, boolean>> = {
   tours: false,
   dawarich: false,
 };
+
+/** The trip addons whose sections the trip reads as empty while they are off. */
+const SECTION_ADDONS = ['packing', 'budget', 'documents'] as const;
+
+function switchedOn(before: readonly TripAddon[], after: readonly TripAddon[], id: string): boolean {
+  return before.find((a) => a.id === id)?.enabled === false && after.find((a) => a.id === id)?.enabled === true;
+}
 
 /**
  * The addons the trip planner shows for one trip, in both shells: the trip
@@ -46,6 +55,17 @@ export function usePlannerAddons(tripId: number) {
       Object.keys(WHEN_UNKNOWN).map((id) => [id, tripAddonEnabled(tripAddons.addons, id, instanceOn(id))])
     ) as Record<string, boolean>;
   }, [tripAddons.addons, instance]);
+
+  // A section switched back on for the open trip was read as empty while it was off.
+  const lastList = useRef<{ tripId: number; addons: TripAddon[] } | null>(null);
+  useEffect(() => {
+    if (tripAddons.addons.length === 0) return;
+    const before = lastList.current?.tripId === tripId ? lastList.current.addons : null;
+    lastList.current = { tripId, addons: tripAddons.addons };
+    if (before && SECTION_ADDONS.some((id) => switchedOn(before, tripAddons.addons, id))) {
+      void useTripStore.getState().hydrateActiveTrip(tripId);
+    }
+  }, [tripId, tripAddons.addons]);
 
   // Until then enabledAddons is a guess, and the tab guard must not evict a tab on it.
   const addonsLoaded = tripAddons.loaded && (tripAddons.addons.length > 0 || instance.loaded);

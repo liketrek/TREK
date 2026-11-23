@@ -1,4 +1,4 @@
-// FE-TP-TRIPADDONS-001 to FE-TP-TRIPADDONS-005
+// FE-TP-TRIPADDONS-001 to FE-TP-TRIPADDONS-006
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { TripAddon } from '@trek/shared';
 import { http, HttpResponse } from 'msw';
@@ -183,5 +183,20 @@ describe('useTripPlanner — the trip’s own addons', () => {
       polls: true,
       whatsnext: true,
     });
+  });
+  it('FE-TP-TRIPADDONS-006: the owner switching Lists back on reads the trip’s sections again, a first read does not', async () => {
+    seedInstanceAddons(['packing', 'budget']);
+    const hydrateActiveTrip = vi.fn(async () => {});
+    useTripStore.setState({ hydrateActiveTrip } as Partial<TripStoreState>);
+    tripHas([addon('packing', false, true), addon('budget', true, true)]);
+    await renderPlanner();
+    await waitFor(() => expect(useTripAddonsStore.getState().trips['1:42']?.status).toBe('ready'));
+    expect(hydrateActiveTrip).not.toHaveBeenCalled();
+
+    act(() => useTripAddonsStore.getState().publish(42, [addon('packing', false, true), addon('budget', false, true)]));
+    expect(hydrateActiveTrip).not.toHaveBeenCalled();
+
+    act(() => useTripAddonsStore.getState().publish(42, [addon('packing', true, true), addon('budget', false, true)]));
+    expect(hydrateActiveTrip).toHaveBeenCalledWith(42);
   });
 });
