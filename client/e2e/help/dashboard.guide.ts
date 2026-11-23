@@ -468,6 +468,24 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
+  'travel-stats': {
+    guide: guide('travel-stats'),
+    start: async p => {
+      await openDashboard(p)
+      // The flags load from flagcdn; wait for them so the card is not half drawn.
+      await expect(p.locator('.atlas-card.passport .passport-flags img').first()).toBeVisible({ timeout: 15_000 })
+      await settle(p)
+    },
+    steps: [
+      {
+        target: p => p.locator('.atlas-card.passport'),
+      },
+      {
+        target: p => p.locator('section.atlas'),
+      },
+    ],
+  },
+
   widgets: {
     guide: guide('widgets'),
     start: openDashboard,
@@ -497,8 +515,11 @@ const SCRIPTS: Record<string, GuideScript> = {
           await p.getByText('Dashboard widgets', { exact: true }).first().scrollIntoViewIfNeeded()
           await beat(p, 400)
         },
-        // The Section card itself: the nearest rounded container around its heading.
-        target: p => p.getByText('Dashboard widgets', { exact: true }).first().locator('xpath=ancestor::section[1]'),
+        // The Desktop block of the card (its groups and the Right sidebar switch). The
+        // whole card with its Mobile half is taller than the frame, and the settings
+        // pane scrolls on its own, so its top ended up under the navigation bar.
+        target: p => p.getByText('Dashboard widgets', { exact: true }).first().locator('xpath=ancestor::section[1]')
+          .getByText('Desktop', { exact: true }).locator('xpath=ancestor::section[1]'),
       },
       {
         target: p => p.getByRole('link', { name: 'My Trips' }),

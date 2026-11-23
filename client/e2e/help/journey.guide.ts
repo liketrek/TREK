@@ -2,8 +2,9 @@ import { test, expect, type APIResponse, type Locator, type Page } from '@playwr
 import { readFileSync } from 'node:fs'
 import { clearNotices } from '../screenshots/shot'
 import { captureGuide, captureHero, dismissReleaseNotice, beat, typeInto, settle, VIEWPORT, type GuideScript } from './guide'
-import { ensureExtraTrips, ensureJourneyFixtures, filesImageFixture, SECOND_JOURNEY, SPARE_TRIP } from './fixtures'
+import { coverFixture, ensureExtraTrips, ensureJourneyFixtures, filesImageFixture, SECOND_JOURNEY, SPARE_TRIP } from './fixtures'
 import { connectJournalDawarich, releaseJournalDawarich, STAY_DAY, writtenEntryIds } from './fixtures-journey'
+import { day } from '../dates'
 import { journeyGuides, journeyContext, journalGuides, journalContext, studioGuides, studioContext } from '../../src/help/contexts/journey'
 import type { HelpGuide } from '../../src/help/types'
 
@@ -355,6 +356,78 @@ async function setJourney(page: Page, data: Record<string, boolean>): Promise<vo
   await answer(await page.request.patch(`/api/journeys/${journeyId}`, { data }), `update the journey with ${JSON.stringify(data)}`)
 }
 
+// ── A photo library (Immich) ──────────────────────────────────────────────────
+
+/**
+ * The album guide needs a connected Immich holding an album that is bigger than
+ * the trip. No library runs beside the media run, so the page's own calls to
+ * one are answered here: the addon list names Immich as on, its status says
+ * connected, and the album holds the trip's last week plus a summer and a
+ * spring before it. The thumbnails are the drawn fixtures, taken in turn, since
+ * no photograph may live in this repository. The routes sit on the context,
+ * not the page: once the app's service worker has taken the page over, its
+ * requests no longer pass a page route. The context is the guide's own, so
+ * nothing is left behind for the next guide.
+ */
+const ALBUM = { id: 'help-album', albumName: 'Shared with Mia', assetCount: 16 }
+const ALBUM_RANGE = { from: -7, to: 0 }
+const ALBUM_SHOTS: { offset: number; city: string }[] = [
+  { offset: 0, city: 'Kyoto' }, { offset: 0, city: 'Kyoto' },
+  { offset: -1, city: 'Kyoto' }, { offset: -2, city: 'Hakone' },
+  { offset: -4, city: 'Tokyo' }, { offset: -4, city: 'Tokyo' },
+  { offset: -6, city: 'Tokyo' }, { offset: -7, city: 'Tokyo' },
+  { offset: -96, city: 'Lisbon' }, { offset: -96, city: 'Lisbon' }, { offset: -97, city: 'Sintra' },
+  { offset: -98, city: 'Lisbon' }, { offset: -150, city: 'Hamburg' }, { offset: -150, city: 'Hamburg' },
+  { offset: -151, city: 'Hamburg' }, { offset: -152, city: 'Lübeck' },
+]
+const albumAssets = () => ALBUM_SHOTS.map((shot, i) => {
+  const taken = `${day(shot.offset)}T${String(9 + (i % 8)).padStart(2, '0')}:20:00`
+  return { id: `help-asset-${i}`, takenAt: `${taken}.000Z`, localTakenAt: taken, city: shot.city, mediaType: 'image' }
+})
+
+async function fakePhotoLibrary(page: Page): Promise<void> {
+  const files = [
+    await coverFixture(), await filesImageFixture('arashiyama'), await filesImageFixture('hakone-ryokan'),
+    await filesImageFixture('nishiki-market'), await filesImageFixture('jr-pass-map'),
+  ].map(f => readFileSync(f))
+  const assets = albumAssets()
+  await page.context().route(/\/api\/addons(\?.*)?$/, async route => {
+    const res = await route.fetch()
+    const body = (await res.json()) as { addons?: { id: string }[] }
+    const addons = (body.addons ?? []).filter(a => a.id !== 'immich')
+    await route.fulfill({ response: res, json: { ...body, addons: [...addons, { id: 'immich', name: 'Immich', type: 'photo_provider', enabled: true }] } })
+  })
+  await page.context().route(/\/api\/integrations\/memories\/immich\//, async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path.endsWith('/status')) return route.fulfill({ json: { connected: true } })
+    if (path.endsWith('/albums')) return route.fulfill({ json: { albums: [ALBUM, { id: 'help-album-2', albumName: 'Camera roll', assetCount: 1284 }] } })
+    if (path.includes('/albums/')) return route.fulfill({ json: { assets } })
+    if (path.endsWith('/search')) {
+      const trip = assets.filter(a => a.localTakenAt.slice(0, 10) >= day(ALBUM_RANGE.from))
+      return route.fulfill({ json: { assets: trip, hasMore: false } })
+    }
+    const asset = /help-asset-(\d+)/.exec(path)
+    if (asset) return route.fulfill({ contentType: 'image/jpeg', body: files[Number(asset[1]) % files.length] })
+    return route.fulfill({ status: 404, json: { error: 'not found' } })
+  })
+}
+
+const pickerDialog = (page: Page) => page.getByRole('dialog', { name: 'Immich' })
+const albumRange = (page: Page) => pickerDialog(page).getByRole('group', { name: 'Taken between' })
+
+/** Open one of the range's two calendars and pick a day, going back month by month from the picture day's. */
+async function pickAlbumDay(page: Page, which: 0 | 1, iso: string): Promise<void> {
+  await albumRange(page).getByRole('button').nth(which).click()
+  const today = day(0)
+  const months = (Number(today.slice(0, 4)) - Number(iso.slice(0, 4))) * 12 + Number(today.slice(5, 7)) - Number(iso.slice(5, 7))
+  const back = page.getByRole('button', { name: 'Previous month' })
+  await expect(back).toBeVisible()
+  for (let i = 0; i < months; i++) await back.click()
+  // The calendar floats over the page in a portal: its day cells are the last buttons of that number.
+  await page.getByRole('button', { name: String(Number(iso.slice(8, 10))), exact: true }).last().click()
+  await expect(back).toHaveCount(0)
+}
+
 // ── The map and a recorded day ────────────────────────────────────────────────
 
 /** The frosted switches at the top of the map: Plan, Recorded, Entries, Photos and the key. */
@@ -468,6 +541,7 @@ async function markTextTarget(page: Page): Promise<void> {
   const words = page.locator('.st-sheet').getByText(/\p{L}{3,}/u).first()
   await expect(words).toBeVisible()
   await words.evaluate(el => {
+    for (const old of Array.from(document.querySelectorAll('[data-help-text]'))) old.removeAttribute('data-help-text')
     const r = el.getBoundingClientRect()
     const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
     hit?.setAttribute('data-help-text', '')
@@ -501,8 +575,9 @@ async function openStudio(page: Page): Promise<void> {
   await expect(page.locator('.st-bar')).toBeVisible({ timeout: 30_000 })
   await expect(rail(page)).toBeVisible({ timeout: 30_000 })
   await studioSection(page, 'Pages')
-  // An untouched book is cover, first page, one empty spread, last page and back: five thumbnails.
-  if ((await thumbs(page).count()) < 7) await relayoutBook(page)
+  // The book is laid out anew for every guide: the guides before this one leave
+  // photos, words, stickers and backgrounds on its pages.
+  await relayoutBook(page)
   await settle(page)
   await page.waitForTimeout(800)
 }
@@ -884,6 +959,55 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
+  // Immich is answered by fakePhotoLibrary: an album of sixteen photos, half of
+  // them from the trip's last week, the rest from two earlier trips.
+  'album-date-range': {
+    guide: guide('album-date-range'),
+    start: async p => {
+      await fakePhotoLibrary(p)
+      await openJournal(p)
+      await p.getByRole('button', { name: 'Gallery' }).first().click()
+      await expect(p.getByRole('button', { name: 'Immich', exact: true })).toBeVisible({ timeout: 20_000 })
+      await settle(p)
+    },
+    steps: [
+      {
+        target: p => p.getByRole('button', { name: 'Immich', exact: true }),
+        act: async p => {
+          await p.getByRole('button', { name: 'Immich', exact: true }).click()
+          await expect(pickerDialog(p)).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await pickerDialog(p).getByRole('button', { name: 'Albums', exact: true }).click()
+          await expect(pickerDialog(p).getByRole('button', { name: /^Shared with Mia/ })).toBeVisible()
+          await settle(p)
+        },
+        target: p => pickerDialog(p).getByRole('button', { name: /^Shared with Mia/ }),
+        act: async p => {
+          await pickerDialog(p).getByRole('button', { name: /^Shared with Mia/ }).click()
+          await expect(albumRange(p)).toBeVisible()
+          await expect(pickerDialog(p).getByRole('button', { name: /^Select all \(16\)/ })).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: albumRange,
+        act: async p => {
+          await pickAlbumDay(p, 0, day(ALBUM_RANGE.from))
+          await pickAlbumDay(p, 1, day(ALBUM_RANGE.to))
+          const all = pickerDialog(p).getByRole('button', { name: /^Select all \(8\)/ })
+          await expect(all).toBeVisible()
+          await all.click()
+          await expect(pickerDialog(p).getByRole('button', { name: /^Add \(8\)/ })).toBeEnabled()
+          await settle(p)
+        },
+      },
+    ],
+  },
+
   'journey-map-layers': {
     guide: guide('journey-map-layers'),
     start: openJournal,
@@ -921,6 +1045,31 @@ const SCRIPTS: Record<string, GuideScript> = {
         act: async p => {
           await planPin(p).click()
           await expect(mapPanel(p).getByText('Planned', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
+          await settle(p)
+        },
+      },
+    ],
+  },
+
+  'journey-satellite': {
+    guide: guide('journey-satellite'),
+    start: openJournal,
+    steps: [
+      {
+        target: p => mapPanel(p).getByRole('button', { name: 'Switch to satellite view' }),
+        act: async p => {
+          await mapPanel(p).getByRole('button', { name: 'Switch to satellite view' }).click()
+          await expect(mapPanel(p).getByRole('button', { name: 'Switch to map view' })).toBeVisible()
+          await p.waitForTimeout(1500) // the imagery
+          await settle(p)
+        },
+      },
+      {
+        target: p => mapPanel(p).getByRole('button', { name: 'Switch to map view' }),
+        act: async p => {
+          await mapPanel(p).getByRole('button', { name: 'Switch to map view' }).click()
+          await expect(mapPanel(p).getByRole('button', { name: 'Switch to satellite view' })).toBeVisible()
+          await p.waitForTimeout(1000) // the map tiles
           await settle(p)
         },
       },
@@ -1517,8 +1666,21 @@ const SCRIPTS: Record<string, GuideScript> = {
           await settle(p)
         },
         target: p => sidePanel(p).locator('.st-theme-apply'),
+        act: async p => {
+          await sidePanel(p).getByRole('button', { name: 'Apply to the book' }).click()
+          await settle(p)
+          await p.waitForTimeout(800)
+        },
       },
     ],
+    // Applying the theme is one undo step; the next guides find the book in its own theme again.
+    cleanup: async p => {
+      await p.getByRole('button', { name: 'Undo', exact: true }).first().click()
+      // The book saves a moment after the change; leaving earlier would keep the theme.
+      await p.waitForTimeout(3_000)
+      await expect(p.getByText('Saved', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
+      await expect(p.locator('.st-bar').getByText('Saving', { exact: true })).toHaveCount(0, { timeout: 15_000 })
+    },
   },
 
   'studio-stickers': {
@@ -1536,6 +1698,14 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       {
         target: p => sidePanel(p).locator('.st-shape-grid').first(),
+        // The step says to click one, and the result shows it on the spread, selected.
+        act: async p => {
+          const before = await sheetElements(p).count()
+          await sidePanel(p).locator('.st-sticker-btn').first().click()
+          await expect.poll(async () => sheetElements(p).count()).toBeGreaterThan(before)
+          await settle(p)
+          await p.waitForTimeout(600)
+        },
       },
     ],
   },
@@ -1545,6 +1715,15 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: openStudio,
     steps: [
       {
+        // A new, empty spread: every page Auto layout made already holds words or figures,
+        // and the element would land on top of them. It opens selected, ready to take it.
+        prepare: async p => {
+          await studioSection(p, 'Pages')
+          const before = await thumbs(p).count()
+          await sidePanel(p).getByRole('button', { name: 'Add spread' }).click()
+          await expect(thumbs(p)).toHaveCount(before + 1)
+          await settle(p)
+        },
         target: p => railButton(p, 'Travel'),
         act: async p => {
           await studioSection(p, 'Travel')
@@ -1557,6 +1736,13 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       {
         target: p => sidePanel(p).locator('.st-travel-card').first(),
+        act: async p => {
+          const before = await sheetElements(p).count()
+          await sidePanel(p).locator('.st-travel-card').first().click()
+          await expect.poll(async () => sheetElements(p).count()).toBeGreaterThan(before)
+          await settle(p)
+          await p.waitForTimeout(600)
+        },
       },
     ],
   },
@@ -1566,10 +1752,21 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: openStudio,
     steps: [
       {
+        // The first words on a spread can belong to a figure, so the spreads are
+        // tried in turn until a click selects text and the inspector offers Effects.
         prepare: async p => {
           await studioSection(p, 'Pages')
-          await thumbs(p).nth(2).locator('.st-thumb').click()
-          await settle(p)
+          const count = await thumbs(p).count()
+          for (let i = 2; i < count; i++) {
+            await thumbs(p).nth(i).locator('.st-thumb').click()
+            await settle(p)
+            if (!(await markTextTarget(p).then(() => true, () => false))) continue
+            await textTarget(p).click()
+            const isText = await inspector(p).getByRole('button', { name: 'Effects' }).waitFor({ timeout: 3_000 }).then(() => true, () => false)
+            await p.keyboard.press('Escape')
+            await settle(p)
+            if (isText) break
+          }
           await markTextTarget(p)
         },
         target: p => textTarget(p),

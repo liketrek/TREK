@@ -145,8 +145,39 @@ async function searchTheHut(page: Page): Promise<void> {
   const local = options.filter({
     hasText: /Santa Cristina|Gardena|Gröden|Bolzano|Bozen|Südtirol|Alto Adige|Trentino/i,
   });
-  await ((await local.count()) ? local.first() : options.first()).click();
+  const hut = local.filter({ hasText: /Regensburger|Firenze/i });
+  await ((await hut.count()) ? hut.first() : (await local.count()) ? local.first() : options.first()).click();
   await landMap(page);
+  await fitTheDrawing(page);
+}
+
+/**
+ * The search lands on whatever the place search answers for the hut, and as
+ * close in as that answer is small: an area mapped as a building lands so far
+ * in that the spots of the drawing are off the screen. Out with the wheel, on
+ * the middle of the map, until the first and the last spot are both in sight.
+ */
+async function fitTheDrawing(page: Page): Promise<void> {
+  const g = await line(page);
+  const ends = [DRAWN_OFFSETS[0], DRAWN_OFFSETS[DRAWN_OFFSETS.length - 1]];
+  const inSight = async () => {
+    for (const offset of ends) {
+      if (
+        !(await screenOf(page, spotAt(g, offset)).then(
+          () => true,
+          () => false
+        ))
+      )
+        return false;
+    }
+    return true;
+  };
+  for (let i = 0; i < 6 && !(await inSight()); i++) {
+    await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 2 + 40);
+    await page.mouse.wheel(0, 120);
+    await landMap(page);
+  }
+  expect(await inSight(), 'the drawing does not fit on the map after the search').toBe(true);
 }
 
 /** Click spot `i` of the drawing onto the map and wait for its row. */
@@ -230,12 +261,16 @@ const SCRIPTS: Record<string, GuideScript> = {
             await p.getByTestId('tour-rail-add').click();
           }
           await expect(p.getByRole('group', { name: 'Add tour', exact: true })).toHaveCount(0);
+          // The plus keeps the focus, and with it its tooltip, into the pictures after it.
+          await p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         },
       },
       { target: mapSearch },
       { target: layerPill },
       {
         target: (p) => tourRow(p, TOUR_NAMES.recorded),
+        // On the name: the centre of the row is its time badge, whose tooltip would cover the next row.
+        hover: (p) => tourRow(p, TOUR_NAMES.recorded).getByText(TOUR_NAMES.recorded, { exact: true }).hover(),
         act: async (p) => {
           await tourRow(p, TOUR_NAMES.recorded).click();
           await expect(p.getByRole('heading', { name: 'GPX tour', exact: true })).toBeVisible({ timeout: 30_000 });
@@ -562,12 +597,16 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: breaks,
         act: async (p) => {
           await typeInto(p, breaks(p), '0:45');
-          await breaks(p).press('Tab');
+          // Blurred rather than tabbed away from: Tab would focus Planned, whose
+          // tooltip then covers the field the next step is about.
+          await breaks(p).blur();
           await settle(p);
         },
       },
       {
         target: planned,
+        // Not on the field itself: its tooltip would cover the time the step is about.
+        hover: (p) => p.getByText('Breaks', { exact: true }).first().hover(),
         act: async (p) => {
           await typeInto(p, planned(p), '3:30');
           await planned(p).press('Enter');

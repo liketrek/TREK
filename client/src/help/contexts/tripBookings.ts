@@ -4,7 +4,8 @@ import { defineScreen } from '../defineScreen'
  * Help for the Bookings tab of a trip: the places to stay, the tables, the
  * tickets and everything else that was booked, the three ways of looking at
  * them (cards, a list, a timeline) and the detail a click opens, how one is
- * made by hand or read out of the confirmation that arrived, and how it is tied
+ * made by hand, read out of the confirmation that arrived or forwarded to the
+ * trip's own mail address, and how it is tied
  * to the plan, to a document and to a cost. Flights, trains and the other ways
  * of getting about belong to the Transports tab and never show here.
  * A screen under `trip`; the step actions live in `e2e/help/trip-bookings.guide.ts`.
@@ -20,6 +21,7 @@ const SECTIONS = { slug: BOOKINGS, anchor: 'pending-and-confirmed' }
 const FILTERS = { slug: BOOKINGS, anchor: 'search-and-filters' }
 const CHANGE = { slug: BOOKINGS, anchor: 'editing-and-deleting' }
 const IMPORT = { slug: BOOKINGS, anchor: 'import-from-booking-confirmation' }
+const MAIL = { slug: 'Booking-Mail-Import', anchor: 'your-address' }
 
 export const { context: tripBookingsContext, guides: tripBookingsGuides } = defineScreen({
   id: 'trip-bookings',
@@ -27,7 +29,7 @@ export const { context: tripBookingsContext, guides: tripBookingsGuides } = defi
   route: '/trips/:id?tab=buchungen',
   icon: 'ticket',
   bullets: 6,
-  docs: [{ slug: BOOKINGS }, IMPORT, { slug: 'Accommodations' }],
+  docs: [{ slug: BOOKINGS }, IMPORT, { slug: 'Booking-Mail-Import' }, { slug: 'Accommodations' }],
   guides: [
     ['booking-views', 'layout', 'guide', 6, 3, VIEWS, ['group-sort-bookings', 'filter-bookings', 'edit-booking', 'transports-list']],
     ['group-sort-bookings', 'sliders', 'quick', 4, 2, VIEW_OPTIONS, ['booking-views', 'filter-bookings', 'export-bookings-csv'], true],
@@ -40,7 +42,8 @@ export const { context: tripBookingsContext, guides: tripBookingsGuides } = defi
     ['booking-cost', 'coins', 'guide', 5, 3, { slug: 'Budget-Tracking', anchor: 'expenses-linked-to-a-booking-or-a-place' }, ['create-booking', 'edit-booking', 'expense-from-booking'], true],
     ['filter-bookings', 'filter', 'quick', 5, 2, FILTERS, ['booking-views', 'booking-travelers', 'export-bookings-csv']],
     ['export-bookings-csv', 'fileSpreadsheet', 'quick', 3, 3, EXPORT, ['filter-bookings', 'group-sort-bookings']],
-    ['import-booking-file', 'fileInput', 'guide', 5, 4, IMPORT, ['booking-files', 'create-booking', 'import-transport-file'], true],
+    ['import-booking-file', 'fileInput', 'guide', 5, 4, IMPORT, ['booking-files', 'create-booking', 'import-transport-file', 'forward-booking-mail'], true],
+    ['forward-booking-mail', 'mailCheck', 'guide', 6, 4, MAIL, ['import-booking-file', 'create-booking', 'edit-booking'], true],
     ['edit-booking', 'pencil', 'quick', 4, 4, CHANGE, ['booking-views', 'create-booking', 'delete-booking']],
     ['delete-booking', 'trash', 'quick', 3, 2, CHANGE, ['edit-booking', 'booking-hotel']],
   ],

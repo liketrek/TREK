@@ -89,6 +89,10 @@ const MANAGED_HIDDEN_GUIDES: ReadonlySet<string> = new Set([
   'oidc', 'instance-keys', 'places-transit', 'rotate-jwt-secret', 'own-routing-engine',
   'install-plugin', 'storage-backends', 'release-history', 'create-backup', 'auto-backup',
   'plugin-settings', 'files-sync', 'files-sync-settings', 'document-providers',
+  // The operator runs the booking mail relay on a managed install; the admin has no setup row.
+  'mail-import-setup',
+  // The operator picks the model a managed install talks to; Settings shows no AI connection card there.
+  'connect-ai',
 ])
 
 /**
@@ -107,9 +111,11 @@ const MANAGED_FEATURE_GUIDES: Readonly<Record<string, () => boolean>> = {
   'connect-airtrail': addonOn('airtrail'),
   'airtrail-import': addonOn('airtrail'),
   'photo-providers': addonOn('memories'),
+  'album-date-range': addonOn('memories'),
   'mcp-oauth': addonOn('mcp'),
   'api-keys': addonOn('mcp'),
   'mcp-tokens-admin': addonOn('mcp'),
+  'paddle-water-data': addonOn('tours'),
   'tour-connect-wanderer': () => useAddonStore.getState().toursWanderer,
   'tour-wanderer-watch': () => useAddonStore.getState().toursWanderer,
   'tour-import-wanderer': () => useAddonStore.getState().toursWanderer,

@@ -20,7 +20,7 @@ export const { context: tripMapContext, guides: tripMapGuides } = defineScreen({
   bullets: 9,
   docs: [{ slug: MAP }, { slug: SETTINGS }],
   guides: [
-    ['map-markers', 'mapPin', 'guide', 5, 4, { slug: MAP, anchor: 'place-markers' }, ['read-day-plan', 'place-detail', 'day-route']],
+    ['map-markers', 'mapPin', 'guide', 5, 5, { slug: MAP, anchor: 'place-markers' }, ['read-day-plan', 'place-detail', 'day-route']],
     ['map-nearby-places', 'search', 'guide', 6, 4, { slug: 'Places-and-Search', anchor: 'exploring-the-map-by-category' }, ['map-add-place', 'create-place'], true],
     ['map-add-place', 'plus', 'guide', 4, 2, { slug: MAP, anchor: 'right-click-middle-click-to-create-a-place' }, ['create-place', 'map-nearby-places'], true],
     ['map-satellite', 'globe', 'quick', 3, 2, { slug: MAP, anchor: 'satellite-view' }, ['map-provider', 'default-map', 'map-compass']],

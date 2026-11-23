@@ -38,6 +38,6 @@ describe('HelpGuideView: links', () => {
     expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=services')
     unmount()
     render(<HelpGuideView guide={guideOf('auth-methods')} />)
-    expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=settings')
+    expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=security')
   })
 })

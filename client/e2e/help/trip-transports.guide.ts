@@ -1,10 +1,11 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { captureGuide, captureHero, beat, typeInto, settle, VIEWPORT, type GuideScript } from './guide'
 import { seededTrip, ensureTransportFixtures, TRANSIT_JOURNEY, flightEmlFixture, FLIGHT_EML, FLIGHT_TO_IMPORT } from './fixtures'
-import { openTrip, openTripOnDay, selectDay, modal, dialog, portalDialog, importSteps, importTask, dismissImportTask, deleteTripFiles } from './trip-shared'
+import { openTrip, openTripOnDay, selectDay, closeDayDetails, modal, dialog, portalDialog, importSteps, importTask, dismissImportTask, deleteTripFiles } from './trip-shared'
 import { ensureAirtrailConnection, disconnectAirtrail, AIRTRAIL_FLIGHTS, requireExtractor, allowEmlUploads } from './external'
 import { tripTransportsContext, tripTransportsGuides } from '../../src/help/contexts/tripTransports'
 import type { HelpGuide } from '../../src/help/types'
+import { at, day } from '../dates'
 
 /**
  * Actions for the Transports tab of a trip, keyed by the ids in
@@ -199,6 +200,67 @@ const joinToggle = (page: Page) =>
   airtrailPicker(page).getByRole('button', { name: /^Import as one flight with a layover in / })
 const connectionGroup = (page: Page) => joinToggle(page).locator('xpath=..')
 const importCta = (page: Page) => airtrailPicker(page).getByRole('button', { name: /^Import \d+$/ })
+
+/**
+ * The flight home on the trip's last day, the picture day, for flight-live-status.
+ * Departure 15:20 in Tokyo (06:20 UTC) and arrival 21:25 in Frankfurt (20:25
+ * UTC), so at the pinned 09:00 UTC it has been in the air for two and a half
+ * hours: 15 minutes late off the ground and 25 minutes late on the estimate.
+ */
+const LIVE = {
+  title: 'NH223 HND → FRA',
+  code: 'NH7QF2',
+  flightNumber: 'NH223',
+  from: { code: 'HND', name: 'Tokyo Haneda', lat: 35.5494, lng: 139.7798, timezone: 'Asia/Tokyo' },
+  to: { code: 'FRA', name: 'Frankfurt', lat: 50.0379, lng: 8.5622, timezone: 'Europe/Berlin' },
+}
+
+/** Creates the flight home and answers its id. */
+async function createLiveFlight(page: Page): Promise<number> {
+  const { tripId, dayIds } = seededTrip()
+  const res = await page.request.post(`/api/trips/${tripId}/reservations`, {
+    data: {
+      title: LIVE.title, type: 'flight', status: 'confirmed',
+      day_id: dayIds[dayIds.length - 1], end_day_id: dayIds[dayIds.length - 1],
+      reservation_time: at(0, '15:20'), reservation_end_time: at(0, '21:25'),
+      confirmation_number: LIVE.code, location: LIVE.from.name,
+      metadata: { airline: 'All Nippon Airways', flight_number: LIVE.flightNumber, departure_airport: 'HND', arrival_airport: 'FRA' },
+      endpoints: [
+        { role: 'from', sequence: 0, name: LIVE.from.name, code: LIVE.from.code, lat: LIVE.from.lat, lng: LIVE.from.lng, timezone: LIVE.from.timezone, local_date: day(0), local_time: '15:20' },
+        { role: 'to', sequence: 1, name: LIVE.to.name, code: LIVE.to.code, lat: LIVE.to.lat, lng: LIVE.to.lng, timezone: LIVE.to.timezone, local_date: day(0), local_time: '21:25' },
+      ],
+    },
+  })
+  if (!res.ok()) throw new Error(`could not create the live flight: ${res.status()} ${await res.text()}`)
+  const body = (await res.json()) as { reservation?: { id: number }; id?: number }
+  const id = body.reservation?.id ?? body.id
+  if (!id) throw new Error('the live flight came back without an id')
+  return id
+}
+
+/**
+ * What the open ADS-B feeds would say about the flight two and a half hours
+ * after take-off, over north-east China on the great circle to Frankfurt. The
+ * feed cannot be asked from here (and the real NH223 may be anywhere), so the
+ * trip's live read answers this leg: the same shape the server sends.
+ */
+function liveLeg(reservationId: number) {
+  const utc = (hhmm: string) => `${day(0)}T${hhmm}:00.000Z`
+  return {
+    reservation_id: reservationId, leg_index: 0, callsign: 'ANA223', flight_number: 'NH 223', service_date: day(0),
+    origin: LIVE.from, destination: LIVE.to, phase: 'airborne',
+    scheduled_departure: utc('06:20'), scheduled_arrival: utc('20:25'),
+    departed_at: utc('06:35'), landed_at: null, estimated_arrival: utc('20:50'),
+    departure_delay_min: 15, arrival_delay_min: 25,
+    progress: 0.17, distance_total_km: 9361, distance_remaining_km: 7770,
+    position: { lat: 47.66, lng: 129.51, altitude_ft: 37000, ground_speed_kt: 486, track_deg: 304, vertical_rate_fpm: 0, on_ground: false },
+    aircraft: { registration: 'JA791A', type: 'B77W' },
+    last_seen_at: utc('08:59'), fetched_at: utc('08:59'), stale: false, source: 'adsb.lol',
+  }
+}
+
+/** The live card in the open booking, named by the flight number and where it stands. */
+const liveCard = (page: Page) => bookingDetail(page, LIVE.title).locator('section[aria-label^="NH 223 "]')
 
 /** Give a day's legs back to the day's own mode, whichever stop carries the one that was set. */
 async function resetLegModes(page: Page, dayIndex: number): Promise<void> {
@@ -666,9 +728,9 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => bookingDetail(p, TRAIN.title).getByRole('button', { name: 'On map', exact: true }),
+        target: p => bookingDetail(p, TRAIN.title).getByRole('button', { name: 'Map', exact: true }),
         act: async p => {
-          await bookingDetail(p, TRAIN.title).getByRole('button', { name: 'On map', exact: true }).click()
+          await bookingDetail(p, TRAIN.title).getByRole('button', { name: 'Map', exact: true }).click()
           // The Plan opens on day 5 with the train's line switched on.
           await expect(transportRowTitled(p, TRAIN.title).getByRole('button', { name: 'Hide booking routes' })).toBeVisible({ timeout: 20_000 })
           await settle(p)
@@ -799,6 +861,58 @@ const SCRIPTS: Record<string, GuideScript> = {
     cleanup: async p => {
       if (await searchBox(p).isVisible().catch(() => false)) await searchBox(p).fill('')
       await p.evaluate(() => { try { sessionStorage.clear() } catch { /* a locked-down browser keeps its filters */ } })
+    },
+  },
+  'flight-live-status': {
+    guide: guide('flight-live-status'),
+    // The server's own poll is switched off for the guide, so no push from the
+    // real feed lands over the answer the page is given for this flight.
+    start: async p => {
+      await p.request.put('/api/auth/app-settings', { data: { flight_live_enabled: false } })
+      await deleteByTitle(p, LIVE.title)
+      const id = await createLiveFlight(p)
+      await p.context().route(/\/api\/trips\/\d+\/flights\/live$/, route =>
+        route.fulfill({ json: { enabled: true, attribution: 'adsb.lol', flights: [liveLeg(id)] } }))
+      await openTrip(p, { tab: 'transports' })
+      await expect(card(p, LIVE.title).getByText(/^In the air, Lands in /)).toBeVisible({ timeout: 20_000 })
+      await settle(p)
+    },
+    steps: [
+      only(p => card(p, LIVE.title)),
+      {
+        prepare: async p => {
+          await card(p, LIVE.title).click()
+          await expect(liveCard(p)).toBeVisible({ timeout: 20_000 })
+          await settle(p)
+          // The route map under the pass is a vector map; its tiles land after idle.
+          await p.waitForTimeout(1500)
+        },
+        target: p => liveCard(p).locator('> header'),
+      },
+      only(p => liveCard(p).locator('> div > div').first()),
+      only(p => liveCard(p).locator('div.mt-3.grid')),
+      {
+        prepare: async p => {
+          await p.keyboard.press('Escape')
+          await expect(bookingDetail(p, LIVE.title)).toHaveCount(0)
+          // The tab is remembered, so the Plan is opened by its tab. It opens on
+          // today, the trip's last day, where the flight home is.
+          await p.getByRole('button', { name: 'Plan', exact: true }).click()
+          await expect(transportRowTitled(p, LIVE.title)).toBeVisible({ timeout: 20_000 })
+          await closeDayDetails(p)
+          await transportRowTitled(p, LIVE.title).scrollIntoViewIfNeeded()
+          await expect(transportRowTitled(p, LIVE.title).getByText(/^In the air, Lands in /)).toBeVisible({ timeout: 20_000 })
+          await settle(p)
+          await p.waitForTimeout(1500)
+        },
+        target: p => transportRowTitled(p, LIVE.title),
+      },
+    ],
+    cleanup: async p => {
+      await p.context().unroute(/\/api\/trips\/\d+\/flights\/live$/)
+      await deleteByTitle(p, LIVE.title)
+      await p.request.put('/api/auth/app-settings', { data: { flight_live_enabled: true } })
+      await p.evaluate(() => { try { sessionStorage.clear() } catch { /* a locked-down browser keeps its tab */ } })
     },
   },
   'airtrail-import': {

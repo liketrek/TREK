@@ -4,7 +4,7 @@ import { monthName, monthsAhead, year } from '../dates'
 import {
   PARTNER, ensureFused, ensureSeparate, clearPartnerDays, requestFusionFromPartner, clearFusionRequest,
   shareWithAdmin, unshareWithAdmin, ownColor, setOwnColor, ensurePublicCalendar, calendarColors,
-  restoreCalendarColors, companyHolidayFraction, setCompanyHoliday,
+  restoreCalendarColors, companyHolidayFraction, setCompanyHoliday, adminId, asMember,
 } from './fixtures-vacay'
 import { vacayGuides, vacayContext } from '../../src/help/contexts/vacay'
 import type { HelpGuide } from '../../src/help/types'
@@ -218,8 +218,57 @@ const calendarRow = (page: Page): Locator => settings(page).getByPlaceholder('La
 /** The Fusion Request dialog, which opens by itself while an invite waits for an answer. */
 const fusionDialog = (page: Page): Locator => page.getByRole('dialog', { name: 'Fusion Request' })
 
+/**
+ * Log the admin's LOG_DAY through the API when it is not logged yet, and say
+ * whether it did. The colour guide's result shows logged days in the new
+ * colour; run on its own (a --grep re-render) the plan had none, so the
+ * result showed only the small dot in Persons changing.
+ */
+async function ensureOwnDay(page: Page): Promise<boolean> {
+  const date = nextMonthDate(LOG_DAY)
+  const res = await page.request.get(`/api/addons/vacay/entries/${YEAR}`)
+  if (!res.ok()) throw new Error(`could not load the entries: ${res.status()}`)
+  const me = await adminId(page)
+  const { entries } = (await res.json()) as { entries: { user_id: number; date: string }[] }
+  if (entries.some(e => e.user_id === me && e.date === date)) return false
+  await toggleOwnDay(page, date)
+  return true
+}
+
+async function toggleOwnDay(page: Page, date: string): Promise<void> {
+  const res = await page.request.post('/api/addons/vacay/entries/toggle', { data: { date, fraction: 1, kind: 'vacation' } })
+  if (!res.ok()) throw new Error(`could not toggle ${date}: ${res.status()}`)
+}
+
+/**
+ * Days mira has off in her own plan while she shares it with the admin. Without
+ * them her shared calendar drew nothing on the grid, so the guide about rings
+ * on the grid showed none.
+ */
+const SHARED_DAYS = WORKDAYS.slice(6, 8).map(nextMonthDate)
+
+/** Log (`on`) or clear mira's SHARED_DAYS in her own plan, leaving days already as wanted alone. */
+async function setPartnerOwnDays(on: boolean): Promise<void> {
+  const member = await asMember()
+  try {
+    const me = (await (await member.get('/api/auth/me')).json()) as { user: { id: number } }
+    const res = await member.get(`/api/addons/vacay/entries/${YEAR}`)
+    if (!res.ok()) throw new Error(`could not load ${PARTNER.username}'s entries: ${res.status()}`)
+    const { entries } = (await res.json()) as { entries: { user_id: number; date: string }[] }
+    for (const date of SHARED_DAYS) {
+      const logged = entries.some(e => e.user_id === me.user.id && e.date === date)
+      if (logged === on) continue
+      const t = await member.post('/api/addons/vacay/entries/toggle', { data: { date, fraction: 1, kind: 'vacation' } })
+      if (!t.ok()) throw new Error(`could not toggle ${PARTNER.username}'s ${date}: ${t.status()}`)
+    }
+  } finally {
+    await member.dispose()
+  }
+}
+
 /** What a guide has to put back, read in its start and used in its cleanup. */
 let savedColor = ''
+let loggedForColor = false
 let savedCalendarColors = new Map<number, string>()
 let christmasEveBefore: number | null = null
 
@@ -342,7 +391,12 @@ const SCRIPTS: Record<string, GuideScript> = {
         // The chip with its minus showing, rather than the minus alone: the step
         // says to hover the chip, and a ring round the tiny minus put its number
         // on top of the year it belongs to.
-        prepare: async p => { await yearChip(p, YEAR + 1).hover() },
+        // The chip clicked last keeps the focus, and a focused chip shows its
+        // minus too, so the picture had two minuses; the focus goes first.
+        prepare: async p => {
+          await p.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur() })
+          await yearChip(p, YEAR + 1).hover()
+        },
         target: p => yearChip(p, YEAR + 1),
         // With the ring on the chip, this is what still fails the guide when the minus is gone.
         act: async p => { await expect(yearChip(p, YEAR + 1).getByRole('button', { name: 'Remove year' })).toBeVisible() },
@@ -552,6 +606,7 @@ const SCRIPTS: Record<string, GuideScript> = {
     guide: guide('person-color'),
     start: async p => {
       savedColor = await ownColor(p)
+      loggedForColor = await ensureOwnDay(p)
       await openVacay(p)
     },
     steps: [
@@ -569,7 +624,10 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
     ],
-    cleanup: async p => { await setOwnColor(p, savedColor) },
+    cleanup: async p => {
+      await setOwnColor(p, savedColor)
+      if (loggedForColor) await toggleOwnDay(p, nextMonthDate(LOG_DAY))
+    },
   },
 
   invite: {
@@ -725,6 +783,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         // so mira shares hers with the admin first. The page learns of it over
         // the socket; a reload is the fallback should that message not come.
         prepare: async p => {
+          await setPartnerOwnDays(true)
           await shareWithAdmin(p)
           const incoming = cardRow(p, 'Shared Calendars', PARTNER.username)
           if (!(await incoming.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true, () => false))) await openVacay(p)
@@ -735,7 +794,10 @@ const SCRIPTS: Record<string, GuideScript> = {
         hover: async p => { await cardRow(p, 'Shared Calendars', 'jonas').hover() },
       },
     ],
-    cleanup: unshareWithAdmin,
+    cleanup: async p => {
+      await unshareWithAdmin(p)
+      await setPartnerOwnDays(false)
+    },
   },
 }
 

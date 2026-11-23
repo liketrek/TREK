@@ -4,8 +4,12 @@ import type { HelpGuide } from '../../src/help/types';
 import { clearNotices } from '../screenshots/shot';
 import {
   BOOKING_TITLE,
+  ensureMailPendingNotice,
   ensureNotificationFixtures,
+  MAIL_PENDING_TITLE,
+  MAIL_SUBJECT,
   markUnread,
+  removeMailPendingNotice,
   removeNotificationFixtures,
   SHARE_TITLE,
   unreadIds,
@@ -37,12 +41,18 @@ const guide = (id: string): HelpGuide => {
  */
 const bell = (page: Page): Locator => page.getByTitle('Notifications', { exact: true }).first();
 /** The panel the bell opens, found through its footer button. */
-const panel = (page: Page): Locator => page.getByRole('button', { name: 'Show all notifications' }).locator('xpath=..');
+const panel = (page: Page): Locator =>
+  page
+    .locator('div.shadow-xl')
+    .filter({ has: page.getByRole('button', { name: 'Show all notifications' }) })
+    .first();
 /** The column of the /notifications page: header, filter pills and the list. */
 const pageColumn = (page: Page): Locator => page.locator('.max-w-2xl').first();
 /** One notification (InAppNotificationItem's root) by its title, in the panel or the page. */
-const item = (scope: Locator, title: string): Locator =>
-  scope.locator('div.relative.px-4.py-3').filter({ hasText: title }).first();
+const ITEM = 'div.group.relative';
+const item = (scope: Locator, title: string): Locator => scope.locator(ITEM).filter({ hasText: title }).first();
+/** Pending bookings, the inbox of forwarded mails the Review button opens. */
+const mailInbox = (page: Page): Locator => page.getByRole('dialog', { name: 'Pending bookings' });
 /** The user menu button at the top right: avatar, name and chevron. */
 const userMenu = (page: Page): Locator =>
   page
@@ -89,9 +99,10 @@ const SCRIPTS: Record<string, GuideScript> = {
       { target: bell, act: openBell },
       {
         target: panel,
-        // Over the newest one, so its unread tint is not covered by the pointer.
+        // On the panel's head: a pointed-at row trades its time and dot for its tools,
+        // and the text is about the time and the dot.
         hover: async (p) => {
-          await item(panel(p), SHARE_TITLE).hover();
+          await panel(p).locator('span.bg-accent-subtle').first().hover();
         },
       },
       {
@@ -171,9 +182,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: (p) => item(pageColumn(p), BOOKING_TITLE).getByTitle('Delete', { exact: true }),
         act: async (p) => {
           await item(pageColumn(p), BOOKING_TITLE).getByTitle('Delete', { exact: true }).click();
-          await expect(pageColumn(p).locator('div.relative.px-4.py-3').filter({ hasText: BOOKING_TITLE })).toHaveCount(
-            0
-          );
+          await expect(pageColumn(p).locator(ITEM).filter({ hasText: BOOKING_TITLE })).toHaveCount(0);
           await settle(p);
         },
       },
@@ -182,6 +191,41 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
     cleanup: async (p) => {
       await ensureNotificationFixtures(p.request);
+    },
+  },
+
+  'booking-mail-notifications': {
+    guide: guide('booking-mail-notifications'),
+    start: async (p) => {
+      await ensureMailPendingNotice(p.request);
+      await openDashboard(p);
+    },
+    steps: [
+      {
+        target: bell,
+        act: async (p) => {
+          await bell(p).click();
+          await expect(item(panel(p), MAIL_PENDING_TITLE)).toBeVisible();
+          await settle(p);
+        },
+      },
+      {
+        target: (p) => item(panel(p), MAIL_PENDING_TITLE),
+        // On the button the text names, so the row's tools stay out of the way.
+        hover: async (p) => {
+          await item(panel(p), MAIL_PENDING_TITLE).getByRole('button', { name: 'Review' }).hover();
+        },
+        act: async (p) => {
+          await item(panel(p), MAIL_PENDING_TITLE).getByRole('button', { name: 'Review' }).click();
+          await expect(mailInbox(p)).toBeVisible({ timeout: 15_000 });
+          await expect(mailInbox(p).getByText(MAIL_SUBJECT).first()).toBeVisible({ timeout: 15_000 });
+          await settle(p);
+        },
+      },
+      { target: mailInbox },
+    ],
+    cleanup: async (p) => {
+      await removeMailPendingNotice(p.request);
     },
   },
 

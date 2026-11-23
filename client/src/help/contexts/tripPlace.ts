@@ -2,9 +2,10 @@ import { defineScreen } from '../defineScreen'
 
 /**
  * Help for the card that floats over the map once a place is picked: reading
- * what the trip knows about a place, rating it, giving it a picture (a new one
- * or one of its files), correcting its hours and contact details, putting it
- * on the open day and off it again, who is coming, the booking pinned to the
+ * what the trip knows about a place, folding the card out of the way, rating
+ * it, giving it a picture (a new one or one of its files), correcting its hours
+ * and contact details, a place that has an address but no coordinates, putting
+ * it on the open day and off it again, who is coming, the booking pinned to the
  * stop, the map apps, and a track’s colour and length. A tour opens a card of
  * its own and is not covered here.
  * A screen under `trip`; the step actions live in `e2e/help/trip-place.guide.ts`.
@@ -23,10 +24,12 @@ export const { context: tripPlaceContext, guides: tripPlaceGuides } = defineScre
   docs: [{ slug: PLACES }, { slug: 'Trip-Planner-Overview' }],
   guides: [
     ['read-place', 'eye', 'guide', 7, 3, FIELDS, ['rate-place', 'place-day-assign', 'place-own-hours'], true],
+    ['fold-place-card', 'arrowUpDown', 'quick', 3, 3, { slug: PLACES, anchor: 'the-place-inspector' }, ['read-place', 'map-markers']],
     ['rate-place', 'star', 'quick', 4, 3, { slug: PLACES, anchor: 'rating-a-place' }, ['read-place', 'filter-places'], true],
     ['place-image', 'image', 'guide', 4, 3, IMAGE, ['place-image-from-file', 'edit-place'], true],
     ['place-image-from-file', 'gallery', 'quick', 4, 3, IMAGE, ['place-image', 'place-files'], true],
     ['place-own-hours', 'clock', 'guide', 5, 3, { slug: PLACES, anchor: 'phone-e-mail-and-opening-hours' }, ['read-place', 'edit-place'], true],
+    ['place-off-map', 'mapPinned', 'guide', 5, 3, { slug: PLACES, anchor: 'entering-coordinates-manually' }, ['place-by-hand', 'edit-place'], true],
     ['place-day-assign', 'calendarCheck', 'guide', 5, 3, { slug: 'Day-Plans-and-Notes', anchor: 'assigning-places-to-a-day' }, ['place-onto-day', 'remove-from-day', 'undo-change']],
     ['place-participants', 'users', 'quick', 4, 3, { slug: 'Trip-Members-and-Sharing', anchor: 'what-a-guest-can-be-assigned-to' }, ['add-member', 'add-guest'], true],
     ['place-booking', 'ticket', 'guide', 5, 3, { slug: 'Reservations-and-Bookings', anchor: 'reservation-card-contents' }, ['bookings-in-plan', 'link-booking'], true],

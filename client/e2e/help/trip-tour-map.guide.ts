@@ -35,6 +35,7 @@ import {
   reliefSlider,
   restartButton,
   seamarksToggle,
+  searchAgainWhileUnavailable,
   searchAlong,
   speedGroup,
   terrainToggle,
@@ -158,6 +159,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         act: async (p) => {
           await alongSearch(p).click();
           await expect(alongSearch(p)).toHaveText(/Search again/, { timeout: 90_000 });
+          await searchAgainWhileUnavailable(p);
           await settle(p);
         },
       },

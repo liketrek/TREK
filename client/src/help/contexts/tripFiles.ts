@@ -20,7 +20,7 @@ export const { context: tripFilesContext, guides: tripFilesGuides } = defineScre
   docs: [{ slug: FILES }, { slug: 'Document-Sync' }],
   guides: [
     ['files-upload', 'upload', 'guide', 4, 3, { slug: FILES, anchor: 'uploading' }, ['files-link', 'files-trash'], true],
-    ['files-link', 'link', 'guide', 5, 3, LINKING, ['files-upload', 'place-files', 'link-booking'], true],
+    ['files-link', 'link', 'guide', 5, 4, LINKING, ['files-upload', 'place-files', 'link-booking', 'trip-addons'], true],
     ['files-star', 'star', 'quick', 3, 2, { slug: FILES, anchor: 'starring' }, ['files-filter', 'files-preview'], true],
     ['files-filter', 'filter', 'quick', 4, 2, { slug: FILES, anchor: 'browsing-and-filtering' }, ['files-star', 'files-preview']],
     ['files-preview', 'eye', 'guide', 5, 3, { slug: FILES, anchor: 'previewing-files' }, ['files-filter', 'files-upload']],
