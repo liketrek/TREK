@@ -556,7 +556,7 @@ public class TrekShellPlugin extends Plugin {
                     if (path == null || path.isEmpty()) continue;
                     String clean = path.startsWith("/") ? path.substring(1) : path;
                     keep.add(clean);
-                    if (TrekOfflineShell.hasFile(context, clean)) continue;
+                    if (clean.contains("/") && TrekOfflineShell.hasFile(context, clean)) continue;
                     byte[] data = download(server, clean, null);
                     if (data == null || !TrekOfflineShell.saveFile(context, clean, data)) complete = false;
                 }

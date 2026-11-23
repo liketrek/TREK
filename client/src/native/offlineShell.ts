@@ -51,6 +51,22 @@ export function manifestFiles(manifest: unknown, language?: string): string[] {
   return [...files];
 }
 
+/**
+ * The classic scripts the start page loads from the server's root
+ * (theme-boot.js, shell-guard.js). They block the first paint and come from
+ * the public folder, which the build's manifest does not list.
+ */
+export function pageScripts(doc: Document = document): string[] {
+  const files: string[] = [];
+  doc.querySelectorAll<HTMLScriptElement>('script[src]').forEach((script) => {
+    if (script.type === 'module') return;
+    const url = new URL(script.getAttribute('src') ?? '', doc.baseURI);
+    const path = url.pathname.slice(1);
+    if (url.origin === window.location.origin && path && !path.includes('/')) files.push(path);
+  });
+  return files;
+}
+
 /** True when every file was fetched. */
 async function warmCache(files: string[], fetchFile: (path: string) => Promise<unknown>): Promise<boolean> {
   const queue = [...files];
@@ -98,7 +114,7 @@ export async function keepOfflineShellFresh(
   const build = `${[...files].sort((a, b) => a.localeCompare(b)).find((f) => /index-[^/]+\.js$/.test(f)) ?? files.length}:${language ?? 'en'}`;
   if (nativeStore) {
     // The native side fetches only what its store lacks, and keeps the start page fresh each time.
-    const { complete } = await TrekShell.refreshOfflineCopy({ files });
+    const { complete } = await TrekShell.refreshOfflineCopy({ files: [...new Set([...files, ...pageScripts()])] });
     if (complete) rememberWarmed(build);
     return;
   }

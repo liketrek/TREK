@@ -116,6 +116,30 @@ describe('keepOfflineShellFresh', () => {
     expect(files).toContain('assets/AtlasPage-99887766.js');
   });
 
+  it('on Android also hands over the classic scripts the start page loads from the root', async () => {
+    vi.mocked(TrekShell.refreshOfflineCopy).mockResolvedValue({ saved: true, complete: true });
+    document.head.innerHTML = [
+      '<script src="/theme-boot.js"></script>',
+      '<script src="/shell-guard.js"></script>',
+      '<script type="module" src="/assets/index-a1b2c3d4.js"></script>',
+      '<script src="/plugins/demo/widget.js"></script>',
+      '<script src="https://elsewhere.example/tracker.js"></script>',
+    ].join('');
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(manifest))) as unknown as typeof fetch;
+
+    try {
+      await keepOfflineShellFresh(fetchImpl, 'en', true);
+    } finally {
+      document.head.innerHTML = '';
+    }
+
+    const { files } = vi.mocked(TrekShell.refreshOfflineCopy).mock.calls[0][0] as { files: string[] };
+    expect(files).toContain('theme-boot.js');
+    expect(files).toContain('shell-guard.js');
+    expect(files.filter((f) => f === 'assets/index-a1b2c3d4.js')).toHaveLength(1);
+    expect(files.some((f) => f.includes('plugins') || f.includes('tracker'))).toBe(false);
+  });
+
   it('on Android asks again on the next launch while the store is incomplete', async () => {
     vi.mocked(TrekShell.refreshOfflineCopy).mockResolvedValue({ saved: true, complete: false });
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify(manifest))) as unknown as typeof fetch;
