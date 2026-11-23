@@ -134,15 +134,17 @@ export class MailIngestReadingService {
     const mapped = await Promise.all(
       bookings.map((booking) => this.bookingImport.mapAiReservations(booking.reservations, 'mail')),
     );
-    return bookings
+    const matched = new Set<BookingImportPreviewItem>();
+    const drafts = bookings
       .flatMap((booking, i) => mapped[i].map((item) => ({ booking, item: withTextReference(item) })))
       .slice(0, MAIL_INGEST_LIMITS.storedBookings)
-      .map(({ booking, item }) => {
+      .map(({ booking, item }): MailDraft => {
         const match = machineMatch(machine, item);
+        if (match) matched.add(match);
         const disagrees = match !== undefined && criticalDiffers(match, item);
         return {
           item: match && !disagrees ? match : item,
-          source: 'ai' as const,
+          source: 'ai',
           kind: booking.kind,
           aiTripId: booking.tripRef === null ? null : (tripIdOf.get(booking.tripRef) ?? null),
           uncertainFields: booking.uncertainFields,
@@ -151,6 +153,9 @@ export class MailIngestReadingService {
           disagrees,
         };
       });
+    // A booking the machine-readable data names and the AI left out still reaches the trip or the inbox.
+    const unread = machine.filter((item) => !matched.has(item)).map(fromMachine);
+    return [...drafts, ...unread].slice(0, MAIL_INGEST_LIMITS.storedBookings);
   }
 }
 

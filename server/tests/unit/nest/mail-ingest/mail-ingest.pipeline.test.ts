@@ -560,6 +560,20 @@ describe('what a mail names', () => {
     expect(await countRows(orm(), Reservations, { trip: trip.id })).toBe(2);
   });
 
+  it('keeps a booking the data names and the AI left out', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    machine.mockResolvedValue([FLIGHT, DINNER]);
+    aiReads([FLIGHT]);
+
+    const entries = await entriesOf(await forward(user.id, eml('flight-and-dinner', 'Fwd: Your trip', BOTH)));
+    expect(entries.map((entry) => [entry.source, entry.resolution])).toEqual([
+      ['ai', 'auto_applied'],
+      ['kitinerary', 'auto_applied'],
+    ]);
+    expect(await countRows(orm(), Reservations, { trip: trip.id })).toBe(2);
+  });
+
   it('announces the place it created as the place routes do, with its name and position', async () => {
     const user = await person();
     const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
