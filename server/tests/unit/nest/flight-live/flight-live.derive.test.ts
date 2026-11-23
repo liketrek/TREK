@@ -202,6 +202,36 @@ describe('pickAircraft and observe', () => {
     expect(pick(swa({ alt_baro: 3000, lat: 41.79, lon: -87.55, baro_rate: 2200 }))).toBe('swa');
   });
 
+  it('FLDER-023: after its scheduled time a departure near the origin is taken without a vertical rate or while level', () => {
+    const at = (iso: string) => Date.parse(iso);
+    const mdw = { code: 'MDW', name: 'Chicago Midway', lat: 41.7868, lng: -87.7522, timezone: 'America/Chicago' };
+    const den = { code: 'DEN', name: 'Denver', lat: 39.8561, lng: -104.6737, timezone: 'America/Denver' };
+    const leg: ScheduledLeg = {
+      ...LEG,
+      callsign: 'SWA1234',
+      flight_number: 'WN 1234',
+      origin: mdw,
+      destination: den,
+      scheduled_departure: at('2026-07-01T14:45:00Z'),
+      scheduled_arrival: at('2026-07-01T17:15:00Z'),
+    };
+    const late = at('2026-07-01T15:10:00Z');
+    const outbound = (rates: Partial<FeedAircraft>) =>
+      ac({ hex: 'swa', flight: 'SWA1234', alt_baro: 5000, lat: 41.8, lon: -87.5, ...rates });
+    const pick = (aircraft: FeedAircraft) => pickAircraft([aircraft], leg, { now: late, siblings: [] });
+
+    expect(pick(outbound({ baro_rate: null, geom_rate: null }))?.hex).toBe('swa');
+    expect(pick(outbound({ baro_rate: 0 }))?.hex).toBe('swa');
+    expect(pick(outbound({ baro_rate: -64 }))?.hex).toBe('swa');
+    expect(pick(outbound({ baro_rate: -900 }))).toBeNull();
+    expect(pick(ac({ hex: 'swa', flight: 'SWA1234', alt_baro: 12000, lat: 41.5, lon: -86.5 }))).toBeNull();
+
+    const taxiing = { ...emptyState('SWA1234', '2026-07-01', 'MDW', 'DEN'), phase: 'taxiing' as const };
+    const next = advance(taxiing, pick(outbound({ baro_rate: null })), leg, late, 'adsb.lol');
+    expect(next.phase).toBe('airborne');
+    expect(next.departed_at).not.toBeNull();
+  });
+
   it('FLDER-003: reads a report at its own time, on the ground at zero feet, the geometric height as a fallback', () => {
     const now = DEP;
     expect(observe(ac(), now)).toEqual({

@@ -24,6 +24,8 @@ const UNKNOWN_AFTER_MS = 2 * HOUR;
 const STALE_AFTER_MS = 10 * MIN;
 /** Approach, landing and taxi on top of the great-circle flight time. */
 const APPROACH_BUFFER_MS = 8 * MIN;
+/** A sink rate past the jitter a level aircraft reports, in feet per minute. */
+const DESCENDING_FPM = -250;
 
 /** One aircraft as the feed reported it, already validated. */
 export interface FeedAircraft {
@@ -172,7 +174,8 @@ function claimedBySibling(
  * same flight number, which nobody on the instance may have booked, and which
  * runs late past this leg's scheduled departure as often as not. After the
  * scheduled time a departure may climb out away from the destination before it
- * turns, so one climbing near the origin then is taken for the leg.
+ * turns, level at its first cleared altitude or with no vertical rate in the
+ * feed, so one near the origin then is taken for the leg unless it descends.
  */
 function stillInbound(
   ac: FeedAircraft,
@@ -185,8 +188,9 @@ function stillInbound(
   if (departed || route.scheduled_departure === null || ac.alt_baro === 'ground') return false;
   if (kmTo(lat, lng, route.destination) < kmTo(route.origin.lat, route.origin.lng, route.destination)) return false;
   if (now < route.scheduled_departure) return true;
-  const climbing = (finite(ac.baro_rate) ?? finite(ac.geom_rate) ?? 0) > 0;
-  return !(climbing && kmTo(lat, lng, route.origin) <= 60);
+  const rate = finite(ac.baro_rate) ?? finite(ac.geom_rate);
+  const descending = rate !== null && rate < DESCENDING_FPM;
+  return descending || kmTo(lat, lng, route.origin) > 60;
 }
 
 /**
