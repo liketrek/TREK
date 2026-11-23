@@ -3,6 +3,7 @@ import { CLEAR_SCHEMA_SQL, pluginSchemasSql } from './clear-schema';
 import { pgConnectionEnv, PgOutputLimitError, refuseClientOlderThanServer, run, runToFile } from './pg-process';
 import { isPluginSchemaName, PLUGIN_SCHEMA_PREFIX } from './plugin-schema';
 import { refuseToolsWithoutRestrict } from './restore-safety';
+import { withoutUnknownSettings } from './script-settings';
 import { PRIVILEGED_ROLE_DESCRIPTION, PRIVILEGED_ROLE_SQL, serverMajor } from './server-checks';
 
 import fs from 'node:fs';
@@ -144,18 +145,23 @@ async function scriptHoldsTrekSchema(script: string, schema: PgSchema): Promise<
   }
 }
 
-/** pg_restore's script for the dump at `source`, written to `script` and held to `maxBytes`. */
+/**
+ * pg_restore's script for the dump at `source`, written to `script` and held
+ * to `maxBytes`, without the settings a server of major `serverMajor` does
+ * not know.
+ */
 async function writeRestoreScript(
   source: string,
   script: string,
   schemas: readonly string[],
   binDir: string | undefined,
-  maxBytes: number,
+  limits: { maxBytes: number; serverMajor: number },
 ): Promise<void> {
+  const { maxBytes, serverMajor } = limits;
   const only = schemas.map((name) => `--schema=${name}`);
   const args = ['--no-owner', '--no-privileges', ...only, '--file=-', '--', source];
   try {
-    await runToFile('pg_restore', binDir, args, {}, script, maxBytes);
+    await runToFile('pg_restore', binDir, args, {}, script, maxBytes, withoutUnknownSettings(serverMajor));
   } catch (err) {
     if (!(err instanceof PgOutputLimitError)) throw err;
     throw new Error(
@@ -202,7 +208,10 @@ export async function pgRestore(
     const pluginSchemas = await dumpPluginSchemas(source, path.join(workDir, 'toc.txt'), binDir);
     fs.writeFileSync(clear, CLEAR_SCHEMA_SQL + pluginSchemasSql(pluginSchemas), { mode: 0o600 });
     createPrivateFile(script);
-    await writeRestoreScript(source, script, [schema.name, ...pluginSchemas], binDir, maxScriptBytes);
+    await writeRestoreScript(source, script, [schema.name, ...pluginSchemas], binDir, {
+      maxBytes: maxScriptBytes,
+      serverMajor: major,
+    });
     if (!(await scriptHoldsTrekSchema(script, schema))) {
       throw new Error(`The backup holds no TREK tables in the schema "${schema.name}"; nothing was replaced.`);
     }

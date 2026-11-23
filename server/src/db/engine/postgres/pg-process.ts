@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Transform } from 'node:stream';
+import { PassThrough, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 
@@ -239,8 +239,8 @@ type Ending = { code: number | null; signal: NodeJS.Signals | null } | { error: 
 /**
  * Runs `tool` and streams its stdout into `target` (which must exist; its mode
  * is kept), stopping the tool with {@link PgOutputLimitError} once more than
- * `maxBytes` have come out. The caller removes `target` on failure. A failure
- * of the tool itself throws as `run` does.
+ * `maxBytes` have come out, through `filter` when one is given. The caller
+ * removes `target` on failure. A failure of the tool itself throws as `run` does.
  */
 export async function runToFile(
   tool: PgTool,
@@ -249,6 +249,7 @@ export async function runToFile(
   env: Record<string, string>,
   target: string,
   maxBytes: number,
+  filter: Transform = new PassThrough(),
 ): Promise<void> {
   const binary = locate(tool, binDir);
   await refuseSystemRootCertOnOldClient(tool, binary, env);
@@ -271,7 +272,7 @@ export async function runToFile(
     },
   });
   try {
-    await pipeline(child.stdout, limit, fs.createWriteStream(target, { flags: 'w' }));
+    await pipeline(child.stdout, limit, filter, fs.createWriteStream(target, { flags: 'w' }));
   } catch (err) {
     child.kill('SIGKILL');
     await ended;

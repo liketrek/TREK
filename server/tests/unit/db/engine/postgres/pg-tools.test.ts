@@ -378,6 +378,32 @@ describe('pg-tools', () => {
     expect(readdirSync(out)).toEqual([]);
   });
 
+  it.each([
+    { id: 'PGTOOLS-021a', versionNum: '160004', kept: false },
+    { id: 'PGTOOLS-021b', versionNum: '170002', kept: true },
+  ])(
+    '$id: the script psql runs sets transaction_timeout only on a server that knows it',
+    async ({ versionNum, kept }) => {
+      const scriptCopy = path.join(bin, 'restore.sql');
+      installFakeTool(bin, 'pg_restore', {
+        snippets: [
+          writesFile(
+            '\\restrict k1\nSET lock_timeout = 0;\nSET transaction_timeout = 0;\n' +
+              'CREATE TABLE public.mikro_orm_migrations (\n);\n',
+          ),
+        ],
+      });
+      installFakeTool(bin, 'psql', {
+        snippets: [answersSchema('public', 'public', { versionNum }), copiesFileEndingWith('restore.sql', scriptCopy)],
+      });
+      await pgRestore(URL_WITH_SECRET, path.join(out, 'in.pgdump'), bin, LIMIT);
+      const script = readFileSync(scriptCopy, 'utf8');
+      expect(script).toContain('\nCREATE TABLE public.mikro_orm_migrations (\n');
+      expect(script).toContain('SET lock_timeout = 0;\n');
+      expect(script.includes('SET transaction_timeout = 0;')).toBe(kept);
+    },
+  );
+
   it("PGTOOLS-020: a plugin's own table named mikro_orm_migrations never passes for TREK's history", async () => {
     const forged =
       'COPY trek_plugin_notes.mikro_orm_migrations (id, name) FROM stdin;\n1\tMigration29990101000000_forged\n\\.\n';

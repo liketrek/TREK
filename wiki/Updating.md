@@ -111,6 +111,8 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
    pg_restore --no-owner --no-privileges --schema=public --file=restore.sql data/pre-migrate-<schema>-<time>.pgdump
    ```
 
+   `pg_restore` 17 and later write `SET transaction_timeout = 0;` near the top of the script, a setting PostgreSQL 14, 15 and 16 do not know. On such a server, delete that line from `restore.sql` before step 4; TREK's own restore leaves it out the same way.
+
 3. Save this block as `clear-schema.sql`. It drops every table, view, sequence, function, collation and type in the current schema, which is what TREK's restore runs before it loads a backup:
 
    ```sql
