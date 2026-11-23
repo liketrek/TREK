@@ -233,6 +233,8 @@ export async function openHarness(): Promise<ParityHarness> {
   );
   // The wanderer tools show only while wanderer is allowed under Tours.
   await setAppSetting(orm, 'tours_wanderer_enabled', 'true');
+  // The mail import tools show only while the import is on.
+  await setAppSetting(orm, 'mail_ingest_enabled', 'true');
   // The photo search tools show only while a provider is on.
   await updateRows(orm, PhotoProviders, { id: { $in: ['immich', 'synologyphotos'] } }, { enabled: 1 });
 

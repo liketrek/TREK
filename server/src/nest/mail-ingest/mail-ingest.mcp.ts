@@ -12,6 +12,7 @@ import {
 import { DomainError } from '../common/domain-error';
 import { MailIngestActionsService } from './mail-ingest-actions.service';
 import { MailIngestInboxService } from './mail-ingest-inbox.service';
+import { MailIngestSettingsService } from './mail-ingest-settings.service';
 import {
   idSchema,
   mailIngestApplyRequestSchema,
@@ -23,6 +24,9 @@ import {
   type MailIngestInboxQuery,
   type MailIngestPrefsUpdateRequest,
 } from '@trek/shared';
+
+/** The tools are listed only while the admin has the import switched on, as every call needs it. */
+const mailImportOn = (_ctx: McpContext, self: object) => (self as MailIngestMcp).settings.isAvailable();
 
 const candidateId = idSchema.describe('The inbox entry, as list_mail_inbox names it (entries[].id).');
 
@@ -37,6 +41,7 @@ export class MailIngestMcp {
   constructor(
     private readonly inbox: MailIngestInboxService,
     private readonly actions: MailIngestActionsService,
+    readonly settings: MailIngestSettingsService,
   ) {}
 
   @Tool({
@@ -45,6 +50,7 @@ export class MailIngestMcp {
       'List the bookings read from mails the user forwarded to TREK: by default those that wait for a decision (status "open"), with why each one waits (reason), the booking as read (item), the trip it suggests and the mail it came from (subject, received_at, attachments), newest first. status "resolved" lists the decided ones; an added booking names reservation_ids and, while it can still be undone or moved, undo_until. Page with before = next_before.',
     inputSchema: mailIngestInboxQuerySchema.shape,
     annotations: TOOL_ANNOTATIONS_READONLY,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'read' },
   })
   async listMailInbox(query: MailIngestInboxQuery, ctx: McpContext) {
@@ -57,6 +63,7 @@ export class MailIngestMcp {
       'Add a waiting booking from the mail inbox to a trip: to the trip it suggests, or with trip_id to another trip the user may add bookings to. The booking is written with what the mail said (times, places, reference, cost) and the mail is attached as its document; it can be undone for seven days.',
     inputSchema: { candidateId, ...mailIngestApplyRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'write' },
   })
   async addMailBooking({ candidateId: id, trip_id }: { candidateId: number; trip_id?: number }, ctx: McpContext) {
@@ -69,6 +76,7 @@ export class MailIngestMcp {
       'Move a booking that was added from a mail into another trip (trip_id), while it can still be undone; only the person who forwarded the mail can move it. The booking is written there anew and removed from the first trip. One whose cost was settled with, or that was edited since, is refused with needs_confirmation until confirm is true; the edit is lost.',
     inputSchema: { candidateId, ...mailIngestMoveRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'write' },
   })
   async moveMailBooking(
@@ -84,6 +92,7 @@ export class MailIngestMcp {
       'Put the mail of a waiting entry into a trip (trip_id) as documents, its attachments or else its text, without a booking. Needs the Documents addon.',
     inputSchema: { candidateId, ...mailIngestFileRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'write' },
   })
   async fileMailBooking({ candidateId: id, trip_id }: { candidateId: number; trip_id: number }, ctx: McpContext) {
@@ -95,6 +104,7 @@ export class MailIngestMcp {
     description: 'Set a waiting entry of the mail inbox aside without adding anything.',
     inputSchema: { candidateId },
     annotations: TOOL_ANNOTATIONS_WRITE,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'write' },
   })
   async discardMailBooking({ candidateId: id }: { candidateId: number }, ctx: McpContext) {
@@ -107,6 +117,7 @@ export class MailIngestMcp {
       'Undo a booking that was added from a mail, within seven days: the booking, its stay, its cost and the documents it brought go. One whose cost was settled with, or that was edited since, is refused with needs_confirmation until confirm is true.',
     inputSchema: { candidateId, ...mailIngestUndoRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_DELETE,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'write' },
   })
   async undoMailBooking({ candidateId: id, confirm }: { candidateId: number; confirm?: boolean }, ctx: McpContext) {
@@ -120,6 +131,7 @@ export class MailIngestMcp {
     // The shape, registered strict like every other tool's; its "at least one" check runs below.
     inputSchema: mailIngestPrefsUpdateRequestSchema.shape,
     annotations: TOOL_ANNOTATIONS_WRITE,
+    when: mailImportOn,
     access: { group: 'reservations', mode: 'write' },
   })
   async updateMailImportSettings(update: MailIngestPrefsUpdateRequest, ctx: McpContext) {

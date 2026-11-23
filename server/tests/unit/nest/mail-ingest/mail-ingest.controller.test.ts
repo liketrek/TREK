@@ -7,12 +7,14 @@
  */
 import type { MailIngestCandidateRow } from '../../../../src/db/repositories/MailIngestCandidates.repository';
 import type { McpContext } from '../../../../src/nest-mcp';
+import { getEntry, type ClassRef } from '../../../../src/nest-mcp/metadata';
 import { DomainError } from '../../../../src/nest/common/domain-error';
 import type { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
 import type { MailIngestActionsService } from '../../../../src/nest/mail-ingest/mail-ingest-actions.service';
 import { MailIngestAdminController } from '../../../../src/nest/mail-ingest/mail-ingest-admin.controller';
 import { MailIngestInboundController } from '../../../../src/nest/mail-ingest/mail-ingest-inbound.controller';
 import type { MailIngestInboxService } from '../../../../src/nest/mail-ingest/mail-ingest-inbox.service';
+import type { MailIngestSettingsService } from '../../../../src/nest/mail-ingest/mail-ingest-settings.service';
 import type { MailIngestStatusService } from '../../../../src/nest/mail-ingest/mail-ingest-status.service';
 import { MailIngestTripController } from '../../../../src/nest/mail-ingest/mail-ingest-trip.controller';
 import type { MailIngestWebhookService } from '../../../../src/nest/mail-ingest/mail-ingest-webhook.service';
@@ -55,8 +57,13 @@ const actions = {
 
 const rest = () =>
   new MailIngestController(inbox as unknown as MailIngestInboxService, actions as unknown as MailIngestActionsService);
+const settings = { isAvailable: vi.fn(async () => true) };
 const mcp = () =>
-  new MailIngestMcp(inbox as unknown as MailIngestInboxService, actions as unknown as MailIngestActionsService);
+  new MailIngestMcp(
+    inbox as unknown as MailIngestInboxService,
+    actions as unknown as MailIngestActionsService,
+    settings as unknown as MailIngestSettingsService,
+  );
 
 /** The JSON a tool answered with. */
 function read(result: { content: Array<{ type: string; text: string }> }): unknown {
@@ -112,6 +119,24 @@ describe('the settings card and the inbox', () => {
     expect(await thrown(() => rest().discard(user, '0'))).toEqual({ status: 404, body: { error: 'Entry not found' } });
     expect(inbox.preview).not.toHaveBeenCalled();
     expect(actions.discard).not.toHaveBeenCalled();
+  });
+});
+
+describe('the mail tools', () => {
+  const tools = Object.getOwnPropertyNames(MailIngestMcp.prototype).filter(
+    (name) => getEntry(MailIngestMcp as unknown as ClassRef, name)?.kind === 'tool',
+  );
+
+  it('are listed only while the import is on, since every call needs it', async () => {
+    expect(tools).toHaveLength(7);
+    for (const name of tools) {
+      const entry = getEntry(MailIngestMcp as unknown as ClassRef, name);
+      const when = entry?.kind === 'tool' ? entry.options.when : undefined;
+      expect(when, name).toBeTypeOf('function');
+      settings.isAvailable.mockResolvedValueOnce(false);
+      expect(await when?.(ctx, mcp()), name).toBe(false);
+      expect(await when?.(ctx, mcp()), name).toBe(true);
+    }
   });
 });
 
