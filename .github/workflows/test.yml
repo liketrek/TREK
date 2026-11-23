@@ -853,7 +853,11 @@ jobs:
           scope: client
           build-shared: 'true'
 
+      # The whole client program, the canonical locale's full key set included,
+      # also outgrew Node's default ~4 GB heap.
       - name: Typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: cd client && npm run typecheck
 
       - name: Strict type check
