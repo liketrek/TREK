@@ -55,7 +55,7 @@ export default function AddonTile({
         </div>
       </div>
       {/* An empty shelf (a tours addon without its options here) draws no line. */}
-      {Children.count(children) > 0 && <ul className="m-0 list-none divide-y divide-edge-faint border-t border-edge-faint p-0">{children}</ul>}
+      {Children.toArray(children).length > 0 && <ul className="m-0 list-none divide-y divide-edge-faint border-t border-edge-faint p-0">{children}</ul>}
     </article>
   )
 }
