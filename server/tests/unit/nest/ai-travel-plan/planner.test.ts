@@ -402,6 +402,27 @@ describe('PlannerService', () => {
     expect(outcome.draft.days.flatMap((day) => day.items).map((item) => item.place.name)).toEqual(['地点1']);
   });
 
+  it('drops places the provider marks as shut or under construction', async () => {
+    const labelled = (id: number, name: string) => {
+      const base = candidate(id);
+      return { ...base, name, place: { ...base.place, name } };
+    };
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        candidate(1),
+        labelled(2, '晋忻梦幻乐园(暂停营业)'),
+        labelled(3, '长城博物馆(建设中)'),
+        labelled(4, '某古城景区(已关闭)'),
+      ]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days.flatMap((day) => day.items).map((item) => item.place.name)).toEqual(['地点1']);
+  });
+
   it('keeps only what the keyword means — a shop on 公园路 is not a park', async () => {
     const typed = (id: number, category: string) => ({ ...candidate(id), category });
     const planner = service({
@@ -643,6 +664,76 @@ describe('PlannerService', () => {
 
     expect(outcome.draft.days.map((day) => day.items.length)).toEqual([1, 0]);
     expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'day_underfilled', severity: 'warning' }));
+  });
+
+  it('prefers a better-rated stop when the extra distance is small', async () => {
+    const near = candidate(1, 30.009, 120);
+    const rated = candidate(2, 30.0094, 120);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [
+        { ...near, rating: 1, place: { ...near.place, rating: 1 } },
+        { ...rated, rating: 4.8, place: { ...rated.place, rating: 4.8 } },
+      ]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days[0]?.items[0]?.place.name).toBe('地点2');
+  });
+
+  it('never schedules a stop before it opens', async () => {
+    const place = candidate(1, 30.005, 120);
+    const hours = ['Friday: 10:00-18:00'];
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [{ ...place, hours, place: { ...place.place, hours } }]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01', pace: 'relaxed' }),
+    });
+
+    expect(outcome.draft.days[0]?.items[0]).toMatchObject({ arriveAt: '10:00', leaveAt: '12:00' });
+  });
+
+  it('clamps a visit to the provider closing time', async () => {
+    const place = candidate(1, 30.005, 120);
+    const hours = ['Friday: 09:00-10:00'];
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [{ ...place, hours, place: { ...place.place, hours } }]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01', pace: 'relaxed' }),
+    });
+
+    expect(outcome.draft.days[0]?.items[0]).toMatchObject({ arriveAt: '09:00', leaveAt: '10:00' });
+  });
+
+  it('skips a place the provider says is closed on that weekday and warns', async () => {
+    const place = candidate(1, 30.005, 120);
+    const hours = ['Monday: Closed'];
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [{ ...place, hours, place: { ...place.place, hours } }]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-04', endDate: '2026-05-04' }),
+    });
+
+    expect(outcome.draft.days[0]?.items).toHaveLength(0);
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'place_closed', severity: 'warning' }));
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'day_underfilled' }));
   });
 
   it('moves a stop out of the lunch window and skips what no longer fits the day', async () => {

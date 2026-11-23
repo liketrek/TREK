@@ -29,6 +29,13 @@ const MAX_PLACES = 24;
 const MAX_PLACE_DISTANCE_M = 80_000;
 
 /**
+ * How much farther a better-rated stop may be: a five-star place can be about
+ * 15% farther than an unrated one and still win. Ratings stay a tie-breaker on
+ * top of distance, never a reason to abandon a compact route.
+ */
+const RATING_DISTANCE_WEIGHT = 0.03;
+
+/**
  * Provider categories that are infrastructure, never a place to visit. Amap
  * answers a bare city-name search with the city's own offices, schools and
  * hospitals, and a plan of those is not a trip.
@@ -49,6 +56,16 @@ function isVisitCategory(category: string | null): boolean {
   const value = (category ?? '').trim().toLowerCase();
   if (value === '') return true;
   return !NON_VISIT_CATEGORY_PREFIXES.some((prefix) => value.startsWith(prefix)) && !NON_VISIT_CATEGORIES.has(value);
+}
+
+/**
+ * Amap keeps shut and unfinished venues in its index and puts the state in the
+ * name. A draft must not send someone to a construction site or a closed park.
+ */
+const UNAVAILABLE_NAME_MARKERS = ['暂停营业', '停止营业', '已关闭', '建设中', '在建', '装修中', '暂未开放', '暂停开放'];
+
+function isAvailableForVisit(name: string): boolean {
+  return !UNAVAILABLE_NAME_MARKERS.some((marker) => name.includes(marker));
 }
 
 /**
@@ -156,6 +173,7 @@ export class PlannerService {
       (candidate) =>
         !ADMIN_CATEGORIES.has((candidate.category ?? '').toLowerCase()) &&
         isVisitCategory(candidate.category) &&
+        isAvailableForVisit(candidate.place.name) &&
         haversine(centre, candidate.place) <= MAX_PLACE_DISTANCE_M,
     );
     if (nearby.length === 0) {
@@ -201,12 +219,28 @@ export class PlannerService {
     }
 
     onStage?.('scheduling');
-    const { days, skipped } = scheduleDays(selected, legs, dates, request.pace);
+    const { days, skipped, closed, late } = scheduleDays(selected, legs, dates, request.pace);
     if (skipped > 0) {
       warnings.push({
         code: 'places_skipped',
         message: `当天时间不够，${skipped} 个地点没有排进行程。`,
         severity: 'info',
+      });
+    }
+    if (closed.length > 0) {
+      const first = closed[0];
+      warnings.push({
+        code: 'place_closed',
+        message: `有 ${closed.length} 个地点在计划日期闭馆，已跳过（如「${first?.name ?? ''}」${first?.date ?? ''}）。`,
+        severity: 'warning',
+      });
+    }
+    if (late.length > 0) {
+      const first = late[0];
+      warnings.push({
+        code: 'place_outside_hours',
+        message: `有 ${late.length} 个地点在计划日期已过营业时间，未能排入（如「${first?.name ?? ''}」${first?.date ?? ''}）。`,
+        severity: 'warning',
       });
     }
     const emptyDays = days.filter((day) => day.items.length === 0).length;
@@ -310,6 +344,19 @@ function dedupe(candidates: PlannerCandidate[]): PlannerCandidate[] {
   });
 }
 
+/** A provider rating we can trust, or null when the record has none. */
+function ratingOf(candidate: PlannerCandidate): number | null {
+  const rating = candidate.rating ?? candidate.place.rating ?? null;
+  return typeof rating === 'number' && rating > 0 && rating <= 5 ? rating : null;
+}
+
+/** Distance adjusted so a well-rated stop may be slightly farther and still win. */
+function weightedDistance(from: { lat: number; lng: number }, candidate: PlannerCandidate): number {
+  const distance = haversine(from, candidate.place);
+  const rating = ratingOf(candidate);
+  return rating === null ? distance : distance / (1 + rating * RATING_DISTANCE_WEIGHT);
+}
+
 /** Greedy nearest-neighbour from the destination centre: short hops, no criss-crossing. */
 function nearestNeighbour(candidates: PlannerCandidate[], centre: { lat: number; lng: number }): PlannerCandidate[] {
   const remaining = [...candidates];
@@ -319,7 +366,7 @@ function nearestNeighbour(candidates: PlannerCandidate[], centre: { lat: number;
     let best = 0;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (let index = 0; index < remaining.length; index += 1) {
-      const distance = haversine(current, remaining[index]?.place as { lat: number; lng: number });
+      const distance = weightedDistance(current, remaining[index] as PlannerCandidate);
       if (distance < bestDistance) {
         bestDistance = distance;
         best = index;
@@ -333,15 +380,199 @@ function nearestNeighbour(candidates: PlannerCandidate[], centre: { lat: number;
   return ordered;
 }
 
+/** One provider opening-hours segment, already attributed to weekdays. */
+interface OpeningRule {
+  /** Weekday indexes (0 = Sunday); null means the segment applies every day. */
+  days: number[] | null;
+  kind: 'open' | 'closed' | 'unknown';
+  open: number;
+  close: number;
+}
+
+/** The opening windows a place has on a given date. */
+type OpeningState =
+  { kind: 'unknown' } | { kind: 'closed' } | { kind: 'open'; windows: Array<{ open: number; close: number }> };
+
+const WEEKDAY_TOKENS: Record<string, number> = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
+
+/** Longest first so "Thursday" wins over "th" and "Sun" over "su". */
+const ENGLISH_WEEKDAYS: Record<string, number> = {
+  monday: 1,
+  mon: 1,
+  mo: 1,
+  tuesday: 2,
+  tues: 2,
+  tue: 2,
+  tu: 2,
+  wednesday: 3,
+  wed: 3,
+  we: 3,
+  thursday: 4,
+  thurs: 4,
+  thur: 4,
+  thu: 4,
+  th: 4,
+  friday: 5,
+  fri: 5,
+  fr: 5,
+  saturday: 6,
+  sat: 6,
+  sa: 6,
+  sunday: 0,
+  sun: 0,
+  su: 0,
+};
+
+const ENGLISH_WEEKDAY_WORD =
+  /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tues|tue|thurs|thur|thu|wed|fri|sat|sun|mo|tu|we|th|fr|sa|su)\b/gi;
+
+const TIME_RANGE = /(\d{1,2}):(\d{2})\s*(?:-|–|—|~|至|到)\s*(\d{1,2}):(\d{2})/g;
+
+/** Minutes since midnight; 24:00 is allowed as a closing time. */
+function minuteOf(hour: string, minute: string): number | null {
+  const hours = Number(hour);
+  const minutes = Number(minute);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || minutes > 59) return null;
+  if (hours > 24 || (hours === 24 && minutes !== 0)) return null;
+  return hours * 60 + minutes;
+}
+
+/** The weekday a YYYY-MM-DD date falls on, in UTC to match planDates(). */
+function weekdayOf(date: string): number | null {
+  const value = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(value) ? new Date(value).getUTCDay() : null;
+}
+
+/** The weekdays a segment names, or null when it names none (every day). */
+function dayScope(segment: string): number[] | null {
+  if (/工作日/.test(segment)) return [1, 2, 3, 4, 5];
+  if (/周末/.test(segment)) return [0, 6];
+  if (/每天|每日/.test(segment)) return null;
+  const tokens = [...segment.matchAll(/(?:周|星期)([一二三四五六日天])/g)];
+  if (tokens.length > 0) {
+    const range = /(?:周|星期)[一二三四五六日天]\s*(?:至|-|–|—|~|到)\s*(?:周|星期)[一二三四五六日天]/.test(segment);
+    if (range && tokens.length >= 2) {
+      const start = WEEKDAY_TOKENS[tokens[0]?.[1] ?? ''];
+      const end = WEEKDAY_TOKENS[tokens[tokens.length - 1]?.[1] ?? ''];
+      if (start === undefined || end === undefined) return null;
+      const days: number[] = [];
+      for (let day = start; ; day = (day + 1) % 7) {
+        days.push(day);
+        if (day === end) break;
+      }
+      return days;
+    }
+    return tokens.map((token) => WEEKDAY_TOKENS[token[1] ?? '']).filter((day): day is number => day !== undefined);
+  }
+  // Providers normalise hours to the OSM dialect ("Monday: 08:00-18:00",
+  // "Mo-Fr 09:00-18:00", "Sunday: ?"), so English names must be read too.
+  const words = [...segment.matchAll(ENGLISH_WEEKDAY_WORD)].map((match) => match[0].toLowerCase());
+  if (words.length === 0) return null;
+  const range = segment.toLowerCase().match(/([a-z]+)\s*-\s*([a-z]+)/);
+  const start = range ? ENGLISH_WEEKDAYS[range[1] ?? ''] : undefined;
+  const end = range ? ENGLISH_WEEKDAYS[range[2] ?? ''] : undefined;
+  if (start !== undefined && end !== undefined) {
+    const days: number[] = [];
+    for (let day = start; ; day = (day + 1) % 7) {
+      days.push(day);
+      if (day === end) break;
+    }
+    return days;
+  }
+  return words.map((word) => ENGLISH_WEEKDAYS[word]).filter((day): day is number => day !== undefined);
+}
+
+/** Turn provider hours text into rules. Unparseable text produces no rules. */
+function parseOpeningRules(hours: string[]): OpeningRule[] {
+  const rules: OpeningRule[] = [];
+  for (const text of hours) {
+    for (const part of text.split(/[;；]/)) {
+      const segment = part.trim();
+      if (segment === '') continue;
+      const days = dayScope(segment);
+      const ranges = [...segment.matchAll(TIME_RANGE)];
+      let open = Number.POSITIVE_INFINITY;
+      let close = Number.NEGATIVE_INFINITY;
+      for (const range of ranges) {
+        const from = minuteOf(range[1] ?? '', range[2] ?? '');
+        const to = minuteOf(range[3] ?? '', range[4] ?? '');
+        if (from === null || to === null || to <= from) continue;
+        open = Math.min(open, from);
+        close = Math.max(close, to);
+      }
+      if (Number.isFinite(open) && Number.isFinite(close)) {
+        rules.push({ days, kind: 'open', open, close });
+        continue;
+      }
+      if (/24\s*\/\s*7|全天|24\s*小时/.test(segment)) {
+        rules.push({ days, kind: 'open', open: 0, close: 24 * 60 });
+        continue;
+      }
+      // "Monday: ?" is unknown, not closed: skipping it would drop a valid stop.
+      if (/[?？]/.test(segment)) {
+        rules.push({ days, kind: 'unknown', open: 0, close: 0 });
+        continue;
+      }
+      if (/closed|闭馆|闭园|不开放|停止营业|休息/i.test(segment)) {
+        rules.push({ days, kind: 'closed', open: 0, close: 0 });
+      }
+    }
+  }
+  return rules;
+}
+
+/**
+ * What a place's hours mean on one date. Unknown text never penalises a place:
+ * the planner only skips a stop when the provider actually said it is closed.
+ */
+function openingOn(hours: string[] | undefined, date: string): OpeningState {
+  if (!hours || hours.length === 0) return { kind: 'unknown' };
+  const rules = parseOpeningRules(hours);
+  if (rules.length === 0) return { kind: 'unknown' };
+  const weekday = weekdayOf(date);
+  if (weekday === null) return { kind: 'unknown' };
+  const matching = rules.filter((rule) => rule.days === null || rule.days.includes(weekday));
+  if (matching.length === 0) return { kind: 'unknown' };
+  const windows = matching
+    .filter((rule) => rule.kind === 'open')
+    .map((rule) => ({ open: rule.open, close: rule.close }))
+    .sort((a, b) => a.open - b.open);
+  if (windows.length > 0) return { kind: 'open', windows };
+  return matching.some((rule) => rule.kind === 'closed') ? { kind: 'closed' } : { kind: 'unknown' };
+}
+
+/** Where a visit can actually fit, or why it cannot be scheduled that day. */
+function fitOpening(
+  state: OpeningState,
+  arrive: number,
+  stay: number,
+): { arrive: number; leave: number } | 'closed' | 'late' {
+  if (state.kind === 'closed') return 'closed';
+  if (state.kind === 'unknown') return { arrive, leave: arrive + stay };
+  for (const window of state.windows) {
+    const start = Math.max(arrive, window.open);
+    if (start < window.close) return { arrive: start, leave: Math.min(start + stay, window.close) };
+  }
+  return 'late';
+}
+
+/** A stop dropped because the provider's hours leave no usable window that day. */
+interface SkippedStop {
+  name: string;
+  date: string;
+}
+
 function scheduleDays(
   selected: PlannerCandidate[],
   legs: TravelPlanLeg[],
   dates: string[],
   pace: TravelPlanCreateRequest['pace'],
-): { days: TravelPlanDraftDay[]; skipped: number } {
+): { days: TravelPlanDraftDay[]; skipped: number; closed: SkippedStop[]; late: SkippedStop[] } {
   const stay = pace === 'relaxed' ? 120 : pace === 'intensive' ? 60 : 90;
   const dayEnd = pace === 'relaxed' ? 18 * 60 : pace === 'intensive' ? 20 * 60 : 19 * 60;
   const days: TravelPlanDraftDay[] = dates.map((date) => ({ date, items: [] }));
+  const closed: SkippedStop[] = [];
+  const late: SkippedStop[] = [];
 
   // More stops than days would otherwise pack the first days and leave the
   // tail empty; spread the route across the whole calendar instead. A list that
@@ -365,10 +596,21 @@ function scheduleDays(
       cursor = DAY_START_MINUTES;
       previous = -1;
     }
-    let leg = previous >= 0 && days[dayIndex]?.items.length ? (legs[previous] ?? null) : null;
+    let leg = previous >= 0 && (days[dayIndex]?.items.length ?? 0) > 0 ? (legs[previous] ?? null) : null;
     let arrive = cursor + (leg?.minutes ?? 0);
     if (arrive >= 11 * 60 + 30 && arrive < 13 * 60 + 30) arrive = 13 * 60 + 30;
-    let leave = arrive + stay;
+
+    const date = dates[dayIndex] ?? '';
+    let fit = fitOpening(openingOn(candidate.hours, date), arrive, stay);
+    if (fit === 'closed' || fit === 'late') {
+      (fit === 'closed' ? closed : late).push({ name: candidate.place.name, date });
+      // The legs were routed through this stop; a later stop cannot claim the
+      // leg that started here without inventing a visit.
+      previous = -1;
+      continue;
+    }
+    let arriveAt = fit.arrive;
+    let leave = fit.leave;
 
     if (leave > dayEnd && (days[dayIndex]?.items.length ?? 0) > 0) {
       dayIndex += 1;
@@ -377,18 +619,25 @@ function scheduleDays(
         break;
       }
       leg = null;
-      arrive = DAY_START_MINUTES;
-      leave = arrive + stay;
+      previous = -1;
+      const nextDate = dates[dayIndex] ?? '';
+      fit = fitOpening(openingOn(candidate.hours, nextDate), DAY_START_MINUTES, stay);
+      if (fit === 'closed' || fit === 'late') {
+        (fit === 'closed' ? closed : late).push({ name: candidate.place.name, date: nextDate });
+        continue;
+      }
+      arriveAt = fit.arrive;
+      leave = fit.leave;
     }
 
     const day = days[dayIndex];
     if (!day) break;
-    day.items.push(itemOf(candidate, arrive, leave, leg));
+    day.items.push(itemOf(candidate, arriveAt, leave, leg));
     cursor = leave;
     previous = index;
   }
 
-  return { days, skipped };
+  return { days, skipped, closed, late };
 }
 
 function itemOf(
