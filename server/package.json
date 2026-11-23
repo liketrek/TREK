@@ -65,14 +65,14 @@
   "dependencies": {
     "@aws-lite/client": "^0.24.1",
     "@aws-lite/s3": "^0.2.7",
-    "@mikro-orm/cli": "^7.2.7",
-    "@mikro-orm/core": "^7.2.7",
-    "@mikro-orm/migrations": "^7.2.7",
+    "@mikro-orm/cli": "^7.2.11",
+    "@mikro-orm/core": "^7.2.11",
+    "@mikro-orm/migrations": "^7.2.11",
     "@mikro-orm/nestjs": "^7.1.0",
-    "@mikro-orm/postgresql": "^7.2.7",
-    "@mikro-orm/seeder": "^7.2.7",
+    "@mikro-orm/postgresql": "^7.2.11",
+    "@mikro-orm/seeder": "^7.2.11",
     "@mikro-orm/sql": "^7.2.1",
-    "@mikro-orm/sqlite": "^7.2.7",
+    "@mikro-orm/sqlite": "^7.2.11",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@nestjs/common": "^11.2.5",
     "@nestjs/config": "^4.0.4",
@@ -124,7 +124,7 @@
   "devDependencies": {
     "@aws-lite/s3-types": "^0.2.8",
     "@eslint/js": "^10.0.1",
-    "@mikro-orm/entity-generator": "^7.2.7",
+    "@mikro-orm/entity-generator": "^7.2.11",
     "@nestjs/testing": "^11.2.5",
     "@swc/core": "^1.16.22",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
@@ -151,7 +151,7 @@
     "prettier": "^3.10.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "supertest": "^7.3.1",
-    "typescript-eslint": "^8.72.1",
+    "typescript-eslint": "^8.73.0",
     "unplugin-swc": "^1.6.0",
     "vitest": "^4.1.11"
   }
