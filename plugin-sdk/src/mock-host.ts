@@ -73,6 +73,10 @@ export interface MockHostOptions {
   vacayAddonEnabled?: boolean;
   collectionsAddonEnabled?: boolean;
   collabAddonEnabled?: boolean;
+  /** Whether the trip has Documents on (default true). Off, files.* works only on
+   * files attached to a booking, place, assignment or expense, and files.create
+   * needs such a target, as on the real host. */
+  documentsAddonEnabled?: boolean;
   /** Exports of the plugins this one depends on, keyed by plugin id then fn name.
    * `ctx.plugins.call(id, fn, args)` invokes the matching function; a missing entry
    * throws RESOURCE_FORBIDDEN (models "not a satisfied dependency / not exported"). */
@@ -345,6 +349,13 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
   // A subsystem call is refused when its addon is off — same message as the real host.
   const requireAddon = (enabled: boolean | undefined, noun: string) => {
     if (enabled === false) throw new Error(`RESOURCE_FORBIDDEN: the ${noun} addon is disabled`);
+  };
+  // With Documents off only files that belong to something stay reachable.
+  const LINK_KEYS = ['reservation_id', 'place_id', 'assignment_id', 'budget_item_id'] as const;
+  const attaches = (fields: Record<string, unknown>) => LINK_KEYS.some((k) => fields[k] != null);
+  const requireReachable = (file: Record<string, unknown>, targets: Record<string, unknown> = {}) => {
+    if (opts.documentsAddonEnabled !== false || attaches(file) || attaches(targets)) return;
+    throw new Error('RESOURCE_FORBIDDEN: the documents addon is disabled');
   };
   const assertEdit = (
     t: { canEditPlaces?: boolean; canEditDays?: boolean; canEditTrip?: boolean },
@@ -727,13 +738,15 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
       files: {
         async list(tripId) {
           need('db:read:files', 'files.list');
-          return (assertMember(tripId, requireActingUser()).files ?? []) as TripFile[];
+          const files = rows(assertMember(tripId, requireActingUser()).files);
+          return (opts.documentsAddonEnabled === false ? files.filter((f) => attaches(f)) : files) as TripFile[];
         },
         async getContent(tripId, fileId) {
           need('db:read:files:content', 'files.getContent');
           const t = assertMember(tripId, requireActingUser());
           const file = rows(t.files).find((x) => x.id === fileId);
           if (!file) throw new Error(`RESOURCE_FORBIDDEN: no file ${fileId} on trip ${tripId}`);
+          requireReachable(file);
           const content = typeof file.content_base64 === 'string' ? file.content_base64 : '';
           return {
             name: String(file.name ?? `file-${fileId}`),
@@ -752,6 +765,8 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           if (content_base64.length > 14 * 1024 * 1024) throw new Error('file exceeds the 10MB plugin upload cap');
           const t = assertMember(tripId, uid);
           assertRight(t, 'file_upload', tripId);
+          if (opts.documentsAddonEnabled === false && !attaches(rest))
+            throw new Error('RESOURCE_FORBIDDEN: the documents addon is disabled: pass reservation_id or place_id to attach the uploaded file');
           const file = { id: (t.files?.length ?? 0) + 1, trip_id: tripId, size: Buffer.from(content_base64, 'base64').length, ...rest };
           (t.files ??= []).push(file);
           return file;
@@ -762,6 +777,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           assertRight(t, 'file_edit', tripId);
           const file = rows(t.files).find((x) => x.id === fileId);
           if (!file) throw new Error(`RESOURCE_FORBIDDEN: no file ${fileId} on trip ${tripId}`);
+          requireReachable(file, linkOpts as Record<string, unknown>);
           Object.assign(file, linkOpts);
           return file;
         },
@@ -771,6 +787,7 @@ export function createMockHost(opts: MockHostOptions = {}): MockHost {
           assertRight(t, 'file_edit', tripId);
           const file = rows(t.files).find((x) => x.id === fileId);
           if (!file) throw new Error(`RESOURCE_FORBIDDEN: no file ${fileId} on trip ${tripId}`);
+          requireReachable(file, { place_id: input.place_id, reservation_id: input.reservation_id });
           Object.assign(file, input);
           return file as TripFile;
         },

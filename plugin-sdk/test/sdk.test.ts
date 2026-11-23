@@ -378,6 +378,31 @@ describe('createMockHost', () => {
     await expect(ctx.files.getContent(1, 99)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
+  it('with Documents off works only on attached files and needs a target to create one, like the real host', async () => {
+    const content = Buffer.from('x').toString('base64');
+    const { ctx } = createMockHost({
+      grants: ['db:read:files', 'db:read:files:content', 'db:write:files'],
+      actingUserId: 42,
+      documentsAddonEnabled: false,
+      trips: {
+        1: {
+          members: [42],
+          files: [
+            { id: 1, name: 'loose.pdf', content_base64: content },
+            { id: 2, name: 'ticket.pdf', reservation_id: 7, content_base64: content },
+          ],
+        },
+      },
+    });
+    expect((await ctx.files.list(1)).map((f) => f.id)).toEqual([2]);
+    await expect(ctx.files.getContent(1, 1)).rejects.toThrow(/documents addon is disabled/);
+    expect((await ctx.files.getContent(1, 2)).name).toBe('ticket.pdf');
+    await expect(ctx.files.create(1, { name: 'a.pdf', content_base64: content })).rejects.toThrow(/pass reservation_id or place_id/);
+    expect(await ctx.files.create(1, { name: 'b.pdf', content_base64: content, place_id: 3 })).toMatchObject({ place_id: 3 });
+    await expect(ctx.files.update(1, 1, { description: 'x' })).rejects.toThrow(/documents addon is disabled/);
+    expect(await ctx.files.update(1, 1, { reservation_id: 7 })).toMatchObject({ reservation_id: 7 });
+  });
+
   it('refuses costs when the permission is missing or the addon is disabled', async () => {
     const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
     await expect(ungranted.ctx.costs.getByTrip(1)).rejects.toThrow(/PERMISSION_DENIED/);
