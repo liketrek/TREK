@@ -1,6 +1,10 @@
 # TREK on a Postgres database instead of the SQLite file. See the wiki page
 # Database-Postgres for what this changes, the requirements and the backups.
 #
+# Needs Docker Compose 2.23.1 or newer, which reads the inline config
+# (configs.trek-db-role below). An older Compose, as some NAS bundles ship,
+# refuses the whole file with "Additional property content is not allowed".
+#
 # Set two passwords in a .env file beside this file (or in the shell) before
 # the first start:
 #   POSTGRES_ADMIN_PASSWORD=<a long random value>   the database's superuser, postgres

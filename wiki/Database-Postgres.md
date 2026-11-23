@@ -67,6 +67,8 @@ The password is passed to the tools in the `PGPASSWORD` environment variable of 
 
 [`docker-compose.postgres.yml`](https://github.com/liketrek/TREK/blob/main/docker-compose.postgres.yml) runs a `postgres:18` service beside TREK, on a named volume, with the TREK container waiting for the database to pass its health check. Set two passwords in a `.env` file beside it before the first start: `POSTGRES_ADMIN_PASSWORD` for the database's superuser `postgres`, and `POSTGRES_PASSWORD` for the role `trek` that TREK connects as. On the database's first start, the superuser creates the role `trek`, which owns TREK's database and is not a superuser. See [Install: Docker Compose](Install-Docker-Compose#running-on-postgres).
 
+The file needs Docker Compose 2.23.1 or newer: it creates that role from an inline config, which an older Compose refuses with `Additional property content is not allowed` before anything starts. Some NAS bundles ship an older Compose; check with `docker compose version`.
+
 If that first start fails because a password is missing, the database is already created but without the role `trek`, and a restart does not create it any more. Set the password and start again on a new volume: `docker compose -f docker-compose.postgres.yml down -v` removes the database volume with it, so run it only while that database is still empty.
 
 #### Postgres versions and the volume path
