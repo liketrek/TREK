@@ -18,6 +18,7 @@ import { isEffectivelyOnline, onNetworkModeChange } from './networkMode'
 import { setPreReconnectHook, setRefetchCallback, getActiveTrips, reconnectNow } from '../api/websocket'
 import { useTripStore } from '../store/tripStore'
 import { reloadTourVisits } from '../store/tourVisitStore'
+import { useTripAddonsStore } from '../store/tripAddonsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAuthStore } from '../store/authStore'
 
@@ -113,10 +114,12 @@ export function registerSyncTriggers(): void {
   setPreReconnectHook(() => mutationQueue.flush())
   // After the reconnect flush, pull canonical state for the open trip back into
   // the store (the WS layer awaits the flush hook before invoking this), and
-  // the walk visits, so a mark the replay dropped or failed leaves the day plan.
+  // the walk visits, so a mark the replay dropped or failed leaves the day plan,
+  // and the trip's addons, whose change pushed while the socket was down is lost.
   setRefetchCallback(tripId => {
     useTripStore.getState().hydrateActiveTrip(tripId).catch(console.error)
     reloadTourVisits(tripId)
+    void useTripAddonsStore.getState().load(Number(tripId))
   })
 
   window.addEventListener('online', onOnline)
