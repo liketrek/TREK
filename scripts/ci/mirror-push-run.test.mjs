@@ -111,6 +111,8 @@ describe('mirror', () => {
     const result = await mirrorWith([{ runs: [] }]);
     assert.equal(result.ok, false);
     assert.match(result.message, /No push run of test\.yml on dev exists/);
+    assert.match(result.message, /Push a new commit to dev \(a run started by hand is not a push run/);
+    assert.doesNotMatch(result.message, /run CI on dev again/);
     assert.match(result.message, /re-run this job/);
     assert.ok(result.elapsed >= GRACE_MS && result.elapsed < GRACE_MS + 2 * INTERVAL_MS, String(result.elapsed));
   });

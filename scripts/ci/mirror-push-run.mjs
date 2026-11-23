@@ -95,7 +95,7 @@ export function assess({ run, check, sha, elapsed, grace = GRACE_MS }) {
     return {
       done: true,
       ok: false,
-      message: `No push run of ${WORKFLOW_FILE} on ${BRANCH} exists for ${sha}, so nothing tested this commit. Push it to ${BRANCH} (or run CI on ${BRANCH} again), then re-run this job.`,
+      message: `No push run of ${WORKFLOW_FILE} on ${BRANCH} exists for ${sha}, so nothing tested this commit. Push a new commit to ${BRANCH} (a run started by hand is not a push run and does not count), then re-run this job.`,
     };
   }
   const where = run.html_url ?? `run ${run.id}`;
