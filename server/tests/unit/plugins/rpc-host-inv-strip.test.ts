@@ -48,7 +48,18 @@ const tripsRegistry = () => {
     getRepository: () => ({ findRaw: async () => ({ id: 1, title: 'Japan', feed_token: null }) }),
   } as unknown as EntityManager;
   return createTestPluginRegistry([
-    new TripsRpc({} as never, {} as never, {} as never, {} as never, {} as never, guards, {} as never, {} as never, em),
+    new TripsRpc(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      guards,
+      {} as never,
+      {} as never,
+      em,
+      {} as never,
+    ),
   ]);
 };
 

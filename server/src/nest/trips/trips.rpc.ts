@@ -8,6 +8,7 @@ import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorator
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import { AccommodationsService } from '../accommodations/accommodations.service';
+import { TripAddonsService } from '../addons/trip-addons.service';
 import { DaysService } from '../days/days.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -57,6 +58,7 @@ export class TripsRpc {
     // `.isOwner` used since Task 0b — `EntityManager` is `@Global()`, so no
     // module needs new wiring. Appended last, per this class's own convention.
     private readonly em: EntityManager,
+    private readonly tripAddons: TripAddonsService,
   ) {}
 
   @PluginMethod('trips.getById', { permission: 'db:read:trips' })
@@ -219,6 +221,7 @@ export class TripsRpc {
     // The open planners learn of the member as they do from REST and MCP. A
     // plugin has no socket of its own, so the whole room hears it.
     if (result.joined) {
+      await this.tripAddons.reattachJoinedMember(tripId, targetUserId);
       const member = await this.roster.findMember(tripId, targetUserId);
       if (member) this.realtime.broadcast(tripId, 'member:added', { member });
     }

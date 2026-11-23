@@ -281,6 +281,7 @@ describe('service errors are translated into the RPC taxonomy', () => {
       {} as never,
       {} as never,
       em,
+      {} as never,
     );
     return new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([rpc]));
   }
@@ -416,7 +417,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
       new PlacesRpc(anything, anything, realtime(), guards, anything),
       new DaysRpc(anything, realtime(), guards, anything),
       new PackingRpc(anything, realtime(), guards),
-      new TripsRpc(anything, anything, anything, anything, realtime(), guards, anything, anything, em),
+      new TripsRpc(anything, anything, anything, anything, realtime(), guards, anything, anything, em, anything),
       new AccommodationsRpc(anything, realtime(), guards),
       new ReservationsRpc(anything, realtime(), guards),
     ]);

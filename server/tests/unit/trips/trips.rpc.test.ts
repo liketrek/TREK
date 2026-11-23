@@ -17,6 +17,7 @@ import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { TripAddonsService } from '../../../src/nest/addons/trip-addons.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
@@ -141,7 +142,20 @@ export function build(
     { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
-  const rpc = new TripsRpc(trips, reservations, days, membership, realtime, guards, accommodations, roster, em);
+  const tripAddons = { reattachJoinedMember: vi.fn(async () => undefined) } as unknown as TripAddonsService &
+    Record<string, ReturnType<typeof vi.fn>>;
+  const rpc = new TripsRpc(
+    trips,
+    reservations,
+    days,
+    membership,
+    realtime,
+    guards,
+    accommodations,
+    roster,
+    em,
+    tripAddons,
+  );
   const host = (...grants: string[]) =>
     new PluginRpcHost(
       'p',
@@ -149,7 +163,7 @@ export function build(
       makeDeps(),
       createTestPluginRegistry([rpc]),
     );
-  return { trips, reservations, days, accommodations, roster, membership, realtime, permissions, host };
+  return { trips, reservations, days, accommodations, roster, membership, realtime, permissions, tripAddons, host };
 }
 
 describe('TripsRpc reads', () => {
@@ -238,6 +252,7 @@ describe('TripsRpc reads', () => {
       f.accommodations,
       f.roster,
       em,
+      f.tripAddons,
     );
     const host = new PluginRpcHost('p', new Set(ALL_TRIP_GRANTS), makeDeps(), createTestPluginRegistry([rpc]));
 
@@ -367,6 +382,8 @@ describe('TripsRpc membership', () => {
     const f = build();
     expect((await f.host().dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.membership.joinTripAsMember).toHaveBeenCalledWith(1, 7, 42);
+    // The joined member's MCP session is ended where the trip opened an addon, as REST, MCP and invites do.
+    expect(f.tripAddons.reattachJoinedMember).toHaveBeenCalledWith(1, 7);
     // The whole room hears it: a plugin has no socket to leave out.
     expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'member:added', {
       member: { id: 7, username: 'bob', role: 'member' },
@@ -378,6 +395,7 @@ describe('TripsRpc membership', () => {
     vi.mocked(f.membership.joinTripAsMember).mockResolvedValueOnce({ joined: false, tripId: 1 });
     expect((await f.host().dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.roster.findMember).not.toHaveBeenCalled();
+    expect(f.tripAddons.reattachJoinedMember).not.toHaveBeenCalled();
     expect(f.realtime.broadcast).not.toHaveBeenCalled();
   });
 

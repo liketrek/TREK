@@ -613,6 +613,8 @@ export async function createPluginRpcHostParts(
       accommodations,
       members,
       (await sharedTestOrm(db)).em,
+      // TripAddonsService: ending a joined member's MCP sessions has its own suites.
+      { reattachJoinedMember: async () => {} } as never,
     ),
     new CostsRpc(budget, new TripAccessService(await createTestTripsRepo(db)), realtime, guards, membership),
     new ReservationsRpc(reservations, realtime, guards),
