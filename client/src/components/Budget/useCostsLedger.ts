@@ -216,7 +216,8 @@ export function useCostsLedger({
   // A settle-up books the flows in the display currency, so only flows read in it
   // may be booked: not after a failed read, and not while they are in another one.
   // And only by someone who may edit the costs at all.
-  const canSettle = canEdit && !settlementError && settledIn === base && flows.length > 0;
+  const flowsInBase = !settlementError && settledIn === base;
+  const canSettle = canEdit && flowsInBase && flows.length > 0;
   const splitting = useMemo(
     () => showsSplitting(trip?.costs_mode, memberCount, budgetItems, settlement, me),
     [trip?.costs_mode, memberCount, budgetItems, settlement, me]
@@ -227,9 +228,10 @@ export function useCostsLedger({
   const knownNames = useMemo(() => knownPersonNames(budgetItems, settlement), [budgetItems, settlement]);
   // `ctx` carries the rates. They can land after the expenses, and without it in the
   // deps the cards kept the sums they were first added up with while the rows moved on.
+  // The owe and owed cards print in the display currency too, so they count the same flows.
   const totals = useMemo(
-    () => computeTotals(budgetItems, flows, ctx, shareOf, leftOutCats),
-    [budgetItems, flows, ctx, shareOf, leftOutCats]
+    () => computeTotals(budgetItems, flowsInBase ? flows : [], ctx, shareOf, leftOutCats),
+    [budgetItems, flowsInBase, flows, ctx, shareOf, leftOutCats]
   );
   const filtered = useMemo(
     () =>

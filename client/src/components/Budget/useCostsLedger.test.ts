@@ -16,7 +16,7 @@ import type { CostsSettlementResponse } from './costsModel';
 import { useCostsLedger } from './useCostsLedger';
 import { useFreezeMissingRates } from './useFreezeMissingRates';
 
-// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-021
+// FE-BUDGET-LEDGER-001 to FE-BUDGET-LEDGER-022
 
 const fx = vi.hoisted(() => ({
   // One stable converter, the way useExchangeRates hands out a memoised one: USD is half a euro.
@@ -392,6 +392,26 @@ describe('useCostsLedger: another currency for this trip (#1683)', () => {
       await result.current.settleAll();
     });
     expect(createMock()).not.toHaveBeenCalled();
+    localStorage.removeItem('trek:costs-currency:7');
+  });
+  it('FE-BUDGET-LEDGER-022: the owe and owed cards count only flows read in the currency shown', async () => {
+    localStorage.removeItem('trek:costs-currency:7');
+    const { result } = setup();
+    await waitFor(() => expect(result.current.totals.owe).toBe(15));
+    expect(result.current.totals.owed).toBe(5);
+    settlementMock().mockRejectedValueOnce(new Error('Settlement not available offline'));
+    act(() => result.current.setBase('JPY'));
+    await waitFor(() => expect(result.current.settlementError).toBe(true));
+    expect(result.current.totals.owe).toBe(0);
+    expect(result.current.totals.owed).toBe(0);
+    settlementMock().mockResolvedValueOnce({ ...SETTLEMENT, currency: 'EUR' });
+    act(() => result.current.loadSettlement());
+    await waitFor(() => expect(result.current.settlementError).toBe(false));
+    expect(result.current.totals.owe).toBe(0);
+    settlementMock().mockResolvedValueOnce({ ...SETTLEMENT, currency: 'JPY' });
+    act(() => result.current.loadSettlement());
+    await waitFor(() => expect(result.current.totals.owe).toBe(15));
+    expect(result.current.totals.owed).toBe(5);
     localStorage.removeItem('trek:costs-currency:7');
   });
 });
