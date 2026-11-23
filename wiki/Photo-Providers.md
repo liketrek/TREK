@@ -106,6 +106,10 @@ In the [Journey Journal](Journey-Journal) the same libraries are used in three p
 - the journey gallery's photo picker, with **Select all** over a day, the **Trip Period**, a **Date Range** or **All Photos**;
 - TREK Studio, where the **Content** section offers **From Immich** and **From Synology Photos** next to **Upload photos** (see [TREK Studio](Journey-Journal#trek-studio)).
 
+### Videos on public journey links
+
+A public journey link never shows where a photo or video was taken. Photos go out as Immich's preview. An Immich video with a location plays on a public link only when Immich serves a transcoded copy, because only that copy is free of the location. Immich's default transcode policy leaves common H.264 clips untranscoded, so such a clip does not play on a public link. To share it, set **Transcode policy** to **All videos** in Immich's video transcoding settings, or remove the clip's location in Immich. You and the members of the trip always see the original.
+
 ---
 
 ## See also
