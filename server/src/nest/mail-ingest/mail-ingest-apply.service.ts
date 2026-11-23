@@ -43,6 +43,7 @@ const FINGERPRINT_KEYS = [
   'metadata',
 ] as const;
 type Written = Awaited<ReturnType<ReservationsService['createWithCostInTx']>>;
+type CreatedPlace = Awaited<ReturnType<PlacesService['create']>>;
 
 /** A booking ready to write: everything that needs the network (geocoding, the frozen rate) is done. */
 export interface PreparedBooking {
@@ -59,7 +60,8 @@ export interface PreparedBooking {
 export interface WrittenBooking {
   tripId: number;
   reservation: Written['reservation'];
-  place: { id: number } | null;
+  /** The place the write created, as the place routes announce it. */
+  place: CreatedPlace | null;
   accommodationCreated: boolean;
   costEvents: CostEvent[];
   stayMirror: Written['stayMirror'];
@@ -137,7 +139,7 @@ export class MailIngestApplyService {
     return {
       tripId: prepared.tripId,
       reservation: written.reservation,
-      place: place ? { id: place.id } : null,
+      place,
       accommodationCreated: written.accommodationCreated,
       costEvents: written.costEvents,
       stayMirror: written.stayMirror,

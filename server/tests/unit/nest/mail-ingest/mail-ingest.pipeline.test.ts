@@ -504,6 +504,61 @@ describe('the AI’s trip pick', () => {
   });
 });
 
+describe('what a mail names', () => {
+  const RETURN: BookingImportPreviewItem = {
+    ...FLIGHT,
+    title: 'LH 717 Osaka to Tokyo',
+    reservation_time: '2030-03-08T18:00',
+    reservation_end_time: '2030-03-08T19:10',
+    metadata: { flight_number: 'LH717' },
+    endpoints: [
+      endpoint('from', 'Osaka Itami', 'ITM', 34.78, 135.44),
+      endpoint('to', 'Tokyo Haneda', 'HND', 35.55, 139.78),
+    ],
+  };
+  const DINNER: BookingImportPreviewItem = {
+    type: 'restaurant',
+    title: 'Dinner at Sora',
+    reservation_time: '2030-03-03T19:00',
+    _venue: { name: 'Sora', lat: 34.7, lng: 135.5 },
+    source: { fileName: 'mail.eml', index: 1 },
+  };
+  const BOTH = `${BODY} Return flight LH 717 from Osaka to Tokyo on 2030-03-08. Dinner at Sora.`;
+
+  /** The AI reads the mail as one booking whose reservations map to these items. */
+  function aiReads(items: BookingImportPreviewItem[]): void {
+    reader.isAvailable.mockResolvedValue(true);
+    bookingImport.mapAiReservations.mockResolvedValueOnce(items.map((item) => ({ ...item })));
+    aiRead.mockResolvedValue({
+      outcome: 'ok',
+      documentText: BOTH,
+      imageOnly: false,
+      bookings: [
+        {
+          kind: 'new_booking',
+          reservations: [{ '@type': 'FlightReservation' }],
+          tripRef: null,
+          tripConfidence: 0.9,
+          uncertainFields: [],
+          suggestedNewTrip: null,
+        },
+      ],
+    } as AiReading);
+  }
+
+  it('announces the place it created as the place routes do, with its name and position', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    machine.mockResolvedValue([DINNER]);
+
+    await forward(user.id, eml('dinner', 'Fwd: Your table', BOTH));
+    expect(t.realtime.broadcastMock).toHaveBeenCalledWith(trip.id, 'place:created', {
+      place: expect.objectContaining({ id: expect.any(Number), name: 'Sora', lat: 34.7, lng: 135.5 }),
+    });
+  });
+
+});
+
 describe('a mail that keeps failing', () => {
   it('is tried again later and given up after its last try', async () => {
     const user = await person();
