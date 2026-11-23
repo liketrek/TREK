@@ -1,4 +1,4 @@
-// FE-STORE-TRIPADDONS-001 to FE-STORE-TRIPADDONS-008: the trip addons per trip, read,
+// FE-STORE-TRIPADDONS-001 to FE-STORE-TRIPADDONS-009: the trip addons per trip, read,
 // pushed and switched, and the readers that fall back to the instance switches.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { TripAddon } from '@trek/shared';
@@ -87,14 +87,38 @@ describe('tripAddonsStore', () => {
 
     const first = useTripAddonsStore.getState().load(4);
     const second = useTripAddonsStore.getState().load(4);
-    await second;
     await waitFor(() => expect(asked).toBe(1));
     useTripAddonsStore.getState().publish(4, [addon('budget', false, true)]);
     release();
-    await first;
+    expect(await first).toEqual([addon('budget', false, true)]);
+    expect(await second).toEqual([addon('budget', false, true)]);
 
     expect(asked).toBe(1);
     expect(entry(4)).toMatchObject({ status: 'ready', addons: [addon('budget', false, true)] });
+  });
+
+  it('FE-STORE-TRIPADDONS-009: a second caller during a read gets that read’s answer, not the list held before', async () => {
+    tripHas(4, [addon('tours', false, false)]);
+    await useTripAddonsStore.getState().load(4);
+    let release: () => void = () => {};
+    let asked = 0;
+    server.use(
+      http.get('/api/trips/4/addons', async () => {
+        asked++;
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return HttpResponse.json({ tripId: 4, addons: [addon('tours', true, false)] });
+      })
+    );
+
+    const first = useTripAddonsStore.getState().load(4);
+    const second = useTripAddonsStore.getState().load(4);
+    await waitFor(() => expect(asked).toBe(1));
+    release();
+
+    expect(await second).toEqual([addon('tours', true, false)]);
+    expect(await first).toEqual([addon('tours', true, false)]);
   });
 
   it('FE-STORE-TRIPADDONS-004: the owner’s switch puts the server’s answer in place', async () => {

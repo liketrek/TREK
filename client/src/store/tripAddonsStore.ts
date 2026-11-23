@@ -44,34 +44,45 @@ function keyOf(tripId: number): string {
   return `${useAuthStore.getState().user?.id ?? 'anon'}:${tripId}`;
 }
 
+// The read running per trip, so a second caller waits for its answer instead of taking the older list.
+const reading = new Map<string, Promise<TripAddon[] | null>>();
+
 export const useTripAddonsStore = create<TripAddonsState>((set, get) => ({
   trips: {},
 
-  load: async (tripId) => {
-    if (!Number.isSafeInteger(tripId) || tripId < 1) return null;
+  load: (tripId) => {
+    if (!Number.isSafeInteger(tripId) || tripId < 1) return Promise.resolve(null);
     const key = keyOf(tripId);
     const before = get().trips[key];
-    if (before?.status === 'loading') return before.addons;
-    const rev = (before?.rev ?? 0) + 1;
-    set((state) => ({ trips: { ...state.trips, [key]: { addons: before?.addons ?? null, status: 'loading', rev } } }));
-    let addons: TripAddon[] | null = null;
-    try {
-      addons = await tripAddonsRepo.list(tripId);
-    } catch {
-      // Offline with nothing kept, or the server refused: the readers fall back to the instance switches.
-    }
-    const current = get().trips[key];
-    // A push that landed meanwhile is newer than this answer and stays, in the
-    // store and in the device's copy the answer was written over.
-    if (current && current.rev !== rev) {
-      if (addons && current.addons) void tripAddonsRepo.remember(tripId, current.addons).catch(() => {});
-      return current.addons;
-    }
-    const entry: TripAddonsEntry = addons
-      ? { addons, status: 'ready', rev }
-      : { addons: current?.addons ?? null, status: 'failed', rev };
-    set((state) => ({ trips: { ...state.trips, [key]: entry } }));
-    return entry.addons;
+    if (before?.status === 'loading') return reading.get(key) ?? Promise.resolve(before.addons);
+    const read = (async () => {
+      const rev = (before?.rev ?? 0) + 1;
+      set((state) => ({
+        trips: { ...state.trips, [key]: { addons: before?.addons ?? null, status: 'loading', rev } },
+      }));
+      let addons: TripAddon[] | null = null;
+      try {
+        addons = await tripAddonsRepo.list(tripId);
+      } catch {
+        // Offline with nothing kept, or the server refused: the readers fall back to the instance switches.
+      }
+      const current = get().trips[key];
+      // A push that landed meanwhile is newer than this answer and stays, in the
+      // store and in the device's copy the answer was written over.
+      if (current && current.rev !== rev) {
+        if (addons && current.addons) void tripAddonsRepo.remember(tripId, current.addons).catch(() => {});
+        return current.addons;
+      }
+      const entry: TripAddonsEntry = addons
+        ? { addons, status: 'ready', rev }
+        : { addons: current?.addons ?? null, status: 'failed', rev };
+      set((state) => ({ trips: { ...state.trips, [key]: entry } }));
+      return entry.addons;
+    })().finally(() => {
+      if (reading.get(key) === read) reading.delete(key);
+    });
+    reading.set(key, read);
+    return read;
   },
 
   publish: (tripId, addons) => {
