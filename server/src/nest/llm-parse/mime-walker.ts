@@ -73,6 +73,8 @@ export const MAX_MAIL_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const MAX_FORWARD_DEPTH = 10;
 /** A file name is cut here; the kind, not the name, decides how the file is read. */
 const MAX_FILE_NAME = 120;
+/** A reply attribution is a short line; a longer one is never tested as one. */
+const MAX_ATTRIBUTION_LINE = 500;
 
 const ENVELOPE_HEADERS: [keyof MailEnvelope, string][] = [
   ['from', 'from'],
@@ -282,7 +284,7 @@ function safeFileName(name: string, kind: MailAttachmentKind, position: number):
 }
 
 /** Line breaks and block ends, so the header lines of a forwarded HTML mail stay lines without their tags. */
-const HTML_LINE_BREAK = /<(?:br|hr)\b[^>]*>|<\/(?:p|div|tr|li|h[1-6]|blockquote|table)\s*>/gi;
+const HTML_LINE_BREAK = /<(?:br|hr)\b[^<>]*>|<\/(?:p|div|tr|li|h[1-6]|blockquote|table)\s*>/gi;
 
 /**
  * A section as text: its HTML stripped when it has a readable one, else its plain text.
@@ -360,8 +362,11 @@ const FORWARD_MARKER = new RegExp(String.raw`^\s*[-_]{2,}\s*(?:${FORWARD_MARKER_
 const FORWARD_INTRO = new RegExp(String.raw`^\s*(?:${FORWARD_INTRO_WORDS.join('|')})\s*:\s*$`, 'i');
 /** Outlook's rule above the header block of a forwarded message. */
 const OUTLOOK_RULE = /^\s*_{10,}\s*$/;
-/** "On 1 May, Ana wrote:", the line above a quoted reply, which names the sender. */
-const ATTRIBUTION = /^\s*(?:on\s.+\swrote|am\s.+\sschrieb\s.+|le\s.+\sa\s[ée]crit)\s*:\s*$/i;
+/**
+ * "On 1 May, Ana wrote:", the line above a quoted reply, which names the sender.
+ * The lookahead checks the closing colon first, which keeps a long line without one linear.
+ */
+const ATTRIBUTION = /^(?=.*:\s*$)\s*(?:on\s.+\swrote|am\s.+\sschrieb\s.+|le\s.+\sa\s[ée]crit)\s*:\s*$/i;
 const HEADER_LINE = fieldLine([...SENDER_FIELDS, ...OTHER_FIELDS, ...SUBJECT_FIELDS]);
 const FROM_LINE = fieldLine(SENDER_FIELDS);
 const SUBJECT_LINE = fieldLine(SUBJECT_FIELDS);
@@ -403,7 +408,7 @@ function unwrapLayer(lines: string[]): { lines: string[]; changed: boolean } {
     } else if (bareBlockStarts[i]) {
       i = skipHeaderBlock(lines, i);
       changed = true;
-    } else if (ATTRIBUTION.test(line)) {
+    } else if (line.length <= MAX_ATTRIBUTION_LINE && ATTRIBUTION.test(line)) {
       i++;
       changed = true;
     } else if (/^\s*>/.test(line)) {

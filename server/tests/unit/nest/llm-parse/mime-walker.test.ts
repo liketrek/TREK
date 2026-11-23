@@ -275,6 +275,45 @@ describe('walkMail: forwarded and quoted messages', () => {
       expect(walked.forwardLayers).toBe(0);
     },
   );
+
+  it('MIME-WALK-018: an attribution goes in all three languages, a long line of the verbs is read in linear time', () => {
+    const attributions = [
+      'Am 12.05.2025 um 10:15 schrieb Ben <ben@example.org>:',
+      'Le 12 mai 2025 à 10:15, Ben <ben@example.org> a écrit :',
+      'On Mon, 12 May 2025 at 10:15, Ben <ben@example.org> wrote:',
+    ];
+    const quoted = walk(
+      mail(
+        'From: ana@example.org',
+        'Content-Type: text/plain; charset=iso-8859-1',
+        '',
+        ...attributions,
+        'Ferry F-12',
+        '',
+      ),
+    );
+    expect(quoted.body).toBe('Ferry F-12');
+
+    const lines = [
+      `am ${' schrieb '.repeat(25_000)}`,
+      `am ${' schrieb :'.repeat(25_000)}x`,
+      `on ${' wrote x'.repeat(25_000)}`,
+      `le ${' a écrit x'.repeat(25_000)}`,
+    ];
+    const started = Date.now();
+    const walked = walk(mail('From: ana@example.org', 'Content-Type: text/plain', '', ...lines, ''));
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(walked.body.split('\n')).toHaveLength(lines.length);
+  });
+
+  it('MIME-WALK-019: an HTML body of line break tags that never close is read in linear time', () => {
+    const started = Date.now();
+    const walked = walk(
+      mail('From: ana@example.org', 'Content-Type: text/html', '', `Ferry F-12${'<br<script'.repeat(40_000)}`, ''),
+    );
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(walked.body).toMatch(/^Ferry F-12/);
+  });
 });
 
 describe('walkMail: attachments', () => {

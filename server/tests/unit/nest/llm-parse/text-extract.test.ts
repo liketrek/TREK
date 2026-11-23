@@ -296,5 +296,14 @@ describe('text-extract', () => {
       // first `<` behind — a different sanitiser output on malformed markup.
       expect(await extractText(Buffer.from('3 < 4 and <b>5</b>'), 'a.html')).toBe('3 5');
     });
+
+    it('drops script and style elements whatever the case, and stays linear on ones that never close', async () => {
+      const html = 'a<SCRIPT>x()</script>b<style>p{}</STYLE>c<script></script>d';
+      expect(await extractText(Buffer.from(html), 'a.html')).toBe('a b c d');
+      const started = Date.now();
+      const open = await extractText(Buffer.from(`e${'<script<style'.repeat(40000)}`), 'a.html');
+      expect(Date.now() - started).toBeLessThan(1000);
+      expect(open.startsWith('e')).toBe(true);
+    });
   });
 });
