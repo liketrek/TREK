@@ -151,7 +151,7 @@
     "prettier": "^3.10.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "supertest": "^7.3.1",
-    "typescript-eslint": "^8.73.0",
+    "typescript-eslint": "^8.72.1",
     "unplugin-swc": "^1.6.0",
     "vitest": "^4.1.11"
   }

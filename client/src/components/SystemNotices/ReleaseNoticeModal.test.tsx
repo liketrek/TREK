@@ -67,7 +67,14 @@ function renderModal(
   const onSecondaryCTA = handlers.onSecondaryCTA ?? vi.fn();
   const onTertiaryCTA = handlers.onTertiaryCTA ?? vi.fn();
   const view = render(
-    <ReleaseNoticeModal notice={notice} visible onDismiss={onDismiss} onCTA={onCTA} onSecondaryCTA={onSecondaryCTA} onTertiaryCTA={onTertiaryCTA} />
+    <ReleaseNoticeModal
+      notice={notice}
+      visible
+      onDismiss={onDismiss}
+      onCTA={onCTA}
+      onSecondaryCTA={onSecondaryCTA}
+      onTertiaryCTA={onTertiaryCTA}
+    />
   );
   return { ...view, onDismiss, onCTA, onSecondaryCTA, onTertiaryCTA };
 }
