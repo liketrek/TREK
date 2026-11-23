@@ -12,8 +12,9 @@ import {
 
 /**
  * The dialog an addon's setup row opens: the icon tile, the addon it belongs
- * to above the title, what it sets up below, and one Close, since everything
- * inside saves on its own (booking mails, paddle water data).
+ * to above the title, what it sets up below, and one Close. The paddle water
+ * data saves on its own; the booking mail setup has its own Save and asks
+ * before a way out drops what it holds unsaved.
  */
 export default function AddonSetupDialog({
   icon,

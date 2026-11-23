@@ -1,5 +1,5 @@
 import type { MailIngestAdminStatusResponse, MailIngestAdminTestResponse } from '@trek/shared';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n';
 import { mailIngestRepo } from '../../../repo/mailIngestRepo';
 import { getApiErrorMessage } from '../../../types';
@@ -13,6 +13,28 @@ import {
   type MailAdminField,
   type MailAdminForm,
 } from './mailIngestAdminModel';
+
+/**
+ * The setup's own Save keeps the transport fields, so a way out of the setup
+ * with changes not saved asks first, and throwing them away puts the saved
+ * values back.
+ */
+function useLeaveSetup(dirty: boolean, revert: () => void) {
+  const [asking, setAsking] = useState(false);
+  const leave = useRef<(() => void) | null>(null);
+  const requestClose = (close: () => void) => {
+    if (!dirty) return close();
+    leave.current = close;
+    setAsking(true);
+  };
+  const discard = () => {
+    setAsking(false);
+    revert();
+    leave.current?.();
+    leave.current = null;
+  };
+  return { asking, requestClose, keepEditing: () => setAsking(false), discard, revert };
+}
 
 /**
  * The admin card of the booking mail import, desktop and phone alike: the
@@ -76,6 +98,7 @@ export function useMailIngestAdmin(active: boolean) {
 
   const patch = form && saved ? changesOf(form, saved) : {};
   const problems = form ? problemsOf(form) : [];
+  const leaving = useLeaveSetup(Object.keys(patch).length > 0, () => setForm(saved));
 
   const save = async () => {
     if (!form || Object.keys(patch).length === 0 || problems.length > 0) return;
@@ -118,6 +141,7 @@ export function useMailIngestAdmin(active: boolean) {
     test,
     testing,
     runTest: () => void runTest(),
+    leaving,
   };
 }
 

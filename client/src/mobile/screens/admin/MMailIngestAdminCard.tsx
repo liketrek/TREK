@@ -18,6 +18,7 @@ import { relativeTime } from '../../../utils/relativeTime';
 import MSegmented from '../../components/MSegmented';
 import MSheet from '../../components/MSheet';
 import MToggle from '../../components/MToggle';
+import MConfirmSheet from '../settings/MConfirmSheet';
 import {
   MAdminButton,
   MAdminField,
@@ -262,6 +263,7 @@ export default function MMailIngestAdminCard({ first = false }: { first?: boolea
   const admin = useMailIngestAdmin(true);
   const [open, setOpen] = useState(false);
   const setupLabel = t('mailAdmin.setup');
+  const close = () => admin.leaving.requestClose(() => setOpen(false));
   return (
     <>
       <MAdminOptionRow
@@ -280,16 +282,32 @@ export default function MMailIngestAdminCard({ first = false }: { first?: boolea
       />
       {admin.enabled && admin.form && <MAdminSetupRow label={setupLabel} onOpen={() => setOpen(true)} />}
       {open && admin.enabled && admin.form && (
-        <MSheet open onClose={() => setOpen(false)} variant="bottom" material="glass" ariaLabel={setupLabel}>
-          <MAdminSheetFrame
-            icon={<Mail size={19} strokeWidth={1.8} />}
-            title={setupLabel}
-            onClose={() => setOpen(false)}
-          >
+        <MSheet
+          open
+          onClose={() => {
+            admin.leaving.revert();
+            setOpen(false);
+          }}
+          variant="bottom"
+          material="glass"
+          ariaLabel={setupLabel}
+          discardGuard={admin.dirty}
+        >
+          <MAdminSheetFrame icon={<Mail size={19} strokeWidth={1.8} />} title={setupLabel} onClose={close}>
             <Setup admin={admin} form={admin.form} t={t} locale={locale} />
           </MAdminSheetFrame>
         </MSheet>
       )}
+      <MConfirmSheet
+        open={admin.leaving.asking}
+        onClose={admin.leaving.keepEditing}
+        onConfirm={admin.leaving.discard}
+        title={t('common.unsavedTitle')}
+        message={t('common.unsavedMessage')}
+        confirmLabel={t('common.discard')}
+        cancelLabel={t('common.keepEditing')}
+        danger
+      />
     </>
   );
 }

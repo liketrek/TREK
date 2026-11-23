@@ -6,6 +6,7 @@ import { copyText } from '../../../utils/clipboard';
 import { relativeTime } from '../../../utils/relativeTime';
 import { HintMark, SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, StatusPill } from '../../Settings/settingsKit';
 import ToggleSwitch from '../../Settings/ToggleSwitch';
+import ConfirmDialog from '../../shared/ConfirmDialog';
 import CustomSelect from '../../shared/CustomSelect';
 import { EditorField, GRID_2, INPUT, READONLY_BOX } from '../../shared/dialogParts';
 import { useToast } from '../../shared/Toast';
@@ -312,6 +313,7 @@ export default function MailIngestAddonTile() {
   const admin = useMailIngestAdmin(true);
   const [open, setOpen] = useState(false);
   const name = t('mailAdmin.title');
+  const close = () => admin.leaving.requestClose(() => setOpen(false));
   return (
     <>
       <AddonTile
@@ -336,11 +338,22 @@ export default function MailIngestAddonTile() {
           eyebrow={name}
           title={t('mailAdmin.setup')}
           sub={t('mailAdmin.hint')}
-          onClose={() => setOpen(false)}
+          onClose={close}
+          blocked={admin.leaving.asking}
         >
           <Setup admin={admin} form={admin.form} t={t} locale={locale} />
         </AddonSetupDialog>
       )}
+      <ConfirmDialog
+        isOpen={admin.leaving.asking}
+        onClose={admin.leaving.keepEditing}
+        onConfirm={admin.leaving.discard}
+        title={t('common.unsavedTitle')}
+        message={t('common.unsavedMessage')}
+        confirmLabel={t('common.discard')}
+        cancelLabel={t('common.keepEditing')}
+        danger
+      />
     </>
   );
 }
