@@ -126,7 +126,7 @@ describe('renditionFor', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     try {
       const first = expect(service.renditionFor('journey', 'long.jpg')).rejects.toBeInstanceOf(RenditionPendingError);
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(50_000);
       await first;
     } finally {
       vi.useRealTimers();
@@ -137,6 +137,32 @@ describe('renditionFor', () => {
     expect(await service.renditionFor('journey', 'long.jpg')).toBe('public/long.jpg');
     expect(storage.put).toHaveBeenCalledTimes(1);
     expect(await exifr.gps(fs.readFileSync(at('journey', 'public/long.jpg')))).toBeUndefined();
+  });
+
+  it('PMEDIA-006b: a copy that takes half a minute is still answered by the request that waits for it', async () => {
+    write('journey', 'slow.jpg', phonePhoto());
+    let release = () => {};
+    let started = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const building = new Promise<void>((resolve) => (started = resolve));
+    storage.withLocalFile.mockImplementationOnce(async (category, name, fn) => {
+      started();
+      await held;
+      return fn(at(category, name));
+    });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const settled = service.renditionFor('journey', 'slow.jpg').then(
+        (name) => ({ name }),
+        (err: unknown) => ({ err }),
+      );
+      await building;
+      await vi.advanceTimersByTimeAsync(30_000);
+      release();
+      expect(await settled).toEqual({ name: 'public/slow.jpg' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('PMEDIA-003: refuses what it can neither clean nor re-encode, a copy by its own name, and a source that is gone', async () => {

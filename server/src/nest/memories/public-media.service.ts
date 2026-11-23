@@ -25,11 +25,15 @@ const RENDITION_CATEGORIES: readonly ServedCategory[] = ['avatars', 'covers', 'j
 const REENCODABLE_EXTENSIONS = new Set(['.bmp', '.gif', '.jpeg', '.jpg', '.png', '.tif', '.tiff']);
 
 /**
- * How long a request waits for a copy being made. A large video takes longer
- * than a reverse proxy waits for the first byte, so past this the request is
- * told to come back while the copy goes on being made.
+ * How long a request waits for a copy being made: just under the 60 s a
+ * reverse proxy commonly waits for the first byte, since no public page
+ * retries a 503 by itself. A video that takes longer still is answered with
+ * come back later while the copy goes on being made.
  */
-const RENDITION_WAIT_MS = 10_000;
+const RENDITION_WAIT_MS = 50_000;
+
+/** The Retry-After sent with a pending answer, in seconds. */
+const RENDITION_RETRY_AFTER_S = 10;
 
 /** The copy of a name is still being made; the request is answered with {@link answerRenditionPending}. */
 export class RenditionPendingError extends Error {
@@ -48,7 +52,7 @@ export function pendingOrNone(err: unknown): typeof RENDITION_PENDING | null {
 
 /** Answers a request whose copy is still being made: 503, come back in a while, nothing cached. */
 export function answerRenditionPending(res: Response): void {
-  res.set('Retry-After', String(RENDITION_WAIT_MS / 1000));
+  res.set('Retry-After', String(RENDITION_RETRY_AFTER_S));
   res.set('Cache-Control', 'no-store');
   res.status(503).json({ error: 'The file is being prepared, try again shortly' });
 }
