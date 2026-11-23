@@ -103,7 +103,7 @@
     "@fontsource/yellowtail": "^5.3.0",
     "@maplibre/maplibre-gl-leaflet": "0.1.4",
     "@noble/hashes": "^1.8.0",
-    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/browser": "^14.0.0",
     "@trek/shared": "*",
     "axios": "^1.21.0",
     "dexie": "^4.4.7",
