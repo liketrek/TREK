@@ -369,10 +369,12 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
       .filter(r => r.type !== 'hotel' && r.day_id != null && dayNumberOf.has(r.day_id))
       .map((r: PdfBooking) => {
         const day = dayNumberOf.get(r.day_id ?? -1)
-        const time = fmtTime(splitReservationDateTime(day ? getDisplayTimeForDay(r, day.id) : null).time)
+        // Sorted on the stored 24h clock: the printed 12h one puts 1:00 PM before 9:30 AM.
+        const clock = splitReservationDateTime(day ? getDisplayTimeForDay(r, day.id) : null).time
+        const time = fmtTime(clock)
         return {
           order: orderOf(r.day_id),
-          minute: time,
+          minute: clock || '',
           icon: bookingIcon(r.type, 13),
           tint: hexColour(bookingTint(r.type), '#6b6b75'),
           title: r.title || '',

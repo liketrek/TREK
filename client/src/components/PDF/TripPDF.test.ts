@@ -751,6 +751,19 @@ describe('downloadTripPDF remaining branches', () => {
       expect(html).not.toContain('16:45')
     })
 
+    it('FE-W5PDF-035: the overview lists a day of bookings by the clock, also in 12h', async () => {
+      const booking = (id: number, title: string, time: string) => ({
+        id, title, type: 'tour', day_id: 10, reservation_time: `2025-06-01T${time}`,
+      })
+      await downloadTripPDF(at('14:30', {
+        timeFormat: '12h',
+        reservations: [booking(701, 'Afternoon tour', '13:00'), booking(702, 'Late morning tour', '10:00'), booking(703, 'Morning tour', '09:30')],
+      }) as never)
+      const doc = new DOMParser().parseFromString(srcdoc(), 'text/html')
+      const titles = [...doc.querySelectorAll('.ledger .ledger-title')].map(el => el.textContent)
+      expect(titles).toEqual(['Morning tour', 'Late morning tour', 'Afternoon tour'])
+    })
+
     it('FE-W5PDF-032: a 24h reader gets the same times without a meridiem', async () => {
       await downloadTripPDF(at('14:30', { timeFormat: '24h' }) as never)
       const html = srcdoc()
