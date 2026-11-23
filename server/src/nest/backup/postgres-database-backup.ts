@@ -1,5 +1,6 @@
 import type { DbSettings } from '../../app-config';
 import { postgresTarget, type DatabaseEngine } from '../../db/engine';
+import { PgToolMissingError } from '../../db/engine/postgres/pg-process';
 import { pgDump, pgDumpMigrations, pgRestore, pgRestoreTarget } from '../../db/engine/postgres/pg-tools';
 import { unknownMigrations } from '../../db/known-migrations';
 import { DataPathsService } from '../app-config/data-paths.service';
@@ -35,6 +36,23 @@ export async function checkPostgresDump(extractDir: string, binDir: string | und
   return checkPostgresDumpFile(dump, binDir);
 }
 
+/** pg_restore's words for an archive a newer pg_dump wrote. */
+const NEWER_ARCHIVE_FORMAT = /unsupported version \([\d.]+\) in file header/;
+
+/**
+ * The reason when pg_restore, not the file, kept the dump from being read: the
+ * tool is missing, or older than the pg_dump that wrote the archive. Null for
+ * anything else.
+ */
+function toolCannotRead(err: unknown): string | null {
+  if (err instanceof PgToolMissingError) return err.message;
+  if (!NEWER_ARCHIVE_FORMAT.test(describeError(err))) return null;
+  return (
+    'This backup was written by a newer pg_dump than the pg_restore TREK runs can read. ' +
+    'Point TREK_DB_PG_BIN_DIR at newer client tools (the Docker image has the newest supported ones).'
+  );
+}
+
 /** Why the dump at `dump` cannot be restored into a Postgres database, or null: the checks of {@link checkPostgresDump}. */
 async function checkPostgresDumpFile(dump: string, binDir: string | undefined): Promise<string | null> {
   let executed: string[];
@@ -42,7 +60,7 @@ async function checkPostgresDumpFile(dump: string, binDir: string | undefined): 
     executed = await pgDumpMigrations(dump, binDir);
   } catch (err) {
     logWarn(`Restore: the archive's database could not be read (${describeError(err)})`);
-    return 'Uploaded file is not a valid Postgres dump';
+    return toolCannotRead(err) ?? 'Uploaded file is not a valid Postgres dump';
   }
   if (executed.length === 0) {
     return 'The uploaded dump holds no TREK migration history. This does not appear to be a TREK backup.';

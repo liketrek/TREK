@@ -203,4 +203,16 @@ describe('PostgresDatabaseBackup', () => {
     installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(['Migration20990101000000_from_the_future'])] });
     await expect(backup.checkCopy(copy)).resolves.toMatch(/made by a newer TREK version/);
   });
+
+  it('PGBACKUP-008: a dump pg_restore cannot read for its own reasons names the tool, not the file', async () => {
+    const copy = path.join(root, 'travel.pgdump');
+    writeFileSync(copy, 'dump');
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await expect(backup.checkCopy(copy)).resolves.toMatch(/^pg_restore was not found/);
+
+    installFakeTool(bin, 'pg_restore', {
+      snippets: [failsWith('pg_restore: error: unsupported version (1.16) in file header')],
+    });
+    await expect(backup.checkCopy(copy)).resolves.toMatch(/written by a newer pg_dump than the pg_restore/);
+  });
 });
