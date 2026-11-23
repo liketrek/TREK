@@ -110,6 +110,12 @@ export class DawarichSyncService {
    */
   private readonly inFlight = new Set<number>();
 
+  /**
+   * Per user, the last unnamed stay read again, so the next run goes on after
+   * it instead of asking about the same first MAX_UNNAMED_STAY_REREADS again.
+   */
+  private readonly lastUnnamedReread = new Map<number, number>();
+
   constructor(
     @InjectRepository(DawarichVisitSuggestions) private readonly suggestions: DawarichVisitSuggestionsRepository,
     private readonly addons: AddonsService,
@@ -325,7 +331,7 @@ export class DawarichSyncService {
       if (outcome.change === 'created') created++;
       else if (outcome.change === 'updated') updated++;
     }
-    await this.rereadUnnamed(nameStay);
+    await this.rereadUnnamed(userId, nameStay);
 
     const missing = await this.flagMissing(userId, tripId, from, to, seenIds);
     return { created, updated, missing };
@@ -356,17 +362,23 @@ export class DawarichSyncService {
   /**
    * The unnamed stays of a run read again with the budget the others left,
    * at most MAX_UNNAMED_STAY_REREADS of them, so a Dawarich that geocodes
-   * nothing is not asked about the same stays in full on every run.
+   * nothing is not asked about the same stays in full on every run. Each run
+   * starts after the stay the last one stopped at, so every unnamed stay gets
+   * its turn even when the first ones never get a name.
    *
    * @txStandalone a name found later is a derived refresh of a stay already stored.
    * @txIndependent one stay at a time after its network read.
    */
-  private async rereadUnnamed(nameStay: StayNamer): Promise<void> {
+  private async rereadUnnamed(userId: number, nameStay: StayNamer): Promise<void> {
+    const after = this.lastUnnamedReread.get(userId) ?? 0;
+    const byId = [...nameStay.unnamed].sort((a, b) => a.id - b.id);
+    const turn = [...byId.filter((s) => s.id > after), ...byId.filter((s) => s.id <= after)];
     // One after another: a read that finds the budget spent stops the rest.
-    await nameStay.unnamed.slice(0, MAX_UNNAMED_STAY_REREADS).reduce<Promise<boolean>>(async (going, stay) => {
+    await turn.slice(0, MAX_UNNAMED_STAY_REREADS).reduce<Promise<boolean>>(async (going, stay) => {
       if (!(await going)) return false;
       const found = await nameStay.read(stay.startedAt, stay.endedAt);
       if (found === undefined) return false;
+      this.lastUnnamedReread.set(userId, stay.id);
       if (found !== null) await this.suggestions.renameNewVisit(stay.id, found);
       return true;
     }, Promise.resolve(true));
@@ -537,7 +549,7 @@ export class DawarichSyncService {
       if (outcome?.change === 'created') created++;
       else if (outcome?.change === 'updated') updated++;
     }
-    await this.rereadUnnamed(nameStay);
+    await this.rereadUnnamed(userId, nameStay);
     return { created, updated, truncated };
   }
 
