@@ -84,6 +84,11 @@ export interface PluginContext {
    * before its next statement). An `exec` with bound args (one statement) and
    * `migrate` are not timed, and no single statement can be stopped midway (a read
    * only between its rows).
+   * Every call runs in a transaction of its own, so transaction control (`BEGIN`, `COMMIT`,
+   * `ROLLBACK`, `SAVEPOINT`, ...) is refused in every statement of every call, on both
+   * engines; batch atomic writes with `tx()` instead of a `BEGIN; ...; COMMIT;` script.
+   * SQL, a bound value or a `migrate` id holding the character U+0000 (NUL) is refused on
+   * both engines too: bind binary data as a Buffer and keep NUL out of composite keys.
    * See `tx()` below for the atomic-batch cap and README § Runtime limits. */
   db: {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;

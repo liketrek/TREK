@@ -127,6 +127,20 @@ Your plugin runs in an **isolated child process**. `ctx` is the only way to reac
 TREK, and it grants exactly the permissions your `trek-plugin.json` declares — an
 ungranted call throws `PERMISSION_DENIED`.
 
+Two rules of your own database (`db:own`) hold on every engine, SQLite included, and in
+`dev` and the mock host:
+
+- **No transaction control in your SQL.** Each `query`, `exec`, `tx` and `migrate` call runs
+  in a transaction of its own, so `BEGIN`, `START`, `COMMIT`, `END`, `ROLLBACK`, `ABORT`,
+  `SAVEPOINT` and `RELEASE` are refused in every statement with
+  `PLUGIN_DATA_ERRORS.txControl`. An `exec('BEGIN; INSERT ...; UPDATE ...; COMMIT;')` script,
+  which TREK before 5.2 ran on SQLite, now throws: pass those statements to one `ctx.db.tx([...])`
+  call instead, which commits them all or none.
+- **No NUL (U+0000) in SQL, bound values or `migrate` ids.** Such a call is refused rather
+  than stored, since Postgres text cannot hold the character and TREK will not change a value
+  you asked to store. Bind binary data as a `Buffer` and use another separator than `'\0'` in
+  composite keys. Rows an older TREK already stored with a NUL are still read as they are.
+
 ### What a ctx call returns
 
 Every ctx method falls into one of three kinds, listed per method in the exported
