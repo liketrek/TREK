@@ -1187,6 +1187,7 @@ jobs:
             --set 'extraVolumeMounts[0].mountPath=/usr/local/share/kitinerary/extractors' \
             --set 'extraVolumeMounts[0].readOnly=true' \
             --set probes.liveness=null \
+            --set database=null \
             > "$out/variants.yaml"
           helm template trek charts/trek \
             --set httpRoute.enabled=true \
