@@ -35,6 +35,8 @@ const EMPTY = { settings: null, entries: [], nextBefore: null, pending: 0, loadi
 export const useMailIngestStore = create<MailIngestState>((set, get) => {
   // Bumped on sign-out, so an answer still on its way for the account before lands nowhere.
   let account = 0;
+  // Set when the inbox changed while a read was on its way: that answer is older, so the read runs again.
+  let stale = false;
   return {
     ...EMPTY,
 
@@ -63,18 +65,30 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => {
     },
 
     loadInbox: async (more = false) => {
-      if (isEffectivelyOffline() || get().loadingInbox) return;
+      if (isEffectivelyOffline()) return;
+      if (get().loadingInbox) {
+        if (!more) stale = true;
+        return;
+      }
       const asked = account;
       set({ loadingInbox: true });
       try {
-        const before = more ? (get().nextBefore ?? undefined) : undefined;
-        const { entries, pending, next_before } = await mailIngestRepo.inbox(before);
-        if (asked !== account) return;
-        set((state) => ({
-          entries: more ? [...state.entries, ...entries] : entries,
-          pending,
-          nextBefore: next_before,
-        }));
+        let page = more;
+        do {
+          stale = false;
+          const before = page ? (get().nextBefore ?? undefined) : undefined;
+          const { entries, pending, next_before } = await mailIngestRepo.inbox(before);
+          if (asked !== account) return;
+          if (stale) {
+            page = false;
+            continue;
+          }
+          set((state) => ({
+            entries: page ? [...state.entries, ...entries] : entries,
+            pending,
+            nextBefore: next_before,
+          }));
+        } while (stale);
       } catch {
         // The inbox stays as it was; the next open reads it again.
       } finally {
@@ -86,6 +100,7 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => {
       const asked = account;
       const candidate = await mailIngestRepo.act(candidateId, action, body);
       if (asked !== account) return candidate;
+      if (get().loadingInbox) stale = true;
       set((state) => {
         const stillOpen = OPEN.has(candidate.resolution);
         const entries = state.entries.flatMap((entry) =>
@@ -99,6 +114,7 @@ export const useMailIngestStore = create<MailIngestState>((set, get) => {
 
     reset: () => {
       account += 1;
+      stale = false;
       set(EMPTY);
     },
   };

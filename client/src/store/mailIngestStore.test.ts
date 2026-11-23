@@ -1,4 +1,4 @@
-// FE-STORE-MAILINGEST-001 to FE-STORE-MAILINGEST-006
+// FE-STORE-MAILINGEST-001 to FE-STORE-MAILINGEST-008
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../api/mailIngest', () => ({
@@ -102,6 +102,38 @@ describe('mailIngestStore', () => {
     expect(state.entries).toEqual([]);
     expect(state.pending).toBe(0);
     expect(state.loadingInbox).toBe(false);
+  });
+
+  it('FE-STORE-MAILINGEST-007: a reload asked for while a read is on its way runs once that read is in', async () => {
+    let answer: (value: unknown) => void = () => undefined;
+    vi.mocked(mailIngestApi.inbox)
+      .mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)) as never)
+      .mockResolvedValueOnce({ entries: [entry(1), entry(2), entry(3)], pending: 3, next_before: null });
+    const stop = watchMailInbox();
+    const reading = useMailIngestStore.getState().loadInbox();
+    listeners.forEach((fn) => fn({ type: 'mailInbox:changed', pending: 3 }));
+    answer({ entries: [entry(1), entry(2)], pending: 2, next_before: null });
+    await reading;
+    const state = useMailIngestStore.getState();
+    expect(state.entries.map((e) => e.id)).toEqual([1, 2, 3]);
+    expect(state.pending).toBe(3);
+    expect(mailIngestApi.inbox).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it('FE-STORE-MAILINGEST-008: an entry decided while a read is on its way does not come back with it', async () => {
+    useMailIngestStore.setState({ entries: [entry(1), entry(2)] as never, pending: 2 });
+    let answer: (value: unknown) => void = () => undefined;
+    vi.mocked(mailIngestApi.inbox)
+      .mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)) as never)
+      .mockResolvedValueOnce({ entries: [entry(2)], pending: 1, next_before: null });
+    vi.mocked(mailIngestApi.act).mockResolvedValue({ candidate: candidate(1, 'discarded') });
+    const reading = useMailIngestStore.getState().loadInbox();
+    await useMailIngestStore.getState().act(1, 'discard');
+    answer({ entries: [entry(1), entry(2)], pending: 2, next_before: null });
+    await reading;
+    expect(useMailIngestStore.getState().entries.map((e) => e.id)).toEqual([2]);
+    expect(useMailIngestStore.getState().pending).toBe(1);
   });
 
   it('FE-STORE-MAILINGEST-005: the server inbox events move the count, read the list again and reload the settings', async () => {
