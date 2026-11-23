@@ -166,11 +166,23 @@ function claimedBySibling(
 }
 
 /**
+ * Whether an aircraft in the air before the leg's scheduled departure cannot be
+ * this leg: it is no nearer the destination than the origin is, so it has not
+ * left the origin for it. That is the aircraft still flying an earlier sector
+ * of the same flight number, which nobody on the instance may have booked.
+ */
+function airborneBeforeDeparture(ac: FeedAircraft, lat: number, lng: number, route: Route, now: number): boolean {
+  if (route.scheduled_departure === null || now >= route.scheduled_departure || ac.alt_baro === 'ground') return false;
+  return kmTo(lat, lng, route.destination) >= kmTo(route.origin.lat, route.origin.lng, route.destination);
+}
+
+/**
  * The aircraft that flies this leg among those the feed answered for the
  * callsign: the one with a position nearest the great circle between the two
  * airports (least detour over the direct distance). A callsign is reused by
  * the next leg of a rotation, so two can be in the air at once. An aircraft a
- * sibling sector of the same flight number claims at `now` is left to it.
+ * sibling sector of the same flight number claims at `now` is left to it, and
+ * so is one still on its way to the origin before the scheduled departure.
  */
 export function pickAircraft(
   aircraft: readonly FeedAircraft[],
@@ -183,6 +195,7 @@ export function pickAircraft(
     const lat = finite(ac.lat);
     const lng = finite(ac.lon);
     if (lat !== null && lng !== null && claimedBySibling(lat, lng, route, sectors.now, sectors.siblings)) continue;
+    if (lat !== null && lng !== null && airborneBeforeDeparture(ac, lat, lng, route, sectors.now)) continue;
     const score = lat === null || lng === null ? Number.MAX_VALUE : detourKm(lat, lng, route);
     if (best === null || score < bestScore) {
       best = ac;

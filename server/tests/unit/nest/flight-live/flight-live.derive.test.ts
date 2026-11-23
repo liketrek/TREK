@@ -138,6 +138,40 @@ describe('pickAircraft and observe', () => {
     expect(pick(westbound, second, at('2026-07-01T14:52:00Z'), flying)).toBe('swa');
   });
 
+  it('FLDER-021: with only the second sector of a through flight booked, the first sector in the air is not taken for it', () => {
+    const at = (iso: string) => Date.parse(iso);
+    const mdw = { code: 'MDW', name: 'Chicago Midway', lat: 41.7868, lng: -87.7522, timezone: 'America/Chicago' };
+    const den = { code: 'DEN', name: 'Denver', lat: 39.8561, lng: -104.6737, timezone: 'America/Denver' };
+    const second: ScheduledLeg = {
+      ...LEG,
+      callsign: 'SWA1234',
+      flight_number: 'WN 1234',
+      origin: mdw,
+      destination: den,
+      scheduled_departure: at('2026-07-01T14:45:00Z'),
+      scheduled_arrival: at('2026-07-01T17:15:00Z'),
+    };
+    const swa = (overrides: Partial<FeedAircraft>) => ac({ hex: 'swa', flight: 'SWA1234', ...overrides });
+    const pick = (aircraft: FeedAircraft, now: number) => pickAircraft([aircraft], second, { now, siblings: [] });
+
+    const overOhio = swa({ alt_baro: 36000, lat: 40.5, lon: -82 });
+    const onFinal = swa({ alt_baro: 2500, lat: 41.78, lon: -87.6 });
+    expect(pick(overOhio, at('2026-07-01T13:00:00Z'))).toBeNull();
+    expect(pick(onFinal, at('2026-07-01T14:00:00Z'))).toBeNull();
+    const quiet = advance(
+      emptyState('SWA1234', '2026-07-01', 'MDW', 'DEN'),
+      pick(onFinal, at('2026-07-01T14:00:00Z')),
+      second,
+      at('2026-07-01T14:00:00Z'),
+      'adsb.lol',
+    );
+    expect(quiet).toMatchObject({ phase: 'scheduled', departed_at: null });
+
+    expect(pick(swa({ lat: 41.787, lon: -87.75 }), at('2026-07-01T14:20:00Z'))?.hex).toBe('swa');
+    expect(pick(swa({ alt_baro: 6000, lat: 41.77, lon: -88.1 }), at('2026-07-01T14:40:00Z'))?.hex).toBe('swa');
+    expect(pick(overOhio, at('2026-07-01T14:50:00Z'))?.hex).toBe('swa');
+  });
+
   it('FLDER-003: reads a report at its own time, on the ground at zero feet, the geometric height as a fallback', () => {
     const now = DEP;
     expect(observe(ac(), now)).toEqual({
