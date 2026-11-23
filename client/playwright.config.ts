@@ -143,7 +143,10 @@ export default defineConfig({
       stderr: 'pipe',
     },
     {
-      command: 'npm run dev',
+      // E2E_WEB_PREVIEW serves the client already built in dist/ (`npm run build`
+      // first) instead of a dev server compiling it again: several media runs at
+      // once otherwise spend the machine on Vite and time out on the first page.
+      command: process.env.E2E_WEB_PREVIEW ? `npx vite preview --port ${WEB_PORT} --strictPort` : 'npm run dev',
       port: WEB_PORT,
       env: { TREK_DEV_PORT: String(WEB_PORT), TREK_DEV_API: `http://localhost:${API_PORT}` },
       reuseExistingServer: !process.env.CI,
