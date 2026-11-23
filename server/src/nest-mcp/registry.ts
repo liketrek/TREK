@@ -61,7 +61,7 @@ function mapValidated(
   mapper: McpInputMapper,
   input: unknown,
   shape: Record<string, z.ZodType> | undefined,
-  refuse: (message: string) => McpError,
+  refuse: (message: string) => Error,
 ): unknown {
   const mapped = mapper(input);
   if (mapped === input || !shape || !isRecord(input) || !isRecord(mapped)) return mapped;
