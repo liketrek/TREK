@@ -57,7 +57,7 @@ const help: TranslationStrings = {
   'help.ctx.dashboard.bullet.1':
     "Targeta d'embarcament: el viatge en curs o el següent, amb les dates, els viatgers, els llocs i un compte enrere. Fes-hi clic per obrir el viatge. Els quatre botons de la cantonada superior dreta serveixen per editar-lo, duplicar-lo, arxivar-lo o eliminar-lo.",
   'help.ctx.dashboard.bullet.2':
-    'Estadístiques de viatge: països visitats, viatges, dies en ruta i distància volada, de tots els teus viatges.',
+    'Estadístiques de viatge: països visitats, amb les banderes dels més recents primer, viatges, dies en ruta i distància volada, de tots els teus viatges.',
   'help.ctx.dashboard.bullet.3':
     'Targetes de viatge, filtrades per «Planificat», «Arxivat» i «Completat», en graella o en llista. El quadre de cerca de sobre busca a tots els teus viatges alhora, per títol, data o un lloc del viatge. Els botons per editar, duplicar, arxivar i eliminar un viatge són a la cantonada superior dreta de la foto de cada targeta.',
   'help.ctx.dashboard.bullet.4':
@@ -124,7 +124,7 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.step.1': "Fes clic a la icona d'arxivar, a la cantonada superior dreta de la targeta.",
   'help.guide.archive-trip.step.2': 'Per tornar-lo a veure, posa el filtre de sobre les targetes a «Arxivat».',
   'help.guide.archive-trip.step.3':
-    'Fes clic a «Restaura» a la targeta per tornar-lo a «Planificat», o a «Completat» si les dates ja han passat.',
+    "Fes clic a la icona de restaurar, on hi havia la d'arxivar, per tornar el viatge a «Planificat», o a «Completat» si les dates ja han passat.",
   'help.guide.archive-trip.result':
     'Els viatges arxivats conserven totes les dades. Ja no surten al tauler ni al calendari de tots els viatges.',
 
@@ -159,6 +159,8 @@ const help: TranslationStrings = {
     "Tots els viatges actius apareixen al teu calendari i s'actualitzen sols. No s'hi inclouen els viatges arxivats ni els que van acabar fa més de 90 dies.",
   'help.guide.calendar-feed.tip.1':
     "No comparteixis l'enllaç: qualsevol persona que el tingui pot llegir el feed. Si li arriba a algú altre, «Regenera» et dona un enllaç nou i l'antic deixa de funcionar. «Desactiva» elimina l'enllaç del tot.",
+  'help.guide.calendar-feed.tip.2':
+    "«Esdeveniments de resum del dia» afegeix un esdeveniment de dia sencer per cada dia, amb els seus llocs i les notes que no tenen hora. Desactiva'l si només vols les reserves. L'enllaç canvia amb ell, així que torna a subscriure't amb el nou.",
 
   // widgets
   'help.guide.widgets.title': 'Triar els ginys del tauler',
@@ -494,7 +496,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     "Les xifres s'actualitzen automàticament a mesura que planifiques els viatges. Aquí no cal mantenir res.",
   'help.guide.stats.tip.1':
-    "Les ciutats s'extreuen del text de l'adreça, no es consulten enlloc. Per això una adreça curta com «Osteria Francescana, Italy», o una que acaba en una prefectura, pot comptar com a regió en lloc de ciutat.",
+    "Les ciutats s'extreuen del text de l'adreça, no es consulten enlloc. TREK deixa de banda el país, el codi postal i la regió i agafa el nom que hi ha abans, així que «10178 Berlin» compta com a Berlin. Una adreça curta com «Osteria Francescana, Italy» no afegeix cap ciutat.",
   'help.guide.stats.tip.2':
     'Els països marcats a mà compten a «Països» i als continents, però no sumen viatges, llocs ni dies.',
   // dawarich-countries
@@ -533,7 +535,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Col·leccions',
   'help.ctx.collections.summary':
-    "«Col·leccions» és la teva biblioteca fora dels viatges: llistes amb nom dels llocs que has trobat i vols conservar, cadascun amb l'estat «Idea», «Hi vull anar» o «Visitat» i, amb «Excursions» activat, excursions senceres que has desat d'un viatge. Els llocs i les excursions es copien als viatges i des dels viatges, però no es vinculen mai, de manera que una llista i un viatge no s'afecten mútuament.",
+    "«Col·leccions» és la teva biblioteca fora dels viatges: llistes amb nom dels llocs que has trobat i vols conservar, cadascun amb l'estat «Idea», «Hi vull anar», «Visitat» o «Hi vull tornar» i, amb «Excursions» activat, excursions senceres que has desat d'un viatge. Els llocs i les excursions es copien als viatges i des dels viatges, però no es vinculen mai, de manera que una llista i un viatge no s'afecten mútuament.",
   'help.ctx.collections.bullet.1':
     'La columna de llistes de l’esquerra mostra les teves llistes, les que han compartit amb tu, les invitacions que encara no has respost i «Tot el desat», que reuneix tot el contingut de les llistes que són teves. A dalt hi ha «Nova llista» i la importació de fitxers.',
   'help.ctx.collections.bullet.2':
@@ -543,7 +545,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.4':
     "Files de llocs: foto, nom i adreça, etiquetes i categoria, i la pastilla d'estat a la dreta. Un clic a la pastilla la passa a l'estat següent.",
   'help.ctx.collections.bullet.5':
-    "Mapa a la dreta: una xinxeta per a cada lloc amb coordenades. La barra de dalt té «Ampliar el mapa» («Mostra la llista» quan el mapa ocupa tota la pantalla), el filtre d'etiquetes amb el botó per gestionar-les i el quadre «Cerca llocs». Fes clic a una xinxeta per obrir aquell lloc.",
+    "Mapa a la dreta: una xinxeta per a cada lloc amb coordenades. La barra de dalt té «Ampliar el mapa» («Mostra la llista» quan el mapa ocupa tota la pantalla), el filtre d'etiquetes amb el botó per gestionar-les i el quadre «Cerca llocs». Fes clic a una xinxeta per obrir aquell lloc. El cadenat de baix a l'esquerra, sobre el botó de l'estil del mapa, manté el mapa on és mentre vas obrint llocs.",
   'help.ctx.collections.bullet.6':
     "Fitxa de detall: fes clic a una fila per veure'n la portada, la categoria, l'estat, la valoració amb estrelles, les etiquetes, la descripció i els enllaços. La càmera de la portada canvia la foto. A baix hi ha «Edita», «Copiar al viatge», el botó de navegació i «Eliminar de la llista».",
   // create-list
@@ -590,17 +592,20 @@ const help: TranslationStrings = {
     "A la llista de llocs d'un viatge, el mode de selecció ofereix «Desar a la col·lecció» per a un grup de llocs triats a mà.",
   // place-status
   'help.guide.place-status.title': 'Definir l’estat d’un lloc',
-  'help.guide.place-status.goal': 'Controla què és una idea, què tens a la llista curta i on ja has estat.',
+  'help.guide.place-status.goal':
+    'Controla què és una idea, què tens a la llista curta, on has estat i on vols tornar.',
   'help.guide.place-status.step.1':
     "Fes clic a la píndola d'estat a l'extrem dret de la fila d'un lloc. «Idea» passa a «Hi vull anar».",
   'help.guide.place-status.step.2':
-    'Torna-hi a fer clic per marcar-lo com a «Visitat», i un altre cop per tornar a «Idea».',
+    'Torna-hi a fer clic per marcar-lo com a «Visitat», un altre cop per a «Hi vull tornar», i un altre cop per tornar a «Idea».',
   'help.guide.place-status.result':
     "La pastilla i el seu color canvien a l'instant, i els recomptes del filtre d'estat de sobre la llista s'actualitzen.",
   'help.guide.place-status.tip.1':
     'L’estat només existeix a «Col·leccions». Quan copies un lloc a un viatge, l’estat no es copia.',
   'help.guide.place-status.tip.2':
     "Des d'un viatge, «Desar a la col·lecció» obre «Desar a la llista» amb una pastilla d'estat per a cada llista on és el lloc, i la barra de selecció del panell de llocs té «Marca com a visitat a les teves llistes».",
+  'help.guide.place-status.tip.3':
+    "«Hi vull tornar» és per a un lloc on has estat i vols tornar a veure. Continua comptant com a visitat, així que l'acció «Visitat» per a tots els llocs d'un viatge el deixa com està.",
   // place-detail
   'help.guide.place-detail.title': 'Obrir un lloc desat',
   'help.guide.place-detail.goal':
@@ -672,13 +677,13 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Exportar una llista a un fitxer',
   'help.guide.export-list.goal':
-    "Passa una llista a algú d'un altre servidor TREK, o obre-la en una aplicació de mapes.",
+    "Passa una llista a algú d'un altre servidor TREK, obre-la en una aplicació de mapes o mira-la a Google My Maps.",
   'help.guide.export-list.step.1': 'Fes clic a «Exporta», a la capçalera de la llista.',
   'help.guide.export-list.step.2':
-    'Tria «Llista del TREK» per fer servir la llista en un altre TREK, amb etiquetes i estat, o GPX per a OsmAnd, Organic Maps, un Garmin i altres apps que llegeixen punts de pas.',
+    'Tria «Llista del TREK» per fer servir la llista en un altre TREK, amb etiquetes i estat, GPX per a OsmAnd, Organic Maps, un Garmin i altres apps que llegeixen punts de pas, o KML per a Google My Maps, per veure els llocs a Google Maps.',
   'help.guide.export-list.result': 'El fitxer es baixa. Qualsevol membre d’una llista compartida la pot exportar.',
   'help.guide.export-list.tip.1':
-    "Un lloc sense coordenades no pot ser un punt de referència GPX: queda fora i TREK t'indica quants n'han quedat fora.",
+    "Un lloc sense coordenades no pot ser un punt de referència GPX ni una xinxeta KML: queda fora i TREK t'indica quants n'han quedat fora.",
   'help.guide.export-list.tip.2':
     "Les valoracions, els membres i les fotos pujades no s'exporten, i és expressament així: pertanyen a aquest TREK, no a la llista.",
   // import-file
@@ -716,6 +721,18 @@ const help: TranslationStrings = {
     'Escriu a «Cerca llocs», sobre el mapa, i fes servir els filtres com en qualsevol llista. «Triar» també funciona aquí: moure, duplicar, copiar a un viatge o eliminar en diverses llistes alhora.',
   'help.guide.all-saved.result':
     'Aquesta vista mostra tots els teus llocs desats junts. Aquí no pots afegir ni importar llocs, perquè no hi ha cap llista concreta on posar-los.',
+  'help.guide.collection-map-lock.title': 'Bloqueja el mapa',
+  'help.guide.collection-map-lock.goal': 'Mantén el mapa on és mentre vas fent clic als llocs que has desat.',
+  'help.guide.collection-map-lock.step.1':
+    "Fes clic al cadenat de baix a l'esquerra del mapa, sobre el botó de l'estil del mapa; en passar-hi el ratolí diu «Bloqueja la vista del mapa». Ara el botó diu «Deixa que el mapa segueixi la selecció».",
+  'help.guide.collection-map-lock.step.2':
+    "Fes clic a un lloc de la llista o a una xinxeta del mapa. S'obre la seva fitxa de detall, i el mapa ja no es desplaça ni s'apropa cap a ell.",
+  'help.guide.collection-map-lock.tip.1':
+    "Torna a fer clic al cadenat, que ara diu «Deixa que el mapa segueixi la selecció», i el mapa torna a anar al lloc que obres. El cadenat només hi és a l'ordinador; al telèfon el mapa sempre segueix.",
+  'help.guide.collection-map-lock.tip.2':
+    "Aquest navegador recorda el bloqueig, i és el mateix que al mapa d'un viatge: si el bloqueges aquí, el mapa del viatge també queda bloquejat.",
+  'help.guide.collection-map-lock.result':
+    "El mapa es queda a la part que has triat mentre obres un lloc darrere l'altre.",
   'help.guide.all-saved.tip.1':
     "Les etiquetes i les excursions desades pertanyen a una sola llista, així que cap de les dues no s'ofereix a «Tot el desat».",
 
@@ -735,7 +752,7 @@ const help: TranslationStrings = {
     'Comença un diari per a un viatge, amb els llocs del viatge ja afegits com a suggeriments.',
   'help.guide.create-journey.step.1': 'Fes clic a «Crea una travesia nova», l’última targeta de la graella.',
   'help.guide.create-journey.step.2':
-    'Posa-li un nom i, si vols, un subtítol, i marca els viatges que en formen part. El comptador indica quants llocs s’hi afegiran.',
+    "Posa-li un nom i, si vols, un subtítol, i marca els viatges que en formen part. La línia de baix indica quants llocs s'importaran.",
   'help.guide.create-journey.step.3': 'Fes clic a «Crea una travesia».',
   'help.guide.create-journey.result':
     "S'obre el diari. Cada lloc dels viatges vinculats apareix a la cronologia com a suggeriment, una vegada per cada dia en què està planificat. Pots escriure una entrada per a cadascun.",
@@ -746,7 +763,7 @@ const help: TranslationStrings = {
   'help.guide.open-journey.title': 'Obrir una travessia',
   'help.guide.open-journey.goal': 'Obre un diari i mira per on s’obre.',
   'help.guide.open-journey.step.1':
-    'Fes clic en una targeta. Cada targeta mostra la portada, les dates i quantes entrades, fotos i llocs té la travessia.',
+    "Fes clic en una targeta. Cada targeta mostra la portada, l'any, l'estat i quantes entrades, fotos i llocs té la travessia.",
   'help.guide.open-journey.result':
     "Una travessia en curs s'obre al dia d'avui, o a l'última entrada anterior si encara no has escrit res avui. Una travessia acabada s'obre pel principi.",
   'help.guide.open-journey.tip.1':
@@ -772,7 +789,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     "«Cronologia»: una secció per dia amb el número, el recompte de llocs i un + per afegir una entrada aquell dia. A sota, les targetes de les entrades amb fotos, estat d'ànim, temps i història, i les targetes de suggeriment discontínues dels viatges, cadascuna amb una × per descartar-la.",
   'help.ctx.journey-detail.bullet.4':
-    'Mapa: la barra de capes de dalt alterna «Planificat» (xinxetes buides i les rutes GPX discontínues dels viatges), «Enregistrat» (rutes contínues desades de Dawarich), «Entrades» (xinxetes amb els colors dels dies, unides per ordre de data amb una línia fina discontínua) i «Fotos». La (i) del costat explica cada símbol.',
+    'Mapa: la barra de capes de dalt alterna «Planificat» (xinxetes buides i les rutes GPX discontínues dels viatges), «Enregistrat» (rutes contínues desades de Dawarich), «Entrades» (xinxetes amb els colors dels dies, unides per ordre de data amb una línia fina discontínua) i «Fotos». La (i) del costat explica cada símbol, i el botó rodó de la cantonada superior dreta canvia a imatges de satèl·lit.',
   'help.ctx.journey-detail.bullet.5':
     "«Configuració de la travesia» (⋯): portada, nom i subtítol, estat, traces GPX, dies enregistrats, llocs a partir de les fotos, camps de les entrades, suggeriments descartats, viatges sincronitzats, col·laboradors i quins membres d'un viatge hi tenen accés, compartició pública, arxivar i eliminar.",
   'help.ctx.journey-detail.bullet.6':
@@ -788,7 +805,7 @@ const help: TranslationStrings = {
     "A la columna de la dreta, comprova la data i l'hora, busca una ubicació o fes servir la teva posició actual, i tria un estat d'ànim i el temps que feia.",
   'help.guide.add-entry.step.4': 'Fes clic a «Desa».',
   'help.guide.add-entry.result':
-    'L’entrada apareix al seu dia de la cronologia i com a xinxeta al mapa. Els comptadors de la capçalera s’actualitzen.',
+    "L'entrada apareix al seu dia de la cronologia i, quan té ubicació, com a xinxeta al mapa. Els comptadors de la capçalera s'actualitzen.",
   'help.guide.add-entry.tip.1':
     "Quan escrius a partir d'un suggeriment, fas servir el mateix editor, amb el lloc ja indicat.",
   'help.guide.add-entry.tip.2':
@@ -834,10 +851,11 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': 'Afegir un veredicte',
   'help.guide.pros-cons.goal': 'Resumeix un dia amb el que va anar molt bé i el que no.',
   'help.guide.pros-cons.step.1':
-    "A l'editor, busca «Pros i contres» sota el relat. Escriu un punt a «Pros» o «Contres» i fes servir «Afegeix-ne un altre» per al següent.",
+    "A l'editor, «Pros i contres» és a dalt de la columna de la dreta. Escriu un punt a «Avantatges» o «Contres» i fes servir «Afegeix-ne un altre» per al següent.",
   'help.guide.pros-cons.step.2':
     'Desa. A la targeta, «Veure més» mostra la història i el veredicte en dues llistes breus.',
-  'help.guide.pros-cons.result': 'El polze amunt i el polze avall apareixen sota el relat, on els veus d’un cop d’ull.',
+  'help.guide.pros-cons.result':
+    "Sota el relat, «M'ha encantat» i «Podria millorar» llisten els teus punts un al costat de l'altre, cadascun amb el seu recompte.",
   'help.guide.pros-cons.tip.1':
     "Si una travessia no fa servir valoracions finals, pots desactivar la secció a «Camps de l'entrada», dins de «Configuració de la travesia».",
   // search-journey
@@ -862,6 +880,21 @@ const help: TranslationStrings = {
     '«Pujar», a la dreta, afegeix imatges a la galeria. Si tens Immich o Synology connectat, un botó amb el nom de la biblioteca et permet triar-ne imatges.',
   'help.guide.gallery-map.result':
     "Les xinxetes tenen el color del seu dia i s'uneixen per ordre de data amb una línia fina discontínua. La barra de capes de dalt del mapa canvia què s'hi dibuixa.",
+  'help.guide.album-date-range.title': "Agafa només el viatge d'un àlbum gran",
+  'help.guide.album-date-range.goal':
+    "Tria les fotos del teu viatge d'un àlbum d'Immich o Synology que en té moltes més.",
+  'help.guide.album-date-range.step.1':
+    'Canvia a «Galeria» i fes clic al botó amb el nom de la teva biblioteca de fotos, al costat de «Pujar».',
+  'help.guide.album-date-range.step.2':
+    "Fes clic a «Àlbums» i després a l'àlbum. Les fotos es llisten per dia de captura.",
+  'help.guide.album-date-range.step.3':
+    "Sota els àlbums, posa «Fetes entre» al primer i a l'últim dia que vulguis. A la graella només queden les fotos d'aquests dies, i «Seleccionar-ho tot» agafa només aquestes.",
+  'help.guide.album-date-range.tip.1':
+    "L'interval es manté quan obres un altre àlbum, així en pots mirar diversos del mateix viatge. La × del final de la fila torna a mostrar l'àlbum sencer.",
+  'help.guide.album-date-range.tip.2':
+    "«Afegeix a», a dalt del selector, tria l'entrada on van les fotos; «Galeria nova» les posa només a la galeria.",
+  'help.guide.album-date-range.result':
+    "«Afegeix» posa a la travessia les fotos que has triat. Les fotos que ja hi són apareixen atenuades amb una marca, de manera que res s'afegeix dues vegades.",
   'help.guide.gallery-map.tip.1':
     "Les traces GPX d'un viatge es mostren a la capa «Planificat» del mapa com a línies discontínues. «Mostra totes les traces GPX dels viatges», a «Configuració de la travesia», les desactiva.",
   'help.guide.gallery-map.tip.2':
@@ -930,7 +963,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.step.1':
     'Fes clic a ⋯, a dalt a la dreta de la capçalera, per obrir «Configuració de la travesia».',
   'help.guide.archive-journey.step.2':
-    "A baix de tot, «Arxiva el viatge» la dona per acabada i la marca com a arxivada; «Restaura el viatge» la recupera. «Elimina» l'esborra amb totes les entrades i fotos, després de demanar-te confirmació.",
+    "A baix de tot, «Arxiva el viatge» la dona per acabada i la marca com a arxivada; «Restaura el viatge» la recupera. La paperera del costat l'elimina amb totes les entrades i fotos, després de demanar-te confirmació.",
   'help.guide.archive-journey.result':
     "Una travessia arxivada continua sent llegible i es pot continuar compartint; només deixa d'obrir-se al dia d'avui.",
   'help.guide.archive-journey.tip.1': 'Eliminar-la no es pot desfer, i no canvia els viatges que hi estaven vinculats.',
@@ -975,7 +1008,7 @@ const help: TranslationStrings = {
     'Obtén amb un clic un primer esborrany complet a partir de les entrades i les fotos del diari.',
   'help.guide.studio-auto-layout.step.1': 'Fes clic a Auto layout a la barra superior.',
   'help.guide.studio-auto-layout.step.2':
-    'Tria «Tot el llibre»: substitueix totes les pàgines i manté el títol i la configuració de pàgina. «Aquesta pàgina» només refà la doble pàgina que tens a la pantalla, i només apareix en una doble pàgina creada a partir d’una entrada.',
+    'Tria «Tot el llibre»: substitueix totes les pàgines i manté el títol i la configuració de pàgina. «Aquesta pàgina» només redissenya la doble pàgina que tens a la pantalla amb un altre disseny. Funciona en totes les pàgines que ha fet la disposició automàtica, portada inclosa.',
   'help.guide.studio-auto-layout.step.3':
     'Repassa la columna de pàgines. Si t’agradava més la versió anterior, «Desfer» reverteix tota la disposició.',
   'help.guide.studio-auto-layout.result':
@@ -990,13 +1023,13 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     "Obre Pàgines a la columna. Les miniatures mostren el llibre per ordre: coberta, primera pàgina, dobles pàgines, última pàgina i contracoberta. La primera i la última pàgina es dibuixen al costat de l'interior en blanc de la seva coberta, tal com s'obre el llibre enquadernat.",
   'help.guide.studio-pages.step.2':
-    '«Afegeix una pàgina», a la part de baix, afegeix una doble pàgina nova abans de l’última pàgina. El + entre dues miniatures n’insereix una en aquella posició.',
+    "«+ Pàgina», a la part de baix, afegeix una doble pàgina nova abans de l'última pàgina. El + entre dues miniatures n'insereix una en aquella posició.",
   'help.guide.studio-pages.step.3':
     "Passa el ratolí per una miniatura per veure'n les accions: «Mou abans», «Mou després», «Duplica la pàgina» i «Elimina la pàgina». Fes clic a una miniatura per obrir aquella doble pàgina a la taula de treball.",
   'help.guide.studio-pages.result':
     "La coberta, la primera i l'última pàgina i la contracoberta no es mouen. Les dobles pàgines noves sempre s'afegeixen entremig.",
   'help.guide.studio-pages.tip.1':
-    "«Book view», a la barra superior, mostra tot el llibre en fulls, tal com s'enquadernarà.",
+    "«Vista de llibre», a la barra de zoom sota la doble pàgina, mostra tot el llibre en fulls, tal com s'enquadernarà.",
   'help.guide.studio-pages.tip.2':
     'Els números de pàgina s’activen a «Document», dins de «Properties», sense res seleccionat.',
   // studio-layouts
@@ -1081,9 +1114,9 @@ const help: TranslationStrings = {
     'Dona a un títol un contorn, una ombra, una corba o lletres emplenades amb un patró.',
   'help.guide.studio-text-effects.step.1': 'Fes clic en un element de text de la pàgina per seleccionar-lo.',
   'help.guide.studio-text-effects.step.2':
-    "A Propietats, obre Efectes per afegir un contorn, una ombra o un ressaltat, o emplenar les lletres amb un degradat o un patró. Majúscules i posició corba la línia i l'ajusta al marc.",
+    'A «Propietats», obre «Efectes». «Contorn», «Ombra dura» i «Banda de subratllador» hi afegeixen una vora, una ombra o un ressaltat; «Corba» doblega la línia en un arc o en un cercle; «Lletres» les omple amb una foto, un degradat o un patró.',
   'help.guide.studio-text-effects.tip.1':
-    "Ajusta al marc redueix el text fins que hi cap, així que un títol llarg mai no se'n surt.",
+    "«Ajusta al marc», a «Majúscules i posició», fa les paraules més petites quan el marc és massa petit per a elles, així que un títol llarg mai no se'n surt.",
   'help.guide.studio-text-effects.result': "L'efecte es dibuixa amb el text, a la impressió igual que a la pantalla.",
   'help.guide.studio-background.title': 'Canviar el fons de la pàgina',
   'help.guide.studio-background.goal':
@@ -1116,7 +1149,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.step.1':
     "Fes clic en un element de la doble pàgina. Apareixen tiradors per canviar-ne la mida i la rotació; arrossega'l per moure'l.",
   'help.guide.studio-properties.step.2':
-    "Properties, a la dreta, mostra la configuració de l'element seleccionat: posició i mida, Crop amb el punt focal que decideix què queda dins del marc, Fill o Fit, els filtres de Look, Corner radius, Frame style, l'ordre d'apilament i Lock.",
+    "Properties, a la dreta, mostra la configuració del que has seleccionat, sota el seu nom: un mapa ofereix la font, la vista i la línia, una foto ofereix Crop amb el punt focal, Fill o Fit i els filtres de Look. Position, l'ordre d'apilament i Lock hi són per a tots els elements.",
   'help.guide.studio-properties.step.3':
     '«Duplica» i «Delete» són a dalt de l’inspector. Amb «Undo», a la barra superior, pots desfer qualsevol d’aquests canvis.',
   'help.guide.studio-properties.result':
@@ -1157,7 +1190,7 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.step.1':
     'Amb la doble pàgina a la taula de treball, fes clic a «Baixa aquesta doble pàgina», a l’extrem dret de la barra de zoom. El fitxer conté el disseny, no les fotos.',
   'help.guide.studio-spread-file.step.2':
-    'A l’altre llibre, obre «Pàgines», fes clic a «Importa» al costat d’«Afegeix una pàgina» i tria el fitxer.',
+    "A l'altre llibre, obre «Pàgines», fes clic a «Importa» al costat de «+ Pàgina», a la part de baix, i tria el fitxer.",
   'help.guide.studio-spread-file.result':
     "La doble pàgina s'importa amb els seus marcs i els estils de text. Deixa anar les fotos de la nova travessia als marcs.",
   'help.guide.studio-spread-file.tip.1':
@@ -1172,7 +1205,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     "«Pantalla» s'obre primer. Inclou l'idioma, l'idioma dels noms de llocs, les unitats, el format d'hora, el format de data, el primer dia de la setmana i la divisa de visualització, i també com es comporta el mapa del viatge. «Aparença» inclou el tema, els colors, la llegibilitat, la mida del text i els ginys del tauler.",
   'help.ctx.settings.bullet.3':
-    '«Mapa» defineix el motor del mapa i el seu estil; «Notificacions», quins esdeveniments van a cada canal; «Integracions» connecta biblioteques de fotos, AirTrail, Dawarich i wanderer, i inclou les claus API i MCP; «Fora de línia» defineix què desa aquest dispositiu.',
+    '«Mapa» defineix el motor del mapa i el seu estil; «Notificacions», quins esdeveniments van a cada canal; «Integracions» conté la teva adreça per als correus de reserva, connecta biblioteques de fotos, AirTrail, Dawarich i wanderer, i inclou les claus API i MCP; «Fora de línia» defineix què desa aquest dispositiu.',
   'help.ctx.settings.bullet.4':
     "«Compte» inclou el teu perfil, la contrasenya, l'autenticació de dos factors, les claus d'accés i l'opció d'eliminar el compte.",
   'help.ctx.settings-display.title': 'Pantalla',
@@ -1203,7 +1236,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.bullet.2':
     "«Plantilla del mapa» i «Clau d'API de CARTO» per a Leaflet; «Estil de mapa» per als dos motors GL, i a més el «Token d'accés de Mapbox» per a Mapbox GL.",
   'help.ctx.settings-map.bullet.3':
-    "Només per a Mapbox GL: «Edificis 3D i terreny» i «Mode d'alta qualitat». A sobre de «Desa el mapa» hi ha una vista prèvia en directe. «Desa el mapa» desa el que has triat.",
+    "Només per a Mapbox GL: «Edificis 3D i terreny», «Mode d'alta qualitat» i «Amaga els punts d'interès». A sobre de «Desa el mapa» hi ha una vista prèvia en directe. «Desa el mapa» desa el que has triat.",
   'help.ctx.settings-notifications.title': 'Notificacions',
   'help.ctx.settings-notifications.summary':
     "Com et contacta TREK fora de l'aplicació. A dalt, una taula amb una fila per esdeveniment i una columna per canal decideix què s'envia per on. A sota hi ha les targetes del webhook, de ntfy, del push en aquest dispositiu i de qualsevol canal de connector.",
@@ -1217,9 +1250,9 @@ const help: TranslationStrings = {
     '«Notificacions push en aquest dispositiu»: «Activa en aquest dispositiu» només afecta aquest navegador; «Envia una prova» envia una notificació de prova. Un canal de connector mostra «Configura» fins que no està configurat.',
   'help.ctx.settings-integrations.title': 'Integracions',
   'help.ctx.settings-integrations.summary':
-    "Tot el que es connecta a TREK des de fora: biblioteques de fotos per al diari, AirTrail per als vols, Dawarich per saber on has estat realment, wanderer per als camins, claus API de només lectura per a altres programes, i MCP per als clients d'IA. Una connexió amb un altre servei només apareix quan l'administrador l'ha activada.",
+    "Tot el que es connecta a TREK des de fora: la teva adreça pròpia per als correus de reserva, biblioteques de fotos per al diari, AirTrail per als vols, Dawarich per saber on has estat realment, wanderer per als camins, claus API de només lectura per a altres programes, i MCP per als clients d'IA. Una connexió amb un altre servei només apareix quan l'administrador l'ha activada.",
   'help.ctx.settings-integrations.bullet.1':
-    'Immich i Synology Photos, AirTrail, Dawarich i wanderer: cada targeta té la seva adreça i clau, «Desa» i «Prova la connexió», i una insígnia «Connectat» o «No connectat».',
+    "Correus de reserva, a dalt de tot quan l'administrador té activada la importació de correus: la teva adreça de reenviament amb els seus interruptors. A sota, Immich i Synology Photos, AirTrail, Dawarich i wanderer: cada targeta té la seva adreça i clau, «Desa» i «Prova la connexió», i una insígnia «Connectat» o «No connectat».",
   'help.ctx.settings-integrations.bullet.2':
     "«Claus API»: claus de només lectura per a l'API pública, cadascuna limitada a les àrees que triïs, amb l'endpoint per copiar.",
   'help.ctx.settings-integrations.bullet.3':
@@ -1252,7 +1285,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': 'Definir l’idioma, les unitats i la divisa',
   'help.guide.language-region.goal': 'Fes servir TREK en la teva llengua i amb els formats de la teva regió.',
   'help.guide.language-region.step.1':
-    "A «Idioma i regió», tria un «Idioma» de la fila de fitxes. TREK canvia a l'instant, a tots els dispositius on inicies sessió.",
+    "A «Idioma i regió», tria un «Idioma» de la seva llista; escriu per trobar-ne un ràpidament. TREK canvia a l'instant, a tots els dispositius on inicies sessió.",
   'help.guide.language-region.step.2':
     "«Noms de llocs» defineix l'idioma de la cerca de llocs, els suggeriments i les adreces; «Igual que l’app» segueix l'idioma de la interfície.",
   'help.guide.language-region.result':
@@ -1331,7 +1364,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     "Tria una «Plantilla del mapa» per a Leaflet o un «Estil de mapa» per a un motor GL, o enganxa la teva pròpia URL. Mapbox GL necessita un «Token d'accés de Mapbox», i les plantilles de CARTO, una «Clau d'API de CARTO»; l'enllaç de sota cada camp indica on aconseguir-ne.",
   'help.guide.map-provider.step.3':
-    "Amb Mapbox GL, activa «Edificis 3D i terreny» i, si el dispositiu és prou potent, «Mode d'alta qualitat». Revisa la vista prèvia i fes clic a «Desa el mapa».",
+    "Amb Mapbox GL, activa «Edificis 3D i terreny» i, si el dispositiu és prou potent, «Mode d'alta qualitat». «Amaga els punts d'interès» deixa fora les botigues i els llocs d'interès que Mapbox etiqueta per compte seu. Revisa la vista prèvia i fes clic a «Desa el mapa».",
   'help.guide.map-provider.result':
     "Els mapes del planificador de viatges i del diari fan servir el motor que has triat. L'«Atles» sempre fa servir Leaflet.",
   'help.guide.map-provider.tip.1': 'Sense token, Mapbox GL fa servir Leaflet en lloc de mostrar un mapa buit.',
@@ -1386,7 +1419,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     "A «Clients OAuth 2.1», fes clic a «Client nou» i tria una configuració ràpida («Quick preset»), com ara Claude Desktop o Cursor, o omple tu mateix el «Nom de l'aplicació», les «URIs de redirecció» i els «Àmbits permesos»; per a un servidor sense navegador, tria «Machine client». Fes clic a «Registra el client» i copia el «Secret de client»: només es mostra una vegada.",
   'help.guide.mcp-oauth.step.3':
-    'Cada client té «Renova el secret» i «Elimina el client». «Sessions OAuth actives» mostra els clients que tenen la sessió iniciada, amb «Revoca». «Configuració del client» es desplega i mostra un fragment llest per fer servir als clients que funcionen amb JSON.',
+    'Cada client té «Renova el secret» i «Elimina el client». Quan un client ha iniciat sessió, «Sessions OAuth actives» el mostra amb «Revoca». Sobre els clients, «Configuració del client» conté un fragment llest per als clients que fan servir JSON, amb «Copia».',
   'help.guide.mcp-oauth.result':
     'El client pot llegir i modificar el que permeten els seus àmbits, en nom teu, i cada acció apareix amb el teu nom.',
   'help.guide.mcp-oauth.tip.1':
@@ -1398,9 +1431,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.goal':
     'Desa els teus viatges i els seus mapes en aquest dispositiu abans de quedar-te sense connexió.',
   'help.guide.offline-prepare.step.1':
-    "A «Què desar fora de línia», deixa activat «Desar tessel·les de mapes fora de línia» i activa els viatges que vulguis tenir en aquest dispositiu. Un viatge acabat només es desa si l'actives.",
+    "A la targeta «Què desar fora de línia», a la dreta, deixa activat «Desar tessel·les de mapes fora de línia» i activa els viatges que vulguis tenir en aquest dispositiu. Un viatge acabat només es desa si l'actives.",
   'help.guide.offline-prepare.step.2':
-    "De nou a dalt, a «Preparar per a l'ús fora de línia», fes clic a «Descarregar per a ús fora de línia». Baixa les dades dels viatges, els documents i les tessel·les del mapa, i indica quants viatges ha desat.",
+    "A la targeta «Mode fora de línia», a «Preparar per a l'ús fora de línia», fes clic a «Descarregar per a ús fora de línia». Baixa les dades dels viatges, els documents i les tessel·les del mapa, i indica quants viatges ha desat.",
   'help.guide.offline-prepare.step.3':
     "«Forçar mode fora de línia» ho torna a baixar tot un cop més i després funciona només des d'aquest dispositiu, perquè puguis comprovar que no hi falta res abans de marxar.",
   'help.guide.offline-prepare.result':
@@ -1481,17 +1514,17 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Administrador',
   'help.ctx.admin.summary':
-    "La configuració de tota la instància de TREK, per a tots els usuaris: qui pot iniciar sessió i com, què està activat, on es desen els fitxers, com contacta el servidor amb la gent i com se'n fan les còpies de seguretat. Només els administradors veuen aquesta pàgina. La barra lateral agrupa les pestanyes a «Usuaris», «Configuració», «Integracions» i «Manteniment», i cada pestanya és una pantalla independent.",
+    "La configuració de tota la instància de TREK, per a tots els usuaris: qui pot iniciar sessió i com, què està activat, on es desen els fitxers, com contacta el servidor amb la gent i com se'n fan les còpies de seguretat. Només els administradors veuen aquesta pàgina. La barra lateral agrupa les pestanyes a «Usuaris», «Configuració» i «Manteniment», i cada pestanya és una pantalla independent.",
   'help.ctx.admin.bullet.1':
     "A la dreta de la capçalera hi ha el recompte d'usuaris, viatges, llocs i fitxers. A sota apareix el bàner «Actualització disponible» quan hi ha una versió més nova de TREK.",
   'help.ctx.admin.bullet.2':
-    "«Usuaris» i «Valors per defecte»: comptes, enllaços d'invitació i permisos, i la configuració i el mapa amb què comença un compte nou.",
+    "«Usuaris» i «Predeterminats»: comptes, enllaços d'invitació i permisos, i la configuració i el mapa amb què comença un compte nou.",
   'help.ctx.admin.bullet.3':
-    "«Personalització», «Configuració», «Complements», «Connectors» i «Emmagatzematge»: plantilles d'equipatge, categories i vacances escolars; inici de sessió, passkeys, 2FA, claus API i proveïdors de cerca; els mòduls de funcions; els connectors de tercers, i on es desen els fitxers pujats.",
+    "«Seguretat», «Serveis», «Complements» i «Personalització»: inici de sessió, claus d'accés, 2FA i inici de sessió únic; cerca de llocs, rutes, claus API i tipus de fitxer; els mòduls de funcions amb les seves opcions; plantilles d'equipatge, categories i vacances escolars.",
   'help.ctx.admin.bullet.4':
-    "«Notificacions», «Accés MCP» i GitHub: els canals que poden triar els usuaris i els valors amb què comencen, els tokens i les sessions dels clients d'IA, i l'historial de versions.",
+    "«Notificacions», «MCP» i «Connectors»: els canals que poden triar els usuaris i els avisos que reps com a administrador, els tokens i les sessions dels clients d'IA, i els connectors de tercers.",
   'help.ctx.admin.bullet.5':
-    'Còpia de seguretat i Auditoria: còpies a demanda i programades, i el registre d’esdeveniments rellevants per a la seguretat.',
+    "«Emmagatzematge», «Còpia de seguretat», «GitHub» i «Auditoria»: on van els fitxers pujats, còpies a demanda i programades, l'historial de versions i el registre d'esdeveniments rellevants per a la seguretat.",
   'help.ctx.admin-users.title': 'Usuaris',
   'help.ctx.admin-users.summary':
     "Tots els comptes d'aquest TREK, amb el rol, el correu i l'última activitat, els enllaços d'invitació que permeten registrar-se en una instància tancada, i qui pot fer què als viatges.",
@@ -1509,7 +1542,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-defaults.bullet.1':
     "«Configuració per defecte dels usuaris», a l'esquerra: «Mode de color», «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», «Format de data», «Divisa de visualització» i «Difumina els codis de reserva».",
   'help.ctx.admin-defaults.bullet.2':
-    "«Mapa», a la dreta: «Plantilla del mapa», «Clau CARTO compartida», «Motor de rutes propi» i «Instància Valhalla pròpia», una vista prèvia, i després «Motor de mapes» amb «Estil de mapa», «Token de Mapbox compartit», «Edificis i terreny en 3D» i «Mode d'alta qualitat».",
+    "Les rutes, a sota: «Servei de rutes», «Motor de rutes propi» i «Instància Valhalla pròpia». «Mapa», a la dreta: «Plantilla del mapa», «Clau CARTO compartida», una vista prèvia, i després «Motor de mapes» amb «Estil de mapa», «Token de Mapbox compartit», «Edificis i terreny en 3D» i «Mode d'alta qualitat».",
   'help.ctx.admin-config.title': 'Personalització',
   'help.ctx.admin-config.summary':
     'Opcions que comparteixen tots els viatges de la instància: les plantilles d’equipatge, el conjunt de categories per a llocs i col·leccions, i el catàleg de vacances escolars que fa servir «Vacances».',
@@ -1519,32 +1552,33 @@ const help: TranslationStrings = {
     '«Categories»: nom, icona i color de les categories que es fan servir a tot TREK, de la fitxa del lloc a «Col·leccions», cadascuna editable en un diàleg amb vista prèvia.',
   'help.ctx.admin-config.bullet.3':
     '«Vacances escolars»: el catàleg de països i regions amb els seus períodes de vacances, que tothom pot triar a «Vacances».',
-  'help.ctx.admin-settings.title': 'Configuració',
+  'help.ctx.admin-settings.title': 'Seguretat i serveis',
   'help.ctx.admin-settings.summary':
-    "Com inicia sessió la gent i quins serveis externs pot fer servir el servidor. A l'esquerra: «Mètodes d'autenticació», «Inici de sessió amb clau d'accés», «Exigir autenticació de dos factors (2FA)» i «Inici de sessió únic (OIDC)». A la dreta: «Tipus de fitxer permesos» i «Claus API», amb els proveïdors de cerca i de transport públic. «Zona de perill» és a baix de tot.",
+    "Com inicia sessió la gent i quins serveis externs fa servir el servidor, en dues pestanyes. Seguretat: «Mètodes d'autenticació» i «Inici de sessió amb clau d'accés» a l'esquerra, «Inici de sessió únic (OIDC)» i «Zona de perill» a la dreta. Serveis: cerca de llocs i rutes a l'esquerra, «Claus API» i «Tipus de fitxer permesos» a la dreta.",
   'help.ctx.admin-settings.bullet.1':
-    "«Mètodes d'autenticació»: «Inici de sessió amb contrasenya», «Registre amb contrasenya» i, quan l'OIDC està configurat, «Inici de sessió SSO» i «Aprovisionament automàtic SSO». «Exigir autenticació de dos factors (2FA)» té una targeta pròpia.",
+    "«Mètodes d'autenticació»: «Inici de sessió amb contrasenya» i «Registre amb contrasenya», les files d'SSO quan l'OIDC està configurat («Inici de sessió SSO», «Aprovisionament automàtic SSO» i «Anar directament a l’SSO»), i després «Activar inici de sessió amb clau d'accés» i «Exigir 2FA». Cada interruptor es desa a l'instant.",
   'help.ctx.admin-settings.bullet.2':
-    "«Inici de sessió amb clau d'accés»: «Activar inici de sessió amb clau d'accés», l'«ID de la part confiable (domini)» i els «Orígens permesos». «Inici de sessió únic (OIDC)»: «Nom visible», «URL de l'emissor», una URL de descoberta opcional, «ID de client» i «Secret de client».",
+    "«Inici de sessió amb clau d'accés»: l'«ID de la part confiable (domini)» i els «Orígens permesos». «Inici de sessió únic (OIDC)»: «Nom visible», «URL de l'emissor», una URL de descoberta opcional, «ID de client» i «Secret de client».",
   'help.ctx.admin-settings.bullet.3':
-    "«Claus API»: la TREK Places API va primer i no necessita clau. A sota hi ha la «Clau API de Google Maps» (amb «Provar» i «Per a què s'utilitza la clau»), la clau d'Unsplash i la d'Amap, i un sol botó «Desa» a baix de la targeta.",
+    "Cerca de llocs i rutes, a «Serveis»: l'API de TREK, marcada com a «Recomanat per defecte», amb «Quota d'avui» i «Comparteix els detalls del lloc», i després «Proveïdor de transport públic», «Proveïdor de cerca de llocs» i «Registre de cerca de llocs».",
   'help.ctx.admin-settings.bullet.4':
-    "«Proveïdor de transport públic» i «Proveïdor de la cerca de llocs» trien qui respon les cerques de transport públic i de llocs; «Registre de cerques de llocs» registra quin resultat s'ha triat; «Tipus de fitxer permesos» limita els fitxers que es poden pujar.",
+    "«Claus API»: la «Clau API de Google Maps» amb «Provar» i «Per a què s'utilitza la clau», les claus d'Unsplash i d'Amap, i un sol «Desa» a baix de la targeta. «Tipus de fitxer permesos», a sota, limita els fitxers que es poden pujar.",
   'help.ctx.admin-addons.title': 'Complements',
   'help.ctx.admin-addons.summary':
-    'Els mòduls de TREK, cadascun amb el seu interruptor: Equipatge, Pressupost, Documents, Vacances, Atles, Col·laboració, Travessia, Col·leccions, Viatge per carretera, MCP, AirTrail, Dawarich i l’anàlisi amb IA. Si en desactives un, l’entrada del menú, les rutes i l’API desapareixen per a tothom.',
+    "Els mòduls de TREK en tres targetes: «Viatge» per a les pestanyes d'un viatge, «Global» per a les seccions del menú principal i «Integració» per als serveis externs. Cada complement té un interruptor; si el desactives, l'entrada del menú, les rutes i l'API desapareixen per a tothom.",
   'help.ctx.admin-addons.bullet.1':
-    'Una casella per complement amb el seu interruptor i, si en té, subfiles per a les seves opcions.',
+    "Una fila per complement, amb el seu interruptor, i a la capçalera de cada targeta quants complements té activats. La marca d'informació del costat d'un nom explica què fa el complement.",
   'help.ctx.admin-addons.bullet.2':
-    'Els proveïdors de fotos i de documents també apareixen aquí com a caselles, perquè puguis oferir Immich o Synology als usuaris.',
-  'help.ctx.admin-addons.bullet.3': "«Seguiment d'equipatge» té el seu propi interruptor sota els mosaics.",
+    "Les opcions pengen del seu complement mentre està activat: «Seguiment d'equipatge» a «Llistes», les funcions de «Col·laboració», els proveïdors de documents a «Documents», els proveïdors de fotos a «Travessia», i wanderer i les capes del mapa a «Excursions».",
+  'help.ctx.admin-addons.bullet.3':
+    "Les files amb un engranatge obren un diàleg de configuració, com ara «Dades d'aigua per a rutes en piragua» a Excursions i «Configura la importació de correus» a «Importació de correus de reserva». L'estat de vol en directe és una fila de la targeta «Viatge».",
   'help.ctx.admin-plugins.title': 'Connectors',
   'help.ctx.admin-plugins.summary':
     "Connectors de tercers que s'executen en un procés propi al costat de TREK, cadascun amb els permisos que va demanar en instal·lar-lo. Instal·la'ls des del catàleg, puja un paquet o vincula una carpeta mentre desenvolupes un connector.",
   'help.ctx.admin-plugins.bullet.1':
-    '«Instal·lat» i «Descobreix», amb «Cerca connectors…» i els filtres «Tipus», «Estat» i «Ordena». Cada fila mostra la versió, «Revisat», «Signat» o «Sense signar», a què pot accedir el connector, un interruptor i un menú ⋯.',
+    '«Instal·lat» i «Descobreix», amb «Cerca connectors…» i «Filtra» per tipus, estat i ordre. Cada fila mostra la versió, a què pot accedir el connector, «Revisat», «Signat» o «Sense signar», un interruptor i un menú ⋯.',
   'help.ctx.admin-plugins.bullet.2':
-    'Les dues icones de la capçalera de la targeta: «Puja el connector» accepta un .zip, .tgz o .tar.gz (o pots deixar anar un .zip a la pàgina); «Torna a escanejar» detecta una carpeta de connector enllaçada per al desenvolupament.',
+    'Les tres icones de la capçalera de la targeta: «Com es protegeixen els connectors» explica com queda aïllat un connector; «Puja el connector» accepta un .zip, .tgz o .tar.gz (o pots deixar anar un .zip a la pàgina); «Torna a escanejar» detecta una carpeta de connector enllaçada per al desenvolupament.',
   'help.ctx.admin-plugins.bullet.3':
     'Amfitrions permesos per connector: les adreces a què pot connectar-se cada connector, perquè les connexions de sortida estan bloquejades per defecte.',
   'help.ctx.admin-storage.title': 'Emmagatzematge',
@@ -1555,17 +1589,19 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     "«Backends»: nom, tipus, ús i «Mirrored to», amb «Provar», «Edita» i «Elimina». «Calcula ara» calcula què hi ha desat; un backend definit per una variable d'entorn és de només lectura.",
   'help.ctx.admin-storage.bullet.3':
-    '«Categories»: documents del viatge, fotos de la travessia, portades, fotos de perfil, imatges de llocs, les memòries cau de fotos i les còpies de seguretat, cadascuna assignada a un backend.',
+    '«Categories»: documents del viatge, fotos de la travessia, portades, fotos de perfil, imatges de llocs, les memòries cau de fotos i les còpies de seguretat, cadascuna assignada a un backend, amb «Desa els canvis» a baix de tot.',
+  'help.ctx.admin-storage.bullet.4':
+    "«Fitxers sense referència»: el que la comprovació nocturna ha trobat que ja no fa servir res a TREK, amb «Comprova-ho ara» i un interruptor que elimina aquests fitxers quan fa una setmana que no s'usen.",
   'help.ctx.admin-notifications.title': 'Notificacions',
   'help.ctx.admin-notifications.summary':
     'Els canals que la instància ofereix als usuaris, i els que reps tu com a administrador. Els usuaris trien els seus temes i URL a «Configuració»; tu decideixes quins canals hi ha i configures el correu.',
   'help.ctx.admin-notifications.bullet.1':
-    "«Correu (SMTP)», Webhook, Ntfy i Web Push tenen cadascun un interruptor per oferir el canal als usuaris; el correu també necessita la configuració del servidor. «A l'aplicació» sempre està activat.",
+    "Canals: «Correu (SMTP)», Webhook, Ntfy i Web Push tenen cadascun un interruptor per oferir el canal als usuaris; «A l'aplicació» sempre està activat. La secció «Correu (SMTP)», sota els interruptors, conté la configuració del servidor de correu.",
   'help.ctx.admin-notifications.bullet.2':
-    '«Recordatoris de viatge»: si el servidor envia el recordatori abans que comenci un viatge.',
+    "«Recordatoris de viatge», l'última fila de «Canals»: si el servidor envia el recordatori abans que comenci un viatge.",
   'help.ctx.admin-notifications.bullet.3':
-    "«Webhook d'administrador», «Ntfy d'administrador» i la targeta «Notificacions»: on van els esdeveniments d'administració («Versió nova disponible», «Error de rèplica d'emmagatzematge», «Regió de caiac demanada»), cadascun amb un botó de prova.",
-  'help.ctx.admin-mcp-tokens.title': 'Accés MCP',
+    "Avisos d'administració, a la dreta: «Webhook d'administrador» i «Ntfy d'administrador», cadascun amb un botó de prova, i a sota quin canal envia cada esdeveniment d'administració («Versió nova disponible», «Error de rèplica d'emmagatzematge», «Regió de caiac demanada»).",
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     "Tots els tokens i sessions OAuth que tenen els clients d'IA per a aquest TREK, de tots els usuaris. Pots revocar-ne qualsevol.",
   'help.ctx.admin-mcp-tokens.bullet.1':
@@ -1615,12 +1651,12 @@ const help: TranslationStrings = {
   'help.guide.edit-user.step.1':
     "Fes clic al llapis («Editar usuari») a la fila de l'usuari. El diàleg mostra el correu del compte a dalt.",
   'help.guide.edit-user.step.2':
-    "Canvia «Nom d’usuari», «Correu» o «Rol», o escriu una «Contrasenya nova» (deixa-la buida per mantenir l'actual), i fes clic a «Desa». «Restablir claus d'accés», a baix de tot, elimina totes les claus d'accés del compte un cop ho confirmes.",
+    "Canvia «Nom d’usuari», «Correu» o «Rol», o escriu una «Contrasenya nova» (deixa-la buida per mantenir l'actual), i fes clic a «Desa». A sota, «Restablir claus d'accés» elimina totes les claus d'accés del compte i «Restablir 2FA» en desactiva l'autenticació de dos factors, cadascun després que ho confirmis.",
   'help.guide.edit-user.result':
     "El canvi s'aplica a l'instant. Una contrasenya nova també tanca la sessió de la persona a tots els dispositius, de manera que qualsevol sessió antiga deixa de funcionar.",
   'help.guide.edit-user.tip.1': 'No et pots treure el rol d’administrador si ets l’últim administrador.',
   'help.guide.edit-user.tip.2':
-    "Si restableixes les claus d'accés, la contrasenya es manté; la persona afegeix claus noves a «Configuració», «Compte».",
+    "Restablir les claus d'accés o el 2FA manté la contrasenya. La persona afegeix claus noves a «Configuració», «Compte», i després de restablir el 2FA se li tanca la sessió a tot arreu i el pot tornar a configurar.",
   // invite-links
   'help.guide.invite-links.title': 'Convidar algú amb un enllaç',
   'help.guide.invite-links.goal':
@@ -1717,25 +1753,30 @@ const help: TranslationStrings = {
   // auth-methods
   'help.guide.auth-methods.title': "Decidir com s'inicia la sessió",
   'help.guide.auth-methods.goal':
-    'Activa o desactiva l’inici de sessió amb contrasenya, l’SSO i el registre, i fes obligatori el 2FA.',
+    "Activa o desactiva l'inici de sessió amb contrasenya, el registre, l'SSO i les claus d'accés, i fes obligatori el 2FA.",
   'help.guide.auth-methods.step.1':
-    "A «Mètodes d'autenticació», activa o desactiva «Inici de sessió amb contrasenya» i «Registre amb contrasenya»; cada interruptor s'aplica a l'instant. Amb el registre desactivat, només es poden crear comptes nous amb enllaços d'invitació, SSO o «Crea usuari».",
+    "A la pestanya «Seguretat», a «Mètodes d'autenticació», activa o desactiva «Inici de sessió amb contrasenya» i «Registre amb contrasenya»; cada interruptor s'aplica a l'instant. Amb el registre desactivat, només es poden crear comptes nous amb enllaços d'invitació, SSO o «Crea usuari».",
   'help.guide.auth-methods.step.2':
-    '«Inici de sessió SSO» i «Aprovisionament automàtic SSO» necessiten que hi hagi configurat «Inici de sessió únic (OIDC)» més avall; l’aprovisionament automàtic crea un compte la primera vegada que algú inicia sessió per SSO.',
+    "Quan «Inici de sessió únic (OIDC)» està configurat, hi ha tres files d'SSO més: «Inici de sessió SSO», «Aprovisionament automàtic SSO», que crea un compte la primera vegada que algú inicia sessió per SSO, i «Anar directament a l’SSO».",
   'help.guide.auth-methods.step.3':
-    "Activa «Exigir autenticació de dos factors (2FA)» perquè tothom qui no tingui la 2FA l'hagi de configurar a «Configuració» abans de poder fer servir TREK.",
+    "«Activa l'inici de sessió amb clau d'accés» ofereix les claus d'accés a la pàgina d'inici de sessió. Activa «Exigir 2FA» perquè tothom qui no tingui la 2FA l'hagi de configurar a «Configuració» abans de poder fer servir TREK.",
   'help.guide.auth-methods.result':
     "La pàgina d'inici de sessió ofereix exactament els mètodes que has deixat activats.",
   'help.guide.auth-methods.tip.1':
     "TREK no et deixa desactivar l'últim mètode d'inici de sessió: el seu interruptor es posa gris i el text d'ajuda diu «At least one login method must remain enabled».",
   'help.guide.auth-methods.tip.2':
     'Si el servidor té definit OIDC_ONLY, els interruptors de contrasenya queden bloquejats i una nota ho indica.',
+  'help.guide.auth-methods.tip.3':
+    "«Anar directament a l’SSO» només importa mentre «Inici de sessió amb contrasenya» és desactivat: activat, els visitants van directament al teu proveïdor d'identitat; desactivat, veuen primer la pàgina d'inici de sessió amb el botó d'SSO.",
   // oidc
   'help.guide.oidc.title': "Connectar l'inici de sessió únic",
   'help.guide.oidc.goal': 'Permet que la gent iniciï sessió amb el teu proveïdor d’identitat.',
   'help.guide.oidc.step.1':
-    "A «Inici de sessió únic (OIDC)», introdueix el «Nom visible» del botó, la «URL de l'emissor», l'«ID de client» i el «Secret de client» del teu proveïdor. Omple «URL de descoberta (opcional)» només si el proveïdor no la publica a l'adreça habitual, com passa amb Authentik. Fes clic a «Desa».",
-  'help.guide.oidc.step.2': "Activa «Inici de sessió SSO» a «Mètodes d'autenticació».",
+    "A la pestanya «Seguretat», a «Inici de sessió únic (OIDC)», introdueix el «Nom visible» del botó, la «URL de l'emissor», l'«ID de client» i el «Secret de client» del teu proveïdor. Omple «URL de descoberta (opcional)» només si el proveïdor no la publica a l'adreça habitual, com passa amb Authentik. Fes clic a «Desa».",
+  'help.guide.oidc.step.2':
+    "Torna a carregar la pàgina. La targeta ara diu «Configurat», i «Mètodes d'autenticació» mostra «Inici de sessió SSO», «Alta automàtica SSO» i «Ves directament a l'SSO». Activa «Inici de sessió SSO».",
+  'help.guide.oidc.step.3':
+    "Per fer que l'SSO sigui l'única manera d'entrar, desactiva «Inici de sessió amb contrasenya». Amb «Anar directament a l’SSO» activat, els visitants van directament al teu proveïdor; desactiva'l per mantenir la pàgina d'inici de sessió amb el botó d'SSO.",
   'help.guide.oidc.result':
     "La pàgina d'inici de sessió mostra el botó d'SSO; amb «Aprovisionament automàtic SSO» activat, els usuaris que entren per primera vegada reben un compte automàticament.",
   'help.guide.oidc.tip.1':
@@ -1747,9 +1788,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     "Afegeix fotos i valoracions de Google, portades d'Unsplash i la cerca d'Amap per a tota la instància.",
   'help.guide.instance-keys.step.1':
-    "A «Claus API», la TREK Places API de dalt ja s'encarrega de la cerca de llocs sense cap clau. «Què hi ha a dins» explica què cobreix i què no.",
+    "A la pestanya «Serveis», la targeta de cerca de llocs i rutes comença amb l'API de TREK, marcada com a «Recomanat per defecte». Resol la cerca de llocs, les adreces i les rutes sense cap clau, i «Quota d'avui» mostra què en queda del dia.",
   'help.guide.instance-keys.step.2':
-    "Per a fotos, valoracions i horaris d'obertura, enganxa una «Clau API de Google Maps» i fes clic a «Provar»; et dirà «Connectat» o «No vàlida». Obre «Per a què s'utilitza la clau» i activa només el que vulguis que es facturi: «Fotos de Llocs», «Autocompletat de Llocs», «Detalls del Lloc», «Enriquiment de llocs» i «Cercar només amb Google», i a més un «Límit diari de crides a Google».",
+    "Per a fotos, valoracions i horaris d'obertura, enganxa una «Clau API de Google Maps» a «Claus API» i fes clic a «Provar»; et dirà «Connectat» o «No vàlida». A «Per a què s'utilitza la clau», activa només el que vulguis que es facturi: «Fotos de Llocs», «Autocompletat de Llocs», «Detalls del Lloc», «Enriquiment de llocs» i «Cercar només amb Google», i a més un «Límit diari» de crides a Google.",
   'help.guide.instance-keys.step.3':
     "Enganxa la «Clau API d'Unsplash» per a la cerca de portades i la «Clau API d'Amap (高德地图)» per a la cerca de llocs a la Xina continental, i fes clic a «Desa», a baix de la targeta.",
   'help.guide.instance-keys.result':
@@ -1765,7 +1806,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.goal':
     'Tria quin servei respon les cerques de llocs i les consultes de rutes de transport públic.',
   'help.guide.places-transit.step.1':
-    "A «Proveïdor de transport públic», tria «Transitous (gratuït)», que no necessita clau i funciona millor a Europa, o Google, que fa servir la clau de Google. L'opció es desa a l'instant.",
+    "A la pestanya «Serveis», a la targeta de cerca de llocs i de rutes, tria a «Proveïdor de transport públic»: «Transitous (gratuït)», que no necessita clau i funciona millor a Europa, o Google, que fa servir la clau de Google. L'opció es desa a l'instant.",
   'help.guide.places-transit.step.2':
     "A «Proveïdor de la cerca de llocs», tria a quin servei recorre TREK quan l'índex de TREK i OpenStreetMap no troben res: «Automàtic» (Google si hi ha clau, i si no, Amap), Google Places, Amap (高德地图) o OpenStreetMap.",
   'help.guide.places-transit.result':
@@ -1778,7 +1819,7 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': 'Limitar els tipus de fitxer',
   'help.guide.file-types.goal': 'Decideix quines extensions de fitxer es poden pujar.',
   'help.guide.file-types.step.1':
-    "A «Tipus de fitxer permesos», edita la llista d'extensions separades per comes, o posa * per permetre tots els tipus, i fes clic a «Desa».",
+    "A la pestanya «Serveis», a «Tipus de fitxer permesos», edita la llista d'extensions separades per comes, o posa * per permetre tots els tipus, i fes clic a «Desa».",
   'help.guide.file-types.result':
     'Les pujades de qualsevol altre tipus es rebutgen amb un missatge clar, tant als documents com al diari i a les portades.',
   'help.guide.file-types.tip.1':
@@ -1787,9 +1828,9 @@ const help: TranslationStrings = {
   'help.guide.toggle-addon.title': 'Activar o desactivar un complement',
   'help.guide.toggle-addon.goal': 'Fes que un mòdul estigui disponible per a tothom, o treu-lo.',
   'help.guide.toggle-addon.step.1':
-    "Fes clic a l'interruptor de la casella del complement. L'entrada de navegació apareix o desapareix per a tothom a l'instant.",
+    "Troba el complement a la seva targeta, «Viatge», «Global» o «Integració», i fes clic a l'interruptor de la seva fila. L'entrada de navegació apareix o desapareix per a tothom a l'instant.",
   'help.guide.toggle-addon.step.2':
-    "Algunes caselles tenen subfiles per a les seves opcions, com ara «Seguiment d'equipatge» a «Llistes» o els proveïdors de fotos a «Travessia»; només es mostren mentre el complement està activat.",
+    "Mentre un complement és activat, les seves opcions segueixen com a files amb sagnat, com ara «Seguiment d'equipatge» a «Llistes» o els proveïdors de fotos a «Travessia». «Estat dels vols en directe», al peu de la targeta «Viatge», segueix els vols reservats en directe.",
   'help.guide.toggle-addon.result':
     'Quan desactives un complement, se’n conserven les dades. Quan el tornes a activar, les dades tornen a aparèixer.',
   'help.guide.toggle-addon.tip.1':
@@ -1800,11 +1841,11 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.title': 'Instal·lar un connector',
   'help.guide.install-plugin.goal': 'Afegeix un connector de tercers i dona-li exactament els permisos que demana.',
   'help.guide.install-plugin.step.1':
-    'Obre «Descobreix», busca un connector amb «Cerca connectors…» o amb el filtre «Tipus», i fes clic a «Instal·la». Per a un fitxer de paquet, fes clic a «Puja el connector» (la icona del núvol, a dalt a la dreta de la targeta), o deixa anar el .zip a la pàgina.',
+    'Obre «Descobreix», busca un connector amb «Cerca connectors…» o «Filtra», i fes clic a «Instal·la». Per a un fitxer de paquet, fes clic a «Puja el connector» (la icona del núvol, a dalt a la dreta de la targeta), o deixa anar el .zip a la pàgina.',
   'help.guide.install-plugin.step.2':
     'A «Instal·lat», llegeix la fila: a què pot accedir el connector, a quins servidors es connecta i si és «Revisat» i «Signat». Després activa «Activar el connector»; la fila mostrarà «Actiu».',
   'help.guide.install-plugin.step.3':
-    "El menú ⋯ de la fila ofereix «Reinicia», «Mostra el registre d'errors», «Amfitrions permesos» i «Canvia la versió…», i també els enllaços al codi font; «Elimina» desinstal·la el connector i les seves dades. Una versió més nova apareix a la fila com a actualització, i si demana permisos nous, es queda desactivada fins que els aprovis.",
+    "El menú ⋯ de la fila ofereix «Reinicia», «Configuració de la instància» quan el connector en té, «Mostra el registre d'errors», «Amfitrions permesos» i «Canvia la versió…», i també els enllaços al codi font; «Elimina» desinstal·la el connector i les seves dades. Una versió més nova apareix a la fila com a actualització, i si demana permisos nous, es queda desactivada fins que els aprovis.",
   'help.guide.install-plugin.result':
     "El connector s'executa en el seu propi procés. Tot el que afegeix, com ara ginys, capes de mapa o eines, apareix on ho defineix el connector.",
   'help.guide.install-plugin.tip.1':
@@ -1820,7 +1861,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'A «Categories», assigna cada tipus de fitxer pujat, com ara «Documents del viatge», «Fotos de la travesia» o «Còpies de seguretat», a un backend.',
   'help.guide.storage-backends.step.3':
-    'Fes clic a «Desar els canvis», a baix. Si alguna categoria apunta ara a un altre lloc, TREK et pregunta si vols «Mou els objectes existents» o «Només enruta les escriptures noves».',
+    'Fes clic a «Desa els canvis» al peu de «Categories». Si alguna categoria apunta ara a un altre lloc, TREK et pregunta si vols «Mou els objectes existents» o «Només enruta les escriptures noves».',
   'help.guide.storage-backends.result':
     "Els fitxers nous van al backend assignat. Els fitxers moguts se serveixen des d'allà, i els que has triat no moure es queden on eren.",
   'help.guide.storage-backends.tip.1':
@@ -1832,11 +1873,11 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.goal':
     'Decideix quins canals poden triar els usuaris i configura el correu electrònic.',
   'help.guide.channels-instance.step.1':
-    "Activa «Correu (SMTP)» a la capçalera de la seva targeta, introdueix «SMTP Host», «SMTP Port», «SMTP User», «SMTP Password» i la «From Address», i fes clic a «Desa». «Enviar correu de prova» t'envia un correu a tu. «Omet la comprovació del certificat TLS» només és per a un servidor de correu local amb un certificat propi.",
+    "A la targeta «Canals», activa «Correu (SMTP)». A la secció «Correu (SMTP)» de sota, introdueix «SMTP Host», «SMTP Port», «SMTP User», «SMTP Password» i la «From Address», i fes clic a «Desa». «Enviar correu de prova» t'envia un correu a tu. «Omet la comprovació del certificat TLS» només és per a un servidor de correu local amb un certificat propi.",
   'help.guide.channels-instance.step.2':
-    'Activa Webhook, Ntfy i Web Push per oferir-los. Aleshores els usuaris introdueixen la seva URL o el seu tema, o activen el push a cada dispositiu, a «Configuració», «Notificacions».',
+    'Activa Webhook, Ntfy i Web Push a la mateixa targeta per oferir-los. Aleshores els usuaris introdueixen la seva URL o el seu tema, o activen el push a cada dispositiu, a «Configuració», «Notificacions».',
   'help.guide.channels-instance.step.3':
-    "«Recordatoris de viatge» activa o desactiva el recordatori abans que comenci un viatge; «A l'aplicació» sempre està activat.",
+    "«Recordatoris de viatge», l'última fila, activa o desactiva el recordatori abans que comenci un viatge; «A l'aplicació» sempre està activat.",
   'help.guide.channels-instance.result':
     'La pestanya «Notificacions» de cada usuari mostra els canals que has activat.',
   'help.guide.channels-instance.tip.1':
@@ -1848,7 +1889,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.goal':
     "Rep avisos de versions noves, de rèpliques d'emmagatzematge que fallen i de sol·licituds de regions de caiac.",
   'help.guide.admin-channels.step.1':
-    "A «Ntfy d'administrador», introdueix el «Tema d'administrador» i, si cal, la «URL del servidor Ntfy» i un «Token d'accés (opcional)»; a «Webhook d'administrador», una URL. Fes clic a «Desa» a cada targeta.",
+    "A la targeta «Avisos d'administració», introdueix una URL a «Webhook d'administrador» i fes clic al seu «Desa». A «Ntfy d'administrador», introdueix el «Tema d'administrador» i, si cal, la «URL del servidor Ntfy» i un «Token d'accés (opcional)», i fes clic a «Desa».",
   'help.guide.admin-channels.step.2':
     'Fes clic a «Enviar Ntfy de prova» o «Enviar webhook de prova» per comprovar que arriba un missatge.',
   'help.guide.admin-channels.result':
@@ -1938,6 +1979,63 @@ const help: TranslationStrings = {
     "Aquí només es decideix si es pot oferir un magatzem. L'adreça i les credencials són de cada viatge i les introdueix el propietari del viatge a la pestanya «Fitxers», mai al tauler d'administració.",
   'help.guide.document-providers.tip.2':
     'Si desactives Documents, també es desactiven tots els magatzems, i no en pots activar cap mentre Documents estigui desactivat: el servidor respon Enable the Documents addon first. Un magatzem de la teva pròpia xarxa també necessita ALLOW_INTERNAL_NETWORK=true al servidor.',
+  'help.guide.mail-import-setup.title': 'Configurar la importació de correus de reserva',
+  'help.guide.mail-import-setup.goal':
+    'Dona a tothom una adreça de reenviament, perquè les confirmacions de reserva que reenviïn es converteixin en reserves del viatge correcte.',
+  'help.guide.mail-import-setup.step.1':
+    'A la pestanya «Complements», a la targeta «Integració», activa «Importació de correus de reserva». Ara tothom en aquest TREK té una adreça de reenviament personal.',
+  'help.guide.mail-import-setup.step.2': 'Fes clic a «Configura la importació de correus», la fila que apareix a sota.',
+  'help.guide.mail-import-setup.step.3':
+    "A «Com arriba el correu», tria «Bústia IMAP» i introdueix «Servidor», «Port», «Xifratge», «Usuari», «Contrasenya» i «Carpeta». Tria «Webhook» en lloc d'això per a un servei de correu que envia cada correu a TREK, o «Només pujada de fitxers» per provar-ho sense bústia. Després defineix la «Plantilla d’adreça», l'adreça de reenviament amb un marcador on va el codi de cada persona, i els «Correus amb IA per persona i dia».",
+  'help.guide.mail-import-setup.step.4':
+    'Fes clic a «Desa» i després a «Prova la connexió»; diu «Connectat» o què ha fallat. A sota, el diàleg mostra quan ha llegit TREK el correu per última vegada i els correus de les últimes 24 hores: «Afegits automàticament», «En espera» i «Fallits».',
+  'help.guide.mail-import-setup.result':
+    'Tothom troba la seva adreça de reenviament a «Configuració», «Integracions». Una confirmació reenviada es converteix en una reserva al viatge que toca, o hi espera que el propietari la revisi.',
+  'help.guide.mail-import-setup.tip.1':
+    'Dona a TREK una bústia pròpia que accepti adreces amb plus (trek+…@el-teu-domini), no una de personal. Els correus llegits passen a la carpeta TREK/processed.',
+  'help.guide.mail-import-setup.tip.2':
+    "Les variables d'entorn que comencen per MAIL_INGEST_ s'imposen als camps del diàleg. Un servidor de correu de la teva pròpia xarxa també necessita ALLOW_INTERNAL_NETWORK=true al servidor.",
+  'help.guide.mail-import-setup.tip.3':
+    "«Correus amb IA per persona i dia» limita quants correus sense dades de reserva llegibles per màquina llegeix una IA per a cada persona cada dia. Per sobre d'aquest límit, només es llegeixen les dades llegibles per màquina.",
+  'help.guide.ai-setup.title': "Configura l'assistent d'IA",
+  'help.guide.ai-setup.goal':
+    "Connecta un proveïdor d'IA una sola vegada, perquè tothom en aquest TREK pugui planificar amb l'assistent.",
+  'help.guide.ai-setup.step.1':
+    "A la pestanya «Complements», a la targeta «Integració», busca la casella d'IA i activa l'«Assistent d’IA». L'«Anàlisi amb IA» i l'MCP són a la mateixa casella.",
+  'help.guide.ai-setup.step.2': 'Fes clic a «Configura la IA», la fila que apareix sota els interruptors.',
+  'help.guide.ai-setup.step.3':
+    'A «Qui paga», tria qui proporciona la connexió: «Pago jo», «Pago jo, amb compte propi permès», «Pago jo per a tothom» o «Tothom fa servir el seu propi compte». La línia de sota explica què vol dir la teva elecció.',
+  'help.guide.ai-setup.step.4':
+    "A «Connexió per a tothom», tria «Enganxa una clau API» i enganxa-hi una clau d'Anthropic, OpenAI, Gemini o OpenRouter. TREK indica el proveïdor que detecta. Fes clic a «Connecta»; TREK comprova la clau amb el proveïdor abans de desar-la.",
+  'help.guide.ai-setup.step.5':
+    'La connexió apareix com a «Connectat». Tria el «Model» amb què xateja tothom; només es llisten els models que poden fer servir eines. «Canvia» i «Elimina la connexió» són a sota.',
+  'help.guide.ai-setup.step.6':
+    "A la pestanya «Assistent d'IA», defineix els «Missatges per persona i dia» mentre pagues tu, quant de temps es «Conserven els xats» i si es permet la «Cerca web». Cada canvi es desa a l'instant.",
+  'help.guide.ai-setup.result':
+    "El botó de l'assistent apareix a tots els viatges. Si ho has permès, la gent pot connectar el seu propi proveïdor a «Configuració», «Integracions».",
+  'help.guide.ai-setup.tip.1':
+    '«Servidor propi» accepta qualsevol adreça compatible amb OpenAI, per exemple Ollama, amb una clau opcional i el nom del model. «Inicia sessió amb ChatGPT» comparteix el teu propi pla de ChatGPT amb tothom; comprova que el teu pla ho permet.',
+  'help.guide.ai-setup.tip.2': "Amb «Cadascú fa servir el seu compte» no se't cobra res i el límit diari no s'aplica.",
+  'help.guide.ai-setup.tip.3':
+    "L'anàlisi amb IA llegeix les reserves amb la mateixa connexió. Activa-la a la casella, i la seva pestanya pròpia al diàleg li permet fer servir una connexió diferent.",
+  'help.guide.ai-setup.tip.4':
+    'La cerca web funciona amb ChatGPT, Anthropic i OpenRouter, mitjançant la cerca del mateix proveïdor, i les cerques només van a aquest proveïdor.',
+  'help.guide.paddle-water-data.title': "Carrega les dades d'aigües per a les excursions en piragua",
+  'help.guide.paddle-water-data.goal':
+    "Dona a les excursions en piragua les preses, les rescloses i les normes de navegació d'una regió, i decideix si TREK carrega regions noves per ell mateix.",
+  'help.guide.paddle-water-data.step.1':
+    "A la pestanya «Complements», mentre «Excursions» és activat, fes clic a «Dades d’aigües per a piragua», l'última fila de «Excursions». Un número al costat compta les regions, o les sol·licituds que t'esperen.",
+  'help.guide.paddle-water-data.step.2':
+    'A «Carregar regions automàticament», tria «Automàtic», «A petició» o «Desactivat». «Automàtic» carrega la regió on algú planifica una excursió en piragua, fins a la «Regió més gran que es carrega automàticament»; el que és més gran espera a «Demanades», on «Carregar» ho llegeix i «Rebutja» ho descarta.',
+  'help.guide.paddle-water-data.step.3':
+    "A «Afegeix una regió», busca una regió a Geofabrik, per exemple Oberpfalz, i fes clic a «Afegeix» al costat. TREK la llegeix en segon pla; quan és «Llesta», la seva fila mostra els objectes, la data de les dades i els quilòmetres d'aigua. «Torna a llegir» l'actualitza i «Elimina la regió» l'elimina.",
+  'help.guide.paddle-water-data.result':
+    "Les excursions en piragua dins la regió mostren els seus obstacles i segueixen l'aigua, i TREK torna a llegir cada regió un cop al mes.",
+  'help.guide.paddle-water-data.tip.1': 'Només el nom de la regió va a Geofabrik, mai un lloc que algú planifica.',
+  'help.guide.paddle-water-data.tip.2':
+    "Llegir una regió triga uns minuts i fa servir memòria mentre s'executa, i un país sencer necessita uns quants gigabytes d'espai temporal.",
+  'help.guide.paddle-water-data.tip.3':
+    "Els administradors reben l'avís «S'ha sol·licitat una regió per a piragua» quan hi ha una sol·licitud pendent. Tria on va a «Avisos d'administració», a la pestanya «Notificacions».",
 
   // ── Screen: trip ──────────────────────────────────────────────────────────────────────
   'help.ctx.trip.title': 'Viatge',
@@ -1948,9 +2046,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     "«Planificat» té tres columnes: els dies a l'esquerra, el mapa al mig i els llocs a la dreta. Amb el complement «Viatge per carretera», la columna de dies comença amb un selector entre «Dies» i «Viatge per carretera»; amb el complement «Excursions», la columna de llocs comença amb «Llocs» i «Excursions». Les reserves i els transports formen part del pla, a la parada i entre parades; les pestanyes en mostren la llista.",
   'help.ctx.trip.bullet.3':
-    "«Configuració del viatge», la pastilla del costat del nom del viatge, a dalt a l'esquerra, obre la configuració del viatge: «Persones» (membres i convidats), «Compartint» (l'enllaç públic de només lectura i l'enllaç d'invitació) i «Diari».",
+    "«Configuració del viatge», la pastilla del costat del nom del viatge, a dalt a l'esquerra, obre la configuració del viatge: «Persones» (membres i convidats), «Compartir» (l'enllaç públic de només lectura i l'enllaç d'invitació), «Diari», «Complements» per al propietari del viatge i «Edita el viatge».",
   'help.ctx.trip.bullet.4':
-    "El títol, les dates, la portada i la divisa s'editen des d'«Els meus viatges», amb el llapis de la targeta del viatge. El nom del viatge, a dalt a l'esquerra, et torna allà.",
+    "«Edita el viatge», a «Configuració del viatge», canvia el títol, la descripció, les dates, la portada i la divisa; el llapis de la targeta del viatge a «Els meus viatges» obre el mateix formulari. El nom del viatge, a dalt a l'esquerra, et torna a «Els meus viatges».",
   'help.ctx.trip.bullet.5':
     "La pestanya de la vora interior d'una columna la plega, i el mapa aprofita l'espai lliure. Una columna plegada mostra una petita casella a la cantonada superior del mapa; fes-hi clic per tornar a mostrar la columna. Arrossega el separador fi del costat d'una columna per canviar-ne l'amplada.",
   'help.ctx.trip.bullet.6':
@@ -2002,9 +2100,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.step.1':
     "Fes clic a «Configuració del viatge», al costat del nom del viatge, i tria «Compartint» a l'esquerra.",
   'help.guide.public-link.step.2':
-    "A la targeta «Enllaç públic», activa què pot mostrar l'enllaç. «Mapa i pla» sempre està activat; «Reserves», «Equipatge», «Pressupost» i «Xat» els tries tu.",
+    "A la targeta «Enllaç públic», a «Opcions», activa què pot mostrar l'enllaç. «Mapa i pla» sempre està activat; «Reserves», «Equipatge», «Pressupost» i «Xat» els tries tu.",
   'help.guide.public-link.step.3':
-    'A «Opcions», «Només transport i allotjament» exclou les activitats, les notes dels dies i els dies buits. «Sense fotos» exclou les fotos dels llocs.',
+    "Les dues últimes pastilles canvien com l'enllaç mostra el viatge: «Només transport i allotjament» exclou les activitats, les notes dels dies i els dies buits, i «Sense fotos» exclou les fotos dels llocs.",
   'help.guide.public-link.result':
     "Qualsevol persona amb l'enllaç veu les parts triades sense iniciar sessió i no pot canviar res.",
   'help.guide.public-link.tip.1':
@@ -2048,6 +2146,31 @@ const help: TranslationStrings = {
     '«Desfer» abasta el pla: afegir, assignar, treure, reordenar, moure i bloquejar llocs, buidar un dia, optimitzar una ruta, eliminar llocs, canvis de categoria i importacions.',
   'help.guide.undo-change.tip.2':
     'Torna a fer clic per anar més enrere: TREK conserva els teus últims 30 canvis en aquest viatge, del més recent al més antic, fins que en surts.',
+  'help.guide.trip-assistant.title': "Planifica amb l'assistent",
+  'help.guide.trip-assistant.goal':
+    "Pregunta a l'assistent sobre el teu viatge i deixa que afegeixi al pla el que et proposa.",
+  'help.guide.trip-assistant.step.1':
+    "Fes clic al botó rodó amb les espurnes a baix a la dreta del planificador. L'assistent s'obre en una finestra petita sobre el mapa.",
+  'help.guide.trip-assistant.step.2':
+    'Escriu la pregunta al quadre de baix, per exemple on sopar un dia, i fes clic a la fletxa per enviar-la. També pots fer clic en una de les preguntes suggerides.',
+  'help.guide.trip-assistant.step.3':
+    'La resposta coneix el teu pla. Un canvi que suggereix espera primer en una targeta, que mostra què afegeix i a quin dia. Fes clic a «Aplica» per adoptar-lo, o a «Descarta» per deixar el pla tal com és.',
+  'help.guide.trip-assistant.step.4':
+    "Per mostrar la resposta a tothom qui és al viatge, fes clic a la icona de compartir de sota. El text d'ajuda diu «Comparteix al xat del viatge».",
+  'help.guide.trip-assistant.step.5':
+    'Revisa el missatge tal com arribarà, amb els canvis que has aplicat, i fes clic a «Comparteix».',
+  'help.guide.trip-assistant.result':
+    "El lloc és al seu dia al teu pla, i la resposta és al xat del viatge, marcada com a de l'assistent.",
+  'help.guide.trip-assistant.tip.1':
+    "No canvia res abans que facis clic a «Aplica». Després, la fletxa al costat d'un canvi el desfà durant un temps, i «Abans» i «Després» a la targeta mostren el mapa tal com era i tal com és ara.",
+  'help.guide.trip-assistant.tip.2':
+    "Sota una resposta, l'assistent ofereix preguntes per fer a continuació. Escriu @ al quadre per anomenar un dia, un lloc o una reserva, o deixa anar una confirmació de reserva a la finestra perquè la llegeixi.",
+  'help.guide.trip-assistant.tip.3':
+    "Ctrl+K (⌘K en un Mac) obre i tanca la finestra. Arrossega'n la capçalera per moure-la i estira una vora per canviar-ne la mida. Quan la tanques, el xat es conserva, i «Xats recents», a la capçalera, recupera els anteriors.",
+  'help.guide.trip-assistant.tip.4':
+    "«Notes del viatge», el quadern de la capçalera, guarda el que l'assistent ha de tenir en compte a cada suggeriment d'aquest viatge, com ara un pressupost o un ritme tranquil.",
+  'help.guide.trip-assistant.tip.5':
+    "El botó només apareix quan hi ha una connexió d'IA configurada, per l'administrador per a tothom o per tu a «Configuració», «Integracions». Els teus missatges i els detalls del viatge que llegeix l'assistent van a aquest proveïdor.",
   'help.guide.clear-day.title': 'Buidar un dia',
   'help.guide.clear-day.goal':
     "Treu tots els llocs d'un dia d'un sol cop, per exemple per tornar a planificar el dia de zero.",
@@ -2066,9 +2189,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     '«Afegeix un lloc / activitat» obre el formulari per a un lloc que busques o escrius. Si hi ha un dia obert, el botó diu «Lloc nou», i «Al dia», al costat, crea el lloc directament en aquell dia.',
   'help.ctx.trip-places.bullet.3':
-    '«Importa llocs», el botó amb icona del costat, ofereix «Importa una llista» per a una llista compartida des de Google Maps o Naver Maps. Si un administrador ha desactivat el complement «Excursions», també ofereix «Importa un fitxer» per a fitxers .gpx, .kml i .kmz, i pots deixar anar un fitxer sobre la columna.',
+    "«Importa llocs», el botó amb icona del costat, ofereix «Importa un fitxer» per a fitxers .gpx, .kml i .kmz, i «Importa una llista» per a una llista compartida des de Google Maps o Naver Maps. També pots deixar anar un fitxer sobre la columna. Amb «Excursions» activat, un fitxer amb una ruta o un track obre la importació d'«Excursions», que pot afegir-ne els punts solts com a llocs.",
   'help.ctx.trip-places.bullet.4':
-    "A sota hi ha la «Cerca», que també busca a les descripcions i les notes, i al costat la casella «Triar». La fila de sota conté els filtres: «Mostrar» alterna entre «Tots», «Sense planificar» i «Planificat», cadascun amb el seu recompte. El botó de l'etiqueta filtra per categoria, l'estrella per valoració mínima, el globus (quan el viatge inclou més d'un país o regió) per país o regió, i «Ordena per» defineix l'ordre de la llista.",
+    "A sota hi ha la «Cerca», que també busca a les descripcions i les notes, i al costat la casella «Triar». La fila de sota conté els filtres: «Mostrar» alterna entre «Tots», «Sense planificar» i «Planificat», cadascun amb el seu recompte. El botó de l'etiqueta filtra per categoria i per les etiquetes del viatge, l'estrella per valoració mínima, el globus (quan el viatge inclou més d'un país o regió) per país o regió, i «Ordena per» defineix l'ordre de la llista.",
   'help.ctx.trip-places.bullet.5':
     "Cada fila mostra la imatge, el nom i la descripció o l'adreça, i una estrella amb la valoració mitjana quan algú ha valorat el lloc. Fes-hi clic per veure'n els detalls, arrossega-la a un dia, o fes-hi clic amb el botó dret (o fes clic a «Més opcions», els tres punts) per a «Edita», «+ Dia», «Obre el lloc web», «Obre a Google Maps», «Desar a la col·lecció» i «Elimina».",
   'help.ctx.trip-places.bullet.6':
@@ -2083,7 +2206,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     'A «Detalls del lloc», fes clic a una imatge sota «Tria una imatge» perquè sigui la imatge del lloc. «Utilitza aquest text» copia la descripció al formulari.',
   'help.guide.create-place.step.4':
-    "Revisa els camps del formulari. El nom, a dalt del diàleg, és l'únic camp obligatori. La pastilla «Categoria» de sota tria una de les categories del viatge, i el + del costat en crea una de nova. «Adreça», «Latitud» i «Longitud» provenen de la cerca o les escrius tu. «Descripció» i «Notes» són per al teu propi text. «Lloc web» és per a l'enllaç, «Adjuntar», a «Fitxers», afegeix un document, i «Telèfon», «Correu electrònic» i «Afegeix l'horari» són per a les dades que la cerca no ha trobat.",
+    "Revisa els camps del formulari. El nom, a dalt del diàleg, és l'únic camp obligatori. La pastilla «Categoria» de sota tria una de les categories del viatge, i el + del costat en crea una de nova. «Adreça», «Latitud» i «Longitud» provenen de la cerca o les escrius tu. A «Etiquetes», fes clic a les etiquetes que ha de tenir el lloc. «Sobre el lloc» i «Notes» canvien el camp de text entre la descripció i les teves notes. «Lloc web» és per a l'enllaç, «Adjunta», a «Fitxers», afegeix un document, i «Telèfon», «Correu electrònic» i «Afegeix l'horari» són per a les dades que la cerca no ha trobat.",
   'help.guide.create-place.step.5':
     'Fes clic a «Afegir». Si al viatge ja hi ha un lloc amb el mateix nom o a la mateixa ubicació, TREK mostra un avís i el botó passa a dir «Afegir igualment».',
   'help.guide.create-place.result':
@@ -2117,7 +2240,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     "Escriu a «Cercar», a dalt. La llista es filtra mentre escrius, per nom, adreça, descripció i notes; la x del camp l'esborra.",
   'help.guide.filter-places.step.3':
-    "El botó de l'etiqueta, al costat de «Mostrar», mostra les categories: marca'n una o més, «Sense categoria» inclosa. El botó indica quantes n'hi ha de marcades, i «Esborra el filtre», a baix de la llista, les desmarca totes.",
+    "El botó de l'etiqueta, al costat de «Mostrar», mostra les categories, «Sense categoria» inclosa, i a «Etiquetes» les etiquetes del viatge. Marca'n una o més. El botó indica quantes n'hi ha de marcades, i «Esborra el filtre», a baix de la llista, les desmarca totes.",
   'help.guide.filter-places.step.4':
     "L'estrella del costat defineix una valoració mínima: 5+, 4+, etc. només mostren els llocs amb una valoració mitjana igual o superior. Els llocs sense valoració s'amaguen.",
   'help.guide.filter-places.result':
@@ -2132,12 +2255,12 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     'Fes clic amb el botó dret a la fila i tria «Edita», o fes clic a «Més opcions» al final de la fila, o obre el lloc i fes clic a «Edita» als seus detalls.',
   'help.guide.edit-place.step.2':
-    "Canvia el que calgui a «Edita el lloc»: el nom i la pastilla «Categoria» a la part de dalt del diàleg, «Adreça», «Latitud» i «Longitud», «Descripció», «Notes», «Lloc web», «Telèfon», «Correu electrònic» i l'horari d'obertura. Si el lloc és en un sol dia, o l'has obert des d'un dia, el formulari també té «Inici», «Fi» i «Notes per a aquest dia».",
+    "Canvia el que calgui a «Edita el lloc»: el nom i la pastilla «Categoria» a la part de dalt del diàleg, «Adreça», «Latitud» i «Longitud», les «Etiquetes», els textos de «Sobre el lloc» i «Notes», «Lloc web», «Telèfon», «Correu electrònic» i l'horari d'obertura. Si el lloc és en un sol dia, o l'has obert des d'un dia, el formulari també té «Inici» i «Fi», i una tercera pestanya de text, per exemple «Només el dia 2», per a una nota d'aquella visita.",
   'help.guide.edit-place.step.3': 'Fes clic a «Actualitza».',
   'help.guide.edit-place.result':
     "El canvi s'aplica a tot arreu on apareix el lloc: la llista, el mapa i tots els dies en què és.",
   'help.guide.edit-place.tip.1':
-    '«Notes per a aquest dia» són del lloc només en aquell dia; «Notes» són del lloc en si.',
+    'La nota de sota «Només el dia …» és del lloc només en aquell dia; «Sobre el lloc» i «Notes» són del lloc en si.',
   'help.guide.edit-place.tip.2':
     'Si «Fi» és anterior a «Inici», no pots fer clic a «Actualitza»; «Solapament horari amb:» només avisa que una altra parada del dia té la mateixa hora.',
   // delete-place
@@ -2172,20 +2295,21 @@ const help: TranslationStrings = {
   // import-places-file
   'help.guide.import-places-file.title': "Importar llocs d'un fitxer GPX, KML o KMZ",
   'help.guide.import-places-file.goal':
-    'Si el complement «Excursions» està desactivat, importa com a llocs els punts i els traçats que han exportat Google My Maps, Google Earth o un localitzador GPS.',
+    'Porta com a llocs del viatge les xinxetes que han exportat Google My Maps, Google Earth o un aparell GPS.',
   'help.guide.import-places-file.step.1':
-    "Fes clic a «Importa llocs», el botó amb icona del costat del botó d'afegir, i tria «Importa un fitxer», o deixa anar el fitxer en qualsevol punt de la columna de llocs. Totes dues opcions només hi són si un administrador ha desactivat el complement «Excursions».",
+    "Fes clic a «Importa llocs», el botó amb icona del costat del botó d'afegir, tria «Importa un fitxer» i escull el fitxer. També pots deixar anar el fitxer en qualsevol punt de la columna de llocs.",
   'help.guide.import-places-file.step.2':
-    "Tria el fitxer o arrossega'l al requadre. Per a un GPX, marca què vols importar: «Punts de ruta», «Rutes», «Tracks (amb geometria de ruta)». Per a KML i KMZ, marca «Punts (Placemarks)» i «Rutes (LineStrings)».",
+    "Si el fitxer conté una ruta o un track, s'obre la importació d'«Excursions», perquè amb «Excursions» activat, que és el que ve per defecte, una línia es converteix en una excursió. «Afegeix els punts com a llocs», activat per defecte, també porta les xinxetes del fitxer com a llocs del viatge.",
   'help.guide.import-places-file.step.3':
-    "El requadre accepta diversos fitxers alhora, però només .gpx, .kml i .kmz. Qualsevol altre tipus de fitxer, o un de més de 10 MB, es rebutja al diàleg i no s'importa.",
+    'Un fitxer només amb xinxetes obre «Importa un fitxer», igual que tot fitxer en què un administrador ha desactivat Excursions. Per a un GPX, marca què importar: «Punts de ruta», «Rutes», «Traces» (amb la geometria del camí). Per a KML i KMZ, marca «Punts» (Placemarks) i «Camins» (LineStrings). Accepta fitxers .gpx, .kml i .kmz de fins a 10 MB.',
   'help.guide.import-places-file.step.4':
     "Fes clic a «Importa». Un missatge indica quants llocs s'han importat. En un fitxer KML o KMZ, el diàleg es queda obert amb un resum del que s'ha creat i del que s'ha omès.",
   'help.guide.import-places-file.result':
-    'Els llocs ja són a la llista. Una traça té una línia de color a la seva fila, es dibuixa al mapa i té el seu propi filtre «Rutes».',
+    'Les xinxetes són llocs del viatge, a la llista i al mapa, a «Sense planificar» fins que les poses en un dia.',
   'help.guide.import-places-file.tip.1':
     "Si el fitxer és massa gran, es rebutja i TREK n'indica la mida màxima; torna'l a exportar sense fotos o divideix-lo.",
-  'help.guide.import-places-file.tip.2': 'Pots desfer tota la importació des de la barra d’eines de sobre els dies.',
+  'help.guide.import-places-file.tip.2':
+    "Una importació feta amb «Importa un fitxer» es pot desfer des de la barra d'eines de sobre els dies.",
   // import-places-list
   'help.guide.import-places-list.title': 'Importar una llista compartida de Google Maps o de Naver Maps',
   'help.guide.import-places-list.goal': 'Importa llocs a partir de l’enllaç d’una llista compartida.',
@@ -2212,6 +2336,27 @@ const help: TranslationStrings = {
     'Amb qualsevol ordre que no sigui «Afegits recentment», el botó queda destacat, així veus de seguida que la llista està ordenada d’una altra manera.',
   'help.guide.sort-places.tip.2':
     "Ordenar només canvia la llista. Els dies mantenen el seu ordre, i el navegador recorda l'ordre que has triat.",
+  'help.guide.place-tags.title': 'Etiquetar llocs i filtrar per etiqueta',
+  'help.guide.place-tags.goal':
+    'Posa als llocs etiquetes addicionals, com ara «Imprescindible» o «Dia de pluja», cadascuna amb el seu color, i mostra només els llocs amb una etiqueta.',
+  'help.guide.place-tags.step.1':
+    "Obre el formulari del lloc, amb «Edita» al menú de la fila o «Lloc nou» per a un de nou. A «Etiquetes», cada etiqueta del viatge és una pastilla. Fes clic al nom d'una etiqueta per posar-la al lloc; una marca indica que hi és.",
+  'help.guide.place-tags.step.2':
+    "Per fer una etiqueta nova, escriu-ne el nom a «Etiqueta nova» i prem Enter o el + del final. El punt de l'inici del camp tria primer el color. L'etiqueta s'afegeix al viatge i queda marcada.",
+  'help.guide.place-tags.step.3':
+    "Fes clic al punt de color d'una etiqueta per canviar-ne el color: tria una mostra, o obre «Color personalitzat» per a un color propi. L'etiqueta canvia de color a l'instant, a tot el viatge i per a tothom.",
+  'help.guide.place-tags.step.4':
+    'Fes clic a «Actualitza», o a «Afegeix» per a un lloc nou, per desar el lloc amb les seves etiquetes.',
+  'help.guide.place-tags.step.5':
+    "A la columna de llocs, el botó d'etiquetes del costat de «Mostra» llista les etiquetes del viatge a «Etiquetes», després de les categories. Marca'n una per mostrar només els llocs que la tenen.",
+  'help.guide.place-tags.result':
+    "La llista i el mapa només mostren els llocs amb l'etiqueta marcada. «Esborra el filtre», a baix de la llista, torna a mostrar tots els llocs.",
+  'help.guide.place-tags.tip.1':
+    'Una etiqueta mai no canvia el marcador: la seva icona i el seu color al mapa continuen sent els de la categoria. Un lloc té una categoria i tantes etiquetes com vulguis.',
+  'help.guide.place-tags.tip.2':
+    'Les etiquetes pertanyen al viatge, no a tu. Tots els membres veuen les mateixes etiquetes, i tothom qui pot editar els llocs del viatge les pot afegir i canviar-ne el color.',
+  'help.guide.place-tags.tip.3':
+    "Amb una categoria i una etiqueta marcades, un lloc ha de complir les dues. Amb dues etiquetes marcades, amb una n'hi ha prou.",
   'help.guide.place-by-hand.title': 'Afegir un lloc que la cerca no troba',
   'help.guide.place-by-hand.goal':
     'Introdueix tu mateix un lloc, amb telèfon, correu electrònic i horari, quan la cerca de llocs no troba res.',
@@ -2221,7 +2366,7 @@ const help: TranslationStrings = {
     'Fes clic a «Afegeix a mà». El text que has cercat passa a ser el nom, i el diàleg es desplaça fins als camps de contacte.',
   'help.guide.place-by-hand.step.3': 'Omple «Telèfon» i «Correu electrònic» si els saps.',
   'help.guide.place-by-hand.step.4':
-    "Fes clic a «Afegeix l'horari» i indica quan obre i tanca el lloc cada dia. El botó de copiar aplica a tots els dies l'horari del primer, i l'interruptor d'un dia el marca com a «Tancada».",
+    "Fes clic a «Afegeix l'horari» i indica quan obre i tanca el lloc cada dia. El botó de copiar aplica a tots els dies l'horari del primer, i cada dia té un interruptor per a «Obert 24 hores» i un altre per a «Tancat».",
   'help.guide.place-by-hand.step.5': 'Fes clic a «Afegir».',
   'help.guide.place-by-hand.result':
     "El lloc s'afegeix a la llista. Als detalls hi surten el telèfon, el correu electrònic i l'horari que has introduït, igual que en un lloc trobat amb la cerca.",
@@ -2235,7 +2380,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     "La columna de l'esquerra del pla: una targeta per dia amb les parades en ordre, les notes, les reserves i els transports del dia, i la ruta entre les parades. Aquí és on es planifica realment el viatge.",
   'help.ctx.trip-days.bullet.1':
-    "La capçalera de dalt: «Exporta» (PDF, calendari, GPX) a l'esquerra; a la dreta, la fletxa de desfer, «Expandeix tots els dies» / «Contreu tots els dies», «Reordena els dies» i, quan alguna reserva té una ruta per dibuixar, «Mostra totes les rutes de reserva».",
+    "La capçalera de dalt: «Exporta» (PDF, calendari, GPX, KML) a l'esquerra; a la dreta, la fletxa de desfer, «Expandeix tots els dies» / «Contreu tots els dies», «Reordena els dies» i, quan alguna reserva té una ruta per dibuixar, «Mostra totes les rutes de reserva».",
   'help.ctx.trip-days.bullet.2':
     "Una targeta de dia: una casella amb el número del dia i la previsió del temps, el títol («Dia 1» fins que li posis nom) i la data, i a sota pastilles per a l'allotjament de la nit (verda el dia d'entrada, vermella el de sortida i discontínua mentre no està confirmada; la icona del tiquet obre la reserva) i per al cotxe de lloguer. Fes clic a la capçalera per obrir el dia; la fletxa el plega, i el + («Afegeix al dia») obre un menú: «Afegeix un lloc a aquest dia», «Afegeix un allotjament», «Afegeix transport», «Transport públic» i «Afegeix una nota». Amb el botó dret a la capçalera tens les mateixes opcions i, a més, «Buida el dia».",
   'help.ctx.trip-days.bullet.3':
@@ -2252,9 +2397,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     "La capçalera: una casella amb el número del dia i la previsió del temps, després «Dia 1» o el títol que li hagis posat, i la data. A sota, pastilles per a l'allotjament de la nit (verda el dia d'entrada, vermella el de sortida i discontínua mentre no està confirmada; el tiquet que hi ha obre la reserva) i per al cotxe de lloguer. Fes clic a la capçalera per obrir el dia (el seu panell de detalls s'obre sobre el mapa). El + de la dreta («Afegeix al dia») afegeix un lloc, una estada, un transport, una connexió de transport públic o una nota, i la fletxa plega la targeta.",
   'help.guide.read-day-plan.step.2':
-    "Cada parada mostra la imatge, la icona de la categoria i el nom; després l'hora, si té «Inici», i la descripció. A sota hi ha les «Notes per a aquest dia». Quan passes el ratolí per la fila, apareixen els controls: amb l'agafador de l'esquerra l'arrossegues, la imatge es converteix en un cadenat per a l'optimització de la ruta, i a l'extrem dret hi ha les fletxes («Puja», «Baixa»), «Afegeix una reserva» i els tres punts («Més opcions»).",
+    "Cada parada mostra la imatge, la icona de la categoria i el nom; després l'hora, si té «Inici», i la descripció. A sota hi ha les notes d'aquest dia. Quan passes el ratolí per la fila, apareixen els controls: amb l'agafador de l'esquerra l'arrossegues, i a l'extrem dret hi ha les fletxes («Puja», «Baixa»), «Afegeix una reserva» i els tres punts («Més opcions»). Si poses el ratolí sobre la imatge, es converteix en un cadenat per a l'optimització de la ruta.",
   'help.guide.read-day-plan.step.3':
-    "Una reserva en una parada s'hi mostra com una insígnia «Reserva», verda si està confirmada i ambre mentre està pendent, amb l'hora i la companyia. Fes clic a la insígnia per obrir la reserva; el botó de ruta del costat en dibuixa la ruta. Un transport té una fila pròpia, del color del seu tipus, amb l'hora i «Sortida» o «Arribada». Fes clic a una reserva per obrir-ne els detalls; des d'allà, «Edita» et permet modificar-la.",
+    "Una reserva en una parada s'hi mostra com una insígnia «Reserva», verda si està confirmada i ambre mentre està pendent, amb l'hora i la companyia. Fes clic a la insígnia per obrir la reserva; quan la reserva té una ruta, el botó de ruta del costat la dibuixa al mapa. Un transport té una fila pròpia, del color del seu tipus, amb l'hora i «Sortida» o «Arribada». Fes clic a una reserva per obrir-ne els detalls; des d'allà, «Edita» et permet modificar-la.",
   'help.guide.read-day-plan.step.4':
     "Amb «Ruta» activat, el connector entre dues parades indica quant dura el tram i quina distància té, segons el mode de desplaçament del dia; fes-hi clic per canviar el mode només d'aquell tram.",
   'help.guide.read-day-plan.step.5':
@@ -2294,7 +2439,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     "Arrossega la parada fins a la targeta d'un altre dia per moure-la-hi; desapareix del dia anterior.",
   'help.guide.reorder-stops.step.4':
-    "Si una parada té una hora fixa i un moviment trencaria l'ordre del dia, TREK et pregunta «Vols eliminar l'hora?», perquè l'hora determina la posició de la parada. «Confirmar» elimina l'hora perquè la parada pugui anar a qualsevol lloc. «Cancel·la» deixa el dia com estava.",
+    "Si una parada té una hora fixa i un moviment trencaria l'ordre del dia, TREK et pregunta «Vols eliminar l'hora?», perquè l'hora determina la posició de la parada. «Elimina l'hora i mou» elimina l'hora i posa la parada on l'has deixat. «Cancel·la» deixa el dia com estava.",
   'help.guide.reorder-stops.result': "La ruta i els temps de desplaçament s'actualitzen a l'instant amb el nou ordre.",
   'help.guide.reorder-stops.tip.1':
     "Una reserva amb hora fixa es queda a la posició que li correspon per l'hora. Si la deixes anar en un altre punt del dia, hi torna. Si l'arrossegues a la targeta d'un altre dia, passa a aquell dia.",
@@ -2305,7 +2450,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.goal':
     'Defineix quan comença i quan acaba una parada perquè el dia funcioni com un horari.',
   'help.guide.set-stop-times.step.1':
-    'Fes clic amb el botó dret a la parada, o fes clic als seus tres punts, i tria «Edita». Si obres el formulari des del dia, hi trobaràs «Inici» i «Fi» per a aquell dia, just a sota de la ubicació.',
+    'Fes clic amb el botó dret a la parada, o fes clic als seus tres punts, i tria «Edita». Quan obres el formulari des del dia, hi trobaràs «Inici» i «Fi» per a aquell dia, sota la ubicació i les etiquetes.',
   'help.guide.set-stop-times.step.2':
     'Introdueix «Inici» i, si vols, «Fi». «Solapament horari amb:» t’avisa que una altra parada del dia amb hora s’hi solapa. Si «Fi» és anterior a «Inici», no pots fer clic a «Actualitza».',
   'help.guide.set-stop-times.step.3':
@@ -2315,9 +2460,9 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     "L'hora pertany a la parada d'aquell dia; el mateix lloc en un altre dia pot tenir una altra hora.",
   'help.guide.set-stop-times.tip.2':
-    "Per moure a mà una parada amb hora, arrossega-la. TREK et pregunta «Vols eliminar l'hora?» i, quan fas clic a «Confirmar», l’hora s’elimina.",
+    "Per moure a mà una parada amb hora, arrossega-la. TREK et pregunta «Vols eliminar l'hora?», i «Elimina l'hora i mou» treu l'hora i la mou.",
   'help.guide.set-stop-times.tip.3':
-    "«Notes per a aquest dia», al mateix formulari, és per a informació que només val aquell dia, per exemple una reserva de taula o un número d'entrada.",
+    "La pestanya «Només aquest dia», al costat de «Sobre el lloc» i «Notes», al mateix formulari, és per a una nota que només val aquell dia, per exemple una reserva de taula o un número d'entrada.",
   // remove-from-day
   'help.guide.remove-from-day.title': "Treure una parada d'un dia",
   'help.guide.remove-from-day.goal': 'Treu un lloc d’un dia sense eliminar-lo del viatge.',
@@ -2338,7 +2483,8 @@ const help: TranslationStrings = {
     "Passa el ratolí per sobre de la imatge de la parada i fes clic al cadenat: «Mantén la posició durant l'optimització de ruta».",
   'help.guide.lock-stop.step.2':
     '«Optimitza» ara ordena les altres parades al seu voltant. Torna a fer clic al cadenat («Fes clic per desbloquejar») per desbloquejar-la.',
-  'help.guide.lock-stop.result': 'El cadenat apareix a la imatge; la parada manté la posició fins que la desbloquegis.',
+  'help.guide.lock-stop.result':
+    'El cadenat es queda a la imatge i la fila queda ressaltada; la parada manté la posició fins que la desbloquegis.',
   'help.guide.lock-stop.tip.1':
     "Una parada amb hora fixa queda bloquejada per la seva hora; l'optimització no la mou mai.",
   'help.guide.lock-stop.tip.2':
@@ -2382,7 +2528,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': 'Afegir, reordenar i canviar el nom dels dies',
   'help.guide.manage-days.goal': 'Modifica els dies mateixos, no només els llocs que hi ha.',
   'help.guide.manage-days.step.1':
-    "Els dies surten de les dates del viatge. Canvia les dates al formulari d'edició del viatge, al «Tauler», i s'afegiran o s'eliminaran dies al principi o al final. Abans d'eliminar un dia amb contingut, una llista et mostra quins dies s'eliminaran i què hi ha.",
+    "Els dies surten de les dates del viatge. Canvia-les a «Configuració del viatge», a dalt del planificador, a «Edita el viatge» (o amb el llapis de la targeta del viatge al «Tauler»), i s'afegiran o s'eliminaran dies al principi o al final. Abans d'eliminar un dia amb contingut, una llista mostra quins dies s'eliminen i què hi ha.",
   'help.guide.manage-days.step.2':
     "«Reordena els dies», a la capçalera, obre una llista: arrossega un dia per l'agafador, o fes servir «Puja» i «Baixa», i el dia es mou amb els seus llocs, notes i reserves. Sota la llista, «Afegeix amb la data següent» afegeix un dia després de l'últim dia amb data i allarga el viatge un dia; «Sense data» afegeix al final un dia sense data. Un viatge sense dates només té «Afegeix un dia».",
   'help.guide.manage-days.step.3':
@@ -2400,7 +2546,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.title': 'Entendre les reserves i els transports del pla',
   'help.guide.bookings-in-plan.goal': 'Mira on apareix una reserva un cop creada i des de quina pantalla es crea.',
   'help.guide.bookings-in-plan.step.1':
-    "Un transport (vol, tren, ferri, autobús, cotxe) és una fila del color del seu tipus, amb l'hora i «Sortida» el dia que surt o «Arribada» el dia que arriba; el globus del costat indica el fus horari, i un vol amb escala té una fila per tram. En una connexió de transport públic, fes clic a la fletxa per veure'n les línies. Fes clic a una fila per obrir la reserva; des d'allà, «Edita» et permet modificar-la.",
+    "Un transport (vol, tren, ferri, autobús, cotxe) és una fila del color del seu tipus, amb l'hora i «Sortida» el dia que surt o «Arribada» el dia que arriba; si la reserva té fus horari, un globus al costat de l'hora el mostra en passar-hi el ratolí, i un vol amb escala té una fila per tram. Mentre un vol és en curs, amb l'estat de vol en directe activat, una línia de sota indica com va, retard inclòs. En una connexió de transport públic, fes clic a la fletxa per veure'n les línies. Fes clic a una fila per obrir la reserva; des d'allà, «Edita» et permet modificar-la.",
   'help.guide.bookings-in-plan.step.2':
     'Una reserva vinculada a una parada (un restaurant, una excursió) apareix en aquella parada com una etiqueta «Reserva» amb l’hora. L’etiqueta és verda si està confirmada i ambre mentre està pendent. Una reserva amb dia però sense parada té una fila pròpia dins del dia.',
   'help.guide.bookings-in-plan.step.3':
@@ -2417,14 +2563,16 @@ const help: TranslationStrings = {
     "Si deixes anar una reserva amb hora en un altre punt del seu dia, torna a la posició que li correspon per l'hora. Si l'arrossegues a la targeta d'un altre dia, passa a aquell dia. Per canviar-ne l'hora, edita la reserva.",
   // export-plan
   'help.guide.export-plan.title': 'Exportar el pla',
-  'help.guide.export-plan.goal': 'Exporta el pla com a document, al calendari o a un dispositiu GPS.',
+  'help.guide.export-plan.goal': 'Exporta el pla com a document, al calendari, a un dispositiu GPS o a Google My Maps.',
   'help.guide.export-plan.step.1': "Fes clic a «Exporta», a l'esquerra de la capçalera de sobre els dies.",
   'help.guide.export-plan.step.2':
-    "Document: PDF obre la vista d'impressió de tots els dies amb les parades, les notes i les reserves, començant per un mapa general de la ruta; «El meu pla en PDF» només inclou allò en què participes. A la vista, «Salt de pàgina per dia» comença cada dia en una pàgina nova, «Notes del transport» hi afegeix les notes dels teus transports i «Desa com a PDF» el baixa.",
+    '«Document: PDF» obre la vista prèvia del viatge com a document: una portada, una visió general amb el mapa de la ruta, tots els dies i totes les reserves, i després cada dia amb les parades, les notes i les reserves. «El meu pla en PDF» només inclou allò en què participes. Els interruptors de sobre la vista prèvia trien què hi entra: «Salt de pàgina per dia», «Text gran», «Resum», «Fotos», «Coordenades», «Contacte i horaris», i «Notes del transport» quan els teus transports tenen notes. «Desa com a PDF» el baixa.',
   'help.guide.export-plan.step.3':
     "«Calendari»: «Baixa .ics» desa les reserves en un fitxer de calendari; «Subscriu-te al calendari» et dona un enllaç que l'aplicació de calendari actualitza automàticament.",
   'help.guide.export-plan.step.4':
     '«Mapes i GPS» (GPX): «Tot el viatge» exporta els llocs, les rutes dels dies i les traces; «Només els llocs», només els punts; «Dies com a rutes», una ruta per dia, per a mapes sense connexió i dispositius GPS.',
+  'help.guide.export-plan.step.5':
+    "Google Maps (KML): «Llocs per a Google My Maps» desa els llocs del viatge com a fitxer KML. A My Maps, importa'l com a capa per veure'ls al teu mapa de Google.",
   'help.guide.export-plan.result': 'El fitxer es baixa i el viatge no canvia gens.',
   'help.guide.export-plan.tip.1':
     'Per obrir un sol dia en una aplicació de mapes, fes servir la seva barra de ruta: «Obre a Google Maps» o «Obre a CoMaps».',
@@ -2440,13 +2588,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     "Fes clic a una fila de la columna de llocs, a una parada dins d'un dia o a un marcador del mapa, i la targeta s'obrirà sobre el mapa. Si l'obres des d'un dia, la targeta sap de quina parada es tracta i també en mostra els participants i la reserva. Una excursió (una caminada, una ruta o un passeig de la pestanya «Excursions») obre la seva pròpia targeta d'excursió en lloc d'aquesta.",
   'help.ctx.trip-place.bullet.2':
-    "La capçalera mostra la imatge rodona, el nom, l'adreça en una línia i etiquetes amb el que se'n sap: obert o tancat, la categoria, l'hora, el preu, el telèfon, el correu electrònic i les coordenades. Fes clic a la imatge per posar-ne una de teva o una foto dels fitxers del lloc. Fes doble clic al nom per canviar-lo. La X de la dreta tanca la targeta. La imatge, el canvi de nom, «Edita» i «Elimina» només estan disponibles per als viatgers que poden modificar llocs.",
+    "La capçalera mostra la imatge rodona, el nom, l'adreça en una línia i etiquetes amb el que se'n sap: obert o tancat, la categoria i les etiquetes del lloc, l'hora, el preu, el telèfon, el correu electrònic i les coordenades. Un lloc amb adreça però sense coordenades diu «Sense coordenades, no és al mapa». Fes clic a la imatge per veure les fotos del lloc i fes doble clic al nom per canviar-lo. A la dreta, la fletxa plega la targeta en una barra fina i la X la tanca. El canvi de nom, «Edita» i «Elimina» només estan disponibles per als viatgers que poden modificar llocs.",
   'help.ctx.trip-place.bullet.3':
     'A sota: les estrelles que cada viatger ha donat al lloc, la descripció, les notes i, si la parada en té, «Notes per a aquest dia».',
   'help.ctx.trip-place.bullet.4':
     "Després hi ha «Horari d'obertura», «Color de la ruta», «Dades de la ruta» i «Fitxers», si escau. «Pujar», al títol «Fitxers», afegeix fitxers de l'ordinador, i la llista també mostra els fitxers fixats a aquesta parada i els de la seva reserva, inclosa la confirmació d'un hotel. Els connectors hi poden afegir les seves pròpies files a sota.",
   'help.ctx.trip-place.bullet.5':
-    "La fila de baix: «Afegeix al dia» o «Treure del dia» si hi ha un dia obert, després «Navegació» (o el nom de la teva aplicació de mapes, si n'has triat una a «Configuració»), «Obre el lloc web» i «Desar a la col·lecció». A la dreta, la paperera vermella elimina el lloc i «Edita» n'obre el formulari.",
+    "La fila de baix: «Afegeix al dia» mentre hi ha un dia obert i el lloc encara no hi és, després «Navegació» (o el nom de la teva aplicació de mapes, si n'has triat una a «Configuració»), i dues icones, «Obre el lloc web» i «Desar a la col·lecció». A la dreta, els tres punts tenen «Treure del dia» i «Elimina», i «Edita» n'obre el formulari, on també pots canviar-ne la imatge.",
   'help.ctx.trip-place.bullet.6':
     "Un lloc que has triat de la cerca mostra el que en saben l'índex de TREK o OpenStreetMap: «Obert» o «Tancada» entre les pastilles de dalt, amb un anell verd o vermell al voltant de la imatge, segons l'hora local del lloc; el telèfon, també com a pastilla; «Horari d'obertura» més avall, amb l'horari d'avui a la fila i tota la setmana amb un clic; i el lloc web a «Obre el lloc web». La valoració de Google només es mostra en llocs trobats amb Google, en un TREK amb clau de Google. L'horari d'obertura, el telèfon i el correu electrònic que hagis escrit tu mateix al formulari del lloc substitueixen els consultats i també determinen el color de l'anell.",
   // read-place
@@ -2455,7 +2603,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     'A la columna de dies, fes clic a la parada que vols consultar. La fitxa s’obre damunt del mapa i la parada queda marcada al seu dia.',
   'help.guide.read-place.step.2':
-    "A dalt: la imatge rodona, el nom i l'adreça en una línia; el text d'ajuda mostra l'adreça completa. Les pastilles de sota indiquen si ara és «Obert» o «Tancada», segons l'hora local del lloc, amb un anell verd o vermell al voltant de la imatge. També mostren la categoria, l'hora, el telèfon i el correu electrònic (fes-hi clic per obrir l'aplicació de telèfon o de correu) i, en una pantalla ampla, les coordenades exactes. La X de la dreta tanca la targeta.",
+    "A dalt: la imatge rodona, el nom i l'adreça en una línia; el text d'ajuda mostra l'adreça completa. Les pastilles de sota indiquen si ara és «Obert» o «Tancat», segons l'hora local del lloc, amb un anell verd o vermell al voltant de la imatge. També mostren la categoria i les etiquetes del lloc, l'hora, el telèfon i el correu electrònic (fes-hi clic per obrir l'aplicació de telèfon o de correu) i, en una pantalla ampla, les coordenades exactes. Fes clic a la imatge per veure les fotos del lloc. A la dreta, la fletxa plega la targeta i la X la tanca.",
   'help.guide.read-place.step.3':
     '«Valoració» és la primera secció sota la capçalera: les estrelles que cada viatger ha donat al lloc, amb la mitjana i el nombre de vots. Mentre ningú no ha votat, hi diu «Encara sense valoració».',
   'help.guide.read-place.step.4':
@@ -2471,6 +2619,22 @@ const help: TranslationStrings = {
     'Si pots modificar llocs, fes doble clic al nom per canviar-lo sense obrir el formulari. Retorn desa el canvi i Esc el cancel·la.',
   'help.guide.read-place.tip.3':
     "Un lloc introduït a mà només té les dades que s'han escrit al seu formulari. Fes clic a «Edita» i omple tu mateix «Telèfon», «Correu electrònic» i l'horari, o tria el lloc entre els suggeriments de «Cerca llocs…» i fes clic a «Actualitza» perquè es consultin. La valoració de Google necessita una clau de Google.",
+  'help.guide.fold-place-card.title': 'Plegar la targeta perquè no destorbi',
+  'help.guide.fold-place-card.goal': 'Mantén un lloc seleccionat mentre mires el mapa al voltant.',
+  'help.guide.fold-place-card.step.1':
+    "Obre un lloc i fes clic a la fletxa de dalt a la dreta de la targeta, al costat de la X. El seu text d'ajuda diu «Contraure».",
+  'help.guide.fold-place-card.step.2':
+    'Ara la targeta és una barra prima amb només la imatge i el nom. El lloc continua seleccionat i el seu marcador continua ressaltat, així que pots moure i ampliar el mapa al voltant.',
+  'help.guide.fold-place-card.step.3':
+    'Fes clic a la fletxa un altre cop, que ara diu «Ampliar», per obrir la targeta sencera. La X tanca la targeta i deixa de seleccionar el lloc.',
+  'help.guide.fold-place-card.result':
+    'El mapa es veu al voltant del lloc seleccionat, i la targeta sencera és a un clic.',
+  'help.guide.fold-place-card.tip.1':
+    "Tria un altre lloc i la seva targeta s'obre sencera. Només el lloc que has plegat es queda plegat.",
+  'help.guide.fold-place-card.tip.2':
+    "Plegar no és tancar: el lloc continua seleccionat, i una parada que has obert des d'un dia continua marcada en aquell dia.",
+  'help.guide.fold-place-card.tip.3':
+    'La barra plegada es queda on era la targeta, a baix del mapa, entre les columnes laterals.',
   // rate-place
   'help.guide.rate-place.title': 'Valorar un lloc',
   'help.guide.rate-place.goal':
@@ -2494,21 +2658,22 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': 'Posar una imatge pròpia a un lloc',
   'help.guide.place-image.goal': 'Substitueix la miniatura automàtica per una foto teva.',
-  'help.guide.place-image.step.1': 'Obre el lloc des de la columna de llocs.',
+  'help.guide.place-image.step.1':
+    "Obre el lloc i fes clic a «Edita» a baix a la dreta de la targeta. S'obre el formulari del lloc.",
   'help.guide.place-image.step.2':
-    "Passa el ratolí per la imatge rodona de la capçalera: apareix una càmera i el text d'ajuda diu «Puja una imatge». Fes-hi clic i tria el fitxer. Si el lloc ja té fotos entre els seus fitxers, TREK primer et demana que triïs: «Puja des del dispositiu» o una de les imatges de «Dels fitxers adjunts».",
+    "«Tria una imatge», a dalt dels detalls, a l'esquerra, mostra les imatges que pot tenir el lloc. Fes clic a «Puja una imatge», la primera casella, i tria un fitxer de l'ordinador.",
   'help.guide.place-image.step.3':
-    'Ara la part de dalt de la targeta mostra la teva imatge, amb una petita X vermella a la cantonada.',
+    "La casella ara mostra la teva imatge, amb un contorn i una marca, i la línia sota les caselles diu «La teva imatge». Encara no s'ha desat res.",
   'help.guide.place-image.step.4':
-    'La mateixa imatge també apareix a la fila del lloc a la columna de llocs i al seu marcador al mapa.',
+    'Fes clic a «Actualitza». La targeta mostra la teva imatge a dalt, i la fila del lloc a la columna de llocs també la mostra.',
   'help.guide.place-image.result':
     'La teva imatge es fa servir per al lloc a tot arreu: la fitxa, la columna de llocs, la parada del dia, el marcador del mapa i els viatges compartits.',
   'help.guide.place-image.tip.1':
     "S'accepten JPG, PNG, GIF i WebP, i les imatges HEIC d'un iPhone es converteixen en pujar-les.",
   'help.guide.place-image.tip.2':
-    "La X de la cantonada treu la teva imatge i torna a mostrar l'automàtica. El lloc no canvia.",
+    "«Elimina la imatge», al final de la línia sota les caselles, deixa el lloc sense imatge quan fas clic a «Actualitza». «Cancel·la» conserva l'anterior.",
   'help.guide.place-image.tip.3':
-    'Si no hi has afegit cap imatge, TREK en busca una a partir de les coordenades del lloc. Si no en troba cap, mostra la icona de la categoria. Només els viatgers que poden modificar llocs poden posar-ne una.',
+    "Les altres caselles són la imatge actual del lloc, les fotos que hi ha adjuntes i les imatges que TREK n'ha trobat, cadascuna amb el seu crèdit. Només els viatgers que poden modificar llocs poden canviar la imatge.",
   // place-day-assign
   'help.guide.place-day-assign.title': 'Afegir el lloc al dia obert o treure’l',
   'help.guide.place-day-assign.goal': 'Fes servir el botó de la fitxa en lloc d’arrossegar la fila pel planificador.',
@@ -2517,14 +2682,14 @@ const help: TranslationStrings = {
   'help.guide.place-day-assign.step.2':
     "Fes clic a la columna de llocs en un lloc que no sigui en aquell dia. S'obre la seva targeta, i la fila de baix ofereix «Afegeix al dia».",
   'help.guide.place-day-assign.step.3':
-    'Fes clic a «Afegeix al dia». La parada s’afegeix al final del dia i el botó passa a dir «Treure del dia».',
+    "Fes clic a «Afegeix al dia». La parada s'afegeix al final del dia i el botó desapareix de la fila, ja que el lloc ara és en aquell dia.",
   'help.guide.place-day-assign.step.4':
     'La parada ja és al dia, al final de la llista. Arrossega-la amunt fins a la posició que vulguis.',
   'help.guide.place-day-assign.step.5':
-    '«Treure del dia» torna a treure la parada del dia, i la targeta torna a mostrar «Afegeix al dia».',
+    "Per treure'l una altra vegada, fes clic als tres punts de la dreta de la fila i tria «Treure del dia». «Afegeix al dia» torna a aparèixer.",
   'help.guide.place-day-assign.result': 'La parada s’afegeix al dia o se’n treu. El lloc en si no canvia.',
   'help.guide.place-day-assign.tip.1':
-    'El botó només apareix si hi ha un dia obert. Sense cap dia obert, no hi ha cap dia on afegir el lloc.',
+    '«Afegeix al dia» només hi és si hi ha un dia obert i el lloc encara no hi és. Sense cap dia obert, no hi ha cap dia on afegir el lloc.',
   'help.guide.place-day-assign.tip.2':
     "Si treus una parada d'un dia, el lloc continua al viatge i a la columna de llocs. «Elimina» el treu de tot arreu.",
   'help.guide.place-day-assign.tip.3':
@@ -2593,7 +2758,7 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.3':
     "Fes clic a la que facis servir. Quan és possible, TREK envia a l'aplicació el lloc mateix, no només les coordenades, perquè arribis a l'entrada correcta.",
   'help.guide.place-navigation.step.4':
-    'Al costat, «Obre el lloc web» obre el web del lloc, amb els horaris i les entrades, en una pestanya nova.',
+    'La icona del costat, «Obre el lloc web», obre el web del propi lloc, amb els horaris i les entrades, en una pestanya nova.',
   'help.guide.place-navigation.result':
     "L'aplicació de mapes s'obre al lloc, el lloc web s'obre en una pestanya nova i no canvia res del viatge. Si tens TREK instal·lat com a aplicació, s'obre l'aplicació de mapes en lloc d'una pestanya nova.",
   'help.guide.place-navigation.tip.1':
@@ -2606,15 +2771,16 @@ const help: TranslationStrings = {
   'help.guide.place-to-collection.title': 'Desar un lloc en una de les teves llistes',
   'help.guide.place-to-collection.goal': 'Guarda per al proper viatge un lloc que has trobat en aquest.',
   'help.guide.place-to-collection.step.1':
-    'Obre el lloc i fes clic a «Desar a la col·lecció» a la fila de la part inferior de la targeta.',
+    'Obre el lloc i fes clic a «Desar a la col·lecció», la icona de punt de llibre a la fila de la part inferior de la targeta.',
   'help.guide.place-to-collection.step.2':
     '«Desar a la llista» mostra totes les llistes que tens o que comparteixes. Un marcador ple a la dreta indica les llistes que ja contenen aquest lloc.',
   'help.guide.place-to-collection.step.3': 'Fes clic a la llista. El lloc s’hi afegeix immediatament.',
-  'help.guide.place-to-collection.step.4': 'Tanca el diàleg amb la X; el botó de la targeta ara diu «Desat».',
+  'help.guide.place-to-collection.step.4':
+    "Tanca el diàleg amb la X. El marcador de la targeta ara és ple i el seu text d'ajuda diu «Desat».",
   'help.guide.place-to-collection.result':
     "El lloc ja és a la teva llista amb la imatge, les notes i l'adreça, a punt per al proper viatge.",
   'help.guide.place-to-collection.tip.1':
-    "El botó només apareix si el complement «Col·leccions» està activat; l'administrador l'activa a «Complements».",
+    "El punt de llibre només hi és mentre el complement «Col·leccions» està activat; l'administrador l'activa a «Complements».",
   'help.guide.place-to-collection.tip.2':
     'Un lloc pot ser a diverses llistes alhora, amb un estat diferent a cadascuna: una idea en una i visitat en una altra.',
   'help.guide.place-to-collection.tip.3':
@@ -2642,7 +2808,7 @@ const help: TranslationStrings = {
     'Cada importació dona un color propi a cada traçat que afegeix, així dues caminades no tenen mai el mateix color.',
   // read-place
   'help.guide.read-place.step.7':
-    "La fila de baix recull què pots fer des d'aquí: posar el lloc al dia obert o treure'l, obrir-lo en una aplicació de mapes o al seu lloc web, desar-lo en una llista i, a la dreta, eliminar-lo (la paperera vermella) o editar-lo.",
+    "La fila de baix recull què pots fer des d'aquí: «Afegeix al dia» posa el lloc al dia obert, «Navegació» l'obre en una aplicació de mapes, i les dues icones obren el seu lloc web i el desen en una llista. A la dreta, els tres punts contenen «Treure del dia» i «Elimina», i «Edita» obre el formulari del lloc.",
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': 'Fitxers',
@@ -2702,6 +2868,8 @@ const help: TranslationStrings = {
     "Torna a fer clic a una entrada marcada per treure aquest vincle; el fitxer es manté. Sense connexió, la nota i les noves marques es desen i s'envien quan TREK torna a estar en línia; només per treure un altre vincle cal connexió.",
   'help.guide.files-link.tip.3':
     "També funciona a l'inrevés: un document adjuntat a un lloc o a una reserva també apareix en aquesta llista, amb la mateixa insígnia a la seva fila.",
+  'help.guide.files-link.tip.4':
+    "Si el propietari del viatge desactiva «Documents» per a aquest viatge («Configuració del viatge», «Complements»), la pestanya «Fitxers» desapareix, però un document vinculat a una reserva, un lloc o una despesa hi continua i encara s'obre. Quan es torna a activar, la pestanya mostra tots els fitxers un altre cop.",
   // files-star
   'help.guide.files-star.title': 'Mantenir a dalt els documents importants',
   'help.guide.files-star.goal':
@@ -2843,7 +3011,7 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.2':
     'El número gran és la temperatura del dia. Al costat hi ha la mínima, la màxima i l’estat del temps en paraules.',
   'help.guide.day-weather.step.3':
-    "Les etiquetes de la dreta: la probabilitat de pluja, la quantitat, el vent més fort i l'hora de sortida i de posta del sol.",
+    "Les pastilles de la dreta: la probabilitat de pluja i la quantitat que en cau, quan la previsió les té, després el vent més fort, i l'hora de sortida i de posta del sol. Passa el ratolí per una pastilla per veure què significa.",
   'help.guide.day-weather.step.4':
     "A baix de tot hi ha el dia hora per hora, cada dues hores: l'hora, la icona, la temperatura i la probabilitat de pluja. Les hores amb més d'un 50 per cent es marquen en blau.",
   'help.guide.day-weather.result':
@@ -2868,6 +3036,8 @@ const help: TranslationStrings = {
     'Si buides el camp i deses, el dia torna a dir-se «Dia 5»: quan no hi ha nom, es mostra el número.',
   'help.guide.rename-day.tip.2':
     "El nom és del dia, no de la data. Si reordenes els dies, el nom es mou amb tota la resta d'aquell dia.",
+  'help.guide.rename-day.tip.3':
+    'Amb «Data primer als encapçalaments dels dies» activat a «Configuració», «General», la data és la línia gran i el nom hi queda a sota. El llapis és aleshores al costat del nom, a la segona línia.',
   // add-accommodation
   'help.guide.add-accommodation.title': 'Reservar una nit en un dia',
   'help.guide.add-accommodation.goal':
@@ -2884,7 +3054,7 @@ const help: TranslationStrings = {
     "Tria l'establiment a «Selecciona l'allotjament». «Categoria», sobre la llista, la filtra per una sola categoria.",
   'help.guide.add-accommodation.step.6': 'Fes clic a «Desa».',
   'help.guide.add-accommodation.result':
-    "L'estada apareix a tots els dies que cobreix, amb «Registre d'entrada» el primer i «Registre de sortida» l'últim. L'establiment passa a ser una parada del dia d'entrada, de manera que el mapa hi mostra la ruta, i a la pestanya «Reserves» apareix una reserva d'hotel.",
+    "L'estada apareix a tots els dies que cobreix, amb «Registre d'entrada» el primer i «Registre de sortida» l'últim, i la capçalera de cadascun d'aquests dies a la columna de dies hi indica l'hotel. La ruta del dia al mapa arriba fins a l'establiment, i a la pestanya «Reserves» apareix una reserva d'hotel.",
   'help.guide.add-accommodation.tip.1':
     "El selector s'obre al dia des d'on hi has arribat, amb la sortida l'endemà; pots canviar totes dues dates abans de desar.",
   'help.guide.add-accommodation.tip.2':
@@ -2947,7 +3117,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     "Amb un dia obert a la columna de dies, les seves parades mostren una petita insígnia blanca amb el número que tenen en aquell dia. Un lloc que apareix dues vegades al dia mostra tots dos números. Els filtres de sobre la llista de llocs («Mostrar», les categories i l'estrella per a la valoració mínima) també filtren les xinxetes del mapa.",
   'help.ctx.trip-map.bullet.5':
-    "La fila d'icones de dalt busca a la part del mapa que veus: Restaurants, «Cafeteries», «Bars i oci nocturn», «Allotjament», «Llocs d'interès», «Museus i cultura», «Natura i parcs» i «Activitats». Les categories que afegeix un connector apareixen després d'una línia separadora fina. Quan la fila és més ampla que el mapa, la roda del ratolí la desplaça lateralment. «Cerca en aquesta zona» torna a fer la cerca després de moure el mapa.",
+    "La fila d'icones de dalt busca a la part del mapa que veus: Restaurants, «Cafeteries», «Bars i oci nocturn», «Allotjament», «Llocs d'interès», «Museus i cultura», «Natura i parcs», «Activitats», «Fleques» i «Botigues de queviures». Les categories que afegeix un connector apareixen després d'una línia separadora fina. Quan la fila és més ampla que el mapa, la roda del ratolí la desplaça lateralment. «Cerca en aquesta zona» torna a fer la cerca després de moure el mapa.",
   'help.ctx.trip-map.bullet.6':
     "Fes clic amb el botó dret en qualsevol punt del mapa per obrir el formulari del lloc en aquell punt, amb l'adreça ja consultada. A baix a l'esquerra hi ha dos botons rodons: el cadenat, «Bloqueja la vista del mapa», manté la vista del mapa mentre vas fent clic a dies i llocs, i el botó de sota, «Canvia a vista de satèl·lit», substitueix el mapa dibuixat per imatges de satèl·lit.",
   'help.ctx.trip-map.bullet.7':
@@ -2962,7 +3132,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     "Una xinxeta mostra la foto del lloc si en té; si no, el color de la categoria amb la seva icona. Una estada amb la reserva encara pendent es mostra esvaïda, amb un anell discontinu. Quan passes el ratolí per sobre d'una xinxeta, s'obre una targeta al costat: la mateixa foto més gran, el nom i l'adreça, amb la valoració i la categoria si el lloc en té.",
   'help.guide.map-markers.step.3':
-    "Fes clic a una xinxeta i el lloc s'obre en una targeta a la part de baix del mapa: la imatge, el nom i l'adreça a dalt, i després les estrelles, la descripció i els fitxers, inclosos els de la seva reserva. A baix hi ha les accions: «Afegeix al dia» si hi ha un dia obert («Treure del dia» si el lloc ja hi és), «Navegació», «Obre el lloc web», «Desar a la col·lecció» («Desat» si ja és en una) i, a la dreta, la paperera i «Edita». La X de dalt, o un clic en una zona buida del mapa, la tanca.",
+    "Fes clic a una xinxeta i el lloc s'obre en una targeta a la part de baix del mapa: la imatge, el nom, l'adreça i la categoria a dalt, i després les estrelles, la descripció, les notes, qui hi participa i els fitxers, inclosos els de la seva reserva. A baix hi ha les accions: «Afegeix al dia» si hi ha un dia obert i el lloc encara no hi és, «Navegació», la icona del lloc web si el lloc en té, i el marcador, «Desar a la col·lecció» («Desat» si ja és en una). A la dreta, «Més opcions» conté «Treure del dia» i «Elimina», i «Edita» obre el formulari del lloc. La fletxa de dalt plega la targeta fins a la capçalera; la X, o un clic en una zona buida del mapa, la tanca.",
   'help.guide.map-markers.step.4':
     "Obre un dia a la columna dels dies i les seves parades es numeren: la petita insígnia blanca a la cantonada d'una xinxeta indica la posició de la parada dins del dia. Si un lloc apareix dues vegades en el dia, mostra tots dos números. Quan no hi ha cap dia obert, no hi ha números i la cantonada mostra la valoració del lloc, si en té.",
   'help.guide.map-markers.step.5':
@@ -2980,7 +3150,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.goal':
     "Cerca restaurants, llocs d'interès o un hotel a la zona que es veu al mapa i afegeix-ne un al viatge.",
   'help.guide.map-nearby-places.step.1':
-    "La fila d'icones de dalt del mapa és la cerca per categories: Restaurants, «Cafeteries», «Bars i oci nocturn», «Allotjament», «Llocs d'interès», «Museus i cultura», «Natura i parcs» i «Activitats». Les categories que afegeix un connector apareixen després d'un separador fi; passa el ratolí per una icona per veure'n el nom.",
+    "La fila d'icones de dalt del mapa és la cerca per categories: «Restaurants», «Cafeteries», «Bars i oci nocturn», «Allotjament», «Llocs d'interès», «Museus i cultura», «Natura i parcs», «Activitats», «Fleques» i «Botigues de queviures». Les categories que afegeix un connector van després d'un separador fi; passa el ratolí per una icona per veure'n el nom.",
   'help.guide.map-nearby-places.step.2':
     "Fes clic a una categoria. TREK cerca aquest tipus de lloc a la part visible del mapa i posa una xinxeta del color de la categoria per a cada resultat. Només pots tenir una categoria alhora: si en tries una altra, substitueix l'anterior, i si fas clic a la que està activa, la desactives.",
   'help.guide.map-nearby-places.step.3':
@@ -2988,7 +3158,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     "Mantén el punter sobre una xinxeta per veure el nom del que ha trobat la cerca. Fes clic a la xinxeta i s'obrirà el formulari del lloc amb les dades ja omplertes: el nom a dalt del diàleg, «Adreça», «Latitud» i «Longitud», i el lloc web i el telèfon si la cerca els ha trobat.",
   'help.guide.map-nearby-places.step.5':
-    'Revisa el que ha omplert i afegeix el que la cerca no podia saber. La pastilla de categoria de sota el nom ja ve triada si el viatge té una categoria que hi encaixa, com ara restaurant per a un restaurant; si no, diu «Sense categoria» fins que en triïs una. Afegeix-hi una «Descripció» i notes pròpies.',
+    'Revisa el que ha omplert i afegeix el que la cerca no podia saber. La pastilla de categoria de sota el nom ja ve triada si el viatge té una categoria que hi encaixa, com ara restaurant per a un restaurant; si no, diu «Sense categoria» fins que en triïs una. Escriu de què va el lloc a «Sobre el lloc», i les teves notes a «Notes».',
   'help.guide.map-nearby-places.step.6':
     'Fes clic a «Afegir». Si al viatge ja hi ha un lloc amb el mateix nom o al mateix punt, TREK t’avisa i el botó passa a dir «Afegir igualment».',
   'help.guide.map-nearby-places.result':
@@ -3007,7 +3177,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     '«Latitud» i «Longitud» ja tenen les coordenades d’aquell punt. TREK les consulta i omple «Adreça» amb el que hi troba. Si la consulta troba un nom, TREK també l’escriu a la part de dalt del diàleg. Encara no s’ha desat res, així que corregeix el que no sigui correcte.',
   'help.guide.map-add-place.step.3':
-    'Escriu un nom que reconeguis al camp de dalt del diàleg. Tria una categoria a la pastilla de sota, que diu «Sense categoria» fins que en triïs una. Després afegeix-hi la resta de dades per al pla: «Descripció», «Notes», «Lloc web».',
+    'Escriu un nom que reconeguis al camp de dalt del diàleg. Tria una categoria a la pastilla de sota, que diu «Sense categoria» fins que en triïs una. Després afegeix-hi la resta de dades per al pla: «Sobre el lloc», «Notes», «Lloc web».',
   'help.guide.map-add-place.step.4':
     "Fes clic a «Afegir». El lloc s'afegeix a la llista com a no planificat, encara que hi hagi un dia obert: un clic amb el botó dret al mapa defineix la ubicació, no el dia.",
   'help.guide.map-add-place.result':
@@ -3047,7 +3217,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     "El total es calcula per grups de trams. Mentre hi ha … al darrere, la xifra només és una suma parcial. És definitiva quan s'han calculat tots els trams.",
   'help.guide.map-whole-trip.tip.2':
-    'Si el planificador de rutes no pot calcular un tram, el tram queda com una línia recta i no es compta. La fitxa t’ho indica, perquè el total no sembli més baix sense cap avís.',
+    "Si el planificador de rutes no pot calcular un tram, el tram queda com una línia recta i no es compta. La targeta t'ho indica, i llavors la distància diu com a mínim, perquè el total no sembli més baix sense cap avís.",
   'help.guide.map-whole-trip.tip.3':
     "Un dia amb menys de dues parades localitzades i sense cap trajecte en cotxe cap a l'hotel o des de l'hotel no té cap ruta per dibuixar, així que no apareix a la targeta.",
   // map-booking-routes
@@ -3059,7 +3229,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     'Fes-hi clic i la reserva apareixerà al mapa: un vol com un arc de cercle màxim, un trajecte en cotxe per les carreteres reals, un tren com la cadena de les seves estacions. «Confirmat» es dibuixa amb línia contínua i «Pendent», amb línia discontínua, i els extrems de la ruta són pastilles blaves amb la icona del transport.',
   'help.guide.map-booking-routes.step.3':
-    "Fes clic a una pastilla d'extrem i s'obriran els detalls de la reserva: l'estat, el tipus i els dies en pastilles a la capçalera de color, els horaris dels dos extrems, la resta de dades a sota i, a baix, «Al mapa», que torna a desactivar aquesta ruta, «Canviar de ruta» en una connexió de transport públic, la paperera que elimina la reserva, i «Edita». La X de la capçalera tanca els detalls.",
+    "Fes clic a una pastilla d'extrem i s'obriran els detalls de la reserva: l'estat, el tipus, els dies i el codi de reserva en pastilles a la capçalera de color, els horaris dels dos extrems, la resta de dades a sota i, a baix, «Mapa», que torna a desactivar aquesta ruta, «Canviar de ruta» en una connexió de transport públic, la paperera que elimina la reserva, i «Edita». La X de la capçalera tanca els detalls.",
   'help.guide.map-booking-routes.step.4':
     "La icona de ruta de la barra d'eines de sobre els dies funciona per a tot el viatge alhora: «Mostra totes les rutes de reserva» dibuixa totes les reserves que tenen ruta.",
   'help.guide.map-booking-routes.step.5':
@@ -3162,7 +3332,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     'Només s’accepten adreces http o https. Qualsevol altra cosa es rebutja i el diàleg es queda obert amb el que has escrit.',
   'help.guide.shared-links.tip.2':
-    'Primer surten els enllaços fixats i després els més nous. La icona petita al costat d’un títol és la icona del mateix lloc web, carregada des del lloc web, així que sense internet l’etiqueta mostra una icona d’enllaç genèrica.',
+    "Primer surten els enllaços fixats i després els més nous. La icona petita al costat d'un títol és la icona del mateix lloc web, carregada des d'ell. Mentre no s'ha carregat, o quan el lloc no en té, l'etiqueta mostra una icona d'enllaç genèrica.",
   'help.guide.shared-links.tip.3':
     '«Enllaços» té el seu propi interruptor a «Complements», sota «Col·laboració», de manera que un administrador pot desactivar el panell sense tocar la resta de la pestanya.',
   // create-poll
@@ -3195,7 +3365,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.step.1':
     'Fes clic a l’opció que vulguis. El cercle mostra una marca, l’opció queda envoltada d’un marc del color d’accent i la barra del fons creix.',
   'help.guide.vote-poll.step.2':
-    'Ara pots veure tot el resultat: la barra mostra la proporció, el percentatge és a la dreta i els cercles petits són les persones que han triat aquella opció, fins a tres.',
+    "Ara pots veure tot el resultat: la barra mostra la proporció, el percentatge és a la dreta i els cercles petits són les persones que han triat aquella opció. Se'n mostren tres; un quart cercle amb un més i un número compta tota la resta.",
   'help.guide.vote-poll.step.3':
     "Has canviat d'opinió? Fes clic a una altra opció. En una enquesta sense «Selecció múltiple», el teu vot passa a la nova opció en lloc de sumar-ne un segon.",
   'help.guide.vote-poll.step.4':
@@ -3205,7 +3375,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.tip.1':
     "Els percentatges i qui ha votat cada opció només apareixen quan has votat tu, o quan l'enquesta està tancada. El nombre de vots de la capçalera el veu tothom.",
   'help.guide.vote-poll.tip.2':
-    "Els vots no són mai anònims: passa el ratolí per un dels cercles d'una opció per veure el nom de qui ha votat.",
+    "Els vots no són mai anònims: passa el ratolí per un dels cercles d'una opció per veure el nom de qui ha votat. Passa'l pel cercle del més per veure els noms de tots els altres.",
   // close-poll
   'help.guide.close-poll.title': 'Tancar o eliminar una enquesta',
   'help.guide.close-poll.goal':
@@ -3228,13 +3398,13 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     "La targeta mostra les properes parades del viatge, fins a vuit, per ordre cronològic i agrupades per dia: «Avui», «Demà» o la data, amb el títol del dia al costat si en té. La capçalera indica quantes n'hi ha.",
   'help.guide.whats-next.step.2':
-    'A l’esquerra de cada parada hi ha l’hora: l’inici, «fins a» i el final si la parada en té, o «TBD» si encara no té hora.',
+    "A l'esquerra de cada parada hi ha l'hora: l'inici, «fins a» i el final si la parada en té. Un hotel sense hora pròpia mostra el seu registre d'entrada el dia que comença l'estada. TBD vol dir que encara no hi ha cap hora definida.",
   'help.guide.whats-next.step.3':
     'Al costat hi ha el nom, l’adreça i, en forma d’etiquetes, les persones d’aquella parada. Si no hi ha ningú assignat a la parada, surten totes les persones del viatge.',
   'help.guide.whats-next.result':
     "Una llista del que ve, només per consultar: segueix el pla, i res d'aquí no el canvia.",
   'help.guide.whats-next.tip.1':
-    "Aquí no has de definir res. Els horaris provenen del pla del dia; quan els canvies allà, aquesta llista s'actualitza a l'instant.",
+    "Aquí no has de definir res. Les hores provenen del pla del dia i, en un hotel, de la seva reserva; quan les canvies allà, aquesta llista s'actualitza a l'instant.",
   'help.guide.whats-next.tip.2':
     "Només hi apareix el que encara ha de venir: una parada desapareix de la llista quan ha passat la seva hora d'inici, una parada d'avui sense hora s'hi queda fins que acaba el dia, i al final del viatge el panell queda buit.",
   'help.guide.whats-next.tip.3':
@@ -3271,15 +3441,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     'Dues llistes per viatge: la llista d’equipatge, amb qui porta què i quant pesa, i la llista de tasques amb tot el que cal fer abans del viatge i durant el viatge. La pestanya es mostra mentre el complement «Llistes» està activat.',
   'help.ctx.trip-lists.bullet.1':
-    "«Llista d'equipatge» i «Pendents», a la barra de dalt, alternen entre totes dues i compten el que hi ha a cadascuna; els botons de l'extrem dret de la barra corresponen a la que estigui oberta.",
+    "«Llista d'equipatge» i «Pendents», a la barra de dalt, alternen entre totes dues i compten el que hi ha a cadascuna. Per a la llista d'equipatge, la barra té «Afegeix una llista» i els tres punts del costat; per a la de pendents, té «Afegeix una tasca nova».",
   'help.ctx.trip-lists.bullet.2':
-    "La llista d'equipatge s'organitza en llistes, per exemple Documents o Roba, amb el nom que vulguis. Cada llista és una targeta. La capçalera té un agafador per arrossegar tota la llista a una altra posició, un punt de color, una insígnia amb els articles empaquetats sobre el total, tres punts amb «Canviar el nom», «Marca-ho tot», «Desmarca-ho tot» i «Elimina la categoria», i una fletxa que plega la targeta. «Afegeix una categoria», a la barra de dalt, en crea una de nova.",
+    "La llista d'equipatge s'organitza en llistes, per exemple Documents o Roba, amb el nom que vulguis. Cada llista és una targeta. La capçalera té un agafador per arrossegar tota la llista a una altra posició, un punt de color, un cercle discontinu per encarregar la llista a algunes persones, una insígnia amb els articles empaquetats sobre el total, tres punts amb «Canvia el nom», «Marca-ho tot», «Desmarca-ho tot», «Compartició de tota la llista» i «Elimina la categoria», i una fletxa que plega la targeta.",
   'help.ctx.trip-lists.bullet.3':
-    "Cada fila té un agafador per arrossegar-la, una casella i un nom, i després un petit avatar de la persona que porta l'article. Un article amb una quantitat superior a un també té un comptador d'empaquetats, com ara 3/10, amb un menys i un més. Després hi ha la quantitat en una petita insígnia i, mentre «Seguiment d'equipatge» està activat, el pes en grams i un cercle de bossa; i al final, la paperera i un menú de tres punts amb «Canvia la categoria», «Compartint», «Canviar el nom» i «Elimina». Els controls que una fila no fa servir es veuen atenuats fins que hi passes el ratolí per sobre.",
+    "Una fila mostra la casella, el nom i només el que has definit: la quantitat a partir de dos, com ara ×3, les peces empaquetades mentre prepares la maleta, com ara 2/5, i la imatge de qui ho porta. Quan hi passes el ratolí apareix un agafador per arrossegar la fila. Fes clic al nom per obrir la finestra de l'article, amb la llista, la quantitat, les peces empaquetades, el pes, la bossa, qui el porta i qui el veu.",
   'help.ctx.trip-lists.bullet.4':
-    "«Compartit» i «La meva llista» divideixen la llista d'equipatge en dues: la que veu tothom i la teva. «Tots», «Obert» i «Fet», al costat, filtren la que tinguis oberta. «A a Z», a l'extrem de la fila, ordena els articles de cada llista per nom, i un segon clic torna al teu ordre. La targeta de progrés de dalt compta el que ja està empaquetat.",
+    "«Compartit» i «La meva llista», sota la barra, divideixen la llista d'equipatge en dues: la que veu tothom i la teva. A la dreta d'aquesta fila, una línia compta el que ja està empaquetat a la llista que mires, amb una barra fina al costat.",
   'help.ctx.trip-lists.bullet.5':
-    "«Aplica una plantilla» i «Desa com a plantilla» omplen una llista o la desen, perquè no l'hagis d'escriure. Les dues icones de després, «Exporta» i «Importa», exporten la llista per imprimir-la, en PDF o en un fitxer, i n'importen una. El botó vermell de l'extrem dret de la targeta de progrés mostra quants articles hi ha marcats i els elimina.",
+    "Els tres punts del costat d'«Afegeix una categoria» tenen tota la resta: «Aplica una plantilla», «Desa com a plantilla», «Importa», les tres maneres d'exportar («Imprimeix o desa com a PDF», Markdown i CSV), «A a Z», «Amaga el que s'ha empaquetat» i, al final, «Elimina … marcats».",
   'help.ctx.trip-lists.bullet.6':
     '«Pendents» té la seva pròpia barra lateral: la targeta de progrés, els filtres «Tots», «Les meves tasques», «Vençuda» i «Fet», una fila per llista i, a sota, «Afegeix una categoria». Les tasques són en una targeta. La capçalera mostra el nom del filtre i l’ordre, «Prioritat» o «Data límit». Fes clic en una tasca per obrir-la al panell de la dreta. «Tasca nova», a la barra, obre el diàleg «Tasca nova».',
   // packing-categories
@@ -3289,58 +3459,59 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     'Fes clic a «Afegeix una categoria», a la barra de sobre les llistes. S’obre un diàleg petit. Escriu el nom a la franja superior, on diu «Nom de la categoria (p. ex. Roba)», i fes clic a «Afegir».',
   'help.guide.packing-categories.step.2':
-    'La llista nova comença amb una fila provisional que només mostra tres punts tènues. Fes clic a «Afegeix un article», a la part de baix de la fila, escriu l’article a «Nom de l’article...» i prem Retorn: el primer article substitueix la fila provisional i el camp queda obert per al següent.',
+    "La llista nova comença amb una fila buida, un camp amb tres punts tènues. Fes clic a «Afegeix un article», a la part de baix de la targeta, escriu l'article a «Nom de l'article...» i prem Enter: el primer article omple la fila buida i el camp queda obert per al següent.",
   'help.guide.packing-categories.step.3':
-    "Canvia el nom d'una fila fent clic al nom, o amb «Canviar el nom» als tres punts de l'extrem dret.",
+    "Per canviar el nom d'un article, fes clic al seu nom. La finestra s'obre amb el nom a dalt com a camp: escriu el nom nou i prem Enter.",
   'help.guide.packing-categories.step.4':
     'El cercle discontinu amb una persona, a la franja superior de la llista, assigna membres del viatge a la llista. Tria un nom. Per treure aquella persona, fes clic a la fitxa que apareix.',
   'help.guide.packing-categories.step.5':
-    'Els tres punts del costat del comptador obren més opcions: «Canviar el nom», «Marca-ho tot», «Desmarca-ho tot» i «Elimina la categoria». «Elimina la categoria» elimina la llista i tots els seus articles sense tornar a preguntar. La fletxa de l’extrem dret plega la llista.',
+    'Els tres punts del costat del comptador obren més opcions: «Canviar el nom», «Marca-ho tot», «Desmarca-ho tot», «Compartició de tota la llista» i «Elimina la categoria». «Elimina la categoria» elimina la llista i tots els seus articles sense tornar a preguntar. La fletxa de l’extrem dret plega la llista.',
   'help.guide.packing-categories.result':
     'La llista nova apareix a la graella amb els seus articles a sota i el seu punt de color, i la seva insígnia compta el que ja tens preparat.',
   'help.guide.packing-categories.tip.1':
-    "Una llista només existeix pels seus articles. Si elimines l'últim, la fila es converteix en un marcador perquè la llista conservi la posició i el color; si també elimines aquesta fila, s'elimina la llista.",
+    "Una llista només existeix pels seus articles. Si elimines l'últim, la fila es converteix en una de buida perquè la llista conservi la posició i el color; si també elimines aquesta fila, s'elimina la llista.",
   'help.guide.packing-categories.tip.2':
-    'Quan assignes algú a una llista, rep una notificació d’equipatge. Això no canvia qui pot veure els articles: ho decideixes a «Compartint», al menú dels tres punts d’una fila.',
+    "Quan assignes algú a una llista, rep una notificació d'equipatge. Això no canvia qui pot veure els articles. Això es defineix a la finestra de cada article, a «Visible per a», o per a tota la llista amb «Compartició de tota la llista».",
   'help.guide.packing-categories.tip.3':
     'Dues llistes poden tenir el mateix nom. TREK les distingeix internament, així que els noms es mantenen tal com els has escrit.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Marcar les coses mentre fas la maleta',
   'help.guide.check-off-packing.goal':
-    'Marca el que ja és a la bossa, segueix la barra de progrés i treu els articles empaquetats.',
+    'Marca el que ja és a la bossa, segueix el progrés i treu els articles empaquetats.',
   'help.guide.check-off-packing.step.1':
-    'Fes clic a la casella de l’esquerra d’una fila. El nom queda ratllat i la barra de progrés s’actualitza.',
+    "Fes clic a la casella de l'esquerra d'una fila. El nom queda ratllat i el recompte d'articles empaquetats puja.",
   'help.guide.check-off-packing.step.2':
-    'La targeta de progrés de sobre les llistes mostra quants articles tens preparats del total de la llista, en xifra, en percentatge i en una barra.',
+    'A la dreta de la fila amb «Compartit» i «La meva llista», una línia diu quants articles tens empaquetats del total de la llista que mires, amb una barra fina al costat.',
   'help.guide.check-off-packing.step.3':
     'Per marcar tota una llista de cop: als tres punts de la capçalera hi tens «Marca-ho tot» i «Desmarca-ho tot».',
   'help.guide.check-off-packing.step.4':
-    '«Tots», «Obert» i «Fet», al costat de «Compartit» i «La meva llista», filtren la graella. «Obert» només mostra el que encara falta, així una llista que ja tens tota feta queda amagada.',
+    "«Amaga el que s'ha empaquetat», als tres punts del costat d'«Afegeix una llista», només mostra el que encara falta, així una llista que ja tens tota feta queda amagada. Una marca ho indica mentre està activat; fes-hi clic un altre cop per veure-ho tot.",
   'help.guide.check-off-packing.step.5':
-    "El botó vermell «Treu … marcats», a l'extrem dret de la targeta de progrés, amb el nombre d'articles marcats, els elimina tots alhora després d'una confirmació del navegador.",
+    "«Elimina … marcats», a baix del mateix menú amb el nombre d'articles marcats, els elimina tots alhora després d'una confirmació del navegador.",
   'help.guide.check-off-packing.result':
-    'Només es mostren els articles pendents, i la barra de dalt indica quina part de l’equipatge ja està feta.',
-  'help.guide.check-off-packing.tip.1': 'Un article marcat encara es pot canviar de nom: fes clic al nom.',
+    "Només es mostren els articles pendents, i la línia de dalt indica quina part de l'equipatge ja està feta.",
+  'help.guide.check-off-packing.tip.1': 'Un article marcat també obre la seva finestra quan en fas clic al nom.',
   'help.guide.check-off-packing.tip.2':
     '«Marca-ho tot» i «Desmarca-ho tot» actuen sobre una llista cada vegada, des dels tres punts de la mateixa llista.',
   'help.guide.check-off-packing.tip.3':
-    'Quan tots els articles estan marcats, el comptador es substitueix per «Tot preparat!» i la barra es posa verda.',
+    'Quan tots els articles estan marcats, el recompte es substitueix per «Tot preparat!» i la barra es posa verda.',
   // apply-packing-template
   'help.guide.apply-packing-template.title': "Aplicar una plantilla d'equipatge",
   'help.guide.apply-packing-template.goal':
     "Afegeix una llista ja feta al viatge i desa la llista d'aquest viatge per al següent.",
-  'help.guide.apply-packing-template.step.1': 'Fes clic a «Aplica una plantilla», a la barra de sobre la llista.',
-  'help.guide.apply-packing-template.step.2': 'Tria una plantilla. Cada línia mostra el nom i quants articles té.',
+  'help.guide.apply-packing-template.step.1':
+    "Fes clic als tres punts del costat d'«Afegeix una llista», a la barra de sobre la llista.",
+  'help.guide.apply-packing-template.step.2':
+    "Fes clic a «Aplica una plantilla». Les plantilles s'obren a sota, cadascuna amb el nom i quants articles conté. Tria'n una.",
   'help.guide.apply-packing-template.step.3':
     "Els articles s'afegeixen a la vista on ets: «Compartit» els afegeix a la llista compartida que veu tothom, i «La meva llista», a la teva llista personal.",
   'help.guide.apply-packing-template.step.4':
-    "Per conservar la llista d'aquest viatge per al proper, fes clic a «Desa com a plantilla». S'obre un diàleg petit. Escriu un nom al camp de dalt, on diu «Nom de la plantilla», i fes clic a «Desa».",
+    "Per conservar la llista d'aquest viatge per al proper, fes clic a «Desa com a plantilla» al mateix menú. S'obre un diàleg petit. Escriu un nom al camp de dalt, on diu «Nom de la plantilla», i fes clic a «Desa».",
   'help.guide.apply-packing-template.result':
     'Les llistes i els articles de la plantilla s’afegeixen al viatge, al costat del que ja hi havia.',
   'help.guide.apply-packing-template.tip.1':
     "Una plantilla copia la llista, la quantitat, el pes i la bossa de cada article, i crea les bosses que el viatge encara no té. No es copien les marques, i no s'elimina res del que ja hi ha a la llista.",
-  'help.guide.apply-packing-template.tip.2':
-    "«Aplica una plantilla» només apareix quan hi ha alguna plantilla. Si no n'hi ha cap, el botó no surt.",
+  'help.guide.apply-packing-template.tip.2': '«Aplica una plantilla» només és al menú quan hi ha alguna plantilla.',
   'help.guide.apply-packing-template.tip.3':
     "«Desa com a plantilla» només apareix per als administradors de la instància, i només quan la llista té articles. Desa els articles compartits i els teus, però mai els articles privats d'altres membres.",
   // import-packing-list
@@ -3348,7 +3519,7 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.goal':
     'Converteix d’un sol cop una llista que ja tens en un altre lloc en articles d’equipatge.',
   'help.guide.import-packing-list.step.1':
-    "Fes clic a «Importa», la icona amb la fletxa avall a l'extrem dret de la barra de sobre la llista.",
+    "Obre els tres punts del costat d'«Afegeix una llista» i fes clic a «Importa».",
   'help.guide.import-packing-list.step.2':
     'Un article per línia: categoria, nom, pes en g (opcional), bossa (opcional), checked/unchecked (opcional). L\'exemple gris del requadre mostra els quatre formats, i els números del marge esquerre compten les línies que escrius. També funciona una llista en Markdown: un títol fa de nom de la llista, i "- [ ]" i "- [x]" es converteixen en articles.',
   'help.guide.import-packing-list.step.3':
@@ -3366,9 +3537,9 @@ const help: TranslationStrings = {
   'help.guide.export-packing-list.goal':
     'Imprimeix la llista, desa-la en PDF o exporta-la en un fitxer per a una altra aplicació o per al proper viatge.',
   'help.guide.export-packing-list.step.1':
-    "Fes clic a «Exporta», la icona amb la fletxa amunt de la barra de sobre la llista, just davant d'«Importa».",
+    "Fes clic als tres punts del costat d'«Afegeix una categoria», a la barra de sobre la llista.",
   'help.guide.export-packing-list.step.2':
-    '«Llista de comprovació en Markdown (.md)» i «CSV per importar (.csv)» desen la llista com a fitxer al moment.',
+    'Les opcions de sortida són al mig del menú. «Llista de comprovació en Markdown (.md)» i «CSV per importar (.csv)» desen la llista com a fitxer al moment.',
   'help.guide.export-packing-list.step.3':
     'Fes clic a «Imprimeix o desa com a PDF». La previsualització mostra la llista com una pàgina: a dalt, el viatge, les dates i quant hi ha preparat; després, cada llista en una targeta, amb una casella per marcar a cada article.',
   'help.guide.export-packing-list.step.4':
@@ -3379,36 +3550,73 @@ const help: TranslationStrings = {
     'El CSV és el format que llegeix «Importa», bosses incloses, així que el pots fer servir com a plantilla d’equipatge pròpia: importa’l al proper viatge.',
   'help.guide.export-packing-list.tip.2':
     "El fitxer Markdown s'obre com a llista de comprovació a Obsidian, Notion o GitHub, i el pots tornar a importar amb «Importa».",
+  'help.guide.edit-packing-item.title': 'Canviar un article a la seva finestra',
+  'help.guide.edit-packing-item.goal':
+    "Obre un article i canvia'n el nom, la llista, la quantitat o qui el porta, tot en un sol lloc.",
+  'help.guide.edit-packing-item.step.1':
+    "Fes clic al nom d'un article. S'obre una finestra petita a la fila amb tot sobre l'article, cada valor en una pastilla.",
+  'help.guide.edit-packing-item.step.2':
+    "El nom de dalt és un camp: escriu-hi a sobre i prem Enter per canviar el nom de l'article. La creu del costat tanca la finestra.",
+  'help.guide.edit-packing-item.step.3':
+    "«Llista» mou l'article a una altra llista: fes-hi clic i tria'n una. «Quant.», a sota, defineix quants te n'emportes.",
+  'help.guide.edit-packing-item.step.4':
+    '«Ho porta» mostra qui porta un article compartit. Fes-hi clic i marca tothom del viatge que també el porta; un segon clic en un nom treu aquella persona.',
+  'help.guide.edit-packing-item.step.5':
+    "«Elimina», a baix, treu l'article a l'instant. Tanca la finestra amb la creu o amb un clic a qualsevol lloc del costat.",
+  'help.guide.edit-packing-item.result':
+    'La fila només mostra el que està definit: la quantitat a partir de dos, les peces empaquetades mentre empaquetes i les imatges de qui ho porta.',
+  'help.guide.edit-packing-item.tip.1': 'Cada canvi es desa a mesura que el fas. No hi ha cap botó «Desa».',
+  'help.guide.edit-packing-item.tip.2':
+    "Amb «Seguiment d'equipatge» activat, la finestra també mostra el pes de l'article i la seva bossa. Consulta «Pesar les maletes».",
+  'help.guide.edit-packing-item.tip.3':
+    'En un article compartit que porta una altra persona, «Copiar a la meva llista», sobre «Elimina», en fa una còpia privada per a tu.',
   // share-packing-item
-  'help.guide.share-packing-item.title': 'Decidir qui veu un article i qui el porta',
+  'help.guide.share-packing-item.title': 'Decideix qui veu un article',
   'help.guide.share-packing-item.goal':
     'Mou un article entre el fons comú del grup, la teva llista i les persones per a qui el portes.',
   'help.guide.share-packing-item.step.1':
     'Sobre les llistes, «Compartit» és la llista que veu tothom i «La meva llista» és la teva. Cadascuna mostra quants articles té. Fes clic a «La meva llista» per veure la teva.',
   'help.guide.share-packing-item.step.2':
-    "Torna a «Compartit», obre els tres punts del final d'una fila i fes clic a «Compartint».",
+    "Torna a «Compartit» i fes clic al nom d'un article. Al peu de la finestra, «Visible per a» té tres opcions: «Tots», «Només jo» i «Seleccionat».",
   'help.guide.share-packing-item.step.3':
-    'Hi ha tres nivells: «Compartit», visible per a tot el grup; «Personal», que només veus tu; i «Compartit amb…», on tries per a qui és l’article.',
-  'help.guide.share-packing-item.step.4':
-    'Un article «Personal» només és a «La meva llista». Canvia a «La meva llista» per trobar-lo.',
+    "Fes clic a «Només jo». L'article surt de la llista compartida i passa a la teva pròpia llista, on només tu el pots veure.",
+  'help.guide.share-packing-item.step.4': 'Canvia a «La meva llista» per trobar-lo.',
   'help.guide.share-packing-item.step.5':
-    "Torna a obrir «Compartint» i marca un nom a «Compartit amb…». L'article també apareix a la llista d'aquella persona, i la fila mostra una petita insígnia amb el nombre de persones amb qui es comparteix.",
-  'help.guide.share-packing-item.result': "L'article és al nivell que has triat, i la fila mostra qui el porta.",
+    "Torna-la a obrir, fes clic a «Seleccionat» i marca un nom. L'article també apareix a la llista d'aquella persona, i la fila mostra una petita insígnia amb el nombre de persones amb qui es comparteix.",
+  'help.guide.share-packing-item.result':
+    "L'article és a la teva pròpia llista, i la insígnia de la fila mostra quantes persones el veuen amb tu.",
   'help.guide.share-packing-item.tip.1':
-    'Només qui porta un article en pot canviar la manera de compartir-lo. Les persones amb qui l’has compartit el veuen a «La meva llista» amb una petita insígnia en forma de mà, que mostra el teu nom quan hi passen el ratolí per sobre. El poden marcar.',
+    "Només qui és propietari d'un article en pot canviar qui el veu. Les persones amb qui l'has compartit el veuen a «La meva llista» amb una petita insígnia en forma de mà, que mostra el teu nom quan hi posen el ratolí a sobre. El poden marcar.",
   'help.guide.share-packing-item.tip.2':
-    "En un article compartit que porta una altra persona, el menú de tres punts mostra dues opcions diferents en lloc de «Compartint»: «Jo també puc portar això», que t'afegeix al seu costat, i «Copiar a la meva llista», que en fa una còpia privada per a tu.",
+    "Per moure tots els articles d'una llista alhora, fes servir «Compartició de tota la llista» als tres punts de la llista. Consulta «Compartir tota una llista».",
   'help.guide.share-packing-item.tip.3':
     "Els articles nous agafen la compartició de la vista on els afegeixes. Els que afegeixes a «Compartit» es comparteixen amb tothom. Els que afegeixes a «La meva llista» són personals, tret que tots els articles d'aquella llista estiguin compartits amb les mateixes persones: en aquest cas, el nou article també es comparteix amb elles.",
+  'help.guide.share-packing-list.title': 'Comparteix una llista sencera',
+  'help.guide.share-packing-list.goal':
+    "Passa tots els articles d'una llista d'un sol cop al fons comú del grup, a la teva pròpia llista o a les persones que triïs.",
+  'help.guide.share-packing-list.step.1':
+    'Obre els tres punts de la capçalera de la llista i fes clic a «Compartició de tota la llista».',
+  'help.guide.share-packing-list.step.2':
+    'El diàleg anomena la llista i ofereix tres nivells: «Compartit», al fons comú del grup per a tothom; «Personal», només tu; i «Compartit amb…», les persones que triïs. Comença pel nivell que els articles ja tenen. Fes clic a «Compartit amb…».',
+  'help.guide.share-packing-list.step.3': 'Marca les persones a qui va adreçada la llista.',
+  'help.guide.share-packing-list.step.4':
+    'Fes clic a «Aplica a la llista». Tots els teus articles de la llista passen a aquest nivell, i un missatge ho confirma.',
+  'help.guide.share-packing-list.result':
+    'La llista ha deixat la vista compartida i és a «La meva llista», amb una insígnia a cada fila que compta les persones amb qui es comparteix.',
+  'help.guide.share-packing-list.tip.1':
+    'Només es mouen els teus propis articles. Els que han afegit altres persones es queden com estan, i el diàleg ho diu quan la llista en té.',
+  'help.guide.share-packing-list.tip.2':
+    'Un sol article es pot canviar després, a la seva finestra, a «Visible per a».',
   // packing-bags
   'help.guide.packing-bags.title': 'Pesar les maletes',
   'help.guide.packing-bags.goal':
     'Posa el pes de cada article, reparteix els articles en maletes i mantén cada maleta per sota del límit de la companyia aèria.',
   'help.guide.packing-bags.step.1':
-    'Fes clic a l’etiqueta de pes que hi ha abans del cercle i escriu el pes de l’article en grams.',
-  'help.guide.packing-bags.step.2': "El cercle de després del pes és la bossa de l'article. Fes-hi clic.",
+    "Fes clic al nom d'un article per obrir-ne la finestra, i escriu el pes de l'article en grams a «Pes total».",
+  'help.guide.packing-bags.step.2':
+    "«Bossa», a sota, mostra «Sense assignar» mentre l'article no és a cap bossa. Fes-hi clic.",
   'help.guide.packing-bags.step.3':
-    "Si encara no hi ha cap bossa, fes clic a «Afegeix equipatge», escriu un nom i prem Retorn. Es crea la bossa i l'article s'hi posa.",
+    "Les bosses del viatge s'obren a sota. Si encara no n'hi ha cap, escriu un nom a «Afegeix equipatge» al final de la llista i prem Enter. Es crea la bossa i l'article s'hi posa.",
   'help.guide.packing-bags.step.4':
     "La targeta «Equipatge» apareix a la dreta de les llistes tan bon punt hi ha una bossa. Cada bossa mostra el nom, qui la porta, una barra d'ompliment, quants articles hi ha i el pes. Sota les bosses hi ha «Sense assignar» i «Pes total», i a sota «Preparats»: el pes ja empaquetat i una barra fina amb la seva proporció.",
   'help.guide.packing-bags.step.5':
@@ -3418,7 +3626,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     'La targeta «Equipatge», a la dreta, mostra el pes de cada bossa respecte del seu límit, què no és en cap bossa, què porta cada persona i el total, amb la part que ja està empaquetada.',
   'help.guide.packing-bags.tip.1':
-    "El camp del pes, el cercle de la bossa i la targeta «Equipatge» només existeixen mentre un administrador té activat «Seguiment d'equipatge» al complement «Llistes». En una finestra més estreta, l'equipatge s'obre des del botó «Equipatge» de sobre la targeta de progrés.",
+    "El pes i la bossa de la finestra de l'article i la targeta «Bosses» només existeixen mentre un administrador té activat «Seguiment d'equipatge» al complement «Llistes». En una finestra més estreta, les bosses s'obren des de «Bosses» als tres punts del costat d'«Afegeix una categoria».",
   'help.guide.packing-bags.tip.2':
     "El servidor calcula el pes d'una maleta amb els articles de tots els membres, també els que tu no veus, així que la xifra és el pes real de la maleta.",
   'help.guide.packing-bags.tip.3':
@@ -3469,15 +3677,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '«Reserva manual», a l’extrem dret de la barra, obre «Reserva nova». Pots crear sis tipus de reserves: «Allotjament», «Restaurant», «Esdeveniment», «Visita guiada», «Aparcament» i «Altres». Els vols, els trens i la resta de transports són a la pestanya «Transports» i aquí no apareixen mai.',
   'help.ctx.trip-bookings.bullet.2':
-    "La icona de baixada de davant de «Reserva manual», «Importa confirmacions de reserva», puja confirmacions perquè TREK les llegeixi automàticament: EML, PDF, PKPass, HTML o TXT, fins a cinc fitxers de 10 MB com a màxim, i fotos si el model d'IA llegeix imatges. La icona només apareix si el servidor les pot llegir.",
+    "La icona de pujada de davant de «Reserva manual», «Importa confirmacions de reserva», puja confirmacions perquè TREK les llegeixi automàticament: EML, PDF, PKPass, HTML o TXT, fins a cinc fitxers de 10 MB com a màxim, i fotos si el model d'IA llegeix imatges. La icona només apareix si el servidor les pot llegir. Si l'administrador ha activat la importació de correus, el mateix diàleg dona al viatge la seva pròpia adreça per reenviar-hi els correus de reserva.",
   'help.ctx.trip-bookings.bullet.3':
     "«Cercar» busca als títols, tipus, llocs, notes, codis de reserva i viatgers. «Filtra», l'embut del costat, redueix la pestanya per «Estat», per «Tipus», amb un recompte per a cadascun, i per «Viatgers» quan alguna reserva indica persones. Un número a l'embut mostra quants filtres hi ha actius.",
   'help.ctx.trip-bookings.bullet.4':
-    "Les tres icones de després de «Filtra» canvien la vista: «Targetes», «Llista» i «Cronologia». «Opcions de vista», els controls lliscants del costat, agrupa i ordena les targetes i la llista o defineix els carrils de la cronologia, i la icona del full de càlcul que ve després, «Exporta com a full de càlcul (CSV)», baixa en un fitxer el que mostra la pestanya. Per defecte, les targetes s'agrupen en «Confirmat» i «Pendent», i la llista, per dia. Fes clic al títol d'una secció per plegar-la.",
+    "Les tres icones de després de «Filtra» canvien la vista: «Targetes», «Llista» i «Cronologia». «Opcions de vista», els controls lliscants del costat, agrupa i ordena les targetes i la llista o defineix els carrils de la cronologia, i la icona de descàrrega que ve després, «Exporta com a full de càlcul (CSV)», baixa en un fitxer el que mostra la pestanya. Per defecte, les targetes s'agrupen en «Confirmat» i «Pendent», i la llista, per dia. Fes clic al títol d'una secció per plegar-la.",
   'help.ctx.trip-bookings.bullet.5':
     "Cada targeta té una capçalera amb el color del seu estat, amb el punt d'estat (un clic l'alterna entre «Pendent» i «Confirmat»), el tipus, el títol, el llapis i la paperera. A sota hi ha els detalls que tingui la reserva: «Data», «Data i hora», «Codi de reserva», «Registre d'entrada» i «Registre de sortida», «Ubicació / adreça», «Allotjament», «Vinculada a» (la parada del pla), «Enllaç», «Notes», «Viatgers», «Fitxers» i les despeses vinculades.",
   'help.ctx.trip-bookings.bullet.6':
-    "Un clic en una targeta, una fila o una barra obre el detall de la reserva, amb «Al mapa» (si la reserva té un lloc), la paperera i «Edita» a baix. Per eliminar-la, demana confirmació una vegada («Vols eliminar la reserva?», que t'avisa si també s'eliminen costos). Després s'eliminen la reserva i les despeses vinculades, i en el cas d'un allotjament, les seves nits desapareixen del pla del dia.",
+    "Un clic en una targeta, una fila o una barra obre el detall de la reserva, amb «Mapa» (si la reserva té un lloc), la paperera i «Edita» a baix. Per eliminar-la, demana confirmació una vegada («Vols eliminar la reserva?», que t'avisa si també s'eliminen costos). Després s'eliminen la reserva i les despeses vinculades, i en el cas d'un allotjament, les seves nits desapareixen del pla del dia.",
   // booking-views
   'help.guide.booking-views.title': 'Canviar la vista i obrir una reserva',
   'help.guide.booking-views.goal':
@@ -3493,9 +3701,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     "Passa el ratolí per sobre d'una barra per veure'n el dia, les hores i el lloc, i fes-hi clic per obrir el detall de la reserva. Una targeta a «Targetes» i una fila a «Llista» obren la mateixa finestra emergent.",
   'help.guide.booking-views.step.6':
-    "La capçalera de la vista de detall mostra el títol i unes píndoles amb l'estat (un clic el canvia), el tipus, el dia i el codi de reserva, amb un botó per copiar-lo. A sota hi ha les hores en forma de quadres i, després, el lloc, els viatgers, les notes, les despeses i els fitxers, si la reserva en té. A baix de tot, «Al mapa», la paperera i «Edita».",
+    "La capçalera de la vista de detall mostra el títol i unes píndoles amb l'estat (un clic el canvia), el tipus, el dia i el codi de reserva, amb un botó per copiar-lo. A sota hi ha les hores en forma de quadres i, després, el lloc, els viatgers, les notes, les despeses i els fitxers, si la reserva en té. A baix de tot, «Mapa», la paperera i «Edita».",
   'help.guide.booking-views.result':
-    'La reserva s’obre en la vista de detall: «Edita» n’obre el formulari, «Al mapa» la mostra al pla, i «Tanca» o Escape et tornen a la vista d’on venies.',
+    "La reserva s'obre a la vista de detall: «Edita» n'obre el formulari, «Mapa» la mostra al pla, i «Tanca» o Escape et tornen a la vista d'on venies.",
   'help.guide.booking-views.tip.1':
     '«Opcions de vista», la icona de controls lliscants que hi ha després de les icones de vista, et permet agrupar i ordenar «Targetes» i «Llista» amb «Agrupar per» i «Ordena per». A «Cronologia» ofereix «Un carril per tipus» i «Mostrar l’altra pestanya». «Mostrar l’altra pestanya» mostra les entrades de la pestanya «Transports», atenuades, en un carril estret a la part de dalt. «Restablir la vista» recupera els valors per defecte, i cada pestanya recorda la seva vista en aquest navegador.',
   'help.guide.booking-views.tip.2':
@@ -3589,7 +3797,7 @@ const help: TranslationStrings = {
     "«Vincula un fitxer existent» et mostra els documents del viatge que encara no són en aquesta reserva. Tria'n un i s'adjunta sense haver-lo de tornar a pujar.",
   'help.guide.booking-files.step.4': 'Fes clic a «Actualitza».',
   'help.guide.booking-files.result':
-    'La targeta i la vista de detall mostren els documents a «Fitxers». Fes clic a un document per obrir-lo. «Mostrar als fitxers», a sobre de la llista de la vista de detall, et porta a la pestanya «Fitxers».',
+    "La targeta i la vista de detall mostren els documents a «Fitxers». Fes clic al nom d'un document per obrir-lo, o a la icona de baixada del final de la fila per desar-lo. «Mostrar als fitxers», a sobre de la llista de la vista de detall, et porta a la pestanya «Fitxers».",
   'help.guide.booking-files.tip.1':
     'En una reserva que encara estàs creant, el document es puja quan fas clic a «Afegir». Per pujar-lo cal connexió.',
   'help.guide.booking-files.tip.2':
@@ -3612,7 +3820,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     'La targeta mostra l’import a la part de baix, el formulari de la reserva inclou la despesa a «Despeses vinculades» i la mateixa despesa apareix a la pestanya «Pressupost», vinculada a aquesta reserva.',
   'help.guide.booking-cost.tip.1':
-    'La categoria depèn del tipus: Restaurant passa a «Menjar i beguda», «Allotjament» passa a «Allotjament», «Aparcament» passa a «Aparcament», i «Esdeveniment» i «Excursió» passen tots dos a «Altres».',
+    'La categoria depèn del tipus: Restaurant passa a «Menjar i beguda», «Allotjament» passa a «Allotjament», «Aparcament» passa a «Aparcament», «Esdeveniment» i «Visita guiada» passen a «Activitats», i «Altres» continua com a «Altres».',
   'help.guide.booking-cost.tip.2':
     "Una reserva pot tenir diverses despeses. «Vincular despesa existent» ofereix les despeses de «Pressupost» que encara no estan vinculades a res. En una despesa vinculada, «Desvincular, conservar la despesa» treu el vincle i manté la despesa a «Pressupost», mentre que la paperera l'elimina.",
   'help.guide.booking-cost.tip.3':
@@ -3633,7 +3841,7 @@ const help: TranslationStrings = {
   'help.guide.filter-bookings.result':
     'La pestanya mostra només el que has triat, tant a «Targetes» com a «Llista» i «Cronologia», i els filtres es mantenen per a aquest viatge fins que tanques la pestanya del navegador.',
   'help.guide.filter-bookings.tip.1':
-    "«Tipus» només apareix quan la pestanya té més d'un tipus, i només hi surten els tipus que hi ha a la pestanya. Així, si la pestanya no té cap excursió, a «Tipus» no hi haurà l'opció «Excursió».",
+    "«Tipus» només apareix quan la pestanya té més d'un tipus, i només hi surten els tipus que hi ha a la pestanya. Així, si la pestanya no té cap visita guiada, a «Tipus» no hi haurà l'opció «Visita guiada».",
   'help.guide.filter-bookings.tip.2':
     'Si res no coincideix amb el filtre, la pestanya mostra «Res no coincideix amb aquests filtres» i, just a sota, «Restablir els filtres».',
   // import-booking-file
@@ -3641,7 +3849,7 @@ const help: TranslationStrings = {
   'help.guide.import-booking-file.goal':
     "Fes que TREK llegeixi la reserva del correu o del PDF que t'ha enviat el proveïdor, perquè no l'hagis de tornar a escriure.",
   'help.guide.import-booking-file.step.1':
-    "Fes clic a la icona de baixada de la barra, «Importa confirmacions de reserva»; el nom apareix quan hi passes el ratolí. S'obre el diàleg amb el mateix nom.",
+    "Fes clic a la icona de pujada de la barra, «Importa confirmacions de reserva»; el nom apareix quan hi passes el ratolí. S'obre el diàleg amb el mateix nom.",
   'help.guide.import-booking-file.step.2':
     "Deixa anar les confirmacions al requadre, o fes-hi clic i tria-les: EML, PDF, PKPass, HTML i TXT, fins a cinc fitxers de 10 MB cadascun, i fotos (JPG, PNG, WEBP) si el model d'IA pot llegir imatges. El requadre mostra els noms dels fitxers triats.",
   'help.guide.import-booking-file.step.3':
@@ -3697,7 +3905,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     "Els diners del viatge: cada despesa en un llibre de comptes per dates o en una taula, qui l'ha introduïda i qui l'ha de pagar, en la divisa del rebut. La columna de la dreta mostra qui ha de pagar a qui per quadrar els comptes.",
   'help.ctx.trip-costs.bullet.1':
-    "La barra de dalt mostra les dates del viatge i els viatgers entre els quals es reparteixen les despeses. També conté «Cercar despeses…», «Filtra» (l'embut), «Exporta CSV» (la icona de baixada) i el selector «Llista» / «Taula».",
+    "La barra de dalt mostra les dates del viatge i els viatgers entre els quals es reparteixen les despeses. També conté «Cercar despeses…», «Filtra» (l'embut), «Exporta CSV» (la icona de baixada), la moneda en què es mostren els imports i el selector «Llista» / «Taula».",
   'help.ctx.trip-costs.bullet.2':
     'A l’extrem dret, «Liquidar comptes» registra de cop totes les transferències pendents, «Escanejar rebut» omple una despesa a partir d’una foto quan el complement «Anàlisi amb IA» pot llegir imatges, i «Afegir despesa» obre l’editor.',
   'help.ctx.trip-costs.bullet.3':
@@ -3705,7 +3913,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     "El llibre de comptes s'agrupa per dia, del més recent al més antic, i cada dia indica quantes entrades té i quant s'hi ha gastat. Cada fila mostra la categoria com una pestanya de color, el nom, les fitxes dels pagadors amb el que ha pagat cadascú i, a sota, «Dividir» amb la part de cada viatger (una marca indica qui ja ha pagat la seva), després la nota i l'import, i també «has prestat» o «t'han prestat» quan la divisió fa que altres et deguin diners o que tu en deguis.",
   'help.ctx.trip-costs.bullet.5':
-    "La columna de la dreta mostra els resultats: «Liquidar comptes» indica qui paga a qui, «Balanços» mostra el saldo a favor o en contra de cada viatger, «Pressupost final» mostra quant costa el viatge a cadascú i «Per categoria» mostra en què s'han gastat els diners.",
+    "La columna de la dreta mostra els resultats: «Liquidar comptes» indica qui paga a qui, «Balanços» mostra el saldo a favor o en contra de cada viatger, «Pressupost final» mostra quant costa el viatge a cadascú i «Per categoria» mostra en què s'han gastat els diners; fer clic en una categoria la deixa fora dels totals. «Repartir les despeses entre els viatgers», al peu de la columna, desactiva els pagadors i la liquidació de comptes en un viatge que només necessita els totals.",
   'help.ctx.trip-costs.bullet.6':
     "Un pagament registrat apareix al mateix llibre de comptes com a fila pròpia, amb un llapis i «Desfer» al costat. Una despesa té un llapis i una paperera, i la paperera demana confirmació abans d'eliminar la despesa. Una despesa amb rebuts té una fitxa «Rebut» al costat del nom que els obre.",
   'help.ctx.trip-costs.bullet.7':
@@ -3720,7 +3928,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     "L'etiqueta de sota el nom és la «Categoria», que és «Menjar i beguda» fins que en triïs una altra. N'hi ha catorze i no es poden modificar. La capçalera pren el color de la categoria que triïs, i també la pestanya de la fila i la seva barra a «Per categoria».",
   'help.guide.add-expense.step.4':
-    "Escriu l'import del rebut a «Import total». La «Divisa» del costat és, d'entrada, la mateixa en què es mostra «Pressupost»; si la canvies, l'editor mostra l'import convertit. «Dia» és, d'entrada, avui, i la despesa s'agrupa sota aquest dia a la llista.",
+    "Escriu l'import del rebut a «Import total». La «Divisa» del costat és, d'entrada, la del propi viatge; si en tries una altra, l'editor mostra l'import convertit sota els camps. «Dia» és, d'entrada, avui, i la despesa s'agrupa sota aquest dia a la llista.",
   'help.guide.add-expense.step.5':
     'A «Qui ha pagat?», fes clic a la persona que ha pagat de veritat. «Tu» ja surt seleccionat. «Ningú ha pagat encara» registra l’import sense que ningú degui res, i «Han pagat diverses persones», al selector del costat del títol, reparteix el compte entre diverses persones.',
   'help.guide.add-expense.step.6':
@@ -3776,26 +3984,26 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.3':
     "El mode «Tiquet» calcula sol l'«Import total» i posa el camp en gris: el total és la suma dels conceptes del rebut.",
   'help.guide.split-expense.tip.4':
-    'Un repartiment personalitzat també es pot introduir en percentatges: posa «Introdueix les parts com a» en %, i les parts han de sumar el 100 % perquè es pugui desar la despesa.',
+    "Un repartiment personalitzat també es pot introduir en percentatges o en parts: l'interruptor petit del costat de la indicació tria entre el símbol de la divisa, % o «Parts». En percentatges, les parts han de sumar el 100 % perquè es pugui desar la despesa.",
   // expense-currency
   'help.guide.expense-currency.title': 'Introduir una despesa en una altra divisa',
   'help.guide.expense-currency.goal': "Escriu l'import que diu el rebut i TREK desarà el tipus de canvi.",
   'help.guide.expense-currency.step.1':
     'Obre «Afegir despesa». Escriu el nom a dalt del diàleg i introdueix a «Import total» l’import exacte del tiquet, no un import convertit.',
   'help.guide.expense-currency.step.2':
-    'Obre «Divisa», al costat de l’import, i tria la divisa del tiquet. La llista inclou tots els codis que coneix TREK i s’hi pot cercar: escriu les tres lletres.',
+    "Obre «Divisa», al costat de l'import; una despesa nova comença amb la moneda del propi viatge. Tria la divisa del tiquet: la del viatge i la que mostra «Despeses» són a dalt, i pots cercar qualsevol altre codi que conegui TREK escrivint les tres lletres.",
   'help.guide.expense-currency.step.3':
     "Sota els camps apareix una fila d'insígnies: l'import que has escrit i el seu valor actual, marcat com a «tipus de canvi actual». Només és una vista prèvia. No és el valor que es desa.",
   'help.guide.expense-currency.step.4':
     'Fes clic a «Afegir despesa», a baix del diàleg. El tipus de canvi queda fixat en aquell moment: la despesa conserva el valor que tenia el dia que la vas introduir.',
   'help.guide.expense-currency.step.5':
-    'Al registre, la fila mostra els dos imports sota el nom: el que has escrit, una fletxa i l’import en la divisa del viatge. Tots els totals, balanços i liquidacions de la pestanya «Pressupost» fan servir el segon import.',
+    'Al registre, la fila mostra els dos imports sota el nom: el que has escrit, una fletxa i l’import en la divisa en què es mostra «Pressupost». Tots els totals, balanços i liquidacions de la pestanya «Pressupost» fan servir el segon import.',
   'help.guide.expense-currency.result':
     "La despesa conserva l'import i la divisa que has escrit. El registre mostra totes dues coses, i els totals i els saldos del viatge es calculen en la divisa del viatge.",
   'help.guide.expense-currency.tip.1':
     'El tipus de canvi queda fixat en el moment de desar, perquè un deute liquidat no canviï si el tipus de canvi varia la setmana següent. Només es desa un tipus nou si canvies la divisa de la despesa.',
   'help.guide.expense-currency.tip.2':
-    '«Divisa de visualització», a «Configuració», només canvia com es mostren els imports. Els imports desats no canvien mai. Si la deixes buida, cada viatge es mostra en la seva moneda.',
+    '«Divisa de visualització», a «Configuració», i el selector de moneda de la barra de «Costos» per a un sol viatge només canvien com es mostren els imports. Els imports desats no canvien mai. Si la moneda de visualització és buida, cada viatge es mostra en la seva moneda.',
   'help.guide.expense-currency.tip.3':
     'La divisa del viatge es defineix al mateix viatge, a «Edita el viatge», i cal el permís «Edita els detalls del viatge». Si la canvies, tots els tipus de canvi fixats es recalculen per a la nova divisa. Els imports, en canvi, no es converteixen.',
   // filter-costs
@@ -3902,6 +4110,99 @@ const help: TranslationStrings = {
     'Una despesa dividida amb «Personalitzat» o «Tiquet» no té una part única per persona, així que «Per persona» i «Per pers. / dia» queden buits.',
   'help.guide.costs-table.tip.3':
     "Els pagadors, el repartiment, la nota i els rebuts s'editen a la mateixa despesa: «Més opcions», al final de cada fila, té «Edita» i «Elimina» per treure la fila.",
+  'help.guide.costs-show-in.title': 'Mostra les despeses en una altra divisa',
+  'help.guide.costs-show-in.goal':
+    "Consulta les despeses d'un viatge en una altra divisa, per exemple la del país on continues el viatge, sense canviar res del que està desat.",
+  'help.guide.costs-show-in.step.1':
+    'El selector de moneda de la barra, entre «Exporta CSV» i el selector «Llista» / «Taula», mostra la moneda en què es llegeixen els imports. Posa-hi el ratolí i diu «Mostra els imports en».',
+  'help.guide.costs-show-in.step.2':
+    'Fes-hi clic. La teva divisa de visualització i la divisa del propi viatge són a dalt de la llista, i pots escriure tres lletres per cercar-ne qualsevol altra. Tria una divisa.',
+  'help.guide.costs-show-in.step.3':
+    "Les targetes, totes les files del registre i la columna de la dreta ara són en aquesta divisa, convertides al canvi d'avui. «Liquidar comptes» també ofereix les transferències en aquesta divisa.",
+  'help.guide.costs-show-in.step.4':
+    "Per tornar enrere, obre el selector un altre cop i tria la primera entrada de la llista: la teva moneda de visualització, o la pròpia del viatge si no n'has definit cap a «Configuració».",
+  'help.guide.costs-show-in.result':
+    'Tota la pestanya «Pressupost» mostra el viatge en la divisa que has triat. Les despeses conserven els imports i les divises amb què es van introduir.',
+  'help.guide.costs-show-in.tip.1':
+    "L'opció es manté per a aquest viatge només en aquest navegador. Els altres viatges, els altres dispositius i els altres viatgers mantenen la seva pròpia vista.",
+  'help.guide.costs-show-in.tip.2':
+    'La teva divisa de visualització a «Configuració» no canvia. Quan la tornis a triar a la barra, un canvi posterior a «Configuració» torna a aplicar-se a aquest viatge.',
+  'help.guide.costs-show-in.tip.3':
+    'Una despesa nova sempre comença en la moneda pròpia del viatge, sigui quina sigui la moneda en què es mostren els imports.',
+  'help.guide.leave-out-category.title': 'Deixa una categoria fora dels totals',
+  'help.guide.leave-out-category.goal':
+    'Mira què ha costat el viatge sense un tipus de despesa, per exemple sense els vols.',
+  'help.guide.leave-out-category.step.1':
+    "«Per categoria», al final de la columna de la dreta, ordena en què s'han gastat els diners. La línia de dalt explica què fa un clic: «Selecciona una categoria per deixar-la fora dels totals».",
+  'help.guide.leave-out-category.step.2':
+    'Fes clic en una categoria. La seva fila es queda al lloc, atenuada i ratllada, les altres barres es tornen a escalar, i la línia de dalt ara diu què queda fora, amb «Comptar-ho tot» al costat.',
+  'help.guide.leave-out-category.step.3':
+    "«Despesa total del viatge» deixa fora aquesta categoria, i també ho fan «La teva part» i «Vas pagar tu» de sota. La targeta també diu què s'ha deixat fora.",
+  'help.guide.leave-out-category.step.4':
+    'Fes clic a «Comptar-ho tot», o a la fila atenuada un altre cop, i totes les categories tornen a comptar.',
+  'help.guide.leave-out-category.result':
+    'Els totals mostren el viatge sense les categories que has deixat fora, fins que tornis a comptar-les.',
+  'help.guide.leave-out-category.tip.1':
+    "Això és només una vista. No es desa res, i l'opció desapareix quan surts de la pestanya «Despeses».",
+  'help.guide.leave-out-category.tip.2':
+    'El que es deu es manté sencer: «Deus», «Et deuen», «Import pendent», «Liquidar comptes» i «Balanços» continuen comptant totes les categories.',
+  'help.guide.leave-out-category.tip.3':
+    "Pots deixar fora diverses categories alhora. Cada clic en una fila només n'activa o desactiva aquella.",
+  'help.guide.split-by-shares.title': 'Reparteix un compte per nits o per parts',
+  'help.guide.split-by-shares.goal':
+    "Reparteix una despesa en una proporció, com les nits que s'ha quedat cada viatger, sense calcular tu els imports.",
+  'help.guide.split-by-shares.step.1':
+    'Obre la despesa amb el llapis del costat de la seva fila i fes clic a «Personalitzat» al selector del costat de «Dividir».',
+  'help.guide.split-by-shares.step.2':
+    'Al costat de la indicació de sota, un interruptor petit tria com introdueixes el repartiment: el símbol de la moneda per a imports, % per a percentatge, o «Parts». Fes clic a «Parts».',
+  'help.guide.split-by-shares.step.3':
+    "Cada viatger marcat té un camp que comença a 1. Escriu les parts de cada persona, per exemple les nits que s'ha quedat. Sota cada camp, l'import que en resulta s'actualitza mentre escrius.",
+  'help.guide.split-by-shares.step.4':
+    'La insígnia sota la llista mostra «El repartiment coincideix amb el total». Fes clic a «Desa», a baix del diàleg.',
+  'help.guide.split-by-shares.result':
+    'La despesa es reparteix en la proporció de les parts, fins al cèntim exacte, i la seva fila mostra la part de cada viatger a «Dividir».',
+  'help.guide.split-by-shares.tip.1':
+    'Una persona amb 0 parts no deu res per aquesta despesa. Si ningú té cap part, el diàleg diu «Dona una part a almenys una persona» i no es desa.',
+  'help.guide.split-by-shares.tip.2':
+    'Només es desen els imports, així que la despesa torna a obrir-se amb els imports. Canvia un altre cop a «Parts» per canviar la proporció.',
+  'help.guide.split-by-shares.tip.3':
+    'El percentatge funciona igual: tria %, i els percentatges han de sumar 100 % en total.',
+  'help.guide.link-receipt-file.title': 'Fes servir un fitxer del viatge com a rebut',
+  'help.guide.link-receipt-file.goal':
+    'Posa a una despesa un document que el viatge ja té, com ara un val o una confirmació que també fa de factura, sense tornar-lo a pujar.',
+  'help.guide.link-receipt-file.step.1':
+    "Fes clic al llapis del costat de la fila de la despesa. S'obre l'editor, amb «Rebuts i factures» cap a baix.",
+  'help.guide.link-receipt-file.step.2':
+    "Fes clic a la icona d'enllaç del costat d'«Adjuntar». Hi és mentre el viatge té imatges o PDF que encara no són en aquesta despesa. La llista s'obre sota el títol, amb els fitxers de la reserva de la despesa primer.",
+  'help.guide.link-receipt-file.step.3':
+    "Fes clic al fitxer. La llista es tanca i el fitxer queda llistat a «Rebuts i factures», amb una paperera per treure'l un altre cop.",
+  'help.guide.link-receipt-file.step.4':
+    'Fes clic a «Desa» a baix del diàleg. La fila ara té una etiqueta «Rebut» al costat del nom que obre el fitxer.',
+  'help.guide.link-receipt-file.result':
+    "La despesa porta el fitxer com a rebut. No s'ha pujat res: és el mateix fitxer de «Fitxers», i conserva els altres vincles.",
+  'help.guide.link-receipt-file.tip.1':
+    "La paperera del costat d'un rebut només el treu de la despesa. El fitxer es queda a «Fitxers».",
+  'help.guide.link-receipt-file.tip.2':
+    "Només s'ofereixen imatges i PDF, els mateixos tipus que accepta «Adjunta», i res del que és a la paperera.",
+  'help.guide.costs-totals-only.title': "Porta només els totals d'un viatge",
+  'help.guide.costs-totals-only.goal':
+    'Porta el compte del que costa un viatge sense saber qui ha pagat, qui deu a qui ni liquidar comptes, per exemple quan comparteixes tot igualment.',
+  'help.guide.costs-totals-only.step.1':
+    "«Repartir les despeses entre els viatgers» és l'interruptor al peu de la columna de la dreta. Està activat per defecte, i la línia sota el nom diu què fa.",
+  'help.guide.costs-totals-only.step.2':
+    'Desactiva-ho. Les targetes del que deus i del que et deuen, «Liquidar comptes», «Balanços» i «Pressupost final» desapareixen, i també els pagadors i el repartiment de cada fila. «Despesa total del viatge» es manté, amb el nombre de despeses a sota.',
+  'help.guide.costs-totals-only.step.3':
+    "«Afegeix una despesa» ara obre l'editor sense «Qui ha pagat?» ni «Dividir»: una despesa només necessita un nom, una categoria, l'import, la seva moneda i el seu dia.",
+  'help.guide.costs-totals-only.step.4':
+    "Torna a activar l'interruptor quan vulguis repartir. Els pagadors, els repartiments i els pagaments registrats abans tornen tal com eren.",
+  'help.guide.costs-totals-only.result':
+    '«Costos» mostra la despesa del viatge, per dia, per categoria i a la taula, sense res sobre qui deu què.',
+  'help.guide.costs-totals-only.tip.1':
+    "L'opció pertany al viatge, així que tots els viatgers veuen el mateix «Pressupost». Només qui pot editar els costos veu l'interruptor.",
+  'help.guide.costs-totals-only.tip.2':
+    "Una despesa afegida mentre l'interruptor és desactivat es desa sense pagador ni repartiment, així que no es converteix en deute si més endavant tornes a dividir.",
+  'help.guide.costs-totals-only.tip.3':
+    "En un viatge on només hi ets tu no hi ha res a repartir, així que «Despeses» mostra els totals sol i l'interruptor no es mostra.",
 
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transports', // same-as-en
@@ -3914,11 +4215,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     "«Targetes» és la vista amb què s'obre la pestanya: primer «Confirmat» i després «Pendent». Pots plegar cada secció fent clic al seu títol. Les connexions de transport públic planificades no tenen estat i es mostren entre els trajectes confirmats per ordre horari, tret que «Opcions de vista» els doni una secció pròpia, «Transport públic automatitzat». «Llista» agrupa per dia, i «Cronologia» mostra tots els trajectes al llarg dels dies del viatge.",
   'help.ctx.trip-transports.bullet.4':
-    "La franja superior d'una targeta té el color del seu estat: verd si està confirmada, ambre si està pendent i blau si és una connexió planificada. Mostra el punt d'estat, el tipus, el títol, el llapis i la paperera. A sota: la data, l'hora, el «Codi de reserva», la ruta i la companyia aèria i el número de vol, o el número de tren, l'andana i el seient. Fes clic a la targeta per obrir-ne els detalls.",
+    "La franja superior d'una targeta té el color del seu estat: verd si està confirmada, ambre si està pendent i blau si és una connexió planificada. Mostra el punt d'estat, el tipus, el títol, el llapis i la paperera. A sota: la data, l'hora, el «Codi de reserva», la ruta i la companyia aèria i el número de vol, o el número de tren, l'andana i el seient. Al voltant de la sortida, un vol també mostra el seu «Estat» en directe. Fes clic a la targeta per obrir-ne els detalls.",
   'help.ctx.trip-transports.bullet.5':
     "També pots crear transports al pla: el + de la capçalera d'un dia (el text d'ajuda diu «Afegeix al dia»), o un clic amb el botó dret a la capçalera, ofereix «Afegeix transport» i «Transport públic». El connector de temps de desplaçament entre dues parades obre la mateixa cerca per a aquell tram.",
   'help.ctx.trip-transports.bullet.6':
-    'Un transport amb origen i destinació dibuixa una línia al mapa. La icona de ruta de la seva fila al pla del dia i «Al mapa» als seus detalls activen aquesta línia. «Mostra totes les rutes de reserva», a la barra d’eines de sobre els dies, activa o desactiva les línies de tot el viatge.',
+    "Un transport amb origen i destinació dibuixa una línia al mapa. La icona de ruta de la seva fila al pla del dia i «Mapa» a baix dels seus detalls activen aquesta línia. «Mostra totes les rutes de reserva», a la barra d'eines de sobre els dies, activa o desactiva les línies de tot el viatge.",
   // transports-list
   'help.guide.transports-list.title': 'Llegir la pestanya «Transports»',
   'help.guide.transports-list.goal': 'Entén què mostra la llista abans de canviar-hi res.',
@@ -3931,7 +4232,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     'Cada targeta mostra tots els detalls. La franja superior és verda si està «Confirmat» i ambre si està «Pendent», i mostra el punt d’estat, el tipus i el títol. A sota, «Data» mostra els dies que abasta amb les dates. Després hi ha «Data i hora», «Codi de reserva», «Ruta» amb la icona del tipus entre les parades, i l’aerolínia i el número de vol, o bé el número de tren, l’andana i el seient. Fes clic a la targeta per obrir-ne els detalls.',
   'help.guide.transports-list.step.5':
-    "Fes clic al punt d'estat per canviar el trajecte entre «Pendent» i «Confirmat»; el text d'ajuda indica cap a quin estat, per exemple «Set to Pending». El llapis de la capçalera obre el formulari del transport, i la paperera l'elimina després de la pregunta «Vols eliminar la reserva?», que detalla què s'eliminarà, inclosos els costos vinculats.",
+    "Fes clic al punt d'estat per canviar el trajecte entre «Pendent» i «Confirmat»; el text d'ajuda indica cap a quin estat, per exemple «Set to Pending». El llapis de la capçalera obre el formulari del transport, i la paperera l'elimina després de la pregunta «Vols eliminar la reserva?», que anomena el trajecte i avisa quan s'elimina amb ell un cost vinculat.",
   'help.guide.transports-list.result':
     'Cada targeta mostra si el trajecte està reservat, i pots fer servir la barra per filtrar o ordenar la llista en qualsevol moment.',
   'help.guide.transports-list.tip.1':
@@ -3965,7 +4266,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.goal':
     "Fes que TREK llegeixi un vol, un tren o un ferri del bitllet que t'ha enviat la companyia, i revisa'l abans de desar-lo.",
   'help.guide.import-transport-file.step.1':
-    "A la barra de la pestanya «Transports», fes clic a la icona de baixada de davant de «Transport», amb el text d'ajuda «Importa confirmacions de reserva». S'obre el diàleg amb aquest nom, el mateix que té la pestanya «Reserves». Si la pestanya és buida, «Importa des d'un fitxer», al mig, fa el mateix.",
+    "A la barra de la pestanya «Transports», fes clic a la icona de pujada de davant de «Transport», amb el text d'ajuda «Importa confirmacions de reserva». S'obre el diàleg amb aquest nom, el mateix que té la pestanya «Reserves». Si la pestanya és buida, «Importa des d'un fitxer», al mig, fa el mateix.",
   'help.guide.import-transport-file.step.2':
     "Deixa anar el bitllet al requadre, o fes-hi clic i tria el fitxer: EML, PDF, PKPass, HTML i TXT, fins a cinc fitxers de 10 MB cadascun, i fotos d'un bitllet (JPG, PNG, WEBP) si el teu servidor té un model d'IA que les pugui llegir. El requadre mostra els noms dels fitxers que has triat.",
   'help.guide.import-transport-file.step.3':
@@ -4138,7 +4439,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-mode.tip.1':
     "L'opció es desa per viatge al teu compte, així que, després de tornar a carregar la pàgina, en un altre navegador o en un altre dispositiu, el viatge es torna a obrir en la vista de viatge per carretera.",
   'help.guide.roadtrip-mode.tip.2':
-    "L'interruptor només apareix quan un administrador ha activat el complement «Viatge per carretera», a «Complements» del tauler d'administració.",
+    "L'interruptor només apareix mentre el complement «Viatge per carretera» és activat per al viatge. Un administrador l'activa per a tots els viatges a «Complements» del tauler d'administració, i el propietari del viatge pot activar-lo o desactivar-lo només per a aquest viatge a «Complements» de «Configuració del viatge».",
   'help.guide.roadtrip-mode.tip.3':
     'Al mòbil no hi ha selector: el complement afegeix la seva pròpia pestanya «Viatge per carretera» al costat de «Planificat».',
   // roadtrip-stops
@@ -4160,7 +4461,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stops.result':
     'L’etiqueta «Parada» de la parada que has canviat mostra la nova durada, i totes les hores d’arribada posteriors s’ajusten. Una parada que has canviat a un tipus i després has tornat a deixar com estava torna a ser una destinació numerada.',
   'help.guide.roadtrip-stops.tip.1':
-    "L'estada pertany al lloc, no a una visita concreta: un lloc planificat en dos dies té la mateixa estada tots dos dies.",
+    "L'estada pertany a la visita: un lloc planificat en dos dies conserva la seva pròpia estada a cadascun, i canviar-ne una no toca l'altra.",
   'help.guide.roadtrip-stops.tip.2':
     'Les parades pel camí també apareixen a «Dies». Si desactives «Mostra també a Dies», a «Parades de servei», dins de «Preferències de conducció», només apareixen a «Viatge per carretera».',
   'help.guide.roadtrip-stops.tip.3': '«Sense estada», al mateix diàleg, torna a eliminar la durada.',
@@ -4279,7 +4580,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     'Amb una autonomia definida, la columna lateral mostra una franja al tram on s’acaba el combustible o la bateria: «Aquí s’esgota el dipòsit» o, en un cotxe elèctric, «Aquí s’acaba la bateria». A sota, s’indica en quin punt del tram passa.',
   'help.guide.roadtrip-refuel.step.2':
-    "La icona del llum de la franja és el botó: «Cerca combustible» o, per a un cotxe elèctric, «Cerca un punt de recàrrega». Busca al llarg de la carretera abans d'aquell punt i mostra «Cercant al llarg de la ruta…» mentre cerca.",
+    "La bomba de combustible que parpelleja al final de la franja, un llamp per a un cotxe elèctric, és el botó: «Cerca combustible» o «Cerca un punt de recàrrega». Busca al llarg de la carretera abans d'aquell punt i mostra «Cercant al llarg de la ruta…» mentre cerca.",
   'help.guide.roadtrip-refuel.step.3':
     "Es mostren fins a tres estacions de servei, cadascuna amb la distància a la ruta i l'autonomia que et quedaria.",
   'help.guide.roadtrip-refuel.step.4':
@@ -4291,7 +4592,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     "La cerca mira la carretera abans del punt on s'acaba el combustible, deixa un marge de reserva i compta dues vegades el desviament, de manera que tots els llocs que ofereix són realment accessibles.",
   'help.guide.roadtrip-refuel.tip.3':
-    'Si no hi ha resultats, pots tornar a cercar: la bombeta passa a «Torna-ho a provar», perquè la cerca de llocs és un servei compartit que de vegades no respon a temps.',
+    'Si no hi ha resultats, pots tornar a cercar: el sortidor passa a «Torna-ho a provar», perquè la cerca de llocs és un servei compartit que de vegades no respon a temps.',
   // roadtrip-track
   'help.guide.roadtrip-track.title': 'Fer que un dia segueixi una traça importada',
   'help.guide.roadtrip-track.goal':
@@ -4336,7 +4637,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     "A «Punts de ruta», tria la casella amb els punts de ruta per afegir l'inici, les parades i el final en ordre, o «Només la línia» per afegir només la línia desada.",
   'help.guide.tour-collection-manage.step.1':
-    'Obre una llista. Cada excursió desada mostra el grau, el tipus, el viatge des del qual es va desar, la distància, el desnivell i quants punts de ruta té. Passa el ratolí per sobre del nom del viatge per veure qui la va desar.',
+    'Obre una llista. Cada excursió desada mostra el grau o el tipus, el viatge des del qual es va desar, el temps, la distància, el desnivell i quants punts de ruta té. Passa el ratolí per sobre del nom del viatge per veure qui la va desar.',
   'help.guide.entry-draft.step.1': "A l'editor, activa «Esborrany» a la columna de la dreta.",
   'help.guide.journey-map-layers.step.3':
     'Fes clic a una xinxeta buida o a un punt petit del mapa. Una targeta et diu què és: un lloc planificat i el seu dia, o una estada amb «Obre l’entrada», que et porta a la crònica del dia corresponent.',
@@ -4370,19 +4671,19 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.result':
     'Els comptes nous, i tothom que no hagi canviat mai aquesta configuració, veuen el que has triat.',
   'help.guide.own-routing-engine.goal':
-    'Calcula les rutes dels dies i dels viatges per carretera amb un servidor OSRM o Valhalla propi, en lloc dels públics.',
+    'Calcula les rutes dels dies, dels viatges per carretera i de les excursions amb un servidor OSRM o Valhalla propi, en lloc dels serveis de TREK o dels públics.',
   'help.guide.admin-passkeys.tip.1':
-    "Si TREK encara no pot determinar cap domini, un avís t'ho indica, i les claus d'accés queden amagades fins que defineixis APP_URL o el Relying Party ID.",
+    "Si TREK encara no pot determinar cap domini, un avís sota l'interruptor t'ho indica, i les claus d'accés queden amagades fins que defineixis APP_URL o el Relying Party ID.",
   'help.guide.rotate-jwt-secret.step.1':
-    'A baix de tot de la pestanya «Configuració», a «Zona de perill», fes clic a «Renova» al costat de «Rota el secret JWT».',
+    'A la pestanya «Seguretat», a «Zona de perill», a baix a la dreta, fes clic a «Renova» al costat de «Rota el secret JWT».',
   'help.guide.storage-backends.tip.3':
     'TREK pot tornar a baixar les memòries cau de fotos, així que replicar-les sol ser malbaratar espai.',
   'help.guide.admin-channels.step.3':
-    "A la targeta «Notificacions» de sota, tria per a cada esdeveniment quins canals l'envien: «Versió nova disponible», «Error de rèplica d'emmagatzematge» i «Regió de caiac demanada». Cada interruptor es desa a l'instant.",
+    "A sota, a la mateixa targeta, tria per a cada esdeveniment quins canals l'envien: «Versió nova disponible», «Error de rèplica d'emmagatzematge» i «Regió de caiac demanada». Cada interruptor es desa a l'instant.",
   'help.guide.notification-defaults.tip.1':
     '«Desactivat» és un valor per defecte que cada usuari encara pot activar; «Bloquejat» el desactiva per a tothom.',
   'help.ctx.notifications.bullet.4':
-    "Al costat de l'hora de cada notificació, «Marca com a llegida» (la doble marca) i «Elimina» (la paperera) s'apliquen només a aquella. «Marca-ho tot com a llegit» i «Elimina-ho tot», a dalt, s'apliquen a tota la llista.",
+    "Posa el ratolí sobre una notificació i l'hora deixa lloc a «Marca com a llegida» (la doble marca) o «Marca com a no llegida» (el sobre), i a «Elimina» (la paperera). «Marca-ho tot com a llegit» i «Elimina-ho tot», a dalt, s'apliquen a tota la llista.",
   'help.guide.read-notifications.tip.2':
     "Una notificació sense botó és només informativa. Llegeix-la al panell i marca-la com a llegida des d'allà.",
   'help.guide.filter-notifications.result':
@@ -4417,6 +4718,26 @@ const help: TranslationStrings = {
     "A la pestanya «Transports», fes clic a una targeta. Els detalls s'obren damunt de la pestanya, amb la capçalera del mateix color que la targeta. La fila d'un transport al pla del dia obre els mateixos detalls.",
   'help.guide.export-transports-csv.tip.2':
     'La pestanya «Reserves» té la mateixa icona i genera un fitxer propi, que acaba en bookings.csv.',
+  'help.guide.flight-live-status.title': 'Seguir un vol en directe',
+  'help.guide.flight-live-status.goal': 'Veure on és el teu vol, si va tard i quan aterra, sense compte i sense clau.',
+  'help.guide.flight-live-status.step.1':
+    "Des de tres hores abans de la sortida, la targeta d'un vol a la pestanya «Transports» té un camp «Estat»: «Programat», «A punt per sortir», «En vol» amb el temps que falta per aterrar, o «Aterrat». Un retard es mostra al costat en ambre o vermell, i mentre el vol és en l'aire una barra fina al llarg del camp s'omple.",
+  'help.guide.flight-live-status.step.2':
+    'Fes clic a la targeta. La targeta en directe, a dalt de la reserva, mostra en quin punt és el vol, què ve després, com ara «Lands in 11 h 50 min», i el retard a la dreta, com ara +25 min.',
+  'help.guide.flight-live-status.step.3':
+    "A sota, «Sortida» i «Arribada» mostren els dos aeroports amb els codis i les ciutats, en un mapa petit de la ruta amb l'avió en trajecte. Cada casella d'hora mostra l'hora que compta ara; quan difereix de la prevista, l'hora prevista hi apareix ratllada al costat.",
+  'help.guide.flight-live-status.step.4':
+    "Mentre el vol és en l'aire, hi segueixen «Altitud», «Velocitat» i «Restant», en les unitats de la teva configuració, i després l'«Avió» amb el tipus i la matrícula.",
+  'help.guide.flight-live-status.step.5':
+    'Al pla, la fila del vol al seu dia diu el mateix en una línia sota les hores, amb el retard al costat.',
+  'help.guide.flight-live-status.result':
+    "Veus d'un cop d'ull si el vol va a l'hora i quan aterra: a la targeta, a la reserva i al pla del dia.",
+  'help.guide.flight-live-status.tip.1':
+    "Les posicions provenen de dades ADS-B obertes (adsb.lol i, a la majoria d'instal·lacions, també adsb.fi), sense clau ni compte. Només els arriba l'indicatiu del vol. Un administrador activa o desactiva la funció a «Complements» de l'àrea d'administració, a la targeta «Viatge», amb «Segueix en directe els vols reservats».",
+  'help.guide.flight-live-status.tip.2':
+    "Les dades obertes només saben on és l'avió. La porta, la terminal i la cinta d'equipatges no en formen part, així que afegeix-les tu a la reserva si les necessites. Els retards i l'hora d'arribada són estimacions calculades a partir de les posicions.",
+  'help.guide.flight-live-status.tip.3':
+    "TREK necessita el número de vol i els dos aeroports per seguir un vol. Pot ser que no es trobi un vol d'una companyia que vola sota un altre indicatiu, o un vol amb codi compartit; aleshores la reserva conserva les hores normals.",
   'help.guide.group-sort-bookings.step.2':
     "A «Agrupar per», tria «Estat», «Dia», «Tipus» o «Sense agrupar». La pestanya s'ordena de seguida en aquestes seccions.",
   'help.guide.export-bookings-csv.result':
@@ -4424,7 +4745,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.result':
     "Les llistes queden en l'ordre en què les has arrossegat, i els articles s'ordenen de la A a la Z fins que ho desactives. TREK continua desant el teu ordre.",
   'help.guide.count-packed-pieces.step.2':
-    'Davant de la quantitat apareix un comptador: 0/5, amb un menys i un més. Fes clic al més per cada peça que fiquis a la bossa.',
+    'A «Quant.», escriu quantes en portes, per exemple 5, o fes clic al més fins que mostri el nombre.',
   'help.guide.expense-receipts.step.4':
     "De nou al llibre de comptes, la fila té una fitxa «Rebut» al costat del nom, amb el nombre entre parèntesis si n'hi ha diversos. Fes-hi clic per obrir el rebut.",
   'help.guide.final-budget.tip.3':
@@ -4717,7 +5038,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.tip.1':
     "El que hagi triat un usuari a «Configuració» sempre té prioritat; aquests valors s'apliquen a tothom qui no hagi canviat aquella opció.",
   'help.guide.own-routing-engine.step.1':
-    "A «Mapa», dins de «Valors per defecte», introdueix l'adreça del teu servidor OSRM a «Motor de rutes propi».",
+    "A la pestanya «Predeterminats», la targeta «Rutes» decideix qui calcula les rutes. A «Servei de rutes», tria «Automàtic», «Serveis de TREK», «Valhalla pública (FOSSGIS)» o «Instància de Valhalla pròpia». L'opció es desa a l'instant.",
   'help.guide.admin-passkeys.tip.2':
     "Si més endavant canvies el domini, totes les claus d'accés que ja hagi afegit la gent deixaran de funcionar.",
   'help.guide.instance-keys.tip.4': "La clau d'Amap ha de ser una clau Web 服务 (servei web), no una clau de JS API.",
@@ -4745,7 +5066,8 @@ const help: TranslationStrings = {
     "Ara la fila apareix al nou dia, a la seva hora. Obre la reserva si també has de canviar l'hora.",
   'help.guide.place-image-from-file.goal':
     'Fes servir com a imatge del lloc una foto que ja és entre els seus fitxers, sense tornar-la a pujar.',
-  'help.guide.place-image-from-file.tip.3': 'Només els viatgers que poden modificar llocs poden canviar la imatge.',
+  'help.guide.place-image-from-file.tip.3':
+    'Només els viatgers que poden modificar llocs poden canviar la imatge. «Elimina la imatge», sota les caselles, la treu un altre cop.',
   'help.guide.place-own-hours.result':
     "La targeta mostra el teu telèfon, el teu correu electrònic i el teu horari, i l'anell al voltant de la imatge és verd o vermell segons el teu horari.",
   'help.guide.confirm-stay-booking.step.4':
@@ -4765,7 +5087,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.1':
     'Mentre «A a Z» està activat, no pots arrossegar articles, però sí llistes senceres.',
   'help.guide.count-packed-pieces.step.3':
-    "Mentre només hi hagi algunes peces empaquetades, el comptador es mostra amb el teu color d'accent i la casella té un contorn d'aquest color. Fes clic al menys per treure una peça del recompte.",
+    "A sota apareix «Empaquetat»: 0/5, amb un menys i un més. Fes clic al més per cada peça que va a la bossa, i al menys per treure'n una del recompte.",
   'help.guide.expense-receipts.step.5':
     "La vista prèvia mostra el rebut, amb «Obre en una pestanya nova» i «Baixa» a dalt. Si hi ha diversos rebuts, pots passar d'un a l'altre amb les tecles de fletxa, i Esc tanca la vista prèvia.",
   'help.guide.files-sync-settings.step.3':
@@ -4807,13 +5129,31 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.goal':
     "Consulta tota la informació del viatge sobre una excursió: els dies, la distància i les altituds, el perfil i l'origen.",
   'help.guide.tour-detail-read.tip.1':
-    'Una pastilla ambre «use with caution» vol dir que la importació té altituds o mesures incompletes. Tingues-ho en compte quan en consultis el desnivell i el perfil.',
+    'Una pastilla ambre «fes-la servir amb precaució» vol dir que la importació té altituds o mesures incompletes. Tingues-ho en compte quan en consultis el desnivell i el perfil.',
   'help.guide.tour-rename-colour.step.1':
     "Obre la targeta de l'excursió i fes clic al llapis del costat del nom. El nom es converteix en un camp editable.",
   'help.guide.tour-take-along.goal':
     "Obtén indicacions fins a l'inici d'una excursió, obre'n la pàgina web o baixa'n la ruta com a fitxer GPX.",
   'help.guide.tour-take-along.result':
     "Tens el camí fins a l'inici a l'aplicació de mapes i tota la ruta en un fitxer GPX.",
+  'help.guide.tour-route-in-app.title': "Segueix la ruta d'una excursió en una app de mapes",
+  'help.guide.tour-route-in-app.goal':
+    "Obre la ruta sencera d'una caminada, un passeig, una cursa o una excursió en bici a Google Maps, Apple Maps o CoMaps, perquè et guiïn al llarg del camí.",
+  'help.guide.tour-route-in-app.step.1':
+    "A dalt de la columna de la dreta, canvia de «Llocs» a «Excursions» i fes clic a l'excursió. La seva targeta s'obre sobre el mapa.",
+  'help.guide.tour-route-in-app.step.2':
+    "Fes clic a «Mapes», a baix de la targeta, «Obre la ruta en una app de mapes». És al costat de «Navegació», que només porta fins a l'inici.",
+  'help.guide.tour-route-in-app.step.3':
+    "Tria l'aplicació. S'obre en una pestanya nova o com a aplicació, amb la ruta de l'excursió a peu per a una caminada, un passeig o una cursa, i en bici per a una excursió en bici.",
+  'help.guide.tour-route-in-app.result': "L'aplicació de mapes et guia per la ruta de l'excursió.",
+  'help.guide.tour-route-in-app.tip.1':
+    "L'aplicació rep fins a deu punts repartits al llarg de l'excursió, amb l'inici i el final inclosos, i planifica ella mateixa el camí entre ells. En senders petits, el seu camí pot diferir de la teva línia, així que porta el fitxer GPX per tenir la ruta exacta.",
+  'help.guide.tour-route-in-app.tip.2':
+    "Una excursió d'esquí, una excursió en piragua o una passejada a cavall no té botó «Mapes»: una app de mapes l'enviaria per carretera. Emporta-te-les com a fitxer GPX.",
+  'help.guide.tour-route-in-app.tip.3':
+    "Apple Maps no s'ofereix a Android. CoMaps només accepta un inici i un final, així que només s'ofereix quan la ruta no necessita res més.",
+  'help.guide.tour-route-in-app.tip.4':
+    "«Mapes» hi és tan bon punt l'excursió té una ruta, també per als membres que només poden llegir el viatge.",
   'help.guide.tour-copy-keep.tip.2':
     "«Desar a la col·lecció», al menú d'una excursió del pla del dia, obre aquest mateix diàleg, així que la ruta també s'hi desa.",
   'help.guide.tour-packing-link.step.3': 'Fes clic a «Vincula».',
@@ -4915,7 +5255,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.tip.4':
     "«Mostra a OpenStreetMap», a la targeta, obre les dades de la via ferrada. La insígnia es torna ambre quan no es pot carregar res, i el text d'ajuda n'explica el motiu.",
   'help.guide.tour-run-plan.result':
-    "La cursa apareix a «Excursions d'aquest viatge» amb el seu «Temps de cursa (previst)», i el perfil i el ritme es desen amb ella.",
+    "La cursa apareix a «Excursions d'aquest viatge» amb el seu «Temps de cursa», i el perfil i el ritme es desen amb ella.",
   'help.guide.tour-run-ways.step.2':
     'Ara la part de dalt de la targeta mostra quina part de la cursa no està asfaltada i el camí amb el grau més difícil del recorregut.',
   'help.ctx.trip-tour-walk.bullet.2':
@@ -4966,7 +5306,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     "Una nova ruta en piragua amb la seva embarcació, el seu tipus d'aigua i la seva velocitat, llesta per al primer punt al mapa.",
   'help.guide.tour-paddle-water-route.tip.1':
-    "Quan falten les dades de l'aigua, TREK les baixa automàticament per a la regió o les demana a un administrador, segons com estigui configurada la instància. Aleshores el tram mostra «Loading the water data» i es planifica automàticament quan les dades hi són, normalment en un a tres minuts.",
+    "Quan falten les dades de l'aigua, TREK les baixa automàticament per a la regió o les demana a un administrador, segons com estigui configurada la instància. Un administrador afegeix regions a «Dades d’aigües per a piragua», una fila d'«Excursions» a la pestanya «Complements» de l'àrea d'administració. Aleshores el tram mostra «Carregant les dades d'aigua» i es planifica automàticament quan les dades hi són, normalment en un a tres minuts.",
   'help.guide.tour-paddle-portage.step.2':
     'Tria «Porta l’embarcació per terra des d’aquí». El tram fins al punt següent passa a ser un transport per terra, dibuixat per terra.',
   'help.guide.tour-paddle-lock.title': "Afegir una resclosa i el seu temps d'espera",
@@ -5051,8 +5391,9 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.title': 'Configurar un connector per a tu',
   'help.guide.default-user-settings.tip.2':
     '«Divisa de visualització» només converteix els imports per mostrar-los. Els imports introduïts a «Pressupost» no canvien.',
-  'help.guide.own-routing-engine.step.2':
-    "Per a rutes que evitin peatges, autopistes o ferris, introdueix l'adreça del teu Valhalla a «Instància Valhalla pròpia». Cada camp es desa en sortir-ne; després reinicia el servidor de TREK i recarrega la pàgina.",
+  'help.guide.own-routing-engine.step.2': "A «Motor de rutes propi», introdueix l'adreça del teu servidor OSRM.",
+  'help.guide.own-routing-engine.step.3':
+    "A «Instància pròpia de Valhalla», introdueix l'adreça del teu Valhalla i tria «Instància pròpia de Valhalla» com a «Servei de rutes». Cada camp es desa en sortir-ne; després reinicia el servidor de TREK i torna a carregar la pàgina.",
   'help.guide.admin-passkeys.tip.3':
     "Si un usuari ha perdut el dispositiu amb les seves claus d'accés, elimina-les amb «Restablir claus d'accés» a «Editar usuari».",
   'help.guide.rotate-jwt-secret.result':
@@ -5062,7 +5403,7 @@ const help: TranslationStrings = {
   'help.guide.mark-notifications-read.goal':
     'Treu el ressaltat i el número de la campana quan ja hagis vist les novetats.',
   'help.guide.delete-notifications.step.1':
-    "Fes clic a «Elimina», la paperera del costat de l'hora d'una notificació, per eliminar només aquella.",
+    "Passa el ratolí per una notificació i fes clic a «Elimina», la paperera que ocupa el lloc de l'hora, per eliminar només aquella.",
   'help.guide.notification-settings.step.2': 'Fes clic a «Configuració» al menú.',
   'help.guide.public-link.tip.3': "Passa el ratolí per sobre d'una opció per veure què amaga.",
   'help.guide.link-journal.step.4':
@@ -5099,7 +5440,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.2':
     "TREK recorda «A a Z» en aquest navegador, de manera que la propera vegada la llista també s'obre ordenada. Només canvia el que veus tu, mai l'ordre que veuen els altres.",
   'help.guide.count-packed-pieces.step.4':
-    "Quan el comptador arriba a la quantitat, l'article es marca automàticament i compta com a empaquetat.",
+    "Tanca la finestra. Mentre només algunes peces estan empaquetades, la fila mostra el recompte, com 3/5, i la casella té un contorn del teu color d'accent. Quan el recompte arriba a la quantitat, l'article es marca per si sol.",
   'help.guide.expense-receipts.result':
     "El rebut es desa amb la despesa: la fitxa de la fila l'obre, i el fitxer també és als «Fitxers» del viatge.",
   'help.guide.files-sync-settings.step.4':
@@ -5142,7 +5483,7 @@ const help: TranslationStrings = {
     'Amaga del mapa les excursions que ara no necessites, sense canviar-les per a ningú.',
   'help.guide.tour-import-plan-tab.goal': 'Importa una traça GPX o KML com a excursió mentre planifiques els dies.',
   'help.ctx.trip-tour-detail.summary':
-    "La targeta que s'obre sobre el mapa quan tries una excursió a la pestanya «Planificat»: els seus dies, les mesures i el perfil, d'on prové, i els botons per enviar-la al telèfon, copiar-la, desar-la en una col·lecció o vincular-la a la llista d'equipatge.",
+    "La targeta que s'obre sobre el mapa quan tries una excursió a la pestanya «Planificat»: els seus dies, les mesures i el perfil, d'on prové, i els botons per enviar-la al telèfon, obrir-ne la ruta en una aplicació de mapes, copiar-la, desar-la en una col·lecció o vincular-la a la llista d'equipatge.",
   'help.guide.tour-detail-read.step.1':
     "A dalt de la columna de la dreta, canvia de «Llocs» a «Excursions» i després fes clic a una excursió. La seva targeta s'obre sobre el mapa. La seva fila dins d'un dia, o la seva línia al mapa, obren la mateixa targeta.",
   'help.guide.tour-detail-read.tip.2':
@@ -5150,7 +5491,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.step.2':
     'Escriu el nom nou i fes clic al botó rodó de confirmació, o prem Retorn. Esc manté el nom anterior.',
   'help.guide.tour-take-along.step.1':
-    "Obre la targeta de l'excursió. «Navegació», a baix de la targeta, obre l'inici de l'excursió en una aplicació de mapes, i si n'hi ha diverses, primer te les mostra. Et porta fins a l'inici, no pel recorregut.",
+    "Obre la targeta de l'excursió. «Navegació», a baix de la targeta, obre l'inici de l'excursió en una aplicació de mapes, i si n'hi ha diverses, primer te les mostra. Et porta fins a l'inici, no pel recorregut; «Mapes», al costat, lliura la ruta sencera.",
   'help.guide.tour-copy-keep.title': 'Copiar una excursió o desar-la en una col·lecció',
   'help.guide.tour-copy-keep.tip.3':
     "A la pestanya «Excursions», el marcador de dalt de la columna de l'esquerra fa el mateix per a l'excursió oberta. Si té canvis sense desar, primer et demana que la desis.",
@@ -5248,7 +5589,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.tip.1':
     'Una caminada nova comença amb T2 («Senderisme de muntanya»). T3 hi afegeix un avís: aquests camins poden ser exposats i demanen pas segur i no patir de vertigen.',
   'help.guide.tour-hike-trail-details.step.3':
-    'Les insígnies ho resumeixen: quina part de la ruta és «Conegut», el grau «Màxim conegut» i, a part, el «Límit de ruta» amb què es va planificar la caminada.',
+    'Les insígnies ho resumeixen: quina part de la ruta és «Conegut», el grau «Màxim conegut» que hi ha i, a part, el «Límit de càlcul» amb què es va planificar la caminada.',
   'help.guide.tour-hike-round.goal':
     "Fes que TREK et proposi voltes de la llargada que vulguis, a partir d'una parada d'una caminada.",
   'help.guide.tour-hike-round.tip.2':
@@ -5365,6 +5706,18 @@ const help: TranslationStrings = {
     'Quan agafes un dia de Dawarich, les seves entrades són esborranys. Comprova la insígnia abans de compartir.',
   'help.guide.journey-map-layers.result':
     "El mapa només mostra les capes que vols, i cada xinxeta, punt i línia s'explica a la llegenda.",
+  'help.guide.journey-satellite.title': 'Mira la travessia en imatges de satèl·lit',
+  'help.guide.journey-satellite.goal':
+    "Canvia el mapa dibuixat sota la travessia per imatges aèries, i torna'l a posar.",
+  'help.guide.journey-satellite.step.1':
+    'Fes clic al botó rodó de la cantonada superior dreta del mapa, «Canvia a vista de satèl·lit».',
+  'help.guide.journey-satellite.step.2':
+    'Les xinxetes i les rutes ara són sobre imatges aèries. El botó diu «Canvia a vista de mapa»: fes-hi clic per tornar al mapa dibuixat.',
+  'help.guide.journey-satellite.tip.1':
+    'Un enllaç compartit té el mateix botó, així que els visitants poden seguir una excursió o una costa pel terreny mateix.',
+  'help.guide.journey-satellite.tip.2':
+    "L'opció no es desa: el diari i la pàgina compartida sempre s'obren amb el mapa dibuixat. Les imatges de satèl·lit no tenen noms de carrers.",
+  'help.guide.journey-satellite.result': 'El mapa es torna a dibuixar, amb les mateixes capes activades que abans.',
   'help.guide.journey-keep-route.result':
     'La capçalera del dia mostra la distància, i la ruta es dibuixa amb línia contínua a la capa «Enregistrat» del mapa per a tots els membres de la travessia. Un enllaç compartit només la mostra si «Rutes enregistrades» està activat.',
   'help.guide.journey-day-stays.result':
@@ -5397,7 +5750,7 @@ const help: TranslationStrings = {
   'help.guide.read-notifications.goal': 'Mira què ha passat als teus viatges mentre no hi eres i obre-ho directament.',
   'help.guide.filter-notifications.goal': 'Repassa totes les notificacions, o només les que encara no has llegit.',
   'help.guide.mark-notifications-read.step.1':
-    "Fes clic a «Marca com a llegida», la doble marca del costat de l'hora d'una notificació, per marcar només aquella.",
+    "Posa el ratolí sobre una notificació i fes clic a «Marca com a llegida», la doble marca que ocupa el lloc de l'hora, per marcar només aquella.",
   'help.guide.delete-notifications.step.2':
     "«Elimina-ho tot», a dalt, elimina tota la llista d'un cop, després que un diàleg et demani confirmació.",
   'help.guide.notification-settings.step.3':
@@ -5413,7 +5766,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.tip.1':
     "Les files esvaïdes dels dies intermedis d'una reserva de diversos dies no es poden arrossegar, i tampoc un sol tram d'un vol amb escales.",
   'help.guide.place-image-from-file.step.2':
-    "Fes clic a la imatge rodona de la capçalera. Com que el lloc té fotos, una finestra petita et pregunta d'on ha de sortir la imatge.",
+    'Fes clic a «Edita», a baix a la dreta. A «Tria una imatge» del formulari, les fotos adjuntes al lloc són caselles al costat de «Puja una imatge».',
   'help.guide.place-own-hours.goal':
     "Posa a la targeta l'horari que has comprovat tu, quan el consultat és erroni o no hi és.",
   'help.guide.place-own-hours.tip.2':
@@ -5423,6 +5776,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': 'Torna a fer clic a la pastilla i la reserva tornarà a «Pendent».',
   'help.guide.map-markers.tip.4':
     'Amb «Marcadors compactes per als llocs sense planificar» activat, a «Configuració» > «Pantalla», dins de «Viatge i mapa», els llocs que encara no són a cap dia es mostren com a punts petits sense foto ni valoració. El lloc que tries sempre es mostra complet.',
+  'help.guide.map-markers.tip.5':
+    "A Mapbox GL amb un estil Standard, el mapa etiqueta per compte seu botigues, restaurants i punts d'interès que no són llocs del teu viatge. Activa «Amaga els punts d'interès» a «Configuració» > «Mapa» i fes clic a «Desa el mapa», i només destacaran les teves xinxetes.",
   'help.guide.tour-map-lines.step.1':
     "Cada excursió del viatge es dibuixa al mapa com una línia del seu color, amb una xinxeta on comença. Si has triat un color per a l'excursió, la línia el fa servir. Si no, fa servir el color de la seva categoria.",
   'help.guide.car-stops.step.6': 'Fes clic a «Afegir».',
@@ -5488,9 +5843,9 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.tip.3':
     "Algunes excursions mostren més coses: un passeig urbà, les seves parades; una ruta en piragua, les comprovacions i el vent; una excursió ja feta, el seu «Traç real», i una excursió vinculada a una llista, la seva «Llista d'equipatge».",
   'help.guide.tour-rename-colour.step.3':
-    "Fes clic al punt de color de la cantonada de la casella rodona de l'excursió, «Color del traç». La secció «Color del traç» s'obre sota la capçalera.",
+    "Fes clic al punt de color de la cantonada de la casella rodona de l'excursió, «Color del traç». Sota la capçalera s'obre una fila de colors.",
   'help.guide.tour-take-along.step.2':
-    "Si l'excursió té una pàgina web, el botó del costat mostra el nom del web (Komoot, AllTrails, Outdooractive o Wanderer) o «Lloc web» en qualsevol altre cas. Obre la pàgina en una pestanya nova.",
+    "Si l'excursió té una pàgina web, el botó de després de «Mapes» mostra el nom del web (Komoot, AllTrails, Outdooractive o Wanderer) o «Lloc web» en qualsevol altre cas. Obre la pàgina en una pestanya nova.",
   'help.guide.tour-copy-keep.goal':
     "Crea una variant d'una excursió en aquest viatge, o desa-la en una de les teves col·leccions per a futurs viatges.",
   'help.guide.tour-copy-keep.tip.4':
@@ -5529,7 +5884,7 @@ const help: TranslationStrings = {
     "«Nom de l'excursió», a dalt del carril de l'esquerra, conté el nom. En una excursió nova, el text gris que hi apareix, per exemple «Ruta de senderisme sense títol», només és un text d'exemple: escriu-hi el teu.",
   'help.guide.tour-save.title': 'Desar una excursió',
   'help.guide.tour-save.tip.3':
-    "«Desa» tampoc no funciona si algun camp té un valor no vàlid, com ara un lloc web que no és una adreça. «Detalls» s'obre automàticament per mostrar-ho.",
+    "«Desa» tampoc no funciona si algun camp té un valor no vàlid, com ara un lloc web que no és una adreça, o si el temps de caminada i les pauses d'un dia sumen més de 24 hores. «Detalls» s'obre automàticament i diu què cal fer.",
   'help.guide.tour-edit-saved.tip.1': '«Desa» queda en gris en una excursió que no has modificat.',
   'help.guide.tour-summary-profile.step.3':
     "Mou el punter pel «Perfil d'altitud». Mostra la distància i l'altitud en aquell punt, i un punt marca el mateix lloc al mapa.",
@@ -5613,7 +5968,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-google-import.step.3':
     "Revisa «Parades de l'enllaç». Una parada que no té posició a l'enllaç queda marcada i s'exclou.",
   'help.guide.tour-walk-check-off.step.1':
-    "A la pestanya «Planificat», fes clic al passeig urbà al seu dia. La seva targeta s'obre al costat del mapa.",
+    "A la pestanya «Planificat», fes clic al passeig urbà al seu dia. La seva targeta s'obre sobre el mapa.",
   'help.ctx.trip-tour-bike.title': 'Rutes en bicicleta',
   'help.guide.tour-bike-profile.step.1':
     "A la pestanya «Excursions», fes clic a «Planifica una nova excursió», a dalt del carril de l'esquerra.",
@@ -5676,7 +6031,19 @@ const help: TranslationStrings = {
     "Quan sàpigues quan viatges, obre el formulari amb el llapis de la targeta i tria les dates. Els dies que ja has planificat mantenen l'ordre i reben les dates en aquest mateix ordre.",
   'help.guide.trip-reminder.goal': 'Rep un recordatori uns dies abans de marxar.',
   'help.guide.upcoming-reservations.tip.2':
-    '«Pendent» indica una reserva que encara no està confirmada. Les reserves cancel·lades i els viatges arxivats no hi surten.',
+    'Una P petita a la icona del tipus marca una reserva que encara no està confirmada. Les reserves cancel·lades i els viatges arxivats no hi surten.',
+  'help.guide.travel-stats.title': 'Llegeix les teves estadístiques de viatge',
+  'help.guide.travel-stats.goal': 'Mira a quants països, viatges, dies i vols arriben tots els teus viatges sumats.',
+  'help.guide.travel-stats.step.1':
+    "Mira «Països visitats» sota la targeta d'embarcament. Compta els països dels llocs i de les reserves de transport de cada viatge ja començat, i mostra les banderes amb els països que has visitat més recentment primer.",
+  'help.guide.travel-stats.step.2':
+    'Les targetes del costat compten els teus viatges i els llocs que hi has marcat al mapa, els teus dies de camí i la distància que has volat.',
+  'help.guide.travel-stats.result':
+    "La fila s'actualitza sola mentre planifiques i viatges, amb tots els teus viatges, també els arxivats.",
+  'help.guide.travel-stats.tip.1':
+    'Els països que has marcat com a visitats a mà a «Atles» van després dels dels teus viatges. Un país que has tret a «Atles» també queda tret aquí.',
+  'help.guide.travel-stats.tip.2':
+    'Cada targeta es pot amagar a «Configuració», «Aparença», «Ginys del tauler». Quan les quatre són desactivades, la fila desapareix.',
   'help.guide.half-company-holiday.tip.1':
     'Les vacances ja registrades aquell dia es redueixen a mig dia. Qui registri aquell dia més endavant només gastarà 0,5 dies.',
   'help.guide.edit-holiday-calendar.goal':
@@ -5716,6 +6083,25 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.title': 'Quant a',
   'help.guide.web-push-device.tip.3':
     'Push necessita que obris TREK per HTTPS. Si les notificacions estan bloquejades, permet-les a la configuració del navegador i torna-ho a provar.',
+  'help.guide.booking-mail-address.title': 'Reenvia correus de reserva a TREK',
+  'help.guide.booking-mail-address.goal':
+    'Aconsegueix una adreça pròpia per a les confirmacions de reserva, perquè TREK afegeixi cada reserva al viatge que toca.',
+  'help.guide.booking-mail-address.step.1':
+    "A «Integracions», «Correus de reserva» mostra «La teva adreça». Fes clic al botó de copiar del costat. Guarda l'adreça per a tu, com una contrasenya.",
+  'help.guide.booking-mail-address.step.2':
+    'Reenvia-hi una reserva a mà, amb els adjunts, o segueix «Reenvia automàticament» per configurar una regla a Gmail o Outlook.',
+  'help.guide.booking-mail-address.step.3':
+    '«Importa correus de reserva» activa o desactiva la importació. «Llegeix amb IA» deixa que la IA llegeixi correus sense dades de reserva llegibles per màquina. «Afegeix automàticament» posa directament al viatge una reserva de la qual TREK està segur.',
+  'help.guide.booking-mail-address.step.4':
+    "«Reserves pendents» obre els correus que esperen una decisió teva, amb un número si n'hi ha. «Puja un fitxer de correu» llegeix un correu que has desat com a .eml.",
+  'help.guide.booking-mail-address.result':
+    'Els correus que reenvies van al viatge amb què encaixen les dates i els llocs de la reserva, o esperen a «Reserves pendents» que els revisis.',
+  'help.guide.booking-mail-address.tip.1':
+    "El botó del costat de copiar, «Nova adreça», et dona una adreça nova. Fes-hi clic dues vegades; l'adreça antiga deixa de funcionar a l'instant, així que canvia també les teves regles de reenviament.",
+  'help.guide.booking-mail-address.tip.2':
+    "Un viatge pot tenir una adreça pròpia, a la seva pestanya «Reserves», a «Importa confirmacions de reserva». Un correu enviat allà no ha d'endevinar el viatge.",
+  'help.guide.booking-mail-address.tip.3':
+    "Els correus reenviats es guarden xifrats durant 30 dies com a màxim. La targeta només apareix quan l'administrador ha activat la importació de correus.",
   'help.guide.connect-airtrail.result':
     "La insígnia mostra «Connectat», i la pestanya «Transports» de cada viatge ofereix «Importar des d'AirTrail».",
   'help.guide.connect-dawarich.result':
@@ -5725,7 +6111,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     "TREK comprova els camins que has importat i t'avisa quan algun pot haver canviat. Una excursió només canvia quan acceptes el canvi.",
   'help.guide.plugin-settings.step.1':
-    "Obre «Connectors» a la barra lateral de la configuració. Sota «Configuració dels connectors», cada connector que necessita dades teves té una targeta amb els seus camps: omple'ls i fes clic a «Desa». Les accions de la targeta s'executen després de confirmar-les.",
+    "Obre «Connectors» a la barra lateral de la configuració. Sota «Configuració dels connectors», cada connector que té opcions per a tu té una targeta pròpia: omple'n els camps i fes clic a «Desa», o tria el que et mostra. Les accions de la targeta s'executen després de confirmar-les.",
   'help.guide.profile.step.3': 'Fes clic a «Desa el perfil», a la dreta del peu de la targeta.',
   'help.guide.default-user-settings.title': 'Definir amb què comencen els usuaris nous',
   'help.guide.own-routing-engine.tip.1':
@@ -5737,7 +6123,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Decideix com comencen les notificacions de cada usuari, i bloqueja del tot un canal per a un esdeveniment.',
   'help.ctx.notifications.summary':
-    "Totes les notificacions que TREK t'ha mostrat dins de l'aplicació, de la més recent a la més antiga: una reserva que algú ha modificat, un missatge nou al xat d'un viatge, un calendari que t'han compartit. La campana de dalt a la dreta mostra les deu més recents, i aquesta pàgina les mostra totes.",
+    "Totes les notificacions que TREK t'ha mostrat dins de l'aplicació, de la més recent a la més antiga i agrupades per dia: una reserva que algú ha modificat, un missatge nou al xat d'un viatge, un vol amb retard, una reserva d'un correu reenviat. La campana de dalt a la dreta mostra les deu més recents, i aquesta pàgina les mostra totes.",
   'help.guide.read-notifications.step.1':
     'Fes clic a la campana de dalt a la dreta. El número vermell indica quantes notificacions encara no has llegit.',
   'help.guide.filter-notifications.step.1': 'Fes clic a la campana de dalt a la dreta.',
@@ -5756,19 +6142,38 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     "Quan el viatge inclou més d'un país o regió, el globus filtra la llista per un país, o per una regió d'aquest país, cadascun amb el seu recompte. «Esborra el filtre» torna a «Tots els països».",
   'help.guide.import-places-file.tip.3':
-    "Quan «Excursions» està activat, que és el que ve per defecte, els fitxers s'importen des d'«Excursions», a dalt de la columna, amb «Importa GPX o KML», i les seves línies es converteixen en excursions. Els punts del fitxer no s'hi importen, perquè les excursions només contenen línies.",
+    'Quan «Excursions» està desactivat, un track o una ruta marcats a «Importa un fitxer» es converteixen en un lloc propi: una línia de color a la seva fila, dibuixada al mapa, i «Rutes» a «Mostra» el troba.',
   'help.guide.dawarich-stays.step.3':
-    'Revisa el «Nom», «Arribada» i «Sortida», tria un «Dia» o deixa-ho a «Encara no és en cap dia», afegeix «Notes» si vols i fes clic a «Afegeix un lloc».',
+    "Revisa el «Nom», «Arribada» i «Sortida». Quan l'estada cau en un dia del viatge, «Dia» ja mostra aquest dia; tria'n un altre o deixa-ho a «Encara no és en cap dia». Afegeix «Notes» si vols i fes clic a «Afegeix un lloc».",
   'help.guide.leave-stop-off-route.result':
     'La parada continua formant part del dia i del PDF; mentre està marcada com a «Fora de ruta», la ruta va directament de la parada anterior a la següent.',
   'help.guide.move-booking-day.tip.2':
     "Dins del seu dia, una reserva amb hora sempre torna a la posició que li correspon per l'hora.",
   'help.guide.place-image-from-file.step.3':
-    "A «Dels fitxers adjunts», fes clic a la foto que vulguis. «Puja des del dispositiu», a sobre, et permet triar-ne una de nova de l'ordinador.",
+    'Fes clic a la foto que vulguis. Queda envoltada i marcada, i el nom del fitxer apareix sota les miniatures.',
   'help.guide.place-own-hours.step.1':
     "Obre el lloc i fes clic a «Edita», a baix a la dreta de la targeta. S'obre el formulari del lloc.",
   'help.guide.place-own-hours.tip.3':
     "Fes clic a «Elimina l'horari» i després a «Actualitza» perquè la targeta torni a mostrar l'horari trobat automàticament.",
+  'help.guide.place-off-map.title': 'Posar al mapa un lloc sense coordenades',
+  'help.guide.place-off-map.goal': "Descobreix per què un lloc no té marcador i posa-n'hi un.",
+  'help.guide.place-off-map.step.1':
+    "A la columna de llocs, una xinxeta d'avís al costat del nom d'un lloc vol dir que té adreça però no coordenades. Fes clic a la fila.",
+  'help.guide.place-off-map.step.2':
+    'La targeta diu «Sense coordenades, per tant no surt al mapa» entre les pastilles de dalt. Hi passes el ratolí i veus com solucionar-ho.',
+  'help.guide.place-off-map.step.3':
+    'Fes clic a «Edita», a baix a la dreta. A «Adreça», el formulari diu el mateix: el lloc no es mostrarà al mapa fins que tingui coordenades.',
+  'help.guide.place-off-map.step.4':
+    'Escriu la «Latitud» i la «Longitud» del lloc, o enganxa-les totes dues alhora a «Latitud», separades per una coma. També pots cercar el lloc a dalt del formulari i triar-lo entre els suggeriments.',
+  'help.guide.place-off-map.step.5': "Fes clic a «Actualitza». L'avís ha desaparegut i el lloc té un marcador al mapa.",
+  'help.guide.place-off-map.result':
+    'El lloc és al mapa amb el seu marcador, i les seves parades es poden enrutar com qualsevol altra.',
+  'help.guide.place-off-map.tip.1':
+    'Sense coordenades, un lloc no té marcador ni ruta al seu dia, i menys aplicacions de mapes el poden obrir.',
+  'help.guide.place-off-map.tip.2':
+    'Un lloc sense adreça ni coordenades, un recordatori per exemple, es deixa en pau i no mostra cap avís.',
+  'help.guide.place-off-map.tip.3':
+    "Un enllaç d'un lloc de mapes enganxat al camp de cerca també omple les coordenades.",
   'help.guide.confirm-stay-booking.title': "Confirmar la reserva d'una estada",
   'help.guide.confirm-stay-booking.tip.2':
     'La mateixa pastilla funciona en totes les reserves, també a les de «Reserves» del dia.',
@@ -5780,12 +6185,12 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     'El trajecte és una targeta a la pestanya «Transports» i una fila al seu dia, i la seva línia al mapa va de la recollida a la devolució passant per totes les parades, en ordre.',
   'help.guide.transport-details.step.5':
-    "«Al mapa», a baix dels detalls, mostra la línia del trajecte i obre «Planificat» en aquell dia. «Edita», a l'extrem dret, obre el formulari complet, i la paperera del costat elimina el trajecte un cop ho confirmes.",
+    "«Mapa», a baix a l'esquerra dels detalls, mostra la línia del trajecte i obre «Planificació» en aquell dia. «Edita», a l'extrem dret, obre el formulari complet, i la paperera del costat elimina el trajecte un cop ho confirmes.",
   'help.guide.export-transports-csv.step.1':
     "Si només en vols una part, filtra primer la llista. «Cercar», «Filtra» i l'ordre d'«Opcions de vista» es tenen en compte: el fitxer conté el que mostra la pestanya i en el mateix ordre.",
   'help.guide.group-sort-bookings.tip.1':
     '«Targetes» i «Llista» tenen cadascuna la seva agrupació: «Targetes» comença per «Estat» i «Llista», per «Dia». Un punt a «Opcions de vista» indica que hi ha alguna cosa diferent del valor per defecte, i «Restablir la vista», a baix del panell, torna als valors per defecte.',
-  'help.guide.booking-on-map.step.2': 'Fes clic a «Al mapa», a baix dels detalls.',
+  'help.guide.booking-on-map.step.2': 'Fes clic a «Mapa», a baix dels detalls.',
   'help.guide.export-bookings-csv.goal':
     'Exporta les reserves del viatge en un fitxer CSV per obrir-lo amb Excel, Numbers o qualsevol altre full de càlcul.',
   'help.guide.arrange-packing-list.goal':
@@ -5862,7 +6267,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     'Els esborranys sense desar es conserven: torna a obrir la pestanya «Excursions» i es recuperen amb el missatge «Esborrany sense desar restaurat». «Torna a excursions» i «Descartar» et pregunten abans de descartar canvis.',
   'help.guide.tour-open-workspace.step.6':
-    "La pastilla de baix a l'esquerra canvia el mapa, al principi entre «Mapa» i «Satèl·lit». Amb una excursió oberta, ofereix els mapes del seu tipus, com ara Topo o «Excursionisme», i interruptors com ara «Posar punts» i 3D.",
+    "La pastilla de baix a l'esquerra canvia el mapa entre «Mapa», «Topogràfic» i «Satèl·lit», i activa el 3D. Amb una excursió oberta, ofereix els mapes del seu tipus, com ara «Excursionisme», i interruptors com ara «Posar punts» i «Vies ferrades».",
   'help.guide.tour-draw-route.step.1':
     "Fes clic a «Planifica una nova excursió», a dalt del carril de l'esquerra. El carril passa a «Nova excursió», que és una caminada si no tries un altre tipus.",
   'help.guide.tour-draw-route.tip.3':
@@ -5896,7 +6301,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.2':
     "Cada traça o ruta d'un fitxer es converteix en una excursió independent. Les traces no s'uneixen mai.",
   'help.guide.tour-view-import.step.2':
-    "La columna de l'esquerra la mostra com a «Excursió GPX»: el «Resum de l'excursió» amb la distància, les altituds i el temps enregistrat, i a sota el perfil d'elevació. El mapa en mostra la línia.",
+    "La columna de l'esquerra la mostra com a «Excursió GPX»: el «Resum de l'excursió» amb la distància i les altituds, i el temps enregistrat si el fitxer en té, i a sota el perfil d'elevació. El mapa en mostra la línia.",
   'help.guide.tour-plan-from-import.step.1':
     "Obre l'excursió importada a la pestanya «Excursions». A la targeta «Versió editable» de l'esquerra, fes clic a «Planifica una versió editable».",
   'help.guide.tour-plan-from-import.result':
@@ -5937,7 +6342,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     "Fes clic a «Ferm» per veure la mateixa ruta segons el terreny que trepitges, des de l'asfalt fins al terra natural i la roca.",
   'help.guide.tour-hike-round.step.2':
-    "S'obre la targeta «Ruta circular» sobre el mapa. Comprova l'inici a «De» i escriu la «Distància» que vulguis. La pastilla del costat mostra l'interval de llargades que pot tenir una ruta circular.",
+    "S'obre la targeta «Ruta circular» sobre el mapa. Comprova l'inici a «De» i escriu la «Distància» que vulguis. La pastilla del costat mostra les llargades de les rutes circulars que TREK et proposarà.",
   'help.guide.tour-hike-compare-ways.title': "Comparar altres camins per a un tram d'una caminada",
   'help.guide.tour-hike-compare-ways.tip.2':
     "Quan el calculador de rutes no coneix cap altre camí, la targeta t'ho indica. Quan no pot seguir el camí que has triat, el tram es queda com estava i la targeta t'ho diu.",
@@ -6077,6 +6482,8 @@ const help: TranslationStrings = {
     "Un avís no canvia mai una excursió; la comprovació de la font de l'excursió mostra què ha canviat de veritat.",
   'help.guide.api-keys.tip.3':
     'Envia la clau com a Authorization: Bearer o X-API-Key a /api/v1. Cada compte pot tenir fins a 10 claus.',
+  'help.guide.api-keys.tip.4':
+    'Al diàleg, Ctrl+Enter, o Cmd+Enter en un Mac, crea la clau des de qualsevol camp, igual que fer clic a «Crea».',
   'help.guide.plugin-settings.step.2':
     '«Activitat dels connectors» mostra totes les accions que un connector ha fet en nom teu, de la més recent a la més antiga; «Actualitzar» carrega les últimes.',
   'help.ctx.admin-github.bullet.3':
@@ -6086,9 +6493,9 @@ const help: TranslationStrings = {
   'help.guide.default-map.step.3':
     "Cada camp es desa en sortir-ne. L'enllaç «Restaurar» del costat del nom d'un camp torna al valor per defecte de TREK.",
   'help.guide.own-routing-engine.tip.2':
-    "Si només hi ha definit el teu motor de rutes propi, tampoc no es fa servir el Valhalla públic. L'enllaç «Restaurar» del costat d'un camp el torna a buidar.",
+    "Si només tens definit el teu motor de rutes propi i el «Servei de rutes» és a «Automàtic», no es consulta cap Valhalla. L'enllaç «Restaurar» del costat d'un camp el torna a buidar.",
   'help.guide.admin-passkeys.step.1':
-    "A la pestanya «Configuració», a «Inici de sessió amb clau d'accés», activa «Activar inici de sessió amb clau d'accés».",
+    "A la pestanya «Seguretat», a «Mètodes d'autenticació», activa «Activar inici de sessió amb clau d'accés».",
   'help.guide.storage-backends.step.4':
     "«Salut», a dalt, mostra les escriptures fallides a un destí de rèplica. Si diu «No s'ha registrat cap fallada de rèplica.», tot funciona correctament.",
   'help.guide.channels-instance.tip.3':
@@ -6098,7 +6505,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     'La campana de dalt a la dreta compta les notificacions que encara no has llegit. Fes-hi clic per veure les deu més recents, i fes clic a «Mostra totes les notificacions», a baix, per anar a aquesta pàgina.',
   'help.guide.read-notifications.step.2':
-    'El panell mostra les deu més recents. Cadascuna indica qui ha fet què i on, i les no llegides tenen el fons ressaltat.',
+    "El panell mostra les deu més recents, agrupades per dia. Cadascuna indica qui ha fet què i on, i les no llegides són en negreta amb un punt al costat de l'hora.",
   'help.guide.filter-notifications.step.2': 'A baix del panell, fes clic a «Mostra totes les notificacions».',
   'help.guide.mark-notifications-read.tip.1': 'Obrir una notificació amb el seu botó també la marca com a llegida.',
   'help.guide.delete-notifications.tip.2':
@@ -6116,7 +6523,7 @@ const help: TranslationStrings = {
     "Aquesta opció només la tenen les parades amb coordenades, i només s'aplica a aquest dia: el mateix lloc en un altre dia continua formant part de la ruta.",
   'help.guide.move-booking-day.title': 'Moure una reserva a un altre dia',
   'help.guide.place-image-from-file.step.4':
-    'Ara la foto és la imatge del lloc. Fes clic a la petita X vermella de la cantonada per treure-la.',
+    'Fes clic a «Actualitza». Ara la foto és la imatge del lloc, a dalt de la targeta.',
   'help.guide.place-own-hours.step.2': 'Sota «Lloc web», omple «Telèfon» i «Correu electrònic» si els saps.',
   'help.guide.add-accommodation.tip.4':
     "Una manera més ràpida: el + de la capçalera del dia, amb el text d'ajuda «Afegeix al dia», té «Afegeix un allotjament». Obre el dia amb aquest formulari ja obert.",
@@ -6133,7 +6540,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.result':
     "«Planificat» s'obre al dia del trajecte, amb la seva línia dibuixada al mapa i la icona de ruta de la seva fila activada.",
   'help.guide.export-transports-csv.step.2':
-    "Fes clic a la icona del full de càlcul, després d'«Opcions de vista», amb el text d'ajuda «Exporta com a full de càlcul (CSV)».",
+    "Fes clic a la icona de baixada després d'«Opcions de vista». El seu text d'ajuda diu «Exporta com a full de càlcul (CSV)» o, mentre hi ha una cerca o un filtre actiu, quantes files té el fitxer, com ara «Exporta les 2 de 4 files mostrades (CSV)».",
   'help.guide.group-sort-bookings.title': 'Agrupar i ordenar les reserves',
   'help.guide.group-sort-bookings.tip.2':
     "A «Cronologia», el mateix botó conté «Un carril per tipus» i «Mostrar l'altra pestanya».",
@@ -6143,6 +6550,31 @@ const help: TranslationStrings = {
     'Per exportar només una part de la pestanya, filtra-la primer amb «Cercar» o «Filtra». El fitxer conté exactament el que mostra la pestanya.',
   'help.guide.import-booking-file.tip.4':
     "Per llegir una confirmació cal connexió. Sense connexió, «Importa» t'ho indica, i ho pots tornar a provar quan TREK torni a estar en línia.",
+  'help.guide.forward-booking-mail.title': 'Reenvia un correu de reserva al viatge',
+  'help.guide.forward-booking-mail.goal':
+    'Dona al viatge la seva pròpia adreça, reenvia-hi la confirmació i acaba el que TREK no ha pogut afegir pel seu compte.',
+  'help.guide.forward-booking-mail.step.1':
+    "Fes clic a la icona de pujada de la barra, «Importa confirmacions de reserva». Sota el quadre per als fitxers, «O reenvia-ho per correu» mostra l'adreça pròpia del viatge.",
+  'help.guide.forward-booking-mail.step.2':
+    "Fes clic a «Crea una adreça per a aquest viatge». Un correu enviat a aquesta adreça arriba a aquest viatge sense haver d'endevinar res.",
+  'help.guide.forward-booking-mail.step.3':
+    "L'adreça apareix amb un botó de copiar al costat. Copia-la i reenvia-hi el correu de reserva des del teu programa de correu, amb els adjunts, a mà o amb una regla. TREK el llegeix en pocs minuts.",
+  'help.guide.forward-booking-mail.step.4':
+    'Una reserva de la qual TREK està segur entra al viatge tota sola. Tota la resta espera la teva decisió: obre el menú sota el teu nom a dalt a la dreta, on un número compta els correus en espera, i fes clic a «Reserves pendents».',
+  'help.guide.forward-booking-mail.step.5':
+    'Cada entrada mostra què ha llegit TREK, per què espera i el viatge per al qual ha arribat. «Mostra el correu» mostra el correu mateix. Fes clic a «Omple-ho tu mateix».',
+  'help.guide.forward-booking-mail.step.6':
+    "S'obre «Reserva nova» al viatge amb el que contenia el correu: l'assumpte com a títol, el tipus, la data i el codi de reserva que ha trobat. Revisa-ho, corregeix el que calgui i fes clic a «Afegeix».",
+  'help.guide.forward-booking-mail.result':
+    'La reserva és a la pestanya «Reserves» com qualsevol altra, i la seva entrada ha sortit de «Reserves pendents».',
+  'help.guide.forward-booking-mail.tip.1':
+    "La teva adreça, a «Configuració», «Integracions», «Correus de reserva», serveix per a tots els viatges: TREK tria el viatge amb les dates i els llocs que encaixen amb la reserva. L'adreça d'un viatge s'estalvia aquesta endevinació.",
+  'help.guide.forward-booking-mail.tip.2':
+    "Amb «Afegeix automàticament» activat a aquella targeta, una reserva de la qual TREK està segur va directament al viatge, i l'avís corresponent ofereix «Desfés» durant 7 dies. Desactivat, cada reserva espera a «Reserves pendents».",
+  'help.guide.forward-booking-mail.tip.3':
+    'Una entrada també es pot conservar com a document amb «Desa com a document», que posa el correu o els seus adjunts als fitxers del viatge, o es pot descartar amb «Descarta».',
+  'help.guide.forward-booking-mail.tip.4':
+    "L'adreça és teva: un company de viatge que en vulgui una se'n crea una de pròpia. L'administrador activa la importació de correus per a tota la instància; fins aleshores, «O reenvia-ho per correu» i «Reserves pendents» no hi són.",
   'help.guide.arrange-packing-list.step.1':
     "Arrossega l'agafador de l'extrem esquerre de la capçalera d'una llista, davant del punt de color, i deixa anar la llista sobre una altra targeta. Un contorn del teu color d'accent marca la targeta de destinació, i la llista n'ocupa el lloc per a tots els membres del viatge.",
   'help.guide.count-packed-pieces.title': "Empaquetar diverses unitats d'un article",
@@ -6154,6 +6586,8 @@ const help: TranslationStrings = {
     "Fes clic al llapis del costat de la fila de la despesa. S'obre l'editor amb la despesa, i «Rebuts i factures» és a prop de la part de baix.",
   'help.guide.expense-receipts.tip.3':
     'Per adjuntar cal connexió i permís per pujar fitxers, perquè el rebut es desa com un dels fitxers del viatge.',
+  'help.guide.expense-receipts.tip.4':
+    "Un fitxer que ja és al viatge, com una confirmació de reserva que també és la factura, es pot enllaçar en lloc de pujar-lo una altra vegada: la icona d'enllaç del costat d'«Adjunta» llista aquests fitxers.",
   'help.guide.files-sync-settings.title': 'Triar el sentit de sincronització dels documents',
   'help.guide.files-sync-settings.tip.1':
     "Sempre n'hi ha un carril activat: si fas clic a l'únic carril que queda activat, no passa res.",
@@ -6164,6 +6598,8 @@ const help: TranslationStrings = {
     "Fes clic a «Desa». Totes les notes d'una categoria amb nom o color nous canvien alhora, per a tots els membres. «Cancel·la» descarta els canvis.",
   'help.guide.trip-chat.tip.5':
     'El xat mostra primer els missatges més recents. «Carrega missatges anteriors», a dalt del xat, carrega els missatges anteriors.',
+  'help.guide.trip-chat.tip.6':
+    "Un missatge marcat com a de l'assistent és una resposta que algú ha compartit des de l'assistent del viatge amb «Comparteix» al xat del viatge. Posa el ratolí sobre la marca per veure qui l'ha compartit.",
   'help.guide.roadtrip-reorder.result':
     "Les parades queden en l'ordre que has triat, i es tornen a calcular la distància, el temps de conducció i les hores d'arribada de cada dia que has modificat.",
   'help.guide.roadtrip-overnight.goal': 'Troba un lloc per dormir pel camí i afegeix la nit al trajecte com a reserva.',
@@ -6204,7 +6640,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     "El nom i el color pertanyen al viatge, així que els veu tothom qui hi participa. Per amagar una excursió al teu mapa sense canviar-la per a ningú més, fes servir l'ull de la llista d'«Excursions».",
   'help.guide.tour-take-along.tip.1':
-    'En un dispositiu que pot compartir fitxers, apareix «Compartir» al costat de GPX, que envia el mateix fitxer directament a una altra aplicació.',
+    "«Comparteix», al costat de GPX, envia el mateix fitxer directament a una altra aplicació en un dispositiu que pot compartir fitxers. En altres llocs comparteix un text breu sobre l'excursió, o el copia.",
   'help.guide.tour-copy-keep.step.2':
     "La còpia s'obre de seguida, amb el nom de l'original seguit de (còpia). Fes clic al llapis per posar-li un nom propi.",
   'help.guide.tour-packing-link.title': "Vincular una excursió a la llista d'equipatge",
@@ -6242,7 +6678,7 @@ const help: TranslationStrings = {
   'help.guide.tour-save.step.1': "Escriu un nom a «Nom de l'excursió». Sense nom, «Desa» queda en gris.",
   'help.guide.tour-edit-saved.title': 'Modificar una excursió desada',
   'help.guide.tour-edit-saved.tip.3':
-    '«Baixa el GPX» i «Desar en una col·lecció», a la capçalera del carril, funcionen un cop desats els canvis.',
+    '«Baixa el GPX», «Comparteix» i «Desar en una col·lecció», a la capçalera del carril, funcionen un cop desats els canvis.',
   'help.guide.tour-summary-profile.tip.1': 'Fes clic al títol de la targeta per plegar tot el resum.',
   'help.guide.tour-list-manage.step.3': "Tria el dia. L'excursió s'afegeix a aquell dia, i la seva fila mostra el dia.",
   'help.guide.tour-delete.goal': 'Elimina definitivament una excursió del viatge.',
@@ -6435,29 +6871,77 @@ const help: TranslationStrings = {
   'help.ctx.admin-defaults.bullet.3':
     "L'enllaç «Restaurar» del costat d'un camp que has definit recupera el valor per defecte de TREK. La configuració pròpia d'un usuari sempre té prioritat sobre aquests valors.",
   'help.ctx.admin-settings.bullet.5':
-    '«Zona de perill»: «Rota el secret JWT» tanca la sessió de tots els usuaris, tu inclòs.',
+    '«Zona de perill», a «Seguretat»: «Rota el secret JWT» tanca la sessió de tots els usuaris, tu inclòs.',
   'help.guide.default-user-settings.step.1':
     "A «Configuració per defecte dels usuaris», tria «Mode de color» («Clar», «Fosc» o «Automàtic»), «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», el «Format de data», la «Divisa de visualització» i si «Difumina els codis de reserva» està activat o desactivat. Cada opció es desa a l'instant.",
   'help.guide.admin-passkeys.step.2':
-    "Introdueix l'«ID de la part confiable (domini)», com ara trek.example.org, i els «Orígens permesos» des d'on s'accedeix al teu TREK, i fes clic a «Desa». Deixa'ls tots dos buits per fer servir APP_URL.",
+    "A la targeta «Inici de sessió amb clau d'accés», introdueix l'«ID de la part confiable (domini)», com ara trek.example.org, i els «Orígens permesos» des d'on s'accedeix al teu TREK, i fes clic a «Desa». Deixa'ls tots dos buits per fer servir APP_URL.",
   'help.guide.rotate-jwt-secret.title': 'Tancar la sessió de tothom alhora',
   'help.guide.notification-defaults.step.2':
     "Fes clic a una cel·la per passar-la a l'estat següent: «Activat», «Desactivat», «Bloquejat». El text d'ajuda indica l'estat següent, i cada clic es desa a l'instant.",
   'help.ctx.notifications.bullet.2':
-    '«Tots» i «No llegides», a dalt, alternen entre totes les notificacions i només les que no has llegit. La llista en carrega més a mesura que et desplaces.',
+    "«Tots» i «No llegides», a dalt, alternen entre totes les notificacions i només les que no has llegit. La llista s'agrupa per dies, amb avui al principi, i en carrega més a mesura que et desplaces.",
   'help.guide.read-notifications.step.3':
     'Fes clic al botó de sota una notificació, «Mostra Vacay aquí», per obrir allò a què fa referència. Així també es marca com a llegida.',
   'help.guide.filter-notifications.step.3':
     'Fes clic a «No llegides» per veure només les notificacions que no has llegit. «Tots» les torna a mostrar totes.',
   'help.guide.mark-notifications-read.tip.2':
-    "Marcar-la com a llegida només canvia el color de fons i el recompte. La notificació es queda a la llista fins que l'eliminis.",
+    "Marcar-la com a llegida només treu la lletra en negreta, el punt i el recompte. La notificació es queda a la llista fins que l'eliminis, i «Marca com a no llegida», el sobre al mateix lloc, la torna a fer nova.",
   'help.guide.delete-notifications.result': 'La notificació desapareix de la llista i de la campana.',
+  'help.guide.booking-mail-notifications.title': 'Respon un avís sobre un correu de reserva',
+  'help.guide.booking-mail-notifications.goal':
+    'Veure què ha passat amb els correus de reserva que has reenviat i decidir què fer amb els que TREK no ha pogut afegir per ell mateix.',
+  'help.guide.booking-mail-notifications.step.1':
+    "Fes clic a la campana de dalt a la dreta. Quan un correu reenviat conté reserves que TREK no ha pogut afegir pel seu compte, t'ho diu allà.",
+  'help.guide.booking-mail-notifications.step.2':
+    "«Reserves reenviades per revisar» diu quantes t'esperen. Fes clic a «Revisa» a sota.",
+  'help.guide.booking-mail-notifications.step.3':
+    "«Reserves pendents» s'obre amb totes les entrades que esperen: el que TREK ha llegit, per què espera i el viatge al qual arribava. «Omple-ho tu mateix» obre una reserva nova amb el que contenia el correu, i la paperera descarta l'entrada.",
+  'help.guide.booking-mail-notifications.result':
+    'Cada reserva reenviada acaba al seu viatge o espera la teva decisió, i sempre saps quin dels dos casos és.',
+  'help.guide.booking-mail-notifications.tip.1':
+    'Una reserva que TREK ha afegit pel seu compte arriba com a «Reserva afegida des d’un correu», amb «Conserva» i «Desfés». «Desfés» torna a treure la reserva del viatge, «Conserva» hi deixa.',
+  'help.guide.booking-mail-notifications.tip.2':
+    "Les altres persones d'un viatge compartit també s'assabenten d'una reserva feta des d'un correu, amb «Mostra el viatge», que obre la pestanya «Reserves».",
+  'help.guide.booking-mail-notifications.tip.3':
+    "Un vol que TREK segueix en directe envia «Vol sortit», «Vol aterrat» i, a partir de 15 minuts de retard, «Vol amb retard», cadascun amb «Veure el viatge». Van a les persones assignades al vol, o a tothom al viatge. Desactiva'ls a «Configuració», «Notificacions».",
   'help.guide.notification-settings.result':
     "«Configuració» s'obre a «Notificacions», amb un interruptor per a cada esdeveniment i canal.",
   'help.guide.link-journal.goal':
     'Mostra un dels teus diaris de «Travessia» dins del viatge, per a les persones que triïs.',
   'help.guide.link-journal.tip.3':
     "Més endavant, «Diari», a «Configuració del viatge», té «Edita l'accés», «Canvia el diari» i «Desvincula». Si el desvincules, la pestanya desapareix; les persones que hagis afegit al diari mateix en conserven l'accés.",
+  'help.guide.trip-addons.title': 'Activa o desactiva complements per a aquest viatge',
+  'help.guide.trip-addons.goal':
+    'Activa o desactiva una funció, com ara «Pressupost» o «Viatge per carretera», només per a un viatge.',
+  'help.guide.trip-addons.step.1':
+    "Fes clic a «Configuració del viatge» al costat del nom del viatge i tria «Complements» a l'esquerra. Només el propietari del viatge té aquesta àrea.",
+  'help.guide.trip-addons.step.2':
+    "Fes clic a l'interruptor d'un complement per activar-lo o desactivar-lo per a aquest viatge. Hi surten «Llistes», «Pressupost», «Documents», «Col·laboració», «Viatge per carretera» i «Excursions», tants com en tingui el teu TREK.",
+  'help.guide.trip-addons.step.3':
+    "«Només aquest viatge» marca un complement que has separat de la resta de TREK. Torna'l a canviar per seguir de nou la configuració de l'administrador.",
+  'help.guide.trip-addons.result':
+    "El viatge mostra els complements que has triat, per a tothom qui hi participa: una pestanya o una part del pla apareix o desapareix. Els teus altres viatges mantenen la configuració de l'administrador.",
+  'help.guide.trip-addons.tip.1':
+    "Desactivar un complement l'amaga i no elimina res. Torna'l a activar i tot torna on era.",
+  'help.guide.trip-addons.tip.2':
+    "Pots activar un complement per a un sol viatge encara que l'administrador el tingui desactivat per a tots els altres.",
+  'help.guide.trip-addons.tip.3':
+    "Canviar un interruptor requereix connexió. Fora de línia, TREK ho diu i deixa l'interruptor com estava.",
+  'help.guide.edit-trip-settings.title': 'Edita el viatge des del planificador',
+  'help.guide.edit-trip-settings.goal':
+    'Canvia el títol, les dates, la portada o la moneda del viatge sense sortir-ne.',
+  'help.guide.edit-trip-settings.step.1':
+    "Fes clic a «Configuració del viatge», al costat del nom del viatge, i tria «Edita el viatge» a l'esquerra.",
+  'help.guide.edit-trip-settings.step.2':
+    'Canvia el que necessitis: la imatge de portada, el títol i la descripció, les dates, la moneda o el recordatori.',
+  'help.guide.edit-trip-settings.step.3':
+    "Fes clic a «Actualitza». «Configuració del viatge» es tanca, i el viatge mostra el canvi a l'instant.",
+  'help.guide.edit-trip-settings.result': 'El viatge mostra els detalls nous a tot arreu, per a tothom qui hi és.',
+  'help.guide.edit-trip-settings.tip.1':
+    "Si mous la data d'inici, TREK primer et pregunta com han de seguir-la les reserves. Si les dates noves treuen dies que ja tenen alguna cosa, et llista aquests dies abans que confirmis.",
+  'help.guide.edit-trip-settings.tip.2':
+    "El mateix formulari s'obre des de «Els meus viatges» amb el llapis de la targeta del viatge. «Edita el viatge» només apareix per a qui pot editar el viatge.",
   'help.guide.dawarich-stays.result':
     "L'estada ja és un lloc del viatge, al dia que has triat o a «Sense planificar», i el panell la marca com a resolta.",
   'help.ctx.trip-days.bullet.7': "Mentre el viatge està en curs, el pla s'obre al dia d'avui i s'hi desplaça.",
@@ -6468,7 +6952,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'La foto és la imatge del lloc a la targeta, a la columna de llocs, al dia i al mapa.',
   'help.guide.place-own-hours.step.3':
-    "A sota, «Horari d'obertura» mostra la setmana, amb una fila per dia. Si TREK ha trobat l'horari del lloc, ja està omplert; si no, fes clic primer a «Afegeix l'horari». Escriu quan obre i tanca cada dia, i fes clic a «Tancada» els dies que no obre.",
+    "A sota, «Horari d'obertura» mostra la setmana, amb una fila per dia. Si TREK ha trobat l'horari del lloc, ja està omplert; si no, fes clic primer a «Afegeix l'horari». Escriu quan obre i tanca cada dia. A la dreta d'un dia, 24h el marca com a obert tot el dia i la porta tancada com a tancat.",
   'help.guide.add-accommodation.tip.5':
     "Les traces GPX i els llocs d'excursions no s'ofereixen mai com a allotjament, només els llocs normals del viatge.",
   'help.guide.confirm-stay-booking.step.1':
@@ -6480,22 +6964,23 @@ const help: TranslationStrings = {
   'help.guide.car-stops.tip.2': '«Puja» i «Baixa» només apareixen quan el trajecte té dues parades o més.',
   'help.guide.transport-details.title': 'Obrir un transport i fer servir els seus detalls',
   'help.guide.transport-details.tip.1':
-    'Si tornes a fer clic a «Al mapa» en un trajecte que té la línia dibuixada, la línia es desactiva.',
+    'Si tornes a fer clic a «Mapa» en un trajecte que té la línia dibuixada, la línia es desactiva.',
   'help.guide.export-transports-csv.result':
     'El navegador desa un fitxer amb el nom del viatge, per exemple autumn-in-japan-transports.csv, amb una fila per trajecte: «Tipus», «Títol», «Estat», «Inici», «Fi», «De», «A», «Ubicació», «Confirmació» i «Notes».',
   'help.guide.group-sort-bookings.goal':
     "Organitza les targetes o la llista per estat, per dia o per tipus, en l'ordre que vulguis.",
   'help.guide.booking-on-map.tip.1':
-    "«Al mapa» només apareix en reserves amb un lloc. Tria'n un a «Lloc / Activitat» al formulari, i el botó apareixerà.",
+    "«Mapa» només apareix en reserves amb un lloc. Tria'n un a «Lloc / Activitat» al formulari, i el botó apareixerà.",
   'help.guide.export-bookings-csv.step.2':
     'Obre «Opcions de vista», els controls lliscants de després de les icones de vista, i tria un ordre a «Ordena per». Les files el segueixen, amb una fila per reserva i sense seccions.',
   'help.guide.edit-booking.tip.4':
     'Si has canviat alguna cosa, un clic fora del formulari, o Esc, et pregunta «Vols descartar els canvis?». «Continua editant» et torna al formulari.',
   'help.guide.arrange-packing-list.step.2':
-    "Dins d'una llista, l'agafador de l'esquerra d'una fila arrossega aquell article amunt o avall. Una línia del teu color d'accent a la vora esquerra d'una fila indica on anirà.",
+    "Dins d'una llista, passa el ratolí per una fila: a l'extrem esquerre apareix un agafador que arrossega l'article amunt o avall. Una línia del teu color d'accent a la vora esquerra d'una fila indica on anirà.",
   'help.guide.count-packed-pieces.goal':
     "Posa una quantitat a un article i marca'n les peces com a empaquetades una per una.",
-  'help.guide.count-packed-pieces.tip.3': 'Si la quantitat és un, no hi ha comptador; només hi ha la casella.',
+  'help.guide.count-packed-pieces.tip.3':
+    "Si la quantitat és un, no hi ha línia d'empaquetats, només la casella. La fila mostra la quantitat, com ara ×5, a partir de dos.",
   'help.guide.expense-receipts.step.2':
     "Fes clic a «Adjuntar», al costat de «Rebuts i factures», i tria la foto o el PDF; també en pots triar diversos alhora. Cada fitxer apareix sota el títol, amb una paperera per treure'l.",
   'help.guide.files-sync-settings.goal':
@@ -6542,7 +7027,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-plan-tab.tip.1':
     "Una traça que ja és al viatge queda marcada com a «Ja és al viatge» i no s'importa dues vegades.",
   'help.ctx.trip-tour-detail.bullet.4':
-    "La fila de baix: «Afegeix al dia» o «Treure del dia» si hi ha un dia obert, «Navegació» fins a l'inici, la pàgina web de l'excursió, GPX, «Compartir» si el dispositiu pot compartir fitxers, «Col·lecció» i «Copiar».",
+    "La fila de baix: «Afegeix al dia» o «Treure del dia» si hi ha un dia obert, «Navegació» fins a l'inici, «Mapes» per obrir tota la ruta en una aplicació de mapes, la pàgina web de l'excursió, GPX, «Comparteix», «Col·lecció» i «Copiar».",
   'help.guide.tour-detail-read.step.5':
     "A sota hi ha les mesures: «Distància», «Altitud mínima», «Altitud màxima», «Desnivell positiu» i «Desnivell negatiu», els temps a sota i el perfil d'elevació amb el color de la línia de l'excursió.",
   'help.guide.tour-detail-read.result':
@@ -6672,7 +7157,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     'A dalt de la llista es compten les parades visitades i es mostra el temps a peu que queda. «Desfés» en una parada en treu la marca.',
   'help.ctx.trip-tour-bike.bullet.2':
-    "El «Resum de l'excursió», a la dreta, mostra «Temps en bici (estimat)», el temps que calcula el calculador de rutes per al perfil, amb les pujades incloses. Les pauses no hi són.",
+    "El «Resum de l'excursió», a la dreta, mostra el «Temps en bici», l'estimació del calculador de rutes per al perfil, amb les pujades incloses. Les pauses no hi són.",
   'help.guide.tour-bike-profile.step.4':
     "A «Punts de ruta», fes clic a «Llocs del viatge» i tria l'inici i el final, en aquest cas l'Hotel Alpenroyal i després l'Hotel Greif. També pots comprovar que «Afegeix un punt» estigui activat i fer clic al mapa. A partir de dos punts, TREK calcula la ruta.",
   'help.guide.tour-bike-profile.tip.5':
@@ -6728,7 +7213,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-gap.step.4':
     "A la targeta «Punts de ruta», l'enllaç mostra «Manual, sense comprovar», amb la seva longitud. Passa-hi el ratolí per veure'n el motiu.",
   'help.guide.tour-horse-recorded.step.2':
-    "S'obre la «Previsualització de la importació», i encara no s'ha desat res. A «Importa com a», posa «Tipus de ruta» a «Ruta a cavall». Tres insígnies indiquen què conserva la importació i què no calcula.",
+    "S'obre la «Previsualització de la importació», i encara no s'ha desat res. A «Importa com a», tria «Ruta a cavall». Tres insígnies indiquen què conserva la importació i què no calcula.",
   'help.guide.dateless-trip.goal': 'Comença a planificar abans de saber quan viatjaràs.',
   'help.guide.trip-reminder.step.3': 'Fes clic a «Actualitza».',
   'help.guide.upcoming-reservations.goal':
@@ -6777,6 +7262,18 @@ const help: TranslationStrings = {
     "«Informa d'un error» i «Sol·licita una funció» obren el projecte a GitHub; Wiki obre la documentació.",
   'help.guide.map-provider.tip.3':
     'En un mapa GL, fes clic amb el botó dret i arrossega per girar-lo i inclinar-lo; el clic del mig afegeix un lloc.',
+  'help.guide.map-hide-pois.title': "Amaga les botigues i els llocs d'interès que mostra Mapbox",
+  'help.guide.map-hide-pois.goal':
+    'Deixa el mapa només amb els teus llocs, sense les etiquetes que Mapbox hi afegeix per si sol.',
+  'help.guide.map-hide-pois.step.1':
+    'A «Proveïdor de mapes», tria Mapbox GL i, a «Estil del mapa», un estil Standard: Mapbox Standard o Standard Satellite.',
+  'help.guide.map-hide-pois.step.2': "Activa «Amaga els punts d'interès» i fes clic a «Desa el mapa».",
+  'help.guide.map-hide-pois.result':
+    "Els mapes del viatge i del diari ja no etiqueten botigues, restaurants ni llocs d'interès pel seu compte, així que només destaquen les teves xinxetes.",
+  'help.guide.map-hide-pois.tip.1':
+    "Només funciona amb els estils «Estàndard». «Carrers», «Exterior» i la resta d'estils clàssics conserven les etiquetes.",
+  'help.guide.map-hide-pois.tip.2':
+    '«Explora llocs al mapa», a «General», continua trobant llocs a prop quan els demanes.',
   'help.guide.web-push-device.step.1':
     "A «Notificacions push en aquest dispositiu», fes clic a «Activa en aquest dispositiu» i permet les notificacions quan el navegador t'ho demani. «Envia una prova» comprova que n'arriba una.",
   'help.guide.connect-airtrail.title': 'Connectar el teu AirTrail',
@@ -6785,6 +7282,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': '«Desconnecta», a la dreta, torna a eliminar el token.',
   'help.guide.tour-wanderer-watch.tip.3':
     'Els canals per a aquests avisos es trien a «Notificacions», a la fila «wanderer: avisos sobre els teus camins».',
+  'help.guide.connect-ai.title': 'Connectar la teva pròpia IA',
+  'help.guide.connect-ai.goal': "Planifica amb l'assistent amb el compte del teu propi proveïdor d'IA.",
+  'help.guide.connect-ai.step.1':
+    "A la targeta «Assistent d’IA», tria com connectar-te: «Inicia sessió amb ChatGPT» fa servir el teu pla de ChatGPT, «Enganxa una clau API» agafa una clau d'Anthropic, OpenAI, Gemini o OpenRouter.",
+  'help.guide.connect-ai.step.2':
+    'Enganxa la teva clau. TREK indica quin proveïdor detecta i què se li envia. Fes clic a «Connecta»; TREK primer comprova la clau amb el proveïdor.',
+  'help.guide.connect-ai.step.3':
+    'La targeta diu «Connectat a» i el proveïdor. Tria el «Model» que vulguis i fes clic a «Obre l’assistent» per començar al teu viatge actual o al següent.',
+  'help.guide.connect-ai.result': "L'assistent funciona amb el teu propi compte, a tots els viatges.",
+  'help.guide.connect-ai.tip.1':
+    "La targeta només apareix mentre l'administrador té activat l'assistent o l'«Anàlisi amb IA». Quan només l'administrador en pot connectar una, diu «Ho configura el teu administrador».",
+  'help.guide.connect-ai.tip.2':
+    "Quan l'administrador proporciona una connexió, la targeta diu «Proporcionat pel teu administrador» i quants missatges has fet servir avui. «Connecta el teu propi proveïdor» hi posa el teu, si l'administrador ho permet.",
+  'help.guide.connect-ai.tip.3':
+    "«El mapa segueix l’assistent» i «Estimar costos» canvien com treballa l'assistent als teus viatges. «Desconnecta» elimina la teva clau; els xats es mantenen.",
+  'help.guide.connect-ai.tip.4':
+    "L'«Anàlisi amb IA» llegeix els fitxers de reserva amb la mateixa connexió. Una configuració personal d'anàlisi amb IA d'abans conserva la seva pròpia targeta a sota.",
   'help.guide.plugin-settings.tip.1':
     'Aquesta configuració és només teva; els altres membres configuren el connector pel seu compte.',
   'help.guide.offline-conflicts.step.3':
@@ -6800,13 +7314,13 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     'Tothom qui no hagi canviat una cel·la comença amb el que has triat, i les cel·les bloquejades apareixen bloquejades a la seva configuració.',
   'help.ctx.notifications.bullet.3':
-    "Cada notificació indica qui ha fet què i on. Les no llegides tenen el fons ressaltat. Un botó a sota, com ara «Mostra el viatge» o «Mostra Vacay», t'hi porta i la marca com a llegida.",
+    "Cada notificació indica qui ha fet què i on. La seva icona mostra de què tracta, amb la inicial de qui l'ha enviada a la cantonada. Les no llegides van en negreta i amb un punt. Un botó a sota, com ara «Mostra el viatge» o «Mostra Vacay», t'hi porta i la marca com a llegida.",
   'help.guide.read-notifications.tip.1':
     "La campana és a totes les pantalles que tenen barra de navegació, i el número s'actualitza automàticament quan arriba alguna cosa nova.",
   'help.guide.filter-notifications.tip.1':
     'La pàgina carrega notificacions més antigues a mesura que et desplaces cap avall, així que no es perd res després de la primera pantalla.',
   'help.guide.mark-notifications-read.result':
-    'Ja no hi ha cap notificació amb el fons ressaltat, i el número vermell de la campana ha desaparegut.',
+    'Cap notificació no va en negreta i el número vermell de la campana ha desaparegut.',
   'help.guide.notification-settings.title': 'Triar de què vols rebre avisos',
   'help.guide.link-journal.step.1':
     "Fes clic a «Configuració del viatge», al costat del nom del viatge, i tria «Diari» a l'esquerra.",
@@ -6838,11 +7352,10 @@ const help: TranslationStrings = {
     'Sense connexió, la reserva es desa en aquest dispositiu i se sincronitza quan tornes a estar en línia. Els fitxers nous necessiten connexió, així que treu-los o desa més tard. Si fas clic fora del formulari per error, o prems Esc, TREK et pregunta «Vols descartar els canvis?» abans que es perdi res del que has escrit.',
   'help.guide.booking-on-map.tip.2': "Una estada s'obre a la primera nit.",
   'help.guide.export-bookings-csv.step.3':
-    "Fes clic a «Exporta com a full de càlcul (CSV)», la icona del full de càlcul de després d'«Opcions de vista».",
+    "Fes clic a «Exporta com a full de càlcul (CSV)», la icona de baixada de després d'«Opcions de vista».",
   'help.guide.arrange-packing-list.step.3':
-    "«A a Z», a l'extrem dret de la fila amb «Compartit» i «La meva llista», ordena per nom els articles de cada llista, perquè vegis ràpidament si una cosa ja hi és. Torna-hi a fer clic per tornar al teu ordre.",
-  'help.guide.count-packed-pieces.step.1':
-    "Fes clic a la insígnia de quantitat d'una fila, el número petit seguit d'una x, escriu quantes unitats t'emportes, per exemple 5, i prem Retorn.",
+    "«A a Z», als tres punts del costat d'«Afegeix una categoria», ordena per nom els articles de cada llista, perquè vegis ràpidament si una cosa ja hi és. Una marca indica que està activat; torna-hi a fer clic per tornar al teu ordre.",
+  'help.guide.count-packed-pieces.step.1': "Fes clic al nom de l'article. La finestra s'obre a la fila.",
   'help.guide.expense-receipts.step.3':
     'Fes clic a «Desa», a baix del diàleg. Els fitxers es pugen amb la despesa i també apareixen als «Fitxers» del viatge.',
   'help.guide.files-sync-settings.step.1':
@@ -6856,6 +7369,23 @@ const help: TranslationStrings = {
     'Les notes mostren els noms i els colors nous, i la targeta «Notes» només mostra la categoria que has triat.',
   'help.guide.roadtrip-stops.tip.5':
     'Una parada amb hora de fi al pla del dia dura fins a aquella hora. El diàleg indica quan surt el trajecte, i «Treu l’hora de fi» et permet tornar a definir tu la durada.',
+  'help.guide.roadtrip-stop-photo.title': "Mira la foto d'una parada",
+  'help.guide.roadtrip-stop-photo.goal':
+    "Mira la imatge d'una parada mentre condueixes, per decidir si val la pena el desviament.",
+  'help.guide.roadtrip-stop-photo.step.1':
+    "Fes clic a una parada del trajecte al carril, o al lloc d'una nit reservada. La seva targeta s'obre sobre el mapa.",
+  'help.guide.roadtrip-stop-photo.step.2':
+    "Fes clic a «Edita», a baix de la targeta. S'obre el diàleg de la parada amb la imatge del lloc davant del nom; una parada sense imatge hi mostra la icona del seu tipus.",
+  'help.guide.roadtrip-stop-photo.step.3':
+    'Fes clic a la imatge, «Mostra les fotos», per obrir les fotos del lloc a pantalla completa.',
+  'help.guide.roadtrip-stop-photo.result':
+    'Les fotos del lloc ocupen tota la pantalla, i les fletxes recorren les altres que la seva font coneix. Tanca-les per tornar al diàleg, on «Cancel·la» deixa la parada tal com era.',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    "La imatge és la del mateix lloc, la que has definit al formulari del lloc. Si no n'hi ha, TREK mostra la foto que la seva font té per al lloc, si ve de Google o d'OpenStreetMap.",
+  'help.guide.roadtrip-stop-photo.tip.2':
+    "En un telèfon, toca una parada a la pestanya «Viatge per carretera»: la seva fitxa mostra la imatge a tota l'amplada sota el nom, i tocar-la obre les fotos.",
+  'help.guide.roadtrip-stop-photo.tip.3':
+    "Un resultat d'«Al llarg de la ruta» encara no és al viatge, així que «Afegeix com a parada» mostra la icona del seu tipus en lloc d'una imatge.",
   'help.guide.roadtrip-reorder.tip.2':
     'Els trajectes reservats i les seves terminals es queden on els posa la reserva; només es poden arrossegar llocs.',
   'help.guide.roadtrip-overnight.step.2':
@@ -6910,7 +7440,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     "«Importat» mostra el dia de la importació. «Aquí» mostra l'estat actual: «Tal com es va importar», «Editat a TREK» o «Replanificat, traça enregistrada conservada».",
   'help.ctx.trip-tour-planner.bullet.1':
-    "«Excursions» és a la barra de pestanyes del viatge, just després de «Planificat», mentre el complement «Excursions» està activat. La pestanya apareix a l'ordinador i a la tauleta; al telèfon, les excursions es consulten i es posen en dies des de la pestanya «Planificat», però no s'hi poden dibuixar.",
+    "«Excursions» és a la barra de pestanyes del viatge, just després de «Planificació», mentre el complement «Excursions» està activat per al viatge; el propietari del viatge el pot activar a «Complements», a «Configuració del viatge». La pestanya apareix a l'ordinador i a la tauleta; al telèfon, les excursions es consulten i es posen en dies des de la pestanya «Planificació», però no s'hi poden dibuixar.",
   'help.guide.tour-open-workspace.step.1':
     'Fes clic a «Excursions» a la barra de pestanyes del viatge, just després de «Planificat». El mapa ocupa tota la pantalla, amb un carril a cada costat.',
   'help.guide.tour-open-workspace.tip.2':
@@ -6950,7 +7480,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.5':
     'Un fitxer sense altituds mostra «Sense altituds al fitxer». La línia i la distància són correctes, però el desnivell positiu i el negatiu queden desconeguts.',
   'help.guide.tour-view-import.tip.2':
-    'La icona de baixada de la capçalera la torna a desar com a fitxer GPX, i el marcador la desa en una col·lecció.',
+    'Les icones de la capçalera la tornen a baixar com a fitxer GPX, la comparteixen i la desen en una col·lecció.',
   'help.guide.tour-plan-from-import.step.4':
     "L'excursió s'obre a l'editor amb els seus punts de ruta. Modifica-la si vols i fes clic a «Desa», a baix de la columna.",
   'help.guide.tour-restore-recorded.step.1':
@@ -6960,7 +7490,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     "Per agafar una excursió cal connexió. Si l'editor té canvis sense desar, la còpia s'afegeix igualment a la llista, però no s'obre, perquè no perdis la feina que tens oberta.",
   'help.guide.tour-import-wanderer.tip.1':
-    'El botó apareix quan wanderer està connectat a «Configuració», «Integracions». Fins aleshores, la llista ofereix «Connecta a la configuració».',
+    'El botó apareix quan wanderer està connectat a «Configuració», «Integracions». Si la connexió deixa de funcionar més endavant, la llista ofereix «Connecta a la configuració».',
   'help.ctx.trip-tour-map.bullet.2':
     "Després del separador de la pastilla hi ha els interruptors del tipus d'excursió: «Posar punts» mentre edites una excursió, «Vies ferrades» en una caminada, «Senyals nàutics» en una ruta en piragua i les pistes en una excursió d'esquí. 3D, al final, mostra l'excursió sobre un relleu en 3D.",
   'help.guide.tour-map-layers.step.3':
@@ -7021,7 +7551,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     'La targeta «Ferm i camins», sota «Punts de ruta», mostra el terreny de la ruta: els ferms, els tipus de via i la proporció que se sap que no està asfaltada. Fes clic a una fila per ressaltar-ne els trams al mapa.',
   'help.guide.tour-bike-profile.step.5':
-    "Consulta «Temps en bici (estimat)» al «Resum de l'excursió», a la dreta. Passa el ratolí pel seu punt d'informació per veure com es calcula.",
+    "Consulta «Temps en bici» al «Resum de l'excursió», a la dreta. Passa el ratolí pel seu punt d'informació per veure com es calcula.",
   'help.guide.tour-bike-surfaces.title': "Veure els ferms d'una ruta en bicicleta",
   'help.guide.tour-bike-surfaces.tip.2':
     'Amb el perfil «Carretera», un avís a sobre de les barres indica quina distància se sap que no està asfaltada. «Mostra al mapa» marca aquells trams.',
