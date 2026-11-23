@@ -757,6 +757,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      # The image ships the 18 client tools, which write settings a 14 server
+      # does not know; the backup round trip runs with the same tools here.
+      - name: Install the PostgreSQL 18 client tools
+        run: |
+          set -euo pipefail
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y --no-install-recommends postgresql-client-18 >/dev/null
+          /usr/lib/postgresql/18/bin/pg_restore --version
+
       - name: Run the Postgres lane
         if: ${{ !cancelled() }}
         env:
