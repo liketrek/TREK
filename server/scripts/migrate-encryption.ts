@@ -15,7 +15,7 @@
  * appear in shell history, process arguments, or log output.
  *
  * It works on the database the server runs on. Without TREK_DB_URL that is the
- * SQLite file (DB_PATH, or data/travel.db), opened with better-sqlite3. With
+ * SQLite file (DB_PATH, TREK_DB_FILE or data/travel.db), opened with better-sqlite3. With
  * TREK_DB_URL it is the Postgres database, reached through the server's own
  * engine (its pool, SSL settings and write lock): from src/ in a source
  * checkout, from the built dist/ in the image. Either way the rotation is one
@@ -875,12 +875,22 @@ async function main() {
     return;
   }
 
-  // Resolve DB path
-  const dbPath = path.resolve(process.env.DB_PATH ?? path.join(__dirname, '../data/travel.db'));
+  // The file the server opens: TREK_DB_FILE, else data/travel.db. DB_PATH names it for this script alone.
+  const dataDir = path.join(__dirname, '../data');
+  const scriptDbPath = process.env.DB_PATH?.trim();
+  const serverDbFile = process.env.TREK_DB_FILE?.trim();
+  if (scriptDbPath && serverDbFile && path.resolve(scriptDbPath) !== path.resolve(serverDbFile)) {
+    rl.close();
+    console.error(
+      'DB_PATH and TREK_DB_FILE name different files, so it is not clear which database is meant; nothing was changed.',
+    );
+    process.exit(1);
+  }
+  const dbPath = path.resolve(scriptDbPath || serverDbFile || path.join(dataDir, 'travel.db'));
 
   if (!fs.existsSync(dbPath)) {
     console.error(`Database not found at: ${dbPath}`);
-    console.error('Set DB_PATH env var if your database is in a non-standard location.');
+    console.error('Set TREK_DB_FILE (or DB_PATH) if your database is in a non-standard location.');
     process.exit(1);
   }
 
@@ -948,13 +958,13 @@ async function main() {
   const result = await rotateOnSqlite(db, oldKey, newKey);
   db.close();
 
-  // The key file next to the database.
+  // The key file next to a DB_PATH database, else the one the server reads in its data directory.
   finish(
     result,
     backupPath,
-    path.join(path.dirname(dbPath), '.encryption_key'),
+    path.join(scriptDbPath ? path.dirname(dbPath) : dataDir, '.encryption_key'),
     newKey,
-    'No key file next to the database. Store the new key wherever TREK reads it from (ENCRYPTION_KEY or data/.encryption_key).',
+    'No key file found. Store the new key wherever TREK reads it from (ENCRYPTION_KEY or data/.encryption_key).',
   );
 }
 

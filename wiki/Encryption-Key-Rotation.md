@@ -58,7 +58,7 @@ To find your current key: check the `ENCRYPTION_KEY` environment variable or rea
 
 Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed below without downtime or manual re-entry, on SQLite and on Postgres alike.
 
-The script works on the database TREK runs on. Without `TREK_DB_URL` that is the SQLite file (`DB_PATH`, default `data/travel.db`). On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) it is the Postgres database, reached with the server's own connection settings (SSL included); no `travel.db` is opened, created or backed up then, and the script refuses to run when `DB_PATH` or `TREK_DB_FILE` is set beside the URL, since it would not be clear which database is meant.
+The script works on the database TREK runs on. Without `TREK_DB_URL` that is the SQLite file the server opens (`TREK_DB_FILE`, default `data/travel.db`; `DB_PATH` names another file for the script alone, and the script refuses to run when it names a different file than `TREK_DB_FILE`). On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) it is the Postgres database, reached with the server's own connection settings (SSL included); no `travel.db` is opened, created or backed up then, and the script refuses to run when `DB_PATH` or `TREK_DB_FILE` is set beside the URL, since it would not be clear which database is meant.
 
 **Docker:**
 

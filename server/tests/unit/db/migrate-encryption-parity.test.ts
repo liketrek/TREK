@@ -496,3 +496,56 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     expect(fs.readFileSync(keyFile, 'utf8')).toBe('new-key');
   }, 30000);
 });
+
+describe('migrate-encryption.ts picks the SQLite file the server opens', () => {
+  let tmpDir: string;
+  let dbPath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-migrate-encryption-file-'));
+    dbPath = path.join(tmpDir, 'trek.db');
+    const seed = new Database(dbPath);
+    seed.exec(BASE_SCHEMA);
+    seed.close();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  /** The script with `env` over the test's environment, minus both database variables; answers no at the prompt. */
+  function rotate(env: Record<string, string>): { status: number; output: string } {
+    const base = { ...process.env };
+    delete base.DB_PATH;
+    delete base.TREK_DB_FILE;
+    delete base.TREK_DB_URL;
+    try {
+      const stdout = execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
+        cwd: SERVER_ROOT,
+        env: { ...base, ...env },
+        input: ['old-key', 'new-key', 'no', ''].join(String.fromCharCode(10)),
+        stdio: 'pipe',
+        encoding: 'utf8',
+      });
+      return { status: 0, output: stdout };
+    } catch (err) {
+      const e = err as { status: number; stdout?: string; stderr?: string };
+      return { status: e.status, output: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+    }
+  }
+
+  it('ROTPAR-018: works on the file TREK_DB_FILE names when DB_PATH is not set', () => {
+    const r = rotate({ TREK_DB_FILE: dbPath });
+    expect(r.output).toContain(`Database: ${dbPath}`);
+    expect(r.output).toContain('Aborted.');
+    expect(r.status).toBe(0);
+  }, 30000);
+
+  it('ROTPAR-019: refuses DB_PATH and TREK_DB_FILE naming different files before it asks for a key', () => {
+    const r = rotate({ TREK_DB_FILE: dbPath, DB_PATH: path.join(tmpDir, 'other.db') });
+    expect(r.status).toBe(1);
+    expect(r.output).toContain('DB_PATH and TREK_DB_FILE name different files');
+    expect(r.output).not.toContain('Old ENCRYPTION_KEY');
+    expect(fs.readdirSync(tmpDir)).toEqual(['trek.db']);
+  }, 30000);
+});
