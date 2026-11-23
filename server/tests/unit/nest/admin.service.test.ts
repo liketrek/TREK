@@ -749,8 +749,8 @@ describe('updateAddon', () => {
       if (!flip.error) expect(flip.mcpAffected).toBe(false);
     }
 
-    // documents left the list once its file tools stayed on without it
-    expect(((await updateAddon('documents', { enabled: false })) as any).mcpAffected).toBe(false);
+    // the doc-sync tools gate on documents, so its flip ends the sessions too
+    expect(((await updateAddon('documents', { enabled: false })) as any).mcpAffected).toBe(true);
   });
 
   it('ADMIN-SVC-087 — refuses to enable a photo provider while journey is off', async () => {
