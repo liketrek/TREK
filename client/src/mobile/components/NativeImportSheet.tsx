@@ -100,30 +100,39 @@ function useTripRows(open: boolean): { trips: TripRow[]; loaded: boolean } {
   return rows;
 }
 
+const NOTHING_READ: ReadonlySet<number> = new Set();
+
 /**
  * The trips a shared link may go to: those with Collaboration on, each by its
- * own list (the owner's choice, else the instance switch). The lists the app
- * does not hold yet are read once the sheet opens for a link, so a trip that
- * switched Collaboration on is offered while the instance has it off, and one
- * that switched it off is not. `settled` once every trip's list is read or
- * could not be.
+ * own list (the owner's choice, else the instance switch). Every trip's list is
+ * read again once the sheet opens for a link, since a change made on a trip that
+ * is not open here never reaches this device, so a trip that switched
+ * Collaboration on is offered while the instance has it off, and one that
+ * switched it off is not. `settled` once each of those reads answered or failed;
+ * a later reload, a sync say, keeps the list held meanwhile and settles nothing again.
  */
 function useCollabTrips(trips: TripRow[], active: boolean): { collabTrips: TripRow[]; settled: boolean } {
   const instanceOn = useAddonStore((s) => s.isEnabled('collab'));
   const load = useTripAddonsStore((s) => s.load);
+  const [read, setRead] = useState(NOTHING_READ);
   useEffect(() => {
     if (!active) return;
-    const held = useTripAddonsStore.getState();
+    let live = true;
     trips.forEach((trip) => {
-      if (tripAddonsEntry(held, trip.id)?.status !== 'ready') void load(trip.id);
+      void load(trip.id).then(() => {
+        if (live) setRead((done) => new Set(done).add(trip.id));
+      });
     });
+    return () => {
+      live = false;
+      setRead(NOTHING_READ);
+    };
   }, [active, trips, load]);
   const states = useTripAddonsStore(
     useShallow((state) =>
       trips.map((trip) => {
-        const entry = tripAddonsEntry(state, trip.id);
-        if (!entry || entry.status === 'loading') return 'waiting';
-        return tripAddonEnabled(entry.addons, 'collab', instanceOn) ? 'on' : 'off';
+        if (!read.has(trip.id)) return 'waiting';
+        return tripAddonEnabled(tripAddonsEntry(state, trip.id)?.addons, 'collab', instanceOn) ? 'on' : 'off';
       })
     )
   );
@@ -193,7 +202,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
   const preset = link?.presetTripId ?? null;
   const applyPreset = useEffectEvent((id: number, use: LinkChoice) => {
     if (use === 'booking') chooseTrip(id);
-    else saveLink(id);
+    else if (failedFile !== file) saveLink(id);
   });
   useEffect(() => {
     if (preset != null && choice != null && file) applyPreset(preset, choice);

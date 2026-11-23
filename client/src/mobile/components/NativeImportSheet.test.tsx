@@ -182,13 +182,37 @@ describe('NativeImportSheet', () => {
     expect(useSharedImportStore.getState().tripId).toBeNull();
   });
 
-  it('reads the Collab of a trip only while the app does not hold it already', async () => {
+  it('reads every trip’s Collab again when it opens, so a switch this device missed counts', async () => {
+    useAddonStore.setState({ addons: [], loaded: true });
+    // The app still holds trip 2 as following the instance; its owner has since switched Collab on.
     useTripAddonsStore.getState().publish(2, []);
+    collabOnlyFor2(true);
     render(<NativeImportSheet />);
-    act(() => useSharedImportStore.getState().setFile(page(), link()));
-    expect(await screen.findByText('What should TREK do with this link?')).toBeInTheDocument();
-    expect(tripAddonsRepo.list).toHaveBeenCalledTimes(1);
+    act(() => useSharedImportStore.getState().setFile(bareLink(), link()));
+    expect(await screen.findByRole('button', { name: /Japan/ })).toBeInTheDocument();
     expect(tripAddonsRepo.list).toHaveBeenCalledWith(1);
+    expect(tripAddonsRepo.list).toHaveBeenCalledWith(2);
+  });
+
+  it('keeps the trips and does not save again when a list reloads after a refused link', async () => {
+    vi.mocked(saveSharedLink).mockRejectedValue(new Error('offline'));
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(bareLink(), link(2)));
+    expect(await screen.findByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    expect(saveSharedLink).toHaveBeenCalledTimes(1);
+
+    let answer: () => void = () => {};
+    vi.spyOn(tripAddonsRepo, 'list').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve([]);
+        })
+    );
+    act(() => void useTripAddonsStore.getState().load(1));
+    expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    await act(async () => answer());
+    expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    expect(saveSharedLink).toHaveBeenCalledTimes(1);
   });
 
   it('stays closed with nothing shared', () => {
