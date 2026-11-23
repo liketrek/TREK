@@ -572,7 +572,10 @@ public class TrekShellPlugin extends Plugin {
         }).start();
     }
 
-    /** A file of the server's UI, or null: only a 200 counts, and the page only as HTML. */
+    /**
+     * A file of the server's UI, or null: only a 200 from the server itself
+     * counts, the page only as HTML and a file only as something else.
+     */
     private static byte[] download(String server, String path, String wantType) {
         java.net.HttpURLConnection connection = null;
         try {
@@ -584,8 +587,11 @@ public class TrekShellPlugin extends Plugin {
             connection.setInstanceFollowRedirects(true);
             if (wantType != null) connection.setRequestProperty("Accept", wantType);
             if (connection.getResponseCode() != 200) return null;
+            java.net.URL landed = connection.getURL();
+            if (!landed.getProtocol().equals(base.getProtocol()) || !landed.getHost().equalsIgnoreCase(base.getHost()) || portOf(landed) != portOf(base)) return null;
             String type = connection.getContentType();
             if (wantType != null && (type == null || !type.startsWith(wantType))) return null;
+            if (wantType == null && type != null && type.startsWith("text/html") && !path.endsWith(".html")) return null;
             try (java.io.InputStream in = connection.getInputStream()) {
                 java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
                 byte[] buffer = new byte[16384];
@@ -597,6 +603,10 @@ public class TrekShellPlugin extends Plugin {
         } finally {
             if (connection != null) connection.disconnect();
         }
+    }
+
+    private static int portOf(java.net.URL url) {
+        return url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
     }
 
     /**
