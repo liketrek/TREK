@@ -6,6 +6,7 @@
  * be read still sends the invitation, and an expense that is gone by the time a
  * deleted guest's split is read back again is left out instead of announced.
  */
+import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import type { TripWriter } from '../../../src/nest/common/trip-writer';
 import { TripMemberWritesService } from '../../../src/nest/trip-members/trip-member-writes.service';
@@ -29,6 +30,7 @@ const budget = {
   listBudgetItems: vi.fn(),
   getBudgetItem: vi.fn(),
 };
+const addons = { isEnabledForTrip: vi.fn() };
 
 /** A writer whose user has no row, so nothing about them can be read back. */
 function writerFor(userId: number): TripWriter {
@@ -42,6 +44,7 @@ beforeAll(async () => {
     overrides: [
       { provide: TripMembersService, useValue: roster },
       { provide: BudgetService, useValue: budget },
+      { provide: AddonsService, useValue: addons },
     ],
   });
   writes = t.get(TripMemberWritesService);
@@ -49,6 +52,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  addons.isEnabledForTrip.mockResolvedValue(true);
 });
 
 afterAll(async () => {
@@ -109,5 +113,18 @@ describe('TripMemberWritesService', () => {
 
     expect(budget.getBudgetItem).not.toHaveBeenCalled();
     expect(writer.events.emit).not.toHaveBeenCalled();
+  });
+
+  it('MEMBER-WRITES-004: on a trip with Costs off a deleted guest goes out alone, without the expenses', async () => {
+    addons.isEnabledForTrip.mockResolvedValue(false);
+    budget.listBudgetItems.mockResolvedValue([{ id: 1, paid_by_user_id: 40, members: [] }]);
+    budget.getBudgetItem.mockResolvedValue({ id: 1 });
+    roster.deleteGuest.mockResolvedValue(true);
+    const writer = writerFor(3);
+
+    expect(await writes.deleteGuest(7, 40, writer)).toBe(true);
+
+    expect(addons.isEnabledForTrip).toHaveBeenCalledWith(7, 'budget');
+    expect(vi.mocked(writer.events.emit).mock.calls).toEqual([['member:removed', { userId: 40 }]]);
   });
 });

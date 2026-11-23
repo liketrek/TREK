@@ -1,6 +1,8 @@
+import { ADDON_IDS } from '../../addons';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import type { User } from '../../types';
+import { AddonsService } from '../addons/addons.service';
 import { BudgetService } from '../budget/budget.service';
 import { restTripWriter, type TripWriter } from '../common/trip-writer';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -27,6 +29,7 @@ export class TripMemberWritesService {
     private readonly budget: BudgetService,
     private readonly realtime: RealtimeService,
     @InjectRepository(Users) private readonly users: UsersRepository,
+    private readonly addons: AddonsService,
   ) {}
 
   /** REST's writer for a roster change: the room minus the tab that sent the request. */
@@ -68,13 +71,18 @@ export class TripMemberWritesService {
    * False for somebody who is no guest of this trip. Deleting a guest hands their
    * share of every expense they were part of to the rest of its split, and clears
    * them as the legacy payer of any expense, so each of those expenses goes out
-   * again after the member, as it now reads.
+   * again after the member, as it now reads, while the trip has Costs on.
    */
   async deleteGuest(tripId: string | number, guestId: number, writer: TripWriter): Promise<boolean> {
+    const costsOn = await this.addons.isEnabledForTrip(Number(tripId), ADDON_IDS.BUDGET);
     // Read first: the rows that name the guest go with the guest.
-    const shared = (await this.budget.listBudgetItems(tripId))
-      .filter((item) => item.paid_by_user_id === guestId || item.members?.some((member) => member.user_id === guestId))
-      .map((item) => item.id);
+    const shared = costsOn
+      ? (await this.budget.listBudgetItems(tripId))
+          .filter(
+            (item) => item.paid_by_user_id === guestId || item.members?.some((member) => member.user_id === guestId),
+          )
+          .map((item) => item.id)
+      : [];
     if (!(await this.roster.deleteGuest(tripId, guestId))) return false;
     writer.events.emit('member:removed', { userId: guestId });
     const resplit = await Promise.all(shared.map((itemId) => this.budget.getBudgetItem(itemId, tripId)));
