@@ -614,6 +614,10 @@ export class ReservationsService {
     // `toRowId` the way update() reads it: a `'0x1'` or an `'abc'` used to
     // be stored as `'0x1.0'`, which Postgres cannot cast back for the join.
     let resolvedAccommodationId: number | null = toRowId(accommodation_id) || null;
+    // A stay that is not on this trip is dropped, as update() drops it.
+    if (resolvedAccommodationId && !(await this.dayAccommodationsRepo.existsInTrip(resolvedAccommodationId, this.rowIdNum(tripId)))) {
+      resolvedAccommodationId = null;
+    }
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
       const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
       if (start_day_id && end_day_id) {

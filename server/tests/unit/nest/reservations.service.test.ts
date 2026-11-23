@@ -1542,6 +1542,18 @@ describe('ReservationsService — referenced ids stay inside the trip', () => {
     expect(await findRow(orm, Reservations, { id: reservation.id })).toMatchObject({ place_id: null });
   });
 
+  it('RESV-SCOPE-014: a create naming a stay that is not on the trip stores no link, as an update does', async () => {
+    const { mine, theirs } = twoTrips();
+    const foreignPlace = createPlace(testDb, theirs.id);
+    const foreignDay = await findRow(orm, Days, { trip: theirs.id }) as { id: number };
+    const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id);
+
+    for (const accommodation_id of [3000000000, foreignAcc.id]) {
+      const { reservation } = await svc.create(String(mine.id), { title: 'Hotel', type: 'hotel', accommodation_id });
+      expect(await findRow(orm, Reservations, { id: reservation.id })).toMatchObject({ accommodation_id: null });
+    }
+  });
+
   it('RESV-SCOPE-011: a stay whose refs resolve to nothing is refused, never written and never dropped in silence', async () => {
     const { mine } = twoTrips();
     const place = createPlace(testDb, mine.id);
