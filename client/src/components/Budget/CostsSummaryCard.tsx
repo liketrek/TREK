@@ -1,3 +1,4 @@
+import { useTranslation } from '../../i18n';
 import { currencyDecimals, currencyLocale, formatMoney } from '../../utils/formatters';
 import { fs } from '../shared/DialogShell';
 
@@ -26,6 +27,7 @@ export default function SummaryCard({
   icon,
   foot,
   tone,
+  failed = false,
 }: {
   label: string;
   sub: string;
@@ -35,7 +37,10 @@ export default function SummaryCard({
   icon: React.ReactNode;
   foot: React.ReactNode;
   tone: 'owe' | 'owed' | 'total' | 'unfinished';
+  /** With no amount: the read failed rather than still running. */
+  failed?: boolean;
 }) {
+  const { t } = useTranslation();
   const color = TONE_COLOR[tone];
   // formatToParts keeps the design's "big integer + muted symbol/decimals" styling
   // while letting Intl place the symbol and pick separators per locale + currency.
@@ -102,7 +107,11 @@ export default function SummaryCard({
           )}
         </div>
         <div className="mt-auto flex flex-wrap items-center gap-1.5 text-content-muted" style={fs(12.5, 'body')}>
-          {foot}
+          {amount == null ? (
+            <span className="text-content-faint">{t(failed ? 'common.unknownError' : 'common.loading')}</span>
+          ) : (
+            foot
+          )}
         </div>
       </div>
     </section>

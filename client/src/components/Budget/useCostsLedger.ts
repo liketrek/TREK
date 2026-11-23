@@ -238,6 +238,7 @@ export function useCostsLedger({
     return flows.map((f) => ({ ...f, amount: Math.round(f.amount * displayPerTrip * unit) / unit }));
   }, [settlementError, settlement, settledIn, base, tripCurrency, displayPerTrip, flows]);
   const balancesKnown = shownFlows != null;
+  const settledUp = balancesKnown && !settlement?.flows?.length;
   // `ctx` carries the rates. They can land after the expenses, and without it in the
   // deps the cards kept the sums they were first added up with while the rows moved on.
   const totals = useMemo(
@@ -367,6 +368,7 @@ export function useCostsLedger({
     loadSettlement,
     flows,
     balancesKnown,
+    settledUp,
     canSettle,
     splitting,
     knownNames,

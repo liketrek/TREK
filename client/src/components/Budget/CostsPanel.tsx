@@ -77,7 +77,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, balancesKnown, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, countedCount, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
-    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, canSettle, setBase, baseOptions,
+    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, canSettle, setBase, baseOptions, settledUp,
   } = useCostsLedger({
     tripId, trip, budgetItems, memberCount: tripMembers.length, actions: { loadBudgetItems, deleteBudgetItem }, canEdit, t, toast,
     settlementOnTripChange: true, skipUnfinishedShares: true, csvCurrencyAsStored: true,
@@ -288,22 +288,20 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       {!splitting ? <div style={{ marginBottom: 36 }}>{totalCard}</div> : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 36 }} className="costs-summary">
         <SummaryCard label={t('costs.youOwe')} sub={t('costs.youOweSub')} amount={balancesKnown ? totals.owe : null} currency={base} locale={locale}
-          icon={<ArrowDown size={18} />} tone="owe"
-          foot={!balancesKnown ? balancesUnknown()
-            : totals.owe > 0.01
+          icon={<ArrowDown size={18} />} tone="owe" failed={settlementError}
+          foot={totals.owe > 0.01
             ? <FlowPills ids={(settlement?.flows || []).filter(f => f.from.user_id === me).map(f => f.to.user_id)} lead={t('costs.to')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.allSettled')}</span>} />
         <SummaryCard label={t('costs.youreOwed')} sub={t('costs.youreOwedSub')} amount={balancesKnown ? totals.owed : null} currency={base} locale={locale}
-          icon={<ArrowUp size={18} />} tone="owed"
-          foot={!balancesKnown ? balancesUnknown()
-            : totals.owed > 0.01
+          icon={<ArrowUp size={18} />} tone="owed" failed={settlementError}
+          foot={totals.owed > 0.01
             ? <FlowPills ids={(settlement?.flows || []).filter(f => f.to.user_id === me).map(f => f.from.user_id)} lead={t('costs.from')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.nothingOwed')}</span>} />
         <SummaryCard label={t('costs.outstanding')} sub={t('costs.outstandingSub')} amount={totals.outstanding} currency={base} locale={locale}
           icon={<AlertCircle size={18} />} tone="unfinished"
           foot={totals.outstandingCount > 0
             ? <span><b>{totals.outstandingCount}</b> {t('costs.outstandingItems', { count: totals.outstandingCount })}</span>
-            : balancesKnown && !settlement?.flows?.length && <span className="text-content-faint">{t('costs.allSettled')}</span>} />
+            : settledUp && <span className="text-content-faint">{t('costs.allSettled')}</span>} />
         {totalCard}
       </div>)}
 
@@ -444,11 +442,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       `}</style>
     </div>
   )
-
-  // The owe and owed cards say why their figure is missing instead of claiming zero.
-  function balancesUnknown() {
-    return <span className="text-content-faint">{t(settlementError ? 'common.unknownError' : 'common.loading')}</span>
-  }
 
   // Settle-up and Balances both come from the one settlement request, so they
   // share the notice that says the numbers are missing rather than zero.
