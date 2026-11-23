@@ -13,6 +13,8 @@ import { setAuthed } from '../../../src/sync/authGate';
 import { setTripPinned, setTripOfflineEnabled, _resetOfflinePrefs } from '../../../src/sync/offlinePrefs';
 import { offlineDb, clearAll, upsertTrip } from '../../../src/db/offlineDb';
 import { useAddonStore } from '../../../src/store/addonStore';
+import { tripAddonsEntry, useTripAddonsStore } from '../../../src/store/tripAddonsStore';
+import { tripAddonsRepo } from '../../../src/repo/tripAddonsRepo';
 import {
   buildTrip,
   buildDay,
@@ -392,6 +394,24 @@ describe('tripSyncManager.syncAll — tours', () => {
 
       expect(asked()).toBe(0);
       expect(await offlineDb.tours.count()).toBe(0);
+    });
+
+    it('a push that lands while the list is on its way outlives the older answer, on screen and offline', async () => {
+      serve(317, () => HttpResponse.json({ tours: [] }));
+      server.use(
+        http.get('/api/trips/317/addons', async () => {
+          useTripAddonsStore.getState().publish(317, [toursAddon(true, false)]);
+          await tripAddonsRepo.remember(317, [toursAddon(true, false)]);
+          return HttpResponse.json({ tripId: 317, addons: [toursAddon(false, false)] });
+        }),
+      );
+
+      await tripSyncManager.syncAll();
+
+      expect(tripAddonsEntry(useTripAddonsStore.getState(), 317)?.addons).toEqual([toursAddon(true, false)]);
+      await vi.waitFor(async () =>
+        expect((await offlineDb.tripAddons.get(317))?.addons).toEqual([toursAddon(true, false)]),
+      );
     });
 
     it('follows the instance switch when the list cannot be read, and still stores the trip', async () => {

@@ -29,8 +29,11 @@ interface TripAddonsEntry {
 
 interface TripAddonsState {
   trips: Record<string, TripAddonsEntry>;
-  /** Reads the trip's list into the store; one read per trip at a time. Never throws. */
-  load: (tripId: number) => Promise<void>;
+  /**
+   * Reads the trip's list into the store; one read per trip at a time. Answers
+   * the list the store holds afterwards, null while it holds none. Never throws.
+   */
+  load: (tripId: number) => Promise<TripAddon[] | null>;
   /** Puts a list the server sent (an answer or a push) in place. */
   publish: (tripId: number, addons: TripAddon[]) => void;
   /** The owner switches one addon for the trip (null: back to the instance setting). Online only; throws on refusal. */
@@ -45,10 +48,10 @@ export const useTripAddonsStore = create<TripAddonsState>((set, get) => ({
   trips: {},
 
   load: async (tripId) => {
-    if (!Number.isSafeInteger(tripId) || tripId < 1) return;
+    if (!Number.isSafeInteger(tripId) || tripId < 1) return null;
     const key = keyOf(tripId);
     const before = get().trips[key];
-    if (before?.status === 'loading') return;
+    if (before?.status === 'loading') return before.addons;
     const rev = (before?.rev ?? 0) + 1;
     set((state) => ({ trips: { ...state.trips, [key]: { addons: before?.addons ?? null, status: 'loading', rev } } }));
     let addons: TripAddon[] | null = null;
@@ -57,15 +60,18 @@ export const useTripAddonsStore = create<TripAddonsState>((set, get) => ({
     } catch {
       // Offline with nothing kept, or the server refused: the readers fall back to the instance switches.
     }
-    set((state) => {
-      const current = state.trips[key];
-      // A push that landed meanwhile is newer than this answer and stays.
-      if (current && current.rev !== rev) return state;
-      const entry: TripAddonsEntry = addons
-        ? { addons, status: 'ready', rev }
-        : { addons: current?.addons ?? null, status: 'failed', rev };
-      return { trips: { ...state.trips, [key]: entry } };
-    });
+    const current = get().trips[key];
+    // A push that landed meanwhile is newer than this answer and stays, in the
+    // store and in the device's copy the answer was written over.
+    if (current && current.rev !== rev) {
+      if (addons && current.addons) void tripAddonsRepo.remember(tripId, current.addons).catch(() => {});
+      return current.addons;
+    }
+    const entry: TripAddonsEntry = addons
+      ? { addons, status: 'ready', rev }
+      : { addons: current?.addons ?? null, status: 'failed', rev };
+    set((state) => ({ trips: { ...state.trips, [key]: entry } }));
+    return entry.addons;
   },
 
   publish: (tripId, addons) => {

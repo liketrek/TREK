@@ -1,7 +1,6 @@
 import { roadtripPreferencesRepo } from '../repo/roadtripPreferencesRepo'
 import { tourRepo } from '../repo/tourRepo'
 import { tripTagRepo } from '../repo/tripTagRepo'
-import { tripAddonsRepo } from '../repo/tripAddonsRepo'
 /**
  * Trip sync manager — seeds Dexie with trip data for offline use.
  *
@@ -188,15 +187,10 @@ async function syncTrip(tripId: number): Promise<void> {
 
 /** The trip's addons, read and kept for offline use, and put in the store for the open views; null when unreadable. */
 async function readTripAddons(tripId: number): Promise<TripAddon[] | null> {
-  try {
-    const addons = await tripAddonsRepo.list(tripId)
-    useTripAddonsStore.getState().publish(tripId, addons)
-    return addons
-  } catch {
-    // An optional cache like the ones after it: a trip opened offline then shows
-    // the instance switches, until the next sync reads its own.
-    return null
-  }
+  // Through load, so a push that lands while the read is on its way stays. An
+  // optional cache like the ones after it: a trip opened offline without a list
+  // shows the instance switches, until the next sync reads its own.
+  return useTripAddonsStore.getState().load(tripId)
 }
 
 /**
