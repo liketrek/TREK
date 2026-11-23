@@ -74,6 +74,32 @@ describe('NoteFormatToolbar', () => {
     expect(field().value).toBe('already a list')
   })
 
+  it('FE-NOTEBAR-010: pressing the numbered list button on each new line counts up instead of repeating 1.', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const numbered = screen.getByRole('button', { name: /numbered list/i })
+    select(0, 0)
+
+    for (const [i, item] of ['Breakfast', 'Lunch', 'Dinner'].entries()) {
+      if (i > 0) await user.keyboard('{Enter}')
+      await user.click(numbered)
+      await waitFor(() => expect(field().selectionStart).toBe(field().value.length))
+      await user.keyboard(item)
+    }
+
+    expect(field().value).toBe('1. Breakfast\n2. Lunch\n3. Dinner')
+  })
+
+  it('FE-NOTEBAR-011: a multi-line selection gets a marker on every line', async () => {
+    const user = userEvent.setup()
+    render(<Harness initial={'Breakfast\nLunch\nDinner'} />)
+    select(0, 22)
+
+    await user.click(screen.getByRole('button', { name: /numbered list/i }))
+
+    expect(field().value).toBe('1. Breakfast\n2. Lunch\n3. Dinner')
+  })
+
   it('FE-NOTEBAR-005: the link button leaves a placeholder URL to type over', async () => {
     const user = userEvent.setup()
     render(<Harness initial="opening hours" />)

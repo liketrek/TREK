@@ -2,10 +2,11 @@ import { useRef } from 'react'
 import { Bold, Italic, Strikethrough, List, ListOrdered, Link2, Quote, Code } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from './Tooltip'
+import { toggleLineMarker, type LineMarker } from './noteLineMarker'
 
 type FormatAction =
   | { type: 'wrap'; before: string; after: string }
-  | { type: 'line'; prefix: string }
+  | { type: 'line'; marker: LineMarker }
 
 interface Props {
   /** The field being formatted. Must be mounted before a button is pressed. */
@@ -26,9 +27,9 @@ const ACTIONS: Array<{ icon: typeof Bold; labelKey: string; action: FormatAction
   { icon: Strikethrough, labelKey: 'notes.format.strike', action: { type: 'wrap', before: '~~', after: '~~' } },
   { icon: Code, labelKey: 'notes.format.code', action: { type: 'wrap', before: '`', after: '`' } },
   { icon: Link2, labelKey: 'notes.format.link', action: { type: 'wrap', before: '[', after: '](https://)' } },
-  { icon: List, labelKey: 'notes.format.list', action: { type: 'line', prefix: '- ' } },
-  { icon: ListOrdered, labelKey: 'notes.format.orderedList', action: { type: 'line', prefix: '1. ' } },
-  { icon: Quote, labelKey: 'notes.format.quote', action: { type: 'line', prefix: '> ' } },
+  { icon: List, labelKey: 'notes.format.list', action: { type: 'line', marker: 'bullet' } },
+  { icon: ListOrdered, labelKey: 'notes.format.orderedList', action: { type: 'line', marker: 'ordered' } },
+  { icon: Quote, labelKey: 'notes.format.quote', action: { type: 'line', marker: 'quote' } },
 ]
 
 /**
@@ -68,13 +69,9 @@ export default function NoteFormatToolbar({ textareaRef, onChange, compact, vari
         ? [start + action.before.length, end + action.before.length]
         : [start + action.before.length, start + action.before.length]
     } else {
-      const lineStart = value.lastIndexOf('\n', start - 1) + 1
-      const alreadyPrefixed = value.startsWith(action.prefix, lineStart)
-      next = alreadyPrefixed
-        ? value.slice(0, lineStart) + value.slice(lineStart + action.prefix.length)
-        : value.slice(0, lineStart) + action.prefix + value.slice(lineStart)
-      const shift = alreadyPrefixed ? -action.prefix.length : action.prefix.length
-      caret = [Math.max(lineStart, start + shift), Math.max(lineStart, end + shift)]
+      const result = toggleLineMarker(value, start, end, action.marker)
+      next = result.value
+      caret = result.selection
     }
 
     pendingSelection.current = caret
