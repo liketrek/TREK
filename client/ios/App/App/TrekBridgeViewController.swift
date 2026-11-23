@@ -121,7 +121,7 @@ class TrekBridgeViewController: CAPBridgeViewController {
             right: max(0, safe.right - (window.bounds.maxX - frame.maxX))
         )
         let corner = cornerElement(in: frame, window: window)
-        if corner != .zero, cornerWindowSizes.insert(sizeKey(window.bounds.size)).inserted {
+        if corner != .zero, UIDevice.current.model == "iPhone", cornerWindowSizes.insert(sizeKey(window.bounds.size)).inserted {
             setNeedsStatusBarAppearanceUpdate()
         }
         if !force, insets == publishedSafeArea, corner == publishedCorner { return }
@@ -151,7 +151,8 @@ class TrekBridgeViewController: CAPBridgeViewController {
     /// once seen: with the bar hidden the next measure may find no corner, and
     /// showing the bar again would bring the capsule back and start over. The
     /// folded and the unfolded display differ in size, so each keeps its own
-    /// answer, and a device without such an element never hides its bar.
+    /// answer, and a device without such an element never hides its bar. Only
+    /// on an iPhone: an iPad's window controls are such an element as well.
     private var cornerWindowSizes = Set<String>()
 
     private func sizeKey(_ size: CGSize) -> String {
