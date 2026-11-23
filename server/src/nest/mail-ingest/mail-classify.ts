@@ -12,8 +12,8 @@ type MailClass =
   | { kind: 'drop'; reason: 'newsletter' | 'auto_reply' | 'empty_mail' };
 
 const FORWARDING_SENDERS = /forwarding-noreply@google\.com|@accountprotection\.microsoft\.com|@microsoft\.com/i;
-const FORWARDING_SUBJECT =
-  /(forwarding|weiterleitung|transfert|reenv[ií]o|inoltro|doorsturen).*(confirm|bestätig|verif|conferma|bevestig)/i;
+const FORWARDING_WORD = /forwarding|weiterleitung|transfert|reenv[ií]o|inoltro|doorsturen/i;
+const CONFIRM_WORD = /confirm|bestätig|verif|conferma|bevestig/i;
 const CODE_RE = /(?:code|código|codice|kód)\D{0,40}?(\d{6,10})\b/i;
 const AUTO_REPLY_SUBJECT =
   /^(automatic reply|auto(matische)? ?(reply|antwort)|out of (the )?office|abwesenheit|r[ée]ponse automatique|risposta automatica|respuesta autom[áa]tica)/i;
@@ -30,9 +30,12 @@ const EMPTY_BODY_CHARS = 20;
 export function classifyMail(mail: WalkedMail): MailClass {
   const { envelope } = mail;
   const subject = mail.subject ?? '';
-  const fromProvider = FORWARDING_SENDERS.test(envelope.from ?? '') && CODE_RE.test(mail.body);
-  if (FORWARDING_SUBJECT.test(subject) || fromProvider) {
-    return { kind: 'forwarding_confirmation', code: CODE_RE.exec(mail.body)?.[1] ?? null };
+  const code = CODE_RE.exec(mail.body)?.[1] ?? null;
+  // A subject alone is no proof: "Votre transfert aéroport est confirmé" is a booking.
+  const fromProvider = FORWARDING_SENDERS.test(envelope.from ?? '');
+  const subjectSays = asksToConfirmForwarding(subject);
+  if (fromProvider ? subjectSays || code !== null : subjectSays && code !== null) {
+    return { kind: 'forwarding_confirmation', code };
   }
   const autoSubmitted = (envelope.autoSubmitted ?? '').trim().toLowerCase();
   const precedence = (envelope.precedence ?? '').trim().toLowerCase();
@@ -47,6 +50,12 @@ export function classifyMail(mail: WalkedMail): MailClass {
   const bookingSignal = mail.attachments.length > 0 || BOOKING_WORDS.test(`${subject}\n${mail.body}`);
   if (listMail && !bookingSignal) return { kind: 'drop', reason: 'newsletter' };
   return { kind: 'read' };
+}
+
+/** A forwarding word with a confirm word after it, found without rescanning the subject from every forwarding word. */
+function asksToConfirmForwarding(subject: string): boolean {
+  const word = FORWARDING_WORD.exec(subject);
+  return word !== null && CONFIRM_WORD.test(subject.slice(word.index + word[0].length));
 }
 
 /**
@@ -82,6 +91,6 @@ function passesFor(result: string, domain: string): boolean {
 
 /** The bare address of a From header: `Mia <mia@example.com>` is `mia@example.com`. */
 export function addressOf(header: string | null): string | null {
-  const match = /<([^>]+)>/.exec(header ?? '') ?? /([^\s<>"]+@[^\s<>"]+)/.exec(header ?? '');
+  const match = /<([^<>]+)>/.exec(header ?? '') ?? /(?<![^\s<>"])([^\s<>"]+@[^\s<>"]+)/.exec(header ?? '');
   return match ? match[1].trim().toLowerCase() : null;
 }

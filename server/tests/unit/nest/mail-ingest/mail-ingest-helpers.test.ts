@@ -34,6 +34,34 @@ describe('classifyMail', () => {
       'Confirmation code: 612345678. To allow forwarding, click the link.',
     );
     expect(classifyMail(gmail)).toEqual({ kind: 'forwarding_confirmation', code: '612345678' });
+    const relayed = mail({ Subject: 'Mail forwarding verification' }, 'Your code: 612345678, valid for 24 hours.');
+    expect(classifyMail(relayed)).toEqual({ kind: 'forwarding_confirmation', code: '612345678' });
+    const linkOnly = mail(
+      { From: 'forwarding-noreply@google.com', Subject: 'Gmail Forwarding Confirmation' },
+      'Click the link below to allow forwarding to this address.',
+    );
+    expect(classifyMail(linkOnly)).toEqual({ kind: 'forwarding_confirmation', code: null });
+  });
+
+  it('reads a French transfer booking whose subject only sounds like a forwarding confirmation', () => {
+    const body = 'Votre transfert Orly vers Paris le 2030-03-02 à 10:00, réservation TR-4821.';
+    for (const subject of [
+      'Votre transfert aéroport est confirmé',
+      'Transfert Orly Paris : confirmation de réservation',
+    ]) {
+      expect(classifyMail(mail({ Subject: subject }, body)), subject).toEqual({ kind: 'read' });
+    }
+  });
+
+  it('reads a long subject and From header in linear time', () => {
+    const started = Date.now();
+    const long = mail(
+      { From: `${'<'.repeat(60_000)} ${'a'.repeat(60_000)}`, Subject: 'forwarding '.repeat(20_000) },
+      BOOKING_BODY,
+    );
+    expect(classifyMail(long)).toEqual({ kind: 'read' });
+    expect(addressOf(long.envelope.from)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 
   it('drops an automatic reply, but not a confirmation a booking system generated', () => {
@@ -96,6 +124,7 @@ describe('senderVerified', () => {
   it('reads a bare address out of a From header', () => {
     expect(addressOf('Mia <MIA@example.com>')).toBe('mia@example.com');
     expect(addressOf('mia@example.com')).toBe('mia@example.com');
+    expect(addressOf('"Mia, Travel" mia@example.com')).toBe('mia@example.com');
     expect(addressOf(null)).toBeNull();
   });
 });
