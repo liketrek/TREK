@@ -222,13 +222,15 @@ describe('kysely-functions (postgres)', () => {
     expect(sliced.parameters).toEqual([1, 10]);
   });
 
-  it('SQLFPG-022: castIntegerKysely truncates through numeric', () => {
+  it('SQLFPG-022: castIntegerKysely casts the leading digits as bigint, so no text and no id past 2^31 can fail it', () => {
     const compiled = db
       .selectFrom('users')
       .select((eb) => castIntegerKysely(pg, eb, 'display_name').as('v'))
       .compile();
-    expect(compiled.sql).toBe('select cast(trunc(cast("display_name" as numeric)) as integer) as "v" from "users"');
-    expect(compiled.parameters).toEqual([]);
+    expect(compiled.sql).toBe(
+      'select cast(substring(cast("display_name" as text), cast($1 as text)) as bigint) as "v" from "users"',
+    );
+    expect(compiled.parameters).toEqual(['^\\s*([-+]?[0-9]{1,18})']);
   });
 
   it("SQLFPG-026: integerTextEqualsKysely compares the truncated text with the integer, so '14.0' meets 14", () => {
@@ -238,9 +240,9 @@ describe('kysely-functions (postgres)', () => {
       .where((eb) => integerTextEqualsKysely(pg, eb, 'display_name', 'id'))
       .compile();
     expect(compiled.sql).toBe(
-      'select "id" from "users" where cast(trunc(cast("display_name" as numeric)) as integer) = "id"',
+      'select "id" from "users" where cast(substring(cast("display_name" as text), cast($1 as text)) as bigint) = "id"',
     );
-    expect(compiled.parameters).toEqual([]);
+    expect(compiled.parameters).toEqual(['^\\s*([-+]?[0-9]{1,18})']);
     class FakePlatform extends Platform {}
     expect(() =>
       integerTextEqualsKysely(new FakePlatform(), expressionBuilder<ProbeDB, 'users'>(), 'username', 'id'),

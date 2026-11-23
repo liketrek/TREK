@@ -147,15 +147,21 @@ export function concatKysely<DB, TB extends keyof DB>(
   return acc as ExpressionWrapper<DB, TB, string>;
 }
 
+/** The integer a text starts with, at most 18 digits so the `bigint` cast cannot overflow. */
+const PG_LEADING_INTEGER = '^\\s*([-+]?[0-9]{1,18})';
+
 /**
  * The Kysely-expression twin of {@link castInteger}: `CAST(<ref> AS
  * INTEGER)`, for `reservations.accommodation_id` (TEXT) compared against an
  * INTEGER column inside a Kysely statement (RS20/RV2's join shape — a
  * correlated `EXISTS`/scalar-subquery context the MikroORM QueryBuilder
- * cannot express, per the inventory's own T6 ruling). Postgres refuses to
- * cast the text `'14.0'` to an integer, so its branch goes through `numeric`
- * and truncates, as SQLite's cast does: `CAST(trunc(CAST(<ref> AS numeric))
- * AS integer)`.
+ * cannot express, per the inventory's own T6 ruling). SQLite's cast reads
+ * the integer the text starts with (`'14.0'` and `'14abc'` are 14) and never
+ * fails. Postgres refuses `CAST('14.0' AS integer)` and any text that is no
+ * number at all, so its branch casts the leading digits alone, as `bigint`
+ * like the ids it is compared with: `CAST(substring(CAST(<ref> AS text),
+ * '<leading integer>') AS bigint)`. Text without leading digits is NULL
+ * there, where SQLite reads 0; no row has the id 0, so neither matches.
  */
 export function castIntegerKysely<DB, TB extends keyof DB>(
   platform: Platform,
@@ -163,7 +169,10 @@ export function castIntegerKysely<DB, TB extends keyof DB>(
   ref: ReferenceExpression<DB, TB>,
 ): ExpressionWrapper<DB, TB, number> {
   if (isSqlite(platform)) return eb.cast<number>(ref, 'integer');
-  if (isPostgres(platform)) return eb.cast<number>(eb.fn('trunc', [eb.cast(ref, 'numeric')]), 'integer');
+  if (isPostgres(platform)) {
+    const leading = eb.fn<string>('substring', [eb.cast(ref, 'text'), eb.cast(eb.val(PG_LEADING_INTEGER), 'text')]);
+    return eb.cast<number>(leading, 'bigint');
+  }
   return unsupported(platform);
 }
 

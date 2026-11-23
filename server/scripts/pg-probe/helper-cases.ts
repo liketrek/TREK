@@ -370,6 +370,20 @@ export const HELPER_CASES: readonly HelperCase[] = [
     kysely: (p, eb) => eb.case().when(integerTextEqualsKysely(p, eb, 'n', 'n')).then('yes').else('no').end(),
     expect: { equals: 'yes' },
   },
+  ...['abc', '', '14abc'].map(
+    (stored): HelperCase => ({
+      name: `integerTextEqualsKysely reads the text ${JSON.stringify(stored)} by its leading digits without failing`,
+      row: { a: stored, n: 14 },
+      kysely: (p, eb) => eb.case().when(integerTextEqualsKysely(p, eb, 'a', 'n')).then('yes').else('no').end(),
+      expect: { equals: stored === '14abc' ? 'yes' : 'no' },
+    }),
+  ),
+  {
+    name: 'integerTextEqualsKysely matches an id past 2^31',
+    row: { a: '3000000000.0', n: 3000000000 },
+    kysely: (p, eb) => eb.case().when(integerTextEqualsKysely(p, eb, 'a', 'n')).then('yes').else('no').end(),
+    expect: { equals: 'yes' },
+  },
   {
     name: 'integerTextEqualsKysely tells 15.0 from 14',
     row: { a: '15.0', n: 14 },
