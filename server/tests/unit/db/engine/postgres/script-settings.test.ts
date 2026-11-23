@@ -54,9 +54,9 @@ describe('script-settings', () => {
     'SCRIPTSET-001: a PostgreSQL %i server gets the script without SET transaction_timeout, and nothing else changes',
     async (major) => {
       const expected = SCRIPT.replace('SET transaction_timeout = 0;\n', '');
-      for (const size of [1, 3, 7, 64, 1 << 20]) {
-        expect(await filtered(SCRIPT, major, size), `chunks of ${size}`).toBe(expected);
-      }
+      const sizes = [1, 3, 7, 64, 1 << 20];
+      const results = await Promise.all(sizes.map((size) => filtered(SCRIPT, major, size)));
+      results.forEach((result, i) => expect(result, `chunks of ${sizes[i]}`).toBe(expected));
     },
   );
 

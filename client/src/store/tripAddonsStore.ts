@@ -70,7 +70,11 @@ export const useTripAddonsStore = create<TripAddonsState>((set, get) => ({
       // A push that landed meanwhile is newer than this answer and stays, in the
       // store and in the device's copy the answer was written over.
       if (current && current.rev !== rev) {
-        if (addons && current.addons) void tripAddonsRepo.remember(tripId, current.addons).catch(() => {});
+        if (addons && current.addons)
+          void tripAddonsRepo.remember(tripId, current.addons).catch(() => {
+            // The device copy stays one answer behind until the next read of this trip writes it.
+            return undefined;
+          });
         return current.addons;
       }
       const entry: TripAddonsEntry = addons

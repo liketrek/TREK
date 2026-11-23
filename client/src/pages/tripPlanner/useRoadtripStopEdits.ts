@@ -49,8 +49,12 @@ async function writeEditedStop(
   tripId: PlannerBase['tripId'],
   assignments: TripStoreState['assignments'],
   { placeId, assignmentId, dwellMinutes: before }: { placeId: number; assignmentId?: number; dwellMinutes?: number },
-  { stopType, dwellMinutes }: { stopType: RoadtripStopType | null; dwellMinutes: number },
-  { mayEditVisit, refused }: { mayEditVisit: boolean; refused: string },
+  {
+    stopType,
+    dwellMinutes,
+    mayEditVisit,
+    refused,
+  }: { stopType: RoadtripStopType | null; dwellMinutes: number; mayEditVisit: boolean; refused: string },
 ): Promise<void> {
   const visitDayId = savedVisitDayOf(assignments, assignmentId)
   if (assignmentId == null || visitDayId === null) {
@@ -101,7 +105,9 @@ export function useRoadtripStopEdits(options: RoadtripStopEditsOptions) {
     }
     try {
       if (stopDraft.editing) {
-        await writeEditedStop(tripActions, tripId, assignments, stopDraft.editing, { stopType, dwellMinutes }, {
+        await writeEditedStop(tripActions, tripId, assignments, stopDraft.editing, {
+          stopType,
+          dwellMinutes,
           mayEditVisit: can('day_edit', trip),
           refused: t('trip.journal.errorForbidden'),
         })

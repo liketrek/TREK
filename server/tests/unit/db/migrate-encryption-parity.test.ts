@@ -459,7 +459,7 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
       token: string | null;
     }>;
     after.close();
-    expect(decryptWith('new-key', rows[0].token!)).toBe('wanderer-token');
+    expect(decryptWith('new-key', String(rows[0].token))).toBe('wanderer-token');
     expect(rows[1].token).toBeNull();
   }, 30000);
 

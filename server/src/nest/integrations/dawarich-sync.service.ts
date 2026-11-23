@@ -362,11 +362,14 @@ export class DawarichSyncService {
    * @txIndependent one stay at a time after its network read.
    */
   private async rereadUnnamed(nameStay: StayNamer): Promise<void> {
-    for (const stay of nameStay.unnamed.slice(0, MAX_UNNAMED_STAY_REREADS)) {
+    // One after another: a read that finds the budget spent stops the rest.
+    await nameStay.unnamed.slice(0, MAX_UNNAMED_STAY_REREADS).reduce<Promise<boolean>>(async (going, stay) => {
+      if (!(await going)) return false;
       const found = await nameStay.read(stay.startedAt, stay.endedAt);
-      if (found === undefined) return;
+      if (found === undefined) return false;
       if (found !== null) await this.suggestions.renameNewVisit(stay.id, found);
-    }
+      return true;
+    }, Promise.resolve(true));
   }
 
   /**

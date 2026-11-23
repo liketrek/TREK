@@ -688,7 +688,7 @@ describe('Tool: upload_trip_file', () => {
           name: 'upload_trip_file',
           arguments: { tripId: trip.id, filename: 'receipt.pdf', content: pdf, budget_item_id: expense.id },
         }),
-      ) as any;
+      ) as { file: { id: number } };
       expect((await linkRows(data.file.id)).map((l) => l.budget_item_id)).toEqual([expense.id]);
       const foreign = await h.client.callTool({
         name: 'upload_trip_file',
@@ -713,8 +713,8 @@ describe('Tool: upload_trip_file', () => {
               name: 'upload_trip_file',
               arguments: { tripId: trip.id, filename: 'ticket.pdf', content: pdf },
             }),
-          ) as any
-        ).file.id as number;
+          ) as { file: { id: number } }
+        ).file.id;
       const receipt = await upload();
       const refused = await h.client.callTool({
         name: 'update_trip_file',

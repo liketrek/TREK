@@ -1548,10 +1548,12 @@ describe('ReservationsService — referenced ids stay inside the trip', () => {
     const foreignDay = await findRow(orm, Days, { trip: theirs.id }) as { id: number };
     const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id);
 
-    for (const accommodation_id of [3000000000, foreignAcc.id]) {
+    const dropped = async (accommodation_id: number) => {
       const { reservation } = await svc.create(String(mine.id), { title: 'Hotel', type: 'hotel', accommodation_id });
       expect(await findRow(orm, Reservations, { id: reservation.id })).toMatchObject({ accommodation_id: null });
-    }
+    };
+    await dropped(3000000000);
+    await dropped(foreignAcc.id);
   });
 
   it('RESV-SCOPE-011: a stay whose refs resolve to nothing is refused, never written and never dropped in silence', async () => {

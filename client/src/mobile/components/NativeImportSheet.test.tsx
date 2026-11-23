@@ -208,7 +208,9 @@ describe('NativeImportSheet', () => {
           answer = () => resolve([]);
         })
     );
-    act(() => void useTripAddonsStore.getState().load(1));
+    await act(async () => {
+      void useTripAddonsStore.getState().load(1);
+    });
     expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();
     await act(async () => answer());
     expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();

@@ -82,10 +82,7 @@ afterAll(async () => {
 
 describe('Postgres backup round trip', () => {
   it('PGRT-001: a dump restores over a changed schema, dropping what came later, views and functions included', async (ctx) => {
-    if (unfit) {
-      console.log(`PGRT-001 skipped: ${unfit}`);
-      ctx.skip();
-    }
+    if (unfit) ctx.skip(`PGRT-001 skipped: ${unfit}`);
     await asOwner((run) =>
       oneByOne(
         [

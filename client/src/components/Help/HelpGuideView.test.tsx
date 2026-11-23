@@ -29,10 +29,15 @@ describe('HelpGuideView: links', () => {
   })
 
   it('takes an admin guide to the tab its settings sit under', () => {
-    const { unmount } = render(<HelpGuideView guide={getHelpGuide('instance-keys')!} />)
+    const guideOf = (id: string) => {
+      const guide = getHelpGuide(id)
+      if (!guide) throw new Error(`no guide ${id}`)
+      return guide
+    }
+    const { unmount } = render(<HelpGuideView guide={guideOf('instance-keys')} />)
     expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=services')
     unmount()
-    render(<HelpGuideView guide={getHelpGuide('auth-methods')!} />)
+    render(<HelpGuideView guide={guideOf('auth-methods')} />)
     expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=settings')
   })
 })

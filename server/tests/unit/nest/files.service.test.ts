@@ -386,8 +386,12 @@ describe('listFiles', () => {
 
     const files = (await svc.listFiles(trip.id, false, true)) as Record<string, unknown>[];
     expect(files.map((f) => f.id).sort()).toEqual([onBooking.id, onPlace.id, receipt.id].sort());
-    expect(await svc.isAttached((await svc.getFileById(receipt.id, trip.id))!)).toBe(true);
-    expect(await svc.isAttached((await svc.getFileById(loose.id, trip.id))!)).toBe(false);
+    const [receiptRow, looseRow] = await Promise.all([
+      svc.getFileById(receipt.id, trip.id),
+      svc.getFileById(loose.id, trip.id),
+    ]);
+    expect(receiptRow && (await svc.isAttached(receiptRow))).toBe(true);
+    expect(looseRow && (await svc.isAttached(looseRow))).toBe(false);
   });
 });
 

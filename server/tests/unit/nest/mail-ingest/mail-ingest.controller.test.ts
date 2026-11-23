@@ -129,14 +129,16 @@ describe('the mail tools', () => {
 
   it('are listed only while the import is on, since every call needs it', async () => {
     expect(tools).toHaveLength(7);
-    for (const name of tools) {
+    // One tool after another: each takes the next answer of the settings stub.
+    await tools.reduce(async (previous, name) => {
+      await previous;
       const entry = getEntry(MailIngestMcp as unknown as ClassRef, name);
       const when = entry?.kind === 'tool' ? entry.options.when : undefined;
       expect(when, name).toBeTypeOf('function');
       settings.isAvailable.mockResolvedValueOnce(false);
       expect(await when?.(ctx, mcp()), name).toBe(false);
       expect(await when?.(ctx, mcp()), name).toBe(true);
-    }
+    }, Promise.resolve());
   });
 });
 

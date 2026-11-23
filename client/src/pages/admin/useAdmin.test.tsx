@@ -1031,9 +1031,13 @@ describe('useAdmin', () => {
     await waitFor(() => expect(result.current.admin.isLoading).toBe(false));
     expect(result.current.admin.activeTab).toBe('security');
 
-    act(() => void result.current.navigate('/admin?tab=services'));
+    await act(async () => {
+      await result.current.navigate('/admin?tab=services');
+    });
     expect(result.current.admin.activeTab).toBe('services');
-    act(() => void result.current.navigate('/admin?tab=settings'));
+    await act(async () => {
+      await result.current.navigate('/admin?tab=settings');
+    });
     expect(result.current.admin.activeTab).toBe('security');
     act(() => result.current.admin.setActiveTab('audit'));
     expect(result.current.admin.activeTab).toBe('audit');

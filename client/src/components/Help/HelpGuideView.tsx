@@ -18,6 +18,11 @@ const prefersReducedMotion = (): boolean =>
 const stepMedia = (guide: HelpGuide, n: number): string =>
   guide.media.clips?.includes(n) && !prefersReducedMotion() ? helpMedia.clip(guide.id, n) : helpMedia.step(guide.id, n)
 
+/** Where a guide's "go to" link leads: its own route, else its screen's. */
+function routeOf(guide: HelpGuide, screen: ReturnType<typeof getHelpContext>): string | undefined {
+  return guide.route ?? screen?.route
+}
+
 /**
  * One guide, top to bottom: a header card that says where you are and how big
  * the task is, the steps as a numbered rail with a picture each, what the
@@ -38,7 +43,7 @@ export default function HelpGuideView({ guide }: { guide: HelpGuide }): React.Re
   const related = (guide.related ?? []).map(getHelpGuide).filter((g): g is HelpGuide => g !== null)
   const Icon = helpIcon(guide.icon)
   const ScreenIcon = screen ? helpIcon(screen.icon) : Icon
-  const screenRoute = useScreenRoute(guide.route ?? screen?.route)
+  const screenRoute = useScreenRoute(routeOf(guide, screen))
 
   return (
     <div className="trek-help-view flex flex-col gap-6">
