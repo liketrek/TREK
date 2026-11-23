@@ -211,6 +211,31 @@ describe('FlightLivePollService.poll', () => {
     );
   });
 
+  it('FLPOLL-015: a booking scheduled later is told its delay once it is late, after the earlier one was told', async () => {
+    const early = await seedFlight();
+    const later = await seedFlight('Berlin later', '12:10');
+    const delays = () =>
+      notifications.send.mock.calls
+        .map((call) => (call as unknown as [{ event: string; targetId: number; params: { delay: string } }])[0])
+        .filter((sent) => sent.event === 'flight_delayed')
+        .map((sent) => [sent.targetId, sent.params.delay]);
+
+    feed.lookup.mockResolvedValueOnce(seen(aircraft({ alt_baro: 'ground', lat: 50.04, lon: 8.57, gs: 12 })));
+    await poll.poll(at(DEP + 16 * MIN));
+    expect(delays()).toEqual([[early.trip.id, '16']]);
+
+    notifications.send.mockClear();
+    feed.lookup.mockResolvedValueOnce(seen(aircraft()));
+    await poll.poll(at(DEP + 40 * MIN));
+    expect(delays()).toEqual([[later.trip.id, '30']]);
+    expect(await findRow(orm, FlightLiveStates, { callsign: 'DLH100' })).toMatchObject({ delay_notified: 1 });
+
+    notifications.send.mockClear();
+    feed.lookup.mockResolvedValueOnce(seen(aircraft({ alt_baro: 30000, lat: 51.2, lon: 11, gs: 450 })));
+    await poll.poll(at(DEP + 50 * MIN));
+    expect(delays()).toEqual([]);
+  });
+
   it('FLPOLL-005: landed is told once and the flight is asked about no more', async () => {
     const { trip } = await seedFlight();
     feed.lookup.mockResolvedValueOnce(seen(aircraft()));

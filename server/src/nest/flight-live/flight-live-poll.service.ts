@@ -263,27 +263,40 @@ export class FlightLivePollService {
       result.changed++;
       this.broadcast(head.legs, next, at);
     }
-    await this.announce(notices.events, head.legs, next, at);
+    await this.announce(notices.events, notices.delayed, head.legs, next, at);
     await this.pollEach(rest, clock, result);
   }
 
-  /** The notices this poll owes the travellers, each at most once per flight, and the flags that record them. */
+  /**
+   * The notices this poll owes the travellers, each at most once per flight, and the flags that record them.
+   * Legs sharing the state can hold different schedules, so a delay is told to each leg once its own delay
+   * crosses the line; a leg told before is one whose delay had crossed it on the stored evidence already.
+   */
   private dueNotices(
     prev: LiveState,
     next: LiveState,
     legs: readonly TripLeg[],
     now: number,
-  ): { events: NotifEventType[]; flags: Pick<LiveState, 'departed_notified' | 'landed_notified' | 'delay_notified'> } {
+  ): {
+    events: NotifEventType[];
+    delayed: ReadonlySet<TripLeg>;
+    flags: Pick<LiveState, 'departed_notified' | 'landed_notified' | 'delay_notified'>;
+  } {
     const events: NotifEventType[] = [];
     const flags = {
       departed_notified: prev.departed_notified,
       landed_notified: prev.landed_notified,
       delay_notified: prev.delay_notified,
     };
-    const delays = legs.map((leg) => departureDelay(leg, next, now)).filter((d): d is number => d !== null);
-    if (!flags.delay_notified && delays.some((d) => d >= DELAY_NOTICE_MIN)) {
-      events.push('flight_delayed');
-      flags.delay_notified = true;
+    const delayed = new Set<TripLeg>();
+    if (!flags.delay_notified) {
+      const late = (delay: number | null) => (delay ?? 0) >= DELAY_NOTICE_MIN;
+      const scheduled = legs.filter((leg) => leg.scheduled_departure !== null);
+      const toldBefore = scheduled.filter((leg) => late(departureDelay(leg, prev, prev.last_seen_at ?? now)));
+      for (const leg of scheduled) {
+        if (!toldBefore.includes(leg) && late(departureDelay(leg, next, now))) delayed.add(leg);
+      }
+      flags.delay_notified = scheduled.length > 0 && toldBefore.length + delayed.size === scheduled.length;
     }
     if (!flags.departed_notified && next.phase === 'airborne') {
       events.push('flight_departed');
@@ -295,7 +308,7 @@ export class FlightLivePollService {
       // Seen only once it was down: departing now would be news from the past.
       flags.departed_notified = true;
     }
-    return { events, flags };
+    return { events, delayed, flags };
   }
 
   /** The changed flight to every trip holding one of its legs, as the client reads it. */
@@ -315,17 +328,17 @@ export class FlightLivePollService {
    */
   private async announce(
     events: readonly NotifEventType[],
+    delayed: ReadonlySet<TripLeg>,
     legs: readonly TripLeg[],
     state: LiveState,
     now: number,
   ): Promise<void> {
-    if (events.length === 0) return;
+    if (events.length === 0 && delayed.size === 0) return;
     // One leg after the other, as every other sender in the codebase does: a notice writes its rows.
     await legs.reduce(async (previous, leg) => {
       await previous;
       const delay = departureDelay(leg, state, now);
-      // Legs sharing the state can hold different schedules: a delay is news only where it is one.
-      const legEvents = events.filter((event) => event !== 'flight_delayed' || (delay ?? 0) >= DELAY_NOTICE_MIN);
+      const legEvents: NotifEventType[] = delayed.has(leg) ? ['flight_delayed', ...events] : [...events];
       if (legEvents.length === 0) return;
       const params: Record<string, string> = {
         flight: leg.flight_number,
