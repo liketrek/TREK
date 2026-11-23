@@ -546,6 +546,20 @@ describe('what a mail names', () => {
     } as AiReading);
   }
 
+  it('adds both legs of a round trip under one reference the AI and the data agree on', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    machine.mockResolvedValue([FLIGHT, RETURN]);
+    aiReads([FLIGHT, RETURN]);
+
+    const entries = await entriesOf(await forward(user.id, eml('round-trip', 'Fwd: Your flights', BOTH)));
+    expect(entries.map((entry) => [entry.resolution, entry.reason])).toEqual([
+      ['auto_applied', null],
+      ['auto_applied', null],
+    ]);
+    expect(await countRows(orm(), Reservations, { trip: trip.id })).toBe(2);
+  });
+
   it('announces the place it created as the place routes do, with its name and position', async () => {
     const user = await person();
     const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });

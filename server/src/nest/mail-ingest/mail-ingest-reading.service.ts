@@ -138,7 +138,7 @@ export class MailIngestReadingService {
       .flatMap((booking, i) => mapped[i].map((item) => ({ booking, item: withTextReference(item) })))
       .slice(0, MAIL_INGEST_LIMITS.storedBookings)
       .map(({ booking, item }) => {
-        const match = machine.find((candidate) => sameBooking(candidate, item));
+        const match = machineMatch(machine, item);
         const disagrees = match !== undefined && criticalDiffers(match, item);
         return {
           item: match && !disagrees ? match : item,
@@ -152,6 +152,15 @@ export class MailIngestReadingService {
         };
       });
   }
+}
+
+/** The machine-read booking an AI item stands for: of several under one reference, the one it agrees with. */
+function machineMatch(
+  machine: readonly BookingImportPreviewItem[],
+  item: BookingImportPreviewItem,
+): BookingImportPreviewItem | undefined {
+  const same = machine.filter((candidate) => sameBooking(candidate, item));
+  return same.find((candidate) => !criticalDiffers(candidate, item)) ?? same[0];
 }
 
 function fromMachine(item: BookingImportPreviewItem): MailDraft {
