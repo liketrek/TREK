@@ -98,7 +98,7 @@ export class MailIngestAddressService {
 
   /** The person's own live address, made now when they have none: an uploaded mail goes through it. */
   async ensureOwn(userId: number): Promise<MailIngestAddressRow> {
-    return (await this.addresses.findLive(userId, null)) ?? (await this.rotate(userId, null));
+    return (await this.addresses.findLive(userId, null)) ?? (await this.issue(userId, null, false));
   }
 
   /** Whether an address takes mail: not revoked, its person's import on, a trip address's owner still an editor. */
@@ -119,9 +119,20 @@ export class MailIngestAddressService {
     await this.addresses.touchUsed(addressId, dbNow());
   }
 
-  private async rotate(userId: number, tripId: number | null): Promise<MailIngestAddressRow> {
+  private rotate(userId: number, tripId: number | null): Promise<MailIngestAddressRow> {
+    return this.issue(userId, tripId, true);
+  }
+
+  /**
+   * A new address for the person, replacing the live one, or with `replace`
+   * off only when there is none yet: two first looks at once then agree on
+   * one address instead of the second revoking the one the first showed.
+   */
+  private async issue(userId: number, tripId: number | null, replace: boolean): Promise<MailIngestAddressRow> {
     const token = newToken();
     const id = await this.uow.transactional(async () => {
+      const live = replace ? null : await this.addresses.findLive(userId, tripId);
+      if (live) return live.id;
       const now = dbNow();
       await this.addresses.revokeLive(userId, tripId, now);
       return this.addresses.insertAddress({

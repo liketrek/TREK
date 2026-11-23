@@ -15,7 +15,7 @@ import { MailIngestSettingsService } from '../../../../src/nest/mail-ingest/mail
 import { MailIngestModule } from '../../../../src/nest/mail-ingest/mail-ingest.module';
 import { PermissionsService } from '../../../../src/nest/permissions/permissions.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { deleteRows, findRow } from '../../../helpers/factories/rows';
+import { countRows, deleteRows, findRow } from '../../../helpers/factories/rows';
 import { setAppSetting } from '../../../helpers/factories/settings';
 import { addTripMember, makeTrip } from '../../../helpers/factories/trips';
 import { makeUser } from '../../../helpers/factories/users';
@@ -85,6 +85,18 @@ describe('a person’s own address', () => {
     await setAppSetting(orm(), 'mail_ingest_address_template', '');
     await expect(addresses().renewOwn(user.id)).rejects.toThrow(DomainError);
     expect(await addresses().ownAddress(user.id)).toBeNull();
+  });
+
+  it('is made once when two views look at it first at the same time, and both show the one that works', async () => {
+    const { user } = await makeUser(orm());
+    const [a, b] = await Promise.all([
+      addresses().ownAddressForCard(user.id, true),
+      addresses().ownAddressForCard(user.id, true),
+    ]);
+    expect(a?.address).toBeTruthy();
+    expect(b?.address).toBe(a?.address);
+    expect(await countRows(orm(), MailIngestAddresses, { user_id: user.id })).toBe(1);
+    expect((await addresses().resolveAll([a?.address ?? '']))[0]?.user_id).toBe(user.id);
   });
 
   it('takes no mail while its person has the import off', async () => {
