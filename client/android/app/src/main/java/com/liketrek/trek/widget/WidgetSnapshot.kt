@@ -44,7 +44,7 @@ data class WidgetSnapshot(
         if (days.isEmpty()) return this
         val key = date.toString()
         return copy(
-            today = days.firstOrNull { it.date == key },
+            today = if (today?.date == key) today else days.firstOrNull { it.date == key },
             bookings = bookings.filter { (it.date ?: key) >= key },
         )
     }

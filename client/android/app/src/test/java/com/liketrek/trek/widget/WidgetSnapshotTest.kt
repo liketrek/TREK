@@ -124,6 +124,21 @@ class WidgetSnapshotTest {
     }
 
     @Test
+    fun keepsEveryStopOfTheDayItWasWrittenOn() {
+        val json = """{"trip":{"title":"T","start":"2026-11-06","end":"2026-11-07","path":"/trips/1"},
+            "today":{"date":"2026-11-06","dayLabel":"Day 1 of 2","stops":[
+              {"time":"09:00","name":"Museum","minutes":540},{"time":"21:00","name":"Concert","minutes":1260}]},
+            "days":[
+              {"date":"2026-11-06","dayLabel":"Day 1 of 2","stops":[{"time":"09:00","name":"Museum","minutes":540}]},
+              {"date":"2026-11-07","dayLabel":"Day 2 of 2","stops":[{"time":"10:00","name":"Harbour","minutes":600}]}
+            ],
+            "labels":{}}"""
+        val snapshot = WidgetSnapshot.parse(json)!!
+        assertEquals(listOf("Museum", "Concert"), snapshot.on(LocalDate.of(2026, 11, 6)).today!!.stops.map { it.name })
+        assertEquals("Day 2 of 2", snapshot.on(LocalDate.of(2026, 11, 7)).today!!.dayLabel)
+    }
+
+    @Test
     fun aSnapshotWithoutDaysReadsAsWritten() {
         val snapshot = WidgetSnapshot.parse(WidgetSamples.json(running = true, now = today))!!
         assertTrue(snapshot.days.isEmpty())

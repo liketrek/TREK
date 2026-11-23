@@ -320,7 +320,7 @@ struct WidgetSnapshot: Codable {
         guard let days, !days.isEmpty else { return self }
         let key = WidgetSnapshot.key(date)
         var snapshot = self
-        snapshot.today = days.first { $0.date == key }
+        if today?.date != key { snapshot.today = days.first { $0.date == key } }
         snapshot.bookings = bookings?.filter { ($0.date ?? key) >= key }
         return snapshot
     }
