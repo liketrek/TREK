@@ -431,6 +431,38 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     expect(output).toContain('All secrets successfully re-encrypted.');
   }, 30000);
 
+  // wanderer.service.ts stores the token with maybe_encrypt_api_key; missed by a
+  // rotation, the connection still reads as connected but calls go out without it.
+  it('ROTPAR-017: re-encrypts the wanderer token', () => {
+    const wanderer = fs.readFileSync(path.join(SERVER_ROOT, 'src', 'nest', 'wanderer', 'wanderer.service.ts'), 'utf8');
+    expect(wanderer).toContain('maybe_encrypt_api_key(typed)');
+    const seed = new Database(dbPath);
+    seed.exec(BASE_SCHEMA);
+    seed.exec('CREATE TABLE wanderer_connections (user_id INTEGER PRIMARY KEY, url TEXT NOT NULL, token TEXT)');
+    seed
+      .prepare('INSERT INTO wanderer_connections (user_id, url, token) VALUES (1, ?, ?)')
+      .run('https://wanderer.example', encryptWith('old-key', 'wanderer-token'));
+    seed.prepare("INSERT INTO wanderer_connections (user_id, url, token) VALUES (2, 'https://w2.example', NULL)").run();
+    seed.close();
+
+    execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
+      cwd: SERVER_ROOT,
+      env: { ...process.env, DB_PATH: dbPath },
+      input: ['old-key', 'new-key', 'yes', ''].join(String.fromCharCode(10)),
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+
+    const after = new Database(dbPath, { readonly: true });
+    const rows = after.prepare('SELECT user_id, token FROM wanderer_connections ORDER BY user_id').all() as Array<{
+      user_id: number;
+      token: string | null;
+    }>;
+    after.close();
+    expect(decryptWith('new-key', rows[0].token!)).toBe('wanderer-token');
+    expect(rows[1].token).toBeNull();
+  }, 30000);
+
   it('ROTPAR-013: re-encrypts the AI Parsing addon key and moves the key file to the new key', () => {
     const seed = new Database(dbPath);
     seed.exec(BASE_SCHEMA);

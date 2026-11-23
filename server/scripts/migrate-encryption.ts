@@ -562,6 +562,21 @@ async function rotateSecrets(store: SecretStore, oldKey: string, newKey: string)
     }
   }
 
+  // --- wanderer_connections: token ---
+  // One row per user, like dawarich_connections. Left out of a rotation, the
+  // connection still shows as connected but every call goes out without a token.
+  if (await store.tableExists('wanderer_connections')) {
+    const connections = await store.all<{ user_id: number; token: string }>(
+      'SELECT user_id, token FROM wanderer_connections WHERE token IS NOT NULL',
+    );
+    for (const row of connections) {
+      const newVal = migrateApiKeyValue(row.token, `wanderer_connections[${row.user_id}].token`);
+      if (newVal !== null) {
+        await store.run('UPDATE wanderer_connections SET token = ? WHERE user_id = ?', [newVal, row.user_id]);
+      }
+    }
+  }
+
   // --- trek_photos: passphrase ---
   const photos = await store.all<{ id: number; passphrase: string }>(
     'SELECT id, passphrase FROM trek_photos WHERE passphrase IS NOT NULL',
