@@ -557,6 +557,24 @@ describe('what a mail names', () => {
     });
   });
 
+  it('sees a booking at the same wall time as a look-alike whatever zone the server runs in', async () => {
+    const zone = process.env.TZ;
+    process.env.TZ = 'Asia/Tokyo';
+    try {
+      const user = await person();
+      await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+      machine.mockResolvedValue([DINNER]);
+      await forward(user.id, eml('dinner', 'Fwd: Your table', BOTH));
+      machine.mockResolvedValue([{ ...DINNER, title: 'Sora dinner' }]);
+
+      const [again] = await entriesOf(await forward(user.id, eml('dinner-again', 'Fwd: Your table', BOTH)));
+      expect(again).toMatchObject({ resolution: 'pending', reason: 'possible_duplicate' });
+    } finally {
+      if (zone === undefined) delete process.env.TZ;
+      else process.env.TZ = zone;
+    }
+  });
+
 });
 
 describe('a mail that keeps failing', () => {

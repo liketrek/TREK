@@ -260,7 +260,9 @@ export class MailIngestProcessService {
   }
 
   private async looksAlike(tripId: number, draft: MailDraft): Promise<boolean> {
-    const start = Date.parse(bookingStart(draft.item) ?? '');
+    // A wall time without a zone, compared as text: shifted as UTC, it stays that wall time.
+    const wall = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/.exec(bookingStart(draft.item) ?? '');
+    const start = wall ? Date.parse(`${wall[1]}T${wall[2] ?? '00:00'}:00Z`) : Number.NaN;
     const window = (offset: number) =>
       Number.isFinite(start) ? new Date(start + offset).toISOString().slice(0, 16) : null;
     return this.candidates.tripHasSimilar(tripId, {
